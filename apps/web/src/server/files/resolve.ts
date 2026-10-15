@@ -1,6 +1,6 @@
 /* The palette a name leads to, as its page's address does: an old grabient.com id through the migration maps
-   (seo/legacy.ts), then the name itself, decoded and written again canonical. A request never fits an old palette; one
-   the maps lack leads nowhere. */
+   (seo/legacy.ts), then the name itself, decoded and written again canonical. An old palette the maps lack leads
+   nowhere here: the Worker fits one at its page's and its share card's address alone (seo/legacy-fit.ts). */
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { legacySeed } from "../seo/legacy.ts";

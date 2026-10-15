@@ -8,10 +8,11 @@ import { devices, expect, type Page, type Route, test } from "@playwright/test";
 test.describe.configure({ timeout: 60_000 });
 
 const SEED = "kS7CQ31Do6asvY-";
-const here = (page: Page) => {
-  const url = new URL(page.url());
+const addressOf = (href: string) => {
+  const url = new URL(href);
   return url.pathname + url.search;
 };
+const here = (page: Page) => addressOf(page.url());
 const entries = (page: Page) => page.evaluate(() => history.length);
 
 /** Opens a palette's page and waits for the editor to stand where the static page was. */
@@ -624,16 +625,77 @@ test("the header's bar carries the palette from the server's render", async ({ r
   expect(header).toContain(first);
 });
 
-test("an old link no map holds is fitted in the browser, and its address becomes the palette's", async ({
+const OLD = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa?style=angularGradient";
+const FITTED = "/kYq5wTxGc3MlDuPtT7O58281NAs8?style=angularGradient";
+// the share card the old page named
+const OLD_CARD = `/api/og?seed=${OLD.slice(1).replace("?", "&v=16&")}`;
+
+test("an old link no map holds lands on its palette with no JavaScript, by a redirect the edge keeps", {
+  tag: "@served"
+}, async ({ request }) => {
+  // a link checker's HEAD is fitted once, and the GET after it is answered from the edge
+  const moved = [
+    await request.head(OLD, { maxRedirects: 0 }),
+    await request.get(OLD, { maxRedirects: 0 })
+  ];
+  expect(
+    moved.map(answer => [
+      answer.status(),
+      addressOf(answer.headers().location ?? ""),
+      answer.headers()["cache-control"],
+      answer.headers()["x-grabient-cache"]
+    ])
+  ).toEqual([
+    [301, FITTED, "public, max-age=86400", "MISS"],
+    [301, FITTED, "public, max-age=86400", "HIT"]
+  ]);
+  const landed = await request.get(OLD);
+  expect([landed.status(), addressOf(landed.url())]).toEqual([200, FITTED]);
+  const html = await landed.text();
+  expect(html).toContain('class="palette-static"');
+  expect(html).toMatch(/<h1 dir="auto">[^<]+<\/h1>/);
+});
+
+test("the share card an old page named leads to its palette's card", {
+  tag: "@served"
+}, async ({ request }) => {
+  const moved = await request.get(OLD_CARD, { maxRedirects: 0 });
+  expect([moved.status(), addressOf(moved.headers().location ?? "")]).toEqual([
+    301,
+    `/api/og?seed=${FITTED.slice(1).replace("?", "&v=k4&")}`
+  ]);
+  const drawn = await request.get(OLD_CARD);
+  expect([drawn.status(), drawn.headers()["content-type"]]).toEqual([200, "image/png"]);
+});
+
+test("an old link the Worker does not fit is fitted in the browser, and its share card is the site's card", async ({
   page,
   request
 }) => {
-  const old = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa?style=angularGradient";
-  // the server never fits one: to a crawler it is no page
-  expect((await request.get(old, { maxRedirects: 0 })).status()).toBe(404);
-  await page.goto(old);
+  // past its address's minute of fits (`oldLinkFit`) an old link is the app's page, which the browser fits; vite dev
+  // keeps no answer, so each ask is a fit
+  const from = {
+    "CF-Connecting-IP": `2001:db8:${Math.floor(Math.random() * 0xffff).toString(16)}::1`
+  };
+  let status = 301;
+  for (let tries = 0; status === 301 && tries < 200; tries++) {
+    status = (await request.get(OLD, { headers: from, maxRedirects: 0 })).status();
+  }
+  expect(status).toBe(404);
+  // a link preview of the old page still shows a picture
+  const card = await request.get(OLD_CARD, { headers: from, maxRedirects: 0 });
+  expect([
+    card.status(),
+    addressOf(card.headers().location ?? ""),
+    card.headers()["cache-control"]
+  ]).toEqual([302, "/grabient.png", "public, max-age=300"]);
+  const shown = await request.get(OLD_CARD, { headers: from });
+  expect([shown.status(), shown.headers()["content-type"]]).toEqual([200, "image/png"]);
+  await page.setExtraHTTPHeaders(from);
+  // the server still answers the page, so the palette it lands on is the browser's fit
+  expect((await page.goto(OLD))?.status()).toBe(404);
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
-  expect(here(page)).toBe("/kYq5wTxGc3MlDuPtT7O58281NAs8?style=angularGradient");
+  expect(here(page)).toBe(FITTED);
 });
 
 test("an old id nobody can read is a page not found, never a page named by the id", async ({

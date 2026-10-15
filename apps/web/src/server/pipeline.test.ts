@@ -261,11 +261,102 @@ describe("an old grabient.com link", () => {
     expect(checked).toBeGreaterThan(6000);
   });
 
-  test("an old id no map holds is its own page, for the reader's browser to fit", async () => {
-    const response = await get("/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa");
-    expect(response.status).toBe(200);
+  const OLD = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa";
+  const FITTED = "/kYq5wTxGc3MlDuPtT7O58281NAs8";
+
+  test("an old seed no map holds leads to the palette its colors fit, at its view, by a redirect the edge keeps", async () => {
+    const crawler = { headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)" } };
+    const answers = [
+      await get(`${OLD}?style=angularGradient`),
+      await get(`${OLD}?style=angularGradient`, crawler)
+    ];
+    expect(
+      answers.map(response => [
+        response.status,
+        location(response),
+        response.headers.get("Cache-Control"),
+        response.headers.get("X-Grabient-Cache")
+      ])
+    ).toEqual([
+      [301, `${FITTED}?style=angularGradient`, "public, max-age=86400", "MISS"],
+      [301, `${FITTED}?style=angularGradient`, "public, max-age=86400", "HIT"]
+    ]);
+    expect([asked, [...cache.kept.keys()]]).toEqual([
+      [],
+      [`https://grabient.test${OLD}?__build=b1&style=angularGradient`]
+    ]);
+    expect(counted).toEqual(["legacy fitted reader", "legacy fitted crawler"]);
+  });
+
+  test("in the request's language, from the one address of its seed and view", async () => {
+    const japanese = await get(`/ja${OLD}`);
+    expect([japanese.status, location(japanese)]).toEqual([301, `/ja${FITTED}`]);
+    // its editor's address, and a query its page does not read, lead first to that address, which no cache keeps
+    const edit = await get(`${OLD}/edit?page=2&angle=90&steps=5`);
+    expect([edit.status, location(edit), edit.headers.get("Cache-Control")]).toEqual([
+      301,
+      `${OLD}?steps=5`,
+      "no-store"
+    ]);
+    expect(asked).toEqual([]);
+  });
+
+  test("its old share card leads to the fitted palette's card at its view, kept by the seed and the view alone", async () => {
+    const card = `/api/og?seed=${FITTED.slice(1)}&v=k4&style=angularGradient`;
+    const answers = [
+      await get(`/api/og?seed=${OLD.slice(1)}&v=16&style=angularGradient`),
+      await get(`/api/og?style=angularGradient&junk=1&seed=${OLD.slice(1)}`)
+    ];
+    expect(
+      answers.map(response => [
+        response.status,
+        location(response),
+        response.headers.get("Cache-Control"),
+        response.headers.get("X-Grabient-Cache")
+      ])
+    ).toEqual([
+      [301, card, "public, max-age=86400", "MISS"],
+      [301, card, "public, max-age=86400", "HIT"]
+    ]);
+    expect([asked, [...cache.kept.keys()]]).toEqual([
+      [],
+      [`https://grabient.test/api/og?__build=b1&seed=${OLD.slice(1)}&style=angularGradient`]
+    ]);
+    // the card of an old seed a map holds is drawn by its route
+    const png = () => new Response("png", { headers: { ...PAGE, "Content-Type": "image/png" } });
+    await get("/api/og?seed=_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu&v=16", {}, png);
     expect(asked).toHaveLength(1);
-    expect(counted).toEqual(["legacy fitted reader"]);
+  });
+
+  test("one the Worker will not fit: its page is the app's, which the reader's browser fits, and its card the site's", async () => {
+    // the site's day of fits is spent
+    const spent = {
+      idFromName: (name: string) => name,
+      get: () => ({
+        fetch: async () =>
+          Response.json(
+            { success: false, limit: 1, remaining: 0, reset: Date.now() / 1000 + 60, results: [] },
+            { status: 429 }
+          )
+      })
+    };
+    const worker = { ...env, RATE_LIMITER: spent } as unknown as Env;
+    const response = await get(OLD, {}, () => page(404), worker);
+    expect([response.status, asked.length, cache.kept.size]).toEqual([404, 1, 0]);
+    // a link preview of the old page shows the site's card for a few minutes, as for a card that is not drawn now
+    const card = await get(`/api/og?seed=${OLD.slice(1)}&v=16`, {}, () => page(404), worker);
+    expect([
+      card.status,
+      location(card),
+      card.headers.get("Cache-Control"),
+      card.headers.get("CDN-Cache-Control")
+    ]).toEqual([302, "/grabient.png", "public, max-age=300", "no-store"]);
+    expect([asked.length, cache.kept.size]).toEqual([1, 0]);
+    expect(counted).toEqual([
+      "legacy fitted reader",
+      "limit oldLinkFitDaily site",
+      "limit oldLinkFitDaily site"
+    ]);
   });
 });
 
@@ -310,7 +401,7 @@ describe("the edge cache", () => {
     ]);
   });
 
-  test("a HEAD reads what a GET kept and keeps nothing itself", async () => {
+  test("a HEAD reads what a GET kept and keeps no page itself, whose body a GET would miss", async () => {
     const miss = await get("/about", { method: "HEAD" });
     expect(miss.headers.get("X-Grabient-Cache")).toBe("MISS");
     expect(cache.kept.size).toBe(0);
@@ -337,6 +428,55 @@ describe("the edge cache", () => {
     await get("/about", {}, app);
     expect(cache.kept.size).toBe(0);
     expect(asked).toHaveLength(2);
+  });
+
+  const moved = () =>
+    new Response(null, {
+      status: 301,
+      headers: {
+        Location: "/kS7Q8Yy5S_SChv0",
+        "Cache-Control": "public, max-age=86400",
+        "CDN-Cache-Control": "max-age=2592000"
+      }
+    });
+
+  test("keeps a permanent redirect that names its lifetime, and gives the browser its own", async () => {
+    const answers = [await get("/about", {}, moved), await get("/about", {}, moved)];
+    expect(
+      answers.map(response => [
+        response.status,
+        location(response),
+        response.headers.get("Cache-Control"),
+        response.headers.get("X-Grabient-Cache")
+      ])
+    ).toEqual([
+      [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "MISS"],
+      [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "HIT"]
+    ]);
+    expect(asked).toHaveLength(1);
+  });
+
+  test("keeps a permanent redirect a HEAD asked for too, which has no body a GET could miss", async () => {
+    // a link checker asks with a HEAD first
+    const answers = [
+      await get("/about", { method: "HEAD" }, moved),
+      await get("/about", {}, moved)
+    ];
+    expect(
+      answers.map(response => [
+        response.status,
+        location(response),
+        response.headers.get("Cache-Control"),
+        response.headers.get("X-Grabient-Cache")
+      ])
+    ).toEqual([
+      [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "MISS"],
+      [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "HIT"]
+    ]);
+    expect([asked.length, [...cache.kept.keys()]]).toEqual([
+      1,
+      ["https://grabient.test/about?__build=b1"]
+    ]);
   });
 
   test("keeps every address of one file under one key, which no stray parameter enters", async () => {
@@ -545,7 +685,7 @@ test("every answer carries the site's headers", async () => {
   expect(file.headers.get("Access-Control-Allow-Origin")).toBe("*");
 });
 
-test("no browser keeps a redirect, but for the minutes a picture's stand-in names", async () => {
+test("no browser keeps a redirect the edge may not keep, but for the minutes a picture's stand-in names", async () => {
   const to = (headers: Record<string, string>) => () =>
     new Response(null, { status: 302, headers: { Location: "/grabient.png", ...headers } });
   const standIn = await get(

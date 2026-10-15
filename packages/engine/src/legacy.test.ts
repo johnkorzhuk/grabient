@@ -118,13 +118,15 @@ test("an old address resolves through the maps, directly or by its `_` form, and
 test("the browser's fit of an unmapped old link and the strip fitter give the same seeds", () => {
   for (const f of legacy.fits.slice(0, 4)) {
     const fit = importLegacy(decodeLegacySeed(f.seed) as LegacyPalette);
-    expect({
-      fittedSeed: encodePalette(fit.palette),
-      K: fit.K,
-      maxDE: fit.maxDE,
-      meanDE: fit.meanDE,
-      likeSeed: likeSeed(f.seed)
-    }).toEqual({
+    expect(
+      fit && {
+        fittedSeed: encodePalette(fit.palette),
+        K: fit.K,
+        maxDE: fit.maxDE,
+        meanDE: fit.meanDE,
+        likeSeed: likeSeed(f.seed)
+      }
+    ).toEqual({
       fittedSeed: f.fittedSeed,
       K: f.K,
       maxDE: f.maxDE,
@@ -142,13 +144,23 @@ test("the browser's fit of an unmapped old link and the strip fitter give the sa
       Array.from({ length: 48 }, (_, i) => sampleSrgb(P, i / 47)),
       { kMax: 6, iters: 120 }
     );
-    expect([encodePalette(P), encodePalette(fit.palette), fit.K, fit.maxDE, fit.meanDE]).toEqual([
-      c.source,
-      c.fittedSeed,
-      c.K,
-      c.maxDE,
-      c.meanDE
-    ]);
+    expect([
+      encodePalette(P),
+      fit && encodePalette(fit.palette),
+      fit?.K,
+      fit?.maxDE,
+      fit?.meanDE
+    ]).toEqual([c.source, c.fittedSeed, c.K, c.maxDE, c.meanDE]);
   });
   expect(likeSeed("kSPTq14zC4voJMs")).toBe("kSPTq14zC4voJMs");
+});
+
+test("a fit given a budget measures its error at most that often, or answers null and never a lesser fit", () => {
+  // a black strip's fit measures its error 4,892 times
+  const black = decodeLegacySeed("_gAAgAAgAAgAAgAAgAAgAAgAAgAAgAAgAAgAA") as LegacyPalette;
+  expect(importLegacy(black, 4891)).toBeNull();
+  const fit = importLegacy(black, 4892);
+  expect(fit && encodePalette(fit.palette)).toBe(
+    legacy.fits.find(f => f.seed === "_gAAgAAgAAgAAgAAgAAgAAgAAgAAgAAgAAgAA")?.fittedSeed
+  );
 });

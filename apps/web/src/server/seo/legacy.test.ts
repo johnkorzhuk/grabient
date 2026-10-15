@@ -24,12 +24,15 @@ describe("old grabient.com addresses", () => {
     ).toEqual({ to: "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKb?style=linearSwatches", via: "fitted" });
   });
 
-  test("an old seed no map holds stays as it is, for the reader's browser to fit; no other rule reads it as words", () => {
+  test("an old seed no map holds stands at its own address with its view, where the Worker fits it; one nothing can read stays as it is; no other rule reads either as words", () => {
+    expect(
+      oldAddress("/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa/edit?page=2&angle=30&steps=7")
+    ).toEqual({ to: "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa?angle=30", via: "fitted" });
+    expect(oldAddress("/~abcdefg?style=radialGradient")).toEqual({ to: null, via: "fitted" });
     for (const address of [
-      "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa",
+      "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa?style=radialGradient",
       "/~abcdefg?style=radialGradient"
     ]) {
-      expect(oldAddress(address)).toEqual({ to: null, via: "fitted" });
       expect(legacyRedirect(address)).toBe(address);
       expect(canonicalRedirect(address, [legacyRedirect, () => "/words"])).toBeNull();
     }

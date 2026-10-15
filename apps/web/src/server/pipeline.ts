@@ -21,8 +21,9 @@ import { json, redirect, withHeaders } from "../lib/responses.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { isCrawler } from "./crawlers.ts";
-import { edgeCached } from "./edge-cache.ts";
+import { edgeCached, keepFor } from "./edge-cache.ts";
 import { countFile } from "./files/count.ts";
+import { siteCard } from "./images/serve.ts";
 import {
   connectPath,
   consentPath,
@@ -34,6 +35,7 @@ import {
   uncachedPath
 } from "./paths.ts";
 import { countLegacy } from "./seo/legacy.ts";
+import { fittedRedirect, oldFit } from "./seo/legacy-fit.ts";
 import { indexed, NOINDEX } from "./seo/site.ts";
 
 /* The Worker's pipeline around the app, in this order:
@@ -43,8 +45,9 @@ import { indexed, NOINDEX } from "./seo/site.ts";
       (404), and an arrival's language (302, before any cache, so the English answer stays shared).
    4. The canonical address, from the rules features add (canonical.ts): 301.
    5. An address of the MCP server or the authorization server is the app's to answer as it stands. A private one is
-      answered directly and never kept; every other GET goes through the edge cache. A list, a search or the home that
-      no cache holds reads the database or runs the search: an address may make sixty of those a minute.
+      answered directly and never kept; every other GET goes through the edge cache. An old link no map holds is
+      answered there with its fit (seo/legacy-fit.ts). A list, a search or the home that no cache holds reads the
+      database or runs the search: an address may make sixty of those a minute.
    6. The headers every answer carries.
    Everything after step 3 reads the path without the language, and every address handed out gets it back. */
 
@@ -192,6 +195,17 @@ async function route(
   if (connectPath(path)) return app(request);
   if (privatePath(path)) return withHeaders(await answer(request, app), NO_STORE);
   countFile(env, request, path);
+  // an old page the Worker does not fit is the app's to answer, whose page the reader's browser fits, and an old card
+  // is the site's card, never a blank preview; under `vite dev` nothing is kept
+  const old = read ? oldFit(path, url.searchParams) : null;
+  if (old) {
+    const fit = async () =>
+      (await fittedRedirect(env, request, old, at)) ??
+      (old.card ? siteCard(request) : answer(request, app));
+    return env.DEPLOYMENT === "development"
+      ? fit()
+      : edgeCached(request, cacheKey(url, path, locale), ctx, fit);
+  }
   // under `vite dev` nothing is kept or counted: a page kept from before an edit would hydrate against the edited code
   if (!read || env.DEPLOYMENT === "development") return answer(request, app);
   const render = async () =>
@@ -272,14 +286,16 @@ function finish(
 ): Response {
   const response = new Response(request.method === "HEAD" ? null : answered.body, answered);
   const headers = response.headers;
-  /* Only a 200 may be kept anywhere; a 304 keeps the policy of what it confirms. A temporary redirect whose handler
-     keeps it from the edge may still name minutes for the browser: what stands in for a picture that is not drawn now
-     (images/serve.ts), so a page of them does not ask again for each. */
+  /* Only a 200 may be kept anywhere, and a permanent redirect the edge may keep, which leads to one place for good; a
+     304 keeps the policy of what it confirms. A temporary redirect whose handler keeps it from the edge may still name
+     minutes for the browser: what stands in for a picture that is not drawn now (images/serve.ts), so a page of them
+     does not ask again for each. */
+  const forGood = response.status === 301 && keepFor(response) !== null;
   const standIn =
     response.status === 302 &&
     headers.get("CDN-Cache-Control") === "no-store" &&
     /^public, max-age=\d+$/.test(headers.get("Cache-Control") ?? "");
-  if (response.status !== 200 && response.status !== 304 && !standIn) {
+  if (response.status !== 200 && response.status !== 304 && !forGood && !standIn) {
     for (const [name, value] of Object.entries(NO_STORE)) headers.set(name, value);
   }
   // a refusal that names no wait: the allowances that refuse without one count by the minute

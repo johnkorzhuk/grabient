@@ -26,8 +26,8 @@ import { answerWith, drawnSearch, searchOf } from "../../lib/route.ts";
    loader, for the head and for the static page crawlers and readers without JavaScript read, which the editor takes the
    place of and a reader with JavaScript never sees (features/editor/boot.ts). A collection renders whole, and the
    collections' loader decides its slug: the collection there, the 404 page of a private one, or the palette search for
-   its words. An old link the Worker's maps do not hold is a 404 to the server, which never fits one; the browser fits
-   the ones it can read, and the address becomes the palette's. */
+   its words. An old link the Worker neither maps nor fits (server/seo/legacy-fit.ts) is a 404 to the server; the
+   browser fits the ones it can read, and the address becomes the palette's. */
 const Editor = lazy(loadEditor);
 
 /** An old grabient.com seed the browser can read: `_` and 36 characters, or 44 with its globals. */
