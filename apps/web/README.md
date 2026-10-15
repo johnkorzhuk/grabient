@@ -136,11 +136,11 @@ the admins, the personas and the accounts the site's work names; no other accoun
 each copy.
 
 The admins keep working on staging, and the build carries that work since staging's load (`staging-work.ts`): likes and
-unlikes, their own collections and Grabient's ones they curated, notes and the newsletter's leads, each by the later
-change against grabient-lite and production. Its report names the conflicts and what stays on staging. A change an
-admin makes on staging while `read.ts` reads it stops the build: read staging again once nobody works there. A copy whose
-build carried any of it is loaded only after the cutover: loaded, the work would become part of staging's copy, where the
-cutover's build could no longer tell it apart.
+unlikes, their own collections and Grabient's ones they curated, notes, fit votes and the newsletter's leads, each by
+the later change against grabient-lite and production. Its report names the conflicts and what stays on staging. A
+change an admin makes on staging while `read.ts` reads it stops the build: read staging again once nobody works there. A
+copy whose build carried any of it is loaded only after the cutover: loaded, the work would become part of staging's
+copy, where the cutover's build could no longer tell it apart.
 
 ## Checks
 

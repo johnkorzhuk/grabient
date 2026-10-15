@@ -241,6 +241,11 @@ export function verify(
   const decided = new Set(carried.map(c => c.id));
   const gone = new Set(carried.filter(c => !c.row).map(c => c.id));
   const likesDecided = new Set(work.likes.map(like => `${like.user} ${like.seed}`));
+  /* fit votes staging's change stands for */
+  const votes = work.votes.filter(v => v.stands === "staging");
+  const voteKey = (collection: Value | undefined, seed: Value | undefined, user: Value) =>
+    `${collection} ${seed} ${user}`;
+  const votesDecided = new Set(votes.map(v => voteKey(v.collection, v.seed, v.user)));
 
   /* migrations and schema */
   const history = copy.rows("d1_migrations").map(row => String(row.name));
@@ -329,8 +334,11 @@ export function verify(
         case "k_likes":
           if (likesDecided.has(`${account(row.user_id)} ${row.palette_id}`)) return [];
           return gone.has(String(row.collection_id)) ? [{ ...row, collection_id: null }] : [row];
-        case "k_collection_notes":
         case "k_collection_votes":
+          if (votesDecided.has(voteKey(row.collection_id, row.seed, account(row.user_id))))
+            return [];
+          return gone.has(String(row.collection_id)) ? [] : [row];
+        case "k_collection_notes":
           return gone.has(String(row.collection_id)) ? [] : [row];
         case "k_translations":
           return row.kind === "collection" && gone.has(String(row.key)) ? [] : [row];
@@ -340,6 +348,7 @@ export function verify(
   /** The rows staging's work adds to grabient-lite's tables, beside its likes and collections. */
   const fromStaging: Record<string, readonly Row[]> = {
     k_collection_notes: work.notes,
+    k_collection_votes: votes.flatMap(v => (v.row ? [v.row] : [])),
     k_admin_actions: work.records,
     k_contributions: work.contributions
   };
@@ -501,6 +510,9 @@ export function verify(
     });
   };
   const likeColumns = options.staging.meta.tables.k_likes?.columns ?? [];
+  const votesHeld = new Set(
+    copy.rows("k_collection_votes").map(v => voteKey(v.collection_id, v.seed, v.user_id))
+  );
   const inGallery = new Set(copy.rows("k_palettes").map(p => String(p.seed)));
   check(
     "staging's work",
@@ -533,6 +545,16 @@ export function verify(
           : [`${slug} holds ${b.length} palettes, not staging's ${a.length} in its order`];
       }),
       ...rowsIn("k_collection_notes", ["id"], work.notes),
+      ...rowsIn(
+        "k_collection_votes",
+        ["collection_id", "seed", "user_id"],
+        fromStaging.k_collection_votes!
+      ),
+      ...votes.flatMap(v =>
+        !v.row && votesHeld.has(voteKey(v.collection, v.seed, v.user))
+          ? [`the vote on ${v.seed} is there, though staging took it back`]
+          : []
+      ),
       ...rowsIn("k_admin_actions", ["id"], work.records),
       ...rowsIn("k_contributions", ["id"], work.contributions),
       ...rowsIn("k_newsletter_leads", ["issue"], work.leads)
@@ -542,7 +564,8 @@ export function verify(
       : `since its load at ${new Date(work.loadedAt).toISOString().slice(0, 19)} UTC: ` +
           `${plural(work.likes.length, "like")} changed, ${plural(work.palettes.length, "palette")} brought in, ` +
           `${plural(carried.length, "collection")} as staging left ${carried.length === 1 ? "it" : "them"}, ` +
-          `${plural(work.notes.length, "note")}, ${plural(work.leads.length, "lead")}, ` +
+          `${plural(work.notes.length, "note")}, ${plural(votes.length, "fit vote")}, ` +
+          `${plural(work.leads.length, "lead")}, ` +
           `${plural(work.records.length + work.contributions.length, "record")} of them`
   );
   check(

@@ -138,6 +138,13 @@ const onStaging: Changes = [
        VALUES ('a-vote', 'PA', 'vote', '${A}', 'c1', 'warm-sunsets', 'warm-sunsets', '{"vote":1}', '{"vote":-1}', 185000)`
     ],
     185_000
+  ],
+  [
+    [
+      `INSERT INTO k_search_votes (query, seed, user_id, vote, created_at, updated_at)
+       VALUES ('warm', '${A}', 'PA', 1, 186000, 186000)`
+    ],
+    186_000
   ]
 ];
 
@@ -374,24 +381,33 @@ describe("staging's work", () => {
     });
   });
 
-  it("names what it leaves on staging: the admin's fit vote and its record", () => {
-    expect(work.left).toEqual([
-      { table: "k_admin_actions", what: `vote ${A} in warm-sunsets`, at: 185_000 }
-    ]);
+  it("carries the admin's fit vote with its record", () => {
     expect(
       one(`SELECT vote FROM k_collection_votes WHERE collection_id = 'c1' AND seed = '${A}'`)
-    ).toEqual({ vote: 1 });
+    ).toEqual({ vote: -1 });
+    expect(one("SELECT actor_id FROM k_admin_actions WHERE id = 'a-vote'")).toEqual({
+      actor_id: "PA"
+    });
+  });
+
+  it("names what it leaves on staging: the admin's search vote", () => {
+    expect(work.left).toEqual([
+      { table: "k_search_votes", what: `up ${A} for "warm"`, at: 186_000 }
+    ]);
   });
 
   it("reports what it carries, the count a loaded copy waits on", () => {
     const reported = workReport(work, new Map());
     expect(reported).toMatchObject({
       loadedAt: new Date(LOADED).toISOString(),
-      carried: 13,
+      carried: 15,
       likes: 2,
       unlikes: 1,
       likesChangedLaterElsewhere: 1
     });
+    expect(reported.votes).toEqual([
+      { collection: "c1", seed: A, vote: -1, at: new Date(185_000).toISOString() }
+    ]);
     expect(reported.collections.map(c => [c.address ?? c.id, c.change, c.stands])).toEqual([
       ["@john/staging-picks", "made", "staging"],
       ["@john/warm-sunsets", "changed", "staging"],
@@ -509,6 +525,62 @@ describe("Grabient's collections the queue runs on both sides", () => {
   });
 });
 
+describe("an admin's fit vote", () => {
+  /* the vote on A in Grabient's warm-sunsets as the site casts it, on the record with the vote it replaced */
+  const vote = (
+    id: string,
+    user: string,
+    before: number,
+    after: number | null,
+    at: number
+  ): Changes[number] => [
+    [
+      after === null
+        ? `DELETE FROM k_collection_votes WHERE collection_id = 'c1' AND seed = '${A}' AND user_id = '${user}'`
+        : `INSERT INTO k_collection_votes (collection_id, seed, user_id, vote, created_at, updated_at)
+           VALUES ('c1', '${A}', '${user}', ${after}, ${at}, ${at})
+           ON CONFLICT (collection_id, seed, user_id) DO UPDATE SET vote = excluded.vote, updated_at = excluded.updated_at`,
+      `INSERT INTO k_admin_actions (id, actor_id, action, seed, collection_id, slug, title, before, after, created_at)
+       VALUES ('${id}', '${user}', 'vote', '${A}', 'c1', 'warm-sunsets', 'warm-sunsets', '{"vote":${before}}',
+         '{"vote":${after}}', ${at})`
+    ],
+    at
+  ];
+  const voteOf = (built: DatabaseSync) =>
+    values(
+      built,
+      `SELECT vote FROM k_collection_votes WHERE collection_id = 'c1' AND seed = '${A}' AND user_id = 'PA'`
+    );
+
+  it("is taken back as staging took it back, with its record", async () => {
+    const { db, work, checks } = await built([vote("s-vote", "PA", 1, null, 120_000)], []);
+    expect(voteOf(db)).toEqual([]);
+    expect(values(db, "SELECT id FROM k_admin_actions WHERE id = 's-vote'")).toEqual(["s-vote"]);
+    expect(work.left).toEqual([]);
+    expect(failed(checks)).toEqual([]);
+  });
+
+  it("goes by grabient-lite's admin's later vote, and names the conflict", async () => {
+    const { db, work, checks } = await built(
+      [vote("s-vote", "PA", 1, -1, 120_000)],
+      [vote("l-vote", "LA", 1, null, 130_000)]
+    );
+    expect(voteOf(db)).toEqual([]);
+    expect(work.conflicts).toEqual([
+      {
+        kind: "vote",
+        key: `${A} in warm-sunsets`,
+        staging: 120_000,
+        other: 130_000,
+        source: "grabient-lite",
+        stands: "grabient-lite"
+      }
+    ]);
+    expect(work.left.map(l => l.what)).toEqual([`vote ${A} in warm-sunsets`]);
+    expect(failed(checks)).toEqual([]);
+  });
+});
+
 describe("a like of a palette an admin deleted from the gallery", () => {
   const X = "kWxxxxxxxx";
   /* grabient-lite's gallery holds X at the load, so staging's does too */
@@ -586,7 +658,7 @@ describe("verify, with staging's work", () => {
     const checks = checked(await snapshotOf(db, 1000));
     expect(failed(checks)).toEqual([]);
     expect(checks.find(c => c.name === "conflicts")?.status).toBe("warn");
-    expect(checks.find(c => c.name === "left on staging")?.detail).toContain("vote");
+    expect(checks.find(c => c.name === "left on staging")?.detail).toContain("k_search_votes");
   });
 
   it.each([

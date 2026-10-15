@@ -20,10 +20,11 @@
      so one of Grabient's is grabient-lite's version, its queue's runs and all, with the palettes the admin touched as
      staging holds them. It is matched by its address, since each site's queue makes its own. The record of those
      changes comes with them.
-   - a note an admin wrote, and the newsletter's lead an admin chose, per issue.
-   A like or a collection changed on both sides since the load is a conflict, named with both times.
+   - a note an admin wrote; an admin's fit vote on a collection's palette, per collection, palette and account, with
+     its record; and the newsletter's lead an admin chose, per issue.
+   A like, a collection or a fit vote changed on both sides since the load is a conflict, named with both times.
 
-   Everything else an admin did on staging since its load stays there and is named: fit and search votes, reviews, the
+   Everything else an admin did on staging since its load stays there and is named: search votes, reviews, the
    gallery's own curation, and the admins' apps' work beyond collections. Each acts on the gallery or on the agents'
    record, which grabient-lite holds until the cutover. */
 import { insertRows, literal, type Value } from "./d1.ts";
@@ -69,9 +70,22 @@ export interface CollectionChange {
   made: boolean;
 }
 
-/** A like or a collection both sides changed since staging's load. */
+/** An admin's fit vote on a palette of a collection. */
+export interface VoteChange {
+  /** the collection in the build, the palette, and the account in the target */
+  collection: string;
+  seed: string;
+  user: string;
+  /** staging's last change of the vote */
+  at: number;
+  /** staging's vote in the target's ids, or null where it was taken back */
+  row: Row | null;
+  stands: Source;
+}
+
+/** A like, a collection or a fit vote both sides changed since staging's load. */
 export interface Conflict {
-  kind: "like" | "collection";
+  kind: "like" | "collection" | "vote";
   key: string;
   staging: number;
   /** the other side's last change */
@@ -95,6 +109,7 @@ export interface Work {
   palettes: Row[];
   collections: CollectionChange[];
   notes: Row[];
+  votes: VoteChange[];
   leads: Row[];
   records: Row[];
   contributions: Row[];
@@ -265,6 +280,7 @@ export function stagingWork(
     palettes: [],
     collections: [],
     notes: [],
+    votes: [],
     leads: [],
     records: [],
     contributions: [],
@@ -476,11 +492,62 @@ export function stagingWork(
     if (collection)
       work.notes.push({ ...note, collection_id: collection, author_id: target(note.author_id) });
   }
+
+  /* fit votes, per collection, palette and account: an admin's vote is a ruling on the record, which says when it
+     changed on either side, so its records come with it */
+  const voteKey = (
+    collection: Value | undefined,
+    seed: Value | undefined,
+    user: Value | undefined
+  ) => `${collection} ${seed} ${user}`;
+  const stagingVotes = keyed(staging.rows("k_collection_votes"), v =>
+    voteKey(v.collection_id, v.seed, v.user_id)
+  );
+  const liteVotes = new Map<string, number>();
+  for (const r of lite.rows("k_admin_actions"))
+    if (r.action === "vote")
+      touch(liteVotes, voteKey(r.collection_id, r.seed, r.actor_id), r.created_at);
+  const voted = new Set<Value | undefined>();
+  const ballots = Map.groupBy(
+    records.filter(r => r.action === "vote"),
+    r => voteKey(r.collection_id, r.seed, r.actor_id)
+  );
+  for (const [key, list] of ballots) {
+    const { collection_id, seed, actor_id, slug } = list[0]!;
+    const there = inBuild(collection_id);
+    if (!there) continue;
+    const who = admins.get(String(actor_id))!;
+    const at = Math.max(...list.map(r => Number(r.created_at)));
+    const other = who.lite ? liteVotes.get(voteKey(there, seed, who.lite)) : undefined;
+    const stands: Source = other === undefined || at >= other ? "staging" : "grabient-lite";
+    if (other !== undefined && other > loaded)
+      work.conflicts.push({
+        kind: "vote",
+        key: `${seed} in ${slug}`,
+        staging: at,
+        other,
+        source: "grabient-lite",
+        stands
+      });
+    const mine = stagingVotes.get(key);
+    work.votes.push({
+      collection: there,
+      seed: String(seed),
+      user: who.target,
+      at,
+      row: mine ? { ...mine, collection_id: there, user_id: who.target } : null,
+      stands
+    });
+    if (stands === "staging") for (const r of list) voted.add(r.id);
+  }
+
   const isCarried = (id: string | null) => id !== null && carried.has(id);
-  /** Whether the build takes a record: a note's while its collection is there, a delete's that keeps a carried like's
-      palette out of the gallery, and the rest of a collection whose staging version stands. */
+  /** Whether the build takes a record: a note's while its collection is there, a vote's whose vote stands, a delete's
+      that keeps a carried like's palette out of the gallery, and the rest of a collection whose staging version
+      stands. */
   const takes = (r: Row) => {
     if (r.action === "note") return inBuild(r.collection_id) !== null;
+    if (r.action === "vote") return voted.has(r.id);
     if (r.action === "delete") return keptOut.has(String(r.seed));
     return !JUDGED.includes(String(r.action)) && isCarried(idOf(r.collection_id));
   };
@@ -539,6 +606,7 @@ export function workReport(work: Work, moved: ReadonlyMap<string, string>) {
     changes.filter(change => change.stands === "staging");
   const likes = kept(work.likes);
   const collections = kept(work.collections);
+  const votes = kept(work.votes);
   return {
     loadedAt: work.loadedAt === null ? null : at(work.loadedAt),
     carried:
@@ -546,6 +614,7 @@ export function workReport(work: Work, moved: ReadonlyMap<string, string>) {
       work.palettes.length +
       collections.length +
       work.notes.length +
+      votes.length +
       work.leads.length +
       work.records.length +
       work.contributions.length,
@@ -562,6 +631,12 @@ export function workReport(work: Work, moved: ReadonlyMap<string, string>) {
       stands: c.stands
     })),
     notes: work.notes.map(n => ({ collection: n.collection_id, at: at(Number(n.created_at)) })),
+    votes: votes.map(v => ({
+      collection: v.collection,
+      seed: v.seed,
+      vote: v.row?.vote ?? null,
+      at: at(v.at)
+    })),
     leads: work.leads.map(l => ({ issue: l.issue, seed: l.seed, at: at(Number(l.chosen_at)) })),
     records: work.records.map(r => `${r.action} ${r.seed ?? ""} ${r.slug ?? ""}`.trim()),
     contributions: work.contributions.map(c => `${c.tool} ${c.target}`),
@@ -583,6 +658,7 @@ export function workStatements(
     `ON CONFLICT(${key.join(", ")}) DO UPDATE SET ${update(kept.filter(c => !key.includes(c)))}`;
   const list = (values: readonly string[]) => values.map(literal).join(", ");
   const carried = work.collections.filter(c => c.stands === "staging");
+  const votes = work.votes.filter(v => v.stands === "staging");
   const gone = carried.filter(c => !c.row).map(c => c.id);
   const holders = new Map([...target.holders].filter(([, id]) => !gone.includes(id)));
   const users = keyed(target.users, user => String(user.id));
@@ -644,6 +720,18 @@ export function workStatements(
         work.notes,
         "ON CONFLICT(id) DO NOTHING"
       ),
+      ...insertRows(
+        "k_collection_votes",
+        columns("k_collection_votes"),
+        votes.flatMap(v => (v.row ? [v.row] : [])),
+        keep("k_collection_votes", ["collection_id", "seed", "user_id"])
+      ),
+      ...votes
+        .filter(v => !v.row)
+        .map(
+          v =>
+            `DELETE FROM k_collection_votes WHERE collection_id = ${literal(v.collection)} AND seed = ${literal(v.seed)} AND user_id = ${literal(v.user)}`
+        ),
       ...insertRows(
         "k_admin_actions",
         columns("k_admin_actions"),
