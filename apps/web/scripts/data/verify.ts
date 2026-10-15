@@ -321,7 +321,7 @@ export function verify(
     lite.rows(table).flatMap(row => {
       switch (table) {
         case "k_likes":
-          if (likesDecided.has(`${account(row.user_id ?? null)} ${row.palette_id}`)) return [];
+          if (likesDecided.has(`${account(row.user_id)} ${row.palette_id}`)) return [];
           return gone.has(String(row.collection_id)) ? [{ ...row, collection_id: null }] : [row];
         case "k_collection_notes":
         case "k_collection_votes":
@@ -370,7 +370,7 @@ export function verify(
           ? [`${like.user_id} ${aliases.get(String(like.palette_id))}`]
           : []
       ),
-    ...lite.rows("k_likes").map(like => `${account(like.user_id ?? null)} ${like.palette_id}`)
+    ...lite.rows("k_likes").map(like => `${account(like.user_id)} ${like.palette_id}`)
   ]);
   for (const like of work.likes) {
     const key = `${like.user} ${like.seed}`;
@@ -464,7 +464,7 @@ export function verify(
     kept.flatMap(c => {
       const held = copyCollections.get(String(c.id));
       if (!held) return [`${c.slug} is missing`];
-      const owner = c.owner_kind === "user" ? account(c.owner_id ?? null) : c.owner_id;
+      const owner = c.owner_kind === "user" ? account(c.owner_id) : c.owner_id;
       if (held.owner_kind !== c.owner_kind || held.owner_id !== owner)
         return [`${c.slug} has another owner`];
       const slug = String(c.slug);
