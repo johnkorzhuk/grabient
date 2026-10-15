@@ -616,7 +616,8 @@ test("an old link the Worker does not fit is fitted in the browser, and its addr
   }
   expect(status).toBe(404);
   await page.setExtraHTTPHeaders(from);
-  await page.goto(OLD);
+  // the server still answers the page, so the palette it lands on is the browser's fit
+  expect((await page.goto(OLD))?.status()).toBe(404);
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
   expect(here(page)).toBe(FITTED);
 });
