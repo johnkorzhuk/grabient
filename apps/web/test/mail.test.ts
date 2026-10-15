@@ -317,6 +317,26 @@ describe("the owner's alerts", () => {
       emailed: []
     });
   });
+
+  it("find nothing failing in a dataset no point has reached, and fail their step when the counts cannot be read", async () => {
+    // production's dataset before its first point answers as a quiet ten minutes do
+    const quiet = testEnv({
+      DEPLOYMENT: "production",
+      ANALYTICS: { query: async () => ({ data: [] }) }
+    });
+    expect(await failingAlert(quiet)).toEqual({
+      counted: { failure: 0, "client-error": 0 },
+      emailed: []
+    });
+    // the binding rejects a query it cannot answer: the step fails, and Workers Issues shows the run that failed
+    const refused = Object.assign(new Error("Analytics SQL is unavailable"), { retryable: true });
+    const down = testEnv({
+      DEPLOYMENT: "production",
+      ANALYTICS: { query: () => Promise.reject(refused) }
+    });
+    await expect(failingAlert(down)).rejects.toBe(refused);
+    expect(down.EMAIL.sent).toEqual([]);
+  });
 });
 
 describe("account emails", () => {

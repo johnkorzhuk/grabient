@@ -167,22 +167,14 @@ export async function failingAlert(
   if (!analytics || !dataset) {
     return { skipped: "This deploy has no usage counts to read", counted, emailed: [] };
   }
-  let rows: Row[];
-  try {
-    rows = await rowsOf(
-      analytics,
-      `SELECT blob1 AS event, blob2 AS a, blob3 AS b, SUM(double1) AS n FROM events.analyticsEngine."${dataset}"
-      WHERE blob1 IN ('failure', 'client-error') AND timestamp > NOW() - INTERVAL '10' MINUTE
-      GROUP BY event, a, b ORDER BY n DESC`
-    );
-  } catch (error) {
-    // a dataset appears with its first point: until then there is nothing to read
-    return {
-      skipped: `${dataset}: ${error instanceof Error ? error.message : error}`,
-      counted,
-      emailed: []
-    };
-  }
+  /* a dataset no point has reached yet answers no rows, so a query that fails is the check failing: it throws, and the
+     step fails where Workers Issues shows it */
+  const rows = await rowsOf(
+    analytics,
+    `SELECT blob1 AS event, blob2 AS a, blob3 AS b, SUM(double1) AS n FROM events.analyticsEngine."${dataset}"
+    WHERE blob1 IN ('failure', 'client-error') AND timestamp > NOW() - INTERVAL '10' MINUTE
+    GROUP BY event, a, b ORDER BY n DESC`
+  );
   const issues = `https://dash.cloudflare.com/?to=/:account/workers/services/view/grabient-${env.DEPLOYMENT}/production/issues`;
   const emailed: Failing[] = [];
   for (const kind of FAILING) {
