@@ -402,10 +402,17 @@ export function inset(options: EmailOptions): { html: string; text: string } {
   return { html, text };
 }
 
+/* A picture drawn for each theme (an image's `light`) shows the one the page's theme asks for: the dark one unless the
+   tree's host says otherwise, by --sheet-dark and --sheet-light (none or block), which reach into the tree as any
+   custom property does. */
+const THEMED =
+  ".dark-only{display:var(--sheet-dark,block)!important}.light-only{display:var(--sheet-light,none)!important}";
+
 /** The styles of that tree: the sheet's classes in the colors the page gives, as CSS values, so an issue follows the
-    page's theme, and a phone's measures wherever the column is narrow, whatever the window's width. */
+    page's theme, its pictures drawn for each theme too, and a phone's measures wherever the column is narrow, whatever
+    the window's width. */
 export const insetStyles = (colors: SheetColors): string =>
-  `.inset{container-type:inline-size}${rules("", sheetRules(colors))}@container (max-width:${NARROW}){${NARROW_SHEET}}`;
+  `.inset{container-type:inline-size}${rules("", sheetRules(colors))}${THEMED}@container (max-width:${NARROW}){${NARROW_SHEET}}`;
 
 /** One part alone on the sheet's paper, under an email's own head styles, for the design document. Never sent. */
 export function specimen(

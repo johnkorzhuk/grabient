@@ -3,7 +3,7 @@
    email's head recolors for the dark one (document.ts): only the head can answer a scheme, and some apps drop it.
    The outer element of each part says which part it is (`data-part`). */
 import { dirOf, type Locale, localizePath } from "@grabient/i18n";
-import { type Child, type Html, h, type Style, table, tr } from "./html.ts";
+import { type Child, type Html, h, join, type Style, table, tr } from "./html.ts";
 import { FONT, RADIUS, SCHEMES, SIZE, SPACE, type Space, TYPE, type TypeRole } from "./theme.ts";
 
 /** A palette's view, as the site shows it. */
@@ -412,6 +412,10 @@ export const snippet =
 
 export interface ImageOptions {
   src: string;
+  /** the picture in the light theme, where it differs: a page draws both and shows the one its theme asks for
+      (insetStyles), each held back until it nears the screen, so a reader's browser asks for the one it shows; an
+      email shows `src` alone */
+  light?: string;
   /** what the picture shows */
   alt: string;
   /** the file's own pixels, which give the picture its shape */
@@ -443,24 +447,32 @@ export const image =
   ctx => {
     const width = ctx.measure;
     const height = Math.round((width * options.height) / options.width);
-    const picture = h("img", {
-      class: "line",
-      src: address(options.src),
-      alt: options.alt,
-      width,
-      height,
-      loading: ctx.web ? "lazy" : false,
-      /* a page's column is as wide as the page makes it, where an email's is the sheet's */
-      style: {
-        display: "block",
-        width: "100%",
-        "max-width": ctx.web ? false : px(width),
-        height: "auto",
-        border: `${px(SIZE.hairline)} solid ${L.line}`,
-        "border-radius": px(RADIUS.surface)
-      }
-    });
-    const shown = ctx.web ? heldBack(picture, width, height) : picture;
+    const picture = (src: string, theme?: "dark" | "light") =>
+      h("img", {
+        class: theme ? `line ${theme}-only` : "line",
+        src: address(src),
+        alt: options.alt,
+        width,
+        height,
+        loading: ctx.web ? "lazy" : false,
+        /* a page's column is as wide as the page makes it, where an email's is the sheet's */
+        style: {
+          display: "block",
+          width: "100%",
+          "max-width": ctx.web ? false : px(width),
+          height: "auto",
+          border: `${px(SIZE.hairline)} solid ${L.line}`,
+          "border-radius": px(RADIUS.surface)
+        }
+      });
+    const shown = !ctx.web
+      ? picture(options.src)
+      : options.light
+        ? join(
+            heldBack(picture(options.src, "dark"), width, height),
+            heldBack(picture(options.light, "light"), width, height)
+          )
+        : heldBack(picture(options.src), width, height);
     const under = options.caption ? text(options.caption, { role: "small" })(ctx) : null;
     return {
       html: table(

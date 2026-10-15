@@ -92,8 +92,9 @@ test("the newsletter's newest issue comes with the document, in a tree of its ow
   expect(errors).toEqual([]);
 });
 
+/* the picture the page's theme shows: an issue draws one for each theme where it has both */
 const issuePicture = (page: Page) =>
-  page.locator("main article[data-issue] [data-part='image'] img").first();
+  page.locator("main article[data-issue] [data-part='image'] img:visible").first();
 /** What a picture shows once drawn: the blank that holds its place, or its file. */
 const shows = (page: Page) =>
   issuePicture(page).evaluate(img => {
@@ -125,6 +126,32 @@ test("an issue's picture holds its place until the reader nears it, and only the
   // the file takes the blank's place without moving anything
   const drawn = await issuePicture(page).boundingBox();
   expect(Math.abs((drawn?.height ?? 0) - (blank?.height ?? 0))).toBeLessThan(1);
+});
+
+test("an issue's loop is the one for the page's theme, and the theme's switch shows the other", async ({
+  page
+}) => {
+  const asked: string[] = [];
+  page.on("request", request => {
+    const { pathname } = new URL(request.url());
+    if (pathname.startsWith("/email/collections")) asked.push(pathname);
+  });
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/newsletter");
+  await started(page);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await issuePicture(page).scrollIntoViewIfNeeded();
+  await expect.poll(() => shows(page)).toMatch(/\/email\/collections-\d+-light\.gif$/);
+  // the hidden one is never asked for while its theme is not the page's
+  expect(asked).toEqual([expect.stringMatching(/-light\.gif$/)]);
+  await page.getByRole("button", { name: "Dark theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect.poll(() => shows(page)).toMatch(/\/email\/collections-\d+\.gif$/);
+  await expect(
+    page.locator("main article[data-issue] [data-part='image'] img.light-only").first()
+  ).toBeHidden();
+  await page.getByRole("button", { name: "Light theme" }).click();
+  await expect.poll(() => shows(page)).toMatch(/-light\.gif$/);
 });
 
 test.describe("without script", () => {

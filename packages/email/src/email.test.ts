@@ -614,6 +614,26 @@ describe("an issue on a page of the site", () => {
     // an email gives its reader the file alone
     expect(drawn(shot)).not.toMatch(/<picture|<source|loading=/);
   });
+  test("draws a picture for each theme on a page, the light one hidden until the page's theme asks for it", () => {
+    const loop = image({
+      src: `${origin}/loop.gif`,
+      light: `${origin}/loop-light.gif`,
+      alt: "The loop",
+      width: 534,
+      height: 300
+    });
+    const onPage = decode(loop({ ...ctx, web: true }).html.html);
+    expect(onPage.match(/<picture><source media="\(scripting: enabled\)"/g)).toHaveLength(2);
+    expect(onPage).toContain(`<img class="line dark-only" src="${origin}/loop.gif"`);
+    expect(onPage).toContain(`<img class="line light-only" src="${origin}/loop-light.gif"`);
+    const styles = insetStyles(SCHEME_VARS);
+    expect(styles).toContain(".dark-only{display:var(--sheet-dark,block)!important}");
+    expect(styles).toContain(".light-only{display:var(--sheet-light,none)!important}");
+    // an email shows the one picture, and no other
+    const sent = drawn(loop);
+    expect(sent).toContain(`src="${origin}/loop.gif"`);
+    expect(sent).not.toMatch(/loop-light|-only/);
+  });
   test("keeps to the likes and leads to the reader's language", () => {
     expect(() => issuePage(words({ liked: [] }))).toThrow(/only palettes an admin liked/);
     expect(hrefs(issuePage(words({ locale: "ja" })).html)).toContain(`${origin}/ja/${seed}`);

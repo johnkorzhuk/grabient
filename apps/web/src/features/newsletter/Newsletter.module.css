@@ -39,6 +39,11 @@
     content-visibility: auto;
     contain-intrinsic-size: auto 2400px;
   }
+  /* an issue's pictures drawn for each theme show the light one in the light theme (packages/email, insetStyles) */
+  :global(:root[data-theme="light"]) .sheet {
+    --sheet-dark: none;
+    --sheet-light: block;
+  }
   /* the sheet, with an admin's controls over its lead where it has them */
   .stage {
     position: relative;
