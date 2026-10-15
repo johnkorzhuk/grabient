@@ -5,7 +5,11 @@ import * as v from "valibot";
 import { beforeAll, describe, expect, it } from "vitest";
 import { sortCollectionItems } from "../src/features/collections/address.ts";
 import { collectionItem } from "../src/features/collections/schema.ts";
-import type { CollectionDocument, CollectionPage } from "../src/features/collections/types.ts";
+import type {
+  CollectionDocument,
+  CollectionPage,
+  CopyStanding
+} from "../src/features/collections/types.ts";
 import { SearchAnswer } from "../src/features/gallery/schema.ts";
 import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collections/api.ts";
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
@@ -508,6 +512,34 @@ describe("a collection's colors", () => {
       ["azul", "gradients", "zzqx"],
       [blue, [], []]
     ]);
+  });
+
+  it("name a saved copy's source with the colors it shows elsewhere, and the copy's page has its tags' too", async () => {
+    const source = await grabients(["blue"]);
+    const reader = await makeAccount(env);
+    const saved = await bodyOf<{ collection: Doc; copy: CopyStanding }>(
+      await collectionAnswer(
+        send("POST", `/api/collections/${at(source.slug)}/copies`, {}, { cookie: reader.cookie }),
+        env
+      )
+    );
+    // what the source's link shows on the sheet of a palette it holds
+    const held = (await collectionsHolding(env, SEEDS[0]!, 24)).find(c => c.slug === source.slug);
+    expect(held?.colors.length).toBeGreaterThan(0);
+    expect(saved.copy.source).toEqual({
+      slug: source.slug,
+      title: source.title,
+      colors: held!.colors
+    });
+    // the copy's own page: the account's copy holds no colors, so its read brings them
+    const state = await bodyOf<{ copy: CopyStanding; collection: CollectionDocument }>(
+      await mineAt(
+        get(`/api/me/collections/${at(saved.collection.slug)}/state`, { cookie: reader.cookie }),
+        env
+      )
+    );
+    expect(state.copy.source.colors).toEqual(held!.colors);
+    expect(state.collection.tagColors).toEqual([await rowColors("blue")]);
   });
 });
 
