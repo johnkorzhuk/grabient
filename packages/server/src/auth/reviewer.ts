@@ -1,7 +1,5 @@
-import { APIError } from "better-auth/api";
 import type { Env } from "../env.ts";
 import { json } from "./http.ts";
-import { authFor } from "./library.ts";
 import { reviewerAddress } from "./roles.ts";
 import { getSession } from "./session.ts";
 
@@ -16,6 +14,7 @@ export async function setReviewerPassword(
   password: string
 ): Promise<void> {
   const session = await getSession(env, headers, { fresh: true });
+  const { APIError, authFor } = await import("./library.ts");
   if (!session || !reviewerAddress(env, session.user.email)) {
     throw new APIError("FORBIDDEN", { message: "Only the reviewers' account has a password." });
   }

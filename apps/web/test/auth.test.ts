@@ -471,6 +471,24 @@ describe("sessions", () => {
     expect(await getSession(env, headers, { fresh: true })).toBeNull();
   });
 
+  it("are read under each deploy's cookie name, and a request with none of them has no session", async () => {
+    const deploys: Partial<TestEnv>[] = [
+      { DEPLOYMENT: "development" },
+      { DEPLOYMENT: "staging" },
+      { DEPLOYMENT: "preview", COOKIE_DOMAIN: "example.workers.dev" }
+    ];
+    for (const values of deploys) {
+      const env = testEnv(values);
+      const account = await makeAccount(env);
+      const headers = new Headers({ cookie: `theme=dark; ${account.cookie}` });
+      expect((await getSession(env, headers))?.user.id).toBe(account.id);
+      const read = await handleAuth(get("/api/auth/get-session", { cookie: account.cookie }), env);
+      expect((await bodyOf<SessionBody>(read)).user.email).toBe(account.email);
+      const none = new Headers({ cookie: "theme=dark" });
+      expect(await getSession(env, none, { fresh: true })).toBeNull();
+    }
+  });
+
   it("end on signing out, with their cookies", async () => {
     const env = testEnv();
     const account = await makeAccount(env);

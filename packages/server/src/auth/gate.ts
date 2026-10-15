@@ -11,10 +11,9 @@ import {
   readBytes,
   sameOrigin
 } from "./http.ts";
-import { authFor, google } from "./library.ts";
 import { reviewerPasswordResponse } from "./reviewer.ts";
 import { accountRole, reviewerAddress } from "./roles.ts";
-import { getSession } from "./session.ts";
+import { getSession, hasSessionCookie } from "./session.ts";
 
 /* Everything under /api/auth passes here before the sign-in library sees it. Only the routes the site uses are open,
    and each is counted, bounded and checked first: the library stores a link's token or a code before it asks for the
@@ -95,10 +94,14 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
     // Each reads a row or two by an index and writes nothing before a sign-in completes: the isolate counts them.
     const limited = await overLimit(env, [[`auth-read:${who}`, "authRead"]]);
     if (limited) return limited;
+    if (path === SESSION && !hasSessionCookie(request.headers)) return json(null);
+    const { authFor } = await import("./library.ts");
     return privateResponse(await authFor(env).handler(request));
   }
 
   if (!sameOrigin(request)) return json({ error: "Invalid request." }, 403);
+  // every way in or out ends in the library's handler
+  const { authFor, google } = await import("./library.ts");
   if (path === GOOGLE && !google(env)) {
     return json({ error: "Google sign-in isn't available here. Use email." }, 503);
   }
