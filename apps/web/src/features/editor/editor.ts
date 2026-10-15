@@ -112,6 +112,8 @@ export function createPaletteEditor(
   /* the hold: which keyframes the rows speak for, and where the last press that was no run landed */
   const [holdRaw, setHold] = createSignal<number[]>([]);
   let from = 0;
+  /* where it landed before the last pick, for a hold given back (restore) */
+  let fromBefore = 0;
   const held = createMemo(() => ops.heldIn(holdRaw(), K()));
   const lead = () => held()[0] ?? -1;
   const whole = () => ops.isWhole(held(), K());
@@ -241,8 +243,14 @@ export function createPaletteEditor(
 
   function pick(i: number, mode: PickMode) {
     const next = ops.pick(nowHeld(), from, i, mode);
+    fromBefore = from;
     from = next.from;
     setHold(next.held);
+  }
+  /** The hold before the last pick, given back: a plot's dot dragged to a new value holds what was held before */
+  function restore(selection: readonly number[]) {
+    from = fromBefore;
+    setHold([...selection]);
   }
 
   /* the view: never a step of the undo, never a history entry. A part the reader sets is theirs for the tab, as a
@@ -305,6 +313,7 @@ export function createPaletteEditor(
 
     /* the hold */
     pick,
+    restore,
     sweep(a: number, b: number) {
       from = a;
       setHold(ops.run(a, b));

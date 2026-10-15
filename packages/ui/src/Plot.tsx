@@ -66,6 +66,9 @@ export interface PlotProps {
   onPick: (i: number, mode: PickMode) => void;
   /** a keyframe dragged to a value on this axis, from the palette the drag began on */
   onNudge: (i: number, axis: Axis, value: number, from: Palette) => void;
+  /** a dot dragged to a new value and let go: the keyframes held before its press, to hold again. The press held its
+      keyframe so the drag shows which one moves; a value changed holds nothing */
+  onRestore?: (selection: readonly number[]) => void;
   /** nothing held, a drag on the line moves the whole palette along the axis: it begins, then how far it has gone in
       the axis's units, since it began and since the move before */
   onWholeStart?: () => void;
@@ -216,7 +219,8 @@ export function Plot(props: PlotProps) {
       Math.abs(e.clientY - r.top - yOf(outOf(s))) <= LINE_REACH
     );
   };
-  /* a dot dragged: the value it began at, its bounds, and the palette the drag began on */
+  /* a dot dragged: the value it began at, its bounds, the palette the drag began on, and the keyframes held before its
+     press, if the press changed them */
   let drag: {
     i: number;
     pointer: number;
@@ -229,6 +233,7 @@ export function Plot(props: PlotProps) {
     wasHeld: boolean;
     mode: PickMode;
     from: Palette;
+    before: readonly number[] | null;
   } | null = null;
   /* a press that drags no value. A mouse's holds its keyframe as it lands; a finger's holds nothing until it lifts
      (`late`), since one that goes on to scroll was no press. One that goes on across the plot is a sweep and holds the
@@ -272,7 +277,9 @@ export function Plot(props: PlotProps) {
     if (i >= 0) {
       e.preventDefault();
       const wasHeld = held(i);
-      if (mode !== "one" || !wasHeld) props.onPick(i, mode);
+      const picks = mode !== "one" || !wasHeld;
+      const before = picks ? props.selection.slice() : null;
+      if (picks) props.onPick(i, mode);
       drag = {
         i,
         pointer: e.pointerId,
@@ -282,7 +289,8 @@ export function Plot(props: PlotProps) {
         moved: false,
         wasHeld,
         mode,
-        from: { anchors: props.palette.anchors.map(a => ({ ...a })) }
+        from: { anchors: props.palette.anchors.map(a => ({ ...a })) },
+        before
       };
       freeze();
       svg.setPointerCapture(e.pointerId);
@@ -386,8 +394,11 @@ export function Plot(props: PlotProps) {
       drag = null;
       setFrozen(null);
       letGo(e);
-      /* a plain click on a held keyframe lets it go, as on its chip */
-      if (!d.moved && d.mode === "one" && d.wasHeld) props.onPick(d.i, "one");
+      /* a value changed: the hold before the press comes back. A plain click on a held keyframe lets it go, as on its
+         chip */
+      if (d.moved) {
+        if (d.before) props.onRestore?.(d.before);
+      } else if (d.mode === "one" && d.wasHeld) props.onPick(d.i, "one");
       return;
     }
     if (all && e.pointerId === all.pointer) {
@@ -418,6 +429,7 @@ export function Plot(props: PlotProps) {
       setBand(null);
     }
     if ((drag && e.pointerId === drag.pointer) || (all && e.pointerId === all.pointer)) {
+      if (drag?.moved && drag.before) props.onRestore?.(drag.before);
       drag = null;
       all = null;
       setFrozen(null);

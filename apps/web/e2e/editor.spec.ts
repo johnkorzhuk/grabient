@@ -488,6 +488,50 @@ test("a drag on a number is one step, however long it rests", async ({ page }) =
   await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
 });
 
+test("a plot's dot dragged to a new value holds its keyframe while it moves, then gives back the hold before it", async ({
+  page
+}) => {
+  await open(page);
+  const editor = page.getByRole("complementary", { name: "Editor" });
+  const chips = editor.getByRole("listbox", { name: "Keyframes" }).getByRole("option");
+  const held = () => editor.locator('[role="option"][aria-selected="true"]');
+  /** the center of keyframe `i`'s dot on the Chroma plot */
+  const dot = async (i: number) => {
+    const at = await editor.getByRole("img", { name: "Chroma", exact: true }).evaluate((svg, n) => {
+      const seen = new Map<string, Element>();
+      for (const c of svg.querySelectorAll(":scope > circle"))
+        seen.set(`${c.getAttribute("cx")},${c.getAttribute("cy")}`, c);
+      const box = [...seen.values()][n]?.getBoundingClientRect();
+      return box ? { x: box.x + box.width / 2, y: box.y + box.height / 2 } : null;
+    }, i);
+    if (!at) throw new Error(`no dot ${i}`);
+    return at;
+  };
+  const drag = async (i: number, during?: () => Promise<void>) => {
+    const { x, y } = await dot(i);
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    for (let step = 1; step <= 6; step++) await page.mouse.move(x, y - step * 5);
+    await during?.();
+    await page.mouse.up();
+  };
+
+  // nothing held: the drag edits the palette, shows its keyframe held as it moves, and leaves nothing held
+  await expect(held()).toHaveCount(0);
+  await drag(2, async () => {
+    await expect(chips.nth(2)).toHaveAttribute("aria-selected", "true");
+  });
+  await expect.poll(() => here(page)).not.toBe(`/${SEED}`);
+  await expect(held()).toHaveCount(0);
+
+  // one held: a drag on another keyframe's dot gives that hold back
+  await chips.nth(0).click();
+  await expect(held()).toHaveCount(1);
+  await drag(2);
+  await expect(held()).toHaveCount(1);
+  await expect(chips.nth(0)).toHaveAttribute("aria-selected", "true");
+});
+
 test("Back leaves an edited palette in one press, and Forward brings it back with its undo", async ({
   page
 }) => {
