@@ -1,15 +1,17 @@
-/* Checks the copies build.ts makes, from snapshots alone: the full build (.data/full) against its two sources,
-   production's and grabient-lite's, and staging's copy (.data/local, as build.ts loaded it into a local D1, or
-   .data/staging, as load.ts read grabient-staging back) against the full build.
+/* Checks the copies build.ts makes, from snapshots alone: the full build (.data/full) against its three sources,
+   production's, grabient-lite's and grabient-staging's (.data/staging, as read before the build), and staging's copy
+   (.data/local, as build.ts loaded it into a local D1, or .data/staging, as load.ts read grabient-staging back) against
+   the full build.
 
      node scripts/data/verify.ts full|local|staging
 
    The full build must hold production's history and every migration in the repository, so later ones apply on top; the
    schema those migrations give production's; every production account, link, palette and like; every grabient-lite
    collection with its palettes in order under its owner's production account, and the rest of its contributor work;
-   no row naming one that is not there; counts, sums and scores that agree with the rows; and no session, token or
-   password. Staging's copy must hold what staging.ts keeps of it and nothing else (verifyStaging), and a copy read back
-   from grabient-staging must equal the local one row for row. */
+   what the admins did on staging since its load, as the later change leaves it (staging-work.ts), and nothing else of
+   staging's; no row naming one that is not there; counts, sums and scores that agree with the rows; and no session,
+   token or password. Staging's copy must hold what staging.ts keeps of it and nothing else (verifyStaging), and a copy
+   read back from grabient-staging must equal the local one row for row. */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -29,6 +31,7 @@ import {
   STAGING_OFF,
   WORK_COLUMNS
 } from "./staging.ts";
+import { stagingWork } from "./staging-work.ts";
 
 export interface Check {
   name: string;
@@ -214,6 +217,7 @@ export function verify(
   lite: Snapshot,
   options: {
     now: number;
+    staging: Snapshot;
     aliases?: ReadonlyMap<string, string>;
     originals?: readonly Original[];
     local?: Snapshot;
@@ -225,6 +229,12 @@ export function verify(
   const count = (table: string) => copy.meta.tables[table]?.rows ?? 0;
   const aliases = options.aliases ?? readAliases();
   const files = migrationFiles();
+  const work = stagingWork(options.staging, production, lite, aliases);
+  const carried = work.collections.filter(c => c.stands === "staging");
+  /* collections staging's version or deletion stands for, and the ones it deleted */
+  const decided = new Set(carried.map(c => c.id));
+  const gone = new Set(carried.filter(c => !c.row).map(c => c.id));
+  const likesDecided = new Set(work.likes.map(like => `${like.user} ${like.seed}`));
 
   /* migrations and schema */
   const history = copy.rows("d1_migrations").map(row => String(row.name));
@@ -305,6 +315,29 @@ export function verify(
     "warn"
   );
 
+  /** grabient-lite's rows as the admins' work on staging leaves them: what a collection staging deleted held goes, what
+      pointed at it points nowhere, and each like staging changed is checked with that work */
+  const liteRows = (table: string): Row[] =>
+    lite.rows(table).flatMap(row => {
+      switch (table) {
+        case "k_likes":
+          if (likesDecided.has(`${account(row.user_id ?? null)} ${row.palette_id}`)) return [];
+          return gone.has(String(row.collection_id)) ? [{ ...row, collection_id: null }] : [row];
+        case "k_collection_notes":
+        case "k_collection_votes":
+          return gone.has(String(row.collection_id)) ? [] : [row];
+        case "k_translations":
+          return row.kind === "collection" && gone.has(String(row.key)) ? [] : [row];
+      }
+      return [row];
+    });
+  /** The rows staging's work adds to grabient-lite's tables, beside its likes and collections. */
+  const fromStaging: Record<string, readonly Row[]> = {
+    k_collection_notes: work.notes,
+    k_admin_actions: work.records,
+    k_contributions: work.contributions
+  };
+
   /* row counts */
   const kseeds = new Set(
     production
@@ -312,10 +345,19 @@ export function verify(
       .flatMap(p => (aliases.has(String(p.id)) ? [aliases.get(String(p.id))!] : []))
   );
   const originals = (options.originals ?? readOriginals()).filter(o => !o.legacy).map(o => o.kseed);
+  /* a palette a carried like brings in joins the gallery unless an admin deleted it */
+  const deletedSeeds = new Set(
+    lite
+      .rows("k_admin_actions")
+      .filter(r => r.action === "delete")
+      .map(r => r.seed)
+  );
+  const brought = work.palettes.filter(p => !deletedSeeds.has(p.seed));
   const gallery = new Set([
     ...kseeds,
     ...originals,
-    ...lite.rows("k_palettes").map(p => String(p.seed))
+    ...lite.rows("k_palettes").map(p => String(p.seed)),
+    ...brought.map(p => String(p.seed))
   ]);
   const productionUsers = new Set(production.rows("auth_user").map(u => String(u.id)));
   const likeKeys = new Set([
@@ -328,8 +370,13 @@ export function verify(
           ? [`${like.user_id} ${aliases.get(String(like.palette_id))}`]
           : []
       ),
-    ...lite.rows("k_likes").map(like => `${account(like.user_id)} ${like.palette_id}`)
+    ...lite.rows("k_likes").map(like => `${account(like.user_id ?? null)} ${like.palette_id}`)
   ]);
+  for (const like of work.likes) {
+    const key = `${like.user} ${like.seed}`;
+    if (like.liked) likeKeys.add(key);
+    else likeKeys.delete(key);
+  }
   const made = [...copyUsers.values()].filter(user => !productionUsers.has(String(user.id)));
   const counts: Record<string, number> = {
     auth_user: production.rows("auth_user").length + made.length,
@@ -341,13 +388,19 @@ export function verify(
     k_legacy_map: aliases.size,
     k_palettes: gallery.size,
     k_likes: likeKeys.size,
-    k_collections: lite.rows("k_collections").length,
-    k_collection_items: lite.rows("k_collection_items").length,
+    k_collections:
+      lite.rows("k_collections").length +
+      carried.filter(c => c.row && c.made).length -
+      carried.filter(c => !c.row && !c.made).length,
+    k_collection_items:
+      lite.rows("k_collection_items").filter(i => !decided.has(String(i.collection_id))).length +
+      carried.reduce((n, c) => n + (c.row ? c.items.length : 0), 0),
     ...Object.fromEntries(
       Object.keys(MOVED)
         .filter(t => t !== "k_likes")
-        .map(table => [table, lite.rows(table).length])
+        .map(table => [table, liteRows(table).length + (fromStaging[table]?.length ?? 0)])
     ),
+    k_newsletter_leads: work.leads.length,
     ...Object.fromEntries(EMPTY.map(table => [table, 0]))
   };
   check(
@@ -395,20 +448,31 @@ export function verify(
     "forked_base",
     "search_text"
   ];
+  /** Whether a collection holds its address, or one the build moved it to: under its owner's handle, or numbered. */
+  const placed = (held: Row, slug: string, owner: Value) => {
+    const user = copyUsers.get(String(owner));
+    const at = String(held.slug);
+    return (
+      at === slug ||
+      (slug.startsWith("@") && !!user && at.startsWith(`@${handleOf(user)}/`)) ||
+      (at.startsWith(`${slug}-`) && /^\d+$/.test(at.slice(slug.length + 1)))
+    );
+  };
+  const kept = lite.rows("k_collections").filter(c => !decided.has(String(c.id)));
   check(
     "grabient-lite's collections",
-    lite.rows("k_collections").flatMap(c => {
+    kept.flatMap(c => {
       const held = copyCollections.get(String(c.id));
       if (!held) return [`${c.slug} is missing`];
-      const owner = c.owner_kind === "user" ? account(c.owner_id) : c.owner_id;
+      const owner = c.owner_kind === "user" ? account(c.owner_id ?? null) : c.owner_id;
       if (held.owner_kind !== c.owner_kind || held.owner_id !== owner)
         return [`${c.slug} has another owner`];
-      const user = copyUsers.get(String(owner));
       const slug = String(c.slug);
-      const moved =
-        user && slug.startsWith("@") && String(held.slug).startsWith(`@${handleOf(user)}/`);
-      if (held.slug !== slug && !moved) return [`${slug} is at ${held.slug}`];
-      const differ = words.filter(w => !same(held[w], c[w]));
+      if (!placed(held, slug, owner)) return [`${slug} is at ${held.slug}`];
+      const want = gone.has(String(c.forked_from))
+        ? { ...c, forked_from: null, forked_base: null }
+        : c;
+      const differ = words.filter(w => !same(held[w], want[w]));
       if (differ.length) return [`${slug} differs in ${differ.join(", ")}`];
       const a = (liteItems.get(String(c.id)) ?? []).map(i => keyOf(i, itemColumns));
       const b = (copyItems.get(String(c.id)) ?? []).map(i => keyOf(i, itemColumns));
@@ -416,7 +480,88 @@ export function verify(
         ? []
         : [`${slug} holds ${b.length} palettes, not grabient-lite's ${a.length} in its order`];
     }),
-    `all ${lite.rows("k_collections").length} with their ${lite.rows("k_collection_items").length} palettes in order, under their owners`
+    kept.length === lite.rows("k_collections").length
+      ? `all ${kept.length} with their palettes in order, under their owners`
+      : `${kept.length} with their palettes in order, under their owners; staging's change stands for the ` +
+          `other ${lite.rows("k_collections").length - kept.length}`
+  );
+
+  /* what the admins did on staging since its load, as the later change leaves it */
+  const likesHeld = new Map(copy.rows("k_likes").map(l => [`${l.user_id} ${l.palette_id}`, l]));
+  const byKey = (table: string, key: readonly string[]) =>
+    new Map(copy.rows(table).map(row => [keyOf(row, key), row]));
+  const rowsIn = (table: string, key: readonly string[], rows: readonly Row[]) => {
+    const held = byKey(table, key);
+    const columns = options.staging.meta.tables[table]?.columns ?? [];
+    return rows.flatMap(row => {
+      const there = held.get(keyOf(row, key));
+      if (!there) return [`${table} ${keyOf(row, key).slice(0, 60)} is missing`];
+      const differ = columns.filter(c => !same(there[c], row[c]));
+      return differ.length
+        ? [`${table} ${keyOf(row, key).slice(0, 60)} differs in ${differ.join(", ")}`]
+        : [];
+    });
+  };
+  const likeColumns = options.staging.meta.tables.k_likes?.columns ?? [];
+  const inGallery = new Set(copy.rows("k_palettes").map(p => String(p.seed)));
+  check(
+    "staging's work",
+    [
+      ...work.likes.flatMap(like => {
+        const held = likesHeld.get(`${like.user} ${like.seed}`);
+        if (like.liked !== !!held)
+          return [`the like of ${like.seed} is ${held ? "there" : "missing"}`];
+        if (!held || like.stands !== "staging") return [];
+        const differ = likeColumns.filter(c => !same(held[c], like.row![c]));
+        return differ.length ? [`the like of ${like.seed} differs in ${differ.join(", ")}`] : [];
+      }),
+      ...brought.flatMap(p =>
+        inGallery.has(String(p.seed)) ? [] : [`palette ${p.seed} is missing`]
+      ),
+      ...carried.flatMap(c => {
+        const held = copyCollections.get(c.id);
+        if (!c.row) return held ? [`${held.slug} is there, though staging deleted it`] : [];
+        const slug = String(c.row.slug);
+        if (!held) return [`${slug} is missing`];
+        if (held.owner_kind !== c.row.owner_kind || held.owner_id !== c.row.owner_id)
+          return [`${slug} has another owner`];
+        if (!placed(held, slug, c.row.owner_id)) return [`${slug} is at ${held.slug}`];
+        const differ = words.filter(w => !same(held[w], c.row![w]));
+        if (differ.length) return [`${slug} differs in ${differ.join(", ")}`];
+        const a = c.items.map(i => keyOf(i, itemColumns));
+        const b = (copyItems.get(c.id) ?? []).map(i => keyOf(i, itemColumns));
+        return a.join() === b.join()
+          ? []
+          : [`${slug} holds ${b.length} palettes, not staging's ${a.length} in its order`];
+      }),
+      ...rowsIn("k_collection_notes", ["id"], work.notes),
+      ...rowsIn("k_admin_actions", ["id"], work.records),
+      ...rowsIn("k_contributions", ["id"], work.contributions),
+      ...rowsIn("k_newsletter_leads", ["issue"], work.leads)
+    ],
+    work.loadedAt === null
+      ? "staging was never loaded"
+      : `since its load at ${new Date(work.loadedAt).toISOString().slice(0, 19)} UTC: ` +
+          `${plural(work.likes.length, "like")} changed, ${plural(brought.length, "palette")} brought in, ` +
+          `${plural(carried.length, "collection")} as staging left ${carried.length === 1 ? "it" : "them"}, ` +
+          `${plural(work.notes.length, "note")}, ${plural(work.leads.length, "lead")}, ` +
+          `${plural(work.records.length + work.contributions.length, "record")} of them`
+  );
+  check(
+    "conflicts",
+    work.conflicts.map(
+      c =>
+        `${c.kind} ${c.key}: staging ${new Date(c.staging).toISOString()}, ${c.source} ` +
+        `${new Date(c.other).toISOString()}, ${c.stands}'s stands`
+    ),
+    "no like or collection changed on both sides since staging's load",
+    "warn"
+  );
+  check(
+    "left on staging",
+    work.left.map(l => `${l.table}: ${l.what} at ${new Date(l.at).toISOString()}`),
+    "nothing the admins changed on staging since its load is left there",
+    "warn"
   );
 
   /* the rest of the work, row by row */
@@ -426,7 +571,7 @@ export function verify(
     const held = new Map(copy.rows(table).map(row => [keyOf(row, key), row]));
     check(
       `grabient-lite's ${table}`,
-      lite.rows(table).flatMap(row => {
+      liteRows(table).flatMap(row => {
         const mapped: Row = { ...row };
         for (const column of accounts)
           if (mapped[column] !== null) mapped[column] = account(mapped[column] ?? null);
@@ -437,7 +582,7 @@ export function verify(
           ? [`${keyOf(mapped, key).slice(0, 60)} differs in ${differ.join(", ")}`]
           : [];
       }),
-      `all ${lite.rows(table).length}`
+      `all ${liteRows(table).length}`
     );
   }
   const seeds = new Set(copy.rows("k_palettes").map(p => p.seed));
@@ -899,7 +1044,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const snapshot = (name: string) => readSnapshot(resolve(DATA, name));
   const checks =
     which === "full"
-      ? verify(snapshot("full"), snapshot("production"), snapshot("lite"), { now: builtAt() })
+      ? verify(snapshot("full"), snapshot("production"), snapshot("lite"), {
+          now: builtAt(),
+          staging: snapshot("staging")
+        })
       : verifyStaging(snapshot(which), snapshot("full"), snapshot("lite"), {
           local: which === "staging" ? snapshot("local") : undefined
         });

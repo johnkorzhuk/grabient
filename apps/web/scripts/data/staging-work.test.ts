@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { planStatements } from "./build.ts";
+import type { Snapshot } from "./snapshot.ts";
 import { sinceLoad, stagingWork, type Work } from "./staging-work.ts";
 import {
   A,
@@ -21,6 +22,7 @@ import {
   stagingOf,
   unloaded
 } from "./testing.ts";
+import { type Check, verify } from "./verify.ts";
 
 /* Two palettes only staging's gallery holds, each brought in by the admin's like. */
 const D = "kDdddddddd";
@@ -170,6 +172,14 @@ let plan: string[];
 const one = (sql: string) => db.prepare(sql).get() as Record<string, unknown> | undefined;
 const column = (sql: string) =>
   (db.prepare(sql).all() as Record<string, unknown>[]).map(r => Object.values(r)[0]);
+const checked = (copy: Snapshot) =>
+  verify(copy, source.production, source.lite, {
+    aliases: ALIASES,
+    originals: ORIGINALS,
+    now: BUILT,
+    staging: source.staging
+  });
+const failed = (checks: Check[]) => checks.filter(c => c.status === "fail").map(c => c.name);
 
 beforeAll(async () => {
   const sources = { production: await production(), lite: await lite([greens]) };
@@ -347,5 +357,48 @@ describe("staging's work", () => {
       if (table === "k_sync_log") continue;
       expect(after.rows(table), table).toEqual(before.rows(table));
     }
+  });
+});
+
+describe("verify, with staging's work", () => {
+  it("passes the build, warning of the conflicts and what stays on staging", async () => {
+    const checks = checked(await snapshotOf(db, 1000));
+    expect(failed(checks)).toEqual([]);
+    expect(checks.find(c => c.name === "conflicts")?.status).toBe("warn");
+    expect(checks.find(c => c.name === "left on staging")?.detail).toContain("vote");
+  });
+
+  it.each([
+    [
+      "a carried like lost",
+      `DELETE FROM k_likes WHERE user_id = 'PA' AND palette_id = '${D}'`,
+      "staging's work"
+    ],
+    [
+      "an unlike undone",
+      `INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at) VALUES ('PA', '${B}', 4, 'radialSwatches', 45, 1)`,
+      "staging's work"
+    ],
+    [
+      "a carried collection's palettes out of order",
+      "UPDATE k_collection_items SET position = 1 - position WHERE collection_id = 'c3'",
+      "staging's work"
+    ],
+    ["the lead lost", "DELETE FROM k_newsletter_leads", "staging's work"],
+    [
+      "a curation's record lost",
+      "DELETE FROM k_admin_actions WHERE id = 'a-remove'",
+      "staging's work"
+    ],
+    ["a persona's like from staging", liked("persona-ash", O, 105_000), "row counts"],
+    [
+      "the collection staging's queue made",
+      collection("q-purple", "purple-swatches-2", "agent", "grabient", "Purple swatches", 180_000),
+      "row counts"
+    ]
+  ])("fails the build with %s", async (_, sql, name) => {
+    const { db: tampered } = await copyOf(source, BUILT);
+    run(tampered, [sql]);
+    expect(failed(checked(await snapshotOf(tampered, 1000)))).toContain(name);
   });
 });

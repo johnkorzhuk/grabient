@@ -253,7 +253,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const read = await readDatabase(reader(db), db, 5000);
   writeSnapshot(FULL, read.meta, read.schema, read.tables);
   const full = readSnapshot(FULL);
-  if (!report(verify(full, production, lite, { aliases, now }))) process.exit(1);
+  if (!report(verify(full, production, lite, { aliases, now, staging }))) process.exit(1);
 
   step("5. Staging's copy, loaded into a local D1 of its own, read back and checked");
   const copy = await stagingCopy(full, lite, now);
