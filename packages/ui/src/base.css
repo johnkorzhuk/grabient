@@ -101,8 +101,8 @@
 @layer base {
   /* The page's color stays on html: the grain, the backdrop and the water sit at negative z-index, and a body
      background would paint over them. Below the header, at most 84px tall, a control the keyboard reaches stays in
-     view, and on a phone above the presses that float at the screen's foot: the selection's and the way back up over
-     it. */
+     view, and on a phone above the presses floating at the screen's foot (data-floor) while they stand there: the
+     selection's, and the way back up over it. */
   html {
     background-color: var(--color-bg);
     color: var(--color-ink);
@@ -115,13 +115,24 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     @media (max-width: 800px) {
-      scroll-padding-bottom: calc(
-        var(--space-s4) +
-        2 *
-        var(--size-touch) +
-        var(--space-s3) +
-        env(safe-area-inset-bottom, 0px)
-      );
+      &:has([data-floor]:not([data-away] *)) {
+        scroll-padding-bottom: calc(
+          var(--space-s4) +
+          var(--size-touch) +
+          var(--space-s1) +
+          env(safe-area-inset-bottom, 0px)
+        );
+      }
+      &:has([data-floor][data-raised]:not([data-away] *)) {
+        scroll-padding-bottom: calc(
+          var(--space-s4) +
+          2 *
+          var(--size-touch) +
+          var(--space-s3) +
+          var(--space-s1) +
+          env(safe-area-inset-bottom, 0px)
+        );
+      }
     }
   }
   body {

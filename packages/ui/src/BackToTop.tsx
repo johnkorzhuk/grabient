@@ -8,7 +8,8 @@ import { focusMain } from "./SkipLink.tsx";
 
 /** The way back up a long page: the primary press with the up arrow at the bottom right, shown once the reader is a
     screen down. Hidden, it takes no pointer and leaves the Tab order and the accessibility tree by its visibility,
-    which the fade keeps until it ends. Where a page floats a button of its own in that corner on a phone, `raised`
+    which the fade keeps until it ends; shown, it marks the screen's floor (data-floor), above which a phone keeps the
+    control the keyboard reaches. Where a page floats a button of its own in that corner on a phone, `raised`
     stands it above. A page with a way of its own says when it shows and how it goes; one whose first screen leads on
     to more below (`down`) points it down, and the same press leads back up from there. A page that shows a row along
     the screen's foot (--peek) has the button stand in that row, and one with no room for it at its first screen says
@@ -63,6 +64,7 @@ export function BackToTop(props: {
     <div
       class={styles.corner}
       data-shown={shown() ? "" : undefined}
+      data-floor={shown() && !props.still ? "" : undefined}
       data-raised={props.raised ? "" : undefined}
       data-resting={shown() && props.resting ? "" : undefined}
       data-still={props.still ? "" : undefined}

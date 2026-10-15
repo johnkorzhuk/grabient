@@ -376,7 +376,11 @@ export function createSelectionScreen(page: {
     /** the end of the page's row of lists: Selection, once something is in it */
     button: () => <span class={styles.end}>{press()}</span>,
     /** a phone's: the same, floating at the foot of the screen */
-    float: () => <span class={styles.float}>{press()}</span>,
+    float: () => (
+      <span class={styles.float} data-floor={selection().length && !open() ? "" : undefined}>
+        {press()}
+      </span>
+    ),
     /** the export screen while the selection stands, in the page's content's place */
     screen: () => (
       <Show when={open()}>
