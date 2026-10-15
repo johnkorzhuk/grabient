@@ -417,6 +417,13 @@ export function Solid(props: {
         aria-label={t("The palette in the color space")}
         tabindex={0}
         onKeyDown={key}
+        onMouseDown={e => {
+          /* Tab reaches the scene, a press leaves the keyboard where a press on the page would: Space and the arrows
+             go on scrolling the page after a click */
+          e.preventDefault();
+          const held = document.activeElement;
+          if (held instanceof HTMLElement && held !== canvas) held.blur();
+        }}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
