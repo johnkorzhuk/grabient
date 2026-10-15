@@ -824,8 +824,10 @@ test("a private collection renamed on its page is the account's own at its new a
   });
   await page.goto(blues.url);
   await hydrated(page);
-  await page.getByRole("button", { name: "Edit My blues", exact: true }).click();
+  await page.getByRole("button", { name: "Edit My blues", exact: true }).focus();
+  await page.keyboard.press("Enter");
   const title = page.getByRole("textbox", { name: "Title" });
+  await expect(title).toBeFocused();
   await title.fill("Deep blues");
   // the page at the new address reads its state once it stands, after anything its address read
   const stands = page.waitForResponse(answer =>
@@ -836,6 +838,9 @@ test("a private collection renamed on its page is the account's own at its new a
   await expect(page).toHaveURL(/\/@e2e-ada\/deep-blues$/);
   await expect(page.locator("main h1")).toHaveText("Deep blues");
   expect(asked).toEqual([]);
+  // the keyboard the form had is on Edit at the new address, and a reader who listens hears the words were saved
+  await expect(page.getByRole("button", { name: "Edit Deep blues", exact: true })).toBeFocused();
+  await expect(page.locator("[data-announce]")).toHaveText("Saved.");
 });
 
 test("a collection's words edited by keyboard take the focus into the title and back to Edit, under the page's heading", async ({

@@ -1,4 +1,5 @@
 import { formatDate, localHref, msg, rich, t } from "@grabient/i18n";
+import { announce } from "@grabient/ui/announce.ts";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Coins, coinHost } from "@grabient/ui/Coins.tsx";
 import { PaletteCount } from "@grabient/ui/CollectionGroup.tsx";
@@ -8,7 +9,7 @@ import { Label } from "@grabient/ui/Label.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { Textarea } from "@grabient/ui/Textarea.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
-import { createSignal, flush, Show } from "solid-js";
+import { createEffect, createSignal, flush, Show, untrack } from "solid-js";
 import { offline } from "../../app/connection.ts";
 import { relativeAge } from "../gallery/drawing.ts";
 import { collectionHref } from "./address.ts";
@@ -23,7 +24,8 @@ import type { CollectionDocument, CopyStanding } from "./types.ts";
    made it (or, on the owner's saved copy, where it was saved from, whose colors open under the pointer), its age and
    how many palettes it holds. The owner of an account's collection edits its words here: the title and the description
    take the heading's place, Enter saves and Escape lets them be. The keyboard goes into the title as they open and back
-   to Edit as they close, and the title stays the page's heading for a reader who listens. */
+   to Edit as they close, to Edit on the page drawn at the collection's new address when a new title moved it. The
+   title stays the page's heading for a reader who listens, who hears Saved once the words are written. */
 
 export function Heading(props: {
   doc: CollectionDocument;
@@ -36,8 +38,11 @@ export function Heading(props: {
   admin: boolean;
   /** the owner of an account's collection, who may edit its words */
   editable: boolean;
-  /** writes new words; rejects with the reason to show */
-  onWords: (words: { title: string; description: string }) => Promise<void>;
+  /** writes new words; rejects with the reason to show. Answers true when they moved the collection to a new address,
+      where the page is drawn anew */
+  onWords: (words: { title: string; description: string }) => Promise<boolean>;
+  /** drawn at the address its words just moved it to */
+  landed?: boolean;
 }) {
   const [editing, setEditing] = createSignal(false);
   const [busy, setBusy] = createSignal(false);
@@ -72,15 +77,31 @@ export function Heading(props: {
     setBusy(true);
     setError("");
     try {
-      await props.onWords({ title, description });
+      /* moved, the form stays as it is until the page leaves */
+      if (await props.onWords({ title, description })) return;
       setBusy(false);
       stop();
+      announce(t("Saved."));
     } catch (reason) {
       setError(failedWrite(reason));
       setBusy(false);
       toTitle();
     }
   };
+  /* drawn at the collection's new address, the heading takes the keyboard the form left once Edit stands, unless the
+     reader has taken it elsewhere */
+  let landing = untrack(() => !!props.landed);
+  createEffect(
+    () => props.editable,
+    editable => {
+      if (!landing || !editable) return;
+      landing = false;
+      const held = document.activeElement;
+      if (held && held !== document.body) return;
+      edit.querySelector("button")?.focus();
+      announce(t("Saved."));
+    }
+  );
   const titleTip = tooltip(() => props.doc.description || undefined);
   const ageTip = tooltip(() =>
     t("Updated {date}", { date: formatDate(props.doc.updatedAt, { dateStyle: "long" }) })
