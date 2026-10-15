@@ -6,18 +6,29 @@
     min-width: 0;
     box-shadow: var(--color-rim);
     --h: var(--size-strip);
+    /* the least a step's press is wide, a finger's on a touch screen: rows that cannot hold every step at that run past
+       the strip, which scrolls them sideways under no scrollbar */
+    --least: var(--size-target);
+    @media (pointer: coarse) {
+      --least: var(--size-touch);
+    }
+    &[data-scrolls] {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
     &[data-two] {
       --h: var(--size-strip-two);
     }
     &[data-short] {
       --h: var(--size-strip-short);
     }
-    /* the foot: the seams' dash along the strip's last pixel, over the chips */
+    /* the foot: the seams' dash along the strip's last pixel, over the chips, as far as they run */
     &::after {
       content: "";
       position: absolute;
       bottom: 0;
-      inset-inline: 0;
+      inset-inline-start: 0;
+      width: max(100%, var(--cols, 0) * var(--least));
       z-index: 2;
       height: var(--size-hairline);
       background-image: linear-gradient(
@@ -33,7 +44,7 @@
   .row {
     position: relative;
     display: flex;
-    min-width: 0;
+    min-width: calc(var(--cols, 0) * var(--least));
     /* the second row runs right to left, so the run reads as one and both ends of the gradient stand at the left; the
        chips keep the gradient's order for a reader and for Tab */
     &[data-back] {
@@ -156,6 +167,8 @@
     --px: 1px;
     container: strip / inline-size;
     font-size: calc(var(--units) * var(--px));
+    overflow-x: auto;
+    scrollbar-width: none;
     @media (max-width: 900px) {
       --h: var(--size-strip-short);
     }
@@ -189,7 +202,7 @@
   .fit {
     position: absolute;
     inset-block: 0;
-    inset-inline: calc((100% - 100% / var(--span) * var(--least)) / 2);
+    inset-inline: calc((100% - 100% / var(--span) * var(--narrowest)) / 2);
     display: flex;
     align-items: center;
     justify-content: center;

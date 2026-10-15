@@ -55,6 +55,7 @@ export const size = {
   controlSm: 28,
   controlBig: 40,
   touch: 44,
+  target: 24,
   logo: 48,
   logoPhone: 38,
   gutter: 48,

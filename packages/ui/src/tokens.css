@@ -52,6 +52,7 @@
     --size-control-sm: 28px; /* A small button: the copy chips over a card, a tag */
     --size-control-big: 40px; /* Form inputs and primary actions */
     --size-touch: 44px; /* Minimum target on coarse pointers */
+    --size-target: 24px; /* Minimum target on any pointer, as WCAG 2.2 sets it */
     --size-logo: 48px; /* Wordmark height on desktop */
     --size-logo-phone: 38px; /* Wordmark height under 960px */
     --size-gutter: 48px; /* Side margin of the app routes; 16px on a phone */

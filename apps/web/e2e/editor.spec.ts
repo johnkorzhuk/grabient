@@ -938,6 +938,30 @@ test.describe("on a phone", () => {
     await expect(floating).toBeHidden();
   });
 
+  test("every color of a long palette keeps a finger's width on the strip, which scrolls sideways in its one row", async ({
+    page
+  }) => {
+    await open(page, `/${SEED}?style=linearSwatches&steps=24`);
+    const strip = page.getByRole("group", { name: "Palette colors" });
+    const chips = strip.getByRole("button");
+    await expect(chips.first()).toBeVisible();
+    const boxes = await chips.evaluateAll(all =>
+      all.map(chip => {
+        const box = chip.getBoundingClientRect();
+        return { width: box.width, top: box.top };
+      })
+    );
+    expect(boxes.length).toBeGreaterThan(12);
+    expect(Math.min(...boxes.map(box => box.width))).toBeGreaterThanOrEqual(44);
+    expect(new Set(boxes.map(box => Math.round(box.top))).size).toBe(1);
+    // the last color comes into view as the keyboard reaches it, and a press copies that one
+    await chips.first().focus();
+    await page.keyboard.press("End");
+    const last = chips.last();
+    await expect(last).toBeFocused();
+    await expect(last).toBeInViewport({ ratio: 1 });
+  });
+
   test("two fingers spread on the panel's controls zoom the page and change nothing", async ({
     page
   }) => {

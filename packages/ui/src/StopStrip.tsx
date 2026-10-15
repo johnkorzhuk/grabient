@@ -19,10 +19,11 @@ export interface StripMark {
 
 /* The palette's stops as one perforated strip: chips fused edge to edge, each hex in black or white, whichever reads,
    the seams and the foot dashed in the paper's color as cuts through to it. Rows and label size come from the engine's
-   layoutStops. A press copies a chip's hex. While a plot or the path reads a place (`reading`), the chip nearest it
-   rises 8px out of the strip and nothing else moves. It is a big picture, so it paints through the flash guard: a
-   change that would turn a flash back sooner than a quarter second after it waits. Left to right in every language,
-   as the gradient runs. */
+   layoutStops. A press copies a chip's hex. Each step keeps a target's width (--least, a finger's on a touch screen),
+   and rows that cannot hold every step at that scroll sideways, the strip keeping its height. While a plot or the path
+   reads a place (`reading`), the chip nearest it rises 8px out of the strip and nothing else moves. It is a big
+   picture, so it paints through the flash guard: a change that would turn a flash back sooner than a quarter second
+   after it waits. Left to right in every language, as the gradient runs. */
 export function StopStrip(props: {
   stops: readonly StripStop[];
   marks?: readonly StripMark[];
@@ -36,13 +37,25 @@ export function StopStrip(props: {
 }) {
   let host!: HTMLDivElement;
   const [width, setWidth] = createSignal(900);
-  onSettled(() => watchSize(host, () => setWidth(host.clientWidth || 900)));
+  const [least, setLeast] = createSignal(0);
+  onSettled(() =>
+    watchSize(host, () => {
+      setWidth(host.clientWidth || 900);
+      setLeast(Number.parseFloat(getComputedStyle(host).getPropertyValue("--least")) || 0);
+    })
+  );
   const stops = createFlashGuard(
     () => props.stops,
     shown => shown.map(s => luminance(s.hex))
   );
-  /* every chip reads the layout, and a hundred stops would lay out hundreds of times an edit without the memo */
-  const lay = createMemo(() => layoutStops(stops(), width(), !!props.short));
+  /* every chip reads the layout, and a hundred stops would lay out hundreds of times an edit without the memo. Rows
+     that scroll are laid out at the width they take, so the labels fit the chips as they stand */
+  const lay = createMemo(() => {
+    const at = layoutStops(stops(), width(), !!props.short);
+    const room = Math.ceil(stops().length / at.rows.length) * least();
+    return room > width() ? layoutStops(stops(), room, !!props.short || !at.two) : at;
+  });
+  const cols = () => Math.ceil(stops().length / lay().rows.length);
   /* the chip being read as one key, so a reading that moves within a chip changes nothing */
   const read = createMemo(() => {
     const at = props.reading;
@@ -97,7 +110,8 @@ export function StopStrip(props: {
       class={styles.strip}
       data-two={lay().two ? "" : undefined}
       data-short={props.short ? "" : undefined}
-      style={{ "--sw": `${lay().size}px` }}
+      data-scrolls={cols() * least() > width() ? "" : undefined}
+      style={{ "--sw": `${lay().size}px`, "--cols": cols() }}
       dir="ltr"
       role="group"
       aria-label={t("Palette colors")}
@@ -172,7 +186,10 @@ export function StillStrip(props: { stops: readonly StripStop[] }) {
           <div
             class={styles.variant}
             data-rows={lay.rows.length}
-            style={{ "--least": Math.min(...lay.rows.flat().map(cell => cell.span)) }}
+            style={{
+              "--narrowest": Math.min(...lay.rows.flat().map(cell => cell.span)),
+              "--cols": Math.ceil(props.stops.length / lay.rows.length)
+            }}
           >
             {lay.rows.map((row, r) => (
               <div class={styles.row} data-back={r > 0 ? "" : undefined}>
