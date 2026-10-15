@@ -9,6 +9,7 @@ import type { Palette } from "@grabient/engine/palette.ts";
 import { isSwatchStyle, type Style, type View } from "@grabient/engine/view.ts";
 import { HEX_CHARS, HEX_SIZES } from "./hex-glyphs.data.ts";
 import { encodePng } from "./png.ts";
+import { BAR, MARGIN } from "./size.ts";
 import { WORDMARK } from "./wordmark.data.ts";
 
 /** An sRGB color in 0 to 255, unrounded: a stop as the curve gives it. */
@@ -86,15 +87,9 @@ function paintLook(canvas: Canvas, look: Look, box: Box) {
   }
 }
 
-/* A share card's furniture, in pixels of a 1200 by 630 card: the margin the wordmark stands in, and its bar, the logo's
-   own 34 by 7 at 93, 43 scaled by 1.3 with the letters and set from the margin. */
-const MARGIN = 32;
-const BAR = { x: 153, y: 88, width: 44, height: 9 } as const;
 /* Chips: a row this tall at the card's foot, and a hex at least this far inside its chip. */
 const CHIP_ROW = 92;
 const CHIP_INSET = 12;
-/** The least a card is drawn at as an email's head: the wordmark and its bar with the margin around them. */
-export const HEAD_MIN = { width: 2 * MARGIN + WORDMARK.width, height: BAR.y + BAR.height + MARGIN };
 
 const decoded = (base64: string) => Uint8Array.from(atob(base64), char => char.charCodeAt(0));
 async function inflate(base64: string): Promise<Uint8Array<ArrayBuffer>> {
