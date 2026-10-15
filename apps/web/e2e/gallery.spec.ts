@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { devices, expect, type Page, test } from "@playwright/test";
 
 /* The gallery's lists as a signed-out reader meets them: what a page asks the server, the cards the server drew that
    wait for the reader, the selection, a heart and Saved. They read the palettes `pnpm db:setup` loads. */
@@ -408,4 +408,58 @@ test("the home leads to the lists in the order the tab read last", async ({ page
   await expect(
     page.getByRole("navigation", { name: "Lists" }).getByRole("link", { name: "Palettes" })
   ).toHaveAttribute("href", "/palettes/rising");
+});
+
+test.describe("on a phone", () => {
+  const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } = devices["Pixel 7"];
+  test.use({ viewport, deviceScaleFactor, isMobile, hasTouch, userAgent });
+
+  test("a color of a picture searched by moves to where the picture is pressed after its point, with no drag", async ({
+    page
+  }) => {
+    await page.goto("/palettes");
+    await hydrated(page);
+    // a picture of four colors, one to each quarter
+    const png = await page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 200;
+      const pen = canvas.getContext("2d")!;
+      for (const [i, color] of ["#2f5fd0", "#39a64b", "#d93a3a", "#e8c534"].entries()) {
+        pen.fillStyle = color;
+        pen.fillRect((i % 2) * 100, Math.floor(i / 2) * 100, 100, 100);
+      }
+      return canvas.toDataURL("image/png").split(",")[1]!;
+    });
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "quarters.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(png, "base64")
+    });
+    const picture = page.getByRole("group", { name: "Your image" });
+    const first = picture.getByRole("button", { name: /^Color 1,/ });
+    await expect(first).toBeVisible();
+    const named = await first.getAttribute("aria-label");
+    const frame = await picture.locator("img").boundingBox();
+    const was = await first.boundingBox();
+    if (!frame || !was) throw new Error("no picture");
+    // the far corner of the quarter across from the point's own, where no other point stands
+    const middle = (box: { x: number; y: number; width: number; height: number }) => ({
+      x: box.x + box.width / 2,
+      y: box.y + box.height / 2
+    });
+    const at = middle(was);
+    const to = {
+      x: frame.x + frame.width * (at.x < middle(frame).x ? 0.92 : 0.08),
+      y: frame.y + frame.height * (at.y < middle(frame).y ? 0.92 : 0.08)
+    };
+    await first.tap();
+    await expect(first).toHaveAttribute("aria-pressed", "true");
+    await page.touchscreen.tap(to.x, to.y);
+    await expect(first).not.toHaveAttribute("aria-label", named ?? "");
+    await expect(first).toHaveAttribute("aria-pressed", "false");
+    const now = await first.boundingBox();
+    if (!now) throw new Error("no point");
+    expect(Math.abs(middle(now).x - to.x)).toBeLessThan(2);
+    expect(Math.abs(middle(now).y - to.y)).toBeLessThan(2);
+  });
 });

@@ -6,10 +6,11 @@ import { createSignal, For, onSettled, Show } from "solid-js";
 import styles from "./Sampler.module.css";
 
 /* A picture and the points its colors are read from, in the palette's order, with a line through them as the blend
-   runs. A point is dragged or stepped with the arrow keys; the page reads the color under it again (`onMove`) and
-   searches once it rests (`onRelease`). A double-click on the picture adds a point there (`onAdd`), and Delete,
-   Backspace or a double-click on a point takes it out (`onRemove`). The picture is shown whole; on a list's grid it is
-   two columns wide, so the palettes made from it stand beside it. */
+   runs. A point is dragged or stepped with the arrow keys, or pressed and then the picture where it should go, which
+   needs no drag; the page reads the color under it again (`onMove`) and searches once it rests (`onRelease`). A
+   double-click on the picture adds a point there (`onAdd`), and Delete, Backspace or a double-click on a point takes it
+   out (`onRemove`). The picture is shown whole; on a list's grid it is two columns wide, so the palettes made from it
+   stand beside it. */
 
 /* arrows step a point a hundredth of the picture, a tenth with Shift, the same way in every language: a picture is
    never mirrored */
@@ -98,6 +99,20 @@ export function Sampler(props: {
     props.onRelease();
   };
   const onPoint = (e: MouseEvent) => !!(e.target as Element).closest("button");
+  /* the press that moved the chosen point there is no half of a double-click that adds one */
+  let placed = false;
+  const place = (e: MouseEvent) => {
+    if (onPoint(e)) return;
+    const i = chosen();
+    if (i === null) {
+      if (e.detail === 1) placed = false;
+      return;
+    }
+    placed = true;
+    setChosen(null);
+    props.onMove(i, ...at(e));
+    props.onRelease();
+  };
   const remove = (i: number) => {
     if (!props.onRemove) return;
     setChosen(null);
@@ -132,7 +147,7 @@ export function Sampler(props: {
         style={{ "aspect-ratio": `${props.width} / ${props.height}` }}
         aria-label={props.label}
       >
-        {/* a press on the picture lets the chosen point go; a double-click adds one there */}
+        {/* a press on the picture moves the chosen point there; a double-click adds one there */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: a pointer's shortcut; the points and their keys do the rest */}
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: the points take the keys, each its own press */}
         <div
@@ -144,16 +159,21 @@ export function Sampler(props: {
             width: `${box().width}px`,
             height: `${box().height}px`
           }}
-          onClick={e => {
-            if (!onPoint(e)) setChosen(null);
+          onPointerDown={e => {
+            /* the chosen point keeps the focus, and the choice with it, until the press lands */
+            if (chosen() !== null && !onPoint(e)) e.preventDefault();
           }}
+          onClick={place}
           onDblClick={e => {
-            if (onPoint(e) || !props.onAdd) return;
+            if (onPoint(e) || !props.onAdd || placed) return;
             e.preventDefault();
             props.onAdd(...at(e));
           }}
         >
           <img class={styles.picture} src={props.src} alt="" draggable={false} />
+          <Show when={chosen() !== null && !dragging()}>
+            <p class={styles.hint}>{t("Press the picture to move this color there.")}</p>
+          </Show>
           <svg
             class={styles.path}
             viewBox="0 0 100 100"
