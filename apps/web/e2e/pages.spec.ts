@@ -92,6 +92,49 @@ test("the newsletter's newest issue comes with the document, in a tree of its ow
   expect(errors).toEqual([]);
 });
 
+const issuePicture = (page: Page) =>
+  page.locator("main article[data-issue] [data-part='image'] img").first();
+/** What a picture shows once drawn: the blank that holds its place, or its file. */
+const shows = (page: Page) =>
+  issuePicture(page).evaluate(img => {
+    const picture = img as HTMLImageElement;
+    return picture.complete && picture.naturalWidth > 0 ? picture.currentSrc : "";
+  });
+const FILE = /\/email\/[\w-]+\.(?:gif|png)$/;
+
+test("an issue's picture holds its place until the reader nears it, and only then is its file asked for", async ({
+  page
+}) => {
+  const asked: string[] = [];
+  page.on("request", request => {
+    const { pathname } = new URL(request.url());
+    if (pathname.startsWith("/email/")) asked.push(pathname);
+  });
+  await page.setViewportSize({ width: 1600, height: 800 });
+  await page.goto("/newsletter");
+  await started(page);
+  await expect.poll(() => shows(page)).toMatch(/^data:image\/svg\+xml,/);
+  const blank = await issuePicture(page).boundingBox();
+  // its top is more than half a screen past the screen's foot
+  expect(blank?.y).toBeGreaterThan(800 * 1.5);
+  await page.waitForTimeout(1000);
+  expect(asked).toEqual([]);
+  await issuePicture(page).scrollIntoViewIfNeeded();
+  await expect.poll(() => shows(page)).toMatch(FILE);
+  expect(asked).toHaveLength(1);
+  // the file takes the blank's place without moving anything
+  const drawn = await issuePicture(page).boundingBox();
+  expect(Math.abs((drawn?.height ?? 0) - (blank?.height ?? 0))).toBeLessThan(1);
+});
+
+test.describe("without script", () => {
+  test.use({ javaScriptEnabled: false });
+  test("an issue's picture comes with the document", async ({ page }) => {
+    await page.goto("/newsletter");
+    await expect.poll(() => shows(page)).toMatch(FILE);
+  });
+});
+
 test("an admin goes through the palettes an issue may lead with, over its lead, and the check makes one its lead", async ({
   page
 }) => {

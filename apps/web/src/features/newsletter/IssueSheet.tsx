@@ -17,6 +17,11 @@ const documentSheet = createIsomorphicFn()
 /* The browser's copy of each sheet the document brought, for when the page is drawn again after a navigation. */
 const brought = new Map<string, string>();
 
+/* How near the screen a sheet's picture comes before its file is asked for: half a screen, so the file is on its way
+   before the reader gets there. Until then the picture stands behind a blank of its shape (the email package's `image`
+   on a page). */
+const NEAR = "50% 0px";
+
 export function IssueSheet(props: {
   issue: PageIssue;
   /** a sheet shown in place of the issue's own: the issue under another lead, as an admin goes through them */
@@ -24,23 +29,42 @@ export function IssueSheet(props: {
   ref?: (host: HTMLDivElement) => void;
 }) {
   let host!: HTMLDivElement;
+  let near: IntersectionObserver | undefined;
   const key = untrack(() => `${locale()} ${props.issue.number}`);
+  /* the pictures in the tree still behind their blanks */
+  const watch = () => {
+    for (const picture of host.shadowRoot?.querySelectorAll("picture > source + img") ?? [])
+      near?.observe(picture);
+  };
   onSettled(() => {
+    near = new IntersectionObserver(
+      entries => {
+        for (const { target, isIntersecting } of entries) {
+          if (!isIntersecting) continue;
+          near?.unobserve(target);
+          target.previousElementSibling?.remove();
+        }
+      },
+      { rootMargin: NEAR }
+    );
     const kept = host.shadowRoot;
-    if (kept?.childNodes.length) {
-      brought.set(key, kept.innerHTML);
-      return;
+    if (kept?.childNodes.length) brought.set(key, kept.innerHTML);
+    else {
+      /* a browser without declarative shadow roots leaves the server's template in place */
+      const template = host.querySelector(":scope > template");
+      template?.remove();
+      (kept ?? host.attachShadow({ mode: "open" })).innerHTML =
+        props.issue.html ?? brought.get(key) ?? template?.innerHTML ?? "";
     }
-    /* a browser without declarative shadow roots leaves the server's template in place */
-    const template = host.querySelector(":scope > template");
-    template?.remove();
-    (kept ?? host.attachShadow({ mode: "open" })).innerHTML =
-      props.issue.html ?? brought.get(key) ?? template?.innerHTML ?? "";
+    watch();
+    return () => near?.disconnect();
   });
   createEffect(
     () => props.shown,
     shown => {
-      if (shown !== undefined && host.shadowRoot) host.shadowRoot.innerHTML = shown;
+      if (shown === undefined || !host.shadowRoot) return;
+      host.shadowRoot.innerHTML = shown;
+      watch();
     }
   );
   const markup = () =>

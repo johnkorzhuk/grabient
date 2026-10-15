@@ -15,7 +15,7 @@ export const escapeHtml = (text: string): string =>
   text.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 export const raw = (html: string): Html => ({ html });
 
-const VOID = new Set(["br", "img", "meta"]);
+const VOID = new Set(["br", "img", "meta", "source"]);
 
 const css = (style: Style): string =>
   Object.entries(style)

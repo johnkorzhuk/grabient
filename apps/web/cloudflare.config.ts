@@ -94,6 +94,10 @@ function production(): CloudflareConfig {
         PUBLIC_ORIGIN: bindings.text(ORIGINS.production),
         BETTER_AUTH_URL: bindings.text(ORIGINS.production),
         BETTER_AUTH_SECRET: bindings.secret(),
+        // Google sign-in and the newsletter's sender: a deploy to a Worker that lacks one is refused
+        GOOGLE_CLIENT_ID: bindings.secret(),
+        GOOGLE_CLIENT_SECRET: bindings.secret(),
+        RESEND_API_KEY: bindings.secret(),
         // Served at /{key}.txt so search engines take the site's lists of new pages. Public by design.
         INDEXNOW_KEY: bindings.text("72485ec9cfd023fba2cad980920af669"),
         EMAIL_FROM: bindings.text(EMAIL_FROM),
