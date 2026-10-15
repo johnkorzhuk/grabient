@@ -38,6 +38,8 @@
       --coin: 16px;
       --gap: 3px;
       --below: var(--space-s2);
+      /* their width, for a row that must keep them inside it */
+      --across: calc(var(--n) * var(--coin) + (var(--n) - 1) * var(--gap));
       z-index: -1;
       &::before {
         content: "";

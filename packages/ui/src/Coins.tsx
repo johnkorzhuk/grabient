@@ -25,7 +25,9 @@ export function Coins(props: {
     <span
       class={styles.coins}
       data-coins={props.variant ?? "link"}
-      style={props.variant === "tag" ? { "--light": light() } : undefined}
+      style={
+        props.variant === "tag" ? { "--light": light(), "--n": String(shown().length) } : undefined
+      }
       aria-hidden="true"
     >
       <For each={shown()} keyed={false}>

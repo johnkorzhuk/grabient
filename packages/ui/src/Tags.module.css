@@ -92,6 +92,18 @@
     .host[data-dragging] & {
       --coins: 0;
     }
+    /* At either end of a row that scrolls, a phone's edge would cut coins wider than their tag: they stay inside the
+       row, centered under the tag while they fit and from its outer edge once they are wider. */
+    .row[data-scrolls] > &:first-child > [data-coins] {
+      left: auto;
+      inset-inline-start: max(0px, 50% - var(--across) / 2);
+      translate: none;
+    }
+    .row[data-scrolls] > &:last-child > [data-coins] {
+      left: auto;
+      inset-inline-end: max(0px, 50% - var(--across) / 2);
+      translate: none;
+    }
   }
   /* there only while that side has more, and only where a pointer can rest on them */
   .arrow {
