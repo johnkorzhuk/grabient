@@ -6,10 +6,11 @@ import { type FitResult, fitSrgbStrip } from "./fit.ts";
 import { decodeLegacySeed, type LegacyPalette, legacySrgb } from "./legacy.ts";
 import { type ParamReader, parseView, viewSearch } from "./view.ts";
 
-export const importLegacy = (P: LegacyPalette): FitResult =>
+/** An old palette's fit; null past its budget (fit.ts). */
+export const importLegacy = (P: LegacyPalette, budget?: number): FitResult | null =>
   fitSrgbStrip(
     Array.from({ length: 96 }, (_, i) => legacySrgb(P, i / 95)),
-    { kMax: 6, iters: 200 }
+    { kMax: 6, iters: 200, budget }
   );
 
 const fitted = new Map<string, { seed: string; keyframes: number } | null>();

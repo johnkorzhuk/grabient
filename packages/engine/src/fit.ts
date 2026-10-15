@@ -1,7 +1,7 @@
 /* Fitting keyframes to a dense strip of colors: an old cosine palette, or colors given as stops. For K = 2 up to kMax
    it starts from evenly picked samples, runs Nelder-Mead on the RMS ΔE over every sample, and keeps the K with the
-   least error plus 0.0015 per keyframe. Heavy: it runs offline and in a browser that opened an old link, never in a
-   request. */
+   least error plus 0.0015 per keyframe. Heavy: its work is the number of times it measures that error, each a pass over
+   the whole strip, so a fit run where its time is bounded is given a budget of them. */
 import { canonical } from "./codec.ts";
 import { deltaE, srgbToLch, type Triple } from "./color.ts";
 import { sampleLCH, unwrapStrip } from "./curve.ts";
@@ -64,16 +64,23 @@ export interface FitResult {
   meanDE: number;
   K: number;
 }
-/** The canonical palette nearest an [L, C, H] strip, with its largest and mean ΔE over the strip. */
-export function fitStrip(
-  given: readonly Triple[],
-  options: { kMax?: number; iters?: number } = {}
-): FitResult {
+export interface FitOptions {
+  kMax?: number;
+  iters?: number;
+  /** the most times the fit may measure its error, past which it answers null */
+  budget?: number;
+}
+/** The canonical palette nearest an [L, C, H] strip, with its largest and mean ΔE over the strip; null when it would
+    spend more than its budget. */
+export function fitStrip(given: readonly Triple[], options: FitOptions = {}): FitResult | null {
   const strip = unwrapStrip(given);
   const n = strip.length;
   const kMax = clamp(options.kMax ?? K_MAX, K_MIN, K_MAX);
   const iters = options.iters ?? 220;
+  let left = options.budget ?? Number.POSITIVE_INFINITY;
   const cost = (A: Anchor[]) => {
+    // past the budget a measure answers at once, and the fit answers null
+    if (--left < 0) return Number.POSITIVE_INFINITY;
     let e = 0;
     for (let i = 0; i < n; i++) {
       const d = deltaE(sampleLCH({ anchors: A }, i / (n - 1)), strip[i]);
@@ -82,7 +89,7 @@ export function fitStrip(
     return Math.sqrt(e / n);
   };
   let best: { A: Anchor[]; penalized: number; K: number } | null = null;
-  for (let K = K_MIN; K <= kMax; K++) {
+  for (let K = K_MIN; K <= kMax && left >= 0; K++) {
     const unpack = (x: number[]): Anchor[] =>
       Array.from({ length: K }, (_, i) => ({
         l: clamp01(x[3 * i]),
@@ -98,7 +105,8 @@ export function fitStrip(
     const penalized = cost(A) + K * 0.0015;
     if (!best || penalized < best.penalized) best = { A, penalized, K };
   }
-  const { A, K } = best as { A: Anchor[]; K: number };
+  if (left < 0 || !best) return null;
+  const { A, K } = best;
   const palette = canonical({ anchors: A });
   let maxDE = 0;
   let sum = 0;
@@ -110,5 +118,5 @@ export function fitStrip(
   return { palette, maxDE, meanDE: sum / n, K };
 }
 /** The fit of sRGB samples: an older generator's output, or a strip drawn through stops. */
-export const fitSrgbStrip = (rgb: readonly Triple[], options?: { kMax?: number; iters?: number }) =>
+export const fitSrgbStrip = (rgb: readonly Triple[], options?: FitOptions) =>
   fitStrip(rgb.map(srgbToLch), options);
