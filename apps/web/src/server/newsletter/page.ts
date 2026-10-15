@@ -81,25 +81,13 @@ export function drawn(
 export const drawnLast = (origin: string, locale: Locale, number: number): string | undefined =>
   lastDrawn.get(`${origin} ${locale} ${number}`)?.html;
 
-/* What the database says of the issues, read at most once a minute in an isolate, and at once after an admin's choice.
-   A read that fails draws the issues as written, each palette named by its colors, and is asked again next time. */
-const FACTS_FOR = 60_000;
-let factsRead: { at: number; facts: Promise<IssueFacts> } | null = null;
-export function issueFacts(env: Pick<Env, "DB">): Promise<IssueFacts> {
-  if (!factsRead || Date.now() - factsRead.at > FACTS_FOR) {
-    const read = readFacts(env, ISSUES).catch((error: unknown) => {
-      console.error("newsletter: the issues' facts were not read", String(error));
-      factsRead = null;
-      return NO_FACTS;
-    });
-    factsRead = { at: Date.now(), facts: read };
-  }
-  return factsRead.facts;
-}
-/** Forgets the facts read, so the next drawing reads them again. */
-export const forgetFacts = () => {
-  factsRead = null;
-};
+/** What the database says of the issues, read for each drawing: the pages that show them are kept at the edge, so few
+    drawings are made. A read that fails draws the issues as written, each palette named by its colors. */
+export const issueFacts = (env: Pick<Env, "DB">): Promise<IssueFacts> =>
+  readFacts(env, ISSUES).catch((error: unknown) => {
+    console.error("newsletter: the issues' facts were not read", String(error));
+    return NO_FACTS;
+  });
 const newestFirst = (issues: readonly Issue[]) => [...issues].sort((a, b) => b.number - a.number);
 
 /** A page of the published issues among these, newest first: those numbered below `before`, or the newest. */

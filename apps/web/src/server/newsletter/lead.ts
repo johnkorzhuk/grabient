@@ -75,7 +75,8 @@ export function asRun(
   };
 }
 
-/** The chosen leads and the names of every palette the issues may lead or pick with, read from a replica. */
+/** The chosen leads, from the primary so a choice shows the moment it is made, and the names of every palette the
+    issues may lead or pick with, from a replica. */
 export async function readFacts(
   env: Pick<Env, "DB">,
   issues: readonly Issue[]
@@ -83,12 +84,11 @@ export async function readFacts(
   // an issue's palettes are the same at any address, so it is written at the site's own
   const views = issues.flatMap(issue => leadOptions(issue, issue.write("https://grabient.com")));
   const seeds = [...new Set(views.map(of => of.seed))];
-  const db = replica(env);
   const [chosen, written] = await Promise.all([
-    all<{ issue: number; seed: string }>(db, "SELECT issue, seed FROM k_newsletter_leads"),
+    all<{ issue: number; seed: string }>(env.DB, "SELECT issue, seed FROM k_newsletter_leads"),
     seeds.length
       ? all<{ seed: string; title: string }>(
-          db,
+          replica(env),
           `SELECT seed, title FROM k_palette_texts WHERE seed IN (${seeds.map(() => "?").join(", ")})`,
           ...seeds
         )

@@ -14,15 +14,7 @@ import { publicOrigin } from "../seo/site.ts";
 import { ISSUES } from "./issues/index.ts";
 import { asRun, chooseLead, leadOptions } from "./lead.ts";
 import { isSubscribed, issueFoot, readerOf, setSubscribed, tokenOwner } from "./list.ts";
-import {
-  beforeOf,
-  draftsAmong,
-  drawn,
-  forgetFacts,
-  issueFacts,
-  languageOf,
-  publishedIssues
-} from "./page.ts";
+import { beforeOf, draftsAmong, drawn, issueFacts, languageOf, publishedIssues } from "./page.ts";
 import { sendIssue, unsendable } from "./send.ts";
 
 /* The newsletter's answers. The public one is the published issues; every other is one account's and never kept
@@ -114,7 +106,6 @@ export async function leadResponse(request: Request, env: Env): Promise<Response
   }
   if (write && seed !== undefined) {
     await chooseLead(env, issue.number, seed, session.user.id);
-    forgetFacts();
     await forget(issuePages(url.origin));
   }
   const facts = await issueFacts(env);

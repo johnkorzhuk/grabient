@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import { ISSUES } from "../src/server/newsletter/issues/index.ts";
 import { issueFoot, readerOf } from "../src/server/newsletter/list.ts";
-import { forgetFacts } from "../src/server/newsletter/page.ts";
 import {
   choiceResponse,
   draftsResponse,
@@ -498,7 +497,6 @@ describe("an issue's lead", () => {
     /data-part="lead"[^>]*>\s*<a [^>]*href="https:\/\/[^/]+\/(k[\w-]+)/.exec(html)?.[1];
   afterEach(async () => {
     await run(newsletterEnv().DB, "DELETE FROM k_newsletter_leads");
-    forgetFacts();
   });
 
   it("is an admin's alone, from the site, among the palettes the issue offers", async () => {
@@ -538,7 +536,6 @@ describe("an issue's lead", () => {
       picks[2],
       "Ember Sunset Bloom"
     );
-    forgetFacts();
     try {
       const shown = await read(env, "issue=1", admin.cookie);
       expect(shown.headers.get("Cache-Control")).toBe("private, no-store");
