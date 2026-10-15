@@ -6,8 +6,9 @@ import { meaning } from "../../../../../packages/email/test/support.ts";
 import { ISSUES } from "./issues/index.ts";
 import { asRun, type IssueFacts, leadOptions, ledBy, NO_FACTS, nameOf } from "./lead.ts";
 import { issueFoot } from "./list.ts";
-import { beforeOf, draftsAmong, drawn, issuesKey, languageOf, publishedPage } from "./page.ts";
+import { draftsAmong, drawn, publishedPage } from "./page.ts";
 import { draftWords, leaks } from "./private.ts";
+import { beforeOf, issuesKey, languageOf } from "./query.ts";
 
 const ORIGIN = "https://grabient.test";
 const fixture = (name: string) =>

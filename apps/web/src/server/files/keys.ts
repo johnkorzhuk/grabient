@@ -8,7 +8,7 @@ import { colorKind } from "@grabient/engine/css.ts";
 import { parseView, type Size, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
-import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montages.ts";
+import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montage-address.ts";
 import { CARD, cardSize, montageSize, pictureSize } from "../images/size.ts";
 import { oldFit } from "../seo/legacy-fit.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";

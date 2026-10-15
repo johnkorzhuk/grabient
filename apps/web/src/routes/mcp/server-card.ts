@@ -2,7 +2,6 @@ import { env } from "cloudflare:workers";
 import { createFileRoute } from "@tanstack/solid-router";
 import { BUILD } from "../../lib/build.ts";
 import { AGENT_DATA, serverCard } from "../../server/seo/agents.ts";
-import { mcpFacts } from "../../server/seo/mcp.ts";
 import { publicOrigin } from "../../server/seo/site.ts";
 import { textResponse } from "../../server/seo/text.ts";
 
@@ -11,12 +10,13 @@ import { textResponse } from "../../server/seo/text.ts";
 export const Route = createFileRoute("/mcp/server-card")({
   server: {
     handlers: {
-      GET: ({ request }) => {
+      GET: async ({ request }) => {
         const etag = `"${BUILD}"`;
         const headers = { ...AGENT_DATA, ETag: etag, "Access-Control-Expose-Headers": "ETag" };
         if (request.headers.get("If-None-Match") === etag) {
           return new Response(null, { status: 304, headers });
         }
+        const { mcpFacts } = await import("../../server/seo/mcp.ts");
         return textResponse(
           JSON.stringify(serverCard(publicOrigin(env, request), mcpFacts())),
           "application/mcp-server-card+json",

@@ -15,13 +15,12 @@ import { type SearchEnv, searchLeaders } from "../search/search.ts";
 import { paletteCard, palettePicture } from "./cards.ts";
 import {
   MONTAGE_PALETTES,
-  type MontagePalette,
-  montageAnswer,
   montageOrder,
   montagePicks,
   picksKey,
   pictureWords
-} from "./montages.ts";
+} from "./montage-address.ts";
+import { type MontagePalette, montageAnswer } from "./montages.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
 
 const paramsOf = (request: Request) => addressParams(new URL(request.url).searchParams);

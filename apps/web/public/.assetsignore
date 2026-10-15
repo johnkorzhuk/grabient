@@ -1,0 +1,2 @@
+# the build's map of sources to chunks: nothing reads it once deployed
+.vite

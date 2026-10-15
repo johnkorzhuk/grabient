@@ -8,7 +8,6 @@ import { UNSUBSCRIBE_TOKEN } from "../features/newsletter/input.ts";
 import { UnsubscribePage } from "../features/newsletter/UnsubscribePage.tsx";
 import { NO_STORE } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
-import { unsubscribeResponse } from "../server/newsletter/routes.ts";
 
 /* The newsletter's way out: /unsubscribe, or /unsubscribe/{token} from an issue. The address names an account, so the
    page is never framed, kept or named in a Referer (server/paths.ts), and its head names the page without the token.
@@ -19,7 +18,12 @@ export const Route = createFileRoute("/unsubscribe/{-$token}")({
   headers: () => NO_STORE,
   head: () => pageHead({ kind: "unsubscribe" }),
   server: {
-    handlers: { POST: ({ request, params }) => unsubscribeResponse(request, env, params.token) }
+    handlers: {
+      POST: async ({ request, params }) => {
+        const { unsubscribeResponse } = await import("../server/newsletter/routes.ts");
+        return unsubscribeResponse(request, env, params.token);
+      }
+    }
   },
   component: Unsubscribe
 });

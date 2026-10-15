@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/solid-router";
-import { connectingScript, LoginPage } from "../features/account/LoginPage.tsx";
+import { LoginPage } from "../features/account/LoginPage.tsx";
+import { connectingScript } from "../features/account/return.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
 

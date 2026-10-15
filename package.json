@@ -19,7 +19,7 @@
     "e2e": "pnpm --filter web e2e",
     "db:setup": "pnpm --filter web db:setup",
     "i18n": "node packages/i18n/scripts/i18n.ts",
-    "ci:build": "pnpm check && pnpm build",
+    "ci:build": "pnpm check && pnpm build && pnpm --filter web budget",
     "deploy:staging": "pnpm --filter web deploy:staging",
     "deploy:preview": "pnpm --filter web deploy:preview",
     "deploy:production": "pnpm check && pnpm --filter web deploy:production",

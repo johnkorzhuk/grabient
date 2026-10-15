@@ -1,6 +1,6 @@
 import "./server/i18n.ts";
 import "./server/seo/origin.ts";
-import "./server/email/letters/account.ts";
+import { setAccountMailer } from "@grabient/server/email/send.ts";
 import type { Env as AppEnv, Env } from "@grabient/server/env.ts";
 import { getRequestEvent } from "@solidjs/web";
 import {
@@ -9,10 +9,14 @@ import {
   defineHandlerCallback
 } from "@tanstack/solid-start/server";
 import { NO_STORE } from "./lib/cache.ts";
-import { JOBS } from "./server/jobs.ts";
 import { handle } from "./server/pipeline.ts";
 
 export { RateLimiter } from "@grabient/server/limits/rate-limiter.ts";
+
+// sign-in's emails are the app's letters, which load with the first email an isolate sends
+setAccountMailer(async (...sent) =>
+  (await import("./server/email/letters/account.ts")).accountMailer(...sent)
+);
 
 declare module "@solidjs/web" {
   interface RequestEventLocals {
@@ -82,6 +86,8 @@ const start = createStartHandler(
 export default {
   fetch: (request, env, ctx) => handle(request, env, ctx, async request => start(request)),
   async scheduled(controller, env) {
+    // the jobs' steps load with a trigger's run: an isolate that answers requests never needs them
+    const { JOBS } = await import("./server/jobs.ts");
     const job = JOBS[controller.cron];
     if (!job) throw new Error(`No job runs on the schedule ${controller.cron}`);
     await job(env);

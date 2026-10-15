@@ -1,5 +1,5 @@
 import { type Issue, insetStyles, issuePage, type SheetColors } from "@grabient/email";
-import { DEFAULT_LOCALE, isLocale, type Locale, localizePath } from "@grabient/i18n";
+import { DEFAULT_LOCALE, type Locale, localizePath } from "@grabient/i18n";
 import type { Env } from "@grabient/server/env.ts";
 import type { PageIssue } from "../../features/newsletter/input.ts";
 import { keep } from "../search/kept.ts";
@@ -123,23 +123,3 @@ export const draftsAmong = (
   newestFirst(issues)
     .filter(issue => !issue.published)
     .map(issue => drawn(issue, origin, locale, facts));
-
-/** The `before` a request names, or null for the newest page. */
-export function beforeOf(params: URLSearchParams): number | null {
-  const asked = params.get("before") ?? "";
-  return /^[1-9]\d{0,5}$/.test(asked) ? Number(asked) : null;
-}
-/** The language a request names, English for anything else. */
-export function languageOf(params: URLSearchParams): Locale {
-  const asked = params.get("lang");
-  return isLocale(asked) ? asked : DEFAULT_LOCALE;
-}
-/** The query `/api/newsletter` is kept at the edge by: its `before` and a language other than English, as read. */
-export function issuesKey(params: URLSearchParams): URLSearchParams {
-  const key = new URLSearchParams();
-  const before = beforeOf(params);
-  const locale = languageOf(params);
-  if (before) key.set("before", String(before));
-  if (locale !== DEFAULT_LOCALE) key.set("lang", locale);
-  return key;
-}

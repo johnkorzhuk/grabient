@@ -2,7 +2,6 @@ import type { Locale } from "@grabient/i18n";
 import { infiniteQueryOptions, queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getJson } from "../../lib/query.ts";
-import { issuesForDocument } from "../../server/newsletter/document.ts";
 import { Choice, Drafts, IssuesPage } from "./input.ts";
 
 /* The newsletter's reads. The server renders the newest issues straight from the issues it holds, the sheets into the
@@ -19,7 +18,10 @@ const query = (params: Record<string, string | number | null>) => {
 const lang = (locale: Locale) => (locale === "en" ? null : locale);
 
 const readIssues = createIsomorphicFn()
-  .server((locale: Locale, before: number | null) => issuesForDocument(locale, before))
+  .server(async (locale: Locale, before: number | null) => {
+    const { issuesForDocument } = await import("../../server/newsletter/document.ts");
+    return issuesForDocument(locale, before);
+  })
   .client((locale: Locale, before: number | null) =>
     getJson(`/api/newsletter${query({ before, lang: lang(locale) })}`, IssuesPage)
   );

@@ -1,16 +1,25 @@
 import type { Env } from "../env.ts";
-import { authFor } from "./library.ts";
 
 /* A session in use is extended a day after it was last extended: the library moves its row's expiry and sets its
    cookie again for seven days, on the answer that read it. An answer that drops that cookie leaves the database
    keeping a session whose cookie runs out, so only two reads extend one: the page's own session check (the library's
    route) and renewSession, whose callers carry its cookies. Every other read leaves the session as it stands. */
 
-const readSession = (env: Env, headers: Headers, fresh: boolean) =>
-  authFor(env).api.getSession({
+/* The sign-in library loads with the first request of an isolate that uses it, never as the isolate starts: most
+   requests read no account. */
+
+/** Whether a request carries a session's cookie, whatever prefix the deploy gives its name. The library finds no
+    session without one, so a request with none is answered without it. */
+export const hasSessionCookie = (headers: Headers) =>
+  headers.get("Cookie")?.includes(".session_token=") === true;
+
+const readSession = async (env: Env, headers: Headers, fresh: boolean) => {
+  const { authFor } = await import("./library.ts");
+  return authFor(env).api.getSession({
     headers,
     query: { disableCookieCache: fresh, disableRefresh: true }
   });
+};
 
 export type Session = NonNullable<Awaited<ReturnType<typeof readSession>>>;
 
@@ -23,6 +32,7 @@ export async function getSession(
   headers: Headers,
   options: { fresh?: boolean } = {}
 ): Promise<Session | null> {
+  if (!hasSessionCookie(headers)) return null;
   return readSession(env, headers, options.fresh === true);
 }
 
@@ -32,6 +42,7 @@ export async function renewSession(
   env: Env,
   headers: Headers
 ): Promise<{ session: Session | null; cookies: Headers }> {
+  const { authFor } = await import("./library.ts");
   const read = await authFor(env).api.getSession({
     headers,
     query: { disableCookieCache: true },

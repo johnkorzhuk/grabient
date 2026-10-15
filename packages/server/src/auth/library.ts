@@ -196,6 +196,8 @@ function createAuth(env: Env) {
 }
 
 export type Auth = ReturnType<typeof createAuth>;
+// the library's refusal, for callers that load this module as they use it
+export { APIError };
 
 // One instance per environment: two never share a database or a session cache, in one process or a test.
 const instances = new WeakMap<Env, Auth>();

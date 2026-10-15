@@ -77,7 +77,9 @@ its path to `privatePath`; one any site may fetch, to `publicFile`. A file besid
 
 Worker-only code lives in `src/server/` and reads its bindings with `import { env } from "cloudflare:workers"`. The
 browser's build fails on an import of it from code the browser runs; an import used only inside
-`createIsomorphicFn().server()` or a server handler is removed from the browser's build.
+`createIsomorphicFn().server()` or a server handler is removed from the browser's build. Every request through Start
+first loads every route's module, so a handler whose work no page shares (the MCP server, the authorization server,
+an account's connections) imports it inside the handler, and only its own requests load it.
 
 ## Accounts and the offline copy
 
@@ -137,3 +139,9 @@ the personas and the accounts the site's work names; no other account, session o
 Unit tests sit beside the code (`*.test.ts`). `pnpm e2e` runs the Playwright smoke tests against `vite dev` on a free
 port, and the ones tagged @served, which meet the service worker, against the staging build `vite preview` serves on
 another.
+
+`pnpm budget` reads a build and fails when a page's start JS, the stylesheet, the largest chunk loaded on demand, the
+session recorder, the precise color names or the Worker (all of it, what an isolate's start loads, and what the first
+request through Start adds) is over its budget in `scripts/budget.ts`. `ci:build` and `deploy:production` run it after
+their build, so a deploy over budget stops before it deploys. A change that needs more raises the budget in the same
+commit and says why.

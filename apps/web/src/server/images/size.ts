@@ -4,11 +4,19 @@
    side or four cards' pixels both sides are drawn smaller by one factor: drawing is the one costly thing here, and a
    bound keeps every picture's cost known. */
 import { parseSize, resolveSize, type Size } from "@grabient/engine/view.ts";
-import { HEAD_MIN } from "./paint.ts";
 
 export const CARD: Size = { width: 1200, height: 630 };
 export const SIDE_MAX = 2400;
 export const PIXELS_MAX = 4 * CARD.width * CARD.height;
+
+/* A share card's furniture, in pixels of a 1200 by 630 card: the margin the wordmark stands in, the wordmark's letters,
+   and its bar, the logo's own 34 by 7 at 93, 43 scaled by 1.3 with the letters and set from the margin. The letters'
+   mask stands apart in wordmark.data.ts, which only the painter loads. */
+export const MARGIN = 32;
+export const WORDMARK = { width: 286, height: 50 } as const;
+export const BAR = { x: 153, y: 88, width: 44, height: 9 } as const;
+/** The least a card is drawn at as an email's head: the wordmark and its bar with the margin around them. */
+export const HEAD_MIN = { width: 2 * MARGIN + WORDMARK.width, height: BAR.y + BAR.height + MARGIN };
 
 /** A side as an address writes it: whole digits, however many, read up to the largest safe integer. */
 const whole = (raw: string | null | undefined) =>

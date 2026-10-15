@@ -1,7 +1,7 @@
 import { first } from "../db/d1.ts";
 import type { Env } from "../env.ts";
 import { json, privateResponse, readJson, sameOrigin } from "./http.ts";
-import { authFor } from "./library.ts";
+import type { Auth } from "./library.ts";
 import { accountRole } from "./roles.ts";
 import { getSession } from "./session.ts";
 
@@ -9,8 +9,8 @@ const TOKEN_MAX = 512;
 
 /* The library clears the session's cookies in an inner call whose answer it drops, and answers a deletion with a fresh
    copy of the deleted session for five minutes. The browser is told to forget all of them here instead. */
-async function forgetSession(env: Env): Promise<Headers> {
-  const { authCookies } = await authFor(env).$context;
+async function forgetSession(auth: Auth): Promise<Headers> {
+  const { authCookies } = await auth.$context;
   const headers = new Headers();
   for (const { name, attributes } of [
     authCookies.sessionToken,
@@ -57,13 +57,15 @@ export async function deleteAccount(request: Request, env: Env): Promise<Respons
   if ((await accountRole(env, session.user.id)) === "admin") {
     return json({ error: "Admin accounts can't be deleted here." }, 403);
   }
+  const { authFor } = await import("./library.ts");
+  const auth = authFor(env);
   try {
-    const deleted = await authFor(env).api.deleteUser({
+    const deleted = await auth.api.deleteUser({
       headers: request.headers,
       body: { token },
       asResponse: true
     });
-    if (deleted.ok) return json(await deleted.json(), 200, await forgetSession(env));
+    if (deleted.ok) return json(await deleted.json(), 200, await forgetSession(auth));
     if (deleted.status < 500) return privateResponse(deleted);
     throw new Error(`the library answered ${deleted.status}`);
   } catch (error) {
