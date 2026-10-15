@@ -745,7 +745,9 @@ describe("the six-hour upkeep", () => {
         "same"
       ]);
       expect(told).toEqual([`changed ${changed}`]);
-      expect(env.EMAIL.last.subject).toBe("Grabient: a saved client document changed");
+      expect(env.EMAIL.last.subject).toBe(
+        "[development] Grabient: a saved client document changed"
+      );
       expect(env.EMAIL.last.text).toContain("Fields that differ: redirect_uris.");
       // the same change is told once; a week without an answer is told, once too
       await check(day + 6 * 3_600_000);
@@ -753,7 +755,7 @@ describe("the six-hour upkeep", () => {
       const week = await check(day + 7 * 86_400_000);
       expect(week[1]).toMatchObject({ clientId: down, why: "HTTP 503", notify: "unreachable" });
       expect(env.EMAIL.last.subject).toBe(
-        "Grabient: a client document has been unreachable for a week"
+        "[development] Grabient: a client document has been unreachable for a week"
       );
       await check(day + 8 * 86_400_000);
       expect(told).toEqual([`changed ${changed}`, `unreachable ${down}`]);

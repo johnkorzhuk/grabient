@@ -124,7 +124,7 @@ describe("the contact form", () => {
         { error: "Contact is temporarily unavailable." }
       ]);
       expect(await alertOwner(env, unique("kind"), "Grabient: a test", ["A line."])).toBe(true);
-      expect(env.EMAIL.sent.map(sent => sent.subject)).toEqual(["Grabient: a test"]);
+      expect(env.EMAIL.sent.map(sent => sent.subject)).toEqual(["[development] Grabient: a test"]);
     } finally {
       await setFlag(env, "email", true, unique("admin"));
     }
@@ -157,7 +157,7 @@ describe("the contact form", () => {
 
 describe("the owner's alerts", () => {
   it("go to the site's address at most once a day for each kind", async () => {
-    const env = testEnv();
+    const env = testEnv({ DEPLOYMENT: "production" });
     const key = unique("kind");
     const day = Date.UTC(2026, 9, 13, 8);
     expect(await alertOwner(env, key, "Grabient: a test", ["One.", "Two."], day)).toBe(true);
@@ -174,6 +174,20 @@ describe("the owner's alerts", () => {
     expect(await alertOwner({ ...env, OAUTH_KV: undefined }, unique("kind"), "S", ["T"])).toBe(
       false
     );
+  });
+
+  it("name the deploy they come from in the subject, unless it is production", async () => {
+    for (const [deployment, subject] of [
+      ["production", "Grabient: answers are failing"],
+      ["staging", "[staging] Grabient: answers are failing"],
+      ["preview", "[preview] Grabient: answers are failing"]
+    ] as const) {
+      const env = testEnv({ DEPLOYMENT: deployment });
+      expect(await alertOwner(env, unique("kind"), "Grabient: answers are failing", ["T"])).toBe(
+        true
+      );
+      expect([deployment, env.EMAIL.last.subject]).toEqual([deployment, subject]);
+    }
   });
 
   it("never stop the job when one cannot be sent, and try again next time", async () => {
@@ -194,13 +208,13 @@ describe("the owner's alerts", () => {
     expect(
       await documentAlert(env, { clientId, fields: ["redirect_uris"], notify: "changed" })
     ).toBe(true);
-    expect(env.EMAIL.last.subject).toBe("Grabient: a saved client document changed");
+    expect(env.EMAIL.last.subject).toBe("[development] Grabient: a saved client document changed");
     expect(env.EMAIL.last.text).toContain("Fields that differ: redirect_uris.");
     expect(
       await documentAlert(env, { clientId, fields: [], why: "HTTP 503", notify: "unreachable" })
     ).toBe(true);
     expect(env.EMAIL.last.subject).toBe(
-      "Grabient: a client document has been unreachable for a week"
+      "[development] Grabient: a client document has been unreachable for a week"
     );
     expect(env.EMAIL.last.text).toContain("(HTTP 503 the last time)");
   });

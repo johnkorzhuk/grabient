@@ -9,9 +9,10 @@ import { DATASETS } from "../mcp/admin/usage.ts";
 const KEPT_SECONDS = 2 * 86_400;
 
 /** Sends the site's address an alert unless one of this kind went today. False when nothing went: one went today, the
-    deploy has no EMAIL or OAUTH_KV, or the send failed, which is logged so one alert never stops the job's others. */
+    deploy has no EMAIL or OAUTH_KV, or the send failed, which is logged so one alert never stops the job's others.
+    Every deploy but production names itself in the subject, so staging's alert never reads as grabient.com's. */
 export async function alertOwner(
-  env: Pick<Env, "EMAIL" | "EMAIL_FROM" | "OAUTH_KV">,
+  env: Pick<Env, "DEPLOYMENT" | "EMAIL" | "EMAIL_FROM" | "OAUTH_KV">,
   key: string,
   subject: string,
   paragraphs: readonly string[],
@@ -24,7 +25,7 @@ export async function alertOwner(
     await env.EMAIL.send({
       from: { name: "Grabient", email: env.EMAIL_FROM },
       to: CONTACT_EMAIL,
-      subject,
+      subject: env.DEPLOYMENT === "production" ? subject : `[${env.DEPLOYMENT}] ${subject}`,
       text: paragraphs.join("\n\n")
     });
   } catch (error) {
