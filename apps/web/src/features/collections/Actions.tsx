@@ -26,7 +26,8 @@ import type { CollectionDocument, CopyStanding } from "./types.ts";
 /* The presses at the end of a collection's row: the selection's own, then every palette into the selection or out of
    it; Save (someone else's collection), Saved and Update while the source moved on; on the owner's saved copy Update
    or Reset; an admin's own made public or private; Delete. Reset and Delete ask twice: the first press arms them for
-   four seconds. With no connection the presses that need the server keep their places, disabled. */
+   four seconds, and Escape or the focus leaving lets them rest. With no connection the presses that need the server
+   keep their places, disabled. */
 
 const ARM_MS = 4000;
 const TURNED_MS = 1800;
@@ -260,6 +261,16 @@ export function Actions(props: {
     }
   };
 
+  /* an armed press is the one with the focus: Escape, or the focus leaving it, lets it rest */
+  const disarm = () => {
+    if (!armed() && !resetArmed()) return false;
+    clearTimeout(armTimer);
+    clearTimeout(resetTimer);
+    setArmed(false);
+    setResetArmed(false);
+    return true;
+  };
+
   const updateName = () =>
     t(synced() ? msg("Updated") : syncing() ? msg("Updating…") : msg("Update"));
   const UpdatePress = () => (
@@ -276,7 +287,15 @@ export function Actions(props: {
   );
 
   return (
-    <div ref={row} class={styles.actions}>
+    /* biome-ignore lint/a11y/noStaticElementInteractions: Escape and the focus leaving come up from its presses */
+    <div
+      ref={row}
+      class={styles.actions}
+      onFocusOut={disarm}
+      onKeyDown={e => {
+        if (e.key === "Escape" && disarm()) e.stopPropagation();
+      }}
+    >
       {props.selection}
       <Button
         icon
