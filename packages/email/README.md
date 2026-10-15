@@ -34,6 +34,8 @@ design document draw the same email. Nothing here sends: the Worker holds the bi
   are passed over, by the card painter's own arithmetic (`WORDMARK` in `head.ts`).
 - A picture's address has one spelling, every setting in one order, at one of three sizes, none larger than a share
   card. Every picture stands in a link, since Gmail lays a Download button over one that leads nowhere.
+- On a page an `image` stands behind a blank of its shape that only a browser running script takes, and the page that
+  shows the issue drops the blank as the picture nears the screen. In an email it is the file alone.
 - An inline gradient is the `background` shorthand alone over a `bgcolor` attribute: Gmail on Android drops any other.
 - An issue draws only palettes an admin liked, each in the view it was liked in, and each pick once.
 - A partner's tile has a label and says what was exchanged. A blurb is inline styles alone, light, with no class,

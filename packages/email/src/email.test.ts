@@ -605,6 +605,15 @@ describe("an issue on a page of the site", () => {
       page.html.split('<span style="display:block;aspect-ratio:300 / 300"></span>')
     ).toHaveLength(4);
   });
+  test("holds a picture back behind a blank of its shape, which only a browser running script takes", () => {
+    const shot = image({ src: `${origin}/shot.png`, alt: "The editor", width: 1200, height: 800 });
+    const blank = '<svg xmlns="http://www.w3.org/2000/svg" width="534" height="356"/>';
+    expect(decode(shot({ ...ctx, web: true }).html.html)).toContain(
+      `<picture><source media="(scripting: enabled)" srcset="data:image/svg+xml,${encodeURIComponent(blank)}"><img class="line" src="${origin}/shot.png" alt="The editor" width="534" height="356" loading="lazy" `
+    );
+    // an email gives its reader the file alone
+    expect(drawn(shot)).not.toMatch(/<picture|<source|loading=/);
+  });
   test("keeps to the likes and leads to the reader's language", () => {
     expect(() => issuePage(words({ liked: [] }))).toThrow(/only palettes an admin liked/);
     expect(hrefs(issuePage(words({ locale: "ja" })).html)).toContain(`${origin}/ja/${seed}`);

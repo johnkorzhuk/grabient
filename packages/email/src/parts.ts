@@ -421,17 +421,34 @@ export interface ImageOptions {
   href?: string;
   caption?: string;
 }
+/* A page holds its picture back behind a blank of its shape, which only a browser running script takes, until the page
+   that shows the issue drops the blank as the picture nears the screen: a browser's own lazy loading asks for a file
+   over a thousand pixels from the screen. A browser without script takes the file. */
+function heldBack(picture: Html, width: number, height: number): Html {
+  const blank = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"/>`;
+  return h(
+    "picture",
+    null,
+    h("source", {
+      media: "(scripting: enabled)",
+      srcset: `data:image/svg+xml,${encodeURIComponent(blank)}`
+    }),
+    picture
+  );
+}
+
 /** A picture as wide as the words. */
 export const image =
   (options: ImageOptions): Part =>
   ctx => {
     const width = ctx.measure;
+    const height = Math.round((width * options.height) / options.width);
     const picture = h("img", {
       class: "line",
       src: address(options.src),
       alt: options.alt,
       width,
-      height: Math.round((width * options.height) / options.width),
+      height,
       loading: ctx.web ? "lazy" : false,
       /* a page's column is as wide as the page makes it, where an email's is the sheet's */
       style: {
@@ -443,11 +460,12 @@ export const image =
         "border-radius": px(RADIUS.surface)
       }
     });
+    const shown = ctx.web ? heldBack(picture, width, height) : picture;
     const under = options.caption ? text(options.caption, { role: "small" })(ctx) : null;
     return {
       html: table(
         { ...FULL, "data-part": "image" },
-        tr(h("td", null, pictureLink(picture, options.href ?? options.src))),
+        tr(h("td", null, pictureLink(shown, options.href ?? options.src))),
         under && tr(h("td", { style: { "padding-top": px(SPACE.s2) } }, under.html))
       ),
       text: [`[${options.alt}]${options.href ? ` ${options.href}` : ""}`, options.caption]
