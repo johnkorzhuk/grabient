@@ -122,8 +122,9 @@ Claude's and OpenAI's directories and the MCP Registry list the server at https:
 `src/server/mcp/info.ts` says; OpenAI takes the package `node scripts/plugin-package.ts` writes to `.data/`. The registry
 and OpenAI each check the domain with a token set as a secret on the day, `MCP_REGISTRY_AUTH` and
 `OPENAI_APPS_CHALLENGE`, served under `/.well-known/` (`src/server/mcp/directories.ts`). Reviewers sign in with the
-password of the one account `REVIEWER_EMAIL` names, behind Turnstile where `TURNSTILE_SECRET_KEY` is set
-(`packages/server/src/auth`). Every tool keeps a title and its four hints, and its words say what it does
+password of the one account `REVIEWER_EMAIL` names (`packages/server/src/auth`), its tries capped by the rate limits.
+Leave `TURNSTILE_SECRET_KEY` unset until the password page carries Turnstile's widget: with the secret set, the server
+asks for an answer the page never sends, and every reviewer's sign-in is refused. Every tool keeps a title and its four hints, and its words say what it does
 (`src/server/mcp/tools.test.ts`).
 
 ## Staging's data

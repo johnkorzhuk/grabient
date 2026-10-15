@@ -56,7 +56,7 @@ import {
   viewExtension,
   viewOn
 } from "./view.ts";
-import { readView, VIEW_RESOURCE } from "./view-page.ts";
+import { readView, viewResource } from "./view-page.ts";
 
 /* The MCP server at /mcp, for an app signed in to a Grabient account. Every request carries an access token: the
    OAuth library answers one without a valid token with its 401 challenge, checks the token's audience and expiry, and
@@ -327,7 +327,7 @@ async function answer(request: Request, env: Env, ctx: McpContext): Promise<Resp
     });
   }
   if (method === "resources/list") {
-    return done({ resources: [VIEW_RESOURCE, SKILL_RESOURCE], ...(modern ? KEPT : {}) });
+    return done({ resources: [viewResource(origin), SKILL_RESOURCE], ...(modern ? KEPT : {}) });
   }
   if (method === "resources/templates/list")
     return done({ resourceTemplates: [], ...(modern ? KEPT : {}) });

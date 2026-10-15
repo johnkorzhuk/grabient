@@ -61,6 +61,12 @@ test("a person who opens /mcp in a browser lands on the page that says how to co
   await page.goto("/mcp");
   expect(new URL(page.url()).pathname).toBe("/mcp-server");
   await expect(page.locator("main h1")).toBeVisible();
+  // what to do when an app doesn't connect, and where to write, as a directory's reviewers ask
+  await expect(page.getByRole("heading", { name: "If it doesn't connect" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "hello@grabient.com" })).toHaveAttribute(
+    "href",
+    "mailto:hello@grabient.com"
+  );
 });
 
 test("the page that says how to connect names the site's public address, whatever host it was reached on", async ({

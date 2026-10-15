@@ -14,7 +14,8 @@
         "inline",
         "fullscreen"
       ]
-    }
+    },
+    "openai/widgetDomain": "https://grabient.test"
   },
   "bytes": 323168,
   "sha256": "3c563a36f116300f69ddbb2156254766e513421b31aeb3d97648987da2f2f8ff",

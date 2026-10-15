@@ -23,7 +23,8 @@
               "inline",
               "fullscreen"
             ]
-          }
+          },
+          "openai/widgetDomain": "https://grabient.test"
         }
       },
       {

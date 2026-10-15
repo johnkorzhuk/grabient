@@ -1,7 +1,9 @@
-import { msg, t } from "@grabient/i18n";
+import { CONTACT_EMAIL } from "@grabient/email/addresses.ts";
+import { msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { type CodeTab, CodeTabs } from "@grabient/ui/CodeTabs.tsx";
 import { CopyLine } from "@grabient/ui/CopyLine.tsx";
+import link from "@grabient/ui/link.module.css";
 import { type FrameLink, PageFrame } from "@grabient/ui/PageFrame.tsx";
 import { Rule } from "@grabient/ui/Rule.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
@@ -15,9 +17,16 @@ import { MCP_LINKS, MCP_PATH, MCP_SETUPS, otherSetup } from "./mcp-apps.ts";
 
 /* /mcp-server: how an AI app is connected to Grabient. The server needs an account, so every app signs in when it is
    added. First the address every app takes, with Copy, and one-click links for the apps whose makers give one; then
-   each app's setup by hand, a tab each; then the sign-in. Then what a connected app can do, things to ask it, and the
-   apps the account connected, each with the press that ends it. The page's own words read nothing of the account: the
+   each app's setup by hand, a tab each; then the sign-in. Then what a connected app can do, things to ask it, what to
+   do when an app doesn't connect, and the apps the account connected, each with the press that ends it. The page's own words read nothing of the account: the
    list is drawn once the browser knows the account, which the server never does. */
+
+/* in the order a stuck connection is most often freed */
+const FIXES = [
+  msg("Sign in to Grabient in the browser your app opens, then add Grabient again."),
+  msg("Remove Grabient from your app and add it once more."),
+  msg("Disconnect the apps you no longer use under Connected apps on this page.")
+];
 
 const CAN_DO = [
   msg("Search palettes by words, hex codes or another palette."),
@@ -175,6 +184,33 @@ export function McpServerPage(props: {
               )}
             </For>
           </ul>
+        </section>
+        <section class={styles.section}>
+          <Text variant="h2">{t("If it doesn't connect")}</Text>
+          <ul class={styles.list}>
+            <For each={FIXES} keyed={false}>
+              {line => (
+                <li>
+                  <Text variant="body" as="span">
+                    {t(line())}
+                  </Text>
+                </li>
+              )}
+            </For>
+          </ul>
+          <Text variant="body" as="p">
+            {rich(
+              "Still stuck? Write to <email>{email}</email>.",
+              {
+                email: words => (
+                  <a class={link.inline} href={`mailto:${CONTACT_EMAIL}`} dir="ltr">
+                    {words}
+                  </a>
+                )
+              },
+              { email: CONTACT_EMAIL }
+            )}
+          </Text>
         </section>
         <Show when={account()}>
           {signedIn => (
