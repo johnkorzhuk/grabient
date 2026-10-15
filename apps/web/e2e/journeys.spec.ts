@@ -196,11 +196,12 @@ const EDIT = "main article a[aria-label='Edit']";
 const cards = (page: Page) => page.locator("main article:has(a[aria-label='Edit'])");
 
 /** Every card a list draws, on screen or below it, as where its Edit leads and whether its press named `name` is
-    pressed, to the eye or to a screen reader. */
-const pressedOn = (page: Page, name: RegExp) =>
+    pressed, to the eye or to a screen reader: by its pressed state, or by its name where the name says it (`on`). */
+const pressedOn = (page: Page, name: RegExp, on?: RegExp) =>
   page.evaluate(
-    ([source, flags]) => {
+    ([source, flags, onSource]) => {
       const named = new RegExp(source, flags);
+      const onNamed = onSource === null ? null : new RegExp(onSource);
       return [...document.querySelectorAll("main article")]
         .filter(card => card.checkVisibility())
         .flatMap(card => {
@@ -208,12 +209,17 @@ const pressedOn = (page: Page, name: RegExp) =>
           const press = [...card.querySelectorAll("button")].find(button =>
             named.test(button.getAttribute("aria-label") ?? "")
           );
-          return edit && press
-            ? [[edit, press.getAttribute("aria-pressed") === "true"] as const]
-            : [];
+          if (!edit || !press) return [];
+          const label = press.getAttribute("aria-label") ?? "";
+          return [
+            [
+              edit,
+              onNamed ? onNamed.test(label) : press.getAttribute("aria-pressed") === "true"
+            ] as const
+          ];
         });
     },
-    [name.source, name.flags]
+    [name.source, name.flags, on?.source ?? null] as const
   );
 /** The cards whose heart says other than her account: each palette she likes has its heart pressed, and every other
     one not. */
@@ -224,7 +230,7 @@ const misdrawn = async (page: Page, liked: ReadonlySet<string>) =>
 /** The cards whose selection press says other than this browser's selection: each palette chosen, in the view its
     list draws it in, shows its check, and every other one its plus. */
 const misselected = async (page: Page, chosen: ReadonlySet<string>) =>
-  (await pressedOn(page, /selection$/)).flatMap(([href, on]) =>
+  (await pressedOn(page, /selection$/, /^Remove from selection$/)).flatMap(([href, on]) =>
     on === chosen.has(href) ? [] : [`${href} ${on}`]
   );
 /** This browser's selection, as another tab leaves it: these palettes, each in the view its Edit leads to. */

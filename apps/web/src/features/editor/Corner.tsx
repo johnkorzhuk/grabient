@@ -14,8 +14,8 @@ export interface Panel {
   toggle: () => void;
 }
 
-/** The header's corner on a palette's page: the press that puts the side away and brings it back, and how the palette
-    is drawn. It reads As saved with no tile chosen and Steps and Angle on Auto until the reader sets one; a style,
+/** The header's corner on a palette's page: the press that puts the side away and brings it back, named for what it
+    does now, and how the palette is drawn. It reads As saved with no tile chosen and Steps and Angle on Auto until the reader sets one; a style,
     steps or an angle set here is the reader's, and goes for every palette the page draws. */
 export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
   const e = props.editor;
@@ -37,7 +37,6 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
           icon
           size="lg"
           turns
-          aria-pressed={props.panel.open()}
           aria-label={panelName()}
           tip={`${panelName()} · ${keyOf("panel")}`}
           onClick={props.panel.toggle}

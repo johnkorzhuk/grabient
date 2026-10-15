@@ -518,7 +518,6 @@ function Tools(props: {
           variant={chosen() ? "primary" : props.paper ? "secondary" : "art"}
           icon
           size="lg"
-          aria-pressed={chosen()}
           aria-label={t(chosen() ? msg("Remove from selection") : msg("Add to selection"))}
           tip={t(chosen() ? msg("Remove from selection") : msg("Add to selection"))}
           onClick={() => {

@@ -243,14 +243,14 @@ export function PaletteCard(props: PaletteCardProps) {
   );
 }
 
-/** The corner toggle: a plus to add, a check in ink once added. */
+/** The corner toggle: a plus to add, a check in ink once added. Its name says what a press does now, so no pressed
+    state stands beside it. */
 function pick(props: PaletteCardProps) {
   return (
     <Button
       variant={props.selected ? "primary" : "art"}
       icon
       size="sm"
-      aria-pressed={!!props.selected}
       aria-label={t(props.selected ? msg("Remove from selection") : msg("Add to selection"))}
       tip={t(props.selected ? msg("Remove from selection") : msg("Add to selection"))}
       onClick={() => props.onSelect?.()}

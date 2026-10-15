@@ -301,7 +301,6 @@ export function Actions(props: {
         icon
         size="lg"
         turns
-        aria-pressed={allChosen()}
         aria-label={t(allChosen() ? msg("Remove all from selection") : msg("Add all to selection"))}
         tip={t(allChosen() ? msg("Remove all from selection") : msg("Add all to selection"))}
         disabled={!props.palettes.length}
