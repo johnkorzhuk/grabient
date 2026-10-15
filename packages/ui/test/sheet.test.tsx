@@ -157,7 +157,7 @@ describe("the sheet", () => {
     expect(html).toMatch(/\binert\b/);
     expect(html).toContain('aria-label="In these collections"');
     expect(html).toContain('href="/c/sunset"');
-    expect(html).toMatch(/aria-disabled="true"[^>]*><span[^>]*>Kept offline/);
+    expect(html).toMatch(/aria-disabled="true"[^>]*>(<span[^>]*>)+Kept offline/);
     expect(html).toContain('aria-label="Text contrast"');
     expect(html).toContain("kSeed");
     expect(html).toContain("<p>similar</p>");
