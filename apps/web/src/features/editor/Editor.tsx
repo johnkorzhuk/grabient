@@ -4,6 +4,7 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
 import { resolveSize, type Size } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
+import { announce } from "@grabient/ui/announce.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { keepKeyboard } from "@grabient/ui/dismiss.ts";
@@ -98,6 +99,8 @@ const SaveSelection = lazy(() => import("./Collect.tsx").then(m => ({ default: m
 const PLOT_FLOW = 132;
 const PLOT_LEAST = 96;
 const PLOT_MOST = 220;
+/* how soon after a press that turned the palette its new name is that press's to say: an undo of the page lands later */
+const TURN_SAID_MS = 1500;
 /* a field typed in on a touch screen: how far down the window it may stand and be over any keyboard, the room the side
    gives its rows to rise there (more than any keyboard is tall), and the least a row keeps under the side's top */
 const OVER_KEYS = 1 / 3;
@@ -283,6 +286,26 @@ export default function Editor(props: { data: PaletteData }) {
       );
     }
   };
+  const facts = () =>
+    factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null);
+  const heading = () =>
+    e.seed() === first.page.seed &&
+    e.style() === first.page.view.style &&
+    e.steps() === first.page.view.steps
+      ? first.heading
+      : undefined;
+  /* a press that turned the palette into another at once tells a screen reader, once, the name the page shows for it
+     now; a drag's palettes are named only as they are drawn */
+  let said = 0;
+  createEffect(
+    () => [e.seed(), heading(), facts()],
+    () => {
+      const at = e.turnedAt();
+      if (at === said || performance.now() - at >= TURN_SAID_MS) return;
+      said = at;
+      announce(untrack(() => paletteName(e, heading(), facts())));
+    }
+  );
   return (
     <>
       <Page
@@ -291,17 +314,9 @@ export default function Editor(props: { data: PaletteData }) {
         narrow={narrow}
         save={save}
         rest={rest}
-        facts={() =>
-          factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null)
-        }
+        facts={facts}
         frames={first.frames}
-        heading={() =>
-          e.seed() === first.page.seed &&
-          e.style() === first.page.view.style &&
-          e.steps() === first.page.view.steps
-            ? first.heading
-            : undefined
-        }
+        heading={heading}
         opened={e.openedSeed}
         taken={taken}
         used={used}
