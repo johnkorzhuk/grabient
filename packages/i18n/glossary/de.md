@@ -46,6 +46,7 @@ How German says Grabient's words. Read `README.md` for what each word means here
 | angle | Winkel | |
 | keyframe | Keyframe, Keyframes (der) | As in After Effects and Figma. „bearbeitbarer OKLCH-Keyframe“. |
 | hold / held / let go (keyframes) | festhalten / festgehalten / loslassen | Not „auswählen“: that word belongs to the selection. „Alle Keyframes festhalten“, „Keyframes loslassen“. The color space: „Farbraum ausblenden“, „Klicken zum Festhalten“, „Klicken zum Ausblenden“. |
+| lock / unlock (Random's locks on Lightness, Chroma and Hue) | sperren / entsperren | „Helligkeit sperren“, „Farbton entsperren“: the lock at a field's end, whose value Würfeln keeps. Not „festhalten“, which holds keyframes. |
 | Reverse / Invert / Straighten lightness | Umkehren / Invertieren / Helligkeit begradigen | The editor's presses and tooltips. Statuses: „Helligkeit begradigt.“, „Nichts zu begradigen.“ |
 | lightness | Helligkeit | L of OKLCH. |
 | chroma | Chroma (das) | The international color-science term; German writing about OKLCH uses it too. DIN's own colorimetry word is „Buntheit“ (hue: „Buntton“), but this audience knows OKLCH's term, not DIN's. Never „Sättigung“. |
@@ -87,6 +88,7 @@ How German says Grabient's words. Read `README.md` for what each word means here
 | account / settings | Konto / Einstellungen | |
 | app / connect / disconnect / Allow (the consent page's press) | App (die) / verbinden / trennen / Erlauben | „KI-App“, „Verbundene Apps“. The MCP page tells the reader to choose „Erlauben“, so the consent page's press says the same. A custom connector is „benutzerdefinierter Konnektor“, an MCP server „MCP-Server“. „Connect again from your app.“ is „Verbinde dich erneut über deine App.“; „Return to“ and „Returns to“ are „Zurück zu“. |
 | admin / admin tools | Admin, Admins / Admin-Tools | The short word German developers use, the Settings section's heading included: „Admin-Konten“, „Nur Admins können …“. |
+| lead (a newsletter issue's lead palette, admins only) | Hauptpalette | The palette an issue opens with: „Als Hauptpalette verwenden“, „Nächste Hauptpalette“, „{at} von {count}“. |
 | avatar | Profilbild | |
 | username | Nutzername | |
 | agent | Agent, Agenten | „Grabient-Agenten“, „Agenten-Sammlungen“. |
@@ -94,6 +96,7 @@ How German says Grabient's words. Read `README.md` for what each word means here
 | retry / try again | Erneut versuchen; in a sentence „Versuche es erneut.“ | „Try again later.“ is „Versuche es später erneut.“ The sign-in button's countdown says what it will do: „Erneut senden in 30 s“. |
 | Couldn't … (errors) | „… konnte nicht … werden.“ | „Die Palette konnte nicht gespeichert werden.“ With nothing named: „Kopieren fehlgeschlagen.“, „Speichern fehlgeschlagen.“ |
 | No results. | Keine Ergebnisse. | |
+| offline / online | offline / online | „Du bist offline.“; a page opens offline once seen online: „ist offline verfügbar, sobald du sie einmal online aufgerufen hast“. |
 | When off, … (admin switches' lines) | Wenn ausgeschaltet, … | |
 | About / home | Über / Startseite | „Über Grabient“ is the page's title. |
 | undo / redo | Rückgängig / Wiederholen | |

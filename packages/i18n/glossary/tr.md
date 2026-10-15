@@ -21,6 +21,7 @@ word gets its Turkish.
 | angle | açı | |
 | keyframe | anahtar kare | Adobe's Turkish term. "Anahtar kare ekle". |
 | hold / held / let go | tut / tutulan / bırak | Keyframes the reader holds. Kept apart from seçim, which is the palettes' selection. |
+| lock / unlock (the Lightness, Chroma and Hue locks) | kilitle / kilidini aç | A lock keeps its value through Rastgele: "Açıklığı kilitle"; while closed, its tip is "Açıklığın kilidini aç". Kept apart from tut, which holds keyframes. |
 | lightness | açıklık | The color-science word (L of OKLCH, CIELAB L*), not "parlaklık" (brightness). |
 | chroma | kroma | The color-science word (Munsell's ton, değer, kroma), not "doygunluk" (saturation). |
 | hue | ton | As in Photoshop's Ton/Doygunluk. |
@@ -65,10 +66,11 @@ word gets its Turkish.
 | color picker | Renk seçici | The floating picker, and the swatch beside a hex field that opens it. Its hue slider is Ton. |
 | Pick color (the eyedropper) | Renk al | As Turkish designers say "damlalıkla renk almak". Not "Renk seç", which reads as choosing in the picker itself. |
 | saturation / brightness (the picker's) | doygunluk / parlaklık | The picker's square: "Doygunluk ve parlaklık", "Doygunluk %{saturation}, parlaklık %{brightness}". HSB's S and B, as in Photoshop's Ton/Doygunluk/Parlaklık; never the palette's kroma or açıklık. |
-| sync / offline | eşitle / çevrimdışı | Microsoft's word, not "senkronize et": "Eşitlenecek # değişiklik". "Çevrimdışısınız." |
+| sync / offline | eşitle / çevrimdışı | Microsoft's word, not "senkronize et": "Eşitlenecek # değişiklik". "Çevrimdışısınız." What opens offline once seen online: "Bu sayfayı çevrimiçiyken bir kez gördükten sonra çevrimdışı da açabilirsiniz." |
 | Undo / Redo (the editor's) | Geri al / Yinele | Office's and macOS's words, on the buttons and their tooltips. |
 | reduce motion | Hareketi azalt | Apple's Turkish name for the setting. The button steps through Sistem / Açık / Kapalı. For the System choice, the line under the heading says the site follows the device's setting, then which: "Cihazınızın ayarına uyar: açık", as Theme's line does ("…: koyu"). Never write "cihazınızı izler", which reads as tracking the device. |
 | admin / admin tools | yönetici / yönetici araçları | The Settings section "Yönetici", which only admins see. The tools cover küratörlük, oylar, ajanlar için notlar and yayımlama. Publish is yayımlamak (TDK), not yayınlamak (broadcast). |
+| issue / lead palette (the newsletter's, admins only) | sayı / manşet paleti | The palette an issue leads with, in the newspaper's word for its lead story: "Bu paleti manşete taşı"; its arrows: "Önceki manşet paleti", "Sonraki manşet paleti". Which one is shown: "{at}/{count}", since no suffix may land on a value. |
 | a foldable's screens (inner / cover) | iç ekranı / dış ekranı | Export size presets: "{device} iç ekranı", "{device} dış ekranı". A bare "iç" or "dış" after the device name reads as cut off. The screen presets are "Bu ekran" (This screen) and "Ultra geniş" (Ultrawide). |
 | Save to | Şuraya kaydet | The label over the collections the selection can be saved to, beside the export column's "Kaydet veya dışa aktar" toggle. After an add, it says "{title} koleksiyonuna eklendi". |
 | analytics / session replay | analitik / oturum kaydı | The two switches under Settings' "Gizlilik". A replay's recordings are "oturum kayıtları". |

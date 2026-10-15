@@ -41,6 +41,7 @@ time; add a row when a new product word gets its translation.
 | angle | góc | |
 | keyframe | keyframe | Loanword from motion and design tools. Plural "các keyframe". Not "khung hình chính", which means a video frame. |
 | hold / let go (keyframes) | giữ / thả | "các keyframe đang giữ", "Giữ tất cả keyframe", "Thả các keyframe". |
+| lock / unlock (the editor's Lightness, Chroma and Hue locks) | khóa / mở khóa | "Khóa độ tươi", "Mở khóa độ tươi". Kept apart from holding keyframes (giữ). |
 | lightness | độ sáng | |
 | chroma | độ tươi | Judgment: Vietnamese has no settled color-science word. Not "độ bão hòa" (saturation) and not "sắc độ" (hue in Microsoft's Vietnamese, value in art schools). "Độ tươi" is how Vietnamese OKLCH explanations gloss chroma: gray to vivid. The About page pairs it with C wherever the math needs precision. |
 | hue | tông màu | Designers' word for hue. "sắc độ" avoided for the reason above. "Tông" also names color families ("Tông xám", "Tông đất"), which is fine since those are names. "Tông màu" itself must never mean "tone" or "color scheme" in the UI, or the H slider's meaning blurs. |
@@ -51,7 +52,7 @@ time; add a row when a new product word gets its translation.
 | Couldn't … / can't … | Không … được / Không thể … | A failure: "Không tải được bảng màu.", "Không lưu được." What isn't possible: "Không thể xuất bảng màu này." |
 | Try again, Try again later | Thử lại, Thử lại sau | No "Vui lòng": "Quá nhiều yêu cầu. Thử lại sau." |
 | busy (sign-in, search) | quá tải | "Tìm kiếm đang quá tải." |
-| offline | ngoại tuyến | "Bạn đang ngoại tuyến." |
+| offline / online | ngoại tuyến / trực tuyến | "Bạn đang ngoại tuyến."; "chỉ mở được khi ngoại tuyến nếu bạn đã từng xem nó lúc trực tuyến". |
 | No results. | Không có kết quả. | Also a heading. |
 | selection | mục đã chọn; the button is "Đã chọn" | "Thêm vào mục đã chọn", "Đã chọn 5". |
 | select | chọn | "Đã chọn {count}". |
@@ -106,6 +107,7 @@ time; add a row when a new product word gets its translation.
 | Contact, message (to Grabient) | Liên hệ, lời nhắn | The form itself is "biểu mẫu liên hệ". "Lời nhắn" is the form's own field label. "Tin nhắn" reads as a chat or SMS message. |
 | Privacy, Analytics, Session replay (the Settings section and its switches) | Quyền riêng tư, Phân tích, Ghi lại phiên truy cập | The labels, capitalized, when the text names the switch ("bật hoặc tắt Phân tích và Ghi lại phiên truy cập"). In running text: "tính năng phân tích", "tính năng ghi lại phiên truy cập". A recording is "bản ghi". |
 | issue, test issue (of the newsletter) | số, số thử | "Gửi các số của bản tin", "Chỉ gửi số thử đến {email}". |
+| lead palette (of an issue, admins) | bảng màu chính | The palette an issue opens with: "Đặt làm bảng màu chính", "Bảng màu chính tiếp theo", "Bảng màu chính trước đó". A counter "3 of 13" is "3/13". |
 | Grabient, OKLCH, OKLab, sRGB, Display P3, CSS, SVG, PNG, JSON, GLSL, WGSL, Shadertoy, Figma, MCP, URL, Markdown, hex | unchanged | |
 
 ## Color names

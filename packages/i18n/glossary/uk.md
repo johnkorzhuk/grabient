@@ -25,6 +25,7 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | editable (keyframe) | який можна редагувати | Judgment: never редагований, the past participle ("edited") that copies the Russian present passive participle Ukrainian lacks. Agrees with the noun (які ключові кадри, які можна редагувати). The accepted -уван- adjectives (підтримувані, відтворювані) are a different, correct pattern. |
 | hold / held / let go (keyframes) | виділити / виділені / зняти виділення | Judgment: Ukrainian tools say виділити for selecting objects (Mod+A is Виділити все). It keeps the keyframes apart from the palette selection (добірка). |
 | keep / hide (the color space) | закріпити / сховати | The 3D view's color space: Клацніть, щоб закріпити; Сховати колірний простір. |
+| lock / unlock (the Lightness, Chroma and Hue locks) | зафіксувати / скасувати фіксацію | A lock keeps a value through Випадкова: Зафіксувати світлість; while closed, its tip is Скасувати фіксацію світлості, as Unlike is Скасувати вподобання. Not заблокувати, which reads as a field that can't be edited, and not закріпити, the color space's keep. |
 | lightness | світлість | The L of OKLCH. |
 | chroma | хрома | Judgment: the color-science term, as Ukrainian OKLCH texts write it. Never насиченість (saturation); хрома stays clearly apart from it and matches the C axis. |
 | hue | тон | Колірний тон, the color-science word, as Photoshop's «Колірний тон/Насиченість». Never відтінок (shade). |
@@ -54,7 +55,7 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | account | обліковий запис | As Google, Apple and Canva say it in Ukrainian. |
 | app / connect / disconnect / Allow (the consent page's press) | застосунок / підключити / відключити / Дозволити | Judgment: застосунок, not додаток, which also means a supplement. «ШІ-застосунок», «Підключені застосунки». The MCP page tells the reader to choose «Дозволити», so the consent page's press says the same. A custom connector is власний конектор, an MCP server MCP-сервер. |
 | settings | налаштування | |
-| offline | не в мережі | Offline: Не в мережі. You're offline.: Ви не в мережі. |
+| offline | не в мережі | Offline: Не в мережі. You're offline.: Ви не в мережі. What opens offline once seen online: відкриватиметься без мережі, щойно ви переглянете її в мережі. |
 | reduce motion | зменшити рух | The Settings heading, an infinitive like Видалити обліковий запис. Its button steps Як у системі, Увімк., Вимк. The device's own setting (iOS: Зменшення руху) is told as a state: Як на вашому пристрої: рух дозволено / рух зменшено. |
 | theme | тема | Dark / Light: Темна / Світла (they agree with тема). Always dark.: Завжди темна. Follows your device: dark.: Як на вашому пристрої: темна. |
 | admin | адміністратор | The role. The Settings section Admin: Адміністрування; its switch Admin tools: Інструменти адміністратора, which shows кураторство, голоси, нотатки для агентів і публікацію. |
@@ -78,6 +79,7 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | Contact (the page and its form) | Контакти; форма зв’язку | "Contact is temporarily unavailable." is Форма зв’язку тимчасово недоступна. |
 | session replay | запис сеансів | The Settings switch and the feature; its recordings are записи сеансів. |
 | public gallery | публічна галерея | |
+| issue / lead palette (the newsletter's, admins only) | випуск / головна палітра випуску | Зробити цю палітру головною; the arrows go through the options: Попередній варіант, Наступний варіант. |
 | Home | Головна | The brand pages' link back to the home page. |
 
 ## Generated palette names

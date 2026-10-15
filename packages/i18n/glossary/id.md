@@ -43,6 +43,7 @@ time, and add a row when a new product word gets its translation.
 | angle | sudut | Corners (the export's rounding) is therefore Pembulatan, never sudut. |
 | keyframe | keyframe | Judgment: the loanword Indonesian motion and UI designers use (After Effects, Figma); bingkai kunci reads as a textbook calque. No plural marking. |
 | hold / held / let go (keyframes) | pegang / dipegang / lepaskan | "the held keyframes" is keyframe yang dipegang. Kept apart from the palette selection (pilihan). |
+| lock / unlock (the editor's Lightness, Chroma and Hue locks) | kunci / buka kunci | Kunci kroma, Buka kunci kroma, as Canva says it. Judgment: Kunci also reads as the noun (the chroma lock), and either reading names the toggle. Kept apart from pegang. |
 | lightness | kecerahan | The L of OKLCH. Straighten lightness is Luruskan kecerahan, and its status Kecerahan diluruskan. |
 | chroma | kroma | The color-science term (Munsell, CIE LCh: rona, nilai, kroma). Never saturasi. |
 | hue | rona | The Indonesian color-theory term (rona warna). |
@@ -99,7 +100,8 @@ time, and add a row when a new product word gets its translation.
 | error | kesalahan | "Something went wrong" is Terjadi kesalahan. |
 | Couldn't … / Invalid … (errors) | … tidak dapat di… / … tidak valid | The thing first, passive: Palet tidak dapat disalin, Koleksi tidak dapat dimuat; with no object, Tidak dapat menyalin. A length rule is Panjang judul 1 sampai {max} karakter; "Use up to" is Gunakan hingga, "Use at least" Gunakan minimal. |
 | No results. | Tidak ada hasil. | An empty search. "No palettes." is Tidak ada palet. |
-| offline | offline | The loanword Indonesian apps use: Offline, Anda sedang offline. |
+| offline / online | offline / online | The loanwords Indonesian apps use: Offline, Anda sedang offline; baru dapat dibuka saat offline setelah Anda melihatnya saat online. |
+| newsletter issue / lead palette (admins) | edisi / palet utama | The palette an issue opens with, as berita utama is a paper's lead: Jadikan palet utama, Palet utama berikutnya. |
 
 ## Color names and generated names
 

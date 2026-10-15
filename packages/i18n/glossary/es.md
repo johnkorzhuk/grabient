@@ -20,6 +20,7 @@ The reader is addressed as **tú**. Read the English list in `README.md` first; 
 | angle | ángulo | |
 | keyframe | fotograma clave (pl. fotogramas clave) | Adobe's term. |
 | hold / held / let go (keyframes) | sujetar / sujetos / soltar | "Sujetar todos los fotogramas clave", "los fotogramas clave sujetos", "Soltar fotogramas clave". Never "seleccionar": that verb belongs to the selection of palettes. If it ever reads oddly, the fallback is "marcar / marcados / desmarcar", still never "seleccionar". |
+| lock / unlock (Random's locks on Lightness, Chroma and Hue) | bloquear / desbloquear | "Bloquear luminosidad", "Desbloquear tono": the lock at a field's end, whose value Al azar keeps. Kept apart from "sujetar" (the keyframes' hold) and "fijar" (keeping the color space). |
 | lightness | luminosidad | The L of OKLCH. |
 | chroma | croma (m.) | The color-science term, as in LCh. Never "saturación", which is the color picker's HSB S. |
 | hue | tono | As in Photoshop's Tono/saturación and MDN's OKLCH pages. "Δ tono", "recorrido del tono". |
@@ -72,13 +73,14 @@ The reader is addressed as **tú**. Read the English list in `README.md` first; 
 | not found | no encontrada (a title), No se encontró (a sentence) | "Paleta no encontrada", "Página no encontrada"; "No se encontró la colección. Puede que se haya eliminado." |
 | busy (a limit reached) | saturado | "La búsqueda está saturada.", "El inicio de sesión por correo está saturado." |
 | expires / expired | expira / expiró | "El enlace expira en 5 minutos.", "Código incorrecto o expirado." |
-| Offline | Sin conexión | "Estás sin conexión." |
+| Offline / online | Sin conexión / en línea | "Estás sin conexión."; a page that opens offline once seen online "estará disponible sin conexión una vez que la hayas visto en línea". |
 | validation minimums and limits | Usa al menos… / Usa hasta… | The shared pattern across sibling messages; not "Ponle…". A limit stated: "Los títulos tienen de 1 a {max} caracteres", "Las colecciones admiten hasta {max} paletas". |
 | email | correo electrónico, correo | |
 | gallery | galería | |
 | reader (in admin lines) | visitante | "cuando un visitante vuelve a presionar En ascenso". |
 | reduce motion (Settings) | Reducir movimiento | Apple's Spanish name for the setting. Its button steps through "Sistema", "Activado" and "Desactivado". The System line is "Se adapta a tu dispositivo…": "Sigue a tu dispositivo" reads as an instruction. |
 | admin | administrador (the person), Administración (the Settings section) | "Herramientas de administración", "Solo los administradores ven esta sección". |
+| lead (a newsletter issue's lead palette, admins only) | paleta principal | The palette an issue opens with: "Usar como paleta principal", "Paleta principal siguiente", "{at} de {count}". |
 | curation (admin) | curaduría | The word Latin American readers use for choosing what a collection holds. Not "curación", which also means healing. |
 | undo / redo (the editor's, context `edit`) | Deshacer / Rehacer | "Deshaz con {key}." |
 | Save to (Save's two sides) | Guardar en: Nueva colección / Tus colecciones | A save confirms with the neutral participle, whatever the count: "Agregado a {title}", "Quitado de {title}". |

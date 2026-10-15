@@ -19,6 +19,7 @@ and add a row when a new product word gets its translation.
 | keyframe | point clé (pl. points clés) | Not *image clé*, which is an animation frame: these are colors on a curve. *Couleur clé* was the one credible alternative, but not worth changing across the messages that already use *point clé*. The presses: *Ajouter un point clé*, *Retirer un point clé*, *Retirer les points clés*. |
 | dot (a figure's mark for a keyframe) | pastille | *Les pastilles sont les points clés*; *point* would read as *point clé*. |
 | hold / held / let go (keyframes) | tenir / tenus / lâcher | *Tenir tous les points clés*, *Retirer les points clés tenus*, *Lâcher les points clés*. Kept apart from *sélection*, which is the palettes' selection, and mirrors a deliberate English metaphor. |
+| lock / unlock (Random's locks on Lightness, Chroma and Hue) | verrouiller / déverrouiller | *Verrouiller la luminosité*, *Déverrouiller la teinte*: the lock at a field's end, whose value *Aléatoire* keeps. Kept apart from *tenir*, the keyframes' hold. |
 | lightness | luminosité | The L of OKLCH, and Photoshop's Teinte/Saturation/Luminosité (TSL, French's own HSL). Not *clarté*, which designers know as Lightroom's Clarity slider. |
 | chroma | chroma (m.) | The color-science term (CIE L\*C\*h: luminosité/clarté, chroma, teinte). Never *saturation*. |
 | hue | teinte | |
@@ -47,6 +48,7 @@ and add a row when a new product word gets its translation.
 | Reduce motion | Réduire les animations | The Settings section and its button, as Apple's French names the setting. Its states are *Système*, *Activé*, *Désactivé*; its lines say *animations* for "motion" and *le fond* for the background. |
 | System (Theme, Reduce motion) | Système | Its line names the device's choice: *Suit votre appareil : sombre.* (*clair*, *activé*, *désactivé*). |
 | admin / Admin tools | administrateur / Outils d’administration | The Settings section is *Administration*; *compte administrateur*, *Seuls les administrateurs…*. What the switch shows: *la curation*, *les votes*, *les notes pour les agents*, *la publication*. A feature's line says "When off" as *Si cette fonction est désactivée*. |
+| lead (a newsletter issue's lead palette, admins only) | palette principale | The palette an issue opens with: *Utiliser comme palette principale*, *Palette principale suivante*, *{at} sur {count}*. Not *à la une*, which already names the newsletter's featured collections. |
 | agent | agent | *les agents de Grabient*; `{name} (agent)`. |
 | gallery | galerie | |
 | seed | graine | The palette's code, as in *graine aléatoire*. |
@@ -65,7 +67,7 @@ and add a row when a new product word gets its translation.
 | Undo / Redo (message context `edit`) | Annuler / Rétablir | The editor's own, as every French editor names them. Their tooltips are the same names, then the key. |
 | panel | panneau | *Afficher le panneau*, *Masquer le panneau*, *Afficher ou masquer le panneau*. |
 | full screen | plein écran | *Plein écran*, *Quitter le plein écran*. |
-| offline | hors ligne | *Hors ligne*; "You're offline." is *Vous êtes hors ligne.* |
+| offline / online | hors ligne / en ligne | *Hors ligne*; "You're offline." is *Vous êtes hors ligne.* A page that opens offline once seen online is *disponible hors ligne une fois consultée en ligne*. |
 | Text contrast | Contraste du texte | The pane of text colors over each of the palette's colors. A cell's tooltip ends *suffisant pour du texte*, *grands caractères uniquement* (WCAG's large text) or *trop faible pour du texte*. |
 | text color | couleur de texte | A reader's own, tried on the palette: *Ajouter une couleur de texte*, *Modifier {hex}*, *Retirer {hex}*. |
 | color picker | Sélecteur de couleurs | Photoshop's name for the dialog, and the swatch beside a hex field that opens it. |

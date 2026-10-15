@@ -17,6 +17,7 @@ follow JIS Z 8105.
 | steps / colors | 色数 | The Steps control is 色数, and a count of steps is {count}色 ("7 steps" is 7色). "stop" as the engine's and CSS's term (About page, code notes) is ストップ. |
 | angle | 角度 | |
 | keyframe | キーフレーム | "Hold" and "let go" (the keyframes the editor's fields change) are つかむ and 放す: つかんだキーフレーム, すべてのキーフレームをつかむ, キーフレームを放す. They must not be 選択, which is the palettes' selection. |
+| lock / unlock (the editor's Lightness, Chroma and Hue locks) | ロック / ロックを解除 | 明度をロック, 明度のロックを解除: the word design tools use for a locked layer. Kept apart from つかむ (holding keyframes) and 固定 (keeping the color space). |
 | lightness | 明度 | JIS: lightness 明度 (brightness is 明るさ). |
 | chroma | 彩度 | JIS Z 8105 and Munsell: chroma is 彩度; saturation is 飽和度. Not クロマ, which few designers read. |
 | hue | 色相 | Travel (the hue's signed journey) is 移動量. |
@@ -59,7 +60,7 @@ Other product words, kept the same everywhere:
 | like {name} (a search by a palette) | {name}に似たパレット, {name}に似たコレクション; after a list's name in a title: 保存したパレット：{name}に似たもの |
 | Edit …, then copy CSS or export SVG and PNG (the descriptions) | 編集して、CSS をコピーしたり、SVG や PNG で書き出したりできます |
 | No results. | 結果はありません。 |
-| Offline | オフライン |
+| Offline / online | オフライン / オンライン; why a page shows nothing yet: 一度オンラインで表示すると、オフラインでも開けるようになります |
 | Width / Height / Columns / Gap / Padding / Corners | 幅 / 高さ / 列数 / 間隔 / 余白 / 角丸 |
 | Private / Public | 非公開 / 公開 |
 | Delete / Remove | 削除 (a palette or note); 外す for taking something out of the selection or out of the chosen tags |
@@ -74,6 +75,8 @@ Other product words, kept the same everywhere:
 | Reduce motion (the Settings choice) | 動きを減らす; its button steps システム / オン / オフ, and the lines under it call the device's own setting デバイスの設定 (デバイスの設定に従います) |
 | Undo / Redo (the editor's, the `edit` context) | 元に戻す / やり直す, on the buttons and their tooltips |
 | Admin, Admin tools | 管理者, 管理者ツール; not left in English |
+| Saving / Email (the Site features switches) | 保存 / メール; the switch is about mail sent, so not メールアドレス, the Email field |
+| newsletter issue / lead palette (admins) | 号 / メインのパレット, the palette an issue opens with (its メインビジュアル): メインに設定, 前の候補, 次の候補, and where the one shown stands, {count}件中{at}件目 |
 | Save to (the label over the collections the selection can join) | 保存先 |
 | The size presets: This screen, Ultrawide, a foldable's inner and cover screens | この画面, ウルトラワイド, {device} 内側 / {device} 外側; never a bare カバー, which reads as a phone case |
 | Contact / Message (the contact page and what its form sends) | お問い合わせ / メッセージ |

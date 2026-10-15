@@ -56,6 +56,7 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | angle | มุม | |
 | keyframe | คีย์เฟรม | As Thai animators say it. |
 | held keyframes, hold, let go | คีย์เฟรมที่จับไว้, จับ, ปล่อย | Kept over ล็อก or ตรึง (lock), which would cover only half the meaning: held keyframes are also what invert, reverse and delete act on. "Hold" is the editor's own word for picking keyframes; เลือก is kept for the selection of palettes so the two never meet. |
+| lock, unlock (the Lightness, Chroma and Hue locks) | ล็อก, ปลดล็อก | ล็อกความสว่าง, ปลดล็อกความสว่าง: a lock keeps a value through สุ่ม. The word kept free of holding above. |
 | lightness | ความสว่าง | L of OKLCH (ค่าความสว่าง L* in Thai color measurement, and the HSL slider's name in Thai photo editing). |
 | chroma | โครมา | The color-science term (ค่าโครมา C* in Thai color measurement), kept as the color-science word for this audience. Not ความอิ่มตัว, which is saturation. |
 | hue | เฉดสี | H of OKLCH, the name Thai photo-editing guides give the Hue slider (beside ความอิ่มตัว and ความสว่าง). Color science also says มุมสี or ฮิว; เฉดสี is what designers read on a slider. |
@@ -105,7 +106,7 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | reduce motion | ลดการเคลื่อนไหว | The Settings section, named as iOS names the setting in Thai. Its button steps through ตามระบบ (System), เปิด (On) and ปิด (Off). Motion is การเคลื่อนไหว; animations are ภาพเคลื่อนไหว. |
 | session replay | การบันทึกเซสชัน | The consent in Settings. |
 | embedded view | มุมมองแบบฝัง | |
-| offline, sync | ออฟไลน์, ซิงค์ | |
+| offline, sync | ออฟไลน์, ซิงค์ | What opens offline once seen online: จะเปิดแบบออฟไลน์ได้ เมื่อคุณเคยดูขณะออนไลน์แล้ว |
 | fit (a palette in a collection) | ความเข้ากัน | Good fit เข้ากันดี, Bad fit ไม่เข้ากัน. |
 | undo / redo | เลิกทำ / ทำซ้ำ | |
 | invert / reverse / random | กลับสี / กลับลำดับ / สุ่ม | |
@@ -123,6 +124,7 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | admin tools | เครื่องมือผู้ดูแล | The switch in the Admin section of Settings, whose heading is ผู้ดูแล. |
 | address (a collection's web address) | ที่อยู่ | Kept beside the shown path (ที่อยู่นั้นถูกใช้แล้ว). Not ลิงก์ or URL within the same flow. |
 | public gallery | แกลเลอรีสาธารณะ | |
+| issue, lead palette (the newsletter's, admins only) | ฉบับ, พาเลตต์หลักของฉบับ | ตั้งเป็นพาเลตต์หลัก; the arrows go through the options: ตัวเลือกก่อนหน้า, ตัวเลือกถัดไป. |
 
 ## Color names
 
