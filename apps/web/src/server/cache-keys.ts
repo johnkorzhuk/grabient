@@ -5,7 +5,7 @@ import { BROWSER_ONLY } from "../lib/links.ts";
 import { listWords } from "../lib/words.ts";
 import { collectionKeyRules } from "./collections/routing.ts";
 import { fileCacheKey } from "./files/keys.ts";
-import { issuesKey } from "./newsletter/page.ts";
+import { issuesKey } from "./newsletter/query.ts";
 import { searchKeyRules } from "./search/routes.ts";
 
 /* What the edge cache keys an answer by: its path in its language, the query that decides what it holds (sorted, the

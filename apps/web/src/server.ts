@@ -1,6 +1,6 @@
 import "./server/i18n.ts";
 import "./server/seo/origin.ts";
-import "./server/email/letters/account.ts";
+import { setAccountMailer } from "@grabient/server/email/send.ts";
 import type { Env as AppEnv, Env } from "@grabient/server/env.ts";
 import { getRequestEvent } from "@solidjs/web";
 import {
@@ -12,6 +12,11 @@ import { NO_STORE } from "./lib/cache.ts";
 import { handle } from "./server/pipeline.ts";
 
 export { RateLimiter } from "@grabient/server/limits/rate-limiter.ts";
+
+// sign-in's emails are the app's letters, which load with the first email an isolate sends
+setAccountMailer(async (...sent) =>
+  (await import("./server/email/letters/account.ts")).accountMailer(...sent)
+);
 
 declare module "@solidjs/web" {
   interface RequestEventLocals {

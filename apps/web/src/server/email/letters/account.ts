@@ -17,12 +17,7 @@ import {
   splitLocale
 } from "@grabient/i18n";
 import { all } from "@grabient/server/db/d1.ts";
-import {
-  type AccountEmail,
-  type Email,
-  sendEmail,
-  setAccountMailer
-} from "@grabient/server/email/send.ts";
+import { type AccountEmail, type Email, sendEmail } from "@grabient/server/email/send.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { emailHead } from "../../images/cards.ts";
 
@@ -31,7 +26,8 @@ import { emailHead } from "../../images/cards.ts";
    mail app asks for a picture only once the email is open, so a head named by an address comes in after the words: the
    picture goes out attached instead, under the id the email names. The caller counts the email's limits first.
 
-   Sign-in (packages/server) sends its emails through here: the Worker's entry imports this module as it starts. */
+   Sign-in (packages/server) sends its emails through here: the Worker's entry hands it a mailer that loads this module
+   with the first email an isolate sends. */
 
 /** Draws an account email's head: the palette in its view with the wordmark and no chips at `SIZE.heads.sheet`, or the
     brand's gradient left to right when there is none. The card painter gives it. */
@@ -127,9 +123,10 @@ export async function sendAccountEmail(
 }
 
 const [HEAD_WIDTH, HEAD_HEIGHT] = SIZE.heads.sheet;
-setAccountMailer((env, to, email, request) =>
+
+/** The mailer sign-in sends an account's emails through, each wearing its painted head. */
+export const accountMailer = (env: Env, to: string, email: AccountEmail, request?: Request) =>
   sendAccountEmail(env, to, email, {
     request,
     paint: palette => emailHead(palette, HEAD_WIDTH, HEAD_HEIGHT)
-  })
-);
+  });
