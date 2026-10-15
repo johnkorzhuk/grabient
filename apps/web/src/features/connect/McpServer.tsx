@@ -25,7 +25,7 @@ import { MCP_LINKS, MCP_PATH, MCP_SETUPS, otherSetup } from "./mcp-apps.ts";
 const FIXES = [
   msg("Sign in to Grabient in the browser your app opens, then add Grabient again."),
   msg("Remove Grabient from your app and add it once more."),
-  msg("Disconnect the apps you no longer use under Connected apps on this page.")
+  msg("Signed in, this page lists the apps you connected: disconnect the ones you no longer use.")
 ];
 
 const CAN_DO = [
