@@ -181,9 +181,9 @@ for (const [path, read] of [
 }
 
 /* With no connection, on the build a deploy serves. A list the service worker never kept opens from its shell: its own
-   frame, with why it cannot be read in the list's place, until the connection returns and the list is read where it
-   stands. So does a collection, at each of its orders. The collections' reads are answered here once the connection is
-   back, so the tests stand whatever the local database holds. */
+   frame, with why it cannot be read in the list's place, until the connection returns and the list and its tags are
+   read where they stand. So does a collection, at each of its orders. The collections' reads and the tags are answered
+   here once the connection is back, so the tests stand whatever the local database holds. */
 const GROUP = "e2e-gradients";
 const group = {
   slug: GROUP,
@@ -204,8 +204,8 @@ const member = {
   createdAt: 1_700_000_000_000,
   likes: 0
 };
-/** The collections' reads, answered with the one collection. */
-async function answerCollections(page: Page) {
+/** The collections' reads, answered with the one collection, and the tags under each search. */
+async function answerReads(page: Page) {
   await page.route(
     url => url.pathname === "/api/collections",
     route => {
@@ -222,6 +222,17 @@ async function answerCollections(page: Page) {
   await page.route(
     url => url.pathname === `/api/collections/${GROUP}`,
     route => route.fulfill({ json: { ...group, items: [{ kseed: SEED, ...member, position: 0 }] } })
+  );
+  const colors = ["#3366cc"];
+  await page.route("**/api/search-suggestions?*", route =>
+    route.fulfill({
+      json: { suggestions: [{ label: "deep sea", href: "/", colors, query: "deep sea" }] }
+    })
+  );
+  await page.route("**/api/collections/suggest?*", route =>
+    route.fulfill({
+      json: { items: [{ title: group.title, slug: GROUP, href: `/${GROUP}`, colors }] }
+    })
   );
 }
 /** The worker in charge of a page it never kept any list from, and the connection cut. */
@@ -268,10 +279,13 @@ for (const [path, why] of [
     const drawn = await tops();
     let loads = 0;
     page.on("load", () => loads++);
-    await answerCollections(page);
+    await answerReads(page);
     await page.context().setOffline(false);
     await expect(main.locator("article").first()).toBeVisible();
     await expect(main.getByText("You're offline.")).toHaveCount(0);
+    await expect(
+      page.getByRole("toolbar", { name: "Tags" }).getByRole("link").first()
+    ).toBeVisible();
     // the live page stands where its frame stood, and nothing loaded it again
     expect(await tops()).toEqual(drawn);
     expect(loads).toBe(0);
