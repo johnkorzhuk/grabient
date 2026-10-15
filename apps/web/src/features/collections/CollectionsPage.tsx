@@ -224,6 +224,7 @@ export function CollectionsPage(props: {
       <SaveToCollection
         own={saving.own}
         onOwn={saving.onOwn}
+        onChanged={saving.onChanged}
         onToggle={(slug, on) => saving.onToggle(slug, on).then(saved)}
         onNew={title => saving.onNew(title).then(saved)}
         signIn={saving.signIn}

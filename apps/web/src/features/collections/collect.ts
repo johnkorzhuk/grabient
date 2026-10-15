@@ -158,14 +158,23 @@ export function createChecklists(pageSays: (message: string, error?: boolean) =>
   const siteAdds = new Map<string, string>();
   const siteKey = (slug: string, item: Item) => `${slug}\n${itemKey(item)}`;
 
+  /* Opened, the latest changed lead. Read again after a pick, which makes its collection the latest changed, each row
+     stays where it was drawn, so nothing moves under the pointer; a collection new since takes the top. */
+  const inPlace = <C extends { slug: string }>(fresh: readonly C[], drawn: readonly C[] | null) => {
+    if (!drawn) return fresh;
+    const at = new Map(drawn.map((c, i) => [c.slug, i]));
+    return [...fresh].sort((a, b) => (at.get(a.slug) ?? -1) - (at.get(b.slug) ?? -1));
+  };
   /* once the page knows who reads it: a reader signed out has no collections to ask the server for, and the side
      leads to sign in */
-  const readOwnList = () =>
+  const readOwnList = (keep: boolean) =>
     void accountKnown().then(() => {
       if (!account()) return;
+      const show = (fresh: NonNullable<ReturnType<typeof own>>) =>
+        setOwn(list => inPlace(fresh, keep ? list : null));
       const copy = ownCollectionsHolding();
       if (copy) {
-        setOwn(
+        show(
           copy.map(c => ({
             slug: c.slug,
             title: c.title,
@@ -178,7 +187,7 @@ export function createChecklists(pageSays: (message: string, error?: boolean) =>
       }
       readOwn("?limit=96").then(
         page =>
-          setOwn(
+          show(
             page.items.map(c => ({
               slug: c.slug,
               title: c.title,
@@ -377,7 +386,7 @@ export function createChecklists(pageSays: (message: string, error?: boolean) =>
     });
   }
 
-  function writes(items: () => readonly Item[], opened: () => void) {
+  function writes(items: () => readonly Item[], refresh: () => void) {
     /* the checklist says why a pick failed as it is told, so it is told in the reader's words */
     const worded = async (write: () => Promise<void>) => {
       try {
@@ -390,14 +399,14 @@ export function createChecklists(pageSays: (message: string, error?: boolean) =>
       onToggle: (slug: string, on: boolean) =>
         worded(async () => {
           const at = items();
-          if (isSite(slug)) await (on ? siteIn : siteOut)(slug, at, opened);
-          else await (on ? ownIn : ownOut)(slug, at, opened);
-          opened();
+          if (isSite(slug)) await (on ? siteIn : siteOut)(slug, at, refresh);
+          else await (on ? ownIn : ownOut)(slug, at, refresh);
+          refresh();
         }),
       onNew: (title: string) =>
         worded(async () => {
-          await made(title, items(), opened);
-          opened();
+          await made(title, items(), refresh);
+          refresh();
         })
     };
   }
@@ -405,16 +414,17 @@ export function createChecklists(pageSays: (message: string, error?: boolean) =>
 
   /** A card's Add to collection, for the palette it shows. */
   const card = (palette: () => Item): CardCollect => {
-    const opened = () => {
-      readOwnList();
+    const read = (keep: boolean) => () => {
+      readOwnList(keep);
       readSite([palette()]);
     };
     return {
       get own() {
         return choices([palette()]);
       },
-      onOpen: opened,
-      ...writes(() => [palette()], opened),
+      onOpen: read(false),
+      onChanged: read(true),
+      ...writes(() => [palette()], read(true)),
       get signIn() {
         return signIn();
       },
@@ -426,16 +436,17 @@ export function createChecklists(pageSays: (message: string, error?: boolean) =>
   };
   /** The export column's Save, for the selection. */
   const selection = (palettes: () => readonly Item[]) => {
-    const opened = () => {
-      readOwnList();
+    const read = (keep: boolean) => () => {
+      readOwnList(keep);
       readSite(palettes());
     };
     return {
       get own() {
         return choices(palettes());
       },
-      onOwn: opened,
-      ...writes(palettes, opened),
+      onOwn: read(false),
+      onChanged: read(true),
+      ...writes(palettes, read(true)),
       get signIn() {
         return signIn();
       }

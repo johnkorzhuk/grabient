@@ -387,6 +387,42 @@ test("each undo and redo of a pick says what it did, and a new collection goes b
   await expect(said).toHaveText("Review temp deleted.");
 });
 
+test("a pick leaves each of the account's collections where the checklist drew it, and opened again the latest changed lead", async ({
+  page
+}) => {
+  const warm = {
+    ...blues,
+    id: "e2e-warm",
+    slug: "@e2e-ada/warm-evenings",
+    title: "Warm evenings",
+    url: "/@e2e-ada/warm-evenings",
+    updatedAt: blues.updatedAt + 60_000
+  };
+  await signIn(page, "ada", false, [blues, warm]);
+  await page.goto("/palettes");
+  await hydrated(page);
+  // the account's copy has heard from the server, so the checklist names its collections
+  await page.waitForLoadState("networkidle");
+  const card = page.locator("main article").first();
+  await card.getByRole("button", { name: "Add to selection" }).focus();
+  await page.keyboard.press("Enter");
+  await card.getByRole("button", { name: "Add to collection" }).click();
+  const list = page.getByRole("dialog", { name: "Add to collection" });
+  const rows = list.getByRole("button", { name: /^(My blues|Warm evenings)/ });
+  await expect(rows).toHaveText([/^Warm evenings/, /^My blues/]);
+  // the pick makes My blues the latest changed, and moves nothing under the pointer
+  await rows.nth(1).click();
+  await expect(page.locator("main p[aria-live]").first()).toHaveText(
+    /^(Added to|Removed from) My blues\.$/
+  );
+  await page.waitForTimeout(500);
+  await expect(rows).toHaveText([/^Warm evenings/, /^My blues/]);
+  await page.keyboard.press("Escape");
+  await expect(list).toBeHidden();
+  await card.getByRole("button", { name: "Add to collection" }).click();
+  await expect(rows).toHaveText([/^My blues/, /^Warm evenings/]);
+});
+
 test("a crawler's search of the collections whose words were read in part is kept by no cache", async ({
   request
 }) => {

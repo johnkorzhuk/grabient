@@ -12,6 +12,8 @@ export interface CardCollect {
   own: readonly CollectChoice[] | null;
   /** read them again: the list opened */
   onOpen: () => void;
+  /** read them again after a write, each where it stands: onOpen where it is not given */
+  onChanged?: () => void;
   /** the palette into that collection, or out of it; rejects with the reason to show */
   onToggle: (slug: string, on: boolean) => Promise<void>;
   /** a new collection holding the palette */
@@ -30,7 +32,7 @@ function Opened(props: { collect: CardCollect; small: boolean; id: string; onClo
     },
     onToggle: (slug, on) => props.collect.onToggle(slug, on),
     onNew: title => props.collect.onNew(title),
-    onChanged: () => props.collect.onOpen()
+    onChanged: () => (props.collect.onChanged ?? props.collect.onOpen)()
   });
   return (
     <div
