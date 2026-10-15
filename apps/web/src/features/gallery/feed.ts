@@ -98,12 +98,14 @@ export function createFeed<P extends FeedPage>(o: {
   };
   /* The keyboard in what stands past the feed, the footer: a page joining would push it out of view, so the feed waits
      until the keyboard comes back up into it, and a group drawn at its own height as the window reaches it leaves the
-     focus in view. */
+     focus in view. A press of the pointer there leaves no such focus: the page goes on growing under it. */
   let held = false;
   const past = () => {
     const at = document.activeElement;
     return (
-      !!mark && !!at && !!(mark.compareDocumentPosition(at) & Node.DOCUMENT_POSITION_FOLLOWING)
+      !!mark &&
+      !!at?.matches(":focus-visible") &&
+      !!(mark.compareDocumentPosition(at) & Node.DOCUMENT_POSITION_FOLLOWING)
     );
   };
   onSettled(() => {
