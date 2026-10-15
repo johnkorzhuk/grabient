@@ -4,7 +4,7 @@
     min-width: 0;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
   }
   /* the plot's ground: the quietest paper, between its highest value and its lowest */
   .ground,

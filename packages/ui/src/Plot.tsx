@@ -262,8 +262,21 @@ export function Plot(props: PlotProps) {
   const letGo = (e: PointerEvent) => {
     if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
   };
+  /* a second finger is a pinch, the page's to zoom: whatever the first began lets go, a keyframe it dragged back where
+     it was */
+  const pinched = (e: PointerEvent) => {
+    const first = drag?.pointer ?? press?.pointer;
+    if (e.pointerType !== "touch" || first === undefined || first === e.pointerId) return false;
+    if (svg.hasPointerCapture(first)) svg.releasePointerCapture(first);
+    if (drag?.moved) props.onNudge(drag.i, props.axis, drag.value, drag.from);
+    drag = press = null;
+    setBand(null);
+    setFrozen(null);
+    return true;
+  };
   const down = (e: PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (pinched(e)) return;
     const finger = e.pointerType === "touch";
     const mode = pickModeOf(e);
     /* a mouse takes any dot; a finger drags a held keyframe from anywhere in its column */
@@ -425,14 +438,15 @@ export function Plot(props: PlotProps) {
   };
   onSettled(() => {
     const stop = watchSize(host, () => setWidth(host.clientWidth || 480));
-    /* a finger on a held keyframe drags it; the page keeps every other touch */
+    /* a finger on a held keyframe drags it; the page keeps every other touch, and two fingers, which it may zoom with
+       if the first has not moved yet */
     const touch = (e: TouchEvent) => {
-      if (drag) e.preventDefault();
+      if (drag && e.touches.length === 1) e.preventDefault();
     };
-    host.addEventListener("touchstart", touch, { passive: false });
+    host.addEventListener("touchmove", touch, { passive: false });
     return () => {
       stop();
-      host.removeEventListener("touchstart", touch);
+      host.removeEventListener("touchmove", touch);
     };
   });
   const reading = () => {

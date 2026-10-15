@@ -243,6 +243,8 @@ export function Solid(props: {
   });
   const down = (e: PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    /* a second finger is a pinch, the page's to zoom: the first turns and holds nothing */
+    if (pointer !== null && e.pointerId !== pointer) return letGo(pointer);
     pointer = e.pointerId;
     x0 = e.clientX;
     y0 = e.clientY;
@@ -331,9 +333,8 @@ export function Solid(props: {
     }
   };
   /* the page took the finger for a scroll: no orbit, and no tap to keep the solid */
-  const cancel = (e: PointerEvent) => {
-    if (e.pointerId !== pointer) return;
-    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+  function letGo(id: number) {
+    if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
     if (pick) {
       hold.cancel();
       pick = null;
@@ -341,6 +342,9 @@ export function Solid(props: {
     pointer = null;
     hover = null;
     paint();
+  }
+  const cancel = (e: PointerEvent) => {
+    if (e.pointerId === pointer) letGo(e.pointerId);
   };
   return (
     <div ref={host} class={styles.host} dir="ltr">

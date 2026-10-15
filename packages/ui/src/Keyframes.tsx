@@ -59,6 +59,13 @@ export function Keyframes(props: {
   });
   const down = (e: PointerEvent, i: number) => {
     if (e.pointerType === "touch") {
+      /* a second finger is a pinch, the page's to zoom: the first holds nothing */
+      if (finger || pointer !== null) {
+        finger = null;
+        hold.cancel();
+        release();
+        return;
+      }
       finger = { i, x0: e.clientX };
       hold.down(e);
       return;

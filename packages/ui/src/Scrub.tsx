@@ -104,6 +104,9 @@ export function Scrub(props: ScrubProps) {
 
   const drag = scrubDrag(() => (span() ? span() / 180 : step() * 2));
   let dragValue = 0;
+  /* the value the drag began from, and whether it has moved it */
+  let start = 0;
+  let dragged = false;
   let pointer: number | null = null;
   let lastTap = 0;
   let tapped = false;
@@ -112,6 +115,14 @@ export function Scrub(props: ScrubProps) {
     pointer = null;
   };
   const down = (e: PointerEvent) => {
+    /* a second finger is a pinch, the page's to zoom: the drag lets go, and what it moved goes back */
+    if (pointer !== null && e.pointerId !== pointer) {
+      release();
+      drag.up();
+      tapped = false;
+      if (dragged) props.onInput(start);
+      return;
+    }
     if (edit) {
       /* a second click soon after the one that started typing resets */
       if (
@@ -128,6 +139,8 @@ export function Scrub(props: ScrubProps) {
     }
     e.preventDefault();
     dragValue = props.origin ?? props.value;
+    start = props.value;
+    dragged = false;
     pointer = e.pointerId;
     tapped = false;
     drag.down(e);
@@ -137,6 +150,7 @@ export function Scrub(props: ScrubProps) {
     if (pointer === null) return;
     drag.move(e, dv => {
       dragValue = clamp(dragValue + dv);
+      dragged = true;
       commit(dragValue);
     });
   };

@@ -937,4 +937,46 @@ test.describe("on a phone", () => {
     await page.evaluate(() => scrollTo(0, 0));
     await expect(floating).toBeHidden();
   });
+
+  test("two fingers spread on the panel's controls zoom the page and change nothing", async ({
+    page
+  }) => {
+    const controls = [
+      (p: Page) => p.getByRole("spinbutton", { name: "Chroma" }),
+      (p: Page) => p.getByRole("spinbutton", { name: /^(Lightness start|Start)$/ }),
+      (p: Page) => p.locator('svg[role="img"][aria-label="Chroma"]'),
+      (p: Page) => p.getByRole("complementary", { name: "Editor" }).getByRole("listbox")
+    ];
+    for (const control of controls) {
+      await open(page);
+      const target = control(page);
+      await target.evaluate(el => el.scrollIntoView({ block: "center" }));
+      const box = await target.boundingBox();
+      if (!box) throw new Error("no control");
+      const before = here(page);
+      const fields = await page
+        .getByRole("spinbutton")
+        .evaluateAll(all => all.map(field => (field as HTMLInputElement).value));
+      // both fingers land at once, then move apart along the row
+      const cdp = await page.context().newCDPSession(page);
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      const at = (d: number) => [
+        { x: x - d, y, id: 1 },
+        { x: x + d, y, id: 2 }
+      ];
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(16) });
+      for (let d = 22; d <= 100; d += 6)
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(d) });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await expect.poll(() => page.evaluate(() => visualViewport?.scale ?? 1)).toBeGreaterThan(1.2);
+      expect(here(page)).toBe(before);
+      expect(
+        await page
+          .getByRole("spinbutton")
+          .evaluateAll(all => all.map(field => (field as HTMLInputElement).value))
+      ).toEqual(fields);
+      await cdp.detach();
+    }
+  });
 });

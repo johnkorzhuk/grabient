@@ -4,7 +4,7 @@
     min-width: 0;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
   }
   .canvas {
     display: block;
