@@ -13,8 +13,9 @@ import {
 } from "@grabient/engine/swatches.ts";
 import { parseSize, parseView } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { FILE } from "../../lib/cache.ts";
+import { FILE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
+import { texts, writtenWords } from "../collections/files.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
@@ -69,10 +70,17 @@ async function paletteFile(
       return new Response(artworkSvg(stops(), { ...view, size: svgSize(params) }, seed, origin), {
         headers: { ...FILE, "Content-Type": "image/svg+xml; charset=utf-8" }
       });
-    case "json":
-      return Response.json(paletteJson(seed, origin, view, await colorNames(env)), {
-        headers: { ...FILE, ...DATA }
+    case "json": {
+      /* the title written for it, where its colors bear it out, beside what its colors call it while it is drawn as it
+         was saved; kept as its Markdown is, since an admin may write the title again */
+      const [names, [text]] = await Promise.all([
+        colorNames(env),
+        texts(env, [seed]).catch(() => [])
+      ]);
+      return Response.json(paletteJson(seed, origin, view, names, writtenWords(text, palette)), {
+        headers: { ...TEXT, ...DATA }
       });
+    }
     default: {
       const names = await colorNames(env);
       return new Response(swatchFile(format, [swatchPalette(seed, view, origin, { names })!]), {

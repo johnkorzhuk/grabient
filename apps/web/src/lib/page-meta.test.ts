@@ -1,5 +1,5 @@
 import { decodePalette } from "@grabient/engine";
-import { parseView } from "@grabient/engine/view.ts";
+import { parseView, type View } from "@grabient/engine/view.ts";
 import {
   addCatalog,
   type Catalog,
@@ -15,6 +15,7 @@ import type { RisingFrame } from "./orders.ts";
 import {
   clipWords,
   DESCRIPTION_MAX,
+  heading,
   headOf,
   type Page,
   type PageMeta,
@@ -38,6 +39,8 @@ type Facts = {
   collection?: Extract<Page, { kind: "collection" }>["collection"];
   title?: string;
   description?: string;
+  /** the view the written words were saved in: the address's own unless named */
+  saved?: Pick<View, "style" | "steps" | "angle">;
   heldBy?: { slug: string; title: string }[];
   staticOg?: boolean;
   robots?: string;
@@ -87,16 +90,21 @@ function pageOf(address: string, facts: Facts = {}): Page {
   if (first === "unsubscribe") return { kind: "unsubscribe" };
   const palette = decodePalette(first);
   if (palette && !second) {
-    const view = parseView(url.searchParams);
+    const parsed = parseView(url.searchParams);
+    const view = { ...parsed, steps: Math.max(parsed.steps, palette.anchors.length) };
     const written =
       facts.title || facts.description
-        ? { title: facts.title?.replace(/ \| Grabient$/, ""), description: facts.description }
+        ? {
+            title: facts.title?.replace(/ \| Grabient$/, "") ?? "",
+            description: facts.description,
+            view: facts.saved ?? view
+          }
         : undefined;
     return {
       kind: "palette",
       seed: first,
       palette,
-      view: { ...view, steps: Math.max(view.steps, palette.anchors.length) },
+      view,
       written,
       heldBy: facts.heldBy,
       ...common
@@ -330,6 +338,57 @@ describe("descriptions", () => {
   });
 });
 
+describe("a palette's written words", () => {
+  const facts: Facts = {
+    title: "Pastel candy vertical bands | Grabient",
+    description:
+      "Soft candy colors stand in vertical bands, from blush through lilac to a pale mint.",
+    saved: { style: "linearSwatches", steps: 9, angle: 90 }
+  };
+  const named = (address: string) => {
+    const page = pageOf(address, facts);
+    const meta = pageMeta(page, PRODUCTION_ORIGIN);
+    const work = meta.structuredData.find(data => data["@type"] === "CreativeWork");
+    return {
+      heading: heading(page),
+      title: meta.title,
+      description: meta.description,
+      name: work?.name,
+      alternateName: work?.alternateName
+    };
+  };
+
+  test("name and describe its page while it is drawn as it was saved, what its colors call it beside them", () => {
+    const own = named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9");
+    expect(own).toMatchObject({
+      heading: "Pastel candy vertical bands",
+      title: "Pastel candy vertical bands | Grabient",
+      name: "Pastel candy vertical bands",
+      alternateName: expect.stringMatching(/^\S.* linear swatches$/)
+    });
+    expect(own.description).toMatch(/^Soft candy colors stand in vertical bands/);
+  });
+
+  test.each([
+    ["another style", "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9"],
+    ["other steps", "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=10"],
+    ["another angle", "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45"],
+    ["the default view its canonical address draws", "/kS7Q8Yy5S_SChv0"]
+  ])("give way to what its colors call it in %s", (_, address) => {
+    const other = named(address);
+    expect(other.heading).not.toMatch(/candy/i);
+    expect(other.title).toBe(`${other.heading} | Grabient`);
+    expect(other.name).toBe(other.heading);
+    expect(other.alternateName).toBeUndefined();
+    expect(other.description).toMatch(/^.+ palette with \d+ colors\. #/);
+  });
+
+  test("name its page in English alone", () => {
+    current = "fr";
+    expect(named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9").heading).not.toMatch(/candy/i);
+  });
+});
+
 describe("a page's limit and its canonical", () => {
   test("a list at another page size names that size; the default size names none", () => {
     const canonical = (address: string) => pageMeta(pageOf(address), PRODUCTION_ORIGIN).canonical;
@@ -471,7 +530,11 @@ test("every kind of page, in every language, fits its description in 160 charact
       seed: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
       palette: P,
       view: { style: "linearGradient", steps: 8, angle: 90 },
-      written: { title: "Winter", description: facts.description }
+      written: {
+        title: "Winter",
+        description: facts.description,
+        view: { style: "linearGradient", steps: 8, angle: 90 }
+      }
     },
     ...(
       [

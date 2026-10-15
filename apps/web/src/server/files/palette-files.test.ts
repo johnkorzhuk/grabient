@@ -1,6 +1,6 @@
 import { colorNamesText, preciseNamer } from "@grabient/engine/precise-names.ts";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { collectionForFiles } from "../collections/files.ts";
+import { collectionForFiles, writtenWords } from "../collections/files.ts";
 import golden from "./fixtures/file-bodies.json" with { type: "json" };
 import { apiJsonAnswer, fileAnswer } from "./palette-files.ts";
 
@@ -8,7 +8,9 @@ vi.hoisted(() => Object.assign(globalThis, { __COLOR_NAMES__: "/assets/color-nam
 vi.mock("../collections/files.ts", () => ({
   isCollectionSlug: (name: string) =>
     /^(?:@[a-z0-9_-]{3,30}\/)?[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name),
-  collectionForFiles: vi.fn(async () => null)
+  collectionForFiles: vi.fn(async () => null),
+  texts: vi.fn(async () => []),
+  writtenWords: vi.fn(() => null)
 }));
 
 const env = { DB: {} as D1Database, PUBLIC_ORIGIN: golden.origin };
@@ -71,6 +73,24 @@ describe("a palette's file", () => {
     }
     const none = await apiJsonAnswer(at("/api/palette"), env);
     expect([none.status, await none.json()]).toEqual([404, { error: "Invalid palette seed." }]);
+  });
+
+  test("JSON names a palette by the title written for it in the view it was saved in alone, and is kept as text", async () => {
+    const words = {
+      title: "Dusk over the mesa",
+      embed: "",
+      view: { style: "linearGradient", steps: 8, angle: 45 }
+    } as const;
+    vi.mocked(writtenWords).mockReturnValueOnce(words).mockReturnValueOnce(words);
+    const own = await file(`/${seed}.json?${view}`);
+    expect(await own.json()).toEqual({ ...golden.json, title: "Dusk over the mesa" });
+    expect([own.headers.get("Cache-Control"), own.headers.get("CDN-Cache-Control")]).toEqual([
+      "public, max-age=3600",
+      "max-age=86400, stale-while-revalidate=86400"
+    ]);
+    const other = await (await file(`/${seed}.json?steps=8&angle=90`)).json();
+    expect(other).not.toHaveProperty("title");
+    expect(other).toHaveProperty("name");
   });
 
   test("swatch files are the engine's bytes, each with its media type", async () => {

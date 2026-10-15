@@ -183,7 +183,7 @@ describe("an issue's lead", () => {
       expect(page).toContain(`href="${ORIGIN}/${option.seed}`);
     }
   });
-  test("names each pick as its page does: the title written for it, else its colors' name", () => {
+  test("names each pick as its page does: the title written for it while it is drawn as it was saved, else its colors' name", () => {
     const named = run(1);
     expect(named.picks?.map(chosen => chosen.name)).toEqual([...FACTS.names.values()]);
     const plain = asRun(october, ORIGIN, NO_FACTS);
@@ -193,8 +193,18 @@ describe("an issue's lead", () => {
     expect(plain.picks?.[0]?.name).toMatch(/^[A-Z][a-z]/);
     // a title the colors contradict is passed over, as the palette's page passes it over
     const view = { seed: first, style: "linearGradient", steps: 40, angle: 135 } as const;
-    expect(nameOf(view, "Bright lime and cyan")).toBe(nameOf(view));
-    expect(nameOf(view, "Smoky aubergine ember beam")).toBe("Smoky aubergine ember beam");
+    const saved = { style: "linearGradient", steps: 40, angle: 135 } as const;
+    expect(nameOf(view, { title: "Bright lime and cyan", view: saved })).toBe(nameOf(view));
+    expect(nameOf(view, { title: "Smoky aubergine ember beam", view: saved })).toBe(
+      "Smoky aubergine ember beam"
+    );
+    // a pick drawn in a view other than the one the title was written for is named by its colors there
+    for (const other of [
+      { ...saved, style: "radialSwatches" },
+      { ...saved, steps: 41 },
+      { ...saved, angle: 90 }
+    ] as const)
+      expect(nameOf(view, { title: "Smoky aubergine ember beam", view: other })).toBe(nameOf(view));
   });
 });
 

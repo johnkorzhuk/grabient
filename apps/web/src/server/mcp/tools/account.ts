@@ -84,9 +84,10 @@ import { viewData } from "../view.ts";
 const place = (c: ToolContext, path: string) => `${c.origin}/${path}`;
 const savedPage = (c: ToolContext) => place(c, "palettes/saved");
 type PaletteText = Awaited<ReturnType<typeof paletteTexts>>[number];
-/** What a palette is called: its written title where its colors bear it out, or what its colors call it in its view. */
+/** What a palette is called: its written title where its colors bear it out and it is drawn as it was saved, or what
+    its colors call it in its view. */
 const titleOf = (s: Shown, written?: PaletteText) =>
-  heldWords(written, s.palette)?.title ??
+  heldWords(written, s.palette, s)?.title ??
   paletteTitle(readPalette(s.palette, s.style, s.steps), s.style);
 /** A palette a call named, in the view an answer draws it in. */
 const drawn = (given: PaletteGiven, held?: ViewGiven): Shown =>
@@ -566,7 +567,7 @@ export const accountTools: readonly Tool[] = [
         }
       }
       const tiles = placed.map(({ s, title }, i) => {
-        const own = title ?? heldWords(written.get(s.seed), s.palette)?.title;
+        const own = title ?? heldWords(written.get(s.seed), s.palette, s)?.title;
         return {
           tile: i + 1,
           ...card(c.origin, s, own ?? titleOf(s)),

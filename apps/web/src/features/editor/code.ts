@@ -101,9 +101,11 @@ export function codeSources(
     }
     /* the file is English, as the one served at its address is: a translated collection keeps its English title */
     const heldBy = (facts?.heldBy ?? []).map(c => ({ slug: c.slug, title: c.english ?? c.title }));
+    /* the words name the file only while it is drawn as the palette was saved, as the served file's do */
     const written = facts?.written && {
       title: facts.written.title,
-      ...(facts.written.description ? { lead: facts.written.description } : {})
+      ...(facts.written.description ? { lead: facts.written.description } : {}),
+      view: facts.written.view
     };
     return (
       inLocale(DEFAULT_LOCALE, () =>

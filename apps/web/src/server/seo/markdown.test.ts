@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import type { PaletteWords } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { parseView } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
@@ -157,7 +158,7 @@ describe("a palette as Markdown", () => {
       files.origin,
       reads({
         paletteWords: async () => ({
-          written: files.written.written,
+          written: files.written.written as PaletteWords,
           heldBy: files.written.heldBy
         })
       })
@@ -175,20 +176,40 @@ describe("a palette as Markdown", () => {
   });
 
   test("says the words written for it and the collections that hold it, and goes on without them when they fail", async () => {
+    const words = reads({
+      paletteWords: async () => ({
+        written: {
+          title: "Dusk over the mesa",
+          lead: "Warm browns settle into maroon.",
+          view: { style: "linearGradient", steps: 7, angle: 90 }
+        },
+        heldBy: [{ slug: "ocean-gradients", title: "Ocean gradients" }]
+      })
+    });
     const written = await markdownFile(
       "kS7Q8Yy5S_SChv0",
       get("/kS7Q8Yy5S_SChv0.md"),
       "https://grabient.com",
-      reads({
-        paletteWords: async () => ({
-          written: { title: "Dusk over the mesa", lead: "Warm browns settle into maroon." },
-          heldBy: [{ slug: "ocean-gradients", title: "Ocean gradients" }]
-        })
-      })
+      words
     );
     const text = await written.text();
     expect(text.startsWith("# Dusk over the mesa\n\nWarm browns settle into maroon.\n")).toBe(true);
+    expect(text).toMatch(/\n- Also called: .+ linear gradient\n/);
     expect(text).toContain("- [Ocean gradients](https://grabient.com/ocean-gradients)");
+    // drawn another way than it was saved, its colors name it alone
+    const other = await (
+      await markdownFile(
+        "kS7Q8Yy5S_SChv0",
+        get("/kS7Q8Yy5S_SChv0.md?style=radialSwatches"),
+        "https://grabient.com",
+        words
+      )
+    ).text();
+    expect(other).not.toContain("Dusk over the mesa");
+    expect(other).not.toContain("Warm browns");
+    expect(other).not.toContain("Also called");
+    expect(other).toMatch(/^# .+ radial swatches\n/);
+    expect(other).toContain("- [Ocean gradients](https://grabient.com/ocean-gradients)");
     const failed = await markdownFile(
       "kS7Q8Yy5S_SChv0",
       get("/kS7Q8Yy5S_SChv0.md"),

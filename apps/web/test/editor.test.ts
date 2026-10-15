@@ -87,6 +87,8 @@ describe("a palette's facts", () => {
   });
 
   it("keeps the words written for it only while its colors bear them out", async () => {
+    // Grabient's collection holds it, in the view its words are written for
+    await holding(env, unique("Saved with its words"), [SEED], "public");
     const write = (title: string, embed: string) =>
       run(
         env.DB,
@@ -98,7 +100,8 @@ describe("a palette's facts", () => {
     await write("Evening study", "A quiet set of colors for a reading room.");
     expect((await paletteFacts(SEED, palette, "en", env))?.written).toEqual({
       title: "Evening study",
-      description: "A quiet set of colors for a reading room."
+      description: "A quiet set of colors for a reading room.",
+      view: { style: "linearGradient", steps: 7, angle: 90 }
     });
     /* a black and white palette is no palette of these colors */
     const gray = decodePalette("kSyQDAzZa8zgZxS")!;
@@ -108,6 +111,76 @@ describe("a palette's facts", () => {
       titleAgainst(gray)
     );
     expect((await paletteFacts("kSyQDAzZa8zgZxS", gray, "en", env))?.written).toBeUndefined();
+  });
+
+  it("carries the view it was saved in when its words were written: the gallery's, else the first of Grabient's collections'", async () => {
+    const seed = "kY2DaGc4o8GiVrpfK7xaRm__CRTA";
+    const words = decodePalette(seed)!;
+    const viewed = async () => (await paletteFacts(seed, words, "en", env))?.written?.view;
+    await run(
+      env.DB,
+      "INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES (?, 'Evening study', '', 1, 1) ON CONFLICT (seed) DO UPDATE SET title = excluded.title",
+      seed
+    );
+    // nothing saved it: its words describe no view, and the page goes by its colors
+    expect(await viewed()).toBeUndefined();
+    const at = (
+      style: "linearSwatches" | "radialGradient" | "radialSwatches",
+      steps: number,
+      angle: number
+    ) => collectionItem({ seed, style, steps, angle })!;
+    // a reader's collection is no view its words were written for
+    const reader = await makeAccount(env);
+    await createCollection(
+      env,
+      { kind: "user", id: reader.id },
+      {
+        title: unique("A reader's"),
+        description: "",
+        tags: [],
+        visibility: "public",
+        items: [at("radialSwatches", 6, 0)]
+      }
+    );
+    expect(await viewed()).toBeUndefined();
+    const first = await createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Saved first"),
+        description: "",
+        tags: [],
+        visibility: "public",
+        items: [at("linearSwatches", 9, 90)]
+      }
+    );
+    const later = await createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Saved later"),
+        description: "",
+        tags: [],
+        visibility: "public",
+        items: [at("radialGradient", 12, 0)]
+      }
+    );
+    const timed = (slug: string, time: number) =>
+      run(
+        env.DB,
+        "UPDATE k_collection_items SET created_at = ? WHERE collection_id = (SELECT id FROM k_collections WHERE slug = ?)",
+        time,
+        slug
+      );
+    await timed(first.slug, 1000);
+    await timed(later.slug, 2000);
+    expect(await viewed()).toEqual({ style: "linearSwatches", steps: 9, angle: 90 });
+    await run(
+      env.DB,
+      "INSERT INTO k_palettes (seed, style, steps, angle, likes_count, created_at) VALUES (?, 'radialSwatches', 10, 45, 0, 1)",
+      seed
+    );
+    expect(await viewed()).toEqual({ style: "radialSwatches", steps: 10, angle: 45 });
   });
 
   it("answers a browser that opens it with its facts in English, kept at the edge as its page is", async () => {

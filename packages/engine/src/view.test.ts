@@ -5,6 +5,7 @@ import { ENGLISH } from "./message.ts";
 import type { Palette } from "./palette.ts";
 import { numeral, typedHex } from "./typed.ts";
 import {
+  asSaved,
   clampSize,
   drawnView,
   effectiveView,
@@ -60,6 +61,22 @@ describe("the view's address", () => {
       steps: 12,
       angle: 30
     });
+  });
+  test("a palette is drawn as it was saved while style, steps and angle all are, read as its drawing reads them", () => {
+    const P = decodePalette("kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g") as Palette;
+    const saved = { style: "linearSwatches" as const, steps: 9, angle: 90 };
+    expect(asSaved(P, saved, saved)).toBe(true);
+    expect(asSaved(P, { ...saved, style: "radialSwatches" }, saved)).toBe(false);
+    expect(asSaved(P, { ...saved, steps: 10 }, saved)).toBe(false);
+    expect(asSaved(P, { ...saved, angle: 45 }, saved)).toBe(false);
+    // eight keyframes draw eight steps from any fewer, and an address's defaults are the view's
+    expect(
+      asSaved(
+        P,
+        { style: "linearGradient", steps: 3 },
+        { style: "linearGradient", steps: 8, angle: 90 }
+      )
+    ).toBe(true);
   });
   test("a list's view over each palette's own", () => {
     const own = { style: "radialGradient" as const, steps: 9, angle: 30 };

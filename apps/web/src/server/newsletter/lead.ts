@@ -1,13 +1,16 @@
 import { type Issue, type IssueContent, type PaletteView, pick, VIEW } from "@grabient/email";
 import { decodePalette } from "@grabient/engine";
 import { seedName, titleFaults } from "@grabient/engine/name.ts";
+import { asSaved } from "@grabient/engine/view.ts";
 import { all, replica, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { SAVED_VIEW, type SavedView, savedView } from "../collections/files.ts";
 
 /* An issue as it runs. Its head is its first pick until an admin chooses another lead from the ones it offers: its
    picks, then its own `leads`. A pick chosen trades places with the first, so the issue still shows each once; a
    palette from `leads` takes the first's place. Each pick is named as its page names it: the title written for it
-   where its colors bear it out, else what its colors are called in the view it is drawn in. */
+   where its colors bear it out and it is drawn as it was saved, else what its colors are called in the view it is
+   drawn in. */
 
 /** What the database holds for the issues: each one's chosen lead, by number, and the palettes' names, by seed. */
 export interface IssueFacts {
@@ -51,10 +54,16 @@ export function ledBy(issue: Issue, content: IssueContent, seed: string | undefi
     : content;
 }
 
-/** A palette's name as its page says it in English. */
-export function nameOf(of: View, written?: string): string {
+/** A palette's name as its page says it in English, in the view `of` draws it in. */
+export function nameOf(of: View, written?: { title: string; view: SavedView }): string {
   const palette = decodePalette(of.seed);
-  if (written && palette && !titleFaults(written, palette).length) return written;
+  if (
+    written &&
+    palette &&
+    !titleFaults(written.title, palette).length &&
+    asSaved(palette, of, written.view)
+  )
+    return written.title;
   return seedName(of.seed, of.style, of.steps);
 }
 
@@ -87,14 +96,20 @@ export async function readFacts(
   const [chosen, written] = await Promise.all([
     all<{ issue: number; seed: string }>(env.DB, "SELECT issue, seed FROM k_newsletter_leads"),
     seeds.length
-      ? all<{ seed: string; title: string }>(
+      ? all<{ seed: string; title: string; saved: string | null }>(
           replica(env),
-          `SELECT seed, title FROM k_palette_texts WHERE seed IN (${seeds.map(() => "?").join(", ")})`,
+          `SELECT t.seed, t.title, ${SAVED_VIEW("t.seed")} AS saved FROM k_palette_texts t
+           WHERE t.seed IN (${seeds.map(() => "?").join(", ")})`,
           ...seeds
         )
       : Promise.resolve([])
   ]);
-  const titles = new Map(written.map(row => [row.seed, row.title]));
+  const titles = new Map(
+    written.flatMap(row => {
+      const view = savedView(row.saved);
+      return view ? [[row.seed, { title: row.title, view }] as const] : [];
+    })
+  );
   return {
     leads: new Map(chosen.map(row => [row.issue, row.seed])),
     names: new Map(views.map(of => [of.seed, nameOf(of, titles.get(of.seed))]))

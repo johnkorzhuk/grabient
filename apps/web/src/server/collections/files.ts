@@ -2,7 +2,7 @@ import { decodePalette } from "@grabient/engine";
 import { MARKDOWN_LEAD, type PaletteWords } from "@grabient/engine/markdown.ts";
 import { titleFaults } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import type { Style } from "@grabient/engine/view.ts";
+import { asSaved, isStyle, type Style, type View } from "@grabient/engine/view.ts";
 import { all } from "@grabient/server/db/d1.ts";
 import { collectionBySlug, collectionsHolding, type Reader } from "./read.ts";
 
@@ -12,7 +12,7 @@ export { isCollectionSlug } from "../../features/collections/address.ts";
    the files area writes them. Agents read them, so they stay in English. */
 
 /** A public collection as its files write it: each palette in the collection's own order, with the title written for
-    it where its colors bear the title out. */
+    it where its colors bear the title out and the collection holds it in the view it was saved in. */
 export interface CollectionForFiles {
   slug: string;
   title: string;
@@ -25,31 +25,69 @@ export interface CollectionForFiles {
   items: readonly { seed: string; style: Style; steps: number; angle: number; title?: string }[];
 }
 
+/** The view a palette was saved in when its words were written, which they describe, as a JSON array of style, steps
+    and angle, for the palette whose seed `seed` names: the gallery's, else the one the first of Grabient's collections
+    to take it gave it (an item taken before items kept their times first). Null for a palette neither holds. */
+export const SAVED_VIEW = (seed: string) => `COALESCE(
+  (SELECT json_array(p.style, p.steps, p.angle) FROM k_palettes p WHERE p.seed = ${seed}),
+  (SELECT json_array(i.style, i.steps, i.angle) FROM k_collection_items i
+     JOIN k_collections c ON c.id = i.collection_id AND c.owner_kind = 'agent'
+     WHERE i.seed = ${seed} ORDER BY i.created_at IS NOT NULL, i.created_at, c.created_at, i.position LIMIT 1))`;
+
+export type SavedView = Pick<View, "style" | "steps" | "angle">;
+/** A view SAVED_VIEW read, or none. */
+export function savedView(raw: string | null | undefined): SavedView | undefined {
+  if (!raw) return undefined;
+  try {
+    const [style, steps, angle] = JSON.parse(raw) as unknown[];
+    return isStyle(style) && Number.isInteger(steps) && Number.isInteger(angle)
+      ? { style, steps: steps as number, angle: angle as number }
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 interface TextRow {
   seed: string;
   title: string;
   embed: string;
+  /** SAVED_VIEW's */
+  saved: string | null;
 }
 export const texts = async (env: Reader, seeds: readonly string[]) =>
   seeds.length
     ? await all<TextRow>(
         env.DB,
-        "SELECT seed, title, embed FROM k_palette_texts WHERE seed IN (SELECT value FROM json_each(?))",
+        `SELECT t.seed, t.title, t.embed, ${SAVED_VIEW("t.seed")} AS saved FROM k_palette_texts t
+         WHERE t.seed IN (SELECT value FROM json_each(?))`,
         JSON.stringify([...new Set(seeds)])
       )
     : [];
 
-/** A palette's written words as a reader is shown them: the title only where the palette's colors bear it out, and the
-    description only beside it and where it holds too. */
-export function heldWords(
+/** A palette's written words where its colors bear the title out, with the view it was saved in, which they describe:
+    the description only where it holds too. None for a palette nothing saved. */
+export function writtenWords(
   text: TextRow | undefined,
   palette: Palette | null
-): { title: string; embed: string } | null {
-  if (!text || !palette || titleFaults(text.title, palette).length) return null;
+): { title: string; embed: string; view: SavedView } | null {
+  const view = savedView(text?.saved);
+  if (!text || !palette || !view || titleFaults(text.title, palette).length) return null;
   return {
     title: text.title,
-    embed: text.embed && !titleFaults(text.embed, palette).length ? text.embed : ""
+    embed: text.embed && !titleFaults(text.embed, palette).length ? text.embed : "",
+    view
   };
+}
+
+/** A palette's written words as a reader is shown them in `view`: only while it is drawn as it was saved. */
+export function heldWords(
+  text: TextRow | undefined,
+  palette: Palette | null,
+  view: Partial<View>
+): { title: string; embed: string } | null {
+  const words = writtenWords(text, palette);
+  return words && palette && asSaved(palette, view, words.view) ? words : null;
 }
 
 /** The public collection at `slug`, as its files write it; null for a private one or none. */
@@ -79,7 +117,7 @@ export async function collectionForFiles(
         : doc.owner.display || doc.owner.name || "a Grabient account",
     updatedAt: doc.updatedAt,
     items: doc.items.map(item => {
-      const title = heldWords(written.get(item.kseed), decodePalette(item.kseed))?.title;
+      const title = heldWords(written.get(item.kseed), decodePalette(item.kseed), item)?.title;
       return {
         seed: item.kseed,
         style: item.style,
@@ -92,17 +130,19 @@ export async function collectionForFiles(
 }
 
 /** What a palette's Markdown says beyond its colors: the words written for it that its colors bear out, its
-    description cut to the file's lead, and the public collections that hold it. */
+    description cut to the file's lead, with the view it was saved in, which the file names it by alone, and the public
+    collections that hold it. */
 export async function paletteWords(
   env: Reader,
   seed: string
 ): Promise<{ written: PaletteWords | null; heldBy: { slug: string; title: string }[] }> {
   const [[text], held] = await Promise.all([texts(env, [seed]), collectionsHolding(env, seed)]);
-  const words = heldWords(text, decodePalette(seed));
+  const words = writtenWords(text, decodePalette(seed));
   return {
     written: words && {
       title: words.title,
-      ...(words.embed ? { lead: clip(words.embed, MARKDOWN_LEAD) } : {})
+      ...(words.embed ? { lead: clip(words.embed, MARKDOWN_LEAD) } : {}),
+      view: words.view
     },
     heldBy: held.map(({ slug, title }) => ({ slug, title }))
   };

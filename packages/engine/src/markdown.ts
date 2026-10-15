@@ -1,7 +1,8 @@
 /* A palette as Markdown: what it is, its colors, the CSS that draws it, its keyframes, where it is held and every other
    form. The Worker serves it at the palette's address plus .md and the editor's MD tab shows the same text, so the
    two never part. What only the database knows is handed in: the words written for the palette that its colors bear
-   out, and the public collections that hold it. A file for programs, always in English. */
+   out with the view it was saved in, and the public collections that hold it. A file for programs, always in
+   English. */
 import { decodePalette } from "./codec.ts";
 import { oklchOf } from "./css.ts";
 import { sampleStops } from "./curve.ts";
@@ -9,12 +10,14 @@ import { paletteJson } from "./document.ts";
 import { paletteDescription, paletteTitle, seedReading } from "./name.ts";
 import type { Namer } from "./precise-names.ts";
 import { toSpec } from "./spec.ts";
-import { styleWords, type View } from "./view.ts";
+import { asSaved, styleWords, type View } from "./view.ts";
 
-/** The words written for a palette that its colors bear out: its title, and its description cut to MARKDOWN_LEAD. */
+/** The words written for a palette that its colors bear out: its title, its description cut to MARKDOWN_LEAD, and the
+    view it was saved in when they were written, the one view they describe. */
 export interface PaletteWords {
   title: string;
   lead?: string;
+  view: Pick<View, "style" | "steps" | "angle">;
 }
 /** How much of a written description the file gives: more than a page's own line has room for. */
 export const MARKDOWN_LEAD = 400;
@@ -40,8 +43,12 @@ export function paletteMarkdown(
   if (!P || !doc || !reading) return null;
   const base = origin.replace(/\/$/, "");
   const stops = sampleStops(P, doc.steps);
-  const title = written?.title ?? paletteTitle(reading, doc.style);
-  const lead = written?.lead || paletteDescription(reading, doc, doc.colors);
+  /* drawn as it was saved, its written words name and describe it, and what its colors call it stays beside them for a
+     reader or a program that looks for the colors; in any other view its colors name it alone */
+  const own = written && asSaved(P, doc, written.view) ? written : null;
+  const called = paletteTitle(reading, doc.style);
+  const title = own?.title ?? called;
+  const lead = own?.lead || paletteDescription(reading, doc, doc.colors);
   const colors = stops.map((stop, i) => {
     const ink = doc.contrast.text[i] === "#ffffff" ? "white" : "black";
     return `| ${i + 1} | \`${stop.hex}\` | \`${oklchOf(stop)}\` | ${doc.names[i]} | ${ink}, ${doc.contrast.ratios[i]} to 1 |`;
@@ -54,7 +61,7 @@ export function paletteMarkdown(
 
 ${plain(lead)}
 
-- Seed: \`${doc.seed}\`
+${own ? `- Also called: ${plain(called)}\n` : ""}- Seed: \`${doc.seed}\`
 - Page: ${doc.url}
 - Drawn as: ${styleWords(doc.style)}, ${doc.steps} steps, ${doc.angle} degrees
 ${doc.kinds.length ? `- Kinds: ${doc.kinds.join(", ")}\n` : ""}- Hues: ${doc.harmony}

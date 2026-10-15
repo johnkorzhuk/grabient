@@ -290,9 +290,12 @@ export default function Editor(props: { data: PaletteData }) {
         }
         frames={first.frames}
         heading={() =>
+          /* the server's heading is the page's while its palette and view are: a written title names the palette in
+             the view it was saved in alone, so the angle counts too */
           e.seed() === first.page.seed &&
           e.style() === first.page.view.style &&
-          e.steps() === first.page.view.steps
+          e.steps() === first.page.view.steps &&
+          e.angle() === first.page.view.angle
             ? first.heading
             : undefined
         }

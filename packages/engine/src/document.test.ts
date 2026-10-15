@@ -37,6 +37,26 @@ test("written words, the collections that hold a palette, and a seed that is non
   expect(MARKDOWN_LEAD).toBe(400);
 });
 
+test("written words name a palette in the view it was saved in alone, what its colors call it beside them", () => {
+  const x = markdown.extra.find(e => e.written)!;
+  const words = x.written!;
+  const own = paletteMarkdown(x.seed, ORIGIN, x.view, words, x.heldBy)!;
+  expect(own.startsWith(`# ${plain(words.title)}\n`)).toBe(true);
+  expect(own).toMatch(/\n- Also called: .+\n- Seed: /);
+  expect(paletteJson(x.seed, ORIGIN, x.view, null, words)).toMatchObject({ title: words.title });
+  const others: Partial<View>[] = [
+    { ...x.view, style: x.view.style === "radialSwatches" ? "linearSwatches" : "radialSwatches" },
+    { ...x.view, steps: (x.view.steps ?? 7) + 1 },
+    { ...x.view, angle: ((x.view.angle ?? 90) + 45) % 360 }
+  ];
+  for (const view of others) {
+    expect(paletteMarkdown(x.seed, ORIGIN, view, words, x.heldBy)).toBe(
+      paletteMarkdown(x.seed, ORIGIN, view, null, x.heldBy)
+    );
+    expect(paletteJson(x.seed, ORIGIN, view, null, words)).not.toHaveProperty("title");
+  }
+});
+
 test("a view's missing or junk values take the default, and steps never fall under the keyframes", () => {
   for (const x of markdown.jsonExtra) {
     expect(JSON.stringify(paletteJson(x.seed, ORIGIN, x.input))).toBe(JSON.stringify(x.json));

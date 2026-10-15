@@ -1,6 +1,7 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import {
+  asSaved,
   DEFAULT_ANGLE,
   DEFAULT_STEPS,
   DEFAULT_STYLE,
@@ -119,8 +120,13 @@ export type Page = Facts &
         seed: string;
         palette: Palette;
         view: Pick<View, "style" | "steps" | "angle">;
-        /** the words written for it that its colors bear out, in English, where they are written */
-        written?: { title?: string; description?: string };
+        /** the words written for it that its colors bear out, in English, where they are written, with the view it
+            was saved in, which they describe */
+        written?: {
+          title: string;
+          description?: string;
+          view: Pick<View, "style" | "steps" | "angle">;
+        };
         /** the public collections that hold it, titled in the page's language */
         heldBy?: readonly { slug: string; title: string }[];
       }
@@ -383,8 +389,16 @@ export const translatedPage = (page: Page) =>
 
 const pagedTitle = (title: string, page = 1) =>
   page > 1 ? t("{title}, page {page}", { title, page }) : title;
+/** The words written for a palette as its page wears them: in English, and while it is drawn as it was saved, the one
+    view they describe. Drawn any other way, its colors name it. */
+const ownWords = (page: Extract<Page, { kind: "palette" }>) =>
+  locale() === DEFAULT_LOCALE && page.written && asSaved(page.palette, page.view, page.written.view)
+    ? page.written
+    : undefined;
+
 /** A page's heading, for a reader who listens and for a crawler: what its title says, without the site's name. A
-    palette's is its written title in English, else what its colors are called in its style. */
+    palette's is its written title in English while it is drawn as it was saved, else what its colors are called in
+    its style. */
 export function heading(page: Page): string {
   const query = "query" in page ? page.query : undefined;
   const like = query ? decodePalette(query) : null;
@@ -405,7 +419,7 @@ export function heading(page: Page): string {
       return t(LISTS[page.order].paged);
     case "palette":
       return (
-        (locale() === DEFAULT_LOCALE && page.written?.title) ||
+        ownWords(page)?.title ||
         t("{name} {style}", {
           name: paletteName(page.palette, page.view),
           style: t(STYLE_WORDS[page.view.style])
@@ -579,8 +593,9 @@ function searchDescription(query: string): string {
       );
 }
 
-/** A palette's page: titled by its written words in English, else by what its colors are called, and described by them
-    with its colors, which no other palette shares, so two palettes described alike still read apart. */
+/** A palette's page: titled by its written words in English while it is drawn as it was saved, else by what its colors
+    are called, and described by them with its colors, which no other palette shares, so two palettes described alike
+    still read apart. */
 function palettePage(
   page: Extract<Page, { kind: "palette" }>,
   meta: PageMeta,
@@ -591,7 +606,7 @@ function palettePage(
   const name = readingName(reading, language());
   const style = t(STYLE_WORDS[view.style]);
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
-  const written = locale() === DEFAULT_LOCALE ? page.written : undefined;
+  const written = ownWords(page);
   const path = paletteAddress(seed);
   meta.title = titled(heading(page));
   /* every color where they all fit, else some from end to end */
@@ -627,11 +642,16 @@ function palettePage(
   meta.markdown = absolute(`/${seed}.md${viewSearch(view)}`, origin);
   const title = untitled(meta.title);
   const held = page.heldBy ?? [];
+  /* a written title is the page's name; what its colors call it stays beside it, for a search in colors */
+  const called = written?.title
+    ? t("{name} {style}", { name: paletteName(page.palette, page.view), style })
+    : undefined;
   meta.structuredData.push(
     {
       "@context": SCHEMA,
       "@type": "CreativeWork",
       name: title,
+      ...(called ? { alternateName: called } : {}),
       inLanguage: LOCALE_INFO[locale()].tag,
       url: pageUrl(path, origin),
       image: meta.image,

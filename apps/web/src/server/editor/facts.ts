@@ -7,11 +7,12 @@ import type { Env } from "@grabient/server/env.ts";
 import type { PaletteFacts } from "../../features/editor/facts.ts";
 import { PALETTE_PAGE } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
+import { SAVED_VIEW, savedView } from "../collections/files.ts";
 import { colorsOf, LEAD_SEEDS } from "../collections/read.ts";
 
-/* What only the database knows of a palette, for its page: the words written for it that its colors bear out, the
-   public collections that hold it, the most saved first, each titled in the page's language where it is translated,
-   and how many like it. The page's title, its description, its static page for crawlers and its Markdown read them,
+/* What only the database knows of a palette, for its page: the words written for it that its colors bear out with the
+   view it was saved in, which its page wears them in alone, the public collections that hold it, the most saved
+   first, each titled in the page's language where it is translated, and how many like it. The page's title, its description, its static page for crawlers and its Markdown read them,
    and its heart starts from the count. Read once per page, or per answer to a browser that opens the palette, the edge
    has no copy of, from a replica, in one round of three queries. A failed read of the words or the collections leaves
    the facts out: the page goes by the palette's colors, and no cache keeps it. A count that cannot be read is left
@@ -46,9 +47,9 @@ export async function paletteFacts(
   const db = replica(source);
   const [read, counted] = await Promise.all([
     Promise.all([
-      all<{ title: string; embed: string }>(
+      all<{ title: string; embed: string; saved: string | null }>(
         db,
-        "SELECT title, embed FROM k_palette_texts WHERE seed = ?",
+        `SELECT t.title, t.embed, ${SAVED_VIEW("t.seed")} AS saved FROM k_palette_texts t WHERE t.seed = ?`,
         seed
       ),
       all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed)
@@ -64,14 +65,17 @@ export async function paletteFacts(
   if (!read) return null;
   const [texts, held] = read;
   const text = texts[0];
-  /* a title the colors contradict is left out, and the description goes with it */
+  const view = savedView(text?.saved);
+  /* a title the colors contradict is left out, and the description goes with it, as are the words of a palette nothing
+     saved, which no view is theirs */
   const written =
-    text && !titleFaults(text.title, palette).length
+    text && view && !titleFaults(text.title, palette).length
       ? {
           title: text.title,
           ...(text.embed && !titleFaults(text.embed, palette).length
             ? { description: text.embed }
-            : {})
+            : {}),
+          view
         }
       : undefined;
   return {

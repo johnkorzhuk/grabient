@@ -539,6 +539,17 @@ describe("an issue's lead", () => {
       picks[2],
       "Ember Sunset Bloom"
     );
+    // the gallery holds it in the view the issue draws it in, which its title was written for
+    const held = october?.write(ORIGIN).picks?.[2];
+    await run(
+      env.DB,
+      `INSERT INTO k_palettes (seed, style, steps, angle, created_at) VALUES (?, ?, ?, ?, 0)
+       ON CONFLICT (seed) DO UPDATE SET style = excluded.style, steps = excluded.steps, angle = excluded.angle`,
+      picks[2],
+      held?.style ?? "linearGradient",
+      held?.steps ?? 7,
+      held?.angle ?? 90
+    );
     try {
       const shown = await read(env, "issue=1", admin.cookie);
       expect(shown.headers.get("Cache-Control")).toBe("private, no-store");
@@ -581,6 +592,39 @@ describe("an issue's lead", () => {
       expect(html).toContain(`href="${ORIGIN}/${picks[0]}`);
     } finally {
       await run(env.DB, "DELETE FROM k_palette_texts WHERE seed = ? AND embed = ''", picks[2]);
+      await run(env.DB, "DELETE FROM k_palettes WHERE seed = ? AND created_at = 0", picks[2]);
+    }
+  });
+
+  it("names a palette by its colors where the issue draws it otherwise than its title was written for", async () => {
+    const env = newsletterEnv();
+    const admin = await makeAdmin(env);
+    const held = october?.write(ORIGIN).picks?.[2];
+    await run(
+      env.DB,
+      `INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES (?, ?, '', 0, 0)
+       ON CONFLICT (seed) DO UPDATE SET title = excluded.title`,
+      picks[2],
+      "Ember Sunset Bloom"
+    );
+    await run(
+      env.DB,
+      `INSERT INTO k_palettes (seed, style, steps, angle, created_at) VALUES (?, ?, ?, ?, 0)
+       ON CONFLICT (seed) DO UPDATE SET style = excluded.style, steps = excluded.steps, angle = excluded.angle`,
+      picks[2],
+      held?.style === "radialSwatches" ? "linearSwatches" : "radialSwatches",
+      held?.steps ?? 7,
+      held?.angle ?? 90
+    );
+    try {
+      const sheet = await bodyOf<{ options: { seed: string; name: string }[] }>(
+        await read(env, "issue=1", admin.cookie)
+      );
+      expect(sheet.options[2].name).not.toBe("Ember Sunset Bloom");
+      expect(sheet.options[2].name.length).toBeGreaterThan(0);
+    } finally {
+      await run(env.DB, "DELETE FROM k_palette_texts WHERE seed = ? AND embed = ''", picks[2]);
+      await run(env.DB, "DELETE FROM k_palettes WHERE seed = ? AND created_at = 0", picks[2]);
     }
   });
 });
