@@ -35,6 +35,11 @@
   .page[data-login][data-noted] > .frame {
     --foot: calc(var(--size-touch) + var(--space-s6) + var(--space-s4) + var(--space-s8));
   }
+  /* sign-in's words stand on the water, with a frost too faint to count in the dark sheet: its labels take the secondary
+     ink, so they keep 4.5:1 whatever the water shows */
+  .page[data-login] {
+    --color-ink3: var(--color-ink2);
+  }
   .nav {
     position: sticky;
     top: calc(var(--size-top-brand) + var(--space-s6));
@@ -78,7 +83,9 @@
      the bottom of the screen on a wide page */
   .foot {
     margin-top: auto;
+    /* with no paper under it on the water, sign-in's foot reads in the full ink */
     .page[data-login] > & {
+      --color-ink2: var(--color-ink);
       position: absolute;
       right: 0;
       bottom: 0;
