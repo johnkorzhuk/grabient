@@ -81,6 +81,7 @@ const COMPONENTS: readonly Group[] = [
     name: "Content",
     entries: [
       { id: "tags", title: "Tags" },
+      { id: "coins", title: "Coins" },
       { id: "palette-card", title: "Palette card" },
       { id: "cards", title: "Collection card" },
       { id: "code-block", title: "Code block" }
