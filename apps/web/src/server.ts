@@ -48,36 +48,6 @@ function dataLast(html: string): string {
   return html.slice(0, from) + html.slice(to, end) + html.slice(from, to) + html.slice(end);
 }
 
-/* The page's scripts are asked for once it has painted, which needs none of them: asked for sooner they share the
-   connection with the stylesheet and the fonts the first paint waits for. The router's head and Solid's lazy components
-   write a preload for each script the page starts with, and the router the entry at the body's end; one inline script
-   writes them all there at the first contentful paint, at once on a page that is not painting or in a browser that
-   reports no paint, and after ten seconds whatever happens. A preload is asked for at low priority, behind the fonts. */
-const STARTER =
-  "(function(p,e){var d=document,s=0,P=window.PerformanceObserver;function go(){if(s)return;s=1;" +
-  'p.forEach(function(h){var l=d.createElement("link");l.rel="modulepreload";l.href=h;l.fetchPriority="low";' +
-  'd.head.appendChild(l)});var t=d.createElement("script");t.type="module";t.src=e;d.body.appendChild(t)}' +
-  'if(d.visibilityState!=="visible"||!P||(P.supportedEntryTypes||[]).indexOf("paint")<0)return go();' +
-  'addEventListener("visibilitychange",go);setTimeout(go,1e4);new P(function(l,o){' +
-  'if(l.getEntriesByName("first-contentful-paint").length){o.disconnect();go()}})' +
-  '.observe({type:"paint",buffered:true})})';
-const PRELOAD = /<link rel="modulepreload"[^>]*?\shref="([^"]+)"[^>]*>/g;
-const ENTRY = /<script type="module" async src="([^"]+)"><\/script>/;
-
-function scriptsAfterPaint(html: string): string {
-  const entry = ENTRY.exec(html);
-  if (!entry) return html;
-  // an attribute's text, where a query's & is written &amp;
-  const address = (attribute: string) => attribute.replaceAll("&amp;", "&");
-  const preloads: string[] = [];
-  const rest = html.replace(PRELOAD, (_, href: string) => {
-    preloads.push(address(href));
-    return "";
-  });
-  const scripts = `${JSON.stringify(preloads)},${JSON.stringify(address(entry[1]!))}`;
-  return rest.replace(entry[0], () => `<script>${STARTER}(${scripts})</script>`);
-}
-
 /* A page answers once it has rendered whole, so the query cache rides along in the document and the answer can still
    say the render failed: a broken page is a 500 that no cache keeps. */
 const start = createStartHandler(
@@ -89,13 +59,18 @@ const start = createStartHandler(
        arrive in the order the build collects them. Written in <head> by hand they would be hydrated by position, which a
        node a browser extension adds there breaks.
 
+       The page's scripts are preloaded at low priority: at the default they compete with the stylesheet and the fonts,
+       and the first paint on a slow connection waits for them. The router's head and Solid's lazy components both
+       write these links, so the priority is set here, on the document.
+
        The router writes each match's id into its script with a NUL for every slash. HTML allows no NUL in a document,
        so each is written as the escape a script reads as the same character. */
-    const html = scriptsAfterPaint(dataLast(await response.text()))
+    const html = dataLast(await response.text())
       .replace(
         "<head>",
         '<head><meta charset="utf-8"><style>@layer reset, tokens, base, components;</style>'
       )
+      .replaceAll('<link rel="modulepreload"', '<link rel="modulepreload" fetchpriority="low"')
       .replaceAll("\0", "\\u0000");
     const headers = new Headers(response.headers);
     const locals = getRequestEvent()?.locals;
