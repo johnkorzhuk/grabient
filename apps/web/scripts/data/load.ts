@@ -6,7 +6,12 @@
 
    Staging must hold no table of its own, or --replace drops each one first. The tables go first, then the rows, each
    with its rowid, in an order where every foreign key finds its row, then the indexes and the triggers, so no trigger
-   runs on a loaded row. */
+   runs on a loaded row.
+
+   A copy whose build took the admins' work from staging (staging-work.ts) waits for the cutover: loaded, that work
+   would be part of staging's copy, which no later build tells apart from the rest, and the cutover's build would leave
+   it out. */
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DATA, describe, execute, insertRows, name, STAGING, select, writable } from "./d1.ts";
@@ -21,6 +26,15 @@ import {
   writeSnapshot
 } from "./snapshot.ts";
 import { report, verifyStaging } from "./verify.ts";
+
+/** How many changes the build behind the copy took from staging, by its report. */
+export function carriedWork(dir = resolve(DATA, "plan")): number {
+  const file = resolve(dir, "report.json");
+  if (!existsSync(file))
+    throw new Error(`No build report in ${dir}: run scripts/data/build.ts first.`);
+  const built = JSON.parse(readFileSync(file, "utf8")) as { fromStaging?: { carried: number } };
+  return built.fromStaging?.carried ?? 0;
+}
 
 /** The statements that make an empty database the snapshot's. */
 export function loadStatements(snapshot: Snapshot): string[] {
@@ -58,6 +72,15 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const args: string[] = process.argv.slice(2);
   if (args.some(arg => arg !== "--replace")) {
     console.error("usage: node scripts/data/load.ts [--replace]");
+    process.exit(1);
+  }
+  const carried = carriedWork();
+  if (carried) {
+    console.error(
+      `The build behind this copy took ${carried} changes the admins made on staging since its load. Loaded, they ` +
+        "would become part of staging's copy, which no later build tells apart from the rest, and the cutover's build " +
+        "would leave them out. Load staging again after the cutover."
+    );
     process.exit(1);
   }
   const copy = readSnapshot(resolve(DATA, "local"));
