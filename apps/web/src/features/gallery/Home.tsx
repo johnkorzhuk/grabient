@@ -13,12 +13,7 @@ import { PaletteGridPlaceholder } from "@grabient/ui/PalettePlaceholder.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import {
-  useElementScrollRestoration,
-  useNavigate,
-  useRouter,
-  useRouterState
-} from "@tanstack/solid-router";
+import { useElementScrollRestoration, useNavigate, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -39,6 +34,7 @@ import {
   signInUnavailable
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
+import { useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { heading } from "../../lib/page-meta.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
@@ -101,7 +97,7 @@ export function Home(props: { params: ListParams }) {
   const navigate = useNavigate();
   const router = useRouter();
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
-  const navigating = useRouterState({ select: state => state.status === "pending" });
+  const navigating = useNavigating();
   const params = () => props.params;
   const words = () => params().words;
   const head = useQuery(() => homeHeadQuery(words()));

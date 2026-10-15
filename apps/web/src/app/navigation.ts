@@ -1,7 +1,7 @@
 import { delocalizePath, isPagePath, t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
 import { focusMain } from "@grabient/ui/SkipLink.tsx";
-import type { AnyRouter, HistoryLocation } from "@tanstack/solid-router";
+import { type AnyRouter, type HistoryLocation, useRouterState } from "@tanstack/solid-router";
 import { createSignal, untrack } from "solid-js";
 import { pageKey, trackPageView } from "../features/analytics/analytics.ts";
 import { landView } from "../features/list/appearance.ts";
@@ -30,6 +30,23 @@ const RELOADS_APART_MS = 10_000;
 const RELOADED = "grabient-reloaded";
 /** A history entry the selection was opened in, over the page beneath it. */
 export const SELECTION_MARK = "selection";
+
+/* the address without the selection's word: what a list beneath it draws */
+const beneath = (search: Record<string, unknown>) => {
+  const { selection: _, ...rest } = search;
+  return JSON.stringify(rest);
+};
+/** Whether the router is on its way to another page or another list: a turn into the selection or out of it leaves the
+    list beneath as it stands, so it is none. */
+export const useNavigating = () =>
+  useRouterState({
+    select: state =>
+      state.status === "pending" &&
+      !(
+        state.resolvedLocation?.pathname === state.location.pathname &&
+        beneath(state.resolvedLocation.search) === beneath(state.location.search)
+      )
+  });
 
 /** Rewrites the page's address in place without the route taking it: a value still being set (a view or a size
     being dragged), which the route takes once it rests. The router hears of every write made through the history
@@ -143,10 +160,12 @@ export function watchNavigation(router: AnyRouter): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
   /* where the focus lands with a page: the selection's Close over it, the link the reader left by (a card's presses
      come a moment after its list), or the page */
+  const inSelection = () =>
+    (router.history.location.state as { mark?: unknown }).mark === SELECTION_MARK;
   const focusLanding = (tries = 20) => {
     const location = router.history.location;
     const left = leftBy.get(placeOf(location));
-    const selection = (location.state as { mark?: unknown }).mark === SELECTION_MARK;
+    const selection = inSelection();
     const target = selection
       ? shown(`aside button[aria-label="${CSS.escape(t("Close selection"))}"]`)
       : left
@@ -160,11 +179,12 @@ export function watchNavigation(router: AnyRouter): () => void {
       }, 50);
     else focusMain();
   };
+  /* the selection keeps the title of the page it stands over, so it is told by its own name */
   const land = () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
       if (!document.activeElement || document.activeElement === document.body) focusLanding();
-      announce(document.title);
+      announce(inSelection() ? t("Selection") : document.title);
     }, LANDED_MS);
   };
   const entryOf = (location: HistoryLocation) => {

@@ -12,12 +12,7 @@ import { PaletteGridPlaceholder } from "@grabient/ui/PalettePlaceholder.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { type UndefinedInitialDataOptions, useQuery, useQueryClient } from "@tanstack/solid-query";
-import {
-  useElementScrollRestoration,
-  useNavigate,
-  useRouter,
-  useRouterState
-} from "@tanstack/solid-router";
+import { useElementScrollRestoration, useNavigate, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -38,6 +33,7 @@ import {
   signInUnavailable
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
+import { useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
@@ -101,7 +97,7 @@ export function Palettes(props: { place: ListPlace }) {
   const router = useRouter();
   const go = (href: string, replace = false) => void navigate({ href, replace });
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
-  const navigating = useRouterState({ select: state => state.status === "pending" });
+  const navigating = useNavigating();
   const params = () => props.place.params;
   const words = () => params().words;
   /* a route's list is one kind for as long as its page stands */

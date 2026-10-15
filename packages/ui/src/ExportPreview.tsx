@@ -1,6 +1,7 @@
 import { gradientCss } from "@grabient/engine/css.ts";
 import type { Style } from "@grabient/engine/view.ts";
 import { createMemo, createSignal, For, onSettled, Show } from "solid-js";
+import { keepKeyboard } from "./dismiss.ts";
 import styles from "./ExportPreview.module.css";
 import { type ExportSettings, exportLayout } from "./exportgrid.ts";
 import { Icon } from "./Icon.tsx";
@@ -11,6 +12,8 @@ import { tooltip } from "./Tooltip.tsx";
 /** One palette of the selection, as the preview draws it. */
 export interface PreviewItem {
   id: string;
+  /** what its colors call it, which its press says */
+  name: string;
   stops: readonly string[];
   style: Style;
   angle: number;
@@ -18,8 +21,8 @@ export interface PreviewItem {
 
 /* The selection as its image will be: the grid exportLayout describes, each palette at its size in its own style and
    angle with the corners, on a clear ground, scaled down to the room it is given and never up. Every cell is a way out
-   of the selection, with a minus at its middle where there is room for one. Left to right in every language, as the
-   file runs. */
+   of the selection, named for its palette, with a minus at its middle where there is room for one; the keyboard on the
+   last one taken out goes to the one before it. Left to right in every language, as the file runs. */
 export function ExportPreview(props: {
   items: readonly PreviewItem[];
   settings: ExportSettings;
@@ -29,6 +32,7 @@ export function ExportPreview(props: {
   onRemove?: (id: string) => void;
 }) {
   let host!: HTMLDivElement;
+  let grid!: HTMLDivElement;
   const [room, setRoom] = createSignal({ width: 0, height: 0 });
   onSettled(() =>
     watchSize(host, () => setRoom({ width: host.clientWidth, height: host.clientHeight }))
@@ -57,6 +61,7 @@ export function ExportPreview(props: {
           style={{ width: px(layout().dims.width), height: px(layout().dims.height) }}
         >
           <div
+            ref={grid}
             class={styles.grid}
             style={{
               padding: px(layout().padding),
@@ -69,7 +74,7 @@ export function ExportPreview(props: {
             }}
           >
             <For each={props.items} keyed={false}>
-              {(item, i) => {
+              {item => {
                 const tip = tooltip(() => t("Remove from selection"));
                 return (
                   <button
@@ -77,8 +82,13 @@ export function ExportPreview(props: {
                     type="button"
                     class={styles.cell}
                     style={{ background: gradientCss(item().stops, item().style, item().angle) }}
-                    aria-label={t("Remove palette {number}", { number: i + 1 })}
-                    onClick={() => props.onRemove?.(item().id)}
+                    aria-label={t("Remove {name} from selection", { name: item().name })}
+                    onClick={() =>
+                      keepKeyboard(
+                        () => props.onRemove?.(item().id),
+                        () => grid.querySelector<HTMLElement>("button:last-child")
+                      )
+                    }
                   >
                     <Show when={roomy()}>
                       <span class={styles.minus} aria-hidden="true">

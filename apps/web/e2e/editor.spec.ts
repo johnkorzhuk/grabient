@@ -725,7 +725,12 @@ test("a step taken in the selection is the first an undo takes back once it clos
   const selection = page.getByRole("button", { name: /^Selection/ }).first();
   await expect(selection).toHaveAccessibleName("Selection 2");
   await selection.click();
-  await page.getByRole("button", { name: "Remove palette 1" }).first().click();
+  await page
+    .getByRole("group", { name: "Export preview" })
+    .first()
+    .getByRole("button", { name: /^Remove .+ from selection$/ })
+    .first()
+    .click();
   await page.keyboard.press("Escape");
   await expect.poll(() => here(page)).toBe(edited);
   await expect(selection).toHaveAccessibleName("Selection 1");

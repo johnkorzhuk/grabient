@@ -5,8 +5,13 @@ import { expect, type Page, test } from "@playwright/test";
 
 const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 const close = (page: Page) => page.getByRole("button", { name: "Close selection" });
+/** The palette at this place in the export preview: each is a press that takes it out of the selection. */
 const removable = (page: Page, number: number) =>
-  page.getByRole("button", { name: `Remove palette ${number}` }).first();
+  page
+    .getByRole("group", { name: "Export preview" })
+    .first()
+    .getByRole("button", { name: /^Remove .+ from selection$/ })
+    .nth(number - 1);
 
 /** Adds the list's palettes at these places to the selection, with the keyboard. */
 async function add(page: Page, ...at: number[]) {
