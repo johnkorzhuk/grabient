@@ -113,11 +113,19 @@ export const publishedIssues = async (
 ): Promise<DrawnPage> =>
   publishedPage(ISSUES, origin, locale, before ?? undefined, await issueFacts(env));
 
-/** The issue among these that goes out next: the first with no day yet, else the newest published, so a test always has
-    one to send. */
-export function nextIssue(issues: readonly Issue[]): Issue {
-  const ordered = [...issues].sort((a, b) => a.number - b.number);
-  return ordered.find(issue => !issue.published) ?? (ordered.at(-1) as Issue);
+/* a month of an issue (2026-10) or of a time, counted from year 0, so two are as far apart as their difference */
+const monthOf = (month: string) => {
+  const [year, number] = month.split("-").map(Number);
+  return year * 12 + number - 1;
+};
+
+/** The issue an admin's test sends: this month's, else the one whose month is nearest, the coming one where two are as
+    near. The test is of the issue readers have in their hands now. */
+export function testIssue(issues: readonly Issue[], now = Date.now()): Issue {
+  const today = new Date(now);
+  const current = today.getUTCFullYear() * 12 + today.getUTCMonth();
+  const away = (issue: Issue) => Math.abs(monthOf(issue.month) - current);
+  return [...issues].sort((a, b) => away(a) - away(b) || monthOf(b.month) - monthOf(a.month))[0];
 }
 
 /** Every issue among these with no day yet, newest first: an admin's to read. */

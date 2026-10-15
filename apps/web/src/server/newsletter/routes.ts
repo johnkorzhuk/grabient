@@ -15,7 +15,7 @@ import { publicOrigin } from "../seo/site.ts";
 import { ISSUES } from "./issues/index.ts";
 import { asRun, chooseLead, leadOptions } from "./lead.ts";
 import { isSubscribed, issueFoot, readerOf, setSubscribed, tokenOwner } from "./list.ts";
-import { draftsAmong, drawn, issueFacts, nextIssue, publishedIssues } from "./page.ts";
+import { draftsAmong, drawn, issueFacts, publishedIssues, testIssue } from "./page.ts";
 import { beforeOf, languageOf } from "./query.ts";
 import { sendIssue, unsendable } from "./send.ts";
 
@@ -166,10 +166,9 @@ export async function unsubscribeResponse(
   return json({ subscribed });
 }
 
-/** `POST /api/me/newsletter/test`: an admin sends the issue that goes out next (the first draft, else the newest
-    published) to their own address alone, with their own foot, to see it in a real inbox and that the sender, the
-    unsubscribe link and the mail app's own unsubscribe button work. Counted per account and against the newsletter's
-    day before Resend is asked. */
+/** `POST /api/me/newsletter/test`: an admin sends this month's issue (`testIssue`) to their own address alone, with
+    their own foot, to see it in a real inbox and that the sender, the unsubscribe link and the mail app's own
+    unsubscribe button work. Counted per account and against the newsletter's day before Resend is asked. */
 export async function testResponse(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return methodNotAllowed();
   const session = await admin(request, env, { write: true });
@@ -189,7 +188,7 @@ export async function testResponse(request: Request, env: Env): Promise<Response
     ["newsletter-day", "newsletterDaily"]
   ]);
   if (limited) return limited;
-  const words = asRun(nextIssue(ISSUES), origin, await issueFacts(env));
+  const words = asRun(testIssue(ISSUES), origin, await issueFacts(env));
   try {
     await sendIssue(
       env,

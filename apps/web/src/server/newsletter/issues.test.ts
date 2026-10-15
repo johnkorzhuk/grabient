@@ -6,7 +6,7 @@ import { meaning } from "../../../../../packages/email/test/support.ts";
 import { ISSUES } from "./issues/index.ts";
 import { asRun, type IssueFacts, leadOptions, ledBy, NO_FACTS, nameOf } from "./lead.ts";
 import { issueFoot } from "./list.ts";
-import { draftsAmong, drawn, nextIssue, publishedPage } from "./page.ts";
+import { draftsAmong, drawn, publishedPage, testIssue } from "./page.ts";
 import { draftWords, leaks } from "./private.ts";
 import { beforeOf, issuesKey, languageOf } from "./query.ts";
 
@@ -112,13 +112,17 @@ describe("the issues as pages", () => {
     expect([two.issues.map(issue => issue.number), two.next]).toEqual([[1], null]);
     expect(publishedPage(four, ORIGIN, "en", 1)).toEqual({ issues: [], next: null });
   });
-  test("the issue that goes out next, which an admin's test sends, is the first with no day, else the newest", () => {
-    expect(nextIssue(four).number).toBe(4);
-    // a draft written ahead waits behind the one before it
-    expect(nextIssue([...four, made(6), made(5)]).number).toBe(4);
-    expect(nextIssue(four.filter(issue => issue.published)).number).toBe(3);
-    // as the issues stand: No. 1 went out in October, so No. 2 is next
-    expect(nextIssue(ISSUES)).toBe(byNumber(2));
+  test("an admin's test sends this month's issue, else the nearest month's, the coming one where two are as near", () => {
+    const on = (day: string) => Date.parse(`${day}T12:00:00Z`);
+    // the suite's issues are for January to April 2026
+    expect(testIssue(four, on("2026-03-15")).number).toBe(3);
+    expect(testIssue(four, on("2026-04-01")).number).toBe(4);
+    expect(testIssue(four, on("2025-11-20")).number).toBe(1);
+    expect(testIssue(four, on("2026-09-30")).number).toBe(4);
+    expect(testIssue([made(1), made(3)], on("2026-02-10")).number).toBe(3);
+    // as the issues stand: October's in October, November's from November
+    expect(testIssue(ISSUES, on("2026-10-15"))).toBe(byNumber(1));
+    expect(testIssue(ISSUES, on("2026-11-03"))).toBe(byNumber(2));
   });
 
   test("drafts are the issues with no day, newest first", () => {

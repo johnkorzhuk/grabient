@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import { ISSUES } from "../src/server/newsletter/issues/index.ts";
 import { issueFoot, readerOf } from "../src/server/newsletter/list.ts";
+import { testIssue } from "../src/server/newsletter/page.ts";
 import {
   choiceResponse,
   draftsResponse,
@@ -367,7 +368,7 @@ describe("an admin's test issue", () => {
     expect(sent).toEqual([]);
   });
 
-  it("sends the issue that goes out next to the admin alone, with their own foot and a mail app's unsubscribe button", async () => {
+  it("sends this month's issue to the admin alone, with their own foot and a mail app's unsubscribe button", async () => {
     const sent = resend();
     const env = newsletterEnv();
     const admin = await makeAdmin(env);
@@ -394,10 +395,8 @@ describe("an admin's test issue", () => {
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"
       }
     });
-    // the first issue with no day yet: No. 1 went out in October
-    const next = [...ISSUES].sort((a, b) => a.number - b.number).find(issue => !issue.published);
-    expect(next?.number).toBe(2);
-    expect(body.subject).toBe(`[Test] ${next?.write(ORIGIN).subject}`);
+    // the rule's own test is in issues.test.ts, at fixed days
+    expect(body.subject).toBe(`[Test] ${testIssue(ISSUES).write(ORIGIN).subject}`);
     for (const part of ["head", "chips", "issue", "palettes", "collection", "button", "foot"]) {
       expect(body.html).toContain(`data-part="${part}"`);
     }
