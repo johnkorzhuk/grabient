@@ -568,8 +568,11 @@ const FITTED = "/kYq5wTxGc3MlDuPtT7O58281NAs8?style=angularGradient";
 test("an old link no map holds lands on its palette with no JavaScript, by a redirect the edge keeps", {
   tag: "@served"
 }, async ({ request }) => {
-  const asked = () => request.get(OLD, { maxRedirects: 0 });
-  const moved = [await asked(), await asked()];
+  // a link checker's HEAD is fitted once, and the GET after it is answered from the edge
+  const moved = [
+    await request.head(OLD, { maxRedirects: 0 }),
+    await request.get(OLD, { maxRedirects: 0 })
+  ];
   expect(
     moved.map(answer => [
       answer.status(),

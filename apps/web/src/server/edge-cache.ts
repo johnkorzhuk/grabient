@@ -1,8 +1,9 @@
 /* The Worker's own cache in front of Start: the Cache API of the data center that runs it. It keeps only a public
-   200 or 301 to a GET, with a positive lifetime in `CDN-Cache-Control` (else `Cache-Control`), no `private` or
-   `no-store`, no `Set-Cookie` and no `Vary`. The Cache API reads a lifetime from `Cache-Control`, so the kept copy
-   carries the edge's and holds the browser's aside for a hit to put back. A HEAD reads what a GET kept and keeps nothing.
-   A cache that cannot be read or written is passed by. */
+   200 to a GET or 301 to a GET or a HEAD, with a positive lifetime in `CDN-Cache-Control` (else `Cache-Control`), no
+   `private` or `no-store`, no `Set-Cookie` and no `Vary`. The Cache API reads a lifetime from `Cache-Control`, so the
+   kept copy carries the edge's and holds the browser's aside for a hit to put back. A HEAD reads what a GET kept, and
+   of its own answers keeps only a 301, which has no body a GET could miss. A cache that cannot be read or written is
+   passed by. */
 
 const BROWSER_POLICY = "X-Grabient-Browser-Cache";
 const STATUS = "X-Grabient-Cache";
@@ -49,7 +50,7 @@ export async function edgeCached(
   if (kept) return fromCache(request, kept);
   const rendered = await render();
   const response = new Response(rendered.body, rendered);
-  const seconds = request.method === "GET" ? keepFor(response) : null;
+  const seconds = request.method === "GET" || response.status === 301 ? keepFor(response) : null;
   if (seconds !== null) {
     const copy = response.clone();
     copy.headers.set("Cache-Control", `public, max-age=${seconds}`);

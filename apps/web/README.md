@@ -17,9 +17,9 @@ fitted to it (`src/server/seo/legacy-fit.ts`). Every answer then gets the securi
 production, CORS on public files and `Server-Timing: build`. Any status but 200, 304 and a 301 that names its lifetime
 is `no-store`.
 
-The edge cache keeps a GET's 200 or 301 that has a positive `CDN-Cache-Control` max-age, no `private` or `no-store`,
-no `Set-Cookie` and no `Vary`, under its path in its language, the query that decides it and the build
-(`src/server/cache-keys.ts`). A page that renders an error answers 500, which nothing keeps.
+The edge cache keeps a 200 to a GET or a 301 to a GET or a HEAD, when it has a positive `CDN-Cache-Control` max-age,
+no `private` or `no-store`, no `Set-Cookie` and no `Vary`, under its path in its language, the query that decides it
+and the build (`src/server/cache-keys.ts`). A page that renders an error answers 500, which nothing keeps.
 
 ## Pages
 

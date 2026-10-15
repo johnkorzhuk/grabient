@@ -384,7 +384,7 @@ describe("the edge cache", () => {
     ]);
   });
 
-  test("a HEAD reads what a GET kept and keeps nothing itself", async () => {
+  test("a HEAD reads what a GET kept and keeps no page itself, whose body a GET would miss", async () => {
     const miss = await get("/about", { method: "HEAD" });
     expect(miss.headers.get("X-Grabient-Cache")).toBe("MISS");
     expect(cache.kept.size).toBe(0);
@@ -413,16 +413,17 @@ describe("the edge cache", () => {
     expect(asked).toHaveLength(2);
   });
 
+  const moved = () =>
+    new Response(null, {
+      status: 301,
+      headers: {
+        Location: "/kS7Q8Yy5S_SChv0",
+        "Cache-Control": "public, max-age=86400",
+        "CDN-Cache-Control": "max-age=2592000"
+      }
+    });
+
   test("keeps a permanent redirect that names its lifetime, and gives the browser its own", async () => {
-    const moved = () =>
-      new Response(null, {
-        status: 301,
-        headers: {
-          Location: "/kS7Q8Yy5S_SChv0",
-          "Cache-Control": "public, max-age=86400",
-          "CDN-Cache-Control": "max-age=2592000"
-        }
-      });
     const answers = [await get("/about", {}, moved), await get("/about", {}, moved)];
     expect(
       answers.map(response => [
@@ -436,6 +437,29 @@ describe("the edge cache", () => {
       [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "HIT"]
     ]);
     expect(asked).toHaveLength(1);
+  });
+
+  test("keeps a permanent redirect a HEAD asked for too, which has no body a GET could miss", async () => {
+    // a link checker asks with a HEAD first
+    const answers = [
+      await get("/about", { method: "HEAD" }, moved),
+      await get("/about", {}, moved)
+    ];
+    expect(
+      answers.map(response => [
+        response.status,
+        location(response),
+        response.headers.get("Cache-Control"),
+        response.headers.get("X-Grabient-Cache")
+      ])
+    ).toEqual([
+      [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "MISS"],
+      [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "HIT"]
+    ]);
+    expect([asked.length, [...cache.kept.keys()]]).toEqual([
+      1,
+      ["https://grabient.test/about?__build=b1"]
+    ]);
   });
 
   test("keeps every address of one file under one key, which no stray parameter enters", async () => {
