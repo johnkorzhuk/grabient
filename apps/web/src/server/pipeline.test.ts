@@ -589,4 +589,18 @@ test("a failure is a 500 no cache keeps, and its error is logged as it was throw
   expect(response.headers.get("Cache-Control")).toBe("no-store");
   // Workers Issues groups it by its name and words, whatever the address, and reads its stack
   expect(log).toHaveBeenCalledExactlyOnceWith(boom);
+  expect(counted).toEqual(["failure 500 page"]);
+});
+
+test("each answer the site could not give is counted by its status and the kind of address alone", async () => {
+  const unavailable = () => Response.json({ error: "Try again later." }, { status: 503 });
+  await get("/api/collections/ocean-gradients", {}, unavailable);
+  await get("/mcp", { method: "POST" }, unavailable);
+  await get("/kS7Q8Yy5S_SChv0.png", {}, unavailable);
+  await get("/palettes", {}, () => page(404));
+  expect(counted.filter(point => point.startsWith("failure"))).toEqual([
+    "failure 503 api/collections",
+    "failure 503 mcp",
+    "failure 503 file"
+  ]);
 });

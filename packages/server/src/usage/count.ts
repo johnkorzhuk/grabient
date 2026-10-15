@@ -10,9 +10,18 @@ import type { Env } from "../env.ts";
      image         what was asked for, what answered (cache, drawn, refused, failed)
      client-error  the kind of page, the browser
      file          the format fetched, who asked (site, other, none), reader or crawler
+     failure       an answer of 500 or more: its status, the kind of address (page, api/<name>, mcp or file)
    Each point rides on a request that is already limited, so the counts need no limit of their own. */
 
-export type UsageEvent = "mcp" | "oauth" | "limit" | "legacy" | "image" | "client-error" | "file";
+export type UsageEvent =
+  | "mcp"
+  | "oauth"
+  | "limit"
+  | "legacy"
+  | "image"
+  | "client-error"
+  | "file"
+  | "failure";
 
 const BLOB_MAX = 96;
 

@@ -11,6 +11,7 @@ import {
 import type { Env } from "@grabient/server/env.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
+import { countUsage } from "@grabient/server/usage/count.ts";
 import { BUILD } from "../lib/build.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { TRACKING_PARAM } from "../lib/links.ts";
@@ -106,7 +107,17 @@ export async function handle(
     console.error(error);
     response = json({ error: msg("Something went wrong. Try again.") }, { status: 500 });
   }
-  return finish(request, url, path, env, response, tracking);
+  const answered = finish(request, url, path, env, response, tracking);
+  // an answer the site could not give, which the owner's alert counts (alerts/alerts.ts)
+  if (answered.status >= 500) countUsage(env, "failure", String(answered.status), kindOf(path));
+  return answered;
+}
+
+/** A failed address by its kind, from a few: a page, an API by its name, the MCP server or a file. */
+function kindOf(path: string): string {
+  if (isPagePath(path)) return "page";
+  const api = /^\/api\/([\w-]+)/.exec(path)?.[1];
+  return api ? `api/${api}` : connectPath(path) ? "mcp" : "file";
 }
 
 async function route(

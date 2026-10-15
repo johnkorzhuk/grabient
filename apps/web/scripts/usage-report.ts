@@ -1,7 +1,8 @@
 /* What the site's own work came to, as the admins' site_usage tool reads it, printed as Markdown: MCP tool calls, apps
-   signing in, requests a limit refused, old addresses, pictures, palette files and the errors pages reported. It reads
-   the deploy's dataset through `cf sql query`, with this machine's Cloudflare sign-in, in the account --account or
-   CLOUDFLARE_ACCOUNT_ID names. Nothing here names a person: the counts never did. From apps/web:
+   signing in, requests a limit refused, old addresses, pictures, palette files, the errors pages reported and the
+   answers that failed. It reads the deploy's dataset through `cf sql query`, with this machine's Cloudflare sign-in, in
+   the account --account or CLOUDFLARE_ACCOUNT_ID names. Nothing here names a person: the counts never did.
+   From apps/web:
    node scripts/usage-report.ts [--days 7] [--mode staging|production] [--account ID] [--out FILE] */
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
@@ -16,7 +17,8 @@ const TITLES: Record<(typeof USAGE_EVENTS)[number], string> = {
   legacy: "Old grabient.com addresses",
   image: "Pictures",
   "client-error": "Errors pages reported",
-  file: "Palette files fetched"
+  file: "Palette files fetched",
+  failure: "Answers that failed"
 };
 const ROWS = 40;
 

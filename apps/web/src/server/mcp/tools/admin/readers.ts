@@ -522,7 +522,7 @@ export const readerTools: readonly Tool[] = [
     title: "What the site's own work came to",
     hints: READS,
     description:
-      "The counts of the site's own work in the last days, from Workers Analytics Engine: MCP tool calls by server, tool, outcome, address and app, and the requests without a valid token; apps signing in, by step and outcome, with the authorization server's errors; requests a limit refused, by limit, with the site-wide ceilings that ran out; old grabient.com addresses by how they resolved; pictures drawn, served from the cache or refused; errors pages reported, by kind of page and browser; and palette files fetched, by format and by who asked (this site, another site, or no page). Each day's totals too. This deploy's own counts. Nothing in them names a person.",
+      "The counts of the site's own work in the last days, from Workers Analytics Engine: MCP tool calls by server, tool, outcome, address and app, and the requests without a valid token; apps signing in, by step and outcome, with the authorization server's errors; requests a limit refused, by limit, with the site-wide ceilings that ran out; old grabient.com addresses by how they resolved; pictures drawn, served from the cache or refused; errors pages reported, by kind of page and browser; palette files fetched, by format and by who asked (this site, another site, or no page); and answers that failed, by status and kind of address. Each day's totals too. This deploy's own counts. Nothing in them names a person.",
     inputSchema: shape({
       days: whole("The window in days, default 7.", 1, 90),
       limit: whole("How many rows of each event, default 25.", 1, 200)
