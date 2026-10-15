@@ -107,8 +107,9 @@ alone, and reads a logged error's stack as source from the maps each deploy uplo
 in `vite.config.ts`; the browser's build makes none). Pages report their errors to `/api/client-error`
 (`src/app/error-report.ts`), which logs each as an error named for the browser, its type and the script it was thrown
 in, so one error is one issue on every page, browser and deploy (`src/server/client-errors`). Nothing logged names a
-reader. Every answer of 500 or more is counted, and the ten-minute job emails the site's address when the last ten
-minutes hold ten of them or 25 browser errors, at most once a day for each (`src/server/alerts/alerts.ts`).
+reader. Every answer of 500 or more is counted except a refusal a flag makes on purpose, which names the flag in
+`X-Grabient-Paused`. The ten-minute job emails the site's address when the last ten minutes hold ten of them or 25
+browser errors, at most once a day for each (`src/server/alerts/alerts.ts`).
 
 ## The MCP directories
 

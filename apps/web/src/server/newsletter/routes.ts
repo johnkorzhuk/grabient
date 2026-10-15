@@ -4,6 +4,7 @@ import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/htt
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { getSession, type Session } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { flagOff, pausedBy } from "@grabient/server/flags/flags.ts";
 import * as v from "valibot";
 import { Choice, LeadChoice, Press, UNSUBSCRIBE_TOKEN } from "../../features/newsletter/input.ts";
 import { PAGE } from "../../lib/cache.ts";
@@ -171,7 +172,11 @@ export async function testResponse(request: Request, env: Env): Promise<Response
   if (request.method !== "POST") return methodNotAllowed();
   const session = await admin(request, env, { write: true });
   if (session instanceof Response) return session;
-  const problem = await unsendable(env);
+  if (await flagOff(env, "newsletter")) {
+    const off = msg("The newsletter is turned off in Site features.");
+    return json({ error: off }, 503, pausedBy("newsletter"));
+  }
+  const problem = unsendable(env);
   if (problem) return json({ error: problem }, 503);
   const origin = publicOrigin(env, request);
   const reader = await readerOf(env, origin, session.user.id);

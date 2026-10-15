@@ -1,6 +1,6 @@
 import { listDurableObjectIds, runInDurableObject } from "cloudflare:test";
 import { overLimit } from "@grabient/server/auth/http.ts";
-import { setFlag } from "@grabient/server/flags/flags.ts";
+import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { checkLimits, type LimitCheck, limiterName } from "@grabient/server/limits/check.ts";
 import { workChecks, writeRefusal } from "@grabient/server/limits/writes.ts";
 import { describe, expect, it } from "vitest";
@@ -90,6 +90,7 @@ describe("an account's write", () => {
         { error: "Couldn't save." }
       ]);
       expect(paused?.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(paused?.headers.get(PAUSED)).toBe("saving");
       expect(asked).toEqual([]);
     } finally {
       await setFlag(env, "saving", true, unique("admin"));

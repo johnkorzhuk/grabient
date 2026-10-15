@@ -9,7 +9,7 @@
    nothing: it may draw differently from staging under the same version, and shares staging's bucket. */
 
 import type { Env } from "@grabient/server/env.ts";
-import { flagOff } from "@grabient/server/flags/flags.ts";
+import { flagOff, pausedBy } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
@@ -51,7 +51,8 @@ export const failure = (status: number, message: string, headers: Record<string,
     status,
     headers: { "Content-Type": "text/plain; charset=utf-8", ...NO_STORE, ...ANY_SITE, ...headers }
   });
-const unavailable = () => failure(503, "Image temporarily unavailable");
+const unavailable = (headers?: Record<string, string>) =>
+  failure(503, "Image temporarily unavailable", headers);
 
 /* What stands in for a picture that is not drawn now, kept a few minutes by the browser and never by the edge, so the
    picture itself is drawn once drawing is back. For a card it is the site's card (public/grabient.png), a static file:
@@ -78,7 +79,7 @@ export async function drawingPaused(
 ): Promise<Response | null> {
   if (!(await flagOff(env, "share-images"))) return null;
   if (picture.branded) return siteCard(request);
-  return picture.svg ? standIn(request, picture.svg) : unavailable();
+  return picture.svg ? standIn(request, picture.svg) : unavailable(pausedBy("share-images"));
 }
 
 /* One call counts the address's minute in this isolate, then a picture larger than a card against the large pictures'

@@ -1,6 +1,6 @@
 import { deletionEmailLimits, signInEmailLimits } from "../email/send.ts";
 import type { Env } from "../env.ts";
-import { flagOff } from "../flags/flags.ts";
+import { flagOff, pausedBy } from "../flags/flags.ts";
 import { clientAddress } from "../limits/address.ts";
 import {
   json,
@@ -106,7 +106,8 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
   // while an admin has email off, a link or a code is refused before it is counted or stored, and Google still works
   if (emailed && (await flagOff(env, "email"))) {
     return json({ error: google(env) ? EMAIL_BUSY_GOOGLE : EMAIL_BUSY }, 503, {
-      "Retry-After": "300"
+      "Retry-After": "300",
+      ...pausedBy("email")
     });
   }
   if (!emailed) {

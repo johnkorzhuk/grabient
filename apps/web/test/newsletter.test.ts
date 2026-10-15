@@ -1,6 +1,6 @@
 import { addCatalog, messageKey, translate } from "@grabient/i18n";
 import { first, run } from "@grabient/server/db/d1.ts";
-import { setFlag } from "@grabient/server/flags/flags.ts";
+import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import { ISSUES } from "../src/server/newsletter/issues/index.ts";
@@ -345,7 +345,9 @@ describe("an admin's test issue", () => {
     expect(
       (await testResponse(get("/api/me/newsletter/test", { cookie: admin.cookie }), env)).status
     ).toBe(405);
-    expect((await test({ ...env, RESEND_API_KEY: undefined }, admin.cookie)).status).toBe(503);
+    const unsent = await test({ ...env, RESEND_API_KEY: undefined }, admin.cookie);
+    // no switch refused it: a failure the owner's alert counts
+    expect([unsent.status, unsent.headers.has(PAUSED)]).toEqual([503, false]);
     expect((await test({ ...env, RATE_LIMITER: down }, admin.cookie)).status).toBe(503);
     await setFlag(env, "newsletter", false, admin.id);
     try {
@@ -354,6 +356,7 @@ describe("an admin's test issue", () => {
         503,
         { error: "The newsletter is turned off in Site features." }
       ]);
+      expect(off.headers.get(PAUSED)).toBe("newsletter");
       const token = await tokenOf(env, user);
       expect((await mailApp(env, token)).status).toBe(200);
     } finally {

@@ -4,6 +4,8 @@ vi.hoisted(() => Object.assign(globalThis, { __BUILD_ID__: "b1" }));
 
 import { decodePalette, encodePalette } from "@grabient/engine";
 import type { Env } from "@grabient/server/env.ts";
+import { pausedBy } from "@grabient/server/flags/flags.ts";
+import type { FlagName } from "@grabient/server/flags/names.ts";
 import migrated from "../../data/legacy-k.json" with { type: "json" };
 import links from "../../data/legacy-links.json" with { type: "json" };
 import { PAGE } from "../lib/cache.ts";
@@ -605,4 +607,12 @@ test("each answer the site could not give is counted by its status and the kind 
     "failure 503 mcp",
     "failure 503 file"
   ]);
+});
+
+test("an answer refused while an admin has its feature off is no failure", async () => {
+  const paused = (name: FlagName) => () =>
+    Response.json({ error: "Paused." }, { status: 503, headers: pausedBy(name) });
+  await get("/mcp", { method: "POST" }, paused("mcp"));
+  await get("/api/png/query?query=red", {}, paused("share-images"));
+  expect(counted.filter(point => point.startsWith("failure"))).toEqual([]);
 });

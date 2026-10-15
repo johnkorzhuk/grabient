@@ -1,4 +1,4 @@
-import { setFlag } from "@grabient/server/flags/flags.ts";
+import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import { fileAnswer } from "../src/server/files/palette-files.ts";
 import { cardAnswer, pngAnswer, searchPictureAnswer } from "../src/server/images/answers.ts";
@@ -90,6 +90,7 @@ describe("a share card", () => {
       false
     );
     expect([several.status, await several.text()]).toEqual([503, "Image temporarily unavailable"]);
+    expect(several.headers.get(PAUSED)).toBe("share-images");
     await setFlag(off.env, "share-images", true, unique("admin"));
     expect(
       (await pngAnswer(get(`/api/png?seed=${SEED}&${fresh()}`), off.env, off.keep)).status
@@ -112,5 +113,7 @@ describe("the allowances", () => {
     const { env, keep } = isolate(testEnv({ DEPLOYMENT: "production", RATE_LIMITER: undefined }));
     const refused = await cardAnswer(get(`/api/og?seed=${SEED}&${fresh()}`), env, keep);
     expect([refused.status, refused.headers.get("Cache-Control")]).toEqual([503, "no-store"]);
+    // no switch refused it: a failure the owner's alert counts
+    expect(refused.headers.has(PAUSED)).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import {
   splitLocale
 } from "@grabient/i18n";
 import type { Env } from "@grabient/server/env.ts";
+import { PAUSED } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
@@ -111,9 +112,12 @@ export async function handle(
   return counted(env, path, finish(request, url, path, env, response, tracking));
 }
 
-/** The answer, counted when the site could not give it: the owner's alert reads the count (alerts/alerts.ts). */
+/** The answer, counted when the site could not give it: the owner's alert reads the count (alerts/alerts.ts). A
+    feature an admin turned off refuses on purpose, which is no failure. */
 function counted(env: Env, path: string, answered: Response): Response {
-  if (answered.status >= 500) countUsage(env, "failure", String(answered.status), kindOf(path));
+  if (answered.status >= 500 && !answered.headers.has(PAUSED)) {
+    countUsage(env, "failure", String(answered.status), kindOf(path));
+  }
   return answered;
 }
 

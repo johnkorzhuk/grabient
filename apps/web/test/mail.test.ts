@@ -1,6 +1,6 @@
 import { addCatalog, messageKey, translate } from "@grabient/i18n";
 import { run } from "@grabient/server/db/d1.ts";
-import { setFlag } from "@grabient/server/flags/flags.ts";
+import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import {
@@ -94,6 +94,11 @@ describe("the contact form", () => {
     expect(
       await refused(post("/api/contact", message), { ...env, RATE_LIMITER: undefined })
     ).toEqual([503, "Contact is temporarily unavailable."]);
+    // no switch refused it: a failure the owner's alert counts
+    const unbound = { ...env, RATE_LIMITER: undefined };
+    expect(
+      (await contactResponse(post("/api/contact", message), unbound)).headers.has(PAUSED)
+    ).toBe(false);
     const bare = new Request(`${ORIGIN}/api/contact`, {
       method: "POST",
       headers: { Origin: ORIGIN, "Content-Type": "application/json" },
@@ -123,6 +128,7 @@ describe("the contact form", () => {
         503,
         { error: "Contact is temporarily unavailable." }
       ]);
+      expect(answer.headers.get(PAUSED)).toBe("email");
       expect(await alertOwner(env, unique("kind"), "Grabient: a test", ["A line."])).toBe(true);
       expect(env.EMAIL.sent.map(sent => sent.subject)).toEqual(["[development] Grabient: a test"]);
     } finally {

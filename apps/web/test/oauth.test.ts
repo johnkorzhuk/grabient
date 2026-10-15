@@ -1,6 +1,6 @@
 import { createExecutionContext } from "cloudflare:test";
 import type { Env } from "@grabient/server/env.ts";
-import { setFlag } from "@grabient/server/flags/flags.ts";
+import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
 import { describe, expect, it, vi } from "vitest";
 import { documentAlert } from "../src/server/alerts/alerts.ts";
@@ -213,6 +213,7 @@ describe("an app registering itself", () => {
       );
       expect(paused.status).toBe(503);
       expect(paused.headers.get("Retry-After")).toBe("300");
+      expect(paused.headers.get(PAUSED)).toBe("mcp");
       expect(await paused.json()).toEqual({
         error: "temporarily_unavailable",
         error_description: "Connecting apps is paused."

@@ -9,7 +9,8 @@ app, Solid or the browser. A Worker imports its modules by path, `@grabient/serv
 
 A flag is a row of `k_flags` in a deploy's database, so staging and production switch apart. No row means on, `all`
 off turns every flag off, and each isolate reads the table every half minute. A flag answers before the paid call it
-guards, and what stands in still serves a finished page. "At switchover" is the state production starts in.
+guards, and what stands in still serves a finished page. A refusal names its flag in `X-Grabient-Paused`, so the Worker
+counts no failure for it. "At switchover" is the state production starts in.
 
 | Flag | Stops | When off | At switchover |
 | --- | --- | --- | --- |
