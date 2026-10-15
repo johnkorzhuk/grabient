@@ -79,11 +79,13 @@
     line-height: var(--font-lh-ui);
     overflow-wrap: anywhere;
   }
-  /* the line's press keeps its place at the end, so it never moves the words */
+  /* the line's press keeps its place at the end, so it never moves the words, and no wider than the line, where a
+     finger's larger type would widen a field past it */
   .act {
     display: flex;
     flex-shrink: 0;
     align-items: center;
+    max-width: 100%;
     margin-inline-start: auto;
   }
 }
