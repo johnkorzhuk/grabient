@@ -92,8 +92,12 @@ export function createBarCycle(
       if (!ok) stepped = true;
     });
     const frame = () => {
-      clearTimeout(rest);
-      rest = undefined;
+      if (rest !== undefined) {
+        clearTimeout(rest);
+        rest = undefined;
+        // the clock starts again with the next frame, so a tween woken early starts at its beginning
+        last = 0;
+      }
       if (!raf) raf = requestAnimationFrame(tick);
     };
     const tick = (now: number) => {
@@ -119,9 +123,7 @@ export function createBarCycle(
           // still until the dwell ends: no frames until then
           rest = setTimeout(
             () => {
-              rest = undefined;
               phase = Math.max(phase, tween + dwell);
-              last = 0;
               frame();
             },
             (tween + dwell - phase) * 1000
