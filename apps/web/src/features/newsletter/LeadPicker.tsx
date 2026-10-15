@@ -31,12 +31,13 @@ export function LeadPicker(props: {
   const [failed, setFailed] = createSignal("");
   const kept = new Map<string, string>();
 
+  const lead = () => props.host()?.shadowRoot?.querySelector('[data-part="lead"]');
   const measure = () => {
     const host = props.host();
-    const lead = host?.shadowRoot?.querySelector('[data-part="lead"]');
-    if (!host || !lead) return setBox(null);
+    const picture = lead()?.getBoundingClientRect();
+    // a sheet far from the screen is not laid out (content-visibility), and its picture has no size until it is
+    if (!host || !picture?.width) return setBox(null);
     const outer = host.getBoundingClientRect();
-    const picture = lead.getBoundingClientRect();
     setBox({
       top: picture.top - outer.top,
       left: picture.left - outer.left,
@@ -44,10 +45,22 @@ export function LeadPicker(props: {
       height: picture.height
     });
   };
+  /* the sheet and its lead's picture are watched for their sizes: the picture is a new element after each swap */
+  let sizes: ResizeObserver | undefined;
+  const watch = () => {
+    sizes?.disconnect();
+    const host = props.host();
+    if (!host) return;
+    sizes = new ResizeObserver(measure);
+    sizes.observe(host);
+    const picture = lead();
+    if (picture) sizes.observe(picture);
+  };
   const shown = (next: LeadSheet) => {
     setSheet(next);
     props.onShow(kept.get(next.shown) ?? next.html);
-    requestAnimationFrame(measure);
+    // the sheet takes the new markup as its effect runs, before the next frame
+    requestAnimationFrame(watch);
   };
   const read = async (seed?: string) => {
     setBusy(true);
@@ -101,11 +114,8 @@ export function LeadPicker(props: {
 
   onSettled(() => {
     void read();
-    const host = props.host();
-    if (!host) return;
-    const sizes = new ResizeObserver(measure);
-    sizes.observe(host);
-    return () => sizes.disconnect();
+    watch();
+    return () => sizes?.disconnect();
   });
 
   return (
