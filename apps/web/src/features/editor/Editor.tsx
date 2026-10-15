@@ -782,10 +782,19 @@ function Rail(props: {
                 t("Keyframe {number} · {hex}", { number: i + 1, hex: stop().hex })
               )}
               onKeyDown={event => {
-                const d = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-                if (!d) return;
+                const to =
+                  event.key === "ArrowRight"
+                    ? i + 1
+                    : event.key === "ArrowLeft"
+                      ? i - 1
+                      : event.key === "Home"
+                        ? 0
+                        : event.key === "End"
+                          ? e.K() - 1
+                          : null;
+                if (to === null) return;
                 event.preventDefault();
-                const j = Math.max(0, Math.min(e.K() - 1, i + d));
+                const j = Math.max(0, Math.min(e.K() - 1, to));
                 handOn(j);
                 e.pick(j, event.shiftKey ? "range" : "only");
                 reveal();

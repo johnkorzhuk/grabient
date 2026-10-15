@@ -19,7 +19,8 @@ export const pickModeOf = (e: MouseEvent | KeyboardEvent): PickMode =>
    read carrying a caret, and at the end the count between the presses that change it. A click holds one alone, Shift
    extends, Ctrl or Cmd adds, and a press that sweeps across the chips holds the run it crossed. A finger's tap is the
    click, its long press Ctrl or Cmd, its slide along the row the sweep, and up or down it scrolls the page holding
-   nothing. Left to right in every language, as the palette and the arrows run. */
+   nothing. The arrows, Home and End hold the chip they reach, Shift extends, and with Ctrl or Cmd they only move, for
+   Ctrl or Cmd with Space or Enter to add the chip reached or let it go. Left to right in every language, as the palette and the arrows run. */
 export function Keyframes(props: {
   /** one per keyframe: its hex, and the wider paint where the screen shows it */
   stops: readonly { hex: string; paint?: string }[];
@@ -113,12 +114,28 @@ export function Keyframes(props: {
     if (e.pointerId === pointer) release();
   };
   const walk = (e: KeyboardEvent, i: number) => {
-    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-    if (!step) return;
+    if ((e.key === " " || e.key === "Enter") && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      props.onPick(i, "toggle");
+      return;
+    }
+    const to =
+      e.key === "ArrowRight"
+        ? i + 1
+        : e.key === "ArrowLeft"
+          ? i - 1
+          : e.key === "Home"
+            ? 0
+            : e.key === "End"
+              ? count() - 1
+              : null;
+    if (to === null) return;
     e.preventDefault();
-    const j = Math.max(0, Math.min(count() - 1, i + step));
+    const j = Math.max(0, Math.min(count() - 1, to));
     strip.querySelector<HTMLElement>(`[data-i="${j}"]`)?.focus();
-    /* the arrows hold the chip they reach alone: as a press, one already held would be let go */
+    /* with Ctrl or Cmd the keyboard moves alone; else the keys hold the chip they reach alone: as a press, one already
+       held would be let go */
+    if (e.ctrlKey || e.metaKey) return;
     props.onPick(j, e.shiftKey ? "range" : "only");
   };
   const removeLabel = () => props.removeLabel ?? t("Remove keyframe");
