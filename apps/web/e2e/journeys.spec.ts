@@ -594,16 +594,18 @@ for (const width of WIDTHS)
       page
     }) => {
       const broken = watch(page);
-      const hue = page.getByRole("button", { name: "Lock hue", exact: true });
+      // the lock as each language names it
+      const hue = (locale: string) =>
+        page.getByRole("button", { name: say(locale, "Lock hue"), exact: true });
       const locked = (prefix: string) => new RegExp(`${prefix}/${SEED}\\?lock=hue$`);
       await open(page, `/es/${SEED}`);
-      await press(hue, width);
+      await press(hue("es"), width);
       await expect(page).toHaveURL(locked("/es"));
 
       await press(page.locator("footer button[aria-controls]"), width);
       await press(page.locator('footer ul a[hreflang="ja"]'), width);
       await expect(page).toHaveURL(locked("/ja"));
-      await expect(hue).toHaveAttribute("aria-pressed", "true");
+      await expect(hue("ja")).toHaveAttribute("aria-pressed", "true");
 
       await page.waitForFunction(() => !("$_TSR" in window));
       await pressAt(
@@ -614,7 +616,7 @@ for (const width of WIDTHS)
       await pressAt(page, page.getByRole("menuitem", { name: say("ja", "Language") }), width);
       await pressAt(page, page.getByRole("menuitemradio", { name: "Español" }), width);
       await expect(page).toHaveURL(locked("/es"));
-      await expect(hue).toHaveAttribute("aria-pressed", "true");
+      await expect(hue("es")).toHaveAttribute("aria-pressed", "true");
       expect(broken).toEqual([]);
     });
 
