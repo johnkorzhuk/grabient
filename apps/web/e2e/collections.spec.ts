@@ -850,3 +850,53 @@ test("a collection's tags show their colors under the pointer and keyboard focus
   await expect(blue).toBeFocused();
   await coinsAt(coins, "1");
 });
+
+test("the collection a saved one came from shows its colors under the pointer and keyboard focus", async ({
+  page
+}) => {
+  const sunny = {
+    ...blues,
+    id: "e2e-sunny",
+    slug: "@e2e-ada/sunny",
+    title: "Sunny",
+    url: "/@e2e-ada/sunny"
+  };
+  await signIn(page, "ada", false, [sunny]);
+  await page.route(
+    url => url.pathname === `/api/me/collections/${encodeURIComponent(sunny.slug)}/state`,
+    route =>
+      route.fulfill({
+        json: {
+          owned: true,
+          canCurate: false,
+          canDelete: true,
+          votes: {},
+          copy: {
+            slug: sunny.slug,
+            source: { slug: SLUG, title: summary.title, colors: ["#ff8800", "#3366cc"] },
+            behind: false,
+            differs: false
+          }
+        }
+      })
+  );
+  await page.goto(sunny.url);
+  await hydrated(page);
+  const source = page.locator("main").getByRole("link", { name: summary.title });
+  await expect(source).toHaveAttribute("href", `/${SLUG}`);
+  const coins = coinsBy(source);
+  await expect(coins).toHaveCount(2);
+  await coinsAt(coins, "0");
+  const line = source.locator("xpath=ancestor::span[@data-saved]");
+  const before = [await source.boundingBox(), await line.boundingBox()];
+  await source.hover();
+  await coinsAt(coins, "1");
+  expect([await source.boundingBox(), await line.boundingBox()]).toEqual(before);
+  await page.mouse.move(0, 0);
+  await coinsAt(coins, "0");
+  await source.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(source).toBeFocused();
+  await coinsAt(coins, "1");
+});

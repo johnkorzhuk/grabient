@@ -1,5 +1,6 @@
 import { formatDate, localHref, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
+import { Coins, coinHost } from "@grabient/ui/Coins.tsx";
 import { PaletteCount } from "@grabient/ui/CollectionGroup.tsx";
 import { Field } from "@grabient/ui/Field.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
@@ -18,9 +19,9 @@ import { DESCRIPTION_MAX, TITLE_MAX } from "./schema.ts";
 import type { CollectionDocument, CopyStanding } from "./types.ts";
 
 /* A collection's heading: its title, with the description as the title's tooltip and in a paragraph for a screen
-   reader, then the byline: Private, who made it (or, on the owner's saved copy, where it was saved from), its age and
-   how many palettes it holds. The owner of an account's collection edits its words here: the title and the
-   description take the heading's place, Enter saves and Escape lets them be. */
+   reader, then the byline: Private, who made it (or, on the owner's saved copy, where it was saved from, whose colors
+   open under the pointer), its age and how many palettes it holds. The owner of an account's collection edits its
+   words here: the title and the description take the heading's place, Enter saves and Escape lets them be. */
 
 export function Heading(props: {
   doc: CollectionDocument;
@@ -163,16 +164,20 @@ export function Heading(props: {
                     {rich(
                       "Saved from <source>{title}</source>",
                       {
-                        /* the source needs the server: with no connection its title stands as words */
+                        /* the source needs the server: with no connection its title stands as words, and
+                           shows no colors */
                         source: words => (
                           <Show when={!offline()} fallback={<span dir="auto">{words}</span>}>
-                            <a
-                              class={styles.source}
-                              href={localHref(collectionHref(held().source.slug))}
-                              dir="auto"
-                            >
-                              {words}
-                            </a>
+                            <span class={coinHost}>
+                              <a
+                                class={styles.source}
+                                href={localHref(collectionHref(held().source.slug))}
+                                dir="auto"
+                              >
+                                {words}
+                              </a>
+                              <Coins colors={held().source.colors} />
+                            </span>
                           </Show>
                         )
                       },
