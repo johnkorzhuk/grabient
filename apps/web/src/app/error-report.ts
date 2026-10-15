@@ -22,31 +22,37 @@ export function pageOf(pathname: string): string {
   return path.split("/")[1] || "home";
 }
 
-/** A script of the site's own, as a path without its query; anything else is not the site's. */
-function ownPath(address: string | undefined): string | null {
+/* A script's path, as an error's source or a stack's frame names it: the build's, or a module vite dev serves by its
+   TypeScript name. A page's own address is none: it can be an account's collection, and never leaves the browser. */
+const SCRIPT = /\.(?:m?js|tsx?)$/;
+const FRAME = /\.(?:m?js|tsx?):\d+:\d+\)?$/;
+
+/** The site's own address an error names: one of its scripts, or the page itself. */
+function own(address: string | undefined): URL | null {
   if (!address) return null;
   try {
     const url = new URL(address, location.href);
-    return url.origin === location.origin ? url.pathname : null;
+    return url.origin === location.origin ? url : null;
   } catch {
     return null;
   }
 }
 
-/** The stack's frames in the site's own scripts, their addresses as paths. */
+/** The stack's frames in the site's own scripts, their addresses as paths without their queries. */
 export function ownStack(stack: unknown, origin: string): string {
   if (typeof stack !== "string") return "";
   return stack
     .split("\n")
     .filter(line => line.includes(origin))
-    .slice(0, FRAMES)
     .map(line =>
       line
         .replaceAll(origin, "")
         .replace(/\?[^\s):]*/g, "")
         .trim()
-        .slice(0, 200)
     )
+    .filter(line => FRAME.test(line))
+    .slice(0, FRAMES)
+    .map(line => line.slice(0, 200))
     .join("\n");
 }
 
@@ -102,9 +108,10 @@ export function installErrorReports(): void {
   window.addEventListener("error", event => {
     if (!(event instanceof ErrorEvent)) return;
     const error = described(event.error, String(event.message ?? ""));
-    const source = ownPath(event.filename);
+    const at = own(event.filename);
     /* a script of another origin (an extension, a translation tool) is not the site's */
-    if (!source && !error.stack) return;
+    if (!at && !error.stack) return;
+    const source = at && SCRIPT.test(at.pathname) ? at.pathname : null;
     report(error, source, event.lineno || undefined, event.colno || undefined);
   });
   window.addEventListener("unhandledrejection", event => {

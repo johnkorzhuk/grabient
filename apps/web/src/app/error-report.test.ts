@@ -79,10 +79,61 @@ test("a report names the error's type in its own words, however the page met it"
   expect(sent).toMatchObject([
     { name: "RangeError", message: "Invalid array length", source: null },
     { name: "SyntaxError", message: "Unexpected token", source: "/assets/index-DMi2wf-V.js" },
-    {
-      message: "ResizeObserver loop completed with undelivered notifications.",
-      source: "/palettes"
-    }
+    { message: "ResizeObserver loop completed with undelivered notifications.", source: null }
   ]);
   expect(sent[2]).not.toHaveProperty("name");
+});
+
+/** The reporter as a page load starts it, at `address`: nothing sent yet, and what it sends from now on. */
+async function pageLoad(address: string) {
+  onTestFinished(() => void vi.unstubAllGlobals());
+  vi.resetModules();
+  const reporter = await import("./error-report.ts");
+  const sent: Record<string, unknown>[] = [];
+  vi.stubGlobal("location", new URL(address));
+  vi.stubGlobal("navigator", { onLine: true });
+  vi.stubGlobal("fetch", (_path: string, init: RequestInit) => {
+    sent.push(JSON.parse(String(init.body)));
+    return Promise.resolve(new Response(null, { status: 204 }));
+  });
+  vi.stubGlobal("window", new EventTarget());
+  reporter.installErrorReports();
+  return { ...reporter, sent };
+}
+
+test("a report names where in a script, and never the page's own address, which can be an account's collection", async () => {
+  const page = await pageLoad("https://grabient.com/@ada/warm-sunsets");
+  const thrown = new TypeError("x is not a function");
+  thrown.stack = [
+    "TypeError: x is not a function",
+    "    at HTMLButtonElement.onclick (https://grabient.com/@ada/warm-sunsets:1:5)",
+    "    at f (https://grabient.com/assets/index-DMi2wf-V.js:3:9)"
+  ].join("\n");
+  // thrown from the page's own markup, and what the browser says of a loop it stopped there
+  window.dispatchEvent(
+    new ErrorEvent("error", {
+      error: thrown,
+      message: "Uncaught TypeError: x is not a function",
+      filename: "https://grabient.com/@ada/warm-sunsets",
+      lineno: 1,
+      colno: 5
+    })
+  );
+  window.dispatchEvent(
+    new ErrorEvent("error", {
+      message: "ResizeObserver loop completed with undelivered notifications.",
+      filename: "https://grabient.com/@ada/warm-sunsets"
+    })
+  );
+  expect(page.sent).toMatchObject([
+    {
+      name: "TypeError",
+      message: "x is not a function",
+      source: null,
+      stack: "at f (/assets/index-DMi2wf-V.js:3:9)",
+      page: "collection"
+    },
+    { message: "ResizeObserver loop completed with undelivered notifications.", source: null }
+  ]);
+  expect(JSON.stringify(page.sent)).not.toContain("warm-sunsets");
 });
