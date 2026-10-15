@@ -6,6 +6,7 @@ import { resolveSize, type Size } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
+import { keepKeyboard } from "@grabient/ui/dismiss.ts";
 import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { createFlashGuard } from "@grabient/ui/flash.ts";
 import { HexField } from "@grabient/ui/HexField.tsx";
@@ -178,12 +179,17 @@ export default function Editor(props: { data: PaletteData }) {
       </Loading>
     )
   });
+  /* the side put away by its key with the keyboard in it: the keyboard goes to the header's press that brings it back */
+  const togglePanel = () =>
+    keepKeyboard(panel.toggle, () =>
+      document.querySelector<HTMLElement>(`button[aria-label="${CSS.escape(t("Show panel"))}"]`)
+    );
   /* The frame keeps the keys and the palettes a page hands in last, so these come after the screen's and stand for
      both: while the screen stands the editor's keys rest, Escape closes it and the bar carries the selection. */
   shell.keys(() => [
     ...editorBindings(e, {
       live: () => !chosen.open(),
-      togglePanel: panel.toggle,
+      togglePanel,
       save,
       settle: address.settle
     }),

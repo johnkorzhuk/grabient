@@ -113,9 +113,13 @@ export function Sampler(props: {
     props.onMove(i, ...at(e));
     props.onRelease();
   };
+  /* the keyboard on the last point, which goes with it, moves to the one before; on any other it stays where it is, the
+     next point taking that place */
   const remove = (i: number) => {
     if (!props.onRemove) return;
     setChosen(null);
+    if (i === props.points.length - 1 && buttons[i] === document.activeElement)
+      buttons[i - 1]?.focus({ preventScroll: true });
     props.onRemove(i);
   };
   const key = (i: number, e: KeyboardEvent) => {
