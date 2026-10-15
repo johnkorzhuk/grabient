@@ -87,6 +87,7 @@ export function createBarCycle(
     let last = 0;
     let raf = 0;
     let rest: ReturnType<typeof setTimeout> | undefined;
+    let restAt = 0;
     let stopped = false;
     void waterAllowed().then(ok => {
       if (!ok) stepped = true;
@@ -121,6 +122,7 @@ export function createBarCycle(
         }
         if (phase >= tween) {
           // still until the dwell ends: no frames until then
+          restAt = now;
           rest = setTimeout(
             () => {
               phase = Math.max(phase, tween + dwell);
@@ -136,6 +138,9 @@ export function createBarCycle(
     const halt = () => {
       cancelAnimationFrame(raf);
       raf = 0;
+      if (rest === undefined) return;
+      // a wait cut off by a hidden tab or reduced motion keeps the time it has waited, so the dwell carries on from there
+      phase += (performance.now() - restAt) / 1000;
       clearTimeout(rest);
       rest = undefined;
     };
