@@ -42,17 +42,20 @@ const readSuggestions = createIsomorphicFn()
   )
   .client((typed: string, options: TagOptions, signal: AbortSignal) =>
     getJson(`/api/search-suggestions?${tagParams(typed, options)}`, SearchSuggestions, signal).then(
-      answer => answer.suggestions
+      answer => answer.suggestions,
+      () => null
     )
   );
 
 /** The tags under the field for what it holds: the row at rest, typed words' phrases, or a palette's searches. `both`
-    is the home's row of searches and collections. */
+    is the home's row of searches and collections. None where they could not be read, which is never fresh: the next
+    page that shows the row asks again, as does the connection's return. */
 export const suggestionsQuery = (typed: string, options: TagOptions = {}) =>
   queryOptions({
     queryKey: ["search-suggestions", typed, options.both ?? false, options.limit ?? 12],
     queryFn: ({ signal }) => readSuggestions(typed, options, signal),
-    staleTime: typed ? 60 * 60_000 : 5 * 60_000
+    staleTime: tags => (tags.state.data === null ? 0 : typed ? 60 * 60_000 : 5 * 60_000),
+    refetchOnReconnect: true
   });
 
 /** An account's fit votes for a search's words, by seed. */
