@@ -793,6 +793,34 @@ test("a private collection renamed on its page is the account's own at its new a
   expect(asked).toEqual([]);
 });
 
+test("a collection's words edited by keyboard take the focus into the title and back to Edit, under the page's heading", async ({
+  page
+}) => {
+  await signIn(page, "ada", false, [blues]);
+  await page.goto(blues.url);
+  await hydrated(page);
+  const edit = page.getByRole("button", { name: "Edit", exact: true });
+  const title = page.getByRole("textbox", { name: "Title" });
+  await edit.focus();
+  await page.keyboard.press("Enter");
+  await expect(title).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1, name: "My blues" })).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(edit).toBeFocused();
+  // Cancel comes after the title and the description, and gives the keyboard back
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(edit).toBeFocused();
+  // words saved as they were close the form the same way
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await expect(title).toBeHidden();
+  await expect(edit).toBeFocused();
+});
+
 test("a title entered on Saved at once opens the account's collection", async ({ page }) => {
   await signIn(page, "ada", false, [blues]);
   await page.goto("/collections/saved");

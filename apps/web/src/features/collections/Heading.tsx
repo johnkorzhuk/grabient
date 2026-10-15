@@ -8,7 +8,7 @@ import { Label } from "@grabient/ui/Label.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { Textarea } from "@grabient/ui/Textarea.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
-import { createSignal, Show } from "solid-js";
+import { createSignal, flush, Show } from "solid-js";
 import { offline } from "../../app/connection.ts";
 import { relativeAge } from "../gallery/drawing.ts";
 import { collectionHref } from "./address.ts";
@@ -21,7 +21,9 @@ import type { CollectionDocument, CopyStanding } from "./types.ts";
 /* A collection's heading: its title, with the description as the title's tooltip and in a paragraph for a screen
    reader, then the byline: Private, who made it (or, on the owner's saved copy, where it was saved from, whose colors
    open under the pointer), its age and how many palettes it holds. The owner of an account's collection edits its
-   words here: the title and the description take the heading's place, Enter saves and Escape lets them be. */
+   words here: the title and the description take the heading's place, Enter saves and Escape lets them be. The
+   keyboard goes into the title as they open and back to Edit as they close, and the title stays the page's heading
+   for a reader who listens. */
 
 export function Heading(props: {
   doc: CollectionDocument;
@@ -41,26 +43,42 @@ export function Heading(props: {
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal("");
   let draft = { title: "", description: "" };
+  let form: HTMLFormElement | undefined;
+  let edit!: HTMLSpanElement;
+  const toTitle = () => {
+    flush();
+    form?.querySelector("input")?.focus();
+  };
   const start = () => {
     draft = { title: props.doc.title, description: props.doc.description };
     setError("");
     setEditing(true);
+    toTitle();
+  };
+  /* a close with the focus in the form, or dropped by a press that went still while it saved, returns it to Edit */
+  const stop = () => {
+    const held = document.activeElement;
+    const back = !held || held === document.body || !!form?.contains(held);
+    setEditing(false);
+    if (!back) return;
+    flush();
+    edit.querySelector("button")?.focus();
   };
   const save = async () => {
     if (busy()) return;
     const title = draft.title.trim();
     const description = draft.description.trim();
-    if (title === props.doc.title && description === props.doc.description)
-      return setEditing(false);
+    if (title === props.doc.title && description === props.doc.description) return stop();
     setBusy(true);
     setError("");
     try {
       await props.onWords({ title, description });
-      setEditing(false);
+      setBusy(false);
+      stop();
     } catch (reason) {
       setError(failedWrite(reason));
-    } finally {
       setBusy(false);
+      toTitle();
     }
   };
   const titleTip = tooltip(() => props.doc.description || undefined);
@@ -70,51 +88,6 @@ export function Heading(props: {
 
   return (
     <>
-      <Show when={editing()}>
-        <form
-          class={styles.editor}
-          onSubmit={e => {
-            e.preventDefault();
-            void save();
-          }}
-          onKeyDown={e => {
-            if (e.key === "Escape") setEditing(false);
-          }}
-        >
-          <Field
-            label={t("Title")}
-            name="title"
-            value={draft.title}
-            maxlength={TITLE_MAX}
-            required
-            disabled={busy()}
-            invalid={!!error()}
-            help={error() || undefined}
-            onInput={value => {
-              draft.title = value;
-            }}
-          />
-          <Textarea
-            label={t("Description")}
-            name="description"
-            value={draft.description}
-            rows={3}
-            maxlength={DESCRIPTION_MAX}
-            disabled={busy()}
-            onInput={value => {
-              draft.description = value;
-            }}
-          />
-          <div class={styles.editActions}>
-            <Button size="lg" disabled={busy()} onClick={() => setEditing(false)}>
-              {t("Cancel")}
-            </Button>
-            <Button size="lg" variant="primary" type="submit" disabled={busy() || offline()}>
-              {t(busy() ? msg("Saving…") : msg("Save"))}
-            </Button>
-          </div>
-        </form>
-      </Show>
       <div class={styles.heading} data-gone={editing() ? "" : undefined}>
         <Text variant="title" as="h1">
           <span dir="auto" ref={titleTip}>
@@ -122,7 +95,7 @@ export function Heading(props: {
           </span>
         </Text>
         <Show when={props.editable}>
-          <span class={styles.edit}>
+          <span ref={edit} class={styles.edit}>
             <Button
               icon
               variant="ghost"
@@ -198,6 +171,52 @@ export function Heading(props: {
           <PaletteCount count={props.doc.itemCount} />
         </span>
       </div>
+      <Show when={editing()}>
+        <form
+          ref={form}
+          class={styles.editor}
+          onSubmit={e => {
+            e.preventDefault();
+            void save();
+          }}
+          onKeyDown={e => {
+            if (e.key === "Escape") stop();
+          }}
+        >
+          <Field
+            label={t("Title")}
+            name="title"
+            value={draft.title}
+            maxlength={TITLE_MAX}
+            required
+            disabled={busy()}
+            invalid={!!error()}
+            help={error() || undefined}
+            onInput={value => {
+              draft.title = value;
+            }}
+          />
+          <Textarea
+            label={t("Description")}
+            name="description"
+            value={draft.description}
+            rows={3}
+            maxlength={DESCRIPTION_MAX}
+            disabled={busy()}
+            onInput={value => {
+              draft.description = value;
+            }}
+          />
+          <div class={styles.editActions}>
+            <Button size="lg" disabled={busy()} onClick={stop}>
+              {t("Cancel")}
+            </Button>
+            <Button size="lg" variant="primary" type="submit" disabled={busy() || offline()}>
+              {t(busy() ? msg("Saving…") : msg("Save"))}
+            </Button>
+          </div>
+        </form>
+      </Show>
     </>
   );
 }

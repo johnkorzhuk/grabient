@@ -42,8 +42,20 @@
     @container page (max-width: 800px) {
       flex-wrap: wrap;
     }
+    /* while the form stands in its place the title is left to a reader who listens, as the page's heading, in a box
+       of one clipped pixel; the rest goes */
     &[data-gone] {
-      display: none;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      min-height: 0;
+      margin: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      & > :not(h1) {
+        display: none;
+      }
     }
   }
   .edit {
