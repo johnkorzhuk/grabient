@@ -15,7 +15,6 @@ import { Segmented } from "./Segmented.tsx";
 import { Select } from "./Select.tsx";
 import { Status } from "./Status.tsx";
 import { Text } from "./Text.tsx";
-import { tooltip } from "./Tooltip.tsx";
 
 /* An admin's word on one palette, kept for the seeding agents: why it leaves, or how it should be drawn. A press opens
    a sheet beneath it with the reason chips, a comment and, to set a view, the style, steps and angle with the picture
@@ -189,17 +188,9 @@ export function Curation(props: {
   };
   const name = () => t(words().title);
   const toggle = () => (open() ? close() : show());
-  /* a disabled press takes no pointer, so the reason it is disabled is the host's tooltip */
-  const why = tooltip(() => props.blocked);
+  /* a blocked press keeps the keyboard and the pointer, and says why it is blocked as its tip */
   return (
-    <div
-      ref={el => {
-        host = el;
-        why(el);
-      }}
-      class={styles.host}
-      data-icon={props.icon ? "" : undefined}
-    >
+    <div ref={host} class={styles.host} data-icon={props.icon ? "" : undefined}>
       <Show
         when={props.icon}
         fallback={
@@ -207,6 +198,9 @@ export function Curation(props: {
             size="sm"
             danger={props.mode !== "view"}
             disabled={props.disabled || pending() || !!props.blocked}
+            keep
+            aria-describedby={props.blocked ? `${id}-why` : undefined}
+            tip={props.blocked}
             aria-expanded={open()}
             onClick={toggle}
           >
@@ -220,9 +214,10 @@ export function Curation(props: {
             icon
             size="sm"
             disabled={props.disabled || pending() || !!props.blocked}
+            keep
             aria-label={name()}
             aria-describedby={props.blocked ? `${id}-why` : undefined}
-            tip={name()}
+            tip={props.blocked ?? name()}
             aria-expanded={open()}
             onClick={toggle}
           >

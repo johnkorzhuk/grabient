@@ -7,7 +7,6 @@ import { Button } from "@grabient/ui/Button.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { Plot } from "@grabient/ui/Plot.tsx";
 import { Scrub } from "@grabient/ui/Scrub.tsx";
-import { tooltip } from "@grabient/ui/Tooltip.tsx";
 import { createEffect, createSignal, type Element, onSettled, Show } from "solid-js";
 import styles from "./Controls.module.css";
 import type { PaletteEditor } from "./editor.ts";
@@ -255,16 +254,17 @@ export function AxisRow(props: {
 }
 
 /** How far the hue turns: the whole palette's, or the held keyframes' span. The last keyframe alone has no stretch
-    after it to turn over: its field stands dimmed and says why under the pointer. */
+    after it to turn over: its field stands dimmed and says why, under the pointer, with the keyboard's focus and at a
+    finger's long press. */
 function Travel(props: { editor: PaletteEditor }) {
   const e = props.editor;
-  const tip = tooltip(() => (e.whole() || e.travelSpan() ? "" : t("No next keyframe")));
   const range = () => (e.whole() ? e.travelRange() : e.travelSpan() ? e.spanTravelRange() : null);
   return (
-    <span ref={tip} class={styles.field}>
+    <span class={styles.field}>
       <Scrub
         small
         label={t("Travel")}
+        tip={e.whole() || e.travelSpan() ? "" : t("No next keyframe")}
         min={range()?.lo ?? -1}
         max={range()?.hi ?? 1}
         step={1}
@@ -444,16 +444,13 @@ export function Actions(props: { editor: PaletteEditor; save?: PaletteSave }) {
       {/* an admin's Save: the palette on screen in the place of the one this page opened, wherever that stands */}
       <Show when={props.save?.admin() && props.save}>
         {save => (
-          <span
-            class={[styles.cell, styles.whole]}
-            ref={tooltip(() => (save().can() ? "" : save().reason() || save().tip()))}
-          >
+          <span class={[styles.cell, styles.whole]}>
             <Button
               full
               wrap
               disabled={!save().can()}
               keep
-              tip={save().tip()}
+              tip={save().can() ? save().tip() : save().reason() || save().tip()}
               onClick={() => void save().save()}
             >
               <Icon name={save().done() ? "check" : "save"} size={14} />{" "}

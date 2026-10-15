@@ -45,6 +45,8 @@ export interface ScrubProps {
   onLock?: () => void;
   /** the lock stands apart from the field, since it keeps more than this number */
   lockApart?: boolean;
+  /** what the field says on rest, focus or a long press: why it stands dimmed */
+  tip?: string;
   onInput: (v: number) => void;
 }
 
@@ -54,6 +56,7 @@ const TAP_FALLBACK_MS = 300;
 export function Scrub(props: ScrubProps) {
   let root!: HTMLDivElement;
   let input!: HTMLInputElement;
+  const tipped = "tip" in props ? tooltip(() => props.tip) : undefined;
   const [editing, setEditing] = createSignal(false);
   /* synchronous truth: a signal written now reads its old value until the write settles, and a blur right after Enter
      must already see the field as done */
@@ -260,7 +263,10 @@ export function Scrub(props: ScrubProps) {
         <span class={styles.label}>{props.label}</span>
         {/* a spin button, so a screen reader says what an arrow's step comes to */}
         <input
-          ref={input}
+          ref={el => {
+            input = el;
+            tipped?.(el);
+          }}
           class={styles.input}
           type="text"
           role="spinbutton"

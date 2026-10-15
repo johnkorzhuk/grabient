@@ -19,7 +19,7 @@ import { DESCRIPTION_MAX, TITLE_MAX } from "./schema.ts";
 import type { CollectionDocument, CopyStanding } from "./types.ts";
 
 /* A collection's heading: its title, with the description as the title's tooltip and in a paragraph for a screen
-   reader, then the byline: Private, who made it (or, on the owner's saved copy, where it was saved from, whose colors
+   reader (the title takes the keyboard's focus and a tap to show it, as the age does its date), then the byline: Private, who made it (or, on the owner's saved copy, where it was saved from, whose colors
    open under the pointer), its age and how many palettes it holds. The owner of an account's collection edits its
    words here: the title and the description take the heading's place, Enter saves and Escape lets them be. The
    keyboard goes into the title as they open and back to Edit as they close, and the title stays the page's heading
@@ -90,7 +90,11 @@ export function Heading(props: {
     <>
       <div class={styles.heading} data-gone={editing() ? "" : undefined}>
         <Text variant="title" as="h1">
-          <span dir="auto" ref={titleTip}>
+          <span
+            dir="auto"
+            ref={titleTip}
+            tabindex={props.doc.description && !editing() ? 0 : undefined}
+          >
             {props.doc.title}
           </span>
         </Text>
@@ -164,7 +168,7 @@ export function Heading(props: {
               </>
             )}
           </Show>
-          <time datetime={new Date(props.doc.updatedAt).toISOString()} ref={ageTip}>
+          <time datetime={new Date(props.doc.updatedAt).toISOString()} ref={ageTip} tabindex={0}>
             <Text variant="ui">{relativeAge(props.doc.updatedAt, props.now)}</Text>
           </time>
           <Text variant="ui">·</Text>
