@@ -10,6 +10,7 @@ import { copyText } from "@grabient/ui/copy.ts";
 import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { composing } from "@grabient/ui/keys.ts";
+import { watchSize } from "@grabient/ui/measure.ts";
 import { reducesNow } from "@grabient/ui/motion.ts";
 import { Placeholder } from "@grabient/ui/Placeholder.tsx";
 import { StopStrip } from "@grabient/ui/StopStrip.tsx";
@@ -329,17 +330,17 @@ export function PaletteView(props: PaletteViewProps) {
       const held = area;
       let width = held.clientWidth;
       fit();
-      /* a narrower frame wraps the text onto more lines */
-      const sizes = new ResizeObserver(() => {
+      /* a narrower frame wraps the text onto more lines; the field is fitted in the frame after, since a height set
+         inside its observer's report is a loop the browser reports */
+      const stop = watchSize(held, () => {
         if (held.clientWidth === width) return;
         width = held.clientWidth;
         fit();
       });
-      sizes.observe(held);
       held.focus();
       held.select();
       held.scrollTop = 0;
-      return () => sizes.disconnect();
+      return stop;
     });
     const copied = (e: ClipboardEvent) => {
       const field = e.currentTarget as HTMLTextAreaElement;
