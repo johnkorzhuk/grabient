@@ -279,6 +279,29 @@ test("Saved opened with no connection asks for Rising's frames again once the co
   await expect(rising).toHaveAccessibleName(/^Rising 1w/);
 });
 
+test("with no connection a list never kept offers the account's own lists, which open", {
+  tag: "@served"
+}, async ({ page }) => {
+  const liked = card(page, 0).locator(`a[href^="/${SEED}"]`);
+  await signedIn(page);
+  await page.goto("/palettes/saved");
+  await expect(liked).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await page.context().setOffline(true);
+  await page.goto("/");
+  const main = page.locator("main");
+  await expect(main.getByText("You're offline.")).toBeVisible();
+  await expect(main.getByRole("link", { name: "Your collections" })).toHaveAttribute(
+    "href",
+    "/collections/saved"
+  );
+  await main.getByRole("link", { name: "Saved palettes" }).click();
+  await expect.poll(() => here(page)).toBe("/palettes/saved");
+  await expect(liked).toBeVisible();
+});
+
 test("signed out, Saved offers the way in and asks for nothing of an account", async ({ page }) => {
   const asked = calls(page);
   await page.goto("/palettes/saved?q=blue");
