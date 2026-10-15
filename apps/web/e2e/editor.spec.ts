@@ -943,12 +943,23 @@ test.describe("on a phone", () => {
     await expect(floating).toBeHidden();
   });
 
-  test("every color of a long palette keeps a finger's width on the strip, which scrolls sideways in its one row", async ({
+  test("every color keeps a target's width on the strip: sixteen stand whole, and more scroll sideways in one row, fading where more wait", async ({
     page
   }) => {
-    await open(page, `/${SEED}?style=linearSwatches&steps=24`);
     const strip = page.getByRole("group", { name: "Palette colors" });
     const chips = strip.getByRole("button");
+    const fading = () =>
+      strip.evaluate(el => ({
+        less: getComputedStyle(el).getPropertyValue("--less"),
+        more: getComputedStyle(el).getPropertyValue("--more"),
+        mask: getComputedStyle(el).maskImage !== "none"
+      }));
+    await open(page, `/${SEED}?style=linearSwatches&steps=16`);
+    await expect(chips).toHaveCount(16);
+    for (const chip of await chips.all()) await expect(chip).toBeInViewport({ ratio: 1 });
+    expect((await fading()).mask).toBe(false);
+
+    await open(page, `/${SEED}?style=linearSwatches&steps=24`);
     await expect(chips.first()).toBeVisible();
     const boxes = await chips.evaluateAll(all =>
       all.map(chip => {
@@ -956,15 +967,39 @@ test.describe("on a phone", () => {
         return { width: box.width, top: box.top };
       })
     );
-    expect(boxes.length).toBeGreaterThan(12);
-    expect(Math.min(...boxes.map(box => box.width))).toBeGreaterThanOrEqual(44);
+    expect(boxes.length).toBeGreaterThan(16);
+    expect(Math.min(...boxes.map(box => box.width))).toBeGreaterThanOrEqual(24);
     expect(new Set(boxes.map(box => Math.round(box.top))).size).toBe(1);
+    await expect.poll(fading).toEqual({ less: "0", more: "1", mask: true });
     // the last color comes into view as the keyboard reaches it, and a press copies that one
     await chips.first().focus();
     await page.keyboard.press("End");
     const last = chips.last();
     await expect(last).toBeFocused();
     await expect(last).toBeInViewport({ ratio: 1 });
+    await expect.poll(fading).toEqual({ less: "1", more: "0", mask: true });
+  });
+
+  test("About's strips stand whole on a phone, and the steps figure keeps its hexes upright as it scrolls past its room", async ({
+    page
+  }) => {
+    await page.goto("/about");
+    const strips = page.getByRole("group", { name: "Palette colors" });
+    await expect(strips).toHaveCount(3);
+    for (const strip of await strips.all()) {
+      await strip.scrollIntoViewIfNeeded();
+      for (const chip of await strip.getByRole("button").all())
+        await expect(chip).toBeInViewport({ ratio: 1 });
+    }
+    const steps = strips.first();
+    const hexes = steps.locator("button > span:not([data-hide])");
+    await expect(hexes).toHaveCount(7);
+    await page.getByRole("spinbutton", { name: "Steps", exact: true }).focus();
+    await page.keyboard.type("24");
+    await page.keyboard.press("Enter");
+    await expect(steps.getByRole("button")).toHaveCount(24);
+    await expect(hexes).toHaveCount(24);
+    await expect(hexes.first()).toHaveAttribute("data-vertical", "");
   });
 
   test("two fingers spread on the panel's controls zoom the page and change nothing, on one control or two", async ({

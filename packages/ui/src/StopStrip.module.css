@@ -6,15 +6,22 @@
     min-width: 0;
     box-shadow: var(--color-rim);
     --h: var(--size-strip);
-    /* the least a step's press is wide, a finger's on a touch screen: rows that cannot hold every step at that run past
-       the strip, which scrolls them sideways under no scrollbar */
+    /* the least a step's press is wide, on every pointer: rows that cannot hold every step at that run past the
+       strip, which scrolls them sideways under no scrollbar, an edge with colors past it fading out (--less and
+       --more, set from the strip's scroll) */
     --least: var(--size-target);
-    @media (pointer: coarse) {
-      --least: var(--size-touch);
-    }
     &[data-scrolls] {
       overflow-x: auto;
       scrollbar-width: none;
+      --fade: linear-gradient(
+        to right,
+        transparent 0,
+        black calc(var(--less, 0) * var(--space-s8)),
+        black calc(100% - var(--more, 0) * var(--space-s8)),
+        transparent 100%
+      );
+      -webkit-mask-image: var(--fade);
+      mask-image: var(--fade);
     }
     &[data-two] {
       --h: var(--size-strip-two);

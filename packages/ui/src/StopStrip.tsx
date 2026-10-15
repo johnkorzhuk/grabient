@@ -1,6 +1,6 @@
 import { luminance } from "@grabient/engine/contrast.ts";
 import { cellAt, layoutStops, placeMark, type StripStop } from "@grabient/engine/strip.ts";
-import { createMemo, createSignal, For, onSettled } from "solid-js";
+import { createEffect, createMemo, createSignal, For, onSettled } from "solid-js";
 import { announce } from "./announce.ts";
 import { copyText } from "./copy.ts";
 import { createDone } from "./done.ts";
@@ -19,11 +19,12 @@ export interface StripMark {
 
 /* The palette's stops as one perforated strip: chips fused edge to edge, each hex in black or white, whichever reads,
    the seams and the foot dashed in the paper's color as cuts through to it. Rows and label size come from the engine's
-   layoutStops. A press copies a chip's hex. Each step keeps a target's width (--least, a finger's on a touch screen),
-   and rows that cannot hold every step at that scroll sideways, the strip keeping its height. While a plot or the path
-   reads a place (`reading`), the chip nearest it rises 8px out of the strip and nothing else moves. It is a big
-   picture, so it paints through the flash guard: a change that would turn a flash back sooner than a quarter second
-   after it waits. Left to right in every language, as the gradient runs. */
+   layoutStops. A press copies a chip's hex. Each step keeps a target's width (--least) on every pointer, since a
+   finger's would leave a phone's strip room for eight colors; rows that cannot hold every step at that scroll
+   sideways, the strip keeping its height, and an edge with colors past it fades out. While a plot or the path reads a
+   place (`reading`), the chip nearest it rises 8px out of the strip and nothing else moves. It is a big picture, so
+   it paints through the flash guard: a change that would turn a flash back sooner than a quarter second after it
+   waits. Left to right in every language, as the gradient runs. */
 export function StopStrip(props: {
   stops: readonly StripStop[];
   marks?: readonly StripMark[];
@@ -57,6 +58,15 @@ export function StopStrip(props: {
     return room > width() ? layoutStops(stops(), room, !at.two, !!props.short) : at;
   });
   const cols = () => Math.ceil(stops().length / lay().rows.length);
+  /* whether a row that scrolls has colors past the strip's start and past its end; none until it is measured */
+  const [edges, setEdges] = createSignal({ less: 0, more: 0 });
+  const measure = () => {
+    const at = host.scrollLeft;
+    const room = host.scrollWidth - host.clientWidth;
+    const next = { less: at > 1 ? 1 : 0, more: room - at > 1 ? 1 : 0 };
+    if (next.less !== edges().less || next.more !== edges().more) setEdges(next);
+  };
+  createEffect(lay, () => measure());
   /* the chip being read as one key, so a reading that moves within a chip changes nothing */
   const read = createMemo(() => {
     const at = props.reading;
@@ -112,11 +122,17 @@ export function StopStrip(props: {
       data-two={lay().two ? "" : undefined}
       data-short={props.short ? "" : undefined}
       data-scrolls={cols() * least() > width() ? "" : undefined}
-      style={{ "--sw": `${lay().size}px`, "--cols": cols() }}
+      style={{
+        "--sw": `${lay().size}px`,
+        "--cols": cols(),
+        "--less": String(edges().less),
+        "--more": String(edges().more)
+      }}
       dir="ltr"
       role="group"
       aria-label={t("Palette colors")}
       onKeyDown={walk}
+      onScroll={measure}
     >
       <For each={lay().rows} keyed={false}>
         {(row, r) => (
