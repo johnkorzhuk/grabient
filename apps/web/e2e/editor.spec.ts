@@ -561,7 +561,7 @@ test("Back with an edit's address still waiting lands on the page it leaves for"
   await page.goto(collection);
   // started, so the palette opens in the page
   await page.waitForFunction(() => !("$_TSR" in window));
-  await page.locator("main article a[aria-label='Edit']").first().focus();
+  await page.locator("main article a[aria-label^='Edit ']").first().focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
   // a document of its own, so Back reads the collection again, and slowly

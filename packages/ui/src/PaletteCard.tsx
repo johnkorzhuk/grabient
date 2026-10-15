@@ -208,7 +208,7 @@ export function PaletteCard(props: PaletteCardProps) {
                 icon
                 size="sm"
                 href={props.href}
-                aria-label={t("Edit")}
+                aria-label={t("Edit {name}", { name: props.name })}
                 tip={t("Edit")}
                 onClick={e => props.onOpen?.(e)}
               >

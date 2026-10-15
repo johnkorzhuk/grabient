@@ -128,7 +128,7 @@ for (const address of ["/", "/?q=blue", "/palettes", "/palettes/rising", "/palet
     const reports = reported(page);
     await open(page, address);
     const heading = (await page.locator("main h1").first().textContent()) ?? "";
-    const depth = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').nth(8));
+    const depth = await pressFrom(page, page.locator('main article a[aria-label^="Edit "]').nth(8));
     await expect(editor(page)).toBeVisible();
     expect(await styled(page)).toBe(true);
     await backTo(page, heading, depth);
@@ -190,7 +190,7 @@ test("a palette opened from Saved lands styled, and Back returns to Saved", asyn
   );
   await open(page, "/palettes/saved");
   const heading = (await page.locator("main h1").first().textContent()) ?? "";
-  const depth = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').nth(1));
+  const depth = await pressFrom(page, page.locator('main article a[aria-label^="Edit "]').nth(1));
   await expect(page).toHaveURL(/\/kSEiS3qzo6dQvY-/);
   await expect(editor(page)).toBeVisible();
   expect(await styled(page)).toBe(true);
@@ -249,7 +249,7 @@ test("a collection opened from a list by its title, and a palette from the colle
   const depth = await pressFrom(page, page.locator(`main a[href="/${slug}/rising"]`));
   await expect(list).toHaveText(words.title);
   expect(await styled(page)).toBe(true);
-  const inside = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').first());
+  const inside = await pressFrom(page, page.locator('main article a[aria-label^="Edit "]').first());
   await expect(editor(page)).toBeVisible();
   expect(await styled(page)).toBe(true);
   await backTo(page, words.title, inside);
@@ -377,7 +377,7 @@ for (const viewport of [
     await open(page, "/palettes");
     return (await listed(page).getAttribute("href")) ?? "";
   };
-  const listed = (page: Page) => page.locator('main article a[aria-label="Edit"]').nth(1);
+  const listed = (page: Page) => page.locator('main article a[aria-label^="Edit "]').nth(1);
   const cutOff = async (page: Page) => {
     await page.unrouteAll({ behavior: "ignoreErrors" });
     await page.context().setOffline(true);

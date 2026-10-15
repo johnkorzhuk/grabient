@@ -103,7 +103,7 @@ export function Heading(props: {
             <Button
               icon
               variant="ghost"
-              aria-label={t("Edit")}
+              aria-label={t("Edit {name}", { name: props.doc.title })}
               tip={t("Edit")}
               disabled={offline()}
               onClick={start}

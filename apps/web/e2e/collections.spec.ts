@@ -824,7 +824,7 @@ test("a private collection renamed on its page is the account's own at its new a
   });
   await page.goto(blues.url);
   await hydrated(page);
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: "Edit My blues", exact: true }).click();
   const title = page.getByRole("textbox", { name: "Title" });
   await title.fill("Deep blues");
   // the page at the new address reads its state once it stands, after anything its address read
@@ -844,7 +844,7 @@ test("a collection's words edited by keyboard take the focus into the title and 
   await signIn(page, "ada", false, [blues]);
   await page.goto(blues.url);
   await hydrated(page);
-  const edit = page.getByRole("button", { name: "Edit", exact: true });
+  const edit = page.getByRole("button", { name: "Edit My blues", exact: true });
   const title = page.getByRole("textbox", { name: "Title" });
   await edit.focus();
   await page.keyboard.press("Enter");
