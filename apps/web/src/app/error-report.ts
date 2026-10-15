@@ -50,14 +50,25 @@ export function ownStack(stack: unknown, origin: string): string {
     .join("\n");
 }
 
+/** A value thrown as an error tells it: its type, its own words and its frames in the site's own scripts. A value that
+    is no error tells only `said`. The window's words for an error lead with its type, and Chrome's with "Uncaught",
+    so its own words keep one error the same however it was met. */
+function described(thrown: unknown, said: string) {
+  const error = thrown as { name?: unknown; message?: unknown; stack?: unknown } | null | undefined;
+  return {
+    name: typeof error?.name === "string" ? error.name : undefined,
+    message: typeof error?.message === "string" && error.message ? error.message : said,
+    stack: ownStack(error?.stack, location.origin)
+  };
+}
+
 function report(
-  message: string,
-  source: string | null,
+  error: ReturnType<typeof described>,
+  source: string | null = null,
   line?: number,
-  column?: number,
-  stack = ""
+  column?: number
 ) {
-  const text = message.slice(0, MESSAGE_MAX);
+  const text = error.message.slice(0, MESSAGE_MAX);
   if (!text || navigator.onLine === false || sent.size >= MAX || sent.has(text)) return;
   sent.add(text);
   try {
@@ -67,11 +78,12 @@ function report(
       credentials: "omit",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        name: error.name,
         message: text,
         source,
         line,
         column,
-        stack,
+        stack: error.stack,
         page: pageOf(location.pathname)
       })
     }).catch(() => {});
@@ -83,41 +95,20 @@ function report(
 /** An error a page's boundary took, or one caught so the site goes on: the window never hears of either. */
 export function reportCaught(error: unknown): void {
   if (isServer) return;
-  const reason = error as { message?: unknown; stack?: unknown } | null | undefined;
-  report(
-    typeof reason?.message === "string" ? reason.message : String(error),
-    null,
-    undefined,
-    undefined,
-    ownStack(reason?.stack, location.origin)
-  );
+  report(described(error, String(error)));
 }
 
 export function installErrorReports(): void {
   window.addEventListener("error", event => {
     if (!(event instanceof ErrorEvent)) return;
+    const error = described(event.error, String(event.message ?? ""));
     const source = ownPath(event.filename);
-    const stack = ownStack(event.error?.stack, location.origin);
     /* a script of another origin (an extension, a translation tool) is not the site's */
-    if (!source && !stack) return;
-    report(
-      String(event.message ?? ""),
-      source,
-      event.lineno || undefined,
-      event.colno || undefined,
-      stack
-    );
+    if (!source && !error.stack) return;
+    report(error, source, event.lineno || undefined, event.colno || undefined);
   });
   window.addEventListener("unhandledrejection", event => {
-    const reason = event.reason as { message?: unknown; stack?: unknown } | null | undefined;
-    const stack = ownStack(reason?.stack, location.origin);
-    if (!stack) return;
-    report(
-      typeof reason?.message === "string" ? reason.message : String(reason),
-      null,
-      undefined,
-      undefined,
-      stack
-    );
+    const error = described(event.reason, String(event.reason));
+    if (error.stack) report(error);
   });
 }

@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test, vi } from "vitest";
-import { ownStack, pageOf, reportCaught } from "./error-report.ts";
+import { installErrorReports, ownStack, pageOf, reportCaught } from "./error-report.ts";
 
 // the browser's paths: Node resolves Solid's server build, where isServer is true
 vi.mock("@solidjs/web", async original => ({
@@ -45,4 +45,44 @@ test("an error met with no connection is neither sent nor counted, and is sent o
   vi.stubGlobal("navigator", { onLine: true });
   reportCaught(new TypeError("Failed to fetch"));
   expect(sent).toEqual(["Failed to fetch"]);
+});
+
+test("a report names the error's type in its own words, however the page met it", () => {
+  onTestFinished(() => void vi.unstubAllGlobals());
+  const sent: { name?: string; message: string; source: string | null }[] = [];
+  vi.stubGlobal("location", new URL("https://grabient.com/palettes"));
+  vi.stubGlobal("navigator", { onLine: true });
+  vi.stubGlobal("fetch", (_path: string, init: RequestInit) => {
+    sent.push(JSON.parse(String(init.body)));
+    return Promise.resolve(new Response(null, { status: 204 }));
+  });
+  vi.stubGlobal("window", new EventTarget());
+  installErrorReports();
+  reportCaught(new RangeError("Invalid array length"));
+  // the window's words lead with the type, and Chrome's with "Uncaught": the error's own are sent
+  window.dispatchEvent(
+    new ErrorEvent("error", {
+      error: new SyntaxError("Unexpected token"),
+      message: "Uncaught SyntaxError: Unexpected token",
+      filename: "https://grabient.com/assets/index-DMi2wf-V.js",
+      lineno: 1,
+      colno: 9
+    })
+  );
+  // what the browser says of a loop it stopped is no error of a script's
+  window.dispatchEvent(
+    new ErrorEvent("error", {
+      message: "ResizeObserver loop completed with undelivered notifications.",
+      filename: "https://grabient.com/palettes"
+    })
+  );
+  expect(sent).toMatchObject([
+    { name: "RangeError", message: "Invalid array length", source: null },
+    { name: "SyntaxError", message: "Unexpected token", source: "/assets/index-DMi2wf-V.js" },
+    {
+      message: "ResizeObserver loop completed with undelivered notifications.",
+      source: "/palettes"
+    }
+  ]);
+  expect(sent[2]).not.toHaveProperty("name");
 });
