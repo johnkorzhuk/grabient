@@ -128,6 +128,6 @@ port, and the ones tagged @served, which meet the service worker, against the st
 another.
 
 `pnpm budget` reads a build and fails when a page's start JS, the stylesheet, the largest chunk loaded on demand, the
-session recorder, the precise color names or the Worker (all of it, and what an isolate's start loads) is over its
-budget in `scripts/budget.ts`. `ci:build` runs it after the build, so a deploy over budget stops before it deploys. A
-change that needs more raises the budget in the same commit and says why.
+session recorder, the precise color names or the Worker (all of it, what an isolate's start loads, and what the first
+request through Start adds) is over its budget in `scripts/budget.ts`. `ci:build` runs it after the build, so a deploy
+over budget stops before it deploys. A change that needs more raises the budget in the same commit and says why.

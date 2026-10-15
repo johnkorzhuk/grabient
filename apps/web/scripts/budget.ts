@@ -40,7 +40,8 @@ const BUDGETS = {
   recorder: 106,
   names: 285,
   worker: 1480,
-  workerStart: 740
+  workerStart: 740,
+  firstRequest: 165
 };
 
 const out = process.argv[2] ?? ".cloudflare/output";
@@ -55,8 +56,7 @@ function closure(manifest: Manifest, keys: string[]): Set<string> {
   const reached = new Set<string>();
   const visit = (key: string) => {
     const chunk = manifest[key];
-    if (!chunk)
-      throw new Error(`The manifest has no chunk for ${key}: update the pages in budget.ts`);
+    if (!chunk) throw new Error(`The manifest has no chunk for ${key}: update budget.ts`);
     if (reached.has(chunk.file)) return;
     reached.add(chunk.file);
     for (const next of chunk.imports ?? []) visit(next);
@@ -144,14 +144,23 @@ rows.push({ name: "Worker, all modules", size: worker, budget: BUDGETS.worker, u
 const server = manifestOf(bundle);
 const serverEntry = Object.keys(server).find(key => server[key]?.isEntry);
 if (!serverEntry) throw new Error("The Worker's manifest names no entry");
-const startSize = [...closure(server, [serverEntry])].reduce(
-  (sum, file) => sum + gzip(read(join(bundle, file))),
-  0
-);
+const isolate = closure(server, [serverEntry]);
+const bundleGzip = (files: string[]) =>
+  files.reduce((sum, file) => sum + gzip(read(join(bundle, file))), 0);
 rows.push({
   name: "Worker, isolate start",
-  size: startSize,
+  size: bundleGzip([...isolate]),
   budget: BUDGETS.workerStart,
+  unit: KIB
+});
+/* What the first request through Start adds: the router and every chunk its static imports reach, each route's module
+   among them. A handler's import that only its own requests need belongs inside the handler, and this catches one that
+   is not. */
+const routed = [...closure(server, ["src/router.tsx"])].filter(file => !isolate.has(file));
+rows.push({
+  name: "Worker, first request through Start",
+  size: bundleGzip(routed),
+  budget: BUDGETS.firstRequest,
   unit: KIB
 });
 
@@ -165,7 +174,7 @@ for (const row of rows) {
   console.log(`${row.name.padEnd(width)}  ${size} ${unit.padEnd(3)} of ${budget}${mark}`);
 }
 console.log(
-  "gzip: each client file at level 9; the Worker's modules together at the default level"
+  "gzip: each client file at level 9; the Worker at the default level, all of it as one and its parts chunk by chunk"
 );
 if (over.length) {
   console.error(
