@@ -9,16 +9,26 @@
     &[data-noted] {
       row-gap: var(--space-s2);
     }
-    /* the selection's press and the way back up over it, a gap above the screen's foot */
+    /* on a phone, room under the links for the presses floating at the screen's foot while they stand there
+       (data-floor): the selection's or the way back up, or the two when the way up stands raised over the other */
     &[data-floats] {
       @container page (max-width: 800px) {
-        padding-bottom: calc(
-          var(--space-s4) +
-          2 *
-          var(--size-touch) +
-          var(--space-s3) +
-          env(safe-area-inset-bottom, 0px)
-        );
+        :root:has([data-floor]:not([data-away] *)) & {
+          padding-bottom: calc(
+            var(--space-s4) +
+            var(--size-touch) +
+            env(safe-area-inset-bottom, 0px)
+          );
+        }
+        :root:has([data-floor][data-raised]:not([data-away] *)) & {
+          padding-bottom: calc(
+            var(--space-s4) +
+            2 *
+            var(--size-touch) +
+            var(--space-s3) +
+            env(safe-area-inset-bottom, 0px)
+          );
+        }
       }
     }
   }
