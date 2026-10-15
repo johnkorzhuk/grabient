@@ -25,9 +25,16 @@ import {
   untrack,
   useContext
 } from "solid-js";
-import { marked, offline, signInUnavailable, unreachable } from "../../app/connection.ts";
+import {
+  createOfflineList,
+  marked,
+  offline,
+  signInUnavailable,
+  unreachable
+} from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
 import list from "../../app/list.module.css";
+import { OfflineWays } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
 import { hexesOf } from "../../lib/palette.ts";
@@ -140,6 +147,14 @@ export function CollectionPage(props: {
     const here = router.state.matches.at(-1)?.id;
     await router.invalidate({ filter: match => match.id === here });
   };
+  /* a collection that could not be read with no connection says so in its place, and is read as the connection
+     returns */
+  const unread = createOfflineList({
+    failed: () => !!readFailed(),
+    readAt: () => found.dataUpdatedAt,
+    read: () => void retry()
+  });
+  const lineError = () => (unread() ? "" : readFailed());
 
   /* what the account may do here, and whether its copy holds the collection: read once the reader is known, private,
      and never part of what the page is drawn from first */
@@ -557,6 +572,29 @@ export function CollectionPage(props: {
     );
   const pageHref = (order: PaletteOrder) =>
     localHref(collectionHref(props.slug, order) + pageSearch(props.view));
+  /* the collection's two orders; while it is not here, each keeps its place and leads nowhere */
+  const orders = (here: boolean) => (
+    <div class={styles.order}>
+      <Segmented
+        aria-label={t("Order")}
+        value={props.order}
+        options={ORDERS.map(o => ({
+          value: o.value,
+          label: t(o.label, { $context: "order" }),
+          href: pageHref(o.value),
+          disabled: !here
+        }))}
+        onChange={value => {
+          if (!here) return;
+          rememberOrder(value as PaletteOrder);
+          void navigate({
+            href: collectionHref(props.slug, value as PaletteOrder) + pageSearch(props.view),
+            resetScroll: false
+          });
+        }}
+      />
+    </div>
+  );
   const back = () => listBack(props.order, props.view);
   /* nothing public lives here, and whether this reader may see more is not known yet: until the session answers
      (unless the request came with none), and then until the account's own read does, the page waits to say */
@@ -594,14 +632,50 @@ export function CollectionPage(props: {
               <Icon name="back" size={13} /> {t("Collections")}
             </Button>
           </div>
-          <Show when={doc()}>
+          <Show when={doc() || unread()}>
             <Tags tags={tags()} />
           </Show>
         </div>
+        <Show when={unread() && !doc()}>
+          <div class={list.row}>
+            {orders(false)}
+            {/* the presses every reader has on a collection not theirs, in their places: no palettes here to add,
+                and no connection to save with */}
+            <div class={styles.actions}>
+              {sel.button()}
+              <Button
+                icon
+                size="lg"
+                aria-label={t("Add all to selection")}
+                tip={t("Add all to selection")}
+                disabled
+              >
+                <Icon name="plus" size={15} />
+              </Button>
+              <Button icon size="lg" aria-label={t("Save")} tip={t("Save")} disabled>
+                <Icon name="bookmark" size={15} />
+              </Button>
+            </div>
+          </div>
+          {sel.float()}
+          <div class={styles.body}>
+            <div class={styles.heading}>
+              <Text variant="title" as="h1">
+                {t("You're offline.")}
+              </Text>
+            </div>
+            <div class={styles.words}>
+              <Text variant="lede">
+                {t("This collection opens offline once you've seen it online.")}
+              </Text>
+              <OfflineWays ways={["collections"]} />
+            </div>
+          </div>
+        </Show>
         <Show
           when={doc()}
           fallback={
-            <Show when={(data() && !unknown()) || readFailed()}>
+            <Show when={!unread() && ((data() && !unknown()) || readFailed())}>
               <div class={styles.words}>
                 <Text variant="title" as="h1">
                   {t(
@@ -635,26 +709,7 @@ export function CollectionPage(props: {
           {current => (
             <>
               <div class={list.row}>
-                <div class={styles.order}>
-                  <Segmented
-                    aria-label={t("Order")}
-                    value={props.order}
-                    options={ORDERS.map(o => ({
-                      value: o.value,
-                      label: t(o.label, { $context: "order" }),
-                      href: pageHref(o.value)
-                    }))}
-                    onChange={value => {
-                      rememberOrder(value as PaletteOrder);
-                      void navigate({
-                        href:
-                          collectionHref(props.slug, value as PaletteOrder) +
-                          pageSearch(props.view),
-                        resetScroll: false
-                      });
-                    }}
-                  />
-                </div>
+                {orders(true)}
                 <Actions
                   slug={props.slug}
                   doc={current()}
@@ -810,8 +865,8 @@ export function CollectionPage(props: {
           </div>
         </Show>
         <div class={styles.line}>
-          <Status error={error() || !!readFailed() || (missing() && !note())}>
-            {readFailed() ||
+          <Status error={error() || !!lineError() || (missing() && !note())}>
+            {lineError() ||
               note() ||
               (missing()
                 ? t("Collection not found. It may have been deleted.")
@@ -819,7 +874,7 @@ export function CollectionPage(props: {
                   ? t("This collection is empty.")
                   : "")}
           </Status>
-          <Show when={readFailed()}>
+          <Show when={lineError()}>
             <Button size="sm" onClick={() => void retry()}>
               {t("Retry")}
             </Button>
