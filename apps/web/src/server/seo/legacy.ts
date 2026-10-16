@@ -82,7 +82,11 @@ export async function legacyLanding(env: Pick<Env, "DB">, address: string): Prom
   }
 }
 
-/** Counts how an old address resolved, by readers and by crawlers: the day few arrive, the maps can go. */
+/** Every old palette id the maps lead from. */
+export const oldIds = (): string[] => [...new Set(MAPS.flatMap(map => Object.keys(map)))];
+
+/** Counts how an old address resolved, by readers and by crawlers. The maps stay a year at least, while search
+    indexes and the sites that link here move to the new addresses; the counts say when few arrive. */
 export function countLegacy(env: Pick<Env, "USAGE">, request: Request, address: string): void {
   const old = oldAddress(address);
   if (old) countUsage(env, "legacy", old.via, isCrawler(request) ? "crawler" : "reader");

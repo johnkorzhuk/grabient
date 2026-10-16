@@ -111,13 +111,15 @@ export function sitemapIndex(origin: string, shards: number): string {
 
 /** The site's own pages in every language, each naming the others, and the newsletter once it is on, whose issues are
     English, in English alone. */
-export function pagesSitemap(origin: string, newsletter: boolean): string {
+export const pagesSitemap = (origin: string, newsletter: boolean): string =>
+  urlset(pageEntries(origin, newsletter), origin);
+function pageEntries(origin: string, newsletter: boolean): Entry[] {
   const entries: Entry[] = OWN_PAGES.flatMap(page => {
     const alternates = alternatesOf(page, origin);
     return LOCALES.map(locale => ({ path: localizePath(page, locale), alternates }));
   });
   if (newsletter) entries.push({ path: "/newsletter" });
-  return urlset(entries, origin);
+  return entries;
 }
 
 /** Words as a search's address writes them: a space between words, lowercase, 100 characters at most. */
@@ -126,24 +128,23 @@ const searchWords = (query: string) => {
   return words.length <= 100 && !/\p{Cc}/u.test(words) ? words : "";
 };
 /** A search is its list with the words as q, the address its page names as canonical. */
-export function searchesSitemap(origin: string, queries: readonly string[]): string {
-  const words = [...new Set(queries.map(searchWords).filter(Boolean))];
-  const entries = words.slice(0, MAX_SEARCHES).map(query => ({
-    path: `/palettes?${new URLSearchParams({ q: query })}`
-  }));
-  return urlset(entries, origin);
-}
+export const searchesSitemap = (origin: string, queries: readonly string[]): string =>
+  urlset(searchEntries(queries), origin);
+const searchEntries = (queries: readonly string[]): Entry[] =>
+  [...new Set(queries.map(searchWords).filter(Boolean))]
+    .slice(0, MAX_SEARCHES)
+    .map(query => ({ path: `/palettes?${new URLSearchParams({ q: query })}` }));
 
 /** Every public collection, the latest change first, with its card, then its page in each other language it reads in,
     dated by the later of its change and its translation. */
-export function collectionsSitemap(
-  origin: string,
-  rows: readonly {
-    slug: string;
-    updatedAt: number;
-    languages?: readonly { locale: Locale; updatedAt: number }[];
-  }[]
-): string {
+export const collectionsSitemap = (origin: string, rows: readonly ListedCollection[]): string =>
+  urlset(collectionEntries(origin, rows), origin);
+interface ListedCollection {
+  slug: string;
+  updatedAt: number;
+  languages?: readonly { locale: Locale; updatedAt: number }[];
+}
+function collectionEntries(origin: string, rows: readonly ListedCollection[]): Entry[] {
   const seen = new Set<string>();
   const entries: Entry[] = [];
   for (const row of rows.slice(0, MAX_COLLECTIONS)) {
@@ -163,20 +164,20 @@ export function collectionsSitemap(
       ...said
     );
   }
-  return urlset(entries, origin);
+  return entries;
 }
 
 /** A file of gallery palettes, each at its own address, in the view it was saved in, with the day it joined and its
     card. A seed that is no palette is left out, and one written two ways is listed once, as its canonical seed. */
-export function palettesSitemap(
-  origin: string,
-  rows: readonly {
-    seed: string;
-    view?: PaletteView;
-    createdAt?: number | string | null;
-    image?: string;
-  }[]
-): string {
+export const palettesSitemap = (origin: string, rows: readonly ListedPalette[]): string =>
+  urlset(paletteEntries(origin, rows), origin);
+interface ListedPalette {
+  seed: string;
+  view?: PaletteView;
+  createdAt?: number | string | null;
+  image?: string;
+}
+function paletteEntries(origin: string, rows: readonly ListedPalette[]): Entry[] {
   const seen = new Set<string>();
   const entries: Entry[] = [];
   for (const row of rows.slice(0, SHARD_SIZE)) {
@@ -191,7 +192,7 @@ export function palettesSitemap(
       image: row.image && new URL(row.image, origin).toString()
     });
   }
-  return urlset(entries, origin);
+  return entries;
 }
 
 /** How many palette files the index names: the highest rowid's share of SHARD_SIZE, at least one. */
@@ -233,26 +234,50 @@ export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
   });
 }
 
+/** What the sitemap at /sitemap-{name}.xml lists, or null for a name no sitemap has. */
+async function entriesOf(
+  env: Pick<Env, "DB" | "ASSETS">,
+  name: string,
+  origin: string
+): Promise<Entry[] | null> {
+  if (name === "pages") return pageEntries(origin, !(await flagOff(env, "newsletter")));
+  if (name === "searches") return searchEntries(await sitemapQueries(env));
+  if (name === "collections") {
+    const [rows, languages] = await Promise.all([
+      collectionSitemapRows(env, MAX_COLLECTIONS),
+      collectionLanguages(env)
+    ]);
+    return collectionEntries(
+      origin,
+      rows.map(row => ({ ...row, languages: languages.get(row.slug) }))
+    );
+  }
+  const shard = paletteShard(name);
+  return shard === null ? null : paletteEntries(origin, await paletteRows(env, shard));
+}
+
 /** The sitemap at /sitemap-{name}.xml, or null for a name no sitemap has. */
 export async function sitemapFile(
   env: Pick<Env, "DB" | "ASSETS">,
   name: string,
   origin: string
 ): Promise<string | null> {
-  if (name === "pages") return pagesSitemap(origin, !(await flagOff(env, "newsletter")));
-  if (name === "searches") return searchesSitemap(origin, await sitemapQueries(env));
-  if (name === "collections") {
-    const [rows, languages] = await Promise.all([
-      collectionSitemapRows(env, MAX_COLLECTIONS),
-      collectionLanguages(env)
-    ]);
-    return collectionsSitemap(
-      origin,
-      rows.map(row => ({ ...row, languages: languages.get(row.slug) }))
-    );
-  }
-  const shard = paletteShard(name);
-  return shard === null ? null : palettesSitemap(origin, await paletteRows(env, shard));
+  const entries = await entriesOf(env, name, origin);
+  return entries && urlset(entries, origin);
+}
+
+/** Every address the sitemaps list, the index's files in its order. */
+export async function sitemapAddresses(
+  env: Pick<Env, "DB" | "ASSETS">,
+  origin: string
+): Promise<string[]> {
+  const shards = Array.from({ length: await paletteShards(env) }, (_, i) =>
+    i ? `palettes-${i + 1}` : "palettes"
+  );
+  const files = await Promise.all([...FILES, ...shards].map(name => entriesOf(env, name, origin)));
+  return files.flatMap(entries =>
+    (entries ?? []).map(entry => new URL(entry.path, origin).toString())
+  );
 }
 
 /** A sitemap's headers. What changes as palettes and collections are made (the index, the palette files, the

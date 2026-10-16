@@ -205,14 +205,39 @@ describe("IndexNow", () => {
     expect(posts).toEqual([]);
   });
 
-  it("marks where things stand first, then sends what is new in one ordered list and moves its marks on", async () => {
+  it("sends every address the sitemaps list and every old one once, in lists of 10,000 at most, then marks where things stand", async () => {
+    const env = production();
+    await palette(env, "kS7Q8Yy5S_SChv0", 10, 1, ["linearSwatches", 9, 45]);
+    const before = await collection(env, "public", 5_000);
+    const first = await sendIndexNow(env, engine());
+    expect(first).toMatchObject({ marked: { palette: 10, collection: 5_000, translation: 0 } });
+    const sent = posts.flatMap(post => post.body.urlList as string[]);
+    expect(first).toMatchObject({ sent: sent.length });
+    expect(new Set(sent).size).toBe(sent.length);
+    expect(sent.length).toBeGreaterThan(6_718);
+    for (const post of posts)
+      expect((post.body.urlList as string[]).length).toBeLessThanOrEqual(10_000);
+    expect(sent).toEqual(
+      expect.arrayContaining([
+        "https://grabient.com/",
+        "https://grabient.com/ja/palettes",
+        "https://grabient.com/palettes?q=warm",
+        `https://grabient.com/${before.slug}`,
+        "https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45",
+        "https://grabient.com/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu"
+      ])
+    );
+    posts.length = 0;
+    expect(await sendIndexNow(env, engine())).toEqual({ sent: 0, status: 0 });
+    expect(posts).toEqual([]);
+  });
+
+  it("then sends what is new in one ordered list and moves its marks on", async () => {
     const env = production();
     await palette(env, "kS7Q8Yy5S_SChv0", 10);
     const before = await collection(env, "public", 5_000);
-    expect(await sendIndexNow(env, engine())).toEqual({
-      marked: { palette: 10, collection: 5_000, translation: 0 }
-    });
-    expect(posts).toEqual([]);
+    await sendIndexNow(env, engine());
+    posts.length = 0;
 
     await palette(env, "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", 11, 1, ["linearSwatches", 9, 45]);
     const changed = await collection(env, "public", 6_000);
@@ -249,7 +274,13 @@ describe("IndexNow", () => {
 
   it("sends a refused list again on the next pass", async () => {
     const env = production();
+    // a first pass refused marks nothing, and the next sends it all again
+    expect(await sendIndexNow(env, engine(429))).toEqual({ sent: 0, status: 429 });
+    expect(posts).toHaveLength(1);
+    expect(await env.CACHE?.get("indexnow")).toBeNull();
     expect(await sendIndexNow(env, engine())).toMatchObject({ marked: {} });
+    expect(posts[1]?.body.urlList).toEqual(posts[0]?.body.urlList);
+    posts.length = 0;
     await palette(env, "kS7Q8Yy5S_SChv0");
     expect(await sendIndexNow(env, engine(429))).toEqual({ sent: 0, status: 429 });
     expect(await sendIndexNow(env, engine(200))).toEqual({ sent: 1, status: 200 });
