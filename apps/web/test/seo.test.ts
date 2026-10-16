@@ -308,6 +308,25 @@ describe("IndexNow", () => {
       ["https://grabient.com/kS7Q8Yy5S_SChv0"]
     ]);
   });
+
+  it("moves on from a list refused for good at once, and from one refused for now after a dozen passes", async () => {
+    const env = production();
+    // a key the engine cannot check: sending it again changes nothing, so the first pass marks where things stand
+    expect(await sendIndexNow(env, engine(403))).toEqual({ sent: 0, status: 403 });
+    expect(await env.CACHE?.get("indexnow", "json")).toMatchObject({ palette: 0 });
+    posts.length = 0;
+    expect(await sendIndexNow(env, engine())).toEqual({ sent: 0, status: 0 });
+    expect(posts).toEqual([]);
+    // a list refused for now goes again on the next eleven passes, and the twelfth moves on
+    await palette(env, "kS7Q8Yy5S_SChv0");
+    for (let pass = 1; pass <= 12; pass++)
+      expect(await sendIndexNow(env, engine(503))).toEqual({ sent: 0, status: 503 });
+    expect(posts).toHaveLength(12);
+    expect(await env.CACHE?.get("indexnow-refused")).toBeNull();
+    posts.length = 0;
+    expect(await sendIndexNow(env, engine())).toEqual({ sent: 0, status: 0 });
+    expect(posts).toEqual([]);
+  });
 });
 
 describe("GitHub stars", () => {

@@ -17,13 +17,19 @@ import { sitemapAddresses } from "./sitemaps.ts";
    so the engines read the site at its new addresses and the old ones' redirects at once, then marks where things
    stand. From then on, every ten minutes, the scheduled job sends the palettes the gallery took, the public collections
    that changed and the collections newly translated since the last list, and keeps in KV how far it has sent. A list
-   holds at most 10,000 addresses, and a refused one is sent again next time. A palette is sent at its English address
-   in the view the gallery saved it in, a collection at its English address, the one their other languages name as
-   theirs, and a translation at its language's, where that page is indexed. */
+   holds at most 10,000 addresses. One refused for now (429, or an engine's own failure) is sent again next time, a
+   dozen passes running at most; one refused for good (a key the engine cannot check, an address it will not take) is
+   not, since sending it again would change nothing: the passes move on, and the sitemaps still name every address. A
+   palette is sent at its English address in the view the gallery saved it in, a collection at its English address, the
+   one their other languages name as theirs, and a translation at its language's, where that page is indexed. */
 
 const ENDPOINT = "https://api.indexnow.org/indexnow";
 const MAX_URLS = 10_000;
 const KEPT = "indexnow";
+/** How many passes running a list refused for now has gone again, kept beside the marks. */
+const REFUSED = "indexnow-refused";
+/** a list refused for now goes again on this many passes running at most: two hours of them */
+const MAX_TRIES = 12;
 
 /** How far the lists have reached: the last gallery rowid sent, the last change to a public collection, the last
     translation of one. */
@@ -72,10 +78,11 @@ export async function sendIndexNow(
   if (!indexed(env)) return { skipped: "not indexed" };
   if (!env.CACHE) return { skipped: "no KV" };
   const origin = publicOrigin(env);
-  /* a list of addresses as the protocol takes it: 200 is taken, 202 taken while the key is checked */
-  const send = async (urls: readonly string[]) =>
-    (
-      await get(ENDPOINT, {
+  /* a list of addresses as the protocol takes it: 200 is taken, 202 taken while the key is checked. No answer at all
+     is the engine's failure for now, as a 503 is */
+  const send = async (urls: readonly string[]) => {
+    try {
+      const answer = await get(ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=utf-8" },
         signal: AbortSignal.timeout(10_000),
@@ -85,10 +92,26 @@ export async function sendIndexNow(
           keyLocation: new URL(`/${key}.txt`, origin).toString(),
           urlList: urls
         })
-      })
-    ).status;
+      });
+      return answer.status;
+    } catch {
+      return 503;
+    }
+  };
   const taken = (status: number) => status === 200 || status === 202;
-  const kept = await env.CACHE.get<Partial<Kept>>(KEPT, "json");
+  const cache = env.CACHE;
+  const tried = Number(await cache.get(REFUSED)) || 0;
+  /* whether a refused list goes again next pass: only one refused for now, and only so many passes running */
+  const again = async (status: number) => {
+    if (!(status === 429 || status >= 500) || tried + 1 >= MAX_TRIES) return false;
+    await cache.put(REFUSED, String(tried + 1));
+    return true;
+  };
+  /* a list taken, or refused for good, ends the tries of the one before */
+  const settled = async () => {
+    if (tried) await cache.delete(REFUSED);
+  };
+  const kept = await cache.get<Partial<Kept>>(KEPT, "json");
   if (!marked(kept)) {
     const [marks, listed] = await Promise.all([
       batch(env.DB, [
@@ -112,9 +135,15 @@ export async function sendIndexNow(
     ];
     for (let at = 0; at < urls.length; at += MAX_URLS) {
       const status = await send(urls.slice(at, at + MAX_URLS));
-      if (!taken(status)) return { sent: at, status };
+      if (taken(status)) continue;
+      if (await again(status)) return { sent: at, status };
+      /* refused for good: what the lists have not told, the sitemaps say */
+      await settled();
+      await cache.put(KEPT, JSON.stringify(marks));
+      return { sent: at, status };
     }
-    await env.CACHE.put(KEPT, JSON.stringify(marks));
+    await settled();
+    await cache.put(KEPT, JSON.stringify(marks));
     return { sent: urls.length, marked: marks };
   }
   const [palettes, collections, translations] = await batch(env.DB, [
@@ -168,14 +197,14 @@ export async function sendIndexNow(
   let status = 0;
   if (urls.size) {
     status = await send([...urls]);
-    /* a list refused is sent again next time */
-    if (!taken(status)) return { sent: 0, status };
+    if (!taken(status) && (await again(status))) return { sent: 0, status };
   }
+  await settled();
   const next: Kept = {
     palette: made.at(-1)?.id ?? kept.palette,
     collection: changed.at(-1)?.updated_at ?? kept.collection,
     translation: said.at(-1)?.updated_at ?? kept.translation
   };
-  await env.CACHE.put(KEPT, JSON.stringify(next));
-  return { sent: urls.size, status };
+  await cache.put(KEPT, JSON.stringify(next));
+  return { sent: taken(status) ? urls.size : 0, status };
 }
