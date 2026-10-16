@@ -1,7 +1,7 @@
 import { renderToString } from "@solidjs/web";
 import { describe, expect, test } from "vitest";
 import { PaletteView, type PaletteViewProps } from "./PaletteView.tsx";
-import type { Tile } from "./tiles.ts";
+import { stopsOf, type Tile } from "./tiles.ts";
 
 /* The view as an app first draws it, in each of its states. */
 
@@ -40,7 +40,7 @@ const words = (markup: string) =>
 const count = (markup: string, pattern: RegExp) => markup.match(pattern)?.length ?? 0;
 
 describe("the palette view", () => {
-  test("draws one palette as a card: its name, its view in words, its seed, its colors and its page", () => {
+  test("draws one palette as a card: its name, its view in words, its seed, and only Full screen and its page to press", () => {
     const html = draw({ tiles: tiles(1), fullscreen: true });
     expect(html).toContain('aria-label="Palette 1: Harbor at dusk"');
     const text = words(html);
@@ -50,8 +50,11 @@ describe("the palette view", () => {
       'href="https://grabient.com/kW2TytYh4_EseP4znj-qR4_o?steps=6&amp;angle=45"'
     );
     expect(html).toContain('aria-label="Full screen"');
-    // the stop strip copies each color
-    expect(count(html, /aria-label="Copy #[0-9a-f]{6}"/g)).toBe(6);
+    // Full screen is the one button, and Open the one link: the strip and the colors to copy are full screen's
+    expect(count(html, /<button\b/g)).toBe(1);
+    expect(count(html, /<a\b/g)).toBe(1);
+    expect(html).not.toContain('aria-label="Copy ');
+    expect(html).not.toContain('data-part="strip"');
   });
 
   test("draws more as a carousel of eight and a card that leads to the rest", () => {
@@ -62,14 +65,19 @@ describe("the palette view", () => {
     // a radial view turns with no angle
     expect(words(html)).toContain("Radial bands · 6 steps");
     expect(words(html)).not.toContain("Radial bands · 6 steps · 45°");
+    // a card's one press is its picture, which opens full screen on it
+    expect(count(html, /aria-label="Open palette \d+ in full screen"/g)).toBe(8);
+    expect(html).not.toContain('aria-label="Copy ');
   });
 
-  test("full screen shows the chosen palette's name and view, with every palette to choose from", () => {
+  test("full screen shows the chosen palette's name, view, strip and colors, with every palette to choose from", () => {
     const html = draw({ tiles: tiles(3), mode: "fullscreen", selected: 1, inline: true });
     expect(html).toMatch(/<h2[^>]*>[^<]+<\/h2>/);
     expect(words(html)).toContain("Appearance");
     expect(count(html, /aria-pressed="true"/g)).toBeGreaterThanOrEqual(1);
     expect(html).toContain('aria-label="Exit full screen"');
+    expect(html).toContain('aria-label="Copy CSS"');
+    expect(count(html, /aria-label="Copy #[0-9a-f]{6}"/g)).toBe(stopsOf(tiles(3)[1]).length);
   });
 
   test("waits in the card's place, and says so once the app goes quiet or sends none", () => {
