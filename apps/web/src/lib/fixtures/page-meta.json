@@ -24,11 +24,11 @@
   "description": "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG. Page 2.",
   "descriptionLength": 136,
   "canonical": "https://grabient.com/?page=2",
-  "robots": "index,follow",
+  "robots": "noindex,follow",
   "stagingRobots": "noindex,nofollow",
   "image": "https://grabient.com/api/og/list?sort=hot&v=k4",
   "imageAlt": "Hot palettes and collections on Grabient",
-  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "alternates": null,
   "structuredData": [],
   "factsSent": null,
   "icon": null

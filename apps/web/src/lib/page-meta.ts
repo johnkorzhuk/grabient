@@ -781,7 +781,11 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
         meta.imageAlt = name;
         meta.robots = "noindex,follow";
       } else {
-        if ((page.page ?? 1) > 1) meta.title = titled(pagedTitle(name, page.page));
+        /* a later page leads with the same hottest palettes as the first: the first is the page the index keeps */
+        if ((page.page ?? 1) > 1) {
+          meta.title = titled(pagedTitle(name, page.page));
+          meta.robots = "noindex,follow";
+        }
         /* the home leads with the hottest palettes, so its card is theirs */
         meta.image = cardUrl("/api/og/list", { sort: "hot" }, page.view, origin);
         meta.imageAlt = t("{name} on Grabient", { name });
