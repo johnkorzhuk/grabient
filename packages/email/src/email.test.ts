@@ -262,6 +262,33 @@ describe("words and addresses", () => {
   });
 });
 
+describe("a button's swatch", () => {
+  const go = {
+    href: `${origin}/palettes?q=%23e86a17`,
+    label: "Search #e86a17",
+    quiet: true,
+    swatch: "#e86a17"
+  };
+  test("is a square of its color at the button's height before it, kept from a reader who listens", () => {
+    const html = drawn(button(go));
+    const square = /<td\b[^>]*bgcolor="#e86a17"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(square).toContain('aria-hidden="true"');
+    expect(square).toContain(`width="${SIZE.button}"`);
+    expect(square).toContain(`height="${SIZE.button}"`);
+    expect(html.indexOf('bgcolor="#e86a17"')).toBeLessThan(html.indexOf('data-part="button"'));
+    expect(button(go)(ctx).text).toBe(button({ ...go, swatch: undefined })(ctx).text);
+  });
+  test("stands where the email's lines start, in either direction", () => {
+    const rtl = decode(button(go)({ ...ctx, dir: "rtl", start: "right", end: "left" }).html.html);
+    expect(rtl).toMatch(/<table\b[^>]*dir="rtl"[^>]*data-part="swatch"/);
+    expect(rtl).toMatch(/<td style="padding-right:\d+px">/);
+    expect(drawn(button(go))).toMatch(/<td style="padding-left:\d+px">/);
+  });
+  test.each(["e86a17", "#e86a1", "red", '#e86a17"'])("is a color as #rrggbb, never %s", swatch => {
+    expect(() => button({ ...go, swatch })(ctx)).toThrow(/#rrggbb/);
+  });
+});
+
 describe("what mail apps accept", () => {
   const all = { link: link_, code: code_, deletion: gone, newsletter: news };
   test.each(Object.entries(all))("%s", (_, letter) => {

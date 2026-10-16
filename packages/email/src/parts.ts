@@ -225,13 +225,17 @@ export interface ButtonOptions {
   full?: boolean;
   /** paper in place of ink, beside the email's one primary */
   quiet?: boolean;
+  /** a color the button acts on, as #rrggbb: a square of it at the button's height stands before it */
+  swatch?: string;
 }
 /** The email's action, in ink once per email; any other is `quiet`. An account email's is its one link of the class
     `btn-label`, which is how the sign-in suites find it. */
 export const button =
   (options: ButtonOptions): Part =>
   ctx => {
-    const { href, label, full, quiet } = options;
+    const { href, label, full, quiet, swatch } = options;
+    if (swatch !== undefined && !/^#[0-9a-f]{6}$/i.test(swatch))
+      throw new Error(`A button's swatch is a color as #rrggbb, not ${swatch}`);
     const lines = Number.parseFloat(TYPE.lede["line-height"]);
     const block = (SIZE.button - lines) / 2 - (quiet ? SIZE.hairline : 0);
     const padding = `${px(block)} ${px(SPACE.s6)}`;
@@ -274,10 +278,31 @@ export const button =
       },
       anchor
     );
-    return {
-      html: table({ ...(full ? FULL : null), "data-part": "button" }, tr(cell)),
-      text: `${label}: ${href}`
-    };
+    const pressed = table({ ...(full ? FULL : null), "data-part": "button" }, tr(cell));
+    const text = `${label}: ${href}`;
+    if (!swatch) return { html: pressed, text };
+    /* the color in a cell of its own, which every app paints, kept from any scheme's recoloring and from a reader who
+       listens: the label says it */
+    const square = h(
+      "td",
+      {
+        width: SIZE.button,
+        height: SIZE.button,
+        bgcolor: swatch,
+        "aria-hidden": "true",
+        style: {
+          width: px(SIZE.button),
+          height: px(SIZE.button),
+          "background-color": swatch,
+          "border-radius": radius,
+          "font-size": "1px",
+          "line-height": "1px"
+        }
+      },
+      "\u00a0"
+    );
+    const after = h("td", { style: { [`padding-${ctx.start}`]: px(SPACE.s3) } }, pressed);
+    return { html: table({ dir: ctx.dir, "data-part": "swatch" }, tr([square, after])), text };
   };
 
 /** A sign-in code, large in mono on a tile. Its digits are the email's one `<strong>`, which is how the sign-in suites

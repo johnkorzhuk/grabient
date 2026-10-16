@@ -272,6 +272,11 @@ describe("an issue's quick tip", () => {
     }
     expect(texts.size).toBe(tipOptions(words).length);
   });
+  test("the hex tip shows the color it searches for beside its button", () => {
+    const part = tipPart(letterOf(asRun(october, ORIGIN, FACTS, undefined, "hex")).html);
+    expect(part).toMatch(/<table\b[^>]*data-part="swatch"[^>]*><tr><td\b[^>]*bgcolor="#e86a17"/);
+    expect(part).toContain(`href="${ORIGIN}/palettes?q=%23e86a17"`);
+  });
   test("an issue that offers none ends without one", () => {
     const november = byNumber(2);
     expect(tipOptions(november.write(ORIGIN))).toEqual([]);
