@@ -6,7 +6,7 @@ import { isCollectionSlug } from "../../features/collections/address.ts";
 import { CollectionRoute } from "../../features/collections/CollectionRoute.tsx";
 import { collectionHead, loadCollection } from "../../features/collections/route.ts";
 import { isSeed } from "../../features/editor/address.ts";
-import { endBoot } from "../../features/editor/boot.ts";
+import { booting, endBoot } from "../../features/editor/boot.ts";
 import { EditorCorner, editing } from "../../features/editor/EditorCorner.tsx";
 import {
   askFacts,
@@ -95,9 +95,10 @@ export const Route = createFileRoute("/$id/")({
   staticData: {
     frame: "app",
     corner: Corner,
-    /* a palette's page pins its stops along the foot of the screen, a collection's nothing: read as the frame draws */
+    /* a palette's page pins its stops along the foot of the screen, from the boot's first screen on, and a
+       collection's nothing: read as the frame draws */
     get strip() {
-      return editing();
+      return editing() || booting();
     }
   },
   /* Only the server's answer for a page the browser draws alone shows this: a navigation in the browser keeps the page

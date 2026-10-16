@@ -1,20 +1,24 @@
-import { delocalizePath } from "@grabient/i18n";
+import { delocalizePath, localizePath } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import type { PostHog } from "posthog-js";
-import { browserOptedOut, type Consent, consent, initConsent } from "./consent.ts";
+import { browserOptedOut, type Consent, consent, initConsent, tellZaraz } from "./consent.ts";
 
 /* Two tools, each behind its own consent (consent.ts). Zaraz, configured on the zone, carries the site's events to GA4
-   under Analytics; under Marketing a signed-in reader's events carry a hash of the account's id, so GA4 counts that
-   reader's visits on every device as one person's. PostHog records sessions under Session replay, through the site's
-   own proxy (/e), and does nothing else: no events, pageviews, person profiles or identities, so a recording is
-   anonymous and nothing of it outlives an account. Both run on grabient.com alone, never for a bot, and never before
-   the reader has pressed or typed something on the page. An app's request and the account's answer to it (the consent
-   page, and sign-in on the way there) and the newsletter's unsubscribe page stay out of both. Browser only. */
+   under Analytics. Under Marketing a signed-in reader's events carry a hash of the account's id, so GA4 counts that
+   reader's visits on every device as one person's, and how the reader first came (gb_attr) and a sign-in begun here
+   (gb_login) are kept until an account takes them: each links a visit to its person. PostHog records sessions under
+   Session replay, through the site's own proxy (/e), and does nothing else: no events, pageviews, person profiles or
+   identities, so a recording is anonymous and nothing of it outlives an account. Both run on grabient.com alone, never
+   for a bot, and never before the reader has pressed or typed something on the page, a press on the privacy banner
+   aside. An app's request and the account's answer to it (the consent page, and sign-in on the way there) and the
+   newsletter's unsubscribe page stay out of both, and both name an account's collection by its kind, never by its
+   address. Browser only. */
 
 declare global {
   interface Window {
     zaraz?: {
       track?: (event: string, properties: Record<string, string | number | boolean>) => void;
+      set?: (key: string, value: Record<string, string>) => void;
       consent?: {
         APIReady?: boolean;
         purposes?: Record<string, unknown>;
@@ -42,6 +46,8 @@ const REPEAT_MS = 1000;
 /** a sign-in pressed here counts as done once the account arrives within this long */
 const LOGIN_MS = 3_600_000;
 const LOGIN_KEY = "gb_login";
+/** keys that move or hold, and use nothing */
+const PASSING_KEYS = new Set(["Tab", "Shift", "Control", "Alt", "Meta", "CapsLock"]);
 
 const landing = isServer
   ? null
@@ -59,7 +65,9 @@ let pageSent = false;
 const toolsUsed = new Set<string>();
 const recent = new Map<string, number>();
 
-function withheld(): boolean {
+/** The pages that stay out of both tools, and out of the privacy banner too: an app's request and the account's answer
+    to it, and the newsletter's unsubscribe page. */
+export function withheld(): boolean {
   const path = delocalizePath(location.pathname).path;
   return (
     path === "/connect" ||
@@ -94,6 +102,24 @@ export function pageKey(pathname: string, search: string): string {
   return words ? `${path}\n${words}` : path;
 }
 
+/* An account's collection names its owner in its address (/@handle/slug) and its title, so analytics and a recording
+   name it by its kind, as an error report does (app/error-report.ts): a visit is never linked to its person that way */
+const OWNED = "/@/collection";
+const owned = (pathname: string) => delocalizePath(pathname).path.startsWith("/@");
+/** A page's path as analytics may hold it: an account's collection by its kind, in the page's language. */
+export function pathOf(pathname: string): string {
+  return owned(pathname) ? localizePath(OWNED, delocalizePath(pathname).locale) : pathname;
+}
+/** An address as a recording may hold it, an account's collection's by its kind. */
+export function recordedAddress(href: string): string {
+  try {
+    const url = new URL(href, location.href);
+    return owned(url.pathname) ? `${url.origin}${pathOf(url.pathname)}` : href;
+  } catch {
+    return href;
+  }
+}
+
 /** The page's address as analytics may hold it: the view and the page, and on a visit's first page its campaign. */
 export function cleanPage(href: string, campaign?: string): string {
   const url = new URL(href);
@@ -106,10 +132,11 @@ export function cleanPage(href: string, campaign?: string): string {
     for (const [key, value] of new URL(campaign).searchParams)
       if (/^utm_[a-z_]{1,20}$/.test(key)) clean.set(key, value.slice(0, 200));
   }
-  return `${url.origin}${url.pathname}${clean.size ? `?${clean}` : ""}`;
+  return `${url.origin}${pathOf(url.pathname)}${clean.size ? `?${clean}` : ""}`;
 }
 
-/* Zaraz itself, only once analytics is allowed: while the zone injects it on every page it is here already */
+/* Zaraz itself, only once analytics is allowed: while the zone injects it on every page it is here already. The
+   reader's consent goes ahead of the events that waited for it, so the first of them carries it */
 let zarazAsked = false;
 function loadZaraz() {
   if (window.zaraz || zarazAsked || !analyticsAllowed()) return;
@@ -117,7 +144,10 @@ function loadZaraz() {
   const script = document.createElement("script");
   script.src = "/cdn-cgi/zaraz/i.js";
   script.referrerPolicy = "origin";
-  script.onload = flushEvents;
+  script.onload = () => {
+    tellZaraz();
+    flushEvents();
+  };
   script.onerror = () => {
     zarazAsked = false;
   };
@@ -139,7 +169,11 @@ function flushEvents() {
 }
 function send(name: string, values: Properties) {
   /* GA4 reads the page from dl and its title from dt, or else the browser's own address, query and all */
-  let out: Properties = { dl: cleanPage(location.href), dt: document.title, ...values };
+  let out: Properties = {
+    dl: cleanPage(location.href),
+    dt: owned(location.pathname) ? "Collection" : document.title,
+    ...values
+  };
   /* an admin's own browsing is the site at work: GA4's internal-traffic filter drops what carries this */
   if (internal) out = { ...out, traffic_type: "internal" };
   if (user?.id && marketingAllowed()) out = { ...out, uid: accountKey(user.id) };
@@ -176,9 +210,10 @@ function firstTouch(): Record<string, string | number> | null {
   }
   return value;
 }
-/* how a reader first arrived, kept first-party: stored with the account if one is made, sent to neither tool */
+/* how a reader first arrived, kept first-party under Marketing: stored with the account if one is made, sent to
+   neither tool */
 function keepAttribution() {
-  if (!analyticsAllowed()) return;
+  if (!marketingAllowed()) return;
   try {
     if (/(?:^|;\s*)gb_attr=/.test(document.cookie)) return;
     const value = firstTouch();
@@ -191,7 +226,7 @@ function keepAttribution() {
 }
 function context(properties: Record<string, unknown>): Properties {
   const all: Record<string, unknown> = {
-    route: location.pathname,
+    route: pathOf(location.pathname),
     locale: document.documentElement.lang || "en",
     signed_in: !!user?.id,
     ...properties
@@ -203,20 +238,24 @@ function context(properties: Record<string, unknown>): Properties {
   }
   return out;
 }
+/* the cookies whose names match, on each domain they may have been set for */
+function dropCookies(match: (name: string) => boolean) {
+  const names = document.cookie
+    .split(";")
+    .map(c => c.trim().split("=")[0])
+    .filter(match);
+  const bare = location.hostname.replace(/^www\./, "");
+  for (const name of names) {
+    for (const domain of ["", `; domain=${location.hostname}`, `; domain=.${bare}`]) {
+      // biome-ignore lint/suspicious/noDocumentCookie: Firefox has no Cookie Store API
+      document.cookie = `${name}=; Path=/; Max-Age=0${domain}`;
+    }
+  }
+}
 /* PostHog's cookie and storage removed, so a reader who turns replay off leaves nothing of it behind */
 function forgetPostHog() {
   try {
-    const names = document.cookie
-      .split(";")
-      .map(c => c.trim().split("=")[0])
-      .filter(n => n.startsWith("ph_"));
-    const bare = location.hostname.replace(/^www\./, "");
-    for (const name of names) {
-      for (const domain of ["", `; domain=${location.hostname}`, `; domain=.${bare}`]) {
-        // biome-ignore lint/suspicious/noDocumentCookie: Firefox has no Cookie Store API
-        document.cookie = `${name}=; Path=/; Max-Age=0${domain}`;
-      }
-    }
+    dropCookies(name => name.startsWith("ph_"));
     for (const store of [localStorage, sessionStorage]) {
       for (const key of Object.keys(store))
         if (key.startsWith("ph_") || key.startsWith("__ph_")) store.removeItem(key);
@@ -260,16 +299,20 @@ function apply() {
     keepAttribution();
     if (!pageSent && lastPage !== null) sendPage();
     signInConversions();
-  } else {
-    queued = [];
-    if (enabled() && preferences && !preferences.categories.analytics) {
-      try {
-        // biome-ignore lint/suspicious/noDocumentCookie: Firefox has no Cookie Store API
-        document.cookie = "gb_attr=; Path=/; Max-Age=0; SameSite=Lax; Secure";
-        localStorage.removeItem(LOGIN_KEY);
-      } catch {
-        /* nothing was kept */
-      }
+  } else queued = [];
+  /* the first visit's cookie and the sign-in's marker link a visit to its person: they go once Marketing, or the
+     Analytics it rides on, is off */
+  const linked =
+    preferences?.categories.analytics && preferences.categories.marketing && !browserOptedOut();
+  if (enabled() && preferences && !linked) {
+    try {
+      // biome-ignore lint/suspicious/noDocumentCookie: Firefox has no Cookie Store API
+      document.cookie = "gb_attr=; Path=/; Max-Age=0; SameSite=Lax; Secure";
+      localStorage.removeItem(LOGIN_KEY);
+      /* and with Analytics off, the visit counts Zaraz kept for GA4 */
+      if (!preferences.categories.analytics) dropCookies(name => name.includes("google-analytics"));
+    } catch {
+      /* nothing was kept */
     }
   }
   if (replayAllowed()) {
@@ -314,7 +357,12 @@ function loadRecorder(): Promise<void> {
               maskAllInputs: true,
               maskTextSelector: "*",
               blockClass: "ph-no-capture",
-              blockSelector: "img, picture, video, canvas"
+              blockSelector: "img, picture, video, canvas",
+              /* the addresses a recording keeps of its pages */
+              maskCapturedNetworkRequestFn: request => ({
+                ...request,
+                name: request.name && recordedAddress(request.name)
+              })
             },
             loaded: loaded =>
               setTimeout(() => {
@@ -347,8 +395,12 @@ export function initializeAnalytics(): void {
     preferences = (event as CustomEvent<Consent>).detail;
     apply();
   });
+  /* the reader's answer to the privacy banner is no use of the page: Reject all would otherwise start analytics, under
+     a rule that tells, as it is pressed. The next press counts, and a key that only moves the keyboard to the banner,
+     Tab or a modifier, is no use either */
   const interact = (event: Event) => {
-    if (!event.isTrusted) return;
+    if (!event.isTrusted || (event.target as Element | null)?.closest?.("[data-consent]")) return;
+    if (event.type === "keydown" && PASSING_KEYS.has((event as KeyboardEvent).key)) return;
     interacted = true;
     apply();
     document.removeEventListener("pointerdown", interact, true);
@@ -398,10 +450,10 @@ export function trackEvent(name: string, properties: Record<string, unknown> = {
 /** A press that needs an account, made signed out. */
 export const trackSignInPrompt = (reason: "like" | "vote" | "saved" | "menu" | "search"): void =>
   trackEvent("sign_in_prompt", { reason });
-/** A sign-in pressed: counted as begun, and as done once the account arrives. */
+/** A sign-in pressed: counted as begun, and under Marketing as done once the account arrives. */
 export function trackLoginStart(method: "magic_link" | "google"): void {
   trackEvent("login_start", { method });
-  if (!analyticsAllowed()) return;
+  if (!marketingAllowed()) return;
   try {
     localStorage.setItem(LOGIN_KEY, JSON.stringify({ method, at: Date.now() }));
   } catch {

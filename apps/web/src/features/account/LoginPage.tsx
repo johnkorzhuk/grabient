@@ -277,7 +277,7 @@ export function LoginPage(props: {
       note={
         <p class={styles.legal}>
           {rich(
-            "By continuing you agree to the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",
+            "By continuing you agree to the <terms>Terms of Service</terms>. The <privacy>Privacy Policy</privacy> says how your information is used.",
             {
               terms: words => (
                 <a class={link.inline} href={localHref("/terms")}>

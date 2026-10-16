@@ -1,6 +1,6 @@
 /* A new account's first visit, as the site's own `gb_attr` cookie kept it ({s, m, c, r, l, t}): where the visitor came
    from, by what, which campaign, the referring site, the first page, and when. The cookie is written only with the
-   visitor's consent to analytics, and read once, when the account is made. */
+   visitor's consent to marketing, and read once, when the account is made. */
 
 const FIELDS = {
   s: "attributionSource",

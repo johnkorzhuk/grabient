@@ -268,7 +268,11 @@ function Ready(props: { page: Extract<ConsentPage, { state: "ready" }>; language
           {bylineWords(app.byline)}
         </Text>
       </div>
-      <Text variant="body">{t("It can see and change your saved palettes and collections.")}</Text>
+      <Text variant="body">
+        {t(
+          "It can see your name and username, and see and change your saved palettes and collections."
+        )}
+      </Text>
       <div class={styles.account}>
         {/* the address beside it says whose: the letter is not read out a second time */}
         <span aria-hidden="true">

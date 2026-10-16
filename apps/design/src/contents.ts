@@ -75,7 +75,10 @@ const COMPONENTS: readonly Group[] = [
   },
   {
     name: "Feedback",
-    entries: [{ id: "tooltip", title: "Tooltip" }]
+    entries: [
+      { id: "tooltip", title: "Tooltip" },
+      { id: "consent", title: "Consent banner" }
+    ]
   },
   {
     name: "Content",

@@ -332,6 +332,31 @@ describe("signing in by an emailed code", () => {
     expect(made).toEqual({ name: "", image: null });
     expect((await handleAuth(post(CODE_SIGN_IN, { email, otp: next }), env)).status).not.toBe(200);
   });
+
+  it("keeps where the request comes from, which a new account's newsletter waits by", async () => {
+    const env = testEnv();
+    /* newsletter_opt_in as the library writes it for an account made from there */
+    const made = async (cf?: { country: string }) => {
+      const email = `${unique("place")}@example.test`;
+      expect((await handleAuth(post(CODE, { email, type: "sign-in" }), env)).status).toBe(200);
+      const signedIn = await handleAuth(
+        post(CODE_SIGN_IN, { email, otp: env.EMAIL.code }, { cf }),
+        env
+      );
+      expect(signedIn.status).toBe(200);
+      const row = await env.DB.prepare(
+        "SELECT newsletter_opt_in AS waits FROM auth_user WHERE email = ?"
+      )
+        .bind(email)
+        .first<{ waits: number | null }>();
+      return row?.waits;
+    };
+    expect([await made({ country: "GB" }), await made(), await made({ country: "US" })]).toEqual([
+      1,
+      1,
+      null
+    ]);
+  });
 });
 
 describe("Google", () => {

@@ -48,7 +48,9 @@ describe("the consent page", () => {
     const html = renderToString(() => <ConnectPage page={ready({}, true)} />);
     const text = words(html);
     expect(text).toContain("Connect an app Claude Published by claude.ai");
-    expect(text).toContain("It can see and change your saved palettes and collections.");
+    expect(text).toContain(
+      "It can see your name and username, and see and change your saved palettes and collections."
+    );
     expect(text).toContain("ada@example.com Not you? Use another account");
     expect(text).toContain("Admin tools Publish and schedule palettes and collections");
     expect(text).toContain("Cancel Allow");

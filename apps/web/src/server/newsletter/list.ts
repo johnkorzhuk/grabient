@@ -10,9 +10,11 @@ import {
 import { batch, first } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 
-/* The newsletter's list (migration 0051). An account gets the newsletter until it says otherwise: with no row, or a row
-   that holds no choice, it is subscribed. It ends in Settings, on the page every issue links to, or by a mail app's own
-   button, at once. Nothing here asks the rate limiter, so the newsletter can be ended while the limiter is down. */
+/* The newsletter's list (migrations 0051 and 0057). An account gets the newsletter until it says otherwise: with no
+   row, or a row that holds no choice, it is subscribed. An account made where the law asks for a yes first
+   (newsletter_opt_in) is the other way round: it gets none until it turns the newsletter on in Settings. It ends in
+   Settings, on the page every issue links to, or by a mail app's own button, at once. Nothing here asks the rate
+   limiter, so the newsletter can be ended while the limiter is down. */
 
 /** Where a choice was made: Settings, the unsubscribe page, or a mail app's own button (RFC 8058). */
 export type ChoiceSource = "settings" | "page" | "mail-app";
@@ -21,16 +23,18 @@ const newToken = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(32)), byte =>
     byte.toString(16).padStart(2, "0")
   ).join("");
-/* A row with no choice, or no row, is a subscription: what the SQL below reads with COALESCE(subscribed, 1). */
-const subscribedBy = (held: number | null | undefined) => held !== 0;
+/* Whether an account gets the newsletter, 1 or 0, over `auth_user u LEFT JOIN k_newsletter n`: its own choice, or with
+   none the newsletter unless the account waits for its yes. */
+const SUBSCRIBED = "COALESCE(n.subscribed, NOT u.newsletter_opt_in, 1)";
+const ACCOUNT = "auth_user u LEFT JOIN k_newsletter n ON n.user_id = u.id WHERE u.id = ?";
 
 export async function isSubscribed(env: Pick<Env, "DB">, userId: string): Promise<boolean> {
-  const row = await first<{ subscribed: number | null }>(
+  const row = await first<{ subscribed: number }>(
     env.DB,
-    "SELECT subscribed FROM k_newsletter WHERE user_id = ?",
+    `SELECT ${SUBSCRIBED} AS subscribed FROM ${ACCOUNT}`,
     userId
   );
-  return subscribedBy(row?.subscribed);
+  return row?.subscribed !== 0;
 }
 
 /** The account's choice, kept with where it was made, in one transaction that writes nothing when the choice is
@@ -43,7 +47,7 @@ export async function setSubscribed(
 ): Promise<void> {
   const value = subscribed ? 1 : 0;
   const now = Date.now();
-  const changes = "COALESCE((SELECT subscribed FROM k_newsletter WHERE user_id = ?), 1) <> ?";
+  const changes = `(SELECT ${SUBSCRIBED} FROM ${ACCOUNT}) <> ?`;
   await batch(env.DB, [
     [
       `INSERT INTO k_newsletter_events (user_id, subscribed, source, at) SELECT ?, ?, ?, ? WHERE ${changes}`,
@@ -86,12 +90,14 @@ export interface Reader {
 }
 interface Choice {
   token: string | null;
-  subscribed: number | null;
+  /** 1 or 0, as SUBSCRIBED reads it */
+  subscribed: number;
 }
 
-/** One account as a reader, or null when it ended the newsletter or does not exist. An account no issue was addressed
+/** One account as a reader, or null when it gets no newsletter or does not exist. An account no issue was addressed
     to before gets its row here, a token and no choice, read back in the same transaction: one that chose at that
-    moment keeps the token its choice wrote, and is left out if it ended the newsletter. */
+    moment keeps the token its choice wrote, and is left out if it ended the newsletter. An account that waits for its
+    yes gets no row until it chooses. */
 export async function readerOf(
   env: Pick<Env, "DB">,
   origin: string,
@@ -99,10 +105,10 @@ export async function readerOf(
 ): Promise<Reader | null> {
   const account = await first<Choice & { email: string; locale: string | null }>(
     env.DB,
-    "SELECT u.email, u.locale, n.token, n.subscribed FROM auth_user u LEFT JOIN k_newsletter n ON n.user_id = u.id WHERE u.id = ?",
+    `SELECT u.email, u.locale, n.token, ${SUBSCRIBED} AS subscribed FROM ${ACCOUNT}`,
     userId
   );
-  if (!account) return null;
+  if (!account?.subscribed) return null;
   let choice: Choice | undefined = account;
   if (!account.token) {
     const results = await batch(env.DB, [
@@ -112,11 +118,11 @@ export async function readerOf(
         newToken(),
         Date.now()
       ],
-      ["SELECT token, subscribed FROM k_newsletter WHERE user_id = ?", userId]
+      [`SELECT n.token, ${SUBSCRIBED} AS subscribed FROM ${ACCOUNT}`, userId]
     ]);
     choice = results.at(-1)?.results?.[0] as Choice | undefined;
   }
-  if (!choice?.token || !subscribedBy(choice.subscribed)) return null;
+  if (!choice?.token || !choice.subscribed) return null;
   const locale = isLocale(account.locale) ? account.locale : DEFAULT_LOCALE;
   return {
     email: account.email,

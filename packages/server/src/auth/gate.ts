@@ -49,12 +49,18 @@ const BODY_MAX = 2048;
 const EMAIL_BUSY = "Email sign-in is busy. Try again later.";
 const EMAIL_BUSY_GOOGLE = "Email sign-in is busy. Try again later or use Google.";
 
-/** The same request carrying only the fields a route may pass on. */
+/** The same request carrying only the fields a route may pass on, and where it comes from, which a new account's
+    newsletter is decided by (library.ts). */
 function withBody(request: Request, body: Record<string, unknown>): Request {
   const headers = new Headers(request.headers);
   headers.set("Content-Type", "application/json");
   headers.delete("Content-Length");
-  return new Request(request.url, { method: request.method, headers, body: JSON.stringify(body) });
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: JSON.stringify(body),
+    cf: request.cf
+  });
 }
 
 const strings = (body: Record<string, unknown>, keys: readonly string[]) =>

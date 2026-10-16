@@ -29,7 +29,7 @@ It can:
 
 Every palette has its own page on grabient.com, with its CSS, SVG, PNG and JSON files.
 
-When you add Grabient, it asks you to sign in to your Grabient account and allow the app, which can then see and change your saved palettes and collections. It stays connected until you disconnect it or don't use it for a year. Your collections are private. New palettes you save join the public gallery, without your name.`;
+When you add Grabient, it asks you to sign in to your Grabient account and allow the app, which can then see your name and username, and see and change your saved palettes and collections. It stays connected until you disconnect it or don't use it for a year. Your collections are private. New palettes you save join the public gallery, without your name.`;
 
 const listing = {
   displayName: "Grabient",

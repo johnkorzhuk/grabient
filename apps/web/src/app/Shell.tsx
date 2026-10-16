@@ -1,4 +1,4 @@
-import { localHref, msg, t } from "@grabient/i18n";
+import { delocalizePath, localHref, msg, t } from "@grabient/i18n";
 import { Backdrop } from "@grabient/ui/Backdrop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { BarLight } from "@grabient/ui/contexts.ts";
@@ -22,9 +22,19 @@ import {
 } from "@grabient/ui/theme.ts";
 import { Dynamic } from "@solidjs/web";
 import { Outlet, useLoaderData, useLocation, useMatches, useRouter } from "@tanstack/solid-router";
-import { createEffect, createMemo, createSignal, onSettled, Show, untrack } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  Loading,
+  lazy,
+  onSettled,
+  Show,
+  untrack
+} from "solid-js";
 import { account } from "../features/account/session.ts";
-import { trackEvent } from "../features/analytics/analytics.ts";
+import { trackEvent, withheld } from "../features/analytics/analytics.ts";
+import { consentDue } from "../features/analytics/consent.ts";
 import {
   AppearanceContext,
   createAppearance,
@@ -38,6 +48,7 @@ import { hexesOf } from "../lib/palette.ts";
 import { AccountMenu } from "./AccountMenu.tsx";
 import { offline, watchConnection } from "./connection.ts";
 import { EmbedNotice } from "./EmbedNotice.tsx";
+import { framed } from "./framed.ts";
 import { createSiteKeys } from "./keys.ts";
 import { pageInEveryLanguage } from "./language.ts";
 import { watchNavigation } from "./navigation.ts";
@@ -48,13 +59,16 @@ import { Toast } from "./Toast.tsx";
 import { walkSelection } from "./undo.ts";
 import { createWater } from "./water.ts";
 
-/* The frame every page stands in, mounted once and kept as pages change under it: the water behind the page, the
-   header with the wordmark and its corner, the keys, the line toasts write to, and the embed notice. A route says how
-   it is framed (shell.ts); the page's own content, with its footer, is the Outlet. */
+/* The frame every page stands in, mounted once and kept as pages change under it: the privacy banner, the water behind
+   the page, the header with the wordmark and its corner, the keys, the line toasts write to, and the embed notice. A
+   route says how it is framed (shell.ts); the page's own content, with its footer, is the Outlet. */
 
 /** The bar reads at most this many palettes. */
 const PAINTED = 8;
 const THEME = keyRow("theme")!;
+const ConsentBanner = lazy(() =>
+  import("./ConsentBanner.tsx").then(m => ({ default: m.ConsentBanner }))
+);
 
 /** The header's word for a page with no connection. */
 const offlineStatus = () => (offline() ? t("Offline") : undefined);
@@ -163,12 +177,27 @@ export function Shell() {
       : { href: localHref(inView("/")), label: t("home") };
   /* under reduced motion only the brand pages whose sheet stands on the water keep it, as one still frame */
   const waterOff = () => reducedMotion() && !page().options.still && !page().options.moving;
+  /* the privacy banner, while the reader's region wants it and this browser holds no choice (consent.ts). The server
+     draws none, since every reader is sent the same page, so it waits for the frame to be live. It stays out of
+     another site's frame, out of the pages analytics stays out of, and off Settings, whose Privacy section holds every
+     choice */
+  const consentShown = () =>
+    live() &&
+    consentDue() &&
+    delocalizePath(location().pathname).path !== "/settings" &&
+    !withheld() &&
+    !framed();
 
   return (
     <ShellContext value={shell}>
       <AppearanceContext value={look}>
         <PageRoot>
           <SkipLink />
+          <Show when={consentShown()}>
+            <Loading>
+              <ConsentBanner strip={!!page().options.strip} />
+            </Loading>
+          </Show>
           <Shader
             bar={() => bar}
             paint={water.paint()}

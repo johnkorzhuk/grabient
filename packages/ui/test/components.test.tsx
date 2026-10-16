@@ -10,6 +10,7 @@ import { Button } from "../src/Button.tsx";
 import { CodeLines } from "../src/CodeBlock.tsx";
 import { CodeTabs } from "../src/CodeTabs.tsx";
 import { Coins } from "../src/Coins.tsx";
+import { ConsentBanner } from "../src/ConsentBanner.tsx";
 import { CopyButton } from "../src/CopyButton.tsx";
 import { CopyLine } from "../src/CopyLine.tsx";
 import { BarLight } from "../src/contexts.ts";
@@ -513,6 +514,37 @@ describe("surfaces and feedback", () => {
         "span"
       ).style
     ).toBeUndefined();
+  });
+
+  test("the privacy banner is a named landmark with its rule's words, two links, and two answers alike", () => {
+    const banner = (rule: "ask" | "tell", strip?: boolean) =>
+      html(() => (
+        <ConsentBanner
+          rule={rule}
+          choose="/settings#privacy"
+          privacy="/privacy"
+          strip={strip}
+          onChoose={noop}
+        />
+      ));
+    const asks = banner("ask");
+    expect(tag(asks, "aside")).toMatchObject({
+      "aria-label": "Privacy choices",
+      "data-consent": ""
+    });
+    // it takes no focus and is read when reached, never as it arrives
+    expect(asks).not.toMatch(/aria-live|tabindex|role=/);
+    expect(text(asks)).toBe(
+      "To improve Grabient, Google Analytics can count your visits and link them to your account, and session replay can record them with all text hidden. Nothing runs until you choose. Choose · Privacy PolicyReject allAccept all"
+    );
+    expect(tags(asks, "a").map(a => a.href)).toEqual(["/settings#privacy", "/privacy"]);
+    const [reject, accept] = tags(asks, "button");
+    expect(reject).toEqual(accept);
+    expect(reject).toMatchObject({ type: "button", "data-variant": "secondary", "data-full": "" });
+    expect(text(banner("tell"))).toContain(
+      "To improve Grabient, Google Analytics counts visits. Accept all also links them to your account and records them with all text hidden."
+    );
+    expect(tag(banner("tell", true), "aside")["data-strip"]).toBe("");
   });
 
   test("a tooltip's wrapper has no box of its own", () => {

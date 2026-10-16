@@ -3,6 +3,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { captcha, emailOTP, magicLink } from "better-auth/plugins";
 import { drizzle } from "drizzle-orm/d1";
+import { consentRule, type Place } from "../consent.ts";
 import { batch } from "../db/d1.ts";
 import { mailAccount } from "../email/send.ts";
 import type { Env } from "../env.ts";
@@ -102,7 +103,12 @@ function createAuth(env: Env) {
               name: String(user.name ?? "")
                 .trim()
                 .slice(0, NAME_MAX),
-              ...attribution(context?.request?.headers ?? context?.headers)
+              ...attribution(context?.request?.headers ?? context?.headers),
+              /* where the law asks for a yes first, or where the request comes from is unknown, the newsletter waits
+                 for the account's own yes (apps/web/src/server/newsletter/list.ts) */
+              ...(consentRule((context?.request as { cf?: Place } | undefined)?.cf) === "none"
+                ? {}
+                : { newsletterOptIn: true })
             }
           })
         }
@@ -157,7 +163,8 @@ function createAuth(env: Env) {
         attributionCampaign: { type: "string", required: false, input: false },
         attributionReferrer: { type: "string", required: false, input: false },
         attributionLanding: { type: "string", required: false, input: false },
-        attributionAt: { type: "date", required: false, input: false }
+        attributionAt: { type: "date", required: false, input: false },
+        newsletterOptIn: { type: "boolean", required: false, input: false }
       },
       deleteUser: {
         enabled: true,

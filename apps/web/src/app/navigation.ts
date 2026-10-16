@@ -1,6 +1,6 @@
 import { delocalizePath, isPagePath, t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
-import { focusMain } from "@grabient/ui/SkipLink.tsx";
+import { focusMain, landFocus } from "@grabient/ui/SkipLink.tsx";
 import { type AnyRouter, type HistoryLocation, useRouterState } from "@tanstack/solid-router";
 import { createSignal, untrack } from "solid-js";
 import { pageKey, trackPageView } from "../features/analytics/analytics.ts";
@@ -127,6 +127,18 @@ export function guardNavigation(): void {
   addEventListener("error", watchPulse);
 }
 
+/* an address to a part of its page (Settings' #privacy) lands the keyboard on that part */
+function focusPart(hash: string): boolean {
+  let id = hash.replace(/^#/, "");
+  try {
+    id = decodeURIComponent(id);
+  } catch {
+    /* the hash as written */
+  }
+  const part = id ? document.getElementById(id) : null;
+  return !!part && landFocus(part);
+}
+
 const shown = (selector: string) =>
   [...document.querySelectorAll<HTMLElement>(selector)].find(el => el.offsetParent !== null) ??
   null;
@@ -177,7 +189,7 @@ export function watchNavigation(router: AnyRouter): () => void {
         if (!document.activeElement || document.activeElement === document.body)
           focusLanding(tries - 1);
       }, 50);
-    else focusMain();
+    else if (!focusPart(location.hash)) focusMain();
   };
   /* the selection keeps the title of the page it stands over, so it is told by its own name */
   const land = () => {

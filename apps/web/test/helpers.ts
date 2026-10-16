@@ -1,5 +1,6 @@
 import { env as bound } from "cloudflare:workers";
 import { authFor } from "@grabient/server/auth/library.ts";
+import type { Place } from "@grabient/server/consent.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 
@@ -128,6 +129,8 @@ type Init = {
   ip?: string;
   origin?: string | null;
   headers?: Record<string, string>;
+  /** where Cloudflare places the request: none, as no deploy receives one, unless a test says */
+  cf?: Place;
 };
 
 function headersOf(init: Init): Headers {
@@ -138,7 +141,7 @@ function headersOf(init: Init): Headers {
 }
 
 export function get(path: string, init: Init = {}): Request {
-  return new Request(new URL(path, ORIGIN), { headers: headersOf(init) });
+  return new Request(new URL(path, ORIGIN), { headers: headersOf(init), cf: init.cf });
 }
 
 /** A JSON POST from the site's own page, unless `origin` says otherwise. */
@@ -149,7 +152,8 @@ export function post(path: string, body: unknown, init: Init = {}): Request {
   return new Request(new URL(path, ORIGIN), {
     method: "POST",
     headers,
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    cf: init.cf
   });
 }
 

@@ -26,6 +26,33 @@ const env = {
   BETTER_AUTH_SECRET: "the smoke tests' own secret, not a deploy's",
   REVIEWER_EMAIL: "reviewer@grabient.test"
 };
+/* A local server places a request wherever this machine is, so the privacy banner could stand over the foot of every
+   page: each test starts as a reader who answered it, everything off, but the banner's own (consent.spec.ts). */
+const answered = (base: string) => ({
+  cookies: [],
+  origins: [
+    {
+      origin: base,
+      localStorage: [
+        {
+          name: "consent-preferences",
+          value: JSON.stringify({
+            version: 3,
+            timestamp: Date.now(),
+            hasInteracted: true,
+            isGdprRegion: false,
+            categories: {
+              necessary: true,
+              analytics: false,
+              sessionReplay: false,
+              marketing: false
+            }
+          })
+        }
+      ]
+    }
+  ]
+});
 
 export default defineConfig({
   testDir: ".",
@@ -35,8 +62,16 @@ export default defineConfig({
   reporter: "list",
   use: { baseURL: origin },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] }, grepInvert: /@served/ },
-    { name: "served", use: { ...devices["Desktop Chrome"], baseURL: served }, grep: /@served/ }
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"], storageState: answered(origin) },
+      grepInvert: /@served/
+    },
+    {
+      name: "served",
+      use: { ...devices["Desktop Chrome"], baseURL: served, storageState: answered(served) },
+      grep: /@served/
+    }
   ],
   webServer: [
     {

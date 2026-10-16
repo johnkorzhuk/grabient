@@ -21,3 +21,8 @@ export const BOOT_SCRIPT = `(function(r){var t,v="";function end(){clearTimeout(
 
 /** An editor stands, or none will: the mark goes. */
 export const endBoot = (): void => window.__seedBoot?.();
+
+/** Whether the page draws the editor's first screen while its code loads, its stops along the screen's foot as the
+    editor's will be. False on the server. */
+export const booting = (): boolean =>
+  typeof document !== "undefined" && document.documentElement.hasAttribute(BOOT_MARK);

@@ -19,6 +19,7 @@ export const auth_user = sqliteTable("auth_user", {
   attributionReferrer: text("attribution_referrer"),
   attributionLanding: text("attribution_landing"),
   attributionAt: time("attribution_at"),
+  newsletterOptIn: integer("newsletter_opt_in", { mode: "boolean" }),
   createdAt: time("created_at").notNull(),
   updatedAt: time("updated_at").notNull()
 });

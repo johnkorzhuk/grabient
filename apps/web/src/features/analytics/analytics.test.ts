@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { accountKey, cleanPage, pageKey } from "./analytics.ts";
+import { accountKey, cleanPage, pageKey, pathOf } from "./analytics.ts";
 import { readConsent } from "./consent.ts";
 
 test("GA4 knows an account by a 64-bit hash of its id, the same one the site always sent", () => {
@@ -20,6 +20,14 @@ test("a page's address keeps its view and page, and a visit's first page its cam
   ).toBe("https://grabient.com/ja/palettes?utm_source=news&utm_medium=email");
 });
 
+test("an account's collection is named by its kind, never by its address, which names its owner", () => {
+  expect(cleanPage("https://grabient.com/@ana/greens?style=linearSwatches")).toBe(
+    "https://grabient.com/@/collection?style=linearSwatches"
+  );
+  expect(pathOf("/ja/@ana/greens/rising")).toBe("/ja/@/collection");
+  expect(pathOf("/palettes")).toBe("/palettes");
+});
+
 test("a page is counted by its address and its words, never its view or its language", () => {
   expect(pageKey("/ja/palettes", "?style=radialGradient&page=2")).toBe("/palettes");
   expect(pageKey("/palettes", "?q=blue&steps=9")).toBe("/palettes\nblue");
@@ -29,7 +37,7 @@ test("a page is counted by its address and its words, never its view or its lang
 test("a choice the reader made stands; one never made is decided again", () => {
   const made = {
     version: 3,
-    timestamp: 1,
+    timestamp: Date.now(),
     hasInteracted: true,
     isGdprRegion: false,
     categories: { necessary: true, analytics: false, sessionReplay: true, marketing: true }
@@ -38,6 +46,10 @@ test("a choice the reader made stands; one never made is decided again", () => {
   expect(readConsent(JSON.stringify({ ...made, hasInteracted: false }))).toBeNull();
   expect(readConsent(JSON.stringify({ ...made, version: 2 }))).toBeNull();
   expect(readConsent("{not json")).toBeNull();
+  /* asked again after 13 months */
+  expect(
+    readConsent(JSON.stringify({ ...made, timestamp: Date.now() - 400 * 86_400_000 }))
+  ).toBeNull();
   /* made before Marketing had a switch: the old advertising switch, else analytics outside the strict regions */
   const { marketing: _, ...older } = made.categories;
   expect(

@@ -1,4 +1,6 @@
 import { addCatalog, messageKey, translate } from "@grabient/i18n";
+import { handleAuth } from "@grabient/server/auth/gate.ts";
+import type { Place } from "@grabient/server/consent.ts";
 import { first, run } from "@grabient/server/db/d1.ts";
 import { flagOff, PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -17,12 +19,15 @@ import {
 } from "../src/server/newsletter/routes.ts";
 import {
   type Account,
+  address,
   bodyOf,
+  cookiesOf,
   count,
   get,
   makeAccount,
   makeAdmin,
   ORIGIN,
+  post,
   type TestEnv,
   testEnv,
   unique
@@ -321,6 +326,70 @@ describe("an issue's reader", () => {
     );
     expect(await readerOf(env, ORIGIN, dee.id)).toBeNull();
     expect(await readerOf(env, ORIGIN, unique("nobody"))).toBeNull();
+  });
+});
+
+/** An account the sign-in library makes as its emailed link is opened from a place, or from nowhere known. */
+async function madeFrom(env: TestEnv, cf?: Place): Promise<Account> {
+  const email = `${unique("new")}@example.test`;
+  const ip = address();
+  const asked = await handleAuth(
+    post("/api/auth/sign-in/magic-link", { email, callbackURL: "/" }, { ip }),
+    env
+  );
+  expect(asked.status).toBe(200);
+  const opened = await handleAuth(
+    get(env.EMAIL.link("/api/auth/magic-link/verify").href, { ip, cf }),
+    env
+  );
+  expect(opened.status).toBe(302);
+  const made = await first<{ id: string }>(
+    env.DB,
+    "SELECT id FROM auth_user WHERE email = ?",
+    email
+  );
+  if (!made) throw new Error("No account was made");
+  return { id: made.id, email, cookie: cookiesOf(opened) };
+}
+
+describe("a new account's newsletter", () => {
+  it("waits for a yes where the law asks for one first, and comes from the start elsewhere", async () => {
+    const env = newsletterEnv();
+    const fr = await madeFrom(env, { country: "FR", isEUCountry: "1" });
+    const gb = await madeFrom(env, { country: "GB" });
+    const nowhere = await madeFrom(env);
+    const us = await madeFrom(env, { country: "US", regionCode: "CA" });
+    for (const account of [fr, gb, nowhere])
+      expect(await choice(env, account)).toEqual({ subscribed: false });
+    expect(await choice(env, us)).toEqual({ subscribed: true });
+    // no issue reaches an account that waits, and none writes it a row
+    expect(await readerOf(env, ORIGIN, fr.id)).toBeNull();
+    expect(await rowOf(env, fr.id)).toBeNull();
+    expect((await readerOf(env, ORIGIN, us.id))?.email).toBe(us.email);
+    // a no where the newsletter never came changes nothing
+    expect(await bodyOf(await set(env, gb, false))).toEqual({ subscribed: false });
+    expect(await eventsOf(env, gb.id)).toEqual([]);
+  });
+
+  it("comes once the account says yes in Settings, which is logged as its choice", async () => {
+    const sent = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(Response.json({ id: "resend-id" }));
+    const env = newsletterEnv();
+    const fr = await madeFrom(env, { country: "FR", isEUCountry: "1" });
+    await run(env.DB, "UPDATE auth_user SET role = 'admin' WHERE id = ?", fr.id);
+    const test = () =>
+      testResponse(json("POST", "/api/me/newsletter/test", {}, { cookie: fr.cookie }), env);
+    expect((await test()).status).toBe(409);
+    expect(await bodyOf(await set(env, fr, true))).toEqual({ subscribed: true });
+    expect(await eventsOf(env, fr.id)).toEqual(["settings:1"]);
+    expect(await choice(env, fr)).toEqual({ subscribed: true });
+    const done = await test();
+    expect([done.status, await bodyOf(done)]).toEqual([200, { sent: true }]);
+    expect(sent).toHaveBeenCalledTimes(1);
+    // and goes again at a no, as anyone's does
+    expect(await bodyOf(await set(env, fr, false))).toEqual({ subscribed: false });
+    expect(await readerOf(env, ORIGIN, fr.id)).toBeNull();
   });
 });
 
