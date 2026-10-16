@@ -1,7 +1,7 @@
 import { all, batch, first, replica, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff, listFlags, setFlag } from "@grabient/server/flags/flags.ts";
-import { FLAG_NAMES } from "@grabient/server/flags/names.ts";
+import { FLAG_NAMES, STARTS_OFF } from "@grabient/server/flags/names.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeAdmin, testEnv, unique } from "./helpers.ts";
@@ -31,12 +31,28 @@ afterEach(async () => {
 });
 
 describe("flags", () => {
-  it("are all on until an admin turns one off", async () => {
+  it("are on until an admin turns one off, but for the newsletter, which waits for an admin to turn it on", async () => {
     const { env } = isolate();
-    for (const name of FLAG_NAMES) expect([name, await flagOff(env, name)]).toEqual([name, false]);
+    expect(STARTS_OFF).toEqual(["newsletter"]);
+    for (const name of FLAG_NAMES)
+      expect([name, await flagOff(env, name)]).toEqual([name, STARTS_OFF.includes(name)]);
     expect((await listFlags(env)).map(flag => [flag.name, flag.on])).toEqual(
-      FLAG_NAMES.map(name => [name, true])
+      FLAG_NAMES.map(name => [name, !STARTS_OFF.includes(name)])
     );
+  });
+
+  it("let an admin turn one that starts off on for every isolate, and off again", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const reader = isolate();
+    expect(await flagOff(reader.env, "newsletter")).toBe(true);
+    const { env } = isolate();
+    await setFlag(env, "newsletter", true, unique("admin"));
+    expect(await flagOff(env, "newsletter")).toBe(false);
+    expect((await listFlags(env)).find(flag => flag.name === "newsletter")?.on).toBe(true);
+    vi.advanceTimersByTime(30_001);
+    expect(await flagOff(reader.env, "newsletter")).toBe(false);
+    await setFlag(env, "newsletter", false, unique("admin"));
+    expect(await flagOff(env, "newsletter")).toBe(true);
   });
 
   it("change at once in the isolate that wrote, and say who changed them", async () => {
@@ -70,18 +86,23 @@ describe("flags", () => {
     expect(await flagOff(reader.env, "mcp")).toBe(true);
   });
 
-  it("keep what was last read while the table cannot be read, and stay on if never read", async () => {
+  it("keep what was last read while the table cannot be read, and stay as they start if never read", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     const writer = isolate();
-    await setFlag(writer.env, "newsletter", false, unique("admin"));
+    await setFlag(writer.env, "share-images", false, unique("admin"));
+    await setFlag(writer.env, "newsletter", true, unique("admin"));
     const reader = isolate();
-    expect(await flagOff(reader.env, "newsletter")).toBe(true);
+    expect(await flagOff(reader.env, "share-images")).toBe(true);
+    expect(await flagOff(reader.env, "newsletter")).toBe(false);
     reader.broken = true;
     vi.advanceTimersByTime(30_001);
-    expect(await flagOff(reader.env, "newsletter")).toBe(true);
+    expect(await flagOff(reader.env, "share-images")).toBe(true);
+    expect(await flagOff(reader.env, "newsletter")).toBe(false);
+    // an outage never turns a feature off, nor on one that waits for an admin
     const never = isolate();
     never.broken = true;
-    expect(await flagOff(never.env, "newsletter")).toBe(false);
+    expect(await flagOff(never.env, "share-images")).toBe(false);
+    expect(await flagOff(never.env, "newsletter")).toBe(true);
   });
 });
 

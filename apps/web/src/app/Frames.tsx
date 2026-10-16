@@ -2,7 +2,7 @@ import { localHref, t } from "@grabient/i18n";
 import { Footer } from "@grabient/ui/Footer.tsx";
 import { type FrameLink, PageFrame } from "@grabient/ui/PageFrame.tsx";
 import { type Element, onSettled, Show, useContext } from "solid-js";
-import { account } from "../features/account/session.ts";
+import { account, isAdmin } from "../features/account/session.ts";
 import { inView } from "../features/list/appearance.ts";
 import { offline } from "./connection.ts";
 import styles from "./Frames.module.css";
@@ -92,7 +92,7 @@ export function BrandFrame(props: {
     props.page && props.page !== "privacy" && props.page !== "terms" ? props.page : null;
   return (
     <PageFrame
-      nav={navLinks(navPage(), site().stars, localHref)}
+      nav={navLinks(navPage(), site().stars, localHref, site().newsletter || isAdmin())}
       all={homeLink()}
       footer={footerLinks(footerPage(props.page), site().stars, localHref)}
       languages={<Languages />}

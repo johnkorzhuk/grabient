@@ -29,6 +29,7 @@ const env = {
 
 export default defineConfig({
   testDir: ".",
+  globalSetup: "./setup.ts",
   fullyParallel: true,
   forbidOnly: true,
   reporter: "list",

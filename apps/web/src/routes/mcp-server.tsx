@@ -2,6 +2,7 @@ import { localHref } from "@grabient/i18n";
 import { createFileRoute } from "@tanstack/solid-router";
 import { homeLink, Languages } from "../app/Frames.tsx";
 import { footerLinks, navLinks, siteFacts } from "../app/site.ts";
+import { isAdmin } from "../features/account/session.ts";
 import { McpServerPage } from "../features/connect/McpServer.tsx";
 import { PAGE } from "../lib/cache.ts";
 import { pageHead, siteOrigin } from "../lib/page-meta.ts";
@@ -18,7 +19,7 @@ function McpServer() {
   return (
     <McpServerPage
       origin={siteOrigin()}
-      nav={navLinks("mcp", site().stars, localHref)}
+      nav={navLinks("mcp", site().stars, localHref, site().newsletter || isAdmin())}
       all={homeLink()}
       footer={footerLinks("mcp", site().stars, localHref)}
       languages={<Languages />}

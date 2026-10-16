@@ -1,6 +1,6 @@
 import { addCatalog, messageKey, translate } from "@grabient/i18n";
 import { first, run } from "@grabient/server/db/d1.ts";
-import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
+import { flagOff, PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import { ISSUES } from "../src/server/newsletter/issues/index.ts";
@@ -351,28 +351,20 @@ describe("an admin's test issue", () => {
     // no switch refused it: a failure the owner's alert counts
     expect([unsent.status, unsent.headers.has(PAUSED)]).toEqual([503, false]);
     expect((await test({ ...env, RATE_LIMITER: down }, admin.cookie)).status).toBe(503);
-    await setFlag(env, "newsletter", false, admin.id);
-    try {
-      const off = await test(env, admin.cookie);
-      expect([off.status, await bodyOf(off)]).toEqual([
-        503,
-        { error: "The newsletter is turned off in Site features." }
-      ]);
-      expect(off.headers.get(PAUSED)).toBe("newsletter");
-      const token = await tokenOf(env, user);
-      expect((await mailApp(env, token)).status).toBe(200);
-    } finally {
-      await setFlag(env, "newsletter", true, admin.id);
-    }
+    // before the newsletter is on, unsubscribing works all the same
+    expect(await flagOff(env, "newsletter")).toBe(true);
+    const token = await tokenOf(env, user);
+    expect((await mailApp(env, token)).status).toBe(200);
     await set(env, admin, false);
     expect((await test(env, admin.cookie)).status).toBe(409);
     expect(sent).toEqual([]);
   });
 
-  it("sends this month's issue to the admin alone, with their own foot and a mail app's unsubscribe button", async () => {
+  it("sends this month's issue to the admin alone, with their own foot and a mail app's unsubscribe button, before the newsletter is on as after", async () => {
     const sent = resend();
     const env = newsletterEnv();
     const admin = await makeAdmin(env);
+    expect(await flagOff(env, "newsletter")).toBe(true);
     await run(env.DB, "UPDATE auth_user SET locale = 'ja' WHERE id = ?", admin.id);
     const done = await test(env, admin.cookie);
     expect([done.status, await bodyOf(done)]).toEqual([200, { sent: true }]);
@@ -435,8 +427,31 @@ describe("an admin's test issue", () => {
 });
 
 describe("the issues' answers", () => {
-  it("give everyone the published issues, two at a time, kept at the edge", async () => {
+  it("are no one's but an admin's until an admin turns the newsletter on, and kept nowhere", async () => {
     const env = newsletterEnv();
+    const user = await makeAccount(env);
+    const admin = await makeAdmin(env);
+    for (const cookie of [undefined, user.cookie]) {
+      const refused = await issuesResponse(get("/api/newsletter", cookie ? { cookie } : {}), env);
+      expect([refused.status, refused.headers.get(PAUSED)]).toEqual([404, "newsletter"]);
+      expect(refused.headers.get("Cache-Control")).toBe("private, no-store");
+    }
+    const early = await issuesResponse(get("/api/newsletter", { cookie: admin.cookie }), env);
+    expect([early.status, early.headers.get("Cache-Control")]).toEqual([200, "private, no-store"]);
+    expect((await bodyOf<{ issues: unknown[] }>(early)).issues.length).toBeGreaterThan(0);
+  });
+
+  it("give everyone the published issues once the newsletter is on, two at a time, kept at the edge", async () => {
+    const env = newsletterEnv();
+    const admin = await makeAdmin(env);
+    await setFlag(env, "newsletter", true, admin.id);
+    try {
+      await everyone(env);
+    } finally {
+      await setFlag(env, "newsletter", false, admin.id);
+    }
+  });
+  const everyone = async (env: TestEnv) => {
     const answer = await issuesResponse(get("/api/newsletter"), env);
     expect(answer.headers.get("CDN-Cache-Control")).toBe("max-age=300");
     const body = await bodyOf<{ issues: { number: number; title: string }[]; next: number | null }>(
@@ -453,7 +468,7 @@ describe("the issues' answers", () => {
       next: null
     });
     expect(await bodyOf(await issuesResponse(get("/api/newsletter?before=x"), env))).toEqual(body);
-  });
+  };
 
   it("give an admin alone the drafts, never kept", async () => {
     const env = newsletterEnv();
@@ -581,13 +596,13 @@ describe("an issue's lead", () => {
         chosen_by: admin.id
       });
       const page = await bodyOf<{ issues: { number: number; html: string }[] }>(
-        await issuesResponse(get("/api/newsletter"), env)
+        await issuesResponse(get("/api/newsletter", { cookie: admin.cookie }), env)
       );
       expect(ledWith(page.issues.find(issue => issue.number === 1)?.html ?? "")).toBe(extra);
       // a pick chosen trades places with the first
       await choose(env, { issue: 1, seed: picks[2] }, admin.cookie);
       const traded = await bodyOf<{ issues: { number: number; html: string }[] }>(
-        await issuesResponse(get("/api/newsletter"), env)
+        await issuesResponse(get("/api/newsletter", { cookie: admin.cookie }), env)
       );
       const html = traded.issues.find(issue => issue.number === 1)?.html ?? "";
       expect(ledWith(html)).toBe(picks[2]);
@@ -718,7 +733,7 @@ describe("an issue's quick tip", () => {
     });
     expect(await first(env.DB, "SELECT seed FROM k_newsletter_leads")).toBeNull();
     const page = await bodyOf<{ issues: { number: number; html: string }[] }>(
-      await issuesResponse(get("/api/newsletter"), env)
+      await issuesResponse(get("/api/newsletter", { cookie: admin.cookie }), env)
     );
     const published = page.issues.find(issue => issue.number === 1)?.html ?? "";
     expect(tipOf(published)).toBe(tipOf(another.html));

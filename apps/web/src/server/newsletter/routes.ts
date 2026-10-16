@@ -4,7 +4,7 @@ import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/htt
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { getSession, type Session } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { flagOff, pausedBy } from "@grabient/server/flags/flags.ts";
+import { pausedBy } from "@grabient/server/flags/flags.ts";
 import * as v from "valibot";
 import { Choice, Press, SheetChoice, UNSUBSCRIBE_TOKEN } from "../../features/newsletter/input.ts";
 import { PAGE } from "../../lib/cache.ts";
@@ -12,6 +12,7 @@ import { json as publicJson } from "../../lib/responses.ts";
 import { cacheKey } from "../cache-keys.ts";
 import { forget } from "../edge-cache.ts";
 import { publicOrigin } from "../seo/site.ts";
+import { newsletterReader } from "./access.ts";
 import { ISSUES } from "./issues/index.ts";
 import { asRun, chooseLead, chooseTip, leadOptions, tipOptions } from "./lead.ts";
 import { isSubscribed, issueFoot, readerOf, setSubscribed, tokenOwner } from "./list.ts";
@@ -48,8 +49,11 @@ async function admin(request: Request, env: Env, options: { write: boolean }) {
     : json({ error: "Forbidden" }, 403);
 }
 
-/** `GET /api/newsletter?before=&lang=`: published issues, two at a time, kept at the edge five minutes. */
+/** `GET /api/newsletter?before=&lang=`: published issues, two at a time, kept at the edge five minutes. Until an admin
+    turns the newsletter on they are an admin's alone, kept nowhere, and anyone else is told there is no such page. */
 export async function issuesResponse(request: Request, env: Env): Promise<Response> {
+  const reader = await newsletterReader(env, request);
+  if (!reader) return json({ error: msg("Not found") }, 404, pausedBy("newsletter"));
   const params = new URL(request.url).searchParams;
   const page = await publishedIssues(
     env,
@@ -57,7 +61,7 @@ export async function issuesResponse(request: Request, env: Env): Promise<Respon
     languageOf(params),
     beforeOf(params)
   );
-  return publicJson(page, { headers: PAGE });
+  return reader === "everyone" ? publicJson(page, { headers: PAGE }) : json(page);
 }
 
 /** `GET /api/me/newsletter/drafts?lang=`: the drafts, for an admin alone. */
@@ -71,8 +75,8 @@ export async function draftsResponse(request: Request, env: Env): Promise<Respon
 }
 
 /* The pages that show the published issues, as this data center keeps them: /newsletter in every language and the
-   newest page of its API. A choice of lead or tip lets go of them here; the others keep theirs out their five
-   minutes. */
+   newest page of its API. A choice of lead or tip lets go of them here, and so does turning the newsletter on or off;
+   the others keep theirs out their five minutes. */
 const issuePages = (origin: string) =>
   LOCALES.flatMap(locale => [
     cacheKey(new URL(origin + localizePath("/newsletter", locale)), "/newsletter", locale),
@@ -82,6 +86,9 @@ const issuePages = (origin: string) =>
       DEFAULT_LOCALE
     )
   ]);
+
+/** Lets go of the pages that show the published issues, as this data center keeps them at `origin`. */
+export const forgetIssuePages = (origin: string) => forget(issuePages(origin));
 
 /* The parts of an issue an admin chooses among the ones it offers: the palette it leads with, by seed, and the quick
    tip it ends with, by id. */
@@ -128,7 +135,7 @@ async function sheetResponse(request: Request, env: Env, part: Part): Promise<Re
   const asks = asked.output[FIELD[part]];
   if (write && asks !== undefined) {
     await (part === "lead" ? chooseLead : chooseTip)(env, issue.number, asks, session.user.id);
-    await forget(issuePages(url.origin));
+    await forgetIssuePages(url.origin);
   }
   const facts = await issueFacts(env);
   const options =
@@ -201,15 +208,12 @@ export async function unsubscribeResponse(
 
 /** `POST /api/me/newsletter/test`: an admin sends this month's issue (`testIssue`) to their own address alone, with
     their own foot, to see it in a real inbox and that the sender, the unsubscribe link and the mail app's own
-    unsubscribe button work. Counted per account and against the newsletter's day before Resend is asked. */
+    unsubscribe button work, before the newsletter is on as after. Counted per account and against the newsletter's
+    day before Resend is asked. */
 export async function testResponse(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return methodNotAllowed();
   const session = await admin(request, env, { write: true });
   if (session instanceof Response) return session;
-  if (await flagOff(env, "newsletter")) {
-    const off = msg("The newsletter is turned off in Site features.");
-    return json({ error: off }, 503, pausedBy("newsletter"));
-  }
   const problem = unsendable(env);
   if (problem) return json({ error: problem }, 503);
   const origin = publicOrigin(env, request);

@@ -11,9 +11,9 @@ interface Words {
   line: string;
 }
 
-/* The features an admin turns off for every visitor from Settings, each with its name and one line saying what it does
-   while on, and what still works when off where that is not plain. The Worker decides what off stops; a flag without
-   its words here does not compile. */
+/* The features an admin turns off for every visitor from Settings, and the one that waits to be turned on, each with its
+   name and one line saying what it does while on, and what still works when off where that is not plain. The Worker
+   decides what off stops; a flag without its words here does not compile. */
 export const FLAGS: Readonly<Record<FlagName, Words>> = {
   all: { label: msg("All features"), line: msg("When off, every feature below is off.") },
   "model-search": {
@@ -63,7 +63,7 @@ export const FLAGS: Readonly<Record<FlagName, Words>> = {
   newsletter: {
     label: msg("Newsletter"),
     line: msg(
-      "Send issues of the newsletter. When off, none goes out, and unsubscribing still works."
+      "Show the newsletter to readers and send them its issues. Until it's on, only admins see its page and send themselves a test. Unsubscribing always works."
     )
   },
   saving: {

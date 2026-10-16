@@ -18,8 +18,10 @@ function flagsOff(...names: string[]): D1Database {
     prepare: (sql: string) =>
       /FROM k_flags/.test(sql)
         ? {
-            bind: () => ({ all: async () => ({ results: names.map(name => ({ name })) }) }),
-            all: async () => ({ results: names.map(name => ({ name })) })
+            bind: () => ({
+              all: async () => ({ results: names.map(name => ({ name, enabled: 0 })) })
+            }),
+            all: async () => ({ results: names.map(name => ({ name, enabled: 0 })) })
           }
         : prepare(sql)
   } as unknown as D1Database;

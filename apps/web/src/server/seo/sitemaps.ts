@@ -2,6 +2,7 @@ import { decodePalette, encodePalette } from "@grabient/engine";
 import { LOCALES, localizePath } from "@grabient/i18n";
 import { all, first } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
 import {
   type Alternate,
   alternatesOf,
@@ -102,14 +103,14 @@ export function sitemapIndex(origin: string, shards: number): string {
   );
 }
 
-/** The site's own pages in every language, each naming the others, and the newsletter, whose issues are English, in
-    English alone. */
-export function pagesSitemap(origin: string): string {
+/** The site's own pages in every language, each naming the others, and the newsletter once it is on, whose issues are
+    English, in English alone. */
+export function pagesSitemap(origin: string, newsletter: boolean): string {
   const entries: Entry[] = OWN_PAGES.flatMap(page => {
     const alternates = alternatesOf(page, origin);
     return LOCALES.map(locale => ({ path: localizePath(page, locale), alternates }));
   });
-  entries.push({ path: "/newsletter" });
+  if (newsletter) entries.push({ path: "/newsletter" });
   return urlset(entries, origin);
 }
 
@@ -200,7 +201,7 @@ export async function sitemapFile(
   name: string,
   origin: string
 ): Promise<string | null> {
-  if (name === "pages") return pagesSitemap(origin);
+  if (name === "pages") return pagesSitemap(origin, !(await flagOff(env, "newsletter")));
   if (name === "searches") return searchesSitemap(origin, await sitemapQueries(env));
   if (name === "collections")
     return collectionsSitemap(origin, await collectionSitemapRows(env, MAX_COLLECTIONS));

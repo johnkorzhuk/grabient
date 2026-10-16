@@ -27,7 +27,7 @@ const FONTS = ["/fonts/poppins-latin-500-normal.woff2", "/fonts/poppins-latin-70
 /* The site's facts are read once, before the first render, and ride in the document: the browser never asks again. */
 const siteFacts = createIsomorphicFn()
   .server(readSite)
-  .client((): SiteFacts => ({ stars: null }));
+  .client((): SiteFacts => ({ stars: null, newsletter: false }));
 
 /* The tab's icon in the colors the page's loader paints, or the week's (app/tab-icon.ts). Only the server names it:
    the frame sets these two links by hand as the page changes, which a head that named them again would undo. */

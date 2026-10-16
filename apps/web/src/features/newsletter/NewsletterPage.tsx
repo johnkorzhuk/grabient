@@ -1,5 +1,6 @@
-import { locale, t } from "@grabient/i18n";
+import { locale, localHref, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
+import link from "@grabient/ui/link.module.css";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useInfiniteQuery, useQuery } from "@tanstack/solid-query";
@@ -85,6 +86,8 @@ function Tail(props: { failed?: boolean; asking?: boolean; onRetry?: () => void 
 export function NewsletterPage(props: {
   /** an admin account with the admin tools on in this browser */
   admin: boolean;
+  /** the newsletter is not on yet: only admins see it, as readers will once it is */
+  hidden?: boolean;
 }) {
   const issues = useInfiniteQuery(() => issuesQuery(locale()));
   /* An admin's drafts: asked for once the account is known and on every visit, never kept, and gone with the admin
@@ -138,6 +141,14 @@ export function NewsletterPage(props: {
       <header class={[styles.words, styles.top]}>
         <Text variant="title">{t("Newsletter")}</Text>
         <Text variant="lede">{t("Rising palettes and new features, about once a month.")}</Text>
+        <Show when={props.hidden}>
+          <Text variant="small" as="p">
+            {t("Only admins see the newsletter until it's on in Site features.")}{" "}
+            <a class={link.inline} href={localHref("/settings#features")}>
+              {t("Open Settings")}
+            </a>
+          </Text>
+        </Show>
       </header>
       <Show when={shown().length > 0}>
         <section class={styles.group} aria-labelledby="newsletter-drafts" data-part="drafts">

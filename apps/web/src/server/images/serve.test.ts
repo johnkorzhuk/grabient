@@ -32,7 +32,7 @@ function bucket() {
 /** A database whose k_flags holds these flags off. */
 const flagsOff = (...names: string[]) => ({
   prepare: () => ({
-    bind: () => ({ all: async () => ({ results: names.map(name => ({ name })) }) })
+    bind: () => ({ all: async () => ({ results: names.map(name => ({ name, enabled: 0 })) }) })
   })
 });
 

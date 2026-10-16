@@ -21,9 +21,15 @@ describe("the sitemaps, as grabient.com serves them", () => {
   });
 
   test("the site's own pages are listed in every language, each naming the others, and the newsletter in English", () => {
-    const text = pagesSitemap(ORIGIN);
+    const text = pagesSitemap(ORIGIN, true);
     expect(text).toBe(golden("pages.production"));
     expect(text.match(/<url>/g)).toHaveLength(8 * 16 + 1);
+  });
+
+  test("the newsletter is listed once an admin has turned it on, and not before", () => {
+    const hidden = pagesSitemap(ORIGIN, false);
+    expect(hidden).not.toContain("/newsletter");
+    expect(hidden.match(/<url>/g)).toHaveLength(8 * 16);
   });
 
   test("a search is listed at its canonical address, once, as its page writes its words", () => {

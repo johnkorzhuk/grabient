@@ -12,6 +12,8 @@ import { marked } from "./connection.ts";
 export interface SiteFacts {
   /** the stars the code has on GitHub, or null where none is kept */
   stars: number | null;
+  /** whether readers see the newsletter: an admin turns it on (Site features), and admins see it before then */
+  newsletter: boolean;
 }
 const root = getRouteApi("__root__");
 /** The site's facts, for a component. */
@@ -36,14 +38,16 @@ const NAV: readonly { page: FramePage; href: string; label: () => string; keyboa
   { page: "contact", href: "/contact", label: () => t("Contact") }
 ];
 
-/** The brand pages' navigation, the page on screen marked, the code on GitHub last: the one link that leaves. */
+/** The brand pages' navigation, the page on screen marked, the code on GitHub last: the one link that leaves. The
+    newsletter is there once it is shown (`newsletter`). */
 export function navLinks(
   current: FramePage | null,
   stars: number | null,
-  href: (to: string) => string
+  href: (to: string) => string,
+  newsletter: boolean
 ): FrameLink[] {
   return marked([
-    ...NAV.map(link => ({
+    ...NAV.filter(link => newsletter || link.page !== "newsletter").map(link => ({
       href: href(link.href),
       label: link.label(),
       current: link.page === current,

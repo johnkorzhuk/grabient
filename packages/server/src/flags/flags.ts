@@ -1,12 +1,13 @@
 import { all, run } from "../db/d1.ts";
 import type { Env } from "../env.ts";
-import { FLAG_NAMES, type FlagName } from "./names.ts";
+import { FLAG_NAMES, type FlagName, STARTS_OFF } from "./names.ts";
 
-/* The flags admins turned off are rows of k_flags; a row exists only for a flag that was changed, and no row means on.
-   Each isolate reads them at most every half minute, one query of a few rows, so a change reaches every isolate within
-   about that. The read goes to the primary: a replica could hand the isolate that just wrote its own change back
-   undone. When the table cannot be read an isolate keeps what it read last, and one that never read it keeps every
-   flag on: a database outage never turns features off. */
+/* The flags admins changed are rows of k_flags; a row exists only for a flag that was changed, and no row means the
+   flag as it starts: on, or off for one that waits for an admin to turn it on (STARTS_OFF). Each isolate reads them at
+   most every half minute, one query of a few rows, so a change reaches every isolate within about that. The read goes
+   to the primary: a replica could hand the isolate that just wrote its own change back undone. When the table cannot
+   be read an isolate keeps what it read last, and one that never read it keeps each flag as it starts: a database
+   outage never turns a feature off, nor on one that waits for an admin. */
 
 const READ_EVERY_MS = 30_000;
 
@@ -23,10 +24,19 @@ const known = new WeakMap<D1Database, Known>();
 function knownOf(db: D1Database): Known {
   let flags = known.get(db);
   if (!flags) {
-    flags = { at: 0, off: new Set(), writes: 0 };
+    flags = { at: 0, off: new Set(STARTS_OFF), writes: 0 };
     known.set(db, flags);
   }
   return flags;
+}
+
+/* the flags off: each a row turned off, and each that starts off with no row that turned it on */
+function offOf(rows: readonly { name: string; enabled: number }[]): Set<string> {
+  const on = new Set(rows.filter(row => row.enabled !== 0).map(row => row.name));
+  return new Set([
+    ...rows.filter(row => row.enabled === 0).map(row => row.name),
+    ...STARTS_OFF.filter(name => !on.has(name))
+  ]);
 }
 
 async function offFlags(env: Pick<Env, "DB">): Promise<ReadonlySet<string>> {
@@ -34,11 +44,14 @@ async function offFlags(env: Pick<Env, "DB">): Promise<ReadonlySet<string>> {
   if (Date.now() - flags.at < READ_EVERY_MS) return flags.off;
   if (!flags.reading) {
     const writes = flags.writes;
-    flags.reading = all<{ name: string }>(env.DB, "SELECT name FROM k_flags WHERE enabled = 0")
+    flags.reading = all<{ name: string; enabled: number }>(
+      env.DB,
+      "SELECT name, enabled FROM k_flags"
+    )
       .then(
         rows => {
           // A change this isolate made while the read was out is newer than what the read saw.
-          if (flags.writes === writes) flags.off = new Set(rows.map(row => row.name));
+          if (flags.writes === writes) flags.off = offOf(rows);
         },
         () => {}
       )
@@ -85,7 +98,7 @@ export async function listFlags(env: Pick<Env, "DB">): Promise<FlagState[]> {
     const row = byName.get(name);
     return {
       name,
-      on: row ? row.enabled !== 0 : true,
+      on: row ? row.enabled !== 0 : !STARTS_OFF.includes(name),
       updatedAt: row?.updated_at ?? null,
       updatedBy: row?.who ?? null
     };

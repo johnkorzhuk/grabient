@@ -24,6 +24,11 @@ export async function handleFlags(request: Request, env: Env): Promise<Response>
     }
     await setFlag(env, body.name, body.on, session.user.id);
     console.log("flag", body.name, body.on ? "on" : "off", "by", session.user.id);
+    // the newsletter's pages are no one's or everyone's from now on: this data center lets go of what it kept
+    if (body.name === "newsletter" || body.name === "all") {
+      const { forgetIssuePages } = await import("../newsletter/routes.ts");
+      await forgetIssuePages(new URL(request.url).origin);
+    }
   }
   return json({ flags: await listFlags(env) });
 }
