@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
    crawler spends no visit on it, and every other link of the site's is followed. They read whatever the local database
    holds. */
 
-/** Each link of a document whose address matches, as its tag and its words. */
+/** Each link of a document whose address matches: its tag, its address and its rel. */
 function links(html: string, href: RegExp): { tag: string; href: string; rel?: string }[] {
   return [...html.matchAll(/<a\b[^>]*>/g)].flatMap(([tag]) => {
     const to = /\shref="([^"]*)"/.exec(tag)?.[1]?.replaceAll("&amp;", "&");
