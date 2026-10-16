@@ -352,7 +352,6 @@ export function PaletteView(props: PaletteViewProps) {
       // biome-ignore lint/a11y/noStaticElementInteractions: Escape from the field or Close puts the text away
       <div
         class={styles.hand}
-        data-hand
         onKeyDown={e => {
           if (e.key !== "Escape" || composing(e)) return;
           e.preventDefault();

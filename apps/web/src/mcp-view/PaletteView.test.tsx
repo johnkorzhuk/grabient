@@ -38,6 +38,10 @@ const words = (markup: string) =>
     .replace(/\s+/g, " ")
     .trim();
 const count = (markup: string, pattern: RegExp) => markup.match(pattern)?.length ?? 0;
+/* each carousel card's markup, which holds no list of its own */
+const slides = (markup: string) =>
+  markup.match(/<li\b[^>]*\bdata-tile="\d+"[^>]*>[\s\S]*?<\/li>/g) ?? [];
+const presses = (markup: string) => count(markup, /<(?:button|a)\b/g);
 
 describe("the palette view", () => {
   test("draws one palette as a card: its name, its view in words, its seed, and only Full screen and its page to press", () => {
@@ -67,7 +71,18 @@ describe("the palette view", () => {
     expect(words(html)).not.toContain("Radial bands · 6 steps · 45°");
     // a card's one press is its picture, which opens full screen on it
     expect(count(html, /aria-label="Open palette \d+ in full screen"/g)).toBe(8);
+    expect(slides(html)).toHaveLength(8);
+    for (const card of slides(html)) expect(presses(card)).toBe(1);
     expect(html).not.toContain('aria-label="Copy ');
+  });
+
+  test("in an app with no full screen, a card's one press is its page, and a carousel's cards have none", () => {
+    const card = draw({ tiles: tiles(1), fullscreen: false });
+    expect(count(card, /<button\b/g)).toBe(0);
+    expect(count(card, /<a\b/g)).toBe(1);
+    const row = draw({ tiles: tiles(5), fullscreen: false });
+    expect(slides(row)).toHaveLength(5);
+    for (const slide of slides(row)) expect(presses(slide)).toBe(0);
   });
 
   test("full screen shows the chosen palette's name, view, strip and colors, with every palette to choose from", () => {
