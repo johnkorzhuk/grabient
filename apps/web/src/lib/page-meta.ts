@@ -629,6 +629,50 @@ function searchDescription(query: string): string {
 /** A palette's page: titled by its written words in English while it is drawn as it was saved, else by what its colors
     are called, and described by them with its colors, which no other palette shares, so two palettes described alike
     still read apart. */
+/** What a palette's page says of it: its written words while they are its own (ownWords), else what its colors are
+    called, then its colors from end to end, every one where they all fit. */
+function describe(
+  page: Extract<Page, { kind: "palette" }>,
+  name: string,
+  hexes: readonly string[]
+): string {
+  const spread = (count: number) =>
+    Array.from(
+      { length: count },
+      (_, i) => hexes[Math.round((i * (hexes.length - 1)) / (count - 1))]
+    ).join(", ");
+  const counts = [...new Set([Math.min(hexes.length, 8), 5, 3])].filter(n => n <= hexes.length);
+  return fitted(
+    ownWords(page)?.description ??
+      t("{name} palette with {steps, plural, one {# color} other {# colors}}.", {
+        name,
+        steps: page.view.steps
+      }),
+    [
+      ...counts.map(
+        n => (words: string) =>
+          t("{words} {hexes}. Edit and export CSS, SVG, PNG or a shader.", {
+            words,
+            hexes: spread(n)
+          })
+      ),
+      ...counts.map(n => (words: string) => t("{words} {hexes}.", { words, hexes: spread(n) }))
+    ]
+  );
+}
+/** A palette's description as its page's metadata writes it, for a page that shows its words to its readers too. */
+export function paletteDescription(page: Extract<Page, { kind: "palette" }>): string {
+  const { palette: P, view } = page;
+  const name = readingName(readPalette(P, view.style, view.steps), language());
+  return clipWords(
+    describe(
+      page,
+      name,
+      sampleStops(P, view.steps).map(stop => stop.hex)
+    )
+  );
+}
+
 function palettePage(
   page: Extract<Page, { kind: "palette" }>,
   meta: PageMeta,
@@ -642,30 +686,7 @@ function palettePage(
   const written = ownWords(page);
   const path = paletteAddress(seed, page.saved);
   meta.title = titled(heading(page));
-  /* every color where they all fit, else some from end to end */
-  const spread = (count: number) =>
-    Array.from(
-      { length: count },
-      (_, i) => hexes[Math.round((i * (hexes.length - 1)) / (count - 1))]
-    ).join(", ");
-  const counts = [...new Set([Math.min(hexes.length, 8), 5, 3])].filter(n => n <= hexes.length);
-  meta.description = fitted(
-    written?.description ??
-      t("{name} palette with {steps, plural, one {# color} other {# colors}}.", {
-        name,
-        steps: view.steps
-      }),
-    [
-      ...counts.map(
-        n => (words: string) =>
-          t("{words} {hexes}. Edit and export CSS, SVG, PNG or a shader.", {
-            words,
-            hexes: spread(n)
-          })
-      ),
-      ...counts.map(n => (words: string) => t("{words} {hexes}.", { words, hexes: spread(n) }))
-    ]
-  );
+  meta.description = describe(page, name, hexes);
   meta.image = absolute(paletteCard(seed, view), origin);
   meta.imageAlt = t("{name} color palette", { name });
   meta.themeColor = hexes[0];

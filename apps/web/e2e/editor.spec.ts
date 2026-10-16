@@ -33,6 +33,31 @@ test("the server sends the static page, and the editor takes its place", async (
   await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
 });
 
+test("once the editor stands, the page says what its description says, and a palette an edit makes is described once it stands", async ({
+  page,
+  request
+}) => {
+  const said = (text: string) =>
+    text
+      .replaceAll("&#x27;", "'")
+      .replaceAll("&#39;", "'")
+      .replaceAll("&quot;", '"')
+      .replaceAll("&lt;", "<")
+      .replaceAll("&gt;", ">")
+      .replaceAll("&amp;", "&");
+  const html = await (await request.get(`/${SEED}`)).text();
+  const own = said(/<meta name="description" content="([^"]*)"/.exec(html)?.[1] ?? "");
+  expect(own.length).toBeGreaterThan(100);
+  await open(page);
+  await expect(page.getByText(own, { exact: true })).toBeAttached();
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).not.toBe(`/${SEED}`);
+  const meta = () => page.locator('meta[name="description"]').getAttribute("content");
+  await expect.poll(meta).not.toBe(own);
+  await expect(page.getByText((await meta()) ?? "", { exact: true })).toBeAttached();
+  await expect(page.getByText(own, { exact: true })).toHaveCount(0);
+});
+
 test.describe("while the editor's code loads", () => {
   /** Holds every script the page asks for; the returned function lets them through, or fails them. */
   async function holdScripts(page: Page) {

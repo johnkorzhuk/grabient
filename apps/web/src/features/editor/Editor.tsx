@@ -288,14 +288,14 @@ export default function Editor(props: { data: PaletteData }) {
   };
   const facts = () =>
     factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null);
-  /* the server's heading is the page's while its palette, style and steps are: a written title names the palette drawn
-     as it was saved, which a turn of its angle leaves standing */
-  const heading = () =>
+  /* the server's heading and description are the page's while its palette, style and steps are: a written title
+     names the palette drawn as it was saved, which a turn of its angle leaves standing */
+  const own = () =>
     e.seed() === first.page.seed &&
     e.style() === first.page.view.style &&
-    e.steps() === first.page.view.steps
-      ? first.heading
-      : undefined;
+    e.steps() === first.page.view.steps;
+  const heading = () => (own() ? first.heading : undefined);
+  const description = () => (own() ? first.meta?.description : undefined);
   /* a press that turned the palette into another at once tells a screen reader, once, the name the page shows for it
      now; a drag's palettes are named only as they are drawn */
   let said = 0;
@@ -319,6 +319,7 @@ export default function Editor(props: { data: PaletteData }) {
         facts={facts}
         frames={first.frames}
         heading={heading}
+        description={description}
         opened={e.openedSeed}
         taken={taken}
         used={used}
@@ -344,8 +345,9 @@ interface PageProps {
   rest: Rest;
   facts: () => PaletteData["facts"];
   frames: PaletteData["frames"];
-  /** the server's heading, while the palette and view are the page's own */
+  /** the server's heading and description, while the palette and view are the page's own */
   heading: () => string | undefined;
+  description: () => string | undefined;
   opened: () => string;
   taken: (stage: Size) => Taken;
   used: (action: "copy" | "download", format: string) => void;
@@ -477,6 +479,7 @@ function Page(props: PageProps) {
               facts={props.facts}
               frames={props.frames}
               heading={props.heading}
+              description={props.description}
               opened={props.opened}
               taken={() => props.taken(stageSize())}
               used={props.used}

@@ -44,14 +44,14 @@
      it holds any or not */
   .head {
     display: grid;
-    grid-template-areas: "name takes" "links links";
+    grid-template-areas: "name takes" "links links" "about about";
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto minmax(var(--size-control-big), auto);
+    grid-template-rows: auto minmax(var(--size-control-big), auto) auto;
     align-items: center;
     column-gap: var(--space-s8);
     min-width: 0;
     @media (pointer: coarse) {
-      grid-template-rows: auto minmax(var(--size-touch), auto);
+      grid-template-rows: auto minmax(var(--size-touch), auto) auto;
     }
   }
   /* the name's row: what shows of the sheet under the first screen at rest, the name in its middle, so the window ends
@@ -88,6 +88,12 @@
     align-items: center;
     gap: var(--space-s2);
     min-width: 0;
+  }
+  /* what the page says of the palette, a line under a heading at a measure that reads */
+  .about {
+    grid-area: about;
+    max-width: var(--size-prose);
+    padding-block: var(--space-s2) var(--space-s1);
   }
   /* the collections that hold the palette, after a collection's glyph, each a link; under the pointer or the keyboard
      one floats its colors under its name as coins, which take no room, a little into the link's own height */
@@ -316,7 +322,7 @@
      the palettes */
   @container page (max-width: 800px) {
     .head {
-      grid-template-areas: "name name" "links takes";
+      grid-template-areas: "name name" "links takes" "about about";
       column-gap: var(--space-s4);
     }
     .code {
