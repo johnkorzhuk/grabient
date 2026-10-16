@@ -180,7 +180,7 @@ describe("the language in the address", () => {
 });
 
 describe("an arrival's language", () => {
-  const html = { Accept: "text/html" };
+  const html = { Accept: "text/html", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none" };
   test("a browser asking for Japanese is sent there, before any cache", async () => {
     const response = await get("/palettes?q=blue", {
       headers: { ...html, "Accept-Language": "ja,en;q=0.8" }
@@ -197,12 +197,30 @@ describe("an arrival's language", () => {
   });
   test.each([
     ["a click inside the site", { "Sec-Fetch-Site": "same-origin" }],
-    ["a link from the site without Sec-Fetch-Site", { Referer: "https://grabient.test/about" }],
     ["a crawler", { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)" }],
+    [
+      "Naver's crawler",
+      { "User-Agent": "Mozilla/5.0 (compatible; Yeti/1.1; +https://naver.me/spd)" }
+    ],
+    [
+      "Yandex's on a phone",
+      { "User-Agent": "Mozilla/5.0 (iPhone) (compatible; YandexMobileBot/3.0)" }
+    ],
     ["a reader who chose English", { Cookie: "grabient-locale=en" }]
   ])("%s stays in English", async (_, headers) => {
     const response = await get("/palettes", {
       headers: { ...html, "Accept-Language": "ja", ...headers }
+    });
+    expect(response.status).toBe(200);
+  });
+
+  test("a crawler no list names stays in English too: only a browser says it navigates", async () => {
+    const response = await get("/palettes", {
+      headers: {
+        Accept: "text/html",
+        "Accept-Language": "ko",
+        "User-Agent": "Mozilla/5.0 (compatible; SomeNewBot/1.0)"
+      }
     });
     expect(response.status).toBe(200);
   });

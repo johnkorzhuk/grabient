@@ -169,7 +169,7 @@ async function route(
     : null;
   // a reader arriving from elsewhere at an English address is sent to the language they chose or their browser asks
   // for; a click inside the site, a crawler and a reader who chose English are taken as they came
-  if (read && page && locale === DEFAULT_LOCALE && arriving(request, url) && !isCrawler(request)) {
+  if (read && page && locale === DEFAULT_LOCALE && arriving(request) && !isCrawler(request)) {
     const asked = preferredLocale(request.headers);
     if (asked) {
       const response = redirect(at(canonical ?? address, asked), 302);
@@ -246,18 +246,11 @@ async function overListing(env: Env, request: Request): Promise<Response | null>
     : json({ error: msg("Too many requests. Try again later.") }, { status: 429 });
 }
 
-/** A page navigation from outside the site: a search result, another site, a typed address or a bookmark. */
-function arriving(request: Request, url: URL): boolean {
-  if (!(request.headers.get("Accept") ?? "").includes("text/html")) return false;
-  const site = request.headers.get("Sec-Fetch-Site");
-  if (site) return site !== "same-origin";
-  const referer = request.headers.get("Referer");
-  try {
-    return !referer || new URL(referer).host !== url.host;
-  } catch {
-    return true;
-  }
-}
+/** A browser's page navigation from outside the site: a search result, another site, a typed address or a bookmark.
+    Only a browser says it navigates, so a crawler, which sends no Sec-Fetch headers, is taken as it came. */
+const arriving = (request: Request): boolean =>
+  request.headers.get("Sec-Fetch-Mode") === "navigate" &&
+  request.headers.get("Sec-Fetch-Site") !== "same-origin";
 
 const notAllowed = () =>
   json({ error: "Method not allowed" }, { status: 405, headers: { Allow: "GET, HEAD" } });
