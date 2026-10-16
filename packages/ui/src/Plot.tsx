@@ -16,6 +16,7 @@ import {
   createSignal,
   createUniqueId,
   For,
+  onCleanup,
   onSettled,
   Show
 } from "solid-js";
@@ -132,36 +133,55 @@ export function Plot(props: PlotProps) {
     `path("${line(data().samples.map(s => [x(s.t), yOf(outOf(s)) - PAD]))}L${x(1).toFixed(1)},${inner()}L0,${inner()}Z")`;
   /* Each pixel is the color as the curve draws it, found with less search since it is drawn again at every move of a
      drag. Under chroma a column shares a lightness and a hue, so the most chroma the screen shows there is found once;
-     under lightness each pixel's own most is found in 12 steps, well under a step of 8 bits. One image, kept. */
+     under lightness each pixel's own most is found in 12 steps, well under a step of 8 bits. One image, kept. It is
+     drawn at once, and at most once more in the same frame, with the last palette: a key held down asks for a palette
+     faster than the screen shows them, and the ones between are never seen. */
   let image: ImageData | undefined;
+  let frame = 0;
+  let next: readonly [Axis, Palette, number] | null = null;
+  onCleanup(() => {
+    if (frame) cancelAnimationFrame(frame);
+  });
+  const paintWash = ([axis, P, cTop]: readonly [Axis, Palette, number]) => {
+    if (wash.width !== COLS) wash.width = COLS;
+    if (wash.height !== ROWS) wash.height = ROWS;
+    const ctx = wash.getContext("2d");
+    if (!ctx) return;
+    image ??= ctx.createImageData(COLS, ROWS);
+    const px = image.data;
+    for (let i = 0; i < COLS; i++) {
+      const [L, C, H] = sampleLCH(P, (i + 0.5) / COLS);
+      const most = axis === "c" ? fitChroma(L, cTop, H) : 0;
+      for (let j = 0; j < ROWS; j++) {
+        const up = 1 - (j + 0.5) / ROWS;
+        const at = 4 * (j * COLS + i);
+        const rgb =
+          axis === "l"
+            ? lchToSrgb(up, fitChroma(up, C, H, false, 12), H)
+            : lchToSrgb(L, Math.min(up * cTop, most), H);
+        px[at] = Math.round(rgb[0] * 255);
+        px[at + 1] = Math.round(rgb[1] * 255);
+        px[at + 2] = Math.round(rgb[2] * 255);
+        px[at + 3] = Math.round((WASH_FLOOR + (WASH_TOP - WASH_FLOOR) * up) * 255);
+      }
+    }
+    ctx.putImageData(image, 0, 0);
+  };
+  const later = () => {
+    frame = 0;
+    if (next) paintWash(next);
+    next = null;
+  };
   createEffect(
     () => (amount() ? ([props.axis, props.palette, scale().cTop] as const) : null),
     now => {
       if (!now) return;
-      const [axis, P, cTop] = now;
-      if (wash.width !== COLS) wash.width = COLS;
-      if (wash.height !== ROWS) wash.height = ROWS;
-      const ctx = wash.getContext("2d");
-      if (!ctx) return;
-      image ??= ctx.createImageData(COLS, ROWS);
-      const px = image.data;
-      for (let i = 0; i < COLS; i++) {
-        const [L, C, H] = sampleLCH(P, (i + 0.5) / COLS);
-        const most = axis === "c" ? fitChroma(L, cTop, H) : 0;
-        for (let j = 0; j < ROWS; j++) {
-          const up = 1 - (j + 0.5) / ROWS;
-          const at = 4 * (j * COLS + i);
-          const rgb =
-            axis === "l"
-              ? lchToSrgb(up, fitChroma(up, C, H, false, 12), H)
-              : lchToSrgb(L, Math.min(up * cTop, most), H);
-          px[at] = Math.round(rgb[0] * 255);
-          px[at + 1] = Math.round(rgb[1] * 255);
-          px[at + 2] = Math.round(rgb[2] * 255);
-          px[at + 3] = Math.round((WASH_FLOOR + (WASH_TOP - WASH_FLOOR) * up) * 255);
-        }
+      if (frame) {
+        next = now;
+        return;
       }
-      ctx.putImageData(image, 0, 0);
+      paintWash(now);
+      frame = requestAnimationFrame(later);
     }
   );
   const held = (i: number) => props.selection.includes(i);

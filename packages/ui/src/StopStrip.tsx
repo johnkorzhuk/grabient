@@ -66,7 +66,15 @@ export function StopStrip(props: {
     const next = { less: at > 1 ? 1 : 0, more: room - at > 1 ? 1 : 0 };
     if (next.less !== edges().less || next.more !== edges().more) setEdges(next);
   };
-  createEffect(lay, () => measure());
+  /* the rows' shape, all that moves an edge, as a memo, which tells only of a change: a palette of the same length lays
+     out anew and measures nothing */
+  const shape = createMemo(
+    () =>
+      `${width()} ${least()} ${lay()
+        .rows.map(row => row.map(c => c.span).join(","))
+        .join("|")}`
+  );
+  createEffect(shape, () => measure());
   /* the chip being read as one key, so a reading that moves within a chip changes nothing */
   const read = createMemo(() => {
     const at = props.reading;

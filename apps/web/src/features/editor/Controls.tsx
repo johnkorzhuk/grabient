@@ -7,7 +7,7 @@ import { Button } from "@grabient/ui/Button.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { Plot } from "@grabient/ui/Plot.tsx";
 import { Scrub } from "@grabient/ui/Scrub.tsx";
-import { createEffect, createSignal, type Element, onSettled, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, type Element, onSettled, Show } from "solid-js";
 import styles from "./Controls.module.css";
 import type { PaletteEditor } from "./editor.ts";
 import { keyOf } from "./keys.ts";
@@ -113,11 +113,11 @@ function sharing(line: () => HTMLElement, axis: Axis, names: () => unknown) {
       read = () => {};
     };
   });
-  /* the names came or went: the fields are drawn by now, and are measured before the screen shows them */
-  createEffect(
-    () => [names(), tight()] as const,
-    () => read()
-  );
+  /* the names came or went: the fields are drawn by now, and are measured before the screen shows them. The key is a
+     memo, which tells only of a change: an effect runs each time what it reads is read again, and a new palette reads
+     the names again, so without it every palette measured the fields */
+  const key = createMemo(() => `${String(names())} ${tight()}`);
+  createEffect(key, () => read());
   return { tight, stacked };
 }
 

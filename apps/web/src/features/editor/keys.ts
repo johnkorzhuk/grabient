@@ -1,6 +1,6 @@
 import { keepKeyboard } from "@grabient/ui/dismiss.ts";
 import { keyRow } from "@grabient/ui/keymap.ts";
-import { type Binding, rowKeys, showKey } from "@grabient/ui/keys.ts";
+import { type Binding, keyPress, rowKeys, showKey } from "@grabient/ui/keys.ts";
 import { copyAddress } from "../../app/keys.ts";
 import type { PaletteEditor } from "./editor.ts";
 import type { PaletteSave } from "./save.ts";
@@ -24,6 +24,25 @@ export const keyOf = (id: string, i = 0): string => {
   const key = rowKeys(row(id))[i];
   return key ? showKey(key) : "";
 };
+
+/* A held key repeats faster than the editor can draw what each press makes, and every repeat it cannot draw waits
+   behind the last: its repeats change the palette at most once a drawn frame, so each change is seen and none queues. */
+let drawing = false;
+const onceAFrame =
+  (run: Binding["run"]): Binding["run"] =>
+  i => {
+    if (keyPress()?.repeat) {
+      if (drawing) return;
+      drawing = true;
+      // the frame after the next has drawn this change
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          drawing = false;
+        })
+      );
+    }
+    run(i);
+  };
 
 /** The editor's bindings. `live` says whether they apply at all: while the selection has the stage there is no
     palette to edit, so none does, the undo included. */
@@ -49,9 +68,18 @@ export function editorBindings(
       o.settle();
       copyAddress();
     }),
-    bind("random", () => e.random()),
-    bind("invert", () => e.invert()),
-    bind("reverse", () => e.reverse()),
+    bind(
+      "random",
+      onceAFrame(() => e.random())
+    ),
+    bind(
+      "invert",
+      onceAFrame(() => e.invert())
+    ),
+    bind(
+      "reverse",
+      onceAFrame(() => e.reverse())
+    ),
     /* the panel key of canvas tools: the picture and the sheet take the page's width */
     bind("panel", o.togglePanel),
     /* over a row of keyframes, select all means those, never the page's text */
@@ -79,8 +107,14 @@ export function editorBindings(
       },
       held
     ),
-    bind("stops", i => e.setSteps(e.steps() + (i ? 1 : -1))),
-    bind("rotate", i => e.setAngle((e.angle() + (i ? 15 : 345)) % 360)),
+    bind(
+      "stops",
+      onceAFrame(i => e.setSteps(e.steps() + (i ? 1 : -1)))
+    ),
+    bind(
+      "rotate",
+      onceAFrame(i => e.setAngle((e.angle() + (i ? 15 : 345)) % 360))
+    ),
     /* the editor's own undo, never the browser's Back: it walks the edits with the page's steps and stays here */
     bind("undo", i => (i === 0 ? e.undo() : e.redo())),
     /* an admin's Save, as the press under the edits does; anyone else's Mod+S stays the browser's */
