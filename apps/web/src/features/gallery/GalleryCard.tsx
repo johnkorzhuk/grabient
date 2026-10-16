@@ -13,7 +13,7 @@ import { askFacts } from "../editor/page.ts";
 import { AppearanceContext, drawnIn } from "../list/appearance.ts";
 import { type UseAt, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
-import { nameOf, ownOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
+import { cardName, ownOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
 import { inPlace } from "./feed.ts";
 import { GalleryContext } from "./page.tsx";
 import type { PaletteItem } from "./schema.ts";
@@ -64,7 +64,7 @@ export function GalleryCard(props: {
   return (
     <PaletteCard
       seed={seed()}
-      name={nameOf(shown())}
+      name={cardName(props.item, shown())}
       stops={hexesOf(picture())}
       style={picture().style}
       angle={picture().angle}

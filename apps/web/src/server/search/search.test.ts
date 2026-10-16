@@ -205,3 +205,19 @@ describe("grabient.com's indexed searches", () => {
     for (const old of moved) expect(listed).not.toContain(old);
   });
 });
+
+test("a search names a palette by the title written for it in the view it was saved in alone", async () => {
+  const titled = galleryDb(() => ({
+    style: "linearGradient",
+    steps: 7,
+    angle: 90,
+    title: "Quiet study"
+  }));
+  const env = searchEnv({ DB: titled });
+  const plain = await searchPalettes(env, "sunset", { limit: 6 });
+  expect(plain.items.map(item => item.title)).toEqual(Array(6).fill("Quiet study"));
+  const banded = await searchPalettes(env, "sunset swatches", { limit: 6 });
+  expect(banded.items.map(item => [item.style, item.title])).toEqual(
+    Array(6).fill(["linearSwatches", undefined])
+  );
+});

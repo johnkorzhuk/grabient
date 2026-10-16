@@ -1,3 +1,4 @@
+import { decodePalette } from "@grabient/engine";
 import { all, first, run } from "@grabient/server/db/d1.ts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import corpus from "../public/corpus-k.json" with { type: "json" };
@@ -16,6 +17,7 @@ import {
   makeAdmin,
   ORIGIN,
   testEnv,
+  titleAgainst,
   unique
 } from "./helpers.ts";
 
@@ -95,6 +97,27 @@ describe("lists", () => {
     const [first] = (await listPalettes(env, { sort: "rising", limit: 1 })).items;
     const { kseed, style, steps, angle, likes, createdAt } = golden.firstItem;
     expect(first).toEqual({ kseed, style, steps, angle, likes, createdAt });
+  });
+
+  it("name a palette by the title written for it where its colors bear the title out", async () => {
+    const env = testEnv();
+    const write = (seed: string, title: string) =>
+      run(
+        env.DB,
+        "INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES (?, ?, '', 1, 1)",
+        seed,
+        title
+      );
+    await write(seedAt(0), "Quiet study");
+    await write(seedAt(1), titleAgainst(decodePalette(seedAt(1))!));
+    const titles = new Map(
+      (await listPalettes(env, { limit: 96 })).items.map(item => [item.kseed, item.title])
+    );
+    expect([titles.get(seedAt(0)), titles.get(seedAt(1)), titles.get(seedAt(2))]).toEqual([
+      "Quiet study",
+      undefined,
+      undefined
+    ]);
   });
 
   it("leave out a row whose seed the codec writes otherwise", async () => {

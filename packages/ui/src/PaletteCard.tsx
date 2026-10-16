@@ -2,6 +2,7 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import { isSwatchStyle, type Style } from "@grabient/engine/view.ts";
 import { createSignal, type Element, onSettled, Show, untrack } from "solid-js";
 import { Button } from "./Button.tsx";
+import hidden from "./hidden.module.css";
 import { glowOff, glowOn } from "./glow.ts";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
@@ -216,6 +217,8 @@ export function PaletteCard(props: PaletteCardProps) {
                 onClick={e => props.onOpen?.(e)}
               >
                 <Icon name="edit" size={13} />
+                {/* the link's words for whoever reads them, a crawler among them */}
+                <span class={hidden.text}>{t("Edit {name}", { name: props.name })}</span>
               </Button>
               {props.lead}
             </span>

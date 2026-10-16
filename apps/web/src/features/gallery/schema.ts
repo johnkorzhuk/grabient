@@ -4,14 +4,16 @@ import * as v from "valibot";
 /* What the gallery's reads answer, the same on both sides: the Worker writes these shapes and the browser checks the
    answers it is sent against them. */
 
-/** A palette as a list shows it: its own view, its likes and when the site first held it. */
+/** A palette as a list shows it: its own view, its likes, when the site first held it, and the title written for it in
+    that view, which its page wears there. */
 export const PaletteItem = v.object({
   kseed: v.string(),
   style: v.picklist(STYLES),
   steps: v.number(),
   angle: v.number(),
   likes: v.number(),
-  createdAt: v.number()
+  createdAt: v.number(),
+  title: v.optional(v.string())
 });
 export type PaletteItem = v.InferOutput<typeof PaletteItem>;
 

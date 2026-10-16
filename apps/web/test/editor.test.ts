@@ -17,6 +17,7 @@ import {
   makeAdmin,
   ORIGIN,
   testEnv,
+  titleAgainst,
   unique
 } from "./helpers.ts";
 
@@ -254,14 +255,6 @@ describe("a palette's facts", () => {
     expect((await paletteFacts("kSyQDAzZa8zgZxS", unheld, "en", env)).likes).toBe(0);
   });
 });
-
-/** A title naming a color the palette has none of: the first of these its own colors contradict. */
-function titleAgainst(palette: NonNullable<ReturnType<typeof decodePalette>>): string {
-  const hues = palette.anchors.map(a => ((a.h % 360) + 360) % 360);
-  const far = (hue: number) =>
-    hues.every(h => Math.min(Math.abs(h - hue), 360 - Math.abs(h - hue)) > 90);
-  return far(145) ? "Emerald green forest" : far(265) ? "Deep blue ocean" : "Bright red poppy";
-}
 
 describe("an admin's Save", () => {
   const send = (method: string, seed: string, who: Account, body?: unknown) =>
