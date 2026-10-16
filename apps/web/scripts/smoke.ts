@@ -2,10 +2,11 @@
    an old grabient.com link, the MCP server's sign-in challenge and every address of a saved list. It only reads.
    From apps/web:
      node scripts/smoke.ts <base>                          the checks, against a deploy (https://grabient.com)
-     node scripts/smoke.ts <base> --urls FILE              and every address in FILE answers 200, or a redirect to one
+     node scripts/smoke.ts <base> --urls FILE              and every address in FILE answers 200, or one 301 to a 200
      node scripts/smoke.ts <base> --save-sitemap FILE      the deploy's sitemap addresses into FILE, one a line
-   Before the cutover, save grabient.com's addresses with --save-sitemap; after it, replay them with --urls. Exits 1 on
-   any failure. */
+   Before the cutover, save grabient.com's addresses with --save-sitemap; after it, replay them with --urls. On
+   grabient.com each page they land on must also be indexed and name an indexed page as canonical; every other deploy
+   says noindex. Exits 1 on any failure, with the failing addresses under each rule. */
 import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import links from "../data/legacy-links.json" with { type: "json" };
@@ -82,14 +83,14 @@ const palette = await firstIn("palettes").catch(() => undefined);
 const collection = await firstIn("collections").catch(() => undefined);
 
 await check("sitemap", async () => (sitemap.length > 100 ? true : `${sitemap.length} addresses`));
+// the newsletter stays hidden until an admin turns it on, so it is no page a deploy must answer
 for (const path of [
   "/",
   "/palettes",
   "/palettes/rising",
   "/collections",
   "/collections/rising",
-  "/about",
-  "/newsletter"
+  "/about"
 ])
   await page(path);
 if (collection) await page(collection);
@@ -161,28 +162,61 @@ if (values.urls) {
     .split("\n")
     .map(line => line.trim())
     .filter(Boolean);
-  const bad: string[] = [];
-  let next = 0;
-  const lands = async (path: string) => {
-    const first = await get(path);
-    if (first.status === 200) return true;
-    if (![301, 302, 307, 308].includes(first.status)) return false;
-    const to = first.headers.get("location") ?? "";
-    return (await get(new URL(to, base).toString())).status === 200;
+  /* what each address must do; the two index rules hold on grabient.com alone */
+  const RULES = {
+    lands: "answer 200, or one 301 to a 200",
+    indexed: "land on a page whose robots meta says index",
+    canonical: "name as canonical a page that answers 200 and says index"
+  } as const;
+  type Rule = keyof typeof RULES;
+  const indexedBase = new URL(base).origin === "https://grabient.com";
+  /** A page's answer, with its robots and its canonical where it is HTML. */
+  const read = async (at: string) => {
+    const response = await get(at, { headers: { Accept: "text/html" } });
+    const html = (response.headers.get("content-type") ?? "").includes("text/html")
+      ? await response.text()
+      : null;
+    if (html === null) await response.body?.cancel();
+    const tag = (pattern: RegExp) => html && pattern.exec(html)?.[1]?.replaceAll("&amp;", "&");
+    return {
+      at: new URL(at, base).toString(),
+      status: response.status,
+      location: response.headers.get("location"),
+      robots: tag(/<meta name="robots" content="([^"]*)"/),
+      canonical: tag(/<link rel="canonical" href="([^"]*)"/)
+    };
   };
+  const indexed = (robots: string | null | undefined) => !!robots?.startsWith("index");
+  /** The first rule an address breaks, or null. */
+  const broken = async (path: string): Promise<Rule | null> => {
+    const first = await read(path);
+    const landed =
+      first.status === 301 ? await read(new URL(first.location ?? "", base).toString()) : first;
+    if (landed.status !== 200) return "lands";
+    if (!indexedBase || landed.robots === null) return null;
+    if (!indexed(landed.robots)) return "indexed";
+    if (!landed.canonical) return "canonical";
+    if (new URL(landed.canonical).toString() === landed.at) return null;
+    const named = await read(landed.canonical);
+    return named.status === 200 && indexed(named.robots) ? null : "canonical";
+  };
+  const failing = new Map<Rule, string[]>();
+  let next = 0;
   const worker = async () => {
     while (next < urls.length) {
       const url = urls[next++]!;
       const path = local(url) + new URL(url).search;
-      if (!(await lands(path).catch(() => false))) bad.push(path);
+      const rule = await broken(path).catch((): Rule => "lands");
+      if (rule) failing.set(rule, [...(failing.get(rule) ?? []), path]);
     }
   };
   await Promise.all(Array.from({ length: AT_ONCE }, worker));
-  report(
-    !bad.length,
-    `${urls.length} saved addresses`,
-    bad.length ? `${bad.length} fail: ${bad.slice(0, 10).join(" ")}` : ""
-  );
+  const bad = [...failing.values()].reduce((sum, paths) => sum + paths.length, 0);
+  report(!bad, `${urls.length} saved addresses`, bad ? `${bad} fail` : "");
+  for (const [rule, paths] of failing) {
+    console.log(`      ${paths.length} that should ${RULES[rule]}:`);
+    for (const path of paths) console.log(`        ${path}`);
+  }
 }
 
 console.log(failed ? `\n${failed} failed` : "\nEvery check passed.");
