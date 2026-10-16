@@ -96,3 +96,23 @@ test("Close goes Back to the list after a size is set in the column, and the lis
   await page.keyboard.press("ControlOrMeta+z");
   await expect(page.getByRole("button", { name: /^Selection/ })).toHaveCount(0);
 });
+
+test("the export's strip keeps its mode and its swatch book square beside the formats that share its row", async ({
+  page
+}) => {
+  await page.goto("/palettes");
+  await hydrated(page);
+  await add(page, 0);
+  await page
+    .getByRole("button", { name: /^Selection/ })
+    .first()
+    .click();
+  const strip = page
+    .getByRole("complementary", { name: "Export" })
+    .getByRole("group", { name: "Copy" });
+  for (const name of ["Copying. Switch to download", "Swatches"]) {
+    const box = await strip.getByRole("button", { name }).boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(30);
+    expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThan(1);
+  }
+});

@@ -137,8 +137,10 @@
         min-width: var(--size-touch);
       }
     }
-    /* chips that share a row are one width, so a turn between modes with as many formats moves none */
-    [data-full] & {
+    /* the formats that share a full strip's row are one width, so a turn between modes with as many formats moves none.
+       It is the strip's own `full`: a page's element of the same name around it leaves the strip as it is. The mode and
+       the swatch book keep their squares */
+    .strip[data-full] &:not([data-square], [data-mode]) {
       flex-basis: 0;
     }
     /* a place this mode leaves empty keeps its chip's room */
