@@ -56,15 +56,10 @@
     }
   }
 
-  /* a picture and the strip on it. A carousel card's strip shows while a pointer rests on its picture or the keys are in
-     it, as a gallery card's tools do, and stays while its text is out to copy by hand */
+  /* a picture, and in full screen the strip on it */
   .frame {
     position: relative;
     min-width: 0;
-    --show: 0;
-    &[data-slide]:is(:hover, :focus-within, :has([aria-expanded="true"])) {
-      --show: 1;
-    }
   }
   /* the strip in the picture's far corner: its names where the frame is wide, its icons on a phone */
   .corner {
@@ -73,28 +68,10 @@
     inset-inline-end: var(--space-s3);
     display: flex;
     max-width: calc(100% - 2 * var(--space-s3));
-    /* a carousel card's corner is the strip's container, never wider than the 300px under which the strip keeps its
-       icons alone, so it fits a card at any width; it takes no press itself, so the picture under it still opens full
-       screen. A finger has no hover, so it always has the strip */
-    &[data-slide] {
-      bottom: var(--space-s2);
-      inset-inline-end: var(--space-s2);
-      justify-content: flex-end;
-      width: min(calc(100% - 2 * var(--space-s2)), 300px);
-      max-width: none;
-      container-type: inline-size;
-      pointer-events: none;
-      opacity: var(--show);
-      transition: opacity var(--motion-fast) var(--motion-ease);
-      @media (pointer: coarse) {
-        opacity: 1;
-      }
-    }
   }
   .reach {
     display: flex;
     min-width: 0;
-    pointer-events: auto;
   }
 
   /* the number the model's reply uses, light on glass at the picture's corner, so it reads on any palette */
@@ -141,6 +118,13 @@
     overflow: hidden;
     isolation: isolate;
     border-radius: var(--radius-control);
+    /* Claude asks 44pt of every press under a finger, while the site's strip keeps WCAG's 24px, so a long palette's
+       strip runs sideways in full screen */
+    @media (pointer: coarse) {
+      & > div {
+        --least: var(--size-touch);
+      }
+    }
   }
 
   /* a copy the app would not take, under its picture: its text, selected for the keys that copy, and Close */
@@ -217,7 +201,7 @@
       display: none;
     }
   }
-  /* a card with a copy out to take by hand grows alone: the others keep their height */
+  /* the row clips what runs past it, so it leaves a card's focus ring room above and below */
   .row {
     display: flex;
     align-items: flex-start;
@@ -234,16 +218,12 @@
     &::-webkit-scrollbar {
       display: none;
     }
-    /* every card at once where the app has no full screen: the row wraps into a grid inside the frame, its cards wide
-       enough under a finger for the strip's fingertip chips */
+    /* every card at once where the app has no full screen: the row wraps into a grid inside the frame */
     &[data-all] {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
       overflow-x: visible;
       scroll-snap-type: none;
-      @media (pointer: coarse) {
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-      }
     }
   }
   .slide {

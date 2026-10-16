@@ -24,7 +24,7 @@ It can:
 - Make palettes from 2 to 8 hex colors, such as a brand's colors.
 - Change a palette: lighter, darker, calmer, more vivid, warmer, cooler, reversed, or with fewer or more colors, with a brand color held as it is.
 - Read a palette in full: each color's hex code and name, its contrast on white and on black, and the CSS that draws it.
-- Show palettes side by side, each with a strip that copies its address, CSS, SVG or PNG.
+- Show palettes side by side, and copy each one's address, CSS, SVG or PNG in full screen.
 - List the palettes you saved, save new ones, and make, edit and delete your collections.
 
 Every palette has its own page on grabient.com, with its CSS, SVG, PNG and JSON files.

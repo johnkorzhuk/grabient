@@ -41,12 +41,13 @@ import {
 } from "./tiles.ts";
 
 /* The palettes show_palettes shows, drawn in the AI app that called it from their seeds alone: a card for one, a
-   carousel for more, numbered as the model's reply numbers them, and full screen, where the chosen palette's view can
-   change (style, steps, angle; the seed never does). Each picture carries a gallery card's format strip, and where the
-   app takes no copy, the text comes out under the picture to copy by hand. No press reaches the server or changes
-   anything on Grabient: the palette chosen in full screen is handed to `onChoose`, which tells the app's model what is
-   on screen. The chrome takes the app's colors and type through the host tokens; the palettes are the only color of
-   Grabient's own. main.tsx wires the bridge. */
+   carousel for more, numbered as the model's reply numbers them, and full screen. Inline, as Claude's and ChatGPT's
+   guidelines ask, a card's presses are Full screen and Open, and a carousel card's is its picture alone. Full screen
+   carries the chosen palette's format strip, its colors to copy and its view, which can change there (style, steps,
+   angle; the seed never does). Where the app takes no copy, the text comes out under the picture to copy by hand. No
+   press reaches the server or changes anything on Grabient: the palette chosen in full screen is handed to `onChoose`,
+   which tells the app's model what is on screen. The chrome takes the app's colors and type through the host tokens;
+   the palettes are the only color of Grabient's own. main.tsx wires the bridge. */
 
 /** At most this many cards inline; the rest are a card away: full screen, or every card in a grid inside the frame
     where the app has no full screen. */
@@ -269,12 +270,12 @@ export function PaletteView(props: PaletteViewProps) {
     }
   );
 
-  /** A palette's strip in its picture's far corner, as on a gallery card. A carousel card's shows while a pointer rests
-      on its picture. The page's address and its files' need the site's. */
-  const Strip = (p: { tile: Tile; size: "md" | "lg"; slide?: boolean }) => {
+  /** The chosen palette's strip in its picture's far corner in full screen, as on a gallery card. The page's address
+      and its files' need the site's. */
+  const Strip = (p: { tile: Tile }) => {
     let box: HTMLSpanElement | undefined;
     return (
-      <span class={styles.corner} data-slide={p.slide ? "" : undefined}>
+      <span class={styles.corner}>
         <span
           ref={el => {
             box = el;
@@ -283,7 +284,7 @@ export function PaletteView(props: PaletteViewProps) {
           data-part="strip"
         >
           <FormatStrip
-            size={p.size}
+            size="lg"
             variant="art"
             copy={props.origin ? COPY : COPY.filter(f => f !== "url")}
             download={props.download ? DOWNLOAD : undefined}
@@ -351,7 +352,6 @@ export function PaletteView(props: PaletteViewProps) {
       // biome-ignore lint/a11y/noStaticElementInteractions: Escape from the field or Close puts the text away
       <div
         class={styles.hand}
-        data-hand
         onKeyDown={e => {
           if (e.key !== "Escape" || composing(e)) return;
           e.preventDefault();
@@ -415,7 +415,7 @@ export function PaletteView(props: PaletteViewProps) {
     </Show>
   );
 
-  /** One palette inline: its picture with its strip, its words, its colors, and Open. */
+  /** One palette inline: its picture, its words, Full screen and Open. */
   function Card(p: { tile: Tile }) {
     const tile = () => tileAt(p.tile);
     const stops = createMemo(() => stopsOf(tile()));
@@ -433,9 +433,7 @@ export function PaletteView(props: PaletteViewProps) {
             aria-hidden="true"
             data-part="picture"
           />
-          <Strip tile={tile()} size="md" />
         </div>
-        <Hand tile={tile().tile} />
         <div class={styles.head}>
           <div class={styles.words} data-part="words">
             <Text variant="h3" dir="auto">
@@ -448,9 +446,6 @@ export function PaletteView(props: PaletteViewProps) {
           </div>
           <Full index={0} />
         </div>
-        <div class={styles.strip}>
-          <StopStrip stops={stops()} short />
-        </div>
         <Show when={props.origin}>
           <div class={styles.actions} data-part="actions">
             <Open tile={tile()} />
@@ -460,7 +455,8 @@ export function PaletteView(props: PaletteViewProps) {
     );
   }
 
-  /** A carousel card: the picture with its number and strip, and a line of words. */
+  /** A carousel card: the picture with its number, and a line of words. Where the app has full screen, the picture is
+      the card's one press, which opens it there. */
   function Slide(p: { tile: Tile; index: number; all: boolean }) {
     const tile = () => tileAt(p.tile);
     const stops = createMemo(() => stopsOf(tile()));
@@ -471,7 +467,7 @@ export function PaletteView(props: PaletteViewProps) {
         data-tile={tile().tile}
         aria-label={t(PALETTE, { number: tile().tile, name: named(tile()) })}
       >
-        <div class={styles.frame} data-slide="">
+        <div class={styles.frame}>
           <Show
             when={props.fullscreen}
             fallback={
@@ -500,9 +496,7 @@ export function PaletteView(props: PaletteViewProps) {
               <Badge n={tile().tile} />
             </button>
           </Show>
-          <Strip tile={tile()} size="md" slide />
         </div>
-        <Hand tile={tile().tile} />
         <div class={styles.words}>
           <Text variant="ui" strong truncate dir="auto">
             {named(tile())}
@@ -560,10 +554,8 @@ export function PaletteView(props: PaletteViewProps) {
         requestAnimationFrame(measure);
       }
     );
-    /* the arrows walk the cards, but not out of a copy's text, where they move through it */
     const walk = (e: KeyboardEvent) => {
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-      if ((e.target as Element | null)?.closest?.("[data-hand]")) return;
       const list = e.currentTarget as HTMLElement;
       const rtl = getComputedStyle(list).direction === "rtl";
       const items = [...list.children] as HTMLElement[];
@@ -575,8 +567,8 @@ export function PaletteView(props: PaletteViewProps) {
       target.focus({ preventScroll: true });
       next.scrollIntoView({ block: "nearest", inline: "nearest" });
     };
-    /** The rest: full screen on the first not shown, where the app has it; else every card here, the first that was
-        not shown taking the focus. */
+    /** The rest: full screen on the first not shown, where the app has it; else every card here, the focus going on
+        to Show fewer, which takes this press's place, since a card has no press where the app has no full screen. */
     const rest = () => {
       if (props.fullscreen) {
         ask("fullscreen", INLINE_MAX);
@@ -584,9 +576,7 @@ export function PaletteView(props: PaletteViewProps) {
       }
       setAll(true);
       requestAnimationFrame(() =>
-        row
-          ?.querySelector<HTMLElement>(`[data-tile="${tiles()[INLINE_MAX]?.tile}"] button`)
-          ?.focus()
+        row?.parentElement?.querySelector<HTMLElement>('[aria-expanded="true"]')?.focus()
       );
     };
     const fewer = () => {
@@ -703,7 +693,7 @@ export function PaletteView(props: PaletteViewProps) {
                   <Badge n={tile().tile} />
                 </Show>
               </div>
-              <Strip tile={tile()} size="lg" />
+              <Strip tile={tile()} />
             </div>
             <Hand tile={tile().tile} />
           </div>
