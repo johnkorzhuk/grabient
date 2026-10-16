@@ -39,9 +39,12 @@ const OWN_PAGES = [
   "/collections",
   "/collections/rising",
   "/about",
+  "/bindings",
   "/mcp-server",
   "/contact"
 ];
+/** The pages indexed in English alone, whose words are not translated. */
+const ENGLISH_PAGES = ["/privacy", "/terms"];
 /** The sitemaps besides the palette files, by the name in their address (/sitemap-{name}.xml). */
 const FILES = ["pages", "searches", "collections"] as const;
 
@@ -109,8 +112,8 @@ export function sitemapIndex(origin: string, shards: number): string {
   );
 }
 
-/** The site's own pages in every language, each naming the others, and the newsletter once it is on, whose issues are
-    English, in English alone. */
+/** The site's own pages in every language, each naming the others, then Privacy and Terms and the newsletter once it is
+    on, whose issues are English, in English alone. */
 export const pagesSitemap = (origin: string, newsletter: boolean): string =>
   urlset(pageEntries(origin, newsletter), origin);
 function pageEntries(origin: string, newsletter: boolean): Entry[] {
@@ -118,6 +121,7 @@ function pageEntries(origin: string, newsletter: boolean): Entry[] {
     const alternates = alternatesOf(page, origin);
     return LOCALES.map(locale => ({ path: localizePath(page, locale), alternates }));
   });
+  entries.push(...ENGLISH_PAGES.map(path => ({ path })));
   if (newsletter) entries.push({ path: "/newsletter" });
   return entries;
 }
