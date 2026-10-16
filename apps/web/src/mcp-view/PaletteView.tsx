@@ -568,8 +568,8 @@ export function PaletteView(props: PaletteViewProps) {
       target.focus({ preventScroll: true });
       next.scrollIntoView({ block: "nearest", inline: "nearest" });
     };
-    /** The rest: full screen on the first not shown, where the app has it; else every card here, the first that was
-        not shown taking the focus. */
+    /** The rest: full screen on the first not shown, where the app has it; else every card here, the focus going on
+        to Show fewer, which takes this press's place, since a card has no press where the app has no full screen. */
     const rest = () => {
       if (props.fullscreen) {
         ask("fullscreen", INLINE_MAX);
@@ -577,9 +577,7 @@ export function PaletteView(props: PaletteViewProps) {
       }
       setAll(true);
       requestAnimationFrame(() =>
-        row
-          ?.querySelector<HTMLElement>(`[data-tile="${tiles()[INLINE_MAX]?.tile}"] button`)
-          ?.focus()
+        row?.parentElement?.querySelector<HTMLElement>('[aria-expanded="true"]')?.focus()
       );
     };
     const fewer = () => {
