@@ -23,11 +23,17 @@ const WIDTHS = [
 type Width = (typeof WIDTHS)[number];
 
 /** The Cookie verify-ada's browser sends: the session staging's copy keeps for her, signed with the secret the dev
-    server reads from .dev.vars. */
+    server reads from .dev.vars, or in a clone with none the one the config binds (E2E_AUTH_SECRET). */
 function adaSession() {
   const token = "tokenadaverify000000000000000000";
-  const vars = readFileSync(new URL("../.dev.vars", import.meta.url), "utf8");
-  const secret = vars.match(/^BETTER_AUTH_SECRET=["']?(.*?)["']?$/m)?.[1] ?? "";
+  let vars = "";
+  try {
+    vars = readFileSync(new URL("../.dev.vars", import.meta.url), "utf8");
+  } catch {
+    /* a clone with no .dev.vars */
+  }
+  const secret =
+    vars.match(/^BETTER_AUTH_SECRET=["']?(.*?)["']?$/m)?.[1] ?? process.env.E2E_AUTH_SECRET ?? "";
   const signature = createHmac("sha256", secret).update(token).digest("base64");
   return { name: "better-auth.session_token", value: encodeURIComponent(`${token}.${signature}`) };
 }

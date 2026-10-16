@@ -26,6 +26,8 @@ const env = {
   BETTER_AUTH_SECRET: "the smoke tests' own secret, not a deploy's",
   REVIEWER_EMAIL: "reviewer@grabient.test"
 };
+/* the workers sign a test account's session with it where there is no .dev.vars (journeys.spec.ts) */
+process.env.E2E_AUTH_SECRET ??= env.BETTER_AUTH_SECRET;
 /* A local server places a request wherever this machine is, so the privacy banner could stand over the foot of every
    page: each test starts as a reader who answered it, everything off, but the banner's own (consent.spec.ts). */
 const answered = (base: string) => ({
