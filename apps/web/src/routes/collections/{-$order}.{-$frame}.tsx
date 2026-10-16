@@ -47,7 +47,7 @@ export const Route = createFileRoute("/collections/{-$order}/{-$frame}")({
     loaderData?.status || loaderData?.unkept ? NO_STORE : params.order ? FRESH : PAGE,
   head: ({ match, params, loaderData }) =>
     listHead(placeOf(params, searchOf(match.search))!, loaderData),
-  staticData: { corner: ListAppearance, translated: true },
+  staticData: { corner: ListAppearance },
   component: function CollectionsLists() {
     const search = Route.useSearch();
     const params = Route.useParams();

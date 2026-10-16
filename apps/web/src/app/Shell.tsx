@@ -110,8 +110,7 @@ export function Shell() {
       });
     },
     here: () => pageInEveryLanguage(location().pathname + location().searchStr, !page().lost),
-    translated: () =>
-      !!page().options.translated && !new URLSearchParams(location().searchStr).has("q")
+    languages: () => page().languages
   };
 
   /* the tab's icon wears what the page paints (tab-icon.ts). The server wrote the first one, so the code that draws

@@ -1,6 +1,6 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
 import { drawnView, isStyle } from "@grabient/engine/view.ts";
-import { LOCALES, localizePath } from "@grabient/i18n";
+import { LOCALES, type Locale, localizePath } from "@grabient/i18n";
 import { all, first } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
@@ -13,12 +13,14 @@ import {
   paletteCard
 } from "../../lib/page-meta.ts";
 import { collectionSitemapRows } from "../collections/read.ts";
+import { collectionLanguages } from "../mcp/admin/translations.ts";
 import { sitemapQueries } from "../search/search.ts";
 import { isoDay } from "./text.ts";
 
 /* The sitemaps: an index of the others; the site's own pages in every language, each naming the rest; the searches
-   worth an engine's visit; every public collection; and every gallery palette, in files of 5,000 by rowid. Each file
-   reads only what it lists, with one indexed query or none, and names only canonical addresses, never a redirect.
+   worth an engine's visit; every public collection, in each language Grabient's are translated into; and every
+   gallery palette, in files of 5,000 by rowid. Each file reads only what it lists, with indexed queries or none, and
+   names only canonical addresses, never a redirect.
    The palette files are rowid ranges, which avoids a count and an offset scan: k_palettes stays a rowid table. */
 
 /** Palettes in one file, well under the protocol's 50,000 addresses and 50 MB. */
@@ -26,6 +28,8 @@ export const SHARD_SIZE = 5000;
 /** The palette files the index may name: 50,000 entries, less the pages, the searches and the collections. */
 export const MAX_SHARDS = 49_997;
 const MAX_COLLECTIONS = 45_000;
+/** The protocol's most addresses in one file. */
+const MAX_URLS = 50_000;
 const MAX_SEARCHES = 100;
 /** The site's own pages, translated and indexed in every language. */
 const OWN_PAGES = [
@@ -130,21 +134,34 @@ export function searchesSitemap(origin: string, queries: readonly string[]): str
   return urlset(entries, origin);
 }
 
-/** Every public collection, the latest change first, with its card. */
+/** Every public collection, the latest change first, with its card, then its page in each other language it reads in,
+    dated by the later of its change and its translation. */
 export function collectionsSitemap(
   origin: string,
-  rows: readonly { slug: string; updatedAt: number }[]
+  rows: readonly {
+    slug: string;
+    updatedAt: number;
+    languages?: readonly { locale: Locale; updatedAt: number }[];
+  }[]
 ): string {
   const seen = new Set<string>();
   const entries: Entry[] = [];
   for (const row of rows.slice(0, MAX_COLLECTIONS)) {
     if (seen.has(row.slug)) continue;
     seen.add(row.slug);
-    entries.push({
-      path: `/${row.slug}`,
-      lastmod: isoDay(row.updatedAt),
-      image: collectionCard(row.slug, origin, row.updatedAt)
-    });
+    const said = (row.languages ?? []).map(({ locale, updatedAt }) => ({
+      path: localizePath(`/${row.slug}`, locale),
+      lastmod: isoDay(Math.max(row.updatedAt, updatedAt))
+    }));
+    if (entries.length + 1 + said.length > MAX_URLS) break;
+    entries.push(
+      {
+        path: `/${row.slug}`,
+        lastmod: isoDay(row.updatedAt),
+        image: collectionCard(row.slug, origin, row.updatedAt)
+      },
+      ...said
+    );
   }
   return urlset(entries, origin);
 }
@@ -224,8 +241,16 @@ export async function sitemapFile(
 ): Promise<string | null> {
   if (name === "pages") return pagesSitemap(origin, !(await flagOff(env, "newsletter")));
   if (name === "searches") return searchesSitemap(origin, await sitemapQueries(env));
-  if (name === "collections")
-    return collectionsSitemap(origin, await collectionSitemapRows(env, MAX_COLLECTIONS));
+  if (name === "collections") {
+    const [rows, languages] = await Promise.all([
+      collectionSitemapRows(env, MAX_COLLECTIONS),
+      collectionLanguages(env)
+    ]);
+    return collectionsSitemap(
+      origin,
+      rows.map(row => ({ ...row, languages: languages.get(row.slug) }))
+    );
+  }
   const shard = paletteShard(name);
   return shard === null ? null : palettesSitemap(origin, await paletteRows(env, shard));
 }

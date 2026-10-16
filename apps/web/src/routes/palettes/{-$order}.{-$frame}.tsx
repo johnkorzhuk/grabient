@@ -46,7 +46,7 @@ export const Route = createFileRoute("/palettes/{-$order}/{-$frame}")({
       ? pageHead(metaPage(at, { palettes: loaderData?.palettes, robots: loaderData?.robots }))
       : {};
   },
-  staticData: { corner: ListAppearance, translated: true },
+  staticData: { corner: ListAppearance },
   component: function PalettesRoute() {
     const search = Route.useSearch();
     const params = Route.useParams();

@@ -26,8 +26,6 @@ declare module "@tanstack/solid-router" {
     moving?: boolean;
     /** the tools the header's corner holds before the theme: a list's appearance, the editor's own */
     corner?: Component;
-    /** the page's words are the site's own and translated, so each language's copy is indexed, unsearched */
-    translated?: boolean;
     /** the page pins its stops along the foot of the screen (the editor): a note the frame floats stands over the
         artwork's top corner instead */
     strip?: boolean;
@@ -38,6 +36,9 @@ declare module "@tanstack/solid-router" {
 export interface FramedData {
   /** the palettes the page opens on, at most eight read: the bar cycles through them and the water carries them */
   paint?: readonly Drawn[];
+  /** the languages besides English a collection's page reads in, where its translation is of the English it has now:
+      the language menu lets a crawler follow those */
+  languages?: readonly string[];
 }
 
 /** The page on screen as the frame reads it from the router's matches: its route's options and the palettes its
@@ -52,10 +53,12 @@ export function pageFrom(
 ) {
   const lost = matches.some(m => m.status === "notFound" || m._notFound);
   const leaf = lost ? undefined : matches[matches.length - 1];
+  const data = leaf?.loaderData as FramedData | undefined;
   return {
     lost,
     options: leaf?.staticData ?? {},
-    painted: (leaf?.loaderData as FramedData | undefined)?.paint ?? []
+    painted: data?.paint ?? [],
+    languages: data?.languages
   };
 }
 
@@ -68,8 +71,8 @@ export interface Shell {
   keys(bindings: () => readonly Binding[]): void;
   /** This page's address without its language, as the language menu offers it in every language. */
   here(): string;
-  /** Whether this page's other languages are indexed, so the language menu lets a crawler follow them. */
-  translated(): boolean;
+  /** The languages besides English a collection's page reads in, which its loader read: the menu follows those. */
+  languages(): readonly string[] | undefined;
 }
 
 /** Null where no frame stands: the root's own error page, which the frame's failure leaves alone in the document. */

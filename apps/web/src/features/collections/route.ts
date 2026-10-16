@@ -171,6 +171,7 @@ export async function loadCollection(
     const ordered = sortCollectionItems(found.doc.items, at.order);
     return {
       facts: factsOf(found.doc, found.languages),
+      languages: found.languages ?? [],
       palettes: ordered.map(ownOf),
       paint: ordered.slice(0, PAINTED).map(item => drawnIn(inputOf(item), viewOf(params)))
     };

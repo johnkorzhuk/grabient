@@ -2,6 +2,7 @@ import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import { collectionSitemapRows } from "../src/server/collections/read.ts";
+import { fingerprint } from "../src/server/mcp/admin/translations.ts";
 import { indexNowKeyFile, sendIndexNow } from "../src/server/seo/indexnow.ts";
 import { legacyLanding } from "../src/server/seo/legacy.ts";
 import { markdownFile } from "../src/server/seo/markdown.ts";
@@ -113,6 +114,31 @@ describe("sitemaps", () => {
     expect(await sitemapFile(env, "collections", "https://grabient.com")).not.toContain(
       hidden.slug
     );
+  });
+
+  it("list one of Grabient's collections in each language whose translation is of the English it has now", async () => {
+    const env = testEnv();
+    const current = await collection(env, "public", 1_000);
+    const stale = await collection(env, "public", 2_000);
+    const translate = (id: string, locale: string, source: string, updatedAt: number) =>
+      run(
+        env.DB,
+        "INSERT INTO k_translations (kind, locale, key, title, source, updated_at) VALUES ('collection', ?, ?, '海', ?, ?)",
+        locale,
+        id,
+        source,
+        updatedAt
+      );
+    await translate(current.id, "ja", fingerprint("Ocean", ""), 1_760_000_000_000);
+    await translate(current.id, "de", fingerprint("Ocean, before", ""), 1_760_000_000_000);
+    await translate(stale.id, "ja", fingerprint("Ocean, before", ""), 1_760_000_000_000);
+    const xml = (await sitemapFile(env, "collections", "https://grabient.com")) ?? "";
+    expect(xml).toContain(
+      `<url><loc>https://grabient.com/ja/${current.slug}</loc><lastmod>2025-10-09</lastmod></url>`
+    );
+    expect(xml).not.toContain(`/de/${current.slug}`);
+    expect(xml).not.toContain(`/ja/${stale.slug}`);
+    expect(xml.match(/<url>/g)).toHaveLength(3);
   });
 });
 

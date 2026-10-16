@@ -3,19 +3,21 @@ import { focusLeft } from "@grabient/ui/dismiss.ts";
 import { Flag } from "@grabient/ui/Flag.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createSignal, createUniqueId, For, onSettled, Show, untrack } from "solid-js";
+import { relTo } from "../lib/page-meta.ts";
 import styles from "./LanguageMenu.module.css";
 import { chooseLanguage } from "./language.ts";
 
 /* The language menu at the end of every footer. Its choices are links with hreflang, so a crawler and a reader without
    scripts follow them and the app leaves them to the browser, which loads the page anew in that language; a press also
-   keeps the choice (chooseLanguage). The page's address is read again whenever the menu is reached, since a page can
-   change it in place, and the list's flags are drawn only from then on, which keeps them out of the page's HTML. Each
-   name carries its own language and direction while the row keeps the page's, so the flag stays at the row's start. */
+   keeps the choice (chooseLanguage). A crawler follows the ones the index keeps and no other (relTo). The page's
+   address is read again whenever the menu is reached, since a page can change it in place, and the list's flags are
+   drawn only from then on, which keeps them out of the page's HTML. Each name carries its own language and direction
+   while the row keeps the page's, so the flag stays at the row's start. */
 export function LanguageMenu(props: {
   /** this page's address without its language, read again whenever the menu is reached */
   path: () => string;
-  /** false where this page's other languages are for reading only: a crawler is not sent to them */
-  follow: boolean;
+  /** the languages besides English a collection's page reads in, which its loader read */
+  languages?: readonly string[];
   /** another language is a page load, which the browser cannot make now */
   disabled?: boolean;
 }) {
@@ -104,7 +106,7 @@ export function LanguageMenu(props: {
                 class={styles.row}
                 href={localizePath(at(), to())}
                 hreflang={LOCALE_INFO[to()].tag}
-                rel={props.follow ? undefined : "nofollow"}
+                rel={relTo(localizePath(at(), to()), props.languages)}
                 aria-current={to() === locale() ? "true" : undefined}
                 onClick={e => choose(e, to())}
               >

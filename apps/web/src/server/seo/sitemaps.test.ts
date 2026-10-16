@@ -39,8 +39,16 @@ describe("the sitemaps, as grabient.com serves them", () => {
     );
   });
 
-  test("a collection is listed once, with the day it last changed and its card", () => {
-    const ocean = { slug: "ocean-gradients", updatedAt: 1_760_000_000_000 };
+  test("a collection is listed once, with the day it last changed and its card, then in each language it reads in", () => {
+    const ocean = {
+      slug: "ocean-gradients",
+      updatedAt: 1_760_000_000_000,
+      // the later of the collection's change and its translation's dates each language's page
+      languages: [
+        { locale: "de", updatedAt: 1_750_000_000_000 },
+        { locale: "ja", updatedAt: 1_770_000_000_000 }
+      ] as const
+    };
     expect(collectionsSitemap(ORIGIN, [ocean, ocean])).toBe(golden("collections.sample"));
   });
 
