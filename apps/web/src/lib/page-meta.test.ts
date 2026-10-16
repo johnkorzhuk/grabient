@@ -453,6 +453,44 @@ describe("a palette's own address", () => {
   });
 });
 
+describe("structured data", () => {
+  const typesOf = (meta: PageMeta) => meta.structuredData.map(data => data["@type"]);
+
+  test("says the app is free on the home alone", () => {
+    expect(typesOf(pageMeta(pageOf("/"), PRODUCTION_ORIGIN))).toEqual(["WebApplication"]);
+    for (const address of ["/?page=2", "/?q=blue", "/palettes", "/about", "/kS7Q8Yy5S_SChv0"]) {
+      const types = typesOf(pageMeta(pageOf(address), PRODUCTION_ORIGIN));
+      expect([address, types.includes("WebApplication")]).toEqual([address, false]);
+    }
+  });
+
+  test("names the site a page is part of by its one WebSite", () => {
+    current = "ja";
+    const meta = pageMeta(
+      pageOf("/palettes", { items: [{ seed: "kS7Q8Yy5S_SChv0" }] }),
+      PRODUCTION_ORIGIN
+    );
+    const list = meta.structuredData.find(data => data["@type"] === "CollectionPage");
+    expect(list?.isPartOf).toEqual({ "@id": "https://grabient.com/#website" });
+    // another language's list names none of the palettes' pages, which are indexed in English alone
+    expect(list?.mainEntity).toBeUndefined();
+    current = "en";
+    const english = pageMeta(
+      pageOf("/palettes", { items: [{ seed: "kS7Q8Yy5S_SChv0" }] }),
+      PRODUCTION_ORIGIN
+    );
+    expect(
+      english.structuredData.find(data => data["@type"] === "CollectionPage")?.mainEntity
+    ).toMatchObject({
+      numberOfItems: 1
+    });
+    const work = pageMeta(pageOf("/kS7Q8Yy5S_SChv0"), PRODUCTION_ORIGIN).structuredData.find(
+      data => data["@type"] === "CreativeWork"
+    );
+    expect(work?.isPartOf).toEqual([{ "@id": "https://grabient.com/#website" }]);
+  });
+});
+
 describe("a link's rel", () => {
   const ja = (languages: string[]): Facts => ({
     collection: {
@@ -570,7 +608,6 @@ describe("the head a route gives", () => {
     };
     expect(data["script:ld+json"].map(item => item["@type"])).toEqual([
       "WebSite",
-      "WebApplication",
       "Organization",
       "CreativeWork",
       "BreadcrumbList"

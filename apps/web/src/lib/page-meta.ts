@@ -526,11 +526,8 @@ export const collectionCard = (
   );
 
 const SCHEMA = "https://schema.org";
-const website = (origin: string) => ({
-  "@type": "WebSite",
-  name: "Grabient",
-  url: pageUrl("/", origin)
-});
+/** The site, as a page that is part of it names it: by the one WebSite every page describes. */
+const website = (origin: string) => ({ "@id": `${absolute("/", origin)}#website` });
 const breadcrumbs = (origin: string, trail: readonly (readonly [string, string])[]) => ({
   "@context": SCHEMA,
   "@type": "BreadcrumbList",
@@ -546,7 +543,24 @@ const iso = (time: number) => {
   return Number.isFinite(date.getTime()) ? date.toISOString() : undefined;
 };
 
-/** What the site is, on every page: the site and its search, the app, and the organization behind it. */
+/** The app the home is, which is free: what a search engine may show for the site. */
+const webApplication = (origin: string) => ({
+  "@context": SCHEMA,
+  "@type": "WebApplication",
+  name: "Grabient",
+  url: pageUrl("/", origin),
+  description: t(
+    "CSS gradient generator and color palette finder. Browse and edit gradient palettes, then export them as CSS, SVG, PNG or a shader."
+  ),
+  applicationCategory: "DesignApplication",
+  operatingSystem: "Web",
+  inLanguage: LOCALE_INFO[locale()].tag,
+  browserRequirements: t("Requires JavaScript"),
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }
+});
+
+/** What the site is, on every page: the site and its search, and the organization behind it. */
 export function siteStructuredData(origin: string): Record<string, unknown>[] {
   const site = absolute("/", origin);
   return [
@@ -569,21 +583,6 @@ export function siteStructuredData(origin: string): Record<string, unknown>[] {
         },
         "query-input": "required name=search_term_string"
       }
-    },
-    {
-      "@context": SCHEMA,
-      "@type": "WebApplication",
-      name: "Grabient",
-      url: pageUrl("/", origin),
-      description: t(
-        "CSS gradient generator and color palette finder. Browse and edit gradient palettes, then export them as CSS, SVG, PNG or a shader."
-      ),
-      applicationCategory: "DesignApplication",
-      operatingSystem: "Web",
-      inLanguage: LOCALE_INFO[locale()].tag,
-      browserRequirements: t("Requires JavaScript"),
-      isAccessibleForFree: true,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }
     },
     {
       "@context": SCHEMA,
@@ -842,6 +841,7 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
         /* the home leads with the hottest palettes, so its card is theirs */
         meta.image = cardUrl("/api/og/list", { sort: "hot" }, page.view, origin);
         meta.imageAlt = t("{name} on Grabient", { name });
+        if ((page.page ?? 1) === 1) meta.structuredData.push(webApplication(origin));
       }
       break;
     }
@@ -940,7 +940,11 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
       : clipWords(meta.description);
   if (page.robots) meta.robots = page.robots;
   if (list && page.palettes) {
-    const items = page.palettes.map(p => ({ url: pageUrl(paletteAddress(p.seed, p), origin) }));
+    /* a palette's page is indexed in English alone: another language's list names none of them */
+    const items =
+      locale() === DEFAULT_LOCALE
+        ? page.palettes.map(p => ({ url: pageUrl(paletteAddress(p.seed, p), origin) }))
+        : [];
     meta.structuredData.push(listOf(meta, origin, list.name, items, list.more));
   }
   if (page.kind === "collections" && page.collections) {
@@ -963,7 +967,7 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
   return meta;
 }
 
-/** A list's own structured data: the page, and up to 96 of what it lists. */
+/** A list's own structured data: the page, and up to 96 of what it lists where it names any. */
 function listOf(
   meta: PageMeta,
   origin: string,
@@ -981,15 +985,19 @@ function listOf(
     image: meta.image,
     ...more,
     isPartOf: website(origin),
-    mainEntity: {
-      "@type": "ItemList",
-      numberOfItems: items.length,
-      itemListElement: items.slice(0, 96).map((item, i) => ({
-        "@type": "ListItem",
-        position: i + 1,
-        ...item
-      }))
-    }
+    ...(items.length
+      ? {
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: items.length,
+            itemListElement: items.slice(0, 96).map((item, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              ...item
+            }))
+          }
+        }
+      : {})
   };
 }
 
