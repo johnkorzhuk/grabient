@@ -143,9 +143,9 @@ export interface CollectionLoaded extends Loaded {
 
 /** A collection page's loader: the public collection in the cache. A private one renders its page, which names it so
     and which its owner's browser fills in, and answers 404, as does an account's address that holds nothing. A
-    one-segment address that holds nothing is the palette search for its words, in its order and view (an old link's
-    newer `?sort=` is Rising's): only the server can tell nothing from a private collection, so a browser's navigation
-    that finds nothing loads the address whole. */
+    one-segment address that holds nothing leads, for now, to the palette search for its words, in its order and view
+    (an old link's newer `?sort=` is Rising's): a collection may take the address tomorrow. Only the server can tell
+    nothing from a private collection, so a browser's navigation that finds nothing loads the address whole. */
 export async function loadCollection(
   client: QueryClient,
   at: { slug: string; order: PaletteOrder; searchStr: string; publicHref: string }
@@ -185,7 +185,7 @@ export async function loadCollection(
   const rising = at.order === "rising" || parseSort(params.get("sort")) !== "popular";
   throw redirect({
     href: localHref(`${rising ? "/palettes/rising" : "/palettes"}${search}`),
-    statusCode: 301
+    statusCode: 302
   });
 }
 
