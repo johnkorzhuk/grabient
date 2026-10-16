@@ -293,7 +293,14 @@ describe("an old grabient.com link", () => {
       ]);
     }
     expect(read).toEqual(Array(3).fill("kY4mpDazO-mUuu_fuLqXU49dvVP6"));
-    // a view the link names is the link's, and nothing is read for it
+    // a view or a size the link names is the link's, and nothing is read for it
+    const sized = await get(
+      "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu?size=1200x630",
+      {},
+      undefined,
+      worker
+    );
+    expect(location(sized)).toBe("/kY4mpDazO-mUuu_fuLqXU49dvVP6?size=1200x630");
     const viewed = await get(
       "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu?angle=30",
       {},

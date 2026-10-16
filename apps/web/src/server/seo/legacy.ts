@@ -71,8 +71,8 @@ export async function legacyLanding(env: Pick<Env, "DB">, address: string): Prom
   const old = oldAddress(address);
   if (!old?.to || old.via === "fitted") return null;
   const asked = new URL(address, "https://grabient.com").searchParams;
-  if (["style", "steps", "angle"].some(name => asked.has(name))) return null;
-  const seed = old.to.slice(1).split("?", 1)[0] ?? "";
+  if (["style", "steps", "angle", "size"].some(name => asked.has(name))) return null;
+  const seed = old.to.slice(1).split("?", 1)[0];
   try {
     const row = await first<{ saved: string | null }>(replica(env), SAVED_TEXT, seed);
     return paletteAddress(seed, savedView(row?.saved));
