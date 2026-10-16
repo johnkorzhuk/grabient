@@ -403,7 +403,7 @@ export function indexedAddress(address: string, languages?: readonly string[]): 
   const [first = "", second, third] = path.slice(1).split("/");
   if (path === "/") return !words && !(Number(url.searchParams.get("page")) > 1);
   if (first === "palettes" || first === "collections") {
-    if (second === "saved" || longFrame(third as RisingFrame | undefined)) return false;
+    if (second === "saved" || (third !== undefined && third !== DEFAULT_FRAME)) return false;
     /* a search is the palettes' own, in English and in the popular order: the rest repeat it */
     return !words || (first === "palettes" && !second && english);
   }
@@ -625,9 +625,6 @@ function searchDescription(query: string): string {
       );
 }
 
-/** A palette's page: titled by its written words in English while it is drawn as it was saved, else by what its colors
-    are called, and described by them with its colors, which no other palette shares, so two palettes described alike
-    still read apart. */
 /** What a palette's page says of it: its written words while they are its own (ownWords), else what its colors are
     called, then its colors from end to end, every one where they all fit. */
 function describe(
@@ -672,6 +669,9 @@ export function paletteDescription(page: Extract<Page, { kind: "palette" }>): st
   );
 }
 
+/** A palette's page: titled by its written words in English while it is drawn as it was saved, else by what its colors
+    are called, and described by them with its colors, which no other palette shares, so two palettes described alike
+    still read apart. */
 function palettePage(
   page: Extract<Page, { kind: "palette" }>,
   meta: PageMeta,
