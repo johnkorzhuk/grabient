@@ -1,4 +1,5 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
+import { isStyle } from "@grabient/engine/view.ts";
 import { isLocale, localizePath } from "@grabient/i18n";
 import { batch } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
@@ -13,8 +14,9 @@ import { indexed, publicOrigin } from "./site.ts";
    Every ten minutes the scheduled job sends the palettes the gallery took, the public collections that changed and the
    collections newly translated since the last list, at most 10,000 addresses at once, and keeps in KV how far it has
    sent. A refused list is sent again next time. The first pass only marks where things stand: the sitemaps hold what
-   came before. A palette and a collection are sent at their English address, the one their other languages name as
-   theirs, and a translation at its language's, where that page is indexed. */
+   came before. A palette is sent at its English address in the view the gallery saved it in, a collection at its
+   English address, the one their other languages name as theirs, and a translation at its language's, where that page
+   is indexed. */
 
 const ENDPOINT = "https://api.indexnow.org/indexnow";
 const MAX_URLS = 10_000;
@@ -86,7 +88,7 @@ export async function sendIndexNow(
   }
   const [palettes, collections, translations] = await batch(env.DB, [
     [
-      "SELECT rowid AS id, seed FROM k_palettes WHERE rowid > ? ORDER BY rowid LIMIT ?",
+      "SELECT rowid AS id, seed, style, steps, angle FROM k_palettes WHERE rowid > ? ORDER BY rowid LIMIT ?",
       kept.palette,
       MAX_URLS
     ],
@@ -104,7 +106,13 @@ export async function sendIndexNow(
   ]);
   /* the palettes first, then the collections, then the translations, in the room left: what the list cannot hold
      waits for the next pass */
-  const made = palettes.results as { id: number; seed: string }[];
+  const made = palettes.results as {
+    id: number;
+    seed: string;
+    style: string;
+    steps: number;
+    angle: number;
+  }[];
   const changed = (collections.results as { slug: string; updated_at: number }[]).slice(
     0,
     MAX_URLS - made.length
@@ -116,7 +124,10 @@ export async function sendIndexNow(
   const urls = new Set<string>();
   for (const row of made) {
     const palette = decodePalette(row.seed);
-    if (palette) urls.add(new URL(paletteAddress(encodePalette(palette)), origin).toString());
+    const style = isStyle(row.style) ? row.style : undefined;
+    const saved = { style, steps: row.steps, angle: row.angle };
+    if (palette)
+      urls.add(new URL(paletteAddress(encodePalette(palette), saved), origin).toString());
   }
   for (const row of changed) urls.add(new URL(`/${row.slug}`, origin).toString());
   for (const row of said) {

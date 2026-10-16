@@ -7,16 +7,17 @@ import type { Env } from "@grabient/server/env.ts";
 import type { PaletteFacts } from "../../features/editor/facts.ts";
 import { PALETTE_PAGE } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
-import { SAVED_VIEW, savedView } from "../collections/files.ts";
+import { SAVED_TEXT, savedView } from "../collections/files.ts";
 import { colorsOf, LEAD_SEEDS } from "../collections/read.ts";
 
-/* What only the database knows of a palette, for its page: the words written for it that its colors bear out with the
-   view it was saved in, which its page wears them in alone, the public collections that hold it, the most saved
-   first, each titled in the page's language where it is translated, and how many like it. The page's title, its description, its static page for crawlers and its Markdown read them,
-   and its heart starts from the count. Read once per page, or per answer to a browser that opens the palette, the edge
-   has no copy of, from a replica, in one round of three queries. A failed read of the words or the collections leaves
-   the facts out: the page goes by the palette's colors, and no cache keeps it. A count that cannot be read is left
-   out alone, and the browser asks for it. */
+/* What only the database knows of a palette, for its page: the view it was saved in, which its canonical address
+   draws, the words written for it that its colors bear out, which its page wears in that view alone, the public
+   collections that hold it, the most saved first, each titled in the page's language where it is translated, and how
+   many like it. The page's title, its canonical, its description, its static page for crawlers and its Markdown read
+   them, and its heart starts from the count. Read once per page, or per answer to a browser that opens the palette,
+   the edge has no copy of, from a replica, in one round of three queries. A failed read of the words or the
+   collections leaves the facts out: the page goes by the palette's colors, and no cache keeps it. A count that cannot
+   be read is left out alone, and the browser asks for it. */
 
 const HELD_MAX = 6;
 
@@ -47,9 +48,9 @@ export async function paletteFacts(
   const db = replica(source);
   const [read, counted] = await Promise.all([
     Promise.all([
-      all<{ title: string; embed: string; saved: string | null }>(
+      all<{ title: string | null; embed: string | null; saved: string | null }>(
         db,
-        `SELECT t.title, t.embed, ${SAVED_VIEW("t.seed")} AS saved FROM k_palette_texts t WHERE t.seed = ?`,
+        SAVED_TEXT,
         seed
       ),
       all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed)
@@ -69,7 +70,7 @@ export async function paletteFacts(
   /* a title the colors contradict is left out, and the description goes with it, as are the words of a palette nothing
      saved, which no view is theirs */
   const written =
-    text && view && !titleFaults(text.title, palette).length
+    text?.title && view && !titleFaults(text.title, palette).length
       ? {
           title: text.title,
           ...(text.embed && !titleFaults(text.embed, palette).length
@@ -79,6 +80,7 @@ export async function paletteFacts(
         }
       : undefined;
   return {
+    ...(view ? { saved: view } : {}),
     ...(written ? { written } : {}),
     heldBy: held.map(row => {
       /* a translation counts while the English it was made from is still the collection's */

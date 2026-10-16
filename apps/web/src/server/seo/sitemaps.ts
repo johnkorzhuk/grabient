@@ -1,4 +1,5 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
+import { drawnView, isStyle } from "@grabient/engine/view.ts";
 import { LOCALES, localizePath } from "@grabient/i18n";
 import { all, first } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
@@ -6,9 +7,10 @@ import { flagOff } from "@grabient/server/flags/flags.ts";
 import {
   type Alternate,
   alternatesOf,
-  CARD_VERSION,
   collectionCard,
-  paletteAddress
+  type PaletteView,
+  paletteAddress,
+  paletteCard
 } from "../../lib/page-meta.ts";
 import { collectionSitemapRows } from "../collections/read.ts";
 import { sitemapQueries } from "../search/search.ts";
@@ -147,11 +149,16 @@ export function collectionsSitemap(
   return urlset(entries, origin);
 }
 
-/** A file of gallery palettes, each at its own address with the day it joined and its card. A seed that is no palette
-    is left out, and one written two ways is listed once, as its canonical seed. */
+/** A file of gallery palettes, each at its own address, in the view it was saved in, with the day it joined and its
+    card. A seed that is no palette is left out, and one written two ways is listed once, as its canonical seed. */
 export function palettesSitemap(
   origin: string,
-  rows: readonly { seed: string; createdAt?: number | string | null; image?: string }[]
+  rows: readonly {
+    seed: string;
+    view?: PaletteView;
+    createdAt?: number | string | null;
+    image?: string;
+  }[]
 ): string {
   const seen = new Set<string>();
   const entries: Entry[] = [];
@@ -162,7 +169,7 @@ export function palettesSitemap(
     if (seen.has(seed)) continue;
     seen.add(seed);
     entries.push({
-      path: paletteAddress(seed),
+      path: paletteAddress(seed, row.view),
       lastmod: isoDay(row.createdAt),
       image: row.image && new URL(row.image, origin).toString()
     });
@@ -179,11 +186,18 @@ export async function paletteShards(env: Pick<Env, "DB">): Promise<number> {
   return Math.max(1, Math.ceil((high?.id ?? 0) / SHARD_SIZE));
 }
 
-/** One palette file's rows, a rowid range ((shard - 1) * SHARD_SIZE, shard * SHARD_SIZE], each with its card. */
+/** One palette file's rows, a rowid range ((shard - 1) * SHARD_SIZE, shard * SHARD_SIZE], each in the view the gallery
+    saved it in, with its card in that view, as its page names them. */
 export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
-  const rows = await all<{ seed: string; created_at: number }>(
+  const rows = await all<{
+    seed: string;
+    style: string;
+    steps: number;
+    angle: number;
+    created_at: number;
+  }>(
     env.DB,
-    "SELECT seed, created_at FROM k_palettes WHERE rowid > ? AND rowid <= ? ORDER BY rowid LIMIT ?",
+    "SELECT seed, style, steps, angle, created_at FROM k_palettes WHERE rowid > ? AND rowid <= ? ORDER BY rowid LIMIT ?",
     (shard - 1) * SHARD_SIZE,
     shard * SHARD_SIZE,
     SHARD_SIZE
@@ -191,7 +205,14 @@ export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
   return rows.map(row => {
     const palette = decodePalette(row.seed);
     const seed = palette ? encodePalette(palette) : row.seed;
-    return { seed, createdAt: row.created_at, image: `/api/og?seed=${seed}&v=${CARD_VERSION}` };
+    const style = isStyle(row.style) ? row.style : undefined;
+    const view = palette && drawnView(palette, { style, steps: row.steps, angle: row.angle });
+    return {
+      seed,
+      ...(view ? { view } : {}),
+      createdAt: row.created_at,
+      image: view ? paletteCard(seed, view) : undefined
+    };
   });
 }
 

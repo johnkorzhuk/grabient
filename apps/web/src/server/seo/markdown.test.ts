@@ -144,6 +144,24 @@ describe("a palette as Markdown", () => {
     });
   });
 
+  test("names as its page the palette's own address, in the view it was saved in", async () => {
+    const response = await markdownFile(
+      "kS7Q8Yy5S_SChv0",
+      get("/kS7Q8Yy5S_SChv0.md?style=radialSwatches"),
+      "https://grabient.com",
+      reads({
+        paletteWords: async () => ({
+          saved: { style: "linearSwatches", steps: 9, angle: 90 },
+          written: null,
+          heldBy: []
+        })
+      })
+    );
+    expect(response.headers.get("Link")).toBe(
+      '<https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9>; rel="canonical"'
+    );
+  });
+
   test("is the file grabient.com served, with the words written for it too", async () => {
     const plain = await markdownFile(
       files.seed,

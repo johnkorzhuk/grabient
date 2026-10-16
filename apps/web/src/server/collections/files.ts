@@ -3,7 +3,7 @@ import { MARKDOWN_LEAD, type PaletteWords } from "@grabient/engine/markdown.ts";
 import { titleFaults } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { asSaved, isStyle, type Style, type View } from "@grabient/engine/view.ts";
-import { all } from "@grabient/server/db/d1.ts";
+import { all, first } from "@grabient/server/db/d1.ts";
 import { collectionBySlug, collectionsHolding, type Reader } from "./read.ts";
 
 export { isCollectionSlug } from "../../features/collections/address.ts";
@@ -33,6 +33,11 @@ export const SAVED_VIEW = (seed: string) => `COALESCE(
   (SELECT json_array(i.style, i.steps, i.angle) FROM k_collection_items i
      JOIN k_collections c ON c.id = i.collection_id AND c.owner_kind = 'agent'
      WHERE i.seed = ${seed} ORDER BY i.created_at IS NOT NULL, i.created_at, c.created_at, i.position LIMIT 1))`;
+
+/** One palette's row, by the seed it is read with: the words written for it where any are, and SAVED_VIEW's view
+    whether or not they are. */
+export const SAVED_TEXT = `SELECT t.title, t.embed, ${SAVED_VIEW("s.seed")} AS saved
+  FROM (SELECT ? AS seed) s LEFT JOIN k_palette_texts t ON t.seed = s.seed`;
 
 export type SavedView = Pick<View, "style" | "steps" | "angle">;
 /** A view SAVED_VIEW read, or none. */
@@ -129,16 +134,32 @@ export async function collectionForFiles(
   };
 }
 
-/** What a palette's Markdown says beyond its colors: the words written for it that its colors bear out, its
-    description cut to the file's lead, with the view it was saved in, which the file names it by alone, and the public
-    collections that hold it. */
+/** What a palette's Markdown says beyond its colors: the view it was saved in, which its page's address draws, the
+    words written for it that its colors bear out, its description cut to the file's lead, which the file names it by in
+    that view alone, and the public collections that hold it. */
 export async function paletteWords(
   env: Reader,
   seed: string
-): Promise<{ written: PaletteWords | null; heldBy: { slug: string; title: string }[] }> {
-  const [[text], held] = await Promise.all([texts(env, [seed]), collectionsHolding(env, seed)]);
+): Promise<{
+  saved?: SavedView;
+  written: PaletteWords | null;
+  heldBy: { slug: string; title: string }[];
+}> {
+  const [row, held] = await Promise.all([
+    first<{ title: string | null; embed: string | null; saved: string | null }>(
+      env.DB,
+      SAVED_TEXT,
+      seed
+    ),
+    collectionsHolding(env, seed)
+  ]);
+  const saved = savedView(row?.saved);
+  const text = row?.title
+    ? { seed, title: row.title, embed: row.embed ?? "", saved: row.saved }
+    : undefined;
   const words = writtenWords(text, decodePalette(seed));
   return {
+    ...(saved ? { saved } : {}),
     written: words && {
       title: words.title,
       ...(words.embed ? { lead: clip(words.embed, MARKDOWN_LEAD) } : {}),

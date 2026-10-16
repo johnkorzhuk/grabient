@@ -1,14 +1,6 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
-import {
-  asSaved,
-  DEFAULT_ANGLE,
-  DEFAULT_STEPS,
-  DEFAULT_STYLE,
-  type Style,
-  type View,
-  viewSearch
-} from "@grabient/engine/view.ts";
+import { asSaved, drawnView, type Style, type View, viewSearch } from "@grabient/engine/view.ts";
 import {
   DEFAULT_LOCALE,
   isLocale,
@@ -65,12 +57,14 @@ export interface CollectionFacts {
   /** the languages besides English one of Grabient's collections is translated into; its page is indexed in each */
   languages?: readonly string[];
 }
+/** How a palette is drawn, without a picture's size: its saved view, or the view a list's card draws it in. */
+export type PaletteView = Pick<View, "style" | "steps" | "angle">;
 /** What a page's data adds to its address. */
 interface Facts {
   /** the server's word on a page the index leaves out: a search the vocabulary cannot read, a page past the last */
   robots?: string;
-  /** the palettes the page lists, by seed, in its order */
-  palettes?: readonly string[];
+  /** the palettes the page lists, in its order, each in the view its card links */
+  palettes?: readonly ({ seed: string } & PaletteView)[];
   /** the collections a list of collections shows, in its order */
   collections?: readonly { slug: string; title: string }[];
 }
@@ -119,13 +113,16 @@ export type Page = Facts &
         kind: "palette";
         seed: string;
         palette: Palette;
-        view: Pick<View, "style" | "steps" | "angle">;
+        view: PaletteView;
+        /** the view it was saved in, which its canonical address draws: none for a palette neither the gallery nor
+            Grabient's collections hold */
+        saved?: PaletteView;
         /** the words written for it that its colors bear out, in English, where they are written, with the view it
             was saved in, which they describe */
         written?: {
           title: string;
           description?: string;
-          view: Pick<View, "style" | "steps" | "angle">;
+          view: PaletteView;
         };
         /** the public collections that hold it, titled in the page's language */
         heldBy?: readonly { slug: string; title: string }[];
@@ -188,13 +185,17 @@ const titled = (title: string) => `${title} | Grabient`;
 const untitled = (title: string) => title.replace(/ \| Grabient$/, "");
 const language = () => ({ t, locale: locale() });
 
-/** A palette's own address: its seed at the default view, with its stop count where its keyframes raise it past the
-    default (an eight-keyframe palette is /seed?steps=8, since /seed leads there). Canonicals, sitemaps and lists'
-    structured data name it, so none of them names a redirect. */
-export function paletteAddress(seed: string): string {
-  const steps = Math.max(DEFAULT_STEPS, decodePalette(seed)?.anchors.length ?? 0);
-  return `/${seed}${viewSearch({ style: DEFAULT_STYLE, steps, angle: DEFAULT_ANGLE })}`;
+/** A palette's own address: its seed in the view it was saved in, where its written words show, else the default view,
+    each as an address reads it, steps never under its keyframes (an eight-keyframe palette is /seed?steps=8, since
+    /seed leads there). Canonicals, sitemaps and lists' structured data name it, as a list's card links it, so none of
+    them names a redirect. */
+export function paletteAddress(seed: string, saved?: Partial<PaletteView>): string {
+  const palette = decodePalette(seed);
+  return `/${seed}${palette ? viewSearch(drawnView(palette, saved)) : ""}`;
 }
+/** A palette's share card in a view, as its page and its sitemap entry name it. */
+export const paletteCard = (seed: string, view: PaletteView) =>
+  `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`;
 
 /** A list's query as its canonical writes it: the words, a page past the first and a page size other than the
     default. A page at another size lists other palettes than the same page at the default, so it keeps its size. */
@@ -607,7 +608,7 @@ function palettePage(
   const style = t(STYLE_WORDS[view.style]);
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
   const written = ownWords(page);
-  const path = paletteAddress(seed);
+  const path = paletteAddress(seed, page.saved);
   meta.title = titled(heading(page));
   /* every color where they all fit, else some from end to end */
   const spread = (count: number) =>
@@ -633,10 +634,7 @@ function palettePage(
       ...counts.map(n => (words: string) => t("{words} {hexes}.", { words, hexes: spread(n) }))
     ]
   );
-  meta.image = absolute(
-    `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`,
-    origin
-  );
+  meta.image = absolute(paletteCard(seed, view), origin);
   meta.imageAlt = t("{name} color palette", { name });
   meta.themeColor = hexes[0];
   meta.markdown = absolute(`/${seed}.md${viewSearch(view)}`, origin);
@@ -885,7 +883,7 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
       : clipWords(meta.description);
   if (page.robots) meta.robots = page.robots;
   if (list && page.palettes) {
-    const items = page.palettes.map(seed => ({ url: pageUrl(paletteAddress(seed), origin) }));
+    const items = page.palettes.map(p => ({ url: pageUrl(paletteAddress(p.seed, p), origin) }));
     meta.structuredData.push(listOf(meta, origin, list.name, items, list.more));
   }
   if (page.kind === "collections" && page.collections) {

@@ -1,5 +1,5 @@
 import { decodePalette } from "@grabient/engine";
-import { parseView, type View } from "@grabient/engine/view.ts";
+import { parseView } from "@grabient/engine/view.ts";
 import {
   addCatalog,
   type Catalog,
@@ -19,6 +19,7 @@ import {
   headOf,
   type Page,
   type PageMeta,
+  type PaletteView,
   PRODUCTION_ORIGIN,
   pageMeta,
   setOriginSource,
@@ -34,13 +35,15 @@ beforeEach(() => {
 });
 
 type Facts = {
-  items?: { seed: string }[];
+  /** each in the view its card links: the default unless named */
+  items?: ({ seed: string } & Partial<PaletteView>)[];
   collections?: { slug: string; title: string }[];
   collection?: Extract<Page, { kind: "collection" }>["collection"];
   title?: string;
   description?: string;
-  /** the view the written words were saved in: the address's own unless named */
-  saved?: Pick<View, "style" | "steps" | "angle">;
+  /** the view a palette was saved in, which its written words describe: the address's own where words are written
+      and none is named */
+  saved?: PaletteView;
   heldBy?: { slug: string; title: string }[];
   staticOg?: boolean;
   robots?: string;
@@ -68,7 +71,12 @@ function pageOf(address: string, facts: Facts = {}): Page {
   const [first, second, third] = url.pathname.split("/").slice(1);
   const common = {
     robots: facts.robots,
-    palettes: facts.items?.map(item => item.seed),
+    palettes: facts.items?.map(item => ({
+      style: "linearGradient" as const,
+      steps: 7,
+      angle: 90,
+      ...item
+    })),
     collections: facts.collections
   };
   const order = second === "rising" ? "rising" : "popular";
@@ -92,12 +100,15 @@ function pageOf(address: string, facts: Facts = {}): Page {
   if (palette && !second) {
     const parsed = parseView(url.searchParams);
     const view = { ...parsed, steps: Math.max(parsed.steps, palette.anchors.length) };
+    const words = !!(facts.title || facts.description);
+    // words are written only for a palette something saved
+    const saved = facts.saved ?? (words ? view : undefined);
     const written =
-      facts.title || facts.description
+      words && saved
         ? {
             title: facts.title?.replace(/ \| Grabient$/, "") ?? "",
             description: facts.description,
-            view: facts.saved ?? view
+            view: saved
           }
         : undefined;
     return {
@@ -105,6 +116,7 @@ function pageOf(address: string, facts: Facts = {}): Page {
       seed: first,
       palette,
       view,
+      ...(saved ? { saved } : {}),
       written,
       heldBy: facts.heldBy,
       ...common
@@ -375,7 +387,7 @@ describe("a palette's written words", () => {
   test.each([
     ["another style", "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9"],
     ["other steps", "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=10"],
-    ["the default view its canonical address draws", "/kS7Q8Yy5S_SChv0"]
+    ["the default view", "/kS7Q8Yy5S_SChv0"]
   ])("give way to what its colors call it in %s", (_, address) => {
     const other = named(address);
     expect(other.heading).not.toMatch(/candy/i);
@@ -385,9 +397,57 @@ describe("a palette's written words", () => {
     expect(other.description).toMatch(/^.+ palette with \d+ colors\. #/);
   });
 
+  test("stand at the one address its page names from every view: the view it was saved in", () => {
+    const own = "https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9";
+    for (const address of [
+      "/kS7Q8Yy5S_SChv0",
+      "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9&angle=30",
+      "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45",
+      "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9"
+    ]) {
+      const meta = pageMeta(pageOf(address, facts), PRODUCTION_ORIGIN);
+      const work = meta.structuredData.find(data => data["@type"] === "CreativeWork");
+      expect([address, meta.canonical, work?.url]).toEqual([address, own, own]);
+    }
+    const there = pageOf("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9", facts);
+    expect(pageMeta(there, PRODUCTION_ORIGIN).title).toBe("Pastel candy vertical bands | Grabient");
+  });
+
   test("name its page in English alone", () => {
     current = "fr";
     expect(named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9").heading).not.toMatch(/candy/i);
+  });
+});
+
+describe("a palette's own address", () => {
+  const canonical = (address: string) => pageMeta(pageOf(address), PRODUCTION_ORIGIN).canonical;
+
+  test("is its default view where nothing saved it, its stop count never under its keyframes", () => {
+    expect(canonical("/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9&angle=30")).toBe(
+      "https://grabient.com/kS7Q8Yy5S_SChv0"
+    );
+    expect(canonical("/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?style=linearSwatches")).toBe(
+      "https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?steps=8"
+    );
+  });
+
+  test("is the address a list's card links, which the list's structured data names", () => {
+    const meta = pageMeta(
+      pageOf("/palettes", {
+        items: [
+          { seed: "kS7Q8Yy5S_SChv0", style: "linearSwatches", steps: 9, angle: 45 },
+          { seed: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ" }
+        ]
+      }),
+      PRODUCTION_ORIGIN
+    );
+    const list = meta.structuredData.find(data => data["@type"] === "CollectionPage") as {
+      mainEntity: { itemListElement: { url: string }[] };
+    };
+    expect(list.mainEntity.itemListElement.map(item => item.url)).toEqual([
+      "https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45",
+      "https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?steps=8"
+    ]);
   });
 });
 

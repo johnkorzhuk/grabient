@@ -1,7 +1,8 @@
 import type { QueryClient } from "@tanstack/solid-query";
 import type { FramedData } from "../../app/shell.ts";
+import type { Drawn } from "../../lib/palette.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
-import { homePaint, paintOf } from "./drawing.ts";
+import { homePaint, ownOf, paintOf } from "./drawing.ts";
 import {
   type Failed,
   failed,
@@ -23,8 +24,8 @@ export interface Loaded extends FramedData {
   robots?: string;
   /** the status a page that renders answers with, when it is no 200 */
   status?: number;
-  /** the palettes the page lists, by seed, for its structured data */
-  palettes?: string[];
+  /** the palettes the page lists, each in its own view, which its card links, for its structured data */
+  palettes?: Drawn[];
 }
 
 const PUBLIC_EDGE = 300;
@@ -60,7 +61,7 @@ export async function loadPalettes(
   const unread = !!place.params.words && !page.indexable;
   return {
     edge: page.unkept ? 0 : place.params.words ? ttl : left(page.fetchedAt, ttl),
-    palettes: page.items.map(item => item.kseed),
+    palettes: page.items.map(ownOf),
     paint,
     ...(unread ? { robots: "noindex,follow" } : {})
   };
@@ -84,7 +85,7 @@ export async function loadHome(client: QueryClient, params: ListParams): Promise
   }
   return {
     edge: answered.unkept || collections.unkept ? 0 : PUBLIC_EDGE,
-    palettes: answered.palettes.map(item => item.kseed),
+    palettes: answered.palettes.map(ownOf),
     paint
   };
 }

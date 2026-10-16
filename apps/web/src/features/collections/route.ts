@@ -7,9 +7,11 @@ import { getRequest } from "@tanstack/solid-start/server";
 import type { FramedData } from "../../app/shell.ts";
 import { parseSort } from "../../lib/orders.ts";
 import { type CollectionFacts, type Page, pageHead } from "../../lib/page-meta.ts";
+import type { Drawn } from "../../lib/palette.ts";
 import { type Failed, failed } from "../../lib/query.ts";
 import { searchOf } from "../../lib/route.ts";
 import { listWords } from "../../lib/words.ts";
+import { ownOf } from "../gallery/drawing.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
 import { collectionHref, type PaletteOrder, slugWords, sortCollectionItems } from "./address.ts";
@@ -133,8 +135,8 @@ const factsOf = (doc: CollectionDocument, languages?: readonly string[]): Collec
 
 export interface CollectionLoaded extends Loaded {
   facts?: CollectionFacts;
-  /** the palettes the collection lists in the address's order, by seed, which its head names */
-  palettes?: readonly string[];
+  /** the palettes the collection lists in the address's order, each in the view it saved it in, which its head names */
+  palettes?: readonly Drawn[];
   /** nothing public lives here and the request came with no session: nobody here can be a private one's owner */
   signedOut?: boolean;
 }
@@ -169,7 +171,7 @@ export async function loadCollection(
     const ordered = sortCollectionItems(found.doc.items, at.order);
     return {
       facts: factsOf(found.doc, found.languages),
-      palettes: ordered.map(item => item.kseed),
+      palettes: ordered.map(ownOf),
       paint: ordered.slice(0, PAINTED).map(item => drawnIn(inputOf(item), viewOf(params)))
     };
   }

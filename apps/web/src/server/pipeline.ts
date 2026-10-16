@@ -34,7 +34,7 @@ import {
   serverFunctionPath,
   uncachedPath
 } from "./paths.ts";
-import { countLegacy } from "./seo/legacy.ts";
+import { countLegacy, legacyLanding } from "./seo/legacy.ts";
 import { fittedRedirect, oldFit } from "./seo/legacy-fit.ts";
 import { indexed, NOINDEX } from "./seo/site.ts";
 
@@ -164,7 +164,9 @@ async function route(
   }
 
   if (page) countLegacy(env, request, address);
-  const canonical = page ? canonicalRedirect(address) : null;
+  const canonical = page
+    ? ((await legacyLanding(env, address)) ?? canonicalRedirect(address))
+    : null;
   // a reader arriving from elsewhere at an English address is sent to the language they chose or their browser asks
   // for; a click inside the site, a crawler and a reader who chose English are taken as they came
   if (read && page && locale === DEFAULT_LOCALE && arriving(request, url) && !isCrawler(request)) {

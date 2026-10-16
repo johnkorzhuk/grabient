@@ -3,6 +3,9 @@ import type { Env } from "@grabient/server/env.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import { collectionSitemapRows } from "../src/server/collections/read.ts";
 import { indexNowKeyFile, sendIndexNow } from "../src/server/seo/indexnow.ts";
+import { legacyLanding } from "../src/server/seo/legacy.ts";
+import { markdownFile } from "../src/server/seo/markdown.ts";
+import { markdownReads } from "../src/server/seo/markdown-reads.ts";
 import { paletteRows, paletteShards, sitemapFile } from "../src/server/seo/sitemaps.ts";
 import { githubStars, refreshStars } from "../src/server/seo/stars.ts";
 import { testEnv, unique } from "./helpers.ts";
@@ -17,13 +20,21 @@ const production = (values: Partial<Env> = {}) =>
     ...values
   });
 
-async function palette(env: Env, seed: string, rowid?: number, createdAt = 1_700_000_000_000) {
+/** A gallery palette, saved in the default view unless one is named. */
+async function palette(
+  env: Env,
+  seed: string,
+  rowid?: number,
+  createdAt = 1_700_000_000_000,
+  view: [string, number, number] = ["linearGradient", 7, 90]
+) {
   await run(
     env.DB,
     `INSERT INTO k_palettes (${rowid ? "rowid, " : ""}seed, style, steps, angle, created_at)
-     VALUES (${rowid ? "?, " : ""}?, 'linearGradient', 7, 90, ?)`,
+     VALUES (${rowid ? "?, " : ""}?, ?, ?, ?, ?)`,
     ...(rowid ? [rowid] : []),
     seed,
+    ...view,
     createdAt
   );
 }
@@ -58,26 +69,32 @@ describe("sitemaps", () => {
   it("name one palette file for each 5,000 rowids, the highest deciding, and read only that file's range", async () => {
     const env = testEnv();
     expect(await paletteShards(env)).toBe(1);
-    await palette(env, "kS7Q8Yy5S_SChv0", 12_345);
+    await palette(env, "kS7Q8Yy5S_SChv0", 12_345, 1_700_000_000_000, ["linearSwatches", 9, 45]);
     // the same palette written another way is listed once, as its canonical seed
     await palette(env, "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", 12_000, 1_704_153_600_000);
     await palette(env, "kY4mpDazO-mUuu_fuLqXU49dvVP6", 9_000);
     expect(await paletteShards(env)).toBe(3);
+    // each in the view the gallery saved it in, which its page names as canonical, its steps never under its keyframes
     expect(await paletteRows(env, 3)).toEqual([
       {
         seed: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
+        view: { style: "linearGradient", steps: 8, angle: 90 },
         createdAt: 1_704_153_600_000,
-        image: "/api/og?seed=kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ&v=k4"
+        image: "/api/og?seed=kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ&v=k4&steps=8"
       },
       {
         seed: "kS7Q8Yy5S_SChv0",
+        view: { style: "linearSwatches", steps: 9, angle: 45 },
         createdAt: 1_700_000_000_000,
-        image: "/api/og?seed=kS7Q8Yy5S_SChv0&v=k4"
+        image: "/api/og?seed=kS7Q8Yy5S_SChv0&v=k4&style=linearSwatches&steps=9&angle=45"
       }
     ]);
     const xml = await sitemapFile(env, "palettes-3", "https://grabient.com");
     expect(xml).toContain(
       "<loc>https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?steps=8</loc><lastmod>2024-01-02</lastmod>"
+    );
+    expect(xml).toContain(
+      "<loc>https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&amp;steps=9&amp;angle=45</loc>"
     );
     expect(xml).not.toContain("kY4mpDazO");
     expect(await sitemapFile(env, "palettes-0", "https://grabient.com")).toBeNull();
@@ -96,6 +113,32 @@ describe("sitemaps", () => {
     expect(await sitemapFile(env, "collections", "https://grabient.com")).not.toContain(
       hidden.slug
     );
+  });
+});
+
+describe("a palette's Markdown", () => {
+  it("names its page at the view the gallery saved it in, with no words written for it", async () => {
+    const env = testEnv();
+    await palette(env, "kS7Q8Yy5S_SChv0", undefined, 1, ["linearSwatches", 9, 45]);
+    const response = await markdownFile(
+      "kS7Q8Yy5S_SChv0",
+      new Request("https://grabient.com/kS7Q8Yy5S_SChv0.md"),
+      "https://grabient.com",
+      markdownReads(env)
+    );
+    expect(response.headers.get("Link")).toBe(
+      '<https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45>; rel="canonical"'
+    );
+  });
+});
+
+describe("an old grabient.com link that names no view", () => {
+  it("lands on its palette's own address, the view the gallery saved it in", async () => {
+    const env = testEnv();
+    const old = "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu";
+    expect(await legacyLanding(env, old)).toBe("/kY4mpDazO-mUuu_fuLqXU49dvVP6");
+    await palette(env, "kY4mpDazO-mUuu_fuLqXU49dvVP6", undefined, 1, ["linearGradient", 6, 45]);
+    expect(await legacyLanding(env, old)).toBe("/kY4mpDazO-mUuu_fuLqXU49dvVP6?steps=6&angle=45");
   });
 });
 
@@ -145,7 +188,7 @@ describe("IndexNow", () => {
     });
     expect(posts).toEqual([]);
 
-    await palette(env, "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", 11);
+    await palette(env, "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", 11, 1, ["linearSwatches", 9, 45]);
     const changed = await collection(env, "public", 6_000);
     await collection(env, "private", 7_000);
     await run(
@@ -162,7 +205,7 @@ describe("IndexNow", () => {
           key: KEY,
           keyLocation: `https://grabient.com/${KEY}.txt`,
           urlList: [
-            "https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?steps=8",
+            "https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?style=linearSwatches&steps=9&angle=45",
             `https://grabient.com/${changed.slug}`,
             `https://grabient.com/ja/${changed.slug}`
           ]

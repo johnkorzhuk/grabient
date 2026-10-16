@@ -183,6 +183,21 @@ describe("a palette's facts", () => {
     expect(await viewed()).toEqual({ style: "radialSwatches", steps: 10, angle: 45 });
   });
 
+  it("carries the view it was saved in, which its canonical address draws, whether or not words were written for it", async () => {
+    const seed = "kUVWLxQ8zCNfDRHtP8cA";
+    const plain = decodePalette(seed)!;
+    // nothing holds it: its address draws the default view
+    expect((await paletteFacts(seed, plain, "en", env))?.saved).toBeUndefined();
+    await run(
+      env.DB,
+      "INSERT INTO k_palettes (seed, style, steps, angle, likes_count, created_at) VALUES (?, 'linearSwatches', 9, 45, 0, 1)",
+      seed
+    );
+    const facts = await paletteFacts(seed, plain, "en", env);
+    expect(facts?.saved).toEqual({ style: "linearSwatches", steps: 9, angle: 45 });
+    expect(facts?.written).toBeUndefined();
+  });
+
   it("answers a browser that opens it with its facts in English, kept at the edge as its page is", async () => {
     const shown = await holding(env, unique("Held for the browser"), [SEED], "public");
     await run(

@@ -19,6 +19,7 @@ export const metaPage = (
   seed: page.seed,
   palette: page.palette,
   view: page.view,
+  ...(facts?.saved ? { saved: facts.saved } : {}),
   ...(facts?.written ? { written: facts.written } : {}),
   heldBy: facts?.heldBy ?? []
 });

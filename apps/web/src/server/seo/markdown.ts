@@ -4,7 +4,7 @@ import { seedName } from "@grabient/engine/name.ts";
 import type { Namer } from "@grabient/engine/precise-names.ts";
 import { drawnView, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
 import { PAGE, TEXT } from "../../lib/cache.ts";
-import { collectionCard } from "../../lib/page-meta.ts";
+import { collectionCard, type PaletteView, paletteAddress } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { addressParams, viewAt } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
@@ -38,6 +38,8 @@ export interface CollectionWords {
 /** What the files read from the database. A failed read of a palette's words leaves them out. */
 export interface MarkdownReads {
   paletteWords(seed: string): Promise<{
+    /** the view it was saved in, which its page's address draws */
+    saved?: PaletteView;
     written: PaletteWords | null;
     heldBy: readonly { slug: string; title: string }[];
   }>;
@@ -105,12 +107,13 @@ export async function markdownFile(
     const { seed, palette } = found;
     // the view as the file's cache key reads it (files/keys.ts), so one key never holds two files
     const view = viewAt(addressParams(new URL(request.url).searchParams), palette.anchors.length);
-    const [{ written, heldBy }, names] = await Promise.all([
-      reads.paletteWords(seed).catch(() => ({ written: null, heldBy: [] })),
+    const [{ saved, written, heldBy }, names] = await Promise.all([
+      reads.paletteWords(seed).catch(() => ({ saved: undefined, written: null, heldBy: [] })),
       reads.colorNames?.() ?? null
     ]);
     const text = paletteMarkdown(seed, base, view, written, heldBy, names);
-    if (text !== null) return new Response(text, { headers: markdown(`${base}/${seed}`, TEXT) });
+    if (text !== null)
+      return new Response(text, { headers: markdown(base + paletteAddress(seed, saved), TEXT) });
   }
   if (!found && reads.isCollection(name)) {
     const doc = await reads.collection(name);

@@ -38,8 +38,23 @@ const waits: Promise<unknown>[] = [];
 const ctx = { waitUntil: (p: Promise<unknown>) => waits.push(p) } as unknown as ExecutionContext;
 /** What the Worker counted, as Analytics Engine would hold it. */
 let counted: string[];
+/** A database whose every read answers that a palette was saved in `view` (a JSON array), or in none, and records the
+    seed it was asked about. */
+const savedIn = (view: string | null, read: string[] = []) => ({
+  withSession: () => ({
+    prepare: () => ({
+      bind: (seed: string) => ({
+        first: async () => {
+          read.push(seed);
+          return { saved: view };
+        }
+      })
+    })
+  })
+});
 const env = {
   DEPLOYMENT: "staging",
+  DB: savedIn(null),
   USAGE: {
     writeDataPoint: (point: { blobs: string[] }) => void counted.push(point.blobs.join(" "))
   }
@@ -241,6 +256,41 @@ describe("an old grabient.com link", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(asked).toEqual([]);
     expect(counted).toEqual([`legacy ${via} reader`]);
+  });
+
+  test("that names no view lands on its palette's own address, the view it was saved in, which the database says", async () => {
+    const read: string[] = [];
+    const worker = { ...env, DB: savedIn('["linearSwatches",9,45]', read) } as unknown as Env;
+    const own = "/kY4mpDazO-mUuu_fuLqXU49dvVP6?style=linearSwatches&steps=9&angle=45";
+    for (const from of [
+      "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu",
+      "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu/edit?page=2",
+      "/ja/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu"
+    ]) {
+      const response = await get(from, {}, undefined, worker);
+      expect([from, response.status, location(response)]).toEqual([
+        from,
+        301,
+        from.startsWith("/ja/") ? `/ja${own}` : own
+      ]);
+    }
+    expect(read).toEqual(Array(3).fill("kY4mpDazO-mUuu_fuLqXU49dvVP6"));
+    // a view the link names is the link's, and nothing is read for it
+    const viewed = await get(
+      "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu?angle=30",
+      {},
+      undefined,
+      worker
+    );
+    expect(location(viewed)).toBe("/kY4mpDazO-mUuu_fuLqXU49dvVP6?angle=30");
+    expect(read).toHaveLength(3);
+    // a read that fails leaves the palette's default view
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failing = { ...env, DB: undefined } as unknown as Env;
+    const unread = await get("/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu", {}, undefined, failing);
+    expect(location(unread)).toBe("/kY4mpDazO-mUuu_fuLqXU49dvVP6");
+    expect(logged).toHaveBeenCalled();
+    logged.mockRestore();
   });
 
   test("every id the maps hold leads to its palette's canonical address", () => {
