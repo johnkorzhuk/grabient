@@ -51,3 +51,15 @@ test("every address names the deploy's own origin", () => {
   expect(aiCatalog(origin, MCP).entries[0].url).toBe(`${origin}/mcp/server-card`);
   expect(serverCard(origin, MCP).remotes[0].url).toBe(`${origin}/mcp`);
 });
+
+test("the whole reference names the lists' Rising frames an admin has left on, and no other", () => {
+  expect(llmsText(ORIGIN, MCP, true)).toContain(
+    "Rising is the week's, and `/3m` or `/1y` after it its other frames |"
+  );
+  expect(llmsText(ORIGIN, MCP, true, ["1w", "3m"])).toContain(
+    "Rising is the week's, and `/3m` after it its other frame |"
+  );
+  const week = llmsText(ORIGIN, MCP, true, ["1w"]);
+  expect(week).toContain("Rising is the week's |");
+  expect(week).not.toMatch(/`\/(?:3m|1y)`/);
+});

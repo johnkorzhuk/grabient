@@ -14,7 +14,7 @@ import { isoDay } from "./text.ts";
 /* A palette or a collection as Markdown at its address plus .md, for an agent that reads text. A palette's is the
    engine's, with what only the database knows: the words written for it that its colors bear out, and the public
    collections that hold it. A collection's says its words, then every palette with its colors and its address. Both are
-   English, out of search results, and name their page as canonical. */
+   English, out of search results, and name their page as the form of it to read. */
 
 /** A public collection as its files read it. */
 export interface CollectionWords {
@@ -51,11 +51,12 @@ export interface MarkdownReads {
   colorNames?(): Promise<Namer | null>;
 }
 
-const markdown = (canonical: string, cache: Record<string, string>) => ({
+/* out of search results, and naming the page it is a form of */
+const markdown = (page: string, cache: Record<string, string>) => ({
   ...cache,
   ...AGENT_DATA,
   "Content-Type": "text/markdown; charset=utf-8",
-  Link: `<${canonical}>; rel="canonical"`
+  Link: `<${page}>; rel="alternate"; type="text/html"`
 });
 
 /** A collection as Markdown: its words, then every palette in its order and the view it was saved in. */

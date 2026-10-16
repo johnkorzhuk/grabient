@@ -153,9 +153,28 @@ describe("a palette's Markdown", () => {
       markdownReads(env)
     );
     expect(response.headers.get("Link")).toBe(
-      '<https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45>; rel="canonical"'
+      '<https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45>; rel="alternate"; type="text/html"'
     );
   });
+});
+
+type Handler = (context: { request: Request }) => Promise<Response>;
+const guides = import.meta.glob<{
+  Route: { options: { server: { handlers: { GET: Handler } } } };
+}>("../src/routes/llms*.ts");
+
+it("serves the guides for agents to every site and out of search results", async () => {
+  expect(Object.keys(guides)).toHaveLength(2);
+  for (const [file, load] of Object.entries(guides)) {
+    const answer = await (await load()).Route.options.server.handlers.GET({
+      request: new Request("https://grabient.com/llms.txt")
+    });
+    expect([
+      file,
+      answer.headers.get("X-Robots-Tag"),
+      answer.headers.get("Access-Control-Allow-Origin")
+    ]).toEqual([file, "noindex", "*"]);
+  }
 });
 
 describe("an old grabient.com link that names no view", () => {
