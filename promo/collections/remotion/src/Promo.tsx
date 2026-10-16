@@ -4,7 +4,9 @@
 // the page (the capture's transparent frames of the real site), the wordmark (the harness's m frames: Logo.tsx, the water
 // in its open bar), and the pointer with its presses. So the smoke off the bar always stands behind the cards and the
 // letters. In the morph the close view, with the card's picture cut out of it, fades over the end card's view, while the
-// picture becomes the bar where it is; then the words arrive on the end card's own water.
+// picture becomes the bar where it is; then the words fade in on the end card's own water. As the loop opens and the bar
+// starts to turn to the list's first palette, what stands under the wordmark slides to the left as one surface: the
+// words leave the frame and the list slides in to its place.
 // The plan of every frame is data/timeline.json, the same file the harness drew from. The water's last `fade` frames
 // dissolve into its frames from before the first one, so the loop comes round with no seam: the tweet's water is drawn
 // on the loop's frames, the newsletter's on its own shorter loop (water-<theme>-email).
@@ -33,13 +35,13 @@ export type PromoProps = { theme: Theme; variant: Variant; option: number };
 type Box = { x: number; y: number; w: number; h: number };
 type Cam = { left: number; top: number; w: number; h: number };
 type Pointer = { x: number; y: number; opacity: number; hand: number; pressed: number };
-type ViewSpec = { cam: Cam; alpha: number; grid: number; letters: number; bar: number; hole: number; cursor: Pointer | null };
+type ViewSpec = { cam: Cam; alpha: number; grid: number; shift: number; letters: number; bar: number; hole: number; cursor: Pointer | null };
 type Frame = {
   f: number;
   ui: number;
   views: ViewSpec[];
   picture: (Box & { r: number; alpha: number }) | null;
-  copy: { eyebrow: number; headline: number; rise: number };
+  copy: { eyebrow: number; headline: number; away: number };
 };
 const T = timeline as unknown as {
   length: number;
@@ -49,6 +51,8 @@ const T = timeline as unknown as {
   offset: { x: number; y: number };
   extent: { w: number; h: number };
   logo: { x: number; y: number; h: number };
+  /* how far the words slide, in a 1280 frame's pixels */
+  slide: number;
   parts: { fade: number };
   presses: { f: number; x: number; y: number; name: string }[];
   frames: Frame[];
@@ -80,6 +84,11 @@ const TYPE = {
 
 const pad = (n: number) => String(n).padStart(5, "0");
 
+/** A line of the words, as much of it as has faded in. */
+const Line: React.FC<{ shown: number; style: React.CSSProperties; children: React.ReactNode }> = ({ shown, style, children }) => (
+  <div style={{ ...style, opacity: shown }}>{children}</div>
+);
+
 /** A rounded rectangle as a path, for the hole the card's picture leaves in the close view. */
 const roundRect = (x: number, y: number, w: number, h: number, r: number) =>
   `M${x + r},${y} H${x + w - r} A${r},${r} 0 0 1 ${x + w},${y + r} V${y + h - r} A${r},${r} 0 0 1 ${x + w - r},${y + h} ` +
@@ -101,7 +110,6 @@ const View: React.FC<{
   const X = (x: number) => (x - cam.left) * s;
   const Y = (y: number) => (y - cam.top) * s;
   const unit = width / (variant === "tweet" ? 1280 : 534);
-  const wide = width / 1280;
   const pageBox: React.CSSProperties = {
     position: "absolute",
     left: X(0),
@@ -110,19 +118,13 @@ const View: React.FC<{
     height: T.page.h * s,
     maxWidth: "none"
   };
-  /* the list comes in below the wordmark out of the frost: it fades in and sharpens */
-  const away = 1 - spec.grid;
   const art = UI[theme].rects.art;
   const radius = UI[theme].painted[HERO].radius;
   const hole = spec.hole
     ? `path(evenodd, "M0,0 H${T.page.w * s} V${T.page.h * s} H0 Z ${roundRect((art.x - RIM) * s, (art.y - RIM) * s, (art.w + 2 * RIM) * s, (art.h + 2 * RIM) * s, (radius + RIM) * s)}")`
     : undefined;
-  const ui: React.CSSProperties = {
-    ...pageBox,
-    opacity: spec.grid,
-    filter: away > 0.001 ? `blur(${(10 * away * wide).toFixed(2)}px)` : undefined,
-    clipPath: hole
-  };
+  /* the page, as far to the right as the slide has yet to carry it */
+  const ui: React.CSSProperties = { ...pageBox, left: X(spec.shift), clipPath: hole };
   /* the wordmark's picture: its letters and its bar shown each as much as the plan says, split between the letters'
      foot (38 of the box's 50) and the bar's top (43) */
   const box = { y: T.logo.y + T.offset.y, h: T.logo.h };
@@ -229,44 +231,49 @@ export const Promo: React.FC<PromoProps> = ({ theme, variant, option }) => {
         />
       ) : null}
       {fr.copy.eyebrow > 0 || fr.copy.headline > 0 ? (
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: type.top * unit,
-            textAlign: "center",
-            fontFamily: "Poppins",
-            translate: `0 ${fr.copy.rise * wide}px`
-          }}
-        >
+        <AbsoluteFill>
           <div
             style={{
-              opacity: fr.copy.eyebrow,
-              fontSize: type.eyebrow * unit,
-              fontWeight: 700,
-              letterSpacing: "0.16em",
-              lineHeight: 1,
-              textTransform: "uppercase",
-              color: colors.quiet,
-              marginBottom: type.gap * unit
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: type.top * unit,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: type.gap * unit,
+              textAlign: "center",
+              fontFamily: "Poppins",
+              translate: `${fr.copy.away * wide}px 0`
             }}
           >
-            {words.eyebrow}
+            <Line
+              shown={fr.copy.eyebrow}
+              style={{
+                fontSize: type.eyebrow * unit,
+                fontWeight: 700,
+                letterSpacing: "0.16em",
+                lineHeight: 1,
+                textTransform: "uppercase",
+                color: colors.quiet
+              }}
+            >
+              {words.eyebrow}
+            </Line>
+            <Line
+              shown={fr.copy.headline}
+              style={{
+                fontSize: type.headline * unit,
+                fontWeight: 500,
+                letterSpacing: "-0.025em",
+                lineHeight: 1.15,
+                color: colors.text
+              }}
+            >
+              {words.headline}
+            </Line>
           </div>
-          <div
-            style={{
-              opacity: fr.copy.headline,
-              fontSize: type.headline * unit,
-              fontWeight: 500,
-              letterSpacing: "-0.025em",
-              lineHeight: 1.15,
-              color: colors.text
-            }}
-          >
-            {words.headline}
-          </div>
-        </div>
+        </AbsoluteFill>
       ) : null}
     </AbsoluteFill>
   );

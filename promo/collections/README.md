@@ -1,7 +1,7 @@
 # Collections promo
 
 The collections launch loop (October 2026). It ships as:
-- the October newsletter's GIF (`apps/web/public/email/collections-4.gif`, from `email-1.gif`);
+- the October newsletter's GIF (`apps/web/public/email/collections-5.gif`, from `email-1.gif`, and its light twin);
 - the tweets `tweet-1.mp4` and `tweet-1-light.mp4`, and their 1080p versions.
 
 Its frames, builds and finished files are in `$PROMO_WORK/collections`: `frames/`, `frames-hd/`, `data/`, `build/`,
@@ -11,12 +11,13 @@ Its frames, builds and finished files are in `$PROMO_WORK/collections`: `frames/
 
 1. The end card: Grabient's wordmark large over the site's water, the words under it ("New on Grabient" over
    "Collect the palettes you love").
-2. The words go. The list comes in below the wordmark, the bar turns to the list's first palette, and the page pulls
-   back.
+2. The words slide out to the left as the list slides in from the right below the wordmark, a shift of the whole
+   content to the side, never a fade. The bar starts turning to the list's palettes as the slide begins, while the
+   wordmark is still large, and the page pulls back.
 3. The demo, on one card: a like, then the plus, Add to collection, and two collections checked.
 4. One camera move back out to the end card. As it pulls back, the rest of the page fades, the letters appear, and the
    card's picture narrows into the wordmark's bar.
-5. The words arrive, and the end card holds. Frame 0 is the end card, so the loop comes round seamlessly.
+5. The words fade in, and the end card holds. Frame 0 is the end card, so the loop comes round seamlessly.
 
 Step 4 is one move, as specified: the camera draws back, and the fade, the letters and the morph into the bar happen
 together. An earlier cut flew the picture across the page into the header's wordmark, and was rejected. A change to the

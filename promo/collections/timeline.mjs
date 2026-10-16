@@ -4,11 +4,12 @@
 // this writes, so the water and the page agree on every frame. Frame 0 is the end card.
 //   node timeline.mjs ["$WORK/frames/ui-dark/frames.json"] > "$WORK/data/timeline.json"     (render.sh --frames runs it)
 //
-// The owner's loop: the end card is the camera over the page's own wordmark; the words go, the list comes in below the
-// wordmark, the bar turns to the list's first palette, and the whole page pulls back; the demo (a like, then Add to
-// collection) plays as v2's; when the interactions are done the camera stays in close, then draws back in one move to the
-// end card: as it does, the rest fades, the letters appear over the picture, and the picture narrows into the bar under
-// them; the words arrive, and it hangs.
+// The owner's loop: the end card is the camera over the page's own wordmark; as the bar starts to turn to the list's
+// first palette, what stands under the wordmark slides to the left as one surface, the words leaving the frame as the
+// list slides in from the right to its place, and the whole page pulls back; the demo (a like, then Add to collection)
+// plays as v2's; when the interactions are done the camera stays in close, then draws back in one move to the end card:
+// as it does, the rest fades, the letters appear over the picture, and the picture narrows into the bar under them; the
+// words fade in, and it hangs.
 import { readFileSync } from "node:fs";
 
 export const FPS = 30;
@@ -38,10 +39,10 @@ const AIM_PAGE = { x: PAGE.w / 2, y: PAGE.h / 2 };
 /* the loop's parts, in frames */
 export const PARTS = {
   holdA: 66, // the end card as the loop opens: long enough to read the words on a first play
-  copyOut: 12, // the words go
-  listAt: 8, // the list starts to come in below the wordmark this far past the hold, and the bar is handed the page's
-  // palettes, so it turns to the list's first one as the list arrives
-  listIn: 24, // the list's arrival
+  slide: 32, // what stands under the wordmark slides to the left: the words out of the frame, the list in to its place
+  slideAt: 8, // the slide starts this far past the hold
+  paintLead: 14, // the bar is handed the page's palettes this long before the slide: its turn takes about that long to
+  // show in the bar, so the bar starts to turn as the list starts to slide, the camera still close
   pullAt: 22, // the camera starts back this far past the hold
   pull: 54, // the whole page pulls back to the frame
   beat: 27, // the page in view before the pointer sets off ("hang for a tad bit longer")
@@ -136,9 +137,8 @@ export function buildTimeline(ui) {
   const m = ui.marks;
   const P = PARTS;
   /* the loop's frames for the parts around the demo */
-  const listAt = P.holdA + P.listAt;
-  const copyOut = [P.holdA, P.holdA + P.copyOut];
-  const listIn = [listAt, listAt + P.listIn];
+  const listAt = P.holdA + P.slideAt - P.paintLead;
+  const slide = [P.holdA + P.slideAt, P.holdA + P.slideAt + P.slide];
   const pull = [P.holdA + P.pullAt, P.holdA + P.pullAt + P.pull];
   const approach = pull[1] + P.beat;
   /* the demo's loop frames, and the UI frame each shows: before the approach the page at rest as captured, from the
@@ -159,6 +159,10 @@ export function buildTimeline(ui) {
 
   const card = ui.rects.card;
   const art = ui.rects.art;
+  /* the slide: far enough that the words leave the end card's frame whole and the list starts outside it, in page pixels;
+     the words go as far in a 1280 frame's pixels, SLIDE */
+  const slideBy = 0.8 * END.w;
+  const SLIDE = slideBy * END_SCALE;
   const radius = ui.painted?.[3]?.radius ?? 14;
   const corner = shot(PAGE.w - 350, card.y + 170, 700);
   const list = (() => {
@@ -219,17 +223,22 @@ export function buildTimeline(ui) {
     /* the current turns to the page's middle as the camera pulls back, and back out to the right of the bar in the morph */
     const out = f < pull[0] ? 0 : f < morph[0] ? ease(ramp(f, pull[0], pull[1])) : 1 - ease(ramp(f, morph[0], morph[1]));
     const aim = { x: lerp(AIM_END.x, AIM_PAGE.x, out), y: lerp(AIM_END.y, AIM_PAGE.y, out) };
-    /* the list comes in below the wordmark as the words go; it is gone from the end card */
-    const grid = f < morph[0] ? smooth(ramp(f, listIn[0], listIn[1])) : 0;
+    /* the list slides in from the right to its place below the wordmark; it is gone from the end card */
+    const slid = ease(ramp(f, slide[0], slide[1]));
+    const grid = f < morph[0] && f >= slide[0] ? 1 : 0;
+    const shift = f < morph[0] ? slideBy * (1 - slid) : 0;
     const cursorIn = smooth(ramp(f, pull[1] - 14, pull[1]));
     const cursorOut = 1 - smooth(ramp(f, morph[0], morph[0] + 8));
     const cursor = round({ x: lerp(lo.x, hi.x, w), y: lerp(lo.y, hi.y, w), opacity: Math.min(cursorIn, cursorOut), hand: hands[u], pressed: pressedAt(uf) });
     const letters = f >= morph[0] ? smooth(ramp(f, lettersIn[0], lettersIn[1])) : 1;
+    /* the words: whole on the end card until the slide takes them out to the left; at the end they fade in after the
+       bar lands, the headline a little after the eyebrow */
+    const shown = f < slide[1] ? 1 : 0;
     const words =
       f < morph[0]
-        ? { eyebrow: 1 - smooth(ramp(f, copyOut[0], copyOut[1])), headline: 1 - smooth(ramp(f, copyOut[0], copyOut[1])) }
+        ? { eyebrow: shown, headline: shown }
         : { eyebrow: smooth(ramp(f, copyIn[0], copyIn[1] - 4)), headline: smooth(ramp(f, copyIn[0] + 4, copyIn[1])) };
-    const rise = f < morph[0] ? -6 * (1 - words.headline) : 10 * (1 - words.headline);
+    const away = f < morph[0] ? -SLIDE * slid : 0;
 
     let views;
     let picture = null;
@@ -256,12 +265,13 @@ export function buildTimeline(ui) {
       const h = ((from.h * zoom) / Z0) ** (1 - shape) * (to.h * zoom) ** shape;
       picture = round({ x: c.x - w / 2, y: c.y - h / 2, w, h, r: radius * sA * (1 - shape), alpha: 1 });
       views = [
-        { cam: round(b), alpha: 1, grid: 0, letters, bar: 0, hole: 0, cursor: null },
+        { cam: round(b), alpha: 1, grid: 0, shift: 0, letters, bar: 0, hole: 0, cursor: null },
         /* the page's own wordmark is the end card's, drawn there alone: the close view leaves it out as it draws back */
         {
           cam: round(a),
           alpha: r2(1 - smooth(ramp(t, 0, 0.55))),
           grid: 1,
+          shift: 0,
           letters: 0,
           bar: 0,
           hole: 1,
@@ -274,7 +284,7 @@ export function buildTimeline(ui) {
         /* landed, the picture gives way to the bar, which already shows the hero */
         picture = round({ ...onScreen(END, BAR), r: 0, alpha: 1 - smooth((f - land + 1) / P.handover) });
       }
-      views = [{ cam: round(cam), alpha: 1, grid: r2(grid), letters: r2(letters), bar: 1, hole: 0, cursor: cursor.opacity > 0 ? cursor : null }];
+      views = [{ cam: round(cam), alpha: 1, grid, shift: r2(shift), letters: r2(letters), bar: 1, hole: 0, cursor: cursor.opacity > 0 ? cursor : null }];
     }
     frames.push({
       f,
@@ -287,7 +297,7 @@ export function buildTimeline(ui) {
       glow: glow && round(glow),
       views,
       picture,
-      copy: round({ ...words, rise })
+      copy: round({ ...words, away })
     });
   }
   const presses = pressDown.map(e => ({ f: Math.round(loopOf(e.f)), x: e.x, y: e.y, name: e.name }));
@@ -324,7 +334,10 @@ export function buildTimeline(ui) {
     extent: EXTENT,
     logo: LOGO,
     end: round(END),
-    parts: { ...P, hang: HANG, demoSpeed: DEMO_SPEED, copyOut, listIn, pull, approach, morph, land, hero: handHero, lettersIn, copyIn, rest: at("rest") },
+    /* how far the words slide, in a 1280 frame's pixels */
+    slide: r2(SLIDE),
+    /* copyOut and listIn are the slide, as the seam and sheet tools read them */
+    parts: { ...P, hang: HANG, demoSpeed: DEMO_SPEED, copyOut: slide, listIn: slide, slide, pull, approach, morph, land, hero: handHero, lettersIn, copyIn, rest: at("rest") },
     marks: Object.fromEntries(Object.entries(m).map(([k, v]) => [k, Math.round(loopOf(v))])),
     presses,
     email: { length: email.length, map: email, fast: EMAIL.fast, shorter: EMAIL.shorter, gif },
