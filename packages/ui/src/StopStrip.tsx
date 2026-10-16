@@ -58,13 +58,16 @@ export function StopStrip(props: {
     return room > width() ? layoutStops(stops(), room, !at.two, !!props.short) : at;
   });
   const cols = () => Math.ceil(stops().length / lay().rows.length);
-  /* whether a row that scrolls has colors past the strip's start and past its end; none until it is measured */
-  const [edges, setEdges] = createSignal({ less: 0, more: 0 });
+  /* whether a row that scrolls has colors past the strip's start and past its end; none until it is measured. The
+     same two edges again are no change */
+  const [edges, setEdges] = createSignal(
+    { less: 0, more: 0 },
+    { equals: (was, now) => was.less === now.less && was.more === now.more }
+  );
   const measure = () => {
     const at = host.scrollLeft;
     const room = host.scrollWidth - host.clientWidth;
-    const next = { less: at > 1 ? 1 : 0, more: room - at > 1 ? 1 : 0 };
-    if (next.less !== edges().less || next.more !== edges().more) setEdges(next);
+    setEdges({ less: at > 1 ? 1 : 0, more: room - at > 1 ? 1 : 0 });
   };
   /* the rows' shape, all that moves an edge, as a memo, which tells only of a change: a palette of the same length lays
      out anew and measures nothing */
