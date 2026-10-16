@@ -76,7 +76,10 @@ export function nameOf(p: Drawn): string {
 /** What a list's card calls a palette: in English, the title written for it while the card draws it as it was listed,
     the one view its page wears that title in; else what its colors call it. */
 export const cardName = (item: Pick<PaletteItem, "style" | "steps" | "title">, shown: Drawn) =>
-  item.title && locale() === DEFAULT_LOCALE && shown.style === item.style && shown.steps === item.steps
+  item.title &&
+  locale() === DEFAULT_LOCALE &&
+  shown.style === item.style &&
+  shown.steps === item.steps
     ? item.title
     : nameOf(shown);
 
