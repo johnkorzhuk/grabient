@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/solid-query";
 import type { FramedData } from "../../app/shell.ts";
+import { paletteAddress } from "../../lib/page-meta.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
 import { homePaint, paintOf } from "./drawing.ts";
 import {
@@ -23,7 +24,7 @@ export interface Loaded extends FramedData {
   robots?: string;
   /** the status a page that renders answers with, when it is no 200 */
   status?: number;
-  /** the palettes the page lists, by seed, for its structured data */
+  /** the palettes the page lists, at the addresses their cards link, for its structured data */
   palettes?: string[];
 }
 
@@ -60,7 +61,7 @@ export async function loadPalettes(
   const unread = !!place.params.words && !page.indexable;
   return {
     edge: page.unkept ? 0 : place.params.words ? ttl : left(page.fetchedAt, ttl),
-    palettes: page.items.map(item => item.kseed),
+    palettes: page.items.map(item => paletteAddress(item.kseed, item)),
     paint,
     ...(unread ? { robots: "noindex,follow" } : {})
   };
@@ -84,7 +85,7 @@ export async function loadHome(client: QueryClient, params: ListParams): Promise
   }
   return {
     edge: answered.unkept || collections.unkept ? 0 : PUBLIC_EDGE,
-    palettes: answered.palettes.map(item => item.kseed),
+    palettes: answered.palettes.map(item => paletteAddress(item.kseed, item)),
     paint
   };
 }

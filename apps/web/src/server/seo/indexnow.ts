@@ -1,19 +1,24 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
+import { isStyle } from "@grabient/engine/view.ts";
 import { isLocale, localizePath } from "@grabient/i18n";
 import { batch } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { paletteAddress } from "../../lib/page-meta.ts";
+import { oldIds } from "./legacy.ts";
 import { indexed, publicOrigin } from "./site.ts";
+import { sitemapAddresses } from "./sitemaps.ts";
 
 /* IndexNow (indexnow.org): the site tells Bing, and the engines that share what it is told, which pages are new or
    changed, and they read them within minutes; a page the sitemaps alone name waits for an engine's next pass. An
    engine takes a list only with the site's key, which the site serves at /{key}.txt. Only production has a key, and
    only the indexed deploy sends one, so staging and the Previews never do.
 
-   Every ten minutes the scheduled job sends the palettes the gallery took, the public collections that changed and the
-   collections newly translated since the last list, at most 10,000 addresses at once, and keeps in KV how far it has
-   sent. A refused list is sent again next time. The first pass only marks where things stand: the sitemaps hold what
-   came before. A palette and a collection are sent at their English address, the one their other languages name as
+   The first pass sends every address the sitemaps list and every old grabient.com address the legacy maps lead from,
+   so the engines read the site at its new addresses and the old ones' redirects at once, then marks where things
+   stand. From then on, every ten minutes, the scheduled job sends the palettes the gallery took, the public collections
+   that changed and the collections newly translated since the last list, and keeps in KV how far it has sent. A list
+   holds at most 10,000 addresses, and a refused one is sent again next time. A palette is sent at its English address
+   in the view the gallery saved it in, a collection at its English address, the one their other languages name as
    theirs, and a translation at its language's, where that page is indexed. */
 
 const ENDPOINT = "https://api.indexnow.org/indexnow";
@@ -27,11 +32,11 @@ interface Kept {
   collection: number;
   translation: number;
 }
-type IndexNowEnv = Pick<Env, "DB" | "DEPLOYMENT"> &
+type IndexNowEnv = Pick<Env, "DB" | "ASSETS" | "DEPLOYMENT"> &
   Partial<Pick<Env, "CACHE" | "INDEXNOW_KEY" | "PUBLIC_ORIGIN">>;
 export type IndexNowReport =
   | { sent: number; status: number }
-  | { marked: Kept }
+  | { sent: number; marked: Kept }
   | { skipped: string };
 
 /** The site's key where it has one the protocol takes: 8 to 128 letters, digits and dashes. */
@@ -57,7 +62,7 @@ export function indexNowKeyFile(
 const marked = (kept: Partial<Kept> | null): kept is Kept =>
   !!kept && [kept.palette, kept.collection, kept.translation].every(Number.isFinite);
 
-/** The scheduled pass: sends what is new since the last list, or marks where things stand on the first. */
+/** The scheduled pass: sends what is new since the last list, or on the first pass, everything once. */
 export async function sendIndexNow(
   env: IndexNowEnv,
   get: typeof fetch = fetch
@@ -67,10 +72,26 @@ export async function sendIndexNow(
   if (!indexed(env)) return { skipped: "not indexed" };
   if (!env.CACHE) return { skipped: "no KV" };
   const origin = publicOrigin(env);
+  /* a list of addresses as the protocol takes it: 200 is taken, 202 taken while the key is checked */
+  const send = async (urls: readonly string[]) =>
+    (
+      await get(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        signal: AbortSignal.timeout(10_000),
+        body: JSON.stringify({
+          host: new URL(origin).hostname,
+          key,
+          keyLocation: new URL(`/${key}.txt`, origin).toString(),
+          urlList: urls
+        })
+      })
+    ).status;
+  const taken = (status: number) => status === 200 || status === 202;
   const kept = await env.CACHE.get<Partial<Kept>>(KEPT, "json");
   if (!marked(kept)) {
-    const [palette, collection, translation] = (
-      await batch(env.DB, [
+    const [marks, listed] = await Promise.all([
+      batch(env.DB, [
         ["SELECT COALESCE(MAX(rowid), 0) AS mark FROM k_palettes"],
         [
           "SELECT COALESCE(MAX(updated_at), 0) AS mark FROM k_collections WHERE visibility = 'public'"
@@ -78,15 +99,27 @@ export async function sendIndexNow(
         [
           "SELECT COALESCE(MAX(updated_at), 0) AS mark FROM k_translations WHERE kind = 'collection'"
         ]
-      ])
-    ).map(result => Number((result.results[0] as { mark?: number } | undefined)?.mark ?? 0));
-    const marks = { palette, collection, translation };
+      ]).then(results => {
+        const [palette, collection, translation] = results.map(result =>
+          Number((result.results[0] as { mark?: number } | undefined)?.mark ?? 0)
+        );
+        return { palette, collection, translation };
+      }),
+      sitemapAddresses(env, origin)
+    ]);
+    const urls = [
+      ...new Set([...listed, ...oldIds().map(id => new URL(`/${id}`, origin).toString())])
+    ];
+    for (let at = 0; at < urls.length; at += MAX_URLS) {
+      const status = await send(urls.slice(at, at + MAX_URLS));
+      if (!taken(status)) return { sent: at, status };
+    }
     await env.CACHE.put(KEPT, JSON.stringify(marks));
-    return { marked: marks };
+    return { sent: urls.length, marked: marks };
   }
   const [palettes, collections, translations] = await batch(env.DB, [
     [
-      "SELECT rowid AS id, seed FROM k_palettes WHERE rowid > ? ORDER BY rowid LIMIT ?",
+      "SELECT rowid AS id, seed, style, steps, angle FROM k_palettes WHERE rowid > ? ORDER BY rowid LIMIT ?",
       kept.palette,
       MAX_URLS
     ],
@@ -104,7 +137,13 @@ export async function sendIndexNow(
   ]);
   /* the palettes first, then the collections, then the translations, in the room left: what the list cannot hold
      waits for the next pass */
-  const made = palettes.results as { id: number; seed: string }[];
+  const made = palettes.results as {
+    id: number;
+    seed: string;
+    style: string;
+    steps: number;
+    angle: number;
+  }[];
   const changed = (collections.results as { slug: string; updated_at: number }[]).slice(
     0,
     MAX_URLS - made.length
@@ -116,7 +155,10 @@ export async function sendIndexNow(
   const urls = new Set<string>();
   for (const row of made) {
     const palette = decodePalette(row.seed);
-    if (palette) urls.add(new URL(paletteAddress(encodePalette(palette)), origin).toString());
+    const style = isStyle(row.style) ? row.style : undefined;
+    const saved = { style, steps: row.steps, angle: row.angle };
+    if (palette)
+      urls.add(new URL(paletteAddress(encodePalette(palette), saved), origin).toString());
   }
   for (const row of changed) urls.add(new URL(`/${row.slug}`, origin).toString());
   for (const row of said) {
@@ -125,19 +167,9 @@ export async function sendIndexNow(
   }
   let status = 0;
   if (urls.size) {
-    ({ status } = await get(ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      signal: AbortSignal.timeout(10_000),
-      body: JSON.stringify({
-        host: new URL(origin).hostname,
-        key,
-        keyLocation: new URL(`/${key}.txt`, origin).toString(),
-        urlList: [...urls]
-      })
-    }));
-    /* 200 is taken, 202 taken while the key is checked; anything else is sent again next time */
-    if (status !== 200 && status !== 202) return { sent: 0, status };
+    status = await send([...urls]);
+    /* a list refused is sent again next time */
+    if (!taken(status)) return { sent: 0, status };
   }
   const next: Kept = {
     palette: made.at(-1)?.id ?? kept.palette,

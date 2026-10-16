@@ -314,15 +314,15 @@ describe("a collection page's loader", () => {
     const cache = holding("@ada/nothing", { doc: null, fetchedAt: 0 });
     expect(await loadCollection(cache, at("@ada/nothing"))).toMatchObject({ status: 404 });
   });
-  test("leads a one-segment address that holds nothing to the palette search for its words", async () => {
+  test("leads a one-segment address that holds nothing to the palette search for its words, for now", async () => {
     const cache = holding("warm-sunsets", { doc: null, fetchedAt: 0 });
     await expect(
       loadCollection(cache, at("warm-sunsets", "popular", "?steps=5&selection"))
     ).rejects.toEqual({
-      redirect: { href: "/palettes?q=warm+sunsets&steps=5&selection", statusCode: 301 }
+      redirect: { href: "/palettes?q=warm+sunsets&steps=5&selection", statusCode: 302 }
     });
     await expect(loadCollection(cache, at("warm-sunsets", "rising"))).rejects.toEqual({
-      redirect: { href: "/palettes/rising?q=warm+sunsets", statusCode: 301 }
+      redirect: { href: "/palettes/rising?q=warm+sunsets", statusCode: 302 }
     });
   });
   test("leads an old link's newer order to Rising's search for its words, in one step", async () => {
@@ -330,10 +330,10 @@ describe("a collection page's loader", () => {
     await expect(
       loadCollection(cache, at("red", "popular", "?sort=oldest&style=angularSwatches"))
     ).rejects.toEqual({
-      redirect: { href: "/palettes/rising?q=red&style=angularSwatches", statusCode: 301 }
+      redirect: { href: "/palettes/rising?q=red&style=angularSwatches", statusCode: 302 }
     });
     await expect(loadCollection(cache, at("red", "popular", "?sort=hot"))).rejects.toEqual({
-      redirect: { href: "/palettes?q=red", statusCode: 301 }
+      redirect: { href: "/palettes?q=red", statusCode: 302 }
     });
   });
   test("leads in the reader's language", async () => {
@@ -341,7 +341,7 @@ describe("a collection page's loader", () => {
     try {
       await expect(
         loadCollection(holding("red", { doc: null, fetchedAt: 0 }), at("red"))
-      ).rejects.toEqual({ redirect: { href: "/ja/palettes?q=red", statusCode: 301 } });
+      ).rejects.toEqual({ redirect: { href: "/ja/palettes?q=red", statusCode: 302 } });
     } finally {
       setLocaleSource(() => "en");
     }

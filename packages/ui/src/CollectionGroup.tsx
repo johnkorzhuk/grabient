@@ -39,6 +39,8 @@ export function CollectionGroup<T>(props: {
   title: string;
   /** where the collection lives, in the reader's language; without it the title is plain words */
   href?: string;
+  /** the title link's relation to its page: nofollow where the index keeps it out */
+  rel?: string;
   description?: string;
   /** who made it: a display name, @username, or Grabient */
   owner?: string;
@@ -69,6 +71,7 @@ export function CollectionGroup<T>(props: {
             <a
               class={styles.title}
               href={props.href}
+              rel={props.rel}
               ref={tooltip(words)}
               onPointerEnter={() => props.onIntent?.()}
               onFocus={() => props.onIntent?.()}

@@ -153,6 +153,20 @@ const placePath = (place: GalleryPlace): string =>
         ? framePath(LIST_PATHS.rising, place.frame)
         : LIST_PATHS.popular;
 
+/* grabient.com's searches the free search finds nothing for, which its sitemap listed: each leads to the nearest
+   search that answers */
+const MOVED: ReadonlyMap<string, string> = new Map([
+  ["artisan", "rustic"],
+  ["prairie", "wheat"]
+]);
+
+const OLD_LISTS: ReadonlyMap<string, "popular" | "rising"> = new Map([
+  ["/newest", "rising"],
+  ["/palettes/newest", "rising"],
+  ["/oldest", "popular"],
+  ["/palettes/oldest", "popular"]
+]);
+
 /** The canonical form of a gallery address, its old forms included; null for an address of another feature. */
 export function canonicalGallery(address: string): string | null {
   const at = address.indexOf("?");
@@ -161,21 +175,23 @@ export function canonicalGallery(address: string): string | null {
   const canonical = (place: GalleryPlace) => placePath(place) + listSearch(place.params);
   const place = galleryPlace(path, search);
   if (place) return canonical(place);
-  if (["/newest", "/oldest", "/palettes/newest", "/palettes/oldest"].includes(path)) {
+  /* grabient.com's newest palettes are Rising's, and its oldest, its first classics, the most liked */
+  const old = OLD_LISTS.get(path);
+  if (old) {
     return canonical({
       kind: "list",
-      order: "rising",
+      order: old,
       frame: DEFAULT_FRAME,
       params: readParams(linked(search))
     });
   }
   if (path === "/saved") return canonical({ kind: "saved", params: readParams(linked(search)) });
   /* grabient.com's search addresses: words or a seed after /palettes/, in the order an old ?sort= said */
-  const old = /^\/palettes\/([^/]+)$/.exec(path)?.[1];
-  if (old) {
-    let said = old;
+  const searched = /^\/palettes\/([^/]+)$/.exec(path)?.[1];
+  if (searched) {
+    let said = searched;
     try {
-      said = decodeURIComponent(old);
+      said = decodeURIComponent(searched);
     } catch {
       // read as it came
     }
@@ -184,7 +200,7 @@ export function canonicalGallery(address: string): string | null {
     const sp = new URLSearchParams(search);
     const rising = parseSort(sp.get("sort")) !== "popular";
     sp.delete("sort");
-    sp.set("q", words);
+    sp.set("q", MOVED.get(words) ?? words);
     return canonical({
       kind: "list",
       order: rising ? "rising" : "popular",

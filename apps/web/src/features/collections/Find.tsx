@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/solid-router";
 import { createEffect, createSignal, Errored, Loading, onCleanup, untrack } from "solid-js";
 import { listUnavailable, marked, offline } from "../../app/connection.ts";
 import list from "../../app/list.module.css";
+import { relTo } from "../../lib/page-meta.ts";
 import { failed } from "../../lib/query.ts";
 import { paletteId } from "../../lib/words.ts";
 import { account } from "../account/session.ts";
@@ -115,7 +116,12 @@ export function Find(props: {
     return marked(
       hits
         .filter(hit => !collectionGone(hit.slug))
-        .map(hit => ({ label: hit.title, href: open(hit.slug), colors: hit.colors }))
+        .map(hit => ({
+          label: hit.title,
+          href: open(hit.slug),
+          rel: relTo(open(hit.slug)),
+          colors: hit.colors
+        }))
     );
   };
 

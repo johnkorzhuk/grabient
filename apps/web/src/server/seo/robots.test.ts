@@ -48,3 +48,88 @@ test("a deploy that only claims production's name, or only its origin, is not in
   expect(indexed({ DEPLOYMENT: "staging", PUBLIC_ORIGIN: "https://grabient.com" })).toBe(false);
   expect(indexed({ DEPLOYMENT: "production", PUBLIC_ORIGIN: "https://grabient.com/" })).toBe(true);
 });
+
+/** Whether a crawler may fetch `path`, as RFC 9309 reads robots.txt: the group naming the crawler, else `*`; of its
+    rules, the longest that matches, an Allow winning a tie; `*` matching any run and a last `$` the end. */
+function allowed(text: string, agent: string, path: string): boolean {
+  const groups: { agents: string[]; rules: { allow: boolean; pattern: string }[] }[] = [];
+  let open = false;
+  for (const line of text.split("\n")) {
+    const [, field = "", value = ""] = /^([A-Za-z-]+):\s*(.*)$/.exec(line.trim()) ?? [];
+    if (field.toLowerCase() === "user-agent") {
+      if (!open) groups.push({ agents: [], rules: [] });
+      groups.at(-1)?.agents.push(value.toLowerCase());
+      open = true;
+    } else if (/^(?:allow|disallow)$/i.test(field)) {
+      groups.at(-1)?.rules.push({ allow: field.toLowerCase() === "allow", pattern: value });
+      open = false;
+    }
+  }
+  const group =
+    groups.find(g => g.agents.includes(agent.toLowerCase())) ??
+    groups.find(g => g.agents.includes("*"));
+  const matches = (pattern: string) => {
+    const anchored = pattern.endsWith("$");
+    const body = (anchored ? pattern.slice(0, -1) : pattern)
+      .split("*")
+      .map(part => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
+      .join(".*");
+    return new RegExp(`^${body}${anchored ? "$" : ""}`).test(path);
+  };
+  const hit = (group?.rules ?? [])
+    .filter(rule => rule.pattern && matches(rule.pattern))
+    .sort((a, b) => b.pattern.length - a.pattern.length || Number(b.allow) - Number(a.allow))[0];
+  return !hit || hit.allow;
+}
+
+test("production's rules keep crawlers from an account's pages and Random, and from no collection named like them", () => {
+  const text = robotsTxt(true, "https://grabient.com");
+  const kept = [
+    "/saved",
+    "/saved?q=blue",
+    "/settings",
+    "/settings?tab=privacy",
+    "/unsubscribe",
+    "/unsubscribe/aaaa",
+    "/random",
+    "/random?style=radialGradient",
+    "/ja/saved",
+    "/ja/random?style=radialGradient",
+    "/pt-br/unsubscribe/aaaa",
+    "/collections/saved",
+    "/collections/saved?q=blue",
+    "/ja/collections/saved",
+    "/e",
+    "/e/static/recorder.js",
+    "/api/me/palettes",
+    "/oauth/authorize"
+  ];
+  const open = [
+    "/saved-by-the-bell",
+    "/settings-in-stone",
+    "/unsubscribed-blues",
+    "/random-walk",
+    "/ja/random-walk",
+    "/es",
+    "/es/palettes",
+    "/",
+    "/palettes",
+    "/palettes?q=saved",
+    "/kS7Q8Yy5S_SChv0",
+    "/ocean-gradients",
+    "/collections",
+    "/sitemap.xml",
+    "/llms.txt"
+  ];
+  for (const agent of ["Googlebot", "GPTBot"]) {
+    for (const path of kept)
+      expect([agent, path, allowed(text, agent, path)]).toEqual([agent, path, false]);
+    for (const path of open)
+      expect([agent, path, allowed(text, agent, path)]).toEqual([agent, path, true]);
+  }
+  // the gallery's lists as JSON are the agents' to read, as llms.txt says
+  expect([
+    allowed(text, "Googlebot", "/api/palettes"),
+    allowed(text, "GPTBot", "/api/palettes")
+  ]).toEqual([false, true]);
+});

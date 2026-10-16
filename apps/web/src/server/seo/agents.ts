@@ -1,4 +1,5 @@
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
+import { DEFAULT_FRAME, RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
 import { DEFAULT_SEED } from "../../lib/page-meta.ts";
 
 /* What agents and programs read: the guide at /llms.txt in the llmstxt.org form (a title, a summary, then sections
@@ -98,8 +99,9 @@ Every palette route takes \`style\`, \`steps\` and \`angle\`.
 `;
 }
 
-function reference(base: string, mcp: Mcp): string {
+function reference(base: string, mcp: Mcp, frames: readonly RisingFrame[]): string {
   const [newest, ...handshake] = mcp.versions;
+  const others = frames.filter(frame => frame !== DEFAULT_FRAME).map(frame => `\`/${frame}\``);
   return `${guide(base, mcp)}
 ## The palette model
 
@@ -131,7 +133,7 @@ Unknown query parameters are ignored.
 | \`/api/collections?q={query}&sort=popular&page=1&limit=24\` | Public collections: {items, total, page, totalPages}. \`sort=rising\` takes \`frame\` as the gallery does |
 | \`/api/hot?page=1\` | The home page: {page, palettes, collections}, the twenty-four hottest palettes and a page of the hot collections |
 | \`/api/hot?q={query}&page=1\` | The home page searched: {page, query, palettes, collections, tier}, sixty palettes that answer the words, the most liked first, and a page of the collections that answer them |
-| \`/\`, \`/palettes\`, \`/palettes/rising\`, \`/collections\`, \`/collections/rising\` | The home page and the lists for a person. Rising is the week's, and \`/3m\` or \`/1y\` after it its other frames |
+| \`/\`, \`/palettes\`, \`/palettes/rising\`, \`/collections\`, \`/collections/rising\` | The home page and the lists for a person. Rising is the week's${others.length ? `, and ${others.join(" or ")} after it its other ${others.length > 1 ? "frames" : "frame"}` : ""} |
 | \`/palettes?q={query}\`, \`/collections?q={query}\`, \`/?q={query}\` | Search pages for a person: palettes, collections, or both |
 | \`/random\` | Redirects to a new random palette |
 
@@ -164,9 +166,14 @@ A read a cache holds is never counted. Past a limit the answer is HTTP 429 with 
 }
 
 const base = (origin: string) => origin.replace(/\/$/, "");
-/** The guide (/llms.txt), or the whole reference (/llms-full.txt), which begins with it. */
-export const llmsText = (origin: string, mcp: Mcp, full = false) =>
-  full ? reference(base(origin), mcp) : guide(base(origin), mcp);
+/** The guide (/llms.txt), or the whole reference (/llms-full.txt), which begins with it and names the lists' Rising
+    frames an admin has left on. */
+export const llmsText = (
+  origin: string,
+  mcp: Mcp,
+  full = false,
+  frames: readonly RisingFrame[] = RISING_FRAMES
+) => (full ? reference(base(origin), mcp, frames) : guide(base(origin), mcp));
 
 /** The MCP server's card (SEP-2127): who it is, where it answers and the protocol versions it speaks, and no tools. */
 export function serverCard(origin: string, mcp: Mcp) {
@@ -212,6 +219,8 @@ export function aiCatalog(origin: string, mcp: Mcp) {
   };
 }
 
-/** The headers of what agents read: open to every site's pages, and, for data, out of search results. */
-export const AGENT_FILE = { "Access-Control-Allow-Origin": "*" } as const;
-export const AGENT_DATA = { ...AGENT_FILE, "X-Robots-Tag": "noindex" } as const;
+/** The headers of what agents read: open to every site's pages, and out of search results. */
+export const AGENT_DATA = {
+  "Access-Control-Allow-Origin": "*",
+  "X-Robots-Tag": "noindex"
+} as const;

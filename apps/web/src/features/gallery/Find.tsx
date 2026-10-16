@@ -14,6 +14,7 @@ import {
 } from "solid-js";
 import type * as v from "valibot";
 import { marked, offline } from "../../app/connection.ts";
+import { relTo } from "../../lib/page-meta.ts";
 import { paletteId } from "../../lib/words.ts";
 import { tagsQuery as collectionTagsQuery } from "../collections/queries.ts";
 import type { CollectionHit } from "../collections/types.ts";
@@ -105,12 +106,16 @@ export function Find(props: {
     <Tags
       lead={restingLead(typed())}
       tags={marked(
-        shown().map(tag => ({
-          label: tag.label,
-          colors: tag.colors,
-          href: localHref(tag.query ? props.to(tag.query) : inView(tag.href, page.params())),
-          english: tag.english
-        }))
+        shown().map(tag => {
+          const href = localHref(tag.query ? props.to(tag.query) : inView(tag.href, page.params()));
+          return {
+            label: tag.label,
+            colors: tag.colors,
+            href,
+            rel: relTo(href),
+            english: tag.english
+          };
+        })
       )}
       onPick={(tag, index) => tagPressed(tag, index, props.surface)}
     />

@@ -11,7 +11,8 @@ import type { PaletteItem } from "./schema.ts";
 /* What a gallery page is, as its metadata and its heading read it (lib/page-meta.ts), and what a palette searched by is
    called where the feed's title names it. */
 
-/** What the page's data adds to its metadata: the palettes it lists, and the server's word on a page no index keeps. */
+/** What the page's data adds to its metadata: the palettes it lists, at their cards' addresses, and the server's word
+    on a page no index keeps. */
 export interface Facts {
   palettes?: readonly string[];
   robots?: string;

@@ -455,7 +455,7 @@
   {
    "address": "/oldest",
    "kind": "redirect",
-   "to": "/palettes/rising"
+   "to": "/palettes"
   },
   {
    "address": "/saved",

@@ -24,7 +24,7 @@ const footerPage = (page: string | undefined): FooterPage | null =>
     own PageFrame (MCP, an app's consent) takes it from here. */
 export function Languages() {
   const shell = useContext(ShellContext)!;
-  return <LanguageMenu path={shell.here} follow={shell.translated()} disabled={offline()} />;
+  return <LanguageMenu path={shell.here} languages={shell.languages()} disabled={offline()} />;
 }
 
 /** The links at the foot of a page, then the language menu; `floats` leaves room for a phone's floating presses. */

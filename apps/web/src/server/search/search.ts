@@ -422,10 +422,12 @@ export async function searchPalettes(
     named ? { ...read, unread: [] } : read,
     [...(named?.names ?? []), ...(known?.phrases ?? [])]
   );
-  if (named || !known) return result;
+  /* one of grabient.com's indexed searches stays a page of its own wherever a crawler is answered as a person is */
+  const kept = OLD_SEARCHES.has(query.toLowerCase()) && result.items.length > 0;
+  if (named || !known) return { ...result, indexable: kept };
   return {
     ...result,
-    indexable: plainPhrase(known, query) && result.items.length > 0,
+    indexable: (plainPhrase(known, query) && result.items.length > 0) || (kept && known.whole),
     ...unkept,
     ...(known.whole ? {} : { partial: true })
   };
@@ -556,12 +558,62 @@ const SITEMAP_SEARCHES = [
   "triadic"
 ];
 
-/** The word searches worth a crawler's visit: each a page of its own (plainPhrase). */
+/* The searches grabient.com's sitemap listed, which search indexes hold, as their pages write their words: each stays a
+   page of its own while the free search answers it. Two that it cannot answer lead elsewhere (gallery/address.ts). */
+const OLD_SEARCHES = new Set([
+  "sunset",
+  "ocean",
+  "forest",
+  "pastel",
+  "neon",
+  "warm",
+  "cool",
+  "monochrome",
+  "tea",
+  "blue",
+  "purple",
+  "cyan",
+  "rose",
+  "alpine",
+  "indigo",
+  "charcoal & chocolate",
+  "synthwave",
+  "teal, azure, navy",
+  "glossy",
+  "party",
+  "lagoon",
+  "refined",
+  "dark academia",
+  "punk",
+  "winter",
+  "saffron",
+  "sandstone",
+  "green",
+  "pink",
+  "red",
+  "orange",
+  "yellow",
+  "black",
+  "gold",
+  "silver",
+  "teal",
+  "navy",
+  "mint",
+  "lavender",
+  "beige",
+  "cream",
+  "sky blue",
+  "dark blue",
+  "dark purple",
+  "sage green",
+  "hot pink",
+  "blue purple"
+]);
+
+/** The word searches worth a crawler's visit: each a page of its own (plainPhrase), then grabient.com's. */
 export async function sitemapQueries(env: AssetsEnv, limit = 100): Promise<string[]> {
   const vocabulary = await loadVocabulary(env);
   if (!vocabulary) return [];
-  return SITEMAP_SEARCHES.filter(term => plainPhrase(knownQuery(vocabulary, term), term)).slice(
-    0,
-    limit
-  );
+  const own = SITEMAP_SEARCHES.filter(term => plainPhrase(knownQuery(vocabulary, term), term));
+  return [...new Set([...own, ...OLD_SEARCHES])].slice(0, limit);
 }

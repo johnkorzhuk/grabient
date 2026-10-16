@@ -3,6 +3,7 @@ import { isSwatchStyle, type Style } from "@grabient/engine/view.ts";
 import { createSignal, type Element, onSettled, Show, untrack } from "solid-js";
 import { Button } from "./Button.tsx";
 import { glowOff, glowOn } from "./glow.ts";
+import hidden from "./hidden.module.css";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
 import { Like } from "./Like.tsx";
@@ -68,6 +69,8 @@ export interface PaletteCardProps {
   angle: number;
   /** where Edit leads: the palette's page, in the reader's language and the view the card draws */
   href: string;
+  /** Edit's relation to its page: nofollow where the index keeps the palette's page out */
+  rel?: string;
   /** how old, as the list says it */
   age: string;
   likes: number;
@@ -208,11 +211,14 @@ export function PaletteCard(props: PaletteCardProps) {
                 icon
                 size="sm"
                 href={props.href}
+                rel={props.rel}
                 aria-label={t("Edit {name}", { name: props.name })}
                 tip={t("Edit")}
                 onClick={e => props.onOpen?.(e)}
               >
                 <Icon name="edit" size={13} />
+                {/* the link's words for whoever reads them, a crawler among them */}
+                <span class={hidden.text}>{t("Edit {name}", { name: props.name })}</span>
               </Button>
               {props.lead}
             </span>

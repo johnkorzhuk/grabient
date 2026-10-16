@@ -1,14 +1,6 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
-import {
-  asSaved,
-  DEFAULT_ANGLE,
-  DEFAULT_STEPS,
-  DEFAULT_STYLE,
-  type Style,
-  type View,
-  viewSearch
-} from "@grabient/engine/view.ts";
+import { asSaved, drawnView, type Style, type View, viewSearch } from "@grabient/engine/view.ts";
 import {
   DEFAULT_LOCALE,
   isLocale,
@@ -19,6 +11,7 @@ import {
   locale,
   localizePath,
   msg,
+  splitLocale,
   t
 } from "@grabient/i18n";
 import { DEFAULT_FRAME, framePath, type RisingFrame } from "./orders.ts";
@@ -65,11 +58,13 @@ export interface CollectionFacts {
   /** the languages besides English one of Grabient's collections is translated into; its page is indexed in each */
   languages?: readonly string[];
 }
+/** How a palette is drawn, without a picture's size: its saved view, or the view a list's card draws it in. */
+export type PaletteView = Pick<View, "style" | "steps" | "angle">;
 /** What a page's data adds to its address. */
 interface Facts {
   /** the server's word on a page the index leaves out: a search the vocabulary cannot read, a page past the last */
   robots?: string;
-  /** the palettes the page lists, by seed, in its order */
+  /** the palettes the page lists, in its order, each at the address its card links (paletteAddress) */
   palettes?: readonly string[];
   /** the collections a list of collections shows, in its order */
   collections?: readonly { slug: string; title: string }[];
@@ -119,13 +114,16 @@ export type Page = Facts &
         kind: "palette";
         seed: string;
         palette: Palette;
-        view: Pick<View, "style" | "steps" | "angle">;
+        view: PaletteView;
+        /** the view it was saved in, which its canonical address draws: none for a palette neither the gallery nor
+            Grabient's collections hold */
+        saved?: PaletteView;
         /** the words written for it that its colors bear out, in English, where they are written, with the view it
             was saved in, which they describe */
         written?: {
           title: string;
           description?: string;
-          view: Pick<View, "style" | "steps" | "angle">;
+          view: PaletteView;
         };
         /** the public collections that hold it, titled in the page's language */
         heldBy?: readonly { slug: string; title: string }[];
@@ -188,13 +186,17 @@ const titled = (title: string) => `${title} | Grabient`;
 const untitled = (title: string) => title.replace(/ \| Grabient$/, "");
 const language = () => ({ t, locale: locale() });
 
-/** A palette's own address: its seed at the default view, with its stop count where its keyframes raise it past the
-    default (an eight-keyframe palette is /seed?steps=8, since /seed leads there). Canonicals, sitemaps and lists'
-    structured data name it, so none of them names a redirect. */
-export function paletteAddress(seed: string): string {
-  const steps = Math.max(DEFAULT_STEPS, decodePalette(seed)?.anchors.length ?? 0);
-  return `/${seed}${viewSearch({ style: DEFAULT_STYLE, steps, angle: DEFAULT_ANGLE })}`;
+/** A palette's own address: its seed in the view it was saved in, where its written words show, else the default view,
+    each as an address reads it, steps never under its keyframes (an eight-keyframe palette is /seed?steps=8, since
+    /seed leads there). Canonicals, sitemaps and lists' structured data name it, as a list's card links it, so none of
+    them names a redirect. */
+export function paletteAddress(seed: string, saved?: Partial<PaletteView>): string {
+  const palette = decodePalette(seed);
+  return `/${seed}${palette ? viewSearch(drawnView(palette, saved)) : ""}`;
 }
+/** A palette's share card in a view, as its page and its sitemap entry name it. */
+export const paletteCard = (seed: string, view: PaletteView) =>
+  `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`;
 
 /** A list's query as its canonical writes it: the words, a page past the first and a page size other than the
     default. A page at another size lists other palettes than the same page at the default, so it keeps its size. */
@@ -383,9 +385,40 @@ const TRANSLATED = new Set<Page["kind"]>([
   "mcp",
   "contact"
 ]);
-/** Whether a page's copy in each language is indexed and names the others: the language menu follows its links. */
+/** Whether a page's copy in each language is indexed and names the others. */
 export const translatedPage = (page: Page) =>
   TRANSLATED.has(page.kind) && !("query" in page && page.query);
+
+/** Whether production indexes the page a link of the site's leads to, as far as its address says: what pageMeta
+    decides from a page's kind, language, order, words and page number. A collection reads in English and in
+    `languages`, the others its facts name; where those are unknown it is taken as read in every one, as most of
+    Grabient's are. What only a page's data knows, a search the vocabulary cannot read or a page past the last, the page
+    says itself. Files are no pages to index. */
+export function indexedAddress(address: string, languages?: readonly string[]): boolean {
+  const url = new URL(address, PRODUCTION_ORIGIN);
+  const { locale: language, path } = splitLocale(url.pathname);
+  if (!isPagePath(path)) return false;
+  const english = language === DEFAULT_LOCALE;
+  const words = !!url.searchParams.get("q");
+  const [first = "", second, third] = path.slice(1).split("/");
+  if (path === "/") return !words && !(Number(url.searchParams.get("page")) > 1);
+  if (first === "palettes" || first === "collections") {
+    if (second === "saved" || (third !== undefined && third !== DEFAULT_FRAME)) return false;
+    /* a search is the palettes' own, in English and in the popular order: the rest repeat it */
+    return !words || (first === "palettes" && !second && english);
+  }
+  const fixed = (Object.keys(FIXED) as FixedKind[]).find(
+    kind => path === FIXED[kind].path || path.startsWith(`${FIXED[kind].path}/`)
+  );
+  if (fixed) return !("robots" in FIXED[fixed]) && (english || TRANSLATED.has(fixed));
+  if (decodePalette(first)) return english && !second;
+  /* a collection: one under an account is its owner's alone, and its Rising order is its page again */
+  if (first.startsWith("@") || second) return false;
+  return english || !languages || languages.includes(language);
+}
+/** A link's rel: nofollow where production keeps the page it leads to out of the index (indexedAddress). */
+export const relTo = (href: string, languages?: readonly string[]): string | undefined =>
+  indexedAddress(href, languages) ? undefined : "nofollow";
 
 const pagedTitle = (title: string, page = 1) =>
   page > 1 ? t("{title}, page {page}", { title, page }) : title;
@@ -493,11 +526,8 @@ export const collectionCard = (
   );
 
 const SCHEMA = "https://schema.org";
-const website = (origin: string) => ({
-  "@type": "WebSite",
-  name: "Grabient",
-  url: pageUrl("/", origin)
-});
+/** The site, as a page that is part of it names it: by the one WebSite every page describes. */
+const website = (origin: string) => ({ "@id": `${absolute("/", origin)}#website` });
 const breadcrumbs = (origin: string, trail: readonly (readonly [string, string])[]) => ({
   "@context": SCHEMA,
   "@type": "BreadcrumbList",
@@ -513,7 +543,24 @@ const iso = (time: number) => {
   return Number.isFinite(date.getTime()) ? date.toISOString() : undefined;
 };
 
-/** What the site is, on every page: the site and its search, the app, and the organization behind it. */
+/** The app the home is, which is free: what a search engine may show for the site. */
+const webApplication = (origin: string) => ({
+  "@context": SCHEMA,
+  "@type": "WebApplication",
+  name: "Grabient",
+  url: pageUrl("/", origin),
+  description: t(
+    "CSS gradient generator and color palette finder. Browse and edit gradient palettes, then export them as CSS, SVG, PNG or a shader."
+  ),
+  applicationCategory: "DesignApplication",
+  operatingSystem: "Web",
+  inLanguage: LOCALE_INFO[locale()].tag,
+  browserRequirements: t("Requires JavaScript"),
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }
+});
+
+/** What the site is, on every page: the site and its search, and the organization behind it. */
 export function siteStructuredData(origin: string): Record<string, unknown>[] {
   const site = absolute("/", origin);
   return [
@@ -536,21 +583,6 @@ export function siteStructuredData(origin: string): Record<string, unknown>[] {
         },
         "query-input": "required name=search_term_string"
       }
-    },
-    {
-      "@context": SCHEMA,
-      "@type": "WebApplication",
-      name: "Grabient",
-      url: pageUrl("/", origin),
-      description: t(
-        "CSS gradient generator and color palette finder. Browse and edit gradient palettes, then export them as CSS, SVG, PNG or a shader."
-      ),
-      applicationCategory: "DesignApplication",
-      operatingSystem: "Web",
-      inLanguage: LOCALE_INFO[locale()].tag,
-      browserRequirements: t("Requires JavaScript"),
-      isAccessibleForFree: true,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }
     },
     {
       "@context": SCHEMA,
@@ -593,6 +625,50 @@ function searchDescription(query: string): string {
       );
 }
 
+/** What a palette's page says of it: its written words while they are its own (ownWords), else what its colors are
+    called, then its colors from end to end, every one where they all fit. */
+function describe(
+  page: Extract<Page, { kind: "palette" }>,
+  name: string,
+  hexes: readonly string[]
+): string {
+  const spread = (count: number) =>
+    Array.from(
+      { length: count },
+      (_, i) => hexes[Math.round((i * (hexes.length - 1)) / (count - 1))]
+    ).join(", ");
+  const counts = [...new Set([Math.min(hexes.length, 8), 5, 3])].filter(n => n <= hexes.length);
+  return fitted(
+    ownWords(page)?.description ??
+      t("{name} palette with {steps, plural, one {# color} other {# colors}}.", {
+        name,
+        steps: page.view.steps
+      }),
+    [
+      ...counts.map(
+        n => (words: string) =>
+          t("{words} {hexes}. Edit and export CSS, SVG, PNG or a shader.", {
+            words,
+            hexes: spread(n)
+          })
+      ),
+      ...counts.map(n => (words: string) => t("{words} {hexes}.", { words, hexes: spread(n) }))
+    ]
+  );
+}
+/** A palette's description as its page's metadata writes it, for a page that shows its words to its readers too. */
+export function paletteDescription(page: Extract<Page, { kind: "palette" }>): string {
+  const { palette: P, view } = page;
+  const name = readingName(readPalette(P, view.style, view.steps), language());
+  return clipWords(
+    describe(
+      page,
+      name,
+      sampleStops(P, view.steps).map(stop => stop.hex)
+    )
+  );
+}
+
 /** A palette's page: titled by its written words in English while it is drawn as it was saved, else by what its colors
     are called, and described by them with its colors, which no other palette shares, so two palettes described alike
     still read apart. */
@@ -607,36 +683,10 @@ function palettePage(
   const style = t(STYLE_WORDS[view.style]);
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
   const written = ownWords(page);
-  const path = paletteAddress(seed);
+  const path = paletteAddress(seed, page.saved);
   meta.title = titled(heading(page));
-  /* every color where they all fit, else some from end to end */
-  const spread = (count: number) =>
-    Array.from(
-      { length: count },
-      (_, i) => hexes[Math.round((i * (hexes.length - 1)) / (count - 1))]
-    ).join(", ");
-  const counts = [...new Set([Math.min(hexes.length, 8), 5, 3])].filter(n => n <= hexes.length);
-  meta.description = fitted(
-    written?.description ??
-      t("{name} palette with {steps, plural, one {# color} other {# colors}}.", {
-        name,
-        steps: view.steps
-      }),
-    [
-      ...counts.map(
-        n => (words: string) =>
-          t("{words} {hexes}. Edit and export CSS, SVG, PNG or a shader.", {
-            words,
-            hexes: spread(n)
-          })
-      ),
-      ...counts.map(n => (words: string) => t("{words} {hexes}.", { words, hexes: spread(n) }))
-    ]
-  );
-  meta.image = absolute(
-    `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`,
-    origin
-  );
+  meta.description = describe(page, name, hexes);
+  meta.image = absolute(paletteCard(seed, view), origin);
   meta.imageAlt = t("{name} color palette", { name });
   meta.themeColor = hexes[0];
   meta.markdown = absolute(`/${seed}.md${viewSearch(view)}`, origin);
@@ -783,10 +833,15 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
         meta.imageAlt = name;
         meta.robots = "noindex,follow";
       } else {
-        if ((page.page ?? 1) > 1) meta.title = titled(pagedTitle(name, page.page));
+        /* a later page leads with the same hottest palettes as the first: the first is the page the index keeps */
+        if ((page.page ?? 1) > 1) {
+          meta.title = titled(pagedTitle(name, page.page));
+          meta.robots = "noindex,follow";
+        }
         /* the home leads with the hottest palettes, so its card is theirs */
         meta.image = cardUrl("/api/og/list", { sort: "hot" }, page.view, origin);
         meta.imageAlt = t("{name} on Grabient", { name });
+        if ((page.page ?? 1) === 1) meta.structuredData.push(webApplication(origin));
       }
       break;
     }
@@ -885,7 +940,11 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
       : clipWords(meta.description);
   if (page.robots) meta.robots = page.robots;
   if (list && page.palettes) {
-    const items = page.palettes.map(seed => ({ url: pageUrl(paletteAddress(seed), origin) }));
+    /* a palette's page is indexed in English alone: another language's list names none of them */
+    const items =
+      locale() === DEFAULT_LOCALE
+        ? page.palettes.map(address => ({ url: pageUrl(address, origin) }))
+        : [];
     meta.structuredData.push(listOf(meta, origin, list.name, items, list.more));
   }
   if (page.kind === "collections" && page.collections) {
@@ -908,7 +967,7 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
   return meta;
 }
 
-/** A list's own structured data: the page, and up to 96 of what it lists. */
+/** A list's own structured data: the page, and up to 96 of what it lists where it names any. */
 function listOf(
   meta: PageMeta,
   origin: string,
@@ -926,15 +985,19 @@ function listOf(
     image: meta.image,
     ...more,
     isPartOf: website(origin),
-    mainEntity: {
-      "@type": "ItemList",
-      numberOfItems: items.length,
-      itemListElement: items.slice(0, 96).map((item, i) => ({
-        "@type": "ListItem",
-        position: i + 1,
-        ...item
-      }))
-    }
+    ...(items.length
+      ? {
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: items.length,
+            itemListElement: items.slice(0, 96).map((item, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              ...item
+            }))
+          }
+        }
+      : {})
   };
 }
 

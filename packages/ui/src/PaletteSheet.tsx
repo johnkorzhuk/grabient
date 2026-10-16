@@ -13,7 +13,8 @@ import { Text } from "./Text.tsx";
 /* The editor's sheet: what a reader scrolls beside the side that keeps the controls in the window, under the picture
    and its strip. Its head is the palette's name, the row that shows under the first screen at rest, with the palette's
    own presses at the line's end (away while the picture carries them); under it a line kept for the collections that
-   hold the palette, there or not, so one coming or going moves nothing. Then its figures as panes of one frame, each
+   hold the palette, there or not, so one coming or going moves nothing, and what the page says of the palette. Then its
+   figures as panes of one frame, each
    given the shape of what it draws: the text that reads on its colors, its path through the color solid, and its code.
    On a large screen the three stand in a row; where the code has no room beside the path it goes under; on a phone
    they stand one under another and there is no code. Then, past a rule, the palettes like this one as a list draws
@@ -22,12 +23,20 @@ import { Text } from "./Text.tsx";
 export function PaletteSheet(props: {
   /** the palette's title, the page's name: a written one reads in its author's direction */
   title: string;
+  /** what the page says of the palette, under the collections' line */
+  description?: string;
   /** the palette's own presses: its heart, its place in the selection */
   actions?: Element;
   /** the first screen stands and the picture carries those presses: the sheet's are away */
   resting?: boolean;
-  /** the collections that hold the palette, each with up to five of its colors; one with no href cannot be reached now */
-  collections: readonly { title: string; href?: string; colors?: readonly string[] }[];
+  /** the collections that hold the palette, each with up to five of its colors and its link's rel; one with no href
+      cannot be reached now */
+  collections: readonly {
+    title: string;
+    href?: string;
+    rel?: string;
+    colors?: readonly string[];
+  }[];
   /** the order of the palettes like this one, at the start of their row */
   order?: Element;
   /** the selection's press, at the row's end; a phone floats its own */
@@ -126,6 +135,7 @@ export function PaletteSheet(props: {
                     <a
                       class={[link.inline, styles.to]}
                       href={c().href ? localHref(c().href) : undefined}
+                      rel={c().rel}
                       aria-disabled={c().href ? undefined : "true"}
                       dir="auto"
                     >
@@ -139,6 +149,13 @@ export function PaletteSheet(props: {
                 )}
               </For>
             </nav>
+          </Show>
+          <Show when={props.description}>
+            <div class={styles.about}>
+              <Text variant="lede" as="p" dir="auto">
+                {props.description}
+              </Text>
+            </div>
           </Show>
         </div>
         <div class={styles.figures} data-flat={solid() ? undefined : ""}>

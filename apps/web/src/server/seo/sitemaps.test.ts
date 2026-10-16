@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
+import { paletteCard } from "../../lib/page-meta.ts";
 import {
   collectionsSitemap,
   MAX_SHARDS,
@@ -20,16 +21,19 @@ describe("the sitemaps, as grabient.com serves them", () => {
     expect(sitemapIndex(ORIGIN, 2)).toBe(golden("index.sample"));
   });
 
-  test("the site's own pages are listed in every language, each naming the others, and the newsletter in English", () => {
+  test("the site's own pages are listed in every language, each naming the others, and Privacy, Terms and the newsletter in English", () => {
     const text = pagesSitemap(ORIGIN, true);
     expect(text).toBe(golden("pages.production"));
-    expect(text.match(/<url>/g)).toHaveLength(8 * 16 + 1);
+    expect(text.match(/<url>/g)).toHaveLength(9 * 16 + 3);
+    for (const path of ["/ja/bindings", "/privacy", "/terms"])
+      expect(text).toContain(`<loc>${ORIGIN}${path}</loc>`);
+    expect(text).not.toContain("/ja/privacy");
   });
 
   test("the newsletter is listed once an admin has turned it on, and not before", () => {
     const hidden = pagesSitemap(ORIGIN, false);
     expect(hidden).not.toContain("/newsletter");
-    expect(hidden.match(/<url>/g)).toHaveLength(8 * 16);
+    expect(hidden.match(/<url>/g)).toHaveLength(9 * 16 + 2);
   });
 
   test("a search is listed at its canonical address, once, as its page writes its words", () => {
@@ -38,20 +42,30 @@ describe("the sitemaps, as grabient.com serves them", () => {
     );
   });
 
-  test("a collection is listed once, with the day it last changed and its card", () => {
-    const ocean = { slug: "ocean-gradients", updatedAt: 1_760_000_000_000 };
+  test("a collection is listed once, with the day it last changed and its card, then in each language it reads in", () => {
+    const ocean = {
+      slug: "ocean-gradients",
+      updatedAt: 1_760_000_000_000,
+      // the later of the collection's change and its translation's dates each language's page
+      languages: [
+        { locale: "de", updatedAt: 1_750_000_000_000 },
+        { locale: "ja", updatedAt: 1_770_000_000_000 }
+      ] as const
+    };
     expect(collectionsSitemap(ORIGIN, [ocean, ocean])).toBe(golden("collections.sample"));
   });
 
-  test("a palette is listed at its own address, canonical, once, never a redirect", () => {
+  test("a palette is listed at its own address, in the view it was saved in, with its card in that view, once", () => {
+    const saved = { style: "linearSwatches", steps: 9, angle: 45 } as const;
     const text = palettesSitemap(ORIGIN, [
       {
         seed: "kS7Q8Yy5S_SChv0",
+        view: saved,
         createdAt: 1_700_000_000_000,
-        image: "/og/k4/kS7Q8Yy5S_SChv0.png"
+        image: paletteCard("kS7Q8Yy5S_SChv0", saved)
       },
       { seed: "not a seed", createdAt: 1_700_000_000_000 },
-      // eight keyframes: its own address carries its stop count
+      // eight keyframes and no view saved: its own address carries its stop count
       { seed: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", createdAt: "2024-01-02T00:00:00Z" },
       { seed: "kS7Q8Yy5S_SChv0", createdAt: 1_700_000_000_000 }
     ]);

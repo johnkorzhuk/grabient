@@ -4,7 +4,7 @@ import { seedName } from "@grabient/engine/name.ts";
 import type { Namer } from "@grabient/engine/precise-names.ts";
 import { drawnView, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
 import { PAGE, TEXT } from "../../lib/cache.ts";
-import { collectionCard } from "../../lib/page-meta.ts";
+import { collectionCard, type PaletteView, paletteAddress } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { addressParams, viewAt } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
@@ -14,7 +14,7 @@ import { isoDay } from "./text.ts";
 /* A palette or a collection as Markdown at its address plus .md, for an agent that reads text. A palette's is the
    engine's, with what only the database knows: the words written for it that its colors bear out, and the public
    collections that hold it. A collection's says its words, then every palette with its colors and its address. Both are
-   English, out of search results, and name their page as canonical. */
+   English, out of search results, and name their page as the form of it to read. */
 
 /** A public collection as its files read it. */
 export interface CollectionWords {
@@ -38,6 +38,8 @@ export interface CollectionWords {
 /** What the files read from the database. A failed read of a palette's words leaves them out. */
 export interface MarkdownReads {
   paletteWords(seed: string): Promise<{
+    /** the view it was saved in, which its page's address draws */
+    saved?: PaletteView;
     written: PaletteWords | null;
     heldBy: readonly { slug: string; title: string }[];
   }>;
@@ -49,11 +51,12 @@ export interface MarkdownReads {
   colorNames?(): Promise<Namer | null>;
 }
 
-const markdown = (canonical: string, cache: Record<string, string>) => ({
+/* out of search results, and naming the page it is a form of */
+const markdown = (page: string, cache: Record<string, string>) => ({
   ...cache,
   ...AGENT_DATA,
   "Content-Type": "text/markdown; charset=utf-8",
-  Link: `<${canonical}>; rel="canonical"`
+  Link: `<${page}>; rel="alternate"; type="text/html"`
 });
 
 /** A collection as Markdown: its words, then every palette in its order and the view it was saved in. */
@@ -105,12 +108,13 @@ export async function markdownFile(
     const { seed, palette } = found;
     // the view as the file's cache key reads it (files/keys.ts), so one key never holds two files
     const view = viewAt(addressParams(new URL(request.url).searchParams), palette.anchors.length);
-    const [{ written, heldBy }, names] = await Promise.all([
-      reads.paletteWords(seed).catch(() => ({ written: null, heldBy: [] })),
+    const [{ saved, written, heldBy }, names] = await Promise.all([
+      reads.paletteWords(seed).catch(() => ({ saved: undefined, written: null, heldBy: [] })),
       reads.colorNames?.() ?? null
     ]);
     const text = paletteMarkdown(seed, base, view, written, heldBy, names);
-    if (text !== null) return new Response(text, { headers: markdown(`${base}/${seed}`, TEXT) });
+    if (text !== null)
+      return new Response(text, { headers: markdown(base + paletteAddress(seed, saved), TEXT) });
   }
   if (!found && reads.isCollection(name)) {
     const doc = await reads.collection(name);

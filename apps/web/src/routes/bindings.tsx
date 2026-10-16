@@ -5,7 +5,7 @@ import { PAGE } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
 
 export const Route = createFileRoute("/bindings")({
-  staticData: { frame: "brand", still: true, translated: true },
+  staticData: { frame: "brand", still: true },
   headers: () => PAGE,
   head: () => pageHead({ kind: "bindings" }),
   component: () => (

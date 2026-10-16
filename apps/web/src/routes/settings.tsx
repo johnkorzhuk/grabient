@@ -8,7 +8,7 @@ import { pageHead } from "../lib/page-meta.ts";
    never reads the session, and the browser fills in the rest once the page has started. A deletion email leads here
    with its `token`. */
 export const Route = createFileRoute("/settings")({
-  staticData: { frame: "brand", still: true, translated: true },
+  staticData: { frame: "brand", still: true },
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === "string" ? search.token : undefined
   }),

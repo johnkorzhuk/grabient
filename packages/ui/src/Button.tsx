@@ -35,6 +35,8 @@ export interface ButtonProps {
   href?: string;
   /** another site, in a new tab, ending in the external glyph */
   external?: boolean;
+  /** a link's relation to its page, for one of the site's own: nofollow where the index keeps it out */
+  rel?: string;
   "aria-label"?: string;
   /** the words that say what a press does now */
   "aria-describedby"?: string;
@@ -75,7 +77,7 @@ export function Button(props: ButtonProps) {
         data-state={props.state}
         href={props.disabled ? undefined : props.href}
         target={props.external ? "_blank" : undefined}
-        rel={props.external ? "noopener noreferrer" : undefined}
+        rel={props.external ? "noopener noreferrer" : props.rel}
         aria-label={props["aria-label"]}
         aria-describedby={props["aria-describedby"]}
         aria-disabled={props.disabled ? "true" : undefined}

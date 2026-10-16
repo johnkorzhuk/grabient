@@ -12,7 +12,9 @@
   "image": "https://grabient.com/api/og/list?sort=hot&v=k4",
   "imageAlt": "Hot palettes and collections on Grabient",
   "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
-  "structuredData": [],
+  "structuredData": [
+   "WebApplication"
+  ],
   "factsSent": null,
   "icon": null
  },
@@ -24,11 +26,11 @@
   "description": "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG. Page 2.",
   "descriptionLength": 136,
   "canonical": "https://grabient.com/?page=2",
-  "robots": "index,follow",
+  "robots": "noindex,follow",
   "stagingRobots": "noindex,nofollow",
   "image": "https://grabient.com/api/og/list?sort=hot&v=k4",
   "imageAlt": "Hot palettes and collections on Grabient",
-  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "alternates": null,
   "structuredData": [],
   "factsSent": null,
   "icon": null
@@ -675,6 +677,82 @@
  },
  {
   "locale": "en",
+  "path": "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9",
+  "facts": {
+   "title": "Pastel candy vertical bands | Grabient",
+   "description": "Soft candy colors stand in vertical bands, from blush through lilac to a pale mint.",
+   "saved": {
+    "style": "linearSwatches",
+    "steps": 9,
+    "angle": 90
+   }
+  },
+  "title": "Pastel candy vertical bands | Grabient",
+  "description": "Soft candy colors stand in vertical bands, from blush through lilac to a pale mint. #f6e4e0, #9e726b, #46070b. Edit and export CSS, SVG, PNG or a shader.",
+  "descriptionLength": 153,
+  "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0&v=k4&style=linearSwatches&steps=9",
+  "imageAlt": "Analogous gray, brown and maroon color palette",
+  "themeColor": "#f6e4e0",
+  "markdown": "https://grabient.com/kS7Q8Yy5S_SChv0.md?style=linearSwatches&steps=9",
+  "alternates": null,
+  "structuredData": [
+   "CreativeWork",
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "title": "Pastel candy vertical bands | Grabient",
+   "description": "Soft candy colors stand in vertical bands, from blush through lilac to a pale mint.",
+   "saved": {
+    "style": "linearSwatches",
+    "steps": 9,
+    "angle": 90
+   }
+  },
+  "icon": "16 colors"
+ },
+ {
+  "locale": "en",
+  "path": "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9&angle=30",
+  "facts": {
+   "title": "Pastel candy vertical bands | Grabient",
+   "description": "Soft candy colors stand in vertical bands, from blush through lilac to a pale mint.",
+   "saved": {
+    "style": "linearSwatches",
+    "steps": 9,
+    "angle": 90
+   }
+  },
+  "title": "Analogous gray, brown and maroon radial swatches | Grabient",
+  "description": "Analogous gray, brown and maroon palette with 9 colors. #f6e4e0, #cfb1ab, #9e726b, #6c3732, #46070b. Edit and export CSS, SVG, PNG or a shader.",
+  "descriptionLength": 143,
+  "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0&v=k4&style=radialSwatches&steps=9&angle=30",
+  "imageAlt": "Analogous gray, brown and maroon color palette",
+  "themeColor": "#f6e4e0",
+  "markdown": "https://grabient.com/kS7Q8Yy5S_SChv0.md?style=radialSwatches&steps=9&angle=30",
+  "alternates": null,
+  "structuredData": [
+   "CreativeWork",
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "title": "Pastel candy vertical bands | Grabient",
+   "description": "Soft candy colors stand in vertical bands, from blush through lilac to a pale mint.",
+   "saved": {
+    "style": "linearSwatches",
+    "steps": 9,
+    "angle": 90
+   }
+  },
+  "icon": "16 colors"
+ },
+ {
+  "locale": "en",
   "path": "/about",
   "facts": {},
   "title": "About Grabient",
@@ -911,7 +989,9 @@
   "image": "https://grabient.com/api/og/list?sort=hot&v=k4",
   "imageAlt": "Grabient の注目のパレットとコレクション",
   "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
-  "structuredData": [],
+  "structuredData": [
+   "WebApplication"
+  ],
   "factsSent": null,
   "icon": null
  },

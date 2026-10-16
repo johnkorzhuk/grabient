@@ -59,7 +59,7 @@ describe("a collection as Markdown", () => {
     expect(collectionMarkdown(doc, ORIGIN)).toBe(golden);
   });
 
-  test("is served out of search results, with its page as canonical, kept five minutes at the edge", async () => {
+  test("is served out of search results, naming its page as the form to read, kept five minutes at the edge", async () => {
     const response = await markdownFile(
       "bright-gradients",
       get("/bright-gradients.md"),
@@ -71,7 +71,7 @@ describe("a collection as Markdown", () => {
     expect(response.status).toBe(200);
     expect(Object.fromEntries(response.headers)).toMatchObject({
       "content-type": "text/markdown; charset=utf-8",
-      link: `<${ORIGIN}/bright-gradients>; rel="canonical"`,
+      link: `<${ORIGIN}/bright-gradients>; rel="alternate"; type="text/html"`,
       "x-robots-tag": "noindex",
       "access-control-allow-origin": "*",
       "cache-control": "public, max-age=0, must-revalidate",
@@ -137,11 +137,29 @@ describe("a palette as Markdown", () => {
     expect(text.startsWith("# Analogous gray, brown and maroon radial swatches\n")).toBe(true);
     expect(text).toContain("- Drawn as: radial swatches, 9 steps, 90 degrees");
     expect(Object.fromEntries(response.headers)).toMatchObject({
-      link: '<https://grabient.com/kS7Q8Yy5S_SChv0>; rel="canonical"',
+      link: '<https://grabient.com/kS7Q8Yy5S_SChv0>; rel="alternate"; type="text/html"',
       "x-robots-tag": "noindex",
       "cache-control": "public, max-age=3600",
       "cdn-cache-control": "max-age=86400, stale-while-revalidate=86400"
     });
+  });
+
+  test("names as its page the palette's own address, in the view it was saved in", async () => {
+    const response = await markdownFile(
+      "kS7Q8Yy5S_SChv0",
+      get("/kS7Q8Yy5S_SChv0.md?style=radialSwatches"),
+      "https://grabient.com",
+      reads({
+        paletteWords: async () => ({
+          saved: { style: "linearSwatches", steps: 9, angle: 90 },
+          written: null,
+          heldBy: []
+        })
+      })
+    );
+    expect(response.headers.get("Link")).toBe(
+      '<https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9>; rel="alternate"; type="text/html"'
+    );
   });
 
   test("is the file grabient.com served, with the words written for it too", async () => {
@@ -229,7 +247,7 @@ describe("a palette as Markdown", () => {
       reads()
     );
     expect(response.headers.get("Link")).toBe(
-      '<https://grabient.com/kY4mpDazO-mUuu_fuLqXU49dvVP6>; rel="canonical"'
+      '<https://grabient.com/kY4mpDazO-mUuu_fuLqXU49dvVP6>; rel="alternate"; type="text/html"'
     );
   });
 

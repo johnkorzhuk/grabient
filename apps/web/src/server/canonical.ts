@@ -2,7 +2,7 @@ import { canonicalSeedAddress } from "../features/editor/address.ts";
 import { canonicalGallery } from "../features/gallery/address.ts";
 import { FIXED_PAGES } from "../lib/links.ts";
 import { collectionRules } from "./collections/routing.ts";
-import { legacyRedirect } from "./seo/legacy.ts";
+import { legacyRedirect, legacySeed } from "./seo/legacy.ts";
 
 /* One address per page. Before any cache is read, the Worker asks these rules for the canonical form of a page's
    address (path and query, without the language) and answers 301 to it in the request's language, so a junk or old
@@ -23,10 +23,26 @@ const fixedPage: CanonicalRule = address => {
   return FIXED_PAGES.has(path) ? path : null;
 };
 
+/** grabient.com's palettes like an old palette (/palettes/{old id}): the palettes like the keyframe palette the maps
+    hold for it, which a search reads by its seed. */
+const oldSimilar: CanonicalRule = address => {
+  const at = address.indexOf("?");
+  const raw = /^\/palettes\/([^/]+)$/.exec(at < 0 ? address : address.slice(0, at))?.[1];
+  let id = raw;
+  try {
+    id = raw && decodeURIComponent(raw);
+  } catch {
+    // read as it came
+  }
+  const seed = id ? legacySeed(id) : null;
+  return seed ? canonicalGallery(`/palettes/${seed}${at < 0 ? "" : address.slice(at)}`) : null;
+};
+
 const RULES: readonly CanonicalRule[] = [
   legacyRedirect,
   fixedPage,
   canonicalSeedAddress,
+  oldSimilar,
   canonicalGallery,
   ...collectionRules
 ];

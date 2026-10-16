@@ -1,18 +1,22 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
 import { alignedLegacySeed, decodeLegacySeed, legacyTarget } from "@grabient/engine/legacy.ts";
 import { parseView, viewSearch } from "@grabient/engine/view.ts";
+import { first, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import migrated from "../../../data/legacy-k.json" with { type: "json" };
 import links from "../../../data/legacy-links.json" with { type: "json" };
+import { paletteAddress } from "../../lib/page-meta.ts";
+import { SAVED_TEXT, savedView } from "../collections/files.ts";
 import { isCrawler } from "../crawlers.ts";
 
 /* Old grabient.com palette addresses, still in articles and search indexes: `_` seeds, and lz-string ids that
    grabient.com answered with their `_` form. Each is answered with a 301 to the keyframe palette the migration maps
-   hold for it, at the link's view: data/legacy-k.json is grabient.com's gallery, data/legacy-links.json every other
-   old address an index has shown, fitted offline. An lz-string id the maps lack leads to its `_` form, and a `_` seed
-   they lack stands at its own address with its view, where the Worker fits it (legacy-fit.ts). Resolving an old id
-   never fetches the old site or writes anything. Server only: neither map reaches the browser. */
+   hold for it, at the link's view, or, for a link that names none, at the palette's own address: data/legacy-k.json is
+   grabient.com's gallery, data/legacy-links.json every other old address an index has shown, fitted offline. An
+   lz-string id the maps lack leads to its `_` form, and a `_` seed they lack stands at its own address with its view,
+   where the Worker fits it (legacy-fit.ts). Resolving an old id never fetches the old site or writes anything. Server
+   only: neither map reaches the browser. */
 
 const MAPS: readonly Readonly<Record<string, string>>[] = [migrated, links];
 const mapped = (id: string) => MAPS.find(map => Object.hasOwn(map, id))?.[id];
@@ -60,7 +64,29 @@ export const legacyRedirect = (address: string): string | null => {
   return old ? (old.to ?? address) : null;
 };
 
-/** Counts how an old address resolved, by readers and by crawlers: the day few arrive, the maps can go. */
+/** Where an old palette address that names no view lands: its palette's own address, in the view it was saved in,
+    which only the database knows, so a link a search index holds leads to the page its written words name. Null for
+    an address that names a view or that no map holds, and where the read fails: the canonical rule's address stands. */
+export async function legacyLanding(env: Pick<Env, "DB">, address: string): Promise<string | null> {
+  const old = oldAddress(address);
+  if (!old?.to || old.via === "fitted") return null;
+  const asked = new URL(address, "https://grabient.com").searchParams;
+  if (["style", "steps", "angle", "size"].some(name => asked.has(name))) return null;
+  const seed = old.to.slice(1).split("?", 1)[0];
+  try {
+    const row = await first<{ saved: string | null }>(replica(env), SAVED_TEXT, seed);
+    return paletteAddress(seed, savedView(row?.saved));
+  } catch (error) {
+    console.error("Old link's saved view unread", String(error));
+    return null;
+  }
+}
+
+/** Every old palette id the maps lead from. */
+export const oldIds = (): string[] => [...new Set(MAPS.flatMap(map => Object.keys(map)))];
+
+/** Counts how an old address resolved, by readers and by crawlers. The maps stay a year at least, while search
+    indexes and the sites that link here move to the new addresses; the counts say when few arrive. */
 export function countLegacy(env: Pick<Env, "USAGE">, request: Request, address: string): void {
   const old = oldAddress(address);
   if (old) countUsage(env, "legacy", old.via, isCrawler(request) ? "crawler" : "reader");

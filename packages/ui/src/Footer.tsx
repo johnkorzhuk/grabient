@@ -36,6 +36,7 @@ export function Footer(props: {
               <a
                 class={styles.link}
                 href={link().disabled ? undefined : link().href}
+                rel={link().rel}
                 aria-current={link().current ? "page" : undefined}
                 aria-disabled={link().disabled ? "true" : undefined}
               >

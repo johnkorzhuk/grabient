@@ -1,9 +1,9 @@
 import { cardBackground, cssLine } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { isFixedSize, viewSearch } from "@grabient/engine/view.ts";
-import { localHref, t } from "@grabient/i18n";
+import { locale, localHref, t } from "@grabient/i18n";
 import { For, Show } from "solid-js";
-import { heading, type Page, pageMeta } from "../../lib/page-meta.ts";
+import { heading, type Page, pageMeta, relTo } from "../../lib/page-meta.ts";
 import type { SeedPage } from "./address.ts";
 import { Boot } from "./Boot.tsx";
 import { BOOT_MARK, BOOT_SCRIPT } from "./boot.ts";
@@ -19,6 +19,7 @@ export const metaPage = (
   seed: page.seed,
   palette: page.palette,
   view: page.view,
+  ...(facts?.saved ? { saved: facts.saved } : {}),
   ...(facts?.written ? { written: facts.written } : {}),
   heldBy: facts?.heldBy ?? []
 });
@@ -112,20 +113,34 @@ export function StaticPalette(props: { data: PaletteData }) {
           <h2>{t("In these collections")}</h2>
           <p data-links="">
             <For each={props.data.facts?.heldBy}>
-              {held => <a href={localHref(`/${held.slug}`)}>{held.title}</a>}
+              {held => (
+                /* a title in the page's language says the collection's page is indexed in it */
+                <a
+                  href={localHref(`/${held.slug}`)}
+                  rel={relTo(localHref(`/${held.slug}`), held.english ? [locale()] : [])}
+                >
+                  {held.title}
+                </a>
+              )}
             </For>
           </p>
         </Show>
         {/* the palettes like this one are a search the index never keeps: nofollow, so a crawler that reads every palette
-          renders no search for each */}
+          renders no search for each; the files are no pages, and a picture is drawn for each visit */}
         <p data-links="">
           <a href={localHref(`/palettes?q=${encodeURIComponent(page().seed)}`)} rel="nofollow">
             {t("Similar palettes")}
           </a>
           <a href={localHref("/collections")}>{t("Collections")}</a>
-          <a href={png()}>{t("Download PNG")}</a>
-          <a href={`/${page().seed}.json${view()}`}>{t("Palette JSON")}</a>
-          <a href={`/${page().seed}.md${view()}`}>{t("Markdown")}</a>
+          <a href={png()} rel={relTo(png())}>
+            {t("Download PNG")}
+          </a>
+          <a href={`/${page().seed}.json${view()}`} rel={relTo(`/${page().seed}.json`)}>
+            {t("Palette JSON")}
+          </a>
+          <a href={`/${page().seed}.md${view()}`} rel={relTo(`/${page().seed}.md`)}>
+            {t("Markdown")}
+          </a>
           <a href={localHref("/about")}>{t("How it works")}</a>
         </p>
       </main>

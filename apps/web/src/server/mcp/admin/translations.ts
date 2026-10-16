@@ -59,7 +59,7 @@ interface WordRow {
   source: string;
 }
 const WORDS = `SELECT c.slug, c.title AS english, c.description AS english_description, t.locale, t.title, t.description,
-  t.source FROM k_collections c JOIN k_translations t ON t.kind = 'collection' AND t.key = c.id`;
+  t.source, t.updated_at FROM k_collections c JOIN k_translations t ON t.kind = 'collection' AND t.key = c.id`;
 const current = (row: WordRow) => row.source === fingerprint(row.english, row.english_description);
 
 /** Each collection's words in `locale`, by its slug, where they translate the English it has now. */
@@ -167,6 +167,32 @@ export async function localizeDocument<T extends Collectionish>(
     },
     languages
   };
+}
+
+/** Each public collection of Grabient's that reads in another language, by its slug: the languages its words are
+    translated into where they translate the English it has now, as localizeDocument reads them, each with when it was
+    translated. Its page is indexed in each, and the sitemap names them. */
+export async function collectionLanguages(
+  env: DB
+): Promise<Map<string, { locale: TranslatedLocale; updatedAt: number }[]>> {
+  const rows = await all<WordRow & { updated_at: number }>(
+    env.DB,
+    `${WORDS} WHERE c.visibility = 'public' AND c.owner_kind = 'agent'`
+  );
+  const said = new Map<string, Map<string, number>>();
+  for (const row of rows.filter(current)) {
+    const kept = said.get(row.slug) ?? new Map<string, number>();
+    said.set(row.slug, kept.set(row.locale, Number(row.updated_at)));
+  }
+  return new Map(
+    [...said].map(([slug, kept]) => [
+      slug,
+      TRANSLATED_LOCALES.filter(l => kept.has(l)).map(locale => ({
+        locale,
+        updatedAt: kept.get(locale) ?? 0
+      }))
+    ])
+  );
 }
 
 /** The collections that hold a palette, as its page names them: each title in `locale` where translated, the English

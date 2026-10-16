@@ -1,22 +1,26 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
-import { LOCALES, localizePath } from "@grabient/i18n";
+import { drawnView, isStyle } from "@grabient/engine/view.ts";
+import { LOCALES, type Locale, localizePath } from "@grabient/i18n";
 import { all, first } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
 import {
   type Alternate,
   alternatesOf,
-  CARD_VERSION,
   collectionCard,
-  paletteAddress
+  type PaletteView,
+  paletteAddress,
+  paletteCard
 } from "../../lib/page-meta.ts";
 import { collectionSitemapRows } from "../collections/read.ts";
+import { collectionLanguages } from "../mcp/admin/translations.ts";
 import { sitemapQueries } from "../search/search.ts";
 import { isoDay } from "./text.ts";
 
 /* The sitemaps: an index of the others; the site's own pages in every language, each naming the rest; the searches
-   worth an engine's visit; every public collection; and every gallery palette, in files of 5,000 by rowid. Each file
-   reads only what it lists, with one indexed query or none, and names only canonical addresses, never a redirect.
+   worth an engine's visit; every public collection, in each language Grabient's are translated into; and every
+   gallery palette, in files of 5,000 by rowid. Each file reads only what it lists, with indexed queries or none, and
+   names only canonical addresses, never a redirect.
    The palette files are rowid ranges, which avoids a count and an offset scan: k_palettes stays a rowid table. */
 
 /** Palettes in one file, well under the protocol's 50,000 addresses and 50 MB. */
@@ -24,6 +28,8 @@ export const SHARD_SIZE = 5000;
 /** The palette files the index may name: 50,000 entries, less the pages, the searches and the collections. */
 export const MAX_SHARDS = 49_997;
 const MAX_COLLECTIONS = 45_000;
+/** The protocol's most addresses in one file. */
+const MAX_URLS = 50_000;
 const MAX_SEARCHES = 100;
 /** The site's own pages, translated and indexed in every language. */
 const OWN_PAGES = [
@@ -33,9 +39,12 @@ const OWN_PAGES = [
   "/collections",
   "/collections/rising",
   "/about",
+  "/bindings",
   "/mcp-server",
   "/contact"
 ];
+/** The pages indexed in English alone, whose words are not translated. */
+const ENGLISH_PAGES = ["/privacy", "/terms"];
 /** The sitemaps besides the palette files, by the name in their address (/sitemap-{name}.xml). */
 const FILES = ["pages", "searches", "collections"] as const;
 
@@ -103,15 +112,18 @@ export function sitemapIndex(origin: string, shards: number): string {
   );
 }
 
-/** The site's own pages in every language, each naming the others, and the newsletter once it is on, whose issues are
-    English, in English alone. */
-export function pagesSitemap(origin: string, newsletter: boolean): string {
+/** The site's own pages in every language, each naming the others, then Privacy and Terms and the newsletter once it is
+    on, whose issues are English, in English alone. */
+export const pagesSitemap = (origin: string, newsletter: boolean): string =>
+  urlset(pageEntries(origin, newsletter), origin);
+function pageEntries(origin: string, newsletter: boolean): Entry[] {
   const entries: Entry[] = OWN_PAGES.flatMap(page => {
     const alternates = alternatesOf(page, origin);
     return LOCALES.map(locale => ({ path: localizePath(page, locale), alternates }));
   });
+  entries.push(...ENGLISH_PAGES.map(path => ({ path })));
   if (newsletter) entries.push({ path: "/newsletter" });
-  return urlset(entries, origin);
+  return entries;
 }
 
 /** Words as a search's address writes them: a space between words, lowercase, 100 characters at most. */
@@ -120,39 +132,56 @@ const searchWords = (query: string) => {
   return words.length <= 100 && !/\p{Cc}/u.test(words) ? words : "";
 };
 /** A search is its list with the words as q, the address its page names as canonical. */
-export function searchesSitemap(origin: string, queries: readonly string[]): string {
-  const words = [...new Set(queries.map(searchWords).filter(Boolean))];
-  const entries = words.slice(0, MAX_SEARCHES).map(query => ({
-    path: `/palettes?${new URLSearchParams({ q: query })}`
-  }));
-  return urlset(entries, origin);
-}
+export const searchesSitemap = (origin: string, queries: readonly string[]): string =>
+  urlset(searchEntries(queries), origin);
+const searchEntries = (queries: readonly string[]): Entry[] =>
+  [...new Set(queries.map(searchWords).filter(Boolean))]
+    .slice(0, MAX_SEARCHES)
+    .map(query => ({ path: `/palettes?${new URLSearchParams({ q: query })}` }));
 
-/** Every public collection, the latest change first, with its card. */
-export function collectionsSitemap(
-  origin: string,
-  rows: readonly { slug: string; updatedAt: number }[]
-): string {
+/** Every public collection, the latest change first, with its card, then its page in each other language it reads in,
+    dated by the later of its change and its translation. */
+export const collectionsSitemap = (origin: string, rows: readonly ListedCollection[]): string =>
+  urlset(collectionEntries(origin, rows), origin);
+interface ListedCollection {
+  slug: string;
+  updatedAt: number;
+  languages?: readonly { locale: Locale; updatedAt: number }[];
+}
+function collectionEntries(origin: string, rows: readonly ListedCollection[]): Entry[] {
   const seen = new Set<string>();
   const entries: Entry[] = [];
   for (const row of rows.slice(0, MAX_COLLECTIONS)) {
     if (seen.has(row.slug)) continue;
     seen.add(row.slug);
-    entries.push({
-      path: `/${row.slug}`,
-      lastmod: isoDay(row.updatedAt),
-      image: collectionCard(row.slug, origin, row.updatedAt)
-    });
+    const said = (row.languages ?? []).map(({ locale, updatedAt }) => ({
+      path: localizePath(`/${row.slug}`, locale),
+      lastmod: isoDay(Math.max(row.updatedAt, updatedAt))
+    }));
+    if (entries.length + 1 + said.length > MAX_URLS) break;
+    entries.push(
+      {
+        path: `/${row.slug}`,
+        lastmod: isoDay(row.updatedAt),
+        image: collectionCard(row.slug, origin, row.updatedAt)
+      },
+      ...said
+    );
   }
-  return urlset(entries, origin);
+  return entries;
 }
 
-/** A file of gallery palettes, each at its own address with the day it joined and its card. A seed that is no palette
-    is left out, and one written two ways is listed once, as its canonical seed. */
-export function palettesSitemap(
-  origin: string,
-  rows: readonly { seed: string; createdAt?: number | string | null; image?: string }[]
-): string {
+/** A file of gallery palettes, each at its own address, in the view it was saved in, with the day it joined and its
+    card. A seed that is no palette is left out, and one written two ways is listed once, as its canonical seed. */
+export const palettesSitemap = (origin: string, rows: readonly ListedPalette[]): string =>
+  urlset(paletteEntries(origin, rows), origin);
+interface ListedPalette {
+  seed: string;
+  view?: PaletteView;
+  createdAt?: number | string | null;
+  image?: string;
+}
+function paletteEntries(origin: string, rows: readonly ListedPalette[]): Entry[] {
   const seen = new Set<string>();
   const entries: Entry[] = [];
   for (const row of rows.slice(0, SHARD_SIZE)) {
@@ -162,12 +191,12 @@ export function palettesSitemap(
     if (seen.has(seed)) continue;
     seen.add(seed);
     entries.push({
-      path: paletteAddress(seed),
+      path: paletteAddress(seed, row.view),
       lastmod: isoDay(row.createdAt),
       image: row.image && new URL(row.image, origin).toString()
     });
   }
-  return urlset(entries, origin);
+  return entries;
 }
 
 /** How many palette files the index names: the highest rowid's share of SHARD_SIZE, at least one. */
@@ -179,11 +208,18 @@ export async function paletteShards(env: Pick<Env, "DB">): Promise<number> {
   return Math.max(1, Math.ceil((high?.id ?? 0) / SHARD_SIZE));
 }
 
-/** One palette file's rows, a rowid range ((shard - 1) * SHARD_SIZE, shard * SHARD_SIZE], each with its card. */
+/** One palette file's rows, a rowid range ((shard - 1) * SHARD_SIZE, shard * SHARD_SIZE], each in the view the gallery
+    saved it in, with its card in that view, as its page names them. */
 export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
-  const rows = await all<{ seed: string; created_at: number }>(
+  const rows = await all<{
+    seed: string;
+    style: string;
+    steps: number;
+    angle: number;
+    created_at: number;
+  }>(
     env.DB,
-    "SELECT seed, created_at FROM k_palettes WHERE rowid > ? AND rowid <= ? ORDER BY rowid LIMIT ?",
+    "SELECT seed, style, steps, angle, created_at FROM k_palettes WHERE rowid > ? AND rowid <= ? ORDER BY rowid LIMIT ?",
     (shard - 1) * SHARD_SIZE,
     shard * SHARD_SIZE,
     SHARD_SIZE
@@ -191,8 +227,37 @@ export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
   return rows.map(row => {
     const palette = decodePalette(row.seed);
     const seed = palette ? encodePalette(palette) : row.seed;
-    return { seed, createdAt: row.created_at, image: `/api/og?seed=${seed}&v=${CARD_VERSION}` };
+    const style = isStyle(row.style) ? row.style : undefined;
+    const view = palette && drawnView(palette, { style, steps: row.steps, angle: row.angle });
+    return {
+      seed,
+      ...(view ? { view } : {}),
+      createdAt: row.created_at,
+      image: view ? paletteCard(seed, view) : undefined
+    };
   });
+}
+
+/** What the sitemap at /sitemap-{name}.xml lists, or null for a name no sitemap has. */
+async function entriesOf(
+  env: Pick<Env, "DB" | "ASSETS">,
+  name: string,
+  origin: string
+): Promise<Entry[] | null> {
+  if (name === "pages") return pageEntries(origin, !(await flagOff(env, "newsletter")));
+  if (name === "searches") return searchEntries(await sitemapQueries(env));
+  if (name === "collections") {
+    const [rows, languages] = await Promise.all([
+      collectionSitemapRows(env, MAX_COLLECTIONS),
+      collectionLanguages(env)
+    ]);
+    return collectionEntries(
+      origin,
+      rows.map(row => ({ ...row, languages: languages.get(row.slug) }))
+    );
+  }
+  const shard = paletteShard(name);
+  return shard === null ? null : paletteEntries(origin, await paletteRows(env, shard));
 }
 
 /** The sitemap at /sitemap-{name}.xml, or null for a name no sitemap has. */
@@ -201,12 +266,22 @@ export async function sitemapFile(
   name: string,
   origin: string
 ): Promise<string | null> {
-  if (name === "pages") return pagesSitemap(origin, !(await flagOff(env, "newsletter")));
-  if (name === "searches") return searchesSitemap(origin, await sitemapQueries(env));
-  if (name === "collections")
-    return collectionsSitemap(origin, await collectionSitemapRows(env, MAX_COLLECTIONS));
-  const shard = paletteShard(name);
-  return shard === null ? null : palettesSitemap(origin, await paletteRows(env, shard));
+  const entries = await entriesOf(env, name, origin);
+  return entries && urlset(entries, origin);
+}
+
+/** Every address the sitemaps list, the index's files in its order. */
+export async function sitemapAddresses(
+  env: Pick<Env, "DB" | "ASSETS">,
+  origin: string
+): Promise<string[]> {
+  const shards = Array.from({ length: await paletteShards(env) }, (_, i) =>
+    i ? `palettes-${i + 1}` : "palettes"
+  );
+  const files = await Promise.all([...FILES, ...shards].map(name => entriesOf(env, name, origin)));
+  return files.flatMap(entries =>
+    (entries ?? []).map(entry => new URL(entry.path, origin).toString())
+  );
 }
 
 /** A sitemap's headers. What changes as palettes and collections are made (the index, the palette files, the
