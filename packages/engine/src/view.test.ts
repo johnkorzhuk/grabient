@@ -62,13 +62,13 @@ describe("the view's address", () => {
       angle: 30
     });
   });
-  test("a palette is drawn as it was saved while style, steps and angle all are, read as its drawing reads them", () => {
+  test("a palette is drawn as it was saved while its style and steps are, read as its drawing reads them, whatever its angle", () => {
     const P = decodePalette("kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g") as Palette;
     const saved = { style: "linearSwatches" as const, steps: 9, angle: 90 };
     expect(asSaved(P, saved, saved)).toBe(true);
     expect(asSaved(P, { ...saved, style: "radialSwatches" }, saved)).toBe(false);
     expect(asSaved(P, { ...saved, steps: 10 }, saved)).toBe(false);
-    expect(asSaved(P, { ...saved, angle: 45 }, saved)).toBe(false);
+    expect(asSaved(P, { ...saved, angle: 45 }, saved)).toBe(true);
     // eight keyframes draw eight steps from any fewer, and an address's defaults are the view's
     expect(
       asSaved(

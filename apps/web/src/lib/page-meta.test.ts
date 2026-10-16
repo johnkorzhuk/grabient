@@ -358,7 +358,10 @@ describe("a palette's written words", () => {
     };
   };
 
-  test("name and describe its page while it is drawn as it was saved, what its colors call it beside them", () => {
+  test("name and describe its page while it is drawn as it was saved, at any angle, what its colors call it beside them", () => {
+    expect(named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45").heading).toBe(
+      "Pastel candy vertical bands"
+    );
     const own = named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9");
     expect(own).toMatchObject({
       heading: "Pastel candy vertical bands",
@@ -372,7 +375,6 @@ describe("a palette's written words", () => {
   test.each([
     ["another style", "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9"],
     ["other steps", "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=10"],
-    ["another angle", "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45"],
     ["the default view its canonical address draws", "/kS7Q8Yy5S_SChv0"]
   ])("give way to what its colors call it in %s", (_, address) => {
     const other = named(address);

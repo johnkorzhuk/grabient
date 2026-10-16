@@ -46,9 +46,16 @@ test("written words name a palette in the view it was saved in alone, what its c
   expect(paletteJson(x.seed, ORIGIN, x.view, null, words)).toMatchObject({ title: words.title });
   const others: Partial<View>[] = [
     { ...x.view, style: x.view.style === "radialSwatches" ? "linearSwatches" : "radialSwatches" },
-    { ...x.view, steps: (x.view.steps ?? 7) + 1 },
-    { ...x.view, angle: ((x.view.angle ?? 90) + 45) % 360 }
+    { ...x.view, steps: (x.view.steps ?? 7) + 1 }
   ];
+  // a turn of the angle leaves the written words standing
+  const turned = { ...x.view, angle: ((x.view.angle ?? 90) + 45) % 360 };
+  expect(paletteJson(x.seed, ORIGIN, turned, null, words)).toMatchObject({ title: words.title });
+  expect(
+    paletteMarkdown(x.seed, ORIGIN, turned, words, x.heldBy)?.startsWith(
+      `# ${plain(words.title)}\n`
+    )
+  ).toBe(true);
   for (const view of others) {
     expect(paletteMarkdown(x.seed, ORIGIN, view, words, x.heldBy)).toBe(
       paletteMarkdown(x.seed, ORIGIN, view, null, x.heldBy)

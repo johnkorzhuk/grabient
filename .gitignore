@@ -19,3 +19,5 @@ test-results
 # the search training cache (embeddings, features, weights)
 packages/search/train/cache
 __pycache__/
+# the agents' own worktrees, which Claude Code makes inside the checkout
+.claude/worktrees/

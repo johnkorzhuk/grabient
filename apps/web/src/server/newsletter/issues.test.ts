@@ -211,11 +211,13 @@ describe("an issue's lead", () => {
     expect(nameOf(view, { title: "Smoky aubergine ember beam", view: saved })).toBe(
       "Smoky aubergine ember beam"
     );
-    // a pick drawn in a view other than the one the title was written for is named by its colors there
+    // at another angle it keeps the title; in another style or steps its colors name it
+    expect(
+      nameOf(view, { title: "Smoky aubergine ember beam", view: { ...saved, angle: 90 } })
+    ).toBe("Smoky aubergine ember beam");
     for (const other of [
       { ...saved, style: "radialSwatches" },
-      { ...saved, steps: 41 },
-      { ...saved, angle: 90 }
+      { ...saved, steps: 41 }
     ] as const)
       expect(nameOf(view, { title: "Smoky aubergine ember beam", view: other })).toBe(nameOf(view));
   });

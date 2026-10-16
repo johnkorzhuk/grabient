@@ -298,7 +298,7 @@ test("the document the edge keeps for an address is the same page for its lock w
   ).toHaveAttribute("aria-pressed", "true");
 });
 
-test("a palette is called by the title written for it while it is drawn as it was saved, by its colors in any other view", async ({
+test("a palette is called by the title written for it while its style and steps are as saved, at any angle, by its colors otherwise", async ({
   page,
   request
 }) => {
@@ -316,9 +316,11 @@ test("a palette is called by the title written for it while it is drawn as it wa
   await page.keyboard.press("[");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=180");
   await expect(page).toHaveTitle(written);
+  // a turn of the angle keeps it
   await page.keyboard.press(".");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=195");
-  await expect(page).not.toHaveTitle(written);
+  await page.waitForTimeout(500);
+  await expect(page).toHaveTitle(written);
 });
 
 test("random leads to a new palette at the view asked for", async ({ request }) => {

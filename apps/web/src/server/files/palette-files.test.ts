@@ -75,20 +75,26 @@ describe("a palette's file", () => {
     expect([none.status, await none.json()]).toEqual([404, { error: "Invalid palette seed." }]);
   });
 
-  test("JSON names a palette by the title written for it in the view it was saved in alone, and is kept as text", async () => {
+  test("JSON names a palette by the title written for it while drawn as it was saved, at any angle, and is kept as text", async () => {
     const words = {
       title: "Dusk over the mesa",
       embed: "",
       view: { style: "linearGradient", steps: 8, angle: 45 }
     } as const;
-    vi.mocked(writtenWords).mockReturnValueOnce(words).mockReturnValueOnce(words);
+    vi.mocked(writtenWords)
+      .mockReturnValueOnce(words)
+      .mockReturnValueOnce(words)
+      .mockReturnValueOnce(words);
     const own = await file(`/${seed}.json?${view}`);
     expect(await own.json()).toEqual({ ...golden.json, title: "Dusk over the mesa" });
     expect([own.headers.get("Cache-Control"), own.headers.get("CDN-Cache-Control")]).toEqual([
       "public, max-age=3600",
       "max-age=86400, stale-while-revalidate=86400"
     ]);
-    const other = await (await file(`/${seed}.json?steps=8&angle=90`)).json();
+    // a turn of the angle keeps it; another style draws another picture, which its colors name
+    const turned = await (await file(`/${seed}.json?steps=8&angle=90`)).json();
+    expect(turned).toMatchObject({ title: "Dusk over the mesa" });
+    const other = await (await file(`/${seed}.json?style=radialSwatches&steps=8&angle=45`)).json();
     expect(other).not.toHaveProperty("title");
     expect(other).toHaveProperty("name");
   });

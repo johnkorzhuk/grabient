@@ -143,12 +143,12 @@ export function drawnView(P: Palette, input: Partial<View> = {}): View {
   const { style, steps, angle } = parseView({ get: key => given(key)?.toString() ?? null });
   return { style, steps: Math.max(steps, P.anchors.length), angle };
 }
-/** Whether a palette is drawn in the view it was saved in: the same style, steps and angle, each read as its drawing
-    reads it. The words written for a palette describe it in that view alone. */
+/** Whether a palette is drawn as it was saved: the same style and steps, each read as its drawing reads it. The words
+    written for a palette describe it so; an angle turns the same picture, and leaves them standing. */
 export function asSaved(P: Palette, view: Partial<View>, saved: Partial<View>): boolean {
   const a = drawnView(P, view);
   const b = drawnView(P, saved);
-  return a.style === b.style && a.steps === b.steps && a.angle === b.angle;
+  return a.style === b.style && a.steps === b.steps;
 }
 /** A list's view over a palette's own: each of style, steps and angle unless the list leaves it `auto`. */
 export function effectiveView(

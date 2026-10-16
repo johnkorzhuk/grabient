@@ -288,13 +288,12 @@ export default function Editor(props: { data: PaletteData }) {
   };
   const facts = () =>
     factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null);
-  /* the server's heading is the page's while its palette and view are: a written title names the palette in the view
-     it was saved in alone, so the angle counts too */
+  /* the server's heading is the page's while its palette, style and steps are: a written title names the palette drawn
+     as it was saved, which a turn of its angle leaves standing */
   const heading = () =>
     e.seed() === first.page.seed &&
     e.style() === first.page.view.style &&
-    e.steps() === first.page.view.steps &&
-    e.angle() === first.page.view.angle
+    e.steps() === first.page.view.steps
       ? first.heading
       : undefined;
   /* a press that turned the palette into another at once tells a screen reader, once, the name the page shows for it
