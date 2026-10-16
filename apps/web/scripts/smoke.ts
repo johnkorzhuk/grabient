@@ -72,7 +72,11 @@ const page = (path: string) =>
   });
 
 const sitemap = await sitemapUrls(base).catch(() => [] as string[]);
-const local = (url: string) => new URL(url).pathname;
+/** A deploy's address as the checks ask for it: its path and query, which a palette's view rides. */
+const local = (url: string) => {
+  const at = new URL(url);
+  return at.pathname + at.search;
+};
 /** The first page a sitemap of the deploy names: a palette's, a collection's. */
 const firstIn = async (name: string) => {
   const xml = await (await get(`/sitemap-${name}.xml`)).text();
@@ -119,6 +123,7 @@ await check("build", async () => {
   return true;
 });
 if (palette) {
+  const seed = palette.split("?", 1)[0];
   for (const [ext, type] of [
     ["png", "image/png"],
     ["svg", "image/svg+xml"],
@@ -126,7 +131,7 @@ if (palette) {
     ["json", "application/json"]
   ] as const) {
     await check(`file ${ext}`, async () => {
-      const response = await get(`${palette}.${ext}`);
+      const response = await get(`${seed}.${ext}`);
       const got = response.headers.get("content-type") ?? "";
       return response.status === 200 && got.startsWith(type) ? true : `${response.status} ${got}`;
     });
@@ -205,7 +210,7 @@ if (values.urls) {
   const worker = async () => {
     while (next < urls.length) {
       const url = urls[next++]!;
-      const path = local(url) + new URL(url).search;
+      const path = local(url);
       const rule = await broken(path).catch((): Rule => "lands");
       if (rule) failing.set(rule, [...(failing.get(rule) ?? []), path]);
     }
