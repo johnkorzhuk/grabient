@@ -24,8 +24,6 @@ Disallow: /settings?
 Disallow: /unsubscribe$
 Disallow: /unsubscribe?
 Disallow: /unsubscribe/
-Disallow: /random$
-Disallow: /random?
 Disallow: /collections/saved
 Disallow: /ar/saved$
 Disallow: /ar/saved?
@@ -34,8 +32,6 @@ Disallow: /ar/settings?
 Disallow: /ar/unsubscribe$
 Disallow: /ar/unsubscribe?
 Disallow: /ar/unsubscribe/
-Disallow: /ar/random$
-Disallow: /ar/random?
 Disallow: /ar/collections/saved
 Disallow: /de/saved$
 Disallow: /de/saved?
@@ -44,8 +40,6 @@ Disallow: /de/settings?
 Disallow: /de/unsubscribe$
 Disallow: /de/unsubscribe?
 Disallow: /de/unsubscribe/
-Disallow: /de/random$
-Disallow: /de/random?
 Disallow: /de/collections/saved
 Disallow: /es/saved$
 Disallow: /es/saved?
@@ -54,8 +48,6 @@ Disallow: /es/settings?
 Disallow: /es/unsubscribe$
 Disallow: /es/unsubscribe?
 Disallow: /es/unsubscribe/
-Disallow: /es/random$
-Disallow: /es/random?
 Disallow: /es/collections/saved
 Disallow: /fa/saved$
 Disallow: /fa/saved?
@@ -64,8 +56,6 @@ Disallow: /fa/settings?
 Disallow: /fa/unsubscribe$
 Disallow: /fa/unsubscribe?
 Disallow: /fa/unsubscribe/
-Disallow: /fa/random$
-Disallow: /fa/random?
 Disallow: /fa/collections/saved
 Disallow: /fr/saved$
 Disallow: /fr/saved?
@@ -74,8 +64,6 @@ Disallow: /fr/settings?
 Disallow: /fr/unsubscribe$
 Disallow: /fr/unsubscribe?
 Disallow: /fr/unsubscribe/
-Disallow: /fr/random$
-Disallow: /fr/random?
 Disallow: /fr/collections/saved
 Disallow: /id/saved$
 Disallow: /id/saved?
@@ -84,8 +72,6 @@ Disallow: /id/settings?
 Disallow: /id/unsubscribe$
 Disallow: /id/unsubscribe?
 Disallow: /id/unsubscribe/
-Disallow: /id/random$
-Disallow: /id/random?
 Disallow: /id/collections/saved
 Disallow: /ja/saved$
 Disallow: /ja/saved?
@@ -94,8 +80,6 @@ Disallow: /ja/settings?
 Disallow: /ja/unsubscribe$
 Disallow: /ja/unsubscribe?
 Disallow: /ja/unsubscribe/
-Disallow: /ja/random$
-Disallow: /ja/random?
 Disallow: /ja/collections/saved
 Disallow: /ko/saved$
 Disallow: /ko/saved?
@@ -104,8 +88,6 @@ Disallow: /ko/settings?
 Disallow: /ko/unsubscribe$
 Disallow: /ko/unsubscribe?
 Disallow: /ko/unsubscribe/
-Disallow: /ko/random$
-Disallow: /ko/random?
 Disallow: /ko/collections/saved
 Disallow: /pt-br/saved$
 Disallow: /pt-br/saved?
@@ -114,8 +96,6 @@ Disallow: /pt-br/settings?
 Disallow: /pt-br/unsubscribe$
 Disallow: /pt-br/unsubscribe?
 Disallow: /pt-br/unsubscribe/
-Disallow: /pt-br/random$
-Disallow: /pt-br/random?
 Disallow: /pt-br/collections/saved
 Disallow: /ru/saved$
 Disallow: /ru/saved?
@@ -124,8 +104,6 @@ Disallow: /ru/settings?
 Disallow: /ru/unsubscribe$
 Disallow: /ru/unsubscribe?
 Disallow: /ru/unsubscribe/
-Disallow: /ru/random$
-Disallow: /ru/random?
 Disallow: /ru/collections/saved
 Disallow: /th/saved$
 Disallow: /th/saved?
@@ -134,8 +112,6 @@ Disallow: /th/settings?
 Disallow: /th/unsubscribe$
 Disallow: /th/unsubscribe?
 Disallow: /th/unsubscribe/
-Disallow: /th/random$
-Disallow: /th/random?
 Disallow: /th/collections/saved
 Disallow: /tr/saved$
 Disallow: /tr/saved?
@@ -144,8 +120,6 @@ Disallow: /tr/settings?
 Disallow: /tr/unsubscribe$
 Disallow: /tr/unsubscribe?
 Disallow: /tr/unsubscribe/
-Disallow: /tr/random$
-Disallow: /tr/random?
 Disallow: /tr/collections/saved
 Disallow: /uk/saved$
 Disallow: /uk/saved?
@@ -154,8 +128,6 @@ Disallow: /uk/settings?
 Disallow: /uk/unsubscribe$
 Disallow: /uk/unsubscribe?
 Disallow: /uk/unsubscribe/
-Disallow: /uk/random$
-Disallow: /uk/random?
 Disallow: /uk/collections/saved
 Disallow: /vi/saved$
 Disallow: /vi/saved?
@@ -164,8 +136,6 @@ Disallow: /vi/settings?
 Disallow: /vi/unsubscribe$
 Disallow: /vi/unsubscribe?
 Disallow: /vi/unsubscribe/
-Disallow: /vi/random$
-Disallow: /vi/random?
 Disallow: /vi/collections/saved
 Disallow: /zh-hans/saved$
 Disallow: /zh-hans/saved?
@@ -174,13 +144,44 @@ Disallow: /zh-hans/settings?
 Disallow: /zh-hans/unsubscribe$
 Disallow: /zh-hans/unsubscribe?
 Disallow: /zh-hans/unsubscribe/
+Disallow: /zh-hans/collections/saved
+Disallow: /random$
+Disallow: /random?
+Disallow: /ar/random$
+Disallow: /ar/random?
+Disallow: /de/random$
+Disallow: /de/random?
+Disallow: /es/random$
+Disallow: /es/random?
+Disallow: /fa/random$
+Disallow: /fa/random?
+Disallow: /fr/random$
+Disallow: /fr/random?
+Disallow: /id/random$
+Disallow: /id/random?
+Disallow: /ja/random$
+Disallow: /ja/random?
+Disallow: /ko/random$
+Disallow: /ko/random?
+Disallow: /pt-br/random$
+Disallow: /pt-br/random?
+Disallow: /ru/random$
+Disallow: /ru/random?
+Disallow: /th/random$
+Disallow: /th/random?
+Disallow: /tr/random$
+Disallow: /tr/random?
+Disallow: /uk/random$
+Disallow: /uk/random?
+Disallow: /vi/random$
+Disallow: /vi/random?
 Disallow: /zh-hans/random$
 Disallow: /zh-hans/random?
-Disallow: /zh-hans/collections/saved
 Disallow: /api/palettes
 
 # AI search, assistant and training crawlers, by name: the pages, the Markdown pages and the routes llms.txt gives are
-# theirs to read. A crawler reads only the group that names it, so this one repeats the lines above, all but the last.
+# theirs to read. A crawler reads only the group that names it, so this one repeats the lines above but Random and
+# the lists' JSON.
 User-agent: GPTBot
 User-agent: OAI-SearchBot
 User-agent: ChatGPT-User
@@ -213,8 +214,6 @@ Disallow: /settings?
 Disallow: /unsubscribe$
 Disallow: /unsubscribe?
 Disallow: /unsubscribe/
-Disallow: /random$
-Disallow: /random?
 Disallow: /collections/saved
 Disallow: /ar/saved$
 Disallow: /ar/saved?
@@ -223,8 +222,6 @@ Disallow: /ar/settings?
 Disallow: /ar/unsubscribe$
 Disallow: /ar/unsubscribe?
 Disallow: /ar/unsubscribe/
-Disallow: /ar/random$
-Disallow: /ar/random?
 Disallow: /ar/collections/saved
 Disallow: /de/saved$
 Disallow: /de/saved?
@@ -233,8 +230,6 @@ Disallow: /de/settings?
 Disallow: /de/unsubscribe$
 Disallow: /de/unsubscribe?
 Disallow: /de/unsubscribe/
-Disallow: /de/random$
-Disallow: /de/random?
 Disallow: /de/collections/saved
 Disallow: /es/saved$
 Disallow: /es/saved?
@@ -243,8 +238,6 @@ Disallow: /es/settings?
 Disallow: /es/unsubscribe$
 Disallow: /es/unsubscribe?
 Disallow: /es/unsubscribe/
-Disallow: /es/random$
-Disallow: /es/random?
 Disallow: /es/collections/saved
 Disallow: /fa/saved$
 Disallow: /fa/saved?
@@ -253,8 +246,6 @@ Disallow: /fa/settings?
 Disallow: /fa/unsubscribe$
 Disallow: /fa/unsubscribe?
 Disallow: /fa/unsubscribe/
-Disallow: /fa/random$
-Disallow: /fa/random?
 Disallow: /fa/collections/saved
 Disallow: /fr/saved$
 Disallow: /fr/saved?
@@ -263,8 +254,6 @@ Disallow: /fr/settings?
 Disallow: /fr/unsubscribe$
 Disallow: /fr/unsubscribe?
 Disallow: /fr/unsubscribe/
-Disallow: /fr/random$
-Disallow: /fr/random?
 Disallow: /fr/collections/saved
 Disallow: /id/saved$
 Disallow: /id/saved?
@@ -273,8 +262,6 @@ Disallow: /id/settings?
 Disallow: /id/unsubscribe$
 Disallow: /id/unsubscribe?
 Disallow: /id/unsubscribe/
-Disallow: /id/random$
-Disallow: /id/random?
 Disallow: /id/collections/saved
 Disallow: /ja/saved$
 Disallow: /ja/saved?
@@ -283,8 +270,6 @@ Disallow: /ja/settings?
 Disallow: /ja/unsubscribe$
 Disallow: /ja/unsubscribe?
 Disallow: /ja/unsubscribe/
-Disallow: /ja/random$
-Disallow: /ja/random?
 Disallow: /ja/collections/saved
 Disallow: /ko/saved$
 Disallow: /ko/saved?
@@ -293,8 +278,6 @@ Disallow: /ko/settings?
 Disallow: /ko/unsubscribe$
 Disallow: /ko/unsubscribe?
 Disallow: /ko/unsubscribe/
-Disallow: /ko/random$
-Disallow: /ko/random?
 Disallow: /ko/collections/saved
 Disallow: /pt-br/saved$
 Disallow: /pt-br/saved?
@@ -303,8 +286,6 @@ Disallow: /pt-br/settings?
 Disallow: /pt-br/unsubscribe$
 Disallow: /pt-br/unsubscribe?
 Disallow: /pt-br/unsubscribe/
-Disallow: /pt-br/random$
-Disallow: /pt-br/random?
 Disallow: /pt-br/collections/saved
 Disallow: /ru/saved$
 Disallow: /ru/saved?
@@ -313,8 +294,6 @@ Disallow: /ru/settings?
 Disallow: /ru/unsubscribe$
 Disallow: /ru/unsubscribe?
 Disallow: /ru/unsubscribe/
-Disallow: /ru/random$
-Disallow: /ru/random?
 Disallow: /ru/collections/saved
 Disallow: /th/saved$
 Disallow: /th/saved?
@@ -323,8 +302,6 @@ Disallow: /th/settings?
 Disallow: /th/unsubscribe$
 Disallow: /th/unsubscribe?
 Disallow: /th/unsubscribe/
-Disallow: /th/random$
-Disallow: /th/random?
 Disallow: /th/collections/saved
 Disallow: /tr/saved$
 Disallow: /tr/saved?
@@ -333,8 +310,6 @@ Disallow: /tr/settings?
 Disallow: /tr/unsubscribe$
 Disallow: /tr/unsubscribe?
 Disallow: /tr/unsubscribe/
-Disallow: /tr/random$
-Disallow: /tr/random?
 Disallow: /tr/collections/saved
 Disallow: /uk/saved$
 Disallow: /uk/saved?
@@ -343,8 +318,6 @@ Disallow: /uk/settings?
 Disallow: /uk/unsubscribe$
 Disallow: /uk/unsubscribe?
 Disallow: /uk/unsubscribe/
-Disallow: /uk/random$
-Disallow: /uk/random?
 Disallow: /uk/collections/saved
 Disallow: /vi/saved$
 Disallow: /vi/saved?
@@ -353,8 +326,6 @@ Disallow: /vi/settings?
 Disallow: /vi/unsubscribe$
 Disallow: /vi/unsubscribe?
 Disallow: /vi/unsubscribe/
-Disallow: /vi/random$
-Disallow: /vi/random?
 Disallow: /vi/collections/saved
 Disallow: /zh-hans/saved$
 Disallow: /zh-hans/saved?
@@ -363,8 +334,6 @@ Disallow: /zh-hans/settings?
 Disallow: /zh-hans/unsubscribe$
 Disallow: /zh-hans/unsubscribe?
 Disallow: /zh-hans/unsubscribe/
-Disallow: /zh-hans/random$
-Disallow: /zh-hans/random?
 Disallow: /zh-hans/collections/saved
 
 Sitemap: https://grabient.com/sitemap.xml

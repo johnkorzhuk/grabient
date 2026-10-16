@@ -16,9 +16,9 @@ const AI_CRAWLERS = [
   "meta-externalagent",
   "CCBot"
 ];
-/** An account's own pages and Random, which leads somewhere new each time, in every language. Each is its word exactly,
-    with or without a query: as a prefix, /saved or /random would hide every collection whose address starts with the
-    word. An account's own collections keep their prefix, which nothing else starts with. */
+/** An account's own pages, in every language. Each is its word exactly, with or without a query: as a prefix, /saved
+    would hide every collection whose address starts with the word. An account's own collections keep their prefix,
+    which nothing else starts with. */
 const ACCOUNT_PAGES = [
   "/saved$",
   "/saved?",
@@ -27,10 +27,13 @@ const ACCOUNT_PAGES = [
   "/unsubscribe$",
   "/unsubscribe?",
   "/unsubscribe/",
-  "/random$",
-  "/random?",
   "/collections/saved"
 ];
+/** Random, which leads somewhere new each time, in every language and as its word exactly: no search crawler's to
+    follow, while an agent a reader sends there (llms-full.txt) may. */
+const RANDOM = LOCALES.flatMap(l =>
+  ["/random$", "/random?"].map(path => localizePath(path, l))
+).map(path => `Disallow: ${path}`);
 /** What a page fetches for one visitor after it renders, and an account's own pages. Both groups list them, since a
     crawler reads only the group that names it (RFC 9309). */
 const PRIVATE = [
@@ -64,11 +67,13 @@ export function robotsTxt(indexed: boolean, origin: string): string {
     "# What a page fetches for one visitor after it renders. None of it changes what the page says,",
     "# and a crawler that renders pages would spend its visits here instead of on palettes.",
     ...PRIVATE,
+    ...RANDOM,
     // the gallery's lists as JSON are a page's own fetch too; llms.txt gives them to the agents named below
     "Disallow: /api/palettes",
     "",
     "# AI search, assistant and training crawlers, by name: the pages, the Markdown pages and the routes llms.txt gives are",
-    "# theirs to read. A crawler reads only the group that names it, so this one repeats the lines above, all but the last.",
+    "# theirs to read. A crawler reads only the group that names it, so this one repeats the lines above but Random and",
+    "# the lists' JSON.",
     ...AI_CRAWLERS.map(agent => `User-agent: ${agent}`),
     ...PRIVATE,
     "",

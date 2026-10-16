@@ -82,7 +82,7 @@ function allowed(text: string, agent: string, path: string): boolean {
   return !hit || hit.allow;
 }
 
-test("production's rules keep crawlers from an account's pages and Random, and from no collection named like them", () => {
+test("production's rules keep crawlers from an account's pages, search crawlers from Random, and none from a collection named like them", () => {
   const text = robotsTxt(true, "https://grabient.com");
   const kept = [
     "/saved",
@@ -91,10 +91,7 @@ test("production's rules keep crawlers from an account's pages and Random, and f
     "/settings?tab=privacy",
     "/unsubscribe",
     "/unsubscribe/aaaa",
-    "/random",
-    "/random?style=radialGradient",
     "/ja/saved",
-    "/ja/random?style=radialGradient",
     "/pt-br/unsubscribe/aaaa",
     "/collections/saved",
     "/collections/saved?q=blue",
@@ -127,9 +124,16 @@ test("production's rules keep crawlers from an account's pages and Random, and f
     for (const path of open)
       expect([agent, path, allowed(text, agent, path)]).toEqual([agent, path, true]);
   }
-  // the gallery's lists as JSON are the agents' to read, as llms.txt says
-  expect([
-    allowed(text, "Googlebot", "/api/palettes"),
-    allowed(text, "GPTBot", "/api/palettes")
-  ]).toEqual([false, true]);
+  // the gallery's lists as JSON and Random are the agents' to read, as llms.txt says, and no search crawler's
+  for (const path of [
+    "/api/palettes",
+    "/random",
+    "/random?style=radialGradient",
+    "/ja/random?style=radialGradient"
+  ])
+    expect([path, allowed(text, "Googlebot", path), allowed(text, "GPTBot", path)]).toEqual([
+      path,
+      false,
+      true
+    ]);
 });
