@@ -20,6 +20,7 @@ import { StopStrip } from "@grabient/ui/StopStrip.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createEffect, createSignal, type Element, For, onSettled, useContext } from "solid-js";
 import { ShellContext } from "../../app/shell.ts";
+import { relTo } from "../../lib/page-meta.ts";
 import { Actions, AxisRow } from "../editor/Controls.tsx";
 import styles from "./About.module.css";
 import { createFigure, type Figure } from "./figure.ts";
@@ -531,7 +532,11 @@ export function AboutPage() {
             <FigurePane
               note={t(recipe()[1])}
               act={
-                <Button size="sm" href={localHref(`/${encodePalette(recipe()[0])}`)}>
+                <Button
+                  size="sm"
+                  href={localHref(`/${encodePalette(recipe()[0])}`)}
+                  rel={relTo(localHref(`/${encodePalette(recipe()[0])}`))}
+                >
                   {t("Edit")}
                 </Button>
               }
