@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, LOCALES, localizePath } from "@grabient/i18n";
+import { LOCALES, localizePath } from "@grabient/i18n";
 
 /** The crawlers that read for AI search, assistants and training, named so a zone rule that blocks them by default is
     answered in the file they read. */
@@ -16,8 +16,21 @@ const AI_CRAWLERS = [
   "meta-externalagent",
   "CCBot"
 ];
-/** An account's own pages, in every language. */
-const ACCOUNT_PAGES = ["/saved", "/settings", "/unsubscribe", "/collections/saved"];
+/** An account's own pages and Random, which leads somewhere new each time, in every language. Each is its word exactly,
+    with or without a query: as a prefix, /saved or /random would hide every collection whose address starts with the
+    word. An account's own collections keep their prefix, which nothing else starts with. */
+const ACCOUNT_PAGES = [
+  "/saved$",
+  "/saved?",
+  "/settings$",
+  "/settings?",
+  "/unsubscribe$",
+  "/unsubscribe?",
+  "/unsubscribe/",
+  "/random$",
+  "/random?",
+  "/collections/saved"
+];
 /** What a page fetches for one visitor after it renders, and an account's own pages. Both groups list them, since a
     crawler reads only the group that names it (RFC 9309). */
 const PRIVATE = [
@@ -27,22 +40,16 @@ const PRIVATE = [
   "/api/like-counts",
   "/api/geo",
   "/api/settings/",
-  "/saved",
-  "/settings",
-  "/unsubscribe",
   "/cdn-cgi/",
   "/api/me/",
   "/api/search/layers",
   "/api/search-colors",
-  "/collections/saved",
   // the authorization server's routes: an app's request, never a page
   "/oauth/",
   // the analytics beacon exactly: as a prefix /e would block /es and every collection whose address starts with e
   "/e$",
   "/e/",
-  ...LOCALES.filter(l => l !== DEFAULT_LOCALE).flatMap(l =>
-    ACCOUNT_PAGES.map(path => localizePath(path, l))
-  )
+  ...LOCALES.flatMap(l => ACCOUNT_PAGES.map(path => localizePath(path, l)))
 ].map(path => `Disallow: ${path}`);
 
 /** robots.txt: the indexed deploy's, which names what crawlers skip, the sitemap and what agents read; every other
