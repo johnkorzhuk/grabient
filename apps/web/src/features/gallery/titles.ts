@@ -1,7 +1,7 @@
 import { decodePalette } from "@grabient/engine";
 import { DEFAULT_STEPS, DEFAULT_STYLE, type Style } from "@grabient/engine/view.ts";
 import type { Page } from "../../lib/page-meta.ts";
-import { type Drawn, hexesOf } from "../../lib/palette.ts";
+import { hexesOf } from "../../lib/palette.ts";
 import { drawnIn, type ViewDraft } from "../list/appearance.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
 import { nameOf, ownOf, paletteHref, picturedAs } from "./drawing.ts";
@@ -11,10 +11,10 @@ import type { PaletteItem } from "./schema.ts";
 /* What a gallery page is, as its metadata and its heading read it (lib/page-meta.ts), and what a palette searched by is
    called where the feed's title names it. */
 
-/** What the page's data adds to its metadata: the palettes it lists, each in its own view, and the server's word on a
-    page no index keeps. */
+/** What the page's data adds to its metadata: the palettes it lists, at their cards' addresses, and the server's word
+    on a page no index keeps. */
 export interface Facts {
-  palettes?: readonly Drawn[];
+  palettes?: readonly string[];
   robots?: string;
 }
 

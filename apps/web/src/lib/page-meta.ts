@@ -64,8 +64,8 @@ export type PaletteView = Pick<View, "style" | "steps" | "angle">;
 interface Facts {
   /** the server's word on a page the index leaves out: a search the vocabulary cannot read, a page past the last */
   robots?: string;
-  /** the palettes the page lists, in its order, each in the view its card links */
-  palettes?: readonly ({ seed: string } & PaletteView)[];
+  /** the palettes the page lists, in its order, each at the address its card links (paletteAddress) */
+  palettes?: readonly string[];
   /** the collections a list of collections shows, in its order */
   collections?: readonly { slug: string; title: string }[];
 }
@@ -943,7 +943,7 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
     /* a palette's page is indexed in English alone: another language's list names none of them */
     const items =
       locale() === DEFAULT_LOCALE
-        ? page.palettes.map(p => ({ url: pageUrl(paletteAddress(p.seed, p), origin) }))
+        ? page.palettes.map(address => ({ url: pageUrl(address, origin) }))
         : [];
     meta.structuredData.push(listOf(meta, origin, list.name, items, list.more));
   }

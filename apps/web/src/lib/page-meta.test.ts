@@ -23,6 +23,7 @@ import {
   type PaletteView,
   PRODUCTION_ORIGIN,
   pageMeta,
+  paletteAddress,
   relTo,
   setOriginSource,
   siteOrigin
@@ -73,12 +74,7 @@ function pageOf(address: string, facts: Facts = {}): Page {
   const [first, second, third] = url.pathname.split("/").slice(1);
   const common = {
     robots: facts.robots,
-    palettes: facts.items?.map(item => ({
-      style: "linearGradient" as const,
-      steps: 7,
-      angle: 90,
-      ...item
-    })),
+    palettes: facts.items?.map(item => paletteAddress(item.seed, item)),
     collections: facts.collections
   };
   const order = second === "rising" ? "rising" : "popular";
