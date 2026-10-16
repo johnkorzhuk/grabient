@@ -1,6 +1,13 @@
 import { decodeSnapshot } from "@grabient/search/snapshot.ts";
 import { describe, expect, test } from "vitest";
-import { type SearchOptions, type SearchResult, searchOwnSeeds, searchPalettes } from "./search.ts";
+import { canonicalRedirect } from "../canonical.ts";
+import {
+  type SearchOptions,
+  type SearchResult,
+  searchOwnSeeds,
+  searchPalettes,
+  sitemapQueries
+} from "./search.ts";
 import { assets, fakeAi, fixture, galleryDb, searchEnv, searchFile } from "./testing.ts";
 
 const round = (x: number) => (Number.isFinite(x) ? Math.round(x * 1e6) / 1e6 : x);
@@ -108,4 +115,93 @@ describe("a list someone holds, searched", () => {
 test("without the search files a search is unavailable", async () => {
   const env = searchEnv({ ASSETS: assets(["snapshot.bin"]) });
   expect((await searchPalettes(env, "blue")).tier).toBe("unavailable");
+});
+
+describe("grabient.com's indexed searches", () => {
+  /* its sitemap of searches, as it wrote them */
+  const OLD = [
+    "sunset",
+    "ocean",
+    "forest",
+    "pastel",
+    "neon",
+    "warm",
+    "cool",
+    "monochrome",
+    "tea",
+    "blue",
+    "purple",
+    "cyan",
+    "rose",
+    "alpine",
+    "indigo",
+    "charcoal-%26-chocolate",
+    "synthwave",
+    "teal%2C-azure%2C-navy",
+    "glossy",
+    "party",
+    "lagoon",
+    "artisan",
+    "refined",
+    "dark-academia",
+    "punk",
+    "winter",
+    "prairie",
+    "saffron",
+    "sandstone",
+    "green",
+    "pink",
+    "red",
+    "orange",
+    "yellow",
+    "black",
+    "gold",
+    "silver",
+    "teal",
+    "navy",
+    "mint",
+    "lavender",
+    "beige",
+    "cream",
+    "sky-blue",
+    "dark-blue",
+    "dark-purple",
+    "sage-green",
+    "hot-pink",
+    "blue-purple"
+  ];
+  const env = searchEnv();
+  const crawler = new Request("https://grabient.com/palettes", {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)" }
+  });
+
+  test.each(OLD)(
+    "/palettes/%s leads in one step to a page of its own that a crawler is shown",
+    async old => {
+      const to = canonicalRedirect(`/palettes/${old}`);
+      expect(to).toMatch(/^\/palettes\?q=/);
+      expect(canonicalRedirect(to!)).toBeNull();
+      const words = new URL(to!, "https://grabient.com").searchParams.get("q")!;
+      const answer = await searchPalettes(env, words, { limit: 24, request: crawler });
+      expect([words, answer.tier, answer.indexable, answer.items.length > 0]).toEqual([
+        words,
+        expect.stringMatching(/^(?:vocabulary|named)$/),
+        true,
+        true
+      ]);
+    }
+  );
+
+  test("are listed for crawlers, all but the two that lead elsewhere", async () => {
+    const listed = await sitemapQueries(env);
+    const moved = ["artisan", "prairie"];
+    for (const old of OLD.filter(old => !moved.includes(old))) {
+      const words = new URL(
+        canonicalRedirect(`/palettes/${old}`)!,
+        "https://grabient.com"
+      ).searchParams.get("q")!;
+      expect([old, listed.includes(words)]).toEqual([old, true]);
+    }
+    for (const old of moved) expect(listed).not.toContain(old);
+  });
 });

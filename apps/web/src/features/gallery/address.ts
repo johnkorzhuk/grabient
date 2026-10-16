@@ -153,6 +153,13 @@ const placePath = (place: GalleryPlace): string =>
         ? framePath(LIST_PATHS.rising, place.frame)
         : LIST_PATHS.popular;
 
+/* grabient.com's searches the free search finds nothing for, which its sitemap listed: each leads to the nearest
+   search that answers */
+const MOVED: ReadonlyMap<string, string> = new Map([
+  ["artisan", "rustic"],
+  ["prairie", "wheat"]
+]);
+
 /** The canonical form of a gallery address, its old forms included; null for an address of another feature. */
 export function canonicalGallery(address: string): string | null {
   const at = address.indexOf("?");
@@ -184,7 +191,7 @@ export function canonicalGallery(address: string): string | null {
     const sp = new URLSearchParams(search);
     const rising = parseSort(sp.get("sort")) !== "popular";
     sp.delete("sort");
-    sp.set("q", words);
+    sp.set("q", MOVED.get(words) ?? words);
     return canonical({
       kind: "list",
       order: rising ? "rising" : "popular",
