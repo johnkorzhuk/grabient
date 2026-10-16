@@ -11,7 +11,7 @@ import { KEPT, PALETTES_VIEW, VIEW_MIME } from "./view.ts";
 export const RESOURCE_META = {
   ui: { prefersBorder: false, permissions: { clipboardWrite: {} } },
   "openai/widgetDescription":
-    "The palettes show_palettes answered, drawn from their seeds and numbered as in its answer, with their colors, a strip that copies each one's address, CSS, SVG or PNG, and links to their pages on Grabient.",
+    "The palettes show_palettes answered, drawn from their seeds and numbered as in its answer, with links to their pages on Grabient; full screen shows the chosen one's colors and a strip that copies its address, CSS, SVG or PNG.",
   "openai/ui": { availableDisplayModes: ["inline", "fullscreen"] }
 };
 

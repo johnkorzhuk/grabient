@@ -525,7 +525,7 @@ export const accountTools: readonly Tool[] = [
     name: "show_palettes",
     title: "Show palettes",
     hints: READS,
-    description: `Show color palettes and gradients side by side as numbered tiles, up to ${SHEET_MAX}, each in the view given, else the one Grabient shows it in. One palette may come in several views. An app that draws Grabient's view shows each with its colors and a strip that copies its address, CSS, SVG or PNG; in any other, each tile has \`png\`, its picture's address. \`own\` marks a title given or written for the palette on Grabient; any other names its colors.`,
+    description: `Show color palettes and gradients side by side as numbered tiles, up to ${SHEET_MAX}, each in the view given, else the one Grabient shows it in. One palette may come in several views. An app that draws Grabient's view shows each with its colors, and copies its address, CSS, SVG or PNG in full screen; in any other, each tile has \`png\`, its picture's address. \`own\` marks a title given or written for the palette on Grabient; any other names its colors.`,
     inputSchema: shape(
       {
         palettes: list(
