@@ -2,65 +2,65 @@
   "(opens in a new tab)": {
     "note": "Spoken after a link that opens a new tab.",
     "refs": [
-      "packages/ui/src/Button.tsx:88",
+      "packages/ui/src/Button.tsx:90",
       "packages/ui/src/CodeTabs.tsx:137",
-      "packages/ui/src/Footer.tsx:52",
-      "packages/ui/src/Menu.tsx:253",
-      "packages/ui/src/NavLink.tsx:38"
+      "packages/ui/src/Footer.tsx:59",
+      "packages/ui/src/Menu.tsx:270",
+      "packages/ui/src/NavLink.tsx:40"
     ]
   },
   "1 · Keyframes": {
     "note": "About: heading.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:416"
+      "apps/web/src/features/about/AboutPage.tsx:418"
     ]
   },
   "2 · The formula": {
     "note": "About: heading.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:432"
+      "apps/web/src/features/about/AboutPage.tsx:434"
     ]
   },
   "3 · Steps": {
     "note": "About: heading.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:457"
+      "apps/web/src/features/about/AboutPage.tsx:459"
     ]
   },
   "4 · Why OKLCH": {
     "note": "About: heading.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:467"
+      "apps/web/src/features/about/AboutPage.tsx:469"
     ]
   },
   "5 · Hue beyond 360°": {
     "note": "About: heading.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:491"
+      "apps/web/src/features/about/AboutPage.tsx:493"
     ]
   },
   "6 · Colors a screen can't show": {
     "note": "About: heading.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:515"
+      "apps/web/src/features/about/AboutPage.tsx:517"
     ]
   },
   "7 · Recipes": {
     "note": "About: heading.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:526"
+      "apps/web/src/features/about/AboutPage.tsx:528"
     ]
   },
   "8 · The seed": {
     "note": "About: heading.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:551"
+      "apps/web/src/features/about/AboutPage.tsx:557"
     ]
   },
   "<signin>Sign in</signin> as its owner to see it.": {
     "note": "Line under the private collection title; <signin> is a link to sign in.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:705"
+      "apps/web/src/features/collections/CollectionPage.tsx:718"
     ]
   },
   "<text/> on <ground/>": {
@@ -72,59 +72,59 @@
   "A collection of color palettes on Grabient.": {
     "note": "Collection page description before it is known.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:678"
+      "apps/web/src/lib/page-meta.ts:748"
     ]
   },
   "A free CSS gradient generator and color palette finder for designers and developers.": {
     "note": "The site's description in search results and in emails.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:512",
+      "apps/web/src/lib/page-meta.ts:573",
       "packages/email/src/partner.ts:143"
     ]
   },
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:418"
+      "apps/web/src/features/about/AboutPage.tsx:420"
     ]
   },
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:575"
+      "apps/web/src/features/about/AboutPage.tsx:581"
     ]
   },
   "A palette's travel is its last hue minus its first, laps included, so a full rainbow travels 360°. Neighboring keyframes can be up to 540° apart.": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:508"
+      "apps/web/src/features/about/AboutPage.tsx:510"
     ]
   },
   "A seed is <c>k</c> followed by the keyframes packed into bits: 8 for lightness, 8 for chroma, 9 for the first hue, then 10 for each later hue, stored as the change from the one before:": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:561"
+      "apps/web/src/features/about/AboutPage.tsx:567"
     ]
   },
   "About": {
     "note": "The About page and links to it.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:120",
-      "apps/web/src/app/AccountMenu.tsx:131",
-      "apps/web/src/app/site.ts:35"
+      "apps/web/src/app/AccountMenu.tsx:122",
+      "apps/web/src/app/AccountMenu.tsx:133",
+      "apps/web/src/app/site.ts:37"
     ]
   },
   "About Grabient": {
     "note": "About page title.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:408",
-      "apps/web/src/lib/page-meta.ts:284"
+      "apps/web/src/features/about/AboutPage.tsx:410",
+      "apps/web/src/lib/page-meta.ts:292"
     ]
   },
   "About and account": {
     "note": "Screen reader name of the navigation at the top corner.",
     "refs": [
-      "packages/ui/src/PageFrame.tsx:56"
+      "packages/ui/src/PageFrame.tsx:58"
     ]
   },
   "About the palettes now": {
@@ -133,24 +133,30 @@
       "apps/web/src/features/collections/Notes.tsx:23"
     ]
   },
+  "Accept all": {
+    "note": "The privacy banner: one of its two answers, equal in size and look to Reject all.",
+    "refs": [
+      "packages/ui/src/ConsentBanner.tsx:86"
+    ]
+  },
   "Account": {
     "note": "Settings section and account menu name.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:226",
-      "apps/web/src/app/AccountMenu.tsx:252",
+      "apps/web/src/app/AccountMenu.tsx:238",
+      "apps/web/src/app/AccountMenu.tsx:264",
       "apps/web/src/features/account/settings/Account.tsx:31"
     ]
   },
   "Account data is unavailable.": {
     "note": "Error: the account database is down.",
     "refs": [
-      "apps/web/src/server/newsletter/routes.ts:35"
+      "apps/web/src/server/newsletter/routes.ts:38"
     ]
   },
   "Actions": {
     "note": "Screen reader name of the editor's row of presses.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:338"
+      "apps/web/src/features/editor/Controls.tsx:340"
     ]
   },
   "Add 1 to {max} palettes.": {
@@ -162,23 +168,23 @@
   "Add Grabient to your app": {
     "note": "MCP page heading.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:90"
+      "apps/web/src/features/connect/McpServer.tsx:99"
     ]
   },
   "Add all to selection": {
     "note": "Press on a collection: adds all its palettes to the selection. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:277",
-      "apps/web/src/features/collections/Actions.tsx:278",
-      "apps/web/src/features/collections/CollectionPage.tsx:662",
-      "apps/web/src/features/collections/CollectionPage.tsx:663"
+      "apps/web/src/features/collections/Actions.tsx:304",
+      "apps/web/src/features/collections/Actions.tsx:305",
+      "apps/web/src/features/collections/CollectionPage.tsx:675",
+      "apps/web/src/features/collections/CollectionPage.tsx:676"
     ]
   },
   "Add keyframe": {
     "note": "Press (a plus) beside the keyframe count: adds a keyframe; the palette keeps its shape. Also its tooltip.",
     "refs": [
-      "packages/ui/src/Keyframes.tsx:119",
-      "packages/ui/src/Keyframes.tsx:188"
+      "packages/ui/src/Keyframes.tsx:148",
+      "packages/ui/src/Keyframes.tsx:217"
     ]
   },
   "Add note": {
@@ -197,25 +203,25 @@
   "Add to collection": {
     "note": "Press (a bag) on a palette: adds it to one of the reader's collections. Also its tooltip.",
     "refs": [
-      "packages/ui/src/CollectPress.tsx:100",
-      "packages/ui/src/CollectPress.tsx:101",
-      "packages/ui/src/CollectPress.tsx:42"
+      "packages/ui/src/CollectPress.tsx:111",
+      "packages/ui/src/CollectPress.tsx:112",
+      "packages/ui/src/CollectPress.tsx:43"
     ]
   },
   "Add to selection": {
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
       "apps/web/src/features/editor/Boot.tsx:91",
-      "apps/web/src/features/editor/Editor.tsx:522",
-      "apps/web/src/features/editor/Editor.tsx:523",
-      "packages/ui/src/PaletteCard.tsx:254",
-      "packages/ui/src/PaletteCard.tsx:255"
+      "apps/web/src/features/editor/Editor.tsx:547",
+      "apps/web/src/features/editor/Editor.tsx:548",
+      "packages/ui/src/PaletteCard.tsx:260",
+      "packages/ui/src/PaletteCard.tsx:261"
     ]
   },
   "Add to {app}": {
     "note": "Press: installs the server in that app.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:115"
+      "apps/web/src/features/connect/McpServer.tsx:124"
     ]
   },
   "Added to {title}.": {
@@ -246,7 +252,7 @@
     "note": "Admin tools: a Settings switch, a consent row and a label on a connected app.",
     "refs": [
       "apps/web/src/features/account/settings/Admin.tsx:55",
-      "apps/web/src/features/connect/Connect.tsx:307",
+      "apps/web/src/features/connect/Connect.tsx:311",
       "apps/web/src/features/connect/ConnectedApps.tsx:129"
     ]
   },
@@ -259,19 +265,19 @@
   "All palettes": {
     "note": "Press: shows every palette.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:654"
+      "apps/web/src/mcp-view/PaletteView.tsx:645"
     ]
   },
   "Allow": {
     "note": "Press: lets the app use the account.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:337"
+      "apps/web/src/features/connect/Connect.tsx:341"
     ]
   },
   "Allow an app to use your Grabient account.": {
     "note": "Connect page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:342"
+      "apps/web/src/lib/page-meta.ts:350"
     ]
   },
   "Always dark.": {
@@ -301,14 +307,14 @@
   "Analytics": {
     "note": "Settings: the analytics consent switch.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:28"
+      "apps/web/src/features/account/settings/Privacy.tsx:31"
     ]
   },
   "Angle": {
     "note": "Field: the gradient's angle in degrees.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:262",
-      "packages/ui/src/Curation.tsx:276"
+      "packages/ui/src/Appearance.tsx:268",
+      "packages/ui/src/Curation.tsx:271"
     ]
   },
   "Angular": {
@@ -332,7 +338,7 @@
   "Appearance": {
     "note": "The appearance press (style, steps and angle): its tooltip, and the heading of its menu.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:200",
+      "packages/ui/src/Appearance.tsx:206",
       "packages/ui/src/Appearance.tsx:50"
     ]
   },
@@ -351,7 +357,7 @@
   "Apps": {
     "note": "Screen reader name of the setup tabs, one per app.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:127"
+      "apps/web/src/features/connect/McpServer.tsx:136"
     ]
   },
   "Apps you allowed to use your account.": {
@@ -370,11 +376,11 @@
   "Auto": {
     "note": "A value chosen by the app: size, steps, angle or columns follow the content.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:256",
-      "packages/ui/src/Appearance.tsx:268",
+      "packages/ui/src/Appearance.tsx:262",
+      "packages/ui/src/Appearance.tsx:274",
       "packages/ui/src/ExportPanel.tsx:129",
-      "packages/ui/src/ExportPanel.tsx:206",
-      "packages/ui/src/SizeControl.tsx:203",
+      "packages/ui/src/ExportPanel.tsx:209",
+      "packages/ui/src/SizeControl.tsx:204",
       "packages/ui/src/sizes.ts:161",
       "packages/ui/src/sizes.ts:42"
     ]
@@ -382,16 +388,16 @@
   "Back": {
     "note": "Press: back to the previous menu or page.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:255",
+      "apps/web/src/app/AccountMenu.tsx:267",
       "packages/ui/src/FormatStrip.tsx:165",
-      "packages/ui/src/Menu.tsx:408",
-      "packages/ui/src/SizeControl.tsx:242"
+      "packages/ui/src/Menu.tsx:431",
+      "packages/ui/src/SizeControl.tsx:247"
     ]
   },
   "Back to top": {
     "note": "Press: scrolls to the top of the page. Also its tooltip.",
     "refs": [
-      "packages/ui/src/BackToTop.tsx:61"
+      "packages/ui/src/BackToTop.tsx:62"
     ]
   },
   "Bad fit": {
@@ -421,34 +427,34 @@
   "Between two hues, a gradient can go either way around the color wheel, and most tools take the shorter way. Grabient lets hue count past 360°: 690° is the same color as 330°, one lap later. The gradient goes the whole way:": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:493"
+      "apps/web/src/features/about/AboutPage.tsx:495"
     ]
   },
   "Both strips end on the same color. Top: hue 210° to 330°. Bottom: 210° to 690°, one more lap.": {
     "note": "About: caption.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:498"
+      "apps/web/src/features/about/AboutPage.tsx:500"
     ]
   },
   "Browse palettes": {
     "note": "Press or link: opens the palettes list.",
     "refs": [
       "apps/web/src/app/NotFound.tsx:37",
-      "apps/web/src/features/collections/CollectionPage.tsx:894",
-      "apps/web/src/features/collections/CollectionsPage.tsx:558",
+      "apps/web/src/features/collections/CollectionPage.tsx:912",
+      "apps/web/src/features/collections/CollectionsPage.tsx:561",
       "apps/web/src/features/connect/Connect.tsx:125"
     ]
   },
   "Browse the gallery and public collections.": {
     "note": "MCP page: a thing an app can do.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:24"
+      "apps/web/src/features/connect/McpServer.tsx:33"
     ]
   },
-  "By continuing you agree to the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.": {
-    "note": "The legal line on the sign-in page; the tags are links.",
+  "By continuing you agree to the <terms>Terms of Service</terms>. The <privacy>Privacy Policy</privacy> says how your information is used.": {
+    "note": "Under the sign-in form: continuing agrees to the terms, and the policy says how information is used. <terms> and <privacy> are links to those pages.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:304"
+      "apps/web/src/features/account/LoginPage.tsx:279"
     ]
   },
   "C peak {value}": {
@@ -460,29 +466,29 @@
   "CSS and Figma gradients join their color stops with straight lines, so a faint edge can show where the blend changes pace.": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:439"
+      "apps/web/src/features/about/AboutPage.tsx:441"
     ]
   },
   "CSS gradient generator and color palette finder. Browse and edit gradient palettes, then export them as CSS, SVG, PNG or a shader.": {
     "note": "The app's description in structured data.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:531",
+      "apps/web/src/lib/page-meta.ts:552",
       "packages/email/src/partner.ts:137"
     ]
   },
   "CSS gradients and color palettes gaining likes now. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
     "note": "Rising list description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:273"
+      "apps/web/src/lib/page-meta.ts:281"
     ]
   },
   "Cancel": {
     "note": "Press: stops without saving.",
     "refs": [
-      "apps/web/src/features/collections/Heading.tsx:110",
-      "apps/web/src/features/connect/Connect.tsx:327",
+      "apps/web/src/features/collections/Heading.tsx:237",
+      "apps/web/src/features/connect/Connect.tsx:331",
       "packages/ui/src/CollectList.tsx:164",
-      "packages/ui/src/Curation.tsx:328"
+      "packages/ui/src/Curation.tsx:323"
     ]
   },
   "Cancelled. Nothing was shared.": {
@@ -494,7 +500,7 @@
   "Change avatar": {
     "note": "Press: picks a new avatar image.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:276"
+      "apps/web/src/features/account/settings/Profile.tsx:280"
     ]
   },
   "Change key": {
@@ -506,7 +512,7 @@
   "Change shortcuts": {
     "note": "Link under the shortcut list to the page where shortcuts are changed.",
     "refs": [
-      "packages/ui/src/KeyList.tsx:110"
+      "packages/ui/src/KeyList.tsx:117"
     ]
   },
   "Change {hex}": {
@@ -531,19 +537,25 @@
   "Check your email. The link expires in 5 minutes.": {
     "note": "Sign-in status after the link was emailed.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:184"
+      "apps/web/src/features/account/LoginPage.tsx:159"
     ]
   },
   "Checking…": {
     "note": "Settings: status while the username is checked.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:299"
+      "apps/web/src/features/account/settings/Profile.tsx:303"
     ]
   },
   "Choices for this browser.": {
     "note": "Settings: line under Privacy.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:111"
+      "apps/web/src/features/account/settings/Privacy.tsx:123"
+    ]
+  },
+  "Choose": {
+    "note": "The privacy banner: the link to the privacy switches in Settings, one per category.",
+    "refs": [
+      "packages/ui/src/ConsentBanner.tsx:74"
     ]
   },
   "Choose a JPG, PNG or WebP image.": {
@@ -561,26 +573,26 @@
   "Chroma": {
     "note": "Field and plot name: OKLCH chroma, how colorful a color is.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:151",
-      "apps/web/src/features/editor/Controls.tsx:203"
+      "apps/web/src/features/editor/Controls.tsx:150",
+      "apps/web/src/features/editor/Controls.tsx:202"
     ]
   },
   "Chroma average": {
     "note": "Field: the average chroma of the held keyframes; a change moves each by as much.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:203"
+      "apps/web/src/features/editor/Controls.tsx:202"
     ]
   },
   "Clear": {
     "note": "Press beside the selection count: empties the selection.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:167"
+      "packages/ui/src/ExportPanel.tsx:170"
     ]
   },
   "Clear search": {
     "note": "Press in the search field: empties it.",
     "refs": [
-      "apps/web/src/features/search/SearchField.tsx:148"
+      "apps/web/src/features/search/SearchField.tsx:156"
     ]
   },
   "Client documents": {
@@ -592,9 +604,9 @@
   "Close": {
     "note": "Press: closes a panel or menu.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:379",
       "apps/web/src/mcp-view/PaletteView.tsx:380",
-      "packages/ui/src/Appearance.tsx:153",
+      "apps/web/src/mcp-view/PaletteView.tsx:381",
+      "packages/ui/src/Appearance.tsx:155",
       "packages/ui/src/CollectList.tsx:164",
       "packages/ui/src/ExportPanel.tsx:155"
     ]
@@ -602,39 +614,39 @@
   "Close selection": {
     "note": "Press and key list entry: closes the selection view.",
     "refs": [
-      "apps/web/src/app/navigation.ts:151",
-      "apps/web/src/features/editor/Editor.tsx:190",
-      "apps/web/src/features/selection/SelectionScreen.tsx:255",
-      "apps/web/src/features/selection/SelectionScreen.tsx:312",
+      "apps/web/src/app/navigation.ts:182",
+      "apps/web/src/features/editor/Editor.tsx:199",
+      "apps/web/src/features/selection/SelectionScreen.tsx:257",
+      "apps/web/src/features/selection/SelectionScreen.tsx:314",
       "packages/ui/src/ExportPanel.tsx:154"
     ]
   },
   "Code": {
     "note": "Field: the 6-digit code from the email.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:374"
+      "apps/web/src/features/account/LoginPage.tsx:349"
     ]
   },
   "Collection not found": {
     "note": "Title on a collection page that has no collection.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:699"
+      "apps/web/src/features/collections/CollectionPage.tsx:712"
     ]
   },
   "Collection not found. It may have been deleted.": {
     "note": "Error line: the collection is gone.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:881"
+      "apps/web/src/features/collections/CollectionPage.tsx:899"
     ]
   },
   "Collections": {
     "note": "The collections list, its tab and links to it.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:117",
-      "apps/web/src/features/collections/CollectionPage.tsx:645",
-      "apps/web/src/features/editor/StaticPalette.tsx:125",
-      "apps/web/src/lib/page-meta.ts:659",
-      "apps/web/src/lib/page-meta.ts:718",
+      "apps/web/src/app/AccountMenu.tsx:119",
+      "apps/web/src/features/collections/CollectionPage.tsx:658",
+      "apps/web/src/features/editor/StaticPalette.tsx:134",
+      "apps/web/src/lib/page-meta.ts:729",
+      "apps/web/src/lib/page-meta.ts:788",
       "packages/ui/src/ListNav.tsx:12"
     ]
   },
@@ -650,45 +662,45 @@
       "apps/web/src/features/account/collections.ts:167",
       "apps/web/src/features/collections/collect.ts:76",
       "apps/web/src/server/account/collections.ts:59",
-      "apps/web/src/server/collections/me.ts:317",
-      "apps/web/src/server/collections/me.ts:347",
-      "apps/web/src/server/collections/me.ts:436"
+      "apps/web/src/server/collections/me.ts:327",
+      "apps/web/src/server/collections/me.ts:357",
+      "apps/web/src/server/collections/me.ts:446"
     ]
   },
   "Collections like {name}": {
     "note": "Title of a collections search by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:430"
+      "apps/web/src/lib/page-meta.ts:477"
     ]
   },
   "Collections of gradients and color palettes by color, theme and use, from people and Grabient agents. Open any palette to edit and export it.": {
     "note": "Collections list description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:824"
+      "apps/web/src/lib/page-meta.ts:899"
     ]
   },
   "Collections of gradients and color palettes for {query}, by people and Grabient agents.": {
     "note": "Description of a collections search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:812"
+      "apps/web/src/lib/page-meta.ts:887"
     ]
   },
   "Collections of gradients and color palettes gaining likes now, from people and Grabient agents. Open any palette to edit and export it.": {
     "note": "Rising collections list description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:821"
+      "apps/web/src/lib/page-meta.ts:896"
     ]
   },
   "Collections of gradients and color palettes like {name}, by people and Grabient agents.": {
     "note": "Description of a collections search by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:808"
+      "apps/web/src/lib/page-meta.ts:883"
     ]
   },
   "Collections of gradients and color palettes on Grabient": {
     "note": "Alt text of the collections list's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:832"
+      "apps/web/src/lib/page-meta.ts:907"
     ]
   },
   "Color format": {
@@ -706,45 +718,45 @@
   "Color palettes and CSS gradients like {name}. Edit any of them, then copy CSS or export SVG and PNG.": {
     "note": "Description of a search by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:572"
+      "apps/web/src/lib/page-meta.ts:618"
     ]
   },
   "Color picker": {
     "note": "Name of the floating color picker (a saturation and brightness square, a hue slider, a hex field), and of the swatch beside a hex field that opens it. Also that swatch's tooltip.",
     "refs": [
-      "packages/ui/src/ColorPicker.tsx:392",
-      "packages/ui/src/HexField.tsx:32",
-      "packages/ui/src/HexField.tsx:64"
+      "packages/ui/src/ColorPicker.tsx:391",
+      "packages/ui/src/HexField.tsx:33",
+      "packages/ui/src/HexField.tsx:71"
     ]
   },
   "Color space": {
     "note": "Pane name: the palette in 3D inside the color space.",
     "refs": [
-      "packages/ui/src/SolidPane.tsx:94"
+      "packages/ui/src/SolidPane.tsx:95"
     ]
   },
   "Color {number}, {hex}": {
     "note": "Accessible name of one point on the reader's image, and of its chip, that picks a color: {number} is its position (1, 2, 3…), {hex} its hex code such as #a1b2c3.",
     "refs": [
-      "apps/web/src/features/search/Sampler.tsx:125"
+      "apps/web/src/features/search/Sampler.tsx:157"
     ]
   },
   "Colors": {
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:161"
+      "apps/web/src/features/editor/code.ts:163"
     ]
   },
   "Columns": {
     "note": "Field: how many palettes stand side by side in the exported image.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:200"
+      "packages/ui/src/ExportPanel.tsx:203"
     ]
   },
   "Comment": {
     "note": "Admin field: a comment.",
     "refs": [
-      "packages/ui/src/Curation.tsx:317"
+      "packages/ui/src/Curation.tsx:312"
     ]
   },
   "Confirm account deletion": {
@@ -764,13 +776,13 @@
   "Connect an AI app like Claude to your Grabient account. It can search, make and save palettes for you.": {
     "note": "MCP page line under the title.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:83"
+      "apps/web/src/features/connect/McpServer.tsx:92"
     ]
   },
   "Connect an AI app like Claude, ChatGPT or Cursor to your Grabient account. It can search, make and save palettes and collections for you.": {
     "note": "MCP page description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:301"
+      "apps/web/src/lib/page-meta.ts:309"
     ]
   },
   "Connect an app": {
@@ -778,13 +790,13 @@
     "refs": [
       "apps/web/src/features/connect/Connect.tsx:111",
       "apps/web/src/features/connect/Connect.tsx:261",
-      "apps/web/src/lib/page-meta.ts:341"
+      "apps/web/src/lib/page-meta.ts:349"
     ]
   },
   "Connect an app to your account.": {
     "note": "Line under the sign-in title when an app is connecting.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:331"
+      "apps/web/src/features/account/LoginPage.tsx:306"
     ]
   },
   "Connected": {
@@ -808,27 +820,27 @@
   "Connecting…": {
     "note": "The Allow press while it works.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:337"
+      "apps/web/src/features/connect/Connect.tsx:341"
     ]
   },
   "Contact": {
     "note": "The contact page, its title and links to it.",
     "refs": [
-      "apps/web/src/app/site.ts:36",
-      "apps/web/src/features/contact/ContactPage.tsx:62",
-      "apps/web/src/lib/page-meta.ts:328"
+      "apps/web/src/app/site.ts:38",
+      "apps/web/src/features/contact/ContactPage.tsx:80",
+      "apps/web/src/lib/page-meta.ts:336"
     ]
   },
   "Contact is temporarily unavailable.": {
     "note": "Contact page error.",
     "refs": [
-      "apps/web/src/server/contact/contact.ts:27"
+      "apps/web/src/server/contact/contact.ts:17"
     ]
   },
   "Continue only if you started connecting from an app on this computer.": {
     "note": "Connect page caution for a local app.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:300"
+      "apps/web/src/features/connect/Connect.tsx:304"
     ]
   },
   "Copied": {
@@ -839,8 +851,8 @@
       "packages/ui/src/CopyButton.tsx:34",
       "packages/ui/src/CopyButton.tsx:48",
       "packages/ui/src/FormatStrip.tsx:177",
-      "packages/ui/src/StopStrip.tsx:137",
-      "packages/ui/src/StopStrip.tsx:63"
+      "packages/ui/src/StopStrip.tsx:179",
+      "packages/ui/src/StopStrip.tsx:98"
     ]
   },
   "Copy": {
@@ -848,23 +860,23 @@
     "refs": [
       "packages/ui/src/CopyButton.tsx:28",
       "packages/ui/src/CopyButton.tsx:45",
-      "packages/ui/src/ExportPanel.tsx:254",
+      "packages/ui/src/ExportPanel.tsx:257",
       "packages/ui/src/FormatStrip.tsx:70",
-      "packages/ui/src/StopStrip.tsx:111"
+      "packages/ui/src/StopStrip.tsx:153"
     ]
   },
   "Copy URL": {
     "note": "Key list entry: copies the page's address.",
     "refs": [
       "packages/ui/src/keymap.ts:22",
-      "packages/ui/src/keys.ts:450"
+      "packages/ui/src/keys.ts:461"
     ]
   },
   "Copy address": {
     "note": "Press: copies the address beside it.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:97",
-      "apps/web/src/features/contact/ContactPage.tsx:99"
+      "apps/web/src/features/connect/McpServer.tsx:106",
+      "apps/web/src/features/contact/ContactPage.tsx:128"
     ]
   },
   "Copy code": {
@@ -895,7 +907,7 @@
   "Copy {hex}": {
     "note": "Screen reader name of a color in the row: copies its hex.",
     "refs": [
-      "packages/ui/src/StopStrip.tsx:127"
+      "packages/ui/src/StopStrip.tsx:169"
     ]
   },
   "Copying links. Switch to copy": {
@@ -919,7 +931,7 @@
   "Corners": {
     "note": "Field: how round the corners of each exported palette are, in percent.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:237"
+      "packages/ui/src/ExportPanel.tsx:240"
     ]
   },
   "Couldn't add the note.": {
@@ -931,15 +943,15 @@
   "Couldn't check the username. Try again.": {
     "note": "Settings: line under the username field when the check failed.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:147"
+      "apps/web/src/features/account/settings/Profile.tsx:151"
     ]
   },
   "Couldn't copy the palette.": {
     "note": "Error line after a failed copy of a palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:604",
-      "apps/web/src/features/editor/Editor.tsx:615",
-      "apps/web/src/features/editor/Sheet.tsx:135",
+      "apps/web/src/features/editor/Editor.tsx:629",
+      "apps/web/src/features/editor/Editor.tsx:640",
+      "apps/web/src/features/editor/Sheet.tsx:138",
       "apps/web/src/features/gallery/take.ts:102",
       "apps/web/src/features/gallery/take.ts:115"
     ]
@@ -947,7 +959,7 @@
   "Couldn't copy the selection.": {
     "note": "Error line after a failed copy of the selected palettes.",
     "refs": [
-      "apps/web/src/features/selection/SelectionScreen.tsx:336"
+      "apps/web/src/features/selection/SelectionScreen.tsx:339"
     ]
   },
   "Couldn't copy.": {
@@ -960,9 +972,9 @@
     "note": "Status after a refused copy.",
     "refs": [
       "apps/web/src/app/keys.ts:20",
-      "apps/web/src/mcp-view/PaletteView.tsx:233",
+      "apps/web/src/mcp-view/PaletteView.tsx:235",
       "packages/ui/src/CopyButton.tsx:38",
-      "packages/ui/src/StopStrip.tsx:64"
+      "packages/ui/src/StopStrip.tsx:99"
     ]
   },
   "Couldn't copy. The code is selected.": {
@@ -980,7 +992,7 @@
   "Couldn't delete the collection.": {
     "note": "Error line after a failed delete.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:248"
+      "apps/web/src/features/collections/Actions.tsx:258"
     ]
   },
   "Couldn't disconnect the app. Try again.": {
@@ -992,9 +1004,9 @@
   "Couldn't download the file.": {
     "note": "Error line after a failed download of a palette file.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:622",
-      "apps/web/src/features/editor/Sheet.tsx:411",
-      "apps/web/src/features/editor/Sheet.tsx:485",
+      "apps/web/src/features/editor/Editor.tsx:647",
+      "apps/web/src/features/editor/Sheet.tsx:453",
+      "apps/web/src/features/editor/Sheet.tsx:528",
       "apps/web/src/lib/files.ts:65"
     ]
   },
@@ -1007,7 +1019,7 @@
   "Couldn't download the selection.": {
     "note": "Error line after a failed download of the selected palettes.",
     "refs": [
-      "apps/web/src/features/selection/SelectionScreen.tsx:350"
+      "apps/web/src/features/selection/SelectionScreen.tsx:353"
     ]
   },
   "Couldn't export the image.": {
@@ -1026,7 +1038,7 @@
     "note": "Error line where palettes failed to load.",
     "refs": [
       "apps/web/src/features/gallery/queries.ts:56",
-      "apps/web/src/mcp-view/PaletteView.tsx:809"
+      "apps/web/src/mcp-view/PaletteView.tsx:800"
     ]
   },
   "Couldn't load the home page.": {
@@ -1038,13 +1050,13 @@
   "Couldn't load the newsletter.": {
     "note": "Error line on the newsletter page, beside Retry.",
     "refs": [
-      "apps/web/src/features/newsletter/NewsletterPage.tsx:49"
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:75"
     ]
   },
   "Couldn't load this collection.": {
     "note": "Title and error line where a collection failed to load, beside Retry.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:698",
+      "apps/web/src/features/collections/CollectionPage.tsx:711",
       "apps/web/src/features/collections/queries.ts:119"
     ]
   },
@@ -1057,19 +1069,19 @@
   "Couldn't put the palette back.": {
     "note": "Error line after a failed undo of a removal.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:425",
-      "apps/web/src/features/collections/CollectionPage.tsx:465"
+      "apps/web/src/features/collections/CollectionPage.tsx:438",
+      "apps/web/src/features/collections/CollectionPage.tsx:478"
     ]
   },
   "Couldn't read this image.": {
     "note": "Settings error: the avatar file could not be read.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:163",
+      "apps/web/src/features/account/settings/Profile.tsx:167",
       "apps/web/src/features/account/settings/Profile.tsx:49",
       "apps/web/src/features/account/settings/Profile.tsx:64",
-      "apps/web/src/features/collections/CollectionsPage.tsx:328",
-      "apps/web/src/features/gallery/Home.tsx:226",
-      "apps/web/src/features/gallery/Palettes.tsx:303"
+      "apps/web/src/features/collections/CollectionsPage.tsx:329",
+      "apps/web/src/features/gallery/Home.tsx:223",
+      "apps/web/src/features/gallery/Palettes.tsx:300"
     ]
   },
   "Couldn't read this palette JSON.": {
@@ -1094,32 +1106,32 @@
   "Couldn't remove the palette.": {
     "note": "Error line after a failed removal.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:431",
-      "apps/web/src/server/collections/me.ts:357"
+      "apps/web/src/features/collections/CollectionPage.tsx:444",
+      "apps/web/src/server/collections/me.ts:367"
     ]
   },
   "Couldn't reset the collection.": {
     "note": "Error line after a failed Reset of a saved copy.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:157"
+      "apps/web/src/features/collections/Actions.tsx:167"
     ]
   },
   "Couldn't save the collection.": {
     "note": "Error line after a failed save of a collection.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:94"
+      "apps/web/src/features/collections/Actions.tsx:104"
     ]
   },
   "Couldn't save the palette.": {
     "note": "Error line after a failed like.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:276"
+      "apps/web/src/features/editor/Editor.tsx:285"
     ]
   },
   "Couldn't save your vote.": {
     "note": "Error line after a failed fit vote.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:539",
+      "apps/web/src/features/collections/CollectionPage.tsx:552",
       "apps/web/src/features/collections/fit.ts:66",
       "apps/web/src/features/search/fit.ts:72"
     ]
@@ -1130,17 +1142,17 @@
       "apps/web/src/features/account/settings/Account.tsx:100",
       "apps/web/src/features/account/settings/Account.tsx:105",
       "apps/web/src/features/account/settings/Admin.tsx:179",
-      "apps/web/src/features/account/settings/Privacy.tsx:68",
-      "apps/web/src/features/account/settings/Profile.tsx:200",
+      "apps/web/src/features/account/settings/Privacy.tsx:76",
+      "apps/web/src/features/account/settings/Profile.tsx:204",
       "apps/web/src/features/account/sync.ts:148",
-      "apps/web/src/features/collections/ItemCard.tsx:64",
+      "apps/web/src/features/collections/ItemCard.tsx:66",
       "apps/web/src/features/collections/collect.ts:460",
-      "apps/web/src/features/editor/Sheet.tsx:378",
+      "apps/web/src/features/editor/Sheet.tsx:420",
       "apps/web/src/features/editor/save.ts:186",
-      "apps/web/src/features/gallery/GalleryCard.tsx:60",
+      "apps/web/src/features/gallery/GalleryCard.tsx:61",
       "apps/web/src/server/account/sync.ts:126",
       "packages/ui/src/CollectList.tsx:88",
-      "packages/ui/src/Curation.tsx:185"
+      "packages/ui/src/Curation.tsx:184"
     ]
   },
   "Couldn't send the confirmation email.": {
@@ -1152,7 +1164,7 @@
   "Couldn't send the link. Try again.": {
     "note": "Sign-in error: the email with the link failed.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:183"
+      "apps/web/src/features/account/LoginPage.tsx:158"
     ]
   },
   "Couldn't send the message. Try again.": {
@@ -1165,7 +1177,7 @@
   "Couldn't send the test. See the Worker's log.": {
     "note": "Admin error.",
     "refs": [
-      "apps/web/src/server/newsletter/routes.ts:198"
+      "apps/web/src/server/newsletter/routes.ts:240"
     ]
   },
   "Couldn't send your answer. Try again.": {
@@ -1177,7 +1189,7 @@
   "Couldn't sign out.": {
     "note": "Error after a failed sign-out.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:221",
+      "apps/web/src/app/AccountMenu.tsx:233",
       "apps/web/src/features/account/session.ts:296",
       "apps/web/src/features/account/settings/Account.tsx:37"
     ]
@@ -1185,13 +1197,13 @@
   "Couldn't update the collection.": {
     "note": "Error line after a failed Update of a saved copy.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:156"
+      "apps/web/src/features/collections/Actions.tsx:166"
     ]
   },
   "Couldn't upload the avatar.": {
     "note": "Settings error after a failed avatar upload.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:185",
+      "apps/web/src/features/account/settings/Profile.tsx:189",
       "apps/web/src/server/account/profile.ts:96"
     ]
   },
@@ -1222,13 +1234,13 @@
   "Dark theme": {
     "note": "Screen reader name of the theme press when it switches to dark.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:206"
+      "apps/web/src/app/Shell.tsx:234"
     ]
   },
   "Delete": {
     "note": "Admin press: confirms a delete.",
     "refs": [
-      "packages/ui/src/Curation.tsx:45"
+      "packages/ui/src/Curation.tsx:44"
     ]
   },
   "Delete account": {
@@ -1241,27 +1253,27 @@
   "Delete collection": {
     "note": "Press: deletes the collection. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:364",
-      "apps/web/src/features/collections/Actions.tsx:365"
+      "apps/web/src/features/collections/Actions.tsx:392",
+      "apps/web/src/features/collections/Actions.tsx:393"
     ]
   },
   "Delete palette": {
     "note": "Admin press: deletes a palette.",
     "refs": [
-      "packages/ui/src/Curation.tsx:45"
+      "packages/ui/src/Curation.tsx:44"
     ]
   },
   "Deleting…": {
     "note": "A delete press while it works.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:370",
-      "packages/ui/src/Curation.tsx:45"
+      "apps/web/src/features/collections/Actions.tsx:398",
+      "packages/ui/src/Curation.tsx:44"
     ]
   },
   "Description": {
     "note": "Field: a collection's description.",
     "refs": [
-      "apps/web/src/features/collections/Heading.tsx:98"
+      "apps/web/src/features/collections/Heading.tsx:225"
     ]
   },
   "Descriptions are up to {max} characters.": {
@@ -1297,20 +1309,20 @@
   "Dotted: the chroma asked for. Solid: what the screen shows. Drag the line to ask for more or less.": {
     "note": "About: caption of the chroma plot. The dotted line is the chroma the keyframes ask for, the solid line what the screen can show.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:208"
+      "apps/web/src/features/about/AboutPage.tsx:210"
     ]
   },
   "Download": {
     "note": "Press or label: downloads a file.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:254",
+      "packages/ui/src/ExportPanel.tsx:257",
       "packages/ui/src/FormatStrip.tsx:71"
     ]
   },
   "Download PNG": {
     "note": "Link: downloads the palette as a PNG.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:126"
+      "apps/web/src/features/editor/StaticPalette.tsx:136"
     ]
   },
   "Download {format}": {
@@ -1334,7 +1346,7 @@
   "Drafts": {
     "note": "Admin section of the newsletter page: issues not published.",
     "refs": [
-      "apps/web/src/features/newsletter/NewsletterPage.tsx:121"
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:157"
     ]
   },
   "Draw share cards and PNG files on the server. When off, links show the site's card.": {
@@ -1352,37 +1364,43 @@
   "Duotone: two keyframes far apart in lightness (0.92 and 0.22) and 130° apart in hue.": {
     "note": "About: a recipe.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:253"
+      "apps/web/src/features/about/AboutPage.tsx:255"
     ]
   },
   "Each keyframe is three numbers in OKLCH. Lightness <c>L</c> runs from 0 (black) to 1 (white). Chroma <c>C</c> is how colorful it is: 0 is gray, and the most vivid screen colors are around 0.3. Hue <c>H</c> is the angle on the color wheel, in degrees.": {
     "note": "About: paragraph; <c> holds a symbol.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:424"
+      "apps/web/src/features/about/AboutPage.tsx:426"
     ]
   },
   "Edit": {
     "note": "Press: on a palette card it opens the palette in the editor; beside a collection's title it edits the title and description. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:534",
-      "apps/web/src/features/collections/Heading.tsx:129",
-      "apps/web/src/features/collections/Heading.tsx:130",
-      "packages/ui/src/PaletteCard.tsx:211",
-      "packages/ui/src/PaletteCard.tsx:212"
+      "apps/web/src/features/about/AboutPage.tsx:540",
+      "apps/web/src/features/collections/Heading.tsx:128",
+      "packages/ui/src/PaletteCard.tsx:216"
+    ]
+  },
+  "Edit {name}": {
+    "note": "Read by screen readers: a palette card's Edit press, and the edit press on a collection's title. {name} is the palette's or the collection's name.",
+    "refs": [
+      "apps/web/src/features/collections/Heading.tsx:127",
+      "packages/ui/src/PaletteCard.tsx:215",
+      "packages/ui/src/PaletteCard.tsx:221"
     ]
   },
   "Editor": {
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:949",
+      "apps/web/src/features/editor/Editor.tsx:983",
       "packages/ui/src/KeyList.tsx:10"
     ]
   },
   "Email": {
     "note": "Field or label: an email address.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:349",
+      "apps/web/src/features/account/LoginPage.tsx:324",
       "apps/web/src/features/account/PasswordPage.tsx:61",
       "apps/web/src/features/account/settings/Account.tsx:46"
     ]
@@ -1390,7 +1408,7 @@
   "Email sign-in is busy. Try again later or use Google.": {
     "note": "Sign-in error: the email limit was reached.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:25"
+      "apps/web/src/features/account/LoginPage.tsx:26"
     ]
   },
   "Email verification": {
@@ -1402,7 +1420,7 @@
   "Email · optional": {
     "note": "Contact page: label of the optional email field.",
     "refs": [
-      "apps/web/src/features/contact/ContactPage.tsx:67"
+      "apps/web/src/features/contact/ContactPage.tsx:85"
     ]
   },
   "Embedded view": {
@@ -1414,8 +1432,14 @@
   "End": {
     "note": "Field: short for Lightness end where the line is narrow.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:102",
-      "apps/web/src/features/editor/Controls.tsx:186"
+      "apps/web/src/features/editor/Controls.tsx:101",
+      "apps/web/src/features/editor/Controls.tsx:185"
+    ]
+  },
+  "End with this tip": {
+    "note": "The newsletter page, admins: chooses the tip shown to end the issue.",
+    "refs": [
+      "apps/web/src/features/newsletter/Picker.tsx:36"
     ]
   },
   "Enter a color, mood or palette link.": {
@@ -1427,40 +1451,40 @@
   "Enter the 6-digit code from your email.": {
     "note": "Line under the code field.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:380"
+      "apps/web/src/features/account/LoginPage.tsx:355"
     ]
   },
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": {
     "note": "Shortcuts page description in search results; the names are the shortcuts the page lists. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:293"
+      "apps/web/src/lib/page-meta.ts:301"
     ]
   },
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": {
     "note": "About: paragraph; <c> holds the seed.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:554"
+      "apps/web/src/features/about/AboutPage.tsx:560"
     ]
   },
   "Everywhere": {
     "note": "Heading in the key list: keys that work on every page.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:29",
-      "packages/ui/src/Curation.tsx:292",
+      "packages/ui/src/Curation.tsx:287",
       "packages/ui/src/KeyList.tsx:9"
     ]
   },
   "Exit full screen": {
     "note": "Press: leaves full screen. Also its tooltip.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:682",
-      "apps/web/src/mcp-view/PaletteView.tsx:683"
+      "apps/web/src/mcp-view/PaletteView.tsx:673",
+      "apps/web/src/mcp-view/PaletteView.tsx:674"
     ]
   },
   "Explore {subject} gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG.": {
     "note": "Description of a search; {subject} is the words, lowercase.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:576"
+      "apps/web/src/lib/page-meta.ts:622"
     ]
   },
   "Export": {
@@ -1474,7 +1498,7 @@
   "Export preview": {
     "note": "Screen reader name of the picture of the selection as it will export.",
     "refs": [
-      "packages/ui/src/ExportPreview.tsx:56"
+      "packages/ui/src/ExportPreview.tsx:65"
     ]
   },
   "Exported CSS is in HSL.": {
@@ -1510,15 +1534,15 @@
   "Find five calm palettes for a meditation app.": {
     "note": "MCP page: an example request to an AI app.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:30"
+      "apps/web/src/features/connect/McpServer.tsx:39"
     ]
   },
   "First page": {
     "note": "Press: back to the first page of the list.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:552",
-      "apps/web/src/features/gallery/Home.tsx:526",
-      "apps/web/src/features/gallery/Palettes.tsx:636"
+      "apps/web/src/features/collections/CollectionsPage.tsx:555",
+      "apps/web/src/features/gallery/Home.tsx:528",
+      "apps/web/src/features/gallery/Palettes.tsx:640"
     ]
   },
   "Fit": {
@@ -1560,41 +1584,41 @@
   "Format": {
     "note": "Screen reader name of the code tabs (Seed, CSS, Colors, Shader...).",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:453",
+      "apps/web/src/features/about/AboutPage.tsx:455",
       "packages/ui/src/PaletteCode.tsx:72"
     ]
   },
   "From your colors": {
     "note": "Heading over the palettes made from the hex colors the reader typed into the search field.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:361",
-      "apps/web/src/features/gallery/Palettes.tsx:473"
+      "apps/web/src/features/gallery/Home.tsx:362",
+      "apps/web/src/features/gallery/Palettes.tsx:474"
     ]
   },
   "From your image": {
     "note": "Heading over the palettes made from the colors picked out of the reader's image, shown beside the image.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:473"
+      "apps/web/src/features/gallery/Palettes.tsx:474"
     ]
   },
   "Full screen": {
     "note": "Press: shows the palettes full screen. Also its tooltip.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:265",
-      "apps/web/src/mcp-view/PaletteView.tsx:408",
-      "apps/web/src/mcp-view/PaletteView.tsx:409"
+      "apps/web/src/mcp-view/PaletteView.tsx:267",
+      "apps/web/src/mcp-view/PaletteView.tsx:409",
+      "apps/web/src/mcp-view/PaletteView.tsx:410"
     ]
   },
   "Gallery only": {
     "note": "Admin choice: delete from the gallery only.",
     "refs": [
-      "packages/ui/src/Curation.tsx:293"
+      "packages/ui/src/Curation.tsx:288"
     ]
   },
   "Gap": {
     "note": "Field: the space between palettes in the exported image, in percent.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:213"
+      "packages/ui/src/ExportPanel.tsx:216"
     ]
   },
   "Glaring, clipped or too neon": {
@@ -1621,40 +1645,34 @@
       "packages/ui/src/Fit.tsx:32"
     ]
   },
-  "Google Analytics links your visits to your account.": {
-    "note": "Settings: line under the Marketing switch. While it is on and the reader is signed in, Google Analytics counts their visits on every device as one person's.",
-    "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:29"
-    ]
-  },
   "Google Analytics measures how Grabient is used.": {
     "note": "Settings: line under the Analytics switch.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:28"
+      "apps/web/src/features/account/settings/Privacy.tsx:31"
     ]
   },
   "Google sign-in failed.": {
     "note": "Sign-in error after Google.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:29"
+      "apps/web/src/features/account/LoginPage.tsx:30"
     ]
   },
   "Grabient gradient palette generator": {
     "note": "Alt text of the site's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:737"
+      "apps/web/src/lib/page-meta.ts:807"
     ]
   },
   "Grabient makes gradients from keyframes: 2 to 8 colors joined by a smooth curve.": {
     "note": "About: line under the title.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:411"
+      "apps/web/src/features/about/AboutPage.tsx:413"
     ]
   },
   "Grabient palettes": {
     "note": "Link to the home page on a palette page without scripts.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:73"
+      "apps/web/src/features/editor/StaticPalette.tsx:74"
     ]
   },
   "Grabient user": {
@@ -1666,13 +1684,13 @@
   "Grabient — CSS Gradient Generator & Color Palettes": {
     "note": "The home page title in search results. Kept as it is: the site ranks under it.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:257"
+      "apps/web/src/lib/page-meta.ts:265"
     ]
   },
   "Grabient's newsletter, about once a month: rising palettes, featured collections and new features. Read every issue here, or sign up to get it by email.": {
     "note": "Newsletter page description in search results. Every account gets the newsletter, so signing up is how to get it. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:308"
+      "apps/web/src/lib/page-meta.ts:316"
     ]
   },
   "Grabient, all palettes": {
@@ -1690,7 +1708,7 @@
   "Gradient and color palette collections": {
     "note": "Title of the collections list.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:434"
+      "apps/web/src/lib/page-meta.ts:481"
     ]
   },
   "Gray or brown through the middle": {
@@ -1702,13 +1720,13 @@
   "Grays: chroma 0 at every keyframe.": {
     "note": "About: a recipe.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:272"
+      "apps/web/src/features/about/AboutPage.tsx:274"
     ]
   },
   "Green and magenta mixed in RGB (top) and OKLCH (bottom). The RGB mix turns gray in the middle.": {
     "note": "About: caption of two strips of color, each mixing green into magenta.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:474"
+      "apps/web/src/features/about/AboutPage.tsx:476"
     ]
   },
   "Guide for AI agents": {
@@ -1732,22 +1750,22 @@
   "Height": {
     "note": "Field: height in pixels.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:177",
-      "packages/ui/src/SizeControl.tsx:233"
+      "packages/ui/src/ExportPanel.tsx:180",
+      "packages/ui/src/SizeControl.tsx:238"
     ]
   },
   "Hex color": {
     "note": "Screen reader name of the hex field.",
     "refs": [
-      "packages/ui/src/ColorPicker.tsx:482",
-      "packages/ui/src/HexField.tsx:85"
+      "packages/ui/src/ColorPicker.tsx:481",
+      "packages/ui/src/HexField.tsx:92"
     ]
   },
   "Hide color space": {
     "note": "Press: hides the color space shown around the palette. Also its tooltip.",
     "refs": [
-      "packages/ui/src/SolidPane.tsx:106",
-      "packages/ui/src/SolidPane.tsx:107"
+      "packages/ui/src/SolidPane.tsx:107",
+      "packages/ui/src/SolidPane.tsx:108"
     ]
   },
   "Hide panel": {
@@ -1766,25 +1784,25 @@
   "Home": {
     "note": "Link to the home page.",
     "refs": [
-      "apps/web/src/app/Frames.tsx:72"
+      "apps/web/src/app/Frames.tsx:78"
     ]
   },
   "Hot palettes and collections": {
     "note": "Title of the home feed from its second page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:258"
+      "apps/web/src/lib/page-meta.ts:266"
     ]
   },
   "How Grabient makes gradients from 2 to 8 keyframes in OKLCH: the formula, steps, hue past 360°, colors a screen can't show and the seed in each URL.": {
     "note": "About page description in search results; the list is the page's sections. The seed is the code in a palette's address. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:285"
+      "apps/web/src/lib/page-meta.ts:293"
     ]
   },
   "How it works": {
     "note": "Link to the About page.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:129"
+      "apps/web/src/features/editor/StaticPalette.tsx:144"
     ]
   },
   "How to connect": {
@@ -1796,53 +1814,59 @@
   "Hue": {
     "note": "Field and plot name: OKLCH hue, the color's angle on the color wheel.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:151",
-      "apps/web/src/features/editor/Controls.tsx:218",
-      "packages/ui/src/ColorPicker.tsx:448"
+      "apps/web/src/features/editor/Controls.tsx:150",
+      "apps/web/src/features/editor/Controls.tsx:217",
+      "packages/ui/src/ColorPicker.tsx:447"
+    ]
+  },
+  "If it doesn't connect": {
+    "note": "The MCP page: heading of the steps to try when an app doesn't connect.",
+    "refs": [
+      "apps/web/src/features/connect/McpServer.tsx:189"
     ]
   },
   "If your app asks how to sign in, choose OAuth. Claude Code, Codex and Devin sign in with the second line of their setup, or from their MCP settings.": {
     "note": "MCP page: signing in from a coding app.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:141"
+      "apps/web/src/features/connect/McpServer.tsx:150"
     ]
   },
   "Images can't be copied here, so the file was downloaded.": {
     "note": "Status line: the image could not go to the clipboard, so it was downloaded instead.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:355",
+      "apps/web/src/features/editor/Sheet.tsx:396",
       "apps/web/src/features/gallery/take.ts:98",
-      "apps/web/src/features/selection/SelectionScreen.tsx:326",
-      "apps/web/src/mcp-view/PaletteView.tsx:196"
+      "apps/web/src/features/selection/SelectionScreen.tsx:329",
+      "apps/web/src/mcp-view/PaletteView.tsx:198"
     ]
   },
   "Images can't be copied here.": {
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:603",
-      "apps/web/src/features/editor/Sheet.tsx:134",
-      "apps/web/src/mcp-view/PaletteView.tsx:200",
-      "apps/web/src/mcp-view/PaletteView.tsx:208",
-      "packages/ui/src/SolidPane.tsx:79"
+      "apps/web/src/features/editor/Editor.tsx:628",
+      "apps/web/src/features/editor/Sheet.tsx:137",
+      "apps/web/src/mcp-view/PaletteView.tsx:202",
+      "apps/web/src/mcp-view/PaletteView.tsx:210",
+      "packages/ui/src/SolidPane.tsx:80"
     ]
   },
   "In the formula, <c>t</c> runs from 0 at the start of the gradient to 1 at the end. With <c>K</c> keyframes, keyframe <c>i</c> sits at <c>t = i / (K − 1)</c>, counting from 0. Each curve is a Catmull–Rom spline, and <c>gamut()</c> fits the color to the screen (section 6):": {
     "note": "About: paragraph; <c> holds a symbol or formula.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:444"
+      "apps/web/src/features/about/AboutPage.tsx:446"
     ]
   },
   "In these collections": {
     "note": "Heading and screen reader name of the links to collections that hold the palette.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:112",
-      "packages/ui/src/PaletteSheet.tsx:119"
+      "apps/web/src/features/editor/StaticPalette.tsx:113",
+      "packages/ui/src/PaletteSheet.tsx:128"
     ]
   },
   "In your app, add a custom connector or MCP server with this address.": {
     "note": "MCP page: how to add the server.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:92"
+      "apps/web/src/features/connect/McpServer.tsx:101"
     ]
   },
   "Invalid image.": {
@@ -1856,7 +1880,7 @@
     "refs": [
       "apps/web/src/features/collections/schema.ts:85",
       "apps/web/src/server/account/sync.ts:69",
-      "apps/web/src/server/collections/me.ts:275",
+      "apps/web/src/server/collections/me.ts:285",
       "apps/web/src/server/collections/palettes.ts:64",
       "apps/web/src/server/collections/palettes.ts:67",
       "apps/web/src/server/collections/palettes.ts:91",
@@ -1872,8 +1896,8 @@
       "apps/web/src/server/collections/api.ts:198",
       "apps/web/src/server/collections/api.ts:92",
       "apps/web/src/server/collections/http.ts:44",
-      "apps/web/src/server/contact/contact.ts:24",
-      "apps/web/src/server/newsletter/routes.ts:36",
+      "apps/web/src/server/contact/contact.ts:25",
+      "apps/web/src/server/newsletter/routes.ts:39",
       "apps/web/src/server/search/votes.ts:83"
     ]
   },
@@ -1892,36 +1916,36 @@
   "Invalid style, steps or angle.": {
     "note": "Error: a malformed view change.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:286",
-      "apps/web/src/server/collections/me.ts:395",
+      "apps/web/src/server/collections/me.ts:296",
+      "apps/web/src/server/collections/me.ts:405",
       "apps/web/src/server/collections/palettes.ts:142"
     ]
   },
   "Invalid vote.": {
     "note": "Error: a malformed vote.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:226",
+      "apps/web/src/server/collections/me.ts:234",
       "apps/web/src/server/search/votes.ts:92"
     ]
   },
   "Invert": {
     "note": "Press: inverts the colors, as a photo negative: lightness flips and hue turns 180°. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:400",
-      "apps/web/src/features/editor/Controls.tsx:401",
+      "apps/web/src/features/editor/Controls.tsx:402",
+      "apps/web/src/features/editor/Controls.tsx:403",
       "packages/ui/src/keymap.ts:25"
     ]
   },
-  "It can see and change your saved palettes and collections.": {
-    "note": "Connect page: what the app may do.",
+  "It can see your name and username, and see and change your saved palettes and collections.": {
+    "note": "The page where a reader allows an AI app: what the app can do with the account.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:271"
+      "apps/web/src/features/connect/Connect.tsx:272"
     ]
   },
   "It may have been deleted.": {
     "note": "Line under Collection not found.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:715"
+      "apps/web/src/features/collections/CollectionPage.tsx:728"
     ]
   },
   "It says it is <name>{name}</name>.": {
@@ -1933,13 +1957,13 @@
   "It stays connected until you disconnect it or don't use it for a year.": {
     "note": "Connect page: how long the connection lasts.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:362"
+      "apps/web/src/features/connect/Connect.tsx:366"
     ]
   },
   "JPG, PNG or WebP, up to 5MB.": {
     "note": "Settings: line beside the avatar press.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:278"
+      "apps/web/src/features/account/settings/Profile.tsx:282"
     ]
   },
   "Joined": {
@@ -1951,80 +1975,80 @@
   "Keep current avatar": {
     "note": "Press after picking a new avatar: drops the new one before it is saved.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:276"
+      "apps/web/src/features/account/settings/Profile.tsx:280"
     ]
   },
   "Keyboard shortcuts": {
     "note": "Title of the shortcuts page in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:292"
+      "apps/web/src/lib/page-meta.ts:300"
     ]
   },
   "Keyframe count": {
     "note": "Screen reader name of the minus, count and plus beside the keyframes.",
     "refs": [
-      "packages/ui/src/Keyframes.tsx:166"
+      "packages/ui/src/Keyframes.tsx:195"
     ]
   },
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:777",
-      "packages/ui/src/Keyframes.tsx:135"
+      "apps/web/src/features/editor/Editor.tsx:802",
+      "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:773",
-      "packages/ui/src/Keyframes.tsx:158"
+      "apps/web/src/features/editor/Editor.tsx:798",
+      "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:762",
-      "apps/web/src/features/editor/code.ts:188",
-      "packages/ui/src/Keyframes.tsx:127"
+      "apps/web/src/features/editor/Editor.tsx:787",
+      "apps/web/src/features/editor/code.ts:190",
+      "packages/ui/src/Keyframes.tsx:156"
     ]
   },
   "Keyframes, spline and OKLCH to sRGB conversion.": {
     "note": "Code pane: what the shader holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:182"
+      "apps/web/src/features/editor/code.ts:184"
     ]
   },
   "Language": {
     "note": "The language menu and its heading.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:252",
-      "apps/web/src/app/AccountMenu.tsx:80",
-      "apps/web/src/app/LanguageMenu.tsx:90"
+      "apps/web/src/app/AccountMenu.tsx:264",
+      "apps/web/src/app/AccountMenu.tsx:82",
+      "apps/web/src/app/LanguageMenu.tsx:100"
     ]
   },
   "Language: {language}": {
     "note": "Screen reader name of the language menu press, with the current language.",
     "refs": [
-      "apps/web/src/app/LanguageMenu.tsx:72"
+      "apps/web/src/app/LanguageMenu.tsx:82"
     ]
   },
   "Layout": {
     "note": "Label: how the exported palettes are arranged in one image.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:195",
-      "packages/ui/src/ExportPanel.tsx:196"
+      "packages/ui/src/ExportPanel.tsx:198",
+      "packages/ui/src/ExportPanel.tsx:199"
     ]
   },
   "Lead palette": {
     "note": "Newsletter, admins only: the name of the controls over an issue's lead palette.",
     "refs": [
-      "apps/web/src/features/newsletter/LeadPicker.tsx:126"
+      "apps/web/src/features/newsletter/Picker.tsx:27"
     ]
   },
   "Lead with this palette": {
     "note": "Newsletter, admins only: the check press that makes the palette shown the issue's lead.",
     "refs": [
-      "apps/web/src/features/newsletter/LeadPicker.tsx:163"
+      "apps/web/src/features/newsletter/Picker.tsx:30"
     ]
   },
   "Let AI apps connect to accounts and use Grabient's tools over MCP.": {
@@ -2048,7 +2072,7 @@
   "Letters, numbers, underscores and hyphens.": {
     "note": "Line under the username field: the characters allowed.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:291"
+      "apps/web/src/features/account/settings/Profile.tsx:88"
     ]
   },
   "Light": {
@@ -2060,46 +2084,46 @@
   "Light theme": {
     "note": "Screen reader name of the theme press when it switches to light.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:206"
+      "apps/web/src/app/Shell.tsx:234"
     ]
   },
   "Lightness": {
     "note": "Field and plot name: OKLCH lightness, 0 is black and 1 is white.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:151",
-      "apps/web/src/features/editor/Controls.tsx:161"
+      "apps/web/src/features/editor/Controls.tsx:150",
+      "apps/web/src/features/editor/Controls.tsx:160"
     ]
   },
   "Lightness average": {
     "note": "Field: the average lightness of the held keyframes; a change moves each by as much.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:161"
+      "apps/web/src/features/editor/Controls.tsx:160"
     ]
   },
   "Lightness end": {
     "note": "Field: the lightness of the palette's last keyframe.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:102",
-      "apps/web/src/features/editor/Controls.tsx:186"
+      "apps/web/src/features/editor/Controls.tsx:101",
+      "apps/web/src/features/editor/Controls.tsx:185"
     ]
   },
   "Lightness start": {
     "note": "Field: the lightness of the palette's first keyframe.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:100",
-      "apps/web/src/features/editor/Controls.tsx:177"
+      "apps/web/src/features/editor/Controls.tsx:176",
+      "apps/web/src/features/editor/Controls.tsx:99"
     ]
   },
   "Lightness straightened.": {
     "note": "Status line after Straighten lightness.",
     "refs": [
-      "apps/web/src/features/editor/editor.ts:381"
+      "apps/web/src/features/editor/editor.ts:413"
     ]
   },
   "Lightness, chroma and hue each have their own curve, drawn in the graph above. Each curve passes through the keyframes and bends smoothly between them. The color at any point is the three curves read there.": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:434"
+      "apps/web/src/features/about/AboutPage.tsx:436"
     ]
   },
   "Like": {
@@ -2111,8 +2135,8 @@
   "Liked by someone": {
     "note": "Tooltip on a disabled admin press: a person liked the palette, so it can't change.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:114",
-      "apps/web/src/features/collections/CollectionsPage.tsx:96",
+      "apps/web/src/features/collections/CollectionPage.tsx:120",
+      "apps/web/src/features/collections/CollectionsPage.tsx:97",
       "apps/web/src/features/editor/save.ts:133",
       "apps/web/src/features/gallery/curate.tsx:62"
     ]
@@ -2135,38 +2159,44 @@
       "apps/web/src/features/gallery/field.ts:64"
     ]
   },
+  "Links your visits, and how you found Grabient, to your account.": {
+    "note": "Settings, Privacy & Consent: the Marketing switch's line. Marketing links the reader's visits, and how they first came to the site, to their account.",
+    "refs": [
+      "apps/web/src/features/account/settings/Privacy.tsx:35"
+    ]
+  },
   "Lists": {
     "note": "Screen reader name of the tabs for Palettes and Collections.",
     "refs": [
-      "packages/ui/src/ListNav.tsx:80"
+      "packages/ui/src/ListNav.tsx:88"
     ]
   },
   "Loading more…": {
     "note": "Status while more of a list loads.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:413",
+      "apps/web/src/features/collections/CollectionsPage.tsx:414",
       "apps/web/src/features/gallery/Home.tsx:285",
       "apps/web/src/features/gallery/Palettes.tsx:377",
-      "apps/web/src/features/newsletter/NewsletterPage.tsx:49"
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:75"
     ]
   },
   "Lock chroma": {
     "note": "Name and tooltip of the lock at the end of the editor's Chroma field, a toggle: while on, Random keeps the chroma of the held keyframes, or of every keyframe when none is held.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:205"
+      "apps/web/src/features/editor/Controls.tsx:204"
     ]
   },
   "Lock hue": {
     "note": "Name and tooltip of the lock at the end of the editor's Hue field, a toggle: while on, Random keeps the hue of the held keyframes, or of every keyframe when none is held.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:220"
+      "apps/web/src/features/editor/Controls.tsx:219"
     ]
   },
   "Lock lightness": {
     "note": "Name and tooltip of the lock at the end of the editor's Lightness line, a toggle: while on, Random keeps the lightness of the held keyframes, or of every keyframe when none is held.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:163",
-      "apps/web/src/features/editor/Controls.tsx:188"
+      "apps/web/src/features/editor/Controls.tsx:162",
+      "apps/web/src/features/editor/Controls.tsx:187"
     ]
   },
   "Looks alike": {
@@ -2184,94 +2214,94 @@
   "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
     "note": "Home page description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:259"
+      "apps/web/src/lib/page-meta.ts:267"
     ]
   },
   "Make a palette from {first} and {second}, and save it.": {
     "note": "MCP page: an example request; the values are hex colors.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:31"
+      "apps/web/src/features/connect/McpServer.tsx:40"
     ]
   },
   "Make palettes from colors and show them.": {
     "note": "MCP page: a thing an app can do.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:25"
+      "apps/web/src/features/connect/McpServer.tsx:34"
     ]
   },
   "Make private": {
     "note": "Admin press: makes the collection private, its owner's alone.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:354"
+      "apps/web/src/features/collections/Actions.tsx:382"
     ]
   },
   "Make public": {
     "note": "Admin press: makes the collection public.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:355"
+      "apps/web/src/features/collections/Actions.tsx:383"
     ]
   },
   "Make, edit and delete your collections.": {
     "note": "MCP page: a thing an app can do.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:27"
+      "apps/web/src/features/connect/McpServer.tsx:36"
     ]
   },
   "Manage your Grabient account.": {
     "note": "Settings page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:354"
+      "apps/web/src/lib/page-meta.ts:362"
     ]
   },
   "Manual setup": {
     "note": "MCP page heading over the setup code for each app.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:125"
+      "apps/web/src/features/connect/McpServer.tsx:134"
     ]
   },
   "Markdown": {
     "note": "Link: the palette as a Markdown file.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:128"
+      "apps/web/src/features/editor/StaticPalette.tsx:142"
     ]
   },
   "Marketing": {
     "note": "Settings: the marketing consent switch, beside Analytics and Session replay.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:29"
+      "apps/web/src/features/account/settings/Privacy.tsx:34"
     ]
   },
   "Matching collections": {
     "note": "Heading over collections that match a search.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:507",
-      "apps/web/src/features/gallery/Palettes.tsx:510"
+      "apps/web/src/features/gallery/Palettes.tsx:508",
+      "apps/web/src/features/gallery/Palettes.tsx:511"
     ]
   },
   "Message": {
     "note": "Contact page: the message field.",
     "refs": [
-      "apps/web/src/features/contact/ContactPage.tsx:77"
+      "apps/web/src/features/contact/ContactPage.tsx:102"
     ]
   },
   "More collections": {
     "note": "Press at the end of a list: loads more collections.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:570",
-      "apps/web/src/features/gallery/Home.tsx:538"
+      "apps/web/src/features/collections/CollectionsPage.tsx:573",
+      "apps/web/src/features/gallery/Home.tsx:541"
     ]
   },
   "More palettes": {
     "note": "Press at the end of a list: loads more palettes. Also a press that shows the next palettes.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:648",
-      "apps/web/src/mcp-view/PaletteView.tsx:615"
+      "apps/web/src/features/gallery/Palettes.tsx:652",
+      "apps/web/src/mcp-view/PaletteView.tsx:606"
     ]
   },
   "More tags": {
     "note": "Press (an arrow): shows more tags in the row.",
     "refs": [
-      "packages/ui/src/Tags.tsx:410"
+      "packages/ui/src/Tags.tsx:433"
     ]
   },
   "Mostly near black": {
@@ -2301,23 +2331,23 @@
   "New collection": {
     "note": "Press in the collections list: starts a new collection.",
     "refs": [
-      "packages/ui/src/CollectList.tsx:206"
+      "packages/ui/src/CollectList.tsx:207"
     ]
   },
   "New palettes you save join the public gallery, without your name.": {
     "note": "MCP page: what happens to a new palette an app saves.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:162"
+      "apps/web/src/features/connect/McpServer.tsx:171"
     ]
   },
   "Newsletter": {
     "note": "The newsletter, its page and its Settings switch.",
     "refs": [
-      "apps/web/src/app/site.ts:34",
-      "apps/web/src/features/account/settings/Privacy.tsx:74",
+      "apps/web/src/app/site.ts:36",
+      "apps/web/src/features/account/settings/Privacy.tsx:82",
       "apps/web/src/features/account/settings/flags.ts:64",
-      "apps/web/src/features/newsletter/NewsletterPage.tsx:114",
-      "apps/web/src/lib/page-meta.ts:307"
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:142",
+      "apps/web/src/lib/page-meta.ts:315"
     ]
   },
   "Newsletter test": {
@@ -2329,7 +2359,13 @@
   "Next lead": {
     "note": "Newsletter, admins only: the arrow press to the next palette the issue may lead with.",
     "refs": [
-      "apps/web/src/features/newsletter/LeadPicker.tsx:152"
+      "apps/web/src/features/newsletter/Picker.tsx:29"
+    ]
+  },
+  "Next tip": {
+    "note": "The newsletter page, admins: the arrow that shows the next tip.",
+    "refs": [
+      "apps/web/src/features/newsletter/Picker.tsx:35"
     ]
   },
   "No app is waiting. Connect again from your app.": {
@@ -2347,44 +2383,46 @@
   "No collections yet.": {
     "note": "Empty state: there are no collections to show.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:406",
+      "apps/web/src/features/collections/CollectionsPage.tsx:407",
       "apps/web/src/features/gallery/Home.tsx:293"
     ]
   },
   "No next keyframe": {
     "note": "Tooltip on the dimmed Travel field when the last keyframe is held: there is no keyframe after it.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:261"
+      "apps/web/src/features/editor/Controls.tsx:263"
     ]
   },
   "No palettes.": {
     "note": "Empty state in an AI app.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:825"
+      "apps/web/src/mcp-view/PaletteView.tsx:816"
     ]
   },
   "No public collections yet.": {
     "note": "Empty state: no collection is public yet.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:407"
+      "apps/web/src/features/collections/CollectionsPage.tsx:408"
     ]
   },
   "No results.": {
     "note": "Empty state, also a heading: a search found nothing.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:404",
+      "apps/web/src/features/collections/CollectionsPage.tsx:405",
+      "apps/web/src/features/gallery/Home.tsx:278",
       "apps/web/src/features/gallery/Home.tsx:295",
-      "apps/web/src/features/gallery/Home.tsx:367",
-      "apps/web/src/features/gallery/Palettes.tsx:361",
-      "apps/web/src/features/gallery/Palettes.tsx:366",
-      "apps/web/src/features/gallery/Palettes.tsx:498",
-      "packages/ui/src/CollectList.tsx:341"
+      "apps/web/src/features/gallery/Home.tsx:368",
+      "apps/web/src/features/gallery/Palettes.tsx:358",
+      "apps/web/src/features/gallery/Palettes.tsx:363",
+      "apps/web/src/features/gallery/Palettes.tsx:370",
+      "apps/web/src/features/gallery/Palettes.tsx:499",
+      "packages/ui/src/CollectList.tsx:343"
     ]
   },
   "No results. Try a color, mood or theme.": {
     "note": "Empty state of a search in Saved, with words to try.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:365"
+      "apps/web/src/features/gallery/Palettes.tsx:362"
     ]
   },
   "Not found": {
@@ -2396,10 +2434,12 @@
       "apps/web/src/server/account/collections.ts:225",
       "apps/web/src/server/account/collections.ts:230",
       "apps/web/src/server/collections/http.ts:41",
-      "apps/web/src/server/editor/facts.ts:104",
-      "apps/web/src/server/newsletter/routes.ts:101",
-      "apps/web/src/server/pipeline.ts:130",
-      "apps/web/src/server/pipeline.ts:142"
+      "apps/web/src/server/editor/facts.ts:110",
+      "apps/web/src/server/newsletter/routes.ts:123",
+      "apps/web/src/server/newsletter/routes.ts:127",
+      "apps/web/src/server/newsletter/routes.ts:56",
+      "apps/web/src/server/pipeline.ts:151",
+      "apps/web/src/server/pipeline.ts:163"
     ]
   },
   "Not in the gallery or a collection": {
@@ -2417,7 +2457,7 @@
   "Not you? <switch>Use another account</switch>": {
     "note": "Connect page: <switch> is a link to sign in as someone else.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:282"
+      "apps/web/src/features/connect/Connect.tsx:286"
     ]
   },
   "Note": {
@@ -2429,7 +2469,7 @@
   "Notes are 1 to {max} characters.": {
     "note": "Error: a note is empty or too long.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:204"
+      "apps/web/src/server/collections/me.ts:212"
     ]
   },
   "Notes for the agents": {
@@ -2454,19 +2494,19 @@
   "Now private": {
     "note": "The visibility press after making the collection private.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:352"
+      "apps/web/src/features/collections/Actions.tsx:380"
     ]
   },
   "Now public": {
     "note": "The visibility press after making the collection public.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:351"
+      "apps/web/src/features/collections/Actions.tsx:379"
     ]
   },
   "OKLCH can describe colors more vivid than a screen can show. For those, Grabient keeps the lightness and hue and lowers the chroma until the color fits: sRGB on a standard screen, Display P3 on a wide-gamut one. CSS Color 4 does the same for <c>oklch()</c> colors:": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:517"
+      "apps/web/src/features/about/AboutPage.tsx:519"
     ]
   },
   "Off": {
@@ -2503,9 +2543,9 @@
   "Offline": {
     "note": "There is no connection.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:106",
-      "apps/web/src/app/AccountMenu.tsx:155",
-      "apps/web/src/app/Shell.tsx:60"
+      "apps/web/src/app/AccountMenu.tsx:108",
+      "apps/web/src/app/AccountMenu.tsx:157",
+      "apps/web/src/app/Shell.tsx:74"
     ]
   },
   "On": {
@@ -2524,15 +2564,15 @@
   "Only admins can add notes.": {
     "note": "Error: notes for the seeding agents are for admins.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:199"
+      "apps/web/src/server/collections/me.ts:207"
     ]
   },
   "Only admins can change agent collections.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:325",
-      "apps/web/src/server/collections/me.ts:429",
-      "apps/web/src/server/collections/me.ts:474"
+      "apps/web/src/server/collections/me.ts:335",
+      "apps/web/src/server/collections/me.ts:439",
+      "apps/web/src/server/collections/me.ts:484"
     ]
   },
   "Only admins can change the gallery.": {
@@ -2548,25 +2588,37 @@
       "apps/web/src/server/collections/api.ts:203"
     ]
   },
+  "Only admins see the newsletter until it's on in Site features.": {
+    "note": "The newsletter page, shown to admins while its switch is off: why only they see it.",
+    "refs": [
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:146"
+    ]
+  },
   "Only admins see this section.": {
     "note": "Line under an admin-only section.",
     "refs": [
       "apps/web/src/features/account/settings/Admin.tsx:49",
-      "apps/web/src/features/newsletter/NewsletterPage.tsx:123"
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:159"
     ]
   },
   "Only if you want a reply.": {
     "note": "Contact page: line under the email field.",
     "refs": [
-      "apps/web/src/features/contact/ContactPage.tsx:74"
+      "apps/web/src/features/contact/ContactPage.tsx:98"
     ]
   },
   "Open Grabient": {
     "note": "Press: opens the site in a full tab.",
     "refs": [
       "apps/web/src/app/EmbedNotice.tsx:44",
-      "apps/web/src/mcp-view/PaletteView.tsx:813",
+      "apps/web/src/mcp-view/PaletteView.tsx:804",
       "packages/email/src/partner.ts:159"
+    ]
+  },
+  "Open Settings": {
+    "note": "The newsletter page, admins: the link to Site features in Settings.",
+    "refs": [
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:148"
     ]
   },
   "Open editor": {
@@ -2578,13 +2630,13 @@
   "Open on Grabient": {
     "note": "Press: opens the palette on the site.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:395"
+      "apps/web/src/mcp-view/PaletteView.tsx:396"
     ]
   },
   "Open palette {number} in full screen": {
     "note": "Screen reader name of a palette picture in the AI app view: a press opens that palette full screen. {number} is its number.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:496"
+      "apps/web/src/mcp-view/PaletteView.tsx:493"
     ]
   },
   "Open {title}": {
@@ -2596,99 +2648,99 @@
   "Optional": {
     "note": "Placeholder: the field may stay empty.",
     "refs": [
-      "packages/ui/src/Curation.tsx:320"
+      "packages/ui/src/Curation.tsx:315"
     ]
   },
   "Options": {
     "note": "Screen reader name of a menu of choices.",
     "refs": [
-      "packages/ui/src/Select.tsx:110"
+      "packages/ui/src/Select.tsx:112"
     ]
   },
   "Or add it in one click.": {
     "note": "MCP page: line over the one-click install presses.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:102"
+      "apps/web/src/features/connect/McpServer.tsx:111"
     ]
   },
   "Or email us.": {
     "note": "Contact page: line over the email address.",
     "refs": [
-      "apps/web/src/features/contact/ContactPage.tsx:97"
+      "apps/web/src/features/contact/ContactPage.tsx:126"
     ]
   },
   "Order": {
     "note": "Screen reader name of the tabs for a list's order (Popular, Rising, Saved).",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:592",
-      "apps/web/src/features/editor/Sheet.tsx:439",
-      "packages/ui/src/ListNav.tsx:94"
+      "apps/web/src/features/collections/CollectionPage.tsx:604",
+      "apps/web/src/features/editor/Sheet.tsx:482",
+      "packages/ui/src/ListNav.tsx:102"
     ]
   },
   "Other": {
     "note": "MCP page: the setup tab for any other app.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:64"
+      "apps/web/src/features/connect/McpServer.tsx:73"
     ]
   },
   "Padding": {
     "note": "Field: the space around the palettes in the exported image, in percent.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:226"
+      "packages/ui/src/ExportPanel.tsx:229"
     ]
   },
   "Page not found": {
     "note": "Title of the page for an address the site does not know.",
     "refs": [
       "apps/web/src/app/NotFound.tsx:31",
-      "apps/web/src/lib/page-meta.ts:845"
+      "apps/web/src/lib/page-meta.ts:920"
     ]
   },
   "Page {page} doesn't exist.": {
     "note": "Line on a list page whose number is past the last page.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:402",
+      "apps/web/src/features/collections/CollectionsPage.tsx:403",
       "apps/web/src/features/gallery/Home.tsx:291",
-      "apps/web/src/features/gallery/Palettes.tsx:359"
+      "apps/web/src/features/gallery/Palettes.tsx:356"
     ]
   },
   "Palette": {
     "note": "A palette with no name.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:143",
+      "apps/web/src/features/editor/Sheet.tsx:146",
       "apps/web/src/features/gallery/drawing.ts:69"
     ]
   },
   "Palette JSON": {
     "note": "Link: the palette as JSON.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:127"
+      "apps/web/src/features/editor/StaticPalette.tsx:139"
     ]
   },
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:676",
-      "packages/ui/src/PaletteSheet.tsx:113"
+      "apps/web/src/features/editor/Editor.tsx:701",
+      "packages/ui/src/PaletteSheet.tsx:122"
     ]
   },
   "Palette collection": {
     "note": "Title of a collection page before its title is known.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:677"
+      "apps/web/src/lib/page-meta.ts:747"
     ]
   },
   "Palette colors": {
     "note": "Screen reader name of the row of the palette's colors.",
     "refs": [
-      "packages/ui/src/StopStrip.tsx:103"
+      "packages/ui/src/StopStrip.tsx:144"
     ]
   },
   "Palette deleted.": {
     "note": "Status after an admin deletes a palette.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:501",
-      "apps/web/src/features/collections/CollectionsPage.tsx:227",
+      "apps/web/src/features/collections/CollectionPage.tsx:514",
+      "apps/web/src/features/collections/CollectionsPage.tsx:228",
       "apps/web/src/features/gallery/curate.tsx:70"
     ]
   },
@@ -2701,21 +2753,21 @@
   "Palette not found": {
     "note": "Title of the page for a palette or address that does not exist.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:845"
+      "apps/web/src/lib/page-meta.ts:920"
     ]
   },
   "Palette put back.": {
     "note": "Status after an undo puts a removed palette back.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:418",
-      "apps/web/src/features/collections/CollectionPage.tsx:451"
+      "apps/web/src/features/collections/CollectionPage.tsx:431",
+      "apps/web/src/features/collections/CollectionPage.tsx:464"
     ]
   },
   "Palette removed.": {
     "note": "Status after a palette is taken out of a collection.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:423",
-      "apps/web/src/features/collections/CollectionPage.tsx:429"
+      "apps/web/src/features/collections/CollectionPage.tsx:436",
+      "apps/web/src/features/collections/CollectionPage.tsx:442"
     ]
   },
   "Palette use counts": {
@@ -2733,28 +2785,28 @@
   "Palette {number}: {name}": {
     "note": "Screen reader name of a palette in an AI app.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:88"
+      "apps/web/src/mcp-view/PaletteView.tsx:90"
     ]
   },
   "Palettes": {
     "note": "The palettes list, its tab, and a screen reader name of a list of palettes.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:638",
-      "apps/web/src/mcp-view/PaletteView.tsx:752",
+      "apps/web/src/mcp-view/PaletteView.tsx:629",
+      "apps/web/src/mcp-view/PaletteView.tsx:743",
       "packages/ui/src/ListNav.tsx:11"
     ]
   },
   "Palettes like {name}": {
     "note": "Title of a search by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:400",
-      "apps/web/src/lib/page-meta.ts:415"
+      "apps/web/src/lib/page-meta.ts:447",
+      "apps/web/src/lib/page-meta.ts:462"
     ]
   },
   "Palettes you like appear here.": {
     "note": "Empty state of the Saved list.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:363"
+      "apps/web/src/features/gallery/Palettes.tsx:360"
     ]
   },
   "Passes through a color that spoils it": {
@@ -2785,7 +2837,7 @@
   "Pastels: high lightness (0.87 and up) and low chroma (0.06 and below).": {
     "note": "About: a recipe.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:263"
+      "apps/web/src/features/about/AboutPage.tsx:265"
     ]
   },
   "Permanently delete your account and saved palettes.": {
@@ -2797,33 +2849,33 @@
   "Pick color": {
     "note": "Press with an eyedropper icon in the color picker: picks a color from anywhere on the screen. Also its tooltip.",
     "refs": [
-      "packages/ui/src/ColorPicker.tsx:435",
-      "packages/ui/src/ColorPicker.tsx:436"
+      "packages/ui/src/ColorPicker.tsx:434",
+      "packages/ui/src/ColorPicker.tsx:435"
     ]
   },
   "Plus a Display P3 line.": {
     "note": "Code pane: the CSS also has a line for wide-gamut screens.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:115"
+      "apps/web/src/features/editor/code.ts:117"
     ]
   },
   "Popular": {
     "note": "Lead of the tags row: the popular tags.",
     "refs": [
-      "apps/web/src/features/collections/Find.tsx:42",
-      "apps/web/src/features/gallery/Find.tsx:72"
+      "apps/web/src/features/collections/Find.tsx:43",
+      "apps/web/src/features/gallery/Find.tsx:73"
     ]
   },
   "Popular gradient palettes": {
     "note": "Title of the Popular list from its second page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:265"
+      "apps/web/src/lib/page-meta.ts:273"
     ]
   },
   "Popular gradient palettes | Grabient": {
     "note": "Title of the Popular list in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:264"
+      "apps/web/src/lib/page-meta.ts:272"
     ]
   },
   "Press a key": {
@@ -2842,7 +2894,7 @@
   "Press again to delete": {
     "note": "A delete press after one press: a second press deletes.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:370"
+      "apps/web/src/features/collections/Actions.tsx:398"
     ]
   },
   "Press again to remove": {
@@ -2854,7 +2906,7 @@
   "Press again to reset": {
     "note": "The Reset press after one press: a second press resets.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:334"
+      "apps/web/src/features/collections/Actions.tsx:362"
     ]
   },
   "Press again to turn off for everyone.": {
@@ -2871,78 +2923,103 @@
       "apps/web/src/features/account/settings/Admin.tsx:320"
     ]
   },
+  "Press the picture to move this color there.": {
+    "note": "Search by picture: a hint while one of the picture's colors is chosen. A press on the picture moves where that color is taken from.",
+    "refs": [
+      "apps/web/src/features/search/Sampler.tsx:192"
+    ]
+  },
   "Preview": {
     "note": "Admin: screen reader name of the preview of a view change.",
     "refs": [
-      "packages/ui/src/Curation.tsx:256"
+      "packages/ui/src/Curation.tsx:251"
     ]
   },
   "Preview size": {
     "note": "Screen reader name of the preview size menu.",
     "refs": [
-      "packages/ui/src/SizeControl.tsx:228"
+      "packages/ui/src/SizeControl.tsx:229"
     ]
   },
   "Preview size: Auto": {
     "note": "Screen reader name of the preview size press when the size is automatic.",
     "refs": [
-      "packages/ui/src/SizeControl.tsx:214"
+      "packages/ui/src/SizeControl.tsx:215"
     ]
   },
   "Preview size: {size}": {
     "note": "Screen reader name of the preview size press, with the size.",
     "refs": [
-      "packages/ui/src/SizeControl.tsx:214"
+      "packages/ui/src/SizeControl.tsx:215"
     ]
   },
   "Previous lead": {
     "note": "Newsletter, admins only: the arrow press to the previous palette the issue may lead with.",
     "refs": [
-      "apps/web/src/features/newsletter/LeadPicker.tsx:141"
+      "apps/web/src/features/newsletter/Picker.tsx:28"
     ]
   },
   "Previous palettes": {
     "note": "Press (an arrow): shows the previous palettes.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:605"
+      "apps/web/src/mcp-view/PaletteView.tsx:596"
     ]
   },
   "Previous tags": {
     "note": "Press (an arrow): shows the previous tags in the row.",
     "refs": [
-      "packages/ui/src/Tags.tsx:403"
+      "packages/ui/src/Tags.tsx:421"
+    ]
+  },
+  "Previous tip": {
+    "note": "The newsletter page, admins: the arrow that shows the tip before this one.",
+    "refs": [
+      "apps/web/src/features/newsletter/Picker.tsx:34"
     ]
   },
   "Privacy": {
     "note": "Footer link to the Privacy Policy.",
     "refs": [
-      "apps/web/src/app/site.ts:63"
+      "apps/web/src/app/site.ts:75"
     ]
   },
   "Privacy & Consent": {
     "note": "Settings: heading of the section with the analytics and session replay switches, the reader's consent choices for this browser. Not the Privacy Policy.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:110"
+      "apps/web/src/features/account/settings/Privacy.tsx:122"
+    ]
+  },
+  "Privacy Policy": {
+    "note": "The privacy banner: the link to the Privacy Policy page.",
+    "refs": [
+      "packages/ui/src/ConsentBanner.tsx:78"
+    ]
+  },
+  "Privacy choices": {
+    "note": "The privacy banner's name for screen readers, and the footer's link to the privacy switches in Settings.",
+    "refs": [
+      "apps/web/src/app/site.ts:77",
+      "packages/ui/src/ConsentBanner.tsx:69"
     ]
   },
   "Privacy policy": {
     "note": "Title of the Privacy Policy page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:314"
+      "apps/web/src/lib/page-meta.ts:322"
     ]
   },
   "Private": {
     "note": "Label on a private collection.",
     "refs": [
-      "apps/web/src/features/collections/Heading.tsx:145",
+      "apps/web/src/features/collections/Heading.tsx:143",
       "packages/ui/src/CollectionCard.tsx:102",
-      "packages/ui/src/CollectionGroup.tsx:82"
+      "packages/ui/src/CollectionGroup.tsx:85"
     ]
   },
   "Profile": {
     "note": "Settings section: username and avatar.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:220"
+      "apps/web/src/features/account/settings/Profile.tsx:224"
     ]
   },
   "Profile, account and privacy.": {
@@ -2954,13 +3031,13 @@
   "Publish and schedule palettes and collections, and edit or remove ones the site made.": {
     "note": "Connect page, admin only: what the admin tools do.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:310"
+      "apps/web/src/features/connect/Connect.tsx:314"
     ]
   },
   "Published": {
     "note": "Section of the newsletter page: published issues.",
     "refs": [
-      "apps/web/src/features/newsletter/NewsletterPage.tsx:150"
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:186"
     ]
   },
   "Published by <host>{host}</host>": {
@@ -2973,13 +3050,19 @@
   "Put my warm palettes in a collection called Sunsets.": {
     "note": "MCP page: an example request to an AI app.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:32"
+      "apps/web/src/features/connect/McpServer.tsx:41"
+    ]
+  },
+  "Quick tip": {
+    "note": "The newsletter page, admins: name of the controls that choose the issue's quick tip, the short tip it ends with.",
+    "refs": [
+      "apps/web/src/features/newsletter/Picker.tsx:33"
     ]
   },
   "RGB and HSL describe how a screen mixes light, and their numbers often don't match what we see. Pure yellow and pure blue both have an HSL lightness of 50%, yet the yellow looks far lighter. OKLCH gives them 0.97 and 0.45. It is Björn Ottosson's OKLab in polar form, built so equal changes in its numbers look equal. Two colors mixed both ways:": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:469"
+      "apps/web/src/features/about/AboutPage.tsx:471"
     ]
   },
   "Radial": {
@@ -2997,8 +3080,8 @@
   "Random": {
     "note": "Press: makes a new random palette. Held keyframes keep what is locked; with none held, every keyframe does. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:345",
-      "apps/web/src/features/editor/Controls.tsx:347"
+      "apps/web/src/features/editor/Controls.tsx:347",
+      "apps/web/src/features/editor/Controls.tsx:349"
     ]
   },
   "Random palette": {
@@ -3010,7 +3093,7 @@
   "Reasons": {
     "note": "Admin: screen reader name of the reason chips.",
     "refs": [
-      "packages/ui/src/Curation.tsx:301"
+      "packages/ui/src/Curation.tsx:296"
     ]
   },
   "Rebuild the search index as the site changes. When off, search keeps the last one.": {
@@ -3022,7 +3105,7 @@
   "Records your visits, with all text hidden.": {
     "note": "Settings: line under the Session replay switch.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:30"
+      "apps/web/src/features/account/settings/Privacy.tsx:37"
     ]
   },
   "Reduce motion": {
@@ -3037,26 +3120,38 @@
       "apps/web/src/features/account/settings/Appearance.tsx:181"
     ]
   },
+  "Reject all": {
+    "note": "The privacy banner: one of its two answers, equal in size and look to Accept all.",
+    "refs": [
+      "packages/ui/src/ConsentBanner.tsx:83"
+    ]
+  },
   "Remove": {
     "note": "Press: removes. In the export preview it takes a palette out of the selection; it is also its tooltip.",
     "refs": [
       "apps/web/src/features/collections/Notes.tsx:107",
       "packages/ui/src/ContrastGrid.tsx:455",
-      "packages/ui/src/Curation.tsx:42",
+      "packages/ui/src/Curation.tsx:41",
       "packages/ui/src/RemovePress.tsx:102"
+    ]
+  },
+  "Remove Grabient from your app and add it once more.": {
+    "note": "The MCP page, under If it doesn't connect: the second thing to try.",
+    "refs": [
+      "apps/web/src/features/connect/McpServer.tsx:27"
     ]
   },
   "Remove all from selection": {
     "note": "Press on a collection: takes all its palettes out of the selection. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:277",
-      "apps/web/src/features/collections/Actions.tsx:278"
+      "apps/web/src/features/collections/Actions.tsx:304",
+      "apps/web/src/features/collections/Actions.tsx:305"
     ]
   },
   "Remove from collection": {
     "note": "Press: takes the palette out of this collection.",
     "refs": [
-      "packages/ui/src/Curation.tsx:41",
+      "packages/ui/src/Curation.tsx:40",
       "packages/ui/src/Fit.tsx:36",
       "packages/ui/src/RemovePress.tsx:32"
     ]
@@ -3064,11 +3159,11 @@
   "Remove from selection": {
     "note": "Press (a check) on a palette in the selection: takes it out. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:522",
-      "apps/web/src/features/editor/Editor.tsx:523",
-      "packages/ui/src/ExportPreview.tsx:73",
-      "packages/ui/src/PaletteCard.tsx:254",
-      "packages/ui/src/PaletteCard.tsx:255"
+      "apps/web/src/features/editor/Editor.tsx:547",
+      "apps/web/src/features/editor/Editor.tsx:548",
+      "packages/ui/src/ExportPreview.tsx:83",
+      "packages/ui/src/PaletteCard.tsx:260",
+      "packages/ui/src/PaletteCard.tsx:261"
     ]
   },
   "Remove held keyframes": {
@@ -3080,28 +3175,28 @@
   "Remove keyframe": {
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:109",
-      "apps/web/src/features/editor/Editor.tsx:965",
-      "packages/ui/src/Keyframes.tsx:117"
+      "apps/web/src/features/about/AboutPage.tsx:111",
+      "apps/web/src/features/editor/Editor.tsx:1000",
+      "packages/ui/src/Keyframes.tsx:146"
     ]
   },
   "Remove keyframes": {
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:109",
-      "apps/web/src/features/editor/Editor.tsx:965"
-    ]
-  },
-  "Remove palette {number}": {
-    "note": "Screen reader name of a palette in the export preview: a press removes it from the selection.",
-    "refs": [
-      "packages/ui/src/ExportPreview.tsx:80"
+      "apps/web/src/features/about/AboutPage.tsx:111",
+      "apps/web/src/features/editor/Editor.tsx:1000"
     ]
   },
   "Remove {hex}": {
     "note": "Accessible name of the trash press in the color picker that removes one of the reader's text colors from Text contrast. {hex} is its hex code; its tooltip is Remove.",
     "refs": [
       "packages/ui/src/ContrastGrid.tsx:454"
+    ]
+  },
+  "Remove {name} from selection": {
+    "note": "Read by screen readers: the press that takes a palette out of the selection in the export preview. {name} is the palette's name.",
+    "refs": [
+      "packages/ui/src/ExportPreview.tsx:90"
     ]
   },
   "Removed from {title}.": {
@@ -3113,7 +3208,7 @@
   "Removing…": {
     "note": "Press or status while a palette is being removed.",
     "refs": [
-      "packages/ui/src/Curation.tsx:43",
+      "packages/ui/src/Curation.tsx:42",
       "packages/ui/src/RemovePress.tsx:102",
       "packages/ui/src/RemovePress.tsx:29"
     ]
@@ -3139,18 +3234,18 @@
   "Requires JavaScript": {
     "note": "Structured data: the browser needs JavaScript.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:537"
+      "apps/web/src/lib/page-meta.ts:558"
     ]
   },
   "Reset": {
     "note": "Press: back to the default.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:68",
+      "apps/web/src/features/about/AboutPage.tsx:69",
       "apps/web/src/features/bindings/BindingsPage.tsx:193",
-      "apps/web/src/features/collections/Actions.tsx:328",
-      "apps/web/src/features/collections/Actions.tsx:329",
-      "apps/web/src/features/search/Sampler.tsx:228",
-      "packages/ui/src/Appearance.tsx:204",
+      "apps/web/src/features/collections/Actions.tsx:356",
+      "apps/web/src/features/collections/Actions.tsx:357",
+      "apps/web/src/features/search/Sampler.tsx:265",
+      "packages/ui/src/Appearance.tsx:210",
       "packages/ui/src/Appearance.tsx:51"
     ]
   },
@@ -3169,67 +3264,67 @@
   "Resetting…": {
     "note": "The Reset press while it works.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:334"
+      "apps/web/src/features/collections/Actions.tsx:362"
     ]
   },
   "Retry": {
     "note": "Press: tries the failed request again.",
     "refs": [
-      "apps/web/src/app/ErrorPage.tsx:39",
+      "apps/web/src/app/ErrorPage.tsx:40",
       "apps/web/src/features/account/settings/Admin.tsx:224",
-      "apps/web/src/features/collections/CollectionPage.tsx:888",
-      "apps/web/src/features/collections/CollectionsPage.tsx:532",
-      "apps/web/src/features/collections/CollectionsPage.tsx:537",
+      "apps/web/src/features/collections/CollectionPage.tsx:906",
+      "apps/web/src/features/collections/CollectionsPage.tsx:535",
+      "apps/web/src/features/collections/CollectionsPage.tsx:540",
       "apps/web/src/features/connect/ConnectedApps.tsx:94",
-      "apps/web/src/features/gallery/Home.tsx:509",
-      "apps/web/src/features/gallery/Home.tsx:517",
-      "apps/web/src/features/gallery/Palettes.tsx:616",
-      "apps/web/src/features/gallery/Palettes.tsx:621",
-      "apps/web/src/features/newsletter/NewsletterPage.tsx:53"
+      "apps/web/src/features/gallery/Home.tsx:511",
+      "apps/web/src/features/gallery/Home.tsx:519",
+      "apps/web/src/features/gallery/Palettes.tsx:620",
+      "apps/web/src/features/gallery/Palettes.tsx:625",
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:79"
     ]
   },
   "Return to <host>{host}</host>": {
     "note": "Press: goes back to the app's site.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:371"
+      "apps/web/src/features/connect/Connect.tsx:375"
     ]
   },
   "Returns to": {
     "note": "Connect page label: where the answer goes back.",
     "refs": [
-      "apps/web/src/features/connect/Connect.tsx:350"
+      "apps/web/src/features/connect/Connect.tsx:354"
     ]
   },
   "Reverse": {
     "note": "Press: reverses the order of the palette's colors, or of the held keyframes. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:387",
-      "apps/web/src/features/editor/Controls.tsx:388",
+      "apps/web/src/features/editor/Controls.tsx:389",
+      "apps/web/src/features/editor/Controls.tsx:390",
       "packages/ui/src/keymap.ts:26"
     ]
   },
   "Reverse puts the keyframes in the opposite order. Invert makes a negative: each lightness <c>L</c> becomes <c>1 − L</c>, and each hue turns 180°.": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:543"
+      "apps/web/src/features/about/AboutPage.tsx:549"
     ]
   },
   "Rising gradient and color palette collections": {
     "note": "Title of the Rising collections list.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:433"
+      "apps/web/src/lib/page-meta.ts:480"
     ]
   },
   "Rising gradient palettes": {
     "note": "Title of the Rising list from its second page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:272"
+      "apps/web/src/lib/page-meta.ts:280"
     ]
   },
   "Rising gradient palettes | Grabient": {
     "note": "Title of the Rising list in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:271"
+      "apps/web/src/lib/page-meta.ts:279"
     ]
   },
   "Rising over 1 year": {
@@ -3247,33 +3342,33 @@
   "Rising palettes and new features, about once a month, to {email}.": {
     "note": "Settings: line under the newsletter switch.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:79"
+      "apps/web/src/features/account/settings/Privacy.tsx:87"
     ]
   },
   "Rising palettes and new features, about once a month.": {
     "note": "The newsletter page line under its title.",
     "refs": [
-      "apps/web/src/features/newsletter/NewsletterPage.tsx:115"
+      "apps/web/src/features/newsletter/NewsletterPage.tsx:143"
     ]
   },
   "Rising, 1 week": {
     "note": "Screen reader name of the Rising frame chip: one week.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:72",
+      "apps/web/src/features/editor/Sheet.tsx:73",
       "packages/ui/src/ListNav.tsx:20"
     ]
   },
   "Rising, 1 year": {
     "note": "Screen reader name of the Rising frame chip: one year.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:74",
+      "apps/web/src/features/editor/Sheet.tsx:75",
       "packages/ui/src/ListNav.tsx:22"
     ]
   },
   "Rising, 3 months": {
     "note": "Screen reader name of the Rising frame chip: three months.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:73",
+      "apps/web/src/features/editor/Sheet.tsx:74",
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
@@ -3286,27 +3381,27 @@
   "Saturation and brightness": {
     "note": "Accessible name of the color picker's square: saturation runs across it and brightness up it, as in the HSB pickers of Figma and Photoshop. HSB's saturation and brightness, not the palette's chroma and lightness.",
     "refs": [
-      "packages/ui/src/ColorPicker.tsx:404"
+      "packages/ui/src/ColorPicker.tsx:403"
     ]
   },
   "Saturation {saturation}%, brightness {brightness}%": {
     "note": "What a screen reader says for the color picker's square: {saturation} and {brightness} are numbers from 0 to 100.",
     "refs": [
-      "packages/ui/src/ColorPicker.tsx:408"
+      "packages/ui/src/ColorPicker.tsx:407"
     ]
   },
   "Save": {
     "note": "Press: saves. Also the submit press of a form, and an admin's Save in the editor.",
     "refs": [
       "apps/web/src/features/account/settings/Account.tsx:123",
-      "apps/web/src/features/account/settings/Profile.tsx:302",
-      "apps/web/src/features/collections/Actions.tsx:291",
-      "apps/web/src/features/collections/Actions.tsx:292",
-      "apps/web/src/features/collections/CollectionPage.tsx:668",
-      "apps/web/src/features/collections/Heading.tsx:113",
-      "apps/web/src/features/editor/Controls.tsx:460",
+      "apps/web/src/features/account/settings/Profile.tsx:306",
+      "apps/web/src/features/collections/Actions.tsx:319",
+      "apps/web/src/features/collections/Actions.tsx:320",
+      "apps/web/src/features/collections/CollectionPage.tsx:681",
+      "apps/web/src/features/collections/Heading.tsx:240",
+      "apps/web/src/features/editor/Controls.tsx:459",
       "packages/ui/src/CollectList.tsx:164",
-      "packages/ui/src/Curation.tsx:46",
+      "packages/ui/src/Curation.tsx:45",
       "packages/ui/src/ExportPanel.tsx:148",
       "packages/ui/src/keymap.ts:45"
     ]
@@ -3326,7 +3421,7 @@
   "Save palettes to your account.": {
     "note": "MCP page: a thing an app can do.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:26"
+      "apps/web/src/features/connect/McpServer.tsx:35"
     ]
   },
   "Save to": {
@@ -3339,50 +3434,59 @@
   "Save your favorite palettes.": {
     "note": "Line under the sign-in title.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:331"
+      "apps/web/src/features/account/LoginPage.tsx:306"
     ]
   },
   "Saved": {
     "note": "Press or status after a save.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:460"
+      "apps/web/src/features/editor/Controls.tsx:459"
     ]
   },
   "Saved from <source>{title}</source>": {
     "note": "Line on a saved copy of a collection, naming the original; <source> links to it.",
     "refs": [
-      "apps/web/src/features/collections/Heading.tsx:164"
+      "apps/web/src/features/collections/Heading.tsx:162"
     ]
   },
   "Saved palettes": {
     "note": "The reader's saved (liked) palettes, and links to them.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:127",
-      "apps/web/src/app/Frames.tsx:71",
+      "apps/web/src/app/AccountMenu.tsx:129",
+      "apps/web/src/app/Frames.tsx:77",
       "apps/web/src/app/OfflineList.tsx:11",
-      "apps/web/src/app/Shell.tsx:162",
-      "apps/web/src/features/account/settings/Profile.tsx:224",
-      "apps/web/src/lib/page-meta.ts:359",
-      "apps/web/src/lib/page-meta.ts:420"
+      "apps/web/src/app/Shell.tsx:175",
+      "apps/web/src/features/account/settings/Profile.tsx:228",
+      "apps/web/src/lib/page-meta.ts:367",
+      "apps/web/src/lib/page-meta.ts:467"
     ]
   },
   "Saved palettes for {query}": {
     "note": "Title of a search in Saved.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:419"
+      "apps/web/src/lib/page-meta.ts:466"
     ]
   },
   "Saved palettes like {name}": {
     "note": "Title of a search in Saved by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:418"
+      "apps/web/src/lib/page-meta.ts:465"
     ]
   },
   "Saved.": {
     "note": "Status after a save.",
     "refs": [
       "apps/web/src/features/account/settings/Account.tsx:102",
-      "apps/web/src/features/account/settings/Profile.tsx:198"
+      "apps/web/src/features/account/settings/Profile.tsx:202",
+      "apps/web/src/features/collections/Actions.tsx:94",
+      "apps/web/src/features/collections/Heading.tsx:102",
+      "apps/web/src/features/collections/Heading.tsx:84"
+    ]
+  },
+  "Saved. Change it in Settings.": {
+    "note": "Said to screen readers after an answer on the privacy banner: the choice is kept, and Settings can change it.",
+    "refs": [
+      "packages/ui/src/ConsentBanner.tsx:60"
     ]
   },
   "Saving": {
@@ -3396,25 +3500,25 @@
     "refs": [
       "apps/web/src/features/account/settings/Account.tsx:123",
       "apps/web/src/features/account/settings/Account.tsx:95",
-      "apps/web/src/features/account/settings/Profile.tsx:172",
-      "apps/web/src/features/account/settings/Profile.tsx:302",
-      "apps/web/src/features/collections/Actions.tsx:291",
-      "apps/web/src/features/collections/Heading.tsx:113",
-      "apps/web/src/features/editor/Controls.tsx:460",
-      "packages/ui/src/Curation.tsx:46"
+      "apps/web/src/features/account/settings/Profile.tsx:176",
+      "apps/web/src/features/account/settings/Profile.tsx:306",
+      "apps/web/src/features/collections/Actions.tsx:319",
+      "apps/web/src/features/collections/Heading.tsx:240",
+      "apps/web/src/features/editor/Controls.tsx:459",
+      "packages/ui/src/Curation.tsx:45"
     ]
   },
   "Scroll down": {
     "note": "Press: scrolls down to the content. Also its tooltip.",
     "refs": [
-      "packages/ui/src/BackToTop.tsx:61"
+      "packages/ui/src/BackToTop.tsx:62"
     ]
   },
   "Search by image": {
     "note": "Press: an image icon inside the search field; opens a file chooser to search palettes by an image's colors. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/search/SearchField.tsx:132",
-      "apps/web/src/features/search/SearchField.tsx:135"
+      "apps/web/src/features/search/SearchField.tsx:139",
+      "apps/web/src/features/search/SearchField.tsx:142"
     ]
   },
   "Search by meaning": {
@@ -3426,9 +3530,9 @@
   "Search collections": {
     "note": "Search field over a list of collections, and its placeholder.",
     "refs": [
-      "apps/web/src/features/collections/Find.tsx:167",
-      "packages/ui/src/CollectList.tsx:286",
-      "packages/ui/src/CollectList.tsx:287"
+      "apps/web/src/features/collections/Find.tsx:173",
+      "packages/ui/src/CollectList.tsx:288",
+      "packages/ui/src/CollectList.tsx:289"
     ]
   },
   "Search index updates": {
@@ -3447,7 +3551,7 @@
     "note": "Search field and its placeholder.",
     "refs": [
       "apps/web/src/features/gallery/Palettes.tsx:442",
-      "apps/web/src/features/search/SearchField.tsx:71"
+      "apps/web/src/features/search/SearchField.tsx:78"
     ]
   },
   "Search palettes and collections": {
@@ -3459,7 +3563,7 @@
   "Search palettes by words, hex codes or another palette.": {
     "note": "MCP page: a thing an app can do.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:23"
+      "apps/web/src/features/connect/McpServer.tsx:32"
     ]
   },
   "Search with words or hex colors, or paste a palette link.": {
@@ -3478,7 +3582,7 @@
   "Seed": {
     "note": "Code pane tab: the palette's seed, the short code in its address.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:144"
+      "apps/web/src/features/editor/code.ts:146"
     ]
   },
   "Seeding agents read these notes before they write again.": {
@@ -3499,7 +3603,9 @@
   "Selection": {
     "note": "The selection, the palettes gathered to export or save together: a press with its count, and a tab in the export panel.",
     "refs": [
-      "apps/web/src/features/selection/SelectionScreen.tsx:358",
+      "apps/web/src/app/navigation.ts:199",
+      "apps/web/src/features/selection/SelectionScreen.tsx:361",
+      "apps/web/src/features/selection/SelectionScreen.tsx:391",
       "apps/web/src/features/selection/export.ts:41",
       "apps/web/src/features/selection/export.ts:52",
       "apps/web/src/features/selection/export.ts:78"
@@ -3508,7 +3614,7 @@
   "Send": {
     "note": "Press: sends the message.",
     "refs": [
-      "apps/web/src/features/contact/ContactPage.tsx:91"
+      "apps/web/src/features/contact/ContactPage.tsx:120"
     ]
   },
   "Send a test issue to {email} only.": {
@@ -3520,19 +3626,13 @@
   "Send code": {
     "note": "Sign-in press when connecting an app: emails a code.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:296"
-    ]
-  },
-  "Send issues of the newsletter. When off, none goes out, and unsubscribing still works.": {
-    "note": "Admin: line under Newsletter.",
-    "refs": [
-      "apps/web/src/features/account/settings/flags.ts:65"
+      "apps/web/src/features/account/LoginPage.tsx:271"
     ]
   },
   "Send link": {
     "note": "Sign-in press: emails a link that signs in.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:296"
+      "apps/web/src/features/account/LoginPage.tsx:271"
     ]
   },
   "Send sign-in links and codes and contact messages. When off, sign-in offers Google, and deletion emails and owner alerts still go.": {
@@ -3556,11 +3656,11 @@
   "Sending…": {
     "note": "A send press or status while it works.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:174",
-      "apps/web/src/features/account/LoginPage.tsx:293",
+      "apps/web/src/features/account/LoginPage.tsx:149",
+      "apps/web/src/features/account/LoginPage.tsx:268",
       "apps/web/src/features/account/settings/Admin.tsx:104",
-      "apps/web/src/features/contact/ContactPage.tsx:89",
-      "apps/web/src/features/contact/ContactPage.tsx:91"
+      "apps/web/src/features/contact/ContactPage.tsx:118",
+      "apps/web/src/features/contact/ContactPage.tsx:120"
     ]
   },
   "Sent. Check your inbox.": {
@@ -3572,37 +3672,37 @@
   "Sent. Thanks.": {
     "note": "Contact page status after a message was sent.",
     "refs": [
-      "apps/web/src/features/contact/ContactPage.tsx:46"
+      "apps/web/src/features/contact/ContactPage.tsx:62"
     ]
   },
   "Session replay": {
     "note": "Settings: the session replay consent switch, and its feature flag.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:30",
+      "apps/web/src/features/account/settings/Privacy.tsx:37",
       "apps/web/src/features/account/settings/flags.ts:40"
     ]
   },
   "Set view": {
     "note": "Admin press: sets a palette's style, steps and angle.",
     "refs": [
-      "packages/ui/src/Curation.tsx:46"
+      "packages/ui/src/Curation.tsx:45"
     ]
   },
   "Settings": {
     "note": "The Settings page, its title and links to it.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:118",
-      "apps/web/src/app/AccountMenu.tsx:129",
-      "apps/web/src/app/site.ts:31",
+      "apps/web/src/app/AccountMenu.tsx:120",
+      "apps/web/src/app/AccountMenu.tsx:131",
+      "apps/web/src/app/site.ts:33",
       "apps/web/src/features/account/SettingsPage.tsx:46",
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:80",
-      "apps/web/src/lib/page-meta.ts:353"
+      "apps/web/src/lib/page-meta.ts:361"
     ]
   },
   "Shader": {
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:179"
+      "apps/web/src/features/editor/code.ts:181"
     ]
   },
   "Share images": {
@@ -3614,15 +3714,15 @@
   "Shift with punctuation differs between keyboards.": {
     "note": "Line on the keys page: such a binding works differently on other keyboard layouts.",
     "refs": [
-      "packages/ui/src/keys.ts:320"
+      "packages/ui/src/keys.ts:331"
     ]
   },
   "Shortcuts": {
     "note": "The keyboard shortcuts: the list that ? opens, and the page where a shortcut is changed, its title and link.",
     "refs": [
-      "apps/web/src/app/site.ts:32",
+      "apps/web/src/app/site.ts:34",
       "apps/web/src/features/bindings/BindingsPage.tsx:96",
-      "packages/ui/src/KeyList.tsx:75"
+      "packages/ui/src/KeyList.tsx:79"
     ]
   },
   "Show curation, votes, agent notes and publishing in this browser.": {
@@ -3634,7 +3734,7 @@
   "Show fewer": {
     "note": "Press: shows fewer palettes.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:626"
+      "apps/web/src/mcp-view/PaletteView.tsx:617"
     ]
   },
   "Show or hide panel": {
@@ -3652,33 +3752,40 @@
   "Show panel": {
     "note": "Press: shows the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:32"
+      "apps/web/src/features/editor/Corner.tsx:32",
+      "apps/web/src/features/editor/Editor.tsx:188"
     ]
   },
   "Show shortcuts": {
     "note": "Shortcut list entry for ?: shows the list of shortcuts.",
     "refs": [
       "packages/ui/src/keymap.ts:23",
-      "packages/ui/src/keys.ts:389"
+      "packages/ui/src/keys.ts:400"
+    ]
+  },
+  "Show the newsletter to readers and send them its issues. Until it's on, only admins see its page and send themselves a test. Unsubscribing always works.": {
+    "note": "Site features (admins): the newsletter switch's description.",
+    "refs": [
+      "apps/web/src/features/account/settings/flags.ts:65"
     ]
   },
   "Sign in": {
     "note": "Press or link: opens the sign-in page.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:116",
-      "apps/web/src/app/AccountMenu.tsx:226",
+      "apps/web/src/app/AccountMenu.tsx:118",
       "apps/web/src/app/AccountMenu.tsx:238",
-      "apps/web/src/features/account/LoginPage.tsx:327",
-      "apps/web/src/features/account/LoginPage.tsx:389",
+      "apps/web/src/app/AccountMenu.tsx:250",
+      "apps/web/src/features/account/LoginPage.tsx:302",
+      "apps/web/src/features/account/LoginPage.tsx:364",
       "apps/web/src/features/account/PasswordPage.tsx:59",
       "apps/web/src/features/account/PasswordPage.tsx:70",
-      "apps/web/src/features/account/settings/Profile.tsx:244",
-      "apps/web/src/features/collections/CollectionsPage.tsx:486",
-      "apps/web/src/features/connect/McpServer.tsx:134",
+      "apps/web/src/features/account/settings/Profile.tsx:248",
+      "apps/web/src/features/collections/CollectionsPage.tsx:488",
+      "apps/web/src/features/connect/McpServer.tsx:143",
       "apps/web/src/features/gallery/Home.tsx:325",
       "apps/web/src/features/gallery/Palettes.tsx:431",
-      "apps/web/src/features/gallery/Palettes.tsx:631",
-      "apps/web/src/lib/page-meta.ts:335",
+      "apps/web/src/features/gallery/Palettes.tsx:635",
+      "apps/web/src/lib/page-meta.ts:343",
       "packages/email/src/letters.ts:44",
       "packages/email/src/letters.ts:58",
       "packages/ui/src/SaveToCollection.tsx:38"
@@ -3690,10 +3797,16 @@
       "packages/email/src/letters.ts:43"
     ]
   },
+  "Sign in to Grabient in the browser your app opens, then add Grabient again.": {
+    "note": "The MCP page, under If it doesn't connect: the first thing to try.",
+    "refs": [
+      "apps/web/src/features/connect/McpServer.tsx:26"
+    ]
+  },
   "Sign in to change your profile.": {
     "note": "Settings: line under Profile when signed out.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:233"
+      "apps/web/src/features/account/settings/Profile.tsx:237"
     ]
   },
   "Sign in to confirm. This link expires in 24 hours.": {
@@ -3712,7 +3825,7 @@
       "apps/web/src/server/account/sync.ts:172",
       "apps/web/src/server/account/sync.ts:200",
       "apps/web/src/server/collections/http.ts:43",
-      "apps/web/src/server/newsletter/routes.ts:38",
+      "apps/web/src/server/newsletter/routes.ts:41",
       "apps/web/src/server/search/account.ts:20",
       "apps/web/src/server/search/votes.ts:77"
     ]
@@ -3734,7 +3847,7 @@
   "Sign in to save your favorite color palettes.": {
     "note": "Sign-in page description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:336"
+      "apps/web/src/lib/page-meta.ts:344"
     ]
   },
   "Sign in to search with all your words.": {
@@ -3747,33 +3860,39 @@
   "Sign in to see your collections.": {
     "note": "Heading on Your collections when signed out, over a Sign in press; also an error line.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:478"
+      "apps/web/src/features/collections/CollectionsPage.tsx:480"
     ]
   },
   "Sign in to see your saved palettes.": {
     "note": "Heading on Saved when signed out, over a Sign in press; also an error line.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:490",
+      "apps/web/src/features/gallery/Palettes.tsx:491",
       "apps/web/src/features/gallery/queries.ts:222"
     ]
   },
   "Sign in to sync your changes": {
     "note": "Account menu: changes made signed out wait for sign-in.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:99"
+      "apps/web/src/app/AccountMenu.tsx:101"
     ]
   },
   "Sign in with Google": {
     "note": "Press: signs in with Google.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:340"
+      "apps/web/src/features/account/LoginPage.tsx:315"
     ]
   },
   "Sign out": {
     "note": "Press: signs out.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:133",
+      "apps/web/src/app/AccountMenu.tsx:135",
       "apps/web/src/features/account/settings/Account.tsx:41"
+    ]
+  },
+  "Signed in, this page lists the apps you connected: disconnect the ones you no longer use.": {
+    "note": "The MCP page, under If it doesn't connect: the third thing to try, read by a reader who is signed in.",
+    "refs": [
+      "apps/web/src/features/connect/McpServer.tsx:28"
     ]
   },
   "Signed out": {
@@ -3785,14 +3904,14 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:523",
-      "apps/web/src/features/editor/StaticPalette.tsx:123"
+      "apps/web/src/features/editor/Sheet.tsx:567",
+      "apps/web/src/features/editor/StaticPalette.tsx:132"
     ]
   },
   "Since lightness, chroma and hue are separate, changing a keyframe's hue keeps its lightness.": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:484"
+      "apps/web/src/features/about/AboutPage.tsx:486"
     ]
   },
   "Site features": {
@@ -3804,33 +3923,33 @@
   "Size": {
     "note": "Label: the size in pixels of each exported palette.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:173",
-      "packages/ui/src/ExportPanel.tsx:174",
-      "packages/ui/src/ExportPanel.tsx:187"
+      "packages/ui/src/ExportPanel.tsx:176",
+      "packages/ui/src/ExportPanel.tsx:177",
+      "packages/ui/src/ExportPanel.tsx:190"
     ]
   },
   "Size presets": {
     "note": "Screen reader name of the list of preset sizes.",
     "refs": [
-      "packages/ui/src/SizeControl.tsx:254"
+      "packages/ui/src/SizeControl.tsx:259"
     ]
   },
   "Size · Auto": {
     "note": "Tooltip on the preview size press when the size is automatic.",
     "refs": [
-      "packages/ui/src/SizeControl.tsx:217"
+      "packages/ui/src/SizeControl.tsx:218"
     ]
   },
   "Size · {size}": {
     "note": "Tooltip on the preview size press, with the size.",
     "refs": [
-      "packages/ui/src/SizeControl.tsx:217"
+      "packages/ui/src/SizeControl.tsx:218"
     ]
   },
   "Skip to content": {
     "note": "Link for keyboard users: skips to the page content.",
     "refs": [
-      "packages/ui/src/SkipLink.tsx:40"
+      "packages/ui/src/SkipLink.tsx:44"
     ]
   },
   "Some features are limited here.": {
@@ -3842,40 +3961,40 @@
   "Some palettes and the curves that make them:": {
     "note": "About: line over the recipes.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:527"
+      "apps/web/src/features/about/AboutPage.tsx:529"
     ]
   },
   "Someone liked this palette, so it stays.": {
     "note": "Error: a palette a person liked can't be changed or deleted.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:388",
+      "apps/web/src/server/collections/me.ts:398",
       "apps/web/src/server/collections/palettes.ts:28"
     ]
   },
   "Something went wrong. Try again.": {
     "note": "Generic error line, and the title of the page shown after an error.",
     "refs": [
-      "apps/web/src/app/ErrorPage.tsx:31",
-      "apps/web/src/features/account/LoginPage.tsx:26",
+      "apps/web/src/app/ErrorPage.tsx:32",
+      "apps/web/src/features/account/LoginPage.tsx:27",
       "apps/web/src/features/account/PasswordPage.tsx:14",
       "apps/web/src/features/account/session.ts:391",
       "apps/web/src/features/account/settings/Admin.tsx:185",
       "apps/web/src/features/account/settings/Admin.tsx:40",
-      "apps/web/src/features/account/settings/Privacy.tsx:61",
-      "apps/web/src/features/collections/client.ts:48",
+      "apps/web/src/features/account/settings/Privacy.tsx:69",
+      "apps/web/src/features/collections/client.ts:54",
       "apps/web/src/features/connect/ConnectedApps.tsx:24",
-      "apps/web/src/features/newsletter/LeadPicker.tsx:100",
-      "apps/web/src/features/newsletter/LeadPicker.tsx:73",
+      "apps/web/src/features/newsletter/Picker.tsx:124",
+      "apps/web/src/features/newsletter/Picker.tsx:151",
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:25",
       "apps/web/src/lib/query.ts:109",
-      "apps/web/src/server/editor/facts.ts:108",
-      "apps/web/src/server/pipeline.ts:108"
+      "apps/web/src/server/editor/facts.ts:114",
+      "apps/web/src/server/pipeline.ts:113"
     ]
   },
   "Spectrum: two keyframes with equal lightness and chroma, and hue that travels 360°.": {
     "note": "About: a recipe.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:244"
+      "apps/web/src/features/about/AboutPage.tsx:246"
     ]
   },
   "Square": {
@@ -3887,7 +4006,7 @@
   "Start": {
     "note": "Field: short for Lightness start where the line is too narrow for it beside End.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:177"
+      "apps/web/src/features/editor/Controls.tsx:176"
     ]
   },
   "Start and end with a letter or number.": {
@@ -3899,15 +4018,21 @@
   "Steps": {
     "note": "Field: how many evenly spaced colors the gradient is drawn with.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:141",
-      "packages/ui/src/Appearance.tsx:250",
-      "packages/ui/src/Curation.tsx:267"
+      "apps/web/src/features/about/AboutPage.tsx:143",
+      "packages/ui/src/Appearance.tsx:256",
+      "packages/ui/src/Curation.tsx:262"
+    ]
+  },
+  "Still stuck? Write to <email>{email}</email>.": {
+    "note": "The MCP page: the line under those steps. <email> is the contact address.",
+    "refs": [
+      "apps/web/src/features/connect/McpServer.tsx:202"
     ]
   },
   "Stop the Grabient newsletter.": {
     "note": "Unsubscribe page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:348"
+      "apps/web/src/lib/page-meta.ts:356"
     ]
   },
   "Stop the newsletter for this email.": {
@@ -3925,14 +4050,14 @@
   "Straighten lightness": {
     "note": "Press: puts the lightness of the keyframes between the ends on a straight line. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:367",
-      "apps/web/src/features/editor/Controls.tsx:368"
+      "apps/web/src/features/editor/Controls.tsx:369",
+      "apps/web/src/features/editor/Controls.tsx:370"
     ]
   },
   "Style": {
     "note": "Field: the style a palette is drawn in.",
     "refs": [
-      "packages/ui/src/Curation.tsx:259"
+      "packages/ui/src/Curation.tsx:254"
     ]
   },
   "Subscribe again": {
@@ -3944,7 +4069,7 @@
   "Sunset: lightness falls from 0.86 to 0.32, chroma peaks at 0.19, and hue turns from yellow to crimson.": {
     "note": "About: a recipe.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:233"
+      "apps/web/src/features/about/AboutPage.tsx:235"
     ]
   },
   "Swatches": {
@@ -3969,7 +4094,7 @@
   "Tags": {
     "note": "Screen reader name of the row of tags.",
     "refs": [
-      "packages/ui/src/Tags.tsx:337"
+      "packages/ui/src/Tags.tsx:353"
     ]
   },
   "Tags are 2 to {max} letters, numbers, spaces or hyphens.": {
@@ -3981,38 +4106,38 @@
   "Tell Grabient what's broken or what you need. Send a message with the contact form, and leave your email only if you want a reply.": {
     "note": "Contact page description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:329"
+      "apps/web/src/lib/page-meta.ts:337"
     ]
   },
   "Tell us what's broken or what you need.": {
     "note": "Contact page: line under the title.",
     "refs": [
-      "apps/web/src/features/contact/ContactPage.tsx:64"
+      "apps/web/src/features/contact/ContactPage.tsx:82"
     ]
   },
   "Terminal": {
     "note": "MCP page: the setup runs in a terminal.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:54"
+      "apps/web/src/features/connect/McpServer.tsx:63"
     ]
   },
   "Terms": {
     "note": "Footer link to the Terms of Service.",
     "refs": [
-      "apps/web/src/app/site.ts:64"
+      "apps/web/src/app/site.ts:76"
     ]
   },
   "Terms of service": {
     "note": "Title of the Terms of Service page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:321"
+      "apps/web/src/lib/page-meta.ts:329"
     ]
   },
   "Text contrast": {
     "note": "Name of a pane on a palette's page and in the editor: a grid of text colors on each of the palette's colors, showing how readable each is. Also the grid's accessible name.",
     "refs": [
-      "packages/ui/src/PaletteSheet.tsx:146",
-      "packages/ui/src/PaletteSheet.tsx:151"
+      "packages/ui/src/PaletteSheet.tsx:164",
+      "packages/ui/src/PaletteSheet.tsx:169"
     ]
   },
   "That collection isn't yours anymore.": {
@@ -4045,8 +4170,8 @@
   "That palette isn't in this collection.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:231",
-      "apps/web/src/server/collections/me.ts:386"
+      "apps/web/src/server/collections/me.ts:239",
+      "apps/web/src/server/collections/me.ts:396"
     ]
   },
   "That username is reserved.": {
@@ -4058,7 +4183,7 @@
   "That username is taken.": {
     "note": "Settings: line under the username field.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:143",
+      "apps/web/src/features/account/settings/Profile.tsx:147",
       "apps/web/src/server/account/profile.ts:77"
     ]
   },
@@ -4077,48 +4202,42 @@
   "The browser uses that key.": {
     "note": "Line on the keys page: that key cannot be bound, the browser uses it.",
     "refs": [
-      "packages/ui/src/keys.ts:317"
+      "packages/ui/src/keys.ts:328"
     ]
   },
   "The colors as design tokens.": {
     "note": "Code pane: what the JSON tab holds when it is set to design tokens.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:196"
+      "apps/web/src/features/editor/code.ts:198"
     ]
   },
   "The dots are keyframes. The graph shows lightness, chroma and hue along the gradient. Drag a dot to change a keyframe.": {
     "note": "About: caption of the first figure.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:92"
+      "apps/web/src/features/about/AboutPage.tsx:93"
     ]
   },
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:649",
-      "apps/web/src/features/editor/Editor.tsx:658"
+      "apps/web/src/features/editor/Editor.tsx:674",
+      "apps/web/src/features/editor/Editor.tsx:683"
     ]
   },
   "The keyframes as JSON.": {
     "note": "Code pane: what the JSON tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:196"
+      "apps/web/src/features/editor/code.ts:198"
     ]
   },
   "The most liked CSS gradients and color palettes on Grabient. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
     "note": "Popular list description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:266"
+      "apps/web/src/lib/page-meta.ts:274"
     ]
   },
   "The newsletter has no sender yet. Add the RESEND_API_KEY secret.": {
     "note": "Admin error: the email service is not set up.",
-    "refs": [
-      "apps/web/src/server/newsletter/send.ts:21"
-    ]
-  },
-  "The newsletter is turned off in Site features.": {
-    "note": "Admin error: the newsletter flag is off.",
     "refs": [
       "apps/web/src/server/newsletter/send.ts:18"
     ]
@@ -4126,43 +4245,43 @@
   "The original collection is gone.": {
     "note": "Error: Update or Reset on a saved copy whose original was deleted.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:181"
+      "apps/web/src/server/collections/me.ts:189"
     ]
   },
   "The palette as Markdown: colors, names and CSS.": {
     "note": "Code pane: what the MD tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:208"
+      "apps/web/src/features/editor/code.ts:210"
     ]
   },
   "The palette in the color space": {
     "note": "Screen reader name of the 3D picture of the palette inside the color space.",
     "refs": [
-      "packages/ui/src/Solid.tsx:377"
+      "packages/ui/src/Solid.tsx:417"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:202"
+      "apps/web/src/features/editor/code.ts:204"
     ]
   },
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": {
     "note": "About: caption of the steps figure.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:133"
+      "apps/web/src/features/about/AboutPage.tsx:135"
     ]
   },
   "The seed in bits": {
     "note": "About: screen reader name of the diagram of the seed's bits.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:284"
+      "apps/web/src/features/about/AboutPage.tsx:286"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
     "note": "Terms page description in search results; the list is the page's sections. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:322"
+      "apps/web/src/lib/page-meta.ts:330"
     ]
   },
   "Theme": {
@@ -4170,13 +4289,13 @@
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:143",
       "packages/ui/src/keymap.ts:21",
-      "packages/ui/src/keys.ts:449"
+      "packages/ui/src/keys.ts:460"
     ]
   },
   "Theme · {key}": {
     "note": "Tooltip on the theme press, with its key.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:207"
+      "apps/web/src/app/Shell.tsx:235"
     ]
   },
   "Theme: {state}": {
@@ -4212,25 +4331,25 @@
   "This collection already has the palette with that style, steps and angle.": {
     "note": "Error: the same palette with the same style, steps and angle is already there.",
     "refs": [
-      "apps/web/src/server/collections/me.ts:399"
+      "apps/web/src/server/collections/me.ts:409"
     ]
   },
   "This collection is empty.": {
     "note": "Empty state of a collection.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:883"
+      "apps/web/src/features/collections/CollectionPage.tsx:901"
     ]
   },
   "This collection is private.": {
     "note": "Title on a private collection opened signed out.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:696"
+      "apps/web/src/features/collections/CollectionPage.tsx:709"
     ]
   },
   "This collection opens offline once you've seen it online.": {
     "note": "A collection with no connection, never opened online on this device: why it shows no palettes.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:682"
+      "apps/web/src/features/collections/CollectionPage.tsx:695"
     ]
   },
   "This link expires in 5 minutes. If you didn't ask for it, ignore this email.": {
@@ -4242,7 +4361,7 @@
   "This link isn't valid.": {
     "note": "Error: a bad unsubscribe link.",
     "refs": [
-      "apps/web/src/server/newsletter/routes.ts:25"
+      "apps/web/src/server/newsletter/routes.ts:28"
     ]
   },
   "This link isn't valid. Turn the newsletter off in Settings or write to <email>{email}</email>.": {
@@ -4260,13 +4379,13 @@
   "This page as Markdown": {
     "note": "Title of the link in the page's head to its Markdown version.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:963"
+      "apps/web/src/lib/page-meta.ts:1046"
     ]
   },
   "This page doesn't exist. Browse Grabient for color palettes.": {
     "note": "Not found page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:846"
+      "apps/web/src/lib/page-meta.ts:921"
     ]
   },
   "This page is in English only.": {
@@ -4278,7 +4397,7 @@
   "This page opens offline once you've seen it online.": {
     "note": "A page with no connection whose code this device never kept: why it shows nothing.",
     "refs": [
-      "apps/web/src/app/ErrorPage.tsx:34"
+      "apps/web/src/app/ErrorPage.tsx:35"
     ]
   },
   "This palette can't be exported.": {
@@ -4291,11 +4410,11 @@
   "This palette can't be put back.": {
     "note": "Error line: an undo of a removal came too late.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:415",
-      "apps/web/src/features/collections/CollectionPage.tsx:447",
+      "apps/web/src/features/collections/CollectionPage.tsx:428",
+      "apps/web/src/features/collections/CollectionPage.tsx:460",
       "apps/web/src/server/account/collections.ts:177",
-      "apps/web/src/server/collections/me.ts:313",
-      "apps/web/src/server/collections/me.ts:343"
+      "apps/web/src/server/collections/me.ts:323",
+      "apps/web/src/server/collections/me.ts:353"
     ]
   },
   "This permanently deletes your account and saved palettes.": {
@@ -4319,9 +4438,9 @@
   "Title": {
     "note": "Field: a collection's title.",
     "refs": [
-      "apps/web/src/features/collections/Heading.tsx:85",
-      "packages/ui/src/CollectList.tsx:222",
-      "packages/ui/src/CollectList.tsx:223"
+      "apps/web/src/features/collections/Heading.tsx:212",
+      "packages/ui/src/CollectList.tsx:224",
+      "packages/ui/src/CollectList.tsx:225"
     ]
   },
   "Titles are 1 to {max} characters.": {
@@ -4333,7 +4452,19 @@
   "To draw the gradient, Grabient takes colors at evenly spaced points, called steps. The first and last steps are the first and last keyframes. Gradient styles use the steps as color stops. Band styles show each step as a band of flat color. There are never fewer steps than keyframes:": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:459"
+      "apps/web/src/features/about/AboutPage.tsx:461"
+    ]
+  },
+  "To improve Grabient, Google Analytics can count your visits and link them to your account, and session replay can record them with all text hidden. Nothing runs until you choose.": {
+    "note": "The privacy banner where the law asks for consent first (the EEA and others): what would run, and that nothing runs before a choice.",
+    "refs": [
+      "packages/ui/src/ConsentBanner.tsx:16"
+    ]
+  },
+  "To improve Grabient, Google Analytics counts visits. Accept all also links them to your account and records them with all text hidden.": {
+    "note": "The privacy banner in Switzerland: analytics already counts visits, and what Accept all adds. Accept all names the banner's own press.",
+    "refs": [
+      "packages/ui/src/ConsentBanner.tsx:19"
     ]
   },
   "Too close to another palette here": {
@@ -4364,7 +4495,7 @@
     "note": "Error: a rate limit was reached.",
     "refs": [
       "apps/web/src/routes/api/saved.ts:26",
-      "apps/web/src/server/pipeline.ts:212"
+      "apps/web/src/server/pipeline.ts:246"
     ]
   },
   "Too many searches. Try again in a moment.": {
@@ -4377,26 +4508,26 @@
   "Travel": {
     "note": "Field: how far the hue turns, in degrees, from a keyframe to the next.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:267"
+      "apps/web/src/features/editor/Controls.tsx:268"
     ]
   },
   "Trending": {
     "note": "Heading of the home page feed.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:364"
+      "apps/web/src/features/gallery/Home.tsx:365"
     ]
   },
   "Try a color, mood or theme, like navy, cozy or sunset. Or sign in to search in any language.": {
     "note": "Line under No results, signed out: the words to try, or sign in to search in any language.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:369",
-      "apps/web/src/features/gallery/Palettes.tsx:500"
+      "apps/web/src/features/gallery/Home.tsx:370",
+      "apps/web/src/features/gallery/Palettes.tsx:501"
     ]
   },
   "Try asking": {
     "note": "MCP page heading over example requests.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:166"
+      "apps/web/src/features/connect/McpServer.tsx:175"
     ]
   },
   "Turn off": {
@@ -4416,7 +4547,7 @@
   "Turn on the newsletter in Settings to send a test.": {
     "note": "Admin error.",
     "refs": [
-      "apps/web/src/server/newsletter/routes.ts:179"
+      "apps/web/src/server/newsletter/routes.ts:222"
     ]
   },
   "Turned off by {name}": {
@@ -4428,7 +4559,7 @@
   "Two keyframes make a seed of 11 characters, and eight make one of 37. Each palette has exactly one seed.": {
     "note": "About: paragraph.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:570"
+      "apps/web/src/features/about/AboutPage.tsx:576"
     ]
   },
   "Ugly turn": {
@@ -4465,20 +4596,20 @@
   "Unlock chroma": {
     "note": "Tooltip of the editor's Chroma lock while it is closed: a press lets Random change the chroma again.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:206"
+      "apps/web/src/features/editor/Controls.tsx:205"
     ]
   },
   "Unlock hue": {
     "note": "Tooltip of the editor's Hue lock while it is closed: a press lets Random change the hue again.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:221"
+      "apps/web/src/features/editor/Controls.tsx:220"
     ]
   },
   "Unlock lightness": {
     "note": "Tooltip of the editor's Lightness lock while it is closed: a press lets Random change the lightness again.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:164",
-      "apps/web/src/features/editor/Controls.tsx:189"
+      "apps/web/src/features/editor/Controls.tsx:163",
+      "apps/web/src/features/editor/Controls.tsx:188"
     ]
   },
   "Unnamed app": {
@@ -4493,42 +4624,48 @@
     "refs": [
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:115",
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:54",
-      "apps/web/src/lib/page-meta.ts:347",
-      "apps/web/src/server/newsletter/list.ts:129"
+      "apps/web/src/lib/page-meta.ts:355",
+      "apps/web/src/server/newsletter/list.ts:135"
     ]
   },
   "Update": {
     "note": "Press on a saved copy of a collection: takes the changes made to the original since. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:255",
-      "apps/web/src/features/collections/Actions.tsx:261"
+      "apps/web/src/features/collections/Actions.tsx:275",
+      "apps/web/src/features/collections/Actions.tsx:281"
     ]
   },
   "Update your username and avatar.": {
     "note": "Settings: line under Profile.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:230"
+      "apps/web/src/features/account/settings/Profile.tsx:234"
     ]
   },
   "Updated": {
     "note": "The Update press after it took the changes.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:255"
+      "apps/web/src/features/collections/Actions.tsx:275"
     ]
   },
   "Updated {date}": {
     "note": "Tooltip: when the collection last changed.",
     "refs": [
-      "apps/web/src/features/collections/Heading.tsx:68"
+      "apps/web/src/features/collections/Heading.tsx:107"
     ]
   },
   "Updating…": {
     "note": "Status while something updates: a list refreshing, or the Update press while it works.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:255",
-      "apps/web/src/features/collections/CollectionsPage.tsx:413",
+      "apps/web/src/features/collections/Actions.tsx:275",
+      "apps/web/src/features/collections/CollectionsPage.tsx:414",
       "apps/web/src/features/gallery/Home.tsx:280",
       "apps/web/src/features/gallery/Palettes.tsx:373"
+    ]
+  },
+  "Use a valid email, or leave it empty.": {
+    "note": "Contact form error: the reply address, which is optional.",
+    "refs": [
+      "apps/web/src/features/contact/ContactPage.tsx:97"
     ]
   },
   "Use at least 3 characters.": {
@@ -4559,7 +4696,7 @@
   "Username": {
     "note": "Field: the account username.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:284"
+      "apps/web/src/features/account/settings/Profile.tsx:288"
     ]
   },
   "Uses Workers AI for words the search doesn't know.": {
@@ -4577,7 +4714,7 @@
   "View saved.": {
     "note": "Status after an admin saves a palette's style, steps and angle.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:490",
+      "apps/web/src/features/collections/CollectionPage.tsx:503",
       "apps/web/src/features/gallery/curate.tsx:76"
     ]
   },
@@ -4602,25 +4739,25 @@
   "What Grabient collects when you browse, sign in and save palettes, who can see it, who it's shared with, how long it's kept and how to delete it.": {
     "note": "Privacy page description in search results; the list is the page's sections. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:315"
+      "apps/web/src/lib/page-meta.ts:323"
     ]
   },
   "What an app can do": {
     "note": "MCP page heading.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:149"
+      "apps/web/src/features/connect/McpServer.tsx:158"
     ]
   },
   "What happened": {
     "note": "Contact page: placeholder of the message field.",
     "refs": [
-      "apps/web/src/features/contact/ContactPage.tsx:82"
+      "apps/web/src/features/contact/ContactPage.tsx:107"
     ]
   },
   "What is wrong, optional": {
     "note": "Admin label over the reasons.",
     "refs": [
-      "packages/ui/src/Curation.tsx:299"
+      "packages/ui/src/Curation.tsx:294"
     ]
   },
   "When off, every feature below is off.": {
@@ -4632,20 +4769,20 @@
   "Where": {
     "note": "Admin: screen reader name of the choice of where to delete.",
     "refs": [
-      "packages/ui/src/Curation.tsx:288"
+      "packages/ui/src/Curation.tsx:283"
     ]
   },
   "Why, optional": {
     "note": "Admin label over the reasons.",
     "refs": [
-      "packages/ui/src/Curation.tsx:299"
+      "packages/ui/src/Curation.tsx:294"
     ]
   },
   "Width": {
     "note": "Field: width in pixels.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:176",
-      "packages/ui/src/SizeControl.tsx:232"
+      "packages/ui/src/ExportPanel.tsx:179",
+      "packages/ui/src/SizeControl.tsx:237"
     ]
   },
   "Word searches can be up to 100 characters.": {
@@ -4658,6 +4795,12 @@
     "note": "Contact page error.",
     "refs": [
       "apps/web/src/features/contact/input.ts:6"
+    ]
+  },
+  "Write 5 to 5,000 characters.": {
+    "note": "Contact form error: the message's length.",
+    "refs": [
+      "apps/web/src/features/contact/ContactPage.tsx:36"
     ]
   },
   "Written over {held, plural, one {# palette} other {# palettes}}; {replaced, plural, one {# since replaced} other {# since replaced}}": {
@@ -4681,7 +4824,7 @@
   "Wrong or expired code.": {
     "note": "Sign-in error: the code from the email was refused.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:28"
+      "apps/web/src/features/account/LoginPage.tsx:29"
     ]
   },
   "Wrong style, steps or angle": {
@@ -4706,27 +4849,27 @@
   "You can't change this collection.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/server/collections/api.ts:242",
-      "apps/web/src/server/collections/me.ts:345",
-      "apps/web/src/server/collections/me.ts:359",
-      "apps/web/src/server/collections/me.ts:371",
-      "apps/web/src/server/collections/me.ts:403",
-      "apps/web/src/server/collections/me.ts:439"
+      "apps/web/src/server/collections/api.ts:244",
+      "apps/web/src/server/collections/me.ts:355",
+      "apps/web/src/server/collections/me.ts:369",
+      "apps/web/src/server/collections/me.ts:381",
+      "apps/web/src/server/collections/me.ts:413",
+      "apps/web/src/server/collections/me.ts:449"
     ]
   },
   "You get this because you signed up for Grabient.": {
     "note": "Newsletter foot: why the email came.",
     "refs": [
-      "apps/web/src/server/newsletter/list.ts:128"
+      "apps/web/src/server/newsletter/list.ts:134"
     ]
   },
   "You're offline.": {
     "note": "Settings: line in the profile form while offline.",
     "refs": [
-      "apps/web/src/app/ErrorPage.tsx:31",
+      "apps/web/src/app/ErrorPage.tsx:32",
       "apps/web/src/app/OfflineList.tsx:38",
-      "apps/web/src/features/account/settings/Profile.tsx:298",
-      "apps/web/src/features/collections/CollectionPage.tsx:677"
+      "apps/web/src/features/account/settings/Profile.tsx:302",
+      "apps/web/src/features/collections/CollectionPage.tsx:690"
     ]
   },
   "You're subscribed again.": {
@@ -4744,7 +4887,7 @@
   "Your Grabient collections.": {
     "note": "Your collections page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:838"
+      "apps/web/src/lib/page-meta.ts:913"
     ]
   },
   "Your Grabient sign-in code": {
@@ -4756,40 +4899,46 @@
   "Your account": {
     "note": "Screen reader name of the account menu press.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:238"
+      "apps/web/src/app/AccountMenu.tsx:250"
     ]
   },
   "Your app asks you to sign in when you add Grabient. Choose Allow. It stays connected until you disconnect it or don't use it for a year.": {
     "note": "MCP page: signing in from an app.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:136"
+      "apps/web/src/features/connect/McpServer.tsx:145"
     ]
   },
   "Your app's MCP settings": {
     "note": "MCP page: where the setup goes.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:66"
+      "apps/web/src/features/connect/McpServer.tsx:75"
+    ]
+  },
+  "Your browser's Global Privacy Control or Do Not Track keeps this off.": {
+    "note": "Settings, Privacy & Consent: stands in place of a switch's line when the browser sends Global Privacy Control or Do Not Track, and that switch stays off. The two names stay as they are.",
+    "refs": [
+      "apps/web/src/features/account/settings/Privacy.tsx:39"
     ]
   },
   "Your collections": {
     "note": "The reader's own collections, and links to them.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:128",
+      "apps/web/src/app/AccountMenu.tsx:130",
       "apps/web/src/app/OfflineList.tsx:12",
-      "apps/web/src/lib/page-meta.ts:426",
-      "apps/web/src/lib/page-meta.ts:837"
+      "apps/web/src/lib/page-meta.ts:473",
+      "apps/web/src/lib/page-meta.ts:912"
     ]
   },
   "Your collections for {query}": {
     "note": "Title of a search in Your collections.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:425"
+      "apps/web/src/lib/page-meta.ts:472"
     ]
   },
   "Your collections like {name}": {
     "note": "Title of a search in Your collections by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:424"
+      "apps/web/src/lib/page-meta.ts:471"
     ]
   },
   "Your copy would hold more than {max} palettes. Remove some first.": {
@@ -4801,15 +4950,15 @@
   "Your image": {
     "note": "Heading over the reader's own image after a search by image, with points on it that pick its colors. Also the image's accessible name.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:465",
-      "apps/web/src/features/collections/CollectionsPage.tsx:466",
+      "apps/web/src/features/collections/CollectionsPage.tsx:467",
+      "apps/web/src/features/collections/CollectionsPage.tsx:468",
       "apps/web/src/features/search/PictureSampler.tsx:27"
     ]
   },
   "Your saved Grabient palettes.": {
     "note": "Saved page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:360"
+      "apps/web/src/lib/page-meta.ts:368"
     ]
   },
   "agent": {
@@ -4821,19 +4970,19 @@
   "analogous {colors}": {
     "note": "Palette name: neighboring hues.",
     "refs": [
-      "packages/engine/src/name.ts:755"
+      "packages/engine/src/name.ts:754"
     ]
   },
   "angular gradient": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:234"
+      "apps/web/src/lib/page-meta.ts:242"
     ]
   },
   "angular swatches": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:235"
+      "apps/web/src/lib/page-meta.ts:243"
     ]
   },
   "app\u0004Not verified": {
@@ -4858,7 +5007,7 @@
     "note": "Color name, as in a palette name: \"navy, blue and lavender\".",
     "refs": [
       "packages/engine/src/colornames.data.ts:6",
-      "packages/engine/src/name.ts:511"
+      "packages/engine/src/name.ts:510"
     ]
   },
   "brown": {
@@ -4882,20 +5031,19 @@
   "collection\u0004Saved": {
     "note": "Press on a collection the reader saved a copy of: opens the copy. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:308",
-      "apps/web/src/features/collections/Actions.tsx:309"
+      "apps/web/src/features/collections/Actions.tsx:80"
     ]
   },
   "complementary {colors}": {
     "note": "Palette name: opposite hues.",
     "refs": [
-      "packages/engine/src/name.ts:756"
+      "packages/engine/src/name.ts:755"
     ]
   },
   "cool {colors}": {
     "note": "Palette name: cool hues.",
     "refs": [
-      "packages/engine/src/name.ts:753"
+      "packages/engine/src/name.ts:752"
     ]
   },
   "cyan": {
@@ -4937,7 +5085,7 @@
   "dark {colors}": {
     "note": "Palette name: a dark palette; {colors} is a list of color names.",
     "refs": [
-      "packages/engine/src/name.ts:749"
+      "packages/engine/src/name.ts:748"
     ]
   },
   "dark · L 0": {
@@ -4949,21 +5097,21 @@
   "duotone {colors}": {
     "note": "Palette name: two colors.",
     "refs": [
-      "packages/engine/src/name.ts:758"
+      "packages/engine/src/name.ts:757"
     ]
   },
   "edit\u0004Redo": {
     "note": "Press: redoes the edit Undo took back. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:433",
-      "apps/web/src/features/editor/Controls.tsx:434"
+      "apps/web/src/features/editor/Controls.tsx:435",
+      "apps/web/src/features/editor/Controls.tsx:436"
     ]
   },
   "edit\u0004Undo": {
     "note": "Press: undoes the editor's last edit. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Controls.tsx:418",
-      "apps/web/src/features/editor/Controls.tsx:419"
+      "apps/web/src/features/editor/Controls.tsx:420",
+      "apps/web/src/features/editor/Controls.tsx:421"
     ]
   },
   "feature\u0004Email": {
@@ -4975,21 +5123,21 @@
   "frame\u00041w": {
     "note": "Rising frame chip: one week, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:72",
+      "apps/web/src/features/editor/Sheet.tsx:73",
       "packages/ui/src/ListNav.tsx:20"
     ]
   },
   "frame\u00041y": {
     "note": "Rising frame chip: one year, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:74",
+      "apps/web/src/features/editor/Sheet.tsx:75",
       "packages/ui/src/ListNav.tsx:22"
     ]
   },
   "frame\u00043m": {
     "note": "Rising frame chip: three months, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:73",
+      "apps/web/src/features/editor/Sheet.tsx:74",
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
@@ -5009,19 +5157,19 @@
     "note": "Color name, as in a palette name: \"navy, blue and lavender\".",
     "refs": [
       "packages/engine/src/colornames.data.ts:6",
-      "packages/engine/src/name.ts:513"
+      "packages/engine/src/name.ts:512"
     ]
   },
   "home": {
     "note": "Part of the logo link's screen reader name: Grabient, home.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:163"
+      "apps/web/src/app/Shell.tsx:176"
     ]
   },
   "hue": {
     "note": "About: a field of the seed diagram.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:292"
+      "apps/web/src/features/about/AboutPage.tsx:294"
     ]
   },
   "hue {value}": {
@@ -5045,55 +5193,55 @@
   "key\u0004Alt": {
     "note": "The Alt key, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:222"
+      "packages/ui/src/keys.ts:233"
     ]
   },
   "key\u0004Backspace": {
     "note": "The Backspace key, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:226"
+      "packages/ui/src/keys.ts:237"
     ]
   },
   "key\u0004Ctrl": {
     "note": "The Ctrl key, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:220"
+      "packages/ui/src/keys.ts:231"
     ]
   },
   "key\u0004Delete": {
     "note": "The Delete key, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:227"
+      "packages/ui/src/keys.ts:238"
     ]
   },
   "key\u0004Enter": {
     "note": "The Enter key, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:228"
+      "packages/ui/src/keys.ts:239"
     ]
   },
   "key\u0004Esc": {
     "note": "The Escape key, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:223"
+      "packages/ui/src/keys.ts:234"
     ]
   },
   "key\u0004Shift": {
     "note": "The Shift key, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:221"
+      "packages/ui/src/keys.ts:232"
     ]
   },
   "key\u0004Space": {
     "note": "The space bar, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:225"
+      "packages/ui/src/keys.ts:236"
     ]
   },
   "key\u0004Tab": {
     "note": "The Tab key, as the keyboard says it.",
     "refs": [
-      "packages/ui/src/keys.ts:224"
+      "packages/ui/src/keys.ts:235"
     ]
   },
   "lavender": {
@@ -5135,13 +5283,13 @@
   "linear gradient": {
     "note": "Style words in a palette's title: \"Vivid navy and blue linear gradient\".",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:232"
+      "apps/web/src/lib/page-meta.ts:240"
     ]
   },
   "linear swatches": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:233"
+      "apps/web/src/lib/page-meta.ts:241"
     ]
   },
   "magenta": {
@@ -5165,7 +5313,7 @@
   "monochrome {colors}": {
     "note": "Palette name: one hue.",
     "refs": [
-      "packages/engine/src/name.ts:754"
+      "packages/engine/src/name.ts:753"
     ]
   },
   "mustard": {
@@ -5177,14 +5325,14 @@
   "muted {colors}": {
     "note": "Palette name: a muted palette.",
     "refs": [
-      "packages/engine/src/name.ts:750"
+      "packages/engine/src/name.ts:749"
     ]
   },
   "name@example.com": {
     "note": "Placeholder of an email field.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:354",
-      "apps/web/src/features/contact/ContactPage.tsx:73"
+      "apps/web/src/features/account/LoginPage.tsx:329",
+      "apps/web/src/features/contact/ContactPage.tsx:91"
     ]
   },
   "navy": {
@@ -5196,7 +5344,7 @@
   "neon {colors}": {
     "note": "Palette name: a neon palette.",
     "refs": [
-      "packages/engine/src/name.ts:748"
+      "packages/engine/src/name.ts:747"
     ]
   },
   "off-white": {
@@ -5214,7 +5362,7 @@
   "or continue with email": {
     "note": "Words between the Google press and the email field.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:345"
+      "apps/web/src/features/account/LoginPage.tsx:320"
     ]
   },
   "orange": {
@@ -5232,25 +5380,25 @@
   "order\u0004Popular": {
     "note": "List order and its tab: the most liked first.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:102",
-      "apps/web/src/features/editor/Sheet.tsx:442",
-      "apps/web/src/features/gallery/Palettes.tsx:354",
+      "apps/web/src/features/collections/CollectionPage.tsx:103",
+      "apps/web/src/features/editor/Sheet.tsx:485",
+      "apps/web/src/features/gallery/Palettes.tsx:351",
       "packages/ui/src/ListNav.tsx:15"
     ]
   },
   "order\u0004Rising": {
     "note": "List order and its tab: palettes gaining likes now.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:103",
-      "apps/web/src/features/editor/Sheet.tsx:252",
-      "apps/web/src/features/gallery/Palettes.tsx:353",
+      "apps/web/src/features/collections/CollectionPage.tsx:104",
+      "apps/web/src/features/editor/Sheet.tsx:256",
+      "apps/web/src/features/gallery/Palettes.tsx:350",
       "packages/ui/src/ListNav.tsx:16"
     ]
   },
   "order\u0004Saved": {
     "note": "List order and its tab: the reader's own saved (liked) palettes.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:351",
+      "apps/web/src/features/gallery/Palettes.tsx:348",
       "packages/ui/src/ListNav.tsx:17"
     ]
   },
@@ -5263,7 +5411,7 @@
   "pastel {colors}": {
     "note": "Palette name: a pastel palette.",
     "refs": [
-      "packages/engine/src/name.ts:747"
+      "packages/engine/src/name.ts:746"
     ]
   },
   "peach": {
@@ -5276,7 +5424,7 @@
     "note": "Color name, as in a palette name: \"navy, blue and lavender\".",
     "refs": [
       "packages/engine/src/colornames.data.ts:6",
-      "packages/engine/src/name.ts:512"
+      "packages/engine/src/name.ts:511"
     ]
   },
   "purple": {
@@ -5288,25 +5436,25 @@
   "radial gradient": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:236"
+      "apps/web/src/lib/page-meta.ts:244"
     ]
   },
   "radial swatches": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:237"
+      "apps/web/src/lib/page-meta.ts:245"
     ]
   },
   "rainbow": {
     "note": "Palette name: a full turn of hue.",
     "refs": [
-      "packages/engine/src/name.ts:767"
+      "packages/engine/src/name.ts:766"
     ]
   },
   "rainbow from {start} to {end}": {
     "note": "Palette name: a rainbow between two color names.",
     "refs": [
-      "packages/engine/src/name.ts:766"
+      "packages/engine/src/name.ts:765"
     ]
   },
   "red": {
@@ -5330,13 +5478,13 @@
   "seamless {colors}": {
     "note": "Palette name: a palette whose ends meet, so it loops.",
     "refs": [
-      "packages/engine/src/name.ts:746"
+      "packages/engine/src/name.ts:745"
     ]
   },
   "spare": {
     "note": "About: an unused bit in the seed diagram.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:288"
+      "apps/web/src/features/about/AboutPage.tsx:290"
     ]
   },
   "stops off curve ΔE {value}": {
@@ -5366,31 +5514,31 @@
   "triadic {colors}": {
     "note": "Palette name: three hues spaced evenly.",
     "refs": [
-      "packages/engine/src/name.ts:757"
+      "packages/engine/src/name.ts:756"
     ]
   },
   "tritone {colors}": {
     "note": "Palette name: three colors.",
     "refs": [
-      "packages/engine/src/name.ts:759"
+      "packages/engine/src/name.ts:758"
     ]
   },
   "version": {
     "note": "About: a field of the seed diagram.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:286"
+      "apps/web/src/features/about/AboutPage.tsx:288"
     ]
   },
   "vivid {colors}": {
     "note": "Palette name: a vivid palette.",
     "refs": [
-      "packages/engine/src/name.ts:751"
+      "packages/engine/src/name.ts:750"
     ]
   },
   "warm {colors}": {
     "note": "Palette name: warm hues.",
     "refs": [
-      "packages/engine/src/name.ts:752"
+      "packages/engine/src/name.ts:751"
     ]
   },
   "white": {
@@ -5403,49 +5551,49 @@
     "note": "Color name, as in a palette name: \"navy, blue and lavender\".",
     "refs": [
       "packages/engine/src/colornames.data.ts:6",
-      "packages/engine/src/name.ts:514"
+      "packages/engine/src/name.ts:513"
     ]
   },
   "{app}'s guide": {
     "note": "MCP page: link to an app's own setup guide.",
     "refs": [
-      "apps/web/src/features/connect/McpServer.tsx:59"
+      "apps/web/src/features/connect/McpServer.tsx:68"
     ]
   },
   "{at} of {count}": {
     "note": "Newsletter, admins only: which of the issue's lead palettes is shown, as \"3 of 13\".",
     "refs": [
-      "apps/web/src/features/newsletter/LeadPicker.tsx:177"
+      "apps/web/src/features/newsletter/Picker.tsx:237"
     ]
   },
   "{count, plural, one {# band} other {# bands}}, one per line.": {
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:174"
+      "apps/web/src/features/editor/code.ts:176"
     ]
   },
   "{count, plural, one {# change not saved} other {# changes not saved}}": {
     "note": "Account menu: changes the server refused.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:92"
+      "apps/web/src/app/AccountMenu.tsx:94"
     ]
   },
   "{count, plural, one {# change to sync} other {# changes to sync}}": {
     "note": "Account menu: changes not synced yet.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:103"
+      "apps/web/src/app/AccountMenu.tsx:105"
     ]
   },
   "{count, plural, one {# character} other {# characters}}. The whole palette.": {
     "note": "Code pane: the seed's length; it holds the whole palette.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:147"
+      "apps/web/src/features/editor/code.ts:149"
     ]
   },
   "{count, plural, one {# color} other {# colors}}, one per line.": {
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:175"
+      "apps/web/src/features/editor/code.ts:177"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
@@ -5457,7 +5605,7 @@
   "{count, plural, one {# hard band} other {# hard bands}} as oklch().": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:119"
+      "apps/web/src/features/editor/code.ts:121"
     ]
   },
   "{count, plural, one {# hour} other {# hours}}": {
@@ -5487,31 +5635,31 @@
   "{count, plural, one {# palette} other {# palettes}}": {
     "note": "A count of palettes.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:89"
+      "apps/web/src/mcp-view/PaletteView.tsx:91"
     ]
   },
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:126"
+      "apps/web/src/features/editor/code.ts:128"
     ]
   },
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as {fn}.": {
     "note": "Code pane: what the CSS holds. fn is the CSS color function the bands are written in, rgb() or hsl(), shown as code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:131"
+      "apps/web/src/features/editor/code.ts:133"
     ]
   },
   "{count, plural, one {# sRGB stop} other {# sRGB stops}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:129"
+      "apps/web/src/features/editor/code.ts:131"
     ]
   },
   "{count, plural, one {# sRGB stop} other {# sRGB stops}} as {fn}.": {
     "note": "Code pane: what the CSS holds. fn is the CSS color function the stops are written in, rgb() or hsl(), shown as code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:135"
+      "apps/web/src/features/editor/code.ts:137"
     ]
   },
   "{count, plural, one {# session} other {# sessions}}": {
@@ -5531,14 +5679,14 @@
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:28",
       "apps/web/src/features/list/ListAppearance.tsx:142",
-      "apps/web/src/mcp-view/PaletteView.tsx:87",
+      "apps/web/src/mcp-view/PaletteView.tsx:89",
       "packages/ui/src/figure.ts:121"
     ]
   },
   "{count, plural, one {# stop, blended in OKLCH} other {# stops, blended in OKLCH}} as oklch().": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:120"
+      "apps/web/src/features/editor/code.ts:122"
     ]
   },
   "{count, plural, one {<n>#</n> <w>palette</w>} other {<n>#</n> <w>palettes</w>}}": {
@@ -5550,13 +5698,13 @@
   "{count, plural, one {<n>#</n> selected} other {<n>#</n> selected}}": {
     "note": "How many palettes are in the selection.",
     "refs": [
-      "packages/ui/src/ExportPanel.tsx:160"
+      "packages/ui/src/ExportPanel.tsx:162"
     ]
   },
   "{count, plural, one {All #} other {All #}}": {
     "note": "Press: shows all of them, with the count.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:519"
+      "apps/web/src/features/gallery/Palettes.tsx:523"
     ]
   },
   "{count, plural, one {Like, #} other {Like, #}}": {
@@ -5574,7 +5722,7 @@
   "{description} Page {page}.": {
     "note": "A list's description in search results on its second page and later: the list's own description, then the page number.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:863"
+      "apps/web/src/lib/page-meta.ts:938"
     ]
   },
   "{device} cover": {
@@ -5592,19 +5740,19 @@
   "{first} and {second}": {
     "note": "Palette name: two color names.",
     "refs": [
-      "packages/engine/src/name.ts:772"
+      "packages/engine/src/name.ts:771"
     ]
   },
   "{first}, {second} and {third}": {
     "note": "Palette name: three color names.",
     "refs": [
-      "packages/engine/src/name.ts:775"
+      "packages/engine/src/name.ts:774"
     ]
   },
   "{first}, {second}, {third} and {fourth}": {
     "note": "Palette name: four color names.",
     "refs": [
-      "packages/engine/src/name.ts:776"
+      "packages/engine/src/name.ts:775"
     ]
   },
   "{key} is already on this row.": {
@@ -5622,20 +5770,20 @@
   "{label} color": {
     "note": "Screen reader name of a color field, with its label.",
     "refs": [
-      "packages/ui/src/HexField.tsx:85"
+      "packages/ui/src/HexField.tsx:92"
     ]
   },
   "{label}, as text": {
     "note": "Screen reader name of the code shown for a tab, or of a field holding text to copy by hand.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:372",
+      "apps/web/src/mcp-view/PaletteView.tsx:373",
       "packages/ui/src/PaletteCode.tsx:140"
     ]
   },
   "{min} to {max}": {
     "note": "Line under a number field: the range allowed.",
     "refs": [
-      "packages/ui/src/Curation.tsx:71"
+      "packages/ui/src/Curation.tsx:70"
     ]
   },
   "{name} (agent)": {
@@ -5647,13 +5795,13 @@
   "{name} color palette": {
     "note": "Alt text of a palette's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:625"
+      "apps/web/src/lib/page-meta.ts:690"
     ]
   },
   "{name} gradient": {
     "note": "Screen reader name of a card's picture drawn as a gradient.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:183"
+      "packages/ui/src/PaletteCard.tsx:186"
     ]
   },
   "{name} is disconnected": {
@@ -5665,47 +5813,48 @@
   "{name} on Grabient": {
     "note": "Alt text of a list's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:769",
-      "apps/web/src/lib/page-meta.ts:782"
+      "apps/web/src/lib/page-meta.ts:843",
+      "apps/web/src/lib/page-meta.ts:857"
     ]
   },
   "{name} palette": {
     "note": "Screen reader name of a palette card, with the palette's name.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:137",
+      "packages/ui/src/PaletteCard.tsx:140",
       "packages/ui/src/Thumbnail.tsx:23"
     ]
   },
   "{name} palette with {steps, plural, one {# color} other {# colors}}.": {
     "note": "Start of a palette's description in search results when it has no written words: its name, made from its colors, and how many colors it shows.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:606"
+      "apps/web/src/lib/page-meta.ts:643"
     ]
   },
   "{name} palette, removed": {
     "note": "Screen reader name of a palette card just taken out of a collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:137"
+      "packages/ui/src/PaletteCard.tsx:140"
     ]
   },
   "{name} swatches": {
     "note": "Screen reader name of a card's picture drawn as bands of flat color.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:183"
+      "packages/ui/src/PaletteCard.tsx:186"
     ]
   },
   "{name} {style}": {
     "note": "A palette's title: its name, then its style words.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:409",
-      "packages/engine/src/name.ts:828"
+      "apps/web/src/lib/page-meta.ts:456",
+      "apps/web/src/lib/page-meta.ts:697",
+      "packages/engine/src/name.ts:827"
     ]
   },
   "{name} {style} with {steps, plural, one {# color} other {# colors}}: {hexes}. Edit it and copy or download CSS, SVG, PNG or shader code.": {
     "note": "A palette's description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:638",
-      "packages/engine/src/name.ts:840"
+      "apps/web/src/lib/page-meta.ts:708",
+      "packages/engine/src/name.ts:839"
     ]
   },
   "{percent}% gamut-mapped": {
@@ -5717,7 +5866,7 @@
   "{seconds, plural, one {Resend in #s} other {Resend in #s}}": {
     "note": "The send press while it waits before another email can go.",
     "refs": [
-      "apps/web/src/features/account/LoginPage.tsx:295"
+      "apps/web/src/features/account/LoginPage.tsx:270"
     ]
   },
   "{space} color space. Click to hide.": {
@@ -5741,31 +5890,31 @@
   "{start} to {end}": {
     "note": "Palette name: from one color name to another.",
     "refs": [
-      "packages/engine/src/name.ts:771"
+      "packages/engine/src/name.ts:770"
     ]
   },
   "{steps, plural, one {# color} other {# colors}}, {keyframes, plural, one {# editable OKLCH keyframe} other {# editable OKLCH keyframes}}.": {
     "note": "Line on a palette page without scripts: its colors and keyframes.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:92"
+      "apps/web/src/features/editor/StaticPalette.tsx:93"
     ]
   },
   "{subject} gradient and color palette collections": {
     "note": "Title of a collections search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:431"
+      "apps/web/src/lib/page-meta.ts:478"
     ]
   },
   "{subject} gradients and color palettes": {
     "note": "Title of a palettes search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:415"
+      "apps/web/src/lib/page-meta.ts:462"
     ]
   },
   "{subject} palettes and collections": {
     "note": "Title of a home page search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:401"
+      "apps/web/src/lib/page-meta.ts:448"
     ]
   },
   "{text} on {ground}: {ratio}, enough for text": {
@@ -5795,14 +5944,14 @@
   "{title} has changed, so it stays.": {
     "note": "Error: an undo would delete a collection that changed since.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:104",
+      "apps/web/src/features/collections/Actions.tsx:114",
       "apps/web/src/features/collections/collect.ts:132"
     ]
   },
   "{title}, page {page}": {
     "note": "A list title from its second page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:385"
+      "apps/web/src/lib/page-meta.ts:424"
     ]
   },
   "{title}: <subject>{subject}</subject>": {
@@ -5814,55 +5963,55 @@
   "{title}: a collection of color palettes": {
     "note": "Alt text of a collection's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:712"
+      "apps/web/src/lib/page-meta.ts:782"
     ]
   },
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": {
     "note": "A collection's title in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:683"
+      "apps/web/src/lib/page-meta.ts:753"
     ]
   },
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": {
     "note": "A collection's description in search results when it has no words of its own: its title and how many palettes it holds.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:706"
+      "apps/web/src/lib/page-meta.ts:776"
     ]
   },
   "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients.": {
     "note": "A collection's description in search results: its own words (as written, in English), then how many palettes it holds. Used when the longer form would pass 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:698"
+      "apps/web/src/lib/page-meta.ts:768"
     ]
   },
   "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients. Open any palette to edit and export it.": {
     "note": "A collection's description in search results: its own words (as written, in English), then how many palettes it holds.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:693"
+      "apps/web/src/lib/page-meta.ts:763"
     ]
   },
   "{words} {hexes}.": {
     "note": "A palette's description in search results: its words (written ones, or its name and how many colors it shows), then some of its colors as hex codes. Used when the longer form would pass 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:618"
+      "apps/web/src/lib/page-meta.ts:655"
     ]
   },
   "{words} {hexes}. Edit and export CSS, SVG, PNG or a shader.": {
     "note": "A palette's description in search results: its words (written ones, or its name and how many colors it shows), then its colors as hex codes.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:613"
+      "apps/web/src/lib/page-meta.ts:650"
     ]
   },
   "× each later keyframe": {
     "note": "About: the fields repeat for each later keyframe.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:300"
+      "apps/web/src/features/about/AboutPage.tsx:302"
     ]
   },
   "Δ hue": {
     "note": "About: a field of the seed diagram, the change in hue.",
     "refs": [
-      "apps/web/src/features/about/AboutPage.tsx:298"
+      "apps/web/src/features/about/AboutPage.tsx:300"
     ]
   }
 }
