@@ -1,7 +1,7 @@
 import { setLocaleSource } from "@grabient/i18n";
 import { QueryClient } from "@tanstack/solid-query";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { heading } from "../../lib/page-meta.ts";
+import { heading, paletteAddress } from "../../lib/page-meta.ts";
 import { AS_SAVED } from "../list/appearance.ts";
 import type { ListPlace } from "./params.ts";
 import {
@@ -268,6 +268,11 @@ describe("a collection page's loader", () => {
     });
     expect(popular.paint?.map(p => p.seed)).toEqual([SEEDS[2], SEEDS[1], SEEDS[0]]);
     expect(popular.paint?.every(p => p.angle === 45)).toBe(true);
+    // its structured data names each palette at the address its card links, the view the collection holds it in
+    expect(popular.palettes).toEqual(
+      [SEEDS[2], SEEDS[1], SEEDS[0]].map(seed => paletteAddress(seed, saved))
+    );
+    expect(popular.palettes?.[0]).toMatch(/\?steps=5$/);
     const rising = await loadCollection(cache, at("ocean-depths", "rising"));
     expect(rising.paint?.map(p => p.seed)).toEqual([SEEDS[1], SEEDS[0], SEEDS[2]]);
     expect(rising.status).toBeUndefined();
@@ -276,6 +281,8 @@ describe("a collection page's loader", () => {
     const cache = holding("ocean-depths", { doc, languages: ["ja", "de"], fetchedAt: 0 });
     const loaded = await loadCollection(cache, at("ocean-depths"));
     expect(loaded.facts).toMatchObject({ title: "Ocean depths", languages: ["ja", "de"] });
+    // and the frame, whose language menu follows those languages alone
+    expect(loaded.languages).toEqual(["ja", "de"]);
     const named = (found: typeof loaded) =>
       collectionHead({ slug: "ocean-depths", order: "popular", search: {} }, found)
         .links.filter(link => "hreflang" in link)
