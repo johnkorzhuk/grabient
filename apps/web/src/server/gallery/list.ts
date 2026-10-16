@@ -1,5 +1,4 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
-import { titleFaults } from "@grabient/engine/name.ts";
 import { parseView } from "@grabient/engine/view.ts";
 import { all, type Db, first, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
@@ -44,16 +43,11 @@ export interface PaletteRow {
   angle: number;
   likes_count?: number | null;
   created_at: number;
-  /** the title written for it, where one is */
-  title?: string | null;
 }
-/** A gallery palette's columns, read from k_palettes, and the title written for it. */
-export const ROW = `seed, style, steps, angle, likes_count, created_at,
-  (SELECT t.title FROM k_palette_texts t WHERE t.seed = k_palettes.seed) AS title`;
+export const ROW = "seed, style, steps, angle, likes_count, created_at";
 
 /** A row as a list shows it, or null for a seed the codec would write otherwise: only canonical seeds enter lists. Its
-    steps are never fewer than its keyframes, and its written title is kept where its colors bear it out: the view a
-    gallery palette is listed in is the one it was saved in, which the title names. */
+    steps are never fewer than its keyframes. */
 export function itemOf(row: PaletteRow): PaletteItem | null {
   const palette = decodePalette(row.seed);
   if (!palette || encodePalette(palette) !== row.seed) return null;
@@ -67,8 +61,7 @@ export function itemOf(row: PaletteRow): PaletteItem | null {
     steps: Math.max(view.steps, palette.anchors.length),
     angle: view.angle,
     likes: Math.max(0, Number(row.likes_count) || 0),
-    createdAt: Number(row.created_at),
-    ...(row.title && !titleFaults(row.title, palette).length ? { title: row.title } : {})
+    createdAt: Number(row.created_at)
   };
 }
 export const itemsOf = (rows: readonly PaletteRow[]): PaletteItem[] =>

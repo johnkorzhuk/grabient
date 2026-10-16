@@ -1,5 +1,4 @@
 import { env as bound } from "cloudflare:workers";
-import type { Palette } from "@grabient/engine";
 import { authFor } from "@grabient/server/auth/library.ts";
 import type { Place } from "@grabient/server/consent.ts";
 import { run } from "@grabient/server/db/d1.ts";
@@ -205,12 +204,4 @@ export function watchLimits(env: TestEnv): { env: TestEnv; asked: string[] } {
     }
   };
   return { env: { ...env, RATE_LIMITER: watched as unknown as DurableObjectNamespace }, asked };
-}
-
-/** A title naming a color the palette has none of: the first of these its own colors contradict. */
-export function titleAgainst(palette: Palette): string {
-  const hues = palette.anchors.map(a => ((a.h % 360) + 360) % 360);
-  const far = (hue: number) =>
-    hues.every(h => Math.min(Math.abs(h - hue), 360 - Math.abs(h - hue)) > 90);
-  return far(145) ? "Emerald green forest" : far(265) ? "Deep blue ocean" : "Bright red poppy";
 }

@@ -28,10 +28,9 @@ export const searchFile = (name: string): Uint8Array =>
 export const fixture = <T>(name: string): T =>
   JSON.parse(readFileSync(new URL(`fixtures/${name}`, import.meta.url), "utf8")) as T;
 
-type View = { style: string; steps: number; angle: number; title?: string };
+type View = { style: string; steps: number; angle: number };
 
-/** A D1 that shows every palette asked of the gallery, drawn as `view` says, with the title it names, with no likes;
-    every other read is empty. */
+/** A D1 that shows every palette asked of the gallery, drawn as `view` says, with no likes; every other read is empty. */
 export function galleryDb(
   view: (seed: string) => View = () => ({ style: "linearGradient", steps: 7, angle: 90 })
 ): D1Database {

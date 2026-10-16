@@ -65,9 +65,7 @@ test("the footer's privacy choices are nofollow, and Privacy and Terms are in an
   ]);
 });
 
-test("every palette link of a list has words, a palette's written title where its card draws it as it was saved", async ({
-  request
-}) => {
+test("every palette link of a list has words, the ones its label says", async ({ request }) => {
   const html = await (await request.get("/palettes")).text();
   const plain = (s: string) =>
     s
@@ -78,18 +76,12 @@ test("every palette link of a list has words, a palette's written title where it
       .replaceAll("&amp;", "&")
       .trim();
   const cards = [
-    ...html.matchAll(/<a\b[^>]*\shref="(\/k[A-Za-z0-9_-]{8,49}(?:\?[^"]*)?)"[^>]*>([\s\S]*?)<\/a>/g)
-  ].map(([, href, inner]) => ({ href: href.replaceAll("&amp;", "&"), words: plain(inner) }));
-  expect(cards.length).toBeGreaterThan(0);
-  for (const card of cards) expect(card.words, card.href).toMatch(/^Edit \S/);
-  const listed = (await (
-    await request.get("/api/palettes?sort=popular&page=1&limit=24")
-  ).json()) as {
-    items: { kseed: string; title?: string }[];
-  };
-  const titled = listed.items.find(item => item.title);
-  expect(titled).toBeTruthy();
-  expect(cards.find(card => card.href.startsWith(`/${titled!.kseed}`))?.words).toBe(
-    `Edit ${titled!.title}`
-  );
+    ...html.matchAll(/<a\b([^>]*\shref="\/k[A-Za-z0-9_-]{8,49}(?:\?[^"]*)?"[^>]*)>([\s\S]*?)<\/a>/g)
+  ].map(([, tag, inner]) => ({
+    label: plain(/\saria-label="([^"]*)"/.exec(tag)?.[1] ?? ""),
+    words: plain(inner)
+  }));
+  expect(cards.length).toBe(24);
+  for (const card of cards) expect(card.words).toMatch(/^Edit \S/);
+  for (const card of cards) expect(card.words).toBe(card.label);
 });

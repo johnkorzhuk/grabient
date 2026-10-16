@@ -196,16 +196,11 @@ async function present(
     let style = intent.style ?? item.style;
     if (intent.swatches) style = style.replace("Gradient", "Swatches") as Style;
     const anchors = decodePalette(item.kseed)?.anchors.length ?? 2;
-    const steps = Math.max(anchors, intent.count ?? item.steps, 3);
-    /* a title names the palette in the view it was saved in alone */
-    const { title, ...own } = item;
-    const saved = style === item.style && steps === item.steps;
     return [
       {
-        ...own,
-        ...(title && saved ? { title } : {}),
+        ...item,
         style,
-        steps,
+        steps: Math.max(anchors, intent.count ?? item.steps, 3),
         score: candidate.score,
         tags: [...tags]
       }

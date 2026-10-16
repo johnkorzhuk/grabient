@@ -1,6 +1,6 @@
 import { seedName } from "@grabient/engine/name.ts";
 import { type SizeChoice, type Style, viewSearch } from "@grabient/engine/view.ts";
-import { DEFAULT_LOCALE, formatDate, locale, localHref, t } from "@grabient/i18n";
+import { formatDate, locale, localHref, t } from "@grabient/i18n";
 import { madePalettes, madeView } from "@grabient/search/colors.ts";
 import type { Drawn } from "../../lib/palette.ts";
 import type { CollectionSummary } from "../collections/types.ts";
@@ -72,16 +72,6 @@ export function nameOf(p: Drawn): string {
   }
   return name;
 }
-
-/** What a list's card calls a palette: in English, the title written for it while the card draws it as it was listed,
-    the one view its page wears that title in; else what its colors call it. */
-export const cardName = (item: Pick<PaletteItem, "style" | "steps" | "title">, shown: Drawn) =>
-  item.title &&
-  locale() === DEFAULT_LOCALE &&
-  shown.style === item.style &&
-  shown.steps === item.steps
-    ? item.title
-    : nameOf(shown);
 
 /** The palette's page in the view it is drawn in, at the size the reader set, in the reader's language. */
 export const paletteHref = (p: Drawn, size: SizeChoice | null): string =>
