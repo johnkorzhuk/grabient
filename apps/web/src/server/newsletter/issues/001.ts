@@ -35,7 +35,17 @@ const LEADS = [
   view("kWVCNaQ5-_topPfnrj3dB9AI", "linearGradient", 7, 90),
   view("kUhTMb0ypEriFL8wEqsA", "radialGradient", 64, 0),
   view("kYMSMAK6vBj9BwLMx0EWrvCW6uQ4", "radialSwatches", 6, 180),
-  view("kUp2HtvK3CCcjw-fkEWA", "radialGradient", 32, 0)
+  view("kUp2HtvK3CCcjw-fkEWA", "radialGradient", 32, 0),
+  /* October's own, from the gallery's autumn and Halloween palettes, to try as the lead: the one that leads takes an
+     admin's like first, as every palette an issue shows has */
+  view("kWHg_KnCDDa3BwvGTEQW8VEo", "linearGradient", 7, 180),
+  view("kUNhzkNS5AU67yNmtMSg", "linearGradient", 7, 180),
+  view("kceAsOpBC0hAfPeLlL-gwBNpecwQuqMEwq9Bo", "linearGradient", 8, 180),
+  view("kUPhh1NqG9EqmuVWvLvg", "linearGradient", 7, 180),
+  view("kWTCQZOqjANKzQdgqcMw4zFA", "linearGradient", 7, 180),
+  view("kW50FF5ba9lVFPTBQb0p6S-I", "linearGradient", 7, 180),
+  view("ka70ZF7i0994zvjKtL5NrA-aQkPsWm7lg", "linearGradient", 8, 180),
+  view("kUr3cmwq6-LseSciB8Vg", "linearGradient", 7, 180)
 ];
 /* Each collection's card draws palettes it holds, each a wedge of its own about the middle and one ring more than the
    last. The site draws a palette in no fewer steps than its keyframes, so the rings start at the most keyframes among
