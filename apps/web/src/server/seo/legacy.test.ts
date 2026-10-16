@@ -88,3 +88,22 @@ test("each old address is counted by how it resolved, readers apart from crawler
     ["legacy", "fitted", "crawler"]
   ]);
 });
+
+test("an old address of the palettes like an old palette leads to the palettes like the one the maps hold for it", () => {
+  expect(canonicalRedirect("/palettes/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu")).toBe(
+    "/palettes?q=kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  );
+  expect(canonicalRedirect("/palettes/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu?sort=newest")).toBe(
+    "/palettes/rising?q=kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  );
+  // one no map holds is searched for as it was, which the browser reads by fitting it
+  expect(canonicalRedirect("/palettes/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa")).toBe(
+    "/palettes?q=_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa"
+  );
+});
+
+test("grabient.com's lists lead to the nearest of today's: its newest to Rising, its oldest to the most liked, at the page asked for", () => {
+  expect(canonicalRedirect("/newest?page=3")).toBe("/palettes/rising?page=3");
+  expect(canonicalRedirect("/oldest?page=3")).toBe("/palettes?page=3");
+  expect(canonicalRedirect("/palettes/oldest")).toBe("/palettes");
+});
