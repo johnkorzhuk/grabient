@@ -7,12 +7,13 @@ import { KEPT, PALETTES_VIEW, VIEW_MIME } from "./view.ts";
    site's origin written in. */
 
 /* No border of the app's, and the clipboard for Copy. No network policy: the page loads nothing. The openai/ keys are
-   ChatGPT's: its model's line about the view, and the modes it may open in. */
+   ChatGPT's: its model's line about the view, and the modes it may open in, inline first, since ChatGPT opens an app
+   that may also fill the screen full screen unless it says otherwise. */
 export const RESOURCE_META = {
   ui: { prefersBorder: false, permissions: { clipboardWrite: {} } },
   "openai/widgetDescription":
     "The palettes show_palettes answered, drawn from their seeds and numbered as in its answer, with links to their pages on Grabient; full screen shows the chosen one's colors and a strip that copies its address, CSS, SVG or PNG.",
-  "openai/ui": { availableDisplayModes: ["inline", "fullscreen"] }
+  "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "inline" }
 };
 
 /* The view's own origin, which ChatGPT's directory asks of every app with a view: the site's. ChatGPT's own key for

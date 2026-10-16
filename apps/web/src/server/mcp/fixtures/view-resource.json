@@ -13,7 +13,8 @@
       "availableDisplayModes": [
         "inline",
         "fullscreen"
-      ]
+      ],
+      "preferredDisplayMode": "inline"
     },
     "openai/widgetDomain": "https://grabient.test"
   },
