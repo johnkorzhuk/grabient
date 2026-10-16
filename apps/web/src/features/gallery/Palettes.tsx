@@ -36,7 +36,7 @@ import { AppPage } from "../../app/Frames.tsx";
 import { useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
-import { heading } from "../../lib/page-meta.ts";
+import { heading, relTo } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { onAccountChange } from "../account/state.ts";
@@ -463,6 +463,7 @@ export function Palettes(props: { place: ListPlace }) {
               }}
               sectionHref={section => localHref(toSection(section))}
               orderHref={to => (to === "saved" ? undefined : localHref(toOrder(to)))}
+              rel={relTo}
             />
             {page.chosen.button()}
           </div>
@@ -514,6 +515,9 @@ export function Palettes(props: { place: ListPlace }) {
                           size="sm"
                           href={localHref(
                             listHref("collections", "popular", DEFAULT_FRAME, params())
+                          )}
+                          rel={relTo(
+                            localHref(listHref("collections", "popular", DEFAULT_FRAME, params()))
                           )}
                         >
                           {t("{count, plural, one {All #} other {All #}}", {

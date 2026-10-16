@@ -26,8 +26,14 @@ export function PaletteSheet(props: {
   actions?: Element;
   /** the first screen stands and the picture carries those presses: the sheet's are away */
   resting?: boolean;
-  /** the collections that hold the palette, each with up to five of its colors; one with no href cannot be reached now */
-  collections: readonly { title: string; href?: string; colors?: readonly string[] }[];
+  /** the collections that hold the palette, each with up to five of its colors and its link's rel; one with no href
+      cannot be reached now */
+  collections: readonly {
+    title: string;
+    href?: string;
+    rel?: string;
+    colors?: readonly string[];
+  }[];
   /** the order of the palettes like this one, at the start of their row */
   order?: Element;
   /** the selection's press, at the row's end; a phone floats its own */
@@ -126,6 +132,7 @@ export function PaletteSheet(props: {
                     <a
                       class={[link.inline, styles.to]}
                       href={c().href ? localHref(c().href) : undefined}
+                      rel={c().rel}
                       aria-disabled={c().href ? undefined : "true"}
                       dir="auto"
                     >

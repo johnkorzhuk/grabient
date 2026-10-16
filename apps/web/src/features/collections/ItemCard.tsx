@@ -4,6 +4,7 @@ import { FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { createMemo, type Element, onSettled, untrack, useContext } from "solid-js";
 import { signInUnavailable } from "../../app/connection.ts";
+import { relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
@@ -43,6 +44,7 @@ export function ItemCard(props: {
   const shown = createMemo(() => drawnIn(props.own, props.view));
   const picture = createMemo(() => picturedAs(props.own, props.view, look.draft(), look.peek()));
   const seed = () => props.own.seed;
+  const href = () => paletteHref(shown(), props.view.size);
   const collect = props.collect(shown);
   const take = cardTakings({
     palette: shown,
@@ -70,7 +72,8 @@ export function ItemCard(props: {
       stops={hexesOf(picture())}
       style={picture().style}
       angle={picture().angle}
-      href={paletteHref(shown(), props.view.size)}
+      href={href()}
+      rel={relTo(href())}
       age={props.age}
       likes={likeCount(seed(), props.likes)}
       liked={liked(seed())}

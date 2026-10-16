@@ -24,6 +24,8 @@ export interface Tag {
   /** one to five colors, shown only under the pointer or focus */
   colors?: readonly string[];
   href?: string;
+  /** the link's relation to its page: nofollow where the index keeps the search out */
+  rel?: string;
   /** shown and not followed: a search that needs the connection the browser lacks */
   disabled?: boolean;
 }
@@ -384,6 +386,7 @@ export function Tags<T extends Tag>(props: {
                 <Button
                   size="sm"
                   href={tag().href}
+                  rel={tag().rel}
                   state={props.state}
                   disabled={tag().disabled}
                   onClick={() => {

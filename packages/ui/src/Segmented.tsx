@@ -7,6 +7,8 @@ export interface SegmentedOption {
   label: string;
   /** the choice is a page: the row is a nav of links */
   href?: string;
+  /** the link's relation to its page: nofollow where the index keeps it out */
+  rel?: string;
   /** a glyph before the word */
   icon?: IconName;
   /** what the choice is set to, after its name: short (1w), lighter and quieter */
@@ -132,6 +134,7 @@ export function Segmented(props: {
                 ref={press(() => o().value)}
                 class={styles.choice}
                 href={o().disabled ? undefined : o().href}
+                rel={o().rel}
                 aria-label={o().name}
                 aria-current={o().value === props.value ? "page" : undefined}
                 aria-disabled={o().disabled ? "true" : undefined}

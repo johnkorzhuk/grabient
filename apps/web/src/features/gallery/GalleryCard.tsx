@@ -5,6 +5,7 @@ import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { useNavigate } from "@tanstack/solid-router";
 import { createMemo, type Element, onSettled, untrack, useContext } from "solid-js";
 import { signInUnavailable } from "../../app/connection.ts";
+import { relTo } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, toggleLike } from "../account/likes.ts";
@@ -68,6 +69,7 @@ export function GalleryCard(props: {
       style={picture().style}
       angle={picture().angle}
       href={path()}
+      rel={relTo(path())}
       age={props.now ? relativeAge(props.item.createdAt, props.now) : ""}
       likes={likeCount(seed(), props.item.likes)}
       liked={liked(seed())}

@@ -68,6 +68,8 @@ export interface PaletteCardProps {
   angle: number;
   /** where Edit leads: the palette's page, in the reader's language and the view the card draws */
   href: string;
+  /** Edit's relation to its page: nofollow where the index keeps the palette's page out */
+  rel?: string;
   /** how old, as the list says it */
   age: string;
   likes: number;
@@ -208,6 +210,7 @@ export function PaletteCard(props: PaletteCardProps) {
                 icon
                 size="sm"
                 href={props.href}
+                rel={props.rel}
                 aria-label={t("Edit {name}", { name: props.name })}
                 tip={t("Edit")}
                 onClick={e => props.onOpen?.(e)}

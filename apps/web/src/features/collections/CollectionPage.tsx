@@ -37,6 +37,7 @@ import list from "../../app/list.module.css";
 import { OfflineWays } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
+import { relTo } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { failed } from "../../lib/query.ts";
 import { listWords } from "../../lib/words.ts";
@@ -587,13 +588,12 @@ export function CollectionPage(props: {
   /* the collection's tags, each the collections list searched for it in the page's order */
   const tags = () =>
     marked(
-      (doc()?.tags ?? []).map(tag => ({
-        label: tag,
-        colors: colorsOf(tag),
-        href: localHref(
+      (doc()?.tags ?? []).map(tag => {
+        const href = localHref(
           `/collections${props.order === "rising" ? "/rising" : ""}${listSearch({ query: listWords(tag), view: props.view })}`
-        )
-      }))
+        );
+        return { label: tag, colors: colorsOf(tag), href, rel: relTo(href) };
+      })
     );
   const pageHref = (order: PaletteOrder) =>
     localHref(collectionHref(props.slug, order) + pageSearch(props.view));
@@ -607,6 +607,7 @@ export function CollectionPage(props: {
           value: o.value,
           label: t(o.label, { $context: "order" }),
           href: pageHref(o.value),
+          rel: relTo(pageHref(o.value)),
           disabled: !here
         }))}
         onChange={value => {

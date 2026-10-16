@@ -11,6 +11,7 @@ import {
   locale,
   localizePath,
   msg,
+  splitLocale,
   t
 } from "@grabient/i18n";
 import { DEFAULT_FRAME, framePath, type RisingFrame } from "./orders.ts";
@@ -384,9 +385,40 @@ const TRANSLATED = new Set<Page["kind"]>([
   "mcp",
   "contact"
 ]);
-/** Whether a page's copy in each language is indexed and names the others: the language menu follows its links. */
+/** Whether a page's copy in each language is indexed and names the others. */
 export const translatedPage = (page: Page) =>
   TRANSLATED.has(page.kind) && !("query" in page && page.query);
+
+/** Whether production indexes the page a link of the site's leads to, as far as its address says: what pageMeta
+    decides from a page's kind, language, order, words and page number. A collection reads in English and in
+    `languages`, the others its facts name; where those are unknown it is taken as read in every one, as most of
+    Grabient's are. What only a page's data knows, a search the vocabulary cannot read or a page past the last, the page
+    says itself. Files are no pages to index. */
+export function indexedAddress(address: string, languages?: readonly string[]): boolean {
+  const url = new URL(address, PRODUCTION_ORIGIN);
+  const { locale: language, path } = splitLocale(url.pathname);
+  if (!isPagePath(path)) return false;
+  const english = language === DEFAULT_LOCALE;
+  const words = !!url.searchParams.get("q");
+  const [first = "", second, third] = path.slice(1).split("/");
+  if (path === "/") return !words && !(Number(url.searchParams.get("page")) > 1);
+  if (first === "palettes" || first === "collections") {
+    if (second === "saved" || longFrame(third as RisingFrame | undefined)) return false;
+    /* a search is the palettes' own, in English and in the popular order: the rest repeat it */
+    return !words || (first === "palettes" && !second && english);
+  }
+  const fixed = (Object.keys(FIXED) as FixedKind[]).find(
+    kind => path === FIXED[kind].path || path.startsWith(`${FIXED[kind].path}/`)
+  );
+  if (fixed) return !("robots" in FIXED[fixed]) && (english || TRANSLATED.has(fixed));
+  if (decodePalette(first)) return english && !second;
+  /* a collection: one under an account is its owner's alone, and its Rising order is its page again */
+  if (first.startsWith("@") || second) return false;
+  return english || !languages || languages.includes(language);
+}
+/** A link's rel: nofollow where production keeps the page it leads to out of the index (indexedAddress). */
+export const relTo = (href: string, languages?: readonly string[]): string | undefined =>
+  indexedAddress(href, languages) ? undefined : "nofollow";
 
 const pagedTitle = (title: string, page = 1) =>
   page > 1 ? t("{title}, page {page}", { title, page }) : title;

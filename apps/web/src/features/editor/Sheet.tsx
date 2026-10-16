@@ -26,6 +26,7 @@ import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
+import { relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
@@ -292,13 +293,24 @@ export function Sheet(props: {
   });
   const collections = () => {
     const mine = own();
-    /* the server's, where it named any for the page it drew; else the answer's, which is read later */
+    /* the server's, where it named any for the page it drew; else the answer's, which is read later. The server's
+       says which are titled in the page's language, so indexed in it */
     const sent = props.facts()?.heldBy;
-    const held: readonly { slug: string; title: string; colors?: readonly string[] }[] =
-      sent?.length ? sent : (answer()?.heldBy ?? []);
+    const held: readonly {
+      slug: string;
+      title: string;
+      english?: string;
+      colors?: readonly string[];
+    }[] = sent?.length ? sent : (answer()?.heldBy ?? []);
     return [...mine, ...held.filter(c => !mine.some(m => m.slug === c.slug))].map(c => {
       const href = collectionHref(c.slug);
-      return { title: c.title, href: unreachable(href) ? undefined : href, colors: c.colors };
+      const said = sent?.length ? ("english" in c && c.english ? [locale()] : []) : undefined;
+      return {
+        title: c.title,
+        href: unreachable(href) ? undefined : href,
+        rel: relTo(localHref(href), said),
+        colors: c.colors
+      };
     });
   };
   /* What the reader set on this page (a style, steps or an angle) goes for every palette drawn here, as a list's
@@ -368,6 +380,7 @@ export function Sheet(props: {
         style={palette().style}
         angle={palette().angle}
         href={localHref(address())}
+        rel={relTo(localHref(address()))}
         age={relativeAge(item().createdAt, now)}
         likes={likeCount(seed(), item().likes)}
         liked={liked(seed())}

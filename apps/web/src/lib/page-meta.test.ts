@@ -3,6 +3,7 @@ import { parseView } from "@grabient/engine/view.ts";
 import {
   addCatalog,
   type Catalog,
+  delocalizePath,
   LOCALES,
   type Locale,
   setLocaleSource,
@@ -22,6 +23,7 @@ import {
   type PaletteView,
   PRODUCTION_ORIGIN,
   pageMeta,
+  relTo,
   setOriginSource,
   siteOrigin
 } from "./page-meta.ts";
@@ -448,6 +450,92 @@ describe("a palette's own address", () => {
       "https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45",
       "https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?steps=8"
     ]);
+  });
+});
+
+describe("a link's rel", () => {
+  const ja = (languages: string[]): Facts => ({
+    collection: {
+      title: "Ocean",
+      description: "",
+      tags: [],
+      count: 3,
+      createdAt: 0,
+      updatedAt: 0,
+      languages
+    }
+  });
+  /* addresses as the site's links write them, in a language, with the facts a collection's page reads */
+  const links: [string, Facts?][] = [
+    ["/"],
+    ["/?q=blue"],
+    ["/?page=2"],
+    ["/palettes"],
+    ["/palettes?page=2"],
+    ["/palettes/rising"],
+    ["/palettes/rising/3m"],
+    ["/palettes?q=blue"],
+    ["/palettes?q=kS7Q8Yy5S_SChv0&style=linearSwatches"],
+    ["/palettes/rising?q=blue"],
+    ["/palettes/saved"],
+    ["/collections"],
+    ["/collections/rising"],
+    ["/collections/rising/1y"],
+    ["/collections?q=blue"],
+    ["/collections/saved"],
+    ["/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9"],
+    ["/ocean-gradients"],
+    ["/ocean-gradients/rising"],
+    ["/about"],
+    ["/bindings"],
+    ["/mcp-server"],
+    ["/newsletter"],
+    ["/privacy"],
+    ["/terms"],
+    ["/contact"],
+    ["/login"],
+    ["/connect"],
+    ["/settings"],
+    ["/unsubscribe/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+    ["/ja"],
+    ["/ja/?page=2"],
+    ["/ja/palettes"],
+    ["/ja/palettes/rising"],
+    ["/ja/palettes?q=blue"],
+    ["/ja/collections"],
+    ["/ja/kS7Q8Yy5S_SChv0"],
+    ["/ja/ocean-gradients", ja(["ja", "de"])],
+    ["/ja/ocean-gradients", ja([])],
+    ["/de/ocean-gradients", ja(["ja"])],
+    ["/ja/ocean-gradients/rising", ja(["ja"])],
+    ["/ja/about"],
+    ["/ja/privacy"],
+    ["/ja/terms"],
+    ["/ja/newsletter"],
+    ["/ja/settings"]
+  ];
+
+  test("is nofollow exactly where production keeps the page it leads to out of the index", () => {
+    for (const [address, facts] of links) {
+      const { locale, path } = delocalizePath(address);
+      current = locale;
+      const { robots } = pageMeta(pageOf(path, facts), PRODUCTION_ORIGIN);
+      expect([address, relTo(address, facts?.collection?.languages)]).toEqual([
+        address,
+        robots.startsWith("index") ? undefined : "nofollow"
+      ]);
+    }
+  });
+
+  test("leads a crawler past a page's files, and to a collection whose languages are not known", () => {
+    for (const file of [
+      "/kS7Q8Yy5S_SChv0.png?steps=9",
+      "/kS7Q8Yy5S_SChv0.json",
+      "/ocean-gradients.md"
+    ])
+      expect([file, relTo(file)]).toEqual([file, "nofollow"]);
+    expect(relTo("/ja/ocean-gradients")).toBeUndefined();
+    expect(relTo("/ja/@ada/warm-sunsets")).toBe("nofollow");
   });
 });
 

@@ -14,6 +14,8 @@ export function NavLink(props: {
   /** shown and not followed: a page that needs the connection the browser lacks. With no address, no Tab lands on it */
   disabled?: boolean;
   external?: boolean;
+  /** one of the site's own pages the index keeps out: nofollow */
+  rel?: string;
   /** what follows an external link's label: the stars beside the link to the code */
   after?: Element;
   onClick?: (e: MouseEvent) => void;
@@ -43,6 +45,7 @@ export function NavLink(props: {
       data-small={flag(props.small)}
       data-center={flag(props.center)}
       href={props.disabled ? undefined : props.href}
+      rel={props.rel}
       aria-disabled={props.disabled ? "true" : undefined}
       aria-current={props.current ? "page" : undefined}
       onClick={e => props.onClick?.(e)}

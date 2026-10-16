@@ -1,7 +1,7 @@
 import { t } from "@grabient/i18n";
 import type { FrameLink } from "@grabient/ui/PageFrame.tsx";
 import { getRouteApi } from "@tanstack/solid-router";
-import { GITHUB_REPO } from "../lib/page-meta.ts";
+import { GITHUB_REPO, relTo } from "../lib/page-meta.ts";
 import { marked } from "./connection.ts";
 
 /* The links the frame offers on every page, in the reader's language and the address's: a frame's link is a plain
@@ -49,6 +49,7 @@ export function navLinks(
   return marked([
     ...NAV.filter(link => newsletter || link.page !== "newsletter").map(link => ({
       href: href(link.href),
+      rel: relTo(href(link.href)),
       label: link.label(),
       current: link.page === current,
       keyboard: link.keyboard
@@ -64,11 +65,17 @@ export function footerLinks(
   stars: number | null,
   href: (to: string) => string
 ): FrameLink[] {
+  const own = (to: string, label: string, here = false): FrameLink => ({
+    href: href(to),
+    rel: relTo(href(to)),
+    label,
+    current: here
+  });
   return marked([
-    { href: href("/privacy"), label: t("Privacy"), current: current === "privacy" },
-    { href: href("/terms"), label: t("Terms"), current: current === "terms" },
-    { href: `${href("/settings")}#privacy`, label: t("Privacy choices") },
-    { href: href("/mcp-server"), label: "MCP", current: current === "mcp" },
+    own("/privacy", t("Privacy"), current === "privacy"),
+    own("/terms", t("Terms"), current === "terms"),
+    { ...own("/settings", t("Privacy choices")), href: `${href("/settings")}#privacy` },
+    own("/mcp-server", "MCP", current === "mcp"),
     codeLink(stars)
   ]);
 }

@@ -44,16 +44,22 @@ export function ListNav(props: {
   onIntent?: (target: { section?: Section; order?: Order }) => void;
   sectionHref?: (section: Section) => string;
   orderHref?: (order: Order) => string | undefined;
+  /** a choice's relation to its page, by its address: nofollow where the index keeps it out */
+  rel?: (href: string) => string | undefined;
   /** a choice that keeps its place and cannot be taken now: a list that needs the connection the browser lacks */
   disabled?: (choice: Section | Order) => boolean;
 }) {
   const sections = () =>
-    SECTIONS.map(o => ({
-      value: o.value,
-      label: t(o.label),
-      href: props.sectionHref?.(o.value),
-      disabled: !!props.disabled?.(o.value)
-    }));
+    SECTIONS.map(o => {
+      const href = props.sectionHref?.(o.value);
+      return {
+        value: o.value,
+        label: t(o.label),
+        href,
+        rel: href ? props.rel?.(href) : undefined,
+        disabled: !!props.disabled?.(o.value)
+      };
+    });
   const frames = () =>
     (Object.keys(FRAMES) as Frame[])
       .filter(f => !props.frames || props.frames.includes(f) || f === props.frame)
@@ -63,10 +69,12 @@ export function ListNav(props: {
       const frame = o.value === "rising" && props.frame ? FRAMES[props.frame] : null;
       const label = t(o.label, { $context: "order" });
       const detail = frame && t(frame.short, { $context: "frame" });
+      const href = props.orderHref?.(o.value);
       return {
         value: o.value,
         label,
-        href: props.orderHref?.(o.value),
+        href,
+        rel: href ? props.rel?.(href) : undefined,
         disabled: !!props.disabled?.(o.value),
         ...(frame && detail
           ? { detail, forms: frames(), name: `${label} ${detail}, ${t(frame.name)}` }

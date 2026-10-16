@@ -39,7 +39,7 @@ import { useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
-import { heading } from "../../lib/page-meta.ts";
+import { heading, relTo } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { type Failed, failed } from "../../lib/query.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
@@ -456,6 +456,7 @@ export function CollectionsPage(props: {
             onIntent={intent}
             sectionHref={section => localHref(sectionTarget(section))}
             orderHref={order => (order === "saved" ? undefined : localHref(orderTarget(order)))}
+            rel={relTo}
           />
           {sel.button()}
         </div>
@@ -505,6 +506,7 @@ export function CollectionsPage(props: {
                     <CollectionGroup
                       title={collection().title}
                       href={groupHref(collection().slug)}
+                      rel={relTo(groupHref(collection().slug))}
                       description={collection().description}
                       owner={ownerLabel(collection().owner, isAdmin())}
                       age={relativeAge(collection().updatedAt, now())}

@@ -17,6 +17,8 @@ export interface FrameLink {
   keyboard?: boolean;
   /** another site, in a new tab */
   external?: boolean;
+  /** one of the site's own pages the index keeps out: nofollow */
+  rel?: string;
   /** the stars the linked code has on GitHub, after the label once the count is known */
   stars?: number | null;
   /** shown and not followed: a page that needs the connection the browser lacks */
@@ -70,6 +72,7 @@ export function PageFrame(props: {
                   <span class={styles.item} data-keyboard={link().keyboard ? "" : undefined}>
                     <NavLink
                       href={link().href}
+                      rel={link().rel}
                       current={link().current}
                       external={link().external}
                       disabled={link().disabled}

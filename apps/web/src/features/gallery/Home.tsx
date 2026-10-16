@@ -36,7 +36,7 @@ import {
 import { AppPage } from "../../app/Frames.tsx";
 import { useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
-import { heading } from "../../lib/page-meta.ts";
+import { heading, relTo } from "../../lib/page-meta.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
 import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
 import { ownerLabel } from "../collections/drawing.ts";
@@ -352,6 +352,7 @@ export function Home(props: { params: ListParams }) {
                 if (target.section) preloadHref(router, toSection(target.section));
               }}
               sectionHref={section => localHref(toSection(section))}
+              rel={relTo}
             />
             {page.chosen.button()}
           </div>
@@ -428,6 +429,7 @@ export function Home(props: { params: ListParams }) {
                     <CollectionGroup
                       title={collection().title}
                       href={localHref(path())}
+                      rel={relTo(localHref(path()))}
                       onIntent={() => preloadHref(router, path())}
                       description={collection().description}
                       owner={ownerLabel(collection().owner, isAdmin())}
@@ -531,6 +533,7 @@ export function Home(props: { params: ListParams }) {
               <Button
                 size="sm"
                 href={nextHref()}
+                rel={relTo(nextHref())}
                 onClick={e =>
                   inPlace(e, () => void joinNext(() => feed.next(), "main section[aria-label]"))
                 }
