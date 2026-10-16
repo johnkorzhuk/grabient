@@ -676,6 +676,7 @@ describe("the parts and the samples", () => {
       "pick",
       "view",
       "shelf",
+      "tip",
       "rising",
       "ways"
     ];

@@ -21,7 +21,7 @@
      staging holds them. It is matched by its address, since each site's queue makes its own. The record of those
      changes comes with them.
    - a note an admin wrote; an admin's fit vote on a collection's palette, per collection, palette and account, with
-     its record; and the newsletter's lead an admin chose, per issue.
+     its record; and the newsletter's lead and quick tip an admin chose, per issue.
    A like, a collection or a fit vote changed on both sides since the load is a conflict, named with both times.
 
    Everything else an admin did on staging since its load stays there and is named: search votes, reviews, the
@@ -111,6 +111,7 @@ export interface Work {
   notes: Row[];
   votes: VoteChange[];
   leads: Row[];
+  tips: Row[];
   records: Row[];
   contributions: Row[];
   conflicts: Conflict[];
@@ -282,6 +283,7 @@ export function stagingWork(
     notes: [],
     votes: [],
     leads: [],
+    tips: [],
     records: [],
     contributions: [],
     conflicts: [],
@@ -485,7 +487,7 @@ export function stagingWork(
     else keptOut.add(seed);
   }
 
-  /* notes, the record and the apps' log of the changes carried, and the newsletter's leads */
+  /* notes, the record and the apps' log of the changes carried, and the newsletter's leads and tips */
   for (const note of staging.rows("k_collection_notes")) {
     const collection =
       since(note, "created_at") && admin(note.author_id) && inBuild(note.collection_id);
@@ -580,6 +582,9 @@ export function stagingWork(
   for (const lead of staging.rows("k_newsletter_leads"))
     if (since(lead, "chosen_at") && admin(lead.chosen_by))
       work.leads.push({ ...lead, chosen_by: target(lead.chosen_by) });
+  for (const tip of staging.rows("k_newsletter_tips"))
+    if (since(tip, "chosen_at") && admin(tip.chosen_by))
+      work.tips.push({ ...tip, chosen_by: target(tip.chosen_by) });
 
   /* the rest an admin changed that the build leaves on staging */
   for (const vote of staging.rows("k_search_votes"))
@@ -616,6 +621,7 @@ export function workReport(work: Work, moved: ReadonlyMap<string, string>) {
       work.notes.length +
       votes.length +
       work.leads.length +
+      work.tips.length +
       work.records.length +
       work.contributions.length,
     likes: likes.filter(l => l.liked).length,
@@ -638,6 +644,7 @@ export function workReport(work: Work, moved: ReadonlyMap<string, string>) {
       at: at(v.at)
     })),
     leads: work.leads.map(l => ({ issue: l.issue, seed: l.seed, at: at(Number(l.chosen_at)) })),
+    tips: work.tips.map(t => ({ issue: t.issue, tip: t.tip, at: at(Number(t.chosen_at)) })),
     records: work.records.map(r => `${r.action} ${r.seed ?? ""} ${r.slug ?? ""}`.trim()),
     contributions: work.contributions.map(c => `${c.tool} ${c.target}`),
     conflicts: work.conflicts.map(c => ({ ...c, staging: at(c.staging), other: at(c.other) })),
@@ -679,6 +686,7 @@ export function workStatements(
   }
   const collection = columns("k_collections").filter(c => !RECOUNTED.includes(c));
   const lead = columns("k_newsletter_leads");
+  const tip = columns("k_newsletter_tips");
   return {
     slugs,
     statements: [
@@ -750,6 +758,12 @@ export function workStatements(
         lead,
         work.leads,
         `${keep("k_newsletter_leads", ["issue"], lead)} WHERE excluded.chosen_at > k_newsletter_leads.chosen_at`
+      ),
+      ...insertRows(
+        "k_newsletter_tips",
+        tip,
+        work.tips,
+        `${keep("k_newsletter_tips", ["issue"], tip)} WHERE excluded.chosen_at > k_newsletter_tips.chosen_at`
       )
     ]
   };

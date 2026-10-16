@@ -110,6 +110,7 @@ import { Route as ApiMeNewsletterIndexRouteImport } from './routes/api/me/newsle
 import { Route as ApiMeNewsletterDraftsRouteImport } from './routes/api/me/newsletter/drafts'
 import { Route as ApiMeNewsletterLeadRouteImport } from './routes/api/me/newsletter/lead'
 import { Route as ApiMeNewsletterTestRouteImport } from './routes/api/me/newsletter/test'
+import { Route as ApiMeNewsletterTipRouteImport } from './routes/api/me/newsletter/tip'
 import { Route as ApiMePalettesIndexRouteImport } from './routes/api/me/palettes/index'
 import { Route as ApiMePalettesSplatRouteImport } from './routes/api/me/palettes/$'
 import { Route as ApiMeSiteCollectionsIndexRouteImport } from './routes/api/me/site-collections/index'
@@ -651,6 +652,11 @@ const ApiMeNewsletterTestRoute = ApiMeNewsletterTestRouteImport.update({
   path: '/api/me/newsletter/test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeNewsletterTipRoute = ApiMeNewsletterTipRouteImport.update({
+  id: '/api/me/newsletter/tip',
+  path: '/api/me/newsletter/tip',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMePalettesIndexRoute = ApiMePalettesIndexRouteImport.update({
   id: '/api/me/palettes/',
   path: '/api/me/palettes/',
@@ -792,6 +798,7 @@ export interface FileRoutesByFullPath {
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
   '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
+  '/api/me/newsletter/tip': typeof ApiMeNewsletterTipRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
@@ -902,6 +909,7 @@ export interface FileRoutesByTo {
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
   '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
+  '/api/me/newsletter/tip': typeof ApiMeNewsletterTipRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
@@ -1013,6 +1021,7 @@ export interface FileRoutesById {
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
   '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
+  '/api/me/newsletter/tip': typeof ApiMeNewsletterTipRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
@@ -1125,6 +1134,7 @@ export interface FileRouteTypes {
     | '/api/me/newsletter/drafts'
     | '/api/me/newsletter/lead'
     | '/api/me/newsletter/test'
+    | '/api/me/newsletter/tip'
     | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
     | '/api/settings/connections/disconnect'
@@ -1235,6 +1245,7 @@ export interface FileRouteTypes {
     | '/api/me/newsletter/drafts'
     | '/api/me/newsletter/lead'
     | '/api/me/newsletter/test'
+    | '/api/me/newsletter/tip'
     | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
     | '/api/settings/connections/disconnect'
@@ -1345,6 +1356,7 @@ export interface FileRouteTypes {
     | '/api/me/newsletter/drafts'
     | '/api/me/newsletter/lead'
     | '/api/me/newsletter/test'
+    | '/api/me/newsletter/tip'
     | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
     | '/api/settings/connections/disconnect'
@@ -1456,6 +1468,7 @@ export interface RootRouteChildren {
   ApiMeNewsletterDraftsRoute: typeof ApiMeNewsletterDraftsRoute
   ApiMeNewsletterLeadRoute: typeof ApiMeNewsletterLeadRoute
   ApiMeNewsletterTestRoute: typeof ApiMeNewsletterTestRoute
+  ApiMeNewsletterTipRoute: typeof ApiMeNewsletterTipRoute
   ApiMePalettesSplatRoute: typeof ApiMePalettesSplatRoute
   ApiMeSiteCollectionsHoldingRoute: typeof ApiMeSiteCollectionsHoldingRoute
   ApiSettingsConnectionsDisconnectRoute: typeof ApiSettingsConnectionsDisconnectRoute
@@ -2176,6 +2189,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiMeNewsletterTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/newsletter/tip': {
+      id: '/api/me/newsletter/tip'
+      path: '/api/me/newsletter/tip'
+      fullPath: '/api/me/newsletter/tip'
+      preLoaderRoute: typeof ApiMeNewsletterTipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/palettes/': {
       id: '/api/me/palettes/'
       path: '/api/me/palettes'
@@ -2339,6 +2359,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMeNewsletterDraftsRoute: ApiMeNewsletterDraftsRoute,
   ApiMeNewsletterLeadRoute: ApiMeNewsletterLeadRoute,
   ApiMeNewsletterTestRoute: ApiMeNewsletterTestRoute,
+  ApiMeNewsletterTipRoute: ApiMeNewsletterTipRoute,
   ApiMePalettesSplatRoute: ApiMePalettesSplatRoute,
   ApiMeSiteCollectionsHoldingRoute: ApiMeSiteCollectionsHoldingRoute,
   ApiSettingsConnectionsDisconnectRoute: ApiSettingsConnectionsDisconnectRoute,

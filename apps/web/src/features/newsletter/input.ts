@@ -23,20 +23,23 @@ export type IssuesPage = v.InferOutput<typeof IssuesPage>;
 /** The drafts, an admin's alone. */
 export const Drafts = v.object({ issues: v.array(PageIssue) });
 
-/** An admin's choice of an issue's lead: a palette the issue offers. Without a seed it asks for the one chosen. */
-export const LeadChoice = v.object({
+/** An admin's ask of an issue's sheet: a palette it offers to lead with and a tip it offers to end with, each the one
+    chosen where it is left out. Posted, it chooses its route's part. */
+export const SheetChoice = v.object({
   issue: v.pipe(v.number(), v.integer(), v.minValue(1)),
-  seed: v.optional(v.pipe(v.string(), v.maxLength(64)))
+  seed: v.optional(v.pipe(v.string(), v.maxLength(64))),
+  tip: v.optional(v.pipe(v.string(), v.maxLength(64)))
 });
 
-/** An issue's sheet with the lead it was drawn with, the palettes it offers to lead with, and the one chosen. */
-export const LeadSheet = v.object({
-  options: v.array(v.object({ seed: v.string(), name: v.string() })),
+/** An issue's sheet as drawn for an admin, with what one part of it offers (the palettes it may lead with, or its quick
+    tips), each by its id and name, the one chosen, and the one shown. */
+export const ChoiceSheet = v.object({
+  options: v.array(v.object({ id: v.string(), name: v.string() })),
   chosen: v.nullable(v.string()),
   shown: v.string(),
   html: v.string()
 });
-export type LeadSheet = v.InferOutput<typeof LeadSheet>;
+export type ChoiceSheet = v.InferOutput<typeof ChoiceSheet>;
 
 /** An account's choice, as Settings reads and writes it. */
 export const Choice = v.object({ subscribed: v.boolean() });

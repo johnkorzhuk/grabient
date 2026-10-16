@@ -1,4 +1,11 @@
-import { type Issue, type IssueContent, type PaletteView, pick, VIEW } from "@grabient/email";
+import {
+  type Issue,
+  type IssueContent,
+  type IssueTip,
+  type PaletteView,
+  pick,
+  VIEW
+} from "@grabient/email";
 import { decodePalette } from "@grabient/engine";
 import { seedName, titleFaults } from "@grabient/engine/name.ts";
 import { asSaved } from "@grabient/engine/view.ts";
@@ -8,16 +15,18 @@ import { SAVED_VIEW, type SavedView, savedView } from "../collections/files.ts";
 
 /* An issue as it runs. Its head is its first pick until an admin chooses another lead from the ones it offers: its
    picks, then its own `leads`. A pick chosen trades places with the first, so the issue still shows each once; a
-   palette from `leads` takes the first's place. Each pick is named as its page names it: the title written for it
-   where its colors bear it out and it is drawn as it was saved, else what its colors are called in the view it is
-   drawn in. */
+   palette from `leads` takes the first's place. It ends with its first tip until an admin chooses another of its
+   tips. Each pick is named as its page names it: the title written for it where its colors bear it out and it is
+   drawn as it was saved, else what its colors are called in the view it is drawn in. */
 
-/** What the database holds for the issues: each one's chosen lead, by number, and the palettes' names, by seed. */
+/** What the database holds for the issues: each one's chosen lead and tip, by number, and the palettes' names, by
+    seed. */
 export interface IssueFacts {
   leads: ReadonlyMap<number, string>;
+  tips: ReadonlyMap<number, string>;
   names: ReadonlyMap<string, string>;
 }
-export const NO_FACTS: IssueFacts = { leads: new Map(), names: new Map() };
+export const NO_FACTS: IssueFacts = { leads: new Map(), tips: new Map(), names: new Map() };
 
 type View = Required<PaletteView>;
 const whole = (of: PaletteView): View => ({
@@ -54,6 +63,16 @@ export function ledBy(issue: Issue, content: IssueContent, seed: string | undefi
     : content;
 }
 
+/** The tips an issue may end with, in the order an admin's arrows go through them. */
+export const tipOptions = (content: IssueContent): readonly IssueTip[] => content.tips ?? [];
+
+/** The issue's words ending with the tip `id`, when it is one the issue offers. */
+export function endedBy(content: IssueContent, id: string | undefined): IssueContent {
+  const tips = content.tips ?? [];
+  const at = tips.findIndex(tip => tip.id === id);
+  return at > 0 ? { ...content, tips: [tips[at], ...tips.filter((_, i) => i !== at)] } : content;
+}
+
 /** A palette's name as its page says it in English, in the view `of` draws it in. */
 export function nameOf(of: View, written?: { title: string; view: SavedView }): string {
   const palette = decodePalette(of.seed);
@@ -67,14 +86,16 @@ export function nameOf(of: View, written?: { title: string; view: SavedView }): 
   return seedName(of.seed, of.style, of.steps);
 }
 
-/** What an issue says as it runs: led by `lead` (the admin's choice unless given), each pick named. */
+/** What an issue says as it runs: led by `lead` and ending with `tip` (each the admin's choice unless given), each
+    pick named. */
 export function asRun(
   issue: Issue,
   origin: string,
   facts: IssueFacts,
-  lead = facts.leads.get(issue.number)
+  lead = facts.leads.get(issue.number),
+  tip = facts.tips.get(issue.number)
 ): IssueContent {
-  const words = ledBy(issue, issue.write(origin), lead);
+  const words = endedBy(ledBy(issue, issue.write(origin), lead), tip);
   return {
     ...words,
     picks: words.picks?.map(chosen => ({
@@ -84,8 +105,8 @@ export function asRun(
   };
 }
 
-/** The chosen leads, from the primary so a choice shows the moment it is made, and the names of every palette the
-    issues may lead or pick with, from a replica. */
+/** The chosen leads and tips, from the primary so a choice shows the moment it is made, and the names of every
+    palette the issues may lead or pick with, from a replica. */
 export async function readFacts(
   env: Pick<Env, "DB">,
   issues: readonly Issue[]
@@ -93,8 +114,9 @@ export async function readFacts(
   // an issue's palettes are the same at any address, so it is written at the site's own
   const views = issues.flatMap(issue => leadOptions(issue, issue.write("https://grabient.com")));
   const seeds = [...new Set(views.map(of => of.seed))];
-  const [chosen, written] = await Promise.all([
+  const [chosen, tips, written] = await Promise.all([
     all<{ issue: number; seed: string }>(env.DB, "SELECT issue, seed FROM k_newsletter_leads"),
+    all<{ issue: number; tip: string }>(env.DB, "SELECT issue, tip FROM k_newsletter_tips"),
     seeds.length
       ? all<{ seed: string; title: string; saved: string | null }>(
           replica(env),
@@ -112,6 +134,7 @@ export async function readFacts(
   );
   return {
     leads: new Map(chosen.map(row => [row.issue, row.seed])),
+    tips: new Map(tips.map(row => [row.issue, row.tip])),
     names: new Map(views.map(of => [of.seed, nameOf(of, titles.get(of.seed))]))
   };
 }
@@ -130,6 +153,25 @@ export async function chooseLead(
        chosen_at = excluded.chosen_at`,
     issue,
     seed,
+    by,
+    Date.now()
+  );
+}
+
+/** An admin's choice of tip for an issue, kept until another. */
+export async function chooseTip(
+  env: Pick<Env, "DB">,
+  issue: number,
+  tip: string,
+  by: string
+): Promise<void> {
+  await run(
+    env.DB,
+    `INSERT INTO k_newsletter_tips (issue, tip, chosen_by, chosen_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT (issue) DO UPDATE SET tip = excluded.tip, chosen_by = excluded.chosen_by,
+       chosen_at = excluded.chosen_at`,
+    issue,
+    tip,
     by,
     Date.now()
   );

@@ -6,14 +6,14 @@ import { getSession, type Session } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff, pausedBy } from "@grabient/server/flags/flags.ts";
 import * as v from "valibot";
-import { Choice, LeadChoice, Press, UNSUBSCRIBE_TOKEN } from "../../features/newsletter/input.ts";
+import { Choice, Press, SheetChoice, UNSUBSCRIBE_TOKEN } from "../../features/newsletter/input.ts";
 import { PAGE } from "../../lib/cache.ts";
 import { json as publicJson } from "../../lib/responses.ts";
 import { cacheKey } from "../cache-keys.ts";
 import { forget } from "../edge-cache.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { ISSUES } from "./issues/index.ts";
-import { asRun, chooseLead, leadOptions } from "./lead.ts";
+import { asRun, chooseLead, chooseTip, leadOptions, tipOptions } from "./lead.ts";
 import { isSubscribed, issueFoot, readerOf, setSubscribed, tokenOwner } from "./list.ts";
 import { draftsAmong, drawn, issueFacts, publishedIssues, testIssue } from "./page.ts";
 import { beforeOf, languageOf } from "./query.ts";
@@ -23,7 +23,7 @@ import { sendIssue, unsendable } from "./send.ts";
    (`json` from auth/http.ts is private, no-store). An error names its English with msg() for the page to translate. */
 
 const CHOICE_BODY_MAX = 256;
-const LEAD_BODY_MAX = 256;
+const SHEET_BODY_MAX = 256;
 const BAD_LINK = msg("This link isn't valid.");
 
 const methodNotAllowed = () => json({ error: "Method not allowed" }, 405);
@@ -71,7 +71,8 @@ export async function draftsResponse(request: Request, env: Env): Promise<Respon
 }
 
 /* The pages that show the published issues, as this data center keeps them: /newsletter in every language and the
-   newest page of its API. A choice of lead lets go of them here; the others keep theirs out their five minutes. */
+   newest page of its API. A choice of lead or tip lets go of them here; the others keep theirs out their five
+   minutes. */
 const issuePages = (origin: string) =>
   LOCALES.flatMap(locale => [
     cacheKey(new URL(origin + localizePath("/newsletter", locale)), "/newsletter", locale),
@@ -82,47 +83,79 @@ const issuePages = (origin: string) =>
     )
   ]);
 
-/** `GET /api/me/newsletter/lead?issue=&seed=&lang=`: an issue's sheet led by one of the palettes it offers (the one
-    chosen unless `seed` names another), with every one it offers, named, and the one chosen. `POST { issue, seed }`
-    chooses the lead, for the page and every issue sent from then on. An admin's alone. */
-export async function leadResponse(request: Request, env: Env): Promise<Response> {
+/* The parts of an issue an admin chooses among the ones it offers: the palette it leads with, by seed, and the quick
+   tip it ends with, by id. */
+type Part = "lead" | "tip";
+const FIELD = { lead: "seed", tip: "tip" } as const;
+const ASK: Readonly<Record<Part, string>> = {
+  lead: 'Send { "issue": a number, "seed": a palette }.',
+  tip: 'Send { "issue": a number, "tip": a tip }.'
+};
+
+/* An admin's sheet of an issue, drawn with a lead and a tip it offers, each the one chosen unless the request names
+   another, with the options of the route's part, named, and the one chosen. A GET's address names the issue, its lead
+   and its tip; a POST's body names the issue and the one it chooses, which the sheet is then drawn with, and its
+   address the other part's alone. */
+async function sheetResponse(request: Request, env: Env, part: Part): Promise<Response> {
   if (request.method !== "GET" && request.method !== "POST") return methodNotAllowed();
   const write = request.method === "POST";
   const session = await admin(request, env, { write });
   if (session instanceof Response) return session;
   const url = new URL(request.url);
   const origin = publicOrigin(env, request);
-  const asked = write
-    ? v.safeParse(LeadChoice, await readJson(request, LEAD_BODY_MAX))
-    : v.safeParse(LeadChoice, {
-        issue: Number(url.searchParams.get("issue")),
-        seed: url.searchParams.get("seed") ?? undefined
-      });
-  if (!asked.success) return json({ error: 'Send { "issue": a number, "seed": a palette }.' }, 400);
+  const params = url.searchParams;
+  const addressed = (field: "seed" | "tip") =>
+    write && field === FIELD[part] ? undefined : (params.get(field) ?? undefined);
+  const asked = v.safeParse(SheetChoice, {
+    seed: addressed("seed"),
+    tip: addressed("tip"),
+    ...(write ? await readJson(request, SHEET_BODY_MAX) : { issue: Number(params.get("issue")) })
+  });
+  if (!asked.success) return json({ error: ASK[part] }, 400);
   const issue = ISSUES.find(held => held.number === asked.output.issue);
   if (!issue) return json({ error: msg("Not found") }, 404);
-  const options = leadOptions(issue, issue.write(origin));
-  const seed = asked.output.seed;
-  if (seed !== undefined && !options.some(option => option.seed === seed)) {
+  const content = issue.write(origin);
+  const leads = leadOptions(issue, content);
+  const tips = tipOptions(content);
+  if (part === "tip" && !tips.length) return json({ error: msg("Not found") }, 404);
+  const { seed, tip } = asked.output;
+  if (seed !== undefined && !leads.some(option => option.seed === seed)) {
     return json({ error: "That palette is not one this issue offers to lead with." }, 400);
   }
-  if (write && seed !== undefined) {
-    await chooseLead(env, issue.number, seed, session.user.id);
+  if (tip !== undefined && !tips.some(option => option.id === tip)) {
+    return json({ error: "That tip is not one this issue offers." }, 400);
+  }
+  const asks = asked.output[FIELD[part]];
+  if (write && asks !== undefined) {
+    await (part === "lead" ? chooseLead : chooseTip)(env, issue.number, asks, session.user.id);
     await forget(issuePages(url.origin));
   }
   const facts = await issueFacts(env);
-  const chosen = facts.leads.get(issue.number) ?? null;
-  const shown = seed ?? chosen ?? options[0].seed;
+  const options =
+    part === "lead"
+      ? leads.map(option => ({ id: option.seed, name: facts.names.get(option.seed) ?? "" }))
+      : tips.map(option => ({ id: option.id, name: option.name }));
+  // a choice the issue no longer offers is no choice: the issue runs with its first
+  const held = (part === "lead" ? facts.leads : facts.tips).get(issue.number);
+  const chosen = held !== undefined && options.some(option => option.id === held) ? held : null;
   return json({
-    options: options.map(option => ({
-      seed: option.seed,
-      name: facts.names.get(option.seed) ?? ""
-    })),
+    options,
     chosen,
-    shown,
-    html: drawn(issue, origin, languageOf(url.searchParams), facts, shown).html
+    shown: asks ?? chosen ?? options[0].id,
+    html: drawn(issue, origin, languageOf(params), facts, seed, tip).html
   });
 }
+
+/** `GET /api/me/newsletter/lead?issue=&seed=&tip=&lang=`: an issue's sheet led by one of the palettes it offers and
+    ending with one of its tips (each the one chosen unless the address names another), with every palette it offers to
+    lead with, named, and the one chosen. `POST { issue, seed }` chooses the lead, for the page and every issue sent
+    from then on. An admin's alone. */
+export const leadResponse = (request: Request, env: Env) => sheetResponse(request, env, "lead");
+
+/** `GET /api/me/newsletter/tip?issue=&seed=&tip=&lang=`: the same sheet, with every quick tip the issue offers, named,
+    and the one chosen. `POST { issue, tip }` chooses the tip it ends with, as the lead's choice does. An admin's
+    alone. */
+export const tipResponse = (request: Request, env: Env) => sheetResponse(request, env, "tip");
 
 /** `GET /api/me/newsletter`: whether the account gets the newsletter. `PUT { subscribed }` changes it from Settings. The
     isolate alone counts these, so the switch works while the limiter is down. */

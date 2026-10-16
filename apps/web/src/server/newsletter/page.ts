@@ -37,23 +37,25 @@ const SHEET_COLORS: SheetColors = {
 };
 const STYLES = `<style>${insetStyles(SHEET_COLORS)}</style>`;
 
-/* An issue is the same for every reader of a language, so an isolate draws each once per origin, language, lead and
-   names, and keeps the last drawing of each issue for the document's shadow tree (document.ts). */
+/* An issue is the same for every reader of a language, so an isolate draws each once per origin, language, lead, tip
+   and names, and keeps the last drawing of each issue for the document's shadow tree (document.ts). */
 const DRAWINGS_KEPT = 48;
 const drawnBefore = new WeakMap<Issue, Map<string, DrawnIssue>>();
 const lastDrawn = new Map<string, DrawnIssue>();
-/** An issue's sheet for a page, led by `lead` where given, else by the admin's choice. */
+/** An issue's sheet for a page, led by `lead` and ending with `tip` where given, else by the admin's choices. */
 export function drawn(
   issue: Issue,
   origin: string,
   locale: Locale,
   facts: IssueFacts = NO_FACTS,
-  lead?: string
+  lead?: string,
+  tip?: string
 ): DrawnIssue {
-  const words = asRun(issue, origin, facts, lead);
+  const words = asRun(issue, origin, facts, lead, tip);
   const key = [
     origin,
     locale,
+    words.tips?.[0]?.id ?? "",
     ...(words.picks ?? []).map(chosen => `${chosen.seed} ${chosen.name}`)
   ].join("\n");
   const held = drawnBefore.get(issue) ?? new Map<string, DrawnIssue>();
@@ -74,7 +76,8 @@ export function drawn(
       DRAWINGS_KEPT
     );
   }
-  if (lead === undefined) lastDrawn.set(`${origin} ${locale} ${issue.number}`, page);
+  if (lead === undefined && tip === undefined)
+    lastDrawn.set(`${origin} ${locale} ${issue.number}`, page);
   return page;
 }
 /** The sheet of the published issue a page of them drew last in this isolate, for the document's shadow tree. */

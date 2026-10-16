@@ -162,10 +162,8 @@ test.describe("without script", () => {
   });
 });
 
-test("an admin goes through the palettes an issue may lead with, over its lead, and the check makes one its lead", async ({
-  page
-}) => {
-  const errors = watch(page);
+/** Signs the page in as an admin, as the server's answers have one, with no drafts. */
+async function asAdmin(page: Page) {
   const admin = {
     id: "e2e-admin",
     name: "admin",
@@ -197,25 +195,41 @@ test("an admin goes through the palettes an issue may lead with, over its lead, 
   await page.route("**/api/me/newsletter/drafts*", route =>
     route.fulfill({ json: { issues: [] } })
   );
-  /* the server's answers for an admin, each drawing the issue's own sheet as the public answer has it */
-  const options = [
-    { seed: "kAlphaAlphaAlpha", name: "Alpha" },
-    { seed: "kBetaBetaBetaBeta", name: "Beta" }
-  ];
+}
+/** Answers an admin's picker of one part of an issue as the server does, each sheet the issue's own as the public
+    answer draws it; what it was asked for and what was chosen. */
+async function answerPicker(
+  page: Page,
+  part: "lead" | "tip",
+  options: { id: string; name: string }[]
+) {
   const asked: string[] = [];
-  let chose: unknown = null;
-  await page.route("**/api/me/newsletter/lead*", async route => {
+  const chose: { body: unknown } = { body: null };
+  const field = part === "lead" ? "seed" : "tip";
+  await page.route(`**/api/me/newsletter/${part}*`, async route => {
     const published = await (await page.request.get("/api/newsletter")).json();
     const html = published.issues[0].html;
     if (route.request().method() === "POST") {
-      chose = route.request().postDataJSON();
-      const seed = (chose as { seed: string }).seed;
-      return route.fulfill({ json: { options, chosen: seed, shown: seed, html } });
+      chose.body = route.request().postDataJSON();
+      const id = (chose.body as Record<string, string>)[field];
+      return route.fulfill({ json: { options, chosen: id, shown: id, html } });
     }
-    const shown = new URL(route.request().url()).searchParams.get("seed") ?? options[0].seed;
+    const shown = new URL(route.request().url()).searchParams.get(field) ?? options[0].id;
     asked.push(shown);
     return route.fulfill({ json: { options, chosen: null, shown, html } });
   });
+  return { asked, chose };
+}
+
+test("an admin goes through the palettes an issue may lead with, over its lead, and the check makes one its lead", async ({
+  page
+}) => {
+  const errors = watch(page);
+  await asAdmin(page);
+  const { asked, chose } = await answerPicker(page, "lead", [
+    { id: "kAlphaAlphaAlpha", name: "Alpha" },
+    { id: "kBetaBetaBetaBeta", name: "Beta" }
+  ]);
   await page.goto("/newsletter");
   await started(page);
   const picker = page
@@ -240,12 +254,61 @@ test("an admin goes through the palettes an issue may lead with, over its lead, 
   await expect(check).toHaveAttribute("aria-pressed", "false");
   await check.click();
   await expect(check).toHaveAttribute("aria-pressed", "true");
-  expect(chose).toEqual({ issue: 1, seed: "kBetaBetaBetaBeta" });
+  expect(chose.body).toEqual({ issue: 1, seed: "kBetaBetaBetaBeta" });
   // the keyboard goes along the leads, and a sheet already drawn is not asked for again
   await picker.getByRole("button", { name: "Next lead" }).press("ArrowLeft");
   await expect(picker).toContainText("Alpha");
   await expect(check).toHaveAttribute("aria-pressed", "false");
   expect(asked).toEqual(["kAlphaAlphaAlpha", "kBetaBetaBetaBeta"]);
+  expect(errors).toEqual([]);
+});
+
+test("an admin goes through the quick tips an issue offers, along its heading, and the check makes one its tip", async ({
+  page
+}) => {
+  const errors = watch(page);
+  await asAdmin(page);
+  const { asked, chose } = await answerPicker(page, "tip", [
+    { id: "css", name: "CSS at a palette's link" },
+    { id: "png", name: "A picture at any size" }
+  ]);
+  await page.goto("/newsletter");
+  await started(page);
+  const picker = page
+    .locator('main article[data-issue="1"]')
+    .getByRole("group", { name: "Quick tip" });
+  await expect(picker).toContainText("CSS at a palette's link");
+  await expect(picker).toContainText("1 of 2");
+  // the controls stand in the rest of the tip's heading's line, after its words
+  const heading = await page.evaluate(() => {
+    const host = document.querySelector('main article[data-issue="1"] [class*="sheet"]');
+    const title = host?.shadowRoot?.querySelector('[data-part="tip"] h3');
+    if (!title) return null;
+    const words = document.createRange();
+    words.selectNodeContents(title);
+    const box = title.getBoundingClientRect();
+    return {
+      y: box.y,
+      height: box.height,
+      right: box.right,
+      words: words.getBoundingClientRect().right
+    };
+  });
+  const over = await picker.boundingBox();
+  expect(heading).toBeTruthy();
+  expect(Math.abs((over?.y ?? 0) - (heading?.y ?? 0))).toBeLessThan(1);
+  expect(Math.abs((over?.height ?? 0) - (heading?.height ?? 0))).toBeLessThan(1);
+  expect(Math.abs((over?.x ?? 0) - (heading?.words ?? 0))).toBeLessThan(1);
+  expect(Math.abs((over?.x ?? 0) + (over?.width ?? 0) - (heading?.right ?? 0))).toBeLessThan(1);
+  await picker.getByRole("button", { name: "Next tip" }).click();
+  await expect(picker).toContainText("A picture at any size");
+  await expect(picker).toContainText("2 of 2");
+  const check = picker.getByRole("button", { name: "End with this tip" });
+  await expect(check).toHaveAttribute("aria-pressed", "false");
+  await check.click();
+  await expect(check).toHaveAttribute("aria-pressed", "true");
+  expect(chose.body).toEqual({ issue: 1, tip: "png" });
+  expect(asked).toEqual(["css", "png"]);
   expect(errors).toEqual([]);
 });
 

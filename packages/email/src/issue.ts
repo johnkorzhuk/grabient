@@ -1,7 +1,8 @@
 /* An issue of the newsletter, as its email and as a page of the site, and what an issue is written with. An issue opens
    the same way each time: palettes an admin picked from the Rising list, each once and in its own view. The first is
    the sheet's head as its whole preview, with its colors as chips under it; the rest stand under the title. What the
-   issue promotes comes after them, and the foot says why it came and how to end it, in the reader's language.
+   issue promotes comes after them, then its quick tip where it has one, and the foot says why it came and how to end
+   it, in the reader's language.
 
    An issue is written once, in English unless it says otherwise, and runs that language's way for every reader. */
 import { STYLE_LABELS, type Style } from "@grabient/engine/view.ts";
@@ -22,6 +23,7 @@ import {
   named,
   type Parts,
   readers,
+  section,
   stack,
   text,
   title
@@ -47,8 +49,18 @@ export interface IssueContent {
   /** the way on from the picks, to the list they came from */
   more?: { label: string; href: string };
   body: Parts;
+  /** the quick tips it may end with, each once: the first ends it */
+  tips?: readonly IssueTip[];
   /** the ways back to the site at the foot; the home page without them */
   links?: readonly { label: string; href: string }[];
+}
+
+/** A quick tip an issue may end with: its id, which an admin's choice of it keeps; its name, which the admin's picker
+    says; and its words, under the heading every tip has. */
+export interface IssueTip {
+  id: string;
+  name: string;
+  parts: Parts;
 }
 
 export interface NewsletterOptions extends IssueContent {
@@ -72,6 +84,7 @@ function issueEmail(options: NewsletterOptions): EmailOptions {
     throw new Error("An issue shows each of its picked palettes once");
   }
   const [lead, ...others] = picks;
+  const [tip] = options.tips ?? [];
   const opening = stack(
     "s6",
     stack(
@@ -95,7 +108,7 @@ function issueEmail(options: NewsletterOptions): EmailOptions {
     gap: "s8",
     ...(lead ? { lead: { chips: true, ...lead } } : { palette: options.palette }),
     liked: options.liked,
-    body: [opening, ...options.body],
+    body: [opening, ...options.body, tip && named("tip", section("Quick tip", ...tip.parts))],
     foot: [
       options.links?.length ? links(...options.links) : home,
       readers(
@@ -146,6 +159,8 @@ export const pick = (seed: string, style: Style, steps: number, angle: number): 
   ...view(seed, style, steps, angle),
   note: STYLE_LABELS[style]
 });
+/** A quick tip, by its id and its name for the admin who chooses it. */
+export const tip = (id: string, name: string, ...parts: Parts): IssueTip => ({ id, name, parts });
 /** A collection as an issue shows one: its title, its address, what it holds, and five of its palettes as tiles or its
     card: palettes it holds, each in a view of the card's own design. */
 export interface Shelf {

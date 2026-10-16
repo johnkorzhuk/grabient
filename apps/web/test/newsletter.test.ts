@@ -12,6 +12,7 @@ import {
   issuesResponse,
   leadResponse,
   testResponse,
+  tipResponse,
   unsubscribeResponse
 } from "../src/server/newsletter/routes.ts";
 import {
@@ -555,12 +556,12 @@ describe("an issue's lead", () => {
       const shown = await read(env, "issue=1", admin.cookie);
       expect(shown.headers.get("Cache-Control")).toBe("private, no-store");
       const sheet = await bodyOf<{
-        options: { seed: string; name: string }[];
+        options: { id: string; name: string }[];
         chosen: string | null;
         shown: string;
         html: string;
       }>(shown);
-      expect(sheet.options.map(option => option.seed)).toEqual([
+      expect(sheet.options.map(option => option.id)).toEqual([
         ...picks,
         ...(october?.leads ?? []).map(option => option.seed)
       ]);
@@ -618,7 +619,7 @@ describe("an issue's lead", () => {
       held?.angle ?? 90
     );
     try {
-      const sheet = await bodyOf<{ options: { seed: string; name: string }[] }>(
+      const sheet = await bodyOf<{ options: { id: string; name: string }[] }>(
         await read(env, "issue=1", admin.cookie)
       );
       expect(sheet.options[2].name).not.toBe("Ember Sunset Bloom");
@@ -627,5 +628,108 @@ describe("an issue's lead", () => {
       await run(env.DB, "DELETE FROM k_palette_texts WHERE seed = ? AND embed = ''", picks[2]);
       await run(env.DB, "DELETE FROM k_palettes WHERE seed = ? AND created_at = 0", picks[2]);
     }
+  });
+});
+
+describe("an issue's quick tip", () => {
+  const october = ISSUES.find(issue => issue.number === 1);
+  const tips = october?.write(ORIGIN).tips?.map(tip => tip.id) ?? [];
+  const other = tips[1] ?? "";
+  const extra = october?.leads?.[0]?.seed ?? "";
+  const read = (env: TestEnv, query: string, cookie?: string) =>
+    tipResponse(get(`/api/me/newsletter/tip?${query}`, cookie ? { cookie } : {}), env);
+  const choose = (
+    env: TestEnv,
+    body: unknown,
+    cookie: string,
+    origin?: string | null,
+    query = ""
+  ) => tipResponse(json("POST", `/api/me/newsletter/tip${query}`, body, { cookie, origin }), env);
+  /* the words of the tip a sheet ends with, and the lead its head links to */
+  const tipOf = (html: string) =>
+    /data-part="tip"[\s\S]*?<p\b[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1].replace(/<[^>]+>/g, "");
+  const ledWith = (html: string) =>
+    /data-part="lead"[^>]*>\s*<a [^>]*href="https:\/\/[^/]+\/(k[\w-]+)/.exec(html)?.[1];
+  afterEach(async () => {
+    await run(newsletterEnv().DB, "DELETE FROM k_newsletter_tips");
+    await run(newsletterEnv().DB, "DELETE FROM k_newsletter_leads");
+  });
+
+  it("is an admin's alone, from the site, among the tips the issue offers", async () => {
+    const env = newsletterEnv();
+    const user = await makeAccount(env);
+    const admin = await makeAdmin(env);
+    expect((await read(env, "issue=1")).status).toBe(401);
+    expect((await read(env, "issue=1", user.cookie)).status).toBe(403);
+    expect((await choose(env, { issue: 1, tip: other }, user.cookie)).status).toBe(403);
+    expect(
+      (await choose(env, { issue: 1, tip: other }, admin.cookie, "https://evil.test")).status
+    ).toBe(403);
+    expect(
+      (await tipResponse(json("PUT", "/api/me/newsletter/tip", {}, { cookie: admin.cookie }), env))
+        .status
+    ).toBe(405);
+    expect((await read(env, "issue=x", admin.cookie)).status).toBe(400);
+    expect((await read(env, "issue=99", admin.cookie)).status).toBe(404);
+    // November offers no tip
+    expect((await read(env, "issue=2", admin.cookie)).status).toBe(404);
+    expect((await read(env, "issue=1&tip=nope", admin.cookie)).status).toBe(400);
+    expect((await read(env, "issue=1&seed=kNotOffered000000", admin.cookie)).status).toBe(400);
+    expect((await choose(env, { issue: 1, tip: "nope" }, admin.cookie)).status).toBe(400);
+    expect(await first(env.DB, "SELECT tip FROM k_newsletter_tips")).toBeNull();
+  });
+
+  it("draws the issue ending with each tip it offers, beside the lead shown, and the one chosen ends it", async () => {
+    const env = newsletterEnv();
+    const admin = await makeAdmin(env);
+    const shown = await read(env, "issue=1", admin.cookie);
+    expect(shown.headers.get("Cache-Control")).toBe("private, no-store");
+    const sheet = await bodyOf<{
+      options: { id: string; name: string }[];
+      chosen: string | null;
+      shown: string;
+      html: string;
+    }>(shown);
+    expect(sheet.options.map(option => option.id)).toEqual(tips);
+    expect(sheet.options.every(option => option.name.length > 0)).toBe(true);
+    expect([sheet.chosen, sheet.shown]).toEqual([null, tips[0]]);
+    const opening = tipOf(sheet.html);
+    const another = await bodyOf<{ shown: string; html: string }>(
+      await read(env, `issue=1&tip=${other}&seed=${extra}`, admin.cookie)
+    );
+    expect(another.shown).toBe(other);
+    expect(tipOf(another.html)).not.toBe(opening);
+    expect(ledWith(another.html)).toBe(extra);
+
+    // the choice is drawn beside the lead the address names, and the lead stays the issue's own
+    const chosen = await choose(
+      env,
+      { issue: 1, tip: other },
+      admin.cookie,
+      undefined,
+      `?seed=${extra}`
+    );
+    const answer = await bodyOf<{ chosen: string; shown: string; html: string }>(chosen);
+    expect([answer.chosen, answer.shown, ledWith(answer.html)]).toEqual([other, other, extra]);
+    expect(await first(env.DB, "SELECT issue, tip, chosen_by FROM k_newsletter_tips")).toEqual({
+      issue: 1,
+      tip: other,
+      chosen_by: admin.id
+    });
+    expect(await first(env.DB, "SELECT seed FROM k_newsletter_leads")).toBeNull();
+    const page = await bodyOf<{ issues: { number: number; html: string }[] }>(
+      await issuesResponse(get("/api/newsletter"), env)
+    );
+    const published = page.issues.find(issue => issue.number === 1)?.html ?? "";
+    expect(tipOf(published)).toBe(tipOf(another.html));
+    expect(ledWith(published)).not.toBe(extra);
+    // the lead's sheet ends with the tip it is asked for
+    const led = await bodyOf<{ html: string }>(
+      await leadResponse(
+        get(`/api/me/newsletter/lead?issue=1&tip=${tips[0]}`, { cookie: admin.cookie }),
+        env
+      )
+    );
+    expect(tipOf(led.html)).toBe(opening);
   });
 });

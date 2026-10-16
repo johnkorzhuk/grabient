@@ -106,7 +106,8 @@ const onStaging: Changes = [
   ],
   [
     [
-      `INSERT INTO k_newsletter_leads (issue, seed, chosen_by, chosen_at) VALUES (1, '${A}', 'PA', 170000)`
+      `INSERT INTO k_newsletter_leads (issue, seed, chosen_by, chosen_at) VALUES (1, '${A}', 'PA', 170000)`,
+      "INSERT INTO k_newsletter_tips (issue, tip, chosen_by, chosen_at) VALUES (1, 'png', 'PA', 170000)"
     ],
     170_000
   ],
@@ -358,10 +359,16 @@ describe("staging's work", () => {
     });
   });
 
-  it("carries the newsletter's lead an admin chose", () => {
+  it("carries the newsletter's lead and quick tip an admin chose", () => {
     expect(one("SELECT issue, seed, chosen_by, chosen_at FROM k_newsletter_leads")).toEqual({
       issue: 1,
       seed: A,
+      chosen_by: "PA",
+      chosen_at: 170_000
+    });
+    expect(one("SELECT issue, tip, chosen_by, chosen_at FROM k_newsletter_tips")).toEqual({
+      issue: 1,
+      tip: "png",
       chosen_by: "PA",
       chosen_at: 170_000
     });
@@ -400,7 +407,7 @@ describe("staging's work", () => {
     const reported = workReport(work, new Map());
     expect(reported).toMatchObject({
       loadedAt: new Date(LOADED).toISOString(),
-      carried: 15,
+      carried: 16,
       likes: 2,
       unlikes: 1,
       likesChangedLaterElsewhere: 1
@@ -408,6 +415,7 @@ describe("staging's work", () => {
     expect(reported.votes).toEqual([
       { collection: "c1", seed: A, vote: -1, at: new Date(185_000).toISOString() }
     ]);
+    expect(reported.tips).toEqual([{ issue: 1, tip: "png", at: new Date(170_000).toISOString() }]);
     expect(reported.collections.map(c => [c.address ?? c.id, c.change, c.stands])).toEqual([
       ["@john/staging-picks", "made", "staging"],
       ["@john/warm-sunsets", "changed", "staging"],
@@ -678,6 +686,7 @@ describe("verify, with staging's work", () => {
       "staging's work"
     ],
     ["the lead lost", "DELETE FROM k_newsletter_leads", "staging's work"],
+    ["the tip lost", "DELETE FROM k_newsletter_tips", "staging's work"],
     [
       "a curation's record lost",
       "DELETE FROM k_admin_actions WHERE id = 'a-remove'",

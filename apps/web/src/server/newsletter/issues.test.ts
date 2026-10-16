@@ -1,10 +1,19 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { type Issue, issuePage, newsletter, text } from "@grabient/email";
+import { type Issue, type IssueContent, issuePage, newsletter, text } from "@grabient/email";
 import { localizePath } from "@grabient/i18n";
 import { describe, expect, test } from "vitest";
 import { meaning } from "../../../../../packages/email/test/support.ts";
 import { ISSUES } from "./issues/index.ts";
-import { asRun, type IssueFacts, leadOptions, ledBy, NO_FACTS, nameOf } from "./lead.ts";
+import {
+  asRun,
+  endedBy,
+  type IssueFacts,
+  leadOptions,
+  ledBy,
+  NO_FACTS,
+  nameOf,
+  tipOptions
+} from "./lead.ts";
 import { issueFoot } from "./list.ts";
 import { draftsAmong, drawn, publishedPage, testIssue } from "./page.ts";
 import { draftWords, leaks } from "./private.ts";
@@ -17,6 +26,7 @@ const byNumber = (n: number) => ISSUES.find(issue => issue.number === n) as Issu
 /* No. 1's picks under the titles staging's gallery gave them; No. 2's go by their colors */
 const FACTS: IssueFacts = {
   leads: new Map(),
+  tips: new Map(),
   names: new Map([
     ["kWMS7qPZ68084TQkCrUnaNBo", "Smoky aubergine ember beam"],
     ["kU9ClB669AFIzOk9Lj2g", "Golden rust ember glow"],
@@ -220,6 +230,52 @@ describe("an issue's lead", () => {
       { ...saved, steps: 41 }
     ] as const)
       expect(nameOf(view, { title: "Smoky aubergine ember beam", view: other })).toBe(nameOf(view));
+  });
+});
+
+describe("an issue's quick tip", () => {
+  const october = byNumber(1);
+  const words = october.write(ORIGIN);
+  const ids = (content: IssueContent) => tipOptions(content).map(tip => tip.id);
+  const letterOf = (content: IssueContent) =>
+    newsletter({ ...content, ...footFor("en"), origin: ORIGIN });
+  /* the tip's part of an email or a page, up to the foot's links */
+  const tipPart = (html: string) =>
+    html.slice(html.indexOf('data-part="tip"'), html.indexOf('data-part="links"'));
+  test("October offers its tips each once, and ends with the first until an admin chooses another", () => {
+    const offered = ids(words);
+    expect(offered.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(offered).size).toBe(offered.length);
+    expect(asRun(october, ORIGIN, FACTS).tips?.[0]?.id).toBe("css");
+    const chosen = asRun(october, ORIGIN, { ...FACTS, tips: new Map([[1, offered[1]]]) });
+    expect(ids(chosen)).toEqual([offered[1], ...offered.filter(id => id !== offered[1])]);
+    // one it does not offer, or none, leaves the issue as it is written
+    expect(endedBy(words, "kNotATip")).toBe(words);
+    expect(endedBy(words, offered[0])).toBe(words);
+    expect(endedBy(words, undefined)).toBe(words);
+  });
+  test("draws each tip it offers under the Quick tip heading, its links the site's, its email under Gmail's clip", () => {
+    const texts = new Set<string>();
+    for (const tip of tipOptions(words)) {
+      const content = asRun(october, ORIGIN, FACTS, undefined, tip.id);
+      const letter = letterOf(content);
+      expect(Buffer.byteLength(letter.html)).toBeLessThan(102 * 1024);
+      const part = tipPart(letter.html);
+      expect(part).toContain("Quick tip");
+      for (const [, href] of part.matchAll(/href="([^"]+)"/g))
+        expect(href).toMatch(/^https:\/\/grabient\.test\//);
+      expect(issuePage({ ...content, ...footFor("en"), origin: ORIGIN }).text).toBe(letter.text);
+      expect(tipPart(drawn(october, ORIGIN, "en", FACTS, undefined, tip.id).html)).toContain(
+        "Quick tip"
+      );
+      texts.add(letter.text);
+    }
+    expect(texts.size).toBe(tipOptions(words).length);
+  });
+  test("an issue that offers none ends without one", () => {
+    const november = byNumber(2);
+    expect(tipOptions(november.write(ORIGIN))).toEqual([]);
+    expect(drawn(november, ORIGIN, "en", FACTS).html).not.toContain('data-part="tip"');
   });
 });
 

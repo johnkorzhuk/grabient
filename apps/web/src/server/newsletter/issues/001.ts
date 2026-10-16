@@ -13,12 +13,13 @@ import {
   snippet,
   strong,
   text,
+  tip,
   view,
   ways
 } from "@grabient/email";
 import { decodePalette } from "@grabient/engine";
 
-/* No. 1, October 2026: collections, and that a palette's CSS is at its own address. */
+/* No. 1, October 2026: collections, and a quick tip. */
 const PICKS = [
   pick("kWMS7qPZ68084TQkCrUnaNBo", "linearGradient", 40, 135),
   pick("kU9ClB669AFIzOk9Lj2g", "radialGradient", 32, 0),
@@ -26,6 +27,8 @@ const PICKS = [
   pick("kUby9y5jE3PaQwI4IDlg", "angularSwatches", 24, 60),
   pick("kUkSoUPQrBKiNOiSm75A", "linearSwatches", 13, 90)
 ];
+/* an October palette from Grabient's Halloween gradients, among the leads, whose addresses the tips show too */
+const FOREST = "kUPhh1NqG9EqmuVWvLvg";
 /* More October palettes from the Rising list an admin may lead with instead, each in the view liked. */
 const LEADS = [
   view("kWOCz5KKDAjWoQRGJML1qDCQ", "linearGradient", 32, 90),
@@ -36,16 +39,8 @@ const LEADS = [
   view("kUhTMb0ypEriFL8wEqsA", "radialGradient", 64, 0),
   view("kYMSMAK6vBj9BwLMx0EWrvCW6uQ4", "radialSwatches", 6, 180),
   view("kUp2HtvK3CCcjw-fkEWA", "radialGradient", 32, 0),
-  /* October's own, from the gallery's autumn and Halloween palettes, to try as the lead: the one that leads takes an
-     admin's like first, as every palette an issue shows has */
-  view("kWHg_KnCDDa3BwvGTEQW8VEo", "linearGradient", 7, 180),
-  view("kUNhzkNS5AU67yNmtMSg", "linearGradient", 7, 180),
-  view("kceAsOpBC0hAfPeLlL-gwBNpecwQuqMEwq9Bo", "linearGradient", 8, 180),
-  view("kUPhh1NqG9EqmuVWvLvg", "linearGradient", 7, 180),
-  view("kWTCQZOqjANKzQdgqcMw4zFA", "linearGradient", 7, 180),
-  view("kW50FF5ba9lVFPTBQb0p6S-I", "linearGradient", 7, 180),
-  view("ka70ZF7i0994zvjKtL5NrA-aQkPsWm7lg", "linearGradient", 8, 180),
-  view("kUr3cmwq6-LseSciB8Vg", "linearGradient", 7, 180)
+  /* and October's own */
+  view(FOREST, "linearGradient", 7, 180)
 ];
 /* Each collection's card draws palettes it holds, each a wedge of its own about the middle and one ring more than the
    last. The site draws a palette in no fewer steps than its keyframes, so the rings start at the most keyframes among
@@ -101,6 +96,73 @@ const MYSTIC: Shelf = {
 };
 const SHELVES = [SUMAC, PORCH, MYSTIC];
 const CSS = ".hero {\n  background: linear-gradient(90deg, #4158d0, #c850c0, #ffcc70);\n}";
+/* The quick tips an admin may end the issue with, the first unless another is chosen. Each is what the site does now:
+   the files at a palette's or a public collection's address (files/palette-files.ts, collection-files.ts), a picture's
+   size (images/size.ts), search by a hex code or a palette's link (search/search.ts), and the editor's keys as the
+   key map has them. */
+const tips = (origin: string) => [
+  tip(
+    "css",
+    "CSS at a palette's link",
+    text(["Add ", mono(".css"), " to any palette link to get its CSS."]),
+    snippet(CSS),
+    button({ href: `${origin}/about`, label: "How palettes work", quiet: true })
+  ),
+  tip(
+    "png",
+    "A picture at any size",
+    text([
+      "Add ",
+      mono(".png"),
+      " to any palette link for a picture of it. Add a size for a wallpaper or a slide."
+    ]),
+    snippet(`${origin}/${FOREST}.png?size=1920x1080`),
+    button({ href: `${origin}/${FOREST}.png?size=1920x1080`, label: "See it", quiet: true })
+  ),
+  tip(
+    "swatches",
+    "A collection's swatch files",
+    text([
+      "Add ",
+      mono(".ase"),
+      ", ",
+      mono(".gpl"),
+      " or ",
+      mono(".grd"),
+      " to a public collection's link to take all its palettes into your design app at once. A palette's link takes them too."
+    ]),
+    snippet(`${origin}/${SUMAC.slug}.ase`)
+  ),
+  tip(
+    "hex",
+    "Search by a hex code",
+    text("Search for a hex code to find palettes near that color."),
+    button({ href: `${origin}/palettes?q=%23e86a17`, label: "Search #e86a17", quiet: true })
+  ),
+  tip(
+    "like",
+    "Palettes like one you love",
+    text("Paste a palette's link into search to find palettes like it."),
+    snippet(`${origin}/${FOREST}`),
+    button({ href: `${origin}/palettes?q=${FOREST}`, label: "Find palettes like it", quiet: true })
+  ),
+  tip(
+    "keys",
+    "The editor's keys",
+    text([
+      "In the editor, press ",
+      mono("B"),
+      " for a random palette, and ",
+      mono("["),
+      " or ",
+      mono("]"),
+      " for fewer or more steps. Press ",
+      mono("?"),
+      " to see every key."
+    ]),
+    button({ href: `${origin}/random`, label: "Open a random palette", quiet: true })
+  )
+];
 
 export const october: Issue = {
   number: 1,
@@ -135,14 +197,9 @@ export const october: Issue = {
         text("Find a collection by a color or a mood, and save it to your account."),
         button({ href: `${origin}/collections`, label: "Browse collections" })
       ),
-      section("Featured collections", collections(SHELVES.map(shelf(origin)))),
-      section(
-        "Quick tip",
-        text(["Add ", mono(".css"), " to any palette link to get its CSS."]),
-        snippet(CSS),
-        button({ href: `${origin}/about`, label: "How palettes work", quiet: true })
-      )
+      section("Featured collections", collections(SHELVES.map(shelf(origin))))
     ],
+    tips: tips(origin),
     links: ways(origin, { label: "About", href: `${origin}/about` })
   })
 };

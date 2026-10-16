@@ -5,6 +5,7 @@ export { pickHead } from "./head.ts";
 export {
   type Issue,
   type IssueContent,
+  type IssueTip,
   issuePage,
   LEDE,
   type NewsletterOptions,
@@ -13,6 +14,7 @@ export {
   rising,
   type Shelf,
   shelf,
+  tip,
   view,
   ways
 } from "./issue.ts";

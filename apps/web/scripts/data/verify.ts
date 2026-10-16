@@ -408,6 +408,7 @@ export function verify(
         .map(table => [table, liteRows(table).length + (fromStaging[table]?.length ?? 0)])
     ),
     k_newsletter_leads: work.leads.length,
+    k_newsletter_tips: work.tips.length,
     ...Object.fromEntries(EMPTY.map(table => [table, 0]))
   };
   check(
@@ -557,7 +558,8 @@ export function verify(
       ),
       ...rowsIn("k_admin_actions", ["id"], work.records),
       ...rowsIn("k_contributions", ["id"], work.contributions),
-      ...rowsIn("k_newsletter_leads", ["issue"], work.leads)
+      ...rowsIn("k_newsletter_leads", ["issue"], work.leads),
+      ...rowsIn("k_newsletter_tips", ["issue"], work.tips)
     ],
     work.loadedAt === null
       ? "staging was never loaded"
@@ -565,7 +567,7 @@ export function verify(
           `${plural(work.likes.length, "like")} changed, ${plural(work.palettes.length, "palette")} brought in, ` +
           `${plural(carried.length, "collection")} as staging left ${carried.length === 1 ? "it" : "them"}, ` +
           `${plural(work.notes.length, "note")}, ${plural(votes.length, "fit vote")}, ` +
-          `${plural(work.leads.length, "lead")}, ` +
+          `${plural(work.leads.length, "lead")}, ${plural(work.tips.length, "tip")}, ` +
           `${plural(work.records.length + work.contributions.length, "record")} of them`
   );
   check(

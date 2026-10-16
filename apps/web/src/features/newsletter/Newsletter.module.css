@@ -44,21 +44,19 @@
     --sheet-dark: none;
     --sheet-light: block;
   }
-  /* the sheet, with an admin's controls over its lead where it has them */
+  /* the sheet, with an admin's controls over its lead and its tip where it has them */
   .stage {
     position: relative;
   }
-  /* an admin's choice of lead, over the lead's picture: the arrows at its sides, the check at its top corner and the
-     palette's name at its foot, each on glass, and nothing over the rest of the picture takes the pointer */
-  .lead {
+  /* an admin's choice of a part of an issue, where the sheet draws the part: nothing in its box but its controls takes
+     the pointer */
+  .picker {
     --hit: var(--size-control-sm);
-    --edge: var(--space-s3);
     position: absolute;
     min-inline-size: 0;
     margin: 0;
     padding: 0;
     border: 0;
-    container-type: inline-size;
     pointer-events: none;
     & > * {
       pointer-events: auto;
@@ -66,44 +64,51 @@
     @media (pointer: coarse) {
       --hit: var(--size-touch);
     }
+    /* the lead's, over its picture: the arrows at its sides, the check at its top corner and the palette's name at its
+       foot, each on glass */
+    &[data-part="lead"] {
+      --edge: var(--space-s3);
+      container-type: inline-size;
+    }
+    /* the tip's, in the rest of its heading's line: the tip's name, then the arrows and the check, at the line's end */
+    &[data-part="tip"] {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--space-s1);
+      padding-inline-start: var(--space-s3);
+    }
   }
   .side {
-    position: absolute;
-    top: 50%;
-    translate: 0 -50%;
-    &[data-side="before"] {
-      inset-inline-start: var(--edge);
-    }
-    &[data-side="after"] {
-      inset-inline-end: var(--edge);
-    }
-    /* a narrow picture has no room for them beside the check: they stand at its foot, either side of the name */
-    @container (max-width: 480px) {
-      top: auto;
-      bottom: var(--edge);
-      translate: none;
+    [data-part="lead"] > & {
+      position: absolute;
+      top: 50%;
+      translate: 0 -50%;
+      &[data-side="before"] {
+        inset-inline-start: var(--edge);
+      }
+      &[data-side="after"] {
+        inset-inline-end: var(--edge);
+      }
+      /* a narrow picture has no room for them beside the check: they stand at its foot, either side of the name */
+      @container (max-width: 480px) {
+        top: auto;
+        bottom: var(--edge);
+        translate: none;
+      }
     }
   }
   .check {
-    position: absolute;
-    top: var(--edge);
-    inset-inline-end: var(--edge);
+    [data-part="lead"] > & {
+      position: absolute;
+      top: var(--edge);
+      inset-inline-end: var(--edge);
+    }
   }
   .which {
-    position: absolute;
-    bottom: var(--edge);
-    inset-inline-start: var(--edge);
     display: flex;
     gap: var(--space-s2);
-    max-width: calc(100% - 2 * var(--edge));
     margin: 0;
-    padding: var(--space-s1) var(--space-s3);
-    border: var(--size-hairline) solid var(--color-art-edge);
-    border-radius: var(--radius-control);
-    background-color: var(--color-art);
-    -webkit-backdrop-filter: blur(var(--size-blur-frost));
-    backdrop-filter: blur(var(--size-blur-frost));
-    color: var(--color-on-art);
     font-size: var(--font-fs2);
     font-weight: var(--font-medium);
     line-height: var(--font-lh-tight);
@@ -116,14 +121,34 @@
     & > svg {
       flex-shrink: 0;
     }
-    @container (max-width: 480px) {
-      inset-inline-start: calc(var(--edge) + var(--hit) + var(--space-s2));
-      max-width: calc(100% - 2 * (var(--edge) + var(--hit) + var(--space-s2)));
-      min-height: var(--hit);
-    }
     & > :last-child {
       flex-shrink: 0;
       opacity: 0.7;
+    }
+    [data-part="lead"] > & {
+      position: absolute;
+      bottom: var(--edge);
+      inset-inline-start: var(--edge);
+      max-width: calc(100% - 2 * var(--edge));
+      padding: var(--space-s1) var(--space-s3);
+      border: var(--size-hairline) solid var(--color-art-edge);
+      border-radius: var(--radius-control);
+      background-color: var(--color-art);
+      -webkit-backdrop-filter: blur(var(--size-blur-frost));
+      backdrop-filter: blur(var(--size-blur-frost));
+      color: var(--color-on-art);
+      @container (max-width: 480px) {
+        inset-inline-start: calc(var(--edge) + var(--hit) + var(--space-s2));
+        max-width: calc(100% - 2 * (var(--edge) + var(--hit) + var(--space-s2)));
+        min-height: var(--hit);
+      }
+    }
+    /* before the arrows, though it comes after them for the keys, and the first to give way on a short line */
+    [data-part="tip"] > & {
+      order: -1;
+      min-width: 0;
+      margin-inline-end: var(--space-s1);
+      color: var(--color-ink2);
     }
   }
   .mark {

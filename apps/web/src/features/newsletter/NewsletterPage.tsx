@@ -6,9 +6,9 @@ import { useInfiniteQuery, useQuery } from "@tanstack/solid-query";
 import { createSignal, Errored, For, Loading, onSettled, Show } from "solid-js";
 import { IssueSheet } from "./IssueSheet.tsx";
 import type { PageIssue } from "./input.ts";
-import { LeadPicker } from "./LeadPicker.tsx";
 import { monthOf } from "./month.ts";
 import styles from "./Newsletter.module.css";
+import { Picker } from "./Picker.tsx";
 import { issuesQuery, readDrafts } from "./queries.ts";
 
 /* /newsletter: the issues, newest first, each its email's own sheet with the month it is for over it. The newest come
@@ -23,6 +23,10 @@ const NO_DRAFTS: readonly PageIssue[] = [];
 function Sheet(props: { issue: PageIssue; admin: boolean }) {
   const [shown, setShown] = createSignal<string>();
   const [host, setHost] = createSignal<HTMLDivElement>();
+  /* the lead and the tip an admin's pickers show, which each other's sheets are drawn with */
+  const [lead, setLead] = createSignal<string>();
+  const [tip, setTip] = createSignal<string>();
+  const ask = () => ({ seed: lead(), tip: tip() });
   return (
     /* an issue's title is its author's words */
     <article class={styles.issue} aria-label={props.issue.title} data-issue={props.issue.number}>
@@ -34,7 +38,28 @@ function Sheet(props: { issue: PageIssue; admin: boolean }) {
       <div class={styles.stage}>
         <IssueSheet issue={props.issue} shown={shown()} ref={setHost} />
         <Show when={props.admin}>
-          <LeadPicker number={props.issue.number} host={host} onShow={setShown} />
+          <Picker
+            number={props.issue.number}
+            part="lead"
+            host={host}
+            ask={ask}
+            shown={shown}
+            onShow={(html, seed) => {
+              setLead(seed);
+              setShown(html);
+            }}
+          />
+          <Picker
+            number={props.issue.number}
+            part="tip"
+            host={host}
+            ask={ask}
+            shown={shown}
+            onShow={(html, id) => {
+              setTip(id);
+              setShown(html);
+            }}
+          />
         </Show>
       </div>
     </article>
