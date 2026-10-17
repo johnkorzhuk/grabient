@@ -128,7 +128,9 @@ export async function signInDigest(
 
 /* What says the site is failing, counted over the last ten minutes. Ten answers it could not give are more than a
    passing fault makes, and so are 25 errors from readers' browsers, which one address alone never sends: it may
-   report 20 an hour (client-errors.ts). */
+   report 20 an hour (client-errors.ts). One browser, by its name and major version, counts for 20 of them at most:
+   a program driving one browser from many addresses (a scraper whose scripts the firewall refused, on 17 Oct 2026)
+   sends hundreds, while a fault of the site's reaches readers on more than one. */
 const FAILING = [
   {
     event: "failure",
@@ -139,11 +141,20 @@ const FAILING = [
   {
     event: "client-error",
     at: 25,
+    each: 20,
     subject: "Grabient: pages are failing in readers' browsers",
     lead: "readers' browsers reported these errors, by kind of page and browser"
   }
 ] as const;
 type Failing = (typeof FAILING)[number]["event"];
+
+/** The browser errors as the alert weighs them: each browser's (a row's `b`) counted up to `each`. */
+function weighed(found: readonly Row[], each: number): number {
+  const browsers = new Map<string, number>();
+  for (const row of found)
+    browsers.set(String(row.b), (browsers.get(String(row.b)) ?? 0) + whole(row));
+  return [...browsers.values()].reduce((sum, n) => sum + Math.min(n, each), 0);
+}
 
 /** The answers the site could not give in the last ten minutes (pipeline.ts) and the errors readers' browsers
     reported, each mailed when there are more than a passing fault makes, at most once a day each. The ten-minute
@@ -169,7 +180,7 @@ export async function failingAlert(
   for (const kind of FAILING) {
     const found = rows.filter(row => row.event === kind.event);
     counted[kind.event] = found.reduce((sum, row) => sum + whole(row), 0);
-    if (counted[kind.event] < kind.at) continue;
+    if (("each" in kind ? weighed(found, kind.each) : counted[kind.event]) < kind.at) continue;
     const sent = await alertOwner(
       env,
       `failing:${kind.event}`,

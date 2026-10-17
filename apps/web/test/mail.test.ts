@@ -299,7 +299,8 @@ describe("the owner's alerts", () => {
     rows = [
       { event: "failure", a: "500", b: "page", n: 30.4 },
       { event: "failure", a: "503", b: "api/collections", n: 7 },
-      { event: "client-error", a: "palettes", b: "Chrome 131", n: 26 }
+      { event: "client-error", a: "palettes", b: "Chrome 131", n: 20 },
+      { event: "client-error", a: "seed", b: "Safari 18 mobile", n: 6 }
     ];
     expect(await failingAlert(env, day)).toEqual({
       counted: { failure: 37, "client-error": 26 },
@@ -314,7 +315,9 @@ describe("the owner's alerts", () => {
       "https://dash.cloudflare.com/?to=/:account/workers/services/view/grabient-production/production/issues"
     );
     expect(browsers?.subject).toBe("Grabient: pages are failing in readers' browsers");
-    expect(browsers?.text).toContain("- palettes, Chrome 131: 26");
+    expect(browsers?.text).toContain(
+      "26 in all:\n- palettes, Chrome 131: 20\n- seed, Safari 18 mobile: 6"
+    );
     // still failing ten minutes later: the day's alerts have gone
     expect((await failingAlert(env, day + 600_000)).emailed).toEqual([]);
     expect(env.EMAIL.sent).toHaveLength(2);
@@ -327,6 +330,38 @@ describe("the owner's alerts", () => {
       skipped: "This deploy has no usage counts to read",
       emailed: []
     });
+  });
+
+  it("hear one browser alone for 20 errors at most, so a scraper on many addresses is no readers' failure", async () => {
+    let rows: Record<string, unknown>[] = [];
+    const env = testEnv({
+      DEPLOYMENT: "production",
+      ANALYTICS: { query: async () => ({ data: rows }) }
+    });
+    const day = Date.UTC(2026, 9, 17, 19);
+    // as on 17 Oct 2026: one Chrome 145 on many addresses, refused the site's scripts, and one stray reader
+    rows = [
+      { event: "client-error", a: "collection", b: "Chrome 145", n: 396 },
+      { event: "client-error", a: "seed", b: "Chrome 145", n: 30 },
+      { event: "client-error", a: "home", b: "Safari 26", n: 1 }
+    ];
+    expect(await failingAlert(env, day)).toEqual({
+      counted: { failure: 0, "client-error": 427 },
+      emailed: []
+    });
+    expect(env.EMAIL.sent).toEqual([]);
+    // a fault on a second browser too is the site's: told, with every count
+    rows = [
+      { event: "client-error", a: "collection", b: "Chrome 145", n: 396 },
+      { event: "client-error", a: "collection", b: "Chrome 152", n: 5 }
+    ];
+    expect(await failingAlert(env, day)).toEqual({
+      counted: { failure: 0, "client-error": 401 },
+      emailed: ["client-error"]
+    });
+    expect(env.EMAIL.sent[0]?.text).toContain(
+      "401 in all:\n- collection, Chrome 145: 396\n- collection, Chrome 152: 5"
+    );
   });
 
   it("find nothing failing in a dataset no point has reached, and fail their step when the counts cannot be read", async () => {

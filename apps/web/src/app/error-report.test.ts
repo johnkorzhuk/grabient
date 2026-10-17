@@ -71,6 +71,24 @@ test("an error met with no connection is neither sent nor counted, and is sent o
   expect(sent).toEqual(["Failed to fetch"]);
 });
 
+test("a browser a program drives reports nothing: a scraper refused the site's scripts is not a reader", () => {
+  onTestFinished(() => void vi.unstubAllGlobals());
+  const sent: string[] = [];
+  vi.stubGlobal("location", new URL("https://grabient.com/@ada/warm-sunsets"));
+  vi.stubGlobal("fetch", (_path: string, init: RequestInit) => {
+    sent.push(JSON.parse(String(init.body)).message);
+    return Promise.resolve(new Response(null, { status: 204 }));
+  });
+  const failed =
+    "Failed to fetch dynamically imported module: https://grabient.com/assets/_id-8FEuB1qM.js";
+  vi.stubGlobal("navigator", { onLine: true, webdriver: true });
+  reportCaught(new TypeError(failed));
+  expect(sent).toEqual([]);
+  vi.stubGlobal("navigator", { onLine: true, webdriver: false });
+  reportCaught(new TypeError(failed));
+  expect(sent).toEqual([failed]);
+});
+
 test("a report names the error's type in its own words, however the page met it", () => {
   onTestFinished(() => void vi.unstubAllGlobals());
   const sent: { name?: string; message: string; source: string | null }[] = [];

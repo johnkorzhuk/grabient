@@ -5,9 +5,12 @@ import { isServer } from "@solidjs/web";
    address, account or cookie: a failure in one browser alone, a hydration that breaks on a phone, would otherwise go
    unseen. Only the site's own scripts are reported (an extension's errors are not the site's), each message once per
    page load and five at most, and none while the browser has no connection: a report could not leave, and what fails
-   then is the connection. Addresses go without their query, which can hold a sign-in or deletion token, and a page
-   is named by its kind; only a palette's or a public collection's address is sent whole, never an account's, which
-   can be private. Installed before the app starts, so an error while it hydrates is reported too. */
+   then is the connection. None either from a browser a program drives (navigator.webdriver: a scraper, a crawler's
+   renderer), whose failures are that program's, often its own refusal of the site's scripts; the end-to-end tests'
+   Chromium says no program drives it, so their pages still report. Addresses go without their query, which can hold
+   a sign-in or deletion token, and a page is named by its kind; only a palette's or a public collection's address is
+   sent whole, never an account's, which can be private. Installed before the app starts, so an error while it
+   hydrates is reported too. */
 const MAX = 5;
 const MESSAGE_MAX = 300;
 const FRAMES = 6;
@@ -76,7 +79,14 @@ function report(
   column?: number
 ) {
   const text = error.message.slice(0, MESSAGE_MAX);
-  if (!text || navigator.onLine === false || sent.size >= MAX || sent.has(text)) return;
+  if (
+    !text ||
+    navigator.onLine === false ||
+    navigator.webdriver ||
+    sent.size >= MAX ||
+    sent.has(text)
+  )
+    return;
   sent.add(text);
   try {
     fetch("/api/client-error", {

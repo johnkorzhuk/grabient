@@ -62,7 +62,12 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: true,
   reporter: "list",
-  use: { baseURL: origin },
+  use: {
+    baseURL: origin,
+    /* a page reports its errors only from a browser no program drives (app/error-report.ts): this Chromium says none
+       does, so a report still fails the test that watches for one */
+    launchOptions: { args: ["--disable-blink-features=AutomationControlled"] }
+  },
   projects: [
     {
       name: "chromium",
