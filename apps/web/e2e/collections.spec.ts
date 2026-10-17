@@ -1016,7 +1016,7 @@ test("with no connection Your collections' tags answer the account's own, and th
   await expect(tags.getByRole("link", { name: summary.title })).toBeVisible();
 });
 
-test("a collection's tags on a page in another language search the words they show", async ({
+test("a collection's tags on a page in another language search palettes for the words they show", async ({
   page
 }) => {
   await page.route(
@@ -1041,9 +1041,9 @@ test("a collection's tags on a page in another language search the words they sh
   await page.locator('main a[href="/de/collections/rising"]').click();
   await page.locator(`main a[href="/de/${SLUG}/rising"]`).click();
   const tag = page.getByRole("toolbar").getByRole("link", { name: "blaue Stunde" });
-  await expect(tag).toHaveAttribute("href", "/de/collections/rising?q=blaue+stunde");
+  await expect(tag).toHaveAttribute("href", "/de/palettes/rising?q=blaue+stunde");
   await tag.click();
-  await expect(page).toHaveURL(/\/de\/collections\/rising\?q=blaue\+stunde$/);
+  await expect(page).toHaveURL(/\/de\/palettes\/rising\?q=blaue\+stunde$/);
   await expect(page.getByRole("searchbox")).toHaveValue("blaue stunde");
 });
 

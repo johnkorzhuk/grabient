@@ -32,7 +32,7 @@ test("a list's palettes and searches are followed in English and nofollow in ano
     expect([link.href, link.rel]).toEqual([link.href, "nofollow"]);
 });
 
-test("a collection's tags and its Rising order are nofollow, its own page followed", async ({
+test("a collection's tags search palettes, followed from its page and nofollow from Rising, and its Rising order is nofollow", async ({
   request
 }) => {
   const listed = (await (await request.get("/api/collections?sort=popular&limit=24")).json()) as {
@@ -42,9 +42,16 @@ test("a collection's tags and its Rising order are nofollow, its own page follow
   expect(tagged).toBeTruthy();
   const slug = tagged!.slug;
   const html = await (await request.get(`/${slug}`)).text();
-  const chips = links(html, /^\/collections\?q=/);
+  const chips = links(html, /^\/palettes\?q=/);
   expect(chips.length).toBe(tagged!.tags.length);
-  for (const chip of chips) expect([chip.href, chip.rel]).toEqual([chip.href, "nofollow"]);
+  for (const chip of chips) expect([chip.href, chip.rel]).toEqual([chip.href, undefined]);
+  // Rising's searches repeat the popular ones, out of the index
+  const rising = links(
+    await (await request.get(`/${slug}/rising`)).text(),
+    /^\/palettes\/rising\?q=/
+  );
+  expect(rising.length).toBe(tagged!.tags.length);
+  for (const chip of rising) expect([chip.href, chip.rel]).toEqual([chip.href, "nofollow"]);
   expect(links(html, new RegExp(`^/${slug}/rising$`)).map(link => link.rel)).toEqual(["nofollow"]);
   expect(links(html, new RegExp(`^/${slug}$`)).map(link => link.rel)).toContain(undefined);
 });

@@ -585,12 +585,13 @@ export function CollectionPage(props: {
     );
     return read?.tagColors?.[read.tags.indexOf(tag)];
   };
-  /* the collection's tags, each the collections list searched for it in the page's order */
+  /* the collection's tags, each the palettes searched for it in the page's order: as in every row of tags, words
+     search palettes and only a collection's title opens collections */
   const tags = () =>
     marked(
       (doc()?.tags ?? []).map(tag => {
         const href = localHref(
-          `/collections${props.order === "rising" ? "/rising" : ""}${listSearch({ query: listWords(tag), view: props.view })}`
+          `/palettes${props.order === "rising" ? "/rising" : ""}${listSearch({ query: listWords(tag), view: props.view })}`
         );
         return { label: tag, colors: colorsOf(tag), href, rel: relTo(href) };
       })
