@@ -87,15 +87,20 @@ export function tellZaraz(value: Consent = consent()): void {
       ...value.categories,
       marketing: value.categories.marketing && value.categories.analytics
     };
-    const choices: Record<string, boolean> = {};
+    /* one purpose at a time: Zaraz can list a purpose and still refuse it ("Unknown purpose id"), and a refusal must
+       not keep the others, the queued events or Google's consent mode from being told */
+    let told = false;
     for (const category of Object.keys(PURPOSES) as ConsentCategory[]) {
-      if (PURPOSES[category] in (purposes.purposes ?? {}))
-        choices[PURPOSES[category]] = allowed[category];
+      const id = PURPOSES[category];
+      if (!(id in (purposes.purposes ?? {}))) continue;
+      try {
+        purposes.set({ [id]: allowed[category] });
+        told = true;
+      } catch {
+        /* refused: the others stand */
+      }
     }
-    if (Object.keys(choices).length) {
-      purposes.set(choices);
-      if (value.hasInteracted || !value.isGdprRegion) purposes.sendQueuedEvents();
-    }
+    if (told && (value.hasInteracted || !value.isGdprRegion)) purposes.sendQueuedEvents();
   }
   zaraz?.set?.("google_consent_update", {
     analytics_storage: value.categories.analytics ? "granted" : "denied",

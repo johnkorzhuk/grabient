@@ -136,11 +136,43 @@ test("Zaraz's Marketing purpose rides on Analytics, as the page's does", async (
   };
   Object.assign(window, { zaraz: { ...zaraz, consent: purposes } });
   const { defaults, tellZaraz } = await import("./consent.ts");
+  /* what one telling sets, a purpose a call */
+  const told = (value: ReturnType<typeof defaults>) => {
+    purposes.set.mockClear();
+    tellZaraz(value);
+    return Object.assign({}, ...purposes.set.mock.calls.map(([choice]) => choice));
+  };
   const none = defaults("none");
-  tellZaraz({ ...none, categories: { ...none.categories, analytics: false } });
-  expect(purposes.set).toHaveBeenLastCalledWith({ HdWd: false, mxdH: false, daJQ: false });
-  tellZaraz(none);
-  expect(purposes.set).toHaveBeenLastCalledWith({ HdWd: true, mxdH: false, daJQ: true });
+  expect(told({ ...none, categories: { ...none.categories, analytics: false } })).toEqual({
+    HdWd: false,
+    mxdH: false,
+    daJQ: false
+  });
+  expect(told(none)).toEqual({ HdWd: true, mxdH: false, daJQ: true });
+});
+
+test("a purpose Zaraz lists and then refuses leaves the others, the queued events and Google's consent mode told", async () => {
+  const { zaraz } = browser();
+  const kept: Record<string, boolean> = {};
+  const purposes = {
+    APIReady: true,
+    purposes: { HdWd: {}, mxdH: {}, daJQ: {} },
+    /* as grabient.com's Zaraz answered on 17 Oct 2026 */
+    set: vi.fn((choice: Record<string, boolean>) => {
+      if ("mxdH" in choice) throw new Error("Unknown purpose id: mxdH");
+      Object.assign(kept, choice);
+    }),
+    sendQueuedEvents: vi.fn()
+  };
+  Object.assign(window, { zaraz: { ...zaraz, consent: purposes } });
+  const { defaults, tellZaraz } = await import("./consent.ts");
+  expect(() => tellZaraz(defaults("none"))).not.toThrow();
+  expect(kept).toEqual({ HdWd: true, daJQ: true });
+  expect(purposes.sendQueuedEvents).toHaveBeenCalled();
+  expect(zaraz.set).toHaveBeenLastCalledWith(
+    "google_consent_update",
+    expect.objectContaining({ analytics_storage: "granted" })
+  );
 });
 
 test("in another site's frame, which shows no banner, nothing runs where the rule tells until the reader chooses", async () => {

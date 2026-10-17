@@ -5,8 +5,8 @@
    - public/email/head-sheet.png and head-letter.png, the heads of the emails that wear no palette;
    - favicon.svg and favicon-dark.svg, the mark in the brand's gradient (also the design document's);
    - the icons a browser takes as raster files, drawn from the mark by Chromium: favicon.ico, the bar alone in the light
-     scheme's colors, for tabs of a file that names no icon; favicon-tile.ico and its PNGs, for Safari and Google Search,
-     the bar on a rounded tile of the dark ground; and a home screen's full squares.
+     scheme's colors, for Safari, Google Search and tabs of a file that names no icon; favicon-tile.ico and its PNGs,
+     the bar on a rounded tile of the dark ground (the design document shows it); and a home screen's full squares.
    Run it by hand when what a card draws changes (with a new CARD_VERSION), or the brand's gradient or the mark:
    node apps/web/scripts/build-icons.ts */
 import { writeFile } from "node:fs/promises";

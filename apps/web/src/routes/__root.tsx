@@ -77,8 +77,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         ...lost.meta
       ],
       links: [
-        // the tile for Safari and Google Search (its sizes keeps Chrome on the SVG), then light and dark marks
-        { rel: "icon", href: "/favicon-tile.ico", sizes: "32x32" },
+        // the bar on no ground for Safari and Google Search (its sizes keeps Chrome on the SVG), then light and dark marks
+        { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
         ...tabIcons(matches, leaf.pathname, String((leaf.search as { q?: unknown }).q ?? "")),
         { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
         { rel: "manifest", href: "/site.webmanifest" },

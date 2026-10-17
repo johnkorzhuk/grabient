@@ -299,9 +299,15 @@ export function Tags<T extends Tag>(props: {
     addEventListener("wheel", seen, { passive: true, capture: true });
     measure();
     rove();
-    const idle = requestIdleCallback(arm, { timeout: 2000 });
+    /* Safari has no requestIdleCallback: a short timer stands in, as for the cards and the editor */
+    let idle: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (typeof requestIdleCallback === "function")
+      idle = requestIdleCallback(arm, { timeout: 2000 });
+    else timer = setTimeout(arm, 50);
     return () => {
-      cancelIdleCallback(idle);
+      if (idle !== undefined) cancelIdleCallback(idle);
+      clearTimeout(timer);
       stop();
       sizes.disconnect();
       host.removeEventListener("click", click, true);

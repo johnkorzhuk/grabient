@@ -223,6 +223,10 @@ export function Shell() {
               }}
             >
               <div class={styles.corner}>
+                {/* inside another site's frame, the note on what is limited here, clear of the frame's foot */}
+                <Show when={!page().options.strip}>
+                  <EmbedNotice place="header" />
+                </Show>
                 <Show when={page().options.corner}>
                   {corner => <Dynamic component={corner()} />}
                 </Show>
@@ -251,7 +255,9 @@ export function Shell() {
           </BarLight>
           <Show when={keys.rows()}>{rows => <KeyList rows={rows()} onClose={keys.close} />}</Show>
           <Toast />
-          <EmbedNotice strip={!!page().options.strip} />
+          <Show when={page().options.strip}>
+            <EmbedNotice place="strip" />
+          </Show>
         </PageRoot>
       </AppearanceContext>
     </ShellContext>
