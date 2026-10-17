@@ -228,7 +228,8 @@ async function download(tile: Tile, format: DownloadFormat) {
 }
 
 /* What Add to collection says in the chat as the person: the set under its name, then each palette's address in the
-   view it is drawn in now, so the model saves them as they stand. In the reader's language, as their own words are. */
+   view it is drawn in now, after the title its tile shows, so the model saves them as they stand, each named as it was
+   here. In the reader's language, as their own words are. */
 const SAVE_AS = msg(
   "{count, plural, one {Save this palette to a new collection named “{name}”:} other {Save these # palettes to a new collection named “{name}”:}}"
 );
@@ -240,7 +241,9 @@ async function addToCollection(drawn: readonly Tile[]): Promise<AddAnswer> {
   if (!set || !origin()) return "failed";
   const text = [
     t(SAVE_AS, { count: drawn.length, name: set }),
-    ...drawn.map(tile => paletteUrl(origin(), tile))
+    ...drawn.map(tile =>
+      tile.title ? `${tile.title}: ${paletteUrl(origin(), tile)}` : paletteUrl(origin(), tile)
+    )
   ].join("\n");
   try {
     const answer = await bridge.request("ui/message", {

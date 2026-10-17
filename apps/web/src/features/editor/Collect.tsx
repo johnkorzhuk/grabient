@@ -5,8 +5,10 @@ import { merge, untrack } from "solid-js";
 import { signInUnavailable } from "../../app/connection.ts";
 import { toast } from "../../app/toast.ts";
 import type { Drawn } from "../../lib/palette.ts";
-import { ownCollectionsHolding } from "../account/collections.ts";
+import { ownCollectionsHolding, ownPaletteWords } from "../account/collections.ts";
+import type { ItemView } from "../account/wire.ts";
 import { createChecklists } from "../collections/collect.ts";
+import { openedIn } from "../collections/navigation.ts";
 import { selection } from "../selection/selection.ts";
 
 /* The editor's ways into the account's collections: Add to collection under the check of the palette on screen and of
@@ -43,3 +45,8 @@ export const ownHolding = (seed: string) =>
   (ownCollectionsHolding() ?? [])
     .filter(c => c.seeds.includes(seed))
     .map(c => ({ slug: c.slug, title: c.title, colors: dominantColors(c.seeds) }));
+
+/** The words the account's own collections give a palette, which its page is called by for its owner: those of the
+    collection it was opened from, else of the latest changed one that gives it any. */
+export const ownWords = (seed: string, view: ItemView) =>
+  ownPaletteWords(seed, view, openedIn(seed));

@@ -115,7 +115,7 @@
   {
     "name": "get_collection",
     "title": "Read a collection",
-    "description": "Read one collection of color palettes and gradients in order, each palette with its colors and view. A public collection or one of the account's own, by its slug or its address. `total` counts its palettes, which `page` reads on.",
+    "description": "Read one collection of color palettes and gradients in order, each palette with its colors and view. A public collection or one of the account's own, by its slug or its address. A palette it names is `named`, with any `description`. `total` counts its palettes, which `page` reads on.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -587,7 +587,7 @@
   {
     "name": "save_collection",
     "title": "Make or change a collection",
-    "description": "Make a private collection of color palettes, such as a brand's colors or a theme's gradients, or change one of the account's own, which everyone sees at once when it is public. Without a slug it makes one from a title and 1 to 100 palettes. With a slug it changes that one: a field given replaces what is there, `palettes` replaces the whole list in order, `remove` takes palettes out and `add` puts palettes at the end.",
+    "description": "Make a private collection of color palettes, such as a brand's colors or a theme's gradients, or change one of the account's own, which everyone sees at once when it is public. Without a slug it makes one from a title and 1 to 100 palettes. With a slug a field given replaces what is there: `palettes` the whole list in order. `remove` takes palettes out and `add` puts them at the end. A palette may carry its own `title` and `description` here.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -647,6 +647,16 @@
                 "description": "Degrees, 90 running left to right.",
                 "minimum": 0,
                 "maximum": 360
+              },
+              "title": {
+                "type": "string",
+                "description": "Its title here. \"\" takes it away.",
+                "maxLength": 80
+              },
+              "description": {
+                "type": "string",
+                "description": "What is said of it here. \"\" takes it away.",
+                "maxLength": 300
               }
             },
             "required": [
@@ -690,6 +700,16 @@
                 "description": "Degrees, 90 running left to right.",
                 "minimum": 0,
                 "maximum": 360
+              },
+              "title": {
+                "type": "string",
+                "description": "Its title here. \"\" takes it away.",
+                "maxLength": 80
+              },
+              "description": {
+                "type": "string",
+                "description": "What is said of it here. \"\" takes it away.",
+                "maxLength": 300
               }
             },
             "required": [
@@ -697,7 +717,7 @@
             ],
             "additionalProperties": false
           },
-          "description": "Palettes to add at the end. A palette named without a view keeps the one it has here, else the one Grabient shows it in.",
+          "description": "Palettes to add at the end; one already here takes the words given. A palette named without a view keeps the one it has here, else the one Grabient shows it in.",
           "minItems": 1,
           "maxItems": 100
         },

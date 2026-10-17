@@ -9,6 +9,7 @@ import { relTo } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, toggleLike } from "../account/likes.ts";
+import { rememberOpening } from "../collections/navigation.ts";
 import { askFacts } from "../editor/page.ts";
 import { AppearanceContext, drawnIn } from "../list/appearance.ts";
 import { type UseAt, useOpened } from "../palette-use/use.ts";
@@ -18,12 +19,15 @@ import { inPlace } from "./feed.ts";
 import { GalleryContext } from "./page.tsx";
 import type { PaletteItem } from "./schema.ts";
 import { cardTakings } from "./take.ts";
+import { cardWords, type Words } from "./words.ts";
 
-/** A palette of a gallery list as its card: drawn in the list's view, liked, selected, collected and taken as the
-    account's, and opened in the editor in place. Its picture follows the header's control as it is set; its link,
+/** A palette of a gallery list as its card: drawn in the list's view, called by its title where it has one, liked,
+    selected, collected and taken as the account's, and opened in the editor in place. Its picture follows the header's control as it is set; its link,
     name, selection and files follow once the address has the view. */
 export function GalleryCard(props: {
   item: PaletteItem;
+  /** the words the collection it stands under gives it */
+  words?: Words;
   /** the clock its age is told against; none for a palette no gallery holds yet */
   now?: number;
   /** when its like count was read with its list: asked for again once that is old */
@@ -45,6 +49,7 @@ export function GalleryCard(props: {
   );
   const path = () => paletteHref(shown(), page.params().size);
   const where = () => props.at?.() ?? {};
+  const words = () => cardWords(shown(), props.words);
   onSettled(() => {
     const at = untrack(() => props.readAt);
     if (at !== undefined)
@@ -64,13 +69,15 @@ export function GalleryCard(props: {
   return (
     <PaletteCard
       seed={seed()}
-      name={nameOf(shown())}
+      name={props.words?.title ?? nameOf(shown())}
       stops={hexesOf(picture())}
       style={picture().style}
       angle={picture().angle}
       href={path()}
       rel={relTo(path())}
       age={props.now ? relativeAge(props.item.createdAt, props.now) : ""}
+      title={words().title}
+      description={words().description}
       likes={likeCount(seed(), props.item.likes)}
       liked={liked(seed())}
       onLike={like}
@@ -94,6 +101,8 @@ export function GalleryCard(props: {
       )}
       onIntent={() => askFacts(seed())}
       onOpen={e => {
+        const under = where().collection;
+        if (under) rememberOpening(seed(), under);
         useOpened(page.place(), shown(), where());
         inPlace(e, () => void navigate({ href: path() }));
       }}

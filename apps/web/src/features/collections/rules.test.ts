@@ -180,3 +180,58 @@ describe("validation", () => {
     }
   );
 });
+
+describe("a palette's words in its collection", () => {
+  const [one, two] = items.slice(0, 2).map(item => collectionItem(item)!) as [
+    CollectionInput["items"][number],
+    CollectionInput["items"][number]
+  ];
+  const base: CollectionInput = {
+    title: "Kept",
+    description: "",
+    tags: [],
+    visibility: "private",
+    items: [{ ...one, title: "Pit ember", description: "Coals at dusk." }, two]
+  };
+  const itemsOf = (body: Record<string, unknown>) => {
+    const read = validateCollection(body, base);
+    return read.ok ? read.input.items : read;
+  };
+
+  test("stay when the palettes come again without them", () => {
+    expect(itemsOf({ items: [two, one] })).toEqual([
+      two,
+      { ...one, title: "Pit ember", description: "Coals at dusk." }
+    ]);
+  });
+
+  test("change when given, one line each, and go when given empty or null", () => {
+    expect(
+      itemsOf({
+        items: [
+          { ...one, title: " Hallowe'en\n  Night ", description: null },
+          { ...two, title: "", description: "Embers." }
+        ]
+      })
+    ).toEqual([
+      { ...one, title: "Hallowe'en Night" },
+      { ...two, description: "Embers." }
+    ]);
+  });
+
+  test("are refused past their lengths, each by its own rule", () => {
+    expect(itemsOf({ items: [{ ...one, title: "x".repeat(81) }] })).toEqual({
+      ok: false,
+      error: "Palette titles are up to 80 characters.",
+      i18n: { message: "Palette titles are up to {max} characters.", params: { max: "80" } }
+    });
+    expect(itemsOf({ items: [{ ...one, description: "x".repeat(301) }] })).toMatchObject({
+      ok: false,
+      error: "Palette descriptions are up to 300 characters."
+    });
+  });
+
+  test("never come with a palette read for its view alone", () => {
+    expect(collectionItem({ ...one, title: "Pit ember", description: "Coals." })).toEqual(one);
+  });
+});

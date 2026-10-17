@@ -26,7 +26,7 @@ import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
-import { paletteFacts, relTo } from "../../lib/page-meta.ts";
+import { clipWords, paletteFacts, relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
@@ -38,6 +38,7 @@ import { inPlace } from "../gallery/feed.ts";
 import { readerOrder, recallOrder, rememberOrder } from "../gallery/order.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { sortSearch } from "../gallery/sort.ts";
+import { cardWords } from "../gallery/words.ts";
 import { drawnIn, type ListView, viewParams } from "../list/appearance.ts";
 import { useOpened, useTaken } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
@@ -88,6 +89,7 @@ const PLACE = { surface: "editor" } as const;
 
 type Item = Similar["items"][number];
 type Holding = typeof import("./Collect.tsx").ownHolding;
+type OwnWords = typeof import("./Collect.tsx").ownWords;
 /* a signed-out reader who selects nothing loads none of the account's collections */
 const AddToCollection = lazy(() =>
   import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
@@ -283,12 +285,22 @@ export function Sheet(props: {
      server's, where it sent the page for this palette, else the answer's. A collection's page needs the server, so
      with no connection its link stays in its place and leads nowhere; the account's own opens from the copy. */
   const [holding, setHolding] = createSignal<Holding | null>(null);
+  const [wordsOf, setWordsOf] = createSignal<OwnWords | null>(null);
   createEffect(
     () => !!account(),
     signedIn => {
-      if (signedIn) void import("./Collect.tsx").then(m => setHolding(() => m.ownHolding));
+      if (signedIn)
+        void import("./Collect.tsx").then(m => {
+          setHolding(() => m.ownHolding);
+          setWordsOf(() => m.ownWords);
+        });
     }
   );
+  /* the words the reader's own collection gives the palette, which the page is called by for its owner */
+  const called = createMemo(() => {
+    accountView();
+    return wordsOf()?.(e.seed(), view()) ?? null;
+  });
   const own = createMemo(() => {
     accountView();
     return holding()?.(e.seed()) ?? [];
@@ -333,7 +345,7 @@ export function Sheet(props: {
     const list = sort() === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
     return `${list}?${query}`;
   };
-  const title = () => paletteName(e, props.heading(), props.facts());
+  const title = () => called()?.title ?? paletteName(e, props.heading(), props.facts());
   /* what the page says of the palette under its name, to a reader and to a crawler alike: how it is drawn and its
      colors, said again for another palette or view once it has stood a moment, so no frame of an edit spends on them */
   const said = () => {
@@ -347,6 +359,13 @@ export function Sheet(props: {
     });
   };
   const [described, setDescribed] = createSignal(untrack(said));
+  /* the reader's own words for the palette stand where written ones would, before how it is drawn */
+  const ownSaid = () => {
+    const own = called()?.description;
+    return own
+      ? `${clipWords(own)} ${paletteFacts({ kind: "palette", seed: e.seed(), palette: e.palette(), view: view() })}`
+      : undefined;
+  };
   createEffect(
     () => [e.seed(), e.style(), e.steps(), e.angle(), props.facts()] as const,
     () => {
@@ -361,6 +380,7 @@ export function Sheet(props: {
   const card = (item: () => Item, position: number) => {
     const palette = createMemo(() => drawnIn(itemDrawn(item()), listed()));
     const seed = () => item().kseed;
+    const words = () => cardWords(palette());
     const address = () => seedAddress({ seed: seed(), view: { ...palette(), size: e.size() } });
     /* a card's pictures are the stage's size once the reader set one, and its files' addresses name it */
     const taken = (): Taken => {
@@ -404,6 +424,8 @@ export function Sheet(props: {
         href={localHref(address())}
         rel={relTo(localHref(address()))}
         age={relativeAge(item().createdAt, now)}
+        title={words().title}
+        description={words().description}
         likes={likeCount(seed(), item().likes)}
         liked={liked(seed())}
         likeDisabled={signInUnavailable()}
@@ -463,7 +485,7 @@ export function Sheet(props: {
         sheet = el;
       }}
       title={title()}
-      description={described()}
+      description={ownSaid() ?? described()}
       onBand={props.onBand}
       clear={props.clear}
       resting={props.resting}

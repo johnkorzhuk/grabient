@@ -30,6 +30,7 @@ import {
   createCollection,
   deleteCollection,
   isUniqueError,
+  nameItem,
   ownCollectionsFull,
   ownerHandle,
   SlugTaken,
@@ -220,6 +221,22 @@ async function setVisibility(
   return done();
 }
 
+/* A palette's title in the account's collection, in one view of it: given, changed, or taken away. A palette the
+   collection no longer holds there is a quiet success, as a removal already made is. */
+async function name(
+  env: Env,
+  account: Writer,
+  op: Extract<CollectionOp, { op: "collection.name" }>
+): Promise<Outcome> {
+  const record = await owned(env, account, op.slug);
+  if (!record) return gone();
+  const item = { seed: op.seed, ...op.view };
+  if (!record.input.items.some(held => itemKey(held) === itemKey(item))) return done();
+  const over = await limited(env, account);
+  if (over) return over;
+  return (await nameItem(env, record.id, item, op.title || null, owner(account))) ? done() : gone();
+}
+
 async function erase(env: Env, account: Writer, slug: string): Promise<Outcome> {
   const record = await owned(env, account, slug);
   if (!record) return refused(404, msg("Not found"));
@@ -243,6 +260,8 @@ export function applyCollectionOp(env: Env, account: Writer, op: CollectionOp): 
       return restore(env, account, op);
     case "collection.update":
       return setVisibility(env, account, op);
+    case "collection.name":
+      return name(env, account, op);
     case "collection.delete":
       return erase(env, account, op.slug);
   }

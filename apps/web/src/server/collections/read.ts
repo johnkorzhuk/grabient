@@ -138,17 +138,25 @@ interface ItemRow {
   rising?: number | null;
   gallery_at?: number | null;
   first_public?: number | null;
+  title?: string | null;
+  description?: string | null;
 }
 const styleOf = (raw: string): Style => (isStyle(raw) ? raw : DEFAULT_STYLE);
+/** The words a collection gives one of its palettes, where it gives any. */
+const wordsOf = (row: { title?: string | null; description?: string | null }) => ({
+  ...(row.title ? { title: row.title } : {}),
+  ...(row.description ? { description: row.description } : {})
+});
 
-/** A collection's palettes in its own order, each with its likes, its week's rising score and when it was made. */
+/** A collection's palettes in its own order, each with its likes, its week's rising score, when it was made and the
+    words the collection gives it. */
 export async function itemsOf(
   env: Reader,
   row: Pick<CollectionRow, "id" | "created_at">
 ): Promise<CollectionItem[]> {
   const rows = await all<ItemRow>(
     env.DB,
-    `SELECT i.position, i.seed, i.style, i.steps, i.angle, i.created_at, p.likes_count, p.rising,
+    `SELECT i.position, i.seed, i.style, i.steps, i.angle, i.created_at, i.title, i.description, p.likes_count, p.rising,
        p.created_at AS gallery_at, ${FIRST_PUBLIC("i.seed")} AS first_public
      FROM k_collection_items i LEFT JOIN k_palettes p ON p.seed = i.seed
      WHERE i.collection_id = ? ORDER BY i.position LIMIT ?`,
@@ -169,24 +177,27 @@ export async function itemsOf(
           madeAt(item.gallery_at, item.first_public, item.created_at ?? row.created_at) ??
           Number(row.created_at),
         position: Number(item.position),
-        ...risingOf(item.rising)
+        ...risingOf(item.rising),
+        ...wordsOf(item)
       }
     ];
   });
 }
 
-/** A collection's first palettes as a list's card draws them: the first of its page's own order, each with its place. */
+/** A collection's first palettes as a list's card draws them: the first of its page's own order, each with its place and
+    its words. */
 export const previewOf = (items: readonly CollectionItem[]): CollectionPreview[] =>
   sortCollectionItems(items)
     .slice(0, PREVIEW_ITEMS)
-    .map(({ kseed, style, steps, angle, createdAt, likes, position }) => ({
+    .map(({ kseed, style, steps, angle, createdAt, likes, position, title, description }) => ({
       seed: kseed,
       style,
       steps,
       angle,
       createdAt,
       likes,
-      position
+      position,
+      ...wordsOf({ title, description })
     }));
 
 /** Each collection's preview palettes, by its id: read, or for a public list (`shared`) as this data center keeps them
@@ -253,10 +264,11 @@ async function readPreviews(
     : "COALESCE(p.likes_count, 0) DESC, i.position";
   const held = await all<ItemRow>(
     env.DB,
-    `SELECT t.collection_id, t.position, t.seed, t.style, t.steps, t.angle, t.created_at, t.likes_count, t.rising,
-       t.gallery_at, ${FIRST_PUBLIC("t.seed")} AS first_public
-     FROM (SELECT i.collection_id, i.position, i.seed, i.style, i.steps, i.angle, i.created_at, p.likes_count,
-         p.rising, p.created_at AS gallery_at, ROW_NUMBER() OVER (PARTITION BY i.collection_id ORDER BY ${rank}) AS n
+    `SELECT t.collection_id, t.position, t.seed, t.style, t.steps, t.angle, t.created_at, t.title, t.description,
+       t.likes_count, t.rising, t.gallery_at, ${FIRST_PUBLIC("t.seed")} AS first_public
+     FROM (SELECT i.collection_id, i.position, i.seed, i.style, i.steps, i.angle, i.created_at, i.title, i.description,
+         p.likes_count, p.rising, p.created_at AS gallery_at,
+         ROW_NUMBER() OVER (PARTITION BY i.collection_id ORDER BY ${rank}) AS n
        FROM k_collection_items i ${rising ? "JOIN k_collections c ON c.id = i.collection_id " : ""}LEFT JOIN k_palettes p ON p.seed = i.seed
        WHERE i.collection_id IN (SELECT value FROM json_each(?))) t
      WHERE t.n <= ? ORDER BY t.collection_id, t.n`,
@@ -277,7 +289,8 @@ async function readPreviews(
         ) ?? created.get(row.collection_id),
       likes: Math.max(0, Number(row.likes_count) || 0),
       position: Number(row.position),
-      ...risingOf(row.rising)
+      ...risingOf(row.rising),
+      ...wordsOf(row)
     });
   return map;
 }
@@ -359,9 +372,16 @@ async function recordBy(
 ): Promise<CollectionRecord | null> {
   const row = await first<CollectionRow>(env.DB, `${SELECT} WHERE c.${column} = ?`, value);
   if (!row) return null;
-  const items = await all<{ seed: string; style: string; steps: number; angle: number }>(
+  const items = await all<{
+    seed: string;
+    style: string;
+    steps: number;
+    angle: number;
+    title: string | null;
+    description: string | null;
+  }>(
     env.DB,
-    "SELECT seed, style, steps, angle FROM k_collection_items WHERE collection_id = ? ORDER BY position LIMIT ?",
+    "SELECT seed, style, steps, angle, title, description FROM k_collection_items WHERE collection_id = ? ORDER BY position LIMIT ?",
     row.id,
     MAX_COLLECTION_ITEMS
   );
@@ -380,7 +400,8 @@ async function recordBy(
         seed: item.seed,
         style: styleOf(item.style),
         steps: Number(item.steps),
-        angle: Number(item.angle)
+        angle: Number(item.angle),
+        ...wordsOf(item)
       }))
     }
   };

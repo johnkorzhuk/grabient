@@ -56,6 +56,11 @@ const sameView = (a: ItemView, b: ItemView) =>
   a.style === b.style && a.steps === b.steps && a.angle === b.angle;
 const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
+/** The words an entry has, where it has any. */
+const wordsOf = (item: { title?: string; description?: string }) => ({
+  ...(item.title ? { title: item.title } : {}),
+  ...(item.description ? { description: item.description } : {})
+});
 /** A collection's first palettes in its page's order, as the server writes them. */
 export function previewOf(items: readonly CollectionItem[]): CollectionPreview[] {
   return sortCollectionItems(items)
@@ -67,7 +72,8 @@ export function previewOf(items: readonly CollectionItem[]): CollectionPreview[]
       angle: item.angle,
       createdAt: item.createdAt,
       likes: item.likes,
-      position: item.position
+      position: item.position,
+      ...wordsOf(item)
     }));
 }
 const withItems = (doc: SyncCollection, items: CollectionItem[], at: number): SyncCollection => ({
@@ -119,7 +125,8 @@ function applyOne(
     steps: input.steps,
     angle: input.angle,
     ...known(input.seed),
-    position
+    position,
+    ...wordsOf(input)
   });
   const lastPosition = (doc: SyncCollection) =>
     doc.items.reduce((most, item) => Math.max(most, item.position), -1);
@@ -219,6 +226,22 @@ function applyOne(
       }
       return;
     }
+    case "collection.name": {
+      const doc = named(collections, op);
+      const entry = doc?.items.find(item => item.kseed === op.seed && sameView(item, op.view));
+      if (!doc || !entry || (entry.title ?? "") === op.title) return;
+      const { title: _, ...rest } = entry;
+      const renamed = op.title ? { ...rest, title: op.title } : rest;
+      collections.set(
+        doc.slug,
+        withItems(
+          doc,
+          doc.items.map(item => (item === entry ? renamed : item)),
+          at
+        )
+      );
+      return;
+    }
     case "collection.delete": {
       const doc = named(collections, op);
       if (doc) collections.delete(doc.slug);
@@ -239,7 +262,7 @@ const slugOf = (op: SyncOp): string | null => (op.op === "like" ? null : op.slug
 
 /** The pending list with a new change in it, folded where it can be, as presses fold into one write: a like
     supersedes the like of the same palette not yet sent, and neither goes when the press ends where the server will
-    be; two changes of who sees a collection fold the same way; an undo of a removal not yet sent takes it back and
+    be; two changes of who sees a collection fold the same way, and so do two titles of one palette in one view; an undo of a removal not yet sent takes it back and
     sends nothing; deleting a collection made here and not yet sent sends nothing for it at all. Changes up to
     `sending` are on their way and stay as they are. */
 export function fold(
@@ -270,6 +293,21 @@ export function fold(
       change => change.op.op === "collection.update" && change.op.slug === op.slug,
       change => (change.op as Extract<SyncOp, { op: "collection.update" }>).visibility,
       snapshot.collections.get(op.slug)?.visibility
+    );
+  }
+  if (op.op === "collection.name") {
+    const titled = (change: Pending) =>
+      change.op.op === "collection.name" &&
+      change.op.slug === op.slug &&
+      change.op.seed === op.seed &&
+      sameView(change.op.view, op.view);
+    const held = snapshot.collections
+      .get(op.slug)
+      ?.items.find(item => item.kseed === op.seed && sameView(item, op.view));
+    return settle(
+      titled,
+      change => (change.op as Extract<SyncOp, { op: "collection.name" }>).title,
+      held?.title ?? ""
     );
   }
   if (op.op === "collection.restore" && next.local?.removal) {

@@ -339,3 +339,30 @@ it("moves the snapshot to a sync's answer as grabient4 did", () => {
     )
   }).toEqual(settles);
 });
+
+it("names a palette in one view of it, and folds titles not yet sent into the last", () => {
+  const name = (title: string, angle = 90) =>
+    change({
+      op: "collection.name",
+      slug: "blue",
+      seed: seeds[1]!,
+      view: { ...view, angle },
+      title
+    });
+  const first = name("Pit ember");
+  const second = name("Embers");
+  const cleared = name("");
+  const named = rebase(snapshot, [first], maker).collections.get("blue")!;
+  expect(named.items[1]).toMatchObject({ kseed: seeds[1], title: "Pit ember" });
+  expect(named.preview.find(p => p.seed === seeds[1])).toMatchObject({ title: "Pit ember" });
+  expect(
+    rebase(snapshot, [first, cleared], maker).collections.get("blue")!.items[1]
+  ).not.toHaveProperty("title");
+  // a view the collection does not hold the palette in is left as it is
+  expect(rebase(snapshot, [name("Elsewhere", 45)], maker).collections.get("blue")).toEqual(
+    snapshot.collections.get("blue")
+  );
+  expect(step([first], second)).toEqual([second.key]);
+  expect(step([first], cleared)).toEqual([]);
+  expect(step([first], second, first.id)).toEqual([first.key, second.key]);
+});

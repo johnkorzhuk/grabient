@@ -254,6 +254,48 @@ describe("writing a collection", () => {
     ).toBe(before);
   });
 
+  it("keeps each palette's own words through a change that leaves them out, and refuses them past their length", async () => {
+    const worded = { ...items(1)[0]!, title: "Peak Foliage", description: "Maples, bark to gold." };
+    const mine = await make(ada, { title: unique("Worded"), items: [worded, items(2)[1]] });
+    expect(mine.status).toBe(201);
+    const slug = mine.body.collection.slug;
+    const change = async (body: Record<string, unknown>) => {
+      const answer = await collectionAnswer(
+        send("PATCH", `/api/collections/${at(slug)}`, body, { cookie: ada.cookie }),
+        env
+      );
+      return {
+        status: answer.status,
+        body: await bodyOf<{ collection: CollectionDocument }>(answer)
+      };
+    };
+    const words = (doc: CollectionDocument) =>
+      doc.items.map(({ kseed, title, description }) => ({ kseed, title, description }));
+    expect(words(mine.body.collection as unknown as CollectionDocument)).toEqual([
+      { kseed: SEEDS[0], title: "Peak Foliage", description: "Maples, bark to gold." },
+      { kseed: SEEDS[1], title: undefined, description: undefined }
+    ]);
+    const moved = await change({ items: [items(2)[1], items(1)[0]] });
+    expect(words(moved.body.collection)).toEqual([
+      { kseed: SEEDS[1], title: undefined, description: undefined },
+      { kseed: SEEDS[0], title: "Peak Foliage", description: "Maples, bark to gold." }
+    ]);
+    const renamed = await change({ items: [{ ...items(1)[0], title: "Momiji", description: "" }] });
+    expect(words(renamed.body.collection)).toEqual([
+      { kseed: SEEDS[0], title: "Momiji", description: undefined }
+    ]);
+    const long = await change({ items: [{ ...items(1)[0], description: "x".repeat(301) }] });
+    expect(long.status).toBe(400);
+    expect(long.body).toMatchObject({ error: "Palette descriptions are up to 300 characters." });
+    // the owner's list shows them on its cards too
+    const own = await bodyOf<CollectionPage>(
+      await mineAnswer(get("/api/me/collections", { cookie: ada.cookie }), env)
+    );
+    expect(own.items.find(c => c.slug === slug)?.preview).toEqual([
+      expect.objectContaining({ seed: SEEDS[0], title: "Momiji" })
+    ]);
+  });
+
   it("moves an account's private collections when its username changes", async () => {
     const cy = await makeAccount(env);
     const old = `_${cy.id.replace(/[^a-z0-9]/g, "").slice(0, 10)}`;
@@ -509,6 +551,58 @@ describe("saved copies", () => {
       404,
       "The original collection is gone."
     ]);
+  });
+});
+
+describe("saved copies of a palette's words", () => {
+  it("carry them, and Update brings in the ones the source changed", async () => {
+    const source = (
+      await make(admin, {
+        title: unique("Worded sources"),
+        visibility: "public",
+        items: [{ ...items(1)[0], title: "Ember" }, items(2)[1]]
+      })
+    ).body.collection;
+    const reader = await makeAccount(env);
+    const copy = await bodyOf<{ collection: CollectionDocument }>(
+      await collectionAnswer(
+        send("POST", `/api/collections/${at(source.slug)}/copies`, {}, { cookie: reader.cookie }),
+        env
+      )
+    );
+    expect(copy.collection.items[0]).toMatchObject({ kseed: SEEDS[0], title: "Ember" });
+    await collectionAnswer(
+      send(
+        "PATCH",
+        `/api/collections/${at(source.slug)}`,
+        {
+          items: [
+            { ...items(1)[0], title: "Embers" },
+            { ...items(2)[1], description: "Night." }
+          ]
+        },
+        { cookie: admin.cookie }
+      ),
+      env
+    );
+    const update = await bodyOf<{ collection: CollectionDocument; copy: CopyStanding }>(
+      await mineAt(
+        send(
+          "POST",
+          `/api/me/collections/${at(copy.collection.slug)}/update`,
+          {},
+          { cookie: reader.cookie }
+        ),
+        env
+      )
+    );
+    expect(
+      update.collection.items.map(({ title, description }) => ({ title, description }))
+    ).toEqual([
+      { title: "Embers", description: undefined },
+      { title: undefined, description: "Night." }
+    ]);
+    expect(update.copy).toMatchObject({ behind: false, differs: false });
   });
 });
 

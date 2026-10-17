@@ -1150,3 +1150,101 @@ test("the collection a saved one came from shows its colors under the pointer an
   await expect(source).toBeFocused();
   await coinsAt(coins, "1");
 });
+
+test("a palette's title stands in its age's place under the pointer and the keyboard, its words in its tooltip, and nothing moves", async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      route.fulfill({
+        json: {
+          ...words,
+          items: preview.map(({ seed, ...p }) => ({
+            kseed: seed,
+            ...p,
+            title: "Violet hour",
+            description: "Cobalt into a gold horizon."
+          }))
+        }
+      })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const card = page.getByRole("article", { name: "Violet hour palette" });
+  const title = card.getByText("Violet hour", { exact: true });
+  const age = title.locator("xpath=preceding-sibling::span[1]");
+  await expect(title).toHaveCSS("opacity", "0");
+  await expect(age).toHaveCSS("opacity", "1");
+  const before = [await card.boundingBox(), await title.boundingBox()];
+  await card.getByRole("img").hover();
+  await expect(title).toHaveCSS("opacity", "1");
+  await expect(age).toHaveCSS("opacity", "0");
+  expect([await card.boundingBox(), await title.boundingBox()]).toEqual(before);
+  // resting on the title says what is said of the palette, then the age it stands over
+  await title.hover();
+  const tip = page.getByRole("tooltip");
+  await expect(tip).toContainText("Cobalt into a gold horizon.");
+  await expect(tip).toContainText((await age.textContent()) ?? "");
+  await page.mouse.move(0, 0);
+  await expect(title).toHaveCSS("opacity", "0");
+  // the keyboard in the card opens it as the pointer does
+  const edit = card.getByRole("link", { name: "Edit Violet hour" });
+  await edit.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(edit).toBeFocused();
+  await expect(title).toHaveCSS("opacity", "1");
+});
+
+test("the owner titles a palette on its card, an undo takes the title back, and the palette's page is called by it", async ({
+  page
+}) => {
+  await signIn(page, "ada", false, [blues]);
+  const sent: unknown[] = [];
+  page.on("request", request => {
+    if (request.method() === "POST" && new URL(request.url()).pathname === "/api/me/sync")
+      for (const change of (request.postDataJSON() as { mutations?: { op: unknown }[] })
+        .mutations ?? [])
+        sent.push(change.op);
+  });
+  await page.goto(blues.url);
+  await hydrated(page);
+  const card = page.locator("main article").first();
+  await card.getByRole("img").hover();
+  await card.getByRole("button", { name: "Add a title" }).click();
+  const field = card.getByRole("textbox", { name: "Palette title" });
+  await expect(field).toBeFocused();
+  await field.fill("Hallowe'en Night");
+  await page.keyboard.press("Enter");
+  const named = card.getByRole("button", { name: "Rename Hallowe'en Night" });
+  await expect(named).toBeFocused();
+  await expect
+    .poll(() => sent)
+    .toContainEqual(
+      expect.objectContaining({
+        op: "collection.name",
+        slug: blues.slug,
+        seed: SEED,
+        view: { style: "linearGradient", steps: 7, angle: 90 },
+        title: "Hallowe'en Night"
+      })
+    );
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(card.getByRole("button", { name: "Add a title" })).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await expect(named).toBeVisible();
+  // its page, opened from the collection, is called by the collection's title for it
+  await card.getByRole("link", { name: "Edit Hallowe'en Night" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/${SEED}`));
+  await expect(page.getByRole("region", { name: "Hallowe'en Night" })).toBeVisible();
+});

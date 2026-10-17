@@ -43,7 +43,7 @@ Every palette route takes `style`, `steps` and `angle`.
 
 - [Collections as JSON](https://grabient.com/api/collections?sort=popular&page=1&limit=24): public collections with their titles, descriptions, tags and first palettes. Add `q={query}` to search them.
 - [Collections page](https://grabient.com/collections): the same list for a person
-- One collection as JSON: `https://grabient.com/api/collections/{slug}`
+- One collection as JSON: `https://grabient.com/api/collections/{slug}`, each palette with the title and description its collection gives it, where it gives any
 - One collection as Markdown: `https://grabient.com/{slug}.md`
 - One collection as ASE, a group to each palette: `https://grabient.com/{slug}.ase`
 - One collection as GPL: `https://grabient.com/{slug}.gpl`

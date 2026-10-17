@@ -11,23 +11,29 @@ import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../acc
 import { askFacts } from "../editor/page.ts";
 import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
 import { cardTakings } from "../gallery/take.ts";
+import { cardWords, type Words } from "../gallery/words.ts";
 import { AppearanceContext, drawnIn, type ListView } from "../list/appearance.ts";
 import { type UseAt, type UsePlace, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
+import { rememberOpening } from "./navigation.ts";
 
 /** A palette of a collection as its card, on the collection's page and in a list's group: drawn in the page's view
-    over the one the collection saved it in, its picture following the header's control as it is set; liked, selected,
-    collected, copied and opened as on every list, each counted with where the card stands. The page adds what is its
-    own: the thumbs, and the presses beside Edit. */
+    over the one the collection saved it in, its picture following the header's control as it is set, and called by the
+    title the collection gives it; liked, selected, collected, copied and opened as on every list, each counted with
+    where the card stands. The page adds what is its own: the thumbs, the presses beside Edit, and its owner's naming. */
 export function ItemCard(props: {
   /** the palette as the collection saved it */
   own: Drawn;
+  /** the words the collection gives it */
+  words?: Words;
+  /** the owner names it on the card */
+  naming?: { max: number; onName: (title: string) => void };
   view: ListView;
   age: string;
   /** its likes as the page read them, and when, shown until the shared counts say more */
   likes: number;
   readAt: number;
-  /** the collection the card is in, which an admin's like is told */
+  /** the collection the card is in, which an admin's like is told and its palette's page names it by */
   collection: string;
   /** the page, and where on it the card stands, read at a press */
   place: () => UsePlace;
@@ -44,6 +50,7 @@ export function ItemCard(props: {
   const shown = createMemo(() => drawnIn(props.own, props.view));
   const picture = createMemo(() => picturedAs(props.own, props.view, look.draft(), look.peek()));
   const seed = () => props.own.seed;
+  const words = () => cardWords(shown(), props.words);
   const href = () => paletteHref(shown(), props.view.size);
   const collect = props.collect(shown);
   const take = cardTakings({
@@ -68,13 +75,16 @@ export function ItemCard(props: {
   return (
     <PaletteCard
       seed={seed()}
-      name={nameOf(shown())}
+      name={props.words?.title ?? nameOf(shown())}
       stops={hexesOf(picture())}
       style={picture().style}
       angle={picture().angle}
       href={href()}
       rel={relTo(href())}
       age={props.age}
+      title={words().title}
+      description={words().description}
+      naming={props.naming}
       likes={likeCount(seed(), props.likes)}
       liked={liked(seed())}
       onLike={like}
@@ -84,7 +94,10 @@ export function ItemCard(props: {
         if (toggle(shown()) === "made room") props.note(roomNote(1));
       }}
       onIntent={() => askFacts(seed())}
-      onOpen={() => useOpened(props.place(), shown(), props.at())}
+      onOpen={() => {
+        rememberOpening(seed(), props.collection);
+        useOpened(props.place(), shown(), props.at());
+      }}
       collect={<CollectPress collect={collect} />}
       tools={() => (
         <FormatStrip

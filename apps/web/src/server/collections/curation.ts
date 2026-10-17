@@ -46,7 +46,7 @@ export async function removeMembership(
   const allowed = ALLOWED[who];
   const results = await batch(env.DB, [
     [
-      `SELECT seed, style, steps, angle, position, created_at AS createdAt FROM k_collection_items
+      `SELECT seed, style, steps, angle, position, created_at AS createdAt, title, description FROM k_collection_items
        WHERE collection_id = ? AND seed = ?${viewWhere(view)} AND EXISTS (SELECT 1 FROM k_collections WHERE ${allowed})
        ORDER BY position`,
       id,
@@ -79,14 +79,16 @@ export async function removeMembership(
           steps: Number(row.steps),
           angle: Number(row.angle),
           position: Number(row.position),
-          createdAt: row.createdAt == null ? null : Number(row.createdAt)
+          createdAt: row.createdAt == null ? null : Number(row.createdAt),
+          ...(row.title ? { title: row.title } : {}),
+          ...(row.description ? { description: row.description } : {})
         }
       : null
   };
 }
 
-/** Puts a membership back as it stood: its place, its view and the time it joined. A collection that holds it again
-    stays as it is (`present`), and one that is full refuses it (`full`). */
+/** Puts a membership back as it stood: its place, its view, the time it joined and its words. A collection that holds it
+    again stays as it is (`present`), and one that is full refuses it (`full`). */
 export async function restoreMembership(
   env: Writer,
   who: Allowed,
@@ -97,8 +99,8 @@ export async function restoreMembership(
   const allowed = ALLOWED[who];
   const results = await batch(env.DB, [
     [
-      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
-       SELECT ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM k_collections WHERE ${allowed})
+      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM k_collections WHERE ${allowed})
          AND (SELECT COUNT(*) FROM k_collection_items WHERE collection_id = ?) < ?
        ON CONFLICT (collection_id, seed, style, steps, angle) DO NOTHING`,
       id,
@@ -108,6 +110,8 @@ export async function restoreMembership(
       row.steps,
       row.angle,
       row.createdAt,
+      row.title ?? null,
+      row.description ?? null,
       id,
       accountId,
       id,

@@ -1,13 +1,13 @@
 import type { Env } from "@grabient/server/env.ts";
+import { RESTORE_TOKEN_MAX } from "../../features/collections/schema.ts";
 
-/* The token a removal answers with, so its undo puts the membership back as it stood: its place, its view and the time
-   it joined. A membership's time is a palette's public date, so a restore never takes one from the client: the server
-   restores what a token it signed says, for this account and this collection, for a day. An admin's add to one of
-   Grabient's collections answers with one too, which its undo sends to take that membership out again. */
+/* The token a removal answers with, so its undo puts the membership back as it stood: its place, its view, the time it
+   joined and its words. A membership's time is a palette's public date, so a restore never takes one from the client:
+   the server restores what a token it signed says, for this account and this collection, for a day. An admin's add to
+   one of Grabient's collections answers with one too, which its undo sends to take that membership out again. */
 
 const PURPOSE = "collection-restore";
 const LIFE_MS = 24 * 60 * 60 * 1000;
-const TOKEN_MAX = 2048;
 const encoder = new TextEncoder();
 
 const toBase64Url = (bytes: Uint8Array) =>
@@ -44,6 +44,9 @@ export interface Membership {
   angle: number;
   position: number;
   createdAt: number | null;
+  /** the words the collection gave it */
+  title?: string;
+  description?: string;
   /** made by an admin's add: its undo takes it out, and nothing else does with this token */
   added?: boolean;
   /** the admin's record of the removal, which the undo takes back */
@@ -74,7 +77,7 @@ export async function readRestoreToken(
   collectionId: string,
   now = Date.now()
 ): Promise<Membership | null> {
-  if (typeof token !== "string" || token.length > TOKEN_MAX) return null;
+  if (typeof token !== "string" || token.length > RESTORE_TOKEN_MAX) return null;
   const [body, signed] = token.split(".");
   const signature = signed ? fromBase64Url(signed) : null;
   if (!body || !signature) return null;

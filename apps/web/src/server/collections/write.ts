@@ -189,8 +189,8 @@ const itemStatements = (
 ): Statement[] =>
   items.map(
     (item, position): Statement => [
-      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
-     SELECT ?, ?, ?, ?, ?, ?, ?${withRow ? " WHERE EXISTS (SELECT 1 FROM k_collections WHERE id = ?)" : ""}`,
+      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?${withRow ? " WHERE EXISTS (SELECT 1 FROM k_collections WHERE id = ?)" : ""}`,
       id,
       position,
       item.seed,
@@ -198,6 +198,8 @@ const itemStatements = (
       item.steps,
       item.angle,
       now,
+      item.title ?? null,
+      item.description ?? null,
       ...(withRow ? [id] : [])
     ]
   );
@@ -288,8 +290,8 @@ export const LIKES_SUM = `SELECT COALESCE(SUM(p.likes_count), 0) FROM
 export const ITEM_KEY = "seed || ' ' || style || ' ' || steps || ' ' || angle";
 
 /** Replaces every field and writes the palettes as a difference: an item the collection holds keeps its row and the time
-    it joined (its place follows the input), a new item joins with this write's time, and an item no longer in the input
-    goes. A saved copy's Update and Reset also write its source as it stands (`forkedBase`), and a collection that moves
+    it joined (its place and its words follow the input), a new item joins with this write's time, and an item no longer
+    in the input goes. A saved copy's Update and Reset also write its source as it stands (`forkedBase`), and a collection that moves
     takes its new address (`slug`). With `owner`, every statement writes only while the collection is theirs. False when
     nothing was written: no such collection, or not theirs. */
 export async function updateCollection(
@@ -342,10 +344,12 @@ export async function updateCollection(
     ],
     ...input.items.map(
       (item, position): Statement => [
-        `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
-         SELECT ?, ?, ?, ?, ?, ?, ? WHERE 1${ofOwner}
-         ON CONFLICT(collection_id, seed, style, steps, angle) DO UPDATE SET position = excluded.position
-           WHERE position IS NOT excluded.position`,
+        `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE 1${ofOwner}
+         ON CONFLICT(collection_id, seed, style, steps, angle) DO UPDATE SET position = excluded.position,
+           title = excluded.title, description = excluded.description
+           WHERE position IS NOT excluded.position OR title IS NOT excluded.title
+             OR description IS NOT excluded.description`,
         id,
         position,
         item.seed,
@@ -353,6 +357,8 @@ export async function updateCollection(
         item.steps,
         item.angle,
         now,
+        item.title ?? null,
+        item.description ?? null,
         ...through
       ]
     )
@@ -405,14 +411,16 @@ export async function appendCollectionItems(
   await batch(env.DB, [
     ...additions.map(
       (item): Statement => [
-        "INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         id,
         ++position,
         item.seed,
         item.style,
         item.steps,
         item.angle,
-        now
+        now,
+        item.title ?? null,
+        item.description ?? null
       ]
     ),
     [
@@ -424,6 +432,36 @@ export async function appendCollectionItems(
   ]);
   forgetTitles();
   return { added: additions.length, held: rows.length };
+}
+
+/** Gives one palette of an account's collection, in one view, a title, or takes its title away (null); its description
+    stays. Held to the owner in the write itself. False when the collection is not theirs or does not hold the palette
+    in that view. */
+export async function nameItem(
+  env: Writer,
+  id: string,
+  item: Pick<CollectionItemInput, "seed" | "style" | "steps" | "angle">,
+  title: string | null,
+  owner: CollectionOwner
+): Promise<boolean> {
+  const results = await batch(env.DB, [
+    [
+      `UPDATE k_collection_items SET title = ? WHERE collection_id = ? AND seed = ? AND style = ? AND steps = ?
+       AND angle = ? AND EXISTS (SELECT 1 FROM k_collections WHERE id = ? AND owner_kind = ? AND owner_id = ?)`,
+      title,
+      id,
+      item.seed,
+      item.style,
+      item.steps,
+      item.angle,
+      id,
+      owner.kind,
+      owner.id
+    ],
+    // a list's strip of the collection is kept by its last change
+    ["UPDATE k_collections SET updated_at = ? WHERE changes() > 0 AND id = ?", Date.now(), id]
+  ]);
+  return (results[0]?.meta.changes ?? 0) > 0;
 }
 
 /** The accounts that hold a copy of a collection, as its saves count, counted from the rows rather than added to. A new

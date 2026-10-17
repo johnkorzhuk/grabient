@@ -60,3 +60,19 @@ export function listBack(order: PaletteOrder, view: ListView): string {
     listPath(from?.order ?? order, from?.frame) + listSearch({ query: from?.query ?? "", view })
   );
 }
+
+/* The collection each palette's page was last opened from in this tab, by the palette: its page names the palette as
+   that collection does. A page opened another way names it as the account's latest changed collection does. */
+const OPENINGS_KEPT = 64;
+const openings = new Map<string, string>();
+
+/** A palette's page is opened from a collection's card. */
+export function rememberOpening(seed: string, slug: string): void {
+  if (isServer) return;
+  openings.delete(seed);
+  openings.set(seed, slug);
+  if (openings.size > OPENINGS_KEPT) openings.delete(openings.keys().next().value!);
+}
+
+/** The collection a palette's page was last opened from in this tab, or null. */
+export const openedIn = (seed: string): string | null => openings.get(seed) ?? null;

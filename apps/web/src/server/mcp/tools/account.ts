@@ -9,6 +9,9 @@ import { PALETTE_TITLE_MAX } from "../../../features/account/wire.ts";
 import { itemKey } from "../../../features/collections/address.ts";
 import {
   type CollectionItemInput,
+  type EntrySent,
+  ITEM_DESCRIPTION_MAX,
+  ITEM_TITLE_MAX,
   MAX_COLLECTION_ITEMS,
   MAX_OWN_COLLECTIONS,
   validateCollection
@@ -215,6 +218,19 @@ const ORDERS = ["popular", "rising", "newest", "hot"] as const;
 /** A palette and its view, as a tool's list holds one: `more` is what else the tool reads of it. */
 const paletteItem = (more: Record<string, Record<string, unknown>> = {}) =>
   shape({ seed: PALETTE_SEED, ...VIEW_FIELDS, ...more }, ["seed"]);
+/** A palette's own words in a collection, as save_collection takes them: left out, they stay as they are. */
+const ENTRY_WORDS = {
+  title: text('Its title here. "" takes it away.', { maxLength: ITEM_TITLE_MAX }),
+  description: text('What is said of it here. "" takes it away.', {
+    maxLength: ITEM_DESCRIPTION_MAX
+  })
+};
+type Worded = { title?: string; description?: string };
+/** The words a call gave a palette, and only those. */
+const wordsGiven = (item: EntrySent): Partial<EntrySent> => ({
+  ...(item.title === undefined ? {} : { title: item.title }),
+  ...(item.description === undefined ? {} : { description: item.description })
+});
 const HEX = text("A hex color: #rrggbb or #rgb.");
 const KEEPS_VIEW =
   "A palette named without a view keeps the one it has here, else the one Grabient shows it in.";
@@ -404,7 +420,7 @@ export const accountTools: readonly Tool[] = [
     title: "Read a collection",
     hints: READS,
     description:
-      "Read one collection of color palettes and gradients in order, each palette with its colors and view. A public collection or one of the account's own, by its slug or its address. `total` counts its palettes, which `page` reads on.",
+      "Read one collection of color palettes and gradients in order, each palette with its colors and view. A public collection or one of the account's own, by its slug or its address. A palette it names is `named`, with any `description`. `total` counts its palettes, which `page` reads on.",
     inputSchema: shape(
       {
         slug: text("The collection's slug or address."),
@@ -429,7 +445,10 @@ export const accountTools: readonly Tool[] = [
         page,
         limit,
         palettes: await cardsOf(c, doc.items.slice((page - 1) * limit, page * limit), item => ({
-          likes: item.likes
+          likes: item.likes,
+          // the collection's own words for it, marked so a model never takes Grabient's name for them
+          ...(item.title ? { title: item.title, named: true } : {}),
+          ...(item.description ? { description: item.description } : {})
         }))
       });
     }
@@ -776,7 +795,7 @@ export const accountTools: readonly Tool[] = [
     title: "Make or change a collection",
     // with a slug it replaces what it is given; without one, every call makes another collection
     hints: { readOnly: false, destructive: true, idempotent: false, openWorld: ownMayBePublic },
-    description: `Make a private collection of color palettes, such as a brand's colors or a theme's gradients, or change one of the account's own, which everyone sees at once when it is public. Without a slug it makes one from a title and 1 to ${MAX_COLLECTION_ITEMS} palettes. With a slug it changes that one: a field given replaces what is there, \`palettes\` replaces the whole list in order, \`remove\` takes palettes out and \`add\` puts palettes at the end.`,
+    description: `Make a private collection of color palettes, such as a brand's colors or a theme's gradients, or change one of the account's own, which everyone sees at once when it is public. Without a slug it makes one from a title and 1 to ${MAX_COLLECTION_ITEMS} palettes. With a slug a field given replaces what is there: \`palettes\` the whole list in order. \`remove\` takes palettes out and \`add\` puts them at the end. A palette may carry its own \`title\` and \`description\` here.`,
     inputSchema: shape({
       slug: text("The collection to change, by its slug or address; left out, a new one is made."),
       title: text("1 to 80 characters.", { maxLength: 80 }),
@@ -788,14 +807,14 @@ export const accountTools: readonly Tool[] = [
         12
       ),
       palettes: list(
-        paletteItem(),
+        paletteItem(ENTRY_WORDS),
         `The whole list, in order. ${KEEPS_VIEW}`,
         1,
         MAX_COLLECTION_ITEMS
       ),
       add: list(
-        paletteItem(),
-        `Palettes to add at the end. ${KEEPS_VIEW}`,
+        paletteItem(ENTRY_WORDS),
+        `Palettes to add at the end; one already here takes the words given. ${KEEPS_VIEW}`,
         1,
         MAX_COLLECTION_ITEMS
       ),
@@ -822,10 +841,17 @@ export const accountTools: readonly Tool[] = [
       const views = await searchableItems(c.env, [
         ...new Set(sent.map(one => one.seed).filter(seed => !has(seed)))
       ]);
-      const itemsOf = (given: unknown): CollectionItemInput[] | undefined =>
-        (given as PaletteGiven[] | undefined)?.map(one => {
+      const itemsOf = (given: unknown): EntrySent[] | undefined =>
+        (given as (PaletteGiven & Worded)[] | undefined)?.map(one => {
           const s = drawn(one, has(one.seed) ?? views.get(one.seed));
-          return { seed: s.seed, style: s.style, steps: s.steps, angle: s.angle };
+          return {
+            seed: s.seed,
+            style: s.style,
+            steps: s.steps,
+            angle: s.angle,
+            ...(one.title === undefined ? {} : { title: one.title }),
+            ...(one.description === undefined ? {} : { description: one.description })
+          };
         });
       const listed = itemsOf(args.palettes);
       const added = itemsOf(args.add) ?? [];
@@ -834,20 +860,22 @@ export const accountTools: readonly Tool[] = [
         named,
         one: paletteNamed(named)
       }));
-      const takes = (one: PaletteGiven | null, item: CollectionItemInput) =>
+      const takes = (one: PaletteGiven | null, item: EntrySent) =>
         !!one &&
         one.seed === item.seed &&
         (one.style === undefined || itemKey(drawn(one, item)) === itemKey(item));
       const from = listed ?? before;
       const notIn = remove.filter(({ one }) => !from.some(item => takes(one, item)));
       /* the list as given, or as it stands, less what is taken out, then what is added; a palette joins once in each
-         view, and another view of one already here is an item of its own */
-      const palettes: CollectionItemInput[] = [];
+         view, another view of one already here is an item of its own, and one added again takes the words it brings */
+      const palettes: EntrySent[] = [];
       for (const item of [
         ...from.filter(held => !remove.some(({ one }) => takes(one, held))),
         ...added
       ]) {
-        if (!palettes.some(held => itemKey(held) === itemKey(item))) palettes.push(item);
+        const at = palettes.findIndex(held => itemKey(held) === itemKey(item));
+        if (at < 0) palettes.push(item);
+        else palettes[at] = { ...palettes[at]!, ...wordsGiven(item) };
       }
       if (record && !palettes.length)
         return refuse(
@@ -885,9 +913,19 @@ export const accountTools: readonly Tool[] = [
          `remove` reads back as that view alone, so two views of one palette are two of them */
       const had = new Set(before.map(itemKey));
       const holds = new Set(input.items.map(itemKey));
-      const addresses = (items: readonly CollectionItemInput[]) =>
+      const wordsBefore = new Map(before.map(item => [itemKey(item), item]));
+      const retitled = input.items.filter(item => {
+        const was = wordsBefore.get(itemKey(item));
+        return (
+          !!was &&
+          ((was.title ?? "") !== (item.title ?? "") ||
+            (was.description ?? "") !== (item.description ?? ""))
+        );
+      });
+      type Placed = Pick<CollectionItemInput, "seed" | "style" | "steps" | "angle">;
+      const addresses = (items: readonly Placed[]) =>
         items.map(item => addressOf(c.origin, drawn(item)));
-      const here = (given: readonly CollectionItemInput[] = []) =>
+      const here = (given: readonly Placed[] = []) =>
         addresses(given.filter(item => had.has(itemKey(item)) && holds.has(itemKey(item))));
       return answer({
         slug: at,
@@ -901,6 +939,7 @@ export const accountTools: readonly Tool[] = [
         ...listedAs("alreadyIn", here(added)),
         ...listedAs("kept", here(listed)),
         ...listedAs("removed", addresses(before.filter(item => !holds.has(itemKey(item))))),
+        ...listedAs("retitled", addresses(retitled)),
         ...listedAs(
           "notIn",
           notIn.map(({ named }) => named)

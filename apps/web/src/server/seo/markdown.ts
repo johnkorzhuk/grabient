@@ -31,8 +31,10 @@ export interface CollectionWords {
     style: Style;
     steps: number;
     angle: number;
-    /** the title written for it that its colors bear out */
+    /** the title its collection gives it, else the one written for it that its colors bear out */
     title?: string;
+    /** what its collection says of it */
+    description?: string;
   }[];
 }
 /** What the files read from the database. A failed read of a palette's words leaves them out. */
@@ -59,7 +61,8 @@ const markdown = (page: string, cache: Record<string, string>) => ({
   Link: `<${page}>; rel="alternate"; type="text/html"`
 });
 
-/** A collection as Markdown: its words, then every palette in its order and the view it was saved in. */
+/** A collection as Markdown: its words, then every palette in its order and the view it was saved in, with what the
+    collection says of it. */
 export function collectionMarkdown(doc: CollectionWords, origin: string): string {
   const base = origin.replace(/\/$/, "");
   const rows = doc.items.map((item, i) => {
@@ -67,7 +70,8 @@ export function collectionMarkdown(doc: CollectionWords, origin: string): string
     const colors = P ? sampleStops(P, drawnView(P, item).steps).map(stop => `\`${stop.hex}\``) : [];
     const name = item.title ?? (seedName(item.seed, item.style, item.steps) || item.seed);
     const address = `${base}/${item.seed}${viewSearch(item)}`;
-    return `${i + 1}. [${plain(name)}](${address}): ${styleWords(item.style)}, ${colors.join(" ")}`;
+    const said = item.description ? `\n   ${plain(item.description)}` : "";
+    return `${i + 1}. [${plain(name)}](${address}): ${styleWords(item.style)}, ${colors.join(" ")}${said}`;
   });
   return `# ${plain(doc.title)}
 

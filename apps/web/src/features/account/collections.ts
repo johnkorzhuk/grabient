@@ -231,7 +231,9 @@ export function restoreOwnPalette(
       seed: item.kseed,
       style: item.style,
       steps: item.steps,
-      angle: item.angle
+      angle: item.angle,
+      ...(item.title ? { title: item.title } : {}),
+      ...(item.description ? { description: item.description } : {})
     };
     settle(
       sync.changeAccount(
@@ -247,6 +249,59 @@ export function restoreOwnPalette(
     );
   }
   return { collection: owned(viewNow().collections.get(slug) ?? doc) };
+}
+
+/** A palette's title in the account's collection, in one view of it: given, changed, or taken away (""). The copy
+    shows it at once, offline too, and the server follows. Answers with the collection as it now stands. */
+export function nameOwnPalette(
+  slug: string,
+  item: CollectionItemInput,
+  title: string
+): { collection: OwnedDoc } {
+  const sync = engineNow();
+  const doc = viewIfReady()?.collections.get(slug);
+  if (!sync || !doc) throw new Error(t("That collection isn't yours anymore."));
+  settle(
+    sync.changeAccount({
+      op: "collection.name",
+      slug,
+      seed: item.seed,
+      view: { style: item.style, steps: item.steps, angle: item.angle },
+      title
+    })
+  );
+  return { collection: owned(viewNow().collections.get(slug) ?? doc) };
+}
+
+/** The words the account's collections give a palette, for its page: those of the collection it was opened from
+    (`from`) where that one gives it any, else of the latest changed one that does; in the page's view where an entry
+    has it, else in any view. Null where none does, or the copy cannot say. */
+export function ownPaletteWords(
+  seed: string,
+  view: ItemView,
+  from?: string | null
+): { slug: string; title?: string; description?: string } | null {
+  const held = viewIfReady()?.collections;
+  if (!held) return null;
+  const docs = [...held.values()].sort(
+    (a, b) =>
+      Number(b.slug === from) - Number(a.slug === from) ||
+      b.updatedAt - a.updatedAt ||
+      (a.slug < b.slug ? -1 : 1)
+  );
+  for (const doc of docs) {
+    const worded = doc.items.filter(
+      item => item.kseed === seed && (item.title || item.description)
+    );
+    const entry = worded.find(item => sameView(item, view)) ?? worded[0];
+    if (entry)
+      return {
+        slug: doc.slug,
+        ...(entry.title ? { title: entry.title } : {}),
+        ...(entry.description ? { description: entry.description } : {})
+      };
+  }
+  return null;
 }
 
 /** Who sees the account's collection, an admin's change: the server decides who may publish, and its refusal turns

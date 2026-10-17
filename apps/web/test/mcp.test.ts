@@ -441,7 +441,8 @@ describe("the tools", () => {
     expect(JSON.stringify(tools)).toBe(JSON.stringify(accountGolden));
     for (const tool of tools as { description: string }[])
       expect(tool.description.length).toBeLessThan(450);
-    expect(JSON.stringify({ tools }).length).toBeLessThan(17_000);
+    // what an app puts before the model on every turn, kept lean
+    expect(JSON.stringify({ tools }).length).toBeLessThan(17_500);
   });
 
   it("are the admins' twenty-eight more for an admin who chose them, every hint stated", async () => {
@@ -1972,5 +1973,67 @@ describe("the directories' proofs", () => {
       "v=MCPv1; k=ed25519; p=abc"
     );
     expect(directoryProof(get("/.well-known/mcp-registry-auth"), testEnv()).status).toBe(404);
+  });
+});
+
+describe("a palette's own words in an account's collection", () => {
+  it("are given with it, kept while a call leaves them out, and changed or taken away by one that brings its own", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const [a, b] = [fresh(), fresh()];
+    const made = (
+      await call(env, token, "save_collection", {
+        title: "October",
+        palettes: [
+          {
+            seed: a,
+            title: "Hallowe'en Night",
+            description: "A midnight sky into lantern orange."
+          },
+          { seed: b }
+        ]
+      })
+    ).value;
+    const read = async () =>
+      (
+        (await call(env, token, "get_collection", { slug: made.slug })).value.palettes as {
+          seed: string;
+          title: string;
+          named?: true;
+          description?: string;
+        }[]
+      ).map(({ seed, title, named, description }) => ({ seed, title, named, description }));
+    expect(await read()).toEqual([
+      {
+        seed: a,
+        title: "Hallowe'en Night",
+        named: true,
+        description: "A midnight sky into lantern orange."
+      },
+      { seed: b, title: expect.any(String), named: undefined, description: undefined }
+    ]);
+    await call(env, token, "save_collection", {
+      slug: made.slug,
+      palettes: [{ seed: b }, { seed: a }]
+    });
+    expect((await read())[1]).toMatchObject({ seed: a, title: "Hallowe'en Night", named: true });
+    const renamed = (
+      await call(env, token, "save_collection", {
+        slug: made.slug,
+        add: [
+          { seed: b, title: "Momiji" },
+          { seed: a, description: "" }
+        ]
+      })
+    ).value;
+    expect(renamed).toMatchObject({
+      palettes: 2,
+      alreadyIn: [addressAt(b), addressAt(a)],
+      retitled: [addressAt(b), addressAt(a)]
+    });
+    expect((await read()).map(p => [p.title, p.named, p.description])).toEqual([
+      ["Momiji", true, undefined],
+      ["Hallowe'en Night", true, undefined]
+    ]);
   });
 });

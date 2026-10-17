@@ -76,7 +76,7 @@ Every palette route takes \`style\`, \`steps\` and \`angle\`.
 
 - [Collections as JSON](${base}/api/collections?sort=popular&page=1&limit=24): public collections with their titles, descriptions, tags and first palettes. Add \`q={query}\` to search them.
 - [Collections page](${base}/collections): the same list for a person
-- One collection as JSON: \`${base}/api/collections/{slug}\`
+- One collection as JSON: \`${base}/api/collections/{slug}\`, each palette with the title and description its collection gives it, where it gives any
 - One collection as Markdown: \`${base}/{slug}.md\`
 - One collection as ASE, a group to each palette: \`${base}/{slug}.ase\`
 - One collection as GPL: \`${base}/{slug}.gpl\`

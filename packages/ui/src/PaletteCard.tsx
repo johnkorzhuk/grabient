@@ -1,6 +1,7 @@
 import { gradientCss } from "@grabient/engine/css.ts";
 import { isSwatchStyle, type Style } from "@grabient/engine/view.ts";
 import { createSignal, type Element, onSettled, Show, untrack } from "solid-js";
+import { BarRim } from "./BarRim.tsx";
 import { Button } from "./Button.tsx";
 import { glowOff, glowOn } from "./glow.ts";
 import hidden from "./hidden.module.css";
@@ -8,6 +9,7 @@ import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
 import { Like } from "./Like.tsx";
 import styles from "./PaletteCard.module.css";
+import { tooltip } from "./Tooltip.tsx";
 
 /* One idle-time queue for every card's hover tools, one card per idle callback and four per tick where there is no
    requestIdleCallback, so a long list never mounts its tools in one long task. */
@@ -73,6 +75,14 @@ export interface PaletteCardProps {
   rel?: string;
   /** how old, as the list says it */
   age: string;
+  /** what the palette is called where it has a title: it takes the age's place under the pointer or the keyboard's
+      focus, and while a finger has the card open */
+  title?: string;
+  /** what is said of the palette: the title's tooltip, before the age */
+  description?: string;
+  /** the card's owner names the palette here: the title's place offers the title to change, or a way to add one, and
+      `onName` is called with the words kept, "" to take the title away */
+  naming?: { max: number; onName: (title: string) => void };
   likes: number;
   liked?: boolean;
   onLike?: () => void;
@@ -103,6 +113,8 @@ export interface PaletteCardProps {
 
 /** One palette in a list: its picture, then its age and its like. Hover or focus inside the picture lights a blurred
     copy of it under the card, which the water behind the page takes in, and shows the tools on glass; nothing moves.
+    Under the pointer, the keyboard's focus or a finger's tap, a palette's title stands where its age stood, and its
+    owner may write one there.
     On touch a tap on the picture shows Edit and the plus, one card at a time, and nothing is lit: a finger's hover
     stays where it last tapped. The picture is no link: Edit opens the editor. The hover tools stay out of the
     server's markup and hydration, where they would be most of a list's weight, and mount in idle time or as soon as
@@ -133,6 +145,20 @@ export function PaletteCard(props: PaletteCardProps) {
     if (!finger || (e.target as HTMLElement).closest("a, button")) return;
     open(e.currentTarget as HTMLElement);
     props.onIntent?.();
+  };
+  /* the title's tooltip: what is said of the palette, then the age its title stands over */
+  const said = () => [props.description, props.age].filter(Boolean).join("\n");
+  const renameLabel = () => (props.title ? t("Rename {title}", { title: props.title }) : undefined);
+  /* the owner's field in the title's place: Enter or leaving it keeps what it holds, Escape lets it go */
+  const [naming, setNaming] = createSignal(false);
+  let field: HTMLInputElement | undefined;
+  let press: HTMLButtonElement | undefined;
+  const named = (keep: boolean, back: boolean) => {
+    if (!naming()) return;
+    const words = field?.value.trim() ?? "";
+    setNaming(false);
+    if (keep && words !== (props.title ?? "")) props.naming?.onName(words);
+    if (back) queueMicrotask(() => press?.focus());
   };
   return (
     <article
@@ -233,8 +259,81 @@ export function PaletteCard(props: PaletteCardProps) {
         </Show>
       </div>
       {/* a removed palette's line fades with its picture and takes no press: Undo is the one thing left to do */}
-      <div class={styles.meta} data-removed={props.removed ? "" : undefined} inert={props.removed}>
-        <span class={styles.age}>{props.age}</span>
+      <div
+        class={styles.meta}
+        data-removed={props.removed ? "" : undefined}
+        data-named={props.title || props.naming ? "" : undefined}
+        inert={props.removed}
+      >
+        <span class={styles.when}>
+          <span class={styles.age}>{props.age}</span>
+          <Show
+            when={props.naming}
+            fallback={
+              <Show when={props.title}>
+                {/* words to read, which take the keyboard's focus where there is more to say */}
+                <span
+                  class={styles.named}
+                  dir="auto"
+                  ref={tooltip(said)}
+                  tabindex={props.description ? 0 : undefined}
+                >
+                  {props.title}
+                </span>
+              </Show>
+            }
+          >
+            <Show
+              when={naming()}
+              fallback={
+                <button
+                  ref={el => {
+                    press = el;
+                    tooltip(said)(el);
+                  }}
+                  type="button"
+                  class={styles.named}
+                  data-empty={props.title ? undefined : ""}
+                  dir={props.title ? "auto" : undefined}
+                  aria-label={renameLabel()}
+                  onClick={() => setNaming(true)}
+                >
+                  {props.title || t("Add a title")}
+                </button>
+              }
+            >
+              <span class={styles.field}>
+                <BarRim />
+                <input
+                  ref={el => {
+                    field = el;
+                    // in the document once this turn of rendering ends
+                    queueMicrotask(() => {
+                      el.focus();
+                      el.select();
+                    });
+                  }}
+                  class={styles.input}
+                  dir="auto"
+                  value={props.title ?? ""}
+                  maxlength={props.naming?.max}
+                  placeholder={t("Add a title")}
+                  aria-label={t("Palette title")}
+                  enterkeyhint="done"
+                  spellcheck="false"
+                  onKeyDown={e => {
+                    if (e.key !== "Enter" && e.key !== "Escape") return;
+                    // the key ends here: its keypress would press the title the focus goes back to
+                    e.preventDefault();
+                    e.stopPropagation();
+                    named(e.key === "Enter", true);
+                  }}
+                  onBlur={() => named(true, false)}
+                />
+              </span>
+            </Show>
+          </Show>
+        </span>
         <span class={styles.judge}>
           {props.fit}
           <Like

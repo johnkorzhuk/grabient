@@ -5,11 +5,13 @@ import { Block, Rules, Section } from "../../doc/Section.tsx";
 import { hexes, POPULAR, type Sample } from "../../samples.ts";
 import styles from "./PaletteCards.module.css";
 
-/* Three cards as a list draws them, each a palette from the gallery in its saved view: at rest, with its tools as the
-   pointer finds them, and liked and in the selection. The heart and the plus are live. */
+/* Three cards as a list draws them, each a palette from the gallery in its saved view: at rest, with its tools and its
+   title as the pointer finds them, and liked and in the selection. The heart and the plus are live. */
 function Card(props: {
   sample: Sample;
   age: string;
+  title?: string;
+  description?: string;
   hover?: boolean;
   liked?: boolean;
   selected?: boolean;
@@ -27,6 +29,8 @@ function Card(props: {
       angle={props.sample.angle}
       href={`/${props.sample.seed}`}
       age={props.age}
+      title={props.title}
+      description={props.description}
       likes={others + (liked() ? 1 : 0)}
       liked={liked()}
       state={props.hover ? "hover" : undefined}
@@ -46,7 +50,13 @@ export function PaletteCards() {
           <Card sample={POPULAR[2]} age="12 days" />
         </figure>
         <figure class={styles.figure}>
-          <Card sample={POPULAR[5]} age="3 months" hover />
+          <Card
+            sample={POPULAR[5]}
+            age="3 months"
+            title="Violet hour"
+            description="Cobalt through magenta into a gold horizon."
+            hover
+          />
         </figure>
         <figure class={styles.figure}>
           <Card sample={POPULAR[4]} age="May 2025" liked selected />
@@ -57,6 +67,7 @@ export function PaletteCards() {
           rules={[
             "One height at every width: a wider column makes a wider picture.",
             "Hover or focus in the picture fades in the glow and the tools; nothing moves.",
+            "A palette's title, where it has one, stands in its age's place under the pointer or focus, and its tooltip says what is said of the palette; the owner of a collection writes one there.",
             "On touch the tools wait for a tap on the picture, one card at a time.",
             "An article named by its palette, so its Edit is that palette's Edit."
           ]}

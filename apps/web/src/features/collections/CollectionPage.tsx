@@ -42,6 +42,7 @@ import { hexesOf } from "../../lib/palette.ts";
 import { failed } from "../../lib/query.ts";
 import { listWords } from "../../lib/words.ts";
 import {
+  nameOwnPalette,
   ownCollectionDoc,
   ownCollectionMoved,
   ownsCollection,
@@ -79,7 +80,7 @@ import { listBack, recallList, rememberOrder } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./overlay.ts";
 import { listSearch, pageSearch } from "./params.ts";
 import { collectionQuery, type Found, forgetStates, stateQuery } from "./queries.ts";
-import type { Visibility } from "./schema.ts";
+import { ITEM_TITLE_MAX, type Visibility } from "./schema.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 
 type ViewerRead = ViewerState & { collection?: CollectionDocument };
@@ -447,6 +448,29 @@ export function CollectionPage(props: {
       setBusyItem("");
     }
   };
+  /* the owner names a palette, or takes its title away: in the account's copy, offline too, as a step of the page's
+     undo */
+  const rename = (item: CollectionItem, title: string) => {
+    const current = doc();
+    if (!current || !ownsCollection(current.slug)) return;
+    const slug = current.slug;
+    const input = inputOf(item);
+    const was = item.title ?? "";
+    const name = async (words: string) => {
+      nameOwnPalette(slug, input, words);
+    };
+    try {
+      nameOwnPalette(slug, input, title);
+    } catch (reason) {
+      say(failedWrite(reason, msg("Couldn't save.")), true);
+      return;
+    }
+    record({
+      undo: () => name(was),
+      redo: () => name(title),
+      fail: reason => say(failedWrite(reason, msg("Couldn't save.")), true)
+    });
+  };
   /* Undo on a faded card: the page's own undo while its removal is the last step, so Mod+Shift+Z takes it out again;
      else it puts the palette back as a step of its own */
   const putBack = async (key: string) => {
@@ -785,6 +809,18 @@ export function CollectionPage(props: {
                         <div class={styles.cell} data-item={keyOf(item())}>
                           <ItemCard
                             own={inputOf(item())}
+                            words={{ title: item().title, description: item().description }}
+                            naming={
+                              owned() &&
+                              current().owner.kind === "user" &&
+                              ownsCollection(current().slug) &&
+                              !gone()
+                                ? {
+                                    max: ITEM_TITLE_MAX,
+                                    onName: (title: string) => rename(item(), title)
+                                  }
+                                : undefined
+                            }
                             view={props.view}
                             age={relativeAge(item().createdAt, now())}
                             likes={item().likes}

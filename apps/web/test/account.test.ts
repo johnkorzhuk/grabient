@@ -296,6 +296,92 @@ describe("the sync", () => {
     expect(gone.body.removed).toEqual([doc!.id]);
   });
 
+  it("names a palette in the account's collection, keeps its words through a removal's undo, and hears any change to them", async () => {
+    const env = testEnv();
+    const ada = await makeAccount(env);
+    const id = client();
+    const seeds = [palette(), palette()];
+    const slug = privateSlug("Hallowe'en", accountHandle({ id: ada.id }), () => false);
+    const made = await sync(env, ada.cookie, {
+      client: id,
+      cursor: null,
+      mutations: [
+        {
+          id: 1,
+          op: {
+            op: "collection.create",
+            slug,
+            title: "Hallowe'en",
+            visibility: "private",
+            items: [
+              { seed: seeds[0], ...view, description: "A midnight sky." },
+              { seed: seeds[1], ...view }
+            ]
+          }
+        },
+        {
+          id: 2,
+          op: { op: "collection.name", slug, seed: seeds[1], view, title: "Jack-o'-lantern" }
+        },
+        // a palette the collection does not hold is named nowhere, quietly
+        { id: 3, op: { op: "collection.name", slug, seed: palette(), view, title: "Nowhere" } },
+        { id: 4, op: { op: "collection.remove", slug, seed: seeds[0] } }
+      ]
+    });
+    expect(made.body.results.map(result => [result.id, result.ok])).toEqual([
+      [1, true],
+      [2, true],
+      [3, true],
+      [4, true]
+    ]);
+    const doc = made.body.collections.find(entry => entry.slug === slug)!;
+    expect(doc.items).toEqual([
+      expect.objectContaining({ kseed: seeds[1], title: "Jack-o'-lantern" })
+    ]);
+    expect(doc.preview).toEqual([
+      expect.objectContaining({ seed: seeds[1], title: "Jack-o'-lantern" })
+    ]);
+    const back = await sync(env, ada.cookie, {
+      client: id,
+      cursor: made.body.cursor,
+      mutations: [
+        {
+          id: 5,
+          op: {
+            op: "collection.restore",
+            slug,
+            seed: seeds[0],
+            restore: made.body.results[3]!.restore
+          }
+        },
+        { id: 6, op: { op: "collection.name", slug, seed: seeds[1], view, title: "" } }
+      ]
+    });
+    expect(back.body.results).toEqual([
+      { id: 5, ok: true },
+      { id: 6, ok: true }
+    ]);
+    const words = (entries: { kseed: string; title?: string; description?: string }[]) =>
+      entries.map(({ kseed, title, description }) => ({ kseed, title, description }));
+    expect(words(back.body.collections[0]!.items)).toEqual([
+      { kseed: seeds[0], title: undefined, description: "A midnight sky." },
+      { kseed: seeds[1], title: undefined, description: undefined }
+    ]);
+    // a title written another way (an app, an admin's tool) reaches the copy as well
+    await env.DB.prepare("UPDATE k_collection_items SET title = ? WHERE seed = ?")
+      .bind("Pumpkin", seeds[1])
+      .run();
+    const heard = await sync(env, ada.cookie, {
+      client: id,
+      cursor: back.body.cursor,
+      mutations: []
+    });
+    expect(heard.body.collections[0]?.items[1]).toMatchObject({
+      kseed: seeds[1],
+      title: "Pumpkin"
+    });
+  });
+
   it("makes a collection sent twice once, and never reaches another account's", async () => {
     const env = testEnv();
     const ada = await makeAccount(env);

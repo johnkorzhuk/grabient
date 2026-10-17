@@ -21,7 +21,10 @@ export const CollectionPreviewSchema = v.object({
   likes: v.optional(v.number()),
   position: v.optional(v.number()),
   /** the week's rising score, in a list that opens its collections rising first */
-  rising: v.optional(v.number())
+  rising: v.optional(v.number()),
+  /** what the collection calls it and says of it, where it does */
+  title: v.optional(v.string()),
+  description: v.optional(v.string())
 });
 export type CollectionPreview = v.InferOutput<typeof CollectionPreviewSchema>;
 
@@ -52,7 +55,8 @@ export const CollectionSummarySchema = v.object({
 });
 export type CollectionSummary = v.InferOutput<typeof CollectionSummarySchema>;
 
-/** A member palette as a page draws it: its view, likes, when it was made and its place, with its week's rising score. */
+/** A member palette as a page draws it: its view, likes, when it was made and its place, with its week's rising score
+    and the words the collection gives it. */
 export const CollectionItemSchema = v.object({
   kseed: v.string(),
   style: Style,
@@ -61,7 +65,9 @@ export const CollectionItemSchema = v.object({
   likes: v.number(),
   createdAt: v.number(),
   position: v.number(),
-  rising: v.optional(v.number())
+  rising: v.optional(v.number()),
+  title: v.optional(v.string()),
+  description: v.optional(v.string())
 });
 export type CollectionItem = v.InferOutput<typeof CollectionItemSchema>;
 

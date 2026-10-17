@@ -22,7 +22,14 @@ export interface CollectionForFiles {
   /** who collected it, as the file says it */
   owner: string;
   updatedAt: number;
-  items: readonly { seed: string; style: Style; steps: number; angle: number; title?: string }[];
+  items: readonly {
+    seed: string;
+    style: Style;
+    steps: number;
+    angle: number;
+    title?: string;
+    description?: string;
+  }[];
 }
 
 /** The view a palette was saved in when its words were written, which they describe, as a JSON array of style, steps
@@ -121,14 +128,17 @@ export async function collectionForFiles(
         ? "Grabient"
         : doc.owner.display || doc.owner.name || "a Grabient account",
     updatedAt: doc.updatedAt,
+    // a palette is named as its collection names it, else by the words written for it that its view bears out
     items: doc.items.map(item => {
-      const title = heldWords(written.get(item.kseed), decodePalette(item.kseed), item)?.title;
+      const title =
+        item.title ?? heldWords(written.get(item.kseed), decodePalette(item.kseed), item)?.title;
       return {
         seed: item.kseed,
         style: item.style,
         steps: item.steps,
         angle: item.angle,
-        ...(title ? { title } : {})
+        ...(title ? { title } : {}),
+        ...(item.description ? { description: item.description } : {})
       };
     })
   };

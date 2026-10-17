@@ -22,17 +22,30 @@ export const DESCRIPTION_MAX = 500;
 export const TAGS_MAX = 12;
 export const TAG_MAX = 32;
 export const NOTE_MAX = 2000;
+/** The longest title and description a collection gives one of its palettes. */
+export const ITEM_TITLE_MAX = 80;
+export const ITEM_DESCRIPTION_MAX = 300;
+/** The longest token a removal answers with: a membership with its longest words, in any script, fits. */
+export const RESTORE_TOKEN_MAX = 4096;
 /** The most collections an account keeps, its copies included. */
 export const MAX_OWN_COLLECTIONS = 200;
 
 export type Visibility = "public" | "private";
-/** A palette in a collection: its canonical seed in one view. */
+/** A palette in a collection: its canonical seed in one view, and the words the collection gives it, if any. */
 export interface CollectionItemInput {
   seed: string;
   style: Style;
   steps: number;
   angle: number;
+  title?: string;
+  description?: string;
 }
+/** An entry as a writer sends it: words given replace the ones the collection has, null takes them away, and words
+    left out stay as they are. */
+export type EntrySent = Omit<CollectionItemInput, "title" | "description"> & {
+  title?: string | null;
+  description?: string | null;
+};
 export interface CollectionInput {
   title: string;
   description: string;
@@ -57,29 +70,68 @@ export const refusal = (message: string, params?: Params): Refusal => ({
 const whole = (min: number, max: number) =>
   v.pipe(v.number(), v.integer(), v.minValue(min), v.maxValue(max));
 
+// biome-ignore lint/suspicious/noControlCharactersInRegex: the control characters are what is taken out
+const CONTROL = /[\u0000-\u001f\u007f]/gu;
+const oneLine = (text: string) =>
+  text.normalize("NFC").replace(CONTROL, " ").replace(/\s+/gu, " ").trim();
+/* Refused by length before composing, whose cost for a run of marks grows with its square: NFC makes one character of
+   four at most. */
+const line = (max: number, message: string, required = false) =>
+  v.message(
+    v.pipe(
+      v.nullish(v.string(), ""),
+      v.check(text => text.length <= max * 4),
+      v.transform(oneLine),
+      v.minLength(required ? 1 : 0),
+      v.maxLength(max)
+    ),
+    message
+  );
+
+const ITEM_TITLE_RULE = msg("Palette titles are up to {max} characters.");
+const ITEM_DESCRIPTION_RULE = msg("Palette descriptions are up to {max} characters.");
+/* a palette's words in its collection: one line, and empty or null for none */
+const itemWords = (max: number, message: string) =>
+  v.message(
+    v.pipe(
+      v.nullable(v.string()),
+      v.check(text => text === null || text.length <= max * 4),
+      v.transform(text => (text === null ? null : oneLine(text) || null)),
+      v.check(text => text === null || text.length <= max)
+    ),
+    message
+  );
+
+const VIEW_ENTRIES = {
+  seed: v.pipe(v.string(), v.maxLength(64)),
+  style: v.optional(v.picklist(STYLES), DEFAULT_STYLE),
+  steps: v.optional(whole(1, STEPS_MAX), DEFAULT_STEPS),
+  angle: v.optional(whole(0, 360), DEFAULT_ANGLE)
+};
+/* the seed written canonically and the steps raised to the palette's keyframes, or null for a seed that does not
+   decode */
+function canonical(sent: CollectionItemInput): CollectionItemInput | null {
+  const palette = decodePalette(sent.seed);
+  return (
+    palette && {
+      seed: encodePalette(palette),
+      style: sent.style,
+      steps: Math.max(STEPS_MIN, palette.anchors.length, sent.steps),
+      angle: sent.angle
+    }
+  );
+}
+
 /** A member palette as sent: a seed that decodes, one of the six styles, and steps and angle in their bounds, each
-    defaulted when left out. It comes out canonical, its steps raised to the palette's keyframes. */
+    defaulted when left out. It comes out canonical, its steps raised to the palette's keyframes, without words. */
 export const CollectionItem = v.message(
   v.pipe(
-    v.object({
-      seed: v.pipe(v.string(), v.maxLength(64)),
-      style: v.optional(v.picklist(STYLES), DEFAULT_STYLE),
-      steps: v.optional(whole(1, STEPS_MAX), DEFAULT_STEPS),
-      angle: v.optional(whole(0, 360), DEFAULT_ANGLE)
-    }),
+    v.object(VIEW_ENTRIES),
     v.rawTransform(({ dataset, addIssue, NEVER }): CollectionItemInput => {
-      const { seed, style, steps, angle } = dataset.value;
-      const palette = decodePalette(seed);
-      if (!palette) {
-        addIssue();
-        return NEVER;
-      }
-      return {
-        seed: encodePalette(palette),
-        style,
-        steps: Math.max(STEPS_MIN, palette.anchors.length, steps),
-        angle
-      };
+      const item = canonical(dataset.value);
+      if (item) return item;
+      addIssue();
+      return NEVER;
     })
   ),
   msg("Invalid palette.")
@@ -91,21 +143,52 @@ export function collectionItem(value: unknown): CollectionItemInput | null {
   return read.success ? read.output : null;
 }
 
-// biome-ignore lint/suspicious/noControlCharactersInRegex: the control characters are what is taken out
-const CONTROL = /[\u0000-\u001f\u007f]/gu;
-/* Refused by length before composing, whose cost for a run of marks grows with its square: NFC makes one character of
-   four at most. */
-const line = (max: number, message: string, required = false) =>
-  v.message(
-    v.pipe(
-      v.nullish(v.string(), ""),
-      v.check(text => text.length <= max * 4),
-      v.transform(text => text.normalize("NFC").replace(CONTROL, " ").replace(/\s+/gu, " ").trim()),
-      v.minLength(required ? 1 : 0),
-      v.maxLength(max)
-    ),
-    message
-  );
+/** A member palette with the words its collection gives it, as an entry is sent (EntrySent). */
+export const CollectionEntry = v.message(
+  v.pipe(
+    v.object({
+      ...VIEW_ENTRIES,
+      title: v.optional(itemWords(ITEM_TITLE_MAX, ITEM_TITLE_RULE)),
+      description: v.optional(itemWords(ITEM_DESCRIPTION_MAX, ITEM_DESCRIPTION_RULE))
+    }),
+    v.rawTransform(({ dataset, addIssue, NEVER }): EntrySent => {
+      const { title, description, ...view } = dataset.value;
+      const item = canonical(view);
+      if (!item) {
+        addIssue();
+        return NEVER;
+      }
+      return {
+        ...item,
+        ...(title === undefined ? {} : { title }),
+        ...(description === undefined ? {} : { description })
+      };
+    })
+  ),
+  msg("Invalid palette.")
+);
+
+/** A palette's title in its collection as one is sent alone: the title, null to take it away, or undefined for words
+    that cannot be one. */
+export function itemTitle(value: unknown): string | null | undefined {
+  const read = v.safeParse(itemWords(ITEM_TITLE_MAX, ITEM_TITLE_RULE), value);
+  return read.success ? read.output : undefined;
+}
+
+/** Entries as sent, each with the words its collection gives it now: the ones sent, else the ones `held` gives the
+    same palette in the same view. */
+export function withWords(
+  sent: readonly EntrySent[],
+  held: readonly CollectionItemInput[] = []
+): CollectionItemInput[] {
+  const had = new Map(held.map(item => [itemKey(item), item]));
+  return sent.map(({ title, description, ...item }) => {
+    const was = had.get(itemKey(item));
+    const named = title === undefined ? was?.title : (title ?? undefined);
+    const said = description === undefined ? was?.description : (description ?? undefined);
+    return { ...item, ...(named ? { title: named } : {}), ...(said ? { description: said } : {}) };
+  });
+}
 
 /* A tag is letters with the marks that belong to them (a Thai tone, a Devanagari vowel sign), digits, spaces and
    hyphens; anything else reads as a space. A joiner stays between two letters or marks, where Persian and the Indic
@@ -130,7 +213,9 @@ const RULE_PARAMS: Readonly<Record<string, Params>> = {
   [DESCRIPTION_RULE]: { max: String(DESCRIPTION_MAX) },
   [TAGS_RULE]: { max: String(TAGS_MAX) },
   [TAG_RULE]: { max: String(TAG_MAX) },
-  [ITEMS_RULE]: { max: String(MAX_COLLECTION_ITEMS) }
+  [ITEMS_RULE]: { max: String(MAX_COLLECTION_ITEMS) },
+  [ITEM_TITLE_RULE]: { max: String(ITEM_TITLE_MAX) },
+  [ITEM_DESCRIPTION_RULE]: { max: String(ITEM_DESCRIPTION_MAX) }
 };
 
 const Title = line(TITLE_MAX, TITLE_RULE, true);
@@ -165,7 +250,7 @@ const Items = v.pipe(
     v.pipe(v.array(v.unknown()), v.minLength(1), v.maxLength(MAX_COLLECTION_ITEMS)),
     ITEMS_RULE
   ),
-  v.array(CollectionItem),
+  v.array(CollectionEntry),
   v.transform(items => {
     const seen = new Set<string>();
     return items.filter(item => !seen.has(itemKey(item)) && seen.add(itemKey(item)));
@@ -186,8 +271,9 @@ const refused = (value: unknown): value is Refusal =>
 export type Validation = { ok: true; input: CollectionInput } | Refusal;
 
 /** A collection as a writer sends it, checked field by field in this order: title, description, tags, visibility,
-    palettes. With `base`, a field left out keeps its current value, and palettes sent replace the whole list. A new
-    collection is private unless it says otherwise; whether it may be public is the server's to decide. */
+    palettes. With `base`, a field left out keeps its current value, and palettes sent replace the whole list, each
+    keeping the words it has there unless it says its own. A new collection is private unless it says otherwise;
+    whether it may be public is the server's to decide. */
 export function validateCollection(
   body: Readonly<Record<string, unknown>>,
   base?: CollectionInput
@@ -207,8 +293,9 @@ export function validateCollection(
       ? (base?.visibility ?? "private")
       : field(VisibilityField, body.visibility);
   if (refused(visibility)) return visibility;
-  const items = kept("items") ? base!.items : field(Items, body.items);
-  if (refused(items)) return items;
+  const sent = kept("items") ? null : field(Items, body.items);
+  if (refused(sent)) return sent;
+  const items = sent ? withWords(sent, base?.items) : base!.items;
   return { ok: true, input: { title, description, tags, visibility, items } };
 }
 

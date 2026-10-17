@@ -452,6 +452,10 @@ export function Home(props: { params: ListParams }) {
                         return (
                           <GalleryCard
                             item={item()}
+                            words={{
+                              title: preview().title,
+                              description: preview().description
+                            }}
                             now={now()}
                             readAt={loaded().readAt.get(collection().slug)}
                             at={() => ({

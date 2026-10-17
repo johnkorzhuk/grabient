@@ -1,10 +1,14 @@
 import { STYLES, type Style } from "@grabient/engine/view.ts";
 import * as v from "valibot";
 import {
+  CollectionEntry,
   CollectionItem,
   type CollectionItemInput,
+  itemTitle,
   MAX_COLLECTION_ITEMS,
-  type Visibility
+  RESTORE_TOKEN_MAX,
+  type Visibility,
+  withWords
 } from "../collections/schema.ts";
 import type { CollectionDocument, CollectionPreview } from "../collections/types.ts";
 
@@ -72,6 +76,8 @@ export type SyncOp =
       item?: CollectionItemInput;
     })
   | (Named & { op: "collection.update"; visibility: Visibility })
+  /* a palette's title in one view of it in the collection, or none ("") */
+  | (Named & { op: "collection.name"; seed: string; view: ItemView; title: string })
   | (Named & { op: "collection.delete" });
 
 /** One change's outcome. A refused change (`ok` false) is done with: the server holds what it held. */
@@ -155,7 +161,24 @@ const id = v.pipe(
   )
 );
 const visibility = v.picklist(["public", "private"]);
-const items = v.pipe(v.array(CollectionItem), v.minLength(1), v.maxLength(MAX_COLLECTION_ITEMS));
+// palettes with the words they bring, if any
+const items = v.pipe(
+  v.array(CollectionEntry),
+  v.minLength(1),
+  v.maxLength(MAX_COLLECTION_ITEMS),
+  v.transform(sent => withWords(sent))
+);
+const entry = v.pipe(
+  CollectionEntry,
+  v.transform(sent => withWords([sent])[0]!)
+);
+/* the view a change names, read as a collection reads a palette's view, to the same bounds */
+const viewOf = (seed: string, view: Record<string, unknown>) => {
+  const read = v.safeParse(CollectionItem, { ...view, seed });
+  if (!read.success) return null;
+  const { seed: canonical, ...kept } = read.output;
+  return { seed: canonical, view: kept };
+};
 
 /** A palette's own name, as a connected app gives one: one line of 1 to PALETTE_TITLE_MAX characters, or nothing. */
 export function titleInput(value: unknown): string | undefined {
@@ -223,26 +246,42 @@ const OPS = {
       seed: v.pipe(v.string(), v.maxLength(64)),
       view: v.optional(v.record(v.string(), v.unknown()))
     }),
-    // the view taken out is read as a collection reads a palette's view, to the same bounds
     v.rawTransform(({ dataset, addIssue, NEVER }) => {
       const { view, ...op } = dataset.value;
       if (!view) return op;
-      const read = v.safeParse(CollectionItem, { ...view, seed: op.seed });
-      if (!read.success) {
+      const read = viewOf(op.seed, view);
+      if (!read) {
         addIssue();
         return NEVER;
       }
-      const { seed: _, ...kept } = read.output;
-      return { ...op, view: kept };
+      return { ...op, view: read.view };
     })
   ),
   "collection.restore": named({
     op: v.literal("collection.restore"),
     seed: v.pipe(v.string(), v.maxLength(64)),
-    restore: v.optional(v.pipe(v.string(), v.maxLength(2048))),
-    item: v.optional(CollectionItem)
+    restore: v.optional(v.pipe(v.string(), v.maxLength(RESTORE_TOKEN_MAX))),
+    item: v.optional(entry)
   }),
   "collection.update": named({ op: v.literal("collection.update"), visibility }),
+  "collection.name": v.pipe(
+    named({
+      op: v.literal("collection.name"),
+      seed: v.pipe(v.string(), v.maxLength(64)),
+      view: v.record(v.string(), v.unknown()),
+      title: v.string()
+    }),
+    v.rawTransform(({ dataset, addIssue, NEVER }) => {
+      const { view, title, ...op } = dataset.value;
+      const read = viewOf(op.seed, view);
+      const kept = itemTitle(title);
+      if (!read || kept === undefined) {
+        addIssue();
+        return NEVER;
+      }
+      return { ...op, seed: read.seed, view: read.view, title: kept ?? "" };
+    })
+  ),
   "collection.delete": named({ op: v.literal("collection.delete") })
 };
 
