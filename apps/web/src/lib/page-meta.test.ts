@@ -24,6 +24,7 @@ import {
   PRODUCTION_ORIGIN,
   pageMeta,
   paletteAddress,
+  paletteFacts,
   relTo,
   setOriginSource,
   siteOrigin
@@ -414,6 +415,53 @@ describe("a palette's written words", () => {
   test("name its page in English alone", () => {
     current = "fr";
     expect(named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9").heading).not.toMatch(/candy/i);
+  });
+});
+
+describe("the line under a palette's name", () => {
+  const said = (address: string, facts: Facts = {}) =>
+    paletteFacts(pageOf(address, facts) as Extract<Page, { kind: "palette" }>);
+  const hex = "#[0-9a-f]{6}";
+  const tail = String.raw`\. Edit and export CSS, SVG, PNG or a shader\.$`;
+
+  test("says its style, its colors and the angle a linear or angular one turns to, then its colors from end to end", () => {
+    expect(said("/kS7Q8Yy5S_SChv0")).toMatch(
+      new RegExp(`^Linear gradient, 7 colors at 90°: (${hex}, ){6}${hex}${tail}`)
+    );
+    expect(said("/kS7Q8Yy5S_SChv0?style=angularSwatches&steps=13&angle=45")).toMatch(
+      new RegExp(`^Angular swatches, 13 colors at 45°: (${hex}, ){4}${hex}${tail}`)
+    );
+    const radial = said("/kS7Q8Yy5S_SChv0?style=radialGradient&steps=8&angle=45");
+    expect(radial).toMatch(new RegExp(`^Radial gradient, 8 colors: (${hex}, ){7}${hex}${tail}`));
+    const hexes = said("/kS7Q8Yy5S_SChv0?steps=13").match(/#[0-9a-f]{6}/g) ?? [];
+    expect([hexes[0], hexes.at(-1)]).toEqual(["#f6e4e0", "#46070b"]);
+  });
+
+  test("leads with its written words while it is drawn as it was saved, in English alone", () => {
+    const facts: Facts = {
+      description: "Soft candy colors stand in vertical bands.",
+      saved: { style: "linearSwatches", steps: 9, angle: 90 }
+    };
+    expect(said("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45", facts)).toMatch(
+      /^Soft candy colors stand in vertical bands\. Linear swatches, 9 colors at 45°: #/
+    );
+    expect(said("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=10", facts)).toMatch(
+      /^Linear swatches, 10 colors at 90°: #/
+    );
+    current = "fr";
+    expect(said("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9", facts)).toMatch(
+      /^Aplats linéaires, 9 couleurs à 90°\u202f: #/
+    );
+  });
+
+  test("starts with a capital in every language that has them, and names the angle and the colors in each", () => {
+    for (const locale of LOCALES) {
+      current = locale;
+      const text = said("/kS7Q8Yy5S_SChv0?style=angularSwatches&angle=45");
+      expect(text[0], `${locale}: ${text}`).toBe(text[0].toLocaleUpperCase(locale));
+      expect(text, locale).toMatch(/45°/);
+      expect(text.match(/#[0-9a-f]{6}/g), locale).toHaveLength(7);
+    }
   });
 });
 

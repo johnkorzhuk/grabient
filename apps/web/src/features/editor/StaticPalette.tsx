@@ -3,7 +3,7 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 import { isFixedSize, viewSearch } from "@grabient/engine/view.ts";
 import { locale, localHref, t } from "@grabient/i18n";
 import { For, Show } from "solid-js";
-import { heading, type Page, pageMeta, relTo } from "../../lib/page-meta.ts";
+import { heading, type Page, paletteFacts, relTo } from "../../lib/page-meta.ts";
 import type { SeedPage } from "./address.ts";
 import { Boot } from "./Boot.tsx";
 import { BOOT_MARK, BOOT_SCRIPT } from "./boot.ts";
@@ -52,8 +52,8 @@ export function StaticPalette(props: { data: PaletteData }) {
   const page = () => props.data.page;
   /* the server's words, or the palette named here for one the browser opened */
   const title = () => props.data.heading ?? heading(metaPage(props.data.page, props.data.facts));
-  const description = () =>
-    (props.data.meta ?? pageMeta(metaPage(props.data.page, props.data.facts))).description;
+  /* how it is drawn, as the editor says it under its name */
+  const facts = () => paletteFacts(metaPage(props.data.page, props.data.facts));
   const stops = () => sampleStops(page().palette, page().view.steps);
   /* the same palette as data and as Markdown, drawn the same way; a picture at a fixed size keeps it */
   const view = () => viewSearch({ ...page().view, size: null });
@@ -88,11 +88,11 @@ export function StaticPalette(props: { data: PaletteData }) {
             ...(size() ? { "aspect-ratio": `${size()?.width} / ${size()?.height}` } : {})
           }}
         />
-        <p>{description()}</p>
+        <p>{facts()}</p>
         <p>
           {t(
-            "{steps, plural, one {# color} other {# colors}}, {keyframes, plural, one {# editable OKLCH keyframe} other {# editable OKLCH keyframes}}.",
-            { steps: page().view.steps, keyframes: page().palette.anchors.length }
+            "{keyframes, plural, one {# editable OKLCH keyframe} other {# editable OKLCH keyframes}}.",
+            { keyframes: page().palette.anchors.length }
           )}
         </p>
         <ul data-stops="" dir="ltr">

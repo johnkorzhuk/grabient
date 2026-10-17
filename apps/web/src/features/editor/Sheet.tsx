@@ -26,7 +26,7 @@ import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
-import { paletteDescription, relTo } from "../../lib/page-meta.ts";
+import { paletteFacts, relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
@@ -76,7 +76,7 @@ const FRAMES: Readonly<Record<RisingFrame, { short: string; name: string }>> = {
 };
 /* how many of the palettes like this one are drawn */
 const SHOWN = 12;
-/* how long another palette stands before its words are written */
+/* how long another palette or view stands before the page says how it is drawn */
 const DESCRIBE_MS = 250;
 /* the sheet has the window's lower two fifths: the reader has left the first screen for it */
 const LOWER = 0.4;
@@ -152,7 +152,6 @@ export function Sheet(props: {
   /** Rising's frames as the server told this document, where it drew the page */
   frames: PaletteData["frames"];
   heading: () => string | undefined;
-  description: () => string | undefined;
   opened: () => string;
   taken: () => Taken;
   used: (action: "copy" | "download", format: string) => void;
@@ -335,29 +334,23 @@ export function Sheet(props: {
     return `${list}?${query}`;
   };
   const title = () => paletteName(e, props.heading(), props.facts());
-  /* what the page says of the palette, the words its description gives a search: the server's while the palette is
-     the page's own, else written for another once it has stood a moment, so no frame of an edit spends on them */
-  const [described, setDescribed] = createSignal(untrack(props.description));
+  /* what the page says of the palette under its name, to a reader and to a crawler alike: how it is drawn and its
+     colors, said again for another palette or view once it has stood a moment, so no frame of an edit spends on them */
+  const said = () => {
+    const written = props.facts()?.written;
+    return paletteFacts({
+      kind: "palette",
+      seed: e.seed(),
+      palette: e.palette(),
+      view: { style: e.style(), steps: e.steps(), angle: e.angle() },
+      ...(written ? { written } : {})
+    });
+  };
+  const [described, setDescribed] = createSignal(untrack(said));
   createEffect(
-    () => [e.seed(), e.style(), e.steps(), props.description(), props.facts()] as const,
-    ([seed, style, steps, told, facts]) => {
-      if (told) {
-        setDescribed(told);
-        return;
-      }
-      const timer = setTimeout(() => {
-        const view = { style, steps, angle: untrack(e.angle) };
-        const written = facts?.written ? { written: facts.written } : {};
-        setDescribed(
-          paletteDescription({
-            kind: "palette",
-            seed,
-            palette: untrack(e.palette),
-            view,
-            ...written
-          })
-        );
-      }, DESCRIBE_MS);
+    () => [e.seed(), e.style(), e.steps(), e.angle(), props.facts()] as const,
+    () => {
+      const timer = setTimeout(() => setDescribed(untrack(said)), DESCRIBE_MS);
       return () => clearTimeout(timer);
     }
   );

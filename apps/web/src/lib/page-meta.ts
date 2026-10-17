@@ -1,4 +1,5 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
+import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import { asSaved, drawnView, type Style, type View, viewSearch } from "@grabient/engine/view.ts";
 import {
@@ -625,18 +626,22 @@ function searchDescription(query: string): string {
       );
 }
 
-/** What a palette's page says of it: its written words while they are its own (ownWords), else what its colors are
-    called, then its colors from end to end, every one where they all fit. */
+/** `count` of a palette's colors evenly from its first to its last, every one where it has no more. */
+const spread = (hexes: readonly string[], count: number) =>
+  (count >= hexes.length
+    ? hexes
+    : Array.from(
+        { length: count },
+        (_, i) => hexes[Math.round((i * (hexes.length - 1)) / (count - 1))]
+      )
+  ).join(", ");
+/** What a palette's page says of it to a search: its written words while they are its own (ownWords), else what its
+    colors are called, then its colors from end to end, every one where they all fit. */
 function describe(
   page: Extract<Page, { kind: "palette" }>,
   name: string,
   hexes: readonly string[]
 ): string {
-  const spread = (count: number) =>
-    Array.from(
-      { length: count },
-      (_, i) => hexes[Math.round((i * (hexes.length - 1)) / (count - 1))]
-    ).join(", ");
   const counts = [...new Set([Math.min(hexes.length, 8), 5, 3])].filter(n => n <= hexes.length);
   return fitted(
     ownWords(page)?.description ??
@@ -649,24 +654,42 @@ function describe(
         n => (words: string) =>
           t("{words} {hexes}. Edit and export CSS, SVG, PNG or a shader.", {
             words,
-            hexes: spread(n)
+            hexes: spread(hexes, n)
           })
       ),
-      ...counts.map(n => (words: string) => t("{words} {hexes}.", { words, hexes: spread(n) }))
+      ...counts.map(
+        n => (words: string) => t("{words} {hexes}.", { words, hexes: spread(hexes, n) })
+      )
     ]
   );
 }
-/** A palette's description as its page's metadata writes it, for a page that shows its words to its readers too. */
-export function paletteDescription(page: Extract<Page, { kind: "palette" }>): string {
+/** What a palette's page says of it under its picture, to its reader and to a crawler alike: its written words while
+    they are its own, then how it is drawn (its style, how many colors and the angle a linear or angular one turns
+    to), its colors from end to end, every one up to eight, and what the editor makes of it. Its title names it. */
+export function paletteFacts(page: Extract<Page, { kind: "palette" }>): string {
   const { palette: P, view } = page;
-  const name = readingName(readPalette(P, view.style, view.steps), language());
-  return clipWords(
-    describe(
-      page,
-      name,
-      sampleStops(P, view.steps).map(stop => stop.hex)
-    )
+  const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
+  const facts = {
+    style: t(STYLE_WORDS[view.style]),
+    steps: view.steps,
+    /* with its sign, so a right-to-left sentence keeps them together */
+    angle: `${Math.round(view.angle)}°`,
+    hexes: spread(hexes, hexes.length > 8 ? 5 : hexes.length)
+  };
+  const said = sentence(
+    view.style.startsWith("radial")
+      ? t(
+          "{style}, {steps, plural, one {# color} other {# colors}}: {hexes}. Edit and export CSS, SVG, PNG or a shader.",
+          facts
+        )
+      : t(
+          "{style}, {steps, plural, one {# color} other {# colors}} at {angle}: {hexes}. Edit and export CSS, SVG, PNG or a shader.",
+          facts
+        ),
+    locale()
   );
+  const written = ownWords(page)?.description;
+  return written ? `${written} ${said}` : said;
 }
 
 /** A palette's page: titled by its written words in English while it is drawn as it was saved, else by what its colors

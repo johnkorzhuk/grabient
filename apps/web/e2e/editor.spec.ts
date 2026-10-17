@@ -33,29 +33,24 @@ test("the server sends the static page, and the editor takes its place", async (
   await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
 });
 
-test("once the editor stands, the page says what its description says, and a palette an edit makes is described once it stands", async ({
+test("once the editor stands, the page says how its palette is drawn as the server's page does, and says it again once an edit stands", async ({
   page,
   request
 }) => {
-  const said = (text: string) =>
-    text
-      .replaceAll("&#x27;", "'")
-      .replaceAll("&#39;", "'")
-      .replaceAll("&quot;", '"')
-      .replaceAll("&lt;", "<")
-      .replaceAll("&gt;", ">")
-      .replaceAll("&amp;", "&");
   const html = await (await request.get(`/${SEED}`)).text();
-  const own = said(/<meta name="description" content="([^"]*)"/.exec(html)?.[1] ?? "");
-  expect(own.length).toBeGreaterThan(100);
+  const own = /<p>(?:<!--[^>]*-->)*(Linear gradient, [^<]+)/.exec(html)?.[1] ?? "";
+  expect(own).toMatch(
+    /^Linear gradient, 7 colors at 90°: (#[0-9a-f]{6}, ){6}#[0-9a-f]{6}\. Edit and export CSS, SVG, PNG or a shader\.$/
+  );
   await open(page);
   await expect(page.getByText(own, { exact: true })).toBeAttached();
+  await page.keyboard.press(".");
+  const turned = own.replace("at 90°", "at 105°");
+  await expect(page.getByText(turned, { exact: true })).toBeAttached();
   await page.keyboard.press("i");
-  await expect.poll(() => here(page)).not.toBe(`/${SEED}`);
-  const meta = () => page.locator('meta[name="description"]').getAttribute("content");
-  await expect.poll(meta).not.toBe(own);
-  await expect(page.getByText((await meta()) ?? "", { exact: true })).toBeAttached();
-  await expect(page.getByText(own, { exact: true })).toHaveCount(0);
+  await expect.poll(() => here(page)).not.toContain(SEED);
+  await expect(page.getByText(turned, { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/^Linear gradient, 7 colors at 105°: #[0-9a-f]{6}, /)).toBeAttached();
 });
 
 test.describe("while the editor's code loads", () => {
