@@ -25,7 +25,8 @@ import type { CollectionDocument, CopyStanding } from "./types.ts";
 
 /* The presses at the end of a collection's row: the selection's own, then every palette into the selection or out of
    it; Save (someone else's collection), Saved and Update while the source moved on; on the owner's saved copy Update
-   or Reset; an admin's own made public or private; Delete. Reset and Delete ask twice: the first press arms them for
+   or Reset; an admin's own made public or private; Delete. Update says in words what it does where the row has room
+   for them. Reset and Delete ask twice: the first press arms them for
    four seconds, and Escape or the focus leaving lets them rest. With no connection the presses that need the server
    keep their places, disabled. */
 
@@ -272,19 +273,40 @@ export function Actions(props: {
   };
 
   const updateName = () =>
-    t(synced() ? msg("Updated") : syncing() ? msg("Updating…") : msg("Update"));
-  const UpdatePress = () => (
+    t(
+      synced()
+        ? msg("Updated")
+        : syncing()
+          ? msg("Updating…")
+          : savedFrom()
+            ? msg("Update from the original")
+            : msg("Update your copy")
+    );
+  /* why the press is there: the collection it copies changed since the copy was saved */
+  const updateTip = () =>
+    t(
+      savedFrom()
+        ? msg("Brings in what changed in the original since you saved it. Your own changes stay.")
+        : msg("Brings in what changed here since you saved it. Your own changes stay.")
+    );
+  const UpdatePress = (press: { words?: boolean }) => (
     <Button
-      icon
+      icon={!press.words}
       size="lg"
-      aria-label={updateName()}
-      tip={t("Update")}
+      aria-label={press.words ? undefined : updateName()}
+      tip={updateTip()}
       disabled={!!syncing() || !!synced() || offline()}
       onClick={() => void sync("update")}
     >
       <Icon name={synced() ? "check" : "refresh"} size={15} />
+      <Show when={press.words}> {updateName()}</Show>
     </Button>
   );
+  /* the reader's copy of this collection, behind it or just brought up to it */
+  const copyBehind = () => {
+    const held = savedCopy();
+    return !props.owned && !!held && (held.behind || !!synced());
+  };
 
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions: Escape and the focus leaving come up from its presses */
@@ -296,6 +318,12 @@ export function Actions(props: {
         if (e.key === "Escape" && disarm()) e.stopPropagation();
       }}
     >
+      {/* in words at the row's start, where the presses after it stay where they were as it comes */}
+      <Show when={copyBehind()}>
+        <span class={styles.roomy}>
+          <UpdatePress words />
+        </span>
+      </Show>
       {props.selection}
       <Button
         icon
@@ -334,12 +362,15 @@ export function Actions(props: {
                 size="lg"
                 href={localHref(collectionHref(held().slug))}
                 aria-label={savedName()}
-                tip={savedName()}
+                tip={t("Open your saved copy")}
               >
                 <Icon name="bookmark" size={15} fill />
               </Button>
+              {/* on a phone its icon, at the row's end, where the row starts at its other end */}
               <Show when={held().behind || synced()}>
-                <UpdatePress />
+                <span class={styles.tight}>
+                  <UpdatePress />
+                </span>
               </Show>
             </>
           )}

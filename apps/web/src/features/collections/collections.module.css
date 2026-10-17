@@ -34,6 +34,20 @@
       margin-inline-start: 0;
     }
   }
+  /* a press in words where the row has room and stands at its end, and its icon alone where the row wraps and starts
+     at its own */
+  .roomy {
+    display: contents;
+    @container page (max-width: 800px) {
+      display: none;
+    }
+  }
+  .tight {
+    display: none;
+    @container page (max-width: 800px) {
+      display: contents;
+    }
+  }
   /* the title line, as a list's heading and a collection's group stand it: the name, then what the collection says */
   .heading {
     composes: heading from "../../app/list.module.css";

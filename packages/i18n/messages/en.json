@@ -181,8 +181,8 @@
   "Add all to selection": {
     "note": "Press on a collection: adds all its palettes to the selection. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:304",
-      "apps/web/src/features/collections/Actions.tsx:305",
+      "apps/web/src/features/collections/Actions.tsx:332",
+      "apps/web/src/features/collections/Actions.tsx:333",
       "apps/web/src/features/collections/CollectionPage.tsx:700",
       "apps/web/src/features/collections/CollectionPage.tsx:701"
     ]
@@ -448,6 +448,18 @@
     "note": "About: caption.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:500"
+    ]
+  },
+  "Brings in what changed here since you saved it. Your own changes stay.": {
+    "note": "Tooltip of Update your copy, on the collection the reader saved: why the press is there, and that the reader's own changes to the copy stay.",
+    "refs": [
+      "apps/web/src/features/collections/Actions.tsx:290"
+    ]
+  },
+  "Brings in what changed in the original since you saved it. Your own changes stay.": {
+    "note": "Tooltip of the update press on the reader's saved copy of a collection: why it is there, and that the reader's own changes stay.",
+    "refs": [
+      "apps/web/src/features/collections/Actions.tsx:289"
     ]
   },
   "Browse palettes": {
@@ -1006,7 +1018,7 @@
   "Couldn't delete the collection.": {
     "note": "Error line after a failed delete.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:258"
+      "apps/web/src/features/collections/Actions.tsx:259"
     ]
   },
   "Couldn't disconnect the app. Try again.": {
@@ -1127,13 +1139,13 @@
   "Couldn't reset the collection.": {
     "note": "Error line after a failed Reset of a saved copy.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:167"
+      "apps/web/src/features/collections/Actions.tsx:168"
     ]
   },
   "Couldn't save the collection.": {
     "note": "Error line after a failed save of a collection.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:104"
+      "apps/web/src/features/collections/Actions.tsx:105"
     ]
   },
   "Couldn't save the palette.": {
@@ -1215,7 +1227,7 @@
   "Couldn't update the collection.": {
     "note": "Error line after a failed Update of a saved copy.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:166"
+      "apps/web/src/features/collections/Actions.tsx:167"
     ]
   },
   "Couldn't upload the avatar.": {
@@ -1271,8 +1283,8 @@
   "Delete collection": {
     "note": "Press: deletes the collection. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:392",
-      "apps/web/src/features/collections/Actions.tsx:393"
+      "apps/web/src/features/collections/Actions.tsx:423",
+      "apps/web/src/features/collections/Actions.tsx:424"
     ]
   },
   "Delete palette": {
@@ -1284,7 +1296,7 @@
   "Deleting…": {
     "note": "A delete press while it works.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:398",
+      "apps/web/src/features/collections/Actions.tsx:429",
       "packages/ui/src/Curation.tsx:44"
     ]
   },
@@ -2251,13 +2263,13 @@
   "Make private": {
     "note": "Admin press: makes the collection private, its owner's alone.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:382"
+      "apps/web/src/features/collections/Actions.tsx:413"
     ]
   },
   "Make public": {
     "note": "Admin press: makes the collection public.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:383"
+      "apps/web/src/features/collections/Actions.tsx:414"
     ]
   },
   "Make, edit and delete your collections.": {
@@ -2513,13 +2525,13 @@
   "Now private": {
     "note": "The visibility press after making the collection private.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:380"
+      "apps/web/src/features/collections/Actions.tsx:411"
     ]
   },
   "Now public": {
     "note": "The visibility press after making the collection public.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:379"
+      "apps/web/src/features/collections/Actions.tsx:410"
     ]
   },
   "OKLCH can describe colors more vivid than a screen can show. For those, Grabient keeps the lightness and hue and lowers the chroma until the color fits: sRGB on a standard screen, Display P3 on a wide-gamut one. CSS Color 4 does the same for <c>oklch()</c> colors:": {
@@ -2656,6 +2668,12 @@
     "note": "Screen reader name of a palette picture in the AI app view: a press opens that palette full screen. {number} is its number.",
     "refs": [
       "apps/web/src/mcp-view/PaletteView.tsx:570"
+    ]
+  },
+  "Open your saved copy": {
+    "note": "Tooltip of the filled bookmark on a collection the reader saved: opens the reader's copy of it.",
+    "refs": [
+      "apps/web/src/features/collections/Actions.tsx:365"
     ]
   },
   "Open {title}": {
@@ -2931,7 +2949,7 @@
   "Press again to delete": {
     "note": "A delete press after one press: a second press deletes.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:398"
+      "apps/web/src/features/collections/Actions.tsx:429"
     ]
   },
   "Press again to remove": {
@@ -2943,7 +2961,7 @@
   "Press again to reset": {
     "note": "The Reset press after one press: a second press resets.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:362"
+      "apps/web/src/features/collections/Actions.tsx:393"
     ]
   },
   "Press again to turn off for everyone.": {
@@ -3181,8 +3199,8 @@
   "Remove all from selection": {
     "note": "Press on a collection: takes all its palettes out of the selection. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:304",
-      "apps/web/src/features/collections/Actions.tsx:305"
+      "apps/web/src/features/collections/Actions.tsx:332",
+      "apps/web/src/features/collections/Actions.tsx:333"
     ]
   },
   "Remove from collection": {
@@ -3285,8 +3303,8 @@
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:69",
       "apps/web/src/features/bindings/BindingsPage.tsx:193",
-      "apps/web/src/features/collections/Actions.tsx:356",
-      "apps/web/src/features/collections/Actions.tsx:357",
+      "apps/web/src/features/collections/Actions.tsx:387",
+      "apps/web/src/features/collections/Actions.tsx:388",
       "apps/web/src/features/search/Sampler.tsx:265",
       "apps/web/src/mcp-view/PaletteView.tsx:836",
       "packages/ui/src/Appearance.tsx:210",
@@ -3308,7 +3326,7 @@
   "Resetting…": {
     "note": "The Reset press while it works.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:362"
+      "apps/web/src/features/collections/Actions.tsx:393"
     ]
   },
   "Retry": {
@@ -3439,8 +3457,8 @@
     "refs": [
       "apps/web/src/features/account/settings/Account.tsx:123",
       "apps/web/src/features/account/settings/Profile.tsx:306",
-      "apps/web/src/features/collections/Actions.tsx:319",
-      "apps/web/src/features/collections/Actions.tsx:320",
+      "apps/web/src/features/collections/Actions.tsx:347",
+      "apps/web/src/features/collections/Actions.tsx:348",
       "apps/web/src/features/collections/CollectionPage.tsx:706",
       "apps/web/src/features/collections/Heading.tsx:240",
       "apps/web/src/features/editor/Controls.tsx:459",
@@ -3522,7 +3540,7 @@
     "refs": [
       "apps/web/src/features/account/settings/Account.tsx:102",
       "apps/web/src/features/account/settings/Profile.tsx:202",
-      "apps/web/src/features/collections/Actions.tsx:94",
+      "apps/web/src/features/collections/Actions.tsx:95",
       "apps/web/src/features/collections/Heading.tsx:102",
       "apps/web/src/features/collections/Heading.tsx:84"
     ]
@@ -3546,7 +3564,7 @@
       "apps/web/src/features/account/settings/Account.tsx:95",
       "apps/web/src/features/account/settings/Profile.tsx:176",
       "apps/web/src/features/account/settings/Profile.tsx:306",
-      "apps/web/src/features/collections/Actions.tsx:319",
+      "apps/web/src/features/collections/Actions.tsx:347",
       "apps/web/src/features/collections/Heading.tsx:240",
       "apps/web/src/features/editor/Controls.tsx:459",
       "packages/ui/src/Curation.tsx:45"
@@ -4673,11 +4691,16 @@
       "apps/web/src/server/newsletter/list.ts:135"
     ]
   },
-  "Update": {
-    "note": "Press on a saved copy of a collection: takes the changes made to the original since. Also its tooltip.",
+  "Update from the original": {
+    "note": "Screen reader name of the press on the reader's saved copy of a collection, shown once the original changed: brings its changes into the copy.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:275",
-      "apps/web/src/features/collections/Actions.tsx:281"
+      "apps/web/src/features/collections/Actions.tsx:282"
+    ]
+  },
+  "Update your copy": {
+    "note": "Press on a collection the reader saved a copy of, shown once the collection changed: brings its changes into the reader's copy.",
+    "refs": [
+      "apps/web/src/features/collections/Actions.tsx:283"
     ]
   },
   "Update your username and avatar.": {
@@ -4689,7 +4712,7 @@
   "Updated": {
     "note": "The Update press after it took the changes.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:275"
+      "apps/web/src/features/collections/Actions.tsx:278"
     ]
   },
   "Updated {date}": {
@@ -4701,7 +4724,7 @@
   "Updating…": {
     "note": "Status while something updates: a list refreshing, or the Update press while it works.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:275",
+      "apps/web/src/features/collections/Actions.tsx:280",
       "apps/web/src/features/collections/CollectionsPage.tsx:415",
       "apps/web/src/features/gallery/Home.tsx:280",
       "apps/web/src/features/gallery/Palettes.tsx:373"
@@ -5076,7 +5099,7 @@
   "collection\u0004Saved": {
     "note": "Press on a collection the reader saved a copy of: opens the copy. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:80"
+      "apps/web/src/features/collections/Actions.tsx:81"
     ]
   },
   "complementary {colors}": {
@@ -6007,7 +6030,7 @@
   "{title} has changed, so it stays.": {
     "note": "Error: an undo would delete a collection that changed since.",
     "refs": [
-      "apps/web/src/features/collections/Actions.tsx:114",
+      "apps/web/src/features/collections/Actions.tsx:115",
       "apps/web/src/features/collections/collect.ts:132"
     ]
   },

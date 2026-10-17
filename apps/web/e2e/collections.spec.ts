@@ -1248,3 +1248,74 @@ test("the owner titles a palette on its card, an undo takes the title back, and 
   await expect(page).toHaveURL(new RegExp(`/${SEED}`));
   await expect(page.getByRole("region", { name: "Hallowe'en Night" })).toBeVisible();
 });
+
+for (const [width, words] of [
+  [1600, true],
+  [390, false]
+] as const)
+  test(`at ${width} pixels a saved copy behind its collection is brought up to it by a press that says so, ${
+    words ? "in words at the row's start" : "its icon at the row's end"
+  }`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const copy = {
+      ...blues,
+      id: "e2e-copy",
+      slug: "@e2e-ada/end-to-end-gradients",
+      title: summary.title,
+      url: "/@e2e-ada/end-to-end-gradients"
+    };
+    await signIn(page, "ada", false, [copy]);
+    await page.route(
+      url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+      rising
+    );
+    const { preview, ...said } = summary;
+    await page.route(`**/api/collections/${SLUG}`, route =>
+      route.fulfill({
+        json: { ...said, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+      })
+    );
+    await page.route(
+      url => url.pathname === `/api/me/collections/${SLUG}/state`,
+      route =>
+        route.fulfill({
+          json: {
+            owned: false,
+            canCurate: false,
+            canDelete: false,
+            votes: {},
+            copy: {
+              slug: copy.slug,
+              source: { slug: SLUG, title: summary.title, colors: [] },
+              behind: true,
+              differs: true
+            }
+          }
+        })
+    );
+    await page.goto("/collections");
+    await hydrated(page);
+    await page.locator('main a[href="/collections/rising"]').click();
+    await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+    const update = page.getByRole("button", { name: "Update your copy" });
+    const saved = page.getByRole("link", { name: "Saved", exact: true });
+    const addAll = page.getByRole("button", { name: "Add all to selection" });
+    await expect(update).toHaveCount(1);
+    await expect(update).toBeVisible();
+    const [at, after, before] = await Promise.all(
+      [update, saved, addAll].map(press => press.boundingBox())
+    );
+    if (words) {
+      expect(await update.textContent()).toContain("Update your copy");
+      expect(at!.x).toBeLessThan(before!.x);
+      await update.hover();
+      await expect(page.getByRole("tooltip")).toHaveText(
+        "Brings in what changed here since you saved it. Your own changes stay."
+      );
+      await saved.hover();
+      await expect(page.getByRole("tooltip")).toHaveText("Open your saved copy");
+    } else {
+      expect(at!.x).toBeGreaterThan(after!.x);
+      expect(at!.y).toBe(after!.y);
+    }
+  });
