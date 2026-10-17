@@ -448,6 +448,14 @@ describe("the line under a palette's name", () => {
     expect(said("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=10", facts)).toMatch(
       /^Linear swatches, 10 colors at 90°: #/
     );
+    const long = said("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9", {
+      ...facts,
+      description:
+        "Soft candy colors stand in vertical bands, from blush through lilac to a pale mint. Their light and quiet character suits packaging, invitations and a nursery's walls."
+    });
+    expect(long).toMatch(
+      /^Soft candy colors stand in vertical bands, from blush through lilac to a pale mint\. Linear swatches, 9 colors at 90°: #/
+    );
     current = "fr";
     expect(said("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9", facts)).toMatch(
       /^Aplats linéaires, 9 couleurs à 90°\u202f: #/

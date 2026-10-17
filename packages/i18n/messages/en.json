@@ -72,7 +72,7 @@
   "A collection of color palettes on Grabient.": {
     "note": "Collection page description before it is known.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:770"
+      "apps/web/src/lib/page-meta.ts:772"
     ]
   },
   "A free CSS gradient generator and color palette finder for designers and developers.": {
@@ -652,8 +652,8 @@
       "apps/web/src/app/AccountMenu.tsx:119",
       "apps/web/src/features/collections/CollectionPage.tsx:658",
       "apps/web/src/features/editor/StaticPalette.tsx:134",
-      "apps/web/src/lib/page-meta.ts:751",
-      "apps/web/src/lib/page-meta.ts:810",
+      "apps/web/src/lib/page-meta.ts:753",
+      "apps/web/src/lib/page-meta.ts:812",
       "packages/ui/src/ListNav.tsx:12"
     ]
   },
@@ -683,31 +683,31 @@
   "Collections of gradients and color palettes by color, theme and use, from people and Grabient agents. Open any palette to edit and export it.": {
     "note": "Collections list description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:921"
+      "apps/web/src/lib/page-meta.ts:923"
     ]
   },
   "Collections of gradients and color palettes for {query}, by people and Grabient agents.": {
     "note": "Description of a collections search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:909"
+      "apps/web/src/lib/page-meta.ts:911"
     ]
   },
   "Collections of gradients and color palettes gaining likes now, from people and Grabient agents. Open any palette to edit and export it.": {
     "note": "Rising collections list description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:918"
+      "apps/web/src/lib/page-meta.ts:920"
     ]
   },
   "Collections of gradients and color palettes like {name}, by people and Grabient agents.": {
     "note": "Description of a collections search by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:905"
+      "apps/web/src/lib/page-meta.ts:907"
     ]
   },
   "Collections of gradients and color palettes on Grabient": {
     "note": "Alt text of the collections list's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:929"
+      "apps/web/src/lib/page-meta.ts:931"
     ]
   },
   "Color format": {
@@ -1669,7 +1669,7 @@
   "Grabient gradient palette generator": {
     "note": "Alt text of the site's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:829"
+      "apps/web/src/lib/page-meta.ts:831"
     ]
   },
   "Grabient makes gradients from keyframes: 2 to 8 colors joined by a smooth curve.": {
@@ -2702,7 +2702,7 @@
     "note": "Title of the page for an address the site does not know.",
     "refs": [
       "apps/web/src/app/NotFound.tsx:31",
-      "apps/web/src/lib/page-meta.ts:942"
+      "apps/web/src/lib/page-meta.ts:944"
     ]
   },
   "Page {page} doesn't exist.": {
@@ -2736,7 +2736,7 @@
   "Palette collection": {
     "note": "Title of a collection page before its title is known.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:769"
+      "apps/web/src/lib/page-meta.ts:771"
     ]
   },
   "Palette colors": {
@@ -2762,7 +2762,7 @@
   "Palette not found": {
     "note": "Title of the page for a palette or address that does not exist.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:942"
+      "apps/web/src/lib/page-meta.ts:944"
     ]
   },
   "Palette put back.": {
@@ -4389,13 +4389,13 @@
   "This page as Markdown": {
     "note": "Title of the link in the page's head to its Markdown version.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1068"
+      "apps/web/src/lib/page-meta.ts:1070"
     ]
   },
   "This page doesn't exist. Browse Grabient for color palettes.": {
     "note": "Not found page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:943"
+      "apps/web/src/lib/page-meta.ts:945"
     ]
   },
   "This page is in English only.": {
@@ -4897,7 +4897,7 @@
   "Your Grabient collections.": {
     "note": "Your collections page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:935"
+      "apps/web/src/lib/page-meta.ts:937"
     ]
   },
   "Your Grabient sign-in code": {
@@ -4936,7 +4936,7 @@
       "apps/web/src/app/AccountMenu.tsx:130",
       "apps/web/src/app/OfflineList.tsx:12",
       "apps/web/src/lib/page-meta.ts:474",
-      "apps/web/src/lib/page-meta.ts:934"
+      "apps/web/src/lib/page-meta.ts:936"
     ]
   },
   "Your collections for {query}": {
@@ -5738,7 +5738,7 @@
   "{description} Page {page}.": {
     "note": "A list's description in search results on its second page and later: the list's own description, then the page number.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:960"
+      "apps/web/src/lib/page-meta.ts:962"
     ]
   },
   "{device} cover": {
@@ -5817,7 +5817,7 @@
   "{name} color palette": {
     "note": "Alt text of a palette's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:712"
+      "apps/web/src/lib/page-meta.ts:714"
     ]
   },
   "{name} gradient": {
@@ -5835,8 +5835,8 @@
   "{name} on Grabient": {
     "note": "Alt text of a list's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:865",
-      "apps/web/src/lib/page-meta.ts:879"
+      "apps/web/src/lib/page-meta.ts:867",
+      "apps/web/src/lib/page-meta.ts:881"
     ]
   },
   "{name} palette": {
@@ -5868,14 +5868,14 @@
     "note": "A palette's title: its name, then its style words.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:457",
-      "apps/web/src/lib/page-meta.ts:719",
+      "apps/web/src/lib/page-meta.ts:721",
       "packages/engine/src/name.ts:827"
     ]
   },
   "{name} {style} with {steps, plural, one {# color} other {# colors}}: {hexes}. Edit it and copy or download CSS, SVG, PNG or shader code.": {
     "note": "A palette's description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:730",
+      "apps/web/src/lib/page-meta.ts:732",
       "packages/engine/src/name.ts:839"
     ]
   },
@@ -5918,13 +5918,13 @@
   "{style}, {steps, plural, one {# color} other {# colors}} at {angle}: {hexes}. Edit and export CSS, SVG, PNG or a shader.": {
     "note": "Line under a palette's name on its page, for its readers and for search engines: its style (\"linear gradient\", \"angular swatches\"), how many colors it shows, the angle it turns to ({angle}, with its sign: \"45°\"), its colors from first to last as hex codes, then what the editor exports. {style} comes in lower case; the line's first letter is capitalized.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:684"
+      "apps/web/src/lib/page-meta.ts:686"
     ]
   },
   "{style}, {steps, plural, one {# color} other {# colors}}: {hexes}. Edit and export CSS, SVG, PNG or a shader.": {
     "note": "The same line for a radial palette, which turns to no angle: its style (\"radial gradient\", \"radial swatches\"), how many colors it shows, its colors from first to last as hex codes, then what the editor exports.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:680"
+      "apps/web/src/lib/page-meta.ts:682"
     ]
   },
   "{subject} gradient and color palette collections": {
@@ -5991,31 +5991,31 @@
   "{title}: a collection of color palettes": {
     "note": "Alt text of a collection's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:804"
+      "apps/web/src/lib/page-meta.ts:806"
     ]
   },
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": {
     "note": "A collection's title in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:775"
+      "apps/web/src/lib/page-meta.ts:777"
     ]
   },
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": {
     "note": "A collection's description in search results when it has no words of its own: its title and how many palettes it holds.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:798"
+      "apps/web/src/lib/page-meta.ts:800"
     ]
   },
   "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients.": {
     "note": "A collection's description in search results: its own words (as written, in English), then how many palettes it holds. Used when the longer form would pass 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:790"
+      "apps/web/src/lib/page-meta.ts:792"
     ]
   },
   "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients. Open any palette to edit and export it.": {
     "note": "A collection's description in search results: its own words (as written, in English), then how many palettes it holds.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:785"
+      "apps/web/src/lib/page-meta.ts:787"
     ]
   },
   "{words} {hexes}.": {

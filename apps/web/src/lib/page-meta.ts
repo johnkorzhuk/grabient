@@ -664,8 +664,9 @@ function describe(
   );
 }
 /** What a palette's page says of it under its picture, to its reader and to a crawler alike: its written words while
-    they are its own, then how it is drawn (its style, how many colors and the angle a linear or angular one turns
-    to), its colors from end to end, every one up to eight, and what the editor makes of it. Its title names it. */
+    they are its own, as many sentences as a description holds, then how it is drawn (its style, how many colors and
+    the angle a linear or angular one turns to), its colors from end to end, every one up to eight, and what the editor
+    makes of it. Its title names it. */
 export function paletteFacts(page: Extract<Page, { kind: "palette" }>): string {
   const { palette: P, view } = page;
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
@@ -689,7 +690,7 @@ export function paletteFacts(page: Extract<Page, { kind: "palette" }>): string {
     locale()
   );
   const written = ownWords(page)?.description;
-  return written ? `${written} ${said}` : said;
+  return written ? `${clipWords(written)} ${said}` : said;
 }
 
 /** A palette's page: titled by its written words in English while it is drawn as it was saved, else by what its colors
