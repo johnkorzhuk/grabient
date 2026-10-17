@@ -49,9 +49,9 @@ import { type SpaceEnv, type SpaceOptions, searchedCollections, searchSpace } fr
 
 /* The lists of collections and their searches. No words is the list itself in its order. Words read letters, then what
    the words mean (meaning.ts), and order the answers as two kinds:
-   - named for the words: the title holds them, or holds the phrase they mean (púrpura finds Purple gradients). The one
-     whose whole subject is the query leads, then the titles that hold the words best, then the ones with the most
-     palettes that answer;
+   - named for the words: the title holds them, or holds the phrase they mean (púrpura finds Purple gradients), or a tag
+     is the words. The one whose whole subject is the query leads, then the titles that hold the words best, then the
+     ones with the most palettes that answer;
    - every other answer, by how strongly it means the query, a mention counting for a little.
    A query the site has nothing for stays empty. */
 
@@ -160,7 +160,7 @@ async function readMeaning(env: SearchEnv, query: string, options: SpaceOptions)
 
 interface Answer {
   row: CollectionRow;
-  /** how well its title holds the words; 0 when it is not named for them */
+  /** how well its title holds the words, NAMED where a tag is them; 0 when it is not named for them */
   title: number;
   /** its whole subject is the query */
   subject: boolean;
@@ -177,7 +177,9 @@ function answerOf(
   meaning: Meaning,
   phrase?: string
 ): Answer {
-  const named = Math.max(title >= NAMED ? title : 0, namedFor(meaning) ? 6 : 0);
+  // a tag that is the query itself names it for the words, below a title that holds them
+  const tagged = tagsOf(row.tags).some(tag => folded(tag) === folded(query)) ? NAMED : 0;
+  const named = Math.max(title >= NAMED ? title : 0, namedFor(meaning) ? 6 : 0, tagged);
   const subject = normalizeQuery(subjectOf(row.title));
   /* a tag that means the words mentions them as a tag that holds them does */
   const mentioned = Math.max(
@@ -303,7 +305,13 @@ export async function publicCollections(
   return pageOf(
     db,
     ranked.slice((page - 1) * limit, page * limit).map(answer => answer.row),
-    { ...head, total: ranked.length, ...(read?.unkept ? { unkept: true } : {}) },
+    {
+      ...head,
+      total: ranked.length,
+      ...(read?.unkept ? { unkept: true } : {}),
+      // the model's answer is a guess where no collection holds the words themselves
+      ...(read?.guessed?.length && !lettered.length ? { guessed: read.guessed } : {})
+    },
     options.previews ?? "page"
   );
 }

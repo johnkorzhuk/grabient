@@ -20,7 +20,7 @@
   {
     "name": "search_palettes",
     "title": "Search palettes",
-    "description": "Search Grabient's gallery of color palettes and gradients by color, mood, theme or brand colors. `query` takes words in any language, hex codes, or a palette's seed or address, which finds palettes like it. `colors` takes up to 5 hex colors the palettes come near, alone or with words. The best come first. `read` gives the `words` understood and the ones `notRead`, and `total` counts the whole answer, 96 at most, which `page` reads on.",
+    "description": "Search Grabient's gallery of color palettes and gradients by color, mood, theme or brand colors, or browse its popular, rising, newest and hot ones. `query` takes words in any language, hex codes, or a palette's seed or address for palettes like it. `colors` takes up to 5 hex colors the palettes come near. With neither, `order` lists the gallery. `read` gives the `words` understood and the ones `notRead`, and `page` reads on to `total`.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -38,6 +38,16 @@
           "description": "Colors the palettes come near.",
           "minItems": 1,
           "maxItems": 5
+        },
+        "order": {
+          "type": "string",
+          "description": "The gallery's order without query or colors. Default popular, the most liked first; rising, what gained likes lately; hot, what was liked lately, and new.",
+          "enum": [
+            "popular",
+            "rising",
+            "newest",
+            "hot"
+          ]
         },
         "limit": {
           "type": "integer",
@@ -64,47 +74,6 @@
     },
     "_meta": {
       "anthropic/alwaysLoad": true
-    }
-  },
-  {
-    "name": "list_gallery",
-    "title": "The gallery",
-    "description": "Browse Grabient's public gallery of color palettes and gradients: popular, rising, newest or hot. Popular is the most liked first; rising, what gained likes lately; hot, what was liked lately, and new.",
-    "inputSchema": {
-      "type": "object",
-      "properties": {
-        "order": {
-          "type": "string",
-          "description": "Default popular.",
-          "enum": [
-            "popular",
-            "rising",
-            "newest",
-            "hot"
-          ]
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page, from 1.",
-          "minimum": 1,
-          "maximum": 10000
-        },
-        "limit": {
-          "type": "integer",
-          "description": "How many a page, default 12.",
-          "minimum": 1,
-          "maximum": 48
-        }
-      },
-      "required": [],
-      "additionalProperties": false
-    },
-    "annotations": {
-      "title": "The gallery",
-      "readOnlyHint": true,
-      "destructiveHint": false,
-      "idempotentHint": true,
-      "openWorldHint": false
     }
   },
   {
@@ -183,7 +152,7 @@
   {
     "name": "compose_palette",
     "title": "Make a palette",
-    "description": "Make color palettes and CSS gradients from 2 to 8 hex colors each, such as brand colors, in order. Each comes with its seed, its address, its colors and the CSS that draws it as Grabient does in the view given. Steps left out show every color. Nothing is saved. Each color is held as its hex.",
+    "description": "Make color palettes and CSS gradients from 2 to 8 hex colors each, such as brand colors, in order. Each comes with its seed, its address, its colors and the CSS that draws it as Grabient does in the view given: `colors` are the bands a Swatches view draws, else the colors a gradient blends between. Steps left out show every color. Nothing is saved. Each color is held as its hex.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -355,7 +324,7 @@
   {
     "name": "inspect_palettes",
     "title": "Inspect palettes",
-    "description": "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in. `gallery` is null for a palette the gallery lacks, and `collections` are the public ones that hold it.",
+    "description": "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in: the colors of a Swatches view are its bands, and of a gradient the ones it blends between. `gallery` is null for a palette the gallery lacks, and `collections` are the public ones that hold it.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -494,15 +463,13 @@
   {
     "name": "list_saved_palettes",
     "title": "Saved palettes",
-    "description": "The color palettes and gradients saved to the Grabient account, newest first, each in the view it was saved in. `named` marks a title the account gave; any other is its title on Grabient. `savedPage` is the page that lists them.",
+    "description": "The color palettes and gradients saved to the Grabient account, newest first, each in the view it was saved in. `total` counts them all, and `next` reads on from the last. `named` marks a title the account gave; any other is its title on Grabient. `savedPage` is the page that lists them.",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "page": {
-          "type": "integer",
-          "description": "Page, from 1.",
-          "minimum": 1,
-          "maximum": 10000
+        "after": {
+          "type": "string",
+          "description": "The `next` of the answer before, to read on from it."
         },
         "limit": {
           "type": "integer",
@@ -583,7 +550,7 @@
   {
     "name": "list_my_collections",
     "title": "My collections",
-    "description": "The Grabient account's own collections of color palettes and gradients, latest change first. They are private: only the account sees them. An account keeps up to 200.",
+    "description": "The Grabient account's own collections of color palettes and gradients, latest change first, each with its `visibility`: only the account sees a private one, and everyone a public one. An account keeps up to 200.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -614,7 +581,7 @@
   {
     "name": "save_collection",
     "title": "Make or change a collection",
-    "description": "Make or change a private collection of color palettes, such as a brand's colors or a theme's gradients. Without a slug it makes one from a title and 1 to 100 palettes. With a slug it changes that one: a field given replaces what is there, `palettes` replaces the whole list in order, `remove` takes palettes out and `add` puts palettes at the end. A palette named without a view keeps the one it has there, else the one Grabient shows it in.",
+    "description": "Make a private collection of color palettes, such as a brand's colors or a theme's gradients, or change one of the account's own, which everyone sees at once when it is public. Without a slug it makes one from a title and 1 to 100 palettes. With a slug it changes that one: a field given replaces what is there, `palettes` replaces the whole list in order, `remove` takes palettes out and `add` puts palettes at the end.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -681,7 +648,7 @@
             ],
             "additionalProperties": false
           },
-          "description": "The whole list, in order.",
+          "description": "The whole list, in order. A palette named without a view keeps the one it has here, else the one Grabient shows it in.",
           "minItems": 1,
           "maxItems": 100
         },
@@ -724,7 +691,7 @@
             ],
             "additionalProperties": false
           },
-          "description": "Palettes to add at the end.",
+          "description": "Palettes to add at the end. A palette named without a view keeps the one it has here, else the one Grabient shows it in.",
           "minItems": 1,
           "maxItems": 100
         },
@@ -734,7 +701,7 @@
             "type": "string",
             "description": "A palette's seed, or its address, which carries its view."
           },
-          "description": "Palettes to take out.",
+          "description": "Palettes to take out: a seed in every view it has here, an address in the view it names.",
           "minItems": 1,
           "maxItems": 100
         }
@@ -753,7 +720,7 @@
   {
     "name": "delete_collection",
     "title": "Delete a collection",
-    "description": "Delete one of the Grabient account's own collections of color palettes. Its palettes stay wherever else they are. This cannot be undone.",
+    "description": "Delete one of the Grabient account's own collections of color palettes, a public one from the site too. Its palettes stay wherever else they are. This cannot be undone.",
     "inputSchema": {
       "type": "object",
       "properties": {

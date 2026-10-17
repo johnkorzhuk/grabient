@@ -84,7 +84,7 @@
     }
   },
   {
-    "tool": "list_gallery",
+    "tool": "search_palettes",
     "args": {
       "limit": 500,
       "page": 0

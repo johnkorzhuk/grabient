@@ -5510,7 +5510,10 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "earth",
+      "tones"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -6008,7 +6011,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "grayscale"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -10048,7 +10053,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "mist"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -10213,7 +10220,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "powder"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -11545,7 +11554,8 @@
     "indexable": false,
     "read": {
      "phrases": [
-      "neon"
+      "neon",
+      "glow"
      ],
      "unread": [],
      "excluded": []
@@ -11877,7 +11887,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "combinations"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -21202,7 +21214,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "blaze"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -21363,7 +21377,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "tidepool"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -21524,7 +21540,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "seattle"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -21685,7 +21703,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "sunburst"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -21846,7 +21866,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "glow"
+     ],
      "unread": [],
      "excluded": []
     },
@@ -22007,7 +22029,9 @@
     "total": 96,
     "indexable": false,
     "read": {
-     "phrases": [],
+     "phrases": [
+      "night"
+     ],
      "unread": [],
      "excluded": []
     },

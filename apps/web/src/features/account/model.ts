@@ -49,8 +49,6 @@ export interface Maker {
 export type CollectionSummary = Omit<SyncCollection, "items" | "id">;
 
 const PREVIEW_ITEMS = 12;
-/** The latest saved palettes Saved pages through, as the server's list stops. */
-export const SAVED_PAGED = 1000;
 
 const heldKey = (item: CollectionItem) =>
   itemKey({ seed: item.kseed, style: item.style, steps: item.steps, angle: item.angle });
@@ -309,13 +307,12 @@ export interface SavedItem extends ItemView {
 }
 // a view stands until the copy changes, and every visit to Saved reads it: an account can hold thousands of likes
 const savedOf = new WeakMap<View, readonly SavedItem[]>();
-/** The account's saved palettes, the latest saved first, as Saved lists them. */
+/** The account's saved palettes, every one the copy holds, the latest saved first, as Saved lists them. */
 export function savedItems(view: View): readonly SavedItem[] {
   let items = savedOf.get(view);
   if (!items) {
     items = [...view.likes.values()]
       .sort((a, b) => b.at - a.at || compare(a.seed, b.seed))
-      .slice(0, SAVED_PAGED)
       .map(like => ({
         kseed: like.seed,
         style: like.style,

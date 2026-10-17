@@ -3,7 +3,7 @@ import { paletteTitle, readPalette } from "@grabient/engine/name.ts";
 import { isStyle, STEPS_MAX, STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
 import { splitLocale } from "@grabient/i18n";
 import { QUERY_MAX } from "@grabient/search/text.ts";
-import { all, first } from "@grabient/server/db/d1.ts";
+import { first } from "@grabient/server/db/d1.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
 import { PALETTE_TITLE_MAX } from "../../../features/account/wire.ts";
 import { itemKey } from "../../../features/collections/address.ts";
@@ -33,7 +33,16 @@ import {
   updateCollection
 } from "../../collections/write.ts";
 import { colorNames } from "../../files/names.ts";
-import { likeLimits, likeTitle, publishLimits, savedCount, setLike } from "../../gallery/likes.ts";
+import {
+  likeLimits,
+  likeTitle,
+  markText,
+  publishLimits,
+  readMark,
+  savedAfter,
+  savedCount,
+  setLike
+} from "../../gallery/likes.ts";
 import { galleryItems, listPalettes } from "../../gallery/list.ts";
 import { countSearch } from "../../search/counts.ts";
 import { searchableItems } from "../../search/items.ts";
@@ -146,14 +155,20 @@ const slugOf = (value: unknown): string => {
 };
 
 const PLAINER = " The search reads common color, mood and theme words, hex codes and seeds.";
-/** What a search has to say beside its palettes: what it could not leave out, a color nothing comes near, and why
-    nothing answered, where an empty answer alone would read as "no such palettes". */
+const WORDS = new Intl.ListFormat("en-US", { type: "conjunction" });
+/** What a search says of words only the model read: it places any words near something, nonsense too. */
+const guessed = (words: readonly string[], found: string) =>
+  `The search does not know ${WORDS.format(words.map(word => `"${word}"`))}, so the search model read the query whole: these ${found} are its best guess and may not fit.`;
+/** What a search has to say beside its palettes: what it could not leave out, words only the model read, a color
+    nothing comes near, and why nothing answered, where an empty answer alone would read as "no such palettes". */
 async function searchNote(c: ToolContext, result: SearchResult, total: number): Promise<string> {
   const said: string[] = [];
   if (result.read.excluded.length)
     said.push(
       `A search leaves nothing out: it looked for ${result.read.excluded.join(" and ")} too.`
     );
+  if (result.tier === "model" && total && result.read.unread.length)
+    said.push(guessed(result.read.unread, "palettes"));
   if (result.far) said.push(`No palette here comes close to ${result.far.join(" or ")}.`);
   if (!total) {
     if (result.tier === "unavailable")
@@ -185,10 +200,14 @@ const VIEW_FIELDS = {
   angle: whole("Degrees, 90 running left to right.", 0, 360)
 };
 const PAGE = whole("Page, from 1.", 1, 10000);
+/** The orders a search with neither words nor colors lists the gallery in. */
+const ORDERS = ["popular", "rising", "newest", "hot"] as const;
 /** A palette and its view, as a tool's list holds one: `more` is what else the tool reads of it. */
 const paletteItem = (more: Record<string, Record<string, unknown>> = {}) =>
   shape({ seed: PALETTE_SEED, ...VIEW_FIELDS, ...more }, ["seed"]);
 const HEX = text("A hex color: #rrggbb or #rgb.");
+const KEEPS_VIEW =
+  "A palette named without a view keeps the one it has here, else the one Grabient shows it in.";
 /** A number of a change, without a range here: adjust.ts reads it, and its refusals say what it means. */
 const amount = (description: string) => ({ type: "number", description });
 const VARIANT = shape({
@@ -235,7 +254,7 @@ export const accountTools: readonly Tool[] = [
     hints: READS,
     meta: ALWAYS_LOAD,
     description:
-      "Search Grabient's gallery of color palettes and gradients by color, mood, theme or brand colors. `query` takes words in any language, hex codes, or a palette's seed or address, which finds palettes like it. `colors` takes up to 5 hex colors the palettes come near, alone or with words. The best come first. `read` gives the `words` understood and the ones `notRead`, and `total` counts the whole answer, 96 at most, which `page` reads on.",
+      "Search Grabient's gallery of color palettes and gradients by color, mood, theme or brand colors, or browse its popular, rising, newest and hot ones. `query` takes words in any language, hex codes, or a palette's seed or address for palettes like it. `colors` takes up to 5 hex colors the palettes come near. With neither, `order` lists the gallery. `read` gives the `words` understood and the ones `notRead`, and `page` reads on to `total`.",
     inputSchema: shape({
       query: text(
         `Up to ${QUERY_MAX} characters of words or hex codes, or a palette's seed or address.`,
@@ -244,6 +263,10 @@ export const accountTools: readonly Tool[] = [
         }
       ),
       colors: list(HEX, "Colors the palettes come near.", 1, 5),
+      order: text(
+        "The gallery's order without query or colors. Default popular, the most liked first; rising, what gained likes lately; hot, what was liked lately, and new.",
+        { enum: [...ORDERS] }
+      ),
       limit: whole("How many, default 12.", 1, 48),
       page: PAGE
     }),
@@ -256,8 +279,22 @@ export const accountTools: readonly Tool[] = [
         return refuse(
           `color ${bad + 1} is ${quoted(asked[bad])}, and a color is taken as hex: #rrggbb or #rgb.`
         );
-      if (!typed && !colors.length) return refuse("Send query, colors or both.");
       const limit = (args.limit as number | undefined) ?? 12;
+      const order = args.order as (typeof ORDERS)[number] | undefined;
+      if (!typed && !colors.length) {
+        const gallery = await listPalettes(c.env, {
+          sort: order ?? "popular",
+          page: args.page as number | undefined,
+          limit
+        });
+        return answer({
+          order: order ?? "popular",
+          total: gallery.total,
+          page: gallery.page,
+          limit: gallery.limit,
+          palettes: await cardsOf(c, gallery.items, item => ({ likes: item.likes }))
+        });
+      }
       const page = (args.page as number | undefined) ?? 1;
       const before = (page - 1) * limit;
       const named = paletteNamed(typed);
@@ -291,7 +328,14 @@ export const accountTools: readonly Tool[] = [
       const total =
         found >= limit ? result.total : found ? before + found : Math.min(result.total, before);
       const { phrases, unread } = result.read;
-      const note = await searchNote(c, result, total);
+      const note = [
+        await searchNote(c, result, total),
+        order
+          ? "order lists the gallery when no query or colors are sent: a search's best come first."
+          : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
       return answer({
         query: result.query,
         ...(phrases.length || unread.length
@@ -302,31 +346,6 @@ export const accountTools: readonly Tool[] = [
         limit,
         palettes: await cardsOf(c, result.items, item => ({ likes: item.likes })),
         ...(note ? { note } : {})
-      });
-    }
-  },
-  {
-    name: "list_gallery",
-    title: "The gallery",
-    hints: READS,
-    description:
-      "Browse Grabient's public gallery of color palettes and gradients: popular, rising, newest or hot. Popular is the most liked first; rising, what gained likes lately; hot, what was liked lately, and new.",
-    inputSchema: shape({
-      order: text("Default popular.", { enum: ["popular", "rising", "newest", "hot"] }),
-      page: PAGE,
-      limit: whole("How many a page, default 12.", 1, 48)
-    }),
-    async run(args, c) {
-      const page = await listPalettes(c.env, {
-        sort: (args.order as "popular" | "rising" | "newest" | "hot" | undefined) ?? "popular",
-        page: args.page as number | undefined,
-        limit: (args.limit as number | undefined) ?? 12
-      });
-      return answer({
-        total: page.total,
-        page: page.page,
-        limit: page.limit,
-        palettes: await cardsOf(c, page.items, item => ({ likes: item.likes }))
       });
     }
   },
@@ -365,7 +384,8 @@ export const accountTools: readonly Tool[] = [
           first: s.preview.flatMap(p =>
             decodePalette(p.seed) ? [addressOf(c.origin, drawn(p))] : []
           )
-        }))
+        })),
+        ...(page.guessed && page.total ? { note: guessed(page.guessed, "collections") } : {})
       });
     }
   },
@@ -410,7 +430,7 @@ export const accountTools: readonly Tool[] = [
     hints: READS,
     meta: ALWAYS_LOAD,
     description:
-      "Make color palettes and CSS gradients from 2 to 8 hex colors each, such as brand colors, in order. Each comes with its seed, its address, its colors and the CSS that draws it as Grabient does in the view given. Steps left out show every color. Nothing is saved. Each color is held as its hex.",
+      "Make color palettes and CSS gradients from 2 to 8 hex colors each, such as brand colors, in order. Each comes with its seed, its address, its colors and the CSS that draws it as Grabient does in the view given: `colors` are the bands a Swatches view draws, else the colors a gradient blends between. Steps left out show every color. Nothing is saved. Each color is held as its hex.",
     inputSchema: shape(
       {
         palettes: list(
@@ -451,7 +471,11 @@ export const accountTools: readonly Tool[] = [
     ),
     async run(args, c) {
       const given = args as unknown as PaletteGiven & { variants: unknown[] };
-      const held = (await searchableItems(c.env, [given.seed])).get(given.seed);
+      const [views, [written]] = await Promise.all([
+        searchableItems(c.env, [given.seed]),
+        paletteTexts(c.env, [given.seed])
+      ]);
+      const held = views.get(given.seed);
       const from = drawn(given, held);
       const made: unknown[] = [];
       for (const [i, variant] of given.variants.entries()) {
@@ -469,7 +493,8 @@ export const accountTools: readonly Tool[] = [
         ];
         made.push(madeCard(c.origin, s, titleOf(s), lines, {}, c.view));
       }
-      return answer({ from: card(c.origin, from, titleOf(from)), palettes: made });
+      // the palette asked about goes by its title on Grabient, as every list and tile names it
+      return answer({ from: card(c.origin, from, titleOf(from, written)), palettes: made });
     }
   },
   {
@@ -477,7 +502,7 @@ export const accountTools: readonly Tool[] = [
     title: "Inspect palettes",
     hints: READS,
     description:
-      "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in. `gallery` is null for a palette the gallery lacks, and `collections` are the public ones that hold it.",
+      "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in: the colors of a Swatches view are its bands, and of a gradient the ones it blends between. `gallery` is null for a palette the gallery lacks, and `collections` are the public ones that hold it.",
     inputSchema: shape(
       { palettes: list(paletteItem(), "The palettes, each in the view to read it in.", 1, 12) },
       ["palettes"]
@@ -587,46 +612,33 @@ export const accountTools: readonly Tool[] = [
     title: "Saved palettes",
     hints: READS,
     description:
-      "The color palettes and gradients saved to the Grabient account, newest first, each in the view it was saved in. `named` marks a title the account gave; any other is its title on Grabient. `savedPage` is the page that lists them.",
-    inputSchema: shape({ page: PAGE, limit: whole("How many a page, default 24.", 1, 48) }),
+      "The color palettes and gradients saved to the Grabient account, newest first, each in the view it was saved in. `total` counts them all, and `next` reads on from the last. `named` marks a title the account gave; any other is its title on Grabient. `savedPage` is the page that lists them.",
+    inputSchema: shape({
+      after: text("The `next` of the answer before, to read on from it."),
+      limit: whole("How many a page, default 24.", 1, 48)
+    }),
     async run(args, c) {
-      const page = (args.page as number | undefined) ?? 1;
       const limit = (args.limit as number | undefined) ?? 24;
-      const offset = (page - 1) * limit;
-      // counted as the Saved page counts them, and a page past them reads nothing
-      const total = await savedCount(c.env, c.grant.userId);
-      const rows =
-        offset >= total
-          ? []
-          : await all<{
-              kseed: string;
-              style: string;
-              steps: number;
-              angle: number;
-              at: number;
-              title: string | null;
-              likes: number;
-            }>(
-              c.env.DB,
-              `SELECT own.palette_id AS kseed, own.style, own.steps, own.angle, own.created_at AS at, own.title,
-                 COALESCE(p.likes_count, 0) AS likes
-               FROM k_likes own LEFT JOIN k_palettes p ON p.seed = own.palette_id WHERE own.user_id = ?
-               ORDER BY own.created_at DESC, own.palette_id LIMIT ? OFFSET ?`,
-              c.grant.userId,
-              Math.min(limit, total - offset),
-              offset
-            );
+      const mark = args.after === undefined ? undefined : readMark(args.after);
+      if (mark === null) return refuse("after is the `next` of an earlier answer.");
+      // one more than the page, so the answer knows whether another follows
+      const [total, rows] = await Promise.all([
+        savedCount(c.env, c.grant.userId),
+        savedAfter(c.env, c.grant.userId, limit + 1, mark)
+      ]);
+      const shownRows = rows.slice(0, limit);
+      const last = rows.length > limit ? shownRows.at(-1) : undefined;
       // a title the account gave is marked, so a model never tells a person that a name Grabient made is theirs
       return answer({
         total,
-        page,
         limit,
         savedPage: savedPage(c),
-        palettes: await cardsOf(c, rows, row => ({
+        palettes: await cardsOf(c, shownRows, row => ({
           ...(row.title ? { title: row.title, named: true } : {}),
           likes: Number(row.likes),
           savedAt: day(row.at)
-        }))
+        })),
+        ...(last ? { next: markText({ at: Number(last.at), seed: last.kseed }) } : {})
       });
     }
   },
@@ -715,7 +727,7 @@ export const accountTools: readonly Tool[] = [
     name: "list_my_collections",
     title: "My collections",
     hints: READS,
-    description: `The Grabient account's own collections of color palettes and gradients, latest change first. They are private: only the account sees them. An account keeps up to ${MAX_OWN_COLLECTIONS}.`,
+    description: `The Grabient account's own collections of color palettes and gradients, latest change first, each with its \`visibility\`: only the account sees a private one, and everyone a public one. An account keeps up to ${MAX_OWN_COLLECTIONS}.`,
     inputSchema: shape({ page: PAGE, limit: whole("How many a page, default 12.", 1, 48) }),
     async run(args, c) {
       const page = await ownerCollections(
@@ -737,7 +749,7 @@ export const accountTools: readonly Tool[] = [
     title: "Make or change a collection",
     // with a slug it replaces what it is given; without one, every call makes another collection
     hints: { readOnly: false, destructive: true, idempotent: false, openWorld: ownMayBePublic },
-    description: `Make or change a private collection of color palettes, such as a brand's colors or a theme's gradients. Without a slug it makes one from a title and 1 to ${MAX_COLLECTION_ITEMS} palettes. With a slug it changes that one: a field given replaces what is there, \`palettes\` replaces the whole list in order, \`remove\` takes palettes out and \`add\` puts palettes at the end. A palette named without a view keeps the one it has there, else the one Grabient shows it in.`,
+    description: `Make a private collection of color palettes, such as a brand's colors or a theme's gradients, or change one of the account's own, which everyone sees at once when it is public. Without a slug it makes one from a title and 1 to ${MAX_COLLECTION_ITEMS} palettes. With a slug it changes that one: a field given replaces what is there, \`palettes\` replaces the whole list in order, \`remove\` takes palettes out and \`add\` puts palettes at the end.`,
     inputSchema: shape({
       slug: text("The collection to change, by its slug or address; left out, a new one is made."),
       title: text("1 to 80 characters.", { maxLength: 80 }),
@@ -748,9 +760,24 @@ export const accountTools: readonly Tool[] = [
         0,
         12
       ),
-      palettes: list(paletteItem(), "The whole list, in order.", 1, MAX_COLLECTION_ITEMS),
-      add: list(paletteItem(), "Palettes to add at the end.", 1, MAX_COLLECTION_ITEMS),
-      remove: list(PALETTE_SEED, "Palettes to take out.", 1, MAX_COLLECTION_ITEMS)
+      palettes: list(
+        paletteItem(),
+        `The whole list, in order. ${KEEPS_VIEW}`,
+        1,
+        MAX_COLLECTION_ITEMS
+      ),
+      add: list(
+        paletteItem(),
+        `Palettes to add at the end. ${KEEPS_VIEW}`,
+        1,
+        MAX_COLLECTION_ITEMS
+      ),
+      remove: list(
+        PALETTE_SEED,
+        "Palettes to take out: a seed in every view it has here, an address in the view it names.",
+        1,
+        MAX_COLLECTION_ITEMS
+      )
     }),
     async run(args, c) {
       const owner = { kind: "user" as const, id: c.grant.userId };
@@ -775,13 +802,24 @@ export const accountTools: readonly Tool[] = [
         });
       const listed = itemsOf(args.palettes);
       const added = itemsOf(args.add) ?? [];
-      const out = new Set(
-        ((args.remove as string[] | undefined) ?? []).map(named => paletteNamed(named)?.seed)
-      );
+      // a seed takes a palette out in every view it has here, an address in the view it names alone
+      const remove = ((args.remove as string[] | undefined) ?? []).map(named => ({
+        named,
+        one: paletteNamed(named)
+      }));
+      const takes = (one: PaletteGiven | null, item: CollectionItemInput) =>
+        !!one &&
+        one.seed === item.seed &&
+        (one.style === undefined || itemKey(drawn(one, item)) === itemKey(item));
+      const from = listed ?? before;
+      const notIn = remove.filter(({ one }) => !from.some(item => takes(one, item)));
       /* the list as given, or as it stands, less what is taken out, then what is added; a palette joins once in each
          view, and another view of one already here is an item of its own */
       const palettes: CollectionItemInput[] = [];
-      for (const item of [...(listed ?? before).filter(held => !out.has(held.seed)), ...added]) {
+      for (const item of [
+        ...from.filter(held => !remove.some(({ one }) => takes(one, held))),
+        ...added
+      ]) {
         if (!palettes.some(held => itemKey(held) === itemKey(item))) palettes.push(item);
       }
       if (record && !palettes.length)
@@ -847,6 +885,10 @@ export const accountTools: readonly Tool[] = [
         ...seedsAs(
           "removed",
           gone.map(item => item.seed).filter(seed => !redrawn.includes(seed))
+        ),
+        ...seedsAs(
+          "notIn",
+          notIn.map(({ named }) => named)
         )
       });
     }
@@ -856,7 +898,7 @@ export const accountTools: readonly Tool[] = [
     title: "Delete a collection",
     hints: { readOnly: false, destructive: true, idempotent: true, openWorld: ownMayBePublic },
     description:
-      "Delete one of the Grabient account's own collections of color palettes. Its palettes stay wherever else they are. This cannot be undone.",
+      "Delete one of the Grabient account's own collections of color palettes, a public one from the site too. Its palettes stay wherever else they are. This cannot be undone.",
     inputSchema: shape({ slug: text("The collection's slug or address.") }, ["slug"]),
     async run(args, c) {
       const slug = slugOf(args.slug);

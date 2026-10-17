@@ -639,6 +639,10 @@ export function verify(
         "SELECT seed FROM k_palettes p WHERE likes_count <> legacy_likes_count + (SELECT COUNT(*) FROM k_likes l WHERE l.palette_id = p.seed)"
       ).map(r => `${r.seed} likes_count`),
       ...all<{ id: string }>(
+        `SELECT id FROM auth_user u WHERE COALESCE((SELECT likes FROM k_account_likes a WHERE a.user_id = u.id), 0)
+           <> (SELECT COUNT(*) FROM k_likes l WHERE l.user_id = u.id)`
+      ).map(r => `${r.id} counts its likes wrong`),
+      ...all<{ id: string }>(
         `SELECT id FROM k_collections c WHERE likes_sum <> CASE WHEN visibility = 'public' THEN (SELECT COALESCE(SUM(p.likes_count), 0) FROM k_palettes p
            WHERE p.seed IN (SELECT seed FROM k_collection_items WHERE collection_id = c.id)) ELSE 0 END`
       ).map(r => `${r.id} likes_sum`),

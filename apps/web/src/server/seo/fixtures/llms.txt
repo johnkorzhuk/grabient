@@ -54,7 +54,7 @@ Every palette route takes `style`, `steps` and `angle`.
 
 ## Tools for agents
 
-- [MCP server](https://grabient.com/mcp): Streamable HTTP, JSON-RPC over POST, for a free Grabient account: the app signs the person in once through OAuth 2.1 when it is added. Tools: get_account, search_palettes, list_gallery, search_collections, get_collection, compose_palette, adjust_palette, inspect_palettes, show_palettes, list_saved_palettes, save_palette, list_my_collections, save_collection, delete_collection. [How to connect](https://grabient.com/mcp-server).
+- [MCP server](https://grabient.com/mcp): Streamable HTTP, JSON-RPC over POST, for a free Grabient account: the app signs the person in once through OAuth 2.1 when it is added. Tools: get_account, search_palettes, search_collections, get_collection, compose_palette, adjust_palette, inspect_palettes, show_palettes, list_saved_palettes, save_palette, list_my_collections, save_collection, delete_collection. [How to connect](https://grabient.com/mcp-server).
 - [MCP server card](https://grabient.com/mcp/server-card): the server's name, address and protocol versions as JSON
 - [Agent catalog](https://grabient.com/.well-known/ai-catalog.json): the AI Catalog entry that leads to the card
 

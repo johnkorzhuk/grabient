@@ -68,9 +68,9 @@ export interface SearchItem extends Item {
 
 /** What a search made of its words. */
 export interface SearchRead {
-  /** the vocabulary's phrases the query holds */
+  /** the vocabulary's phrases the query holds, and the words titles hold as names */
   phrases: string[];
-  /** the words nothing read */
+  /** the words neither the vocabulary nor a title knows: in the model's answer, the ones it guessed at */
   unread: string[];
   /** what follows no, not or without, which the search cannot leave out */
   excluded: string[];
@@ -396,7 +396,7 @@ export async function searchPalettes(
   if (model && "vector" in model) {
     const meant = paletteScores(snapshot, model.vector);
     const rows = rankedRows(snapshot, meant, { filter: harmonyFilter(normalizeQuery(query)) });
-    return answer("model", cut(rows, meant), { ...read, unread: [] });
+    return answer("model", cut(rows, meant), read);
   }
   // a crawler is never sold the model, so what it gets is not what a person would: its answer is kept for nobody
   const unkept =
@@ -419,7 +419,7 @@ export async function searchPalettes(
   const result = await answer(
     named ? "named" : "vocabulary",
     [...led, ...neighbors].slice(0, SEARCH_ANSWER + SPARE),
-    named ? { ...read, unread: [] } : read,
+    named ? { ...read, phrases: [...read.phrases, ...unread], unread: [] } : read,
     [...(named?.names ?? []), ...(known?.phrases ?? [])]
   );
   /* one of grabient.com's indexed searches stays a page of its own wherever a crawler is answered as a person is */

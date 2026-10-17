@@ -13,14 +13,16 @@ const int = (raw: string | null, min: number, max: number, fallback: number) => 
 };
 
 /* A page of the signed-in account's saved palettes, newest first, or with `q` the ones that answer the words. Each
-   read counts against the account's minute. */
+   read counts against the account's minute and its day. */
 export const Route = createFileRoute("/api/saved")({
   server: {
     handlers: {
       GET: async ({ request }) => {
         const session = await getSession(env, request.headers);
         if (!session) return json({ error: msg("Sign in to continue.") }, { status: 401 });
-        const limited = await checkLimits(env, [[`saved:${session.user.id}`, "savedRead"]]);
+        const limited = await checkLimits(env, [
+          [`saved:${session.user.id}`, ["savedRead", "savedListDaily"]]
+        ]);
         if (!limited?.success) {
           return json(
             { error: msg("Too many requests. Try again later.") },

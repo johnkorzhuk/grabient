@@ -272,6 +272,7 @@ export interface PageOf {
   limit: number;
   total: number;
   unkept?: boolean;
+  guessed?: string[];
 }
 
 /** A page of summaries. */

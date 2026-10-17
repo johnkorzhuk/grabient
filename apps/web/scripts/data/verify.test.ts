@@ -58,6 +58,11 @@ describe("verify", () => {
       `UPDATE k_palettes SET likes_count = likes_count + 1 WHERE seed = '${B}'`,
       "counts and sums"
     ],
+    [
+      "an account's count of its likes off",
+      "INSERT INTO k_account_likes (user_id, likes) VALUES ('PU', 99) ON CONFLICT (user_id) DO UPDATE SET likes = 99",
+      "counts and sums"
+    ],
     ["a score off", `UPDATE k_palettes SET rising = rising + 1 WHERE seed = '${B}'`, "scores"],
     [
       "a translation lost",

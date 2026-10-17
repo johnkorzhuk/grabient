@@ -1,3 +1,5 @@
+import { encodePalette } from "@grabient/engine/codec.ts";
+import { randomPalette } from "@grabient/engine/random.ts";
 import { all, first, run } from "@grabient/server/db/d1.ts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import corpus from "../public/corpus-k.json" with { type: "json" };
@@ -8,6 +10,7 @@ import { forgetGalleryCount, listPalettes } from "../src/server/gallery/list.ts"
 import { rescore } from "../src/server/gallery/rescore.ts";
 import { risen } from "../src/server/gallery/scores.ts";
 import { searchPool } from "../src/server/gallery/search.ts";
+import { loadSnapshot } from "../src/server/search/snapshot.ts";
 import {
   address,
   bodyOf,
@@ -503,6 +506,28 @@ describe("likes", () => {
     expect(
       (await savedPage(env, request, account.id, { page: 3, limit: 2, words: "" })).items
     ).toEqual([]);
+  });
+
+  it("list and search every palette an account saved, however many", async () => {
+    const env = testEnv();
+    const account = await makeAccount(env);
+    // the oldest save is one the search's snapshot holds, under two thousand newer ones
+    const oldest = (await loadSnapshot(env))!.seeds[0]!;
+    const newer = Array.from({ length: 2000 }, () => encodePalette(randomPalette()));
+    await run(
+      env.DB,
+      `INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at)
+       SELECT ?, value, 7, 'linearGradient', 90, ? + key FROM json_each(?)`,
+      account.id,
+      Date.now() - DAY,
+      JSON.stringify([oldest, ...newer])
+    );
+    const last = await savedPage(env, request, account.id, { page: 84, limit: 24, words: "" });
+    expect(last).toMatchObject({ total: 2001, totalPages: 84 });
+    expect(last.items.map(item => item.kseed)).toEqual([...newer.slice(0, 8).reverse(), oldest]);
+    const found = await savedPage(env, request, account.id, { page: 1, limit: 24, words: oldest });
+    expect(found.tier).toBe("similar");
+    expect(found.items.map(item => item.kseed)).toContain(oldest);
   });
 });
 

@@ -48,8 +48,9 @@ export interface Standing {
 /** What the search's space offers the collections: the search area answers it. */
 export interface SearchSpace {
   /** the query read, or a null reading when nothing here reads it; `unkept` when a reader would have been given more
-      (an allowance spent, or a crawler asked, which is never sold the model) */
-  read(query: string): Promise<{ reading: Reading | null; unkept?: boolean }>;
+      (an allowance spent, or a crawler asked, which is never sold the model); `guessed`, the words only the model
+      read, which it places near something whatever they are */
+  read(query: string): Promise<{ reading: Reading | null; unkept?: boolean; guessed?: string[] }>;
   /** what words name, as the vocabulary's rows: a title's subject, or a tag */
   names(words: string): readonly number[];
   /** where a row of the vocabulary lies in the space */

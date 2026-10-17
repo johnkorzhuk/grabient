@@ -140,7 +140,10 @@ export const LIMITS = {
   // Like counts a page reads again once its own are old: up to 96 rows each, which no cache keeps.
   likeCounts: { requests: 60, window: 60, local: true },
   // An account's own Saved list and sync, a page load or a window focus each.
-  savedRead: { requests: 60, window: 60, local: true }
+  savedRead: { requests: 60, window: 60, local: true },
+  // Saved as the server reads it, a page or a search: a search ranks every like the account has, so its day of them is
+  // bounded however many it holds.
+  savedListDaily: { requests: 3000, window: 86400, lease: 16 }
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

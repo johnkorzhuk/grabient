@@ -106,7 +106,7 @@
     "raw": {
       "lighten": 70
     },
-    "error": "lighten is -1 to 1, the share of the way to white, or below 0 to black, so 70 is 0.7."
+    "error": "lighten is -1 to 1, the share of the way to white, or below 0 to black: 70 was sent, and 70% is 0.7."
   },
   {
     "raw": {

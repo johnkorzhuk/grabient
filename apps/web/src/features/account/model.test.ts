@@ -13,7 +13,6 @@ import {
   pageOf,
   previewOf,
   rebase,
-  SAVED_PAGED,
   type Snapshot,
   savedItems,
   settled,
@@ -260,7 +259,6 @@ it("draws Saved and the account's collections from the copy as grabient4 did", (
     ])
   };
   expect({
-    SAVED_PAGED,
     COLLECTION_MAX,
     savedOrder: savedItems(listed).map(item => item.kseed.slice(0, 8)),
     pageOf: (

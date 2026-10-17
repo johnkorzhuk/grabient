@@ -15,7 +15,7 @@ import {
   seedQueryVector,
   snapshotCollections
 } from "../search/rank.ts";
-import { hexLiterals, knownQuery, titleNames } from "../search/read.ts";
+import { hexLiterals, knownQuery, queryWords, titleNames } from "../search/read.ts";
 import { type Background, loadSnapshot, type SnapshotEnv } from "../search/snapshot.ts";
 import { legacySeed } from "../seo/legacy.ts";
 import type { Reading, SearchSpace, Standing } from "./meaning.ts";
@@ -126,7 +126,8 @@ export async function searchSpace(
             names: [read.vector],
             unread: [],
             filter: harmonyFilter(normalizeQuery(query))
-          }
+          },
+          guessed: known?.unknown ?? queryWords(query)
         };
       /* an allowance spent, or a crawler, which is never sold the model: a reader would have been given more */
       const unkept = !!read || (!payer && !!options.request && isCrawler(options.request));

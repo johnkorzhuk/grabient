@@ -17,7 +17,6 @@
    "capabilities": [
     "get_account",
     "search_palettes",
-    "list_gallery",
     "search_collections",
     "get_collection",
     "compose_palette",

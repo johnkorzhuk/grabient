@@ -208,9 +208,9 @@ describe("the MCP server's door", () => {
     const { account, token } = await connected(env, { admin: true });
     const listed = async () =>
       ((await rpc(env, token, "tools/list")).body?.result?.tools as unknown[] | undefined)?.length;
-    expect(await listed()).toBe(42);
+    expect(await listed()).toBe(accountGolden.length + adminGolden.length);
     await run(env.DB, "UPDATE auth_user SET role = 'user' WHERE id = ?", account.id);
-    expect(await listed()).toBe(14);
+    expect(await listed()).toBe(accountGolden.length);
     await run(env.DB, "DELETE FROM auth_user WHERE id = ?", account.id);
     expect((await rpc(env, token, "tools/list")).response.status).toBe(401);
   });
@@ -400,7 +400,7 @@ describe("the protocol", () => {
     expect(
       (await rpc(env, token, "resources/read", { uri: "ui://grabient/v9/none.html" })).body?.error
     ).toEqual(golden.missingResource);
-    expect((await call(env, token, "list_gallery", { order: "trending" })).result).toEqual(
+    expect((await call(env, token, "search_palettes", { order: "trending" })).result).toEqual(
       golden.argsRefusal
     );
   });
@@ -430,7 +430,7 @@ describe("the protocol", () => {
 /* The fixtures are grabient4's lists as they went out, with the words that told the model what to do rewritten
    (tools.test.ts checks the words of every tool and argument). */
 describe("the tools", () => {
-  it("are the account's fourteen, as the fixture lists them", async () => {
+  it("are the account's thirteen, as the fixture lists them", async () => {
     const env = testEnv();
     const { token } = await connected(env);
     const tools = (await rpc(env, token, "tools/list")).body?.result.tools;
@@ -447,7 +447,8 @@ describe("the tools", () => {
       name: string;
     }[];
     // an admin's own collections may be public, so changing one reaches the site
-    for (const tool of tools.slice(0, 14)) {
+    const own = accountGolden.length;
+    for (const tool of tools.slice(0, own)) {
       const golden = accountGolden.find(listed => listed.name === tool.name)!;
       const open = tool.name === "save_collection" || tool.name === "delete_collection";
       expect(tool).toEqual({
@@ -459,7 +460,7 @@ describe("the tools", () => {
       });
     }
     // byte for byte, so each tool's annotations state every hint in the protocol's order
-    expect(JSON.stringify(tools.slice(14))).toBe(JSON.stringify(adminGolden));
+    expect(JSON.stringify(tools.slice(own))).toBe(JSON.stringify(adminGolden));
   });
 
   it("answer an account's own questions from the database", async () => {
@@ -518,8 +519,35 @@ describe("the tools", () => {
       (await call(env, token, "adjust_palette", { seed: card.seed, variants: [{ lighten: 70 }] }))
         .error
     ).toBe(
-      "variant 1: lighten is -1 to 1, the share of the way to white, or below 0 to black, so 70 is 0.7."
+      "variant 1: lighten is -1 to 1, the share of the way to white, or below 0 to black: 70 was sent, and 70% is 0.7."
     );
+  });
+
+  it("name the palette a change starts from as its lists do: its written title while drawn as saved", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const seed = fresh();
+    await run(
+      env.DB,
+      "INSERT INTO k_palettes (seed, style, steps, angle, created_at) VALUES (?, 'linearGradient', 8, 90, 1)",
+      seed
+    );
+    await run(
+      env.DB,
+      "INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES (?, 'Study 42', '', 1, 1)",
+      seed
+    );
+    const from = async (view: Record<string, unknown> = {}) =>
+      (await call(env, token, "adjust_palette", { seed, ...view, variants: [{ lighten: 0.1 }] }))
+        .value.from;
+    expect(await from()).toMatchObject({
+      seed,
+      title: "Study 42",
+      style: "linearGradient",
+      steps: 8
+    });
+    // drawn another way, it goes by its colors, as its page does
+    expect((await from({ style: "radialSwatches" })).title).toMatch(/ radial swatches$/);
   });
 
   it("show palettes as tiles: the view's data for an app that draws it, each picture's address for one that does not", async () => {
@@ -643,6 +671,79 @@ describe("the tools", () => {
     });
   });
 
+  it("count every palette an account saved, and read them all on from where each page ends", async () => {
+    const env = testEnv();
+    const { account, token } = await connected(env);
+    const seeds = Array.from({ length: 1201 }, fresh);
+    // newest last; five share a time, so the first page ends among them
+    await run(
+      env.DB,
+      `INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at)
+       SELECT ?, value, 7, 'linearGradient', 90, ? + CASE WHEN key BETWEEN 1150 AND 1154 THEN 1150 ELSE key END
+       FROM json_each(?)`,
+      account.id,
+      Date.now() - DAY,
+      JSON.stringify(seeds)
+    );
+    const counted = (await call(env, token, "get_account")).value;
+    expect(counted).toMatchObject({ saved: 1201 });
+    expect(counted).not.toHaveProperty("note");
+    const read: string[] = [];
+    let after: string | undefined;
+    let pages = 0;
+    do {
+      const page = (
+        await call(env, token, "list_saved_palettes", { limit: 48, ...(after ? { after } : {}) })
+      ).value;
+      expect(page).toMatchObject({ total: 1201, limit: 48 });
+      read.push(...page.palettes.map((p: { seed: string }) => p.seed));
+      after = page.next;
+      pages++;
+    } while (after);
+    // newest first and each once, a tie in the order of its palettes
+    const at = (i: number) => (i >= 1150 && i <= 1154 ? 1150 : i);
+    const newest = seeds
+      .map((seed, i) => ({ seed, at: at(i) }))
+      .sort((a, b) => b.at - a.at || (a.seed < b.seed ? -1 : a.seed > b.seed ? 1 : 0))
+      .map(like => like.seed);
+    expect(pages).toBe(26);
+    expect(read).toEqual(newest);
+    // a save taken back leaves the count at once
+    await run(
+      env.DB,
+      "DELETE FROM k_likes WHERE user_id = ? AND palette_id = ?",
+      account.id,
+      seeds[0]!
+    );
+    expect((await call(env, token, "get_account")).value).toMatchObject({ saved: 1200 });
+    expect((await call(env, token, "list_saved_palettes", { after: "page 2" })).error).toBe(
+      "after is the `next` of an earlier answer."
+    );
+  });
+
+  it("say which words only the search model read, and that its answer to them is a guess", async () => {
+    const AI = {
+      run: async (_: string, input: { text: string[] }) => ({
+        data: input.text.map(() => Array.from({ length: 768 }, (_, i) => Math.sin(i)))
+      })
+    } as unknown as Ai;
+    const env = { ...testEnv(), AI };
+    await shippedGallery(env);
+    const { token } = await connected(env);
+    const guess = (await call(env, token, "search_palettes", { query: "ocean zzqxv", limit: 2 }))
+      .value;
+    expect(guess).toMatchObject({
+      read: { words: ["ocean"], notRead: ["zzqxv"] },
+      total: 96,
+      note: 'The search does not know "zzqxv", so the search model read the query whole: these palettes are its best guess and may not fit.'
+    });
+    expect(guess.palettes).toHaveLength(2);
+    // words it knows whole are no guess
+    expect(
+      (await call(env, token, "search_palettes", { query: "ocean", limit: 1 })).value
+    ).not.toHaveProperty("note");
+  });
+
   it("search the gallery as the site's own search does, and count a person's words once a day", async () => {
     const env = testEnv();
     const seeds = await shippedGallery(env);
@@ -686,9 +787,12 @@ describe("the tools", () => {
     expect((await call(env, token, "search_palettes", { colors: ["red"] })).error).toBe(
       'color 1 is "red", and a color is taken as hex: #rrggbb or #rgb.'
     );
-    expect((await call(env, token, "search_palettes", {})).error).toBe(
-      "Send query, colors or both."
-    );
+    // with neither words nor colors it lists the gallery
+    expect((await call(env, token, "search_palettes", {})).value).toMatchObject({
+      order: "popular",
+      page: 1,
+      limit: 12
+    });
     expect((await call(env, token, "search_palettes", { query: "w ".repeat(60) })).error).toBe(
       "query is at most 100 characters of words or hex codes."
     );
@@ -726,10 +830,18 @@ describe("the tools", () => {
     ];
     await run(env.DB, "UPDATE k_palettes SET likes_count = 7 WHERE seed = ?", b);
     const { token } = await connected(env);
-    const popular = (await call(env, token, "list_gallery", { limit: 500 })).value;
-    expect(popular).toMatchObject({ page: 1, limit: 48 });
+    const popular = (await call(env, token, "search_palettes", { limit: 500 })).value;
+    expect(popular).toMatchObject({ order: "popular", page: 1, limit: 48 });
     expect(popular.total).toBeGreaterThanOrEqual(seeds.length);
     expect(popular.palettes[0]).toMatchObject({ seed: b, likes: 7 });
+    const newest = (await call(env, token, "search_palettes", { order: "newest", limit: 3 })).value;
+    expect(newest).toMatchObject({ order: "newest", page: 1, limit: 3 });
+    expect(newest.palettes).toHaveLength(3);
+    // an order beside words is said to be the gallery's, and the search's best still come first
+    expect(
+      (await call(env, token, "search_palettes", { query: "ocean", order: "newest", limit: 1 }))
+        .value.note
+    ).toBe("order lists the gallery when no query or colors are sent: a search's best come first.");
     const title = unique("Harbor lights");
     const { slug } = await createCollection(
       env,
@@ -764,6 +876,34 @@ describe("the tools", () => {
         ]
       }
     ]);
+    // a tag that is the words names a collection for them, ahead of one that only mentions them
+    const tagged = await createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Gulf evenings"),
+        description: "",
+        tags: ["zephyr florida"],
+        visibility: "public",
+        items: [{ seed: fresh(), style: "linearGradient", steps: 7, angle: 90 }]
+      }
+    );
+    const mentioned = await createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Zephyr sun"),
+        description: "",
+        tags: ["florida"],
+        visibility: "public",
+        items: [{ seed: fresh(), style: "linearGradient", steps: 7, angle: 90 }]
+      }
+    );
+    expect(
+      (
+        await call(env, token, "search_collections", { query: "zephyr florida" })
+      ).value.collections.map((one: { slug: string }) => one.slug)
+    ).toEqual([tagged.slug, mentioned.slug]);
     // by its address in any language, a page at a time
     const read = (
       await call(env, token, "get_collection", {
@@ -847,6 +987,29 @@ describe("the tools", () => {
       })
     ).value;
     expect(redrawn).toMatchObject({ tags: ["warm", "dusk"], kept: [c], redrawn: [b] });
+    // a seed takes a palette out in every view it has here, an address in the one view it names
+    expect(
+      (
+        await call(env, token, "save_collection", {
+          slug: changed.slug,
+          add: [{ seed: b, style: "radialSwatches" }]
+        })
+      ).value
+    ).toMatchObject({ palettes: 3, added: [b] });
+    const views = (await call(env, token, "get_collection", { slug: changed.slug })).value
+      .palettes as { seed: string; style: string; url: string }[];
+    const radial = views.find(p => p.seed === b && p.style === "radialSwatches")!.url;
+    expect(
+      (await call(env, token, "save_collection", { slug: changed.slug, remove: [radial, a] })).value
+    ).toMatchObject({ palettes: 2, removed: [b], notIn: [a] });
+    expect(
+      (await call(env, token, "get_collection", { slug: changed.slug })).value.palettes.map(
+        (p: { seed: string; style: string }) => [p.seed, p.style]
+      )
+    ).toEqual([
+      [b, "linearSwatches"],
+      [c, "linearGradient"]
+    ]);
     expect(
       (await call(env, token, "save_collection", { slug: changed.slug, remove: [b, c] })).error
     ).toBe("This would empty the collection, and a collection keeps at least one palette.");
@@ -875,6 +1038,31 @@ describe("the tools", () => {
     expect((await call(env, token, "delete_collection", { slug: changed.slug })).error).toBe(
       "No collection of yours has this address."
     );
+  });
+
+  it("keep an admin's own public collection at its address when a change renames it", async () => {
+    const env = testEnv();
+    const { account, token } = await connected(env, { admin: true });
+    const { slug } = await createCollection(
+      env,
+      { kind: "user", id: account.id },
+      {
+        title: unique("Between tides"),
+        description: "",
+        tags: [],
+        visibility: "public",
+        items: [{ seed: fresh(), style: "linearGradient", steps: 7, angle: 90 }]
+      }
+    );
+    const renamed = (
+      await call(env, token, "save_collection", { slug, title: "Between the tides" })
+    ).value;
+    expect(renamed).toMatchObject({ slug, title: "Between the tides", visibility: "public" });
+    expect(renamed).not.toHaveProperty("movedFrom");
+    expect((await call(env, token, "get_collection", { slug })).value).toMatchObject({
+      title: "Between the tides",
+      mine: true
+    });
   });
 
   it("save a palette a public collection holds in its view there, under the account's own title", async () => {

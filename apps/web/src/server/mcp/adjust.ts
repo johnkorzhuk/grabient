@@ -1,9 +1,9 @@
 import { canonical, encodePalette } from "@grabient/engine/codec.ts";
-import { fitChroma, hexToSrgb, lchToSrgb, srgbToOklab } from "@grabient/engine/color.ts";
-import { sampleHex } from "@grabient/engine/curve.ts";
+import { fitChroma, hexToSrgb, lchToSrgb, srgbToOklab, toHex } from "@grabient/engine/color.ts";
+import { sampleLCH } from "@grabient/engine/curve.ts";
 import { type Anchor, DH_MAX, DH_STEP, type Palette } from "@grabient/engine/palette.ts";
 import { hexAnchor } from "@grabient/engine/spec.ts";
-import { colorsToPalette, hexColor, hexOf, quoted } from "./colors.ts";
+import { hexColor, hexOf, quoted } from "./colors.ts";
 
 /* A palette changed by the numbers a call sends, in one fixed order: reversed, resampled, then each color turned,
    warmed, its chroma scaled and moved toward white or black. The notes say what the change could not reach. Pure. */
@@ -59,7 +59,7 @@ export function readChange(value: unknown, palette: Palette): Change | { error: 
     if (!(v >= least && v <= most)) {
       const percent = key === "lighten" && Math.abs(v) >= 2 && Math.abs(v) <= 100;
       return {
-        error: `${key} is ${least} to ${most}, ${means}${percent ? `, so ${v} is ${+(v / 100).toFixed(4)}` : `: ${v} was sent`}.`
+        error: `${key} is ${least} to ${most}, ${means}: ${v} was sent${percent ? `, and ${v}% is ${+(v / 100).toFixed(4)}` : ""}.`
       };
     }
     change[key] = v;
@@ -100,12 +100,15 @@ export function adjustPalette(
   let base = change.reverse ? [...from.anchors].reverse() : from.anchors;
   const held = new Set((change.hold ?? []).map(i => (change.reverse ? base.length - 1 - i : i)));
   if (count !== base.length) {
-    // the curve's colors at even places, made a palette as composing makes one, so each blend goes the short way
+    /* the curve's colors at even places, each held as the hex it draws at the hue the curve has there, so the blend
+       between two turns the way the palette did, never the short way through hues it never had */
     const curve = { anchors: base };
-    const made = colorsToPalette(
-      Array.from({ length: count }, (_, i) => sampleHex(curve, i / (count - 1)))
-    );
-    if ("palette" in made) base = made.palette.anchors;
+    base = canonical({
+      anchors: Array.from({ length: count }, (_, i) => {
+        const at = sampleLCH(curve, i / (count - 1));
+        return hexAnchor(hexToSrgb(toHex(lchToSrgb(...at)))!, at[2]);
+      })
+    }).anchors;
   }
   const turn = change.hueShift ?? 0;
   const shift = REACH * (change.warmth ?? 0);

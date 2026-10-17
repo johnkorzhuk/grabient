@@ -85,7 +85,9 @@ export const CollectionPageSchema = v.object({
   fetchedAt: v.number(),
   items: v.array(CollectionSummarySchema),
   /** a search whose words could not be read in full for now: no cache keeps it for others */
-  unkept: v.optional(v.boolean())
+  unkept: v.optional(v.boolean()),
+  /** the words of a search only the model read: its answer to them is a guess */
+  guessed: v.optional(v.array(v.string()))
 });
 export type CollectionPage = v.InferOutput<typeof CollectionPageSchema>;
 

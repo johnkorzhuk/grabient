@@ -1,4 +1,5 @@
-import { encodePalette } from "@grabient/engine/codec.ts";
+import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
+import { sampleLCH } from "@grabient/engine/curve.ts";
 import { describe, expect, it } from "vitest";
 import { adjustPalette, readChange } from "./adjust.ts";
 import { colorsToPalette, details, hexColor, hexOf } from "./colors.ts";
@@ -48,5 +49,15 @@ describe("palettes changed by numbers", () => {
       expect(out.notes).toEqual(golden.notes);
       expect(out.palette.anchors.map(hexOf)).toEqual(golden.colors);
     }
+  });
+
+  it("resample along the palette's own way round the hues", () => {
+    // coral to teal turns through orange and green, so two of its colors blend that way, never through violet
+    const coral = decodePalette("kCf9ra1OzcQRpTXA")!;
+    const { palette } = adjustPalette(coral, { colorCount: 2 });
+    expect(palette.anchors.map(hexOf)).toEqual(["#ff6b6b", "#1a535c"]);
+    const hue = ((sampleLCH(palette, 0.5)[2] % 360) + 360) % 360;
+    expect(hue).toBeGreaterThan(60);
+    expect(hue).toBeLessThan(180);
   });
 });

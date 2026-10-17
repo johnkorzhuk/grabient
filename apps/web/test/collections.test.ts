@@ -17,6 +17,7 @@ import { SearchAnswer } from "../src/features/gallery/schema.ts";
 import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collections/api.ts";
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
 import { collectionsHolding } from "../src/server/collections/read.ts";
+import { publicCollections } from "../src/server/collections/search.ts";
 import { createCollection, moveAccountAddresses } from "../src/server/collections/write.ts";
 import { keepTranslations } from "../src/server/mcp/admin/translations.ts";
 import { suggestionsFor } from "../src/server/search/tags.ts";
@@ -333,6 +334,43 @@ describe("the public lists", () => {
     );
     expect(hits.items[0]?.title).toBe(title);
     expect(hits.items[0]?.colors.length).toBeGreaterThan(0);
+  });
+
+  it("lead with one whose tag is the words, beside the titles named for them", async () => {
+    // the first holds the words in more places, the second as one tag
+    const scattered = unique("Gulf coast");
+    const tagged = unique("Between tides");
+    await make(admin, {
+      title: scattered,
+      visibility: "public",
+      description: "Southwest Florida evenings",
+      tags: ["southwest", "florida"],
+      items: items(2)
+    });
+    await make(admin, {
+      title: tagged,
+      visibility: "public",
+      tags: ["southwest florida"],
+      items: items(2, 2)
+    });
+    const found = await bodyOf<{ items: Doc[] }>(
+      await listAnswer(get("/api/collections?q=southwest%20florida"), env)
+    );
+    expect(found.items.map(item => item.title)).toEqual([tagged, scattered]);
+  });
+
+  it("say which words only the search model read, unless a collection holds them", async () => {
+    const AI = {
+      run: async (_: string, input: { text: string[] }) => ({
+        data: input.text.map(() => Array.from({ length: 768 }, (_, i) => Math.sin(i)))
+      })
+    } as unknown as Ai;
+    const word = "zzqxv";
+    await make(admin, { title: unique(`${word} harbor`), visibility: "public", items: items(1) });
+    const asked = (query: string) =>
+      publicCollections({ ...env, AI }, { query, sort: "popular" }, { model: true, who: ada.id });
+    expect((await asked("flurbish")).guessed).toEqual(["flurbish"]);
+    expect(await asked(word)).not.toHaveProperty("guessed");
   });
 
   it("name the public collections that hold a palette, each once, with the colors its page shows", async () => {

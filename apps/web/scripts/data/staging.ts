@@ -39,6 +39,7 @@ export const OWN_COLUMNS: Columns = [
   ["likes", "user_id"],
   ["refine_sessions", "user_id"],
   ["k_likes", "user_id"],
+  ["k_account_likes", "user_id"],
   ["k_collection_votes", "user_id"],
   ["k_search_votes", "user_id"],
   ["k_sync_log", "account_id"]

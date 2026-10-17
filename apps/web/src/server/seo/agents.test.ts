@@ -34,7 +34,7 @@ const MCP: Mcp = {
 };
 
 test("the guide and the whole reference are grabient.com's, byte for byte", () => {
-  expect(MCP.tools).toHaveLength(14);
+  expect(MCP.tools).toHaveLength(13);
   expect(llmsText(ORIGIN, MCP)).toBe(golden("llms.txt"));
   expect(llmsText(`${ORIGIN}/`, MCP, true)).toBe(golden("llms-full.txt"));
 });

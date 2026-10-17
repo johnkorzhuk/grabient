@@ -24,9 +24,6 @@ import {
    twice, or saved by two tabs at once, writes one like and moves the scores once, and an unsave sent twice takes one
    like off. The callers (the account's sync, an app's save) have checked who asks and counted likeLimits first. */
 
-/** Saved never counts or pages past an account's latest thousand likes; a search reads its latest two thousand. */
-export const SAVED_PAGED = 1000;
-export const SAVED_SEARCHED = 2000;
 /** An undo puts a like back at the time it was made, which is past and no earlier than this. */
 const LIKES_BEGAN = Date.UTC(2015, 0, 1);
 const TITLE_MAX = 80;
@@ -334,10 +331,13 @@ export async function likeCounts(
   return counts;
 }
 
+/* Saved lists every like an account has made, newest first. Its count is the one the likes keep (migration 0058), one
+   row whatever the account holds, and an app reads on from the last like it was shown, so its pages read no more deep
+   in the list than at its head. */
 const SAVED = `SELECT own.palette_id AS seed, own.style, own.steps, own.angle, own.created_at,
   COALESCE(palette.likes_count, 0) AS likes_count
-  FROM k_likes own LEFT JOIN k_palettes palette ON palette.seed = own.palette_id
-  WHERE own.user_id = ? ORDER BY own.created_at DESC, own.palette_id`;
+  FROM k_likes own LEFT JOIN k_palettes palette ON palette.seed = own.palette_id`;
+const NEWEST = "ORDER BY own.created_at DESC, own.palette_id";
 
 /** An account's latest likes, newest first: each palette drawn as it was saved and dated by its like. */
 export async function savedLikes(
@@ -346,22 +346,71 @@ export async function savedLikes(
   limit: number,
   offset = 0
 ): Promise<PaletteItem[]> {
-  return itemsOf(await all<PaletteRow>(env.DB, `${SAVED} LIMIT ? OFFSET ?`, user, limit, offset));
+  return itemsOf(
+    await all<PaletteRow>(
+      env.DB,
+      `${SAVED} WHERE own.user_id = ? ${NEWEST} LIMIT ? OFFSET ?`,
+      user,
+      limit,
+      offset
+    )
+  );
 }
 
-/** How many palettes an account has saved, as Saved counts them: never past SAVED_PAGED. */
+/** How many palettes an account has saved: the count its likes keep, one row whatever it holds. */
 export async function savedCount(env: Pick<Env, "DB">, user: string): Promise<number> {
   const row = await first<{ n: number }>(
     env.DB,
-    "SELECT COUNT(*) AS n FROM (SELECT 1 FROM k_likes WHERE user_id = ? LIMIT ?)",
-    user,
-    SAVED_PAGED
+    "SELECT likes AS n FROM k_account_likes WHERE user_id = ?",
+    user
   );
   return Number(row?.n ?? 0);
 }
 
-/** A page of an account's Saved list: its latest likes, or searched, the ones of its latest two thousand that answer
-    the words, best first. */
+/** Where a page of an app's Saved list ends: the time and palette of its last like, which the next page follows. */
+export interface SavedMark {
+  at: number;
+  seed: string;
+}
+/** A mark as an app is handed it. */
+export const markText = (mark: SavedMark) => `${mark.at.toString(36)}.${mark.seed}`;
+/** A mark an app sends back; null for anything no answer gave. */
+export function readMark(text: unknown): SavedMark | null {
+  const found = typeof text === "string" ? /^([0-9a-z]{1,12})\.(k[\w-]{1,239})$/.exec(text) : null;
+  const at = found ? Number.parseInt(found[1]!, 36) : Number.NaN;
+  return found && Number.isSafeInteger(at) ? { at, seed: found[2]! } : null;
+}
+
+/** An app's page of an account's likes: at most `limit` of them after `mark`, newest first, each with the account's own
+    title for it. The likes are read from the mark on, so a page deep in the list costs what the first does. */
+export async function savedAfter(
+  env: Pick<Env, "DB">,
+  user: string,
+  limit: number,
+  mark?: SavedMark
+) {
+  return all<{
+    kseed: string;
+    style: string;
+    steps: number;
+    angle: number;
+    at: number;
+    title: string | null;
+    likes: number;
+  }>(
+    env.DB,
+    `SELECT own.palette_id AS kseed, own.style, own.steps, own.angle, own.created_at AS at, own.title,
+       COALESCE(palette.likes_count, 0) AS likes
+     FROM k_likes own LEFT JOIN k_palettes palette ON palette.seed = own.palette_id
+     WHERE own.user_id = ?${mark ? " AND own.created_at <= ? AND (own.created_at < ? OR own.palette_id > ?)" : ""}
+     ${NEWEST} LIMIT ?`,
+    user,
+    ...(mark ? [mark.at, mark.at, mark.seed] : []),
+    limit
+  );
+}
+
+/** A page of an account's Saved list: its latest likes, or searched, the ones that answer the words, best first. */
 export async function savedPage(
   env: Env,
   request: Request,
@@ -371,12 +420,33 @@ export async function savedPage(
   const { page, limit, words } = input;
   const at = (page - 1) * limit;
   if (words) {
-    const own = new Map(
-      (await savedLikes(env, user, SAVED_SEARCHED)).map(item => [item.kseed, item])
+    // a search ranks every like by its palette alone, and reads whole only the likes its page shows
+    const seeds = await all<{ seed: string }>(
+      env.DB,
+      "SELECT palette_id AS seed FROM k_likes WHERE user_id = ? ORDER BY created_at DESC, palette_id",
+      user
     );
-    const { tier, found } = await searchOwnSeeds(env, words, [...own.keys()], { request });
+    const { tier, found } = await searchOwnSeeds(
+      env,
+      words,
+      seeds.map(row => row.seed),
+      { request }
+    );
+    const shown = found.slice(at, at + limit).map(hit => hit.seed);
+    const own = new Map(
+      itemsOf(
+        shown.length
+          ? await all<PaletteRow>(
+              env.DB,
+              `${SAVED} WHERE own.user_id = ? AND own.palette_id IN (SELECT value FROM json_each(?))`,
+              user,
+              JSON.stringify(shown)
+            )
+          : []
+      ).map(item => [item.kseed, item])
+    );
     return {
-      items: found.slice(at, at + limit).flatMap(hit => own.get(hit.seed) ?? []),
+      items: shown.flatMap(seed => own.get(seed) ?? []),
       total: found.length,
       page,
       totalPages: Math.max(1, Math.ceil(found.length / limit)),
