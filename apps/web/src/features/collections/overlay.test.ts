@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe("what this tab deleted", () => {
-  test("is gone for five minutes, as long as an answer kept from before may hold it", () => {
+  test("is gone for ten minutes, as long as an answer kept from before may hold it", () => {
     vi.useFakeTimers();
     expect(paletteGone("kSyQDAzZa8zgZxS")).toBe(false);
     forgetPalette("kSyQDAzZa8zgZxS");
@@ -22,7 +22,8 @@ describe("what this tab deleted", () => {
     expect(paletteGone("kSyQDAzZa8zgZxS")).toBe(true);
     expect(collectionGone("ocean-depths")).toBe(true);
     expect(collectionGone("ocean")).toBe(false);
-    vi.advanceTimersByTime(299_000);
+    // the edge's five minutes on top of a data center's copy of up to five
+    vi.advanceTimersByTime(599_000);
     expect(collectionGone("ocean-depths")).toBe(true);
     vi.advanceTimersByTime(2_000);
     expect(paletteGone("kSyQDAzZa8zgZxS")).toBe(false);

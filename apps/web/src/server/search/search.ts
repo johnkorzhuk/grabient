@@ -12,12 +12,14 @@ import type { Style } from "@grabient/engine/view.ts";
 import { labOf, sixDigits } from "@grabient/search/colors.ts";
 import { harmonyFilter, normalizeQuery, QUERY_MAX } from "@grabient/search/text.ts";
 import { queryIntent } from "@grabient/search/words.ts";
+import { replica } from "@grabient/server/db/d1.ts";
 import { sortSearch } from "../../features/gallery/sort.ts";
 import { type ListSort, parseSort, type RisingFrame } from "../../lib/orders.ts";
 import { listWords, looksLikeLink, paletteId } from "../../lib/words.ts";
 import type { AssetsEnv } from "../assets.ts";
 import { isCrawler } from "../crawlers.ts";
 import { canonicalPaletteSeed } from "../files/resolve.ts";
+import { digest, sharedRead } from "../shared-reads.ts";
 import {
   blendOf,
   factsOf,
@@ -175,17 +177,27 @@ export function searchRequestInput(request: Request): {
   };
 }
 
-/** Candidates as cards: only what D1 shows, each once, drawn as the query asks when it names a form. */
+/** Candidates as cards: only what D1 shows, each once, drawn as the query asks when it names a form. A public search
+    (`shared`) reads them from a replica, as the snapshot they come from trails D1 already, kept five minutes by this
+    data center: a crawler asks one search in every language. An account's or an app's, which nothing keeps and which
+    may follow its own change, reads the database itself. */
 async function present(
   env: SearchEnv,
   candidates: readonly Candidate[],
   query: string,
-  tags: readonly string[]
+  tags: readonly string[],
+  shared: boolean
 ): Promise<SearchItem[]> {
-  const shown = await searchableItems(
-    env,
-    candidates.map(c => c.seed)
-  );
+  const seeds = candidates.map(c => c.seed);
+  const shown = shared
+    ? new Map(
+        (
+          await sharedRead(`search-items/${await digest(seeds.join(" "))}`, 300, async () => [
+            ...(await searchableItems({ DB: replica(env) }, seeds)).entries()
+          ])
+        ).value
+      )
+    : await searchableItems(env, seeds);
   const intent = queryIntent(query);
   const seen = new Set<string>();
   return candidates.flatMap(candidate => {
@@ -221,6 +233,9 @@ export async function searchPalettes(
   const limit = searchLimit(options.limit);
   const offset = Math.max(0, Math.min(SEARCH_ANSWER, Math.floor(options.offset || 0)));
   const end = Math.min(SEARCH_ANSWER, offset + limit);
+  /* the public search's palettes are the data center's to share; an account's or an app's search (it has a payer)
+     reads its own */
+  const shared = !options.payer;
   const none = (tier: SearchTier, more: Partial<SearchResult> = {}): SearchResult => ({
     query,
     items: [],
@@ -251,13 +266,13 @@ export async function searchPalettes(
   ): Promise<SearchResult> => {
     const most = order ? SEARCH_ANSWER : end;
     let seen = offset < end ? Math.min(READ_AT_ONCE, most + SPARE, candidates.length) : 0;
-    let items = seen ? await present(env, candidates.slice(0, seen), query, tags) : [];
+    let items = seen ? await present(env, candidates.slice(0, seen), query, tags, shared) : [];
     if (seen && items.length < most && seen < candidates.length) {
       const more = candidates.slice(
         seen,
         seen + Math.min(READ_AT_ONCE, most - items.length + SPARE)
       );
-      items = [...items, ...(await present(env, more, query, tags))];
+      items = [...items, ...(await present(env, more, query, tags, shared))];
       seen += more.length;
     }
     return {

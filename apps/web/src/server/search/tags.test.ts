@@ -70,22 +70,22 @@ test("the edge keeps the tags by what their answer reads: the words as typed, ho
 });
 
 test("a tag in the language asked says and searches Grabient's word for its phrase, where the search reads the word as the phrase", async () => {
-  const translated = searchEnv({
-    DB: {
-      prepare: (sql: string) => ({
-        bind: (locale: string) => ({
-          all: async () => ({
-            results:
-              sql.includes("kind = 'tag'") && locale === "ja"
-                ? [
-                    { key: "blue", title: "青" },
-                    { key: "retro", title: "レトロ" }
-                  ]
-                : []
-          })
-        })
+  const prepare = (sql: string) => ({
+    bind: (locale: string) => ({
+      all: async () => ({
+        results:
+          sql.includes("kind = 'tag'") && locale === "ja"
+            ? [
+                { key: "blue", title: "青" },
+                { key: "retro", title: "レトロ" }
+              ]
+            : []
       })
-    } as unknown as D1Database
+    })
+  });
+  // the words are read from a replica session, which reads as the database does
+  const translated = searchEnv({
+    DB: { prepare, withSession: () => ({ prepare }) } as unknown as D1Database
   });
   const first = async (query: string) => {
     const [tag] = await suggestionsFor(translated, new URLSearchParams(query));

@@ -22,6 +22,7 @@ import type {
   CollectionSummary
 } from "../../features/collections/types.ts";
 import type { RisingFrame } from "../../lib/orders.ts";
+import { digest, sharedRead } from "../shared-reads.ts";
 
 /* Reading collections: one public collection by its address, a page of a list, the collections that hold a palette,
    and the rows the sitemap, the share cards and the admin's checklist read. Every read is bounded: a page of rows, a
@@ -188,10 +189,31 @@ export const previewOf = (items: readonly CollectionItem[]): CollectionPreview[]
       position
     }));
 
+/** Each collection's preview palettes, by its id: read, or for a public list (`shared`) as this data center keeps them
+    for every language and isolate, a minute where the list is Rising's and five otherwise. They are kept by each
+    collection's last change too, which every write to its palettes moves, so an edited collection's strip is read
+    again at once and only likes reorder a kept one. */
+async function previews(
+  env: Reader,
+  rows: readonly CollectionRow[],
+  first: boolean,
+  order: PaletteOrder,
+  shared: boolean
+): Promise<Map<string, CollectionPreview[]>> {
+  if (!shared || !rows.length) return readPreviews(env, rows, first, order);
+  const ids = rows.map(row => `${row.id}:${row.updated_at}`).join(",");
+  const kept = await sharedRead(
+    `strips/${first ? "first" : order}/${await digest(ids)}`,
+    order === "rising" && !first ? 60 : 300,
+    async () => [...(await readPreviews(env, rows, first, order)).entries()]
+  );
+  return new Map(kept.value);
+}
+
 /** Each collection's preview palettes, by its id. `first` reads the first few as the collection orders them, by its
     order's index alone; otherwise the ones its page shows first in `order`, the order the list opens it in, each with
     its likes, its rising score and when it was made. */
-async function previews(
+async function readPreviews(
   env: Reader,
   rows: readonly CollectionRow[],
   first: boolean,
@@ -275,15 +297,23 @@ export interface PageOf {
   guessed?: string[];
 }
 
-/** A page of summaries. */
+/** A page of summaries. A public list's strips are `shared` by the data center; an owner's, which can be private, are
+    read. */
 export async function pageOf(
   env: Reader,
   rows: readonly CollectionRow[],
   head: PageOf,
-  strip: Previews = "page"
+  strip: Previews = "page",
+  shared = false
 ): Promise<CollectionPage> {
   const strips = strip
-    ? await previews(env, rows, strip === "first", head.sort === "rising" ? "rising" : "popular")
+    ? await previews(
+        env,
+        rows,
+        strip === "first",
+        head.sort === "rising" ? "rising" : "popular",
+        shared
+      )
     : new Map();
   return {
     ...head,

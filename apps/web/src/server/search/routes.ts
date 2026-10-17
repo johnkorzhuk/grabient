@@ -4,6 +4,7 @@
    The tags' answer is tags.ts's, at /api/search-suggestions and at its first address, /api/popular-searches. None
    reads the session, and the pipeline adds the CORS of those any site may read. An account's own search is
    account.ts. */
+import { replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { sortSearch } from "../../features/gallery/sort.ts";
 import { NO_STORE, PAGE } from "../../lib/cache.ts";
@@ -64,9 +65,10 @@ export async function searchJsonResponse(
   const result = await searchPalettes(env, query, { request, ctx, limit });
   // a search by a palette names the public collections that hold it, each title in the language asked
   const like = result.tier === "similar" ? canonicalPaletteSeed(result.query) : null;
+  const db = { DB: replica(env) };
   const heldBy = like
-    ? await collectionsHolding(env, like)
-        .then(held => localizeHeld(env, askedLocale(new URL(request.url)), held))
+    ? await collectionsHolding(db, like)
+        .then(held => localizeHeld(db, askedLocale(new URL(request.url)), held))
         .catch(() => [])
     : [];
   const body = {

@@ -134,9 +134,12 @@ export const LIMITS = {
   // A public list or search the edge cache did not hold: each reads the database.
   listMiss: { requests: 60, window: 60, local: true },
   // An old link no map holds and the edge cache did not hold, fitted on the Worker: a fit is CPU alone, tens of
-  // milliseconds, per address and for the site's day.
+  // milliseconds, per address and for the site's day. The day's is sized for the move from the old app: crawlers asked
+  // about 150,000 such links a day after it (17 Oct 2026) and spent 50,000 in nine hours, after which an old link
+  // answered the page a browser fits, never a 301 a search engine follows. At about 60 ms a fit the whole allowance is
+  // about 18M CPU-ms a day, and 90M at the fit's budget.
   oldLinkFit: { requests: 60, window: 60, local: true },
-  oldLinkFitDaily: { requests: 50000, window: 86400, site: true, lease: 20 },
+  oldLinkFitDaily: { requests: 300000, window: 86400, site: true, lease: 20 },
   // Like counts a page reads again once its own are old: up to 96 rows each, which no cache keeps.
   likeCounts: { requests: 60, window: 60, local: true },
   // An account's own Saved list and sync, a page load or a window focus each.

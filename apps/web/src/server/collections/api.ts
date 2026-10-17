@@ -68,7 +68,7 @@ export async function listAnswer(
     ctx
   });
   const origin = publicOrigin(env, request);
-  const items = await localizeCollections(env, askedLocale(url), page.items);
+  const items = await localizeCollections({ DB: replica(env) }, askedLocale(url), page.items);
   return Response.json(
     { ...page, items: items.map(item => withUrl(origin, item)) },
     {
@@ -140,7 +140,7 @@ export async function collectionAnswer(request: Request, env: Env): Promise<Resp
       url.searchParams.get("q") ?? "",
       Number(url.searchParams.get("limit") ?? 12)
     );
-    const items = await localizeCollections(env, askedLocale(url), hits);
+    const items = await localizeCollections({ DB: replica(env) }, askedLocale(url), hits);
     return publicJson({ items });
   }
   const at = addressed(url.pathname, "/api/collections/");
@@ -151,11 +151,12 @@ export async function collectionAnswer(request: Request, env: Env): Promise<Resp
     return saveAnswer(request, env, at.slug);
   }
   if (request.method === "GET") {
-    const found = await collectionBySlug({ DB: replica(env) }, at.slug);
+    const db = { DB: replica(env) };
+    const found = await collectionBySlug(db, at.slug);
     if (!found) return json({ error: "Not found" }, 404);
     // the colors are read from the tags as written, which a translation keeps in their order
     const [[doc], colors] = await Promise.all([
-      localizeCollections(env, askedLocale(url), [found]),
+      localizeCollections(db, askedLocale(url), [found]),
       tagColors(env, found.tags)
     ]);
     return publicJson(withUrl(publicOrigin(env, request), { ...doc!, tagColors: colors }));

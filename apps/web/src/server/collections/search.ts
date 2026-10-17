@@ -10,6 +10,7 @@ import type {
 import { DEFAULT_FRAME, type RisingFrame } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
 import { RISE_COLUMN } from "../gallery/scores.ts";
+import { forgetShared, sharedRead } from "../shared-reads.ts";
 import {
   folded,
   holds,
@@ -111,8 +112,11 @@ async function publicCount(env: Reader, again = false): Promise<number> {
   return n;
 }
 
-/* Every public collection's title and first palettes, kept ten minutes in an isolate, in the popular order: the tags
-   at rest are the popular collections, and what is typed in a field is matched against them. */
+/* Every public collection's title and first palettes, in the popular order: the tags at rest are the popular
+   collections, and what is typed in a field is matched against them. Kept ten minutes from when their read began, by
+   this data center (shared-reads.ts), whose isolates would each read their thousands of rows, and by the isolate. Read
+   from a replica, but for the first read after a write in this isolate, which reads the database itself so the writer
+   sees its own change. */
 interface TitleRow {
   slug: string;
   title: string;
@@ -120,23 +124,37 @@ interface TitleRow {
 }
 const TITLES_TTL = 600_000;
 const TITLES_MAX = 2000;
+const TITLES_SHARED = "collection-titles";
 let titles: { at: number; rows: TitleRow[]; epoch: number } | null = null;
-async function publicTitles(env: Reader): Promise<TitleRow[]> {
+/** When this isolate last wrote: a data center's copy from before it is read again. */
+let wroteAt = 0;
+async function publicTitles(env: { DB: D1Database }): Promise<TitleRow[]> {
   if (titles && titles.epoch === epoch && Date.now() - titles.at < TITLES_TTL) return titles.rows;
   const asked = epoch;
-  const rows = await all<TitleRow>(
-    env.DB,
-    `SELECT c.slug, c.title, ${LEAD_SEEDS} AS seeds FROM k_collections c WHERE c.visibility = 'public'
-     ORDER BY ${POPULAR} LIMIT ?`,
-    TITLES_MAX
+  const wrote = wroteAt > 0 && (!titles || titles.at < wroteAt);
+  const db = wrote ? env.DB : replica(env);
+  const read = await sharedRead(
+    TITLES_SHARED,
+    TITLES_TTL / 1000,
+    () =>
+      all<TitleRow>(
+        db,
+        `SELECT c.slug, c.title, ${LEAD_SEEDS} AS seeds FROM k_collections c WHERE c.visibility = 'public'
+         ORDER BY ${POPULAR} LIMIT ?`,
+        TITLES_MAX
+      ),
+    wroteAt
   );
-  if (asked === epoch) titles = { at: Date.now(), rows, epoch: asked };
-  return rows;
+  if (asked === epoch) titles = { at: read.at, rows: read.value, epoch: asked };
+  return read.value;
 }
-/** A write in this isolate: the lists count again and the tags read the titles again. Called after the write, so a
-    read while the write was on its way never keeps what it saw. */
+/** A write in this isolate: the lists count again, and the tags read the titles again, past this data center's copy.
+    Called after the write, so a read while the write was on its way never keeps what it saw. */
 export const forgetTitles = () => {
   epoch++;
+  wroteAt = Date.now();
+  // the data center's copy goes too, as far as it can: this isolate reads past it by wroteAt either way
+  void forgetShared(TITLES_SHARED);
 };
 
 /** What the words mean is read beside the letters: when reading it fails, the letters still answer. */
@@ -226,6 +244,10 @@ export async function publicCollections(
   const sort: CollectionSort = input.sort ?? "newest";
   const risen = frameOf(input.frame);
   const frame = sort === "rising" && risen !== DEFAULT_FRAME ? risen : undefined;
+  /* a list page's strips are the data center's to share; an app's first palettes (search_collections), which may follow
+     its own change, are read */
+  const strip = options.previews ?? "page";
+  const shared = strip === "page";
   const page = bounded(input.page, 1, 1, 10_000);
   const limit = bounded(input.limit, COLLECTION_LIMIT, 1, 96);
   const head = { query, sort, ...(frame ? { frame } : {}), page, limit };
@@ -247,7 +269,7 @@ export async function publicCollections(
     ]);
     /* a page holding more than the kept count says: some were made public since, so they are counted again */
     const counted = offset + rows.length > total ? await publicCount(db, true) : total;
-    return pageOf(db, rows, { ...head, total: counted }, options.previews ?? "page");
+    return pageOf(db, rows, { ...head, total: counted }, strip, shared);
   }
   const tokens = searchTokens(query);
   /* instr, never LIKE: D1 refuses a LIKE pattern over 50 bytes, which one word of seventeen Japanese characters is. A
@@ -312,7 +334,8 @@ export async function publicCollections(
       // the model's answer is a guess where no collection holds the words themselves
       ...(read?.guessed?.length && !lettered.length ? { guessed: read.guessed } : {})
     },
-    options.previews ?? "page"
+    strip,
+    shared
   );
 }
 
@@ -443,7 +466,7 @@ export async function suggestCollections(
 ): Promise<CollectionHit[]> {
   const query = listWords(raw);
   const n = Math.max(1, Math.min(24, Math.floor(limit) || 12));
-  const rows = await publicTitles({ DB: replica(env) });
+  const rows = await publicTitles(env);
   if (!query) {
     const searched = await beside(() => searchedCollections(env));
     if (!searched?.length) return rows.slice(0, n).map(hitOf);

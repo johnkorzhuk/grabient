@@ -37,6 +37,7 @@ import {
 import { countLegacy, legacyLanding } from "./seo/legacy.ts";
 import { fittedRedirect, oldFit } from "./seo/legacy-fit.ts";
 import { indexed, NOINDEX } from "./seo/site.ts";
+import { knowSite } from "./shared-reads.ts";
 
 /* The Worker's pipeline around the app, in this order:
    1. grabient.com is answered only by the deploy made for it.
@@ -98,6 +99,7 @@ export async function handle(
     );
     return counted(env, path, refused);
   }
+  knowSite(env);
   const { rest, tracking } = splitTracking(url.search);
   if (tracking) {
     url.search = rest;

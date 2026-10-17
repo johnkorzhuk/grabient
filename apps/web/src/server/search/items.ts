@@ -1,7 +1,6 @@
 /* The palettes a search may show. D1 is the authority: the snapshot names candidates, and only what D1 holds now is
    shown, each as a list shows it with how fast it rises in each frame, which a search sorts by. */
-import { all } from "@grabient/server/db/d1.ts";
-import type { Env } from "@grabient/server/env.ts";
+import { all, type Db } from "@grabient/server/db/d1.ts";
 import type { SearchItem } from "../../features/gallery/schema.ts";
 import { canonicalPaletteSeed } from "../files/resolve.ts";
 import { itemOf, type PaletteRow, ROW } from "../gallery/list.ts";
@@ -31,7 +30,7 @@ const marks = (n: number) => Array.from({ length: n }, () => "?").join(",");
 /** What D1 shows of these palettes, by canonical seed: a gallery palette with its own view and likes, else a palette
     of a public collection drawn as its oldest public membership saved it. Anything else is no longer on the site. */
 export async function searchableItems(
-  env: Pick<Env, "DB">,
+  env: { DB: Db },
   rawSeeds: readonly string[]
 ): Promise<Map<string, Item>> {
   const seeds = [...new Set(rawSeeds.slice(0, 96).flatMap(raw => canonicalPaletteSeed(raw) ?? []))];

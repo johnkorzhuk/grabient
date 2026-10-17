@@ -1,9 +1,10 @@
 import { createSignal } from "solid-js";
 
-/* What this tab deleted, kept as long as a public answer the edge cached before the deletion may still hold it: a list,
-   a collection or a tag read within five minutes of it leaves the deleted out. Written only in the browser. */
+/* What this tab deleted, kept as long as a public answer may still hold it: the edge keeps a page five minutes, built
+   from what a data center kept up to five minutes before (server/shared-reads.ts), so a list, a collection or a tag
+   read within ten minutes of the deletion leaves the deleted out. Written only in the browser. */
 
-const KEPT_MS = 300_000;
+const KEPT_MS = 600_000;
 type Deleted = ReadonlyMap<string, number>;
 const [palettes, setPalettes] = createSignal<Deleted>(new Map());
 const [collections, setCollections] = createSignal<Deleted>(new Map());

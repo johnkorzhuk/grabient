@@ -83,7 +83,7 @@ const readCollection = createIsomorphicFn()
       };
     // the colors are read from the tags as written, which a translation keeps in their order
     const [{ doc: shown, languages }, colors] = await Promise.all([
-      localizeDocument(env, asked(), doc),
+      localizeDocument(db, asked(), doc),
       tagColors(env, doc.tags)
     ]);
     return {
@@ -140,7 +140,10 @@ const readList = createIsomorphicFn()
       model: !!key.query,
       request: getRequest()
     });
-    return { ...page, items: await localizeCollections(env, asked(), page.items) };
+    return {
+      ...page,
+      items: await localizeCollections({ DB: replica(env) }, asked(), page.items)
+    };
   })
   .client((key: ListKey, signal?: AbortSignal) => {
     const params = new URLSearchParams({
@@ -176,7 +179,7 @@ export const collectionsQuery = (key: ListKey) =>
 const readTags = createIsomorphicFn()
   .server(async (query: string, _signal?: AbortSignal): Promise<CollectionHit[]> => {
     const hits = await suggestCollections(env, query, query ? 12 : 24);
-    return localizeCollections(env, asked(), hits);
+    return localizeCollections({ DB: replica(env) }, asked(), hits);
   })
   .client((query: string, signal?: AbortSignal): Promise<CollectionHit[] | null> => {
     const params = new URLSearchParams({ q: query, limit: String(query ? 12 : 24) });

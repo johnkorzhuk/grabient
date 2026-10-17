@@ -7,7 +7,7 @@ import {
   messageKey
 } from "@grabient/i18n";
 import type { LexiconFile } from "@grabient/search/lexicon.ts";
-import { all, batch, type Statement } from "@grabient/server/db/d1.ts";
+import { all, batch, type Db, type Statement } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { searchAsset } from "../../search/files.ts";
 
@@ -17,7 +17,8 @@ import { searchAsset } from "../../search/files.ts";
    collection's translation keeps the fingerprint of the English it was made from, so English changed since shows as
    English until it is translated again. */
 
-type DB = Pick<Env, "DB">;
+/* the database, or a public page's replica session: a page's words may trail a write by a moment */
+type DB = { DB: Db };
 export type TranslatedLocale = Exclude<Locale, "en">;
 export const TRANSLATED_LOCALES = LOCALES.filter(
   (l): l is TranslatedLocale => l !== DEFAULT_LOCALE

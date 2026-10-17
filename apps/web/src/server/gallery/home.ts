@@ -1,4 +1,5 @@
 import { waitUntil } from "cloudflare:workers";
+import { replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
 import { COLLECTION_LIMIT } from "../../features/collections/params.ts";
@@ -62,7 +63,7 @@ export async function homeCollections(
     { sort: words ? "popular" : "hot", query: words, page, limit: COLLECTION_LIMIT },
     { model: !!words, request, ctx: { waitUntil } }
   );
-  return { ...found, items: await localizeCollections(env, lang, found.items) };
+  return { ...found, items: await localizeCollections({ DB: replica(env) }, lang, found.items) };
 }
 
 /** The Rising frames an admin has left on: the week's always, three months and a year by their flags. */

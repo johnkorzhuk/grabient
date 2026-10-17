@@ -6,6 +6,7 @@ import { DOMINANT_PALETTES, dominantColors } from "@grabient/engine/dominant.ts"
 import type { Snapshot } from "@grabient/search/snapshot.ts";
 import { queryTokens } from "@grabient/search/text.ts";
 import { FORM_WORDS } from "@grabient/search/words.ts";
+import { replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { listWords, paletteId } from "../../lib/words.ts";
 import { suggestCollections } from "../collections/search.ts";
@@ -324,13 +325,15 @@ async function inLanguage(
   const slugOf = (tag: HomeTag) =>
     !tag.query && /^\/[^?/@]+$/.test(tag.href) ? decodeURIComponent(tag.href.slice(1)) : null;
   const phrases = tags.flatMap(tag => (tag.query ? [tag.query] : []));
+  // a page's words, which may trail a write by a moment, from the replica
+  const db = { DB: replica(env) };
   const [titles, translated, vocabulary] = await Promise.all([
     collectionWords(
-      env,
+      db,
       lang,
       tags.map(slugOf).filter((slug): slug is string => !!slug)
     ),
-    tagTranslations(env, lang, phrases),
+    tagTranslations(db, lang, phrases),
     phrases.length ? loadVocabulary(env) : null
   ]);
   return tags.map(tag => {
