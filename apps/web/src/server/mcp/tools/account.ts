@@ -138,9 +138,19 @@ const summaryOf = (c: ToolContext, s: Omit<CollectionSummary, "preview">) => ({
   visibility: s.visibility,
   updatedAt: day(s.updatedAt)
 });
-/** A write's seeds under `key`, left out when there are none. */
-const seedsAs = (key: string, seeds: readonly string[]) =>
-  seeds.length ? { [key]: [...new Set(seeds)] } : {};
+/** A batch's answer: its palettes in the order asked, one that could not be made standing in its place as the reason.
+    A batch none of whose palettes could be made is refused with every reason. */
+const eachMade = (
+  made: readonly unknown[],
+  refused: readonly string[],
+  more: Record<string, unknown> = {}
+) =>
+  refused.length && refused.length === made.length
+    ? refuse(refused.join(" "))
+    : answer({ ...more, palettes: made });
+/** A write's palettes under `key`, each once, left out when there are none. */
+const listedAs = (key: string, named: readonly string[]) =>
+  named.length ? { [key]: [...new Set(named)] } : {};
 /** An ordinary account's collections are private; an admin's own may be public, and a change then shows on the site. */
 const ownMayBePublic = (grant: Grant | null) => grant?.role === "admin";
 /** A collection's slug as a call names it: the slug, or its address on any origin and in any of the site's languages. */
@@ -444,15 +454,20 @@ export const accountTools: readonly Tool[] = [
     ),
     async run(args, c) {
       const made: unknown[] = [];
+      const refused: string[] = [];
       for (const [i, one] of (args.palettes as (ViewGiven & { colors: string[] })[]).entries()) {
         const read = colorsToPalette(one.colors);
-        if ("error" in read) return refuse(`palette ${i + 1}: ${read.error}`);
+        if ("error" in read) {
+          refused.push(`palette ${i + 1}: ${read.error}`);
+          made.push({ error: refused.at(-1) });
+          continue;
+        }
         const s = shown(encodePalette(read.palette), read.palette, one);
         made.push(
           madeCard(c.origin, s, titleOf(s), [...read.notes, ...raised(s, one.steps)], {}, c.view)
         );
       }
-      return answer({ palettes: made });
+      return eachMade(made, refused);
     }
   },
   {
@@ -478,9 +493,14 @@ export const accountTools: readonly Tool[] = [
       const held = views.get(given.seed);
       const from = drawn(given, held);
       const made: unknown[] = [];
+      const refused: string[] = [];
       for (const [i, variant] of given.variants.entries()) {
         const change = readChange(variant, from.palette);
-        if ("error" in change) return refuse(`variant ${i + 1}: ${change.error}`);
+        if ("error" in change) {
+          refused.push(`variant ${i + 1}: ${change.error}`);
+          made.push({ error: refused.at(-1) });
+          continue;
+        }
         const { palette, notes } = adjustPalette(from.palette, change);
         const resampled = palette.anchors.length !== from.palette.anchors.length;
         // a variant comes in the view its source is shown in; resampled to another number of colors, in its own steps
@@ -494,7 +514,7 @@ export const accountTools: readonly Tool[] = [
         made.push(madeCard(c.origin, s, titleOf(s), lines, {}, c.view));
       }
       // the palette asked about goes by its title on Grabient, as every list and tile names it
-      return answer({ from: card(c.origin, from, titleOf(from, written)), palettes: made });
+      return eachMade(made, refused, { from: card(c.origin, from, titleOf(from, written)) });
     }
   },
   {
@@ -854,19 +874,14 @@ export const accountTools: readonly Tool[] = [
         if (!(await updateCollection(c.env, record.id, input, { ...moved, owner })))
           return refuse("No collection of yours has this address.");
       }
-      /* the answer is what the call changed, never the whole collection: an item is a palette in a view, and one the
-         list now holds in another view was redrawn, neither added nor removed */
+      /* the answer is what the call changed, never the whole collection: each palette in a view by its address, which
+         `remove` reads back as that view alone, so two views of one palette are two of them */
       const had = new Set(before.map(itemKey));
       const holds = new Set(input.items.map(itemKey));
-      const here = (from: readonly CollectionItemInput[] = []) =>
-        from
-          .filter(item => had.has(itemKey(item)) && holds.has(itemKey(item)))
-          .map(item => item.seed);
-      const fresh = input.items.filter(item => !had.has(itemKey(item)));
-      const gone = before.filter(item => !holds.has(itemKey(item)));
-      const redrawn = fresh
-        .filter(item => gone.some(old => old.seed === item.seed))
-        .map(item => item.seed);
+      const addresses = (items: readonly CollectionItemInput[]) =>
+        items.map(item => addressOf(c.origin, drawn(item)));
+      const here = (given: readonly CollectionItemInput[] = []) =>
+        addresses(given.filter(item => had.has(itemKey(item)) && holds.has(itemKey(item))));
       return answer({
         slug: at,
         url: place(c, at),
@@ -875,18 +890,11 @@ export const accountTools: readonly Tool[] = [
         palettes: input.items.length,
         ...(record && at !== record.slug ? { movedFrom: record.slug } : {}),
         ...(args.tags === undefined ? {} : { tags: input.tags }),
-        ...seedsAs(
-          "added",
-          fresh.map(item => item.seed).filter(seed => !redrawn.includes(seed))
-        ),
-        ...seedsAs("alreadyIn", here(added)),
-        ...seedsAs("kept", here(listed)),
-        ...seedsAs("redrawn", redrawn),
-        ...seedsAs(
-          "removed",
-          gone.map(item => item.seed).filter(seed => !redrawn.includes(seed))
-        ),
-        ...seedsAs(
+        ...listedAs("added", addresses(input.items.filter(item => !had.has(itemKey(item))))),
+        ...listedAs("alreadyIn", here(added)),
+        ...listedAs("kept", here(listed)),
+        ...listedAs("removed", addresses(before.filter(item => !holds.has(itemKey(item))))),
+        ...listedAs(
           "notIn",
           notIn.map(({ named }) => named)
         )

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
-import { encodePalette } from "@grabient/engine/codec.ts";
+import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { randomPalette } from "@grabient/engine/random.ts";
 import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 import { all, run } from "@grabient/server/db/d1.ts";
@@ -17,6 +17,7 @@ import { collectionRecord } from "../src/server/collections/read.ts";
 import { recordAction } from "../src/server/collections/record.ts";
 import { createCollection } from "../src/server/collections/write.ts";
 import { applyQueue } from "../src/server/mcp/admin/queue.ts";
+import { addressOf, shown, type ViewGiven } from "../src/server/mcp/cards.ts";
 import { directoryProof } from "../src/server/mcp/directories.ts";
 import discoverGolden from "../src/server/mcp/fixtures/discover-modern-admin.json" with {
   type: "json"
@@ -54,6 +55,9 @@ const SEED = "kSWUkczDNDewdRK";
 const OTHER = "kQf5EOWSTcQ";
 /** A palette no other test has touched: the tests of a file share its database. */
 const fresh = () => encodePalette(randomPalette());
+/** A palette's address in a view, as the tools' answers name one: the view Grabient draws it in where none is given. */
+const addressAt = (seed: string, view: ViewGiven = {}) =>
+  addressOf(ORIGIN, shown(seed, decodePalette(seed)!, view));
 const MODERN = "2026-07-28";
 const DAY = 86_400_000;
 
@@ -521,6 +525,60 @@ describe("the tools", () => {
     ).toBe(
       "variant 1: lighten is -1 to 1, the share of the way to white, or below 0 to black: 70 was sent, and 70% is 0.7."
     );
+    // a variant or a palette that cannot be made stands in its place with the reason, and the rest are made
+    const some = (
+      await call(env, token, "adjust_palette", {
+        seed: card.seed,
+        variants: [{ reverse: true }, { lighten: 2 }, { lighten: 0.1 }]
+      })
+    ).value;
+    expect(some.palettes).toHaveLength(3);
+    expect(some.palettes[0].colors).toEqual(["#4cc9f0", "#0052ff", "#050b2e"]);
+    expect(some.palettes[1]).toEqual({
+      error:
+        "variant 2: lighten is -1 to 1, the share of the way to white, or below 0 to black: 2 was sent, and 2% is 0.02."
+    });
+    expect(some.palettes[2]).toHaveProperty("css");
+    const mixed = (
+      await call(env, token, "compose_palette", {
+        palettes: [{ colors: ["#000", "nope"] }, { colors: ["#000", "#fff"] }]
+      })
+    ).value;
+    expect(mixed.palettes[0]).toEqual({
+      error: 'palette 1: Color 2 is "nope", and a color is taken as hex: #rrggbb or #rgb.'
+    });
+    expect(mixed.palettes[1].colors).toEqual(["#000000", "#ffffff"]);
+    // a call none of whose can be made is refused with every reason
+    expect(
+      (
+        await call(env, token, "adjust_palette", {
+          seed: card.seed,
+          variants: [{ lighten: 2 }, { warmth: 5 }]
+        })
+      ).error
+    ).toMatch(/^variant 1: lighten is -1 to 1.* variant 2: warmth is -1 to 1/);
+  });
+
+  it("name what a collection change put in or took out by address, each view of a palette apart", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const [a, b] = [fresh(), fresh()];
+    const radial = addressAt(a, { style: "radialSwatches" });
+    const made = (
+      await call(env, token, "save_collection", {
+        title: unique("Views"),
+        palettes: [{ seed: a }, { seed: a, style: "radialSwatches" }, { seed: b }]
+      })
+    ).value;
+    expect(made).toMatchObject({ palettes: 3, added: [addressAt(a), radial, addressAt(b)] });
+    expect(
+      (await call(env, token, "save_collection", { slug: made.slug, remove: [radial] })).value
+    ).toMatchObject({ palettes: 2, removed: [radial] });
+    expect(
+      (await call(env, token, "get_collection", { slug: made.slug })).value.palettes.map(
+        (p: { url: string }) => p.url
+      )
+    ).toEqual([addressAt(a), addressAt(b)]);
   });
 
   it("name the palette a change starts from as its lists do: its written title while drawn as saved", async () => {
@@ -952,7 +1010,7 @@ describe("the tools", () => {
       title: "Warm",
       visibility: "private",
       palettes: 2,
-      added: [a, b]
+      added: [addressAt(a), addressAt(b)]
     });
     // an app's change counts against the account's day and the apps' own, never the site's pages'
     expect(watched.asked).toEqual(
@@ -975,9 +1033,9 @@ describe("the tools", () => {
       slug: `@${handle}/warmer`,
       movedFrom: made.slug,
       palettes: 2,
-      added: [c],
-      alreadyIn: [b],
-      removed: [a]
+      added: [addressAt(c)],
+      alreadyIn: [addressAt(b)],
+      removed: [addressAt(a)]
     });
     const redrawn = (
       await call(env, token, "save_collection", {
@@ -986,7 +1044,13 @@ describe("the tools", () => {
         tags: ["Warm", "dusk"]
       })
     ).value;
-    expect(redrawn).toMatchObject({ tags: ["warm", "dusk"], kept: [c], redrawn: [b] });
+    // a palette drawn another way is one view taken out and another put in
+    expect(redrawn).toMatchObject({
+      tags: ["warm", "dusk"],
+      kept: [addressAt(c)],
+      added: [addressAt(b, { style: "linearSwatches" })],
+      removed: [addressAt(b)]
+    });
     // a seed takes a palette out in every view it has here, an address in the one view it names
     expect(
       (
@@ -995,13 +1059,13 @@ describe("the tools", () => {
           add: [{ seed: b, style: "radialSwatches" }]
         })
       ).value
-    ).toMatchObject({ palettes: 3, added: [b] });
+    ).toMatchObject({ palettes: 3, added: [addressAt(b, { style: "radialSwatches" })] });
     const views = (await call(env, token, "get_collection", { slug: changed.slug })).value
       .palettes as { seed: string; style: string; url: string }[];
     const radial = views.find(p => p.seed === b && p.style === "radialSwatches")!.url;
     expect(
       (await call(env, token, "save_collection", { slug: changed.slug, remove: [radial, a] })).value
-    ).toMatchObject({ palettes: 2, removed: [b], notIn: [a] });
+    ).toMatchObject({ palettes: 2, removed: [radial], notIn: [a] });
     expect(
       (await call(env, token, "get_collection", { slug: changed.slug })).value.palettes.map(
         (p: { seed: string; style: string }) => [p.seed, p.style]
