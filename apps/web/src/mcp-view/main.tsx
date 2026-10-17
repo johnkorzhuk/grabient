@@ -16,6 +16,7 @@ import {
   isLocale,
   type Locale,
   locale,
+  msg,
   negotiateLocale,
   setLocaleSource,
   t
@@ -26,11 +27,12 @@ import { render } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import { createBridge, object, type Params, Refused } from "./bridge.ts";
 import { base64Of, pngBase64 } from "./copies.ts";
-import { type DownloadFormat, type Mode, PaletteView } from "./PaletteView.tsx";
+import { type AddAnswer, type DownloadFormat, type Mode, PaletteView } from "./PaletteView.tsx";
 import { APPS_PROTOCOL, MESSAGES_ID } from "./page.ts";
 import {
   chosenWords,
   fileUrl,
+  nameFromArguments,
   nameOf,
   paletteUrl,
   sheetFromResult,
@@ -81,6 +83,8 @@ const written =
   document.querySelector<HTMLMetaElement>('meta[name="grabient-origin"]')?.content ?? "";
 const [origin, setOrigin] = createSignal(/^https?:\/\/[^/\s]+$/.test(written) ? written : "");
 const [tiles, setTiles] = createSignal<Tile[] | null>(null);
+/* the set's name, from the call's arguments at once, then from the answer */
+const [name, setName] = createSignal<string | null>(null);
 const [mode, setMode] = createSignal<Mode>("inline");
 const [modes, setModes] = createSignal<readonly string[]>([]);
 const [capabilities, setCapabilities] = createSignal<Params>({});
@@ -133,8 +137,10 @@ bridge.on("ui/notifications/tool-input", params => {
   if (confirmed) return;
   const asked = tilesFromArguments(params.arguments);
   /* arguments the view will not paint leave the answer to wait for */
-  if (asked) show(asked);
-  else wait();
+  if (asked) {
+    setName(nameFromArguments(params.arguments));
+    show(asked);
+  } else wait();
 });
 bridge.on("ui/notifications/tool-result", params => {
   const sheet = sheetFromResult(params);
@@ -144,6 +150,7 @@ bridge.on("ui/notifications/tool-result", params => {
     return;
   }
   confirmed = true;
+  setName(sheet.name ?? null);
   show(sheet.tiles);
   if (sheet.origin) setOrigin(sheet.origin);
   setSelected(at => Math.min(at, sheet.tiles.length - 1));
@@ -220,6 +227,34 @@ async function download(tile: Tile, format: DownloadFormat) {
   }
 }
 
+/* What Add to collection says in the chat as the person: the set under its name, then each palette's address in the
+   view it is drawn in now, so the model saves them as they stand. In the reader's language, as their own words are. */
+const SAVE_AS = msg(
+  "{count, plural, one {Save this palette to a new collection named “{name}”:} other {Save these # palettes to a new collection named “{name}”:}}"
+);
+/** Add to collection: asks the app's chat, as the person, for the palettes as drawn now to be saved as a new collection
+    under the set's name; the model makes it and answers with its address. A sheet in full screen goes back inline, so
+    the answer is seen. An app that takes no messages loses the press. */
+async function addToCollection(drawn: readonly Tile[]): Promise<AddAnswer> {
+  const set = name();
+  if (!set || !origin()) return "failed";
+  const text = [
+    t(SAVE_AS, { count: drawn.length, name: set }),
+    ...drawn.map(tile => paletteUrl(origin(), tile))
+  ].join("\n");
+  try {
+    const answer = await bridge.request("ui/message", {
+      role: "user",
+      content: [{ type: "text", text }]
+    });
+    if (answer.isError) return "failed";
+  } catch (error) {
+    return error instanceof Refused && error.code === -32601 ? "unsupported" : "failed";
+  }
+  if (mode() === "fullscreen") void changeMode("inline");
+  return "sent";
+}
+
 /* how long a choice rests before it is told: a drag of steps or angle is one choice, the value it stops at */
 const REST_MS = 400;
 let takesContext = true;
@@ -283,6 +318,8 @@ render(
         onMode={(next, index) => void changeMode(next, index)}
         onOpen={openLink}
         onDownload={(tile, format) => void download(tile, format)}
+        name={name()}
+        onAdd={origin() ? addToCollection : undefined}
       />
     </PageRoot>
   ),

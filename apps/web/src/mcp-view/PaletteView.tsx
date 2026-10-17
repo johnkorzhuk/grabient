@@ -79,7 +79,13 @@ export interface PaletteViewProps {
   /** opens an address through the app: true when it took the press, so the link does not open itself */
   onOpen?: (url: string) => boolean;
   onDownload?: (tile: Tile, format: DownloadFormat) => void;
+  /** the set's name, which its model gave it: a collection saved from it takes it */
+  name?: string | null;
+  /** Add to collection: asks the app's chat, as the person, to save the palettes as drawn now under the set's name */
+  onAdd?: (tiles: Tile[]) => Promise<AddAnswer>;
 }
+/** What came of Add to collection: the message went to the chat, the app said no, or it takes no messages. */
+export type AddAnswer = "sent" | "failed" | "unsupported";
 
 const COPY: readonly Format[] = ["url", "css", "svg", "png"];
 const DOWNLOAD: readonly Format[] = ["css", "svg", "png"];
@@ -135,6 +141,38 @@ export function PaletteView(props: PaletteViewProps) {
     if (props.onOpen?.(url)) e.preventDefault();
   };
   const tiles = () => props.tiles ?? [];
+  /** The view a palette can take of another's: the same style and angle, and steps never under its own keyframes. */
+  const viewFor = (tile: Tile, view: TileView): TileView => ({
+    style: view.style,
+    steps: Math.max(view.steps, 3, decodePalette(tile.seed)?.anchors.length ?? 2),
+    angle: view.angle
+  });
+  /** Apply to all palettes: every palette drawn in the chosen one's view, which tells the app's model of it again. */
+  const applyToAll = () => {
+    const from = tileAt(chosen());
+    putAway(false, false);
+    setViews(Object.fromEntries(tiles().map(item => [item.tile, viewFor(item, from)])));
+    props.onChoose?.(tileAt(chosen()));
+  };
+  /** Whether every palette is drawn in the chosen one's view already. */
+  const allAlike = () => {
+    const from = tileAt(chosen());
+    return tiles().every(item => {
+      const now = tileAt(item);
+      const want = viewFor(item, from);
+      return now.style === want.style && now.steps === want.steps && now.angle === want.angle;
+    });
+  };
+  /* Add to collection, once per sheet: sent stays sent, so one press makes one collection; an app that takes no
+     messages loses the press */
+  const [adding, setAdding] = createSignal<"idle" | "sending" | AddAnswer>("idle");
+  const add = async () => {
+    if (!props.onAdd || adding() === "sending" || adding() === "sent") return;
+    setAdding("sending");
+    const answer = await props.onAdd(tiles().map(tileAt));
+    setAdding(answer);
+    if (answer === "failed") announce(t("Couldn't send the message. Try again."));
+  };
   const chosen = () =>
     tiles()[Math.min(Math.max(0, props.selected ?? 0), Math.max(0, tiles().length - 1))];
   const handId = createUniqueId();
@@ -401,6 +439,44 @@ export function PaletteView(props: PaletteViewProps) {
       <Text variant="num">{p.n}</Text>
     </span>
   );
+  const Add = (p: { large?: boolean }) => (
+    <Show when={props.onAdd && props.name && adding() !== "unsupported"}>
+      <Show when={adding() === "failed"}>
+        <Text variant="small" danger>
+          {t("Couldn't send the message. Try again.")}
+        </Text>
+      </Show>
+      <Button
+        variant="ghost"
+        size={p.large ? "lg" : undefined}
+        disabled={adding() === "sending" || adding() === "sent"}
+        onClick={() => void add()}
+      >
+        <Icon name={adding() === "sent" ? "check" : "collection"} size={14} />
+        {t("Add to collection")}
+      </Button>
+    </Show>
+  );
+  /** The set's name where its model gave one, then how many palettes it holds. */
+  const Named = (p: { heading?: boolean }) => (
+    <Show
+      when={props.name}
+      fallback={
+        <Text variant={p.heading ? "h3" : "small"} as={p.heading ? "p" : undefined}>
+          {t(COUNT, { count: tiles().length })}
+        </Text>
+      }
+    >
+      {name => (
+        <div class={styles.named}>
+          <Text variant={p.heading ? "h3" : "ui"} as="p" strong={!p.heading} dir="auto">
+            {name()}
+          </Text>
+          <Text variant="small">{t(COUNT, { count: tiles().length })}</Text>
+        </div>
+      )}
+    </Show>
+  );
   const Full = (p: { index?: number }) => (
     <Show when={props.fullscreen}>
       <Button
@@ -449,6 +525,7 @@ export function PaletteView(props: PaletteViewProps) {
         <Show when={props.origin}>
           <div class={styles.actions} data-part="actions">
             <Open tile={tile()} />
+            <Add large />
           </div>
         </Show>
       </article>
@@ -586,7 +663,7 @@ export function PaletteView(props: PaletteViewProps) {
     return (
       <div class={styles.root}>
         <div class={styles.bar}>
-          <Text variant="small">{t(COUNT, { count: tiles().length })}</Text>
+          <Named />
           <div class={styles.presses}>
             <Show when={!all() && (more().before || more().after)}>
               <span class={styles.steps} data-steps>
@@ -617,6 +694,7 @@ export function PaletteView(props: PaletteViewProps) {
                 {t("Show fewer")}
               </Button>
             </Show>
+            <Add />
             <Full />
           </div>
         </div>
@@ -663,20 +741,21 @@ export function PaletteView(props: PaletteViewProps) {
     return (
       <div class={styles.root} data-full="">
         <div class={styles.bar}>
-          <Text variant="h3" as="p">
-            {t(COUNT, { count: tiles().length })}
-          </Text>
-          <Show when={props.inline}>
-            <Button
-              icon
-              variant="ghost"
-              aria-label={t("Exit full screen")}
-              tip={t("Exit full screen")}
-              onClick={() => ask("inline")}
-            >
-              <Icon name="collapse" size={14} />
-            </Button>
-          </Show>
+          <Named heading />
+          <div class={styles.presses}>
+            <Add />
+            <Show when={props.inline}>
+              <Button
+                icon
+                variant="ghost"
+                aria-label={t("Exit full screen")}
+                tip={t("Exit full screen")}
+                onClick={() => ask("inline")}
+              >
+                <Icon name="collapse" size={14} />
+              </Button>
+            </Show>
+          </div>
         </div>
         <div class={styles.body}>
           <div class={styles.stage}>
@@ -713,7 +792,7 @@ export function PaletteView(props: PaletteViewProps) {
               </Text>
             </div>
             <div class={styles.strip}>
-              <StopStrip stops={stops()} short />
+              <StopStrip stops={stops()} short fold />
             </div>
             <Show when={props.origin}>
               <div class={styles.actions}>
@@ -738,6 +817,25 @@ export function PaletteView(props: PaletteViewProps) {
                 if (angle !== "auto") setView(chosen(), { angle });
               }}
             />
+            {/* both stand from the start, so nothing moves when a view changes: Reset waits for a change */}
+            <div class={styles.everyone}>
+              <Show when={tiles().length > 1}>
+                <Button variant="ghost" disabled={allAlike()} onClick={applyToAll}>
+                  {t("Apply to all palettes")}
+                </Button>
+              </Show>
+              <Button
+                variant="ghost"
+                disabled={!Object.keys(views()).length}
+                onClick={() => {
+                  putAway(false, false);
+                  setViews({});
+                  props.onChoose?.(tileAt(chosen()));
+                }}
+              >
+                {t("Reset")}
+              </Button>
+            </div>
           </section>
           <Show when={tiles().length > 1}>
             <ul class={styles.grid} aria-label={t("Palettes")}>

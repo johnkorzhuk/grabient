@@ -121,6 +121,7 @@
   {
     "tool": "show_palettes",
     "args": {
+      "name": "A set",
       "palettes": [
         {
           "seed": "kSWUkczDNDewdRK",
@@ -134,7 +135,9 @@
   },
   {
     "tool": "show_palettes",
-    "args": {},
+    "args": {
+      "name": "A set"
+    },
     "read": {
       "error": "palettes is needed: The palettes, in tile order."
     }
@@ -142,6 +145,7 @@
   {
     "tool": "show_palettes",
     "args": {
+      "name": "A set",
       "palettes": [
         "kSWUkczDNDewdRK",
         "kSWUkczDNDewdRK",
@@ -177,6 +181,7 @@
   {
     "tool": "show_palettes",
     "args": {
+      "name": "A set",
       "palettes": [
         "kSWUkczDNDewdRK",
         "k-not-a-seed"
@@ -189,6 +194,7 @@
   {
     "tool": "show_palettes",
     "args": {
+      "name": "A set",
       "palettes": [
         {
           "seed": "kSWUkczDNDewdRK",
@@ -203,6 +209,7 @@
   {
     "tool": "show_palettes",
     "args": {
+      "name": "A set",
       "palettes": [
         {
           "seed": "kSWUkczDNDewdRK",
@@ -266,6 +273,17 @@
           }
         ]
       }
+    }
+  },
+  {
+    "tool": "show_palettes",
+    "args": {
+      "palettes": [
+        "kSWUkczDNDewdRK"
+      ]
+    },
+    "read": {
+      "error": "name is needed: The set's name, 1 to 80 characters: the title of a collection saved from it."
     }
   }
 ]

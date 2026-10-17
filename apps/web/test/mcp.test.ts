@@ -612,16 +612,20 @@ describe("the tools", () => {
     const env = testEnv();
     const drawn = await connected(env);
     const shown = await call(env, drawn.token, "show_palettes", {
+      name: "  Harbor   lights ",
       palettes: [
         { seed: SEED, title: "Mine" },
         SEED,
         { seed: OTHER, style: "radialSwatches", steps: 5 }
       ]
     });
+    // the set's name, on one line, rides with the words and with the view's data
+    expect(shown.value.name).toBe("Harbor lights");
     expect(shown.value.tiles.map((tile: { tile: number }) => tile.tile)).toEqual([1, 2]);
     expect(shown.result._meta).toEqual({
       "com.grabient/view": {
         origin: ORIGIN,
+        name: "Harbor lights",
         tiles: [
           { tile: 1, seed: SEED, style: "linearGradient", steps: 7, angle: 90, title: "Mine" },
           { tile: 2, seed: OTHER, style: "radialSwatches", steps: 5, angle: 90 }
@@ -629,9 +633,19 @@ describe("the tools", () => {
       }
     });
     const plain = await connected(env, { registered: true });
-    const words = await call(env, plain.token, "show_palettes", { palettes: [SEED] });
+    const words = await call(env, plain.token, "show_palettes", {
+      name: "Harbor",
+      palettes: [SEED]
+    });
     expect(words.result._meta).toBeUndefined();
     expect(words.value.tiles[0].png).toBe(`${ORIGIN}/${SEED}.png`);
+    // a set is named, and a name of spaces names nothing
+    expect((await call(env, plain.token, "show_palettes", { palettes: [SEED] })).error).toBe(
+      "name is needed: The set's name, 1 to 80 characters: the title of a collection saved from it."
+    );
+    expect(
+      (await call(env, plain.token, "show_palettes", { name: "   ", palettes: [SEED] })).error
+    ).toBe("name is 1 to 80 characters.");
   });
 
   it("show palettes as words with each picture's address to every app while the view is off, and still serve it", async () => {
@@ -653,7 +667,7 @@ describe("the tools", () => {
         tools.find((tool: { name: string }) => tool.name === "show_palettes")
       ).not.toHaveProperty("_meta");
       // Claude draws the view, and is answered as an app that draws none
-      const shown = await call(env, token, "show_palettes", { palettes: [SEED] });
+      const shown = await call(env, token, "show_palettes", { name: "Harbor", palettes: [SEED] });
       expect(shown.result._meta).toBeUndefined();
       expect(shown.value.tiles[0].png).toBe(`${ORIGIN}/${SEED}.png`);
       // a conversation kept from before still draws its palettes

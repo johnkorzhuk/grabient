@@ -4,6 +4,7 @@ import {
   chosenWords,
   type FileFormat,
   fileUrl,
+  nameFromArguments,
   sheetFromResult,
   type Tile,
   tilesFromArguments
@@ -17,8 +18,15 @@ describe("the view's tiles", () => {
     for (const { args, tiles } of golden.args) {
       // `picture` was a flag the server refuses: a call that names it paints nothing
       const expected = "picture" in args ? null : tiles;
-      expect(tilesFromArguments(args), JSON.stringify(args)).toEqual(expected);
+      expect(tilesFromArguments({ name: "A set", ...args }), JSON.stringify(args)).toEqual(
+        expected
+      );
+      // nor does a call that names no set, or one past a title's length
+      expect(tilesFromArguments(args)).toBeNull();
+      expect(tilesFromArguments({ name: "x".repeat(81), ...args })).toBeNull();
     }
+    expect(nameFromArguments({ name: "  Harbor\tlights  ", palettes: [] })).toBe("Harbor lights");
+    expect(nameFromArguments({ palettes: [] })).toBeNull();
   });
 
   it("are read from an answer's view data, else from its words where marked as their own", () => {
@@ -65,6 +73,17 @@ describe("the view's tiles", () => {
       }
     ];
     expect(answers.map(sheetFromResult)).toEqual(golden.sheetFromResult);
+    // the set's name rides with the view's data, on one line
+    expect(
+      sheetFromResult({
+        _meta: {
+          "com.grabient/view": {
+            name: " Harbor\n lights ",
+            tiles: [{ tile: 1, seed: SEED, style: "linearGradient", steps: 7, angle: 90 }]
+          }
+        }
+      })?.name
+    ).toBe("Harbor lights");
   });
 
   it("tell the model the palette a person chose, and name its files in its view", () => {

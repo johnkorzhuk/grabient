@@ -118,8 +118,8 @@
     overflow: hidden;
     isolation: isolate;
     border-radius: var(--radius-control);
-    /* Claude asks 44pt of every press under a finger, while the site's strip keeps WCAG's 24px, so a long palette's
-       strip runs sideways in full screen */
+    /* Claude asks 44pt of every press under a finger, while the site's strip keeps WCAG's 24px: a long palette's
+       strip folds into two rows in the panel, and runs sideways only past what two rows hold */
     @media (pointer: coarse) {
       & > div {
         --least: var(--size-touch);
@@ -179,17 +179,42 @@
     }
   }
 
+  /* Apply to all palettes and Reset, under the chosen palette's appearance */
+  .everyone {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s2);
+  }
+  /* the set's name its model gave it, cut short on one line, then how many palettes it holds */
+  .named {
+    display: flex;
+    flex: 1 1 12rem;
+    align-items: baseline;
+    gap: var(--space-s2);
+    min-width: 0;
+    & > :first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    & > :last-child {
+      flex-shrink: 0;
+    }
+  }
   /* the carousel: cards of one size in a row that scrolls sideways, the next one showing at the edge, no scrollbar */
+  /* where the set's name and the presses do not fit side by side, the presses go under the name, at the end */
   .bar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-s3);
+    gap: var(--space-s1) var(--space-s3);
     min-height: var(--size-control);
   }
   .presses {
     display: flex;
     flex-shrink: 0;
+    margin-inline-start: auto;
     align-items: center;
     gap: var(--space-s1);
   }

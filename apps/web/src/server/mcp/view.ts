@@ -65,9 +65,10 @@ export function drawsView(
   return known || (!modern && Object.keys(meta).some(key => key.startsWith("openai/")));
 }
 
-/** The view's data, which show_palettes answers in `_meta` where an app draws the view: the site, and each tile's
-    number, seed and view. A title rides only where it is the tile's own, since the page reads every title here as one.
-    Never structuredContent: an app may hand its model that in the text's place, and the text holds each color. */
+/** The view's data, which show_palettes answers in `_meta` where an app draws the view: the site, the set's name, and
+    each tile's number, seed and view. A title rides only where it is the tile's own, since the page reads every title
+    here as one. Never structuredContent: an app may hand its model that in the text's place, and the text holds each
+    color. */
 export const viewData = (
   origin: string,
   tiles: readonly {
@@ -78,10 +79,12 @@ export const viewData = (
     style: string;
     steps: number;
     angle: number;
-  }[]
+  }[],
+  name?: string
 ) => ({
   [VIEW_DATA]: {
     origin,
+    ...(name ? { name } : {}),
     tiles: tiles.map(({ tile, seed, title, own, style, steps, angle }) => ({
       tile,
       seed,

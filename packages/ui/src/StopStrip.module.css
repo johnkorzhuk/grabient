@@ -29,6 +29,10 @@
     &[data-short] {
       --h: var(--size-strip-short);
     }
+    /* a short strip folded in two stands each row at the height two rows take */
+    &[data-short][data-two] {
+      --h: var(--size-strip-two);
+    }
     /* the foot: the seams' dash along the strip's last pixel, over the chips, as far as they run */
     &::after {
       content: "";

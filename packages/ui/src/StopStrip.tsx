@@ -30,6 +30,8 @@ export function StopStrip(props: {
   marks?: readonly StripMark[];
   /** one row whatever the width, at a phone's height */
   short?: boolean;
+  /** a row that would run past the strip folds into two at any width, as a narrow panel's does, before it scrolls */
+  fold?: boolean;
   /** the strip stands at the screen's foot: its colors run beneath a phone's home indicator */
   inset?: boolean;
   onCopy?: (hex: string) => void;
@@ -53,9 +55,10 @@ export function StopStrip(props: {
      that scroll are laid out at the width they take, in as many rows and at the height they stand at, so the labels
      fit the chips as they stand */
   const lay = createMemo(() => {
-    const at = layoutStops(stops(), width(), !!props.short);
+    const fold = !!props.fold && stops().length * least() > width();
+    const at = layoutStops(stops(), width(), !!props.short && !fold, !!props.short, fold);
     const room = Math.ceil(stops().length / at.rows.length) * least();
-    return room > width() ? layoutStops(stops(), room, !at.two, !!props.short) : at;
+    return room > width() ? layoutStops(stops(), room, !at.two, !!props.short, at.two) : at;
   });
   const cols = () => Math.ceil(stops().length / lay().rows.length);
   /* whether a row that scrolls has colors past the strip's start and past its end; none until it is measured. The

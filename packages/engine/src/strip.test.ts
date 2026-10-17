@@ -45,6 +45,18 @@ test("a single row laid out at the width it scrolls past sizes its labels for it
   });
 });
 
+test("a strip folded in a narrow panel runs in two rows, where unfolded it keeps one under a phone's width", () => {
+  const stops = sampleStops(decodePalette("kEQ86R0rZHUZzBxB9-zYA") as Palette, 32).map(x => ({
+    hex: x.hex
+  }));
+  expect(layoutStops(stops, 420, false, true).two).toBe(false);
+  const folded = layoutStops(stops, 420, false, true, true);
+  expect(folded.two).toBe(true);
+  expect(folded.rows.map(row => row.reduce((n, cell) => n + cell.span, 0))).toEqual([16, 16]);
+  // a short run never folds
+  expect(layoutStops(stops.slice(0, 7), 420, false, true, true).two).toBe(false);
+});
+
 test("the plots' data is as before, worked out once per palette", () => {
   for (const c of colors.curves) {
     const P = decodePalette(c.seed) as Palette;

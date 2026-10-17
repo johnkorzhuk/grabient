@@ -93,6 +93,30 @@ describe("the palette view", () => {
     expect(html).toContain('aria-label="Exit full screen"');
     expect(html).toContain('aria-label="Copy CSS"');
     expect(count(html, /aria-label="Copy #[0-9a-f]{6}"/g)).toBe(stopsOf(tiles(3)[1]).length);
+    // the chosen palette's view can go to every palette, and Reset stands waiting for a change to undo
+    expect(words(html)).toContain("Apply to all palettes Reset");
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>(?:<!--[^>]*-->)*Reset</);
+    const one = words(draw({ tiles: tiles(1), mode: "fullscreen" }));
+    expect(one).not.toContain("Apply to all palettes");
+    expect(one).toContain("Reset");
+  });
+
+  test("names the set its model gave it and offers to save it as a collection, where the app takes messages", () => {
+    const onAdd = async () => "sent" as const;
+    const row = draw({ tiles: tiles(3), fullscreen: true, name: "Harbor lights", onAdd });
+    expect(words(row)).toContain("Harbor lights 3 palettes");
+    expect(words(row)).toContain("Add to collection");
+    const full = draw({ tiles: tiles(3), mode: "fullscreen", name: "Harbor lights", onAdd });
+    expect(words(full)).toContain("Harbor lights 3 palettes");
+    expect(words(full)).toContain("Add to collection");
+    expect(words(draw({ tiles: tiles(1), name: "Harbor lights", onAdd }))).toContain(
+      "Open on Grabient (opens in a new tab) Add to collection"
+    );
+    // a set with no name, or a view with nothing to ask, offers no save
+    expect(words(draw({ tiles: tiles(3), onAdd }))).not.toContain("Add to collection");
+    expect(words(draw({ tiles: tiles(3), name: "Harbor lights" }))).not.toContain(
+      "Add to collection"
+    );
   });
 
   test("waits in the card's place, and says so once the app goes quiet or sends none", () => {

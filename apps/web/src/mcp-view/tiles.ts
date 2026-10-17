@@ -30,7 +30,7 @@ export const SHEET_MAX = 24;
 /** As long as the server lets a tile's title be (features/account/wire.ts PALETTE_TITLE_MAX). */
 const TITLE_MAX = 80;
 /* the names a call and each of its palettes may carry: the server refuses a call with any other */
-const CALL = ["palettes"];
+const CALL = ["name", "palettes"];
 const ITEM = ["seed", "style", "steps", "angle", "title"];
 const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
 
@@ -153,6 +153,8 @@ const sameView = (a: TileView & { seed: string }, b: TileView & { seed: string }
     first title given for it. */
 export function tilesFromArguments(args: unknown): Tile[] | null {
   if (!args || typeof args !== "object" || Array.isArray(args) || !named(args, CALL)) return null;
+  // the server refuses a call that names no set
+  if (nameFromArguments(args) === null) return null;
   const list = (args as { palettes?: unknown }).palettes;
   if (!Array.isArray(list) || !list.length || list.length > SHEET_MAX) return null;
   const tiles: Tile[] = [];
@@ -174,6 +176,12 @@ const record = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+
+/** The set's name a call gives, as the server takes it: none where the server would refuse it. */
+export function nameFromArguments(args: unknown): string | null {
+  const said = typed(record(args)?.name);
+  return typeof said === "string" && said.length <= TITLE_MAX ? (titleOf(said) ?? null) : null;
+}
 
 /** A tile as an answer carries it, checked: an answer is data, never trusted to be well formed. In the view's own data
     a title is the tile's own; in the words only one marked `own` is. */
@@ -212,7 +220,9 @@ const originOf = (raw: unknown): string | undefined => {
 
 /** What show_palettes answered: the view's own data in the answer's `_meta`, or in structuredContent, where answers a
     stored conversation holds carry it; else the JSON of its text block. Null for a refusal or an answer with no tile. */
-export function sheetFromResult(result: unknown): { tiles: Tile[]; origin?: string } | null {
+export function sheetFromResult(
+  result: unknown
+): { tiles: Tile[]; origin?: string; name?: string } | null {
   const answer = record(result);
   if (!answer || answer.isError) return null;
   let data =
@@ -233,9 +243,11 @@ export function sheetFromResult(result: unknown): { tiles: Tile[]; origin?: stri
     .map((tile, i) => tileOf(tile, i, words))
     .filter((tile): tile is Tile => tile !== null);
   if (!tiles.length) return null;
+  const name = titleOf(data?.name);
   return {
     tiles,
-    origin: originOf(data?.origin) ?? raw.map(tile => originOf(record(tile)?.url)).find(Boolean)
+    origin: originOf(data?.origin) ?? raw.map(tile => originOf(record(tile)?.url)).find(Boolean),
+    ...(name ? { name } : {})
   };
 }
 

@@ -392,6 +392,11 @@
     "inputSchema": {
       "type": "object",
       "properties": {
+        "name": {
+          "type": "string",
+          "description": "The set's name, 1 to 80 characters: the title of a collection saved from it.",
+          "maxLength": 80
+        },
         "palettes": {
           "type": "array",
           "items": {
@@ -442,6 +447,7 @@
         }
       },
       "required": [
+        "name",
         "palettes"
       ],
       "additionalProperties": false

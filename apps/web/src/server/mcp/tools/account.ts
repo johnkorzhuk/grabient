@@ -573,6 +573,10 @@ export const accountTools: readonly Tool[] = [
     description: `Show color palettes and gradients side by side as numbered tiles, up to ${SHEET_MAX}, each in the view given, else the one Grabient shows it in. One palette may come in several views. An app that draws Grabient's view shows each with its colors, and copies its address, CSS, SVG or PNG in full screen; in any other, each tile has \`png\`, its picture's address. \`own\` marks a title given or written for the palette on Grabient; any other names its colors.`,
     inputSchema: shape(
       {
+        name: text(
+          `The set's name, 1 to ${PALETTE_TITLE_MAX} characters: the title of a collection saved from it.`,
+          { maxLength: PALETTE_TITLE_MAX }
+        ),
         palettes: list(
           paletteItem({ title: text("A name for its tile.", { maxLength: PALETTE_TITLE_MAX }) }),
           "The palettes, in tile order.",
@@ -580,9 +584,12 @@ export const accountTools: readonly Tool[] = [
           SHEET_MAX
         )
       },
-      ["palettes"]
+      ["name", "palettes"]
     ),
     async run(args, c) {
+      // the set's name, the title the view's Add to collection asks a collection of it to take
+      const name = likeTitle(args.name);
+      if (name === null) return refuse(`name is 1 to ${PALETTE_TITLE_MAX} characters.`);
       const asked = args.palettes as (PaletteGiven & { title?: string })[];
       /* a tile the call gave no title takes a written one its colors bear out; a database that cannot answer leaves
          those and the held views out, never the answer */
@@ -622,8 +629,8 @@ export const accountTools: readonly Tool[] = [
       });
       // the words stand alone where the view never draws; the view's data rides beside them
       return {
-        ...answer({ tiles, ...(notes.length ? { note: notes.join(" ") } : {}) }),
-        ...(c.view ? { _meta: viewData(c.origin, tiles) } : {})
+        ...answer({ name, tiles, ...(notes.length ? { note: notes.join(" ") } : {}) }),
+        ...(c.view ? { _meta: viewData(c.origin, tiles, name) } : {})
       };
     }
   },

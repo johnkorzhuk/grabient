@@ -29,12 +29,14 @@ function inkFor(hex: string): StripCell["ink"] {
 }
 
 /** `oneRow` keeps a single row at any width: a phone on its side. `short` sizes the labels for a phone's row, which a
-    single row on a phone is; a row kept single at a width it scrolls past keeps its own height. */
+    single row on a phone is; a row kept single at a width it scrolls past keeps its own height. `fold` lets the rows
+    run in two under a phone's width too, as a narrow panel's strip does where one row would run past it. */
 export function layoutStops(
   stops: readonly StripStop[],
   width: number,
   oneRow = false,
-  short = oneRow
+  short = oneRow,
+  fold = false
 ): StripLayout {
   const cells: StripCell[] = [];
   for (const s of stops) {
@@ -43,8 +45,9 @@ export function layoutStops(
     else cells.push({ hex: s.hex, paint: s.paint ?? s.hex, ink: inkFor(s.hex), span: 1 });
   }
   const units = stops.length;
-  /* two rows when one row's chips would be under 56px, never on a phone (under 640px) or under eight stops */
-  const two = !oneRow && width >= 640 && width / Math.max(1, units) < 56 && units >= 8;
+  /* two rows when one row's chips would be under 56px, never on a phone (under 640px) unless folded, nor under eight
+     stops */
+  const two = !oneRow && (fold || width >= 640) && width / Math.max(1, units) < 56 && units >= 8;
   const nrows = two ? 2 : 1;
   const cols = Math.ceil(units / nrows);
   const rows: StripCell[][] = Array.from({ length: nrows }, () => []);

@@ -203,6 +203,7 @@
   "Add to collection": {
     "note": "Press (a bag) on a palette: adds it to one of the reader's collections. Also its tooltip.",
     "refs": [
+      "apps/web/src/mcp-view/PaletteView.tsx:456",
       "packages/ui/src/CollectPress.tsx:111",
       "packages/ui/src/CollectPress.tsx:112",
       "packages/ui/src/CollectPress.tsx:43"
@@ -265,7 +266,7 @@
   "All palettes": {
     "note": "Press: shows every palette.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:645"
+      "apps/web/src/mcp-view/PaletteView.tsx:723"
     ]
   },
   "Allow": {
@@ -352,6 +353,12 @@
     "note": "Screen reader name of the appearance press, with the style, steps and angle.",
     "refs": [
       "packages/ui/src/Appearance.tsx:69"
+    ]
+  },
+  "Apply to all palettes": {
+    "note": "Press in the palette view's full screen, inside an AI app: draws every palette of the set in the style, steps and angle of the one chosen.",
+    "refs": [
+      "apps/web/src/mcp-view/PaletteView.tsx:823"
     ]
   },
   "Apps": {
@@ -604,8 +611,8 @@
   "Close": {
     "note": "Press: closes a panel or menu.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:380",
-      "apps/web/src/mcp-view/PaletteView.tsx:381",
+      "apps/web/src/mcp-view/PaletteView.tsx:418",
+      "apps/web/src/mcp-view/PaletteView.tsx:419",
       "packages/ui/src/Appearance.tsx:155",
       "packages/ui/src/CollectList.tsx:164",
       "packages/ui/src/ExportPanel.tsx:155"
@@ -851,8 +858,8 @@
       "packages/ui/src/CopyButton.tsx:34",
       "packages/ui/src/CopyButton.tsx:48",
       "packages/ui/src/FormatStrip.tsx:177",
-      "packages/ui/src/StopStrip.tsx:179",
-      "packages/ui/src/StopStrip.tsx:98"
+      "packages/ui/src/StopStrip.tsx:101",
+      "packages/ui/src/StopStrip.tsx:182"
     ]
   },
   "Copy": {
@@ -862,7 +869,7 @@
       "packages/ui/src/CopyButton.tsx:45",
       "packages/ui/src/ExportPanel.tsx:257",
       "packages/ui/src/FormatStrip.tsx:70",
-      "packages/ui/src/StopStrip.tsx:153"
+      "packages/ui/src/StopStrip.tsx:156"
     ]
   },
   "Copy URL": {
@@ -907,7 +914,7 @@
   "Copy {hex}": {
     "note": "Screen reader name of a color in the row: copies its hex.",
     "refs": [
-      "packages/ui/src/StopStrip.tsx:169"
+      "packages/ui/src/StopStrip.tsx:172"
     ]
   },
   "Copying links. Switch to copy": {
@@ -972,9 +979,9 @@
     "note": "Status after a refused copy.",
     "refs": [
       "apps/web/src/app/keys.ts:20",
-      "apps/web/src/mcp-view/PaletteView.tsx:235",
+      "apps/web/src/mcp-view/PaletteView.tsx:273",
       "packages/ui/src/CopyButton.tsx:38",
-      "packages/ui/src/StopStrip.tsx:99"
+      "packages/ui/src/StopStrip.tsx:102"
     ]
   },
   "Couldn't copy. The code is selected.": {
@@ -1031,14 +1038,14 @@
   "Couldn't load collections.": {
     "note": "Error line where collections failed to load, beside Retry.",
     "refs": [
-      "apps/web/src/features/collections/queries.ts:163"
+      "apps/web/src/features/collections/queries.ts:166"
     ]
   },
   "Couldn't load palettes.": {
     "note": "Error line where palettes failed to load.",
     "refs": [
       "apps/web/src/features/gallery/queries.ts:56",
-      "apps/web/src/mcp-view/PaletteView.tsx:800"
+      "apps/web/src/mcp-view/PaletteView.tsx:898"
     ]
   },
   "Couldn't load the home page.": {
@@ -1063,7 +1070,7 @@
   "Couldn't load your collections.": {
     "note": "Error line.",
     "refs": [
-      "apps/web/src/features/collections/queries.ts:241"
+      "apps/web/src/features/collections/queries.ts:244"
     ]
   },
   "Couldn't put the palette back.": {
@@ -1171,6 +1178,8 @@
     "note": "Contact page error.",
     "refs": [
       "apps/web/src/features/contact/ContactPage.tsx:17",
+      "apps/web/src/mcp-view/PaletteView.tsx:174",
+      "apps/web/src/mcp-view/PaletteView.tsx:446",
       "apps/web/src/server/contact/contact.ts:54"
     ]
   },
@@ -1234,7 +1243,7 @@
   "Dark theme": {
     "note": "Screen reader name of the theme press when it switches to dark.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:234"
+      "apps/web/src/app/Shell.tsx:238"
     ]
   },
   "Delete": {
@@ -1297,7 +1306,7 @@
   "Dismiss": {
     "note": "Press (a cross) that closes the embed notice.",
     "refs": [
-      "apps/web/src/app/EmbedNotice.tsx:50"
+      "apps/web/src/app/EmbedNotice.tsx:52"
     ]
   },
   "Doesn't fit the collection": {
@@ -1426,7 +1435,7 @@
   "Embedded view": {
     "note": "Screen reader name of the notice shown when the site is embedded in another page.",
     "refs": [
-      "apps/web/src/app/EmbedNotice.tsx:30"
+      "apps/web/src/app/EmbedNotice.tsx:33"
     ]
   },
   "End": {
@@ -1477,8 +1486,8 @@
   "Exit full screen": {
     "note": "Press: leaves full screen. Also its tooltip.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:673",
-      "apps/web/src/mcp-view/PaletteView.tsx:674"
+      "apps/web/src/mcp-view/PaletteView.tsx:751",
+      "apps/web/src/mcp-view/PaletteView.tsx:752"
     ]
   },
   "Explore {subject} gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG.": {
@@ -1604,9 +1613,9 @@
   "Full screen": {
     "note": "Press: shows the palettes full screen. Also its tooltip.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:267",
-      "apps/web/src/mcp-view/PaletteView.tsx:409",
-      "apps/web/src/mcp-view/PaletteView.tsx:410"
+      "apps/web/src/mcp-view/PaletteView.tsx:305",
+      "apps/web/src/mcp-view/PaletteView.tsx:485",
+      "apps/web/src/mcp-view/PaletteView.tsx:486"
     ]
   },
   "Gallery only": {
@@ -1837,7 +1846,7 @@
       "apps/web/src/features/editor/Sheet.tsx:396",
       "apps/web/src/features/gallery/take.ts:98",
       "apps/web/src/features/selection/SelectionScreen.tsx:329",
-      "apps/web/src/mcp-view/PaletteView.tsx:198"
+      "apps/web/src/mcp-view/PaletteView.tsx:236"
     ]
   },
   "Images can't be copied here.": {
@@ -1845,8 +1854,8 @@
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:628",
       "apps/web/src/features/editor/Sheet.tsx:137",
-      "apps/web/src/mcp-view/PaletteView.tsx:202",
-      "apps/web/src/mcp-view/PaletteView.tsx:210",
+      "apps/web/src/mcp-view/PaletteView.tsx:240",
+      "apps/web/src/mcp-view/PaletteView.tsx:248",
       "packages/ui/src/SolidPane.tsx:80"
     ]
   },
@@ -1893,7 +1902,7 @@
       "apps/web/src/server/account/flags.ts:15",
       "apps/web/src/server/account/profile.ts:21",
       "apps/web/src/server/account/sync.ts:151",
-      "apps/web/src/server/collections/api.ts:198",
+      "apps/web/src/server/collections/api.ts:199",
       "apps/web/src/server/collections/api.ts:92",
       "apps/web/src/server/collections/http.ts:44",
       "apps/web/src/server/contact/contact.ts:25",
@@ -2084,7 +2093,7 @@
   "Light theme": {
     "note": "Screen reader name of the theme press when it switches to light.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:234"
+      "apps/web/src/app/Shell.tsx:238"
     ]
   },
   "Lightness": {
@@ -2295,13 +2304,13 @@
     "note": "Press at the end of a list: loads more palettes. Also a press that shows the next palettes.",
     "refs": [
       "apps/web/src/features/gallery/Palettes.tsx:652",
-      "apps/web/src/mcp-view/PaletteView.tsx:606"
+      "apps/web/src/mcp-view/PaletteView.tsx:683"
     ]
   },
   "More tags": {
     "note": "Press (an arrow): shows more tags in the row.",
     "refs": [
-      "packages/ui/src/Tags.tsx:433"
+      "packages/ui/src/Tags.tsx:439"
     ]
   },
   "Mostly near black": {
@@ -2396,7 +2405,7 @@
   "No palettes.": {
     "note": "Empty state in an AI app.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:816"
+      "apps/web/src/mcp-view/PaletteView.tsx:914"
     ]
   },
   "No public collections yet.": {
@@ -2438,8 +2447,8 @@
       "apps/web/src/server/newsletter/routes.ts:123",
       "apps/web/src/server/newsletter/routes.ts:127",
       "apps/web/src/server/newsletter/routes.ts:56",
-      "apps/web/src/server/pipeline.ts:151",
-      "apps/web/src/server/pipeline.ts:163"
+      "apps/web/src/server/pipeline.ts:153",
+      "apps/web/src/server/pipeline.ts:165"
     ]
   },
   "Not in the gallery or a collection": {
@@ -2585,7 +2594,7 @@
     "note": "Error.",
     "refs": [
       "apps/web/src/server/account/collections.ts:193",
-      "apps/web/src/server/collections/api.ts:203"
+      "apps/web/src/server/collections/api.ts:204"
     ]
   },
   "Only admins see the newsletter until it's on in Site features.": {
@@ -2610,8 +2619,8 @@
   "Open Grabient": {
     "note": "Press: opens the site in a full tab.",
     "refs": [
-      "apps/web/src/app/EmbedNotice.tsx:44",
-      "apps/web/src/mcp-view/PaletteView.tsx:804",
+      "apps/web/src/app/EmbedNotice.tsx:46",
+      "apps/web/src/mcp-view/PaletteView.tsx:902",
       "packages/email/src/partner.ts:159"
     ]
   },
@@ -2630,13 +2639,13 @@
   "Open on Grabient": {
     "note": "Press: opens the palette on the site.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:396"
+      "apps/web/src/mcp-view/PaletteView.tsx:434"
     ]
   },
   "Open palette {number} in full screen": {
     "note": "Screen reader name of a palette picture in the AI app view: a press opens that palette full screen. {number} is its number.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:493"
+      "apps/web/src/mcp-view/PaletteView.tsx:570"
     ]
   },
   "Open {title}": {
@@ -2733,7 +2742,7 @@
   "Palette colors": {
     "note": "Screen reader name of the row of the palette's colors.",
     "refs": [
-      "packages/ui/src/StopStrip.tsx:144"
+      "packages/ui/src/StopStrip.tsx:147"
     ]
   },
   "Palette deleted.": {
@@ -2785,14 +2794,14 @@
   "Palette {number}: {name}": {
     "note": "Screen reader name of a palette in an AI app.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:90"
+      "apps/web/src/mcp-view/PaletteView.tsx:96"
     ]
   },
   "Palettes": {
     "note": "The palettes list, its tab, and a screen reader name of a list of palettes.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:629",
-      "apps/web/src/mcp-view/PaletteView.tsx:743",
+      "apps/web/src/mcp-view/PaletteView.tsx:707",
+      "apps/web/src/mcp-view/PaletteView.tsx:841",
       "packages/ui/src/ListNav.tsx:11"
     ]
   },
@@ -2962,13 +2971,13 @@
   "Previous palettes": {
     "note": "Press (an arrow): shows the previous palettes.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:596"
+      "apps/web/src/mcp-view/PaletteView.tsx:673"
     ]
   },
   "Previous tags": {
     "note": "Press (an arrow): shows the previous tags in the row.",
     "refs": [
-      "packages/ui/src/Tags.tsx:421"
+      "packages/ui/src/Tags.tsx:427"
     ]
   },
   "Previous tip": {
@@ -3245,6 +3254,7 @@
       "apps/web/src/features/collections/Actions.tsx:356",
       "apps/web/src/features/collections/Actions.tsx:357",
       "apps/web/src/features/search/Sampler.tsx:265",
+      "apps/web/src/mcp-view/PaletteView.tsx:834",
       "packages/ui/src/Appearance.tsx:210",
       "packages/ui/src/Appearance.tsx:51"
     ]
@@ -3734,7 +3744,7 @@
   "Show fewer": {
     "note": "Press: shows fewer palettes.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:617"
+      "apps/web/src/mcp-view/PaletteView.tsx:694"
     ]
   },
   "Show or hide panel": {
@@ -3955,7 +3965,7 @@
   "Some features are limited here.": {
     "note": "Notice when the site is embedded in another page.",
     "refs": [
-      "apps/web/src/app/EmbedNotice.tsx:32"
+      "apps/web/src/app/EmbedNotice.tsx:34"
     ]
   },
   "Some palettes and the curves that make them:": {
@@ -3988,7 +3998,7 @@
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:25",
       "apps/web/src/lib/query.ts:109",
       "apps/web/src/server/editor/facts.ts:114",
-      "apps/web/src/server/pipeline.ts:113"
+      "apps/web/src/server/pipeline.ts:115"
     ]
   },
   "Spectrum: two keyframes with equal lightness and chroma, and hue that travels 360°.": {
@@ -4094,7 +4104,7 @@
   "Tags": {
     "note": "Screen reader name of the row of tags.",
     "refs": [
-      "packages/ui/src/Tags.tsx:353"
+      "packages/ui/src/Tags.tsx:359"
     ]
   },
   "Tags are 2 to {max} letters, numbers, spaces or hyphens.": {
@@ -4295,7 +4305,7 @@
   "Theme · {key}": {
     "note": "Tooltip on the theme press, with its key.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:235"
+      "apps/web/src/app/Shell.tsx:239"
     ]
   },
   "Theme: {state}": {
@@ -4494,8 +4504,8 @@
   "Too many requests. Try again later.": {
     "note": "Error: a rate limit was reached.",
     "refs": [
-      "apps/web/src/routes/api/saved.ts:26",
-      "apps/web/src/server/pipeline.ts:246"
+      "apps/web/src/routes/api/saved.ts:28",
+      "apps/web/src/server/pipeline.ts:248"
     ]
   },
   "Too many searches. Try again in a moment.": {
@@ -4849,7 +4859,7 @@
   "You can't change this collection.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/server/collections/api.ts:244",
+      "apps/web/src/server/collections/api.ts:245",
       "apps/web/src/server/collections/me.ts:355",
       "apps/web/src/server/collections/me.ts:369",
       "apps/web/src/server/collections/me.ts:381",
@@ -5635,7 +5645,7 @@
   "{count, plural, one {# palette} other {# palettes}}": {
     "note": "A count of palettes.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:91"
+      "apps/web/src/mcp-view/PaletteView.tsx:97"
     ]
   },
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.": {
@@ -5679,7 +5689,7 @@
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:28",
       "apps/web/src/features/list/ListAppearance.tsx:142",
-      "apps/web/src/mcp-view/PaletteView.tsx:89",
+      "apps/web/src/mcp-view/PaletteView.tsx:95",
       "packages/ui/src/figure.ts:121"
     ]
   },
@@ -5711,6 +5721,12 @@
     "note": "Screen reader name of the heart, with its count of likes.",
     "refs": [
       "packages/ui/src/Like.tsx:32"
+    ]
+  },
+  "{count, plural, one {Save this palette to a new collection named “{name}”:} other {Save these # palettes to a new collection named “{name}”:}}": {
+    "note": "Sent to the chat of an AI app as the reader's own message when they press Add to collection on a set of palettes the app shows; each palette's address follows on its own line. {name} is the name the AI gave the set, in your language's quotation marks; # is how many palettes.",
+    "refs": [
+      "apps/web/src/mcp-view/main.tsx:232"
     ]
   },
   "{count, plural, one {The selection holds up to {max} palettes. The oldest was removed. Undo with {key}.} other {The selection holds up to {max} palettes. The # oldest were removed. Undo with {key}.}}": {
@@ -5776,7 +5792,7 @@
   "{label}, as text": {
     "note": "Screen reader name of the code shown for a tab, or of a field holding text to copy by hand.",
     "refs": [
-      "apps/web/src/mcp-view/PaletteView.tsx:373",
+      "apps/web/src/mcp-view/PaletteView.tsx:411",
       "packages/ui/src/PaletteCode.tsx:140"
     ]
   },
