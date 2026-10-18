@@ -1,6 +1,7 @@
+import { decodeSnapshot } from "@grabient/search/snapshot.ts";
 import { expect, test } from "vitest";
 import { searchJsonResponse, searchKeyRules, searchStatusResponse } from "./routes.ts";
-import { assets, fakeAi, fixture, refusing, searchEnv } from "./testing.ts";
+import { assets, fakeAi, fixture, refusing, searchEnv, searchFile } from "./testing.ts";
 
 const ask = (path: string, ip = "192.0.2.77") =>
   new Request(`https://grabient.test${path}`, { headers: { "CF-Connecting-IP": ip } });
@@ -81,6 +82,29 @@ test("a crawler's answer is kept for nobody", async () => {
   expect(response.status).toBe(200);
   expect(response.headers.get("Cache-Control")).toBe("no-store");
   expect(await response.json()).toMatchObject({ tier: "account", unkept: true });
+});
+
+test("the search JSON marks with lead the palette the words name and a palette's collection-mates, and puts them first", async () => {
+  const env = searchEnv();
+  const items = async (path: string) =>
+    (
+      (await (await searchJsonResponse(ask(path), env)).json()) as {
+        items: { kseed: string; lead?: boolean }[];
+      }
+    ).items;
+  expect((await items("/api/search.json?query=nashville"))[0]).toMatchObject({
+    kseed: "kSPTe3fwAsOk8vq",
+    lead: true
+  });
+  const shipped = decodeSnapshot(searchFile("snapshot.bin"));
+  const team = shipped.names[shipped.slugs.indexOf("nhl-team-swatches")].members.map(
+    row => shipped.seeds[row]
+  );
+  const similar = await items("/api/search.json?query=kSPTe3fwAsOk8vq");
+  expect(similar.slice(0, 6).map(item => [team.includes(item.kseed), item.lead])).toEqual(
+    Array(6).fill([true, true])
+  );
+  expect(similar.slice(6).some(item => "lead" in item)).toBe(false);
 });
 
 test("the edge keys a search by what its handler reads, whichever of its addresses asked", () => {

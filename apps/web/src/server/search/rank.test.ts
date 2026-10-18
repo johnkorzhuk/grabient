@@ -5,7 +5,7 @@ import { searchFile } from "./testing.ts";
 
 /* The names the search finds on the shipped snapshot: in one palette's titles (way A), in one collection's title and
    tags (way B), or, when neither holds every word, across a palette's own fields (way C). And the collection-mates that
-   lead a palette's likes. */
+   lead the palettes like a palette. */
 
 const shipped = decodeSnapshot(searchFile("snapshot.bin"));
 const NASHVILLE = shipped.at.get("kSPTe3fwAsOk8vq")!;
@@ -30,14 +30,15 @@ test("words no one title or collection holds name the palettes whose own fields 
 });
 
 describe("the words a public collection gives a palette", () => {
-  /* the Nashville palette as an admin's collection might title and describe it */
+  /* the Nashville palette as an admin's collection might title and describe it, the description naming a word of a
+     title (bruins) and of a tag (crisp) as well */
   const worded: Snapshot = {
     ...shipped,
     titles: shipped.titles.map((title, row) =>
       row === NASHVILLE ? `${title}\nSmashville gold` : title
     ),
     described: shipped.described.map((words, row) =>
-      row === NASHVILLE ? "bridgestone preds" : words
+      row === NASHVILLE ? "bridgestone bruins crisp preds" : words
     )
   };
   const answer = (query: string) => namedPalettes(worded, query.split(" "));
@@ -57,6 +58,8 @@ describe("the words a public collection gives a palette", () => {
     expect(answer("predz")).toBeNull();
     const thaw = shipped.names.find(name => name.subject === "alpine thaw")!;
     expect(answer("crisp")).toEqual({ rows: thaw.members, names: ["alpine thaw"] });
+    const bruins = shipped.at.get("kSJAc85L2__sDv-")!;
+    expect(answer("bruins")).toEqual({ rows: [bruins], names: [] });
     expect(answer("nhl lakers")).toBeNull();
   });
 

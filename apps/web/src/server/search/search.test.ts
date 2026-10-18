@@ -153,7 +153,7 @@ test("what the words name, and a collection's palettes for the phrase it alone i
   expect((await leads("blue"))[1]).toBe(0);
 });
 
-test("a palette's likes lead with the nearest palettes its collections hold, then its nearest colors from anywhere", async () => {
+test("the palettes like a palette lead with the nearest its collections hold, then its nearest colors from anywhere", async () => {
   const env = searchEnv();
   const shipped = decodeSnapshot(searchFile("snapshot.bin"));
   const team = shipped.names

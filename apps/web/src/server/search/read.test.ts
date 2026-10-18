@@ -140,15 +140,19 @@ test("a description names its palette by the words it capitalizes inside a sente
       ["kD", ["Arena nights. The ARENA."]],
       ["kE", ["Colors for 2026 and the Stanley Cup."]],
       ["kF", ["… — !"]],
-      ["kG", ["Colors of the Tokyo東京2026 games."]]
+      ["kG", ["Colors of the Tokyo東京2026 games."]],
+      ["kH", ["Away white for the Preds."]],
+      ["kI", ["A third jersey for the Preds."]]
     ])
   );
-  /* Smashville and Colors open a sentence, midtones is no name, four palettes' descriptions use arena, and a number is
-     never a name, whole or split from a word */
+  /* Smashville and Colors open a sentence, midtones is no name, arena is in four palettes' descriptions and Preds in
+     three, as many as a name may be in, and a number is never a name, whole or split from a word */
   expect([...named]).toEqual([
     ["kA", "bridgestone preds"],
     ["kE", "cup stanley"],
-    ["kG", "tokyo 東京"]
+    ["kG", "tokyo 東京"],
+    ["kH", "preds"],
+    ["kI", "preds"]
   ]);
 });
 
