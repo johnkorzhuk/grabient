@@ -90,7 +90,7 @@ Unknown query parameters are ignored.
 | `/{seed}.tokens.json` | The view's colors as design tokens (DTCG 2025.10), a color token to each |
 | `/{slug}.ase`, `.gpl`, `.grd`, `.tokens.json` | A public collection's palettes in one file, each in the view it was saved in |
 | `/api/og?seed={seed}` | 1200 by 630 card with the wordmark and each color's hex |
-| `/api/search.json?query={query}&limit=48&sort=popular` | {query, items, tier, read}: 1 to 96 items, each with `kseed`, its view, `likes` and `score`, and no colors, which `/{kseed}.json` has. `sort` is popular, rising, newest or oldest |
+| `/api/search.json?query={query}&limit=48&sort=popular` | {query, items, tier, read}: 1 to 96 items, each with `kseed`, its view, `likes`, `score` and, on the palettes every `sort` puts first, `lead`, and no colors, which `/{kseed}.json` has. `sort` is popular, rising, newest or oldest |
 | `/api/og/query?query={query}` | A search's image as a card with the wordmark |
 | `/api/palettes?sort=popular&page=1&limit=24` | The gallery: {items, total, page, limit, totalPages}. `sort` is popular, rising, newest or oldest; with rising, `frame` is 1w (the default), 3m or 1y, how long a like counts |
 | `/api/collections?q={query}&sort=popular&page=1&limit=24` | Public collections: {items, total, page, totalPages}. `sort=rising` takes `frame` as the gallery does |
@@ -103,7 +103,7 @@ Unknown query parameters are ignored.
 
 ## Search
 
-Words, emoji, hex codes and seeds are answered from a snapshot of every public palette, with no model call. Words cover colors, tones, moods, scenes, seasons and uses in 20 languages, and a few hundred emoji stand for them. Hex codes find the palettes nearest those colors, and a seed the palettes most like it. Words outside the vocabulary, in any language, are read by an embedding model once per distinct query (tier "model"); past its limit the answer is tier "account" with no palettes. `read` says what the search made of the words: the phrases it knew, the words nothing read, and what followed no, not or without, which a search cannot leave out. A search for a collection's own subject is led by that collection's palettes.
+Words, emoji, hex codes and seeds are answered from a snapshot of every public palette, with no model call. Words cover colors, tones, moods, scenes, seasons and uses in 20 languages, and a few hundred emoji stand for them. Hex codes find the palettes nearest those colors, and a seed the palettes most like it, led by up to six that its public collections hold. Names no color says, such as a team or a game, are found in palettes' titles, the ones their collections give them among them, in collections' titles and tags, and in the names those collections' descriptions of a palette write, in one of them or across them (tier "named"). Other words outside the vocabulary, in any language, are read by an embedding model once per distinct query (tier "model"); past its limit the answer is tier "account" with no palettes. `read` says what the search made of the words: the phrases it knew, the words nothing read, and what followed no, not or without, which a search cannot leave out. A search for a collection's own subject is led by that collection's palettes. The palettes a search's words name and a seed's collection-mates carry `lead`, and every `sort` puts them first.
 
 ## MCP
 

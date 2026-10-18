@@ -23,12 +23,12 @@ The address plus `.png`, `.svg`, `.css` or `.json` is the palette as a file in i
 
 ## The path
 
-1. **Find.** `search_palettes` takes words in the person's own language, hex colors the palettes come near, or both, and with neither lists the gallery: popular, rising, newest or hot. `search_collections` finds collections by theme, and `get_collection` reads one.
+1. **Find.** `search_palettes` takes words in the person's own language, hex colors the palettes come near, or both, and with neither lists the gallery: popular, rising, newest or hot. A palette's seed finds the palettes most like it, its collections' own first. `search_collections` finds collections by theme, and `get_collection` reads one.
 2. **Make.** `compose_palette` makes palettes from hex colors.
 3. **See.** A palette's `colors` are exact: the bands a Swatches view draws (past 12, the ones nearest its own colors), and for a gradient the colors it blends between. An app that draws its own pictures draws a Swatches view from them, and a gradient as Grabient does from its `css`. `show_palettes` shows a named set as numbered tiles in an app that draws Grabient's view, where Add to collection asks in the chat for the set to be saved as a collection under its name, each palette under the title its tile shows. In any other, each tile has `png`, its picture's address, which is a link: some chat apps draw no picture from one. `inspect_palettes` names each color and gives its contrast on white and on black.
 4. **Change.** `adjust_palette` makes variants of one palette: lighter, darker, calmer, more vivid, warmer, cooler, reversed, fewer or more colors, with a brand color held.
 5. **Take.** A palette's `url` is its page in its view, the link for a person. One made, changed or inspected comes with `css`, which past 32 steps is left to its file. An app that draws no view of Grabient's also gets `files`: its PNG, SVG and CSS addresses and `card`, its picture with each hex written on it.
-6. **Keep.** `save_palette` saves a palette to the account. `save_collection` makes a private collection, which publishes nothing, or changes one of the account's own: a change to a public one shows on the site at once. A palette in a collection can have a `title` and a `description` of its own there, which its card shows under the pointer and its page shows the account.
+6. **Keep.** `save_palette` saves a palette to the account. `save_collection` makes a private collection, which publishes nothing, or changes one of the account's own: a change to a public one shows on the site at once. A palette in a collection can have a `title` and a `description` of its own there, which its card shows under the pointer and its page shows the account. In a public collection of Grabient's or an admin's, the search finds the palette by them.
 
 ## What to read in an answer
 

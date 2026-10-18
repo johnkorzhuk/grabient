@@ -37,8 +37,9 @@ The engine never changes for search. If the engine's curve changes, retrain.
   that leads to a phrase.
 - `emoji.json`: the emoji the search reads, each as the vocabulary phrase it stands for, drawn from Unicode CLDR's
   English emoji annotations by `apps/web/scripts/search/emoji.ts`.
-- `snapshot.bin`: the site's public palettes and collections as vectors, as a deploy ships them. The Worker's scheduled
-  builds start from it and keep their own copy in R2, named after the model version.
+- `snapshot.bin`: the site's public palettes and collections as vectors, as a deploy ships them, with every title its
+  palettes are given and the names their collections' descriptions of them write. The Worker's scheduled builds start
+  from it and keep their own copy in R2, named after the model version.
 
 ## Training data
 
