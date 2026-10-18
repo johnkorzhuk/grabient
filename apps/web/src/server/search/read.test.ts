@@ -7,6 +7,7 @@ import {
   excludedWords,
   hexQuery,
   knownQuery,
+  nameWords,
   plainPhrase,
   queryWords,
   titleNames
@@ -114,6 +115,13 @@ test("what follows a negation is read and said, never left out", () => {
   expect(excludedWords(voc, "forget me not")).toEqual([]);
   expect(excludedWords(voc, "floresta no outono")).toEqual([]);
   expect(excludedWords(voc, "bleu sans rouge")).toEqual(["rouge"]);
+});
+
+test("a name is read to the end of its text, a query to its hundredth character", () => {
+  const title = `${"Teal ".repeat(20)}Lakers`;
+  expect(nameWords(title)).toContain("lakers");
+  expect(queryWords(title)).not.toContain("lakers");
+  expect(nameWords("The Lakers of the night")).toEqual(["lakers", "night"]);
 });
 
 test("a title names what it holds, and beneath a collection's own title", () => {

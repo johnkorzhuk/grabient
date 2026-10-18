@@ -112,6 +112,14 @@ describe("a list someone holds, searched", () => {
   );
 });
 
+test("names are read whole: a piece of a cut word names nothing, and a tag past the 80th character names its palettes", async () => {
+  const env = searchEnv();
+  for (const piece of ["h", "ear", "spo", "wallpa"])
+    expect((await searchPalettes(env, piece)).tier, piece).toBe("account");
+  const tagged = await searchPalettes(env, "visualization");
+  expect([tagged.tier, tagged.items[0]?.tags]).toEqual(["named", ["sequential data", "heatmap"]]);
+});
+
 test("without the search files a search is unavailable", async () => {
   const env = searchEnv({ ASSETS: assets(["snapshot.bin"]) });
   expect((await searchPalettes(env, "blue")).tier).toBe("unavailable");

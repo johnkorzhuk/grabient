@@ -8,7 +8,7 @@ import { blend, paletteVector, seedVector } from "@grabient/search/vectors.ts";
 import type { AssetsEnv } from "../assets.ts";
 import { loadModel } from "./files.ts";
 import { keep } from "./kept.ts";
-import { lineStart, queryWords } from "./read.ts";
+import { nameWords } from "./read.ts";
 
 export interface Candidate {
   seed: string;
@@ -130,29 +130,28 @@ export async function hexQueryVector(
   return model && palette ? paletteVector(model, palette).values : null;
 }
 
-/* Names no color says (Lakers, Zelda) are found as words in palette titles and in collections' titles and tags. */
+/* Names no color says (Lakers, Zelda), read whole: the titles palettes are given, and each collection's title and
+   tags. */
 interface NameIndex {
-  palettes: Map<string, number[]>;
+  titles: Map<string, number[]>;
   collections: Map<string, number[]>;
 }
 const nameIndexes = new WeakMap<Snapshot, NameIndex>();
 function nameIndex(snapshot: Snapshot): NameIndex {
   const held = nameIndexes.get(snapshot);
   if (held) return held;
-  const index: NameIndex = { palettes: new Map(), collections: new Map() };
-  const add = (map: Map<string, number[]>, text: string, row: number) => {
-    for (const word of new Set(queryWords(lineStart(text)))) {
+  const index: NameIndex = { titles: new Map(), collections: new Map() };
+  const add = (map: Map<string, number[]>, words: readonly string[], at: number) => {
+    for (const word of new Set(words)) {
       const list = map.get(word);
-      if (list) list.push(row);
-      else map.set(word, [row]);
+      if (list) list.push(at);
+      else map.set(word, [at]);
     }
   };
-  snapshot.titles.forEach((title, i) => {
-    if (title) add(index.palettes, title, i);
-  });
-  snapshot.names.forEach((name, i) => {
-    add(index.collections, name.words, i);
-  });
+  for (const [row, title] of snapshot.titles.entries())
+    if (title) add(index.titles, nameWords(title), row);
+  for (const [k, name] of snapshot.names.entries())
+    add(index.collections, nameWords(name.words), k);
   nameIndexes.set(snapshot, index);
   return index;
 }
@@ -182,7 +181,7 @@ export interface NamedAnswer {
 export function namedPalettes(snapshot: Snapshot, words: readonly string[]): NamedAnswer | null {
   if (!words.length || (!snapshot.titles.length && !snapshot.names.length)) return null;
   const index = nameIndex(snapshot);
-  const titled = holdingAll(index.palettes, words);
+  const titled = holdingAll(index.titles, words);
   const named = holdingAll(index.collections, words);
   const rows = [...new Set([...titled, ...named.flatMap(c => snapshot.names[c].members)])];
   return rows.length ? { rows, names: named.map(c => snapshot.names[c].subject) } : null;
@@ -190,7 +189,7 @@ export function namedPalettes(snapshot: Snapshot, words: readonly string[]): Nam
 
 /** Whether some palette's title holds every word as written. */
 export const titled = (snapshot: Snapshot, words: readonly string[]): boolean =>
-  holdingAll(nameIndex(snapshot).palettes, words, false).length > 0;
+  holdingAll(nameIndex(snapshot).titles, words, false).length > 0;
 
 /** The members of the collections whose subject is this phrase, in their order. A collection is one search answered on
     purpose, by palettes chosen for its title, so they lead a search for it: NBA team for nba team, Sunset for sunset. */

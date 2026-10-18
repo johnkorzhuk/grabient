@@ -14,20 +14,27 @@ export const hasPictograph = (text: string): boolean => PICTOGRAPH.test(text);
 
 /** NFKC, lowercase, and only letters, marks, digits and emoji: marks stay, since they are the vowels of Hindi and the
     accents of others. Each emoji is a word of its own, without the pieces that change how it is drawn and never what it
-    means (the presentation selector, a keycap, a skin tone), so ❄️ and ❄ are one word. Cut at QUERY_MAX code points,
-    never through a character. */
+    means (the presentation selector, a keycap, a skin tone), so ❄️ and ❄ are one word. A title, a tag or a description
+    is read this way to its end. */
+export function normalizeText(text: string): string {
+  return (
+    text
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/[️⃣\p{Emoji_Modifier}]/gu, "")
+      .replace(/[^\p{L}\p{M}\p{N}\s\p{Extended_Pictographic}‍]/gu, " ")
+      // the joiner holds only between two pictographs; anywhere else it separates words
+      .replace(/(?<!\p{Extended_Pictographic})‍|‍(?!\p{Extended_Pictographic})/gu, " ")
+      .replace(EMOJI, " $& ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
+/** A query as the vocabulary reads it: the text normalized, then cut at QUERY_MAX code points, never through a
+    character. */
 export function normalizeQuery(text: string): string {
-  const t = text
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/[️⃣\p{Emoji_Modifier}]/gu, "")
-    .replace(/[^\p{L}\p{M}\p{N}\s\p{Extended_Pictographic}‍]/gu, " ")
-    // the joiner holds only between two pictographs; anywhere else it separates words
-    .replace(/(?<!\p{Extended_Pictographic})‍|‍(?!\p{Extended_Pictographic})/gu, " ")
-    .replace(EMOJI, " $& ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return Array.from(t).slice(0, QUERY_MAX).join("").trim();
+  return Array.from(normalizeText(text)).slice(0, QUERY_MAX).join("").trim();
 }
 
 /* scripts written without spaces between words, which the segmenter splits */
@@ -46,12 +53,17 @@ function segmented(run: string): string[] {
   return words.length ? words : [run];
 }
 
-/** The words of a query: what spaces separate, and inside Chinese, Japanese, Thai and the like, what the segmenter finds. */
-export const queryTokens = (text: string): string[] =>
-  normalizeQuery(text)
+const tokensOf = (normalized: string): string[] =>
+  normalized
     .split(" ")
     .filter(Boolean)
     .flatMap(token => (UNSPACED.test(token) ? segmented(token) : [token]));
+
+/** The words of a query: what spaces separate, and inside Chinese, Japanese, Thai and the like, what the segmenter finds. */
+export const queryTokens = (text: string): string[] => tokensOf(normalizeQuery(text));
+
+/** The words of a text read to its end, split as a query's are. */
+export const textTokens = (text: string): string[] => tokensOf(normalizeText(text));
 
 /** Words back into text as the vocabulary writes it: a space between them, none inside an unspaced script. */
 export const joinTokens = (tokens: readonly string[]): string =>

@@ -7,8 +7,10 @@ import {
   joinTokens,
   nearWord,
   normalizeQuery,
+  normalizeText,
   QUERY_MAX,
-  queryTokens
+  queryTokens,
+  textTokens
 } from "./text.ts";
 import { FORM_WORDS, FUNCTION_WORDS, padded, queryIntent } from "./words.ts";
 
@@ -47,6 +49,24 @@ test("normalization keeps emoji and marks, and cuts by code point", () => {
   expect(normalizeQuery("लाल")).toBe("लाल");
   expect(QUERY_MAX).toBe(100);
   expect(normalizeQuery("🌊".repeat(60)).split(" ")).toHaveLength(50);
+});
+
+test("a title, a tag or a description is read to its end, and a query to its hundredth code point", () => {
+  const text = `${"Ocean blue, ".repeat(24)}and a night.`;
+  expect(text).toHaveLength(300);
+  expect(normalizeText(text)).toBe(`${"ocean blue ".repeat(24)}and a night`);
+  expect(Array.from(normalizeQuery(text)).length).toBeLessThanOrEqual(QUERY_MAX);
+  expect(textTokens(text).at(-1)).toBe("night");
+  expect(queryTokens(text)).not.toContain("night");
+  for (const short of [
+    "Nashville Predators inspired palette",
+    "日本の秋",
+    "พระอาทิตย์ตก",
+    "🌊🌅sunset"
+  ])
+    expect(textTokens(short), short).toEqual(queryTokens(short));
+  // mapped as the training script maps its phrases: the index map passes cuts nothing
+  expect(["Ocean blue", "日本の秋"].map(normalizeQuery)).toEqual(["ocean blue", "日本の秋"]);
 });
 
 test("words are found inside unspaced scripts", () => {

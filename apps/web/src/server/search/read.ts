@@ -9,7 +9,8 @@ import {
   hasPictograph,
   joinTokens,
   normalizeQuery,
-  queryTokens
+  queryTokens,
+  textTokens
 } from "@grabient/search/text.ts";
 import { blend } from "@grabient/search/vectors.ts";
 import { FORM_WORDS, FUNCTION_WORDS, padded } from "@grabient/search/words.ts";
@@ -36,9 +37,13 @@ export interface KnownQuery {
 const setAside = (voc: Vocabulary, word: string) =>
   FORM_WORDS.has(word) || (FUNCTION_WORDS.has(word) && !voc.lexicon.exactHit(word));
 
+const meaningful = (word: string) => !FORM_WORDS.has(word) && !FUNCTION_WORDS.has(word);
+
 /** The words of a query that say what is wanted: normalized, split in every script, without form and grammar. */
-export const queryWords = (text: string): string[] =>
-  queryTokens(text).filter(word => !FORM_WORDS.has(word) && !FUNCTION_WORDS.has(word));
+export const queryWords = (text: string): string[] => queryTokens(text).filter(meaningful);
+
+/** The same words of a text read to its end: what a title, or a collection's title and tags, call a palette. */
+export const nameWords = (text: string): string[] => textTokens(text).filter(meaningful);
 
 /* At each word, the longest run of up to `longest` words the vocabulary holds as one phrase (dark blue; 深蓝色 where the
    segmenter gave 深 and 蓝色), else the word itself, a Korean noun without its particle included. */
@@ -113,9 +118,9 @@ export function knownQuery(voc: Vocabulary, text: string): KnownQuery | null {
   };
 }
 
-/* a title, or a collection's title and tags, is read to its 80th character: read further, other palettes lead */
-export const lineStart = (text: string): string =>
-  Array.from(normalizeQuery(text)).slice(0, 80).join("");
+/* titleNames reads a title, or a collection's title and tags, to its 80th character: read further, other collections
+   answer */
+const lineStart = (text: string): string => Array.from(normalizeQuery(text)).slice(0, 80).join("");
 
 /** What a title names, as rows of the vocabulary. A phrase the vocabulary holds only as one collection's title (kind
     `collection`) is read beneath too, so violet rain on sandstone names violet and sandstone; so is each side of a word
