@@ -32,8 +32,9 @@ import styles from "./Settings.module.css";
    while it shows on no palette comes with an offer to show it on the palettes the account liked first, which stays
    off unless taken (Privacy's switch); one set while it shows is checked again, and the line says if it went off. */
 
-/** What a rename did to the account's name on palettes: still shown, or off and why. */
-type RenamedCredit = "kept" | "unfit" | "unchecked";
+/** What a rename did to the account's name on palettes: still shown, or off until the new name is checked. A name
+    the checks refuse is no name the server keeps. */
+type RenamedCredit = "kept" | "unchecked";
 
 const AVATAR_SIDE = 256;
 const AVATAR_FILE_MAX = 5 * 1024 * 1024;
@@ -219,13 +220,11 @@ export function Profile(props: {
       const credit = answer?.credit;
       if (credit && user) queryClient.setQueryData(creditKey(user.id), credit === "kept");
       say(
-        credit === "unfit"
-          ? t("Saved. This username can't be shown on palettes, so your name was taken off them.")
-          : credit === "unchecked"
-            ? t(
-                "Saved. Your name was taken off palettes until the new username is checked. Turn it on again in Privacy."
-              )
-            : t("Saved.")
+        credit === "unchecked"
+          ? t(
+              "Saved. Your name was taken off palettes until the new username is checked. Turn it on again in Privacy."
+            )
+          : t("Saved.")
       );
       setOfferFailure("");
       setOffer(renamed && !credit && !!user?.username);

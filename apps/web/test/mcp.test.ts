@@ -445,7 +445,7 @@ describe("the tools", () => {
     expect(JSON.stringify({ tools }).length).toBeLessThan(17_500);
   });
 
-  it("are the admins' twenty-eight more for an admin who chose them, every hint stated", async () => {
+  it("are the admins' twenty-nine more for an admin who chose them, every hint stated", async () => {
     const env = testEnv();
     const { token } = await connected(env, { admin: true });
     const tools = (await rpc(env, token, "tools/list")).body?.result.tools as {
@@ -1869,6 +1869,45 @@ describe("the admins' tools", () => {
     expect(signups.accounts).toBeGreaterThanOrEqual(1);
     expect(signups.admins).toBeGreaterThanOrEqual(1);
     expect(JSON.stringify(signups)).not.toContain(reader.email);
+  });
+
+  it("take a reader's name off palettes for good, and give it back, never an admin's", async () => {
+    const env = testEnv();
+    const { token } = await connected(env, { admin: true });
+    const reader = await makeAccount(env);
+    const username = `reader${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
+    await env.DB.prepare("UPDATE auth_user SET username = ?, credit_name = ? WHERE id = ?")
+      .bind(username, username, reader.id)
+      .run();
+    const held = () =>
+      env.DB.prepare("SELECT credit_name, credit_refused FROM auth_user WHERE id = ?")
+        .bind(reader.id)
+        .first();
+    expect(
+      (await call(env, token, "credit_remove", { username: username.toUpperCase() })).value
+    ).toEqual({
+      username,
+      shown: false,
+      refused: true
+    });
+    expect(await held()).toEqual({ credit_name: null, credit_refused: username });
+    expect((await call(env, token, "credit_remove", { username, restore: true })).value).toEqual({
+      username,
+      shown: false,
+      refused: false
+    });
+    expect(await held()).toEqual({ credit_name: null, credit_refused: null });
+    expect((await call(env, token, "credit_remove", { username: "nobody-holds-this" })).error).toBe(
+      "No account has that username."
+    );
+    const other = await makeAdmin(env);
+    const theirs = `admin${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
+    await env.DB.prepare("UPDATE auth_user SET username = ? WHERE id = ?")
+      .bind(theirs, other.id)
+      .run();
+    expect((await call(env, token, "credit_remove", { username: theirs })).error).toBe(
+      "An admin's name is the site's own."
+    );
   });
 
   it("read the site's own counts through the analytics binding, in the dialect it speaks", async () => {

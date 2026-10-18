@@ -1,4 +1,5 @@
-import { all, batch } from "@grabient/server/db/d1.ts";
+import { all, batch, first, run } from "@grabient/server/db/d1.ts";
+import { USERNAME_MAX } from "../../../../features/account/username.ts";
 import { isCollectionSlug, slugifyTitle } from "../../../../features/collections/address.ts";
 import { listWords } from "../../../../lib/words.ts";
 import { signalSite, useRecord } from "../../../palette-use/record.ts";
@@ -28,6 +29,7 @@ import { readUsage } from "../../admin/usage.ts";
 import {
   answer,
   entryOf,
+  flag,
   items,
   list,
   moment,
@@ -549,6 +551,39 @@ export const readerTools: readonly Tool[] = [
             }
           : {})
       });
+    }
+  },
+  {
+    name: "credit_remove",
+    title: "Take a name off palettes",
+    hints: CHANGES_SITE,
+    description:
+      "Take a reader's username off the palettes they liked first, at once and for good: the account cannot show that name there again, though a new username it takes is checked as any is. `restore` lets it show the name again once it turns the switch back on. An admin's name is the site's own.",
+    inputSchema: shape(
+      {
+        username: text("The reader's username, in any case.", { maxLength: USERNAME_MAX }),
+        restore: flag("Let the account show the name again.")
+      },
+      ["username"]
+    ),
+    async run(args, c) {
+      const asked = str(args.username);
+      const account = await first<{ id: string; username: string; role: string }>(
+        c.env.DB,
+        "SELECT id, username, role FROM auth_user WHERE LOWER(username) = LOWER(?)",
+        asked
+      );
+      if (!account) return refuse("No account has that username.");
+      if (account.role === "admin") return refuse("An admin's name is the site's own.");
+      const restore = args.restore === true;
+      await run(
+        c.env.DB,
+        "UPDATE auth_user SET credit_name = NULL, credit_refused = ? WHERE id = ?",
+        restore ? null : account.username,
+        account.id
+      );
+      await logContribution(c.env, who(c), "credit_remove", account.username, { restore });
+      return answer({ username: account.username, shown: false, refused: !restore });
     }
   }
 ];

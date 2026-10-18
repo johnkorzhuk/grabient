@@ -70,10 +70,12 @@ export const LIMITS = {
   avatarUploadDaily: { requests: 500, window: 86400, site: true },
   usernameCheck: { requests: 120, window: 3600 },
   usernameWrite: { requests: 10, window: 3600 },
-  // Clef judging a name before it is shown on palettes, about six Workers AI neurons each, per account and for the
-  // site's day, which stays a few cents however it is pressed. Settings' switch for that name reads and writes cheaply.
+  // Llama and Clef judging a name as it is saved and before it is shown on palettes, about eleven Workers AI neurons
+  // each, per account by the hour and the day and for the site's day, which stays a few cents however it is pressed.
   usernameScreen: { requests: 10, window: 3600 },
-  usernameScreenDaily: { requests: 500, window: 86400, site: true, lease: 5 },
+  usernameScreenAccountDaily: { requests: 20, window: 86400 },
+  usernameScreenDaily: { requests: 2000, window: 86400, site: true, lease: 5 },
+  // Settings' switch for that name, which reads and writes a row
   creditChoice: { requests: 60, window: 60, local: true },
   // A client document Grabient keeps no copy of: the Worker fetches it from wherever its address points.
   cimdFetch: { requests: 20, window: 60, local: true },

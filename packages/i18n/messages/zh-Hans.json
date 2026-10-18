@@ -542,7 +542,6 @@
   "Saved palettes like {name}": "已保存的调色板：类似{name}",
   "Saved.": "已保存。",
   "Saved. Change it in Settings.": "已保存。可在“设置”中更改。",
-  "Saved. This username can't be shown on palettes, so your name was taken off them.": "已保存。此用户名无法显示在调色板上，因此已将你的名字从这些调色板上移除。",
   "Saved. Your name was taken off palettes until the new username is checked. Turn it on again in Privacy.": "已保存。在新用户名通过检查前，你的名字已从调色板上移除。请在隐私中重新开启。",
   "Saving": "保存",
   "Saving…": "正在保存…",

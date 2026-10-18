@@ -542,7 +542,6 @@
   "Saved palettes like {name}": "保存したパレット：{name}に似たもの",
   "Saved.": "保存しました。",
   "Saved. Change it in Settings.": "保存しました。設定で変更できます。",
-  "Saved. This username can't be shown on palettes, so your name was taken off them.": "保存しました。このユーザー名はパレットに表示できないため、パレットから名前を外しました。",
   "Saved. Your name was taken off palettes until the new username is checked. Turn it on again in Privacy.": "保存しました。新しいユーザー名が確認されるまで、パレットから名前を外しました。プライバシーでもう一度オンにしてください。",
   "Saving": "保存",
   "Saving…": "保存中…",

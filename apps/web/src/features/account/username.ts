@@ -21,6 +21,26 @@ const RESERVED = new Set([
   "help"
 ]);
 
+/** A name as it reads, however it is spelled: digits for the letters they look like, an l for an i, and nothing but
+    letters. A card says a person's name beside a palette as it says Grabient's, so neither the site's own name nor an
+    admin's may be taken under another spelling. */
+const FOLD: Record<string, string> = {
+  "0": "o",
+  "1": "i",
+  "3": "e",
+  "4": "a",
+  "5": "s",
+  "7": "t",
+  "9": "g",
+  l: "i"
+};
+export const folded = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[0134579l]/g, c => FOLD[c] ?? c)
+    .replace(/[^a-z]/g, "");
+const SITE = folded("grabient");
+
 export const Username = v.pipe(
   v.string(msg("Use at least 3 characters.")),
   v.trim(),
@@ -30,7 +50,10 @@ export const Username = v.pipe(
   /* A letter or a digit at each end: a handle that starts with an underscore belongs to an account without a
      username, made from its id, so a username shaped like one could take another account's addresses. */
   v.regex(/^[A-Za-z0-9](?:.*[A-Za-z0-9])?$/, msg("Start and end with a letter or number.")),
-  v.check(name => !RESERVED.has(name.toLowerCase()), msg("That username is reserved."))
+  v.check(
+    name => !RESERVED.has(name.toLowerCase()) && !folded(name).includes(SITE),
+    msg("That username is reserved.")
+  )
 );
 
 /** The username as it is kept (trimmed), or the first rule it breaks, as a message key. */

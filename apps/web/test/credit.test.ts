@@ -3,28 +3,39 @@ import { randomPalette } from "@grabient/engine/random.ts";
 import { first, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { describe, expect, it } from "vitest";
+import { readUsername } from "../src/features/account/username.ts";
 import { creditResponse } from "../src/server/account/credit.ts";
 import { checkUsername, saveUsername } from "../src/server/account/profile.ts";
 import { clefState, fitToShow, refusedName } from "../src/server/account/screen.ts";
 import { creditsOf, paletteCreditResponse } from "../src/server/gallery/credit.ts";
+import { likeInput, setLike } from "../src/server/gallery/likes.ts";
 import { bodyOf, get, makeAccount, makeAdmin, ORIGIN, post, testEnv, unique } from "./helpers.ts";
 
 /* A palette's credit over the real migrations: who brought it to Grabient, the username an account turns on for the
-   palettes it liked first, and the checks a name passes before it shows. Clef is a stand-in that answers as told. */
+   palettes it liked first, and the checks a name passes as it is saved and before it shows. Llama and Clef are
+   stand-ins that judge as told. */
 
-/** Workers AI as a test tells it to answer: Clef's yes for each name it reads, or a failure. */
-function clef(answer: (state: string) => number | Error = () => 0.02) {
+const LLAMA = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const CLEF = "@cf/cloudflare/clef";
+
+/** Workers AI as a test tells it to judge: true refuses a name, false passes it, an Error is no answer; each model
+    may judge apart. */
+function models(judge: (name: string, model: string) => boolean | Error = () => false) {
   const read: string[] = [];
   const ai = {
-    run: async (model: string, input: { state: string }) => {
-      read.push(`${model} ${input.state}`);
-      const said = answer(input.state);
+    run: async (
+      model: string,
+      input: { state?: string; messages?: { role: string; content: string }[] }
+    ) => {
+      const name = input.state
+        ? input.state.split("\n")[0]!.replace("Username: ", "")
+        : input.messages!.at(-1)!.content;
+      read.push(`${model} ${name}`);
+      const said = judge(name, model);
       if (said instanceof Error) throw said;
-      return {
-        model: "clef",
-        answers: { offensive: { type: "noul", noul: said } },
-        usage: { input_tokens: 265, output_tokens: 0 }
-      };
+      return model === CLEF
+        ? { model: "clef", answers: { offensive: { type: "noul", noul: said ? 0.95 : 0.03 } } }
+        : { response: said ? "Yes." : "no" };
     }
   } as unknown as Ai;
   return { ai, read };
@@ -52,15 +63,20 @@ const rename = async (env: Env, cookie: string, username: string) => {
   const answer = await saveUsername(post("/api/settings/username", { username }, { cookie }), env);
   return [answer.status, await answer.json()];
 };
+const check = async (env: Env, cookie: string, username: string) =>
+  (await checkUsername(post("/api/settings/username/check", { username }, { cookie }), env)).json();
 
-const like = (env: Env, userId: string, seed: string, at: number) =>
+/** A like, at `at` on the server's own clock as well as the reader's, and how an admin's was made. */
+const like = (env: Env, userId: string, seed: string, at: number, via: string | null = null) =>
   run(
     env.DB,
-    `INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at)
-     VALUES (?, ?, 7, 'linearGradient', 90, ?)`,
+    `INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at, listed_at, via)
+     VALUES (?, ?, 7, 'linearGradient', 90, ?, ?, ?)`,
     userId,
     seed,
-    at
+    at,
+    at,
+    via
   );
 const gallery = (env: Env, seed: string, at: number) =>
   run(
@@ -69,15 +85,24 @@ const gallery = (env: Env, seed: string, at: number) =>
     seed,
     at
   );
-/** A public collection of Grabient's holding the palette since `at`. */
-async function grabients(env: Env, seed: string, at: number) {
+/** A collection holding the palette since `at`: an account's, else Grabient's. */
+async function collect(
+  env: Env,
+  seed: string,
+  at: number,
+  owner: string | null = null,
+  visibility: "public" | "private" = "public"
+) {
   const id = unique("credit");
   await run(
     env.DB,
     `INSERT INTO k_collections (id, slug, owner_kind, owner_id, title, visibility, created_at, updated_at)
-     VALUES (?, ?, 'agent', 'seeder', 'Credit', 'public', ?, ?)`,
+     VALUES (?, ?, ?, ?, 'Credit', ?, ?, ?)`,
     id,
     id,
+    owner ? "user" : "agent",
+    owner ?? "seeder",
+    visibility,
     at,
     at
   );
@@ -103,14 +128,30 @@ async function named(env: Env, shown: boolean) {
   );
   return { ...account, username };
 }
+/** A persona: an account the site's scheduled likes are made with. */
+async function persona(env: Env) {
+  const account = await makeAccount(env);
+  await run(
+    env.DB,
+    "INSERT INTO k_personas (user_id, agent, handle, taste, created_at) VALUES (?, 'grabient', ?, '[]', 0)",
+    account.id,
+    handle("persona")
+  );
+  return account;
+}
 
 describe("a username's checks", () => {
-  it("the list refuses slurs, hate codes and the harshest words, and no real name", () => {
+  it("the list refuses slurs, stereotypes, hate codes and the harshest words, and no real name", () => {
     for (const name of [
       "fuck_you",
       "fuckface99",
       "sh1thead",
       "n1gger",
+      "ni99er",
+      "bitch",
+      "sonofabitch",
+      "gypsy_soul",
+      "redneck-rides",
       "kkk_member",
       "88heil",
       "sieg_heil",
@@ -135,6 +176,7 @@ describe("a username's checks", () => {
       "sarah1988",
       "mike88",
       "alex_14",
+      "class_of_99",
       "Hubert_Heil",
       "Middlesex",
       "assassin_creed",
@@ -143,50 +185,81 @@ describe("a username's checks", () => {
       expect(refusedName(name), name).toBe(false);
   });
 
-  it("Clef reads a name and the name its digits spell, within the account's hour of checks", async () => {
+  it("no one takes the site's name, or an admin's, under another spelling", async () => {
+    for (const name of ["Grabient1", "grabient_staff", "GRABlENT", "gr4bi3nt", "the-grabient"])
+      expect(readUsername(name).problem, name).toBe("That username is reserved.");
+    expect(readUsername("grab_bient").problem).toBeNull();
+    const env = testEnv();
+    const owner = await makeAdmin(env);
+    const theirs = handle("olaf");
+    await run(env.DB, "UPDATE auth_user SET username = ? WHERE id = ?", theirs, owner.id);
+    const ada = await makeAccount(env);
+    const spelled = theirs.replace(/^o/, "0").replace("l", "1");
+    expect(await check(env, ada.cookie, spelled)).toEqual({
+      available: false,
+      problem: "That username is reserved."
+    });
+    expect(await rename(env, ada.cookie, spelled)).toEqual([
+      400,
+      { error: "That username is reserved." }
+    ]);
+    // the admin's own name, and any other, stand
+    expect(await rename(env, owner.cookie, theirs.toUpperCase())).toEqual([200, { success: true }]);
+  });
+
+  it("Llama and Clef judge a name side by side, either refusing it, within the account's hour of checks", async () => {
     expect(clefState("maya")).toBe("Username: maya");
-    expect(clefState("sh1t4ke")).toBe("Username: sh1t4ke\nIts digits read as letters: shitake");
-    const told = clef(state => (state.includes("vulgar") ? 0.91 : 0.04));
+    expect(clefState("sh1t4ke9")).toBe("Username: sh1t4ke9\nIts digits read as letters: shitakeg");
+    const told = models(name => name.includes("vulgar"));
     const env = testEnv({ AI: told.ai });
     const id = unique("screen");
     expect(await fitToShow(env, "maya", id)).toBe("fit");
     expect(await fitToShow(env, "so_vulgar", id)).toBe("unfit");
-    // a listed word is refused before Clef is asked
+    // a listed word is refused before any model is asked
     expect(await fitToShow(env, "kkk_member", id)).toBe("unfit");
-    expect(told.read).toEqual([
-      "@cf/cloudflare/clef Username: maya",
-      "@cf/cloudflare/clef Username: so_vulgar"
-    ]);
-    // nothing shows where Clef cannot answer: down, missing, or past the account's ten an hour
-    const down = testEnv({ AI: clef(() => new Error("down")).ai });
-    expect(await fitToShow(down, "maya", unique("screen"))).toBe("unchecked");
+    expect(told.read.sort()).toEqual(
+      [`${CLEF} maya`, `${CLEF} so_vulgar`, `${LLAMA} maya`, `${LLAMA} so_vulgar`].sort()
+    );
+    // either judge's yes refuses; a judge with no answer leaves the name unchecked unless the other refuses it
+    const split = (llama: boolean | Error, clef: boolean | Error) =>
+      fitToShow(
+        testEnv({ AI: models((_, model) => (model === CLEF ? clef : llama)).ai }),
+        "maya",
+        unique("screen")
+      );
+    expect(await split(true, false)).toBe("unfit");
+    expect(await split(false, true)).toBe("unfit");
+    expect(await split(new Error("down"), true)).toBe("unfit");
+    expect(await split(new Error("down"), false)).toBe("unchecked");
+    expect(await split(false, new Error("down"))).toBe("unchecked");
+    // nothing passes where no model answers: missing, or past the account's ten an hour
     expect(await fitToShow(testEnv({ AI: undefined }), "maya", unique("screen"))).toBe("unchecked");
     for (let i = 0; i < 8; i++) expect(await fitToShow(env, `maya${i}`, id)).toBe("fit");
     expect(await fitToShow(env, "maya9", id)).toBe("unchecked");
   });
 
-  it("Settings refuses a listed name as it is typed and saved", async () => {
-    const env = testEnv();
+  it("Settings refuses a listed name as it is typed, and one the models refuse as it is saved", async () => {
+    const env = testEnv({ AI: models(name => name.includes("rude")).ai });
     const ada = await makeAccount(env);
-    const check = await checkUsername(
-      post("/api/settings/username/check", { username: "fuck_you" }, { cookie: ada.cookie }),
-      env
-    );
-    expect(await check.json()).toEqual({
+    expect(await check(env, ada.cookie, "fuck_you")).toEqual({
       available: false,
       problem: "That username isn't allowed."
     });
-    expect(await rename(env, ada.cookie, "sh1thead")).toEqual([
-      400,
-      { error: "That username isn't allowed." }
-    ]);
+    for (const name of ["sh1thead", "bitch", handle("rude")])
+      expect(await rename(env, ada.cookie, name), name).toEqual([
+        400,
+        { error: "That username isn't allowed." }
+      ]);
     expect(await rename(env, ada.cookie, handle("Fukuoka"))).toEqual([200, { success: true }]);
+    // with no model to answer, a name the list passes is saved, and shows on no palette until judged
+    const down = testEnv({ AI: models(() => new Error("down")).ai });
+    expect(await rename(down, ada.cookie, handle("rude"))).toEqual([200, { success: true }]);
   });
 });
 
 describe("an account's name on palettes", () => {
   it("starts off, needs a username, turns on once the name is fit to show and off at a press", async () => {
-    const env = testEnv({ AI: clef().ai });
+    const env = testEnv({ AI: models().ai });
     const ada = await makeAccount(env);
     expect(await choice(env, ada.cookie)).toEqual([200, { on: false }]);
     expect(await choice(env, ada.cookie, true)).toEqual([
@@ -202,13 +275,13 @@ describe("an account's name on palettes", () => {
     });
     expect(await choice(env, ada.cookie, false)).toEqual([200, { on: false }]);
     expect(await choice(env, ada.cookie)).toEqual([200, { on: false }]);
-    // a name Clef holds offensive stays off, and so does one it could not read
-    const refused = testEnv({ AI: clef(() => 0.97).ai });
+    // a name a model holds unfit stays off, and so does one no model could read
+    const refused = testEnv({ AI: models(() => true).ai });
     expect(await choice(refused, ada.cookie, true)).toEqual([
       422,
       { error: "This username can't be shown on palettes. Choose another to turn this on." }
     ]);
-    const down = testEnv({ AI: clef(() => new Error("down")).ai });
+    const down = testEnv({ AI: models(() => new Error("down")).ai });
     expect(await choice(down, ada.cookie, true)).toEqual([
       503,
       { error: "Couldn't check the username. Try again." }
@@ -216,8 +289,32 @@ describe("an account's name on palettes", () => {
     expect(await choice(env, ada.cookie)).toEqual([200, { on: false }]);
   });
 
+  it("never shows a name an admin took off palettes, or one from before the username rules", async () => {
+    const env = testEnv({ AI: models().ai });
+    const ada = await named(env, false);
+    await run(env.DB, "UPDATE auth_user SET credit_refused = ? WHERE id = ?", ada.username, ada.id);
+    expect(await choice(env, ada.cookie, true)).toEqual([
+      422,
+      { error: "This username can't be shown on palettes. Choose another to turn this on." }
+    ]);
+    // another name is checked as any is
+    expect(await rename(env, ada.cookie, handle("ada"))).toEqual([200, { success: true }]);
+    expect(await choice(env, ada.cookie, true)).toEqual([200, { on: true }]);
+    const old = await makeAccount(env);
+    await run(
+      env.DB,
+      "UPDATE auth_user SET username = ? WHERE id = ?",
+      `_${handle("old")}`,
+      old.id
+    );
+    expect(await choice(env, old.cookie, true)).toEqual([
+      422,
+      { error: "This username can't be shown on palettes. Choose another to turn this on." }
+    ]);
+  });
+
   it("refuses a request that is no switch's", async () => {
-    const env = testEnv({ AI: clef().ai });
+    const env = testEnv({ AI: models().ai });
     const ada = await makeAccount(env);
     const refused = async (request: Request) => {
       const answer = await creditResponse(request, env);
@@ -243,31 +340,39 @@ describe("an account's name on palettes", () => {
     ]);
   });
 
-  it("shows a new username once Clef finds it fit, and else turns the switch off", async () => {
-    const env = testEnv({ AI: clef(state => (state.includes("rude") ? 0.95 : 0.03)).ai });
+  it("shows a new username once the models find it fit, and else turns the switch off", async () => {
+    const env = testEnv({ AI: models(name => name.includes("rude")).ai });
     const ada = await named(env, true);
     const kept = handle("ada");
     expect(await rename(env, ada.cookie, kept)).toEqual([200, { success: true, credit: "kept" }]);
     expect(await choice(env, ada.cookie)).toEqual([200, { on: true }]);
+    // a name the models refuse is never saved, and the shown one stands
     expect(await rename(env, ada.cookie, handle("rude"))).toEqual([
-      200,
-      { success: true, credit: "unfit" }
+      400,
+      { error: "That username isn't allowed." }
     ]);
-    expect(await choice(env, ada.cookie)).toEqual([200, { on: false }]);
-    // with the switch off, a rename asks nothing and says nothing of it
+    expect(await choice(env, ada.cookie)).toEqual([200, { on: true }]);
+    // with the switch off, a rename asks nothing of it and says nothing of it
+    expect(await choice(env, ada.cookie, false)).toEqual([200, { on: false }]);
     expect(await rename(env, ada.cookie, handle("ada"))).toEqual([200, { success: true }]);
-    const down = testEnv({ AI: clef(() => new Error("down")).ai });
+    // with no model to answer, the switch goes off until the account turns it on again
+    const down = testEnv({ AI: models(() => new Error("down")).ai });
     const bob = await named(down, true);
     expect(await rename(down, bob.cookie, handle("bob"))).toEqual([
       200,
       { success: true, credit: "unchecked" }
     ]);
     expect(await choice(down, bob.cookie)).toEqual([200, { on: false }]);
+    // consent carries only from the name the account showed: a stale one shows no new name
+    const cy = await named(env, false);
+    await run(env.DB, "UPDATE auth_user SET credit_name = 'someoneelse' WHERE id = ?", cy.id);
+    expect(await rename(env, cy.cookie, handle("cy"))).toEqual([200, { success: true }]);
+    expect(await choice(env, cy.cookie)).toEqual([200, { on: false }]);
   });
 });
 
 describe("a palette's credit", () => {
-  it("goes to Grabient where it showed the palette first, an admin with no username where they liked it first, else to the first like that stands", async () => {
+  it("goes to Grabient where its collection held the palette first, an admin with no username where they liked it first, else to the first like that stands", async () => {
     const env = testEnv();
     const admin = await makeAdmin(env);
     const ada = await named(env, true);
@@ -281,11 +386,11 @@ describe("a palette's credit", () => {
     await like(env, admin.id, liked!, 100);
     await like(env, ada.id, liked!, 200);
     // Grabient's collection showed it before the first like
-    await grabients(env, shown!, 50);
+    await collect(env, shown!, 50);
     await like(env, ada.id, shown!, 100);
     // a person liked it before Grabient's collection took it
     await like(env, ada.id, later!, 100);
-    await grabients(env, later!, 200);
+    await collect(env, later!, 200);
     // a person who shows no name liked it first: no one, never the next
     await like(env, bob.id, hidden!, 100);
     await like(env, ada.id, hidden!, 200);
@@ -328,48 +433,117 @@ describe("a palette's credit", () => {
     });
   });
 
-  it("names an admin by their username where they liked or showed the palette first, whatever their switch says", async () => {
+  it("ranks likes by the server's own clock, which no request sets back", async () => {
+    const env = testEnv();
+    const ada = await named(env, true);
+    const mallory = await named(env, true);
+    const seed = fresh();
+    await like(env, ada.id, seed, Date.now() - 60_000);
+    // a like that claims a time years back, as an undo may, is still written now
+    const claimed = likeInput({
+      seed,
+      liked: true,
+      style: "linearGradient",
+      steps: 7,
+      angle: 90,
+      at: Date.UTC(2016, 0, 1)
+    })!;
+    await setLike(env, mallory, claimed);
+    const row = await first<{ created_at: number; listed_at: number }>(
+      env.DB,
+      "SELECT created_at, listed_at FROM k_likes WHERE user_id = ? AND palette_id = ?",
+      mallory.id,
+      seed
+    );
+    expect(row?.created_at).toBe(Date.UTC(2016, 0, 1));
+    expect(row?.listed_at).toBeGreaterThan(Date.now() - 60_000);
+    expect((await creditsOf(env, [seed])).get(seed)).toEqual({ by: "person", name: ada.username });
+  });
+
+  it("goes to Grabient where the site brought the palette: the gallery held it before any like, or a persona liked it first", async () => {
+    const env = testEnv();
+    const ada = await named(env, true);
+    const bot = await persona(env);
+    const day = 86_400_000;
+    const [y2017, published, scheduled, kept, own, taken] = Array.from({ length: 6 }, fresh);
+    // in the gallery since 2017, liked first years later by a person who shows their name
+    await gallery(env, y2017!, Date.UTC(2017, 5, 26));
+    await like(env, ada.id, y2017!, Date.UTC(2025, 4, 14));
+    // published to the gallery, then liked a day on
+    await gallery(env, published!, 1000);
+    await like(env, ada.id, published!, 1000 + day);
+    // a persona's like brought it, and a person's came after
+    await gallery(env, scheduled!, 1000);
+    await like(env, bot.id, scheduled!, 1000);
+    await like(env, ada.id, scheduled!, 2000);
+    // a collection of Grabient's kept private held it before the first like
+    await collect(env, kept!, 500, null, "private");
+    await like(env, ada.id, kept!, 1000);
+    // a person's own private collection held it, and their like a day on brought it to the gallery from there
+    await collect(env, own!, 500, ada.id, "private");
+    await gallery(env, own!, 500);
+    await like(env, ada.id, own!, 500 + day);
+    // a like that brought it, its gallery row written in the same act a few milliseconds before
+    await gallery(env, taken!, 1000);
+    await like(env, ada.id, taken!, 1004);
+    const seeds = [y2017!, published!, scheduled!, kept!, own!, taken!];
+    const credits = await creditsOf(env, seeds);
+    expect(seeds.map(seed => credits.get(seed))).toEqual([
+      { by: "grabient" },
+      { by: "grabient" },
+      { by: "grabient" },
+      { by: "grabient" },
+      { by: "person", name: ada.username },
+      { by: "person", name: ada.username }
+    ]);
+  });
+
+  it("names an admin by their username only on a palette their own like brought, whatever their switch says", async () => {
     const env = testEnv();
     const john = await makeAdmin(env);
     const username = handle("john");
     await run(env.DB, "UPDATE auth_user SET username = ? WHERE id = ?", username, john.id);
     const ada = await named(env, true);
-    const [liked, collected, grabientFirst] = Array.from({ length: 3 }, fresh);
-    // the admin's like first, though their switch is off
-    await like(env, john.id, liked!, 100);
-    await like(env, ada.id, liked!, 200);
-    // a public collection of the admin's showed it before anyone liked it
-    const id = unique("john-collection");
-    await run(
-      env.DB,
-      `INSERT INTO k_collections (id, slug, owner_kind, owner_id, title, visibility, created_at, updated_at)
-       VALUES (?, ?, 'user', ?, 'Mine', 'public', 50, 50)`,
-      id,
-      id,
-      john.id
+    const day = 86_400_000;
+    const [made, app, old, generated, kept, collected, showing, unseen] = Array.from(
+      { length: 8 },
+      fresh
     );
-    await run(
-      env.DB,
-      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
-       VALUES (?, 0, ?, 'linearGradient', 7, 90, 50)`,
-      id,
-      collected
-    );
-    await like(env, ada.id, collected!, 100);
-    // Grabient's own collection showed it before the admin's did
-    await grabients(env, grabientFirst!, 10);
-    await run(
-      env.DB,
-      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
-       VALUES (?, 1, ?, 'linearGradient', 7, 90, 60)`,
-      id,
-      grabientFirst
-    );
-    const credits = await creditsOf(env, [liked!, collected!, grabientFirst!]);
-    expect([liked, collected, grabientFirst].map(seed => credits.get(seed!))).toEqual([
+    // the admin's like on the site brought it, its gallery row written in the same act; a person's came after
+    await gallery(env, made!, 1000);
+    await like(env, john.id, made!, 1004);
+    await like(env, ada.id, made!, 2000);
+    // the admin's like brought it, made through a connected app
+    await gallery(env, app!, 1000);
+    await like(env, john.id, app!, 1000, "mcp");
+    // the gallery held it long before the admin liked it, as it holds 2017's palettes
+    await gallery(env, old!, 1000);
+    await like(env, john.id, old!, 1000 + day);
+    // a collection of Grabient's kept private held it before the admin liked it on its page
+    await collect(env, generated!, 500, null, "private");
+    await gallery(env, generated!, 500);
+    await like(env, john.id, generated!, 1000);
+    // a private collection of the admin's held it before anyone liked it
+    await collect(env, kept!, 500, john.id, "private");
+    await like(env, ada.id, kept!, 1000);
+    // a public collection of the admin's held it, and the admin liked it after
+    await collect(env, collected!, 500, john.id);
+    await like(env, john.id, collected!, 1000);
+    // a public collection of the admin's shows it, and no one liked it
+    await collect(env, showing!, 500, john.id);
+    // a private one alone shows nothing
+    await collect(env, unseen!, 500, john.id, "private");
+    const seeds = [made!, app!, old!, generated!, kept!, collected!, showing!, unseen!];
+    const credits = await creditsOf(env, seeds);
+    expect(seeds.map(seed => credits.get(seed))).toEqual([
       { by: "person", name: username },
-      { by: "person", name: username },
-      { by: "grabient" }
+      { by: "grabient" },
+      { by: "grabient" },
+      { by: "grabient" },
+      { by: "grabient" },
+      { by: "grabient" },
+      { by: "grabient" },
+      null
     ]);
   });
 
