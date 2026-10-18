@@ -64,20 +64,28 @@ export interface CollectionRow {
   forked_from: string | null;
   owner_name: string | null;
   owner_display: string | null;
-  owner_role?: string | null;
+  /** 1 where WORDS_PUBLIC holds */
+  words_public?: number;
 }
-/** A collection's columns and its owner's names: an account's username, display name and role, an agent's own name. */
+
+/** Whose words for their palettes anyone may read, as SQL over a collection `c`: Grabient's and an admin's are the
+    site's own, while a person's are theirs alone, whoever may see the collection. The pages, the files, the apps and
+    the search all read it here. */
+export const WORDS_PUBLIC = `(c.owner_kind = 'agent' OR (c.owner_kind = 'user' AND c.owner_id IN
+  (SELECT id FROM auth_user WHERE role = 'admin')))`;
+
+/** A collection's columns, its owner's names (an account's username and display name, an agent's own name) and
+    whether anyone may read the words it gives its palettes. */
 export const SELECT = `SELECT c.id, c.slug, c.owner_kind, c.owner_id, c.title, c.description, c.tags, c.visibility,
   c.item_count, c.created_at, c.updated_at, c.fork_count, c.forked_from,
   CASE WHEN c.owner_kind = 'user' THEN u.username ELSE c.owner_id END AS owner_name,
   CASE WHEN c.owner_kind = 'user' THEN u.name END AS owner_display,
-  CASE WHEN c.owner_kind = 'user' THEN u.role END AS owner_role
+  ${WORDS_PUBLIC} AS words_public
   FROM k_collections c LEFT JOIN auth_user u ON c.owner_kind = 'user' AND u.id = c.owner_id`;
 
-/** Whether the words a collection gives its palettes may be read by anyone: Grabient's and an admin's are the site's
-    own, while a person's are theirs to read alone, whoever may see the collection. */
-export const wordsPublic = (row: Pick<CollectionRow, "owner_kind" | "owner_role">): boolean =>
-  row.owner_kind === "agent" || row.owner_role === "admin";
+/** Whether the words a collection gives its palettes may be read by anyone (WORDS_PUBLIC, read with the row). */
+export const wordsPublic = (row: Pick<CollectionRow, "words_public">): boolean =>
+  row.words_public === 1;
 
 /** How many palettes a list's card of a collection draws, its page's first. */
 export const PREVIEW_ITEMS = 12;

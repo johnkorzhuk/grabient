@@ -2,11 +2,11 @@ import { run } from "@grabient/server/db/d1.ts";
 import { describe, expect, it } from "vitest";
 import { searchPalettes } from "../src/server/search/search.ts";
 import { shippedSnapshot } from "../src/server/search/snapshot.ts";
-import { syncSnapshot } from "../src/server/search/sync.ts";
+import { readMark, syncSnapshot } from "../src/server/search/sync.ts";
 import { freshIsolate, makeAdmin, seedOf, type TestEnv, testEnv, unique } from "./helpers.ts";
 
 /* The search as a database's own rows make it, through the schedule's build and a fresh isolate's read of the stored
-   copy: the collection-mates that lead a palette's likes. */
+   copy: the mark that says when to build, and the collection-mates that lead a palette's likes. */
 
 /* palettes in the gallery, enough of them that the nearest twelfth of the site is a few palettes deep */
 async function gallery(env: TestEnv, seeds: readonly string[]) {
@@ -20,17 +20,29 @@ async function gallery(env: TestEnv, seeds: readonly string[]) {
   );
 }
 
-/* a public collection of Grabient's holding these palettes, in order */
-async function agentCollection(env: TestEnv, title: string, seeds: readonly string[]) {
+type Owner = { kind: "agent" | "user"; id: string };
+const GRABIENT: Owner = { kind: "agent", id: "a" };
+
+/* a collection of these palettes in order, as its owner keeps it */
+async function collection(
+  env: TestEnv,
+  owner: Owner,
+  visibility: "public" | "private",
+  title: string,
+  seeds: readonly string[]
+) {
   const now = Date.now();
   const id = unique("c").replace(/[^a-z0-9]/g, "");
   await run(
     env.DB,
     `INSERT INTO k_collections (id, slug, owner_kind, owner_id, title, description, tags, visibility, item_count, created_at, updated_at)
-     VALUES (?, ?, 'agent', 'a', ?, '', '[]', 'public', ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, '', '[]', ?, ?, ?, ?)`,
     id,
     `c-${id}`,
+    owner.kind,
+    owner.id,
     title,
+    visibility,
     seeds.length,
     now,
     now
@@ -58,7 +70,7 @@ describe("a palette's collection-mates", () => {
     ];
     // the one voted out stays in the gallery, as near as the one kept
     await gallery(env, [out]);
-    const id = await agentCollection(env, "Harbor blues", [first, kept, out]);
+    const id = await collection(env, GRABIENT, "public", "Harbor blues", [first, kept, out]);
     const admin = await makeAdmin(env);
     await run(
       env.DB,
@@ -76,5 +88,32 @@ describe("a palette's collection-mates", () => {
     expect(items.filter(item => item.lead).map(item => item.kseed)).toEqual([kept]);
     expect(items.find(item => item.kseed === out)).toMatchObject({ kseed: out });
     expect(items.find(item => item.kseed === out)?.lead).toBeUndefined();
+  });
+});
+
+describe("the mark the schedule compares", () => {
+  it("counts the public collections whose words anyone may read, so an owner's role change builds again", async () => {
+    const env = testEnv();
+    const owner = await makeAdmin(env);
+    await collection(env, { kind: "user", id: owner.id }, "public", "Tide lines", [
+      seedOf("#123456", "#abcdef")
+    ]);
+    const role = (to: string) =>
+      run(env.DB, "UPDATE auth_user SET role = ? WHERE id = ?", to, owner.id);
+    expect(await syncSnapshot(env)).toMatchObject({ status: "built" });
+    const before = await readMark(env.DB, "v1");
+    // the model's version, the file's format and twelve numbers
+    expect(before.split(":")).toHaveLength(14);
+
+    await role("user");
+    const demoted = await readMark(env.DB, "v1");
+    expect(demoted).not.toBe(before);
+    expect(demoted.split(":").slice(0, -1)).toEqual(before.split(":").slice(0, -1));
+    expect(await syncSnapshot(env)).toMatchObject({ status: "built" });
+    expect(await syncSnapshot(env)).toMatchObject({ status: "unchanged" });
+
+    await role("admin");
+    expect(await readMark(env.DB, "v1")).toBe(before);
+    expect(await syncSnapshot(env)).toMatchObject({ status: "built" });
   });
 });

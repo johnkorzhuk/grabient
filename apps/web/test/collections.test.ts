@@ -343,6 +343,19 @@ describe("writing a collection", () => {
       description: "Coals at dusk."
     });
     expect((await listed(admins.slug)).title).toBe("Ember");
+    // the words follow the owner's role: an account that is no longer an admin keeps them to itself
+    const role = (to: string) =>
+      env.DB.prepare("UPDATE auth_user SET role = ? WHERE id = ?").bind(to, admin.id).run();
+    await role("user");
+    try {
+      const seen = await first(admins.slug);
+      expect([seen.title, seen.description]).toEqual([undefined, undefined]);
+      expect((await listed(admins.slug)).title).toBeUndefined();
+    } finally {
+      await role("admin");
+    }
+    expect(await first(admins.slug)).toMatchObject({ title: "Ember" });
+    expect((await listed(admins.slug)).title).toBe("Ember");
   });
 
   it("moves an account's private collections when its username changes", async () => {

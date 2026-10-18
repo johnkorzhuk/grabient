@@ -13,18 +13,22 @@ import { all, type Db, first } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
 import { fitOf } from "../collections/fit.ts";
+import { WORDS_PUBLIC } from "../collections/read.ts";
 import { loadModel, searchAsset } from "./files.ts";
 import { embeddings } from "./model.ts";
 import { latestSnapshot, storedMark, storeSnapshot } from "./snapshot.ts";
 
 /** Four tables, each read once as counts and latest times: a row added, changed or removed anywhere the snapshot reads
     moves one of them. The newest rowid as well, since an admin's edit puts one palette in another's place, keeping the
-    count and the date. */
+    count and the date. And the public collections whose words anyone may read, as their rowids summed: an owner's role
+    decides that, and a role change moves nothing else. */
 export const MARK_SQL = `SELECT p.n AS palettes, p.t AS palettes_at, p.r AS palettes_row, c.n AS collections,
-  c.t AS collections_at, c.i AS items, v.n AS votes, v.t AS votes_at, v.s AS votes_sum, x.n AS titles, x.t AS titles_at FROM
+  c.t AS collections_at, c.i AS items, v.n AS votes, v.t AS votes_at, v.s AS votes_sum, x.n AS titles, x.t AS titles_at,
+  c.w AS worded FROM
   (SELECT COUNT(*) AS n, COALESCE(MAX(created_at), 0) AS t, COALESCE(MAX(rowid), 0) AS r FROM k_palettes) p,
-  (SELECT COUNT(*) AS n, COALESCE(MAX(updated_at), 0) AS t, COALESCE(SUM(item_count), 0) AS i FROM k_collections
-    WHERE visibility = 'public') c,
+  (SELECT COUNT(*) AS n, COALESCE(MAX(c.updated_at), 0) AS t, COALESCE(SUM(c.item_count), 0) AS i,
+     COALESCE(SUM(CASE WHEN ${WORDS_PUBLIC} THEN c.rowid END), 0) AS w
+   FROM k_collections c WHERE c.visibility = 'public') c,
   (SELECT COUNT(*) AS n, COALESCE(MAX(updated_at), 0) AS t, COALESCE(SUM(vote), 0) AS s FROM k_collection_votes) v,
   (SELECT COUNT(*) AS n, COALESCE(MAX(updated_at), 0) AS t FROM k_palette_texts) x`;
 const MARK_ORDER = [
@@ -38,7 +42,8 @@ const MARK_ORDER = [
   "votes_at",
   "votes_sum",
   "titles",
-  "titles_at"
+  "titles_at",
+  "worded"
 ] as const;
 type MarkRow = Record<(typeof MARK_ORDER)[number], number>;
 
