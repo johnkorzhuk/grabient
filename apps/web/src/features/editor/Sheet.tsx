@@ -23,6 +23,7 @@ import {
   untrack
 } from "solid-js";
 import { signInUnavailable, unreachable } from "../../app/connection.ts";
+import { engaged } from "../../app/engaged.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
@@ -199,8 +200,9 @@ export function Sheet(props: {
     if (got?.seed === seed) return got.answer;
     return queries.getQueryData(similarQuery(seed, locale()).queryKey) ?? null;
   });
+  /* asked once a person has reached for the page: a renderer's tall window has the sheet in view at once */
   createEffect(
-    () => [inView(), e.seed()] as const,
+    () => [inView() && engaged(), e.seed()] as const,
     ([inside, seed]) => {
       if (!inside) return;
       const options = similarQuery(seed, locale());
@@ -363,10 +365,12 @@ export function Sheet(props: {
       return () => clearTimeout(timer);
     }
   );
-  /* who brought the palette to Grabient, asked once it has stood a moment, so no frame of an edit asks */
+  /* who brought the palette to Grabient, asked once it has stood a moment, so no frame of an edit asks, and once a
+     person has reached for the page, so a crawler that renders it never reads the name */
   createEffect(
-    () => e.seed(),
+    () => (engaged() ? e.seed() : null),
     seed => {
+      if (!seed) return;
       const timer = setTimeout(() => askCredit(seed), DESCRIBE_MS);
       return () => clearTimeout(timer);
     }

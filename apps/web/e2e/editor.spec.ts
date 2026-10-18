@@ -711,6 +711,8 @@ test("the palettes like this one lead with the nearest its collection holds, on 
     ).items.map(item => item.kseed)
   );
   await open(page, "/kSPTe3fwAsOk8vq");
+  // the palettes like it are a reader's: asked once a pointer reaches the page, never for a renderer's scroll
+  await page.mouse.move(200, 200);
   const order = page.getByRole("radiogroup", { name: "Order" });
   await order.scrollIntoViewIfNeeded();
   const cards = page

@@ -8,6 +8,7 @@ Disallow: /api/auth/
 Disallow: /api/likes
 Disallow: /api/like-info
 Disallow: /api/like-counts
+Disallow: /api/palette-credit
 Disallow: /api/geo
 Disallow: /api/settings/
 Disallow: /cdn-cgi/
@@ -198,6 +199,7 @@ Disallow: /api/auth/
 Disallow: /api/likes
 Disallow: /api/like-info
 Disallow: /api/like-counts
+Disallow: /api/palette-credit
 Disallow: /api/geo
 Disallow: /api/settings/
 Disallow: /cdn-cgi/
@@ -335,6 +337,10 @@ Disallow: /zh-hans/unsubscribe$
 Disallow: /zh-hans/unsubscribe?
 Disallow: /zh-hans/unsubscribe/
 Disallow: /zh-hans/collections/saved
+# The old site's palette addresses: each leads to today's palette by a 301, which search crawlers above follow for
+# the links pointing at it. Every palette is in the sitemap at its own address.
+Disallow: /_
+Disallow: /~
 
 Sitemap: https://grabient.com/sitemap.xml
 

@@ -124,6 +124,21 @@ test("production's rules keep crawlers from an account's pages, search crawlers 
     for (const path of open)
       expect([agent, path, allowed(text, agent, path)]).toEqual([agent, path, true]);
   }
+  // who a palette credits is a page's own fetch for one reader, never a crawler's
+  for (const agent of ["Googlebot", "GPTBot", "meta-externalagent"])
+    expect([agent, allowed(text, agent, "/api/palette-credit?seed=kS7Q8Yy5S_SChv0")]).toEqual([
+      agent,
+      false
+    ]);
+  // the old site's addresses: search crawlers follow their 301s, AI crawlers read today's from the sitemap
+  for (const path of ["/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu", "/~abcdefg?style=radialGradient"])
+    expect([
+      path,
+      allowed(text, "Googlebot", path),
+      allowed(text, "Bingbot", path),
+      allowed(text, "meta-externalagent", path),
+      allowed(text, "ClaudeBot", path)
+    ]).toEqual([path, true, true, false, false]);
   // the gallery's lists as JSON and Random are the agents' to read, as llms.txt says, and no search crawler's
   for (const path of [
     "/api/palettes",
