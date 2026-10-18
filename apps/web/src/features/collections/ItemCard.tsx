@@ -9,7 +9,7 @@ import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
 import { askFacts } from "../editor/page.ts";
-import { askCredit, creditOf, creditWords } from "../gallery/credit.ts";
+import { askCredit, creditName, creditOf } from "../gallery/credit.ts";
 import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
 import { cardTakings } from "../gallery/take.ts";
 import { cardWords, type Words } from "../gallery/words.ts";
@@ -86,7 +86,7 @@ export function ItemCard(props: {
       title={words().title}
       called={words().called}
       description={words().description}
-      credit={creditWords(creditOf(seed()))}
+      credit={creditName(creditOf(seed()))}
       naming={props.naming}
       likes={likeCount(seed(), props.likes)}
       liked={liked(seed())}

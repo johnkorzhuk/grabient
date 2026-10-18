@@ -83,8 +83,8 @@ export interface PaletteCardProps {
   called?: string;
   /** what is said of the palette: the title's tooltip, before the age */
   description?: string;
-  /** who brought the palette to Grabient, in words: the title's tooltip says it before the age, and with no title the
-      age's own tooltip */
+  /** who brought the palette to Grabient, by name ("Grabient", or a person's username): said after the age, where the
+      title's tooltip says the age, and with no title after the age itself while the card is open */
   credit?: string;
   /** the card's owner names the palette here: the title's place offers the title to change, or a way to add one, and
       `onName` is called with the words kept, "" to take the title away */
@@ -152,12 +152,17 @@ export function PaletteCard(props: PaletteCardProps) {
     open(e.currentTarget as HTMLElement);
     props.onIntent?.();
   };
-  /* the title's tooltip: what the palette's colors call it, what is said of it and who brought it, then the age its
-     title stands over; with no title to stand over it, the age says the rest itself */
-  const said = () =>
-    [props.called, props.description, props.credit, props.age].filter(Boolean).join("\n");
+  /* when and by whom, the age first: the title's tooltip says it on its quieter line, under what the palette's colors
+     call it and what is said of it. With no title, the age says who itself while the card is open, and a description
+     is the age's own tooltip */
+  const whenBy = () => [props.age, props.credit].filter(Boolean).join(" · ");
+  const said = () => ({
+    text: [props.called, props.description].filter(Boolean).join("\n"),
+    quiet: whenBy()
+  });
+  const untitled = () => !props.title && !props.naming;
   const aside = () =>
-    props.title || props.naming ? "" : [props.description, props.credit].filter(Boolean).join("\n");
+    untitled() && props.description ? { text: props.description, quiet: whenBy() } : null;
   const renameLabel = () => (props.title ? t("Rename {title}", { title: props.title }) : undefined);
   /* the owner's field in the title's place: Enter or leaving it keeps what it holds, Escape lets it go */
   const [naming, setNaming] = createSignal(false);
@@ -276,21 +281,20 @@ export function PaletteCard(props: PaletteCardProps) {
         inert={props.removed}
       >
         <span class={styles.when}>
-          {/* words to read where there is more to say, as a title's are */}
+          {/* words to read where there is more to say, as a title's are; who brought the palette stands in its place
+              unseen until the card opens, so nothing moves as it shows */}
           <span class={styles.age} ref={tooltip(aside)} tabindex={aside() ? 0 : undefined}>
             {props.age}
+            <Show when={untitled() && props.credit}>
+              <span class={styles.by}>{` · ${props.credit}`}</span>
+            </Show>
           </span>
           <Show
             when={props.naming}
             fallback={
               <Show when={props.title}>
-                {/* words to read, which take the keyboard's focus where there is more to say */}
-                <span
-                  class={styles.named}
-                  dir="auto"
-                  ref={tooltip(said)}
-                  tabindex={props.called || props.description || props.credit ? 0 : undefined}
-                >
+                {/* words to read, which take the keyboard's focus: their tooltip says the age they stand over */}
+                <span class={styles.named} dir="auto" ref={tooltip(said)} tabindex={0}>
                   {props.title}
                 </span>
               </Show>

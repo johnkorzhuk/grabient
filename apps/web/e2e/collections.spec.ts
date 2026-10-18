@@ -1175,6 +1175,10 @@ test("a palette's title stands in its age's place under the pointer and the keyb
         }
       })
   );
+  await page.route(
+    url => url.pathname === "/api/palette-credit",
+    route => route.fulfill({ json: { credit: { by: "grabient" } } })
+  );
   await page.goto("/collections");
   await hydrated(page);
   await page.locator('main a[href="/collections/rising"]').click();
@@ -1189,11 +1193,12 @@ test("a palette's title stands in its age's place under the pointer and the keyb
   await expect(title).toHaveCSS("opacity", "1");
   await expect(age).toHaveCSS("opacity", "0");
   expect([await card.boundingBox(), await title.boundingBox()]).toEqual(before);
-  // resting on the title says what is said of the palette, then the age it stands over
+  // resting on the title says what is said of the palette, then, a step quieter, the age it stands over and who
+  // brought it
   await title.hover();
   const tip = page.getByRole("tooltip");
   await expect(tip).toContainText("Cobalt into a gold horizon.");
-  await expect(tip).toContainText((await age.textContent()) ?? "");
+  await expect(tip.locator("span")).toHaveText(`${(await age.textContent()) ?? ""} · Grabient`);
   await page.mouse.move(0, 0);
   await expect(title).toHaveCSS("opacity", "0");
   // the keyboard in the card opens it as the pointer does
@@ -1203,6 +1208,42 @@ test("a palette's title stands in its age's place under the pointer and the keyb
   await page.keyboard.press("Tab");
   await expect(edit).toBeFocused();
   await expect(title).toHaveCSS("opacity", "1");
+});
+
+test("a card with no title says who brought its palette after its age while it is open, in room kept for it", async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      route.fulfill({
+        json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+      })
+  );
+  await page.route(
+    url => url.pathname === "/api/palette-credit",
+    route => route.fulfill({ json: { credit: { by: "person", name: "ada" } } })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const card = page.getByRole("article").first();
+  await card.getByRole("img").hover();
+  const by = card.getByText(" · ada", { exact: true });
+  await expect(by).toHaveCSS("opacity", "1");
+  const shown = [await card.boundingBox(), await by.boundingBox()];
+  // away from the card the name is unseen in the room it keeps, and the line holds still
+  await page.mouse.move(0, 0);
+  await expect(by).toHaveCSS("opacity", "0");
+  expect([await card.boundingBox(), await by.boundingBox()]).toEqual(shown);
+  await expect(page.getByRole("tooltip")).toBeHidden();
 });
 
 test("in another language a card wears its palette's written title as it was written, and its tooltip what the colors call it there", async ({

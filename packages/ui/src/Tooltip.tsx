@@ -27,6 +27,11 @@ export interface TipOptions {
   turns?: boolean;
 }
 
+/** What a bubble says: words, or words and a quieter line under them, such as who and when beside what. */
+export type TipText = string | { text: string; quiet: string };
+const said = (words: TipText | null | undefined): words is TipText =>
+  typeof words === "string" ? !!words : !!words && !!(words.text || words.quiet);
+
 let bubble: HTMLElement | null = null;
 /* the control the bubble names now */
 let current: HTMLElement | null = null;
@@ -79,7 +84,7 @@ function layer(): HTMLElement {
 
 /* The bubble over `el` with `text`. Its words and place change in place, so a bubble handed from one control to the
    next never fades in again. */
-function show(el: HTMLElement, text: string) {
+function show(el: HTMLElement, text: TipText) {
   stay();
   const b = layer();
   if (current && current !== el) describe(current, false);
@@ -90,7 +95,16 @@ function show(el: HTMLElement, text: string) {
   }
   current = el;
   describe(el, true);
-  b.textContent = text;
+  if (typeof text === "string") b.textContent = text;
+  else {
+    b.textContent = text.text;
+    if (text.quiet) {
+      const quiet = document.createElement("span");
+      quiet.className = styles.quiet;
+      quiet.textContent = text.quiet;
+      b.appendChild(quiet);
+    }
+  }
   const r = el.getBoundingClientRect();
   const w = b.offsetWidth;
   const h = b.offsetHeight;
@@ -108,7 +122,7 @@ function show(el: HTMLElement, text: string) {
 /* The listeners on one control, and the function that takes them off. */
 function listen(
   el: HTMLElement,
-  text: () => string | null | undefined,
+  text: () => TipText | null | undefined,
   options?: TipOptions
 ): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -123,7 +137,7 @@ function listen(
   /* a control that left the page while its timer ran shows nothing, and its text is never asked for */
   const open = () => {
     const words = el.isConnected ? text() : null;
-    if (words) show(el, words);
+    if (said(words)) show(el, words);
   };
   /* the rest is over: open in the next frame, after the pointer moves it delivers, so a late frame never opens a
      bubble beside a control the pointer has already left */
@@ -178,7 +192,7 @@ function listen(
     again = requestAnimationFrame(() => {
       if (current !== el) return;
       const words = el.isConnected ? text() : null;
-      if (words) show(el, words);
+      if (said(words)) show(el, words);
       else close();
     });
   };
@@ -229,10 +243,10 @@ function listen(
 }
 
 /** Gives an element a tooltip, as a ref: `ref={tooltip(() => t("Theme · {key}", { key }))}`. `text` is read when the
-    bubble opens, and again after a press that keeps it, so it may change; nothing shows while it is empty. Made in a
-    component, the listeners come off with it. */
+    bubble opens, and again after a press that keeps it, so it may change; nothing shows while it is empty. It may
+    hold a quieter line under its words. Made in a component, the listeners come off with it. */
 export function tooltip(
-  text: () => string | null | undefined,
+  text: () => TipText | null | undefined,
   options?: TipOptions
 ): (el: HTMLElement) => void {
   let off: (() => void) | undefined;

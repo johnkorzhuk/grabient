@@ -33,7 +33,7 @@ import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../acc
 import { account } from "../account/session.ts";
 import { accountView } from "../account/state.ts";
 import { collectionHref } from "../collections/address.ts";
-import { askCredit, creditOf, creditWords } from "../gallery/credit.ts";
+import { askCredit, creditName, creditOf, creditWords } from "../gallery/credit.ts";
 import { relativeAge } from "../gallery/drawing.ts";
 import { inPlace } from "../gallery/feed.ts";
 import { readerOrder, recallOrder, rememberOrder } from "../gallery/order.ts";
@@ -425,7 +425,7 @@ export function Sheet(props: {
         title={words().title}
         called={words().called}
         description={words().description}
-        credit={creditWords(creditOf(seed()))}
+        credit={creditName(creditOf(seed()))}
         likes={likeCount(seed(), item().likes)}
         liked={liked(seed())}
         likeDisabled={signInUnavailable()}

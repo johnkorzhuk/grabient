@@ -51,7 +51,11 @@ export function askCredit(seed: string): void {
 /** Who the server credits for a palette: undefined until its answer comes, null for no one. Reactive. */
 export const creditOf = (seed: string): Credit | null | undefined => credits[seed];
 
-/** A credit in words, as a card's tooltip and a palette's page say it. */
+/** Who a card names after a palette's age: Grabient, or the person by their username. */
+export const creditName = (credit: Credit | null | undefined): string | undefined =>
+  !credit ? undefined : credit.by === "grabient" ? "Grabient" : credit.name;
+
+/** A credit in words, as a palette's page and the MCP view say it. */
 export const creditWords = (credit: Credit | null | undefined): string | undefined =>
   !credit
     ? undefined

@@ -148,14 +148,24 @@
     line-height: var(--font-lh-none);
     white-space: nowrap;
   }
-  /* faded under a title, it stays painted over it and would take its pointer */
+  /* faded under a title, it stays painted over it and would take its pointer. Its box holds its words alone, so its
+     tooltip stands under them; a long name after it is cut short */
   .age {
+    justify-self: start;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-variant-numeric: tabular-nums;
     transition: opacity var(--motion-fast) var(--motion-ease);
     [data-named] & {
       opacity: calc(1 - var(--named));
       pointer-events: none;
     }
+  }
+  /* who brought the palette, after its age while the card is open */
+  .by {
+    opacity: var(--named);
+    transition: opacity var(--motion-fast) var(--motion-ease);
   }
   /* the title, cut short at the line's end; the owner's is a press that opens the field */
   .named {

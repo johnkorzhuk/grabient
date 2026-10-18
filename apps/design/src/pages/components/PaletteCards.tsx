@@ -50,7 +50,7 @@ export function PaletteCards() {
     <Section id="palette-card" summary="One palette in a list: the picture, its age and its heart.">
       <div class={styles.grid}>
         <figure class={styles.figure}>
-          <Card sample={POPULAR[2]} age="12 days" />
+          <Card sample={POPULAR[2]} age="12 days" credit="Grabient" />
         </figure>
         <figure class={styles.figure}>
           <Card
@@ -58,7 +58,7 @@ export function PaletteCards() {
             age="3 months"
             title="Violet hour"
             description="Cobalt through magenta into a gold horizon."
-            credit="First liked by ada"
+            credit="ada"
             hover
           />
         </figure>
@@ -72,7 +72,8 @@ export function PaletteCards() {
             "One height at every width: a wider column makes a wider picture.",
             "Hover or focus in the picture fades in the glow and the tools; nothing moves.",
             "A palette's title, where it has one, stands in its age's place under the pointer or focus; the owner of a collection writes one there.",
-            "The title's tooltip says what the palette's colors call it in the reader's language, a person's own words for it, who brought it to Grabient, then its age. With no title, the age says who brought it.",
+            "The title's tooltip says what the palette's colors call it in the reader's language and a person's own words for it, then, a step quieter, its age and who brought it: 12 days · Grabient.",
+            "With no title, the age says who brought it after itself while the card is open, in the room it keeps unseen at rest.",
             "Who brought it: Grabient, where it showed or liked the palette first, else the first person to like it, only if they chose to show their username.",
             "On touch the tools wait for a tap on the picture, one card at a time.",
             "An article named by its palette, so its Edit is that palette's Edit."

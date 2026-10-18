@@ -37,4 +37,10 @@
         translate var(--motion-fast) var(--motion-ease);
     }
   }
+  /* a line under the bubble's words in the ink's second step: who and when beside what */
+  .quiet {
+    display: block;
+    color: var(--color-on-ink2);
+    unicode-bidi: plaintext;
+  }
 }

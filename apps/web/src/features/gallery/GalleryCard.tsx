@@ -14,7 +14,7 @@ import { askFacts } from "../editor/page.ts";
 import { AppearanceContext, drawnIn } from "../list/appearance.ts";
 import { type UseAt, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
-import { askCredit, creditOf, creditWords } from "./credit.ts";
+import { askCredit, creditName, creditOf } from "./credit.ts";
 import { nameOf, ownOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
 import { inPlace } from "./feed.ts";
 import { GalleryContext } from "./page.tsx";
@@ -80,7 +80,7 @@ export function GalleryCard(props: {
       title={words().title}
       called={words().called}
       description={words().description}
-      credit={creditWords(creditOf(seed()))}
+      credit={creditName(creditOf(seed()))}
       likes={likeCount(seed(), props.item.likes)}
       liked={liked(seed())}
       onLike={like}
