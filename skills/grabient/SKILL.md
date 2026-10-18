@@ -19,8 +19,6 @@ A palette is a few colors joined by a smooth curve. Its seed, a short string tha
 
 The address plus `.png`, `.svg`, `.css` or `.json` is the palette as a file in its view: `{origin}/{seed}.png?style=radialSwatches&steps=6&size=1200x630`. For a design app, `.ase` (Photoshop, Illustrator, Procreate, Affinity), `.gpl` (GIMP, Krita), `.tokens.json` (Figma variables) and `.grd` (a Photoshop gradient) are its swatches. A PNG is up to 2,400 pixels a side and 3 million pixels in all, and a larger size comes smaller at the same shape.
 
-`{origin}/random.svg?name={name}`, or `.png`, is the palette a name always draws, in the same view parameters: a picture for each account of an app, which the app never stores. Without `name` it leads to a new random palette's file.
-
 ## The path
 
 1. **Find.** `search_palettes` takes words in the person's own language, hex colors the palettes come near, or both, and with neither lists the gallery: popular, rising, newest or hot. A palette's seed finds the palettes most like it, its collections' own first. `search_collections` finds collections by theme, and `get_collection` reads one.

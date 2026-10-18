@@ -129,9 +129,7 @@ test("production's rules keep crawlers from an account's pages, search crawlers 
     "/api/palettes",
     "/random",
     "/random?style=radialGradient",
-    "/ja/random?style=radialGradient",
-    "/random.svg?name=ada",
-    "/random.png"
+    "/ja/random?style=radialGradient"
   ])
     expect([path, allowed(text, "Googlebot", path), allowed(text, "GPTBot", path)]).toEqual([
       path,

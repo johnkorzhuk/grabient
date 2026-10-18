@@ -13,7 +13,7 @@ import { CARD, cardSize, montageSize, pictureSize } from "../images/size.ts";
 import { oldFit } from "../seo/legacy-fit.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { svgSize } from "./palette-files.ts";
-import { namedPalette, resolvePalette } from "./resolve.ts";
+import { resolvePalette } from "./resolve.ts";
 
 export interface FileKey {
   path: string;
@@ -25,8 +25,6 @@ export interface FileKey {
     seed's design tokens. */
 export const FILE_PATH =
   /^\/([^/]+?|@[a-z0-9_-]{3,30}\/[a-z0-9-]+)\.(png|svg|css|json|md|ase|gpl|grd|tokens\.json)$/;
-/** A random palette's picture, kept as the palette's own when a name draws it (files/random.ts). */
-const RANDOM_FILE = /^\/random\.(png|svg)$/;
 /** Where the build once wrote palettes' cards as files: the card, which the Worker now draws. */
 const OLD_CARD = /^\/og\/[^/]+\/[^/]+\.png$/;
 const SEARCH_PICTURES = new Set(["/api/og/query", "/api/png/query"]);
@@ -111,15 +109,9 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   if (MONTAGES.has(path)) return montageKey(path, params);
   const file = namedFile(path, params);
   if (!file) return null;
-  const name = params.get("name");
-  const found = !RANDOM_FILE.test(path)
-    ? resolvePalette(file.name)
-    : name === null
-      ? null
-      : namedPalette(name);
-  /* A name that is no palette is a collection's file, which reads no query, or no file at all, as a random picture with
-     no name is: a redirect, which nothing keeps. An old seed no map holds names a card the Worker fits, whose redirect
-     the seed and the view decide (seo/legacy-fit.ts). */
+  const found = resolvePalette(file.name);
+  /* A name that is no palette is a collection's file, which reads no query, or no file at all. An old seed no map holds
+     names a card the Worker fits, whose redirect the seed and the view decide (seo/legacy-fit.ts). */
   if (!found) {
     const old = file.format === "og" ? oldFit(path, search) : null;
     const query = new URLSearchParams(old ? viewSearch(old.view, [`seed=${old.seed}`]) : "");

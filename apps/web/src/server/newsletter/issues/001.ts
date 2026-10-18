@@ -31,8 +31,6 @@ const PICKS = [
 const FOREST = "kUPhh1NqG9EqmuVWvLvg";
 /* the pumpkin orange the hex tip searches for */
 const PUMPKIN = "#e86a17";
-/* the name the avatar tip shows, whose palette is a teal to violet gradient */
-const AVATAR = "lee";
 /* More October palettes from the Rising list an admin may lead with instead, each in the view liked. */
 const LEADS = [
   view("kWOCz5KKDAjWoQRGJML1qDCQ", "linearGradient", 32, 90),
@@ -101,27 +99,10 @@ const MYSTIC: Shelf = {
 const SHELVES = [SUMAC, PORCH, MYSTIC];
 const CSS = ".hero {\n  background: linear-gradient(90deg, #4158d0, #c850c0, #ffcc70);\n}";
 /* The quick tips an admin may end the issue with, the first unless another is chosen. Each is what the site does now:
-   the palette a name draws (files/random.ts), the files at a palette's or a public collection's address
-   (files/palette-files.ts, collection-files.ts), a picture's size (images/size.ts), search by a hex code or a palette's
-   link (search/search.ts), and the editor's keys as the key map has them. */
+   the files at a palette's or a public collection's address (files/palette-files.ts, collection-files.ts), a picture's
+   size (images/size.ts), search by a hex code or a palette's link (search/search.ts), and the editor's keys as the
+   key map has them. */
 const tips = (origin: string) => [
-  tip(
-    "avatars",
-    "Gradient avatars",
-    text([
-      "Give each account in your app a gradient avatar. Add its name to ",
-      mono("random.svg"),
-      ", and the same name always draws the same palette, so there is no picture to store."
-    ]),
-    snippet(
-      `<img src="${origin}/random.svg?name=${AVATAR}" alt=""\n  width="40" height="40" style="border-radius: 50%">`
-    ),
-    button({
-      href: `${origin}/random.svg?name=${AVATAR}&size=240x240`,
-      label: "See it",
-      quiet: true
-    })
-  ),
   tip(
     "css",
     "CSS at a palette's link",

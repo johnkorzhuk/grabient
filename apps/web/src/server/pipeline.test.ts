@@ -12,7 +12,6 @@ import { CREDIT, PAGE } from "../lib/cache.ts";
 import { drawnSearch, searchOf } from "../lib/route.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
-import { namedPalette } from "./files/resolve.ts";
 import { handle, misdeployed } from "./pipeline.ts";
 
 /** The Cache API of one data center, in memory. */
@@ -580,27 +579,6 @@ describe("the edge cache", () => {
     ]);
     await get("/kS7Q8Yy5S_SChv0.css?steps=7&x=1", {}, png);
     expect([...cache.kept.keys()][1]).toBe("https://grabient.test/kS7Q8Yy5S_SChv0.css?__build=b1");
-  });
-
-  test("keeps a name's random picture as the palette's own, each name apart, and no new palette's", async () => {
-    // Start answers a name with the picture it draws, and no name with a redirect
-    const random = (request: Request) => {
-      const name = new URL(request.url).searchParams.get("name");
-      return name === null
-        ? new Response(null, { status: 302, headers: { Location: "/kS7Q8Yy5S_SChv0.svg" } })
-        : new Response(name, { headers: { ...PAGE, "Content-Type": "image/svg+xml" } });
-    };
-    await get("/random.svg?name=lee&junk=1", {}, random);
-    const own = await get(`/${namedPalette("lee").seed}.svg`, {}, random);
-    expect([own.headers.get("X-Grabient-Cache"), await own.text()]).toEqual(["HIT", "lee"]);
-    expect(await (await get("/random.svg?name=ada", {}, random)).text()).toBe("ada");
-    for (const _ of [1, 2]) expect((await get("/random.svg", {}, random)).status).toBe(302);
-    expect(asked.map(request => request.url)).toEqual([
-      "https://grabient.test/random.svg?name=lee&junk=1",
-      "https://grabient.test/random.svg?name=ada",
-      "https://grabient.test/random.svg",
-      "https://grabient.test/random.svg"
-    ]);
   });
 
   test("counts a file fetched before the cache answers it, by its format and who asked", async () => {

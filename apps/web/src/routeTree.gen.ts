@@ -21,8 +21,6 @@ import { Route as McpServerRouteImport } from './routes/mcp-server'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RandomRouteImport } from './routes/random'
-import { Route as RandomDotpngRouteImport } from './routes/random[.]png'
-import { Route as RandomDotsvgRouteImport } from './routes/random[.]svg'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -181,16 +179,6 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const RandomRoute = RandomRouteImport.update({
   id: '/random',
   path: '/random',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RandomDotpngRoute = RandomDotpngRouteImport.update({
-  id: '/random.png',
-  path: '/random.png',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RandomDotsvgRoute = RandomDotsvgRouteImport.update({
-  id: '/random.svg',
-  path: '/random.svg',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -735,8 +723,6 @@ export interface FileRoutesByFullPath {
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/random': typeof RandomRoute
-  '/random.png': typeof RandomDotpngRoute
-  '/random.svg': typeof RandomDotsvgRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -850,8 +836,6 @@ export interface FileRoutesByTo {
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/random': typeof RandomRoute
-  '/random.png': typeof RandomDotpngRoute
-  '/random.svg': typeof RandomDotsvgRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -966,8 +950,6 @@ export interface FileRoutesById {
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/random': typeof RandomRoute
-  '/random.png': typeof RandomDotpngRoute
-  '/random.svg': typeof RandomDotsvgRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -1083,8 +1065,6 @@ export interface FileRouteTypes {
     | '/newsletter'
     | '/privacy'
     | '/random'
-    | '/random.png'
-    | '/random.svg'
     | '/robots.txt'
     | '/settings'
     | '/sitemap.xml'
@@ -1198,8 +1178,6 @@ export interface FileRouteTypes {
     | '/newsletter'
     | '/privacy'
     | '/random'
-    | '/random.png'
-    | '/random.svg'
     | '/robots.txt'
     | '/settings'
     | '/sitemap.xml'
@@ -1313,8 +1291,6 @@ export interface FileRouteTypes {
     | '/newsletter'
     | '/privacy'
     | '/random'
-    | '/random.png'
-    | '/random.svg'
     | '/robots.txt'
     | '/settings'
     | '/sitemap.xml'
@@ -1429,8 +1405,6 @@ export interface RootRouteChildren {
   NewsletterRoute: typeof NewsletterRoute
   PrivacyRoute: typeof PrivacyRoute
   RandomRoute: typeof RandomRoute
-  RandomDotpngRoute: typeof RandomDotpngRoute
-  RandomDotsvgRoute: typeof RandomDotsvgRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -1616,20 +1590,6 @@ declare module '@tanstack/solid-router' {
       path: '/random'
       fullPath: '/random'
       preLoaderRoute: typeof RandomRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/random.png': {
-      id: '/random.png'
-      path: '/random.png'
-      fullPath: '/random.png'
-      preLoaderRoute: typeof RandomDotpngRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/random.svg': {
-      id: '/random.svg'
-      path: '/random.svg'
-      fullPath: '/random.svg'
-      preLoaderRoute: typeof RandomDotsvgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -2341,8 +2301,6 @@ const rootRouteChildren: RootRouteChildren = {
   NewsletterRoute: NewsletterRoute,
   PrivacyRoute: PrivacyRoute,
   RandomRoute: RandomRoute,
-  RandomDotpngRoute: RandomDotpngRoute,
-  RandomDotsvgRoute: RandomDotsvgRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

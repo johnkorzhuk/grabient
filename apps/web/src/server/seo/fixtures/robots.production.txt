@@ -177,8 +177,6 @@ Disallow: /vi/random$
 Disallow: /vi/random?
 Disallow: /zh-hans/random$
 Disallow: /zh-hans/random?
-Disallow: /random.png
-Disallow: /random.svg
 Disallow: /api/palettes
 
 # AI search, assistant and training crawlers, by name: the pages, the Markdown pages and the routes llms.txt gives are

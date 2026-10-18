@@ -50,12 +50,13 @@ Mist blue, lichen green, stone gray, twilight violet and rust from otherworldly 
 
 Quick tip
 
-Give each account in your app a gradient avatar. Add its name to random.svg, and the same name always draws the same palette, so there is no picture to store.
+Add .css to any palette link to get its CSS.
 
-<img src="https://grabient.test/random.svg?name=lee" alt=""
-  width="40" height="40" style="border-radius: 50%">
+.hero {
+  background: linear-gradient(90deg, #4158d0, #c850c0, #ffcc70);
+}
 
-See it: https://grabient.test/random.svg?name=lee&size=240x240
+How palettes work: https://grabient.test/about
 
 Palettes: https://grabient.test/palettes
 Collections: https://grabient.test/collections

@@ -60,8 +60,6 @@ test.each([
   ["/kS7Q8Yy5S_SChv0.ase", "/{$name}.ase/", "application/octet-stream"],
   ["/kS7Q8Yy5S_SChv0.gpl", "/{$name}.gpl/", "text/plain; charset=utf-8"],
   ["/kS7Q8Yy5S_SChv0.grd", "/{$name}.grd/", "application/octet-stream"],
-  ["/random.svg?name=lee", "/random.svg", "image/svg+xml; charset=utf-8"],
-  ["/random.png?name=lee&size=64x64", "/random.png", "image/png"],
   ["/sitemap-pages.xml", "/sitemap-{$name}.xml/", "application/xml; charset=utf-8"],
   ["/search/blue.json?limit=1", "/search/{$words}.json", "application/json"],
   ["/palettes/blue.json?limit=1", "/palettes/{$words}.json", "application/json"],
@@ -69,13 +67,6 @@ test.each([
   ["/api/popular-searches?q=bl", "/api/popular-searches", "application/json"]
 ])("%s reaches %s", async (address, route, type) => {
   expect(await reach(address)).toEqual({ route, type, status: 200 });
-});
-
-test.each([
-  ["/random.svg", "/random.svg"],
-  ["/random.png?size=64x64", "/random.png"]
-])("%s reaches %s, which sends a new palette's file", async (address, route) => {
-  expect(await reach(address)).toEqual({ route, type: null, status: 302 });
 });
 
 test.each([

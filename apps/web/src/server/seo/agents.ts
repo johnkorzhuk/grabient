@@ -45,7 +45,6 @@ The data, Markdown and image routes are plain GET requests with CORS enabled. In
 - A person wants a palette changed: lighter, darker, calmer, more vivid, warmer, cooler, reversed, or with fewer or more colors. The MCP server makes each change as a new seed with its own permanent address.
 - You need the same colors every time. A seed always renders the same palette, and no model takes part in the colors.
 - You need an image of a gradient at a size you choose, without a headless browser.
-- An app needs a picture for each account. A name draws the same palette every time, so the app stores nothing.
 
 Grabient's colors are for screens: it has no print inks, paint or thread, and takes no colors from an image. To read many palettes use the JSON routes, not the HTML pages.
 
@@ -62,7 +61,6 @@ Grabient's colors are for screens: it has no print inks, paint or thread, and ta
 - [Palette as design tokens](${base}/${seed}.tokens.json): the view's colors as DTCG design tokens, which Figma imports as variables. Pattern: \`${base}/{seed}.tokens.json\`
 - [Palette social card](${base}/api/og?seed=${seed}): 1200 by 630 with the Grabient wordmark. Pattern: \`${base}/api/og?seed={seed}\`
 - [Palette in the editor](${base}/${seed}): the page to give a person. Pattern: \`${base}/{seed}\`
-- [A name's palette as SVG](${base}/random.svg?name=lee): the palette a name always draws, as an account's picture. \`.png\` for a PNG. Pattern: \`${base}/random.svg?name={name}\`
 
 Every palette route takes \`style\`, \`steps\` and \`angle\`.
 
@@ -138,7 +136,6 @@ Unknown query parameters are ignored.
 | \`/\`, \`/palettes\`, \`/palettes/rising\`, \`/collections\`, \`/collections/rising\` | The home page and the lists for a person. Rising is the week's${others.length ? `, and ${others.join(" or ")} after it its other ${others.length > 1 ? "frames" : "frame"}` : ""} |
 | \`/palettes?q={query}\`, \`/collections?q={query}\`, \`/?q={query}\` | Search pages for a person: palettes, collections, or both |
 | \`/random\` | Redirects to a new random palette |
-| \`/random.svg\`, \`/random.png\` | With \`name\`, the palette that name always draws, read as \`/{seed}.svg\` and \`/{seed}.png\` read their query: an avatar for each account of an app, which the app never stores. Without \`name\`, a redirect to a new random palette's file |
 
 ## Search
 
