@@ -246,7 +246,7 @@ describe("an issue's quick tip", () => {
     const offered = ids(words);
     expect(offered.length).toBeGreaterThanOrEqual(5);
     expect(new Set(offered).size).toBe(offered.length);
-    expect(asRun(october, ORIGIN, FACTS).tips?.[0]?.id).toBe("css");
+    expect(asRun(october, ORIGIN, FACTS).tips?.[0]?.id).toBe("avatars");
     const chosen = asRun(october, ORIGIN, { ...FACTS, tips: new Map([[1, offered[1]]]) });
     expect(ids(chosen)).toEqual([offered[1], ...offered.filter(id => id !== offered[1])]);
     // one it does not offer, or none, leaves the issue as it is written
@@ -276,6 +276,11 @@ describe("an issue's quick tip", () => {
     const part = tipPart(letterOf(asRun(october, ORIGIN, FACTS, undefined, "hex")).html);
     expect(part).toMatch(/<table\b[^>]*data-part="swatch"[^>]*><tr><td\b[^>]*bgcolor="#e86a17"/);
     expect(part).toContain(`href="${ORIGIN}/palettes?q=%23e86a17"`);
+  });
+  test("the avatar tip shows an app's image tag for a name's picture, and opens that picture", () => {
+    const { text } = letterOf(asRun(october, ORIGIN, FACTS, undefined, "avatars"));
+    expect(text).toContain(`<img src="${ORIGIN}/random.svg?name=lee" alt=""`);
+    expect(text).toContain(`See it: ${ORIGIN}/random.svg?name=lee&size=240x240`);
   });
   test("an issue that offers none ends without one", () => {
     const november = byNumber(2);
