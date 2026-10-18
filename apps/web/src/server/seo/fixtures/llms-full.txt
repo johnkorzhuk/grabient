@@ -95,7 +95,7 @@ Unknown query parameters are ignored.
 | `/api/palettes?sort=popular&page=1&limit=24` | The gallery: {items, total, page, limit, totalPages}. `sort` is popular, rising, newest or oldest; with rising, `frame` is 1w (the default), 3m or 1y, how long a like counts |
 | `/api/collections?q={query}&sort=popular&page=1&limit=24` | Public collections: {items, total, page, totalPages}. `sort=rising` takes `frame` as the gallery does |
 | `/api/hot?page=1` | The home page: {page, palettes, collections}, the twenty-four hottest palettes and a page of the hot collections |
-| `/api/hot?q={query}&page=1` | The home page searched: {page, query, palettes, collections, tier}, sixty palettes that answer the words, the most liked first, and a page of the collections that answer them |
+| `/api/hot?q={query}&page=1` | The home page searched: {page, query, palettes, collections, tier}, sixty palettes that answer the words, the ones that carry `lead` first and then the most liked, and a page of the collections that answer them |
 | `/`, `/palettes`, `/palettes/rising`, `/collections`, `/collections/rising` | The home page and the lists for a person. Rising is the week's, and `/3m` or `/1y` after it its other frames |
 | `/palettes?q={query}`, `/collections?q={query}`, `/?q={query}` | Search pages for a person: palettes, collections, or both |
 | `/random` | Redirects to a new random palette |

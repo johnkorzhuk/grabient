@@ -107,8 +107,8 @@ export function siteOf(rows: SiteRows, mark: string): Site {
       })
       .map(v => `${v.collection_id}|${v.seed}`)
   );
-  /* every title and description a palette is given, each once: Grabient's first, then each public collection's in
-     its order; a membership voted out takes its words with it */
+  /* a palette's titles and descriptions, each once: Grabient's title first, then the title and description each public
+     collection whose words anyone may read gives it, in its order; a membership voted out takes its words with it */
   const titles = new Map<string, string[]>();
   const descriptions = new Map<string, string[]>();
   const give = (to: Map<string, string[]>, seed: string, words: string | null) => {
