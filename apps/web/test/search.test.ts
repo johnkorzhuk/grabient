@@ -1,5 +1,3 @@
-import { encodePalette } from "@grabient/engine";
-import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
@@ -32,10 +30,11 @@ import {
   address,
   bodyOf,
   count,
+  freshIsolate,
   get,
   makeAccount,
   post,
-  type TestEnv,
+  seedOf,
   testEnv,
   unique,
   watchLimits
@@ -43,15 +42,6 @@ import {
 
 const DAY = 86_400_000;
 const today = () => Math.floor(Date.now() / DAY);
-const seedOf = (...hexes: string[]) => encodePalette(anchorsFromHexes(hexes)!);
-
-/* the same bindings seen by another isolate: its own assets binding, so it holds no snapshot or files yet */
-const freshIsolate = (env: TestEnv): TestEnv => ({
-  ...env,
-  ASSETS: {
-    fetch: (input: RequestInfo | URL, init?: RequestInit) => env.ASSETS.fetch(input, init)
-  } as Fetcher
-});
 
 /* a binding seen through a new object, as another isolate holds it, with every call it makes told to `heard` */
 function overheard<T extends object>(

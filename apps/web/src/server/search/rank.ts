@@ -1,5 +1,6 @@
 /* Palettes ranked against a query's vector over the snapshot, inside the Worker: by their rows' scores, by the names
-   their titles and collections give them, and, for a list someone holds, by the bar a palette must clear to answer. */
+   their titles and collections give them, beside a palette by the collections they share with it, and, for a list
+   someone holds, by the bar a palette must clear to answer. */
 import type { Harmony } from "@grabient/engine/shape.ts";
 import { paletteOf } from "@grabient/search/colors.ts";
 import { type Rows, rowOf, type Snapshot } from "@grabient/search/snapshot.ts";
@@ -13,7 +14,7 @@ import { nameWords } from "./read.ts";
 export interface Candidate {
   seed: string;
   score: number;
-  /** heads every order: what the words name */
+  /** heads every order: what the words name, or a palette's collection-mate */
   lead?: true;
 }
 
@@ -244,6 +245,28 @@ export function answerBar(scores: Float32Array, each = false): number {
   const ranked = Float32Array.from(scores).sort();
   const at = Math.max(0, scores.length - 1 - Math.floor(scores.length * NEAR_SHARE));
   return Math.max(each ? -1 : NEAR_LEAST, scores.length ? ranked[at] : NEAR_LEAST);
+}
+
+/** How many of a palette's collection-mates lead the palettes like it: half the twelve its page shows, so the other
+    half stays its nearest colors from anywhere. */
+const MATES = 6;
+
+/** The palettes that the public collections holding a row hold beside it and that stand as near as a search of Saved
+    asks (answerBar): each collection's nearest in turn, so a palette in a team's collection and a color's shows both,
+    at most MATES, nearest first. A collection is public, and so is what it holds. */
+export function collectionMates(snapshot: Snapshot, row: number, scores: Float32Array): number[] {
+  const bar = answerBar(scores);
+  const each = snapshot.names
+    .filter(name => name.members.includes(row))
+    .map(name =>
+      [...new Set(name.members)]
+        .filter(i => i !== row && scores[i] >= bar)
+        .sort((a, b) => scores[b] - scores[a] || a - b)
+    );
+  const mates = new Set<number>();
+  for (let k = 0; mates.size < MATES && each.some(list => k < list.length); k++)
+    for (const list of each) if (k < list.length && mates.size < MATES) mates.add(list[k]);
+  return [...mates].sort((a, b) => scores[b] - scores[a] || a - b);
 }
 
 /* a palette's own vector depends on its seed and the model alone, and an isolate holds one model */

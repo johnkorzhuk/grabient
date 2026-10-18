@@ -1,5 +1,6 @@
 /* The search: answered from the snapshot inside the Worker, free for everyone, by these tiers.
-   - similar: palettes near a palette (its seed, an old id the maps know, or a Grabient link to it)
+   - similar: palettes near a palette (its seed, an old id the maps know, or a Grabient link to it), led by up to six
+     that its public collections hold
    - color: palettes near hex colors, written in the query or asked beside it
    - vocabulary: words the vocabulary reads, in any of its languages, as emoji, or one slip off
    - named: words no color says (a team, a game), found in palette titles and in collections' titles and tags, in one of
@@ -36,6 +37,7 @@ import {
   answerBar,
   answeringSeeds,
   type Candidate,
+  collectionMates,
   hexQueryVector,
   knownScores,
   namedPalettes,
@@ -360,11 +362,18 @@ export async function searchPalettes(
     return far.length && result.items.length ? { ...result, far } : result;
   }
 
+  /* A palette's own collections chose its nearest mates for it: they lead, then its nearest colors from anywhere. */
   if (like) {
     const scores = paletteScores(snapshot, like);
+    const row = seed ? snapshot.at.get(seed) : undefined;
+    const mates = row === undefined ? [] : collectionMates(snapshot, row, scores);
+    const first = new Set(mates);
     return answer(
       "similar",
-      cut(rankedRows(snapshot, scores, { allowed: i => i !== self }), scores)
+      [
+        ...mates.map(i => ({ seed: snapshot.seeds[i], score: scores[i], lead: true as const })),
+        ...cut(rankedRows(snapshot, scores, { allowed: i => i !== self && !first.has(i) }), scores)
+      ].slice(0, SEARCH_ANSWER + SPARE)
     );
   }
 

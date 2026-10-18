@@ -153,6 +153,21 @@ test("what the words name, and a collection's palettes for the phrase it alone i
   expect((await leads("blue"))[1]).toBe(0);
 });
 
+test("a palette's likes lead with the nearest palettes its collections hold, then its nearest colors from anywhere", async () => {
+  const env = searchEnv();
+  const shipped = decodeSnapshot(searchFile("snapshot.bin"));
+  const team = shipped.names
+    .find(name => name.subject === "nhl team")!
+    .members.map(row => shipped.seeds[row]);
+  const { tier, items } = await searchPalettes(env, "kSPTe3fwAsOk8vq", { limit: 96 });
+  expect(tier).toBe("similar");
+  expect(items.slice(0, 6).every(item => item.lead && team.includes(item.kseed))).toBe(true);
+  expect(items[6]?.lead).toBeUndefined();
+  expect(items.map(item => item.kseed)).toContain("kSPTe3fwAsOk8vq");
+  const alone = await searchPalettes(env, "kWiWqwzCq9lYquzeObz4Ma-w", { limit: 96 });
+  expect([alone.tier, alone.items.some(item => item.lead)]).toEqual(["similar", false]);
+});
+
 test("names are read whole: a piece of a cut word names nothing, and a tag past the 80th character names its palettes", async () => {
   const env = searchEnv();
   for (const piece of ["h", "ear", "spo", "wallpa"])

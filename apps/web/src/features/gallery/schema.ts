@@ -34,7 +34,7 @@ export const SearchItem = v.object({
   rising3m: v.optional(v.number()),
   rising1y: v.optional(v.number()),
   score: v.optional(v.number()),
-  /** what the words name: every order puts it first */
+  /** what the words name, or a palette's collection-mate: every order puts it first */
   lead: v.optional(v.boolean())
 });
 export type SearchItem = v.InferOutput<typeof SearchItem>;

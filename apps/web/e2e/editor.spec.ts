@@ -699,6 +699,40 @@ test("the sheet asks for the palettes like this one only once it is in view", as
   expect(asks[0]?.searchParams.get("query")).toBe(new URL(page.url()).pathname.slice(1));
 });
 
+test("the palettes like this one lead with the nearest its collection holds, on Popular and on Rising", async ({
+  page,
+  request
+}) => {
+  const team = new Set(
+    (
+      (await (await request.get("/api/collections/nhl-team-swatches")).json()) as {
+        items: { kseed: string }[];
+      }
+    ).items.map(item => item.kseed)
+  );
+  await open(page, "/kSPTe3fwAsOk8vq");
+  const order = page.getByRole("radiogroup", { name: "Order" });
+  await order.scrollIntoViewIfNeeded();
+  const cards = page
+    .getByRole("region", { name: "Similar palettes" })
+    .locator('a[aria-label^="Edit "]');
+  const mates = () =>
+    cards.evaluateAll(
+      (links, held) =>
+        links
+          .slice(0, 6)
+          .filter(link =>
+            held.includes(new URL((link as HTMLAnchorElement).href).pathname.slice(1))
+          ).length,
+      [...team]
+    );
+  await expect(cards).toHaveCount(12);
+  expect(await mates()).toBe(6);
+  await order.getByRole("radio", { name: /^Rising/ }).click();
+  await expect(order.getByRole("radio", { name: /^Rising/ })).toBeChecked();
+  expect(await mates()).toBe(6);
+});
+
 test("the order of the palettes like this one is kept for the tab, in the lists' own record", async ({
   page
 }) => {

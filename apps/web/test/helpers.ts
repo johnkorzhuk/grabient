@@ -1,11 +1,13 @@
 import { env as bound } from "cloudflare:workers";
+import { encodePalette } from "@grabient/engine";
+import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 import { authFor } from "@grabient/server/auth/library.ts";
 import type { Place } from "@grabient/server/consent.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 
-/* Accounts, sessions and requests for the Worker's tests. Every test makes its own accounts, addresses and inboxes,
-   so tests never share a count or a row whatever order they run in. */
+/* Accounts, sessions, requests and palettes for the Worker's tests. Every test makes its own accounts, addresses and
+   inboxes, so tests never share a count or a row whatever order they run in. */
 
 export const ORIGIN = "https://grabient.test";
 export const SECRET = "a test secret that no deploy has, 32 characters or more";
@@ -49,6 +51,17 @@ export function testEnv(values: Partial<Env> = {}): TestEnv {
     EMAIL: new Mailbox()
   };
 }
+
+/** The same bindings seen by another isolate: its own assets binding, so it holds no snapshot or files yet. */
+export const freshIsolate = (env: TestEnv): TestEnv => ({
+  ...env,
+  ASSETS: {
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => env.ASSETS.fetch(input, init)
+  } as Fetcher
+});
+
+/** A palette's seed, made of these colors. */
+export const seedOf = (...hexes: string[]) => encodePalette(anchorsFromHexes(hexes)!);
 
 /** A name no other test uses: an account, an inbox, a limit's key. */
 export const unique = (stem: string) => `${stem}-${crypto.randomUUID().slice(0, 13)}`;
