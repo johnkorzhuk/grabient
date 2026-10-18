@@ -447,7 +447,6 @@ export function PaletteView(props: PaletteViewProps) {
         </Text>
       </Show>
       <Button
-        variant="ghost"
         size={p.large ? "lg" : undefined}
         disabled={adding() === "sending" || adding() === "sent"}
         onClick={() => void add()}

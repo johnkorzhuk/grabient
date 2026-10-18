@@ -99,6 +99,14 @@
     justify-content: space-between;
     gap: var(--space-s3);
     min-width: 0;
+    /* Full screen centers on the name's first line, a press as tall as a finger needs or not */
+    --line: calc(var(--font-fs4) * var(--font-lh-ui));
+    & > button {
+      margin-block: calc((var(--line) - var(--size-control)) / 2);
+      @media (pointer: coarse) {
+        margin-block: calc((var(--line) - var(--size-touch)) / 2);
+      }
+    }
   }
   .words {
     display: flex;
@@ -180,10 +188,12 @@
   }
 
   /* Apply to all palettes and Reset, under the chosen palette's appearance */
+  /* quiet presses whose words stand on the column's edge, as the name and Open on Grabient do */
   .everyone {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-s2);
+    margin-inline-start: calc(-1 * var(--space-s3));
   }
   /* the set's name its model gave it, cut short on one line, then how many palettes it holds */
   .named {

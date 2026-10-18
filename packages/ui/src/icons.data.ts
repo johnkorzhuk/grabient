@@ -45,7 +45,9 @@ export const ICONS = {
   download: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 3v12",
   expand: "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7",
   panel: "M3 4h18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM15 4v16",
-  collection: "M3 10a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM7 8V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3",
+  /* the bag stands high in its box: the eye centers its body, not its thin handle, so beside words it reads level */
+  collection:
+    "M3 8.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM7 6.5v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3",
   save: "M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7",
   dice: "M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01",
   flip: "M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4",
