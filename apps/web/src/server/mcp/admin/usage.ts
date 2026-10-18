@@ -20,6 +20,7 @@ const USAGE_COLUMNS = {
   legacy: ["resolved", "who"],
   image: ["picture", "answeredBy"],
   "client-error": ["page", "browser"],
+  "script-load": ["page", "browser"],
   file: ["format", "from", "who"],
   failure: ["status", "kind"]
 } as const;

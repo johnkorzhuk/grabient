@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { browserOf, clientErrorOf, issueOf } from "./client-errors.ts";
+import { browserOf, clientErrorOf, issueOf, usageEventOf } from "./client-errors.ts";
 
 const CHROME =
   "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
@@ -62,6 +62,22 @@ test("a report keeps the error's type, its words and its place in the site's own
   expect(clientErrorOf({ message: "a", page: "/@ada/warm-sunsets" }, null)).toBeNull();
   expect(clientErrorOf({ message: "a", page: "/de/@ada/warm-sunsets" }, null)).toBeNull();
   expect(clientErrorOf({ message: "a".repeat(400) }, null)?.message).toHaveLength(300);
+});
+
+test("a script the browser could not load is counted apart from the errors, in every browser's words", () => {
+  for (const message of [
+    "Failed to fetch dynamically imported module: https://grabient.com/assets/Made-zGxmvvxT.js",
+    "error loading dynamically imported module: https://grabient.com/assets/Made-zGxmvvxT.js",
+    "Importing a module script failed.",
+    "Unable to preload CSS for /assets/Sheet-Cq3x8a1b.css"
+  ])
+    expect(usageEventOf({ message }), message).toBe("script-load");
+  for (const message of [
+    "structuredClone is not defined",
+    "Cannot read properties of undefined (reading 'seed')",
+    "Hydration Mismatch. Unable to find DOM nodes for hydration key: 10002"
+  ])
+    expect(usageEventOf({ message }), message).toBe("client-error");
 });
 
 test("one error is one issue on every page, browser and deploy", () => {

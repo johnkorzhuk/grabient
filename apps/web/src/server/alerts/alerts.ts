@@ -130,7 +130,8 @@ export async function signInDigest(
    passing fault makes, and so are 25 errors from readers' browsers, which one address alone never sends: it may
    report 20 an hour (client-errors.ts). One browser, by its name and major version, counts for 20 of them at most:
    a program driving one browser from many addresses (a scraper whose scripts the firewall refused, on 17 Oct 2026)
-   sends hundreds, while a fault of the site's reaches readers on more than one. */
+   sends hundreds, while a fault of the site's reaches readers on more than one. A script the browser could not load is
+   counted apart (script-load, client-errors.ts) and never weighed here. */
 const FAILING = [
   {
     event: "failure",

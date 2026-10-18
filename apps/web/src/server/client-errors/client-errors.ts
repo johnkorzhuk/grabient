@@ -62,6 +62,16 @@ const unhashed = (text: string) => text.replace(/-[\w-]{8}(?=\.(?:m?js|css)\b)/g
 
 type ClientError = NonNullable<ReturnType<typeof clientErrorOf>>;
 
+/* A script the browser could not load, in the words of Chrome, Firefox, Safari and Vite's preload. It is the reader's
+   side every time: a scraper refusing the site's scripts (one sent hundreds every ten minutes from 17 Oct 2026), a tab
+   still open on a deploy whose files have gone, a connection that dropped. */
+const SCRIPT_LOAD =
+  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Unable to preload CSS/i;
+/** What a report is counted as: `script-load` for a script the browser could not load, which the failing alert never
+    weighs, as a deploy's own missing file is the smoke check's to find (scripts/smoke.ts); `client-error` for the rest. */
+export const usageEventOf = (report: Pick<ClientError, "message">) =>
+  SCRIPT_LOAD.test(report.message) ? "script-load" : "client-error";
+
 /** The report as it is kept, or null when it is none. */
 export function clientErrorOf(body: unknown, agent: string | null) {
   const read = v.safeParse(Report, body);
@@ -114,6 +124,6 @@ export async function clientErrorResponse(request: Request, env: Env): Promise<R
       ? "seed"
       : "collection"
     : report.page;
-  countUsage(env, "client-error", kind, report.browser);
+  countUsage(env, usageEventOf(report), kind, report.browser);
   return done();
 }

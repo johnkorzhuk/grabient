@@ -17,6 +17,7 @@ const TITLES: Record<(typeof USAGE_EVENTS)[number], string> = {
   legacy: "Old grabient.com addresses",
   image: "Pictures",
   "client-error": "Errors pages reported",
+  "script-load": "Scripts browsers could not load",
   file: "Palette files fetched",
   failure: "Answers that failed"
 };

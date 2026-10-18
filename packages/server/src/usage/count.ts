@@ -9,6 +9,7 @@ import type { Env } from "../env.ts";
      legacy        how an old palette address resolved, reader or crawler
      image         what was asked for, what answered (cache, drawn, refused, failed)
      client-error  the kind of page, the browser
+     script-load   the kind of page, the browser: a script the browser could not load, which the alert never weighs
      file          the format fetched, who asked (site, other, none), reader or crawler
      failure       an answer of 500 or more that no flag refused: its status, the kind of address (page, api/<name>,
                    mcp or file)
@@ -21,6 +22,7 @@ export type UsageEvent =
   | "legacy"
   | "image"
   | "client-error"
+  | "script-load"
   | "file"
   | "failure";
 

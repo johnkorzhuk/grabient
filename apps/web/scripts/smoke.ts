@@ -23,12 +23,24 @@ if (!/^https?:\/\//.test(base)) {
 
 const TIMEOUT_MS = 20_000;
 const AT_ONCE = 8;
-const get = (path: string, init: RequestInit = {}) =>
-  fetch(path.startsWith("http") ? path : base + path, {
+/* grabient.com's burst brake refuses an address over 200 requests in ten seconds (from 17 Oct 2026), and 8 at once
+   drew hundreds of 429s that were no deploy's fault: every request waits its turn, 15 a second at most */
+const PER_SECOND = 15;
+let turn = 0;
+async function inTurn() {
+  const now = Date.now();
+  const at = Math.max(now, turn);
+  turn = at + 1000 / PER_SECOND;
+  if (at > now) await new Promise(resolve => setTimeout(resolve, at - now));
+}
+const get = async (path: string, init: RequestInit = {}) => {
+  await inTurn();
+  return fetch(path.startsWith("http") ? path : base + path, {
     redirect: "manual",
     signal: AbortSignal.timeout(TIMEOUT_MS),
     ...init
   });
+};
 
 /** Every <loc> of a sitemap, and of the sitemaps an index names. */
 export async function sitemapUrls(from: string): Promise<string[]> {
@@ -139,6 +151,41 @@ if (palette) {
 }
 for (const path of ["/robots.txt", "/llms.txt"])
   await check(`file ${path}`, async () => ((await get(path)).status === 200 ? true : "missing"));
+/* Every script and stylesheet the home page can load, followed from its HTML through each script's own imports: the
+   failing alert leaves a script the browser could not load to the reader's side (client-errors.ts), so a file the
+   deploy itself is missing is found here. */
+await check("scripts", async () => {
+  const named = (text: string) =>
+    [...text.matchAll(/["'(]\/?(assets\/[\w.-]+\.(?:m?js|css))["')]/g)].map(
+      found => `/${found[1]}`
+    );
+  const home = await (await get("/", { headers: { Accept: "text/html" } })).text();
+  const seen = new Set(named(home));
+  const queue = [...seen];
+  const missing: string[] = [];
+  while (queue.length) {
+    const path = queue.shift() as string;
+    const response = await get(path);
+    const type = response.headers.get("content-type") ?? "";
+    const css = path.endsWith(".css");
+    if (
+      response.status !== 200 ||
+      !(css ? type.startsWith("text/css") : type.includes("javascript"))
+    ) {
+      missing.push(`${path} ${response.status} ${type}`);
+      await response.body?.cancel();
+    } else if (css) await response.body?.cancel();
+    else
+      for (const next of named(await response.text()))
+        if (!seen.has(next)) {
+          seen.add(next);
+          queue.push(next);
+        }
+  }
+  if (missing.length) return `${missing.length} of ${seen.size}: ${missing.slice(0, 5).join(", ")}`;
+  console.log(`      ${seen.size} files`);
+  return seen.size > 10 ? true : `only ${seen.size} files named`;
+});
 
 await check("old link", async () => {
   const [old, seed] = Object.entries(links as Record<string, string>)[0]!;
