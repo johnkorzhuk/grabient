@@ -13,6 +13,8 @@ import { nameWords } from "./read.ts";
 export interface Candidate {
   seed: string;
   score: number;
+  /** heads every order: what the words name */
+  lead?: true;
 }
 
 function rowScores(table: Rows, d: number, vector: readonly number[]): Float32Array {

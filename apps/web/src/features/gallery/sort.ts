@@ -8,11 +8,12 @@ interface Sortable {
   rising?: number;
   rising3m?: number;
   rising1y?: number;
+  lead?: boolean;
 }
 
-/** A search's order, the same on the Worker and in the browser so a page boundary never moves on hydration. Popular is
-    the most liked, then the best answer to the words; Rising the frame's score, then the newest. Ties go by the seed's
-    code points, never by a reader's collation. */
+/** A search's order, the same on the Worker and in the browser so a page boundary never moves on hydration. What the
+    search marks `lead` comes first in every order. Popular is then the most liked, then the best answer to the words;
+    Rising the frame's score, then the newest. Ties go by the seed's code points, never by a reader's collation. */
 export function sortSearch<T extends Sortable>(
   items: readonly T[],
   sort: ListSort = "popular",
@@ -29,6 +30,9 @@ export function sortSearch<T extends Sortable>(
           ? a.createdAt - b.createdAt
           : b.likes - a.likes || (b.score ?? 0) - (a.score ?? 0);
   return [...items].sort(
-    (a, b) => order(a, b) || (a.kseed < b.kseed ? -1 : a.kseed > b.kseed ? 1 : 0)
+    (a, b) =>
+      Number(b.lead === true) - Number(a.lead === true) ||
+      order(a, b) ||
+      (a.kseed < b.kseed ? -1 : a.kseed > b.kseed ? 1 : 0)
   );
 }

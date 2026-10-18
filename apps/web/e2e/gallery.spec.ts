@@ -132,6 +132,22 @@ test("the search field is named in the browser's own tree, empty and with words 
   expect(await name()).toBe("Search palettes");
 });
 
+test("a search leads with the palette its words name, on Popular and on Rising, before and after hydration", async ({
+  page
+}) => {
+  const first = page.locator('main article a[aria-label^="Edit "]').first();
+  for (const [address, seed] of [
+    ["/palettes?q=nashville", "kSPTe3fwAsOk8vq"],
+    ["/palettes/rising?q=lakers", "kUa4PZZb3QfsDv-Ug7_g"]
+  ]) {
+    const named = new RegExp(`^/${seed}(?:\\?|$)`);
+    await page.goto(address);
+    await expect(first).toHaveAttribute("href", named);
+    await hydrated(page);
+    await expect(first).toHaveAttribute("href", named);
+  }
+});
+
 test("forced colors leave every palette its own colors: the cards, the stage, the strip, the chips and the tiles", async ({
   page
 }) => {

@@ -29,7 +29,7 @@ import {
   shownDistance,
   strayDistance
 } from "./facts.ts";
-import { loadVocabulary } from "./files.ts";
+import { kindAt, loadVocabulary } from "./files.ts";
 import { type Item, searchableItems } from "./items.ts";
 import { type ModelEnv, modelQuery, type Payer } from "./model.ts";
 import {
@@ -215,6 +215,7 @@ async function present(
         style,
         steps: Math.max(anchors, intent.count ?? item.steps, 3),
         score: candidate.score,
+        ...(candidate.lead ? { lead: true } : {}),
         tags: [...tags]
       }
     ];
@@ -379,10 +380,12 @@ export async function searchPalettes(
     excluded: excludedWords(vocabulary, query)
   };
 
-  /* Names. The words the vocabulary did not read are looked for in titles and tags, and a phrase it read whole that is a
-     collection's subject brings that collection's palettes. They lead, above every neighbor and on Popular ahead of
-     every palette liked as often. Beside words that were read, a word of many titles is a plain word: its palettes
-     lead only where they also answer those words, nearest first, and when none does it stays unread. */
+  /* Names. The words the vocabulary did not read are looked for in titles and in collections' titles and tags, and a
+     phrase it read whole that is a collection's subject brings that collection's palettes. They lead above every
+     neighbor. What the words name heads every order, and so do a collection's own palettes when the vocabulary knows
+     its phrase only as that collection's title; a color, mood or scene's palettes go by the order alone. Beside words
+     that were read, a word of many titles is a plain word: its palettes lead only where they also answer those words,
+     nearest first, and when none does it stays unread. */
   let named = namedPalettes(snapshot, unread);
   if (named && known && scores && named.rows.length > NAME_ROWS) {
     const titles = new Set(named.rows);
@@ -393,11 +396,14 @@ export async function searchPalettes(
     });
     named = rows.length ? { ...named, rows } : null;
   }
-  const lead = named
-    ? named.rows
-    : known?.whole && known.how !== "words"
+  const subject =
+    !named && known?.whole && known.how !== "words"
       ? subjectMembers(snapshot, known.phrases[0])
       : [];
+  const lead = named ? named.rows : subject;
+  const heads =
+    !!named ||
+    (!!known && subject.length > 0 && kindAt(vocabulary, known.rows[0]) === "collection");
 
   /* The model reads what the vocabulary and the names could not. Read whole, the answer is its own; refused or
      unavailable, the part that was read still answers, and words nobody here read wait for an account's search. */
@@ -425,9 +431,11 @@ export async function searchPalettes(
   if (!known && !named) return none("account", { read, ...unkept, ...limited });
   const near = scores ?? paletteScores(snapshot, rowsVector(snapshot, lead));
   const first = new Set(lead);
-  const led = lead
-    .slice(0, SEARCH_ANSWER + SPARE)
-    .map((i, k) => ({ seed: snapshot.seeds[i], score: 2 - k / (lead.length + 1) }));
+  const led = lead.slice(0, SEARCH_ANSWER + SPARE).map((i, k) => ({
+    seed: snapshot.seeds[i],
+    score: 2 - k / (lead.length + 1),
+    ...(heads ? { lead: true as const } : {})
+  }));
   const neighbors = cut(
     rankedRows(snapshot, near, { filter: known?.filter, allowed: i => !first.has(i) }),
     near

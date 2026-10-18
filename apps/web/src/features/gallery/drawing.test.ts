@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import * as v from "valibot";
 import { expect, test } from "vitest";
 import { hexesOf } from "../../lib/palette.ts";
 import { AS_SAVED, drawnIn } from "../list/appearance.ts";
@@ -12,6 +13,7 @@ import {
   picturedAs,
   relativeAge
 } from "./drawing.ts";
+import { SearchAnswer } from "./schema.ts";
 import { sortSearch } from "./sort.ts";
 
 const helpers = JSON.parse(
@@ -44,6 +46,51 @@ test("a search sorts as both sides do, ties by the seed's code points", () => {
     const [sort, frame] = order.split(":") as ["popular", "1w"];
     expect([order, sortSearch(items, sort, frame).map(item => item.kseed)]).toEqual([order, seeds]);
   }
+});
+
+test("what a search marks lead heads every order, and the leads go by that order among themselves", () => {
+  const view = { style: "linearGradient", steps: 7, angle: 90 } as const;
+  const items = [
+    {
+      ...view,
+      kseed: "kLiked",
+      likes: 12,
+      createdAt: 5,
+      score: 0.9,
+      rising: 9,
+      rising3m: 9,
+      rising1y: 9
+    },
+    { ...view, kseed: "kNamed", likes: 0, createdAt: 1, score: 2, lead: true },
+    {
+      ...view,
+      kseed: "kMate",
+      likes: 3,
+      createdAt: 9,
+      score: 0.6,
+      rising: 2,
+      rising3m: 2,
+      rising1y: 2,
+      lead: true
+    }
+  ];
+  const orders = [
+    ["popular", "1w", ["kMate", "kNamed"]],
+    ["rising", "1w", ["kMate", "kNamed"]],
+    ["rising", "3m", ["kMate", "kNamed"]],
+    ["rising", "1y", ["kMate", "kNamed"]],
+    ["newest", "1w", ["kMate", "kNamed"]],
+    ["oldest", "1w", ["kNamed", "kMate"]]
+  ] as const;
+  for (const [sort, frame, leads] of orders)
+    expect([sort, frame, sortSearch(items, sort, frame).map(item => item.kseed)]).toEqual([
+      sort,
+      frame,
+      [...leads, "kLiked"]
+    ]);
+  // the browser keeps the mark its sort reads
+  const read = v.parse(SearchAnswer, { query: "nashville", items, tier: "named", fetchedAt: 1 });
+  expect(read.items.map(item => item.lead)).toEqual([undefined, true, true]);
 });
 
 test("a list's palette leads to its editor in the view the list draws it in, at the reader's size", () => {

@@ -123,12 +123,34 @@ describe("words a palette's own fields hold between them", () => {
     ["nfl ravens", "kSS2vGgABJkyrym", "nfl team"]
   ])("%s names its team", async (query, seed, tag) => {
     const { tier, items } = await searchPalettes(env, query);
-    expect([tier, items[0]?.kseed, items[0]?.tags]).toEqual(["named", seed, [tag]]);
+    expect([tier, items[0]?.kseed, items[0]?.tags, items[0]?.lead]).toEqual([
+      "named",
+      seed,
+      [tag],
+      true
+    ]);
   });
 
   test("and nothing where no palette holds them all", async () => {
     expect((await searchPalettes(env, "nhl lakers")).tier).toBe("account");
   });
+});
+
+test("what the words name, and a collection's palettes for the phrase it alone is called, head every order; a color's and a scene's do not", async () => {
+  const env = searchEnv();
+  const leads = async (query: string) => {
+    const { items } = await searchPalettes(env, query, { limit: 96 });
+    const led = items.filter(item => item.lead).length;
+    expect(
+      items.every((item, at) => item.lead === (at < led ? true : undefined)),
+      query
+    ).toBe(true);
+    return [items[0]?.kseed, led];
+  };
+  expect(await leads("nashville")).toEqual(["kSPTe3fwAsOk8vq", 1]);
+  expect(await leads("nhl team")).toEqual([expect.any(String), 25]);
+  expect((await leads("sunset"))[1]).toBe(0);
+  expect((await leads("blue"))[1]).toBe(0);
 });
 
 test("names are read whole: a piece of a cut word names nothing, and a tag past the 80th character names its palettes", async () => {

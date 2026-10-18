@@ -26,14 +26,16 @@ export const PalettePage = v.object({
 });
 export type PalettePage = v.InferOutput<typeof PalettePage>;
 
-/** A search's candidate: how fast it rises in each frame (a search sorts its pool in the browser) and how well it
-    answers the words. */
+/** A search's candidate: how fast it rises in each frame (a search sorts its pool in the browser), how well it answers
+    the words, and whether it heads every order. */
 export const SearchItem = v.object({
   ...PaletteItem.entries,
   rising: v.optional(v.number()),
   rising3m: v.optional(v.number()),
   rising1y: v.optional(v.number()),
-  score: v.optional(v.number())
+  score: v.optional(v.number()),
+  /** what the words name: every order puts it first */
+  lead: v.optional(v.boolean())
 });
 export type SearchItem = v.InferOutput<typeof SearchItem>;
 
