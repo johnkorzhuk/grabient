@@ -727,10 +727,10 @@ test("the palettes like this one lead with the nearest its collection holds, on 
       [...team]
     );
   await expect(cards).toHaveCount(12);
-  expect(await mates()).toBe(6);
+  await expect.poll(mates).toBe(6);
   await order.getByRole("radio", { name: /^Rising/ }).click();
   await expect(order.getByRole("radio", { name: /^Rising/ })).toBeChecked();
-  expect(await mates()).toBe(6);
+  await expect.poll(mates).toBe(6);
 });
 
 test("the order of the palettes like this one is kept for the tab, in the lists' own record", async ({
