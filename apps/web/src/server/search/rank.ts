@@ -209,10 +209,13 @@ export function namedPalettes(snapshot: Snapshot, words: readonly string[]): Nam
       names: named.map(c => snapshot.names[c].subject)
     };
   /* no one title and no one collection holds every word: a palette's titles, its collections' words and its
-     description's names may hold them between them (nhl nashville) */
-  const each = words.map(word => inFields(index, word));
+     description's names may hold them between them (nhl nashville). A word is looked for only while some palette holds
+     every word before it: one that no field holds as written is looked for a slip off across all their words. */
+  const gave = new Set<number>();
   let found = new Set<number>();
-  for (const [k, field] of each.entries()) {
+  for (const [k, word] of words.entries()) {
+    const field = inFields(index, word);
+    for (const c of field.named) gave.add(c);
     const rows = new Set([
       ...field.titled,
       ...field.named.flatMap(c => snapshot.names[c].members),
@@ -221,7 +224,7 @@ export function namedPalettes(snapshot: Snapshot, words: readonly string[]): Nam
     found = k ? new Set([...found].filter(row => rows.has(row))) : rows;
     if (!found.size) return null;
   }
-  const helped = [...new Set(each.flatMap(field => field.named))]
+  const helped = [...gave]
     .sort((a, b) => a - b)
     .filter(c => snapshot.names[c].members.some(row => found.has(row)));
   return {
