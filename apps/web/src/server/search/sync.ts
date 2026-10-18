@@ -16,6 +16,7 @@ import { fitOf } from "../collections/fit.ts";
 import { WORDS_PUBLIC } from "../collections/read.ts";
 import { loadModel, searchAsset } from "./files.ts";
 import { embeddings } from "./model.ts";
+import { describedNames } from "./read.ts";
 import { latestSnapshot, storedMark, storeSnapshot } from "./snapshot.ts";
 
 /** Four tables, each read once as counts and latest times: a row added, changed or removed anywhere the snapshot reads
@@ -61,7 +62,13 @@ export interface SiteRows {
     description: string | null;
     tags: string | null;
   }[];
-  items: { collection_id: string; seed: string }[];
+  /** a membership, with the words its collection gives the palette where WORDS_PUBLIC holds, else null */
+  items: {
+    collection_id: string;
+    seed: string;
+    title: string | null;
+    description: string | null;
+  }[];
   votes: { collection_id: string; seed: string; up: number; down: number; admin_down: number }[];
 }
 
@@ -77,7 +84,7 @@ function tagsOf(raw: string | null): string[] {
 }
 
 /** Rows as the site a build reads: public collections with their palettes in order, without the ones voted out, and
-    without collections left with none. */
+    without collections left with none; each palette's titles, and the names its descriptions write. */
 export function siteOf(rows: SiteRows, mark: string): Site {
   const collections = new Map(
     rows.collections.map(c => [
@@ -100,14 +107,29 @@ export function siteOf(rows: SiteRows, mark: string): Site {
       })
       .map(v => `${v.collection_id}|${v.seed}`)
   );
+  /* every title and description a palette is given, each once: Grabient's first, then each public collection's in
+     its order; a membership voted out takes its words with it */
+  const titles = new Map<string, string[]>();
+  const descriptions = new Map<string, string[]>();
+  const give = (to: Map<string, string[]>, seed: string, words: string | null) => {
+    if (!words) return;
+    const held = to.get(seed);
+    if (!held) to.set(seed, [words]);
+    else if (!held.includes(words)) held.push(words);
+  };
+  for (const text of rows.titles) give(titles, text.seed, text.title);
   for (const item of rows.items) {
-    if (!out.has(`${item.collection_id}|${item.seed}`))
-      collections.get(item.collection_id)?.seeds.push(item.seed);
+    const held = collections.get(item.collection_id);
+    if (!held || out.has(`${item.collection_id}|${item.seed}`)) continue;
+    held.seeds.push(item.seed);
+    give(titles, item.seed, item.title);
+    give(descriptions, item.seed, item.description);
   }
   return {
     seeds: rows.palettes.map(p => p.seed),
     collections: [...collections.values()].filter(c => c.seeds.length),
-    titles: new Map(rows.titles.map(t => [t.seed, t.title])),
+    titles: new Map([...titles].map(([seed, all]) => [seed, all.join("\n")])),
+    described: describedNames(descriptions),
     mark
   };
 }
@@ -153,7 +175,9 @@ export async function readSite(db: Db, mark: string): Promise<Site> {
     ),
     byOffset<SiteRows["items"][number]>(
       db,
-      `SELECT i.collection_id, i.seed FROM k_collection_items i JOIN k_collections c ON c.id = i.collection_id
+      `SELECT i.collection_id, i.seed, CASE WHEN ${WORDS_PUBLIC} THEN i.title END AS title,
+         CASE WHEN ${WORDS_PUBLIC} THEN i.description END AS description
+       FROM k_collection_items i JOIN k_collections c ON c.id = i.collection_id
        WHERE c.visibility = 'public' ORDER BY i.collection_id, i.position LIMIT ? OFFSET ?`
     ),
     all<SiteRows["votes"][number]>(

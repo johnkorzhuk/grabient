@@ -3,8 +3,8 @@
      that its public collections hold
    - color: palettes near hex colors, written in the query or asked beside it
    - vocabulary: words the vocabulary reads, in any of its languages, as emoji, or one slip off
-   - named: words no color says (a team, a game), found in palette titles and in collections' titles and tags, in one of
-     them or across a palette's own
+   - named: words no color says (a team, a game), found in the titles palettes are given, in collections' titles and tags
+     and in the names descriptions write, in one of them or across a palette's own
    - model: words new to the vocabulary, read by one embedding within the payer's allowance (model.ts)
    - account: nothing here could read the words; a signed-in account's own allowance may (routes.ts)
    - unavailable: the search files are missing or of two model versions
@@ -53,6 +53,7 @@ import {
   hexLiterals,
   hexQuery,
   knownQuery,
+  NAME_ROWS,
   plainPhrase,
   queryWords
 } from "./read.ts";
@@ -73,9 +74,9 @@ export interface SearchItem extends Item {
 
 /** What a search made of its words. */
 export interface SearchRead {
-  /** the vocabulary's phrases the query holds, and the words titles hold as names */
+  /** the vocabulary's phrases the query holds, and the words the names answered */
   phrases: string[];
-  /** the words neither the vocabulary nor a title knows: in the model's answer, the ones it guessed at */
+  /** the words neither the vocabulary nor a name knows: in the model's answer, the ones it guessed at */
   unread: string[];
   /** what follows no, not or without, which the search cannot leave out */
   excluded: string[];
@@ -122,8 +123,6 @@ export const SEARCH_ANSWER = 96;
 /** One read of the database takes this many seeds, and this many candidates past the ones asked for. */
 const READ_AT_ONCE = 96;
 const SPARE = 8;
-/** A name is in a title or three (lakers, dune); a word in more titles is a plain one (night, glow). */
-const NAME_ROWS = 3;
 /** In OKLab, colors this far apart are other colors. */
 const FAR = 0.06;
 /** From this many written colors on, they are a palette's, a picture's among them, and the answer keeps its nearest CUT. */
@@ -377,7 +376,8 @@ export async function searchPalettes(
     );
   }
 
-  // a word one slip from a phrase is taken as written when a title holds it: mist is mint a letter off, and titles 30
+  /* a word one slip from a phrase is taken as written when a title holds it, one a collection gives its palette among
+     them: the vocabulary reads bruins as brown, and a title names the Bruins */
   const lettered = knownQuery(vocabulary, query);
   const words = queryWords(query);
   const known = lettered?.how === "typo" && titled(snapshot, words) ? null : lettered;
@@ -389,12 +389,12 @@ export async function searchPalettes(
     excluded: excludedWords(vocabulary, query)
   };
 
-  /* Names. The words the vocabulary did not read are looked for in titles and in collections' titles and tags, and a
-     phrase it read whole that is a collection's subject brings that collection's palettes. They lead above every
-     neighbor. What the words name heads every order, and so do a collection's own palettes when the vocabulary knows
-     its phrase only as that collection's title; a color, mood or scene's palettes go by the order alone. Beside words
-     that were read, a word of many titles is a plain word: its palettes lead only where they also answer those words,
-     nearest first, and when none does it stays unread. */
+  /* Names. The words the vocabulary did not read are looked for in titles, in collections' titles and tags and in the
+     names descriptions write, and a phrase it read whole that is a collection's subject brings that collection's
+     palettes. They lead above every neighbor. What the words name heads every order, and so do a collection's own
+     palettes when the vocabulary knows its phrase only as that collection's title; a color, mood or scene's palettes go
+     by the order alone. Beside words that were read, a word of many titles is a plain word: its palettes lead only
+     where they also answer those words, nearest first, and when none does it stays unread. */
   let named = namedPalettes(snapshot, unread);
   if (named && known && scores && named.rows.length > NAME_ROWS) {
     const titles = new Set(named.rows);

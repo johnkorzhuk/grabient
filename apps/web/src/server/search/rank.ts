@@ -133,17 +133,19 @@ export async function hexQueryVector(
   return model && palette ? paletteVector(model, palette).values : null;
 }
 
-/* Names no color says (Lakers, Zelda), read whole: the titles palettes are given, and each collection's title and
-   tags. */
+/* Names no color says (Lakers, Zelda), read whole: the titles a palette is given (Grabient's, and those public
+   collections whose words anyone may read give it), each collection's title and tags, and the names those collections'
+   descriptions of a palette write. */
 interface NameIndex {
   titles: Map<string, number[]>;
   collections: Map<string, number[]>;
+  described: Map<string, number[]>;
 }
 const nameIndexes = new WeakMap<Snapshot, NameIndex>();
 function nameIndex(snapshot: Snapshot): NameIndex {
   const held = nameIndexes.get(snapshot);
   if (held) return held;
-  const index: NameIndex = { titles: new Map(), collections: new Map() };
+  const index: NameIndex = { titles: new Map(), collections: new Map(), described: new Map() };
   const add = (map: Map<string, number[]>, words: readonly string[], at: number) => {
     for (const word of new Set(words)) {
       const list = map.get(word);
@@ -155,6 +157,8 @@ function nameIndex(snapshot: Snapshot): NameIndex {
     if (title) add(index.titles, nameWords(title), row);
   for (const [k, name] of snapshot.names.entries())
     add(index.collections, nameWords(name.words), k);
+  for (const [row, words] of snapshot.described.entries())
+    if (words) add(index.described, words.split(" ").filter(Boolean), row);
   nameIndexes.set(snapshot, index);
   return index;
 }
@@ -173,14 +177,16 @@ function holdingAll(map: Map<string, number[]>, words: readonly string[], near =
   return held ? [...held].sort((a, b) => a - b) : [];
 }
 
-/* one word in every field: as written wherever it is written, else one slip off */
+/* one word in every field: as written wherever it is written, else one slip off in titles and collections; a
+   description's names are matched only as written */
 function inFields(index: NameIndex, word: string) {
   const titled = index.titles.get(word) ?? [];
   const named = index.collections.get(word) ?? [];
-  if (titled.length || named.length) return { titled, named };
+  const told = index.described.get(word) ?? [];
+  if (titled.length || named.length || told.length) return { titled, named, told };
   const near = (map: Map<string, number[]>) =>
     [...map].flatMap(([known, rows]) => (nearWord(word, known) ? rows : []));
-  return { titled: near(index.titles), named: near(index.collections) };
+  return { titled: near(index.titles), named: near(index.collections), told: [] };
 }
 
 export interface NamedAnswer {
@@ -202,12 +208,16 @@ export function namedPalettes(snapshot: Snapshot, words: readonly string[]): Nam
       rows: [...new Set([...titled, ...named.flatMap(c => snapshot.names[c].members)])],
       names: named.map(c => snapshot.names[c].subject)
     };
-  /* no one title and no one collection holds every word: a palette's titles and its collections' words may hold them
-     between them (nhl nashville) */
+  /* no one title and no one collection holds every word: a palette's titles, its collections' words and its
+     description's names may hold them between them (nhl nashville) */
   const each = words.map(word => inFields(index, word));
   let found = new Set<number>();
   for (const [k, field] of each.entries()) {
-    const rows = new Set([...field.titled, ...field.named.flatMap(c => snapshot.names[c].members)]);
+    const rows = new Set([
+      ...field.titled,
+      ...field.named.flatMap(c => snapshot.names[c].members),
+      ...field.told
+    ]);
     found = k ? new Set([...found].filter(row => rows.has(row))) : rows;
     if (!found.size) return null;
   }
@@ -220,7 +230,7 @@ export function namedPalettes(snapshot: Snapshot, words: readonly string[]): Nam
   };
 }
 
-/** Whether some palette's title holds every word as written. */
+/** Whether some palette's titles hold every word as written, the ones public collections give it among them. */
 export const titled = (snapshot: Snapshot, words: readonly string[]): boolean =>
   holdingAll(nameIndex(snapshot).titles, words, false).length > 0;
 

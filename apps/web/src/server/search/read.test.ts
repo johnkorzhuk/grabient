@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import { loadVocabulary } from "./files.ts";
 import { answerBar, knownScores } from "./rank.ts";
 import {
+  describedNames,
   excludedWords,
   hexQuery,
   knownQuery,
@@ -122,6 +123,33 @@ test("a name is read to the end of its text, a query to its hundredth character"
   expect(nameWords(title)).toContain("lakers");
   expect(queryWords(title)).not.toContain("lakers");
   expect(nameWords("The Lakers of the night")).toEqual(["lakers", "night"]);
+});
+
+test("a description names its palette by the words it capitalizes inside a sentence, where few descriptions use them", () => {
+  const named = describedNames(
+    new Map([
+      [
+        "kA",
+        [
+          "The Preds' home gold, as worn at Bridgestone Arena.",
+          "Smashville gold for the Preds. Soft midtones for the Preds."
+        ]
+      ],
+      ["kB", ["Lights at the arena."]],
+      ["kC", ["An Arena of colors."]],
+      ["kD", ["Arena nights. The ARENA."]],
+      ["kE", ["Colors for 2026 and the Stanley Cup."]],
+      ["kF", ["… — !"]],
+      ["kG", ["Colors of the Tokyo東京2026 games."]]
+    ])
+  );
+  /* Smashville and Colors open a sentence, midtones is no name, four palettes' descriptions use arena, and a number is
+     never a name, whole or split from a word */
+  expect([...named]).toEqual([
+    ["kA", "bridgestone preds"],
+    ["kE", "cup stanley"],
+    ["kG", "tokyo 東京"]
+  ]);
 });
 
 test("a title names what it holds, and beneath a collection's own title", () => {

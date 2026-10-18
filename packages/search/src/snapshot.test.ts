@@ -9,6 +9,7 @@ import {
   decodeSnapshot,
   encodeSnapshot,
   type Site,
+  snapshotHead,
   subjectOf,
   textMark
 } from "./snapshot.ts";
@@ -172,6 +173,83 @@ describe("a build", () => {
     expect(failed.snapshot.textOf[0]).toBe(first.snapshot.textOf[0]);
     const repaid = await buildSnapshot(model, changed, failed.snapshot, { embed, now: 3 });
     expect([repaid.stats.embedded, repaid.snapshot.pending]).toEqual([1, 0]);
+  });
+});
+
+describe("the words a palette is given", () => {
+  const gallery = snapshot.seeds.slice(0, 4);
+  const site: Site = {
+    seeds: gallery,
+    titles: new Map([[gallery[1], "Zorblax fizz\nSmashville gold"]]),
+    described: new Map([[gallery[1], "bridgestone preds"]]),
+    mark: "v1:f1:test",
+    collections: []
+  };
+  const built = async (from: Site) => (await buildSnapshot(model, from, null, { now: 1 })).snapshot;
+  const headOf = (bytes: Uint8Array) =>
+    new TextDecoder().decode(bytes.subarray(0, bytes.indexOf(0x0a))).trimEnd();
+  /* the same bytes under another head */
+  const withHead = (bytes: Uint8Array, change: (head: Record<string, unknown>) => void) => {
+    const head = JSON.parse(headOf(bytes)) as Record<string, unknown>;
+    change(head);
+    const line = new TextEncoder().encode(`${JSON.stringify(head)}\n`);
+    const body = bytes.subarray(bytes.indexOf(0x0a) + 1);
+    const out = new Uint8Array(line.length + body.length);
+    out.set(line);
+    out.set(body, line.length);
+    return out;
+  };
+
+  test("are kept through a build, its bytes and their reading, the same bytes each time", async () => {
+    const named = await built(site);
+    expect([named.titles[1], named.described[1], named.described[0]]).toEqual([
+      "Zorblax fizz\nSmashville gold",
+      "bridgestone preds",
+      ""
+    ]);
+    const bytes = encodeSnapshot(named);
+    const back = decodeSnapshot(bytes);
+    expect([back.titles, back.described]).toEqual([named.titles, named.described]);
+    // after the collections, listing only the palettes described, on the one head line
+    expect(headOf(bytes)).toMatch(
+      /"collections":\[\],"described":\[\[1,"bridgestone preds"\]\]\}$/
+    );
+    expect(snapshotHead(bytes)).toMatchObject({ mark: "v1:f1:test", builtAt: 1, pending: 0 });
+    expect(sha256(encodeSnapshot(await built(site)))).toBe(sha256(bytes));
+    expect(headOf(encodeSnapshot(await built({ ...site, described: undefined })))).not.toContain(
+      '"described"'
+    );
+  });
+
+  test("a copy's names this code cannot read are passed over, and everything else reads as it was", async () => {
+    const named = await built(site);
+    const bytes = encodeSnapshot(named);
+    const n = named.seeds.length;
+    const none = new Array<string>(n).fill("");
+    for (const described of [
+      "w",
+      [[-1, "w"]],
+      [[n, "w"]],
+      [[0.5, "w"]],
+      [[0, 5]],
+      [["w"]],
+      [null]
+    ]) {
+      const back = decodeSnapshot(withHead(bytes, head => Object.assign(head, { described })));
+      expect(back.described, JSON.stringify(described)).toEqual(none);
+      expect({ ...back, described: named.described }).toEqual(named);
+    }
+    const mixed = decodeSnapshot(
+      withHead(bytes, head =>
+        Object.assign(head, {
+          described: [
+            [-1, "w"],
+            [2, "kept"]
+          ]
+        })
+      )
+    );
+    expect(mixed.described).toEqual(["", "", "kept", ""]);
   });
 });
 

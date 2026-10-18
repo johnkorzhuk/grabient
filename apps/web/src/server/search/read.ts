@@ -42,8 +42,42 @@ const meaningful = (word: string) => !FORM_WORDS.has(word) && !FUNCTION_WORDS.ha
 /** The words of a query that say what is wanted: normalized, split in every script, without form and grammar. */
 export const queryWords = (text: string): string[] => queryTokens(text).filter(meaningful);
 
-/** The same words of a text read to its end: what a title, or a collection's title and tags, call a palette. */
+/** The same words of a text read to its end: what a title, a collection's title and tags or a description's name call
+    a palette. */
 export const nameWords = (text: string): string[] => textTokens(text).filter(meaningful);
+
+/** A name is in a title or three (lakers, dune), and a word in more titles is a plain one (night, glow). A description
+    names a palette with a word that three palettes' descriptions or fewer use. */
+export const NAME_ROWS = 3;
+
+/* what a description writes as names: words capitalized inside a sentence, past its first (Preds, Bridgestone) */
+const writtenNames = (text: string): string[] =>
+  text.split(/(?<=[.!?])\s+/u).flatMap(sentence =>
+    (sentence.match(/[\p{L}\p{M}\p{N}]+/gu) ?? [])
+      .slice(1)
+      .filter(token => /^\p{Lu}/u.test(token))
+      .flatMap(nameWords)
+  );
+
+/** Each palette's description names, as words a space apart: the names its descriptions write that at most NAME_ROWS
+    palettes' descriptions use in any case, never a number. Prose about colors names no palette, and a word many
+    descriptions share names none. */
+export function describedNames(
+  descriptions: ReadonlyMap<string, readonly string[]>
+): Map<string, string> {
+  const using = new Map<string, number>();
+  for (const texts of descriptions.values())
+    for (const word of new Set(texts.flatMap(nameWords)))
+      using.set(word, (using.get(word) ?? 0) + 1);
+  const named = new Map<string, string>();
+  for (const [seed, texts] of descriptions) {
+    const names = [...new Set(texts.flatMap(writtenNames))]
+      .filter(word => (using.get(word) ?? 0) <= NAME_ROWS && !/^\p{N}+$/u.test(word))
+      .sort();
+    if (names.length) named.set(seed, names.join(" "));
+  }
+  return named;
+}
 
 /* At each word, the longest run of up to `longest` words the vocabulary holds as one phrase (dark blue; 深蓝色 where the
    segmenter gave 深 and 蓝色), else the word itself, a Korean noun without its particle included. */

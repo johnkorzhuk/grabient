@@ -59,6 +59,7 @@ interface Exported {
   mark: string;
   seeds: string[];
   titles: [string, string][];
+  described?: [string, string][];
   collections: {
     slug: string;
     title: string;
@@ -84,6 +85,7 @@ async function exportSite(local: boolean, mode: "staging" | "production") {
     mark,
     seeds: site.seeds,
     titles: [...site.titles],
+    described: [...(site.described ?? [])],
     collections: site.collections
   };
   writeFileSync(EXPORT, JSON.stringify(exported));
@@ -129,7 +131,7 @@ async function build() {
   // from nothing: every palette is measured here
   const { snapshot, stats } = await buildSnapshot(
     tower,
-    { ...site, titles: new Map(site.titles) },
+    { ...site, titles: new Map(site.titles), described: new Map(site.described ?? []) },
     null,
     {
       limit: Number.POSITIVE_INFINITY,

@@ -1,6 +1,6 @@
-import { decodeSnapshot, rowOf } from "@grabient/search/snapshot.ts";
+import { decodeSnapshot, rowOf, type Snapshot } from "@grabient/search/snapshot.ts";
 import { describe, expect, test } from "vitest";
-import { collectionMates, namedPalettes, paletteScores } from "./rank.ts";
+import { collectionMates, namedPalettes, paletteScores, titled } from "./rank.ts";
 import { searchFile } from "./testing.ts";
 
 /* The names the search finds on the shipped snapshot: in one palette's titles (way A), in one collection's title and
@@ -27,6 +27,46 @@ test("words no one title or collection holds name the palettes whose own fields 
   for (const query of ["nhl nashville", "nashville hockey", "hockey predators", "nhl nashvile"])
     expect(named(query), query).toEqual({ rows: [NASHVILLE], names: ["nhl team"] });
   expect(named("nhl lakers")).toBeNull();
+});
+
+describe("the words a public collection gives a palette", () => {
+  /* the Nashville palette as an admin's collection might title and describe it */
+  const worded: Snapshot = {
+    ...shipped,
+    titles: shipped.titles.map((title, row) =>
+      row === NASHVILLE ? `${title}\nSmashville gold` : title
+    ),
+    described: shipped.described.map((words, row) =>
+      row === NASHVILLE ? "bridgestone preds" : words
+    )
+  };
+  const answer = (query: string) => namedPalettes(worded, query.split(" "));
+
+  test("a title names it alone, a slip off as well", () => {
+    for (const query of ["smashville", "smashvile"])
+      expect(answer(query), query).toEqual({ rows: [NASHVILLE], names: [] });
+    expect(answer("smashville hockey")).toEqual({ rows: [NASHVILLE], names: ["nhl team"] });
+  });
+
+  test("a description's names name it as written, only where no title or collection answers", () => {
+    for (const query of ["preds", "bridgestone", "bridgestone nhl"])
+      expect(answer(query), query).toEqual({
+        rows: [NASHVILLE],
+        names: query.includes("nhl") ? ["nhl team"] : []
+      });
+    expect(answer("predz")).toBeNull();
+    const thaw = shipped.names.find(name => name.subject === "alpine thaw")!;
+    expect(answer("crisp")).toEqual({ rows: thaw.members, names: ["alpine thaw"] });
+    expect(answer("nhl lakers")).toBeNull();
+  });
+
+  test("decide the vocabulary's reading as a title does, and a description's names never do", () => {
+    expect([titled(worded, ["smashville"]), titled(shipped, ["smashville"])]).toEqual([
+      true,
+      false
+    ]);
+    expect(titled(worded, ["preds"])).toBe(false);
+  });
 });
 
 describe("a palette's collection-mates", () => {

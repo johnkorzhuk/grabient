@@ -1,7 +1,8 @@
 /* The snapshot: everything the free search answers from, in one file. It holds every public palette's vector (int8 rows
-   with a scale each), every public collection's, the title each palette was given, and what each collection is called
-   and holds. A build copies the rows the previous snapshot holds and measures only new palettes, since a palette's
-   vector depends on its seed and the model alone, so the same input gives the same bytes wherever it runs.
+   with a scale each), every public collection's, every title each palette is given and the names its descriptions
+   write, and what each collection is called and holds. A build copies the rows the previous snapshot holds and
+   measures only new palettes, since a palette's vector depends on its seed and the model alone, so the same input gives
+   the same bytes wherever it runs.
 
    The file is one JSON head line padded with spaces to a 4-byte boundary, then palette scales (float32), palette rows
    (int8), collection scales, collection rows, and the collections' text vectors (float32). */
@@ -39,9 +40,12 @@ export interface Snapshot {
   palettes: Rows;
   slugs: string[];
   collections: Rows;
-  /** the title each palette was given, or "" */
+  /** every title each palette is given, a line each (Grabient's, then those of the public collections whose words
+      anyone may read), or "" */
   titles: string[];
   names: CollectionName[];
+  /** the names each palette's descriptions write, as words a space apart, or "" */
+  described: string[];
   /** each collection's text as a vector, kept so only a changed text is embedded again */
   texts: Float32Array;
   /** the mark of the text each vector was made from (textMark), "" for none */
@@ -64,9 +68,14 @@ interface Head {
   harmony: number[];
   titles: string[];
   collections: { slug: string; words: string; subject: string; members: number[]; text: string }[];
+  /** [row, names] for each palette whose descriptions write names, left out when none does */
+  described?: [number, string][];
 }
 
 export function encodeSnapshot(s: Snapshot): Uint8Array {
+  const described = s.described.flatMap((words, row): [number, string][] =>
+    words ? [[row, words]] : []
+  );
   const head: Head = {
     format: SNAPSHOT_FORMAT,
     version: s.version,
@@ -84,7 +93,8 @@ export function encodeSnapshot(s: Snapshot): Uint8Array {
       subject: s.names[i].subject,
       members: s.names[i].members,
       text: s.textOf[i]
-    }))
+    })),
+    ...(described.length ? { described } : {})
   };
   const json = new TextEncoder().encode(JSON.stringify(head));
   const start = Math.ceil((json.length + 1) / 4) * 4;
@@ -151,11 +161,28 @@ export function decodeSnapshot(bytes: ArrayBuffer | Uint8Array): Snapshot {
     collections,
     titles: head.titles,
     names: head.collections.map(c => ({ words: c.words, subject: c.subject, members: c.members })),
+    described: describedOf(head.described, n),
     texts: floats(m * d),
     textOf: head.collections.map(c => c.text),
     mark: head.mark,
     pending: head.pending
   };
+}
+
+/* a copy's description names by row: a pair this code cannot read is passed over, so every copy decodes */
+function describedOf(pairs: unknown, n: number): string[] {
+  const out = new Array<string>(n).fill("");
+  if (!Array.isArray(pairs)) return out;
+  for (const pair of pairs)
+    if (
+      Array.isArray(pair) &&
+      Number.isInteger(pair[0]) &&
+      pair[0] >= 0 &&
+      pair[0] < n &&
+      typeof pair[1] === "string"
+    )
+      out[pair[0]] = pair[1];
+  return out;
 }
 
 /** The fields a snapshot's head leads with, read from the start of its file alone: encodeSnapshot writes them before
@@ -214,8 +241,10 @@ export interface Site {
   /** the gallery, oldest first */
   seeds: string[];
   collections: SiteCollection[];
-  /** seed to the title a palette was given */
+  /** seed to every title a palette is given, a line each */
   titles: Map<string, string>;
+  /** seed to the names its descriptions write, as words a space apart */
+  described?: Map<string, string>;
   mark: string;
 }
 
@@ -424,6 +453,7 @@ export async function buildSnapshot(
       subject: normalizeQuery(subjectOf(c.title)),
       members: c.members
     })),
+    described: seeds.map(seed => site.described?.get(seed) ?? ""),
     texts,
     textOf,
     mark: site.mark,
