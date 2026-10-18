@@ -33,8 +33,9 @@ The address plus `.png`, `.svg`, `.css` or `.json` is the palette as a file in i
 ## What to read in an answer
 
 - `note`: there only when something needs saying, such as steps raised to the palette's color count or a change that could not be reached.
-- `published`: this save added the palette to the public gallery, as the first save of a palette new to Grabient does.
+- `published`: this save added the palette to the public gallery, as the first save of a palette new to Grabient does. The account's username shows there only if the person turned on Your name on palettes in Settings.
 - `named`: a title given to the palette by the account in its saves, or by the collection it is read in. Any other title is the one Grabient gives it.
+- `credit`: who brought a palette to Grabient, in `inspect_palettes`: `grabient`, or a `person` by the username they chose to show, as the palette's card and page credit them. Null where no one is credited.
 - `read.notRead`: the words of a search it does not know. A `note` says when the palettes answering them are only the search model's guess.
 
 ## What it is not for

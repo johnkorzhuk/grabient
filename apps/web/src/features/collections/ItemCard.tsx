@@ -9,6 +9,7 @@ import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
 import { askFacts } from "../editor/page.ts";
+import { askCredit, creditOf, creditWords } from "../gallery/credit.ts";
 import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
 import { cardTakings } from "../gallery/take.ts";
 import { cardWords, type Words } from "../gallery/words.ts";
@@ -83,7 +84,9 @@ export function ItemCard(props: {
       rel={relTo(href())}
       age={props.age}
       title={words().title}
+      called={words().called}
       description={words().description}
+      credit={creditWords(creditOf(seed()))}
       naming={props.naming}
       likes={likeCount(seed(), props.likes)}
       liked={liked(seed())}
@@ -93,7 +96,10 @@ export function ItemCard(props: {
       onSelect={() => {
         if (toggle(shown()) === "made room") props.note(roomNote(1));
       }}
-      onIntent={() => askFacts(seed())}
+      onIntent={() => {
+        askFacts(seed());
+        askCredit(seed());
+      }}
       onOpen={() => {
         rememberOpening(seed(), props.collection);
         useOpened(props.place(), shown(), props.at());

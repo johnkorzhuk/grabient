@@ -17,6 +17,7 @@ import {
   validateCollection
 } from "../../../features/collections/schema.ts";
 import type { CollectionSummary } from "../../../features/collections/types.ts";
+import type { Credit } from "../../../features/gallery/credit.ts";
 import { SHEET_MAX } from "../../../mcp-view/tiles.ts";
 import { heldWords, texts as paletteTexts } from "../../collections/files.ts";
 import {
@@ -36,6 +37,7 @@ import {
   updateCollection
 } from "../../collections/write.ts";
 import { colorNames } from "../../files/names.ts";
+import { creditsOf } from "../../gallery/credit.ts";
 import {
   likeLimits,
   likeTitle,
@@ -541,7 +543,7 @@ export const accountTools: readonly Tool[] = [
     title: "Inspect palettes",
     hints: READS,
     description:
-      "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in: the colors of a Swatches view are its bands, and of a gradient the ones it blends between. `gallery` is null for a palette the gallery lacks, and `collections` are the public ones that hold it.",
+      "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in: the colors of a Swatches view are its bands, and of a gradient the ones it blends between. `gallery` is null for a palette the gallery lacks, `collections` are the public ones that hold it, and `credit` names who brought it.",
     inputSchema: shape(
       { palettes: list(paletteItem(), "The palettes, each in the view to read it in.", 1, 12) },
       ["palettes"]
@@ -549,12 +551,13 @@ export const accountTools: readonly Tool[] = [
     async run(args, c) {
       const given = args.palettes as PaletteGiven[];
       const seeds = [...new Set(given.map(one => one.seed))];
-      const [views, gallery, texts, holding, names] = await Promise.all([
+      const [views, gallery, texts, holding, names, credits] = await Promise.all([
         searchableItems(c.env, seeds),
         galleryItems(c.env.DB, seeds),
         paletteTexts(c.env, seeds),
         collectionsHoldingEach(c.env, seeds, 6),
-        colorNames(c.env)
+        colorNames(c.env),
+        creditsOf(c.env, seeds)
       ]);
       const written = new Map(texts.map(t => [t.seed, t]));
       return answer({
@@ -577,7 +580,8 @@ export const accountTools: readonly Tool[] = [
                     since: day(row.createdAt)
                   }
                 : null,
-              collections: (holding.get(s.seed) ?? []).map(held => held.slug)
+              collections: (holding.get(s.seed) ?? []).map(held => held.slug),
+              credit: credits.get(s.seed) ?? null
             },
             c.view
           );
@@ -612,7 +616,7 @@ export const accountTools: readonly Tool[] = [
       const asked = args.palettes as (PaletteGiven & { title?: string })[];
       /* a tile the call gave no title takes a written one its colors bear out; a database that cannot answer leaves
          those and the held views out, never the answer */
-      const [views, texts] = await Promise.all([
+      const [views, texts, credits] = await Promise.all([
         searchableItems(
           c.env,
           asked.map(one => one.seed)
@@ -620,7 +624,12 @@ export const accountTools: readonly Tool[] = [
         paletteTexts(
           c.env,
           asked.filter(one => !one.title).map(one => one.seed)
-        ).catch(() => [])
+        ).catch(() => []),
+        c.view
+          ? creditsOf(c.env, [...new Set(asked.map(one => one.seed))]).catch(
+              () => new Map<string, Credit | null>()
+            )
+          : new Map<string, Credit | null>()
       ]);
       const written = new Map(texts.map(t => [t.seed, t]));
       /* one tile for each palette in a view, under the first title given for it: the view numbers them so before the
@@ -649,7 +658,7 @@ export const accountTools: readonly Tool[] = [
       // the words stand alone where the view never draws; the view's data rides beside them
       return {
         ...answer({ name, tiles, ...(notes.length ? { note: notes.join(" ") } : {}) }),
-        ...(c.view ? { _meta: viewData(c.origin, tiles, name) } : {})
+        ...(c.view ? { _meta: viewData(c.origin, tiles, name, credits) } : {})
       };
     }
   },
@@ -695,7 +704,7 @@ export const accountTools: readonly Tool[] = [
     // public gallery; the same call again finds it done
     hints: { readOnly: false, destructive: true, idempotent: true, openWorld: true },
     description:
-      "Save a color palette or gradient to the Grabient account in the view given, else the one Grabient shows it in, or take it out with `saved` false. The first save of a palette new to Grabient adds it to the public gallery, where anyone can find it, without the account's name: `published` says so. A palette saved before keeps its first view. `title` is the account's own name for it, shown to nobody else.",
+      "Save a color palette or gradient to the Grabient account in the view given, else the one Grabient shows it in, or take it out with `saved` false. The first save of a palette new to Grabient adds it to the public gallery, where anyone can find it, without the account's name unless it opted in: `published` says so. A palette saved before keeps its first view. `title` is the account's own name for it, shown to nobody else.",
     inputSchema: shape(
       {
         seed: PALETTE_SEED,

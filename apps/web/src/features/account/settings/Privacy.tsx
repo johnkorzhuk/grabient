@@ -17,11 +17,13 @@ import {
 } from "../../analytics/consent.ts";
 import { choiceQuery } from "../../newsletter/queries.ts";
 import { writeChoice } from "../../newsletter/writes.ts";
+import { creditKey, creditQuery, writeCredit } from "../credit.ts";
 import { account } from "../session.ts";
 import styles from "./Settings.module.css";
 
-/* What this browser lets the site measure, signed in or not, and beside it, signed in, the account's newsletter, which
-   the server keeps. The browser's record is read as the section settles, on every deploy: analytics, which reads it
+/* What this browser lets the site measure, signed in or not, and beside it, signed in, the account's newsletter and its
+   username on the palettes it liked first, which the server keeps. The browser's record is read as the section
+   settles, on every deploy: analytics, which reads it
    too, runs on production alone. Until it is read, or decided for a reader who has none (the defaults follow the
    region, which the server names), each switch's place is held. A browser that sends Global Privacy Control or Do Not
    Track never runs Marketing or Session replay, so their switches stand off and say why, in the place their line
@@ -107,6 +109,80 @@ function NewsletterChoice() {
   );
 }
 
+/** The account's username on the palettes it liked first, which anyone reads there: read and pressed as the newsletter
+    is. Off until the account turns it on. An account with no username has nothing to show: its switch stands off and
+    its line says where to add one, in the place the line holds for everyone. */
+function CreditChoice() {
+  const queryClient = useQueryClient();
+  const reachable = () => (offline() ? null : (account()?.id ?? null));
+  const key = () => creditKey(account()?.id ?? "");
+  const choice = useQuery(() => ({ ...creditQuery(), queryKey: key(), enabled: !!reachable() }));
+  const [pressed, setPressed] = createSignal<boolean | null>(null);
+  const [pressFailure, setPressFailure] = createSignal("");
+  const id = untrack(() => account()?.id);
+  const writes = createOptimisticWrites<boolean, boolean>({
+    valueOf: held => held,
+    show: (_, on) => setPressed(on),
+    send: async (_, on) => {
+      const held = await writeCredit(on);
+      queryClient.setQueryData(key(), held);
+      return held;
+    },
+    live: () => account()?.id === id
+  });
+  const named = () => !!account()?.username;
+  const shown = () => pressed() ?? (choice.isSuccess ? choice.data : null);
+  const failure = () =>
+    offline()
+      ? ""
+      : pressFailure() ||
+        (choice.isError ? shownError(choice.error, msg("Something went wrong. Try again.")) : "");
+  const press = (on: boolean) => {
+    const held = shown();
+    if (held === null) return;
+    setPressFailure("");
+    writes
+      .set("credit", held, on)
+      .catch(reason => setPressFailure(shownError(reason, msg("Couldn't save."))));
+  };
+  return (
+    <div class={styles.choice}>
+      <div class={styles.choiceText}>
+        <Text variant="body" strong id="credit-label">
+          {t("Your name on palettes")}
+        </Text>
+        <div class={styles.lines}>
+          <div class={[styles.cell, { [styles.unseen]: !!failure() || !named() }]} id="credit-line">
+            <Text variant="small" as="p">
+              {t("Shows your username on the palettes you liked first. Anyone can see it.")}
+            </Text>
+          </div>
+          <div
+            class={[styles.cell, { [styles.unseen]: !!failure() || named() }]}
+            id="credit-unnamed"
+          >
+            <Text variant="small" as="p">
+              {t("Add a username in Profile to turn this on.")}
+            </Text>
+          </div>
+          <div class={styles.cell}>
+            <Status error={!!failure()}>{failure()}</Status>
+          </div>
+        </div>
+      </div>
+      <Show when={shown() !== null} fallback={<Placeholder width="56px" height="40px" />}>
+        <Switch
+          checked={shown() === true}
+          aria-labelledby="credit-label"
+          aria-describedby={named() ? "credit-line" : "credit-unnamed"}
+          disabled={offline() || (!named() && shown() !== true)}
+          onChange={press}
+        />
+      </Show>
+    </div>
+  );
+}
+
 export function PrivacySection() {
   const [read, setRead] = createSignal(false);
   const [refused, setRefused] = createSignal(false);
@@ -158,6 +234,7 @@ export function PrivacySection() {
         </For>
         <Show when={account()}>
           <NewsletterChoice />
+          <CreditChoice />
         </Show>
       </div>
     </section>

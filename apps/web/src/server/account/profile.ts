@@ -7,6 +7,8 @@ import type { Env } from "@grabient/server/env.ts";
 import { readUsername } from "../../features/account/username.ts";
 import { accountHandle } from "../../features/collections/address.ts";
 import { moveAccountAddresses } from "../collections/write.ts";
+import { creditFor } from "./credit.ts";
+import { refusedName } from "./screen.ts";
 
 /* Settings' writes of the account's profile: its username, checked while typed and saved, and its picture. Each is a
    POST from the site's own page with the session read fresh. The errors a page shows are messages (msg()), which
@@ -14,6 +16,8 @@ import { moveAccountAddresses } from "../collections/write.ts";
 
 /** Settings sends a 256 by 256 WebP of a few tens of kilobytes. */
 const AVATAR_MAX = 256 * 1024;
+/** A name holding a word no handle needs (screen.ts). */
+const REFUSED = msg("That username isn't allowed.");
 
 /** The account a profile write is for, or the answer to give instead. */
 async function writer(request: Request, env: Env): Promise<Session | Response> {
@@ -39,8 +43,8 @@ const takenBy = (env: Env, name: string, userId: string) =>
     userId
   );
 
-/** POST /api/settings/username/check `{username}`: whether no other account holds the name, in any case. Asked
-    while a name is typed, so counted per account. */
+/** POST /api/settings/username/check `{username}`: whether no other account holds the name, in any case, and
+    `problem` where no account may. Asked while a name is typed, so counted per account. */
 export async function checkUsername(request: Request, env: Env): Promise<Response> {
   const session = await writer(request, env);
   if (session instanceof Response) return session;
@@ -48,11 +52,14 @@ export async function checkUsername(request: Request, env: Env): Promise<Respons
   if (over) return over;
   const read = readUsername((await readJson(request))?.username);
   if (read.problem !== null) return json({ error: read.problem }, 400);
+  if (read.username !== session.user.username && refusedName(read.username))
+    return json({ available: false, problem: REFUSED });
   return json({ available: !(await takenBy(env, read.username, session.user.id)) });
 }
 
 /** POST /api/settings/username `{username}`: the account takes the name, unless another holds it in any case, which
-    the write itself checks. The account's private collections move under the new handle. */
+    the write itself checks. The account's private collections move under the new handle. An account that shows its
+    name on palettes has the new one checked: `credit` says whether it shows (`kept`), or why the switch went off. */
 export async function saveUsername(request: Request, env: Env): Promise<Response> {
   const session = await writer(request, env);
   if (session instanceof Response) return session;
@@ -64,6 +71,7 @@ export async function saveUsername(request: Request, env: Env): Promise<Response
   const username = read.username;
   // the name it has, in the same case, writes nothing, and the signed session stays right
   if (username === was) return json({ success: true });
+  if (refusedName(username)) return json({ error: REFUSED }, 400);
   const wrote = await run(
     env.DB,
     `UPDATE auth_user SET username = ?, updated_at = ? WHERE id = ?
@@ -81,7 +89,33 @@ export async function saveUsername(request: Request, env: Env): Promise<Response
     accountHandle({ id, username: was }),
     accountHandle({ id, username })
   );
-  return withFreshSession(request, env, { success: true });
+  return withFreshSession(request, env, {
+    success: true,
+    ...(await renamedCredit(env, id, username))
+  });
+}
+
+/** A renamed account's name on palettes: the old one stops showing with the rename, since a credit shows only the
+    name the account holds; the new one shows once checked, and else the switch goes off. */
+async function renamedCredit(
+  env: Env,
+  id: string,
+  username: string
+): Promise<{ credit?: "kept" | "unfit" | "unchecked" }> {
+  const row = await first<{ credit_name: string | null }>(
+    env.DB,
+    "SELECT credit_name FROM auth_user WHERE id = ?",
+    id
+  );
+  if (!row?.credit_name) return {};
+  const checked = await creditFor(env, id, username);
+  await run(
+    env.DB,
+    "UPDATE auth_user SET credit_name = ? WHERE id = ?",
+    "kept" in checked ? checked.kept : null,
+    id
+  );
+  return { credit: "kept" in checked ? "kept" : checked.refused };
 }
 
 const ascii = (bytes: Uint8Array, at: number) => String.fromCharCode(...bytes.subarray(at, at + 4));

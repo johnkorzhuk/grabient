@@ -70,6 +70,11 @@ export const LIMITS = {
   avatarUploadDaily: { requests: 500, window: 86400, site: true },
   usernameCheck: { requests: 120, window: 3600 },
   usernameWrite: { requests: 10, window: 3600 },
+  // Clef judging a name before it is shown on palettes, about six Workers AI neurons each, per account and for the
+  // site's day, which stays a few cents however it is pressed. Settings' switch for that name reads and writes cheaply.
+  usernameScreen: { requests: 10, window: 3600 },
+  usernameScreenDaily: { requests: 500, window: 86400, site: true, lease: 5 },
+  creditChoice: { requests: 60, window: 60, local: true },
   // A client document Grabient keeps no copy of: the Worker fetches it from wherever its address points.
   cimdFetch: { requests: 20, window: 60, local: true },
   // An app registering itself writes a client, kept a year, for anyone who asks.

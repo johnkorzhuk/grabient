@@ -1,5 +1,7 @@
 import { renderToString } from "@solidjs/web";
+import { QueryClientProvider } from "@tanstack/solid-query";
 import { describe, expect, test } from "vitest";
+import { createQueryClient } from "../../../lib/query.ts";
 import { ColorFormatSetting, MotionSetting, ThemeSetting } from "./Appearance.tsx";
 import { Profile } from "./Profile.tsx";
 
@@ -11,8 +13,11 @@ const tag = (markup: string, id: string) => markup.match(new RegExp(`<[^>]*id="$
 
 describe("Settings in the server's document", () => {
   test("the profile holds the way in and the account's form, unmarked, for the document's head to show one", () => {
+    // under the query client every page has (router.tsx), which the profile shares with Privacy
     const html = renderToString(() => (
-      <Profile back="/settings" name={() => ""} onSaved={() => {}} notice={() => ""} />
+      <QueryClientProvider client={createQueryClient()}>
+        <Profile back="/settings" name={() => ""} onSaved={() => {}} notice={() => ""} />
+      </QueryClientProvider>
     ));
     expect(tag(html, "profile")).not.toContain("data-for");
     expect(html).toContain('href="/login?redirect=%2Fsettings"');

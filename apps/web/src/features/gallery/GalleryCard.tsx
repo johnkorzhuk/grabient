@@ -14,6 +14,7 @@ import { askFacts } from "../editor/page.ts";
 import { AppearanceContext, drawnIn } from "../list/appearance.ts";
 import { type UseAt, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
+import { askCredit, creditOf, creditWords } from "./credit.ts";
 import { nameOf, ownOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
 import { inPlace } from "./feed.ts";
 import { GalleryContext } from "./page.tsx";
@@ -77,7 +78,9 @@ export function GalleryCard(props: {
       rel={relTo(path())}
       age={props.now ? relativeAge(props.item.createdAt, props.now) : ""}
       title={words().title}
+      called={words().called}
       description={words().description}
+      credit={creditWords(creditOf(seed()))}
       likes={likeCount(seed(), props.item.likes)}
       liked={liked(seed())}
       onLike={like}
@@ -99,7 +102,10 @@ export function GalleryCard(props: {
           onLink={take.link}
         />
       )}
-      onIntent={() => askFacts(seed())}
+      onIntent={() => {
+        askFacts(seed());
+        askCredit(seed());
+      }}
       onOpen={e => {
         const under = where().collection;
         if (under) rememberOpening(seed(), under);

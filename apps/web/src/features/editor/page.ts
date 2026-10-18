@@ -14,9 +14,9 @@ import { metaPage, STATIC_CSS } from "./StaticPalette.tsx";
 
 /* A palette's page as its route reads it. The server reads what only the database knows of the palette, once, for the
    page it renders (its title, the static page crawlers read, its Markdown), and which of Rising's frames are on. A
-   palette the browser opens later has the same facts in English, the only language its written words are worn in,
+   palette the browser opens later has the same facts in the page's language, its written words as they were written,
    asked for as a reader reaches its card, or else as its page opens; one an edit makes is named by its colors and asks
-   the server nothing. */
+   the server nothing. A change of language loads the page anew, so a tab's facts are all in one. */
 
 /** The router's search object as an address reads it: a number the router parsed is its digits again. */
 export const searchReader = (search: Readonly<Record<string, unknown>>): ParamReader => ({
@@ -59,16 +59,21 @@ export const factsOf = (seed: string): PaletteFacts | undefined => settled[seed]
 export function keepFacts(data: PaletteData) {
   if (data.facts) know(data.page.seed, Promise.resolve(data.facts));
 }
-/** In the browser, in English, asks the server what it knows of a palette a press may open: as the pointer, the focus
-    or a tap reaches its card, so the answer is in by the press, and else as its page opens. Never of a palette an
-    edit made: its history entry names the palette its page opened on, which is another. */
+/** In the browser, asks the server what it knows of a palette a press may open, in the page's language: as the
+    pointer, the focus or a tap reaches its card, so the answer is in by the press, and else as its page opens. Never
+    of a palette an edit made: its history entry names the palette its page opened on, which is another. */
 export function askFacts(seed: string, state?: unknown): void {
   const opened = (state as { edits?: { opened?: unknown } } | undefined)?.edits?.opened;
   const made = opened !== undefined && opened !== seed;
-  if (known.has(seed) || made || locale() !== DEFAULT_LOCALE || !isSeed(seed)) return;
+  if (known.has(seed) || made || !isSeed(seed)) return;
+  const language = locale();
+  const query = new URLSearchParams({
+    seed,
+    ...(language === DEFAULT_LOCALE ? {} : { lang: language })
+  });
   know(
     seed,
-    getJson(`/api/palette-facts?${new URLSearchParams({ seed })}`, PaletteFacts).catch(() => {
+    getJson(`/api/palette-facts?${query}`, PaletteFacts).catch(() => {
       // asked again the next time
       known.delete(seed);
       return null;

@@ -992,10 +992,12 @@ describe("the tools", () => {
     const inspected = (
       await call(env, token, "inspect_palettes", { palettes: [b, { seed: fresh() }] })
     ).value.palettes;
+    // Grabient's own collection showed it before anyone liked it, so Grabient is credited
     expect(inspected[0]).toMatchObject({
       seed: b,
       gallery: { likes: 7, style: "linearGradient", steps: 7, angle: 90 },
-      collections: [slug]
+      collections: [slug],
+      credit: { by: "grabient" }
     });
     expect(inspected[0].details[0]).toEqual({
       hex: inspected[0].colors[0],
@@ -1003,7 +1005,7 @@ describe("the tools", () => {
       onWhite: expect.any(Number),
       onBlack: expect.any(Number)
     });
-    expect(inspected[1]).toMatchObject({ gallery: null, collections: [] });
+    expect(inspected[1]).toMatchObject({ gallery: null, collections: [], credit: null });
   });
 
   it("keep an account's own private collections: made, changed, moved by a new title and deleted", async () => {

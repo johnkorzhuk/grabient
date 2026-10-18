@@ -16,6 +16,13 @@ export const PALETTE_PAGE = {
 } as const;
 /** What changed lately (Rising): a minute at the edge, so a like shows within the minute. */
 export const FRESH = { "Cache-Control": REVALIDATE, "CDN-Cache-Control": "max-age=60" } as const;
+/** Who a palette credits: half a minute at the edge, which a page that reaches the palette again asks again after, so
+    a name its account takes back leaves within the minute. */
+export const CREDIT_SECONDS = 30;
+export const CREDIT = {
+  "Cache-Control": REVALIDATE,
+  "CDN-Cache-Control": `max-age=${CREDIT_SECONDS}`
+} as const;
 /** A palette's own file: its address decides every byte, so a browser keeps it a month. */
 export const FILE = {
   "Cache-Control": "public, max-age=2592000",

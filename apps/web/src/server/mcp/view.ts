@@ -1,5 +1,6 @@
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
+import type { Credit } from "../../features/gallery/credit.ts";
 import { VIEW_DATA } from "../../mcp-view/page.ts";
 import type { GrantProps } from "../oauth/server.ts";
 
@@ -67,8 +68,8 @@ export function drawsView(
 
 /** The view's data, which show_palettes answers in `_meta` where an app draws the view: the site, the set's name, and
     each tile's number, seed and view. A title rides only where it is the tile's own, since the page reads every title
-    here as one. Never structuredContent: an app may hand its model that in the text's place, and the text holds each
-    color. */
+    here as one, and a credit where the site gives one (server/gallery/credit.ts). Never structuredContent: an app may
+    hand its model that in the text's place, and the text holds each color. */
 export const viewData = (
   origin: string,
   tiles: readonly {
@@ -80,18 +81,23 @@ export const viewData = (
     steps: number;
     angle: number;
   }[],
-  name?: string
+  name?: string,
+  credits?: ReadonlyMap<string, Credit | null>
 ) => ({
   [VIEW_DATA]: {
     origin,
     ...(name ? { name } : {}),
-    tiles: tiles.map(({ tile, seed, title, own, style, steps, angle }) => ({
-      tile,
-      seed,
-      style,
-      steps,
-      angle,
-      ...(own ? { title } : {})
-    }))
+    tiles: tiles.map(({ tile, seed, title, own, style, steps, angle }) => {
+      const credit = credits?.get(seed);
+      return {
+        tile,
+        seed,
+        style,
+        steps,
+        angle,
+        ...(own ? { title } : {}),
+        ...(credit ? { credit } : {})
+      };
+    })
   }
 });

@@ -33,7 +33,7 @@ test("the server sends the static page, and the editor takes its place", async (
   await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
 });
 
-test("once the editor stands, the page says how its palette is drawn as the server's page does, and says it again once an edit stands", async ({
+test("the server's page says how its palette is drawn for a crawler, and the editor's page says it to no reader", async ({
   page,
   request
 }) => {
@@ -43,14 +43,9 @@ test("once the editor stands, the page says how its palette is drawn as the serv
     /^Linear gradient, 7 colors at 90°: (#[0-9a-f]{6}, ){6}#[0-9a-f]{6}\. Edit and export CSS, SVG, PNG or a shader\.$/
   );
   await open(page);
-  await expect(page.getByText(own, { exact: true })).toBeAttached();
+  await expect(page.getByText(/Edit and export CSS, SVG, PNG or a shader\./)).toHaveCount(0);
   await page.keyboard.press(".");
-  const turned = own.replace("at 90°", "at 105°");
-  await expect(page.getByText(turned, { exact: true })).toBeAttached();
-  await page.keyboard.press("i");
-  await expect.poll(() => here(page)).not.toContain(SEED);
-  await expect(page.getByText(turned, { exact: true })).toHaveCount(0);
-  await expect(page.getByText(/^Linear gradient, 7 colors at 105°: #[0-9a-f]{6}, /)).toBeAttached();
+  await expect(page.getByText(/Edit and export CSS, SVG, PNG or a shader\./)).toHaveCount(0);
 });
 
 test.describe("while the editor's code loads", () => {
@@ -341,6 +336,29 @@ test("a palette is called by the title written for it while its style and steps 
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=195");
   await page.waitForTimeout(500);
   await expect(page).toHaveTitle(written);
+});
+
+test("in another language a palette's written title heads its page as it was written, over what its colors call it there", async ({
+  page,
+  request
+}) => {
+  const facts = (await (await request.get("/api/palette-facts?seed=kQ4RjAYQ6_g")).json()) as {
+    written?: { title: string };
+  };
+  const title = facts.written?.title ?? "";
+  expect(title).not.toBe("");
+  await page.goto("/de/kQ4RjAYQ6_g?steps=6&angle=180");
+  await expect(page.locator(".palette-static")).toHaveCount(0);
+  const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toHaveText(title);
+  // under it, what its colors call it in German
+  const colors = page.getByRole("paragraph").filter({ hasText: /, linearer Farbverlauf$/ });
+  await expect(colors).toHaveCount(1);
+  await expect(colors).toBeVisible();
+  // drawn another way, its colors name it, and nothing stands under the name
+  await page.keyboard.press("]");
+  await expect(heading).toHaveText(/, linearer Farbverlauf$/);
+  await expect(colors).toHaveCount(0);
 });
 
 test("random leads to a new palette at the view asked for", async ({ request }) => {

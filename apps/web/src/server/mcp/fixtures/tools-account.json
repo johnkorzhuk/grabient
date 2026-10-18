@@ -324,7 +324,7 @@
   {
     "name": "inspect_palettes",
     "title": "Inspect palettes",
-    "description": "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in: the colors of a Swatches view are its bands, and of a gradient the ones it blends between. `gallery` is null for a palette the gallery lacks, and `collections` are the public ones that hold it.",
+    "description": "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in: the colors of a Swatches view are its bands, and of a gradient the ones it blends between. `gallery` is null for a palette the gallery lacks, `collections` are the public ones that hold it, and `credit` names who brought it.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -498,7 +498,7 @@
   {
     "name": "save_palette",
     "title": "Save a palette",
-    "description": "Save a color palette or gradient to the Grabient account in the view given, else the one Grabient shows it in, or take it out with `saved` false. The first save of a palette new to Grabient adds it to the public gallery, where anyone can find it, without the account's name: `published` says so. A palette saved before keeps its first view. `title` is the account's own name for it, shown to nobody else.",
+    "description": "Save a color palette or gradient to the Grabient account in the view given, else the one Grabient shows it in, or take it out with `saved` false. The first save of a palette new to Grabient adds it to the public gallery, where anyone can find it, without the account's name unless it opted in: `published` says so. A palette saved before keeps its first view. `title` is the account's own name for it, shown to nobody else.",
     "inputSchema": {
       "type": "object",
       "properties": {

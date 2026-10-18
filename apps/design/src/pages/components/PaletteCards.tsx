@@ -1,6 +1,6 @@
 import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { createSignal, untrack } from "solid-js";
-import { cardTools, sampleName } from "../../doc/cards.tsx";
+import { cardTools, sampleName, sampleTitle } from "../../doc/cards.tsx";
 import { Block, Rules, Section } from "../../doc/Section.tsx";
 import { hexes, POPULAR, type Sample } from "../../samples.ts";
 import styles from "./PaletteCards.module.css";
@@ -12,6 +12,7 @@ function Card(props: {
   age: string;
   title?: string;
   description?: string;
+  credit?: string;
   hover?: boolean;
   liked?: boolean;
   selected?: boolean;
@@ -30,7 +31,9 @@ function Card(props: {
       href={`/${props.sample.seed}`}
       age={props.age}
       title={props.title}
+      called={props.title ? sampleTitle(props.sample) : undefined}
       description={props.description}
+      credit={props.credit}
       likes={others + (liked() ? 1 : 0)}
       liked={liked()}
       state={props.hover ? "hover" : undefined}
@@ -55,6 +58,7 @@ export function PaletteCards() {
             age="3 months"
             title="Violet hour"
             description="Cobalt through magenta into a gold horizon."
+            credit="First liked by ada"
             hover
           />
         </figure>
@@ -67,7 +71,9 @@ export function PaletteCards() {
           rules={[
             "One height at every width: a wider column makes a wider picture.",
             "Hover or focus in the picture fades in the glow and the tools; nothing moves.",
-            "A palette's title, where it has one, stands in its age's place under the pointer or focus, and its tooltip says what is said of the palette; the owner of a collection writes one there.",
+            "A palette's title, where it has one, stands in its age's place under the pointer or focus; the owner of a collection writes one there.",
+            "The title's tooltip says what the palette's colors call it in the reader's language, a person's own words for it, who brought it to Grabient, then its age. With no title, the age says who brought it.",
+            "Who brought it: Grabient, where it showed or liked the palette first, else the first person to like it, only if they chose to show their username.",
             "On touch the tools wait for a tap on the picture, one card at a time.",
             "An article named by its palette, so its Edit is that palette's Edit."
           ]}

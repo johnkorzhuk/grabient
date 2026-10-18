@@ -110,6 +110,25 @@
 .settingControl {
   margin-inline-start: auto;
 }
+/* Profile's offer of the account's name on palettes, under the form once a username is set: its words and its two
+   answers at either end, as a setting's row is */
+.offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s4) var(--space-s5);
+  padding-block-start: var(--space-s4);
+  border-block-start: var(--size-hairline) solid var(--color-edge2);
+  & > :first-child {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+}
+.offerPresses {
+  display: flex;
+  gap: var(--space-s3);
+  margin-inline-start: auto;
+}
 .words {
   display: grid;
   justify-items: center;

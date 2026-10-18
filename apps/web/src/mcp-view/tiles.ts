@@ -39,12 +39,16 @@ export interface TileView {
   steps: number;
   angle: number;
 }
+/** Who brought a palette to Grabient, as the site credits it (server/gallery/credit.ts). */
+export type TileCredit = { by: "grabient" } | { by: "person"; name: string };
 /** A palette as the view shows it: its number in the sheet, its seed, its view and, where it has one, a title of its
-    own: the one the model gave its tile, or a written one its colors bear out. */
+    own: the one the model gave its tile, or a written one its colors bear out. Its credit comes with the view's own
+    data alone. */
 export interface Tile extends TileView {
   tile: number;
   seed: string;
   title?: string;
+  credit?: TileCredit;
 }
 
 const named = (input: object, names: readonly string[]) =>
@@ -177,6 +181,17 @@ const record = (value: unknown): Record<string, unknown> | null =>
     ? (value as Record<string, unknown>)
     : null;
 
+/* a username as the site keeps one (features/account/username.ts) */
+const USERNAME = /^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,28}[A-Za-z0-9])?$/;
+/** A credit as the view's data carries it, checked: none where it is anything else. */
+function creditOf(raw: unknown): TileCredit | undefined {
+  const value = record(raw);
+  if (value?.by === "grabient") return { by: "grabient" };
+  return value?.by === "person" && typeof value.name === "string" && USERNAME.test(value.name)
+    ? { by: "person", name: value.name }
+    : undefined;
+}
+
 /** The set's name a call gives, as the server takes it: none where the server would refuse it. */
 export function nameFromArguments(args: unknown): string | null {
   const said = typed(record(args)?.name);
@@ -197,6 +212,7 @@ function tileOf(raw: unknown, at: number, words: boolean): Tile | null {
   )
     return null;
   const title = !words || value.own === true ? titleOf(value.title) : undefined;
+  const credit = words ? undefined : creditOf(value.credit);
   const floor = Math.max(STEPS_MIN, palette.anchors.length);
   return {
     tile: Number.isInteger(value.tile) ? (value.tile as number) : at + 1,
@@ -204,7 +220,8 @@ function tileOf(raw: unknown, at: number, words: boolean): Tile | null {
     style: value.style,
     steps: Math.min(STEPS_MAX, Math.max(floor, value.steps as number)),
     angle: Math.min(360, Math.max(0, value.angle as number)),
-    ...(title ? { title } : {})
+    ...(title ? { title } : {}),
+    ...(credit ? { credit } : {})
   };
 }
 

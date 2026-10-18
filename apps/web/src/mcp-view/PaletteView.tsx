@@ -106,6 +106,13 @@ const viewWords = (view: TileView) =>
     t(STEPS, { count: view.steps }),
     ...(takesAngle(view.style) ? [`${view.angle}°`] : [])
   ].join(" · ");
+/** Who brought the palette to Grabient, as the site says it (features/gallery/credit.ts): none where it credits no one. */
+const creditWords = (tile: Tile) =>
+  !tile.credit
+    ? ""
+    : tile.credit.by === "grabient"
+      ? t("From Grabient")
+      : t("First liked by {name}", { name: tile.credit.name });
 
 /** A copy the app would not take, out under its palette's picture: the text and its format's name, the chip that asked
     and its answer, settled once the whole text is copied or the text is put away. */
@@ -786,6 +793,9 @@ export function PaletteView(props: PaletteViewProps) {
                 </Text>
               </div>
               <Text variant="small">{viewWords(tile())}</Text>
+              <Show when={creditWords(tile())}>
+                <Text variant="small">{creditWords(tile())}</Text>
+              </Show>
               <Text variant="mono" dir="ltr">
                 {tile().seed}
               </Text>

@@ -7,10 +7,12 @@ import { Placeholder } from "@grabient/ui/Placeholder.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { isServer } from "@solidjs/web";
+import { useQueryClient } from "@tanstack/solid-query";
 import { createSignal, isHydrating, onCleanup, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { shownError } from "../../../lib/query.ts";
 import { inView } from "../../list/appearance.ts";
+import { creditKey, writeCredit } from "../credit.ts";
 import {
   account,
   api,
@@ -25,8 +27,13 @@ import styles from "./Settings.module.css";
 
 /* The account's picture and username. The username's rules are the Worker's own (username.ts), so the field says what
    the server would refuse, in the reader's language, under itself, where it is the field's description, and asks the
-   server whether the name is free half a second after the last keystroke. A picture is cropped to a square and drawn
-   at 256 by 256 as WebP in the browser, and sent with the name when Save is pressed. */
+   server whether the name is free, and allowed, half a second after the last keystroke. A picture is cropped to a
+   square and drawn at 256 by 256 as WebP in the browser, and sent with the name when Save is pressed. A username set
+   while it shows on no palette comes with an offer to show it on the palettes the account liked first, which stays
+   off unless taken (Privacy's switch); one set while it shows is checked again, and the line says if it went off. */
+
+/** What a rename did to the account's name on palettes: still shown, or off and why. */
+type RenamedCredit = "kept" | "unfit" | "unchecked";
 
 const AVATAR_SIDE = 256;
 const AVATAR_FILE_MAX = 5 * 1024 * 1024;
@@ -90,6 +97,11 @@ export function Profile(props: {
   const [available, setAvailable] = createSignal(true);
   const [saving, setSaving] = createSignal(false);
   const [staged, setStaged] = createSignal<{ blob: Blob; url: string } | null>(null);
+  /* the offer of the name on palettes, after a username is set, and its own line */
+  const queryClient = useQueryClient();
+  const [offer, setOffer] = createSignal(false);
+  const [offering, setOffering] = createSignal(false);
+  const [offerFailure, setOfferFailure] = createSignal("");
   let fileInput!: HTMLInputElement;
   let checkTimer: ReturnType<typeof setTimeout> | undefined;
   let asked = 0;
@@ -139,12 +151,15 @@ export function Profile(props: {
     setChecking(true);
     checkTimer = setTimeout(async () => {
       try {
-        const answer = await api<{ available: boolean }>("/api/settings/username/check", {
-          username: name
-        });
+        const answer = await api<{ available: boolean; problem?: string }>(
+          "/api/settings/username/check",
+          { username: name }
+        );
         if (turn !== asked) return;
         setAvailable(answer.available);
-        setNameError(answer.available ? "" : t("That username is taken."));
+        setNameError(
+          answer.problem ? t(answer.problem) : answer.available ? "" : t("That username is taken.")
+        );
       } catch {
         if (turn !== asked) return;
         setAvailable(false);
@@ -192,18 +207,49 @@ export function Profile(props: {
         unstage();
       }
       const renamed = wanted() !== current();
-      if (renamed) await api("/api/settings/username", { username: wanted() });
+      const answer = renamed
+        ? await api<{ credit?: RenamedCredit }>("/api/settings/username", { username: wanted() })
+        : undefined;
       const user = await refreshSession(true);
       setTyped(null);
       props.onSaved(user?.username ?? "");
       /* a new username moved the account's private collections under it: the copy hears where before the form says
          so, so the next page leads to their new addresses */
       if (renamed) await engineNow()?.syncWithin(3000);
-      say(t("Saved."));
+      const credit = answer?.credit;
+      if (credit && user) queryClient.setQueryData(creditKey(user.id), credit === "kept");
+      say(
+        credit === "unfit"
+          ? t("Saved. This username can't be shown on palettes, so your name was taken off them.")
+          : credit === "unchecked"
+            ? t(
+                "Saved. Your name was taken off palettes until the new username is checked. Turn it on again in Privacy."
+              )
+            : t("Saved.")
+      );
+      setOfferFailure("");
+      setOffer(renamed && !credit && !!user?.username);
     } catch (error) {
       say(shownError(error, msg("Couldn't save.")), true);
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* the offer taken: the server checks the name before it shows, and a refusal says why in the offer's line */
+  const showName = async () => {
+    setOffering(true);
+    setOfferFailure("");
+    try {
+      const on = await writeCredit(true);
+      const id = account()?.id;
+      if (id) queryClient.setQueryData(creditKey(id), on);
+      setOffer(false);
+      say(t("Your username now shows on the palettes you liked first."));
+    } catch (error) {
+      setOfferFailure(shownError(error, msg("Couldn't save.")));
+    } finally {
+      setOffering(false);
     }
   };
 
@@ -306,6 +352,39 @@ export function Profile(props: {
               {saving() ? t("Saving…") : t("Save")}
             </Button>
           </div>
+          <Show when={offer()}>
+            <div class={styles.offer}>
+              <div class={styles.choiceText}>
+                <Text variant="body" strong id="credit-offer">
+                  {t("Show your username on the palettes you liked first?")}
+                </Text>
+                <div class={styles.lines}>
+                  <div class={[styles.cell, { [styles.unseen]: !!offerFailure() }]}>
+                    <Text variant="small" as="p">
+                      {t("Anyone can see it there. You can change this in Privacy.")}
+                    </Text>
+                  </div>
+                  <div class={styles.cell}>
+                    <Status error={!!offerFailure()}>{offerFailure()}</Status>
+                  </div>
+                </div>
+              </div>
+              {/* biome-ignore lint/a11y/useSemanticElements: the offer's two answers, which a fieldset would box */}
+              <div class={styles.offerPresses} role="group" aria-labelledby="credit-offer">
+                <Button size="lg" disabled={offering()} onClick={() => setOffer(false)}>
+                  {t("Not now")}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  disabled={offering() || offline()}
+                  onClick={() => void showName()}
+                >
+                  {offering() ? t("Checking…") : t("Show my username")}
+                </Button>
+              </div>
+            </div>
+          </Show>
         </form>
       </Show>
     </section>

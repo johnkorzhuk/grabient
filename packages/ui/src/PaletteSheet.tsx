@@ -13,7 +13,8 @@ import { Text } from "./Text.tsx";
 /* The editor's sheet: what a reader scrolls beside the side that keeps the controls in the window, under the picture
    and its strip. Its head is the palette's name, the row that shows under the first screen at rest, with the palette's
    own presses at the line's end (away while the picture carries them); under it a line kept for the collections that
-   hold the palette, there or not, so one coming or going moves nothing, and what the page says of the palette. Then its
+   hold the palette, there or not, so one coming or going moves nothing, ending with who brought the palette to
+   Grabient; and under a title of other words, what its colors call it, with the reader's own words for it. Then its
    figures as panes of one frame, each
    given the shape of what it draws: the text that reads on its colors, its path through the color solid, and its code.
    On a large screen the three stand in a row; where the code has no room beside the path it goes under; on a phone
@@ -23,8 +24,13 @@ import { Text } from "./Text.tsx";
 export function PaletteSheet(props: {
   /** the palette's title, the page's name: a written one reads in its author's direction */
   title: string;
-  /** what the page says of the palette, under the collections' line */
+  /** what its colors call the palette in the reader's language, under the collections' line, where its title is in
+      other words */
+  colorName?: string;
+  /** the reader's own words for the palette, under that */
   description?: string;
+  /** who brought the palette to Grabient, in words, at the collections' line's end once the browser hears it */
+  credit?: string;
   /** the palette's own presses: its heart, its place in the selection */
   actions?: Element;
   /** the first screen stands and the picture carries those presses: the sheet's are away */
@@ -124,37 +130,53 @@ export function PaletteSheet(props: {
               </div>
             </div>
           </Show>
-          <Show when={props.collections.length}>
-            <nav class={styles.links} aria-label={t("In these collections")}>
-              <span class={styles.glyph} aria-hidden="true">
-                <Icon name="collection" size={14} />
+          <div class={styles.line}>
+            <Show when={props.collections.length}>
+              <nav class={styles.links} aria-label={t("In these collections")}>
+                <span class={styles.glyph} aria-hidden="true">
+                  <Icon name="collection" size={14} />
+                </span>
+                <For each={props.collections} keyed={false}>
+                  {c => (
+                    <span class={[styles.link, coinHost]} data-quiet={c().href ? undefined : ""}>
+                      <a
+                        class={[link.inline, styles.to]}
+                        href={c().href ? localHref(c().href) : undefined}
+                        rel={c().rel}
+                        aria-disabled={c().href ? undefined : "true"}
+                        dir="auto"
+                      >
+                        {/* the words in the link's full ink, as every link among words is drawn */}
+                        <Text variant="ui" strong truncate>
+                          {c().title}
+                        </Text>
+                      </a>
+                      <Coins colors={c().colors} />
+                    </span>
+                  )}
+                </For>
+              </nav>
+            </Show>
+            <Show when={props.credit}>
+              <span class={styles.credit}>
+                <Text variant="ui" truncate>
+                  {props.credit}
+                </Text>
               </span>
-              <For each={props.collections} keyed={false}>
-                {c => (
-                  <span class={[styles.link, coinHost]} data-quiet={c().href ? undefined : ""}>
-                    <a
-                      class={[link.inline, styles.to]}
-                      href={c().href ? localHref(c().href) : undefined}
-                      rel={c().rel}
-                      aria-disabled={c().href ? undefined : "true"}
-                      dir="auto"
-                    >
-                      {/* the words in the link's full ink, as every link among words is drawn */}
-                      <Text variant="ui" strong truncate>
-                        {c().title}
-                      </Text>
-                    </a>
-                    <Coins colors={c().colors} />
-                  </span>
-                )}
-              </For>
-            </nav>
-          </Show>
-          <Show when={props.description}>
+            </Show>
+          </div>
+          <Show when={props.colorName || props.description}>
             <div class={styles.about}>
-              <Text variant="lede" as="p" dir="auto">
-                {props.description}
-              </Text>
+              <Show when={props.colorName}>
+                <Text variant="lede" as="p">
+                  {props.colorName}
+                </Text>
+              </Show>
+              <Show when={props.description}>
+                <Text variant="lede" as="p" dir="auto">
+                  {props.description}
+                </Text>
+              </Show>
             </div>
           </Show>
         </div>

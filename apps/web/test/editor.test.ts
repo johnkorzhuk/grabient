@@ -198,7 +198,7 @@ describe("a palette's facts", () => {
     expect(facts?.written).toBeUndefined();
   });
 
-  it("answers a browser that opens it with its facts in English, kept at the edge as its page is", async () => {
+  it("answers a browser that opens it with its facts in the page's language, kept at the edge as its page is", async () => {
     const shown = await holding(env, unique("Held for the browser"), [SEED], "public");
     await run(
       env.DB,
@@ -215,6 +215,12 @@ describe("a palette's facts", () => {
     const facts = v.parse(PaletteFacts, await answered.json());
     expect(facts.written?.title).toBe("Evening study");
     expect(facts.heldBy.map(c => c.slug)).toContain(shown.slug);
+    // in another of the site's languages its written words stay as they were written
+    for (const lang of ["ja", "xx"]) {
+      const asked = v.parse(PaletteFacts, await (await ask(`seed=${SEED}&lang=${lang}`)).json());
+      expect(asked.written?.title).toBe("Evening study");
+      expect(asked.heldBy.map(c => c.slug)).toContain(shown.slug);
+    }
     for (const query of ["seed=nope", "seed=", ""]) expect((await ask(query)).status).toBe(404);
   });
 

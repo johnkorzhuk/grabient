@@ -64,9 +64,21 @@ const RULES: readonly KeyRule[] = [
     }
   },
   { match: path => path === "/api/frames", query: none },
-  // a palette's facts: its seed alone, which the answer refuses unless it is canonical
+  // a palette's facts: its seed, which the answer refuses unless it is canonical, and the language its collections are
+  // named in, the site's own other than English
   {
     match: path => path === "/api/palette-facts",
+    query: params => {
+      const lang = params.get("lang");
+      return new URLSearchParams({
+        seed: params.get("seed") ?? "",
+        ...(isLocale(lang) && lang !== DEFAULT_LOCALE ? { lang } : {})
+      });
+    }
+  },
+  // who a palette credits: its seed alone, in every language
+  {
+    match: path => path === "/api/palette-credit",
     query: params => new URLSearchParams({ seed: params.get("seed") ?? "" })
   },
   { match: path => path === "/api/newsletter", query: issuesKey },

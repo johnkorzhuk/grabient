@@ -26,13 +26,14 @@ import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
-import { clipWords, paletteFacts, relTo } from "../../lib/page-meta.ts";
+import { heading, relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
 import { account } from "../account/session.ts";
 import { accountView } from "../account/state.ts";
 import { collectionHref } from "../collections/address.ts";
+import { askCredit, creditOf, creditWords } from "../gallery/credit.ts";
 import { relativeAge } from "../gallery/drawing.ts";
 import { inPlace } from "../gallery/feed.ts";
 import { readerOrder, recallOrder, rememberOrder } from "../gallery/order.ts";
@@ -346,30 +347,27 @@ export function Sheet(props: {
     return `${list}?${query}`;
   };
   const title = () => called()?.title ?? paletteName(e, props.heading(), props.facts());
-  /* what the page says of the palette under its name, to a reader and to a crawler alike: how it is drawn and its
-     colors, said again for another palette or view once it has stood a moment, so no frame of an edit spends on them */
+  /* Under a name of other words (a written title, the reader's own), what its colors call the palette in the reader's
+     language, said again for another palette or view once it has stood a moment, so no frame of an edit spends on it.
+     The sentence a search reads of it, its colors as hex and what the editor makes of them, is the page's description
+     and its crawler's page (StaticPalette.tsx), never its reader's. */
   const said = () => {
-    const written = props.facts()?.written;
-    return paletteFacts({
-      kind: "palette",
-      seed: e.seed(),
-      palette: e.palette(),
-      view: { style: e.style(), steps: e.steps(), angle: e.angle() },
-      ...(written ? { written } : {})
-    });
+    const named = heading({ kind: "palette", seed: e.seed(), palette: e.palette(), view: view() });
+    return named === title() ? undefined : named;
   };
   const [described, setDescribed] = createSignal(untrack(said));
-  /* the reader's own words for the palette stand where written ones would, before how it is drawn */
-  const ownSaid = () => {
-    const own = called()?.description;
-    return own
-      ? `${clipWords(own)} ${paletteFacts({ kind: "palette", seed: e.seed(), palette: e.palette(), view: view() })}`
-      : undefined;
-  };
   createEffect(
-    () => [e.seed(), e.style(), e.steps(), e.angle(), props.facts()] as const,
+    () => [e.seed(), e.style(), e.steps(), e.angle(), title()] as const,
     () => {
       const timer = setTimeout(() => setDescribed(untrack(said)), DESCRIBE_MS);
+      return () => clearTimeout(timer);
+    }
+  );
+  /* who brought the palette to Grabient, asked once it has stood a moment, so no frame of an edit asks */
+  createEffect(
+    () => e.seed(),
+    seed => {
+      const timer = setTimeout(() => askCredit(seed), DESCRIBE_MS);
       return () => clearTimeout(timer);
     }
   );
@@ -425,7 +423,9 @@ export function Sheet(props: {
         rel={relTo(localHref(address()))}
         age={relativeAge(item().createdAt, now)}
         title={words().title}
+        called={words().called}
         description={words().description}
+        credit={creditWords(creditOf(seed()))}
         likes={likeCount(seed(), item().likes)}
         liked={liked(seed())}
         likeDisabled={signInUnavailable()}
@@ -444,7 +444,10 @@ export function Sheet(props: {
             <AddToCollection palette={palette} />
           </Loading>
         }
-        onIntent={() => askFacts(seed())}
+        onIntent={() => {
+          askFacts(seed());
+          askCredit(seed());
+        }}
         onOpen={event => {
           useOpened(PLACE, palette(), { position });
           /* opened in place, the palette's page is told its own view and which parts were set here */
@@ -485,7 +488,9 @@ export function Sheet(props: {
         sheet = el;
       }}
       title={title()}
-      description={ownSaid() ?? described()}
+      colorName={described()}
+      description={called()?.description}
+      credit={creditWords(creditOf(e.seed()))}
       onBand={props.onBand}
       clear={props.clear}
       resting={props.resting}

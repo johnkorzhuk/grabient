@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { decodePalette, encodePalette, type Palette } from "@grabient/engine";
 import { titleFaults } from "@grabient/engine/name.ts";
-import { DEFAULT_LOCALE, type Locale, messageKey, msg } from "@grabient/i18n";
+import { DEFAULT_LOCALE, isLocale, type Locale, messageKey, msg } from "@grabient/i18n";
 import { all, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import type { PaletteFacts } from "../../features/editor/facts.ts";
@@ -97,18 +97,21 @@ export async function paletteFacts(
   };
 }
 
-/** `GET /api/palette-facts?seed=`: a palette's facts in English, the language its written words are in, for a page the
-    browser opens on it; kept at the edge as its page is. An address that is no palette's canonical seed is 404, and a
-    failed read 503, which the browser takes for no facts and asks again. */
+/** `GET /api/palette-facts?seed=&lang=`: a palette's facts for a page the browser opens on it, in the page's language
+    (English where `lang` names none of the site's), its written words as they were written; kept at the edge as its
+    page is. An address that is no palette's canonical seed is 404, and a failed read 503, which the browser takes for
+    no facts and asks again. */
 export async function paletteFactsResponse(
   request: Request,
   source: Pick<Env, "DB"> = env
 ): Promise<Response> {
-  const seed = new URL(request.url).searchParams.get("seed") ?? "";
+  const params = new URL(request.url).searchParams;
+  const seed = params.get("seed") ?? "";
   const palette = decodePalette(seed);
   if (!palette || encodePalette(palette) !== seed)
     return json({ error: msg("Not found") }, { status: 404 });
-  const facts = await paletteFacts(seed, palette, DEFAULT_LOCALE, source);
+  const asked = params.get("lang");
+  const facts = await paletteFacts(seed, palette, isLocale(asked) ? asked : DEFAULT_LOCALE, source);
   return facts
     ? json(facts, { headers: PALETTE_PAGE })
     : json({ error: msg("Something went wrong. Try again.") }, { status: 503 });

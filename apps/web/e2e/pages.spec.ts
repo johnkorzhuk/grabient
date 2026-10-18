@@ -519,6 +519,79 @@ test("a returning reader's Settings stands where its document drew it when the a
   expect(await sections()).toEqual(drawn);
 });
 
+test("a username set in Settings comes with the offer to show it on the palettes the account liked first, off unless taken", async ({
+  page
+}) => {
+  const account = {
+    id: "e2e-credit",
+    name: "Ada",
+    email: "ada@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: null as string | null,
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  const asked: unknown[] = [];
+  let on = false;
+  // the later a route is added, the sooner it answers
+  await page.route("**/api/me/**", route => route.fulfill({ status: 404, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: account.id }, user: account } })
+  );
+  await page.route("**/api/me/sync*", route =>
+    route.fulfill({
+      json: {
+        cursor: 1,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: false,
+        account
+      }
+    })
+  );
+  await page.route("**/api/me/newsletter", route => route.fulfill({ json: { subscribed: false } }));
+  await page.route("**/api/me/credit", route => {
+    if (route.request().method() === "PUT") {
+      asked.push(route.request().postDataJSON());
+      on = true;
+    }
+    return route.fulfill({ json: { on } });
+  });
+  await page.route("**/api/settings/username/check", route =>
+    route.fulfill({ json: { available: true } })
+  );
+  await page.route("**/api/settings/username", route => {
+    account.username = "ada-colors";
+    return route.fulfill({ json: { success: true } });
+  });
+  await page.goto("/settings");
+  await started(page);
+  // with no username there is nothing to show: the switch stands off and says where to add one
+  const credit = page.getByRole("switch", { name: "Your name on palettes" });
+  await expect(credit).toHaveAttribute("aria-checked", "false");
+  await expect(credit).toBeDisabled();
+  await expect(page.locator("#credit-unnamed")).toBeVisible();
+  await page.locator('#profile input[name="username"]').fill("ada-colors");
+  await page.locator("#profile").getByRole("button", { name: "Save" }).click();
+  const offer = page.getByRole("group", {
+    name: "Show your username on the palettes you liked first?"
+  });
+  await expect(offer).toBeVisible();
+  expect(asked).toEqual([]);
+  await offer.getByRole("button", { name: "Show my username" }).click();
+  await expect(offer).toHaveCount(0);
+  await expect(page.locator("#profile")).toContainText(
+    "Your username now shows on the palettes you liked first."
+  );
+  expect(asked).toEqual([{ on: true }]);
+  await expect(credit).toHaveAttribute("aria-checked", "true");
+  await expect(credit).toBeEnabled();
+});
+
 test("Settings keeps the still water under reduced motion, as the other brand pages do", async ({
   page
 }) => {

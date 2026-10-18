@@ -248,6 +248,10 @@ const STYLE_WORDS: Record<Style, string> = {
 /** A palette by what its colors are called in the reader's language: "Vivid navy, blue and lavender". */
 export const paletteName = (P: Palette, view?: Partial<Pick<View, "style" | "steps">>) =>
   readingName(readPalette(P, view?.style, view?.steps), language());
+/** That name as a title says it, with the palette's style: "Vivid navy, blue and lavender linear gradient". A page
+    whose palette has a title of other words says it under that title, and so does a card's tooltip. */
+export const styledName = (name: string, style: Style) =>
+  t("{name} {style}", { name, style: t(STYLE_WORDS[style]) });
 /** The same name inside a sentence: "Palettes like navy to lavender". */
 const paletteInline = (P: Palette) => readingPhrase(readPalette(P), language());
 /** A search's subject as a title says it: its words without the nouns the title adds itself. */
@@ -453,11 +457,7 @@ export function heading(page: Page): string {
       return t(LISTS[page.order].paged);
     case "palette":
       return (
-        ownWords(page)?.title ||
-        t("{name} {style}", {
-          name: paletteName(page.palette, page.view),
-          style: t(STYLE_WORDS[page.view.style])
-        })
+        ownWords(page)?.title || styledName(paletteName(page.palette, page.view), page.view.style)
       );
     case "search":
       return say(msg("Palettes like {name}"), msg("{subject} gradients and color palettes"), "");

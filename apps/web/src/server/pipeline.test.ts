@@ -8,7 +8,7 @@ import { pausedBy } from "@grabient/server/flags/flags.ts";
 import type { FlagName } from "@grabient/server/flags/names.ts";
 import migrated from "../../data/legacy-k.json" with { type: "json" };
 import links from "../../data/legacy-links.json" with { type: "json" };
-import { PAGE } from "../lib/cache.ts";
+import { CREDIT, PAGE } from "../lib/cache.ts";
 import { drawnSearch, searchOf } from "../lib/route.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
@@ -467,13 +467,27 @@ describe("the edge cache", () => {
     expect([drawn.headers.get("X-Grabient-Cache"), asked.length]).toEqual(["HIT", 1]);
   });
 
-  test("keeps a palette's facts by its seed alone", async () => {
+  test("keeps a palette's facts by its seed and the site's language they are asked in", async () => {
     const facts = () => Response.json({ heldBy: [] }, { headers: PAGE });
     await get("/api/palette-facts?seed=kS7Q8Yy5S_SChv0&x=1", {}, facts);
-    const again = await get("/api/palette-facts?x=2&seed=kS7Q8Yy5S_SChv0", {}, facts);
+    const again = await get("/api/palette-facts?x=2&seed=kS7Q8Yy5S_SChv0&lang=en", {}, facts);
+    expect(again.headers.get("X-Grabient-Cache")).toBe("HIT");
+    const unknown = await get("/api/palette-facts?seed=kS7Q8Yy5S_SChv0&lang=xx", {}, facts);
+    expect(unknown.headers.get("X-Grabient-Cache")).toBe("HIT");
+    await get("/api/palette-facts?lang=de&seed=kS7Q8Yy5S_SChv0", {}, facts);
+    expect([...cache.kept.keys()]).toEqual([
+      "https://grabient.test/api/palette-facts?__build=b1&seed=kS7Q8Yy5S_SChv0",
+      "https://grabient.test/api/palette-facts?__build=b1&lang=de&seed=kS7Q8Yy5S_SChv0"
+    ]);
+  });
+
+  test("keeps who a palette credits by its seed alone, in every language", async () => {
+    const credit = () => Response.json({ credit: null }, { headers: CREDIT });
+    await get("/api/palette-credit?seed=kS7Q8Yy5S_SChv0&lang=de", {}, credit);
+    const again = await get("/api/palette-credit?x=2&seed=kS7Q8Yy5S_SChv0", {}, credit);
     expect(again.headers.get("X-Grabient-Cache")).toBe("HIT");
     expect([...cache.kept.keys()]).toEqual([
-      "https://grabient.test/api/palette-facts?__build=b1&seed=kS7Q8Yy5S_SChv0"
+      "https://grabient.test/api/palette-credit?__build=b1&seed=kS7Q8Yy5S_SChv0"
     ]);
   });
 

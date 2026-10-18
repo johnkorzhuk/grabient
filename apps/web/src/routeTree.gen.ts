@@ -43,6 +43,7 @@ import { Route as ApiHotRouteImport } from './routes/api/hot'
 import { Route as ApiLikeCountsRouteImport } from './routes/api/like-counts'
 import { Route as ApiNewsletterRouteImport } from './routes/api/newsletter'
 import { Route as ApiPaletteRouteImport } from './routes/api/palette'
+import { Route as ApiPaletteCreditRouteImport } from './routes/api/palette-credit'
 import { Route as ApiPaletteFactsRouteImport } from './routes/api/palette-facts'
 import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
 import { Route as ApiPalettesRouteImport } from './routes/api/palettes'
@@ -86,6 +87,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCollectionsIndexRouteImport } from './routes/api/collections/index'
 import { Route as ApiCollectionsSplatRouteImport } from './routes/api/collections/$'
 import { Route as ApiMeCollectionVotesRouteImport } from './routes/api/me/collection-votes'
+import { Route as ApiMeCreditRouteImport } from './routes/api/me/credit'
 import { Route as ApiMeFlagsRouteImport } from './routes/api/me/flags'
 import { Route as ApiMeSearchRouteImport } from './routes/api/me/search'
 import { Route as ApiMeSearchVotesRouteImport } from './routes/api/me/search-votes'
@@ -290,6 +292,11 @@ const ApiNewsletterRoute = ApiNewsletterRouteImport.update({
 const ApiPaletteRoute = ApiPaletteRouteImport.update({
   id: '/api/palette',
   path: '/api/palette',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPaletteCreditRoute = ApiPaletteCreditRouteImport.update({
+  id: '/api/palette-credit',
+  path: '/api/palette-credit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPaletteFactsRoute = ApiPaletteFactsRouteImport.update({
@@ -530,6 +537,11 @@ const ApiMeCollectionVotesRoute = ApiMeCollectionVotesRouteImport.update({
   path: '/api/me/collection-votes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeCreditRoute = ApiMeCreditRouteImport.update({
+  id: '/api/me/credit',
+  path: '/api/me/credit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeFlagsRoute = ApiMeFlagsRouteImport.update({
   id: '/api/me/flags',
   path: '/api/me/flags',
@@ -744,6 +756,7 @@ export interface FileRoutesByFullPath {
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
+  '/api/palette-credit': typeof ApiPaletteCreditRoute
   '/api/palette-facts': typeof ApiPaletteFactsRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
@@ -781,6 +794,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/collections/$': typeof ApiCollectionsSplatRoute
   '/api/me/collection-votes': typeof ApiMeCollectionVotesRoute
+  '/api/me/credit': typeof ApiMeCreditRoute
   '/api/me/flags': typeof ApiMeFlagsRoute
   '/api/me/search': typeof ApiMeSearchRoute
   '/api/me/search-votes': typeof ApiMeSearchVotesRoute
@@ -857,6 +871,7 @@ export interface FileRoutesByTo {
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
+  '/api/palette-credit': typeof ApiPaletteCreditRoute
   '/api/palette-facts': typeof ApiPaletteFactsRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
@@ -894,6 +909,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/collections/$': typeof ApiCollectionsSplatRoute
   '/api/me/collection-votes': typeof ApiMeCollectionVotesRoute
+  '/api/me/credit': typeof ApiMeCreditRoute
   '/api/me/flags': typeof ApiMeFlagsRoute
   '/api/me/search': typeof ApiMeSearchRoute
   '/api/me/search-votes': typeof ApiMeSearchVotesRoute
@@ -971,6 +987,7 @@ export interface FileRoutesById {
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
+  '/api/palette-credit': typeof ApiPaletteCreditRoute
   '/api/palette-facts': typeof ApiPaletteFactsRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
@@ -1008,6 +1025,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/collections/$': typeof ApiCollectionsSplatRoute
   '/api/me/collection-votes': typeof ApiMeCollectionVotesRoute
+  '/api/me/credit': typeof ApiMeCreditRoute
   '/api/me/flags': typeof ApiMeFlagsRoute
   '/api/me/search': typeof ApiMeSearchRoute
   '/api/me/search-votes': typeof ApiMeSearchVotesRoute
@@ -1086,6 +1104,7 @@ export interface FileRouteTypes {
     | '/api/like-counts'
     | '/api/newsletter'
     | '/api/palette'
+    | '/api/palette-credit'
     | '/api/palette-facts'
     | '/api/palette.json'
     | '/api/palettes'
@@ -1123,6 +1142,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/collections/$'
     | '/api/me/collection-votes'
+    | '/api/me/credit'
     | '/api/me/flags'
     | '/api/me/search'
     | '/api/me/search-votes'
@@ -1199,6 +1219,7 @@ export interface FileRouteTypes {
     | '/api/like-counts'
     | '/api/newsletter'
     | '/api/palette'
+    | '/api/palette-credit'
     | '/api/palette-facts'
     | '/api/palette.json'
     | '/api/palettes'
@@ -1236,6 +1257,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/collections/$'
     | '/api/me/collection-votes'
+    | '/api/me/credit'
     | '/api/me/flags'
     | '/api/me/search'
     | '/api/me/search-votes'
@@ -1312,6 +1334,7 @@ export interface FileRouteTypes {
     | '/api/like-counts'
     | '/api/newsletter'
     | '/api/palette'
+    | '/api/palette-credit'
     | '/api/palette-facts'
     | '/api/palette.json'
     | '/api/palettes'
@@ -1349,6 +1372,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/collections/$'
     | '/api/me/collection-votes'
+    | '/api/me/credit'
     | '/api/me/flags'
     | '/api/me/search'
     | '/api/me/search-votes'
@@ -1426,6 +1450,7 @@ export interface RootRouteChildren {
   ApiLikeCountsRoute: typeof ApiLikeCountsRoute
   ApiNewsletterRoute: typeof ApiNewsletterRoute
   ApiPaletteRoute: typeof ApiPaletteRoute
+  ApiPaletteCreditRoute: typeof ApiPaletteCreditRoute
   ApiPaletteFactsRoute: typeof ApiPaletteFactsRoute
   ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
   ApiPalettesRoute: typeof ApiPalettesRoute
@@ -1463,6 +1488,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCollectionsSplatRoute: typeof ApiCollectionsSplatRoute
   ApiMeCollectionVotesRoute: typeof ApiMeCollectionVotesRoute
+  ApiMeCreditRoute: typeof ApiMeCreditRoute
   ApiMeFlagsRoute: typeof ApiMeFlagsRoute
   ApiMeSearchRoute: typeof ApiMeSearchRoute
   ApiMeSearchVotesRoute: typeof ApiMeSearchVotesRoute
@@ -1744,6 +1770,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/palette'
       fullPath: '/api/palette'
       preLoaderRoute: typeof ApiPaletteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/palette-credit': {
+      id: '/api/palette-credit'
+      path: '/api/palette-credit'
+      fullPath: '/api/palette-credit'
+      preLoaderRoute: typeof ApiPaletteCreditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/palette-facts': {
@@ -2047,6 +2080,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiMeCollectionVotesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/credit': {
+      id: '/api/me/credit'
+      path: '/api/me/credit'
+      fullPath: '/api/me/credit'
+      preLoaderRoute: typeof ApiMeCreditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/flags': {
       id: '/api/me/flags'
       path: '/api/me/flags'
@@ -2322,6 +2362,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLikeCountsRoute: ApiLikeCountsRoute,
   ApiNewsletterRoute: ApiNewsletterRoute,
   ApiPaletteRoute: ApiPaletteRoute,
+  ApiPaletteCreditRoute: ApiPaletteCreditRoute,
   ApiPaletteFactsRoute: ApiPaletteFactsRoute,
   ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,
   ApiPalettesRoute: ApiPalettesRoute,
@@ -2362,6 +2403,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCollectionsSplatRoute: ApiCollectionsSplatRoute,
   ApiMeCollectionVotesRoute: ApiMeCollectionVotesRoute,
+  ApiMeCreditRoute: ApiMeCreditRoute,
   ApiMeFlagsRoute: ApiMeFlagsRoute,
   ApiMeSearchRoute: ApiMeSearchRoute,
   ApiMeSearchVotesRoute: ApiMeSearchVotesRoute,

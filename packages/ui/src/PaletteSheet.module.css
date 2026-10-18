@@ -89,21 +89,40 @@
     gap: var(--space-s2);
     min-width: 0;
   }
-  /* what the page says of the palette, a line under a heading at a measure that reads */
+  /* under a title of other words, what its colors call the palette, and the reader's own words, at a measure that
+     reads */
   .about {
+    display: grid;
     grid-area: about;
+    gap: var(--space-s1);
     max-width: var(--size-prose);
     padding-block: var(--space-s2) var(--space-s1);
   }
-  /* the collections that hold the palette, after a collection's glyph, each a link; under the pointer or the keyboard
-     one floats its colors under its name as coins, which take no room, a little into the link's own height */
+  /* the collections' line: the collections that hold the palette, and at its end who brought it, which the browser
+     hears after the page is drawn, so nothing before it moves as it comes */
+  .line {
+    display: flex;
+    grid-area: links;
+    align-items: center;
+    column-gap: var(--space-s5);
+    min-width: 0;
+  }
+  /* the collections, after a collection's glyph, each a link; under the pointer or the keyboard one floats its colors
+     under its name as coins, which take no room, a little into the link's own height */
   .links {
     display: flex;
+    flex: 1 1 auto;
     flex-wrap: wrap;
-    grid-area: links;
     align-items: center;
     column-gap: var(--space-s3);
     min-width: 0;
+    color: var(--color-ink3);
+  }
+  /* cut short where a phone's line is narrow, rather than pushing on the presses that end it there */
+  .credit {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-inline-start: auto;
     color: var(--color-ink3);
   }
   .glyph {

@@ -1205,6 +1205,51 @@ test("a palette's title stands in its age's place under the pointer and the keyb
   await expect(title).toHaveCSS("opacity", "1");
 });
 
+test("in another language a card wears its palette's written title as it was written, and its tooltip what the colors call it there", async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      route.fulfill({
+        json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+      })
+  );
+  const asked: (string | null)[] = [];
+  await page.route(
+    url => url.pathname === "/api/palette-facts",
+    route => {
+      asked.push(new URL(route.request().url()).searchParams.get("lang"));
+      return route.fulfill({
+        json: {
+          written: {
+            title: "Violet hour",
+            view: { style: "linearGradient", steps: 7, angle: 90 }
+          },
+          heldBy: []
+        }
+      });
+    }
+  );
+  await page.goto("/de/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/de/collections/rising"]').click();
+  await page.locator(`main a[href="/de/${SLUG}/rising"]`).click();
+  const card = page.getByRole("article").first();
+  await card.getByRole("img").hover();
+  const title = card.getByText("Violet hour", { exact: true });
+  await expect(title).toHaveCSS("opacity", "1");
+  expect(asked).toContain("de");
+  await title.hover();
+  await expect(page.getByRole("tooltip")).toContainText(/, linearer Farbverlauf/);
+});
+
 test("the owner titles a palette on its card, an undo takes the title back, and the palette's page is called by it", async ({
   page
 }) => {
