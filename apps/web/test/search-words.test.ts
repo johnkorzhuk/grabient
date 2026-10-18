@@ -14,8 +14,8 @@ import {
 } from "./helpers.ts";
 
 /* The search as a database's own rows make it, through the schedule's build and a fresh isolate's read of the stored
-   copy: whose words for their palettes it reads, the mark that says when to build, and the collection-mates that lead a
-   palette's likes. */
+   copy: whose words for their palettes it reads, the mark that says when to build, and the collection-mates that lead
+   the palettes like a palette. */
 
 /* palettes in the gallery, enough of them that the nearest twelfth of the site is a few palettes deep */
 async function gallery(env: TestEnv, seeds: readonly string[]) {
@@ -122,11 +122,35 @@ describe("the words public collections give their palettes", () => {
       }
   });
 
+  it("join the palette's written title, and a word of either finds it from a fresh isolate", async () => {
+    const env = testEnv();
+    const admin = await makeAdmin(env);
+    const seed = seedOf("#3d1f5c", "#f2c14e", "#1b998b");
+    const [written, given] = [word("w"), word("t")];
+    await run(
+      env.DB,
+      "INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES (?, ?, '', ?, ?)",
+      seed,
+      written,
+      Date.now(),
+      Date.now()
+    );
+    await collection(env, { kind: "user", id: admin.id }, "public", unique("Words"), [seed], {
+      title: given
+    });
+    await built(env);
+    const isolate = freshIsolate(env);
+    for (const w of [written, given]) {
+      const { tier, items } = await searchPalettes(isolate, w);
+      expect([w, tier, items[0]?.kseed, items[0]?.lead]).toEqual([w, "named", seed, true]);
+    }
+  });
+
   it("leave the next build once the owner is no admin, and come back with the role; a new title and a private collection rebuild too", async () => {
     const env = testEnv();
     const admin = await makeAdmin(env);
     const seed = seedOf("#5a2d82", "#f2c14e", "#1b998b");
-    const [first, second] = [word("t"), word("t")];
+    const [first, second, name] = [word("t"), word("t"), `Zq${word("n")}`];
     const id = await collection(
       env,
       { kind: "user", id: admin.id },
@@ -134,16 +158,19 @@ describe("the words public collections give their palettes", () => {
       "Tide lines",
       [seed],
       {
-        title: first
+        title: first,
+        description: `Home gold of the ${name}.`
       }
     );
     const role = (to: string) =>
       run(env.DB, "UPDATE auth_user SET role = ? WHERE id = ?", to, admin.id);
-    expect((await built(env)).includes(first)).toBe(true);
+    // the title and the name its description writes
+    const held = (stored: string) => [first, name.toLowerCase()].map(w => stored.includes(w));
+    expect(held(await built(env))).toEqual([true, true]);
     await role("user");
-    expect((await built(env)).includes(first)).toBe(false);
+    expect(held(await built(env))).toEqual([false, false]);
     await role("admin");
-    expect((await built(env)).includes(first)).toBe(true);
+    expect(held(await built(env))).toEqual([true, true]);
 
     // as every app path writes a palette's words: with the collection's time
     await run(
@@ -174,7 +201,7 @@ describe("the words public collections give their palettes", () => {
 });
 
 describe("a palette's collection-mates", () => {
-  it("lead its likes from the built copy, and a palette an admin voted out of the collection is no mate", async () => {
+  it("lead the palettes like it from the built copy, and a palette an admin voted out of the collection is no mate and takes its words with it", async () => {
     const env = testEnv();
     await gallery(env, (await shippedSnapshot(env)).seeds.slice(0, 40));
     const [first, kept, out] = [
@@ -185,6 +212,20 @@ describe("a palette's collection-mates", () => {
     // the one voted out stays in the gallery, as near as the one kept
     await gallery(env, [out]);
     const id = await collection(env, GRABIENT, "public", "Harbor blues", [first, kept, out]);
+    // words for the one kept and for the one voted out, which leave the build with it
+    const given = async (seed: string) => {
+      const words = [word("t"), `Zq${word("n")}`];
+      await run(
+        env.DB,
+        "UPDATE k_collection_items SET title = ?, description = ? WHERE collection_id = ? AND seed = ?",
+        words[0],
+        `Home gold of the ${words[1]}.`,
+        id,
+        seed
+      );
+      return words;
+    };
+    const [keptWords, outWords] = [await given(kept), await given(out)];
     const admin = await makeAdmin(env);
     await run(
       env.DB,
@@ -195,7 +236,12 @@ describe("a palette's collection-mates", () => {
       Date.now(),
       Date.now()
     );
-    expect(await syncSnapshot(env)).toMatchObject({ status: "built" });
+    const stored = await built(env);
+    const held = (words: string[]) => words.map(w => stored.includes(w.toLowerCase()));
+    expect([held(keptWords), held(outWords)]).toEqual([
+      [true, true],
+      [false, false]
+    ]);
 
     const { tier, items } = await searchPalettes(freshIsolate(env), first, { limit: 96 });
     expect(tier).toBe("similar");
