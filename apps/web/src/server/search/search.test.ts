@@ -112,6 +112,25 @@ describe("a list someone holds, searched", () => {
   );
 });
 
+describe("words a palette's own fields hold between them", () => {
+  const env = searchEnv();
+  test.each([
+    ["nhl nashville", "kSPTe3fwAsOk8vq", "nhl team"],
+    ["nashville hockey", "kSPTe3fwAsOk8vq", "nhl team"],
+    ["hockey predators", "kSPTe3fwAsOk8vq", "nhl team"],
+    ["nba lakers", "kUa4PZZb3QfsDv-Ug7_g", "nba team"],
+    ["chicago hockey", "kYEQBAQ8u39u9w3yQ8Vxi5HDCwTK", "nhl team"],
+    ["nfl ravens", "kSS2vGgABJkyrym", "nfl team"]
+  ])("%s names its team", async (query, seed, tag) => {
+    const { tier, items } = await searchPalettes(env, query);
+    expect([tier, items[0]?.kseed, items[0]?.tags]).toEqual(["named", seed, [tag]]);
+  });
+
+  test("and nothing where no palette holds them all", async () => {
+    expect((await searchPalettes(env, "nhl lakers")).tier).toBe("account");
+  });
+});
+
 test("names are read whole: a piece of a cut word names nothing, and a tag past the 80th character names its palettes", async () => {
   const env = searchEnv();
   for (const piece of ["h", "ear", "spo", "wallpa"])

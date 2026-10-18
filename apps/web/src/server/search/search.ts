@@ -2,7 +2,8 @@
    - similar: palettes near a palette (its seed, an old id the maps know, or a Grabient link to it)
    - color: palettes near hex colors, written in the query or asked beside it
    - vocabulary: words the vocabulary reads, in any of its languages, as emoji, or one slip off
-   - named: words no color says (a team, a game), found in palette titles and in collections' titles and tags
+   - named: words no color says (a team, a game), found in palette titles and in collections' titles and tags, in one of
+     them or across a palette's own
    - model: words new to the vocabulary, read by one embedding within the payer's allowance (model.ts)
    - account: nothing here could read the words; a signed-in account's own allowance may (routes.ts)
    - unavailable: the search files are missing or of two model versions

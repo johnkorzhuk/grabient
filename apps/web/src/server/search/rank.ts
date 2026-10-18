@@ -170,21 +170,51 @@ function holdingAll(map: Map<string, number[]>, words: readonly string[], near =
   return held ? [...held].sort((a, b) => a - b) : [];
 }
 
+/* one word in every field: as written wherever it is written, else one slip off */
+function inFields(index: NameIndex, word: string) {
+  const titled = index.titles.get(word) ?? [];
+  const named = index.collections.get(word) ?? [];
+  if (titled.length || named.length) return { titled, named };
+  const near = (map: Map<string, number[]>) =>
+    [...map].flatMap(([known, rows]) => (nearWord(word, known) ? rows : []));
+  return { titled: near(index.titles), named: near(index.collections) };
+}
+
 export interface NamedAnswer {
-  /** palette rows: the ones titled with the words in snapshot order, then the members of the collections named with them */
+  /** palette rows: the ones titled with the words in snapshot order, then the members of the collections named with
+      them; when no one title or collection holds them all, the palettes whose own fields hold them between them */
   rows: number[];
-  /** the named collections' subjects, for the cards' tags */
+  /** the subjects of the collections that gave a word, for the cards' tags */
   names: string[];
 }
 
-/** Palettes named by these words, or null when no title and no collection holds them all. */
+/** Palettes named by these words, or null when no palette holds them all. */
 export function namedPalettes(snapshot: Snapshot, words: readonly string[]): NamedAnswer | null {
   if (!words.length || (!snapshot.titles.length && !snapshot.names.length)) return null;
   const index = nameIndex(snapshot);
   const titled = holdingAll(index.titles, words);
   const named = holdingAll(index.collections, words);
-  const rows = [...new Set([...titled, ...named.flatMap(c => snapshot.names[c].members)])];
-  return rows.length ? { rows, names: named.map(c => snapshot.names[c].subject) } : null;
+  if (titled.length || named.length)
+    return {
+      rows: [...new Set([...titled, ...named.flatMap(c => snapshot.names[c].members)])],
+      names: named.map(c => snapshot.names[c].subject)
+    };
+  /* no one title and no one collection holds every word: a palette's titles and its collections' words may hold them
+     between them (nhl nashville) */
+  const each = words.map(word => inFields(index, word));
+  let found = new Set<number>();
+  for (const [k, field] of each.entries()) {
+    const rows = new Set([...field.titled, ...field.named.flatMap(c => snapshot.names[c].members)]);
+    found = k ? new Set([...found].filter(row => rows.has(row))) : rows;
+    if (!found.size) return null;
+  }
+  const helped = [...new Set(each.flatMap(field => field.named))]
+    .sort((a, b) => a - b)
+    .filter(c => snapshot.names[c].members.some(row => found.has(row)));
+  return {
+    rows: [...found].sort((a, b) => a - b),
+    names: helped.map(c => snapshot.names[c].subject)
+  };
 }
 
 /** Whether some palette's title holds every word as written. */
