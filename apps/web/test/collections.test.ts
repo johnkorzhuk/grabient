@@ -16,7 +16,7 @@ import type {
 import { SearchAnswer } from "../src/features/gallery/schema.ts";
 import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collections/api.ts";
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
-import { collectionsHolding } from "../src/server/collections/read.ts";
+import { collectionBySlug, collectionsHolding } from "../src/server/collections/read.ts";
 import { publicCollections } from "../src/server/collections/search.ts";
 import { createCollection, moveAccountAddresses } from "../src/server/collections/write.ts";
 import { keepTranslations } from "../src/server/mcp/admin/translations.ts";
@@ -294,6 +294,55 @@ describe("writing a collection", () => {
     expect(own.items.find(c => c.slug === slug)?.preview).toEqual([
       expect.objectContaining({ seed: SEEDS[0], title: "Momiji" })
     ]);
+  });
+
+  it("show a person's words for their palettes to them alone, and an admin's to everyone", async () => {
+    const worded = { ...items(1, 5)[0]!, title: "Ember", description: "Coals at dusk." };
+    const theirs = (await make(ada, { title: unique("Their words"), items: [worded] })).body
+      .collection;
+    const first = async (slug: string, trusted = false) =>
+      (await collectionBySlug(env, slug, trusted))!.items[0]!;
+    const listed = async (slug: string) =>
+      (
+        await bodyOf<CollectionPage>(
+          await listAnswer(get("/api/collections?sort=newest&page=1&limit=24"), env)
+        )
+      ).items.find(c => c.slug === slug)!.preview[0]!;
+    // public as no write of theirs could make it, so the words alone keep it to them
+    const publish = (visibility: string) =>
+      env.DB.prepare("UPDATE k_collections SET visibility = ? WHERE slug = ?")
+        .bind(visibility, theirs.slug)
+        .run();
+    await publish("public");
+    try {
+      const seen = await first(theirs.slug);
+      expect([seen.title, seen.description]).toEqual([undefined, undefined]);
+      expect((await listed(theirs.slug)).title).toBeUndefined();
+      expect(await first(theirs.slug, true)).toMatchObject({
+        title: "Ember",
+        description: "Coals at dusk."
+      });
+      const own = await bodyOf<CollectionPage>(
+        await mineAnswer(get("/api/me/collections", { cookie: ada.cookie }), env)
+      );
+      expect(own.items.find(c => c.slug === theirs.slug)?.preview[0]).toMatchObject({
+        title: "Ember"
+      });
+    } finally {
+      await publish("private");
+    }
+    const admins = (
+      await make(admin, {
+        title: unique("Admin words"),
+        visibility: "public",
+        items: [worded]
+      })
+    ).body.collection;
+    expect(await first(admins.slug)).toMatchObject({
+      title: "Ember",
+      description: "Coals at dusk."
+    });
+    expect((await listed(admins.slug)).title).toBe("Ember");
   });
 
   it("moves an account's private collections when its username changes", async () => {

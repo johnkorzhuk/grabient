@@ -64,13 +64,20 @@ export interface CollectionRow {
   forked_from: string | null;
   owner_name: string | null;
   owner_display: string | null;
+  owner_role?: string | null;
 }
-/** A collection's columns and its owner's names: an account's username and display name, an agent's own name. */
+/** A collection's columns and its owner's names: an account's username, display name and role, an agent's own name. */
 export const SELECT = `SELECT c.id, c.slug, c.owner_kind, c.owner_id, c.title, c.description, c.tags, c.visibility,
   c.item_count, c.created_at, c.updated_at, c.fork_count, c.forked_from,
   CASE WHEN c.owner_kind = 'user' THEN u.username ELSE c.owner_id END AS owner_name,
-  CASE WHEN c.owner_kind = 'user' THEN u.name END AS owner_display
+  CASE WHEN c.owner_kind = 'user' THEN u.name END AS owner_display,
+  CASE WHEN c.owner_kind = 'user' THEN u.role END AS owner_role
   FROM k_collections c LEFT JOIN auth_user u ON c.owner_kind = 'user' AND u.id = c.owner_id`;
+
+/** Whether the words a collection gives its palettes may be read by anyone: Grabient's and an admin's are the site's
+    own, while a person's are theirs to read alone, whoever may see the collection. */
+export const wordsPublic = (row: Pick<CollectionRow, "owner_kind" | "owner_role">): boolean =>
+  row.owner_kind === "agent" || row.owner_role === "admin";
 
 /** How many palettes a list's card of a collection draws, its page's first. */
 export const PREVIEW_ITEMS = 12;
@@ -148,11 +155,12 @@ const wordsOf = (row: { title?: string | null; description?: string | null }) =>
   ...(row.description ? { description: row.description } : {})
 });
 
-/** A collection's palettes in its own order, each with its likes, its week's rising score, when it was made and the
-    words the collection gives it. */
+/** A collection's palettes in its own order, each with its likes, its week's rising score, when it was made and, for a
+    reader who may read them (`words`), the words the collection gives it. */
 export async function itemsOf(
   env: Reader,
-  row: Pick<CollectionRow, "id" | "created_at">
+  row: Pick<CollectionRow, "id" | "created_at">,
+  words = true
 ): Promise<CollectionItem[]> {
   const rows = await all<ItemRow>(
     env.DB,
@@ -178,7 +186,7 @@ export async function itemsOf(
           Number(row.created_at),
         position: Number(item.position),
         ...risingOf(item.rising),
-        ...wordsOf(item)
+        ...(words ? wordsOf(item) : {})
       }
     ];
   });
@@ -203,20 +211,22 @@ export const previewOf = (items: readonly CollectionItem[]): CollectionPreview[]
 /** Each collection's preview palettes, by its id: read, or for a public list (`shared`) as this data center keeps them
     for every language and isolate, a minute where the list is Rising's and five otherwise. They are kept by each
     collection's last change too, which every write to its palettes moves, so an edited collection's strip is read
-    again at once and only likes reorder a kept one. */
+    again at once and only likes reorder a kept one. Their words come where everyone may read them, and on the owner's
+    own list (`own`). */
 async function previews(
   env: Reader,
   rows: readonly CollectionRow[],
   first: boolean,
   order: PaletteOrder,
-  shared: boolean
+  shared: boolean,
+  own: boolean
 ): Promise<Map<string, CollectionPreview[]>> {
-  if (!shared || !rows.length) return readPreviews(env, rows, first, order);
+  if (!shared || !rows.length) return readPreviews(env, rows, first, order, own);
   const ids = rows.map(row => `${row.id}:${row.updated_at}`).join(",");
   const kept = await sharedRead(
     `strips/${first ? "first" : order}/${await digest(ids)}`,
     order === "rising" && !first ? 60 : 300,
-    async () => [...(await readPreviews(env, rows, first, order)).entries()]
+    async () => [...(await readPreviews(env, rows, first, order, own)).entries()]
   );
   return new Map(kept.value);
 }
@@ -228,9 +238,11 @@ async function readPreviews(
   env: Reader,
   rows: readonly CollectionRow[],
   first: boolean,
-  order: PaletteOrder
+  order: PaletteOrder,
+  own: boolean
 ): Promise<Map<string, CollectionPreview[]>> {
   const map = new Map<string, CollectionPreview[]>(rows.map(row => [row.id, []]));
+  const worded = new Set(rows.filter(row => own || wordsPublic(row)).map(row => row.id));
   if (!rows.length) return map;
   const ids = JSON.stringify(rows.map(row => row.id));
   if (first) {
@@ -290,7 +302,7 @@ async function readPreviews(
       likes: Math.max(0, Number(row.likes_count) || 0),
       position: Number(row.position),
       ...risingOf(row.rising),
-      ...wordsOf(row)
+      ...(worded.has(row.collection_id) ? wordsOf(row) : {})
     });
   return map;
 }
@@ -311,13 +323,14 @@ export interface PageOf {
 }
 
 /** A page of summaries. A public list's strips are `shared` by the data center; an owner's, which can be private, are
-    read. */
+    read, and carry the words the owner gives their palettes (`own`). */
 export async function pageOf(
   env: Reader,
   rows: readonly CollectionRow[],
   head: PageOf,
   strip: Previews = "page",
-  shared = false
+  shared = false,
+  own = false
 ): Promise<CollectionPage> {
   const strips = strip
     ? await previews(
@@ -325,7 +338,8 @@ export async function pageOf(
         rows,
         strip === "first",
         head.sort === "rising" ? "rising" : "popular",
-        shared
+        shared,
+        own
       )
     : new Map();
   return {
@@ -351,7 +365,7 @@ export async function collectionBySlug(
   );
   if (!row) return null;
   const { preview: _, ...summary } = summaryOf(row, []);
-  return { ...summary, items: await itemsOf(env, row) };
+  return { ...summary, items: await itemsOf(env, row, trusted || wordsPublic(row)) };
 }
 
 /** Whether a collection lives at this address, and who may see it: a one-segment address resolves by it. */

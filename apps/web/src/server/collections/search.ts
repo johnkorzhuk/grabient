@@ -375,7 +375,9 @@ export async function ownerCollections(
       env,
       rows,
       { query: "", sort: "newest", page, limit, total: Number(count?.n ?? 0) },
-      strip
+      strip,
+      false,
+      true
     );
   }
   const [own, read] = await Promise.all([
@@ -445,7 +447,9 @@ export async function ownerCollections(
       total: ranked.length,
       ...(read?.unkept ? { unkept: true } : {})
     },
-    strip
+    strip,
+    false,
+    true
   );
 }
 
