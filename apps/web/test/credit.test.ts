@@ -267,7 +267,7 @@ describe("an account's name on palettes", () => {
 });
 
 describe("a palette's credit", () => {
-  it("goes to Grabient where it showed or liked the palette first, else to the first like that stands", async () => {
+  it("goes to Grabient where it showed the palette first, an admin with no username where they liked it first, else to the first like that stands", async () => {
     const env = testEnv();
     const admin = await makeAdmin(env);
     const ada = await named(env, true);
@@ -277,7 +277,7 @@ describe("a palette's credit", () => {
       { length: 8 },
       fresh
     );
-    // an admin's like first, then a person's
+    // the like of an admin with no username first, then a person's
     await like(env, admin.id, liked!, 100);
     await like(env, ada.id, liked!, 200);
     // Grabient's collection showed it before the first like
@@ -326,6 +326,51 @@ describe("a palette's credit", () => {
       6: null,
       7: { by: "person", name: ada.username }
     });
+  });
+
+  it("names an admin by their username where they liked or showed the palette first, whatever their switch says", async () => {
+    const env = testEnv();
+    const john = await makeAdmin(env);
+    const username = handle("john");
+    await run(env.DB, "UPDATE auth_user SET username = ? WHERE id = ?", username, john.id);
+    const ada = await named(env, true);
+    const [liked, collected, grabientFirst] = Array.from({ length: 3 }, fresh);
+    // the admin's like first, though their switch is off
+    await like(env, john.id, liked!, 100);
+    await like(env, ada.id, liked!, 200);
+    // a public collection of the admin's showed it before anyone liked it
+    const id = unique("john-collection");
+    await run(
+      env.DB,
+      `INSERT INTO k_collections (id, slug, owner_kind, owner_id, title, visibility, created_at, updated_at)
+       VALUES (?, ?, 'user', ?, 'Mine', 'public', 50, 50)`,
+      id,
+      id,
+      john.id
+    );
+    await run(
+      env.DB,
+      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
+       VALUES (?, 0, ?, 'linearGradient', 7, 90, 50)`,
+      id,
+      collected
+    );
+    await like(env, ada.id, collected!, 100);
+    // Grabient's own collection showed it before the admin's did
+    await grabients(env, grabientFirst!, 10);
+    await run(
+      env.DB,
+      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
+       VALUES (?, 1, ?, 'linearGradient', 7, 90, 60)`,
+      id,
+      grabientFirst
+    );
+    const credits = await creditsOf(env, [liked!, collected!, grabientFirst!]);
+    expect([liked, collected, grabientFirst].map(seed => credits.get(seed!))).toEqual([
+      { by: "person", name: username },
+      { by: "person", name: username },
+      { by: "grabient" }
+    ]);
   });
 
   it("answers a palette's address, kept half a minute at the edge, and refuses what is no palette's", async () => {

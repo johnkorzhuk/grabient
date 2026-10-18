@@ -141,8 +141,12 @@
       --named: 0;
     }
   }
+  /* set tight, and cut short at the box's end, which clips too: room above and below for the letters that reach past
+     the line, given back by the margins, so the line stands where it did */
   .age,
   .named {
+    padding-block: 0.25em;
+    margin-block: -0.25em;
     font-family: var(--font-system);
     font-size: var(--font-fs4);
     line-height: var(--font-lh-none);
@@ -172,8 +176,8 @@
     justify-self: start;
     max-width: 100%;
     min-width: 0;
-    margin: 0;
-    padding: 0;
+    margin-inline: 0;
+    padding-inline: 0;
     overflow: hidden;
     border: 0;
     border-radius: var(--radius-control);

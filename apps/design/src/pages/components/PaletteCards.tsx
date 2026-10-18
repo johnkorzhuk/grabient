@@ -74,7 +74,7 @@ export function PaletteCards() {
             "A palette's title, where it has one, stands in its age's place under the pointer or focus; the owner of a collection writes one there.",
             "The title's tooltip says what the palette's colors call it in the reader's language and a person's own words for it, then, a step quieter, its age and who brought it: 12 days · Grabient.",
             "With no title, the age says who brought it after itself while the card is open, in the room it keeps unseen at rest.",
-            "Who brought it: Grabient, where it showed or liked the palette first, else the first person to like it, only if they chose to show their username.",
+            "Who brought it: Grabient, where its own collections showed the palette first or it published it; an admin by their username; else the first person to like it, only if they chose to show their username.",
             "On touch the tools wait for a tap on the picture, one card at a time.",
             "An article named by its palette, so its Edit is that palette's Edit."
           ]}

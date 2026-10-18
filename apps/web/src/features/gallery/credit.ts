@@ -7,7 +7,7 @@ import { getJson } from "../../lib/query.ts";
 import { isSeed } from "../editor/address.ts";
 
 /* Who a palette's cards and page credit for bringing it to Grabient (server/gallery/credit.ts): Grabient, or a person
-   by the username they chose to show. The browser asks as the pointer, the focus or a tap reaches a card, or as a
+   by their username, an admin's always and anyone else's where they chose to show it. The browser asks as the pointer, the focus or a tap reaches a card, or as a
    palette's page opens, in every language, and a page's document never holds one, so no crawler reads one. The edge
    keeps an answer half a minute, and a page that reaches the palette again asks again after as long, so a name its
    account takes back leaves within the minute. */
