@@ -29,11 +29,13 @@ const ACCOUNT_PAGES = [
   "/unsubscribe/",
   "/collections/saved"
 ];
-/** Random, which leads somewhere new each time, in every language and as its word exactly: no search crawler's to
-    follow, while an agent a reader sends there (llms-full.txt) may. */
-const RANDOM = LOCALES.flatMap(l =>
-  ["/random$", "/random?"].map(path => localizePath(path, l))
-).map(path => `Disallow: ${path}`);
+/** Random, which leads somewhere new each time, in every language and as its word exactly, and its pictures, of which
+    every name draws another: no search crawler's to follow, while an agent a reader sends there (llms-full.txt) may. */
+const RANDOM = [
+  ...LOCALES.flatMap(l => ["/random$", "/random?"].map(path => localizePath(path, l))),
+  "/random.png",
+  "/random.svg"
+].map(path => `Disallow: ${path}`);
 /** What a page fetches for one visitor after it renders, and an account's own pages. Both groups list them, since a
     crawler reads only the group that names it (RFC 9309). */
 const PRIVATE = [

@@ -5,6 +5,7 @@
    strip's lightness moves to the nearest lightness clear of it, keeping its hue and chroma (`legibleStops`). */
 import { hexToSrgb, lchToSrgb, srgbToLch, toHex } from "@grabient/engine/color.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
+import { fnv1a, textRand } from "@grabient/engine/random.ts";
 
 /** The mark's square, 32 units a side, so the bar's top edge falls on a whole pixel at 16 and at 32. */
 export const MARK_VIEWBOX = "0 0 32 32";
@@ -62,25 +63,6 @@ export function markWeek(time: number): string {
 /** A week the icon can be drawn for, as markWeek writes it. */
 export const MARK_WEEK = /^(\d{4})-w(0[1-9]|[1-4]\d|5[0-3])$/;
 
-/* the week's name to a number (FNV-1a), and that to a stream of numbers (mulberry32): the same week draws the same
-   colors wherever it is drawn */
-function fnv1a(text: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-function mulberry32(seed: number): () => number {
-  let s = seed;
-  return () => {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 /* the light band lifts a hue near yellow's middle: an orange or a yellow at 0.58 reads brown or olive */
 function yellowLift(h: number): number {
   const d = Math.abs(((((h - 95) % 360) + 540) % 360) - 180);
@@ -91,7 +73,8 @@ const WEEK_STOPS = 16;
     lightness that stands on a light strip (about 0.58, yellows lifted) and one that stands on a dark strip (about 0.8),
     the same hues in both, so the week reads as one color in either browser. */
 export function weekMark(week: string): { light: string[]; dark: string[] } {
-  const next = mulberry32(fnv1a(week));
+  // the same week draws the same colors wherever it is drawn
+  const next = textRand(week);
   const h0 = next() * 360;
   const travel = (next() < 0.5 ? -1 : 1) * (80 + next() * 80);
   const slope = (next() - 0.5) * 0.1;
