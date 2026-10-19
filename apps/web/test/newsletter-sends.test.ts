@@ -10,6 +10,7 @@ import {
   checkLetters,
   DAILY,
   deliverDue,
+  LATE_MS,
   LEAD_MS,
   PER_RUN,
   prepare,
@@ -321,7 +322,7 @@ describe("the minute job", () => {
         mail.to
       );
       const token = tokens.find(row => row.user_id === account?.id)?.token ?? "";
-      expect(mail.key).toBe(`newsletter/1/${account?.id}`);
+      expect(mail.key).toBe(`newsletter/${id}/${account?.id}`);
       expect(mail.unsubscribe).toBe(`<${SITE}/unsubscribe/${token}>`);
       expect(mail.html).toContain(`${SITE}/unsubscribe/${token}`);
       expect(mail.text).toContain(`${SITE}/unsubscribe/${token}`);
@@ -494,7 +495,7 @@ describe("the minute job", () => {
     );
     expect(await deliverDue(env)).toMatchObject({ sent: 2 });
     expect(mails.map(mail => mail.key).sort()).toEqual(
-      [`newsletter/1/${admin.id}`, `newsletter/1/${fresh.id}`].sort()
+      [`newsletter/${id}/${admin.id}`, `newsletter/${id}/${fresh.id}`].sort()
     );
     const row = await first<{ state: string }>(
       env.DB,
@@ -633,5 +634,276 @@ describe("the sends' answer", () => {
     ]);
     expect(mails[0]?.html).not.toContain(TOKEN_SLOT);
     expect(await outbox(env)).toEqual(before);
+  });
+});
+
+/* A database that fails the statements whose SQL holds `marker`, `times` times, as an overloaded D1 does. */
+function failing(env: TestEnv, marker: string, times = Number.POSITIVE_INFINITY): TestEnv {
+  let left = times;
+  const db = env.DB;
+  const refuse = async () => {
+    left--;
+    throw new Error("D1_ERROR: Network connection lost.");
+  };
+  const proxy = new Proxy(db, {
+    get(target, prop) {
+      if (prop === "prepare") {
+        return (sql: string) => {
+          const statement = target.prepare(sql);
+          if (!sql.includes(marker)) return statement;
+          return {
+            bind: (...args: unknown[]) => {
+              const bound = statement.bind(...args);
+              const or = <K extends "run" | "first" | "all">(name: K) =>
+                left > 0 ? refuse : () => (bound[name] as () => Promise<unknown>).call(bound);
+              return { run: or("run"), first: or("first"), all: or("all") };
+            }
+          };
+        };
+      }
+      const value = Reflect.get(target, prop);
+      return typeof value === "function" ? value.bind(target) : value;
+    }
+  });
+  return { ...env, DB: proxy as unknown as D1Database } as TestEnv;
+}
+const HOUR = 3_600_000;
+const sendOf = (env: TestEnv, id: string) =>
+  first<{ state: string; reason: string | null }>(
+    env.DB,
+    "SELECT state, reason FROM k_newsletter_sends WHERE id = ?",
+    id
+  );
+const keysPosted = (mails: Mail[]) => {
+  const byKey = new Map<string, number>();
+  for (const mail of mails) byKey.set(mail.key ?? "", (byKey.get(mail.key ?? "") ?? 0) + 1);
+  return byKey;
+};
+
+describe("a send that meets trouble", () => {
+  it("never sends again what Resend may have taken a day ago or more, after a long pause", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { mails } = mailroom((_, n) => {
+      if (n <= 3)
+        throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+      return Response.json({ id: `email-${n}` });
+    });
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", true, admin.id);
+    for (let i = 0; i < 4; i++) await reader(env);
+    const id = await prepared(env, admin, "everyone");
+    await armedNow(env, admin, id);
+    expect(await deliverDue(env)).toMatchObject({ paused: "errors" });
+    const later = Date.now() + 25 * HOUR;
+    expect(await steer(env, id, "resume", later)).toBeNull();
+    expect(await deliverDue(env, later)).toMatchObject({ sent: 2, done: true });
+    expect([...keysPosted(mails).values()].every(n => n === 1)).toBe(true);
+    expect((await outbox(env)).map(row => row.state).sort()).toEqual([
+      "sent",
+      "sent",
+      "unknown",
+      "unknown",
+      "unknown"
+    ]);
+  });
+
+  it("tries an email Resend took again under its own key when the database fails to record it, and never pauses for it", async () => {
+    const { mails } = mailroom((_, n) => Response.json({ id: `email-${n}` }));
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", true, admin.id);
+    for (let i = 0; i < 2; i++) await reader(env);
+    const id = await prepared(env, admin, "everyone");
+    await armedNow(env, admin, id);
+    await expect(deliverDue(failing(env, "SET state = ?, sent_at = ?", 1))).rejects.toThrow(
+      /D1_ERROR/
+    );
+    expect(mails).toHaveLength(1);
+    const after = await outbox(env);
+    expect(after.map(row => [row.state, row.attempts]).sort()).toEqual([
+      ["queued", 0],
+      ["queued", 0],
+      ["queued", 1]
+    ]);
+    expect(await deliverDue(env)).toMatchObject({ sent: 3, done: true });
+    // the one Resend took first went again under the same key, which Resend answers without sending
+    const posted = keysPosted(mails);
+    expect([...posted.values()].sort()).toEqual([1, 1, 2]);
+    expect((await sendOf(env, id))?.state).toBe("done");
+  });
+
+  it("gives back what a failing database stopped it from trying, never marking it unknown", async () => {
+    const { mails } = mailroom(() => Response.json({ id: "email" }));
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", true, admin.id);
+    for (let i = 0; i < 3; i++) await reader(env);
+    const id = await prepared(env, admin, "everyone");
+    await armedNow(env, admin, id);
+    const broken = failing(env, "SELECT u.email, u.locale, n.token");
+    for (let i = 0; i < 3; i++) await expect(deliverDue(broken)).rejects.toThrow(/D1_ERROR/);
+    expect((await outbox(env)).map(row => [row.state, row.attempts])).toEqual(
+      Array(4).fill(["queued", 0])
+    );
+    expect(mails).toEqual([]);
+    expect(await deliverDue(env)).toMatchObject({ sent: 4, done: true });
+  });
+
+  it("pauses when Resend's quota is spent, holding the email untried", async () => {
+    let spent = true;
+    const { mails } = mailroom(() =>
+      spent
+        ? Response.json({ name: "monthly_quota_exceeded" }, { status: 429 })
+        : Response.json({ id: "email" })
+    );
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", true, admin.id);
+    await reader(env);
+    const id = await prepared(env, admin, "everyone");
+    await armedNow(env, admin, id);
+    expect(await deliverDue(env)).toMatchObject({ paused: "quota" });
+    expect(await sendOf(env, id)).toMatchObject({ state: "paused", reason: "quota" });
+    expect((await outbox(env)).map(row => [row.state, row.attempts])).toEqual([
+      ["queued", 0],
+      ["queued", 0]
+    ]);
+    expect(await deliverDue(env)).toBeUndefined();
+    spent = false;
+    expect(await steer(env, id, "resume")).toBeNull();
+    expect(await deliverDue(env)).toMatchObject({ sent: 2, done: true });
+    expect(mails).toHaveLength(3);
+  });
+
+  it("frees the readers a cancel finds untried, even while a run is out, and keeps the ones Resend may have taken", async () => {
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", true, admin.id);
+    for (let i = 0; i < 12; i++) await reader(env);
+    let id = "";
+    mailroom(async (_, n) => {
+      if (n === 1) {
+        expect(await steer(env, id, "pause")).toBeNull();
+        expect(await steer(env, id, "cancel")).toBeNull();
+      }
+      return Response.json({ id: `email-${n}` });
+    });
+    id = await prepared(env, admin, "everyone");
+    await armedNow(env, admin, id);
+    await deliverDue(env);
+    const left = (await outbox(env)).filter(row => row.send_id === id);
+    expect(left.some(row => row.state === "queued" || row.state === "sending")).toBe(false);
+    const again = await prepare(env, SITE, admin.id, 1, "everyone");
+    expect(again && "id" in again).toBe(true);
+    const freed = (await outbox(env)).filter(
+      row => again && "id" in again && row.send_id === again.id
+    );
+    expect(freed.length).toBe(13 - left.filter(row => row.state === "sent").length);
+  });
+
+  it("arms with the readers it holds now, after an account is deleted", async () => {
+    mailroom(() => Response.json({ id: "email" }));
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    const gone = await reader(env);
+    await reader(env);
+    const id = await prepared(env, admin, "everyone");
+    await run(env.DB, "DELETE FROM auth_user WHERE id = ?", gone.id);
+    const now = Date.now();
+    expect(await arm(env, admin.id, id, 3, now + LEAD_MS, now)).toMatchObject({ status: 400 });
+    expect(await arm(env, admin.id, id, 2, now + LEAD_MS, now)).toBeNull();
+  });
+
+  it("finishes when nothing is left, however many failed on the way", async () => {
+    const refused = new Set<string>();
+    mailroom(mail =>
+      refused.has(mail.to)
+        ? Response.json({ name: "validation_error" }, { status: 422 })
+        : Response.json({ id: "email" })
+    );
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", true, admin.id);
+    for (let i = 0; i < 3; i++) refused.add((await reader(env)).email);
+    const id = await prepared(env, admin, "everyone");
+    await armedNow(env, admin, id);
+    expect(await deliverDue(env)).toMatchObject({ sent: 1, failed: 3, done: true });
+    expect((await sendOf(env, id))?.state).toBe("done");
+  });
+
+  it("waits for an admin when it has not begun an hour past its start, and goes from a resume", async () => {
+    const { mails } = mailroom(() => Response.json({ id: "email" }));
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", false, admin.id);
+    await reader(env);
+    const id = await prepared(env, admin, "everyone");
+    await armedNow(env, admin, id);
+    expect(await deliverDue(env)).toMatchObject({ waiting: "the newsletter is off" });
+    const late = Date.now() + LATE_MS + 60_000;
+    await setFlag(env, "newsletter", true, admin.id);
+    expect(await deliverDue(env, late)).toEqual({ send: id, paused: "late" });
+    expect(mails).toEqual([]);
+    expect(await steer(env, id, "resume", late)).toBeNull();
+    expect(await deliverDue(env, late)).toMatchObject({ sent: 2, done: true });
+  });
+
+  it("checks its letters' files again as it is armed and as it begins", async () => {
+    let gone = false;
+    const mails: string[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url === "https://api.resend.com/emails") {
+        mails.push(url);
+        return Response.json({ id: "email" });
+      }
+      return gone && url.includes("/email/")
+        ? new Response("gone", { status: 404 })
+        : new Response("ok");
+    });
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", true, admin.id);
+    await reader(env);
+    const id = await prepared(env, admin, "everyone");
+    gone = true;
+    const now = Date.now();
+    const refused = await arm(env, admin.id, id, 2, now + LEAD_MS, now);
+    expect(refused?.problems?.[0]).toMatchObject({ kind: "link", status: 404 });
+    expect((await sendOf(env, id))?.state).toBe("prepared");
+    gone = false;
+    await armedNow(env, admin, id);
+    gone = true;
+    expect(await deliverDue(env)).toEqual({ send: id, paused: "links" });
+    expect(mails).toEqual([]);
+  });
+
+  it("stops within ten emails of the newsletter being turned off, whatever the isolate last read", async () => {
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await setFlag(env, "newsletter", true, admin.id);
+    for (let i = 0; i < 30; i++) await reader(env);
+    const { mails } = mailroom(async (_, n) => {
+      // another isolate turns it off: this one's half-minute copy still says on
+      if (n === 3) await run(env.DB, "UPDATE k_flags SET enabled = 0 WHERE name = 'newsletter'");
+      return Response.json({ id: `email-${n}` });
+    });
+    const id = await prepared(env, admin, "everyone");
+    await armedNow(env, admin, id);
+    await deliverDue(env);
+    expect(mails.length).toBe(10);
+    expect((await outbox(env)).filter(row => row.state === "queued")).toHaveLength(21);
+    expect((await sendOf(env, id))?.state).toBe("sending");
+  });
+
+  it("refuses to prepare when the admin's choices for the issue cannot be read", async () => {
+    mailroom(() => Response.json({ id: "email" }));
+    const env = production();
+    const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    await expect(
+      prepare(failing(env, "FROM k_newsletter_leads", 1), SITE, admin.id, 1, "admins")
+    ).rejects.toThrow(/D1_ERROR/);
+    expect(await all(env.DB, "SELECT id FROM k_newsletter_sends")).toEqual([]);
   });
 });

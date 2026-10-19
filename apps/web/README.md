@@ -126,12 +126,15 @@ for it and on for everyone else. An account made before the column holds none, a
 An issue reaches readers only through a send (`src/server/newsletter/sends.ts`), which an admin takes in Settings in
 three steps. Prepare finds the group's readers, draws the issue once per language with each reader's unsubscribe token
 left as a slot, checks that every link and picture loads from the site and that the email fits under Gmail's clip,
-and writes an outbox row per reader; it sends nothing. Arm takes the prepared count typed back and a start between 15
-minutes and 7 days away. From the start, the minute job sends at most 50 emails a minute while the newsletter flag is
-on, and pauses itself on Resend's refusals, errors in a row, failures past 2% or 5,000 emails in a day. The outbox's key
-(issue, account) and a Resend idempotency key per email keep any reader from getting an issue twice. Only production at
-grabient.com sends to readers: every other deploy, staging with its copy of production's accounts among them, sends
-only to admins and Resend's test addresses (`send.ts`, `reachesReaders`).
+and writes an outbox row per reader; it sends nothing. Arm checks the letters again and takes the count of readers the
+send holds, typed back, and a start between 15 minutes and 7 days away. From the start, the minute job checks the
+letters once more and sends at most 50 emails a minute while the newsletter flag is on. It pauses itself on Resend's
+refusals or spent quota, three errors in a row, failures past 2%, 5,000 emails in a day, a file the letters name gone,
+or a start an hour past without the send begun. The outbox's key (issue, account) and a Resend idempotency key per
+send and account keep any reader from getting an issue twice: a row counts a try only once its email is handed to
+Resend, and one Resend may have taken a day ago or more is marked unknown and never tried again. Only production at
+grabient.com sends to readers: every other deploy, staging among them, sends only to admins and Resend's test
+addresses (`send.ts`, `reachesReaders`).
 
 The zone's Zaraz has its auto-inject, its single-page support and its own consent modal off, and no tool without a
 purpose, and the zone's Web Analytics is not set up automatically (its beacon would run before any choice): the page

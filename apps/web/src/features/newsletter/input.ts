@@ -54,7 +54,8 @@ export type Segment = (typeof SEGMENTS)[number];
 const SEND_STATES = ["prepared", "armed", "sending", "paused", "done", "cancelled"] as const;
 export type SendState = (typeof SEND_STATES)[number];
 /** Why a send paused: an admin, or the send itself on too many failures, errors in a row, a refused key, a letter
-    Resend saw otherwise, the day's ceiling, no sender, or an address this deploy may not reach. */
+    Resend saw otherwise, the day's ceiling, no sender, an address this deploy may not reach, Resend's quota spent, a
+    file its letters name gone, or a start an hour past without the send begun. */
 const PAUSE_REASONS = [
   "admin",
   "failures",
@@ -63,7 +64,10 @@ const PAUSE_REASONS = [
   "changed",
   "daily",
   "sender",
-  "reach"
+  "reach",
+  "quota",
+  "links",
+  "late"
 ] as const;
 export type PauseReason = (typeof PAUSE_REASONS)[number];
 

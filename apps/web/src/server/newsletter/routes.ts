@@ -303,5 +303,7 @@ export async function sendsResponse(request: Request, env: Env): Promise<Respons
     if (limited) return limited;
     refusal = await proof(env, adminId, asked.id);
   } else refusal = await steer(env, asked.id, asked.action);
+  // an arm whose letters no longer pass their checks arms nothing and answers what failed, as a prepare does
+  if (refusal?.problems) return json({ ...(await sendsAnswer(env)), problems: refusal.problems });
   return refusal ? json({ error: refusal.error }, refusal.status) : json(await sendsAnswer(env));
 }

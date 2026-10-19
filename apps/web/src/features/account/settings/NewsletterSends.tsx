@@ -59,7 +59,10 @@ const REASONS: Readonly<Record<PauseReason, string>> = {
   changed: msg("Paused itself: Resend saw a different email under the same key."),
   daily: msg("Paused itself: 5,000 emails went out in the last day."),
   sender: msg("Paused itself: the newsletter has no sender."),
-  reach: msg("Paused itself: this deploy may not send to that address.")
+  reach: msg("Paused itself: this deploy may not send to that address."),
+  quota: msg("Paused itself: Resend's sending quota ran out."),
+  links: msg("Paused itself: a link or picture in the email stopped loading."),
+  late: msg("Paused itself: it hadn't started an hour after its start time. Resume to send it now.")
 };
 
 /* a time as a date-and-time field holds it, in this browser's zone */
@@ -266,7 +269,7 @@ export function NewsletterSends() {
                   onInput={setStart}
                 />
                 <Field
-                  label={t("Type {count} to arm", { count: String(send().recipients) })}
+                  label={t("Type {count} to arm", { count: String(send().counts.queued) })}
                   name="newsletter-count"
                   inputmode="numeric"
                   value={typed()}
@@ -283,7 +286,7 @@ export function NewsletterSends() {
                       count: Number(typed()),
                       startsAt: startMs()
                     }).then(() => setTyped("")),
-                  typed() !== String(send().recipients) || !startOk()
+                  typed() !== String(send().counts.queued) || !startOk()
                 )}
                 {press(
                   t("Send me the proof"),
@@ -340,7 +343,7 @@ export function NewsletterSends() {
         )}
       </Show>
       <Show when={problems().length}>
-        <Status error>{t("The issue didn't pass its checks. Nothing was prepared.")}</Status>
+        <Status error>{t("The issue didn't pass its checks, so nothing changed.")}</Status>
         <For each={problems()}>
           {problem => (
             <Text variant="small" as="p">
