@@ -29,8 +29,8 @@ const PICKS = [
 ];
 /* an October palette from Grabient's Halloween gradients, among the leads, whose addresses the tips show too */
 const FOREST = "kUPhh1NqG9EqmuVWvLvg";
-/* the pumpkin orange the hex tip searches for */
-const PUMPKIN = "#e86a17";
+/* the yellow green the hex tip searches for */
+const YELLOW_GREEN = "#bada55";
 /* More October palettes from the Rising list an admin may lead with instead, each in the view liked. */
 const LEADS = [
   view("kWOCz5KKDAjWoQRGJML1qDCQ", "linearGradient", 32, 90),
@@ -140,10 +140,10 @@ const tips = (origin: string) => [
     "Search by a hex code",
     text("Search for a hex code to find palettes near that color."),
     button({
-      href: `${origin}/palettes?q=${encodeURIComponent(PUMPKIN)}`,
-      label: `Search ${PUMPKIN}`,
+      href: `${origin}/palettes?q=${encodeURIComponent(YELLOW_GREEN)}`,
+      label: `Search ${YELLOW_GREEN}`,
       quiet: true,
-      swatch: PUMPKIN
+      swatch: YELLOW_GREEN
     })
   ),
   tip(
