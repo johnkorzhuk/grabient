@@ -4,6 +4,7 @@
 #   python3 tools/seam.py frames <dir with element-NNN.png> <data/timeline.json> <step: 1 for 30 fps, 2 for 15> [email]
 #   python3 tools/seam.py mp4 <file.mp4> <data/timeline.json> <ffmpeg>
 #   python3 tools/seam.py gif <file.gif> <data/timeline.json> <first: the GIF frame of the loop the GIF starts on>
+#     [step: 3 for 10 fps, the newsletter's; 2 for 15]
 # Each step is measured as the mean absolute change of all pixels and channels (0 to 255), the share of pixels that
 # change by 6 levels or more and by 10 or more in any channel, and the largest change.
 import io
@@ -61,6 +62,7 @@ def frames_of(kind):
 
         return read(), list(range(tl["length"])), "the decoded MP4"
     cut = int(sys.argv[4])
+    stride = int(sys.argv[5]) if len(sys.argv) > 5 else 2
     im = Image.open(src)
     loop_of = tl["email"]["map"]
     n = len(loop_of)
@@ -70,7 +72,11 @@ def frames_of(kind):
             im.seek(g)
             yield np.asarray(im.convert("RGB"))
 
-    return read(), [loop_of[2 * (cut + g) % n] for g in range(n // 2)], f"the decoded GIF ({im.n_frames} frames from newsletter frame {2 * cut})"
+    return (
+        read(),
+        [loop_of[stride * (cut + g) % n] for g in range(-(-n // stride))],
+        f"the decoded GIF ({im.n_frames} frames from newsletter frame {stride * cut})",
+    )
 
 
 stream, loops, what = frames_of(kind)

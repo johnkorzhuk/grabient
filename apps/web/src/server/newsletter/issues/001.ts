@@ -194,11 +194,13 @@ export const october: Issue = {
           "."
         ]),
         image({
-          src: `${origin}/email/collections-5.gif`,
-          light: `${origin}/email/collections-5-light.gif`,
+          src: `${origin}/email/collections-6.gif`,
+          light: `${origin}/email/collections-6-light.gif`,
           alt: "A palette liked and added to two collections from its card, then turned into the bar of Grabient's logo",
           width: 534,
           height: 300,
+          // the dark loop's own backdrop, which its place shows while the file loads
+          ground: "#131e1e",
           href: `${origin}/collections`
         }),
         text("Find a collection by a color or a mood, and save it to your account."),

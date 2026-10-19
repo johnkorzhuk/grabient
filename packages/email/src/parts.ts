@@ -449,6 +449,10 @@ export interface ImageOptions {
   /** where it leads: to itself unless given */
   href?: string;
   caption?: string;
+  /** the color an email's picture shows while its file loads, as #rrggbb: the picture's own backdrop, so its place
+      never flashes another color. A plain color, as no background picture is: Gmail's web app drops an element's
+      whole style for some background pictures */
+  ground?: string;
 }
 /* A page holds its picture back behind a blank of its shape, which only a browser running script takes, until the page
    that shows the issue drops the blank as the picture nears the screen: a browser's own lazy loading asks for a file
@@ -470,6 +474,8 @@ function heldBack(picture: Html, width: number, height: number): Html {
 export const image =
   (options: ImageOptions): Part =>
   ctx => {
+    if (options.ground !== undefined && !/^#[0-9a-f]{6}$/i.test(options.ground))
+      throw new Error(`A picture's ground is a color as #rrggbb, not ${options.ground}`);
     const width = ctx.measure;
     const height = Math.round((width * options.height) / options.width);
     const picture = (src: string, theme?: "dark" | "light") =>
@@ -487,7 +493,8 @@ export const image =
           "max-width": ctx.web ? false : px(width),
           height: "auto",
           border: `${px(SIZE.hairline)} solid ${L.line}`,
-          "border-radius": px(RADIUS.surface)
+          "border-radius": px(RADIUS.surface),
+          "background-color": !ctx.web && options.ground ? options.ground : false
         }
       });
     const shown = !ctx.web

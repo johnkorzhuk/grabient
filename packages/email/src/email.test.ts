@@ -661,6 +661,28 @@ describe("an issue on a page of the site", () => {
     expect(sent).toContain(`src="${origin}/loop.gif"`);
     expect(sent).not.toMatch(/loop-light|-only/);
   });
+  test("holds an email's picture in its ground color while the file loads, as a plain color a page never takes", () => {
+    const loop = image({
+      src: `${origin}/loop.gif`,
+      alt: "The loop",
+      width: 534,
+      height: 300,
+      ground: "#131e1e"
+    });
+    const sent = drawn(loop);
+    expect(sent).toMatch(/<img [^>]*style="[^"]*background-color:#131e1e[^"]*"/);
+    expect(sent).not.toContain("background-image");
+    expect(decode(loop({ ...ctx, web: true }).html.html)).not.toContain("#131e1e");
+    expect(() =>
+      image({
+        src: `${origin}/loop.gif`,
+        alt: "The loop",
+        width: 534,
+        height: 300,
+        ground: "dark"
+      })(ctx)
+    ).toThrow(/#rrggbb/);
+  });
   test("keeps to the likes and leads to the reader's language", () => {
     expect(() => issuePage(words({ liked: [] }))).toThrow(/only palettes an admin liked/);
     expect(hrefs(issuePage(words({ locale: "ja" })).html)).toContain(`${origin}/ja/${seed}`);

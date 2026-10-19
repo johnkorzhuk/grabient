@@ -87,20 +87,22 @@ mp4() {
     -c:v libx264 -preset slow -crf 18 -tune grain -x264-params "$X264" -colorspace:v bt709 -color_primaries:v bt709 \
     -color_trc:v bt709 -color_range tv -movflags +faststart -an "$2"
 }
-# The newsletter's GIF: 534 pixels wide from frames drawn at twice that, every other frame (15 fps), its own shorter
+# The newsletter's GIF: 534 pixels wide from frames drawn at twice that, every third frame (10 fps), its own shorter
 # loop (timeline.mjs, EMAIL), starting on the end card as the tweet does. The stretch from the zoom in's fastest frame
 # round the loop's seam to the zoom out's fastest frame is one gifski run with one palette, so the GIF comes round inside
 # the encoder too and its first frame is written whole and exact (kit/tools/gifloop.py; the frames from the timeline's
 # email.gif). gifski holds a pixel while its change is small, which saves bytes but leaves faint ghosts where something
-# fades out over the dark list; motion quality 95 keeps them too faint to see at this size. Quality 80, its lossy
-# compression at 65, brings each theme's loop to about 3.3 MB and looks at this size as the default does (quality 75
-# dithers more for about the same bytes)
+# fades out over the dark list; motion quality 95 keeps them too faint to see at this size. Quality 70, its lossy
+# compression at 50, brings each theme's loop to about 2 MB, which a reader's mail app loads in two thirds of the time
+# the 3.3 MB of 15 fps at quality 80 took; quality 60 or lossy 40 bands the dark gradients
 read -r FIRST START STOP < <(python3 -c "
-import json; g = json.load(open('$TIMELINE'))['email']['gif']; print(g['first'], g['start'], g['stop'])")
-every_other() { ls "$1"/element-*.png | sort | awk 'NR % 2 == 1'; }
+import json; g = json.load(open('$TIMELINE'))['email']['gif']
+# the timeline counts the loop's frames at 15 fps, every other one
+print(*(round(g[k] * 2 / 3) for k in ('first', 'start', 'stop')))")
+every_third() { ls "$1"/element-*.png | sort | awk 'NR % 3 == 1'; }
 gif() {
-  python3 "$KIT/tools/gifloop.py" "$2" "$GIFSKI" 15 534 "${GIF_QUALITY:-80}" "${GIF_MOTION:-95}" "${GIF_LOSSY:-65}" \
-    "$FIRST" "$START" "$STOP" $(every_other "$1")
+  python3 "$KIT/tools/gifloop.py" "$2" "$GIFSKI" 10 534 "${GIF_QUALITY:-70}" "${GIF_MOTION:-95}" "${GIF_LOSSY:-50}" \
+    "$FIRST" "$START" "$STOP" $(every_third "$1")
 }
 
 options=1
@@ -152,9 +154,9 @@ seam() { LD_LIBRARY_PATH=$COMPOSITOR python3 "$KIT/tools/seam.py" "$@"; }
   seam frames "$BUILD/tweet-1" "$TIMELINE" 1
   seam mp4 "$OUT/tweet-1.mp4" "$TIMELINE" "$FFMPEG"
   seam mp4 "$OUT/tweet-1-light.mp4" "$TIMELINE" "$FFMPEG"
-  seam frames "$BUILD/email-1" "$TIMELINE" 2 email
-  seam gif "$OUT/email-1.gif" "$TIMELINE" "$FIRST"
-  seam gif "$OUT/email-1-light.gif" "$TIMELINE" "$FIRST"
+  seam frames "$BUILD/email-1" "$TIMELINE" 3 email
+  seam gif "$OUT/email-1.gif" "$TIMELINE" "$FIRST" 3
+  seam gif "$OUT/email-1-light.gif" "$TIMELINE" "$FIRST" 3
 } > "$OUT/seam.txt"
 python3 "$KIT/tools/sheets.py" loop "$BUILD/tweet-1" "$TIMELINE" "$OUT/loop-sheet.png"
 if [ $ALL = 1 ]; then python3 "$KIT/tools/sheets.py" options "$BUILD/stills" "$OUT/options.png"; fi

@@ -1,7 +1,7 @@
 # Collections promo
 
 The collections launch loop (October 2026). It ships as:
-- the October newsletter's GIF (`apps/web/public/email/collections-5.gif`, from `email-1.gif`, and its light twin);
+- the October newsletter's GIF (`apps/web/public/email/collections-6.gif`, from `email-1.gif`, and its light twin);
 - the tweets `tweet-1.mp4` and `tweet-1-light.mp4`, and their 1080p versions.
 
 Its frames, builds and finished files are in `$PROMO_WORK/collections`: `frames/`, `frames-hd/`, `data/`, `build/`,
