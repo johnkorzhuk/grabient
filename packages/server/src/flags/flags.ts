@@ -3,19 +3,25 @@ import type { Env } from "../env.ts";
 import { FLAG_NAMES, type FlagName, STARTS_OFF } from "./names.ts";
 
 /* The flags admins changed are rows of k_flags; a row exists only for a flag that was changed, and no row means the
-   flag as it starts: on, or off for one that waits for an admin to turn it on (STARTS_OFF). Each isolate reads them at
-   most every half minute, one query of a few rows, so a change reaches every isolate within about that. The read goes
-   to the primary: a replica could hand the isolate that just wrote its own change back undone. When the table cannot
-   be read an isolate keeps what it read last, and one that never read it keeps each flag as it starts: a database
-   outage never turns a feature off, nor on one that waits for an admin. */
+   flag as it starts: on, or off for one that waits for an admin to turn it on (STARTS_OFF). Once an isolate has read
+   them it reads them again at most every half minute, one query of a few rows, so a change reaches every isolate
+   within about that. The read goes to the primary: a replica could hand the isolate that just wrote its own change back
+   undone. When the table cannot be read an isolate keeps what it read last, and one that never read it keeps each flag
+   as it starts: a database outage never turns a feature off, nor on one that waits for an admin. A read answers the
+   request that began it alone (shared-work.ts): while one is out, another request keeps what the isolate read last,
+   and in an isolate that has not read them yet, each request reads them itself. */
 
 const READ_EVERY_MS = 30_000;
+// A read that has not come back in this time (its request was cancelled) no longer holds the isolate to what it read.
+const READ_OUT_MS = 10_000;
 
 interface Known {
+  /** when the last read ended, 0 before any */
   at: number;
   off: Set<string>;
   writes: number;
-  reading?: Promise<void>;
+  /** when the read that is out began, whichever request began it */
+  asked?: number;
 }
 
 // By database binding: an isolate keeps its bindings from request to request.
@@ -41,26 +47,25 @@ function offOf(rows: readonly { name: string; enabled: number }[]): Set<string> 
 
 async function offFlags(env: Pick<Env, "DB">): Promise<ReadonlySet<string>> {
   const flags = knownOf(env.DB);
-  if (Date.now() - flags.at < READ_EVERY_MS) return flags.off;
-  if (!flags.reading) {
-    const writes = flags.writes;
-    flags.reading = all<{ name: string; enabled: number }>(
+  const now = Date.now();
+  if (now - flags.at < READ_EVERY_MS) return flags.off;
+  if (flags.at > 0 && flags.asked !== undefined && now - flags.asked < READ_OUT_MS)
+    return flags.off;
+  flags.asked = now;
+  const writes = flags.writes;
+  try {
+    const rows = await all<{ name: string; enabled: number }>(
       env.DB,
       "SELECT name, enabled FROM k_flags"
-    )
-      .then(
-        rows => {
-          // A change this isolate made while the read was out is newer than what the read saw.
-          if (flags.writes === writes) flags.off = offOf(rows);
-        },
-        () => {}
-      )
-      .finally(() => {
-        flags.at = Date.now();
-        flags.reading = undefined;
-      });
+    );
+    // A change this isolate made while the read was out is newer than what the read saw.
+    if (flags.writes === writes) flags.off = offOf(rows);
+  } catch {
+    // the isolate keeps what it read last
+  } finally {
+    flags.at = Date.now();
+    flags.asked = undefined;
   }
-  await flags.reading;
   return flags.off;
 }
 

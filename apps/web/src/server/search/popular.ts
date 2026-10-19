@@ -278,14 +278,49 @@ export interface PopularLists {
 }
 
 const READ_EVERY = 10 * 60_000;
+// A read that has not come back in this time (its request was cancelled) no longer holds the isolate to what it read.
+const READ_OUT = 10_000;
+
+interface Held {
+  /** when the lists held were read */
+  at: number;
+  lists?: PopularLists;
+  /** when the read that is out began, whichever request began it */
+  asked?: number;
+  /** how many new lists this isolate was told of: a read begun before the last keeps nothing */
+  told: number;
+}
 // by the database binding: an isolate keeps its bindings from request to request
-const lists = new WeakMap<D1Database, { at: number; lists: Promise<PopularLists> }>();
+const lists = new WeakMap<D1Database, Held>();
+
+function heldOf(db: D1Database): Held {
+  let held = lists.get(db);
+  if (!held) {
+    held = { at: 0, told: 0 };
+    lists.set(db, held);
+  }
+  return held;
+}
 
 /** The lists, read once every ten minutes per isolate. A missing table or a failed read gives empty lists, and the
-    tags stand on the year. */
-export function popularLists(env: Pick<Env, "DB">, now = Date.now()): Promise<PopularLists> {
-  const held = lists.get(env.DB);
-  if (held && now - held.at < READ_EVERY) return held.lists;
+    tags stand on the year. A read answers the request that began it alone (@grabient/server/shared-work.ts): while one
+    is out, another request takes what the isolate read before, and one with nothing read yet reads for itself. */
+export async function popularLists(env: Pick<Env, "DB">, now = Date.now()): Promise<PopularLists> {
+  const held = heldOf(env.DB);
+  if (held.lists && now - held.at < READ_EVERY) return held.lists;
+  if (held.lists && held.asked !== undefined && now - held.asked < READ_OUT) return held.lists;
+  held.asked = now;
+  const told = held.told;
+  const read = await readLists(env, now);
+  if (held.told === told) {
+    held.at = now;
+    held.lists = read;
+  }
+  held.asked = undefined;
+  return read;
+}
+
+function readLists(env: Pick<Env, "DB">, now: number): Promise<PopularLists> {
   const counted = all<{ kind: string; value: string }>(
     env.DB,
     "SELECT kind, value FROM k_popular_searches ORDER BY kind, position"
@@ -300,7 +335,7 @@ export function popularLists(env: Pick<Env, "DB">, now = Date.now()): Promise<Po
     rows => [...new Set(rows.map(row => row.words))],
     () => []
   );
-  const read = Promise.all([counted, scheduled]).then(([rows, leading]) => {
+  return Promise.all([counted, scheduled]).then(([rows, leading]) => {
     const of = (kind: string) => rows.filter(row => row.kind === kind).map(row => row.value);
     return {
       scheduled: leading,
@@ -309,11 +344,11 @@ export function popularLists(env: Pick<Env, "DB">, now = Date.now()): Promise<Po
       collections: of("collections")
     };
   });
-  lists.set(env.DB, { at: now, lists: read });
-  return read;
 }
 
 /** A new list was written: the next read in this isolate takes it. */
 export const forgetPopular = (env: Pick<Env, "DB">): void => {
-  lists.delete(env.DB);
+  const held = heldOf(env.DB);
+  held.told++;
+  held.lists = undefined;
 };

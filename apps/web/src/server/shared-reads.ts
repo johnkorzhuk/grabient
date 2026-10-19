@@ -9,10 +9,14 @@ import type { Env } from "@grabient/server/env.ts";
    deleting tab's overlay covers (features/collections/overlay.ts). Kept only where the site is live (production,
    staging), which the pipeline tells on each request (knowSite): a test's or a dev machine's database must show its
    writes at once, and a unit test's Node has no Cache API. A cache that cannot be read or written is passed by, and a
-   read that fails is never kept. */
+   read that fails is never kept. A copy is kept a day past its time, for a read that fails: on 19 Oct 2026 a scraper's
+   bursts left D1 too busy to answer, and the list pages it had read before failed with a 500 where a copy minutes old
+   would have shown them. */
 
 type Site = Pick<Env, "DEPLOYMENT" | "PUBLIC_ORIGIN">;
 const LIVE = new Set(["production", "staging"]);
+/** How long past its time a copy is kept for a read that fails, in seconds. */
+const KEPT_PAST = 86_400;
 let site: Site | null = null;
 
 /** The site this isolate answers for: told by the pipeline on each request (pipeline.ts). */
@@ -38,7 +42,8 @@ export interface Shared<T> {
 }
 
 /** `read`'s answer, or this data center's copy of it, made within `seconds` and not before `since` (a write this
-    isolate made is never read back older than itself). The answer must be plain JSON: a Map goes as its entries. */
+    isolate made is never read back older than itself). When the read fails, a copy past its time answers in its
+    place, where there is one. The answer must be plain JSON: a Map goes as its entries. */
 export async function sharedRead<T>(
   name: string,
   seconds: number,
@@ -48,19 +53,31 @@ export async function sharedRead<T>(
   const cache = cacheOf();
   if (!cache) return { value: await read(), at: Date.now() };
   const key = keyOf(name);
+  let kept: Shared<T> | undefined;
   try {
-    const kept = (await (await cache.match(key))?.json()) as Shared<T> | undefined;
-    if (kept && typeof kept.at === "number" && kept.at >= since && "value" in kept) return kept;
+    const found = (await (await cache.match(key))?.json()) as Shared<T> | undefined;
+    if (found && typeof found.at === "number" && found.at >= since && "value" in found)
+      kept = found;
   } catch {
     // a copy that cannot be read is passed by
   }
+  if (kept && Date.now() - kept.at < seconds * 1000) return kept;
   // stamped when the read begins, so a read under way across a write is older than the write's `since`
   const at = Date.now();
-  const shared = { value: await read(), at };
+  let value: T;
+  try {
+    value = await read();
+  } catch (error) {
+    if (kept) return kept;
+    throw error;
+  }
+  const shared = { value, at };
   try {
     await cache.put(
       key,
-      Response.json(shared, { headers: { "Cache-Control": `public, max-age=${seconds}` } })
+      Response.json(shared, {
+        headers: { "Cache-Control": `public, max-age=${seconds + KEPT_PAST}` }
+      })
     );
   } catch {
     // a copy that cannot be kept is passed by

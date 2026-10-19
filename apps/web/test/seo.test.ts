@@ -1,6 +1,6 @@
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { collectionSitemapRows } from "../src/server/collections/read.ts";
 import { fingerprint } from "../src/server/mcp/admin/translations.ts";
 import { indexNowKeyFile, sendIndexNow } from "../src/server/seo/indexnow.ts";
@@ -390,5 +390,40 @@ describe("GitHub stars", () => {
       asked: true,
       stars: 44
     });
+  });
+
+  it("never wait on a read another request began, which may never come back", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const env = testEnv();
+      await refreshStars(env, { fetch: github({ repo: repo(45) }) });
+      /* another isolate's view of the same KV, whose reads never come back while `stuck`, as one whose request was
+         cancelled */
+      const isolate = () => {
+        const view = { stuck: false };
+        const CACHE = new Proxy(env.CACHE!, {
+          get(target, key) {
+            if (key === "get" && view.stuck) return () => new Promise(() => {});
+            const value = Reflect.get(target, key);
+            return typeof value === "function" ? value.bind(target) : value;
+          }
+        });
+        return Object.assign(view, { env: { ...env, CACHE } });
+      };
+      const reader = isolate();
+      expect(await githubStars(reader.env)).toBe(45);
+      vi.advanceTimersByTime(3_600_001);
+      reader.stuck = true;
+      void githubStars(reader.env);
+      reader.stuck = false;
+      expect(await githubStars(reader.env)).toBe(45);
+      const cold = isolate();
+      cold.stuck = true;
+      void githubStars(cold.env);
+      cold.stuck = false;
+      expect(await githubStars(cold.env)).toBe(45);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

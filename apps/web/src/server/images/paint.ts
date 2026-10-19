@@ -7,6 +7,7 @@ import { luminance } from "@grabient/engine/color.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { isSwatchStyle, type Style, type View } from "@grabient/engine/view.ts";
+import { madeOnce } from "@grabient/server/shared-work.ts";
 import { HEX_CHARS, HEX_SIZES } from "./hex-glyphs.data.ts";
 import { encodePng } from "./png.ts";
 import { BAR, MARGIN, WORDMARK } from "./size.ts";
@@ -105,22 +106,22 @@ interface Glyphs {
   starts: readonly number[];
   mask: Uint8Array;
 }
-// Masks are constant data: inflated once per isolate, on the first card.
-let wordmark: Promise<Uint8Array> | undefined;
-let glyphs: Promise<Glyphs[]> | undefined;
-const wordmarkMask = () => (wordmark ??= inflate(WORDMARK_MASK));
-const glyphSets = () =>
-  (glyphs ??= Promise.all(
-    HEX_SIZES.map(async set => {
-      let at = 0;
-      const starts = set.widths.map(width => {
-        const start = at;
-        at += width * set.height;
-        return start;
-      });
-      return { height: set.height, widths: set.widths, starts, mask: await inflate(set.mask) };
-    })
-  ));
+// Masks are constant data: inflated once per isolate, on the first card, and waited for beside a timer (madeOnce).
+const wordmarkMask = madeOnce((): Promise<Uint8Array> => inflate(WORDMARK_MASK));
+const glyphSets = madeOnce(
+  (): Promise<Glyphs[]> =>
+    Promise.all(
+      HEX_SIZES.map(async set => {
+        let at = 0;
+        const starts = set.widths.map(width => {
+          const start = at;
+          at += width * set.height;
+          return start;
+        });
+        return { height: set.height, widths: set.widths, starts, mask: await inflate(set.mask) };
+      })
+    )
+);
 
 /** One color over a pixel at a share of 0 to 1. */
 function lay(canvas: Canvas, at: number, color: Rgb, share: number) {

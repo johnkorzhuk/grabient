@@ -55,6 +55,18 @@ describe("a read kept by the data center", () => {
     expect((await sharedRead(failing, 60, async () => ({ n: 7 }))).value).toEqual({ n: 7 });
   });
 
+  it("answers a read that fails with its copy past its time, never one older than a write this isolate made", async () => {
+    let reads = 0;
+    const read = async () => ({ n: ++reads });
+    const name = `test/${crypto.randomUUID()}`;
+    const made = await sharedRead(name, 60, read);
+    expect(await kept(name)).toEqual({ n: 1 });
+    // asked within no time, the copy is past it: a read is made, and one that fails is answered by the copy
+    expect((await sharedRead(name, 0, unread)).value).toEqual({ n: 1 });
+    expect((await sharedRead(name, 0, read)).value).toEqual({ n: 2 });
+    await expect(sharedRead(name, 0, unread, made.at + 60_000)).rejects.toThrow("no copy");
+  });
+
   it("keeps nothing where the site is not live", async () => {
     knowSite(env);
     let reads = 0;

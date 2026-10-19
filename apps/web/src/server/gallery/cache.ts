@@ -14,8 +14,9 @@ import {
 /* A public list page is read once for its HTML in every view and for its JSON: this data center's Cache API keeps it
    by order, frame, page, size and build for as long as its data stays fresh from the database read, and both answers
    are kept at the edge no longer than that. A cache that cannot be read or written is passed by, and a failed read is
-   never kept. Each request that reaches a read here was counted against the reader's address (pipeline.ts), so paging
-   deep through every list costs a scraper its minute instead of the database its rows. */
+   never kept. A page is kept a day past its time, and a read that fails answers with it in place of an error. Each
+   request that reaches a read here was counted against the reader's address (pipeline.ts), so paging deep through
+   every list costs a scraper its minute instead of the database its rows. */
 
 export interface ListQuery {
   sort: ListSort;
@@ -72,7 +73,11 @@ export function freshFor(fetchedAt: number, ttl: number, now = Date.now()): Reco
 
 const cacheOf = () => (globalThis as { caches?: { default?: Cache } }).caches?.default;
 
-function fresh(value: unknown, query: ListQuery, now: number): value is AnsweredPage {
+/** How long past its time a page is kept for a read that fails, in seconds. */
+const KEPT_PAST = 86_400;
+
+/* a kept page of this query, of any age */
+function pageOf(value: unknown, query: ListQuery, now: number): value is AnsweredPage {
   const page = value as AnsweredPage | null;
   return (
     !!page &&
@@ -83,8 +88,7 @@ function fresh(value: unknown, query: ListQuery, now: number): value is Answered
     Number.isSafeInteger(page.total) &&
     page.total >= 0 &&
     Number.isFinite(page.fetchedAt) &&
-    page.fetchedAt <= now &&
-    now - page.fetchedAt < listTtl(query.sort) * 1000
+    page.fetchedAt <= now
   );
 }
 
@@ -100,18 +104,30 @@ export async function publicList(request: Request, query: ListQuery): Promise<An
       ...(query.frame ? { frame: query.frame } : {})
     })}`
   );
+  const ttl = listTtl(query.sort);
+  let past: AnsweredPage | null = null;
   try {
     const kept = await cache?.match(key);
     const page: unknown = kept?.ok ? await kept.json() : null;
-    if (fresh(page, query, Date.now())) return page;
+    const now = Date.now();
+    if (pageOf(page, query, now)) {
+      if (now - page.fetchedAt < ttl * 1000) return page;
+      past = page;
+    }
   } catch {
     // a cache that cannot be read is passed by
   }
-  const read: PalettePage = await listPalettes(env, query);
+  let read: PalettePage;
+  try {
+    read = await listPalettes(env, query);
+  } catch (error) {
+    if (past) return past;
+    throw error;
+  }
   const page = { ...read, fetchedAt: Date.now() };
   if (cache) {
     const kept = Response.json(page, {
-      headers: { "Cache-Control": `public, max-age=${listTtl(query.sort)}` }
+      headers: { "Cache-Control": `public, max-age=${ttl + KEPT_PAST}` }
     });
     waitUntil(cache.put(key, kept).catch(() => {}));
   }

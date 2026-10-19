@@ -7,16 +7,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeAdmin, testEnv, unique } from "./helpers.ts";
 
 /** Another isolate's view of the same database: a binding object of its own, so it keeps its own copy of the flags.
-    `broken` makes every query it sends fail. */
+    `broken` makes every query it sends fail, and `stuck` every query it sends never come back, as one whose request
+    was cancelled. */
 function isolate() {
   const bound = testEnv();
-  const view = { broken: false };
+  const view = { broken: false, stuck: false };
   const DB = new Proxy(bound.DB, {
     get(target, key) {
       if (key === "prepare" && view.broken) {
         return () => {
           throw new Error("D1 is unavailable");
         };
+      }
+      if (key === "prepare" && view.stuck) {
+        return () => ({ bind: () => ({ all: () => new Promise(() => {}) }) });
       }
       const value = Reflect.get(target, key);
       return typeof value === "function" ? value.bind(target) : value;
@@ -103,6 +107,30 @@ describe("flags", () => {
     never.broken = true;
     expect(await flagOff(never.env, "share-images")).toBe(false);
     expect(await flagOff(never.env, "newsletter")).toBe(true);
+  });
+
+  it("never wait on a read another request began, which may never come back", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const writer = isolate();
+    await setFlag(writer.env, "share-images", false, unique("admin"));
+    const reader = isolate();
+    expect(await flagOff(reader.env, "share-images")).toBe(true);
+    vi.advanceTimersByTime(30_001);
+    reader.stuck = true;
+    void flagOff(reader.env, "share-images");
+    reader.stuck = false;
+    // while that read is out, the isolate answers from what it read
+    await setFlag(writer.env, "share-images", true, unique("admin"));
+    expect(await flagOff(reader.env, "share-images")).toBe(true);
+    // until it has been out ten seconds, when the next request reads them itself
+    vi.advanceTimersByTime(10_001);
+    expect(await flagOff(reader.env, "share-images")).toBe(false);
+    // in an isolate that has not read them, each request reads them itself
+    const cold = isolate();
+    cold.stuck = true;
+    void flagOff(cold.env, "share-images");
+    cold.stuck = false;
+    expect(await flagOff(cold.env, "share-images")).toBe(false);
   });
 });
 

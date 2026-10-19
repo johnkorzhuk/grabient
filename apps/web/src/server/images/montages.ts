@@ -3,6 +3,7 @@
    unless the address sets style, steps or angle for all of them. Turned off for the site, a montage is refused before
    its palettes are read. */
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
+import { joined } from "@grabient/server/shared-work.ts";
 import { json } from "../../lib/responses.ts";
 import { addressParams, type Saved, viewAt } from "../files/address.ts";
 import { MONTAGE_PALETTES } from "./montage-address.ts";
@@ -18,26 +19,43 @@ export interface MontagePalette extends Saved {
 }
 
 /* A montage's palettes, kept a few minutes in this isolate: every size, view, HEAD and refused retry of one card reads
-   the database or the search once. An empty or failed read is not kept. */
+   the database or the search once. An empty or failed read is not kept. A request that comes while another reads
+   waits for it beside a timer of its own, and reads for itself when it has not come by then
+   (@grabient/server/shared-work.ts). */
 const KEPT_MS = 180_000;
 const KEPT_MAX = 256;
-const kept = new Map<string, { at: number; palettes: Promise<MontagePalette[]> }>();
+interface Entry {
+  at: number;
+  palettes: Promise<MontagePalette[]>;
+  found?: MontagePalette[];
+}
+const kept = new Map<string, Entry>();
 
 export function montagePalettes(
   key: string,
   read: () => Promise<MontagePalette[]>
 ): Promise<MontagePalette[]> {
   const held = kept.get(key);
-  if (held && Date.now() - held.at < KEPT_MS) return held.palettes;
+  if (held && Date.now() - held.at < KEPT_MS) {
+    if (held.found) return Promise.resolve(held.found);
+    return joined(held.palettes, () =>
+      kept.get(key) === held ? readAnew(key, read) : montagePalettes(key, read)
+    );
+  }
+  return readAnew(key, read);
+}
+
+function readAnew(key: string, read: () => Promise<MontagePalette[]>): Promise<MontagePalette[]> {
   kept.delete(key);
   if (kept.size >= KEPT_MAX) kept.delete(kept.keys().next().value!);
-  const entry = { at: Date.now(), palettes: read() };
+  const entry: Entry = { at: Date.now(), palettes: read() };
   const forget = () => {
     if (kept.get(key) === entry) kept.delete(key);
   };
   entry.palettes = entry.palettes.then(
     found => {
-      if (!found.length) forget();
+      if (found.length) entry.found = found;
+      else forget();
       return found;
     },
     error => {

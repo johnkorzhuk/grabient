@@ -9,6 +9,7 @@ import {
 import type { LexiconFile } from "@grabient/search/lexicon.ts";
 import { all, batch, type Db, type Statement } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { madeOnce } from "@grabient/server/shared-work.ts";
 import { searchAsset } from "../../search/files.ts";
 
 /* Grabient's own words in the site's other languages. An admin's app translates the titles and descriptions of
@@ -262,21 +263,20 @@ export function translationFault(
 /* the words the search already reads in every language (public/search/lex.json): each spelling leads to a phrase of
    the vocabulary, so a phrase's spellings are the ways the languages say it */
 type Lexicon = { index: LexiconFile; spellings: Map<number, string[]> };
-let lexicon: Promise<Lexicon | null> | undefined;
+let lexicon: (() => Promise<Lexicon>) | undefined;
+/* read once per isolate, waited for beside a timer (madeOnce); a failed read is tried again by the next request */
 function readLexicon(env: Pick<Env, "ASSETS">): Promise<Lexicon | null> {
-  lexicon ??= searchAsset(env, "lex.json")
-    .then(response => response.json() as Promise<LexiconFile>)
-    .then(index => {
-      const spellings = new Map<number, string[]>();
-      for (const [word, at] of Object.entries(index))
-        spellings.set(at, [...(spellings.get(at) ?? []), word]);
-      return { index, spellings };
-    })
-    .catch(() => {
-      lexicon = undefined;
-      return null;
-    });
-  return lexicon;
+  lexicon ??= madeOnce(() =>
+    searchAsset(env, "lex.json")
+      .then(response => response.json() as Promise<LexiconFile>)
+      .then(index => {
+        const spellings = new Map<number, string[]>();
+        for (const [word, at] of Object.entries(index))
+          spellings.set(at, [...(spellings.get(at) ?? []), word]);
+        return { index, spellings };
+      })
+  );
+  return lexicon().catch(() => null);
 }
 /** The spellings the search's lexicon reads as `tag`, in the script `locale` is written in. */
 function knownWords(lex: Lexicon | null, tag: string, locale: TranslatedLocale): string[] {

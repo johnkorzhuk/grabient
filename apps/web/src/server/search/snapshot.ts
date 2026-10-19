@@ -4,6 +4,7 @@
    fifteen minutes however much traffic arrives. A search never fails on the store. */
 import { decodeSnapshot, encodeSnapshot, type Snapshot } from "@grabient/search/snapshot.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { joined } from "@grabient/server/shared-work.ts";
 import { searchAsset } from "./files.ts";
 
 export type SnapshotEnv = Pick<Env, "ASSETS"> & Partial<Pick<Env, "SEARCH_SNAPSHOTS">>;
@@ -137,7 +138,27 @@ async function newerThan(
   }
 }
 
-/** The snapshot to answer from. Calls that arrive while an isolate reads its first wait for that read; a later check of
+/* An isolate's first read of the snapshot: the shipped copy, then the store's when it is newer. */
+function readFirst(env: SnapshotEnv, own: Holder): Promise<Snapshot | null> {
+  const first: Promise<Snapshot | null> = (async () => {
+    const base = await shippedSnapshot(env).catch(() => null);
+    if (!base) return null;
+    own.checkedAt = Date.now();
+    const newer = await newerThan(env, own, base);
+    const read = newer
+      ? { snapshot: newer, from: "store" as const }
+      : { snapshot: base, from: "assets" as const };
+    if (!own.held || read.snapshot.builtAt > own.held.snapshot.builtAt) own.held = read;
+    return own.held.snapshot;
+  })().finally(() => {
+    if (own.first === first) own.first = undefined;
+  });
+  own.first = first;
+  return first;
+}
+
+/** The snapshot to answer from. Calls that arrive while an isolate reads its first wait for that read beside a timer of
+    their own, and read it themselves when it has not come by then (@grabient/server/shared-work.ts); a later check of
     the store runs in the background when `ctx` is given. */
 export async function loadSnapshot(env: SnapshotEnv, ctx?: Background): Promise<Snapshot | null> {
   let holder = holders.get(env.ASSETS);
@@ -148,17 +169,11 @@ export async function loadSnapshot(env: SnapshotEnv, ctx?: Background): Promise<
   const { held } = holder;
   if (!held) {
     const own = holder;
-    own.first ??= (async () => {
-      const base = await shippedSnapshot(env).catch(() => null);
-      if (!base) return null;
-      own.checkedAt = Date.now();
-      const newer = await newerThan(env, own, base);
-      own.held = newer ? { snapshot: newer, from: "store" } : { snapshot: base, from: "assets" };
-      return own.held.snapshot;
-    })().finally(() => {
-      own.first = undefined;
-    });
-    return own.first;
+    const begun = own.first;
+    if (!begun) return readFirst(env, own);
+    return joined(begun, () =>
+      own.first === begun ? readFirst(env, own) : loadSnapshot(env, ctx)
+    );
   }
   if (Date.now() - holder.checkedAt >= CHECK_EVERY) {
     holder.checkedAt = Date.now();

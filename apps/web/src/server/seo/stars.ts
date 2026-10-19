@@ -34,8 +34,12 @@ async function read(store: Store): Promise<Kept | null> {
   return kept && isCount(kept.stars) && Number.isFinite(kept.at) ? kept : null;
 }
 
-/* what each isolate last read, by KV binding: an isolate keeps its bindings from request to request */
-const known = new WeakMap<Store, { at: number; stars: number | null; reading?: Promise<void> }>();
+/* what each isolate last read, by KV binding: an isolate keeps its bindings from request to request. A read answers the
+   request that began it alone (@grabient/server/shared-work.ts): while one is out (`asked`), another request keeps
+   what the isolate read, and in an isolate that has not read yet, each request reads for itself. */
+const known = new WeakMap<Store, { at: number; stars: number | null; asked?: number }>();
+// A read that has not come back in this time (its request was cancelled) no longer holds the isolate to what it read.
+const READ_OUT = 10_000;
 
 /** The kept count, or null while none is kept. It never asks GitHub; when KV cannot be read, an isolate keeps what it
     knew. A count is read again after an hour, a missing one after a minute, so the first shows soon after it is kept. */
@@ -43,22 +47,18 @@ export async function githubStars(env: StarsEnv): Promise<number | null> {
   const store = env.CACHE;
   if (!store) return null;
   const was = known.get(store);
-  if (was && !was.reading && Date.now() - was.at < (was.stars === null ? MINUTE : HOUR)) {
-    return was.stars;
+  const now = Date.now();
+  if (was && now - was.at < (was.stars === null ? MINUTE : HOUR)) return was.stars;
+  if (was && was.at > 0 && was.asked !== undefined && now - was.asked < READ_OUT) return was.stars;
+  known.set(store, { at: was?.at ?? 0, stars: was?.stars ?? null, asked: now });
+  let stars = was?.stars ?? null;
+  try {
+    stars = (await read(store))?.stars ?? null;
+  } catch {
+    // the isolate keeps what it knew
   }
-  if (!was?.reading) {
-    const reading = read(store)
-      .then(
-        kept => kept?.stars ?? null,
-        () => was?.stars ?? null
-      )
-      .then(stars => {
-        known.set(store, { at: Date.now(), stars });
-      });
-    known.set(store, { at: was?.at ?? 0, stars: was?.stars ?? null, reading });
-  }
-  await known.get(store)?.reading;
-  return known.get(store)?.stars ?? null;
+  known.set(store, { at: Date.now(), stars });
+  return stars;
 }
 
 const reason = (error: unknown) => (error instanceof Error ? error.message : String(error));
