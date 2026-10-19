@@ -6,7 +6,13 @@ import { getSession, type Session } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { pausedBy } from "@grabient/server/flags/flags.ts";
 import * as v from "valibot";
-import { Choice, Press, SheetChoice, UNSUBSCRIBE_TOKEN } from "../../features/newsletter/input.ts";
+import {
+  Choice,
+  Press,
+  SendAction,
+  SheetChoice,
+  UNSUBSCRIBE_TOKEN
+} from "../../features/newsletter/input.ts";
 import { PAGE } from "../../lib/cache.ts";
 import { json as publicJson } from "../../lib/responses.ts";
 import { cacheKey } from "../cache-keys.ts";
@@ -19,12 +25,14 @@ import { isSubscribed, issueFoot, readerOf, setSubscribed, tokenOwner } from "./
 import { draftsAmong, drawn, issueFacts, publishedIssues, testIssue } from "./page.ts";
 import { beforeOf, languageOf } from "./query.ts";
 import { sendIssue, unsendable } from "./send.ts";
+import { arm, prepare, proof, sendsAnswer, steer } from "./sends.ts";
 
 /* The newsletter's answers. The public one is the published issues; every other is one account's and never kept
    (`json` from auth/http.ts is private, no-store). An error names its English with msg() for the page to translate. */
 
 const CHOICE_BODY_MAX = 256;
 const SHEET_BODY_MAX = 256;
+const SEND_BODY_MAX = 512;
 const BAD_LINK = msg("This link isn't valid.");
 
 const methodNotAllowed = () => json({ error: "Method not allowed" }, 405);
@@ -230,7 +238,8 @@ export async function testResponse(request: Request, env: Env): Promise<Response
     await sendIssue(
       env,
       reader,
-      newsletter({ ...words, ...issueFoot(reader), origin, subject: `[Test] ${words.subject}` })
+      newsletter({ ...words, ...issueFoot(reader), origin, subject: `[Test] ${words.subject}` }),
+      { own: true }
     );
   } catch (error) {
     console.error(
@@ -240,4 +249,59 @@ export async function testResponse(request: Request, env: Env): Promise<Response
     return json({ error: msg("Couldn't send the test. See the Worker's log.") }, 502);
   }
   return json({ sent: true });
+}
+
+/** `GET /api/me/newsletter/sends`: the latest sends, the issues that can be sent, and whether the newsletter is on.
+    `POST { action, ... }` takes a step on a send (sends.ts) and answers the same: prepare `{ issue, segment }`, arm
+    `{ id, count, startsAt }`, and pause, resume, cancel or proof `{ id }`. A prepare whose checks fail writes nothing
+    and answers its `problems`. An admin's alone, a step from the site with a fresh session; a proof is counted as a
+    test is. */
+export async function sendsResponse(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET" && request.method !== "POST") return methodNotAllowed();
+  const write = request.method === "POST";
+  const session = await admin(request, env, { write });
+  if (session instanceof Response) return session;
+  if (!write) return json(await sendsAnswer(env));
+  const body = v.safeParse(SendAction, await readJson(request, SEND_BODY_MAX));
+  if (!body.success) return json({ error: 'Send { "action": a step, and what it takes }.' }, 400);
+  const asked = body.output;
+  const adminId = session.user.id;
+  if (asked.action === "prepare") {
+    if (asked.issue === undefined || !asked.segment) {
+      return json({ error: 'Send { "action": "prepare", "issue", "segment" }.' }, 400);
+    }
+    const problem = unsendable(env);
+    if (problem) return json({ error: problem }, 503);
+    const made = await prepare(
+      env,
+      publicOrigin(env, request),
+      adminId,
+      asked.issue,
+      asked.segment
+    );
+    if (made && "error" in made) {
+      return made.problems
+        ? json({ ...(await sendsAnswer(env)), problems: made.problems })
+        : json({ error: made.error }, made.status);
+    }
+    return json(await sendsAnswer(env));
+  }
+  if (!asked.id) return json({ error: 'Send { "action", "id" }.' }, 400);
+  let refusal: Awaited<ReturnType<typeof arm>>;
+  if (asked.action === "arm") {
+    if (asked.count === undefined || asked.startsAt === undefined) {
+      return json({ error: 'Send { "action": "arm", "id", "count", "startsAt" }.' }, 400);
+    }
+    refusal = await arm(env, adminId, asked.id, asked.count, asked.startsAt);
+  } else if (asked.action === "proof") {
+    const problem = unsendable(env);
+    if (problem) return json({ error: problem }, 503);
+    const limited = await overLimit(env, [
+      [`newsletter-test:${adminId}`, "newsletterTest"],
+      ["newsletter-day", "newsletterDaily"]
+    ]);
+    if (limited) return limited;
+    refusal = await proof(env, adminId, asked.id);
+  } else refusal = await steer(env, asked.id, asked.action);
+  return refusal ? json({ error: refusal.error }, refusal.status) : json(await sendsAnswer(env));
 }

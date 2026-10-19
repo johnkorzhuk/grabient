@@ -3,7 +3,7 @@ import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { afterEach, expect, test, vi } from "vitest";
 import config from "../cloudflare.config.ts?raw";
-import { JOBS, runSteps, SIX_HOURS, TEN_MINUTES } from "../src/server/jobs.ts";
+import { EVERY_MINUTE, JOBS, runSteps, SIX_HOURS, TEN_MINUTES } from "../src/server/jobs.ts";
 import { githubStars } from "../src/server/seo/stars.ts";
 import { count, makeAccount, type TestEnv, testEnv, unique } from "./helpers.ts";
 
@@ -28,6 +28,7 @@ test("every schedule in cloudflare.config.ts has its job, to the character", () 
 });
 
 test("each job runs these steps, in this order", () => {
+  expect(Object.keys(EVERY_MINUTE)).toEqual(["newsletter"]);
   // the owner hears of a failing site before anything a failing database holds; IndexNow lists what the queue just
   // published; the snapshot is built from what both left
   expect(Object.keys(TEN_MINUTES)).toEqual([

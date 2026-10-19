@@ -10,7 +10,7 @@ import { Label } from "./Label.tsx";
 export function Field(props: {
   label: string;
   name: string;
-  type?: "text" | "email" | "password";
+  type?: "text" | "email" | "password" | "datetime-local";
   value?: string;
   placeholder?: string;
   autocomplete?: string;

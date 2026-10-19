@@ -5,7 +5,7 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Switch } from "@grabient/ui/Switch.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createSignal, createStore, For, onCleanup, Show } from "solid-js";
+import { createSignal, createStore, For, lazy, onCleanup, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { createOptimisticWrites } from "../../../lib/optimistic.ts";
 import { shownError } from "../../../lib/query.ts";
@@ -15,12 +15,17 @@ import { FLAG_NAMES, FLAGS, type FlagName, type FlagState, readFlags, writeFlag 
 import styles from "./Settings.module.css";
 
 /* An admin's sections: the switch that puts every admin tool away in this browser, a test of the newsletter's sender,
-   and, with the tools shown, the site's features, a switch each that turns one off for every visitor. */
+   the newsletter's send, and, with the tools shown, the site's features, a switch each that turns one off for every
+   visitor. */
 
 const ARMED_MS = 4000;
+// an admin's alone, so no other reader's Settings carries it
+const NewsletterSends = lazy(() =>
+  import("./NewsletterSends.tsx").then(m => ({ default: m.NewsletterSends }))
+);
 const MINUTE: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" };
 
-/** The admin tools switch and the newsletter's test, for an admin's account. */
+/** The admin tools switch, the newsletter's test and its send, for an admin's account. */
 export function AdminSection() {
   const [testing, setTesting] = createSignal(false);
   const [testStatus, setTestStatus] = createSignal("");
@@ -106,6 +111,7 @@ export function AdminSection() {
             </span>
           </Button>
         </div>
+        <NewsletterSends />
       </div>
     </section>
   );

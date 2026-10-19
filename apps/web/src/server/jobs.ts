@@ -5,6 +5,7 @@ import { pruneExpired, pruneSync } from "./account/changes.ts";
 import { documentAlert, failingAlert, signInDigest } from "./alerts/alerts.ts";
 import { rescore } from "./gallery/rescore.ts";
 import { applyQueue } from "./mcp/admin/queue.ts";
+import { deliverDue } from "./newsletter/sends.ts";
 import { checkClientDocuments, purgeOAuth } from "./oauth/upkeep.ts";
 import { prunePaletteUse } from "./palette-use/use.ts";
 import { pruneSearchCounts, refreshPopular } from "./search/counts.ts";
@@ -38,6 +39,12 @@ export async function runSteps(job: string, steps: Steps, env: Env) {
 
 /** A step's report when it did something, else nothing to log. */
 const when = <T>(did: unknown, report: T): T | undefined => (did ? report : undefined);
+
+/** Every minute: the newsletter's send whose start has passed, fifty emails at most, apart from the rest of the work
+    so nothing else waits on Resend and a pause holds it within the minute. */
+export const EVERY_MINUTE: Steps = {
+  newsletter: env => deliverDue(env)
+};
 
 /** Every ten minutes. The owner hears first if the site is failing, before any step that a failing database could
     hold. IndexNow follows the queue, so the palettes it just published are on this pass's list, and the search
@@ -110,6 +117,7 @@ export const SIX_HOURS: Steps = {
 
 /** The jobs by their trigger's schedule, which must match cloudflare.config.ts to the character. */
 export const JOBS: Readonly<Record<string, (env: Env) => Promise<void>>> = {
+  "* * * * *": env => runSteps("every minute", EVERY_MINUTE, env),
   "*/10 * * * *": env => runSteps("every ten minutes", TEN_MINUTES, env),
   "5 */6 * * *": env => runSteps("every six hours", SIX_HOURS, env)
 };

@@ -43,8 +43,9 @@ const BUDGETS = {
   onDemand: 12,
   recorder: 106,
   names: 285,
-  worker: 1480,
-  workerStart: 740,
+  // the Worker holds every language's messages as text from its start, the admins' among them
+  worker: 1490,
+  workerStart: 750,
   firstRequest: 165
 };
 

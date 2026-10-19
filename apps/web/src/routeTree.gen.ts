@@ -111,6 +111,7 @@ import { Route as ApiMeCollectionsSplatRouteImport } from './routes/api/me/colle
 import { Route as ApiMeNewsletterIndexRouteImport } from './routes/api/me/newsletter/index'
 import { Route as ApiMeNewsletterDraftsRouteImport } from './routes/api/me/newsletter/drafts'
 import { Route as ApiMeNewsletterLeadRouteImport } from './routes/api/me/newsletter/lead'
+import { Route as ApiMeNewsletterSendsRouteImport } from './routes/api/me/newsletter/sends'
 import { Route as ApiMeNewsletterTestRouteImport } from './routes/api/me/newsletter/test'
 import { Route as ApiMeNewsletterTipRouteImport } from './routes/api/me/newsletter/tip'
 import { Route as ApiMePalettesIndexRouteImport } from './routes/api/me/palettes/index'
@@ -659,6 +660,11 @@ const ApiMeNewsletterLeadRoute = ApiMeNewsletterLeadRouteImport.update({
   path: '/api/me/newsletter/lead',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeNewsletterSendsRoute = ApiMeNewsletterSendsRouteImport.update({
+  id: '/api/me/newsletter/sends',
+  path: '/api/me/newsletter/sends',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeNewsletterTestRoute = ApiMeNewsletterTestRouteImport.update({
   id: '/api/me/newsletter/test',
   path: '/api/me/newsletter/test',
@@ -811,6 +817,7 @@ export interface FileRoutesByFullPath {
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
   '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
+  '/api/me/newsletter/sends': typeof ApiMeNewsletterSendsRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/me/newsletter/tip': typeof ApiMeNewsletterTipRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
@@ -924,6 +931,7 @@ export interface FileRoutesByTo {
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
   '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
+  '/api/me/newsletter/sends': typeof ApiMeNewsletterSendsRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/me/newsletter/tip': typeof ApiMeNewsletterTipRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
@@ -1038,6 +1046,7 @@ export interface FileRoutesById {
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
   '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
+  '/api/me/newsletter/sends': typeof ApiMeNewsletterSendsRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/me/newsletter/tip': typeof ApiMeNewsletterTipRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
@@ -1153,6 +1162,7 @@ export interface FileRouteTypes {
     | '/api/me/collections/$'
     | '/api/me/newsletter/drafts'
     | '/api/me/newsletter/lead'
+    | '/api/me/newsletter/sends'
     | '/api/me/newsletter/test'
     | '/api/me/newsletter/tip'
     | '/api/me/palettes/$'
@@ -1266,6 +1276,7 @@ export interface FileRouteTypes {
     | '/api/me/collections/$'
     | '/api/me/newsletter/drafts'
     | '/api/me/newsletter/lead'
+    | '/api/me/newsletter/sends'
     | '/api/me/newsletter/test'
     | '/api/me/newsletter/tip'
     | '/api/me/palettes/$'
@@ -1379,6 +1390,7 @@ export interface FileRouteTypes {
     | '/api/me/collections/$'
     | '/api/me/newsletter/drafts'
     | '/api/me/newsletter/lead'
+    | '/api/me/newsletter/sends'
     | '/api/me/newsletter/test'
     | '/api/me/newsletter/tip'
     | '/api/me/palettes/$'
@@ -1493,6 +1505,7 @@ export interface RootRouteChildren {
   ApiMeCollectionsSplatRoute: typeof ApiMeCollectionsSplatRoute
   ApiMeNewsletterDraftsRoute: typeof ApiMeNewsletterDraftsRoute
   ApiMeNewsletterLeadRoute: typeof ApiMeNewsletterLeadRoute
+  ApiMeNewsletterSendsRoute: typeof ApiMeNewsletterSendsRoute
   ApiMeNewsletterTestRoute: typeof ApiMeNewsletterTestRoute
   ApiMeNewsletterTipRoute: typeof ApiMeNewsletterTipRoute
   ApiMePalettesSplatRoute: typeof ApiMePalettesSplatRoute
@@ -2222,6 +2235,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiMeNewsletterLeadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/newsletter/sends': {
+      id: '/api/me/newsletter/sends'
+      path: '/api/me/newsletter/sends'
+      fullPath: '/api/me/newsletter/sends'
+      preLoaderRoute: typeof ApiMeNewsletterSendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/newsletter/test': {
       id: '/api/me/newsletter/test'
       path: '/api/me/newsletter/test'
@@ -2400,6 +2420,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMeCollectionsSplatRoute: ApiMeCollectionsSplatRoute,
   ApiMeNewsletterDraftsRoute: ApiMeNewsletterDraftsRoute,
   ApiMeNewsletterLeadRoute: ApiMeNewsletterLeadRoute,
+  ApiMeNewsletterSendsRoute: ApiMeNewsletterSendsRoute,
   ApiMeNewsletterTestRoute: ApiMeNewsletterTestRoute,
   ApiMeNewsletterTipRoute: ApiMeNewsletterTipRoute,
   ApiMePalettesSplatRoute: ApiMePalettesSplatRoute,

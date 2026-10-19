@@ -1,9 +1,10 @@
 import * as v from "valibot";
 import { api } from "../account/session.ts";
-import { Choice, ChoiceSheet } from "./input.ts";
+import { Choice, ChoiceSheet, type SendAction, SendsAnswer } from "./input.ts";
 
-/* The newsletter's writes from a page: the unsubscribe page's press, Settings' switch, an admin's test issue and an
-   admin's choice of an issue's lead and quick tip. A refusal carries the server's own message, translated. */
+/* The newsletter's writes from a page: the unsubscribe page's press, Settings' switch, an admin's test issue, an
+   admin's choice of an issue's lead and quick tip, and an admin's sends. A refusal carries the server's own message,
+   translated. */
 
 /** The unsubscribe page's press: ends the newsletter for the token's account, or starts it again. Resolves with what
     the server holds after. */
@@ -18,6 +19,12 @@ export const writeChoice = async (subscribed: boolean) =>
 export const sendTestIssue = async () => {
   await api("/api/me/newsletter/test", {});
 };
+
+/** The latest sends and what an admin may send: an admin's alone. */
+export const readSends = async () => v.parse(SendsAnswer, await api("/api/me/newsletter/sends"));
+/** A step on a send; the sends as the server holds them after, with what kept a prepare from writing anything. */
+export const stepSend = async (step: SendAction) =>
+  v.parse(SendsAnswer, await api("/api/me/newsletter/sends", step));
 
 /** What an admin chooses in an issue: the palette it leads with, or the quick tip it ends with. */
 export type IssuePart = "lead" | "tip";

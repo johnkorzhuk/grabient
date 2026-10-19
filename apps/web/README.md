@@ -123,6 +123,16 @@ An account made under `ask` or `tell` waits for its own yes before the newslette
 written by the sign-in library as it makes the account); `src/server/newsletter/list.ts` reads a missing choice as off
 for it and on for everyone else. An account made before the column holds none, and keeps the newsletter.
 
+An issue reaches readers only through a send (`src/server/newsletter/sends.ts`), which an admin takes in Settings in
+three steps. Prepare finds the group's readers, draws the issue once per language with each reader's unsubscribe token
+left as a slot, checks that every link and picture loads from the site and that the email fits under Gmail's clip,
+and writes an outbox row per reader; it sends nothing. Arm takes the prepared count typed back and a start between 15
+minutes and 7 days away. From the start, the minute job sends at most 50 emails a minute while the newsletter flag is
+on, and pauses itself on Resend's refusals, errors in a row, failures past 2% or 5,000 emails in a day. The outbox's key
+(issue, account) and a Resend idempotency key per email keep any reader from getting an issue twice. Only production at
+grabient.com sends to readers: every other deploy, staging with its copy of production's accounts among them, sends
+only to admins and Resend's test addresses (`send.ts`, `reachesReaders`).
+
 The zone's Zaraz has its auto-inject, its single-page support and its own consent modal off, and no tool without a
 purpose, and the zone's Web Analytics is not set up automatically (its beacon would run before any choice): the page
 loads `/cdn-cgi/zaraz/i.js` itself once Analytics is allowed and the reader has pressed something, tells Zaraz each

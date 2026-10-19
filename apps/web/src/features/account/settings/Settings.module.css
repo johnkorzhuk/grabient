@@ -164,3 +164,20 @@
   flex-shrink: 0;
   justify-items: end;
 }
+/* an admin's send of the newsletter: its words, then its fields and presses, each a row that wraps */
+.send {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+}
+.sendFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-s4);
+}
+.sendPresses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s3);
+}

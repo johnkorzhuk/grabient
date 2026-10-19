@@ -150,7 +150,7 @@
   "Account data is unavailable.": {
     "note": "Error: the account database is down.",
     "refs": [
-      "apps/web/src/server/newsletter/routes.ts:38"
+      "apps/web/src/server/newsletter/routes.ts:46"
     ]
   },
   "Actions": {
@@ -254,7 +254,7 @@
   "Admin": {
     "note": "Settings section for admins.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:48"
+      "apps/web/src/features/account/settings/Admin.tsx:50"
     ]
   },
   "Admin accounts can't be deleted here.": {
@@ -266,9 +266,15 @@
   "Admin tools": {
     "note": "Admin tools: a Settings switch, a consent row and a label on a connected app.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:55",
+      "apps/web/src/features/account/settings/Admin.tsx:57",
       "apps/web/src/features/connect/Connect.tsx:311",
       "apps/web/src/features/connect/ConnectedApps.tsx:129"
+    ]
+  },
+  "Admins only": {
+    "note": "Admin Settings, the newsletter's send: the group that gets a send, the admins alone, as a rehearsal.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:50"
     ]
   },
   "All features": {
@@ -350,6 +356,13 @@
       "apps/web/src/features/account/settings/Appearance.tsx:49"
     ]
   },
+  "Another send is under way. Finish or cancel it first.": {
+    "note": "Admin Settings, the newsletter's send: refused while another send is prepared, armed, sending or paused.",
+    "refs": [
+      "apps/web/src/server/newsletter/sends.ts:200",
+      "apps/web/src/server/newsletter/sends.ts:281"
+    ]
+  },
   "Anyone can see it there. You can change this in Privacy.": {
     "note": "Settings, Profile: the line under the question about showing the username on palettes. Privacy is a Settings section.",
     "refs": [
@@ -391,6 +404,18 @@
     "note": "Line under Connected apps.",
     "refs": [
       "apps/web/src/features/connect/ConnectedApps.tsx:82"
+    ]
+  },
+  "Arm": {
+    "note": "Admin Settings, the newsletter's send: button that sets a prepared send to go out at its start time.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:278"
+    ]
+  },
+  "Armed. Starts {when}.": {
+    "note": "Admin Settings, the newsletter's send: {when} is a date and time in the reader's zone, then in UTC.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:297"
     ]
   },
   "As saved": {
@@ -524,6 +549,9 @@
   "Cancel": {
     "note": "Press: stops without saving.",
     "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:292",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:310",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:327",
       "apps/web/src/features/collections/Heading.tsx:237",
       "apps/web/src/features/connect/Connect.tsx:331",
       "packages/ui/src/CollectList.tsx:164",
@@ -564,7 +592,7 @@
   "Changes reach everyone within a minute.": {
     "note": "Admin Settings: line under Site features.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:214"
+      "apps/web/src/features/account/settings/Admin.tsx:217"
     ]
   },
   "Check your email to confirm.": {
@@ -577,6 +605,12 @@
     "note": "Sign-in status after the link was emailed.",
     "refs": [
       "apps/web/src/features/account/LoginPage.tsx:159"
+    ]
+  },
+  "Checked {links} links and pictures. The email is {size} KB.": {
+    "note": "Admin Settings, the newsletter's send: what the prepared send checked. {links} and {size} are numbers.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:253"
     ]
   },
   "Checking…": {
@@ -992,7 +1026,7 @@
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:625",
       "apps/web/src/features/editor/Editor.tsx:636",
-      "apps/web/src/features/editor/Sheet.tsx:141",
+      "apps/web/src/features/editor/Sheet.tsx:142",
       "apps/web/src/features/gallery/take.ts:102",
       "apps/web/src/features/gallery/take.ts:115"
     ]
@@ -1046,8 +1080,8 @@
     "note": "Error line after a failed download of a palette file.",
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:643",
-      "apps/web/src/features/editor/Sheet.tsx:471",
-      "apps/web/src/features/editor/Sheet.tsx:548",
+      "apps/web/src/features/editor/Sheet.tsx:475",
+      "apps/web/src/features/editor/Sheet.tsx:552",
       "apps/web/src/lib/files.ts:65"
     ]
   },
@@ -1182,7 +1216,7 @@
     "refs": [
       "apps/web/src/features/account/settings/Account.tsx:100",
       "apps/web/src/features/account/settings/Account.tsx:105",
-      "apps/web/src/features/account/settings/Admin.tsx:179",
+      "apps/web/src/features/account/settings/Admin.tsx:182",
       "apps/web/src/features/account/settings/Privacy.tsx:146",
       "apps/web/src/features/account/settings/Privacy.tsx:78",
       "apps/web/src/features/account/settings/Profile.tsx:232",
@@ -1192,7 +1226,7 @@
       "apps/web/src/features/collections/CollectionPage.tsx:471",
       "apps/web/src/features/collections/ItemCard.tsx:74",
       "apps/web/src/features/collections/collect.ts:460",
-      "apps/web/src/features/editor/Sheet.tsx:435",
+      "apps/web/src/features/editor/Sheet.tsx:439",
       "apps/web/src/features/editor/save.ts:186",
       "apps/web/src/features/gallery/GalleryCard.tsx:67",
       "apps/web/src/server/account/sync.ts:126",
@@ -1224,7 +1258,8 @@
   "Couldn't send the test. See the Worker's log.": {
     "note": "Admin error.",
     "refs": [
-      "apps/web/src/server/newsletter/routes.ts:240"
+      "apps/web/src/server/newsletter/routes.ts:249",
+      "apps/web/src/server/newsletter/sends.ts:408"
     ]
   },
   "Couldn't send your answer. Try again.": {
@@ -1511,6 +1546,12 @@
     "note": "About: paragraph; <c> holds the seed.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:560"
+    ]
+  },
+  "Everyone it hasn't reached": {
+    "note": "Admin Settings, the newsletter's send: the group of every subscribed reader the issue was not sent to yet. It is the issue.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:52"
     ]
   },
   "Everywhere": {
@@ -1895,7 +1936,7 @@
   "Images can't be copied here, so the file was downloaded.": {
     "note": "Status line: the image could not go to the clipboard, so it was downloaded instead.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:407",
+      "apps/web/src/features/editor/Sheet.tsx:411",
       "apps/web/src/features/gallery/take.ts:98",
       "apps/web/src/features/selection/SelectionScreen.tsx:329",
       "apps/web/src/mcp-view/PaletteView.tsx:243"
@@ -1905,7 +1946,7 @@
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:624",
-      "apps/web/src/features/editor/Sheet.tsx:140",
+      "apps/web/src/features/editor/Sheet.tsx:141",
       "apps/web/src/mcp-view/PaletteView.tsx:247",
       "apps/web/src/mcp-view/PaletteView.tsx:255",
       "packages/ui/src/SolidPane.tsx:80"
@@ -1960,7 +2001,7 @@
       "apps/web/src/server/collections/api.ts:92",
       "apps/web/src/server/collections/http.ts:44",
       "apps/web/src/server/contact/contact.ts:25",
-      "apps/web/src/server/newsletter/routes.ts:39",
+      "apps/web/src/server/newsletter/routes.ts:47",
       "apps/web/src/server/search/votes.ts:83"
     ]
   },
@@ -1997,6 +2038,13 @@
       "apps/web/src/features/editor/Controls.tsx:402",
       "apps/web/src/features/editor/Controls.tsx:403",
       "packages/ui/src/keymap.ts:25"
+    ]
+  },
+  "Issue {number}: {title}": {
+    "note": "Admin Settings, the newsletter's send: the newsletter issue's number and title.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:196",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:236"
     ]
   },
   "It can see your name and username, and see and change your saved palettes and collections.": {
@@ -2095,6 +2143,18 @@
       "apps/web/src/app/LanguageMenu.tsx:82"
     ]
   },
+  "Last send finished {when}.": {
+    "note": "Admin Settings, the newsletter's send: {when} is a date and time.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:218"
+    ]
+  },
+  "Last send was cancelled {when}.": {
+    "note": "Admin Settings, the newsletter's send: {when} is a date and time.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:221"
+    ]
+  },
   "Layout": {
     "note": "Label: how the exported palettes are arranged in one image.",
     "refs": [
@@ -2112,6 +2172,12 @@
     "note": "Newsletter, admins only: the check press that makes the palette shown the issue's lead.",
     "refs": [
       "apps/web/src/features/newsletter/Picker.tsx:30"
+    ]
+  },
+  "Left out: {unsubscribed} opted out or waiting for a yes, {personas} personas, {undeliverable} test addresses, {already} already sent it.": {
+    "note": "Admin Settings, the newsletter's send: counts of accounts the send leaves out. A yes is consent to the newsletter; personas are the site's own agent accounts.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:242"
     ]
   },
   "Let AI apps connect to accounts and use Grabient's tools over MCP.": {
@@ -2416,7 +2482,7 @@
   "Newsletter test": {
     "note": "Admin Settings: sends a test issue.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:70"
+      "apps/web/src/features/account/settings/Admin.tsx:72"
     ]
   },
   "Next lead": {
@@ -2454,6 +2520,12 @@
     "note": "Tooltip on the dimmed Travel field when the last keyframe is held: there is no keyframe after it.",
     "refs": [
       "apps/web/src/features/editor/Controls.tsx:263"
+    ]
+  },
+  "No one is left to send this issue to.": {
+    "note": "Admin Settings, the newsletter's send: refused when every reader already got the issue.",
+    "refs": [
+      "apps/web/src/server/newsletter/sends.ts:287"
     ]
   },
   "No palettes.": {
@@ -2498,10 +2570,10 @@
       "apps/web/src/server/account/collections.ts:247",
       "apps/web/src/server/collections/http.ts:41",
       "apps/web/src/server/editor/facts.ts:112",
-      "apps/web/src/server/gallery/credit.ts:93",
-      "apps/web/src/server/newsletter/routes.ts:123",
-      "apps/web/src/server/newsletter/routes.ts:127",
-      "apps/web/src/server/newsletter/routes.ts:56",
+      "apps/web/src/server/gallery/credit.ts:114",
+      "apps/web/src/server/newsletter/routes.ts:131",
+      "apps/web/src/server/newsletter/routes.ts:135",
+      "apps/web/src/server/newsletter/routes.ts:64",
       "apps/web/src/server/pipeline.ts:153",
       "apps/web/src/server/pipeline.ts:165"
     ]
@@ -2595,7 +2667,7 @@
   "Off while all features are off": {
     "note": "Admin Settings: this feature is off because All features is off.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:309"
+      "apps/web/src/features/account/settings/Admin.tsx:312"
     ]
   },
   "Offer 1 year when a reader presses Rising again. When off, Rising skips it.": {
@@ -2629,6 +2701,12 @@
     "note": "Search error: a link to another site.",
     "refs": [
       "apps/web/src/features/gallery/field.ts:54"
+    ]
+  },
+  "Only a published issue can be sent.": {
+    "note": "Admin Settings, the newsletter's send: refused for a draft issue.",
+    "refs": [
+      "apps/web/src/server/newsletter/sends.ts:196"
     ]
   },
   "Only admins can add notes.": {
@@ -2667,7 +2745,7 @@
   "Only admins see this section.": {
     "note": "Line under an admin-only section.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:49",
+      "apps/web/src/features/account/settings/Admin.tsx:51",
       "apps/web/src/features/newsletter/NewsletterPage.tsx:159"
     ]
   },
@@ -2749,7 +2827,7 @@
     "note": "Screen reader name of the tabs for a list's order (Popular, Rising, Saved).",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:629",
-      "apps/web/src/features/editor/Sheet.tsx:502",
+      "apps/web/src/features/editor/Sheet.tsx:506",
       "packages/ui/src/ListNav.tsx:102"
     ]
   },
@@ -2783,7 +2861,7 @@
   "Palette": {
     "note": "A palette with no name.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:149",
+      "apps/web/src/features/editor/Sheet.tsx:150",
       "apps/web/src/features/gallery/drawing.ts:69"
     ]
   },
@@ -2934,6 +3012,67 @@
       "apps/web/src/features/about/AboutPage.tsx:265"
     ]
   },
+  "Pause": {
+    "note": "Admin Settings, the newsletter's send: button that holds a send.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:305",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:317"
+    ]
+  },
+  "Paused by an admin.": {
+    "note": "Admin Settings, the newsletter's send: why a send is paused.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:55"
+    ]
+  },
+  "Paused itself: 5,000 emails went out in the last day.": {
+    "note": "Admin Settings, the newsletter's send: why a send stopped on its own. The last day is the last 24 hours.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:60"
+    ]
+  },
+  "Paused itself: Resend failed three times in a row.": {
+    "note": "Admin Settings, the newsletter's send: why a send stopped on its own. Resend is the email service, a name.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:57"
+    ]
+  },
+  "Paused itself: Resend refused the key.": {
+    "note": "Admin Settings, the newsletter's send: why a send stopped on its own. The key is the email service's API key.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:58"
+    ]
+  },
+  "Paused itself: Resend saw a different email under the same key.": {
+    "note": "Admin Settings, the newsletter's send: why a send stopped on its own. The key is the duplicate-protection key each email carries.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:59"
+    ]
+  },
+  "Paused itself: more than 2% of the emails failed.": {
+    "note": "Admin Settings, the newsletter's send: why a send stopped on its own.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:56"
+    ]
+  },
+  "Paused itself: the newsletter has no sender.": {
+    "note": "Admin Settings, the newsletter's send: why a send stopped on its own: no email service is set up.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:61"
+    ]
+  },
+  "Paused itself: this deploy may not send to that address.": {
+    "note": "Admin Settings, the newsletter's send: why a send stopped on its own. A deploy is a copy of the site, such as the staging site.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:62"
+    ]
+  },
+  "People who liked a palette": {
+    "note": "Admin Settings, the newsletter's send: the group of accounts that liked at least one palette.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:51"
+    ]
+  },
   "Permanently delete your account and saved palettes.": {
     "note": "Settings: line under Delete account.",
     "refs": [
@@ -2972,6 +3111,18 @@
       "apps/web/src/lib/page-meta.ts:277"
     ]
   },
+  "Prepare": {
+    "note": "Admin Settings, the newsletter's send: button that finds the readers and checks the issue, sending nothing.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:209"
+    ]
+  },
+  "Prepare a send, read its proof, then arm it. Nothing goes out before its start.": {
+    "note": "Admin Settings, the newsletter's send: the section's line. A proof is a copy of the issue sent to the admin.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:181"
+    ]
+  },
   "Press a key": {
     "note": "The key being changed waits for a new key; also spoken.",
     "refs": [
@@ -2983,6 +3134,12 @@
     "note": "Line under the Shortcuts title.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:98"
+    ]
+  },
+  "Press again to cancel the send.": {
+    "note": "Admin Settings, the newsletter's send: the second press confirms.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:334"
     ]
   },
   "Press again to delete": {
@@ -3003,18 +3160,24 @@
       "apps/web/src/features/collections/Actions.tsx:393"
     ]
   },
+  "Press again to resume the send.": {
+    "note": "Admin Settings, the newsletter's send: the second press confirms.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:335"
+    ]
+  },
   "Press again to turn off for everyone.": {
     "note": "Admin Settings: line under a feature switch waiting for its second press.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:290",
-      "apps/web/src/features/account/settings/Admin.tsx:319"
+      "apps/web/src/features/account/settings/Admin.tsx:293",
+      "apps/web/src/features/account/settings/Admin.tsx:322"
     ]
   },
   "Press again to turn on for everyone.": {
     "note": "Admin Settings: line under a feature switch waiting for its second press.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:295",
-      "apps/web/src/features/account/settings/Admin.tsx:320"
+      "apps/web/src/features/account/settings/Admin.tsx:298",
+      "apps/web/src/features/account/settings/Admin.tsx:323"
     ]
   },
   "Press the picture to move this color there.": {
@@ -3368,11 +3531,17 @@
       "apps/web/src/features/collections/Actions.tsx:393"
     ]
   },
+  "Resume": {
+    "note": "Admin Settings, the newsletter's send: button that lets a paused send go on.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:326"
+    ]
+  },
   "Retry": {
     "note": "Press: tries the failed request again.",
     "refs": [
       "apps/web/src/app/ErrorPage.tsx:40",
-      "apps/web/src/features/account/settings/Admin.tsx:224",
+      "apps/web/src/features/account/settings/Admin.tsx:227",
       "apps/web/src/features/collections/CollectionPage.tsx:943",
       "apps/web/src/features/collections/CollectionsPage.tsx:536",
       "apps/web/src/features/collections/CollectionsPage.tsx:541",
@@ -3455,21 +3624,21 @@
   "Rising, 1 week": {
     "note": "Screen reader name of the Rising frame chip: one week.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:75",
+      "apps/web/src/features/editor/Sheet.tsx:76",
       "packages/ui/src/ListNav.tsx:20"
     ]
   },
   "Rising, 1 year": {
     "note": "Screen reader name of the Rising frame chip: one year.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:77",
+      "apps/web/src/features/editor/Sheet.tsx:78",
       "packages/ui/src/ListNav.tsx:22"
     ]
   },
   "Rising, 3 months": {
     "note": "Screen reader name of the Rising frame chip: three months.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:76",
+      "apps/web/src/features/editor/Sheet.tsx:77",
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
@@ -3727,7 +3896,13 @@
   "Send a test issue to {email} only.": {
     "note": "Admin Settings: line beside Send test.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:78"
+      "apps/web/src/features/account/settings/Admin.tsx:80"
+    ]
+  },
+  "Send an issue": {
+    "note": "Admin Settings: heading of the newsletter's send.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:178"
     ]
   },
   "Send code": {
@@ -3742,6 +3917,13 @@
       "apps/web/src/features/account/LoginPage.tsx:271"
     ]
   },
+  "Send me the proof": {
+    "note": "Admin Settings, the newsletter's send: button that emails the prepared issue to the admin alone.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:289",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:307"
+    ]
+  },
   "Send sign-in links and codes and contact messages. When off, sign-in offers Google, and deletion emails and owner alerts still go.": {
     "note": "Settings, Site features (admins only): what the Email switch does.",
     "refs": [
@@ -3751,7 +3933,7 @@
   "Send test": {
     "note": "Admin press: sends a test issue of the newsletter.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:98"
+      "apps/web/src/features/account/settings/Admin.tsx:100"
     ]
   },
   "Send the session recordings readers allow to PostHog.": {
@@ -3760,12 +3942,18 @@
       "apps/web/src/features/account/settings/flags.ts:41"
     ]
   },
+  "Sending now, at most fifty a minute.": {
+    "note": "Admin Settings, the newsletter's send: status while emails go out.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:314"
+    ]
+  },
   "Sending…": {
     "note": "A send press or status while it works.",
     "refs": [
       "apps/web/src/features/account/LoginPage.tsx:149",
       "apps/web/src/features/account/LoginPage.tsx:268",
-      "apps/web/src/features/account/settings/Admin.tsx:104",
+      "apps/web/src/features/account/settings/Admin.tsx:106",
       "apps/web/src/features/contact/ContactPage.tsx:118",
       "apps/web/src/features/contact/ContactPage.tsx:120"
     ]
@@ -3773,7 +3961,9 @@
   "Sent. Check your inbox.": {
     "note": "Admin Settings: status after a test newsletter was sent.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:37"
+      "apps/web/src/features/account/settings/Admin.tsx:39",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:290",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:308"
     ]
   },
   "Sent. Thanks.": {
@@ -3835,7 +4025,7 @@
   "Show curation, votes, agent notes and publishing in this browser.": {
     "note": "Admin Settings: line under the Admin tools switch.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:58"
+      "apps/web/src/features/account/settings/Admin.tsx:60"
     ]
   },
   "Show fewer": {
@@ -3951,7 +4141,7 @@
       "apps/web/src/server/account/sync.ts:172",
       "apps/web/src/server/account/sync.ts:200",
       "apps/web/src/server/collections/http.ts:43",
-      "apps/web/src/server/newsletter/routes.ts:41",
+      "apps/web/src/server/newsletter/routes.ts:49",
       "apps/web/src/server/search/account.ts:20",
       "apps/web/src/server/search/votes.ts:77"
     ]
@@ -4030,7 +4220,7 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:587",
+      "apps/web/src/features/editor/Sheet.tsx:591",
       "apps/web/src/features/editor/StaticPalette.tsx:132"
     ]
   },
@@ -4043,7 +4233,7 @@
   "Site features": {
     "note": "Admin Settings section: switches for site features.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:211"
+      "apps/web/src/features/account/settings/Admin.tsx:214"
     ]
   },
   "Size": {
@@ -4104,8 +4294,9 @@
       "apps/web/src/features/account/LoginPage.tsx:27",
       "apps/web/src/features/account/PasswordPage.tsx:14",
       "apps/web/src/features/account/session.ts:391",
-      "apps/web/src/features/account/settings/Admin.tsx:185",
-      "apps/web/src/features/account/settings/Admin.tsx:40",
+      "apps/web/src/features/account/settings/Admin.tsx:188",
+      "apps/web/src/features/account/settings/Admin.tsx:42",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:153",
       "apps/web/src/features/account/settings/Privacy.tsx:139",
       "apps/web/src/features/account/settings/Privacy.tsx:71",
       "apps/web/src/features/collections/client.ts:54",
@@ -4115,7 +4306,7 @@
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:25",
       "apps/web/src/lib/query.ts:109",
       "apps/web/src/server/editor/facts.ts:117",
-      "apps/web/src/server/gallery/credit.ts:99",
+      "apps/web/src/server/gallery/credit.ts:120",
       "apps/web/src/server/pipeline.ts:115"
     ]
   },
@@ -4141,6 +4332,25 @@
     "note": "Username error.",
     "refs": [
       "apps/web/src/features/account/username.ts:52"
+    ]
+  },
+  "Start at least 15 minutes from now.": {
+    "note": "Admin Settings, the newsletter's send: the start time is too soon.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:139",
+      "apps/web/src/server/newsletter/sends.ts:312"
+    ]
+  },
+  "Start time": {
+    "note": "Admin Settings, the newsletter's send: label of the date and time a send starts.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:260"
+    ]
+  },
+  "Start within the next 7 days.": {
+    "note": "Admin Settings, the newsletter's send: the start time is too far away.",
+    "refs": [
+      "apps/web/src/server/newsletter/sends.ts:314"
     ]
   },
   "Steps": {
@@ -4303,6 +4513,12 @@
       "apps/web/src/server/collections/me.ts:396"
     ]
   },
+  "That send changed since you loaded it. Reload and try again.": {
+    "note": "Admin Settings, the newsletter's send: refused because the send moved on since the page read it.",
+    "refs": [
+      "apps/web/src/server/newsletter/sends.ts:293"
+    ]
+  },
   "That username is reserved.": {
     "note": "Username error.",
     "refs": [
@@ -4353,11 +4569,29 @@
       "apps/web/src/features/about/AboutPage.tsx:93"
     ]
   },
+  "The email has no unsubscribe link.": {
+    "note": "Admin Settings, the newsletter's send: a check that failed.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:93"
+    ]
+  },
+  "The email is {size} KB, and Gmail cuts off an email past 102 KB.": {
+    "note": "Admin Settings, the newsletter's send: a check that failed. {size} is a number.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:89"
+    ]
+  },
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:670",
       "apps/web/src/features/editor/Editor.tsx:679"
+    ]
+  },
+  "The issue didn't pass its checks. Nothing was prepared.": {
+    "note": "Admin Settings, the newsletter's send: heads the list of failed checks.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:343"
     ]
   },
   "The keyframes as JSON.": {
@@ -4375,7 +4609,13 @@
   "The newsletter has no sender yet. Add the RESEND_API_KEY secret.": {
     "note": "Admin error: the email service is not set up.",
     "refs": [
-      "apps/web/src/server/newsletter/send.ts:18"
+      "apps/web/src/server/newsletter/send.ts:23"
+    ]
+  },
+  "The newsletter is off in Site features. Nothing goes out until it's on.": {
+    "note": "Admin Settings, the newsletter's send: warning on an armed send. Site features is the name of a Settings section.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:301"
     ]
   },
   "The original collection is gone.": {
@@ -4488,6 +4728,12 @@
       "apps/web/src/features/collections/CollectionPage.tsx:720"
     ]
   },
+  "This deploy sends only to admins and Resend's test addresses.": {
+    "note": "Admin Settings, the newsletter's send: shown on the staging site. Resend is the email service, a name.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:185"
+    ]
+  },
   "This link expires in 5 minutes. If you didn't ask for it, ignore this email.": {
     "note": "Email: the line under the sign-in button.",
     "refs": [
@@ -4497,7 +4743,7 @@
   "This link isn't valid.": {
     "note": "Error: a bad unsubscribe link.",
     "refs": [
-      "apps/web/src/server/newsletter/routes.ts:28"
+      "apps/web/src/server/newsletter/routes.ts:36"
     ]
   },
   "This link isn't valid. Turn the newsletter off in Settings or write to <email>{email}</email>.": {
@@ -4675,33 +4921,46 @@
   "Turn off": {
     "note": "A site feature switch after one press: a second press turns it off.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:264",
-      "apps/web/src/features/account/settings/Admin.tsx:272"
+      "apps/web/src/features/account/settings/Admin.tsx:267",
+      "apps/web/src/features/account/settings/Admin.tsx:275"
     ]
   },
   "Turn on": {
     "note": "A site feature switch after one press: a second press turns it on.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:267",
-      "apps/web/src/features/account/settings/Admin.tsx:272"
+      "apps/web/src/features/account/settings/Admin.tsx:270",
+      "apps/web/src/features/account/settings/Admin.tsx:275"
     ]
   },
   "Turn on the newsletter in Settings to send a test.": {
     "note": "Admin error.",
     "refs": [
-      "apps/web/src/server/newsletter/routes.ts:222"
+      "apps/web/src/server/newsletter/routes.ts:230",
+      "apps/web/src/server/newsletter/sends.ts:398"
     ]
   },
   "Turned off by {name}": {
     "note": "Admin Settings: who turned a site feature off.",
     "refs": [
-      "apps/web/src/features/account/settings/Admin.tsx:195"
+      "apps/web/src/features/account/settings/Admin.tsx:198"
     ]
   },
   "Two keyframes make a seed of 11 characters, and eight make one of 37. Each palette has exactly one seed.": {
     "note": "About: paragraph.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:576"
+    ]
+  },
+  "Type the number of people exactly.": {
+    "note": "Admin Settings, the newsletter's send: refused when the typed count is not the send's.",
+    "refs": [
+      "apps/web/src/server/newsletter/sends.ts:310"
+    ]
+  },
+  "Type {count} to arm": {
+    "note": "Admin Settings, the newsletter's send: label of the field where the admin types the number of people. {count} is that number.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:269"
     ]
   },
   "Ugly turn": {
@@ -4917,6 +5176,12 @@
     "note": "Admin: screen reader name of the choice of where to delete.",
     "refs": [
       "packages/ui/src/Curation.tsx:283"
+    ]
+  },
+  "Who gets it": {
+    "note": "Admin Settings, the newsletter's send: label of the choice of group. It is the issue.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:202"
     ]
   },
   "Why, optional": {
@@ -5282,21 +5547,21 @@
   "frame\u00041w": {
     "note": "Rising frame chip: one week, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:75",
+      "apps/web/src/features/editor/Sheet.tsx:76",
       "packages/ui/src/ListNav.tsx:20"
     ]
   },
   "frame\u00041y": {
     "note": "Rising frame chip: one year, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:77",
+      "apps/web/src/features/editor/Sheet.tsx:78",
       "packages/ui/src/ListNav.tsx:22"
     ]
   },
   "frame\u00043m": {
     "note": "Rising frame chip: three months, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:76",
+      "apps/web/src/features/editor/Sheet.tsx:77",
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
@@ -5540,7 +5805,7 @@
     "note": "List order and its tab: the most liked first.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:104",
-      "apps/web/src/features/editor/Sheet.tsx:505",
+      "apps/web/src/features/editor/Sheet.tsx:509",
       "apps/web/src/features/gallery/Palettes.tsx:351",
       "packages/ui/src/ListNav.tsx:15"
     ]
@@ -5549,7 +5814,7 @@
     "note": "List order and its tab: palettes gaining likes now.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:105",
-      "apps/web/src/features/editor/Sheet.tsx:258",
+      "apps/web/src/features/editor/Sheet.tsx:260",
       "apps/web/src/features/gallery/Palettes.tsx:350",
       "packages/ui/src/ListNav.tsx:16"
     ]
@@ -5797,6 +6062,12 @@
       "apps/web/src/mcp-view/PaletteView.tsx:97"
     ]
   },
+  "{count, plural, one {# person} other {# people}}": {
+    "note": "Admin Settings, the newsletter's send: how many people a send reaches.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:238"
+    ]
+  },
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
@@ -5882,6 +6153,12 @@
     "note": "Status: adding to a full selection removed its oldest palettes; {key} is the undo key.",
     "refs": [
       "apps/web/src/features/selection/selection.ts:244"
+    ]
+  },
+  "{count} unconfirmed: Resend may have taken them, so they won't be sent again.": {
+    "note": "Admin Settings, the newsletter's send: emails whose fate is unknown. {count} is a number.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:106"
     ]
   },
   "{description} Page {page}.": {
@@ -6040,6 +6317,12 @@
       "apps/web/src/features/account/LoginPage.tsx:270"
     ]
   },
+  "{sent} sent, {skipped} skipped, {failed} failed, {left} to go.": {
+    "note": "Admin Settings, the newsletter's send: a send's progress. Each is a number of emails.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:99"
+    ]
+  },
   "{space} color space. Click to hide.": {
     "note": "Label in the 3D picture: a click hides the color space. {space} is sRGB or Display P3.",
     "refs": [
@@ -6153,6 +6436,30 @@
     "note": "A collection's description in search results when it has no words of its own: its title and how many palettes it holds.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:800"
+    ]
+  },
+  "{url} answered {status}.": {
+    "note": "Admin Settings, the newsletter's send: a check that failed. {url} is a web address; {status} is an HTTP status code such as 404.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:84"
+    ]
+  },
+  "{url} didn't answer.": {
+    "note": "Admin Settings, the newsletter's send: a check that failed. {url} is a web address.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:85"
+    ]
+  },
+  "{url} leaves the site.": {
+    "note": "Admin Settings, the newsletter's send: a check that failed: a link in the email points off the site.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:87"
+    ]
+  },
+  "{when}, {utc} UTC": {
+    "note": "Admin Settings, the newsletter's send: a time in the reader's zone and in UTC. {utc} is a 24-hour time.",
+    "refs": [
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:79"
     ]
   },
   "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients.": {

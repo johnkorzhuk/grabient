@@ -24,7 +24,7 @@ counts no failure for it. "At switchover" is the state production starts in.
 | `palette-use` | `/api/used` writes | 204, nothing counted | On |
 | `client-documents` | Advertising client metadata documents | New apps register themselves; connected apps keep working | On |
 | `rising-3m`, `rising-1y` | Those Rising frames, which cost nothing | Rising skips the frame | The owner's choice |
-| `newsletter` | The newsletter for readers: `/newsletter`, its link, `/api/newsletter`, its sitemap entry, issues to readers. It starts off: no row is off | Readers get Not found and no link; admins still read it, choose its lead and tip, and send themselves a test; unsubscribing works | Off, until the first issue goes out on a Resend plan that covers every subscribed account |
+| `newsletter` | The newsletter for readers: `/newsletter`, its link, `/api/newsletter`, its sitemap entry, issues to readers. It starts off: no row is off | Readers get Not found and no link; admins still read it, choose its lead and tip, send themselves a test, and prepare and arm a send, which waits; unsubscribing works | Off, until the first issue goes out on a Resend plan that covers every subscribed account |
 | `saving` | Accounts' and apps' writes: likes, collections, votes, MCP save tools | Writes answer 503 with `Retry-After: 300`, and a page keeps them queued as it does offline; MCP save tools refuse in words; reads work | On |
 | `email` | Sign-in links and codes, the contact form | Sign-in says to try later or use Google; contact says it is unavailable; deletion emails and owner alerts still go | On |
 

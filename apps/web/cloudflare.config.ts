@@ -64,9 +64,11 @@ function base(name: string): WorkerConfig {
       logs: { enabled: true, invocationLogs: false },
       traces: { enabled: false }
     },
-    // Every 10 minutes: the seeding queue, IndexNow, the star count and the search snapshot (rebuilt only when
-    // something public changed). Every six hours: hot scores and database upkeep. src/server/jobs.ts matches these.
+    // Every minute: the newsletter's armed send, which does nothing until one is due. Every 10 minutes: the seeding
+    // queue, IndexNow, the star count and the search snapshot (rebuilt only when something public changed). Every six
+    // hours: hot scores and database upkeep. src/server/jobs.ts matches these.
     triggers: [
+      triggers.scheduled({ schedule: "* * * * *" }),
       triggers.scheduled({ schedule: "*/10 * * * *" }),
       triggers.scheduled({ schedule: "5 */6 * * *" })
     ]
