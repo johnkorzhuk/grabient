@@ -71,7 +71,7 @@ function Form() {
         <div ref={form} class={styles.form}>
           <div ref={first} class={styles.group}>
             <Text variant="h3">Profile</Text>
-            <Field label="Username" name="spacing-username" value="ada" />
+            <Field label="Display name" name="spacing-username" value="ada" />
             <Field label="Email" name="spacing-email" type="email" value="ada@example.com" />
           </div>
           <div ref={second} class={styles.group}>

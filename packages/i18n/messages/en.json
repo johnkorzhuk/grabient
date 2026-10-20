@@ -138,7 +138,7 @@
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:236",
       "apps/web/src/app/AccountMenu.tsx:262",
-      "apps/web/src/features/account/settings/Account.tsx:30"
+      "apps/web/src/features/account/settings/Account.tsx:31"
     ]
   },
   "Account data is unavailable.": {
@@ -165,18 +165,18 @@
       "apps/web/src/features/connect/McpServer.tsx:98"
     ]
   },
+  "Add a display name to turn this on.": {
+    "note": "Settings, Profile: the line under 'Your display name on palettes' when the account has no display name yet; the field is above it in the same section.",
+    "refs": [
+      "apps/web/src/features/account/settings/Credit.tsx:71",
+      "apps/web/src/server/account/credit.ts:19"
+    ]
+  },
   "Add a title": {
     "note": "Press, and the empty field's placeholder, in the place of a palette's age on its card in the account's own collection: gives the palette a title in that collection.",
     "refs": [
       "packages/ui/src/PaletteCard.tsx:318",
       "packages/ui/src/PaletteCard.tsx:337"
-    ]
-  },
-  "Add a username in Profile to turn this on.": {
-    "note": "Settings, Privacy: the line under 'Your name on palettes' when the account has no username yet. Profile is the Settings section with the username.",
-    "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:142",
-      "apps/web/src/server/account/credit.ts:19"
     ]
   },
   "Add all to selection": {
@@ -254,7 +254,7 @@
   "Admin accounts can't be deleted here.": {
     "note": "Settings: line under Delete account for an admin.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:174"
+      "apps/web/src/features/account/settings/Account.tsx:178"
     ]
   },
   "Admin tools": {
@@ -351,10 +351,10 @@
       "apps/web/src/server/newsletter/sends.ts:284"
     ]
   },
-  "Anyone can see it there. You can change this in Privacy.": {
-    "note": "Settings, Profile: the line under the question about showing the username on palettes. Privacy is a Settings section.",
+  "Anyone can see it there. You can change this below.": {
+    "note": "Settings, Profile: the line under the question about showing the display name on palettes. The switch that changes it is below, in the same section.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:363"
+      "apps/web/src/features/account/settings/Profile.tsx:369"
     ]
   },
   "Appearance": {
@@ -555,7 +555,7 @@
   "Change avatar": {
     "note": "Press: picks a new avatar image.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:325"
+      "apps/web/src/features/account/settings/Profile.tsx:331"
     ]
   },
   "Change key": {
@@ -586,7 +586,7 @@
   "Check your email to confirm.": {
     "note": "Settings status after asking to delete the account: a link was emailed.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:152"
+      "apps/web/src/features/account/settings/Account.tsx:156"
     ]
   },
   "Check your email. The link expires in 5 minutes.": {
@@ -604,20 +604,20 @@
   "Checking…": {
     "note": "Settings: status while the username is checked.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:348",
-      "apps/web/src/features/account/settings/Profile.tsx:382"
+      "apps/web/src/features/account/settings/Profile.tsx:354",
+      "apps/web/src/features/account/settings/Profile.tsx:388"
     ]
   },
   "Choose a JPG, PNG or WebP image.": {
     "note": "Settings error: the avatar file is of another kind.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:46"
+      "apps/web/src/features/account/settings/Profile.tsx:48"
     ]
   },
   "Choose an image up to 5MB.": {
     "note": "Settings error: the avatar file is too large.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:48"
+      "apps/web/src/features/account/settings/Profile.tsx:50"
     ]
   },
   "Chroma": {
@@ -812,14 +812,14 @@
   "Confirm account deletion": {
     "note": "Heading of the Settings section opened from the deletion email; also that email's subject and title.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:164",
+      "apps/web/src/features/account/settings/Account.tsx:168",
       "packages/email/src/letters.ts:67"
     ]
   },
   "Confirm deletion": {
     "note": "Press: confirms the account deletion. Also the button in the deletion email.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:189",
+      "apps/web/src/features/account/settings/Account.tsx:193",
       "packages/email/src/letters.ts:71"
     ]
   },
@@ -990,10 +990,10 @@
       "apps/web/src/features/collections/Notes.tsx:51"
     ]
   },
-  "Couldn't check the username. Try again.": {
-    "note": "Settings: line under the username field when the check failed.",
+  "Couldn't check the display name. Try again.": {
+    "note": "Settings: line under the display name field when the check failed.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:167",
+      "apps/web/src/features/account/settings/Profile.tsx:173",
       "apps/web/src/server/account/credit.ts:21"
     ]
   },
@@ -1037,7 +1037,7 @@
   "Couldn't delete the account.": {
     "note": "Settings error after a failed account deletion.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:156"
+      "apps/web/src/features/account/settings/Account.tsx:160"
     ]
   },
   "Couldn't delete the collection.": {
@@ -1127,9 +1127,9 @@
   "Couldn't read this image.": {
     "note": "Settings error: the avatar file could not be read.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:183",
-      "apps/web/src/features/account/settings/Profile.tsx:57",
-      "apps/web/src/features/account/settings/Profile.tsx:72",
+      "apps/web/src/features/account/settings/Profile.tsx:189",
+      "apps/web/src/features/account/settings/Profile.tsx:59",
+      "apps/web/src/features/account/settings/Profile.tsx:74",
       "apps/web/src/features/collections/CollectionsPage.tsx:328",
       "apps/web/src/features/gallery/Home.tsx:219",
       "apps/web/src/features/gallery/Palettes.tsx:296"
@@ -1190,13 +1190,13 @@
   "Couldn't save.": {
     "note": "Error line after a failed save.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:104",
-      "apps/web/src/features/account/settings/Account.tsx:99",
+      "apps/web/src/features/account/settings/Account.tsx:103",
+      "apps/web/src/features/account/settings/Account.tsx:108",
       "apps/web/src/features/account/settings/Admin.tsx:185",
-      "apps/web/src/features/account/settings/Privacy.tsx:123",
-      "apps/web/src/features/account/settings/Privacy.tsx:55",
-      "apps/web/src/features/account/settings/Profile.tsx:232",
-      "apps/web/src/features/account/settings/Profile.tsx:249",
+      "apps/web/src/features/account/settings/Credit.tsx:52",
+      "apps/web/src/features/account/settings/Newsletter.tsx:54",
+      "apps/web/src/features/account/settings/Profile.tsx:238",
+      "apps/web/src/features/account/settings/Profile.tsx:255",
       "apps/web/src/features/account/sync.ts:148",
       "apps/web/src/features/collections/CollectionPage.tsx:464",
       "apps/web/src/features/collections/CollectionPage.tsx:470",
@@ -1213,7 +1213,7 @@
   "Couldn't send the confirmation email.": {
     "note": "Settings error: the email to confirm account deletion failed.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:150"
+      "apps/web/src/features/account/settings/Account.tsx:154"
     ]
   },
   "Couldn't send the link. Try again.": {
@@ -1249,7 +1249,7 @@
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:231",
       "apps/web/src/features/account/session.ts:292",
-      "apps/web/src/features/account/settings/Account.tsx:36"
+      "apps/web/src/features/account/settings/Account.tsx:37"
     ]
   },
   "Couldn't update the collection.": {
@@ -1261,7 +1261,7 @@
   "Couldn't upload the avatar.": {
     "note": "Settings error after a failed avatar upload.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:205",
+      "apps/web/src/features/account/settings/Profile.tsx:211",
       "apps/web/src/server/account/profile.ts:155"
     ]
   },
@@ -1304,8 +1304,8 @@
   "Delete account": {
     "note": "Settings heading and press: deletes the account.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:164",
-      "apps/web/src/features/account/settings/Account.tsx:189"
+      "apps/web/src/features/account/settings/Account.tsx:168",
+      "apps/web/src/features/account/settings/Account.tsx:193"
     ]
   },
   "Delete collection": {
@@ -1356,6 +1356,12 @@
     "note": "Press (a cross) that closes the embed notice.",
     "refs": [
       "apps/web/src/app/EmbedNotice.tsx:52"
+    ]
+  },
+  "Display name": {
+    "note": "Field: the account's display name, the name readers see on the palettes it liked first and in its collections' addresses.",
+    "refs": [
+      "apps/web/src/features/account/settings/Profile.tsx:339"
     ]
   },
   "Doesn't fit the collection": {
@@ -1460,7 +1466,7 @@
     "refs": [
       "apps/web/src/features/account/LoginPage.tsx:321",
       "apps/web/src/features/account/PasswordPage.tsx:61",
-      "apps/web/src/features/account/settings/Account.tsx:45"
+      "apps/web/src/features/account/settings/Account.tsx:46"
     ]
   },
   "Email sign-in is busy. Try again later or use Google.": {
@@ -1472,7 +1478,7 @@
   "Email verification": {
     "note": "Settings: label of whether the email is verified.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:51"
+      "apps/web/src/features/account/settings/Account.tsx:52"
     ]
   },
   "Email · optional": {
@@ -2017,7 +2023,7 @@
       "apps/web/src/features/account/settings/NewsletterSends.tsx:239"
     ]
   },
-  "It can see your name and username, and see and change your saved palettes and collections.": {
+  "It can see your name and display name, and see and change your saved palettes and collections.": {
     "note": "The page where a reader allows an AI app: what the app can do with the account.",
     "refs": [
       "apps/web/src/features/connect/Connect.tsx:272"
@@ -2044,19 +2050,19 @@
   "JPG, PNG or WebP, up to 5MB.": {
     "note": "Settings: line beside the avatar press.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:327"
+      "apps/web/src/features/account/settings/Profile.tsx:333"
     ]
   },
   "Joined": {
     "note": "Settings: label of the date the account was created.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:61"
+      "apps/web/src/features/account/settings/Account.tsx:62"
     ]
   },
   "Keep current avatar": {
     "note": "Press after picking a new avatar: drops the new one before it is saved.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:325"
+      "apps/web/src/features/account/settings/Profile.tsx:331"
     ]
   },
   "Keyboard shortcuts": {
@@ -2171,7 +2177,7 @@
   "Letters, numbers, underscores and hyphens.": {
     "note": "Line under the username field: the characters allowed.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:96"
+      "apps/web/src/features/account/settings/Profile.tsx:98"
     ]
   },
   "Light": {
@@ -2431,7 +2437,7 @@
     "note": "The newsletter, its page and its Settings switch.",
     "refs": [
       "apps/web/src/app/site.ts:36",
-      "apps/web/src/features/account/settings/Privacy.tsx:61",
+      "apps/web/src/features/account/settings/Newsletter.tsx:60",
       "apps/web/src/features/account/settings/flags.ts:60",
       "apps/web/src/features/newsletter/NewsletterPage.tsx:142",
       "apps/web/src/lib/page-meta.ts:320"
@@ -2533,7 +2539,8 @@
       "apps/web/src/server/newsletter/routes.ts:135",
       "apps/web/src/server/newsletter/routes.ts:64",
       "apps/web/src/server/pipeline.ts:158",
-      "apps/web/src/server/pipeline.ts:170"
+      "apps/web/src/server/pipeline.ts:163",
+      "apps/web/src/server/pipeline.ts:174"
     ]
   },
   "Not in the gallery or a collection": {
@@ -2545,13 +2552,13 @@
   "Not now": {
     "note": "Settings, Profile: declines the offer to show the username on palettes. It stays off.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:374"
+      "apps/web/src/features/account/settings/Profile.tsx:380"
     ]
   },
   "Not verified": {
     "note": "Settings: the email is not verified.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:56"
+      "apps/web/src/features/account/settings/Account.tsx:57"
     ]
   },
   "Not you? <switch>Use another account</switch>": {
@@ -2949,7 +2956,7 @@
     "note": "Settings and the password page: the password field's label.",
     "refs": [
       "apps/web/src/features/account/PasswordPage.tsx:63",
-      "apps/web/src/features/account/settings/Account.tsx:113"
+      "apps/web/src/features/account/settings/Account.tsx:117"
     ]
   },
   "Paste a link to one palette.": {
@@ -3052,7 +3059,7 @@
   "Permanently delete your account and saved palettes.": {
     "note": "Settings: line under Delete account.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:168"
+      "apps/web/src/features/account/settings/Account.tsx:172"
     ]
   },
   "Pick color": {
@@ -3213,8 +3220,7 @@
   "Privacy": {
     "note": "Footer link to the Privacy Policy.",
     "refs": [
-      "apps/web/src/app/site.ts:74",
-      "apps/web/src/features/account/settings/Privacy.tsx:167"
+      "apps/web/src/app/site.ts:74"
     ]
   },
   "Privacy policy": {
@@ -3234,13 +3240,13 @@
   "Profile": {
     "note": "Settings section: username and avatar.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:269"
+      "apps/web/src/features/account/settings/Profile.tsx:275"
     ]
   },
   "Profile, account and privacy.": {
     "note": "Settings: line under the page title.",
     "refs": [
-      "apps/web/src/features/account/SettingsPage.tsx:48"
+      "apps/web/src/features/account/SettingsPage.tsx:47"
     ]
   },
   "Publish and schedule palettes and collections, and edit or remove ones the site made.": {
@@ -3558,7 +3564,7 @@
   "Rising palettes and new features, about once a month, to {email}.": {
     "note": "Settings: line under the newsletter switch.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:66"
+      "apps/web/src/features/account/settings/Newsletter.tsx:65"
     ]
   },
   "Rising palettes and new features, about once a month.": {
@@ -3609,8 +3615,8 @@
   "Save": {
     "note": "Press: saves. Also the submit press of a form, and an admin's Save in the editor.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:122",
-      "apps/web/src/features/account/settings/Profile.tsx:351",
+      "apps/web/src/features/account/settings/Account.tsx:126",
+      "apps/web/src/features/account/settings/Profile.tsx:357",
       "apps/web/src/features/collections/Actions.tsx:344",
       "apps/web/src/features/collections/Actions.tsx:345",
       "apps/web/src/features/collections/CollectionPage.tsx:704",
@@ -3672,7 +3678,7 @@
       "apps/web/src/app/Frames.tsx:77",
       "apps/web/src/app/OfflineList.tsx:11",
       "apps/web/src/app/Shell.tsx:160",
-      "apps/web/src/features/account/settings/Profile.tsx:273",
+      "apps/web/src/features/account/settings/Profile.tsx:279",
       "apps/web/src/lib/page-meta.ts:372",
       "apps/web/src/lib/page-meta.ts:468"
     ]
@@ -3692,17 +3698,17 @@
   "Saved.": {
     "note": "Status after a save.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:101",
-      "apps/web/src/features/account/settings/Profile.tsx:227",
+      "apps/web/src/features/account/settings/Account.tsx:105",
+      "apps/web/src/features/account/settings/Profile.tsx:233",
       "apps/web/src/features/collections/Actions.tsx:94",
       "apps/web/src/features/collections/Heading.tsx:102",
       "apps/web/src/features/collections/Heading.tsx:84"
     ]
   },
-  "Saved. Your name was taken off palettes until the new username is checked. Turn it on again in Privacy.": {
-    "note": "Settings, Profile: status after a new username was saved but could not be checked, so it is no longer shown on palettes until the person turns it on again.",
+  "Saved. Your display name was taken off palettes until the new one is checked. Turn it on again below.": {
+    "note": "Settings, Profile: status after a new display name was saved but could not be checked, so it is no longer shown on palettes until the person turns it on again.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:224"
+      "apps/web/src/features/account/settings/Profile.tsx:230"
     ]
   },
   "Saving": {
@@ -3714,10 +3720,10 @@
   "Saving…": {
     "note": "Press or status while a save is under way.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:122",
-      "apps/web/src/features/account/settings/Account.tsx:94",
-      "apps/web/src/features/account/settings/Profile.tsx:192",
-      "apps/web/src/features/account/settings/Profile.tsx:351",
+      "apps/web/src/features/account/settings/Account.tsx:126",
+      "apps/web/src/features/account/settings/Account.tsx:98",
+      "apps/web/src/features/account/settings/Profile.tsx:198",
+      "apps/web/src/features/account/settings/Profile.tsx:357",
       "apps/web/src/features/collections/Actions.tsx:344",
       "apps/web/src/features/collections/Heading.tsx:240",
       "apps/web/src/features/editor/Controls.tsx:459",
@@ -3918,7 +3924,7 @@
       "apps/web/src/app/AccountMenu.tsx:119",
       "apps/web/src/app/AccountMenu.tsx:130",
       "apps/web/src/app/site.ts:33",
-      "apps/web/src/features/account/SettingsPage.tsx:46",
+      "apps/web/src/features/account/SettingsPage.tsx:45",
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:80",
       "apps/web/src/lib/page-meta.ts:366"
     ]
@@ -3961,10 +3967,10 @@
       "apps/web/src/mcp-view/PaletteView.tsx:700"
     ]
   },
-  "Show my username": {
-    "note": "Settings, Profile: accepts the offer to show the username on the palettes the account liked first.",
+  "Show my display name": {
+    "note": "Settings, Profile: accepts the offer to show the display name on the palettes the account liked first.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:382"
+      "apps/web/src/features/account/settings/Profile.tsx:388"
     ]
   },
   "Show or hide panel": {
@@ -3999,16 +4005,16 @@
       "apps/web/src/features/account/settings/flags.ts:61"
     ]
   },
-  "Show your username on the palettes you liked first?": {
-    "note": "Settings, Profile: question offered after a username is saved. Anyone can see the username on those palettes.",
+  "Show your display name on the palettes you liked first?": {
+    "note": "Settings, Profile: question offered after a display name is saved. Anyone can see the display name on those palettes.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:358"
+      "apps/web/src/features/account/settings/Profile.tsx:364"
     ]
   },
-  "Shows your username on the palettes you liked first. Anyone can see it.": {
-    "note": "Settings, Privacy: the line under 'Your name on palettes'.",
+  "Shows your display name on the palettes you liked first. Anyone can see it.": {
+    "note": "Settings, Profile: the line under 'Your display name on palettes'.",
     "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:134"
+      "apps/web/src/features/account/settings/Credit.tsx:63"
     ]
   },
   "Sign in": {
@@ -4021,7 +4027,7 @@
       "apps/web/src/features/account/LoginPage.tsx:361",
       "apps/web/src/features/account/PasswordPage.tsx:59",
       "apps/web/src/features/account/PasswordPage.tsx:70",
-      "apps/web/src/features/account/settings/Profile.tsx:293",
+      "apps/web/src/features/account/settings/Profile.tsx:299",
       "apps/web/src/features/collections/CollectionsPage.tsx:474",
       "apps/web/src/features/connect/McpServer.tsx:133",
       "apps/web/src/features/gallery/Home.tsx:296",
@@ -4048,7 +4054,7 @@
   "Sign in to change your profile.": {
     "note": "Settings: line under Profile when signed out.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:282"
+      "apps/web/src/features/account/settings/Profile.tsx:288"
     ]
   },
   "Sign in to confirm. This link expires in 24 hours.": {
@@ -4129,7 +4135,7 @@
     "note": "Press: signs out.",
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:134",
-      "apps/web/src/features/account/settings/Account.tsx:40"
+      "apps/web/src/features/account/settings/Account.tsx:41"
     ]
   },
   "Signed in, this page lists the apps you connected: disconnect the ones you no longer use.": {
@@ -4223,9 +4229,9 @@
       "apps/web/src/features/account/session.ts:385",
       "apps/web/src/features/account/settings/Admin.tsx:191",
       "apps/web/src/features/account/settings/Admin.tsx:45",
+      "apps/web/src/features/account/settings/Credit.tsx:45",
+      "apps/web/src/features/account/settings/Newsletter.tsx:47",
       "apps/web/src/features/account/settings/NewsletterSends.tsx:156",
-      "apps/web/src/features/account/settings/Privacy.tsx:116",
-      "apps/web/src/features/account/settings/Privacy.tsx:48",
       "apps/web/src/features/collections/client.ts:54",
       "apps/web/src/features/connect/ConnectedApps.tsx:24",
       "apps/web/src/features/newsletter/Picker.tsx:124",
@@ -4419,6 +4425,26 @@
       "apps/web/src/server/account/sync.ts:254"
     ]
   },
+  "That display name is reserved.": {
+    "note": "Settings: line under the display name field for a name the site keeps for itself.",
+    "refs": [
+      "apps/web/src/features/account/username.ts:55",
+      "apps/web/src/server/account/profile.ts:21"
+    ]
+  },
+  "That display name is taken.": {
+    "note": "Settings: line under the display name field.",
+    "refs": [
+      "apps/web/src/features/account/settings/Profile.tsx:168",
+      "apps/web/src/server/account/profile.ts:105"
+    ]
+  },
+  "That display name isn't allowed.": {
+    "note": "Settings: line under the display name field when it holds an offensive word.",
+    "refs": [
+      "apps/web/src/server/account/profile.ts:19"
+    ]
+  },
   "That palette isn't in the gallery or an agent collection.": {
     "note": "Admin error.",
     "refs": [
@@ -4444,26 +4470,6 @@
     "note": "Admin Settings, the newsletter's send: refused because the send moved on since the page read it.",
     "refs": [
       "apps/web/src/server/newsletter/sends.ts:296"
-    ]
-  },
-  "That username is reserved.": {
-    "note": "Username error.",
-    "refs": [
-      "apps/web/src/features/account/username.ts:55",
-      "apps/web/src/server/account/profile.ts:21"
-    ]
-  },
-  "That username is taken.": {
-    "note": "Settings: line under the username field.",
-    "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:162",
-      "apps/web/src/server/account/profile.ts:105"
-    ]
-  },
-  "That username isn't allowed.": {
-    "note": "Settings: line under the username field when it holds an offensive word.",
-    "refs": [
-      "apps/web/src/server/account/profile.ts:19"
     ]
   },
   "The app is connected. You can close this tab.": {
@@ -4661,6 +4667,12 @@
       "apps/web/src/features/account/settings/NewsletterSends.tsx:188"
     ]
   },
+  "This display name can't be shown on palettes. Choose another to turn this on.": {
+    "note": "Settings error: an automatic check found the display name offensive, so it is not shown on palettes. The account keeps the display name.",
+    "refs": [
+      "apps/web/src/server/account/credit.ts:20"
+    ]
+  },
   "This link expires in 5 minutes. If you didn't ask for it, ignore this email.": {
     "note": "Email: the line under the sign-in button.",
     "refs": [
@@ -4744,12 +4756,6 @@
       "packages/ui/src/sizes.ts:166"
     ]
   },
-  "This username can't be shown on palettes. Choose another to turn this on.": {
-    "note": "Settings error: an automatic check found the username offensive, so it is not shown on palettes. The account keeps the username.",
-    "refs": [
-      "apps/web/src/server/account/credit.ts:20"
-    ]
-  },
   "Title": {
     "note": "Field: a collection's title.",
     "refs": [
@@ -4798,7 +4804,7 @@
     "note": "Error: a rate limit was reached.",
     "refs": [
       "apps/web/src/routes/api/saved.ts:28",
-      "apps/web/src/server/pipeline.ts:253"
+      "apps/web/src/server/pipeline.ts:257"
     ]
   },
   "Too many searches. Try again in a moment.": {
@@ -4956,10 +4962,10 @@
       "apps/web/src/features/collections/Actions.tsx:280"
     ]
   },
-  "Update your username and avatar.": {
+  "Update your display name and avatar.": {
     "note": "Settings: line under Profile.",
     "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:279"
+      "apps/web/src/features/account/settings/Profile.tsx:285"
     ]
   },
   "Updated": {
@@ -5014,12 +5020,6 @@
       "apps/web/src/features/collections/schema.ts:208"
     ]
   },
-  "Username": {
-    "note": "Field: the account username.",
-    "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:333"
-    ]
-  },
   "Uses Workers AI for words the search doesn't know.": {
     "note": "Admin: line under Search by meaning.",
     "refs": [
@@ -5029,7 +5029,7 @@
   "Verified": {
     "note": "Settings: the email is verified.",
     "refs": [
-      "apps/web/src/features/account/settings/Account.tsx:55"
+      "apps/web/src/features/account/settings/Account.tsx:56"
     ]
   },
   "View saved.": {
@@ -5195,7 +5195,7 @@
     "refs": [
       "apps/web/src/app/ErrorPage.tsx:32",
       "apps/web/src/app/OfflineList.tsx:38",
-      "apps/web/src/features/account/settings/Profile.tsx:347",
+      "apps/web/src/features/account/settings/Profile.tsx:353",
       "apps/web/src/features/collections/CollectionPage.tsx:713"
     ]
   },
@@ -5268,6 +5268,18 @@
       "apps/web/src/server/collections/copies.ts:339"
     ]
   },
+  "Your display name now shows on the palettes you liked first.": {
+    "note": "Settings, Profile: status after the display name was turned on for palettes.",
+    "refs": [
+      "apps/web/src/features/account/settings/Profile.tsx:253"
+    ]
+  },
+  "Your display name on palettes": {
+    "note": "Settings, Profile: label of the switch that shows the account's display name on the palettes it liked first.",
+    "refs": [
+      "apps/web/src/features/account/settings/Credit.tsx:58"
+    ]
+  },
   "Your image": {
     "note": "Heading over the reader's own image after a search by image, with points on it that pick its colors. Also the image's accessible name.",
     "refs": [
@@ -5276,22 +5288,10 @@
       "apps/web/src/features/search/PictureSampler.tsx:27"
     ]
   },
-  "Your name on palettes": {
-    "note": "Settings, Privacy: label of the switch that shows the account's username on the palettes it liked first.",
-    "refs": [
-      "apps/web/src/features/account/settings/Privacy.tsx:129"
-    ]
-  },
   "Your saved Grabient palettes.": {
     "note": "Saved page description.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:373"
-    ]
-  },
-  "Your username now shows on the palettes you liked first.": {
-    "note": "Settings, Profile: status after the username was turned on for palettes.",
-    "refs": [
-      "apps/web/src/features/account/settings/Profile.tsx:247"
     ]
   },
   "agent": {

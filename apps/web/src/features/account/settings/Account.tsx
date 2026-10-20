@@ -15,14 +15,15 @@ import {
   forgetAccount,
   signOut
 } from "../session.ts";
+import { NewsletterChoice } from "./Newsletter.tsx";
 import styles from "./Settings.module.css";
 
 // a row keeps its line's height while the account it is for has not answered
 const UNKNOWN = "\u00a0";
 
-/** The account itself: its address, whether it is verified, when it joined, and the way out. A sign-out that fails
-    says so on the profile's line, since a reader on a shared computer must not walk away signed in. Until the session
-    answers there is no account to show: the rows stand empty. */
+/** The account itself: its address, whether it is verified, when it joined, the newsletter sent to that address, and
+    the way out. A sign-out that fails says so on the profile's line, since a reader on a shared computer must not walk
+    away signed in. Until the session answers there is no account to show: the rows stand empty. */
 export function AccountSection(props: { account?: Account; onFailure: (words: string) => void }) {
   return (
     <section class={styles.section} id="account">
@@ -72,6 +73,9 @@ export function AccountSection(props: { account?: Account; onFailure: (words: st
           </dd>
         </div>
       </dl>
+      <div class={styles.choices}>
+        <NewsletterChoice />
+      </div>
       <Show when={props.account?.reviewer}>
         <ReviewerPassword />
       </Show>

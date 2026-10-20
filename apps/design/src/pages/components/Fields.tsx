@@ -30,7 +30,7 @@ export function Fields() {
           <Cell caption="help" column>
             <span class={styles.fill}>
               <Field
-                label={t("Username")}
+                label={t("Display name")}
                 name="field-help"
                 value="ada"
                 help={t("Letters, numbers, underscores and hyphens.")}
@@ -40,7 +40,7 @@ export function Fields() {
           <Cell caption="invalid" column>
             <span class={styles.fill}>
               <Field
-                label={t("Username")}
+                label={t("Display name")}
                 name="field-invalid"
                 value="ada!"
                 invalid
@@ -50,7 +50,7 @@ export function Fields() {
           </Cell>
           <Cell caption="disabled" column>
             <span class={styles.fill}>
-              <Field label={t("Username")} name="field-disabled" value="ada" disabled />
+              <Field label={t("Display name")} name="field-disabled" value="ada" disabled />
             </span>
           </Cell>
         </Cells>
@@ -84,7 +84,7 @@ export function Fields() {
         <Rules
           rules={[
             "The help line is the one place for validation; never add a second line.",
-            "Labels are nouns: Email, Username. Inputs are 16px on a coarse pointer.",
+            "Labels are nouns: Email, Display name. Inputs are 16px on a coarse pointer.",
             "The rim takes the wordmark bar's colors, so a field and the bar agree.",
             "The label names the input; the help line describes it, read aloud as it changes."
           ]}

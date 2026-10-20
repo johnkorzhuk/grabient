@@ -90,7 +90,7 @@ How German says Grabient's words. Read `README.md` for what each word means here
 | admin / admin tools | Admin, Admins / Admin-Tools | The short word German developers use, the Settings section's heading included: „Admin-Konten“, „Nur Admins können …“. |
 | lead (a newsletter issue's lead palette, admins only) | Hauptpalette | The palette an issue opens with: „Als Hauptpalette verwenden“, „Nächste Hauptpalette“, „{at} von {count}“. |
 | avatar | Profilbild | |
-| username | Nutzername | |
+| display name | Anzeigename | What the code calls the username. |
 | agent | Agent, Agenten | „Grabient-Agenten“, „Agenten-Sammlungen“. |
 | gallery | Galerie | |
 | retry / try again | Erneut versuchen; in a sentence „Versuche es erneut.“ | „Try again later.“ is „Versuche es später erneut.“ The sign-in button's countdown says what it will do: „Erneut senden in 30 s“. |

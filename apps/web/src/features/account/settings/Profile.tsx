@@ -23,14 +23,16 @@ import {
   sessionReady
 } from "../session.ts";
 import { readUsername, USERNAME_MAX } from "../username.ts";
+import { CreditChoice } from "./Credit.tsx";
 import styles from "./Settings.module.css";
 
-/* The account's picture and username. The username's rules are the Worker's own (username.ts), so the field says what
-   the server would refuse, in the reader's language, under itself, where it is the field's description, and asks the
-   server whether the name is free, and allowed, half a second after the last keystroke. A picture is cropped to a
-   square and drawn at 256 by 256 as WebP in the browser, and sent with the name when Save is pressed. A username set
-   while it shows on no palette comes with an offer to show it on the palettes the account liked first, which stays
-   off unless taken (Privacy's switch); one set while it shows is checked again, and the line says if it went off. */
+/* The account's picture and display name, which readers see as its name: the code and the API call it the username. The
+   name's rules are the Worker's own (username.ts), so the field says what the server would refuse, in the reader's
+   language, under itself, where it is the field's description, and asks the server whether the name is free, and
+   allowed, half a second after the last keystroke. A picture is cropped to a square and drawn at 256 by 256 as WebP in
+   the browser, and sent with the name when Save is pressed. A name set while it shows on no palette comes with an offer
+   to show it on the palettes the account liked first, which stays off unless taken (the switch under the form); one
+   set while it shows is checked again, and the line says if it went off. */
 
 /** What a rename did to the account's name on palettes: still shown, or off until the new name is checked. A name
     the checks refuse is no name the server keeps. */
@@ -159,12 +161,16 @@ export function Profile(props: {
         if (turn !== asked) return;
         setAvailable(answer.available);
         setNameError(
-          answer.problem ? t(answer.problem) : answer.available ? "" : t("That username is taken.")
+          answer.problem
+            ? t(answer.problem)
+            : answer.available
+              ? ""
+              : t("That display name is taken.")
         );
       } catch {
         if (turn !== asked) return;
         setAvailable(false);
-        setNameError(t("Couldn't check the username. Try again."));
+        setNameError(t("Couldn't check the display name. Try again."));
       } finally {
         if (turn === asked) setChecking(false);
       }
@@ -222,7 +228,7 @@ export function Profile(props: {
       say(
         credit === "unchecked"
           ? t(
-              "Saved. Your name was taken off palettes until the new username is checked. Turn it on again in Privacy."
+              "Saved. Your display name was taken off palettes until the new one is checked. Turn it on again below."
             )
           : t("Saved.")
       );
@@ -244,7 +250,7 @@ export function Profile(props: {
       const id = account()?.id;
       if (id) queryClient.setQueryData(creditKey(id), on);
       setOffer(false);
-      say(t("Your username now shows on the palettes you liked first."));
+      say(t("Your display name now shows on the palettes you liked first."));
     } catch (error) {
       setOfferFailure(shownError(error, msg("Couldn't save.")));
     } finally {
@@ -276,7 +282,7 @@ export function Profile(props: {
           </Show>
         </div>
         <div class={styles.account}>
-          <Text variant="lede">{t("Update your username and avatar.")}</Text>
+          <Text variant="lede">{t("Update your display name and avatar.")}</Text>
         </div>
         <div class={styles.visitor}>
           <Text variant="lede">{t("Sign in to change your profile.")}</Text>
@@ -330,7 +336,7 @@ export function Profile(props: {
           {/* the value follows what was typed: Solid writes it again whenever another of the field's states
                 changes (an error shown, the connection lost), which would put the saved name back */}
           <Field
-            label={t("Username")}
+            label={t("Display name")}
             name="username"
             value={typed() ?? props.name()}
             autocomplete="username"
@@ -355,12 +361,12 @@ export function Profile(props: {
             <div class={styles.offer}>
               <div class={styles.choiceText}>
                 <Text variant="body" strong id="credit-offer">
-                  {t("Show your username on the palettes you liked first?")}
+                  {t("Show your display name on the palettes you liked first?")}
                 </Text>
                 <div class={styles.lines}>
                   <div class={[styles.cell, { [styles.unseen]: !!offerFailure() }]}>
                     <Text variant="small" as="p">
-                      {t("Anyone can see it there. You can change this in Privacy.")}
+                      {t("Anyone can see it there. You can change this below.")}
                     </Text>
                   </div>
                   <div class={styles.cell}>
@@ -379,12 +385,15 @@ export function Profile(props: {
                   disabled={offering() || offline()}
                   onClick={() => void showName()}
                 >
-                  {offering() ? t("Checking…") : t("Show my username")}
+                  {offering() ? t("Checking…") : t("Show my display name")}
                 </Button>
               </div>
             </div>
           </Show>
         </form>
+        <div class={[styles.choices, styles.account]}>
+          <CreditChoice />
+        </div>
       </Show>
     </section>
   );

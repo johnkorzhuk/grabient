@@ -52,7 +52,7 @@ export const Username = v.pipe(
   v.regex(/^[A-Za-z0-9](?:.*[A-Za-z0-9])?$/, msg("Start and end with a letter or number.")),
   v.check(
     name => !RESERVED.has(name.toLowerCase()) && !folded(name).includes(SITE),
-    msg("That username is reserved.")
+    msg("That display name is reserved.")
   )
 );
 

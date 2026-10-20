@@ -22,7 +22,7 @@ describe("Settings in the server's document", () => {
     expect(tag(html, "profile")).not.toContain("data-for");
     expect(html).toContain('href="/login?redirect=%2Fsettings"');
     expect(html).toMatch(/class="visitor"[^>]*><p[^>]*>Sign in to change your profile\./);
-    expect(html).toMatch(/class="account"[^>]*><p[^>]*>Update your username and avatar\./);
+    expect(html).toMatch(/class="account"[^>]*><p[^>]*>Update your display name and avatar\./);
     // the form stands where it will, and nothing in it can be changed or sent before the account answers
     expect(html).toMatch(/<form[^>]*class="form account"/);
     expect(html).toMatch(/<input[^>]*name="username"[^>]*disabled/);

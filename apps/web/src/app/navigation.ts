@@ -125,7 +125,7 @@ export function guardNavigation(): void {
   addEventListener("error", watchPulse);
 }
 
-/* an address to a part of its page (Settings' #privacy) lands the keyboard on that part */
+/* an address to a part of its page (Settings' #account) lands the keyboard on that part */
 function focusPart(hash: string): boolean {
   let id = hash.replace(/^#/, "");
   try {

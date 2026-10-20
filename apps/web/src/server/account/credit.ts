@@ -16,9 +16,9 @@ const Choice = v.object({ on: v.boolean() });
 const CHOICE_BODY_MAX = 64;
 
 /** Why the switch stays off, as Settings says it. */
-const NO_NAME = msg("Add a username in Profile to turn this on.");
-const UNFIT = msg("This username can't be shown on palettes. Choose another to turn this on.");
-const UNCHECKED = msg("Couldn't check the username. Try again.");
+const NO_NAME = msg("Add a display name to turn this on.");
+const UNFIT = msg("This display name can't be shown on palettes. Choose another to turn this on.");
+const UNCHECKED = msg("Couldn't check the display name. Try again.");
 
 /** What a check of a name an account wants on palettes allows: the name to keep for its credit, or why not. */
 export async function creditFor(

@@ -134,8 +134,8 @@ around it: يتراوح عدد أحرفه بين 1 و{max}، ما لا يزيد 
 | Straighten lightness | قوّم الإضاءة | تقويم can also read as "assessment", but the button's live sparkline and tooltip make the meaning plain. Its status: تم تقويم الإضاءة. |
 | Undo / Redo (the editor's) | تراجع / إعادة | The pair Arabic editors use, and the key list's. Their tooltips are the same names. A vote taken back is تراجع too. |
 | editor | المحرر | |
-| avatar / username | الصورة الرمزية / اسم المستخدم | |
-| letters (input rule) | الأحرف الإنجليزية | Only where the rule takes a–z alone, as the username validator does ([a-zA-Z0-9_-]). Plain الأحرف is right where any script is accepted (tags, collection titles: \p{L}). |
+| avatar / display name | الصورة الرمزية / الاسم المعروض | The display name is what the code calls the username; with a possessive, اسمك المعروض. |
+| letters (input rule) | الأحرف الإنجليزية | Only where the rule takes a–z alone, as the display name's validator does ([a-zA-Z0-9_-]). Plain الأحرف is right where any script is accepted (tags, collection titles: \p{L}). |
 | Layout / Gap / Padding / Corners / Columns (export grid) | التخطيط / الفاصل / الحشو / الاستدارة / الأعمدة | Corners is the rounding, in percent. |
 | Square / Story (export sizes) | مربع / قصة | |
 | This screen / Ultrawide / a foldable's inner and cover (export sizes) | هذه الشاشة / فائقة العرض / {device} الداخلية، {device} الخارجية | Feminine, for the unsaid الشاشة; the device keeps its own name. The noun stays out on purpose: a long row ends in an ellipsis before its pixels, and the word it would cut is the one that tells the two screens apart. |

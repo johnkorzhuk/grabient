@@ -11,8 +11,8 @@ import styles from "./Switches.module.css";
    The first two are live; the third waits for its second press, as a switch that reaches every visitor does. */
 const ROWS = [
   {
-    title: t("Your name on palettes"),
-    line: t("Shows your username on the palettes you liked first. Anyone can see it."),
+    title: t("Your display name on palettes"),
+    line: t("Shows your display name on the palettes you liked first. Anyone can see it."),
     on: true
   },
   {

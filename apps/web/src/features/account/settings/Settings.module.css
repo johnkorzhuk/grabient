@@ -86,6 +86,13 @@
   flex-direction: column;
   gap: var(--space-s8);
 }
+/* an account's switches under a section's own rows, as far from them as the rows of a list are from each other */
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s8);
+  padding-block-start: var(--space-s4);
+}
 .choice {
   display: flex;
   align-items: center;
@@ -110,7 +117,7 @@
 .settingControl {
   margin-inline-start: auto;
 }
-/* Profile's offer of the account's name on palettes, under the form once a username is set: its words and its two
+/* Profile's offer of the account's display name on palettes, under the form once a name is set: its words and its two
    answers at either end, as a setting's row is */
 .offer {
   display: flex;

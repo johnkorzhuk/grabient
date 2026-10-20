@@ -73,7 +73,7 @@ time; add a row when a new product word gets its translation.
 | sign in / sign out / account / settings | đăng nhập / đăng xuất / tài khoản / cài đặt | |
 | app / connect / disconnect / Allow (the consent page's press) | ứng dụng / kết nối / ngắt kết nối / Cho phép | "ứng dụng AI", "Ứng dụng đã kết nối". The MCP page says Chọn “Cho phép”, so the consent page's press is Cho phép. A custom connector is trình kết nối tùy chỉnh, an MCP server máy chủ MCP. |
 | sign-in link, sign-in code; Send link, Send code | liên kết đăng nhập, mã đăng nhập; Gửi liên kết, Gửi mã | The presses say only what they send. |
-| taken (a username or an address) | đã được sử dụng | Same wording for a username and an address: "Tên người dùng này đã được sử dụng", "Địa chỉ đó đã được sử dụng". |
+| taken (a display name or an address) | đã được sử dụng | Same wording for a display name and an address: "Tên hiển thị này đã được sử dụng", "Địa chỉ đó đã được sử dụng". To show the display name is hiện, which keeps clear of hiển thị. |
 | agent | tác nhân; AI agents: tác nhân AI | The word Vietnamese tech press uses. "seeding agents" = "các tác nhân tạo bảng màu". The people beside them are "người dùng": "do người dùng và các tác nhân Grabient tạo". |
 | reader, people (in admin lines) | khách truy cập | "khi khách truy cập nhấn Đang lên lần nữa". |
 | gallery | thư viện | The public list of palettes: "thư viện công khai", "Chỉ thư viện" (Gallery only). |

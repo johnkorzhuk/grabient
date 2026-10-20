@@ -16,9 +16,9 @@ import { type Fitness, fitToShow, refusedName } from "./screen.ts";
 /** Settings sends a 256 by 256 WebP of a few tens of kilobytes. */
 const AVATAR_MAX = 256 * 1024;
 /** A name holding a word no handle needs, or one Llama or Clef finds unfit to stand where others read it (screen.ts). */
-const REFUSED = msg("That username isn't allowed.");
+const REFUSED = msg("That display name isn't allowed.");
 /** An admin's username under another spelling: a card says theirs beside palettes as it would this one. */
-const RESERVED = msg("That username is reserved.");
+const RESERVED = msg("That display name is reserved.");
 
 /** Whether the name reads as another admin's username, however it is spelled (username.ts folded). */
 async function readsAsAdmin(env: Env, name: string, id: string): Promise<boolean> {
@@ -102,7 +102,7 @@ export async function saveUsername(request: Request, env: Env): Promise<Response
     username,
     id
   );
-  if (!wrote.changes) return json({ error: msg("That username is taken.") }, 409);
+  if (!wrote.changes) return json({ error: msg("That display name is taken.") }, 409);
   await moveAccountAddresses(
     env,
     id,

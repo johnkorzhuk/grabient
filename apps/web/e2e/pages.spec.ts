@@ -58,7 +58,7 @@ test("Settings arrives drawn for anyone, and holds no account's choices for a re
   await started(page);
   await expect(page).toHaveTitle("Settings | Grabient");
   await expect(page.getByRole("button", { name: "Theme: System" })).toBeVisible();
-  await expect(page.locator("#privacy")).toHaveCount(0);
+  await expect(page.getByRole("switch")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -493,7 +493,7 @@ test("a returning reader's Settings stands where its document drew it when the a
   await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
   const sections = () =>
     page.evaluate(() =>
-      ["profile", "account", "theme", "motion", "color-format", "privacy"].map(
+      ["profile", "account", "theme", "motion", "color-format"].map(
         id => document.getElementById(id)?.getBoundingClientRect().top
       )
     );
@@ -507,7 +507,7 @@ test("a returning reader's Settings stands where its document drew it when the a
   expect(await sections()).toEqual(drawn);
 });
 
-test("a username set in Settings comes with the offer to show it on the palettes the account liked first, off unless taken", async ({
+test("a display name set in Settings comes with the offer to show it on the palettes the account liked first, off unless taken", async ({
   page
 }) => {
   const account = {
@@ -558,22 +558,22 @@ test("a username set in Settings comes with the offer to show it on the palettes
   });
   await page.goto("/settings");
   await started(page);
-  // with no username there is nothing to show: the switch stands off and says where to add one
-  const credit = page.getByRole("switch", { name: "Your name on palettes" });
+  // with no display name there is nothing to show: the switch stands off and says to add one
+  const credit = page.getByRole("switch", { name: "Your display name on palettes" });
   await expect(credit).toHaveAttribute("aria-checked", "false");
   await expect(credit).toBeDisabled();
   await expect(page.locator("#credit-unnamed")).toBeVisible();
   await page.locator('#profile input[name="username"]').fill("ada-colors");
   await page.locator("#profile").getByRole("button", { name: "Save" }).click();
   const offer = page.getByRole("group", {
-    name: "Show your username on the palettes you liked first?"
+    name: "Show your display name on the palettes you liked first?"
   });
   await expect(offer).toBeVisible();
   expect(asked).toEqual([]);
-  await offer.getByRole("button", { name: "Show my username" }).click();
+  await offer.getByRole("button", { name: "Show my display name" }).click();
   await expect(offer).toHaveCount(0);
   await expect(page.locator("#profile")).toContainText(
-    "Your username now shows on the palettes you liked first."
+    "Your display name now shows on the palettes you liked first."
   );
   expect(asked).toEqual([{ on: true }]);
   await expect(credit).toHaveAttribute("aria-checked", "true");

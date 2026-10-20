@@ -597,10 +597,13 @@ describe("the profile", () => {
       post("/api/settings/username", { username: name.toLowerCase() }, { cookie: bob.cookie }),
       env
     );
-    expect([taken.status, await taken.json()]).toEqual([409, { error: "That username is taken." }]);
+    expect([taken.status, await taken.json()]).toEqual([
+      409,
+      { error: "That display name is taken." }
+    ]);
     for (const [username, problem] of [
       ["ab", "Use at least 3 characters."],
-      ["Admin", "That username is reserved."],
+      ["Admin", "That display name is reserved."],
       ["-ada", "Start and end with a letter or number."]
     ]) {
       const answer = await saveUsername(

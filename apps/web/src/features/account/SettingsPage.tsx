@@ -8,7 +8,6 @@ import { account, adminAccount, isAdmin, loadAccount, sessionReady } from "./ses
 import { AccountSection, DeletionSection } from "./settings/Account.tsx";
 import { AdminSection, SiteFeatures } from "./settings/Admin.tsx";
 import { ColorFormatSetting, MotionSetting, ThemeSetting } from "./settings/Appearance.tsx";
-import { PrivacySection } from "./settings/Privacy.tsx";
 import { Profile } from "./settings/Profile.tsx";
 import styles from "./settings/Settings.module.css";
 
@@ -71,13 +70,6 @@ export function SettingsPage(props: {
         <MotionSetting />
         <Rule />
         <ColorFormatSetting />
-        {/* the account's choices, drawn before the session answers as the account's own section is */}
-        <Show when={account() || !sessionReady()}>
-          <div class={styles.own} data-for={sessionReady() ? "account" : undefined}>
-            <Rule />
-            <PrivacySection />
-          </div>
-        </Show>
         <Show when={account()}>
           <Rule />
           <DeletionSection token={token} />

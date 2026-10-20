@@ -270,7 +270,7 @@ function Ready(props: { page: Extract<ConsentPage, { state: "ready" }>; language
       </div>
       <Text variant="body">
         {t(
-          "It can see your name and username, and see and change your saved palettes and collections."
+          "It can see your name and display name, and see and change your saved palettes and collections."
         )}
       </Text>
       <div class={styles.account}>

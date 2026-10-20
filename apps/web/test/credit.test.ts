@@ -187,7 +187,7 @@ describe("a username's checks", () => {
 
   it("no one takes the site's name, or an admin's, under another spelling", async () => {
     for (const name of ["Grabient1", "grabient_staff", "GRABlENT", "gr4bi3nt", "the-grabient"])
-      expect(readUsername(name).problem, name).toBe("That username is reserved.");
+      expect(readUsername(name).problem, name).toBe("That display name is reserved.");
     expect(readUsername("grab_bient").problem).toBeNull();
     const env = testEnv();
     const owner = await makeAdmin(env);
@@ -197,11 +197,11 @@ describe("a username's checks", () => {
     const spelled = theirs.replace(/^o/, "0").replace("l", "1");
     expect(await check(env, ada.cookie, spelled)).toEqual({
       available: false,
-      problem: "That username is reserved."
+      problem: "That display name is reserved."
     });
     expect(await rename(env, ada.cookie, spelled)).toEqual([
       400,
-      { error: "That username is reserved." }
+      { error: "That display name is reserved." }
     ]);
     // the admin's own name, and any other, stand
     expect(await rename(env, owner.cookie, theirs.toUpperCase())).toEqual([200, { success: true }]);
@@ -243,12 +243,12 @@ describe("a username's checks", () => {
     const ada = await makeAccount(env);
     expect(await check(env, ada.cookie, "fuck_you")).toEqual({
       available: false,
-      problem: "That username isn't allowed."
+      problem: "That display name isn't allowed."
     });
     for (const name of ["sh1thead", "bitch", handle("rude")])
       expect(await rename(env, ada.cookie, name), name).toEqual([
         400,
-        { error: "That username isn't allowed." }
+        { error: "That display name isn't allowed." }
       ]);
     expect(await rename(env, ada.cookie, handle("Fukuoka"))).toEqual([200, { success: true }]);
     // with no model to answer, a name the list passes is saved, and shows on no palette until judged
@@ -264,7 +264,7 @@ describe("an account's name on palettes", () => {
     expect(await choice(env, ada.cookie)).toEqual([200, { on: false }]);
     expect(await choice(env, ada.cookie, true)).toEqual([
       409,
-      { error: "Add a username in Profile to turn this on." }
+      { error: "Add a display name to turn this on." }
     ]);
     const username = handle("ada");
     expect(await rename(env, ada.cookie, username)).toEqual([200, { success: true }]);
@@ -279,12 +279,12 @@ describe("an account's name on palettes", () => {
     const refused = testEnv({ AI: models(() => true).ai });
     expect(await choice(refused, ada.cookie, true)).toEqual([
       422,
-      { error: "This username can't be shown on palettes. Choose another to turn this on." }
+      { error: "This display name can't be shown on palettes. Choose another to turn this on." }
     ]);
     const down = testEnv({ AI: models(() => new Error("down")).ai });
     expect(await choice(down, ada.cookie, true)).toEqual([
       503,
-      { error: "Couldn't check the username. Try again." }
+      { error: "Couldn't check the display name. Try again." }
     ]);
     expect(await choice(env, ada.cookie)).toEqual([200, { on: false }]);
   });
@@ -295,7 +295,7 @@ describe("an account's name on palettes", () => {
     await run(env.DB, "UPDATE auth_user SET credit_refused = ? WHERE id = ?", ada.username, ada.id);
     expect(await choice(env, ada.cookie, true)).toEqual([
       422,
-      { error: "This username can't be shown on palettes. Choose another to turn this on." }
+      { error: "This display name can't be shown on palettes. Choose another to turn this on." }
     ]);
     // another name is checked as any is
     expect(await rename(env, ada.cookie, handle("ada"))).toEqual([200, { success: true }]);
@@ -309,7 +309,7 @@ describe("an account's name on palettes", () => {
     );
     expect(await choice(env, old.cookie, true)).toEqual([
       422,
-      { error: "This username can't be shown on palettes. Choose another to turn this on." }
+      { error: "This display name can't be shown on palettes. Choose another to turn this on." }
     ]);
   });
 
@@ -349,7 +349,7 @@ describe("an account's name on palettes", () => {
     // a name the models refuse is never saved, and the shown one stands
     expect(await rename(env, ada.cookie, handle("rude"))).toEqual([
       400,
-      { error: "That username isn't allowed." }
+      { error: "That display name isn't allowed." }
     ]);
     expect(await choice(env, ada.cookie)).toEqual([200, { on: true }]);
     // with the switch off, a rename asks nothing of it and says nothing of it

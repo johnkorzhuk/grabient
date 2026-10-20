@@ -51,7 +51,7 @@ and add a row when a new product word gets its translation. Persian reads right 
 | tag | برچسب | |
 | sign-in link (emailed) | لینک ورود | "The link expires in 5 minutes" is لینک پس از 5 دقیقه منقضی می‌شود. |
 | theme | پوسته | Light / dark: پوسته روشن / پوسته تیره. Readers themselves say حالت تیره, but پوسته stays. |
-| avatar / username / profile | آواتار / نام کاربری / پروفایل | |
+| avatar / display name / profile | آواتار / نام نمایشی / پروفایل | The display name is what the code calls the username. |
 | recipes (About) | نمونه‌ها | |
 | fit (a palette in a collection) | تناسب | Good fit مناسب، Bad fit نامناسب. |
 | not found | پیدا نشد | Never اینجا نیست. |

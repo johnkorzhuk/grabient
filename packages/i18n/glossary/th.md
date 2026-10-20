@@ -100,7 +100,7 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | gallery | แกลเลอรี | |
 | tag | แท็ก | |
 | avatar | รูปโปรไฟล์ | |
-| username | ชื่อผู้ใช้ | |
+| display name | ชื่อที่แสดง | What the code calls the username; to show it on palettes is ให้…ปรากฏ, which keeps clear of แสดง. |
 | sign-in link, code | ลิงก์เข้าสู่ระบบ, รหัส | What the sign-in email sends: ส่งลิงก์, ส่งรหัส, รหัส 6 หลัก. Code to copy is โค้ด (คัดลอกโค้ด). |
 | theme, dark, light | ธีม, ธีมมืด, ธีมสว่าง | |
 | reduce motion | ลดการเคลื่อนไหว | The Settings section, named as iOS names the setting in Thai. Its button steps through ตามระบบ (System), เปิด (On) and ปิด (Off). Motion is การเคลื่อนไหว; animations are ภาพเคลื่อนไหว. |

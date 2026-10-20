@@ -80,7 +80,7 @@ time, and add a row when a new product word gets its translation.
 | tag | tag | |
 | sign-in link / code | tautan masuk / kode masuk | Send link is Kirim tautan, Send code Kirim kode, and while it waits Kirim ulang dalam # dtk (Resend there is the verb, not the company). Sign-in as a service (busy, unavailable) is layanan masuk; Google sign-in is Masuk dengan Google. |
 | theme | tema | Tema terang / Tema gelap. |
-| avatar / username / profile | avatar / nama pengguna / profil | |
+| avatar / display name / profile | avatar / nama tampilan / profil | The display name is what the code calls the username; to show it is memperlihatkan, which keeps clear of tampilan. |
 | email | email | The word Indonesian products use; surel is not. |
 | browser | browser | Judgment: the everyday word (Google and Microsoft Indonesian use it); peramban reads as a dictionary word. |
 | reset / undo / redo | atur ulang / urungkan / ulangi | |
