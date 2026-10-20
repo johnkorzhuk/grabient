@@ -43,8 +43,9 @@ const BUDGETS = {
   onDemand: 12,
   recorder: 106,
   names: 285,
-  // the Worker holds every language's messages as text from its start, the admins' among them
-  worker: 1490,
+  // the Worker holds every language's messages as text from its start, the admins' among them, and counts the pages
+  // browsers load with the admins' reader of those counts (server/visits, mcp/admin/visits.ts: 5 KiB)
+  worker: 1500,
   workerStart: 750,
   firstRequest: 165
 };

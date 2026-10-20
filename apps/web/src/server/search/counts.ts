@@ -18,6 +18,7 @@ import { type SEARCH_PAGES, SearchedBody } from "../../features/search/bodies.ts
 import { listWords } from "../../lib/words.ts";
 import { publicCollections, suggestCollections } from "../collections/search.ts";
 import { isCrawler } from "../crawlers.ts";
+import { countAct } from "../visits/count.ts";
 import { loadVocabulary } from "./files.ts";
 import { forgetPopular, mixSearches, rankSearches, tagWords } from "./popular.ts";
 
@@ -113,8 +114,10 @@ export async function searchedResponse(request: Request, env: Env): Promise<Resp
   const done = new Response(null, { status: 204, headers: NO_STORE });
   if (!sameOrigin(request) || isCrawler(request)) return done;
   const body = v.safeParse(SearchedBody, await readJson(request, 1024));
-  if (body.success)
+  if (body.success) {
     await countSearch(env, body.output.page, body.output.words, clientAddress(request) ?? "local");
+    await countAct(env, request, "search");
+  }
   return done;
 }
 

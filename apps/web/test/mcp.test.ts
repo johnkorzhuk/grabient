@@ -445,7 +445,7 @@ describe("the tools", () => {
     expect(JSON.stringify({ tools }).length).toBeLessThan(17_500);
   });
 
-  it("are the admins' twenty-nine more for an admin who chose them, every hint stated", async () => {
+  it("are the admins' thirty more for an admin who chose them, every hint stated", async () => {
     const env = testEnv();
     const { token } = await connected(env, { admin: true });
     const tools = (await rpc(env, token, "tools/list")).body?.result.tools as {
@@ -1986,6 +1986,40 @@ describe("the admins' tools", () => {
       }
     };
     expect((await call(refusing, token, "site_usage")).error).toBe(
+      "Analytics Engine could not be read: Input was invalid: no such field"
+    );
+  });
+
+  it("read the visits through the analytics binding, and say when none are counted yet", async () => {
+    const queries: string[] = [];
+    const ANALYTICS = {
+      async query({ query }: { query: string }) {
+        queries.push(query);
+        return { data: [] };
+      }
+    };
+    const env = testEnv({ ANALYTICS, DEPLOYMENT: "staging" });
+    const { token } = await connected(env, { admin: true });
+    expect((await call(env, token, "site_visits", { days: 3, limit: 5 })).value).toMatchObject({
+      dataset: "grabient_staging_usage",
+      days: 3,
+      empty: true,
+      daily: [],
+      note: "No visits counted yet: they are counted from the first deploy that counts them."
+    });
+    for (const query of queries)
+      expect(query).toContain(
+        "FROM events.analyticsEngine.grabient_staging_usage WHERE timestamp >= NOW() - INTERVAL '3' DAY AND blob1 = 'visit'"
+      );
+    const refusing = {
+      ...env,
+      ANALYTICS: {
+        query: async () => {
+          throw new Error("Input was invalid: no such field");
+        }
+      }
+    };
+    expect((await call(refusing, token, "site_visits")).error).toBe(
       "Analytics Engine could not be read: Input was invalid: no such field"
     );
   });

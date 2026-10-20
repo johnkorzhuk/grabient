@@ -34,6 +34,7 @@ test("each job runs these steps, in this order", () => {
   expect(Object.keys(TEN_MINUTES)).toEqual([
     "failing site",
     "github stars",
+    "visit keys",
     "seeding queue",
     "indexnow",
     "search snapshot"
@@ -144,7 +145,7 @@ test("every six hours: what is past keeping goes, the Popular tags and the score
   ]);
 });
 
-test("every ten minutes: the star count is kept and the search's snapshot is built from what is public", async () => {
+test("every ten minutes: the star count is kept, the visits' keys are made and the search's snapshot is built from what is public", async () => {
   // counts that show nothing failing: the check has nothing to say
   const env = testEnv({ ANALYTICS: { query: async () => ({ data: [] }) } });
   await run(
@@ -161,9 +162,16 @@ test("every ten minutes: the star count is kept and the search's snapshot is bui
   );
 
   // nothing is due in the queue, and a deploy that is not production's sends no list to the search engines
-  expect(await logged(env, "*/10 * * * *")).toEqual(["github stars", "search snapshot"]);
+  expect(await logged(env, "*/10 * * * *")).toEqual([
+    "github stars",
+    "visit keys",
+    "search snapshot"
+  ]);
 
   expect(await githubStars(env)).toBe(4321);
+  // today's key and tomorrow's, which the next run leaves as they are
+  const today = new Date().toISOString().slice(0, 10);
+  expect(await env.CACHE?.get(`visit-key:${today}`)).toMatch(/^[0-9a-f]{64}$/);
   expect((await env.SEARCH_SNAPSHOTS?.list())?.objects).toHaveLength(1);
   // a day's count and an unchanged site leave the next run nothing to say
   expect(await logged(env, "*/10 * * * *")).toEqual([]);

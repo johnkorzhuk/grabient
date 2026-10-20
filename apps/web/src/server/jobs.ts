@@ -13,6 +13,7 @@ import { pruneScheduled } from "./search/schedule.ts";
 import { syncSnapshot } from "./search/sync.ts";
 import { sendIndexNow } from "./seo/indexnow.ts";
 import { refreshStars } from "./seo/stars.ts";
+import { makeVisitKeys } from "./visits/keys.ts";
 
 /* The scheduled work, one job per trigger in cloudflare.config.ts. A job runs its steps in order; a step that fails
    is logged and the rest still run, and the run then fails as a whole so the dashboard shows it. A step answers what
@@ -57,6 +58,10 @@ export const TEN_MINUTES: Steps = {
   "github stars": async env => {
     const stars = await refreshStars(env);
     return when(stars.asked, stars);
+  },
+  "visit keys": async env => {
+    const made = await makeVisitKeys(env);
+    return when(Array.isArray(made) && made.length, { made });
   },
   "seeding queue": async env => {
     const report = await applyQueue(env);

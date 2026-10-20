@@ -38,6 +38,7 @@ import { countLegacy, legacyLanding } from "./seo/legacy.ts";
 import { fittedRedirect, oldFit } from "./seo/legacy-fit.ts";
 import { indexed, NOINDEX } from "./seo/site.ts";
 import { knowSite } from "./shared-reads.ts";
+import { countPage } from "./visits/count.ts";
 
 /* The Worker's pipeline around the app, in this order:
    1. grabient.com is answered only by the deploy made for it.
@@ -50,6 +51,7 @@ import { knowSite } from "./shared-reads.ts";
       answered there with its fit (seo/legacy-fit.ts). A list, a search or the home that no cache holds reads the
       database or runs the search: an address may make sixty of those a minute.
    6. The headers every answer carries.
+   7. A page a browser loaded for a reader is counted as a visit, after its answer (visits/visits.ts).
    Everything after step 3 reads the path without the language, and every address handed out gets it back. */
 
 /** What answers behind the pipeline: Start, and ahead of it the MCP and authorization servers (server.ts). */
@@ -100,6 +102,8 @@ export async function handle(
     return counted(env, path, refused);
   }
   knowSite(env);
+  // as the browser sent it: its headers and its place (request.cf) say who asked, for the visit's count
+  const sent = request;
   const { rest, tracking } = splitTracking(url.search);
   if (tracking) {
     url.search = rest;
@@ -114,7 +118,9 @@ export async function handle(
     console.error(error);
     response = json({ error: msg("Something went wrong. Try again.") }, { status: 500 });
   }
-  return counted(env, path, finish(request, url, path, env, response, tracking));
+  const finished = finish(request, url, path, env, response, tracking);
+  ctx.waitUntil(countPage(env, sent, path, locale, finished, tracking));
+  return counted(env, path, finished);
 }
 
 /** The answer, counted when the site could not give it: the owner's alert reads the count (alerts/alerts.ts). A

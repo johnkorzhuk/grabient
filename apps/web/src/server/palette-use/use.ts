@@ -12,6 +12,7 @@ import * as v from "valibot";
 import { NO_STORE } from "../../lib/cache.ts";
 import { isCrawler } from "../crawlers.ts";
 import { countedWords, type SearchPage } from "../search/counts.ts";
+import { countAct } from "../visits/count.ts";
 
 /* How readers use the site's public palettes, counted for seeding and read with the searches people make by the
    admins' tools. Likes need an account, and fit votes a press few make; what readers open, copy and download is the
@@ -202,6 +203,9 @@ export async function usedResponse(request: Request, env: Env): Promise<Response
     (await checkLimits(env, checks))?.success === true;
   if (!(await allowed([[`use:${address}`, "paletteUse", Math.max(1, input.items.length)]])))
     return done();
+  /* the reader used a palette, or a collection's page once present: a visit of its own, which says how many of a
+     day's visitors use the site */
+  await countAct(env, request, "use");
 
   /* where it happened: a public collection, and a search in the words the vocabulary knows; anything else is left out */
   const collection =

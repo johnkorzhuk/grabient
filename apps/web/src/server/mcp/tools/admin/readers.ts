@@ -26,6 +26,7 @@ import {
   viewsTaken
 } from "../../admin/signals.ts";
 import { readUsage } from "../../admin/usage.ts";
+import { readVisits } from "../../admin/visits.ts";
 import {
   answer,
   entryOf,
@@ -548,6 +549,37 @@ export const readerTools: readonly Tool[] = [
         ...(report.empty
           ? {
               note: "Nothing counted yet: the dataset appears with its first write, after a deploy with the USAGE binding."
+            }
+          : {})
+      });
+    }
+  },
+  {
+    name: "site_visits",
+    title: "Who visits the site",
+    hints: READS,
+    description:
+      "Visits counted by the site's own server from the pages browsers load, in the last days: each day's visitors, landings and pages loaded, and the share who used a palette, a collection or the search, about a third when only people are counted; people's pages by kind of page, language, country, device, browser and system; landings by page, the site that sent them and campaign tags; what was left out as programs (signals no browser sends, Chromium versions far behind, hosting networks); and the countries and networks whose visitors use palettes far less than the site's. A visitor is a code made with a key deleted when its day ends, so a reader on two days is two visitor-days. China and Vietnam are counted by pages alone. Nothing in them names a person.",
+    inputSchema: shape({
+      days: whole("The window in days, default 7.", 1, 90),
+      limit: whole("How many rows of each list, default 20.", 1, 200)
+    }),
+    async run(args, c) {
+      const days = num(args.days, 7, 1, 90);
+      const limit = num(args.limit, 20, 1, 200);
+      let report: Awaited<ReturnType<typeof readVisits>>;
+      try {
+        report = await readVisits(c.env, days, limit);
+      } catch (error) {
+        const why = error instanceof Error ? error.message.slice(0, 200) : "unknown error";
+        return refuse(`Analytics Engine could not be read: ${why}`);
+      }
+      if (typeof report === "string") return refuse(report);
+      return answer({
+        ...report,
+        ...(report.empty
+          ? {
+              note: "No visits counted yet: they are counted from the first deploy that counts them."
             }
           : {})
       });

@@ -845,3 +845,37 @@ test("an answer refused while an admin has its feature off is no failure", async
   await get("/api/png/query?query=red", {}, paused("share-images"));
   expect(counted.filter(point => point.startsWith("failure"))).toEqual([]);
 });
+
+describe("a visit", () => {
+  const navigating = {
+    Accept: "text/html",
+    "Accept-Language": "en",
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Safari/605.1.15",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Site": "cross-site",
+    Referer: "https://duckduckgo.com/"
+  };
+  const visits = () => counted.filter(point => point.startsWith("visit "));
+  test("is counted for a page a browser loads, after its answer, with the link's campaign tags", async () => {
+    const response = await get("/palettes?utm_source=newsletter&utm_campaign=october", {
+      headers: navigating
+    });
+    expect(response.status).toBe(200);
+    expect(visits()).toEqual([
+      "visit landing palettes en  desktop Safari 19 macOS   duckduckgo.com newsletter  october "
+    ]);
+  });
+  test("is not counted for a crawler, a fetch, a redirect or an answer that failed", async () => {
+    await get("/palettes", {
+      headers: { ...navigating, "User-Agent": "Mozilla/5.0 (compatible; bingbot/2.0)" }
+    });
+    await get("/palettes", { headers: { ...navigating, "Sec-Fetch-Mode": "cors" } });
+    await get("/palettes/", { headers: navigating });
+    // a page the edge holds is counted when it answers: this one it does not hold
+    await get("/collections", { headers: navigating }, () => page(404));
+    await get("/api/palettes", { headers: navigating }, () => Response.json({}));
+    expect(visits()).toEqual([]);
+  });
+});

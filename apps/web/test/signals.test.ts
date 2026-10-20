@@ -7,7 +7,8 @@ import { replayResponse } from "../src/server/analytics/replay.ts";
 import { clientErrorResponse } from "../src/server/client-errors/client-errors.ts";
 import { useRecord } from "../src/server/palette-use/record.ts";
 import { prunePaletteUse, usedResponse } from "../src/server/palette-use/use.ts";
-import { address, count, post, testEnv, unique } from "./helpers.ts";
+import { makeVisitKeys } from "../src/server/visits/keys.ts";
+import { address, count, ORIGIN, post, testEnv, unique } from "./helpers.ts";
 
 /* What readers' pages tell the Worker: palette use, client errors and the session recordings' way out. */
 
@@ -89,6 +90,34 @@ describe("palette use", () => {
       position: 2,
       view: "radialSwatches:9:45"
     });
+  });
+
+  it("is a visit of the page it was used on, under the day's code of the browser that used it", async () => {
+    const points: { indexes: string[]; blobs: string[] }[] = [];
+    const USAGE = { writeDataPoint: (point: (typeof points)[number]) => void points.push(point) };
+    const env = testEnv({ USAGE: USAGE as unknown as Env["USAGE"] });
+    await makeVisitKeys(env);
+    const seed = await galleryPalette(env);
+    const body = { action: "copy", format: "css", surface: "list", items: [{ seed, position: 0 }] };
+    const headers = {
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Safari/605.1.15",
+      "Accept-Language": "en",
+      Referer: `${ORIGIN}/de/palettes/rising`
+    };
+    const ip = address();
+    await usedResponse(post("/api/used", body, { ip, headers }), env);
+    await usedResponse(post("/api/used", { ...body, format: "hex" }, { ip, headers }), env);
+    const visits = points.filter(point => point.blobs[0] === "visit");
+    expect(visits.map(point => point.blobs.slice(1, 4))).toEqual([
+      ["use", "rising", "de"],
+      ["use", "rising", "de"]
+    ]);
+    expect(visits[0]!.indexes[0]).toMatch(/^[0-9a-f]{16}$/);
+    expect(visits[1]!.indexes[0]).toBe(visits[0]!.indexes[0]);
+    // a program's use is no visit
+    await usedResponse(post("/api/used", body, { ip, headers: { "User-Agent": "curl/8.9" } }), env);
+    expect(points.filter(point => point.blobs[0] === "visit")).toHaveLength(2);
   });
 
   it("counts nothing of a palette the site does not show, another site's page, or with its flag off", async () => {

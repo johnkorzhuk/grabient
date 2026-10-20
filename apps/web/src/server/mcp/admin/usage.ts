@@ -62,7 +62,8 @@ export async function readUsage(
     return Array.isArray(answer?.data) ? answer.data : [];
   };
   const span = Math.max(1, Math.min(90, Math.floor(days) || 7));
-  const from = `FROM events.analyticsEngine.${dataset} WHERE timestamp >= NOW() - INTERVAL '${span}' DAY`;
+  // visits are read apart (visits.ts): their many labels would crowd the other events out of the rows
+  const from = `FROM events.analyticsEngine.${dataset} WHERE timestamp >= NOW() - INTERVAL '${span}' DAY AND blob1 != 'visit'`;
   const [rows, daily] = await Promise.all([
     sql(`SELECT blob1 AS event, blob2 AS a, blob3 AS b, blob4 AS c, blob5 AS d, blob6 AS e, SUM(double1) AS n
       ${from} GROUP BY event, a, b, c, d, e ORDER BY n DESC LIMIT 5000`),

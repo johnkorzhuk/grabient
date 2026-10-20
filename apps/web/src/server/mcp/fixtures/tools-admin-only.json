@@ -476,6 +476,37 @@
     }
   },
   {
+    "name": "site_visits",
+    "title": "Who visits the site",
+    "description": "Visits counted by the site's own server from the pages browsers load, in the last days: each day's visitors, landings and pages loaded, and the share who used a palette, a collection or the search, about a third when only people are counted; people's pages by kind of page, language, country, device, browser and system; landings by page, the site that sent them and campaign tags; what was left out as programs (signals no browser sends, Chromium versions far behind, hosting networks); and the countries and networks whose visitors use palettes far less than the site's. A visitor is a code made with a key deleted when its day ends, so a reader on two days is two visitor-days. China and Vietnam are counted by pages alone. Nothing in them names a person.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "description": "The window in days, default 7.",
+          "minimum": 1,
+          "maximum": 90
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many rows of each list, default 20.",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Who visits the site",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
     "name": "credit_remove",
     "title": "Take a name off palettes",
     "description": "Take a reader's username off the palettes they liked first, at once and for good: the account cannot show that name there again, though a new username it takes is checked as any is. `restore` lets it show the name again once it turns the switch back on. An admin's name is the site's own.",
