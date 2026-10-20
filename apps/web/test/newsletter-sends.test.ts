@@ -901,8 +901,9 @@ describe("a send that meets trouble", () => {
     mailroom(() => Response.json({ id: "email" }));
     const env = production();
     const admin = await makeAdmin(env, `${unique("admin")}@inbox.grabient.dev`);
+    // twice: a read that fails so is asked once more (@grabient/server/db/d1.ts)
     await expect(
-      prepare(failing(env, "FROM k_newsletter_leads", 1), SITE, admin.id, 1, "admins")
+      prepare(failing(env, "FROM k_newsletter_leads", 2), SITE, admin.id, 1, "admins")
     ).rejects.toThrow(/D1_ERROR/);
     expect(await all(env.DB, "SELECT id FROM k_newsletter_sends")).toEqual([]);
   });

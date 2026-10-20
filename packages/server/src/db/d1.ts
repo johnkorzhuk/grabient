@@ -9,12 +9,33 @@ export type Statement = readonly [query: string, ...params: Param[]];
 
 const prepare = (db: Db, [query, ...params]: Statement) => db.prepare(query).bind(...params);
 
-export function first<T>(db: Db, query: string, ...params: Param[]): Promise<T | null> {
-  return prepare(db, [query, ...params]).first<T>();
+/* What D1 answers a read it could not make when its connection dropped or the database restarted under it, as it does
+   for Cloudflare's own updates, after asking twice itself at once: on 19 and 20 Oct 2026 about a dozen of grabient.com's
+   pages a day failed with these. A read is asked once more a moment later, which outlasts such a restart. A busy
+   database ("overloaded") is not asked again, as more asks are what it cannot take, and a write is never asked twice. */
+const PASSING =
+  /network connection lost|reset because its code was updated|storage caused object to be reset/i;
+const AGAIN_MS = 150;
+const reads = (query: string) =>
+  /^\s*(?:SELECT|WITH)\b/i.test(query) && !/\b(?:INSERT|UPDATE|DELETE|REPLACE)\b/i.test(query);
+
+async function asked<T>(query: string, ask: () => Promise<T>): Promise<T> {
+  try {
+    return await ask();
+  } catch (error) {
+    if (!reads(query) || !PASSING.test(error instanceof Error ? error.message : String(error)))
+      throw error;
+    await new Promise(resolve => setTimeout(resolve, AGAIN_MS + Math.random() * AGAIN_MS));
+    return ask();
+  }
 }
 
-export async function all<T>(db: Db, query: string, ...params: Param[]): Promise<T[]> {
-  return (await prepare(db, [query, ...params]).all<T>()).results;
+export function first<T>(db: Db, query: string, ...params: Param[]): Promise<T | null> {
+  return asked(query, () => prepare(db, [query, ...params]).first<T>());
+}
+
+export function all<T>(db: Db, query: string, ...params: Param[]): Promise<T[]> {
+  return asked(query, async () => (await prepare(db, [query, ...params]).all<T>()).results);
 }
 
 /** Runs a write and says what it changed (`changes`, `last_row_id`). */
