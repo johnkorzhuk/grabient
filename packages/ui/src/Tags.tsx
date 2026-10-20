@@ -41,8 +41,6 @@ export function Tags<T extends Tag>(props: {
   /** a word before the tags */
   lead?: string;
   tags: readonly T[];
-  /** a tag pressed, as the page gave it, with its place in the row */
-  onPick?: (tag: T, index: number) => void;
   /** the tags are on their way: while there are none, blocks stand in the row */
   loading?: boolean;
   /** for the design document: the tag at this place holds its colors open */
@@ -395,9 +393,6 @@ export function Tags<T extends Tag>(props: {
                   rel={tag().rel}
                   state={props.state}
                   disabled={tag().disabled}
-                  onClick={() => {
-                    if (!tag().disabled) props.onPick?.(tag(), index);
-                  }}
                 >
                   {/* the words are the readers' own: they read in their direction whatever the page's */}
                   <span dir="auto">{tag().label}</span>

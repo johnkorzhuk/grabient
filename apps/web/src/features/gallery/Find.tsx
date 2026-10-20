@@ -112,8 +112,7 @@ export function Find(props: {
             label: tag.label,
             colors: tag.colors,
             href,
-            rel: relTo(href),
-            english: tag.english
+            rel: relTo(href)
           };
         })
       )}

@@ -9,8 +9,8 @@ const BY_SEGMENT = new Map<string, Locale>(
   LOCALES.filter(l => LOCALE_INFO[l].segment).map(l => [LOCALE_INFO[l].segment, l])
 );
 const PREFIX = /^\/([A-Za-z]{2,3}(?:-[A-Za-z]{2,4})?)(?=\/|$)/;
-/* first segments that are never pages: data, the analytics beacon, the MCP and authorization endpoints, and the roots
-   of the build's files, which are files only beneath them */
+/* first segments that are never pages: data, the old analytics beacon's address, the MCP and authorization endpoints,
+   and the roots of the build's files, which are files only beneath them */
 const NOT_PAGES = new Set(["api", "e", "mcp", "oauth", ".well-known", "cdn-cgi"]);
 const FILE_ROOTS = new Set(["assets", "og", "fonts", "i18n"]);
 

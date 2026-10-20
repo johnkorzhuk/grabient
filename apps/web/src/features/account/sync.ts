@@ -739,8 +739,7 @@ async function syncOnce(c: Copy, forced: boolean, renamed = false): Promise<bool
       likes.push({
         seed: change.op.seed,
         liked: change.op.liked,
-        likesCount: result.likesCount ?? null,
-        view: { style: change.op.style, steps: change.op.steps, angle: change.op.angle }
+        likesCount: result.likesCount ?? null
       });
     }
   }

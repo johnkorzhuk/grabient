@@ -64,9 +64,9 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | email | e-mail | |
 | reset | redefinir | |
 | edit | editar | |
-| On / Off (the consent switch) | Sim / Não | Same width in both states, as On and Off are; the switch is a button that reads its state. In an admin switch's line, When off is "Quando desativado,". |
+| On / Off (a Settings switch) | Sim / Não | Same width in both states, as On and Off are; the switch is a button that reads its state. In an admin switch's line, When off is "Quando desativado,". |
 | As saved | Como foi salva | The style label when each palette keeps its own. |
-| Reduce motion (Settings) | Reduzir movimento | The name iOS and macOS give the same setting in pt-BR. Its button steps through "Sistema", "Sim" and "Não" (On and Off, as on the consent switch). Motion is "movimento". The System line is "Usa a configuração do seu dispositivo: sim" (the theme's: "…: escuro"): not "Segue o seu dispositivo", a calque that, opening a line, reads as "here is your device". |
+| Reduce motion (Settings) | Reduzir movimento | The name iOS and macOS give the same setting in pt-BR. Its button steps through "Sistema", "Sim" and "Não" (On and Off, as on a Settings switch). Motion is "movimento". The System line is "Usa a configuração do seu dispositivo: sim" (the theme's: "…: escuro"): not "Segue o seu dispositivo", a calque that, opening a line, reads as "here is your device". |
 | admin / Admin tools | administrador / Ferramentas de administração | The Settings section only an admin sees is "Administração": "Só administradores veem esta seção", "uma conta de administrador". The switch shows "curadoria, votos, notas para os agentes e publicação". |
 | Undo / Redo (the editor's, context `edit`) | Desfazer / Refazer | "Desfaça com {key}." |
 | Save to (where the selection goes) | Salvar em: Nova coleção / Suas coleções | The export column's head is "Salvar ou exportar". A status says where the palettes went with the neutral participle, whatever the count: "Adicionado a {title}", "Removido de {title}". |

@@ -580,6 +580,66 @@ test("a display name set in Settings comes with the offer to show it on the pale
   await expect(credit).toBeEnabled();
 });
 
+test("on a Settings page loaded whole, a newsletter save that fails says so and goes back, and a second press is sent", async ({
+  page
+}) => {
+  const account = {
+    id: "e2e-letter",
+    name: "Ada",
+    email: "ada@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "ada",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  const sent: boolean[] = [];
+  let failing = true;
+  let subscribed = true;
+  // the later a route is added, the sooner it answers
+  await page.route("**/api/me/**", route => route.fulfill({ status: 404, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: account.id }, user: account } })
+  );
+  await page.route("**/api/me/sync*", route =>
+    route.fulfill({
+      json: {
+        cursor: 1,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: false,
+        account
+      }
+    })
+  );
+  await page.route("**/api/me/credit", route => route.fulfill({ json: { on: false } }));
+  await page.route("**/api/me/newsletter", async route => {
+    if (route.request().method() !== "PUT") return route.fulfill({ json: { subscribed } });
+    const asked = (route.request().postDataJSON() as { subscribed: boolean }).subscribed;
+    sent.push(asked);
+    if (failing) return route.fulfill({ status: 503, json: { error: "Try again later." } });
+    subscribed = asked;
+    return route.fulfill({ json: { subscribed } });
+  });
+  // the section is drawn before the session answers, so the switch is made before there is an account to press for
+  await page.goto("/settings");
+  await started(page);
+  const letter = page.getByRole("switch", { name: "Newsletter" });
+  await expect(letter).toHaveAttribute("aria-checked", "true");
+  await letter.click();
+  await expect(letter).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator("#account")).toContainText("Try again later.");
+  // two presses in a row: the second waits for the first's answer, and is sent after it
+  failing = false;
+  await letter.click();
+  await letter.click();
+  await expect.poll(() => sent).toEqual([false, false, true]);
+  await expect(letter).toHaveAttribute("aria-checked", "true");
+});
+
 test("Settings keeps the still water under reduced motion, as the other brand pages do", async ({
   page
 }) => {

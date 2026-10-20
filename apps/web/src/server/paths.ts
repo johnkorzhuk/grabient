@@ -4,7 +4,7 @@ import { accountPage } from "../lib/links.ts";
    adds it here. */
 
 const PRIVATE_API =
-  /^\/api\/(auth(\/|$)|settings\/|likes(\/|$)|like-info$|like-counts$|saved$|contact$|geo$|me\/|search\/layers$|searched$|used$|client-error$)/;
+  /^\/api\/(auth(\/|$)|settings\/|likes(\/|$)|like-info$|like-counts$|saved$|contact$|me\/|search\/layers$|searched$|used$|client-error$)/;
 const within = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);
 
 /** Start's server functions, of which the app has none: Start answers any id there with a 500 and a logged error. */

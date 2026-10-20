@@ -24,14 +24,12 @@ import { seedQueryVector, snapshotPalettes } from "./rank.ts";
 import { knownQuery, plainPhrase } from "./read.ts";
 import { loadSnapshot, type SnapshotEnv } from "./snapshot.ts";
 
-/** A search as a tag: its words as a label, where a press leads, the colors of what answers, and the words. A tag that
-    says a translation keeps its phrase's English, which analytics name it by. */
+/** A search as a tag: its words as a label, where a press leads, the colors of what answers, and the words. */
 export interface SearchTag {
   label: string;
   href: string;
   colors: string[];
   query: string;
-  english?: string;
 }
 
 type TagEnv = SnapshotEnv & Pick<Env, "DB">;
@@ -267,7 +265,6 @@ export interface HomeTag {
   href: string;
   colors: string[];
   query?: string;
-  english?: string;
 }
 
 /** The home's row: searches and collections in turn. At rest no tag says again a word one before it said; with words,
@@ -347,7 +344,7 @@ async function inLanguage(
     if (!word || !vocabulary || tagWords(vocabulary, words) !== tag.query) return tag;
     return words === tag.query
       ? { ...tag, label: word }
-      : { ...tag, label: word, href: searchHref(words), query: words, english: tag.query };
+      : { ...tag, label: word, href: searchHref(words), query: words };
   });
 }
 

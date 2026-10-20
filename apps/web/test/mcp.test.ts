@@ -2007,9 +2007,10 @@ describe("the admins' tools", () => {
       daily: [],
       note: "No visits counted yet: they are counted from the first deploy that counts them."
     });
+    // whole UTC days: from the third midnight back, as an ISO time with its zone
     for (const query of queries)
-      expect(query).toContain(
-        "FROM events.analyticsEngine.grabient_staging_usage WHERE timestamp >= NOW() - INTERVAL '3' DAY AND blob1 = 'visit'"
+      expect(query).toMatch(
+        /FROM events\.analyticsEngine\.grabient_staging_usage WHERE timestamp >= '\d{4}-\d\d-\d\dT00:00:00Z' AND blob1 = 'visit'/
       );
     const refusing = {
       ...env,

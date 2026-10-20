@@ -11,10 +11,10 @@ import { ColorFormatSetting, MotionSetting, ThemeSetting } from "./settings/Appe
 import { Profile } from "./settings/Profile.tsx";
 import styles from "./settings/Settings.module.css";
 
-/* Settings. Theme, Reduce motion, Color format and the privacy choices belong to this browser and work signed out;
-   the profile, the account, the newsletter and the deletion belong to the account. An admin also sees the admin tools
-   switch, a test of the newsletter's sender and, with the tools on, the site's features. Deleting the account stands
-   last, after everything that can be taken back. */
+/* Settings. Theme, Reduce motion and Color format belong to this browser and work signed out; the profile with its
+   display name on palettes, the account with its newsletter, and the deletion belong to the account. An admin also
+   sees the admin tools switch, a test of the newsletter's sender and, with the tools on, the site's features. Deleting
+   the account stands last, after everything that can be taken back. */
 export function SettingsPage(props: {
   /** the deletion email's token, which the page takes out of the address as it reads it */
   token?: string;

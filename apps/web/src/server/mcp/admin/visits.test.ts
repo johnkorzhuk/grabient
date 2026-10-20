@@ -1,5 +1,6 @@
-import { describe, expect, test } from "vitest";
-import { behind, readVisits } from "./visits.ts";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { behind } from "../../visits/rules.ts";
+import { readVisits } from "./visits.ts";
 
 test("a Chromium more than six versions behind the one its people lead with is a program's", () => {
   const rows = [
@@ -13,29 +14,36 @@ test("a Chromium more than six versions behind the one its people lead with is a
     { browser: "Safari 19", visitors: 30 },
     { browser: "Firefox 120", visitors: 9 }
   ];
-  // a canary's few lead nothing, and a scraper's thousands on one old version do not hold the line back
+  // a beta's few lead nothing, and a scraper's thousands on one old version do not hold the line back
   expect(behind(rows)).toEqual({
     leading: { Chrome: 155, Edge: 155 },
     old: ["Chrome 145", "Chrome 99"]
   });
+  // a long window leaves room for the lead to have moved within it
+  expect(behind(rows, 2).old).toEqual(["Chrome 145", "Chrome 99"]);
+  expect(behind(rows, 10).old).toEqual(["Chrome 99"]);
   expect(behind([])).toEqual({ leading: {}, old: [] });
 });
 
 /** An ANALYTICS binding that answers each query by the first pattern it matches, and keeps what it was asked. */
-function binding(answers: [RegExp, Record<string, unknown>[]][]) {
+function binding(answers: [RegExp, Record<string, unknown>[]][], refuse?: RegExp) {
   const queries: string[] = [];
   return {
     queries,
     async query({ query }: { query: string }) {
       queries.push(query);
+      if (refuse?.test(query)) throw new Error("Input was invalid");
       return { data: answers.find(([pattern]) => pattern.test(query))?.[1] ?? [] };
     }
   };
 }
 
 describe("the visits read back", () => {
-  test("are a person's days, lists and checks, with what was left out as programs", async () => {
-    const day = "2026-10-19 00:00:00";
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+  test("are a person's whole days, lists and checks, with what was left out as programs", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-10-20T15:00:00Z"), toFake: ["Date"] });
     const ANALYTICS = binding([
       [
         /^SELECT blob7 AS browser/,
@@ -45,39 +53,52 @@ describe("the visits read back", () => {
         ]
       ],
       [
-        /blob2 AS what/,
+        /landings,/,
         [
-          { day, what: "landing", n: 100 },
-          { day, what: "load", n: 40 },
-          { day, what: "framed", n: 5 },
-          { day, what: "use", n: 30 }
+          { day: "2026-10-19 00:00:00", landings: 100, loads: 40, framed: 5, uncoded: 7, held: 3 },
+          { day: "2026-10-20 00:00:00", landings: 30, loads: 10, framed: 0, uncoded: 1, held: 1 }
         ]
       ],
-      [/^SELECT toStartOfDay.*blob2 IN \('landing', 'load'\).*blob15 = ''/, [{ day, n: 7 }]],
-      [/^SELECT toStartOfDay.*blob10 = 'held'/, [{ day, n: 3 }]],
-      [/^SELECT toStartOfDay.*blob2 IN \('landing', 'load'\)/, [{ day, visitors: 60 }]],
-      [/^SELECT toStartOfDay.*blob2 IN \('use', 'search'\)/, [{ day, visitors: 20 }]],
-      [/^SELECT blob5 AS value.*blob2 IN \('use', 'search'\)/, [{ value: "US", visitors: 19 }]],
       [
-        /^SELECT blob5 AS value.*LIMIT 200/,
+        /^SELECT toStartOfDay\(timestamp\) AS day, COUNT\(DISTINCT blob15\) AS visitors .*blob2 IN \('landing', 'load', 'framed'\)/s,
+        [
+          { day: "2026-10-19 00:00:00", visitors: 60 },
+          { day: "2026-10-20 00:00:00", visitors: 20 }
+        ]
+      ],
+      [
+        /^SELECT toStartOfDay\(timestamp\) AS day, COUNT\(DISTINCT blob15\) AS visitors .*blob2 IN \('use', 'search'\)/s,
+        [
+          { day: "2026-10-19 00:00:00", visitors: 20 },
+          { day: "2026-10-20 00:00:00", visitors: 6 }
+        ]
+      ],
+      [
+        /^SELECT blob5 AS value, COUNT\(DISTINCT blob15\) AS visitors .*blob2 IN \('use', 'search'\)/s,
+        [{ value: "US", visitors: 19 }]
+      ],
+      [
+        /^SELECT blob5 AS value, COUNT\(DISTINCT blob15\) AS visitors FROM.*LIMIT 200/s,
         [
           { value: "US", visitors: 30 },
           { value: "SG", visitors: 25 }
         ]
       ],
-      [/^SELECT blob5 AS value/, [{ value: "CN", visitors: 1, n: 12 }]],
+      // a code-less point counts as a visitor in COUNT(DISTINCT): one less where any was
+      [
+        /^SELECT blob5 AS value, COUNT\(DISTINCT blob15\) AS visitors, sumIf/s,
+        [
+          { value: "CN", visitors: 1, uncoded: 12, n: 12 },
+          { value: "US", visitors: 31, uncoded: 2, n: 90 }
+        ]
+      ],
+      [/^SELECT blob4 AS value/, [{ value: "en", visitors: 40, uncoded: 0, n: 80 }]],
       [
         /^SELECT blob12 AS source/,
-        [{ source: "newsletter", medium: "", campaign: "october", visitors: 4, n: 5 }]
+        [{ source: "newsletter", medium: "", campaign: "october", visitors: 4, uncoded: 0, n: 5 }]
       ],
-      [
-        /^SELECT COUNT\(DISTINCT blob15\) AS visitors, SUM\(double1\) AS n .*blob7 IN/,
-        [{ visitors: 300, n: 9000 }]
-      ],
-      [
-        /^SELECT COUNT\(DISTINCT blob15\) AS visitors, SUM\(double1\) AS n .*blob9 IN/,
-        [{ visitors: 2, n: 8 }]
-      ]
+      [/blob7 IN \('Chrome 145'\)/, [{ visitors: 300, uncoded: 0, n: 9000 }]],
+      [/blob9 IN \(/, [{ visitors: 3, uncoded: 1, n: 8 }]]
     ]);
     const report = await readVisits({ ANALYTICS, DEPLOYMENT: "staging" }, 7, 10);
     if (typeof report === "string") throw new Error(report);
@@ -93,33 +114,61 @@ describe("the visits read back", () => {
         share: 0.333,
         uncoded: 7,
         held: 3
+      },
+      {
+        day: "2026-10-20",
+        partial: true,
+        visitors: 20,
+        landings: 30,
+        loads: 10,
+        framed: 0,
+        acting: 6,
+        share: 0.3,
+        uncoded: 1,
+        held: 1
       }
     ]);
-    expect(report.totals).toMatchObject({ visitorDays: 60, averageVisitors: 60, share: 0.333 });
+    // the average is of whole days: today's so far is not one
+    expect(report.totals).toMatchObject({ visitorDays: 80, averageVisitors: 60, share: 0.325 });
     expect(report.programs).toMatchObject({
       leading: { Chrome: 155 },
       old: { visitors: 300, count: 9000 },
       hosting: { visitors: 2, count: 8 }
     });
+    expect(report.check).toMatchObject({ share: 0.325, usual: [0.2, 0.5], outside: false });
     // Singapore's 25 visitors used nothing: a program passing for browsers
-    expect(report.check).toMatchObject({ share: 0.333, usual: [0.2, 0.5], outside: false });
     expect(report.check.countries).toEqual([{ value: "SG", visitors: 25, count: 0 }]);
-    // China's pages carry no code
-    expect(report.by.country).toEqual([{ value: "CN", visitors: 0, count: 12 }]);
+    // China's pages carry no code; the US's code-less points add no visitor
+    expect(report.by.country).toEqual([
+      { value: "CN", visitors: 0, count: 12 },
+      { value: "US", visitors: 30, count: 90 }
+    ]);
     expect(report.landings.campaign).toEqual([
       { value: "newsletter /  / october", visitors: 4, count: 5 }
     ]);
-    /* a person's every query leaves out what the signals, the old versions and the hosting networks mark, and reads one
-       dataset under events.analyticsEngine bounded below in time, its sums weighed by the binding itself */
+    expect(report.failed).toBeUndefined();
+    /* a person's every query leaves out what the signals, the old versions and the large clouds mark, and reads one
+       dataset under events.analyticsEngine from the window's first midnight, its sums weighed by the binding itself */
     const people = ANALYTICS.queries.filter(query => query.includes("blob9 NOT IN"));
     expect(people.length).toBeGreaterThan(10);
     for (const query of people) expect(query).toContain("AND blob7 NOT IN ('Chrome 145')");
     for (const query of ANALYTICS.queries) {
       expect(query).toContain(
-        "FROM events.analyticsEngine.grabient_staging_usage WHERE timestamp >= NOW() - INTERVAL '7' DAY AND blob1 = 'visit'"
+        "FROM events.analyticsEngine.grabient_staging_usage WHERE timestamp >= '2026-10-13T00:00:00Z' AND blob1 = 'visit'"
       );
       expect(query).not.toMatch(/sample_?interval/i);
     }
+  });
+
+  test("leave a part a query was refused for empty, and name it", async () => {
+    const ANALYTICS = binding(
+      [[/^SELECT blob7 AS browser/, [{ browser: "Chrome 155", visitors: 5 }]]],
+      /blob11 AS value/
+    );
+    const report = await readVisits({ ANALYTICS, DEPLOYMENT: "staging" }, 3);
+    if (typeof report === "string") throw new Error(report);
+    expect(report.landings.referrer).toEqual([]);
+    expect(report.failed).toEqual(["referrers: Input was invalid"]);
   });
 
   test("say why a deploy cannot read them", async () => {

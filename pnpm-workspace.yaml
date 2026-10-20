@@ -46,10 +46,6 @@ onlyBuiltDependencies:
   - esbuild
   - workerd
 
-# posthog-js pulls in core-js, whose postinstall only prints a banner.
-ignoredBuiltDependencies:
-  - core-js
-
 patchedDependencies:
   # Saved client documents are read, never fetched; a fetched document follows no redirect; and no document client
   # authenticates with private_key_jwt, which would make a token request fetch the app's keys.

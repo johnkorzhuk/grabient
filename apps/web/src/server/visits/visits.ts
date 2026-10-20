@@ -2,8 +2,11 @@ import { isPagePath, type Locale, splitLocale } from "@grabient/i18n";
 import type { Env } from "@grabient/server/env.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { countUsageUnder } from "@grabient/server/usage/count.ts";
+import { isSeed } from "../../features/editor/address.ts";
 import { isCrawler } from "../crawlers.ts";
-import { dayOf, hex, keyName } from "./keys.ts";
+import { sendToGa4 } from "./ga4.ts";
+import { dayOf, hex, keyName, leadName } from "./keys.ts";
+import { HOSTING, tooOld } from "./rules.ts";
 
 /* Visits, counted by the Worker from what a browser asks for anyway: a page it loads, and the palette uses and searches
    a page already reports (/api/used, /api/searched). Nothing is stored on or read from the reader's device for them and
@@ -34,6 +37,8 @@ export interface Visit {
   what: VisitKind;
   page: string;
   language: string;
+  /** the page's path as the browser asked for it, for Google Analytics alone: the counts keep its kind */
+  path?: string;
   referrer?: string;
   source?: string;
   medium?: string;
@@ -49,6 +54,10 @@ const MINUTE = 60_000;
 const PROGRAM =
   /(?<!cu)bot|crawl|spider|headless|lighthouse|pagespeed|slurp|preview|python|curl\/|wget|httpclient|okhttp|java\/|go-http|scrapy|axios|node-fetch|undici|libwww|postman|phantomjs|puppeteer|playwright|selenium/i;
 const PREFETCH = /prefetch|prerender/i;
+/** A browser's reload, which asks again for what it holds. */
+const RELOAD = /max-age=0|no-cache/i;
+/** Where a sign-in sends the reader back from. */
+const SIGN_IN = new Set(["accounts.google.com"]);
 
 /** A program that names itself, a crawler, or a bot Cloudflare verified. */
 function automated(request: Request): boolean {
@@ -58,7 +67,6 @@ function automated(request: Request): boolean {
   return cf?.botManagement?.verifiedBot === true;
 }
 
-const SEED = /^k[A-Za-z0-9_-]{8,49}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** The pages named by their first segment. */
 const NAMED = new Set([
@@ -92,7 +100,8 @@ export function pageKind(path: string, query: URLSearchParams): string {
   if (more.length) return "other";
   if (second === "edit") return "editor";
   if (second && second !== "rising") return "other";
-  return SEED.test(first) ? "palette" : SLUG.test(first) ? "collection" : "other";
+  // a collection may be named like a seed (/kingfisher-blue): a seed is one that decodes
+  return isSeed(first) ? "palette" : SLUG.test(first) ? "collection" : "other";
 }
 
 /** The device by the browser's own hint, else its user agent. An iPad that asks for the desktop site is a desktop. */
@@ -205,17 +214,21 @@ export function pageVisit(
   if (!navigated(request)) return null;
   const url = new URL(request.url);
   const page = pageKind(path, url.searchParams);
-  if (request.headers.get("Sec-Fetch-Dest") === "iframe")
-    return { what: "framed", page, language: locale };
+  const at = { page, language: locale, path: url.pathname };
+  if (request.headers.get("Sec-Fetch-Dest") === "iframe") return { what: "framed", ...at };
   const from = referrerOf(request.headers.get("Referer"));
+  /* a reload keeps the Referer of the page's arrival, and a sign-in returns with Google's: both are loads, never a
+     second landing */
   const inside =
-    request.headers.get("Sec-Fetch-Site") === "same-origin" || from?.origin === url.origin;
-  if (inside) return { what: "load", page, language: locale };
+    request.headers.get("Sec-Fetch-Site") === "same-origin" ||
+    from?.origin === url.origin ||
+    RELOAD.test(request.headers.get("Cache-Control") ?? "") ||
+    (!!from && SIGN_IN.has(from.hostname));
+  if (inside) return { what: "load", ...at };
   const tags = new URLSearchParams(tracking);
   return {
     what: "landing",
-    page,
-    language: locale,
+    ...at,
     referrer: from?.hostname ?? "",
     source: tags.get("utm_source") ?? "",
     medium: tags.get("utm_medium") ?? "",
@@ -231,7 +244,7 @@ export function actVisit(request: Request, what: "use" | "search"): Visit | null
   const own = from && from.origin === new URL(request.url).origin ? from : null;
   if (!own) return { what, page: "", language: "" };
   const { locale, path } = splitLocale(own.pathname);
-  return { what, page: pageKind(path, own.searchParams), language: locale };
+  return { what, page: pageKind(path, own.searchParams), language: locale, path: own.pathname };
 }
 
 /* the day's key each isolate read, by KV binding. A key never changes in its day, so one found stands for the day; a
@@ -247,6 +260,19 @@ async function dayKey(store: KVNamespace, day: string): Promise<string | null> {
   return key;
 }
 
+/* the version Chrome's people led with yesterday (keys.ts), read as the key is, again after an hour */
+const leads = new WeakMap<KVNamespace, { lead: number | null; at: number }>();
+const HOUR = 3_600_000;
+
+async function dayLead(store: KVNamespace): Promise<number | null> {
+  const was = leads.get(store);
+  if (was && Date.now() - was.at < HOUR) return was.lead;
+  const kept = await store.get<{ lead?: unknown }>(leadName, { type: "json", cacheTtl: 300 });
+  const lead = typeof kept?.lead === "number" ? kept.lead : null;
+  leads.set(store, { lead, at: Date.now() });
+  return lead;
+}
+
 async function visitorOf(key: string, address: string, agent: string): Promise<string> {
   const text = new TextEncoder().encode(`${key}\n${address}\n${agent}`);
   return hex(new Uint8Array(await crypto.subtle.digest("SHA-256", text)).slice(0, 8));
@@ -255,7 +281,7 @@ async function visitorOf(key: string, address: string, agent: string): Promise<s
 /** Counts a visit, after its answer where it can (ctx.waitUntil). It never fails: a key KV cannot give leaves the
     visit without its visitor. */
 export async function countVisit(
-  env: Pick<Env, "USAGE" | "CACHE">,
+  env: Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">,
   request: Request,
   visit: Visit,
   now = Date.now()
@@ -267,7 +293,11 @@ export async function countVisit(
     return;
   }
   const agent = headers.get("User-Agent") ?? "";
-  const cf = (request as { cf?: { country?: unknown; asn?: unknown } }).cf;
+  const cf = (
+    request as {
+      cf?: { country?: unknown; asn?: unknown; regionCode?: unknown; isEUCountry?: unknown };
+    }
+  ).cf;
   const country = typeof cf?.country === "string" ? cf.country : "";
   const address = clientAddress(request);
   let visitor = "";
@@ -279,6 +309,11 @@ export async function countVisit(
       // counted without its visitor
     }
   }
+  const device = deviceOf(headers, agent);
+  const browser = browserOf(agent);
+  const system = systemOf(agent);
+  const network = typeof cf?.asn === "number" ? String(cf.asn) : "";
+  const signals = signalsOf(headers, agent);
   countUsageUnder(
     env,
     visitor || "visit",
@@ -287,15 +322,45 @@ export async function countVisit(
     visit.page,
     visit.language,
     country,
-    deviceOf(headers, agent),
-    browserOf(agent),
-    systemOf(agent),
-    typeof cf?.asn === "number" ? String(cf.asn) : "",
-    signalsOf(headers, agent).join(" "),
+    device,
+    browser,
+    system,
+    network,
+    signals.join(" "),
     visit.referrer ?? "",
     visit.source ?? "",
     visit.medium ?? "",
     visit.campaign ?? "",
     visitor
   );
+  /* on to Google Analytics, a person's visit alone: a code, nothing a program's request says, none of the large
+     clouds' networks, and a browser its people still use */
+  if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_API_SECRET) return;
+  const lead = env.CACHE ? await dayLead(env.CACHE).catch(() => null) : null;
+  if (tooOld(browser, lead)) return;
+  await sendToGa4(
+    env,
+    {
+      visitor,
+      what: visit.what,
+      path: visit.path ?? "",
+      country,
+      region: typeof cf?.regionCode === "string" ? cf.regionCode : "",
+      european: cf?.isEUCountry === "1" || EUROPE.has(country),
+      device,
+      browser,
+      system,
+      language:
+        (headers.get("Accept-Language") ?? "").split(",")[0]?.split(";")[0]?.trim().slice(0, 12) ??
+        "",
+      referrer: visit.referrer ?? "",
+      source: visit.source ?? "",
+      medium: visit.medium ?? "",
+      campaign: visit.campaign ?? ""
+    },
+    now
+  );
 }
+
+/** Europe beyond the EU, whose visits go to Google's European endpoint too. */
+const EUROPE = new Set(["GB", "CH", "NO", "IS", "LI"]);

@@ -561,14 +561,9 @@ describe("tags in another language", () => {
         )
       )
     );
-  const tagOf = (word: string, english: string) => {
+  const tagOf = (word: string) => {
     const words = word.toLowerCase();
-    return {
-      label: word,
-      href: `/palettes?${new URLSearchParams({ q: words })}`,
-      query: words,
-      english
-    };
+    return { label: word, href: `/palettes?${new URLSearchParams({ q: words })}`, query: words };
   };
 
   it("say Grabient's word for their phrase and search it, read while typing and at rest alike", async () => {
@@ -581,7 +576,7 @@ describe("tags in another language", () => {
         env
       );
       const [first] = (await bodyOf<{ suggestions: object[] }>(typed)).suggestions;
-      expect(first, lang).toMatchObject(tagOf(hour, "blue hour"));
+      expect(first, lang).toMatchObject(tagOf(hour));
       // the words search what the English searches
       const found = await searchPalettes(env, hour.toLowerCase());
       expect([found.tier, found.read, found.items], lang).toEqual([
@@ -592,9 +587,7 @@ describe("tags in another language", () => {
       // a page's first paint: the lists' row at rest, and the home's
       for (const rest of ["limit=24", "both=1&limit=24"]) {
         const row = await suggestionsFor(env, new URLSearchParams(`${rest}&lang=${lang}`));
-        expect(row, `${lang} ${rest}`).toContainEqual(
-          expect.objectContaining(tagOf(sunset, "sunset"))
-        );
+        expect(row, `${lang} ${rest}`).toContainEqual(expect.objectContaining(tagOf(sunset)));
       }
     }
   });
@@ -607,25 +600,14 @@ describe("tags in another language", () => {
     await keepTranslations(env, "ja", [], [{ tag: "retro", word: "レトロ", note: "" }]);
     const first = async (query: string) => {
       const [tag] = await suggestionsFor(env, new URLSearchParams(query));
-      return [tag?.label, tag?.href, tag?.query, tag?.english];
+      return [tag?.label, tag?.href, tag?.query];
     };
-    expect(await first("q=blue&limit=1&lang=es")).toEqual([
-      "blue",
-      "/palettes?q=blue",
-      "blue",
-      undefined
-    ]);
-    expect(await first("q=retro&limit=1&lang=ja")).toEqual([
-      "retro",
-      "/palettes?q=retro",
-      "retro",
-      undefined
-    ]);
+    expect(await first("q=blue&limit=1&lang=es")).toEqual(["blue", "/palettes?q=blue", "blue"]);
+    expect(await first("q=retro&limit=1&lang=ja")).toEqual(["retro", "/palettes?q=retro", "retro"]);
     expect(await first("q=blue+hour&limit=1")).toEqual([
       "blue hour",
       "/palettes?q=blue+hour",
-      "blue hour",
-      undefined
+      "blue hour"
     ]);
   });
 });

@@ -310,7 +310,7 @@ export const readerTools: readonly Tool[] = [
     title: "Who signs up, and from where",
     hints: READS,
     description:
-      "Accounts made in the last weeks, week by week, and how each one's first visit reached Grabient: the campaign tags on the link, the site that sent it and the page it landed on. Those are saved only when the reader had analytics on, so an account without them came with analytics off or straight to the site. Counts alone: no account, name or email. The seeding personas are left out, and admins are counted apart.",
+      "Accounts made in the last weeks, week by week, and how each one's first visit reached Grabient: the campaign tags on the link, the site that sent it and the page it landed on. Those were saved only while the site's analytics ran, for a reader with analytics on, until October 2026: an account without them came with analytics off, straight to the site, or since; where readers come from is in site_visits now. Counts alone: no account, name or email. The seeding personas are left out, and admins are counted apart.",
     inputSchema: shape({
       weeks: whole("How many weeks back, default 12.", 1, 104),
       limit: whole("How many of each kind of source, default 20.", 1, 100)

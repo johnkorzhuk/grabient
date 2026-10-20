@@ -12,7 +12,6 @@ export function CopyLine(props: {
   "aria-label": string;
   /** a specimen's state, held: Copied */
   state?: "copied";
-  onCopy?: (text: string) => void;
 }) {
   const parts = createMemo(() => addressParts(props.text));
   return (
@@ -24,13 +23,7 @@ export function CopyLine(props: {
           </For>
         </span>
       </code>
-      <CopyButton
-        text={props.text}
-        aria-label={props["aria-label"]}
-        compact
-        state={props.state}
-        onCopy={props.onCopy}
-      />
+      <CopyButton text={props.text} aria-label={props["aria-label"]} compact state={props.state} />
     </div>
   );
 }

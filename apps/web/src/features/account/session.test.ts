@@ -8,12 +8,6 @@ vi.mock("@solidjs/web", async original => ({
   ...(await original<typeof import("@solidjs/web")>()),
   isServer: false
 }));
-// the page's analytics read the address bar as they load; these tests count nothing
-vi.mock("../analytics/analytics.ts", () => ({
-  setAnalyticsInternal: () => {},
-  setAnalyticsUser: () => {},
-  trackEvent: () => {}
-}));
 
 const kept = new Map<string, string>();
 let session: typeof import("./session.ts");

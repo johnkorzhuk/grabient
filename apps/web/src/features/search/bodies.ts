@@ -25,13 +25,11 @@ export const SearchVoteBody = v.object({
 /** `GET /api/me/search-votes?q=`: the account's votes for a search, by seed. */
 export const SearchVotes = v.object({ votes: v.record(v.string(), FitVote) });
 
-/** A tag under the search field: a search's tag carries its words, and its phrase's English where it says a
-    translation. */
+/** A tag under the search field: a search's tag carries its words. */
 export const SearchTag = v.object({
   label: v.string(),
   href: v.string(),
   colors: v.array(v.string()),
-  query: v.optional(v.string()),
-  english: v.optional(v.string())
+  query: v.optional(v.string())
 });
 export const SearchSuggestions = v.object({ suggestions: v.array(SearchTag) });

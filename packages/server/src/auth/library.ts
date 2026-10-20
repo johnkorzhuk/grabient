@@ -156,12 +156,6 @@ function createAuth(env: Env) {
       additionalFields: {
         username: { type: "string", required: false, input: false },
         role: { type: "string", required: false, defaultValue: "user", input: false },
-        attributionSource: { type: "string", required: false, input: false },
-        attributionMedium: { type: "string", required: false, input: false },
-        attributionCampaign: { type: "string", required: false, input: false },
-        attributionReferrer: { type: "string", required: false, input: false },
-        attributionLanding: { type: "string", required: false, input: false },
-        attributionAt: { type: "date", required: false, input: false },
         newsletterOptIn: { type: "boolean", required: false, input: false }
       },
       deleteUser: {

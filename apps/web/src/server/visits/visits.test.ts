@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest";
-import { makeVisitKeys } from "./keys.ts";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { leadName, makeVisitKeys, makeVisitLead } from "./keys.ts";
 import {
   actVisit,
   browserOf,
@@ -44,6 +44,9 @@ describe("a page's kind", () => {
     ["/kS7Q8Yy5S_SChv0", "", "palette"],
     ["/kS7Q8Yy5S_SChv0/edit", "", "editor"],
     ["/ocean-gradients", "", "collection"],
+    // a collection whose address is shaped like a seed, which decodes to no palette
+    ["/kingfisher-blue", "", "collection"],
+    ["/kitchen-garden/rising", "", "collection"],
     ["/ocean-gradients/rising", "", "collection"],
     ["/@ada/warm-tones", "", "collection"],
     ["/about", "", "about"],
@@ -126,6 +129,7 @@ describe("a page load", () => {
       what: "landing",
       page: "search",
       language: "ja",
+      path: "/palettes",
       referrer: "www.google.com",
       source: "newsletter",
       medium: "",
@@ -145,8 +149,14 @@ describe("a page load", () => {
     expect(pageVisit(reload, "/about", "en", html(), "utm_source=x")).toEqual({
       what: "load",
       page: "about",
-      language: "en"
+      language: "en",
+      path: "/about"
     });
+    // a reload keeps the Referer of the page's arrival, and a sign-in comes back from Google: loads, not landings
+    const reloaded = arriving("/about", { "Sec-Fetch-Site": "none", "Cache-Control": "max-age=0" });
+    expect(pageVisit(reloaded, "/about", "en", html(), "")?.what).toBe("load");
+    const signedIn = arriving("/settings", { Referer: "https://accounts.google.com/" });
+    expect(pageVisit(signedIn, "/settings", "en", html(), "")?.what).toBe("load");
     const framed = arriving("/", { "Sec-Fetch-Dest": "iframe" });
     expect(pageVisit(framed, "/", "en", html(), "")?.what).toBe("framed");
   });
@@ -181,7 +191,12 @@ test("a palette used or a search made is a visit to the page it was made on", ()
     method: "POST",
     headers: { ...browser, Referer: "https://grabient.test/fr/palettes/rising" }
   });
-  expect(actVisit(used, "use")).toEqual({ what: "use", page: "rising", language: "fr" });
+  expect(actVisit(used, "use")).toEqual({
+    what: "use",
+    page: "rising",
+    language: "fr",
+    path: "/fr/palettes/rising"
+  });
   const elsewhere = new Request("https://grabient.test/api/searched", {
     method: "POST",
     headers: { ...browser, Referer: "https://example.com/" }
@@ -199,8 +214,10 @@ function memoryKV() {
   const kept = new Map<string, { value: string; expiration?: number }>();
   return {
     kept,
-    async get(key: string) {
-      return kept.get(key)?.value ?? null;
+    async get(key: string, as?: string | { type?: string }) {
+      const value = kept.get(key)?.value ?? null;
+      const json = as === "json" || (typeof as === "object" && as?.type === "json");
+      return value !== null && json ? JSON.parse(value) : value;
     },
     async put(key: string, value: string, options: { expiration?: number } = {}) {
       kept.set(key, { value, expiration: options.expiration });
@@ -328,4 +345,128 @@ describe("a visit's point", () => {
     await countVisit({ CACHE: failing, USAGE } as never, from("203.0.113.9"), visit, NOON);
     expect(USAGE.points.map(point => point.index)).toEqual(["visit"]);
   });
+});
+
+describe("a visit sent on to Google Analytics", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+  const sent: { url: string; body: Record<string, unknown> }[] = [];
+  const stubFetch = () => {
+    sent.length = 0;
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      sent.push({ url: String(url), body: JSON.parse(String(init.body)) });
+      return Response.json({ validationMessages: [] });
+    });
+  };
+  test("is a person's alone: production sends to the property, staging to the check, Europe to Google's European endpoint", async () => {
+    stubFetch();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    // the version Chrome's people led with: an isolate reads it once an hour
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    await countVisit(
+      env as never,
+      from("203.0.113.9"),
+      { ...visit, path: "/ja/@ada/warm-tones" },
+      NOON
+    );
+    expect(sent.map(hit => hit.url)).toEqual([
+      "https://www.google-analytics.com/mp/collect?measurement_id=G-TEST&api_secret=the-secret"
+    ]);
+    expect(sent[0]!.body).toMatchObject({
+      client_id: USAGE.points[0]!.index,
+      non_personalized_ads: true,
+      user_location: { country_id: "US" },
+      device: {
+        category: "desktop",
+        language: "en-US",
+        operating_system: "Windows",
+        browser: "Chrome",
+        browser_version: "155"
+      },
+      events: [
+        {
+          name: "page_view",
+          params: {
+            page_location: "https://grabient.com/ja/@/collection",
+            page_referrer: "https://www.google.com/",
+            engagement_time_msec: 1
+          }
+        }
+      ]
+    });
+    // the address and the user agent never go
+    expect(JSON.stringify(sent[0]!.body)).not.toMatch(/203\.0\.113|Mozilla/);
+    // a program's request, China's and a browser that asks not to be followed send nothing
+    await countVisit(env as never, from("203.0.113.9", { "Accept-Language": "" }), visit, NOON);
+    await countVisit(env as never, from("203.0.113.9", {}, "CN"), visit, NOON);
+    await countVisit(env as never, from("203.0.113.9", { "Sec-GPC": "1" }), visit, NOON);
+    // nor a Chromium far behind the version its people lead with
+    const old = {
+      "User-Agent": CHROME.replace("Chrome/155", "Chrome/145"),
+      "Sec-CH-UA": '"Chromium";v="145", "Google Chrome";v="145"'
+    };
+    await countVisit(env as never, from("198.51.100.4", old), visit, NOON);
+    expect(sent).toHaveLength(1);
+    const german = Object.assign(from("203.0.113.9"), {
+      cf: { country: "DE", isEUCountry: "1", asn: 3320 }
+    });
+    await countVisit({ ...env, DEPLOYMENT: "staging" } as never, german, visit, NOON);
+    expect(sent[1]!.url).toMatch(/^https:\/\/region1\.google-analytics\.com\/debug\/mp\/collect\?/);
+  });
+  test("leaves the visit counted when Google cannot be reached", async () => {
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("offline");
+    });
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "s",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    await expect(
+      countVisit(env as never, from("203.0.113.9"), visit, NOON)
+    ).resolves.toBeUndefined();
+    expect(USAGE.points).toHaveLength(1);
+  });
+});
+
+test("the day's lead is the version Chrome's people used most recently, worked out once a day", async () => {
+  const CACHE = memoryKV();
+  const asked: string[] = [];
+  const ANALYTICS = {
+    async query({ query }: { query: string }) {
+      asked.push(query);
+      return {
+        data: [
+          { browser: "Chrome 155", visitors: 60 },
+          { browser: "Chrome 154", visitors: 30 },
+          { browser: "Chrome 158", visitors: 1 },
+          { browser: "Chrome 145", visitors: 400 }
+        ]
+      };
+    }
+  };
+  const env = { CACHE, ANALYTICS, DEPLOYMENT: "staging" };
+  expect(await makeVisitLead(env as never, NOON)).toBe(155);
+  expect(JSON.parse(CACHE.kept.get(leadName)!.value)).toEqual({ day: "2026-10-20", lead: 155 });
+  expect(asked[0]).toContain(
+    "FROM events.analyticsEngine.grabient_staging_usage WHERE timestamp >= NOW() - INTERVAL '1' DAY"
+  );
+  // asked once a day
+  expect(await makeVisitLead(env as never, NOON + 3_600_000)).toBeNull();
+  expect(asked).toHaveLength(1);
 });

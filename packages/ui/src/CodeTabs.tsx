@@ -27,8 +27,6 @@ export function CodeTabs(props: {
   "aria-label": string;
   /** a specimen's state, held: Copied */
   state?: "copied";
-  /** a copy made, with the tab it was made from */
-  onCopy?: (tab: CodeTab) => void;
 }) {
   const [on, setOn] = createSignal(0);
   const tab = () => props.tabs[on()] ?? props.tabs[0];
@@ -99,7 +97,6 @@ export function CodeTabs(props: {
           aria-label={t("Copy code")}
           compact
           state={props.state}
-          onCopy={() => props.onCopy?.(tab())}
           onRefused={() => selectText(code)}
         />
       </div>

@@ -4,7 +4,7 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Switch } from "@grabient/ui/Switch.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createSignal, Show, untrack } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { createOptimisticWrites } from "../../../lib/optimistic.ts";
 import { shownError } from "../../../lib/query.ts";
@@ -27,8 +27,9 @@ export function NewsletterChoice() {
   const choice = useQuery(() => ({ ...choiceQuery(), queryKey: key(), enabled: !!reachable() }));
   const [pressed, setPressed] = createSignal<boolean | null>(null);
   const [pressFailure, setPressFailure] = createSignal("");
-  // the account the switch was drawn for: an answer that comes back after a change of account draws nothing
-  const id = untrack(() => account()?.id);
+  /* the account a press was made for: an answer that comes back after a change of account draws nothing. Read at the
+     press, since the switch is drawn before the session answers, when there is no account yet */
+  let pressedFor: string | undefined;
   const writes = createOptimisticWrites<boolean, boolean>({
     valueOf: held => held,
     show: (_, on) => setPressed(on),
@@ -37,7 +38,7 @@ export function NewsletterChoice() {
       queryClient.setQueryData(key(), held);
       return held;
     },
-    live: () => account()?.id === id
+    live: () => account()?.id === pressedFor
   });
   const shown = () => pressed() ?? (choice.isSuccess ? choice.data : null);
   const failure = () =>
@@ -49,6 +50,7 @@ export function NewsletterChoice() {
     const held = shown();
     if (held === null) return;
     setPressFailure("");
+    pressedFor = account()?.id;
     writes
       .set("newsletter", held, on)
       .catch(reason => setPressFailure(shownError(reason, msg("Couldn't save."))));

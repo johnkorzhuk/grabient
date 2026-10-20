@@ -135,7 +135,6 @@ export interface SettledLike {
   seed: string;
   liked: boolean;
   likesCount: number | null;
-  view: { style: string; steps: number; angle: number };
 }
 
 const changeListeners = new Set<(change: AccountChange) => void>();

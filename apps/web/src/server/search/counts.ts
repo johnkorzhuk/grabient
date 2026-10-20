@@ -74,26 +74,26 @@ export async function unreadWords(env: Env, raw: string): Promise<string | null>
 
 /** A search counted for `who`, an address or an app's account. Its hourly limit first, in the isolate, since reading the
     words may ask the database; then these words from `who` once a day, and the site's day. A limiter that cannot answer
-    counts nothing. */
+    counts nothing. It answers whether the search was within its hourly allowance. */
 export async function countSearch(
   env: Env,
   page: SearchPage,
   raw: string,
   who: string
-): Promise<void> {
+): Promise<boolean> {
   const allowed = async (checks: readonly LimitCheck[]) =>
     (await checkLimits(env, checks).catch(() => null))?.success === true;
-  if (!(await allowed([[`searched:${who}`, "searchCount"]]))) return;
+  if (!(await allowed([[`searched:${who}`, "searchCount"]]))) return false;
   const known = await countedWords(env, page, raw).catch(() => null);
   const words = known ?? (await unreadWords(env, raw).catch(() => null));
-  if (!words) return;
+  if (!words) return true;
   if (
     !(await allowed([
       [`searched:${who}:${page}:${words}`, "searchCountOnce"],
       ["searched", "searchCountDaily"]
     ]))
   )
-    return;
+    return true;
   await run(
     env.DB,
     `INSERT INTO ${known ? "k_search_counts" : "k_search_unread"} (day, page, words, count) VALUES (?, ?, ?, 1)
@@ -104,6 +104,7 @@ export async function countSearch(
   ).catch(error =>
     console.error("searched: the count failed", error instanceof Error ? error.message : error)
   );
+  return true;
 }
 
 /** `POST /api/searched` with `{ words, page }`: a search a reader made, counted. Always 204, so the page never waits on
@@ -114,10 +115,12 @@ export async function searchedResponse(request: Request, env: Env): Promise<Resp
   const done = new Response(null, { status: 204, headers: NO_STORE });
   if (!sameOrigin(request) || isCrawler(request)) return done;
   const body = v.safeParse(SearchedBody, await readJson(request, 1024));
-  if (body.success) {
-    await countSearch(env, body.output.page, body.output.words, clientAddress(request) ?? "local");
+  // a search past the address's allowance is no visit either: the visit's point rides on the count's limit
+  if (
+    body.success &&
+    (await countSearch(env, body.output.page, body.output.words, clientAddress(request) ?? "local"))
+  )
     await countAct(env, request, "search");
-  }
   return done;
 }
 

@@ -4,7 +4,7 @@ import type { Env } from "@grabient/server/env.ts";
 /* The visits' counting (visits.ts), loaded the first time there is one to count: an isolate starts, and answers Start's
    first request, without it. Counting never fails a request. */
 
-type Counts = Pick<Env, "USAGE" | "CACHE">;
+type Counts = Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">;
 
 /** A page a browser navigated to, counted after its answer (ctx.waitUntil). */
 export async function countPage(

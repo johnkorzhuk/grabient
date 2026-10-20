@@ -15,8 +15,6 @@ Disallow: /api/me/
 Disallow: /api/search/layers
 Disallow: /api/search-colors
 Disallow: /oauth/
-Disallow: /e$
-Disallow: /e/
 Disallow: /saved$
 Disallow: /saved?
 Disallow: /settings$
@@ -205,8 +203,6 @@ Disallow: /api/me/
 Disallow: /api/search/layers
 Disallow: /api/search-colors
 Disallow: /oauth/
-Disallow: /e$
-Disallow: /e/
 Disallow: /saved$
 Disallow: /saved?
 Disallow: /settings$

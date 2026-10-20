@@ -4,6 +4,7 @@ import { hydrate } from "@solidjs/web";
 import { hydrateStart, StartClient } from "@tanstack/solid-start/client";
 import { watchBuild } from "./app/build-watch.ts";
 import { installErrorReports, reportCaught } from "./app/error-report.ts";
+import { forgetOldAnalytics } from "./app/forget-analytics.ts";
 import { framed } from "./app/framed.ts";
 import { guardNavigation } from "./app/navigation.ts";
 import { loadAccount } from "./features/account/session.ts";
@@ -38,6 +39,7 @@ async function start() {
   hydrate(() => <StartClient router={router} />, document, { onError: reportCaught });
   /* the account loads after the page has drawn its public form: no page waits on it */
   void loadAccount();
+  forgetOldAnalytics();
   /* the service worker that opens the site with no connection, once the page has loaded: a production build's alone,
      and never in another site's frame, where the browser keeps it apart from the site's own */
   if (import.meta.env.PROD && "serviceWorker" in navigator && !framed()) {

@@ -33,6 +33,10 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   RESEND_API_KEY?: string;
+  /** Google Analytics 4: the property's web stream and its Measurement Protocol secret, which the Worker sends a
+      person's visits with (apps/web/src/server/visits/ga4.ts). */
+  GA4_MEASUREMENT_ID?: string;
+  GA4_API_SECRET?: string;
   GITHUB_TOKEN?: string;
   TURNSTILE_SECRET_KEY?: string;
   /** The tokens two directories ask the site to serve, set on the day without a code change. */

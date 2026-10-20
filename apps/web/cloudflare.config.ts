@@ -100,6 +100,9 @@ function production(): CloudflareConfig {
         GOOGLE_CLIENT_ID: bindings.secret(),
         GOOGLE_CLIENT_SECRET: bindings.secret(),
         RESEND_API_KEY: bindings.secret(),
+        // the GA4 property a person's visits are sent on to (server/visits/ga4.ts): staging only validates them
+        GA4_MEASUREMENT_ID: bindings.text("G-9Q353KKFZQ"),
+        GA4_API_SECRET: bindings.secret(),
         // Served at /{key}.txt so search engines take the site's lists of new pages. Public by design.
         INDEXNOW_KEY: bindings.text("72485ec9cfd023fba2cad980920af669"),
         EMAIL_FROM: bindings.text(EMAIL_FROM),
@@ -141,6 +144,9 @@ function staging(): CloudflareConfig {
         GOOGLE_CLIENT_ID: bindings.secret(),
         GOOGLE_CLIENT_SECRET: bindings.secret(),
         RESEND_API_KEY: bindings.secret(),
+        // the GA4 property a person's visits are sent on to (server/visits/ga4.ts): staging only validates them
+        GA4_MEASUREMENT_ID: bindings.text("G-9Q353KKFZQ"),
+        GA4_API_SECRET: bindings.secret(),
         EMAIL_FROM: bindings.text(EMAIL_FROM),
         EMAIL: bindings.sendEmail({ allowedSenderAddresses: [EMAIL_FROM] }),
         NEWSLETTER_FROM: bindings.text(NEWSLETTER_FROM),

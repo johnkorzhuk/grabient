@@ -89,26 +89,11 @@ test("a tag in the language asked says and searches Grabient's word for its phra
   });
   const first = async (query: string) => {
     const [tag] = await suggestionsFor(translated, new URLSearchParams(query));
-    return [tag?.label, tag?.href, tag?.query, tag?.english];
+    return [tag?.label, tag?.href, tag?.query];
   };
-  expect(await first("q=blue&limit=1&lang=ja")).toEqual([
-    "青",
-    "/palettes?q=%E9%9D%92",
-    "青",
-    "blue"
-  ]);
+  expect(await first("q=blue&limit=1&lang=ja")).toEqual(["青", "/palettes?q=%E9%9D%92", "青"]);
   // the search reads レトロ as no phrase, so its press would find other palettes than retro's
-  expect(await first("q=retro&limit=1&lang=ja")).toEqual([
-    "retro",
-    "/palettes?q=retro",
-    "retro",
-    undefined
-  ]);
-  expect(await first("q=blue&limit=1")).toEqual(["blue", "/palettes?q=blue", "blue", undefined]);
-  expect(await first("q=blue&limit=1&lang=de")).toEqual([
-    "blue",
-    "/palettes?q=blue",
-    "blue",
-    undefined
-  ]);
+  expect(await first("q=retro&limit=1&lang=ja")).toEqual(["retro", "/palettes?q=retro", "retro"]);
+  expect(await first("q=blue&limit=1")).toEqual(["blue", "/palettes?q=blue", "blue"]);
+  expect(await first("q=blue&limit=1&lang=de")).toEqual(["blue", "/palettes?q=blue", "blue"]);
 });

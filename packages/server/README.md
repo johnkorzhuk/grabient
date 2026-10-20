@@ -1,8 +1,8 @@
 # @grabient/server
 
 What every Worker on Grabient's database shares: the D1 helpers and migrations, sign-in (Better Auth), rate limits and
-the `RateLimiter` Durable Object, feature flags, usage counts, the email sending seam, and where a reader's privacy
-choices start by region (`consent.ts`). It imports nothing from an app, Solid or the browser. A Worker imports its
+the `RateLimiter` Durable Object, feature flags, usage counts, the email sending seam, and where a new account's
+newsletter starts by region (`consent.ts`). It imports nothing from an app, Solid or the browser. A Worker imports its
 modules by path, `@grabient/server/auth/gate.ts`, and exports `RateLimiter` from its entry.
 
 ## Feature flags and what they cost

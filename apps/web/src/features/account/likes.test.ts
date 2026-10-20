@@ -9,13 +9,6 @@ vi.mock("@solidjs/web", async original => ({
   ...(await original<typeof import("@solidjs/web")>()),
   isServer: false
 }));
-// the page's analytics read the address bar as they load; these tests count nothing
-vi.mock("../analytics/analytics.ts", () => ({
-  setAnalyticsInternal: () => {},
-  setAnalyticsUser: () => {},
-  trackEvent: () => {},
-  trackSignInPrompt: () => {}
-}));
 
 let asked: string[][] = [];
 let answer: (keys: string[]) => Promise<Response> = async keys =>
@@ -118,7 +111,7 @@ describe("the counts beside the hearts", () => {
       { likes: new Map([[a, { seed: a, ...view, at: NOW, likes: 9 }]]), collections: new Map() },
       new Map([[a, true]])
     );
-    state.tellSettled([{ seed: a, liked: true, likesCount: 9, view }]);
+    state.tellSettled([{ seed: a, liked: true, likesCount: 9 }]);
     expect(likes.likeCount(a, 8)).toBe(9);
     expect(JSON.parse(kept.get("grabient-like-counts") ?? "{}")[a]).toEqual({ count: 9, at: NOW });
     // after a reload, over list data the edge read a minute before the like: the like's count, a task later

@@ -50,9 +50,6 @@ const PRIVATE = [
   "/api/search-colors",
   // the authorization server's routes: an app's request, never a page
   "/oauth/",
-  // the analytics beacon exactly: as a prefix /e would block /es and every collection whose address starts with e
-  "/e$",
-  "/e/",
   ...LOCALES.flatMap(l => ACCOUNT_PAGES.map(path => localizePath(path, l)))
 ].map(path => `Disallow: ${path}`);
 

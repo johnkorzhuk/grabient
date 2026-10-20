@@ -15,7 +15,7 @@ import type { Env } from "../env.ts";
      file          the format fetched, who asked (site, other, none), reader or crawler
      failure       an answer of 500 or more that no flag refused: its status, the kind of address (page, api/<name>,
                    mcp or file)
-     visit         what (landing, load, use, search), page, language, country, device, browser, system, network,
+     visit         what (landing, load, framed, use, search), page, language, country, device, browser, system, network,
                    signals, referrer, source, medium, campaign, visitor: a page a browser loaded, or a palette used or
                    a search made on one, under its visitor's code as its index
    Each point rides on a request that is already limited, so the counts need no limit of their own. */

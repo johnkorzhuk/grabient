@@ -96,8 +96,6 @@ test("production's rules keep crawlers from an account's pages, search crawlers 
     "/collections/saved",
     "/collections/saved?q=blue",
     "/ja/collections/saved",
-    "/e",
-    "/e/static/recorder.js",
     "/api/me/palettes",
     "/oauth/authorize"
   ];
