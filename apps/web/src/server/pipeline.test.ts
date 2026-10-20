@@ -140,7 +140,9 @@ describe("the language in the address", () => {
     "/ja/e/s/",
     "/_serverFn/abc",
     "/_serverFn/%3Cscript%3E",
-    "/ja/_serverFn"
+    "/ja/_serverFn",
+    "/assets/BackToTop-n5m7uyUr.js",
+    "/assets/style-gone.css"
   ])("%s is 404 JSON", async path => {
     const response = await get(path);
     expect(response.status).toBe(404);

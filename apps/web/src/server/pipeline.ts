@@ -157,6 +157,10 @@ async function route(
   if (path.startsWith("//") || serverFunctionPath(path)) {
     return json({ error: msg("Not found") }, { status: 404 });
   }
+  /* The build's files are served before the Worker runs, so one that reaches it is gone: an earlier deploy's chunk that
+     a page open across a deploy or a crawler asks for, thousands a day, each of which rendered the not-found page with
+     its reads of the database, and a browser that asked for a script was handed a page. */
+  if (path.startsWith("/assets/")) return json({ error: msg("Not found") }, { status: 404 });
   const prefix = canonicalLocalePath(url.pathname);
   if (prefix !== null) return redirect(new URL(prefix + url.search, url).toString());
   // a page's address never ends in a slash, which other sites link to both ways; an API keeps its own
