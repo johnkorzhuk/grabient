@@ -18,7 +18,6 @@ import {
 import { createSignal, For } from "solid-js";
 import { pageStarted } from "../../../app/connection.ts";
 import { colorFormat, setColorFormat } from "../../../lib/color-format.ts";
-import { trackEvent } from "../../analytics/analytics.ts";
 import styles from "./Settings.module.css";
 
 /* This browser's own choices, signed in or not: the theme, how much the site moves, and how the CSS a reader takes
@@ -184,7 +183,6 @@ export function MotionSetting() {
         setPressed(true);
         const choice = next(MOTIONS, motionChoice());
         setMotionChoice(choice);
-        trackEvent("change_setting", { setting: "motion", value: choice });
       }}
     />
   );
@@ -208,7 +206,6 @@ export function ColorFormatSetting() {
         setPressed(true);
         const choice = next(FORMATS, colorFormat());
         setColorFormat(choice);
-        trackEvent("change_setting", { setting: "color_format", value: choice });
       }}
     />
   );

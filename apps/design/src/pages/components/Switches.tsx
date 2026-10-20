@@ -10,7 +10,11 @@ import styles from "./Switches.module.css";
 /* Switches as Settings sets them: a row's title, the one line that says what On allows, and the switch at its end.
    The first two are live; the third waits for its second press, as a switch that reaches every visitor does. */
 const ROWS = [
-  { title: t("Analytics"), line: t("Google Analytics measures how Grabient is used."), on: true },
+  {
+    title: t("Your name on palettes"),
+    line: t("Shows your username on the palettes you liked first. Anyone can see it."),
+    on: true
+  },
   {
     title: t("Newsletter"),
     line: t("Rising palettes and new features, about once a month."),

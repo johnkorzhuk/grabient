@@ -20,7 +20,6 @@ counts no failure for it. "At switchover" is the state production starts in.
 | `mcp` | `/mcp`, app registration, new consents | 503 with `Retry-After: 300`; `/connect` says connecting apps is paused | On |
 | `mcp-view` | The palette view inside AI apps | Tiles come as words, each with its PNG's address | On |
 | `search-rebuild` | The ten-minute snapshot build | Search keeps the last snapshot | On |
-| `session-replay` | Forwarding recordings to PostHog | `/e` answers 204 and records nothing | Off, until PostHog has a replay billing limit |
 | `palette-use` | `/api/used` writes | 204, nothing counted | On |
 | `client-documents` | Advertising client metadata documents | New apps register themselves; connected apps keep working | On |
 | `rising-3m`, `rising-1y` | Those Rising frames, which cost nothing | Rising skips the frame | The owner's choice |
@@ -28,10 +27,10 @@ counts no failure for it. "At switchover" is the state production starts in.
 | `saving` | Accounts' and apps' writes: likes, collections, votes, MCP save tools | Writes answer 503 with `Retry-After: 300`, and a page keeps them queued as it does offline; MCP save tools refuse in words; reads work | On |
 | `email` | Sign-in links and codes, the contact form | Sign-in says to try later or use Google; contact says it is unavailable; deletion emails and owner alerts still go | On |
 
-The switchover sets these two off on production's database alone, whatever rows grabient-lite's brings:
+The switchover sets the newsletter off on production's database alone, whatever rows grabient-lite's brings:
 
 ```sql
-INSERT INTO k_flags (name, enabled, updated_at) VALUES ('newsletter', 0, 0), ('session-replay', 0, 0)
+INSERT INTO k_flags (name, enabled, updated_at) VALUES ('newsletter', 0, 0)
 ON CONFLICT (name) DO UPDATE SET enabled = 0;
 ```
 

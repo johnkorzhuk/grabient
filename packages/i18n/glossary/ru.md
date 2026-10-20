@@ -91,7 +91,7 @@ How Russian says Grabient's own words. Read `README.md` first for what each word
 | color picker | выбор цвета | Not Photoshop's «палитра цветов»: «палитра» is Grabient's palette. |
 | Pick color (the eyedropper) | взять цвет | What Russian designers say of the eyedropper («взять цвет пипеткой»); the tool itself is «пипетка». |
 | saturation / brightness (the picker's square) | насыщенность / яркость | HSB's S and B, as Photoshop's picker says them: «Насыщенность и яркость». |
-| Analytics, Session replay / sign-in link / public gallery | «Аналитика», «Запись сеансов» / ссылка для входа / публичная галерея | The contact page is «Контакты». «Аналитика» and «Запись сеансов» are the Settings switches' labels, quoted when the text names a switch (переключатели «Аналитика» и «Запись сеансов»); in running text «аналитика», «запись сеансов». Settings in running text is «в настройках». "cookie" stays in Latin letters, masculine and indeclinable («cookie, который», «эти cookie»). |
+| sign-in link / public gallery | ссылка для входа / публичная галерея | The contact page is «Контакты». Settings in running text is «в настройках». "cookie" stays in Latin letters, masculine and indeclinable («cookie, который», «эти cookie»). |
 
 ## Color names (generated palette names)
 

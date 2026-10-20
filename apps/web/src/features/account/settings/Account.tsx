@@ -6,7 +6,6 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { shownError } from "../../../lib/query.ts";
-import { forgetAnalytics } from "../../analytics/analytics.ts";
 import {
   type Account,
   adminAccount,
@@ -142,7 +141,6 @@ export function DeletionSection(props: { token: string | null }) {
     try {
       if (props.token) {
         await api("/api/settings/delete-account", { token: props.token });
-        forgetAnalytics();
         await forgetAccount();
         location.replace(localHref("/"));
         return;

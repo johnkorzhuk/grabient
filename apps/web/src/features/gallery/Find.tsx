@@ -20,7 +20,7 @@ import { tagsQuery as collectionTagsQuery } from "../collections/queries.ts";
 import type { CollectionHit } from "../collections/types.ts";
 import { inView } from "../list/appearance.ts";
 import type { SearchPage, SearchSuggestions } from "../search/bodies.ts";
-import { countSearch, tagPressed } from "../search/count.ts";
+import { countSearch } from "../search/count.ts";
 import { suggestionsQuery } from "../search/queries.ts";
 import { SearchField } from "../search/SearchField.tsx";
 import { arrivedWhole, FIELD_MAX, fitted, inTurn, readField, typedWords } from "./field.ts";
@@ -117,7 +117,6 @@ export function Find(props: {
           };
         })
       )}
-      onPick={(tag, index) => tagPressed(tag, index, props.surface)}
     />
   );
 

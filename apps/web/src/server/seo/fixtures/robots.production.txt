@@ -9,7 +9,6 @@ Disallow: /api/likes
 Disallow: /api/like-info
 Disallow: /api/like-counts
 Disallow: /api/palette-credit
-Disallow: /api/geo
 Disallow: /api/settings/
 Disallow: /cdn-cgi/
 Disallow: /api/me/
@@ -200,7 +199,6 @@ Disallow: /api/likes
 Disallow: /api/like-info
 Disallow: /api/like-counts
 Disallow: /api/palette-credit
-Disallow: /api/geo
 Disallow: /api/settings/
 Disallow: /cdn-cgi/
 Disallow: /api/me/

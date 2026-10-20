@@ -67,7 +67,6 @@ every time, and add a row when a new product word gets its translation.
 | Save to | 保存到 | The label over the reader's collections when saving the selection, with 新建合集. Adding to one confirms 已添加到“{title}”。 |
 | size presets | 此屏幕 / 超宽屏 / 内屏 / 外屏 | This screen, Ultrawide, and a foldable's two screens as Chinese phone makers name them: `{device} 内屏`, `{device} 外屏`. Device names stay as the makers write them. |
 | message (Contact page) | 留言 | The field on the Contact page (联系我们) and what it sends: 无法发送留言。 |
-| Analytics / Session replay | 分析 / 会话回放 | The two switches under 隐私 in Settings. A recording is 录制内容. |
 | sign-in links / public gallery / cookie | 登录链接 / 公开画廊 / Cookie | Cookie keeps its capital. |
 | press (the verb) | 点击 | 再次点击以删除, 点击快捷键即可更改. |
 | reader (a person using the site) | 访客 | In admin lines: 访客再次点击“飙升”时…, 访客允许的会话录制内容. |

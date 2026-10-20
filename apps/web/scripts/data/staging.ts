@@ -10,7 +10,7 @@
    hold them alone, with no address that takes mail and no way to sign in.
 
    The full build holds no session, sign-in link, token, newsletter row or reader's signal to begin with. Here newsletter
-   issues and session replay are off, and the tags under the search field are grabient-lite's, with the search counts
+   issues are off, and the tags under the search field are grabient-lite's, with the search counts
    they are made from: words the site knows counted by day, with no account or address.
 
    The statements run over the full build's rows in memory, where no trigger fires, and load.ts writes the result with
@@ -46,8 +46,8 @@ export const OWN_COLUMNS: Columns = [
 ];
 /** The address of an account made to hold a byline: no mail reaches it and nobody signs in with it. */
 export const BYLINE_MAIL = "bylines.grabient.invalid";
-/** The site switches staging holds off: no newsletter issue goes out from it and no session is recorded. */
-export const STAGING_OFF = ["newsletter", "session-replay"];
+/** The site switches staging holds off: no newsletter issue goes out from it. */
+export const STAGING_OFF = ["newsletter"];
 /** grabient-lite's tables staging takes as they are: the tags under the search field and the counts behind them. */
 export const SEARCH_TABLES = ["k_popular_searches", "k_search_counts"];
 

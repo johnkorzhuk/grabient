@@ -77,7 +77,6 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | saturation / brightness | насиченість / яскравість | The picker's HSB square, as Photoshop names them: Насиченість і яскравість. Only there: the palette's chroma stays хрома and its lightness світлість. |
 | Terms of Service / Privacy Policy | Умови використання / Політика конфіденційності | Nav labels: Умови, Конфіденційність. About: Про Grabient. Contact: Контакти. |
 | Contact (the page and its form) | Контакти; форма зв’язку | "Contact is temporarily unavailable." is Форма зв’язку тимчасово недоступна. |
-| session replay | запис сеансів | The Settings switch and the feature; its recordings are записи сеансів. |
 | public gallery | публічна галерея | |
 | issue / lead palette (the newsletter's, admins only) | випуск / головна палітра випуску | Зробити цю палітру головною; the arrows go through the options: Попередній варіант, Наступний варіант. |
 | Home | Головна | The brand pages' link back to the home page. |

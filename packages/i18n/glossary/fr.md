@@ -60,7 +60,6 @@ and add a row when a new product word gets its translation.
 | like {name} (a search by a palette) | proches de {name} | *Palettes proches de {name}*, *Collections proches de {name}*; "Similar palettes" is *Palettes similaires*. |
 | sign-in link / code | lien de connexion / code de connexion | *Envoyer le lien*, *Envoyer le code*. |
 | email | e-mail | The field label is *E-mail*. |
-| analytics / session replay | mesure d’audience / enregistrement des sessions | The Settings toggles. |
 | Reverse / Invert | Renverser / Inverser | Two verbs for two actions: *Renverser* runs the palette the other way; *Inverser* makes the negative. French uses *inverser* for both, so the order took *renverser*. |
 | Straighten lightness | Aligner la luminosité | Its tooltip is the same words; its status lines are *Luminosité alignée.* and *Rien à aligner.* *Linéariser la luminosité* overflowed the half-width button. |
 | Random | Aléatoire | |

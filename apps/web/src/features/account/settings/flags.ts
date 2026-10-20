@@ -36,10 +36,6 @@ export const FLAGS: Readonly<Record<FlagName, Words>> = {
     label: msg("Search index updates"),
     line: msg("Rebuild the search index as the site changes. When off, search keeps the last one.")
   },
-  "session-replay": {
-    label: msg("Session replay"),
-    line: msg("Send the session recordings readers allow to PostHog.")
-  },
   "palette-use": {
     label: msg("Palette use counts"),
     line: msg(

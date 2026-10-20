@@ -275,14 +275,7 @@ describe("the service worker", () => {
     for (const file of [
       chunk("entry.js", "src/client.tsx", {
         imports: ["vendor.js"],
-        dynamicImports: [
-          "saved.js",
-          "palette.js",
-          "login.js",
-          "editor.js",
-          "sync.js",
-          "recorder.js"
-        ]
+        dynamicImports: ["saved.js", "palette.js", "login.js", "editor.js", "sync.js"]
       }),
       chunk("vendor.js", null),
       chunk("saved.js", "src/routes/palettes/saved.tsx?tsr-split=component"),
@@ -291,8 +284,7 @@ describe("the service worker", () => {
       chunk("form.js", null),
       chunk("editor.js", "src/features/editor/Editor.tsx", { dynamicImports: ["collect.js"] }),
       chunk("collect.js", "src/features/editor/Collect.tsx"),
-      chunk("sync.js", "src/features/account/sync.ts"),
-      chunk("recorder.js", "node_modules/posthog-js/dist/module.mjs")
+      chunk("sync.js", "src/features/account/sync.ts")
     ])
       bundle[file.fileName] = file;
     expect(offlineFiles(bundle).sort()).toEqual([

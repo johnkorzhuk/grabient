@@ -56,12 +56,11 @@ test("a collection's tags search palettes, followed from its page and nofollow f
   expect(links(html, new RegExp(`^/${slug}$`)).map(link => link.rel)).toContain(undefined);
 });
 
-test("the footer's privacy choices are nofollow, and Privacy and Terms are in another language too", async ({
+test("the footer's Privacy and Terms are followed in English and nofollow in another language", async ({
   request
 }) => {
   const english = await (await request.get("/about")).text();
   const japanese = await (await request.get("/ja/about")).text();
-  expect(links(english, /^\/settings#privacy$/).map(link => link.rel)).toEqual(["nofollow"]);
   expect(links(english, /^\/(?:privacy|terms)$/).map(link => link.rel)).toEqual([
     undefined,
     undefined

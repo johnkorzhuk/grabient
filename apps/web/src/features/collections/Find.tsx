@@ -11,7 +11,7 @@ import { failed } from "../../lib/query.ts";
 import { paletteId } from "../../lib/words.ts";
 import { account } from "../account/session.ts";
 import { arrivedWhole, FIELD_MAX, readField, typedWords } from "../gallery/field.ts";
-import { countSearch, tagPressed } from "../search/count.ts";
+import { countSearch } from "../search/count.ts";
 import { SearchField } from "../search/SearchField.tsx";
 import { collectionHref, type PaletteOrder } from "./address.ts";
 import { collectionGone } from "./overlay.ts";
@@ -180,11 +180,7 @@ export function Find(props: {
       />
       <Errored fallback={() => <Tags tags={[]} />}>
         <Loading fallback={<Tags tags={[]} loading={!offline()} />}>
-          <Tags
-            lead={restingLead(typed())}
-            tags={shown()}
-            onPick={(tag, index) => tagPressed(tag, index, "collections")}
-          />
+          <Tags lead={restingLead(typed())} tags={shown()} />
         </Loading>
       </Errored>
     </div>

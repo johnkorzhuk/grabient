@@ -88,12 +88,6 @@ test("an address without a suffix is still its page's", () => {
   expect(page("/palettes/saved")).toBe("/palettes/saved");
 });
 
-test("the recorder's route takes PostHog's addresses, the one that ends in a slash too", () => {
-  const taken = (path: string) => router.getMatchedRoutes(path)[2]?.fullPath;
-  expect(taken("/e/s/")).toBe("/e/$");
-  expect(taken("/e/static/recorder.js")).toBe("/e/$");
-});
-
 test("like counts, which no cache keeps, answer an address sixty times a minute", async () => {
   const ip = address();
   const asked = "/api/like-counts?keys=kS7Q8Yy5S_SChv0";

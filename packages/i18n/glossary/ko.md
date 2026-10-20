@@ -72,7 +72,6 @@ The product's words in Korean, as Korean designers meet them in Figma, Adobe and
 | public gallery | 공개 갤러리 | |
 | Fit (a palette in its collection) | 어울림 | Good fit: 잘 어울림. Bad fit: 안 어울림. |
 | Reduce motion (Settings) | 동작 줄이기 | Apple's Korean name for the setting (iOS, macOS). Its button steps through 시스템, 켬, 끔. Under 시스템 the line names the device's own setting, on or off: 기기 설정을 따라요: 켬. |
-| Analytics / Session replay (Settings) | 분석 / 세션 리플레이 | The two switches under Privacy. A session recording is 녹화본. |
 | Admin / Admin tools (Settings) | 관리자 / 관리자 도구 | The section only an admin sees: 이 섹션은 관리자만 볼 수 있어요. Its switch shows 큐레이션, 투표, 에이전트에게 남기는 메모 and 공개 기능. A switch's line says When off as 꺼져 있으면. |
 | newsletter issue / lead palette (admins) | 호 / 대표 팔레트 | The palette an issue opens with, as a post's 대표 이미지: 대표 팔레트로 설정, 이전 후보, 다음 후보, and where the one shown stands, {count}개 중 {at}번째. |
 | offline / online | 오프라인 / 온라인 | You're offline.: 오프라인 상태예요. Why a page shows nothing yet: 온라인에서 한 번 보면 오프라인에서도 열 수 있어요. |

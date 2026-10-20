@@ -104,7 +104,6 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | sign-in link, code | ลิงก์เข้าสู่ระบบ, รหัส | What the sign-in email sends: ส่งลิงก์, ส่งรหัส, รหัส 6 หลัก. Code to copy is โค้ด (คัดลอกโค้ด). |
 | theme, dark, light | ธีม, ธีมมืด, ธีมสว่าง | |
 | reduce motion | ลดการเคลื่อนไหว | The Settings section, named as iOS names the setting in Thai. Its button steps through ตามระบบ (System), เปิด (On) and ปิด (Off). Motion is การเคลื่อนไหว; animations are ภาพเคลื่อนไหว. |
-| session replay | การบันทึกเซสชัน | The consent in Settings. |
 | embedded view | มุมมองแบบฝัง | |
 | offline, sync | ออฟไลน์, ซิงค์ | What opens offline once seen online: จะเปิดแบบออฟไลน์ได้ เมื่อคุณเคยดูขณะออนไลน์แล้ว |
 | fit (a palette in a collection) | ความเข้ากัน | Good fit เข้ากันดี, Bad fit ไม่เข้ากัน. |

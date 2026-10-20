@@ -80,7 +80,6 @@ Other product words, kept the same everywhere:
 | Save to (the label over the collections the selection can join) | 保存先 |
 | The size presets: This screen, Ultrawide, a foldable's inner and cover screens | この画面, ウルトラワイド, {device} 内側 / {device} 外側; never a bare カバー, which reads as a phone case |
 | Contact / Message (the contact page and what its form sends) | お問い合わせ / メッセージ |
-| Analytics / Session replay (the switches under Privacy, プライバシー) | 分析 / セッションリプレイ; a recording is 記録 |
 | public gallery | 公開ギャラリー |
 | app / connected apps / disconnect / Allow (the consent page's press) | アプリ / 接続済みのアプリ / 接続解除; the MCP page says「許可」を選んでください, so the consent page's press is 許可. Returns to (where the answer goes back) is 戻り先. A custom connector is カスタムコネクター, an MCP server MCP サーバー |
 

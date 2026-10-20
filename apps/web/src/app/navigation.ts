@@ -3,7 +3,6 @@ import { announce } from "@grabient/ui/announce.ts";
 import { focusMain, landFocus } from "@grabient/ui/SkipLink.tsx";
 import { type AnyRouter, type HistoryLocation, useRouterState } from "@tanstack/solid-router";
 import { createSignal, untrack } from "solid-js";
-import { pageKey, trackPageView } from "../features/analytics/analytics.ts";
 import { landView } from "../features/list/appearance.ts";
 import { openedOutside } from "./framed.ts";
 import { forgetUndoFrom, landUndo } from "./undo.ts";
@@ -18,8 +17,7 @@ import { forgetUndoFrom, landUndo } from "./undo.ts";
    After a page is pushed, or reached by Back or Forward, focus moves to the new page's main content when the control
    that held it left with the old page, and a screen reader is told the new page's title once the page has set it. An
    address rewritten in place moves and says nothing. Each entry keeps its own undo and what the tab remembered of the
-   reader's view when it was left, and each page reached is counted once (analytics), whatever its palettes are edited
-   into or drawn in. */
+   reader's view when it was left. */
 
 /** How long a page has to set its title before it is announced. */
 const LANDED_MS = 120;
@@ -221,22 +219,12 @@ export function watchNavigation(router: AnyRouter): () => void {
       landView(placeOf(location), pushed ? "pushed" : replaced ? undefined : "returned");
     }
   );
-  /* a page is counted by the address it was reached at: one rewritten in place on the same route (an edit, a change of
-     view) keeps it, and only new words make a new page there */
-  let reached = { route: "", path: "" };
-  const count = (arrived: boolean) => {
-    const route = router.state.matches.at(-1)?.routeId ?? "";
-    if (arrived || route !== reached.route) reached = { route, path: location.pathname };
-    trackPageView(pageKey(reached.path, location.search));
-  };
-  count(true);
   const leaveResolved = router.subscribe("onResolved", () => {
     watchPulse();
     /* an address reached in the app that no page here answers loads whole: the Worker leads an old form of an address
        to its page (/saved, /newest, a slug's case), and answers the rest with its own 404 */
     if (moved && router.state.matches.some(m => m.status === "notFound" || m._notFound))
       return location.reload();
-    count(moved);
     if (moved) land();
     moved = false;
   });

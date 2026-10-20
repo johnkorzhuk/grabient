@@ -4,41 +4,18 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Switch } from "@grabient/ui/Switch.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createSignal, For, onSettled, Show, untrack } from "solid-js";
+import { createSignal, Show, untrack } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { createOptimisticWrites } from "../../../lib/optimistic.ts";
 import { shownError } from "../../../lib/query.ts";
-import {
-  browserOptedOut,
-  type ConsentCategory,
-  consent,
-  initConsent,
-  setConsentCategory
-} from "../../analytics/consent.ts";
 import { choiceQuery } from "../../newsletter/queries.ts";
 import { writeChoice } from "../../newsletter/writes.ts";
 import { creditKey, creditQuery, writeCredit } from "../credit.ts";
 import { account } from "../session.ts";
 import styles from "./Settings.module.css";
 
-/* What this browser lets the site measure, signed in or not, and beside it, signed in, the account's newsletter and its
-   username on the palettes it liked first, which the server keeps. The browser's record is read as the section
-   settles, on every deploy: analytics, which reads it
-   too, runs on production alone. Until it is read, or decided for a reader who has none (the defaults follow the
-   region, which the server names), each switch's place is held. A browser that sends Global Privacy Control or Do Not
-   Track never runs Marketing or Session replay, so their switches stand off and say why, in the place their line
-   holds for everyone: nothing moves when the browser is read. */
-
-const CONSENT: readonly [ConsentCategory, string, string][] = [
-  ["analytics", msg("Analytics"), msg("Google Analytics measures how Grabient is used.")],
-  [
-    "marketing",
-    msg("Marketing"),
-    msg("Links your visits, and how you found Grabient, to your account.")
-  ],
-  ["sessionReplay", msg("Session replay"), msg("Records your visits, with all text hidden.")]
-];
-const HELD = msg("Your browser's Global Privacy Control or Do Not Track keeps this off.");
+/* The account's own privacy choices, which the server keeps: its newsletter, and its username on the palettes it liked
+   first. Drawn once the account is known. */
 
 /** The account's newsletter: read once per account while online, and again when a lost connection returns. A press
     shows at once and its write goes behind it; why a read or a press failed takes the line's place, so the row never
@@ -184,58 +161,14 @@ function CreditChoice() {
 }
 
 export function PrivacySection() {
-  const [read, setRead] = createSignal(false);
-  const [refused, setRefused] = createSignal(false);
-  onSettled(() => {
-    setRefused(browserOptedOut());
-    void initConsent().then(() => setRead(true));
-  });
-  /* the browser's own no holds every category but Analytics */
-  const held = (category: ConsentCategory) => category !== "analytics" && refused();
   return (
     <section class={styles.section} id="privacy">
       <div class={styles.head}>
-        <Text variant="h2">{t("Privacy & Consent")}</Text>
-        <Text variant="lede">{t("Choices for this browser.")}</Text>
+        <Text variant="h2">{t("Privacy")}</Text>
       </div>
       <div class={styles.list}>
-        <For each={CONSENT} keyed={false}>
-          {entry => (
-            <div class={styles.choice}>
-              <div class={styles.choiceText}>
-                <Text variant="body" strong id={`consent-${entry()[0]}-label`}>
-                  {t(entry()[1])}
-                </Text>
-                <div class={styles.lines}>
-                  <div class={[styles.cell, { [styles.unseen]: held(entry()[0]) }]}>
-                    <Text variant="small">{t(entry()[2])}</Text>
-                  </div>
-                  <Show when={entry()[0] !== "analytics"}>
-                    <div
-                      class={[styles.cell, { [styles.unseen]: !held(entry()[0]) }]}
-                      id={`consent-${entry()[0]}-held`}
-                    >
-                      <Text variant="small">{t(HELD)}</Text>
-                    </div>
-                  </Show>
-                </div>
-              </div>
-              <Show when={read()} fallback={<Placeholder width="56px" height="40px" />}>
-                <Switch
-                  checked={consent().categories[entry()[0]] && !held(entry()[0])}
-                  disabled={held(entry()[0])}
-                  aria-labelledby={`consent-${entry()[0]}-label`}
-                  aria-describedby={held(entry()[0]) ? `consent-${entry()[0]}-held` : undefined}
-                  onChange={on => setConsentCategory(entry()[0], on)}
-                />
-              </Show>
-            </div>
-          )}
-        </For>
-        <Show when={account()}>
-          <NewsletterChoice />
-          <CreditChoice />
-        </Show>
+        <NewsletterChoice />
+        <CreditChoice />
       </div>
     </section>
   );

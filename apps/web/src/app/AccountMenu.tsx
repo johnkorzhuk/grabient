@@ -22,7 +22,6 @@ import {
   signOut
 } from "../features/account/session.ts";
 import { syncStatus, viewNow } from "../features/account/state.ts";
-import { trackSignInPrompt } from "../features/analytics/analytics.ts";
 import { collectionHref } from "../features/collections/address.ts";
 import { listPath, listSearch } from "../features/collections/params.ts";
 import { readerOrder, recallOrder } from "../features/gallery/order.ts";
@@ -226,7 +225,6 @@ export function AccountMenu(props: {
       );
     } else if (item.value === "sync:now") engineNow()?.schedule(0, true);
     else if (item.value === "sync:signin" || item.value === "signin") {
-      trackSignInPrompt("menu");
       go(loginHref());
     } else if (item.value === "signout") {
       /* a refusal says so: on a shared computer the reader would otherwise walk away signed in */

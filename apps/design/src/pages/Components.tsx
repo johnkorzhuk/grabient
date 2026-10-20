@@ -2,7 +2,6 @@ import { Buttons } from "./components/Buttons.tsx";
 import { CodeBlocks } from "./components/CodeBlocks.tsx";
 import { CollectionCards } from "./components/CollectionCards.tsx";
 import { ColorCoins } from "./components/ColorCoins.tsx";
-import { ConsentBanners } from "./components/ConsentBanners.tsx";
 import { Fields } from "./components/Fields.tsx";
 import { FormatStrips } from "./components/FormatStrips.tsx";
 import { Menus } from "./components/Menus.tsx";
@@ -24,7 +23,6 @@ export function Components() {
       <Switches />
       <Segments />
       <Tooltips />
-      <ConsentBanners />
       <TagRow />
       <ColorCoins />
       <PaletteCards />

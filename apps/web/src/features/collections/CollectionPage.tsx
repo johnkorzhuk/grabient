@@ -52,7 +52,6 @@ import {
 } from "../account/collections.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { accountView, onAccountChange, syncStatus } from "../account/state.ts";
-import { trackSignInPrompt } from "../analytics/analytics.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
 import { useCollectionSeen } from "../palette-use/use.ts";
@@ -553,7 +552,6 @@ export function CollectionPage(props: {
     if (!current) return;
     if (!account()) {
       if (!sessionReady()) return;
-      trackSignInPrompt("vote");
       return location.assign(localHref(loginHref()));
     }
     const seed = item.kseed;

@@ -1,14 +1,14 @@
 import { expect, test } from "vitest";
 import { consentRule, type Place } from "./consent.ts";
 
-test("a reader's choices start by where the request comes from", () => {
+test("a new account's newsletter starts by where its sign-up comes from", () => {
   const rows: [Place | undefined, string][] = [
     [{ country: "FR" }, "ask"],
     [{ country: "DE", isEUCountry: "1" }, "ask"],
     [{ country: "NO" }, "ask"],
     [{ country: "GI" }, "ask"],
     [{ country: "GB" }, "ask"],
-    [{ country: "CH" }, "tell"],
+    [{ country: "CH" }, "ask"],
     [{ country: "CA", regionCode: "QC" }, "ask"],
     [{ country: "CA", regionCode: "ON" }, "none"],
     [{ country: "TR" }, "ask"],

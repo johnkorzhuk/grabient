@@ -10,7 +10,6 @@
    - mcp: the MCP server and connecting new apps
    - mcp-view: the palette view AI apps draw, free, but drawn by other apps
    - search-rebuild: the ten-minute job's search snapshot
-   - session-replay: the analytics proxy
    - palette-use: counting public palettes used
    - client-documents: advertising client metadata documents to new apps; connected apps keep refreshing
    - rising-3m, rising-1y: Rising's longer time frames, whose scores are kept either way
@@ -28,7 +27,6 @@ export const FLAG_NAMES = [
   "mcp",
   "mcp-view",
   "search-rebuild",
-  "session-replay",
   "palette-use",
   "client-documents",
   "rising-3m",

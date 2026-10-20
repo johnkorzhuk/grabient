@@ -149,11 +149,10 @@ describe("staging's copy", () => {
     });
   });
 
-  it("turns off the newsletter and session replay, and keeps every other switch", () => {
+  it("turns off the newsletter, and keeps every other switch", () => {
     expect(all("SELECT name, enabled, updated_by FROM k_flags ORDER BY name")).toEqual([
       { name: "newsletter", enabled: 0, updated_by: null },
-      { name: "rising-3m", enabled: 0, updated_by: "PA" },
-      { name: "session-replay", enabled: 0, updated_by: null }
+      { name: "rising-3m", enabled: 0, updated_by: "PA" }
     ]);
   });
 

@@ -62,7 +62,7 @@ and add a row when a new product word gets its translation. Persian reads right 
 | Save to (Save's side of the export column) | ذخیره در | The column's toggle is `ذخیره یا خروجی`. Under ذخیره در stand مجموعه جدید and the reader's collections; a press puts the selection in one (`به {title} افزوده شد`) or takes it out (`از {title} برداشته شد`). |
 | size presets (export) | این صفحه‌نمایش، فوق‌عریض، `{device} داخلی` / `{device} بیرونی` | This screen is the reader's own: a screen is صفحه‌نمایش, never صفحه alone, which is a page. A foldable's inner and cover screens are داخلی and بیرونی after the device's own name, the pair the Persian tech press uses (نمایشگر داخلی، نمایشگر بیرونی); نمایشگر goes unsaid, as "screen" does in the English, so the label fits the size button. 1080p, 1440p and 4K stay as written. |
 | contact form | فرم تماس | The /contact page's form. |
-| Analytics / Session replay (Settings) | تحلیل / بازپخش نشست | The two switches under حریم خصوصی. On and off are روشن / خاموش; a sentence that names a switch or its state puts it in « » (`«خاموش» همه قابلیت‌های زیر را خاموش می‌کند`). A recording is ضبط. |
+| Settings switches | روشن / خاموش | On and off; a sentence that names a switch or its state puts it in « » (`«خاموش» همه قابلیت‌های زیر را خاموش می‌کند`). |
 | appearance (the press for style, steps and angle) | ظاهر | `ظاهر: {label}`; Reset appearance بازنشانی ظاهر. Kept apart from view (نمایش), the admin's word for the same settings. |
 | full screen | تمام‌صفحه | Exit full screen خروج از تمام‌صفحه. |
 | panel (the editor's side) | پنل | Show panel / Hide panel: نمایش پنل / پنهان کردن پنل. |
@@ -89,7 +89,7 @@ The palette search knows Persian words, so its examples are Persian.
 
 Names of formats and standards stay as they are, in Latin script: OKLCH, OKLab, sRGB, Display P3, CSS, SVG, PNG, JPG,
 WebP, JSON, GLSL, WGSL, Shadertoy, Figma, MCP, URL, Markdown, JavaScript, and the companies (Google, Cloudflare,
-PostHog, Resend).
+Resend).
 
 ## How Persian writes here
 

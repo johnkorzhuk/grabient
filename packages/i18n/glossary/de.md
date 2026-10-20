@@ -101,7 +101,6 @@ How German says Grabient's words. Read `README.md` for what each word means here
 | About / home | Über / Startseite | „Über Grabient“ is the page's title. |
 | undo / redo | Rückgängig / Wiederholen | |
 | random (editor button) | Würfeln | Infinitive, like the neighbouring actions (Umkehren, Invertieren); not the noun „Zufall“. The key-list label stays „Zufallspalette“. |
-| Session replay / Analytics | Sitzungsaufzeichnung / Analyse | Settings' switches. |
 | Privacy (the Settings section) | Datenschutz | One word with the footer's link to the policy. |
 | Privacy / Terms (links) | Datenschutz / Nutzungsbedingungen | The pages: „Datenschutzerklärung“, „Nutzungsbedingungen“. |
 | Contact | Kontakt | The page and its links. „Contact is temporarily unavailable.“ means its form: „Das Kontaktformular ist vorübergehend nicht verfügbar.“ |

@@ -96,7 +96,6 @@ time, and add a row when a new product word gets its translation.
 | reduce motion | kurangi gerakan | The name Indonesian iOS and macOS give the setting. Its button steps through Sistem, Aktif, Nonaktif, and under Sistem its line is Mengikuti perangkat Anda: aktif. Motion is gerakan, an animation is animasi, and the background is latar belakang: latar alone means a setting or a surface. |
 | save to (a collection) | simpan ke | The label over Koleksi baru and the reader's collections; Save collection is Simpan koleksi, and the confirmation is Ditambahkan ke {title}. |
 | a foldable's inner / cover screen (sizes) | layar dalam / layar luar | `{device} layar dalam`, `{device} layar luar`. After a name, dalam or luar alone reads as a preposition (in, outside). The device comes first so its rows stay together. Ultrawide stays Ultrawide, the word Indonesian monitor listings use. "This screen" is Layar ini. |
-| Analytics / Session replay (consent switches) | Analitik / Rekaman sesi | The switches under Privasi, capitalized where a sentence names the switch; otherwise lowercase (analitik, rekaman sesi). What PostHog keeps is rekaman (Merekam kunjungan Anda). |
 | error | kesalahan | "Something went wrong" is Terjadi kesalahan. |
 | Couldn't … / Invalid … (errors) | … tidak dapat di… / … tidak valid | The thing first, passive: Palet tidak dapat disalin, Koleksi tidak dapat dimuat; with no object, Tidak dapat menyalin. A length rule is Panjang judul 1 sampai {max} karakter; "Use up to" is Gunakan hingga, "Use at least" Gunakan minimal. |
 | No results. | Tidak ada hasil. | An empty search. "No palettes." is Tidak ada palet. |
@@ -122,4 +121,4 @@ The palette search knows Indonesian words (its lexicon has nyaman, biru navy, se
 
 Names of formats and standards stay as they are: OKLCH, OKLab, sRGB, Display P3, CSS, SVG, PNG, JPG, WebP, JSON,
 GLSL, WGSL, Shadertoy, Figma, MCP, URL, Markdown, JavaScript, and the companies and products (Google, Cloudflare,
-PostHog, Resend, iPhone).
+Resend, iPhone).

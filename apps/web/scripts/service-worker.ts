@@ -28,8 +28,6 @@ const OFFLINE_ROUTES = [
   "routes/privacy.tsx",
   "routes/terms.tsx"
 ];
-/** The session recorder, which sends what it records: no use to a page with no connection. */
-const RECORDER = "/node_modules/posthog-js/";
 
 /** The worker a build with SW=off ships. */
 export const OFF = `self.addEventListener("install", () => self.skipWaiting());
@@ -59,11 +57,10 @@ type Chunk = Pick<
   "type" | "fileName" | "isEntry" | "imports" | "dynamicImports" | "facadeModuleId"
 >;
 
-/** Whether a page that opens offline may load the chunk: any but the recorder and another page's own, its route's
-    module split off by the router (whose id carries a query). */
+/** Whether a page that opens offline may load the chunk: any but another page's own, its route's module split off by
+    the router (whose id carries a query). */
 function needed(chunk: Chunk): boolean {
   const [module = "", split] = (chunk.facadeModuleId ?? "").split("?");
-  if (module.includes(RECORDER)) return false;
   return !split || OFFLINE_ROUTES.some(route => module.endsWith(`/src/${route}`));
 }
 

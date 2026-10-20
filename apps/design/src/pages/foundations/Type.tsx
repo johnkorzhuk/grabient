@@ -29,7 +29,7 @@ const FAMILIES = [
 
 const SAMPLES: Record<TextVariant, string> = {
   title: "Settings",
-  h2: "Privacy and consent",
+  h2: "Privacy",
   h3: "Profile",
   lede: "Profile, account and privacy.",
   body: "Grabient computes a gradient from keyframes: 2 to 8 colors with a smooth curve drawn through them.",

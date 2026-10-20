@@ -13,7 +13,6 @@ import {
   setOwnVisibility
 } from "../account/collections.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
-import { trackEvent } from "../analytics/analytics.ts";
 import { addAll, removeAll, roomNote, selected } from "../selection/selection.ts";
 import { collectionHref } from "./address.ts";
 import { changeCollection, deleteCollection, readState, saveCopy, syncCopy } from "./client.ts";
@@ -99,7 +98,6 @@ export function Actions(props: {
       }
       /* a copy the account held already, saved in another tab, is not this press's to take back */
       if (!answer.made) return;
-      trackEvent("copy_collection", { slug: props.slug, copy: answer.collection.slug });
       record(saveStep(answer.collection.slug, answer.collection.title));
     } catch (reason) {
       props.say(failedWrite(reason, msg("Couldn't save the collection.")), true);
@@ -157,7 +155,6 @@ export function Actions(props: {
       props.onCopy(answer.copy);
       if (answer.collection.slug === props.slug) props.onDoc(answer.collection);
       serverWrote();
-      trackEvent(mode === "update" ? "update_collection" : "reset_collection", { slug: held.slug });
       if (mode === "update") markSynced("update");
     } catch (reason) {
       props.say(

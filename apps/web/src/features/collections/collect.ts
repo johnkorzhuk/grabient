@@ -20,7 +20,6 @@ import {
   serverWrote
 } from "../account/collections.ts";
 import { account, accountKnown, isAdmin, loginHref, sessionReady } from "../account/session.ts";
-import { trackEvent } from "../analytics/analytics.ts";
 import { itemKey } from "./address.ts";
 import {
   addSitePalettes,
@@ -58,7 +57,6 @@ async function putIn(
 ): Promise<{ title: string; added: Item[] }> {
   if (ownsCollection(slug)) {
     const put = addOwnPalettes(slug, items);
-    if (put.added.length) trackEvent("add_to_collection", { slug, items: put.added.length });
     return put;
   }
   const state = await readState(slug);
@@ -78,7 +76,6 @@ async function putIn(
   if (!added.length) return { title: state.collection.title, added };
   const { collection } = await changeCollection(slug, { items: [...held, ...added] });
   serverWrote();
-  trackEvent("add_to_collection", { slug: collection.slug, items: added.length });
   return { title: collection.title, added };
 }
 /** The palettes out of one of the account's own, each with the token that puts it back. */
@@ -114,7 +111,6 @@ async function makeOwn(
     serverWrote();
   }
   recallCollection(made.slug);
-  trackEvent("create_collection", { slug: made.slug, visibility: "private", items: items.length });
   return made;
 }
 

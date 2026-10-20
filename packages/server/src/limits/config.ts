@@ -111,8 +111,6 @@ export const LIMITS = {
   // A token the OAuth library looks up and does not find, per address: past these a minute, its tokens are refused
   // before the lookup's KV read.
   mcpChallenge: { requests: 120, window: 60, local: true },
-  // The analytics proxy: a session recording posts every few seconds.
-  analyticsProxy: { requests: 300, window: 60, local: true },
   // Collection writes per account by the hour and the day, the site's day, and the apps' own day.
   collectionWrite: { requests: 30, window: 3600, work: true },
   collectionWriteDaily: { requests: 100, window: 86400, work: true },

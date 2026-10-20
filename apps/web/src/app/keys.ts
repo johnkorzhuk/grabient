@@ -5,7 +5,6 @@ import { keyRow } from "@grabient/ui/keymap.ts";
 import { type Binding, installKeys, type KeyRow, sharedKeys } from "@grabient/ui/keys.ts";
 import { toggleTheme } from "@grabient/ui/theme.ts";
 import { createSignal, onSettled } from "solid-js";
-import { trackEvent } from "../features/analytics/analytics.ts";
 import { redo, undo } from "./undo.ts";
 
 /* The keys every page answers to: T for the theme, U to copy the page's address, Mod+Z and Mod+Shift+Z for the page's
@@ -18,7 +17,6 @@ const UNDO = keyRow("undo")!;
 export function copyAddress(): void {
   void copyText(location.href).then(ok => {
     announce(t(ok ? msg("Copied") : msg("Couldn't copy. Select the text and copy it.")));
-    if (ok) trackEvent("copy_link", { surface: "key" });
   });
 }
 
@@ -28,8 +26,7 @@ export function createSiteKeys(page: () => readonly Binding[]) {
   const shared = (): Binding[] => [
     ...sharedKeys({
       theme: () => {
-        const next = toggleTheme();
-        if (next) trackEvent("change_setting", { setting: "theme", value: next });
+        toggleTheme();
       },
       copyUrl: copyAddress
     }),

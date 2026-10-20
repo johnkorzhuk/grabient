@@ -105,7 +105,7 @@ time; add a row when a new product word gets its translation.
 | shader | shader | "mã shader". |
 | Privacy policy / Terms of service | Chính sách quyền riêng tư / Điều khoản dịch vụ | |
 | Contact, message (to Grabient) | Liên hệ, lời nhắn | The form itself is "biểu mẫu liên hệ". "Lời nhắn" is the form's own field label. "Tin nhắn" reads as a chat or SMS message. |
-| Privacy, Analytics, Session replay (the Settings section and its switches) | Quyền riêng tư, Phân tích, Ghi lại phiên truy cập | The labels, capitalized, when the text names the switch ("bật hoặc tắt Phân tích và Ghi lại phiên truy cập"). In running text: "tính năng phân tích", "tính năng ghi lại phiên truy cập". A recording is "bản ghi". |
+| Privacy (the Settings section) | Quyền riêng tư | The label, capitalized, when the text names the section. |
 | issue, test issue (of the newsletter) | số, số thử | "Gửi các số của bản tin", "Chỉ gửi số thử đến {email}". |
 | lead palette (of an issue, admins) | bảng màu chính | The palette an issue opens with: "Đặt làm bảng màu chính", "Bảng màu chính tiếp theo", "Bảng màu chính trước đó". A counter "3 of 13" is "3/13". |
 | Grabient, OKLCH, OKLab, sRGB, Display P3, CSS, SVG, PNG, JSON, GLSL, WGSL, Shadertoy, Figma, MCP, URL, Markdown, hex | unchanged | |

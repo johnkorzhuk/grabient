@@ -8,7 +8,6 @@ import { batch } from "../db/d1.ts";
 import { mailAccount } from "../email/send.ts";
 import type { Env } from "../env.ts";
 import { accountDeletion, deleteAvatars } from "./account-data.ts";
-import { attribution } from "./attribution.ts";
 import { reviewerAddress } from "./roles.ts";
 import * as schema from "./schema.ts";
 
@@ -103,7 +102,6 @@ function createAuth(env: Env) {
               name: String(user.name ?? "")
                 .trim()
                 .slice(0, NAME_MAX),
-              ...attribution(context?.request?.headers ?? context?.headers),
               /* where the law asks for a yes first, or where the request comes from is unknown, the newsletter waits
                  for the account's own yes (apps/web/src/server/newsletter/list.ts) */
               ...(consentRule((context?.request as { cf?: Place } | undefined)?.cf) === "none"

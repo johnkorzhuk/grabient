@@ -1,12 +1,12 @@
 import { isServer } from "@solidjs/web";
 import { colorFormat } from "../../lib/color-format.ts";
 import type { Drawn } from "../../lib/palette.ts";
-import { analyticsInternal, trackEvent } from "../analytics/analytics.ts";
+import { adminAccount } from "../account/session.ts";
 
 /* What a reader does with a public palette: opened from a card, copied, downloaded, and a collection's page seen. Each
    is sent to the Worker (POST /api/used), which counts it for the seeding agents with no address, account or cookie,
-   and keeps only palettes the site shows publicly; where analytics is on, GA4 hears it too. An admin's own use is the
-   site at work, never a visitor's, and is not sent. Nothing waits on it and nothing is shown. Browser only. */
+   and keeps only palettes the site shows publicly. An admin's own use is the site at work, never a visitor's, and is
+   not sent. Nothing waits on it and nothing is shown. Browser only. */
 
 export type UseSurface =
   | "home"
@@ -31,7 +31,7 @@ export interface UseAt {
 type UsedPalette = Pick<Drawn, "seed"> & Partial<Omit<Drawn, "seed">>;
 
 function send(body: Record<string, unknown>) {
-  if (isServer || analyticsInternal()) return;
+  if (isServer || adminAccount()) return;
   try {
     fetch("/api/used", {
       method: "POST",
@@ -51,9 +51,6 @@ const spelled = (format: string) => {
     ? `${format}:${kind}`
     : format;
 };
-/* GA4 names a take as the old site did (copy_css, download_png, copy_link), so its reports carry on */
-const takeName = (action: string, format: string) =>
-  `${action}_${(format === "url" ? "link" : format).replace(/:/g, "_")}`;
 const item = (p: UsedPalette, at?: UseAt) => ({
   seed: p.seed,
   style: p.style,
@@ -80,11 +77,6 @@ export function useOpened(place: UsePlace, palette: UsedPalette, at: UseAt = {})
     searched: !!place.searched,
     items: [item(palette, at)]
   });
-  trackEvent("open_palette", {
-    seed: palette.seed,
-    surface: place.surface,
-    ...(at.position !== undefined ? { position: at.position } : {})
-  });
 }
 
 /** A card's, the editor's or the selection's copy or download: each palette with the view it was taken in. */
@@ -106,11 +98,6 @@ export function useTaken(
     searched: !!place.searched,
     items: palettes.slice(0, 50).map(p => item(p, at))
   });
-  trackEvent(takeName(action, as), {
-    surface: place.surface,
-    count: palettes.length,
-    ...(palettes.length === 1 ? { seed: palettes[0].seed, style: palettes[0].style } : {})
-  });
 }
 
 /** The editor's copy or download. `openedSeed` is the palette the editor opened on, `palette` what it shows now: a
@@ -131,13 +118,6 @@ export function useInEditor(
     collection: at.collection,
     items: [item({ ...palette, seed: openedSeed }, at)],
     ...(edited ? { edited } : {})
-  });
-  trackEvent(takeName(action, as), {
-    surface: "editor",
-    count: 1,
-    seed: openedSeed,
-    style: palette.style,
-    edited: !!edited
   });
 }
 

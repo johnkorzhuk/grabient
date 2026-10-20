@@ -30,7 +30,6 @@ import {
   listingPath,
   privatePath,
   publicFile,
-  recorderPath,
   serverFunctionPath,
   uncachedPath
 } from "./paths.ts";
@@ -166,8 +165,8 @@ async function route(
     const trimmed = path.replace(/\/+$/, "") || "/";
     if (isPagePath(trimmed)) return redirect(at(trimmed + url.search));
   }
-  // no API or file has a language or a last slash, but the recorder's, which PostHog's library writes
-  if (!page && (locale !== DEFAULT_LOCALE || (slashed && !recorderPath(path)))) {
+  // no API or file has a language or a last slash
+  if (!page && (locale !== DEFAULT_LOCALE || slashed)) {
     return json({ error: msg("Not found") }, { status: 404 });
   }
 

@@ -43,12 +43,11 @@ import { heading, relTo } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { type Failed, failed } from "../../lib/query.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
-import { trackEvent } from "../analytics/analytics.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
 import { createFeed, inPlace, joinNext } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
-import { searchAnswered, searchedHere } from "../search/count.ts";
+import { searchedHere } from "../search/count.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
@@ -182,7 +181,6 @@ export function CollectionsPage(props: {
     head: () => headData() ?? UNREAD,
     kept: keptPage,
     read: n => {
-      trackEvent("paginate", { page_number: n, surface: "collections" });
       return mine()
         ? client.fetchQuery(ownQuery(account()?.id ?? "", { ...pageKey(n), sort: "newest" }))
         : client.fetchQuery(collectionsQuery(pageKey(n)));
@@ -335,19 +333,6 @@ export function CollectionsPage(props: {
     if (colors && colors !== place().query)
       void navigate({ href: searchHref(colors), replace: true, resetScroll: false });
   };
-  /* what a search of the public collections found, told once its answer is this page's */
-  createEffect(
-    () => {
-      const first = head();
-      const words = place().query;
-      return !mine() && words && first && first.query === words
-        ? { words, kind: held() ? ("image" as const) : undefined, results: first.total }
-        : null;
-    },
-    found => {
-      if (found) searchAnswered(found.words, "collections", found);
-    }
-  );
 
   /* where each list lives, keeping the words and the view; a press on Rising while it is the order moves its frame */
   const here = () => listSearch({ query: place().query, view: place().view });

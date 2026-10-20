@@ -926,7 +926,7 @@ for (const width of WIDTHS)
       await fromMenu(page, "Settings", width);
       await expect(page).toHaveURL(/\/settings$/);
       await expect(page.locator("main h1")).toHaveText("Settings");
-      await expect(page.locator('#privacy [role="switch"]').first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
       await back("Settings");
 
       await fromMenu(page, "About", width);

@@ -40,12 +40,10 @@ import { heading, relTo } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { onAccountChange } from "../account/state.ts";
-import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
 import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
 import { AppearanceContext, inView } from "../list/appearance.ts";
-import { searchAnswered } from "../search/count.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -229,7 +227,6 @@ export function Palettes(props: { place: ListPlace }) {
       return from ? keptPage(client, from, n) : undefined;
     },
     read: n => {
-      trackEvent("paginate", { page_number: n, surface: page.place().surface });
       return readPage(client, source()!, n);
     }
   });
@@ -273,7 +270,6 @@ export function Palettes(props: { place: ListPlace }) {
     query: () => (saved ? "" : words()),
     account: () => (sessionReady() ? (account()?.id ?? null) : undefined),
     signIn: () => {
-      trackSignInPrompt("vote");
       go(page.signIn());
     },
     fail: page.say,
@@ -308,29 +304,6 @@ export function Palettes(props: { place: ListPlace }) {
   /* a search by colors leads with the palettes the colors make, a picture's as its points move */
   const made = createMemo(() =>
     saved ? [] : madeItems(held()?.points.map(point => point.hex) ?? queryColors(words()))
-  );
-  /* what a search found, told once its answer is this page's */
-  createEffect(
-    () => {
-      const read = standing();
-      return !saved && words() && read && !navigating()
-        ? {
-            words: words(),
-            kind: held()
-              ? ("image" as const)
-              : read.tier === "similar"
-                ? ("palette" as const)
-                : read.tier === "color"
-                  ? ("colors" as const)
-                  : undefined,
-            tier: read.tier,
-            results: read.total
-          }
-        : null;
-    },
-    told => {
-      if (told) searchAnswered(told.words, "palettes", told);
-    }
   );
 
   const now = () => minuteOf(standing()?.fetchedAt ?? 0);
@@ -397,7 +370,6 @@ export function Palettes(props: { place: ListPlace }) {
     }
     const target = toOrder(to);
     if (to === "saved" && sessionReady() && account() === null) {
-      trackSignInPrompt("saved");
       return go(loginHref(target));
     }
     if ((to === "saved") !== saved) pressed = to;
@@ -419,15 +391,9 @@ export function Palettes(props: { place: ListPlace }) {
         listSearch(params(), { page: (last?.page ?? params().page) + 1, selection: false })
     );
   };
-  /* the way in; a search that needs an account counts as a prompt to sign in, Saved's own page as none */
-  const signIn = (prompted: boolean) => (
-    <Button
-      variant="primary"
-      size="lg"
-      href={page.signIn()}
-      disabled={signInUnavailable()}
-      onClick={() => prompted && trackSignInPrompt("search")}
-    >
+  /* the way in */
+  const signIn = () => (
+    <Button variant="primary" size="lg" href={page.signIn()} disabled={signInUnavailable()}>
       {t("Sign in")}
     </Button>
   );
@@ -490,7 +456,7 @@ export function Palettes(props: { place: ListPlace }) {
                   <Text variant="h3" as="h2">
                     {t("Sign in to see your saved palettes.")}
                   </Text>
-                  {signIn(false)}
+                  {signIn()}
                 </div>
               }
             >
@@ -502,7 +468,7 @@ export function Palettes(props: { place: ListPlace }) {
                       "Try a color, mood or theme, like navy, cozy or sunset. Or sign in to search in any language."
                     )}
                   </Text>
-                  {signIn(true)}
+                  {signIn()}
                 </div>
                 <Show when={offers()?.items.length}>
                   <section class={styles.offer} aria-label={t("Matching collections")}>
@@ -626,12 +592,7 @@ export function Palettes(props: { place: ListPlace }) {
                   </Button>
                 </Show>
                 <Show when={signInForMore() && !more()}>
-                  <Button
-                    size="sm"
-                    href={page.signIn()}
-                    disabled={signInUnavailable()}
-                    onClick={() => trackSignInPrompt("search")}
-                  >
+                  <Button size="sm" href={page.signIn()} disabled={signInUnavailable()}>
                     {t("Sign in")}
                   </Button>
                 </Show>

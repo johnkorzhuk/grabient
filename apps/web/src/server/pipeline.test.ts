@@ -167,16 +167,6 @@ describe("the language in the address", () => {
     const posted = await get("/_serverFn/eyJ0ZXN0IjoxfQ", { method: "POST", body: "{}" });
     expect([posted.status, asked]).toEqual([404, []]);
   });
-
-  test("the recorder's addresses reach Start as PostHog's library writes them, last slash and all", async () => {
-    const recorded = () => new Response(null, { status: 204 });
-    const posted = await get("/e/s/?ip=0&ver=1", { method: "POST", body: "{}" }, recorded);
-    expect(posted.status).toBe(204);
-    await get("/e/static/recorder.js", {}, recorded);
-    expect(
-      asked.map(request => new URL(request.url).pathname + new URL(request.url).search)
-    ).toEqual(["/e/s/?ip=0&ver=1", "/e/static/recorder.js"]);
-  });
 });
 
 describe("an arrival's language", () => {

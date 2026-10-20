@@ -73,7 +73,6 @@ word gets its Turkish.
 | issue / lead palette (the newsletter's, admins only) | sayı / manşet paleti | The palette an issue leads with, in the newspaper's word for its lead story: "Bu paleti manşete taşı"; its arrows: "Önceki manşet paleti", "Sonraki manşet paleti". Which one is shown: "{at}/{count}", since no suffix may land on a value. |
 | a foldable's screens (inner / cover) | iç ekranı / dış ekranı | Export size presets: "{device} iç ekranı", "{device} dış ekranı". A bare "iç" or "dış" after the device name reads as cut off. The screen presets are "Bu ekran" (This screen) and "Ultra geniş" (Ultrawide). |
 | Save to | Şuraya kaydet | The label over the collections the selection can be saved to, beside the export column's "Kaydet veya dışa aktar" toggle. After an add, it says "{title} koleksiyonuna eklendi". |
-| analytics / session replay | analitik / oturum kaydı | The two switches under Settings' "Gizlilik". A replay's recordings are "oturum kayıtları". |
 | sign-in links | giriş bağlantıları | |
 | public gallery | herkese açık galeri | Where a new palette an app saves appears. |
 

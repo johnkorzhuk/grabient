@@ -5,7 +5,6 @@ import { createStore } from "solid-js";
 import * as v from "valibot";
 import { openedOutside } from "../../app/framed.ts";
 import { record } from "../../app/undo.ts";
-import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
 import {
   account,
   accountKnown,
@@ -227,8 +226,7 @@ if (!isServer) {
   onSettledLikes(settled => {
     likesVersion++;
     const now = Date.now();
-    for (const { seed, liked: on, likesCount, view } of settled) {
-      trackEvent(on ? "save_gradient" : "unsave_gradient", { seed, ...view });
+    for (const { seed, liked: on, likesCount } of settled) {
       if (likesCount === null) {
         const held = known.get(seed);
         if (held) held.at = 0;
@@ -276,7 +274,6 @@ async function setLiked(
   // a press made before the page knows who is signed in waits for the answer; one made after never waits
   if (account() === undefined) await accountKnown();
   if (!account()) {
-    trackSignInPrompt("like");
     const to = loginHref();
     if (!openedOutside(to)) location.assign(localHref(to));
     return;

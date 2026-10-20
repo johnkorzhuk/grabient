@@ -7,7 +7,6 @@ import { isServer } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import { record } from "../../app/undo.ts";
 import type { Drawn } from "../../lib/palette.ts";
-import { trackEvent } from "../analytics/analytics.ts";
 
 /* The selection: up to a hundred palettes a reader gathers from any page to export together, each in the view it was
    chosen in. It is this browser's (`grabient-keyframe-exports`), shared by its tabs, and starts empty on the server and
@@ -191,12 +190,10 @@ export function toggle(palette: Drawn): "added" | "made room" | "removed" | "inv
   if (!item) return "invalid";
   if (current.some(entry => entry.id === item.id)) {
     change(current.filter(entry => entry.id !== item.id));
-    trackEvent("remove_from_export", { count: 1 });
     return "removed";
   }
   const { next, dropped } = withRoom(current, [item], new Set([item.id]));
   change(next);
-  trackEvent("add_to_export", { count: 1 });
   return dropped ? "made room" : "added";
 }
 
@@ -216,7 +213,6 @@ export function addAll(palettes: readonly Drawn[]): { added: number; dropped: nu
   const added = Math.min(fresh.length, SELECTION_MAX);
   const { next, dropped } = withRoom(current, fresh.slice(0, SELECTION_MAX), asked);
   change(next);
-  trackEvent("add_to_export", { count: added });
   return { added, dropped };
 }
 
@@ -228,13 +224,11 @@ export const removeSelected = (id: string): void =>
 export function removeAll(palettes: readonly Drawn[]): void {
   const gone = new Set(palettes.map(palette => selectedPalette(palette)?.id));
   change(current.filter(entry => !gone.has(entry.id)));
-  trackEvent("remove_from_export", { count: gone.size });
 }
 
 /** Every palette out, which one undo puts back. */
 export function clearSelection(): void {
   change([]);
-  trackEvent("clear_export_list");
 }
 
 /** What a page says when the selection made room: how many of its oldest palettes went, and the key that puts them

@@ -38,13 +38,11 @@ import { useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { heading, relTo } from "../../lib/page-meta.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
-import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
 import { ownerLabel } from "../collections/drawing.ts";
 import { createFit } from "../collections/fit.ts";
 import { collectionGone, paletteGone } from "../collections/overlay.ts";
 import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
 import { AppearanceContext, inView } from "../list/appearance.ts";
-import { searchAnswered } from "../search/count.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { createPicture } from "../search/picture.ts";
 import { selection } from "../selection/selection.ts";
@@ -119,7 +117,6 @@ export function Home(props: { params: ListParams }) {
       return read && !failed(read) ? read : undefined;
     },
     read: n => {
-      trackEvent("paginate", { page_number: n, surface: "home" });
       return client.fetchQuery(homeCollectionsQuery(words(), n));
     }
   });
@@ -193,7 +190,6 @@ export function Home(props: { params: ListParams }) {
     query: words,
     account: () => (sessionReady() ? (account()?.id ?? null) : undefined),
     signIn: () => {
-      trackSignInPrompt("vote");
       void navigate({ href: page.signIn() });
     },
     fail: page.say,
@@ -225,30 +221,6 @@ export function Home(props: { params: ListParams }) {
   };
   /* words that hold hex colors lead with the palettes those colors make */
   const made = createMemo(() => madeItems(queryColors(words())));
-  /* what a search found, told once its answer is this page's */
-  createEffect(
-    () => {
-      const read = standingHead();
-      const collections = standingFirst();
-      return words() && read && collections && !navigating()
-        ? {
-            words: words(),
-            kind:
-              read.tier === "similar"
-                ? ("palette" as const)
-                : read.tier === "color"
-                  ? ("colors" as const)
-                  : undefined,
-            tier: read.tier,
-            results: read.palettes.length,
-            collections: collections.total
-          }
-        : null;
-    },
-    told => {
-      if (told) searchAnswered(told.words, "home", told);
-    }
-  );
 
   /* the ages the server printed are told against the minute the head was read in, and hydration agrees */
   const now = () => minuteOf(standingHead()?.fetchedAt ?? 0);
@@ -320,7 +292,6 @@ export function Home(props: { params: ListParams }) {
       size={size}
       href={page.signIn()}
       disabled={signInUnavailable()}
-      onClick={() => trackSignInPrompt("search")}
     >
       {t("Sign in")}
     </Button>

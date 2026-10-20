@@ -85,7 +85,7 @@ The reader is addressed as **tú**. Read the English list in `README.md` first; 
 | undo / redo (the editor's, context `edit`) | Deshacer / Rehacer | "Deshaz con {key}." |
 | Save to (Save's two sides) | Guardar en: Nueva colección / Tus colecciones | A save confirms with the neutral participle, whatever the count: "Agregado a {title}", "Quitado de {title}". |
 | size presets (export) | Esta pantalla, Ultrapanorámico, "{device} interior" / "{device} exterior" | "Ultrapanorámico" is the retail name for 21:9 monitors. A foldable's inner and cover screens are "interior" and "exterior", as the Spanish tech press says. 1080p, 1440p and 4K stay as written. |
-| contact form / Analytics / Session replay / sign-in link | formulario de contacto / Analítica / Grabación de sesiones / enlace para iniciar sesión | Analítica and Grabación de sesiones are the Settings switches' labels; in running text "la analítica", "la grabación de sesiones". |
+| contact form / sign-in link | formulario de contacto / enlace para iniciar sesión | |
 
 Color names (from `colorname.ts`): negro, blanco, gris, rojo, naranja, amarillo, verde, verde azulado (teal), azul,
 morado (purple), rosa (pink), durazno (peach, as Mexico says it); "dark X" is "X oscuro", "light X" is "X claro". "{start} to {end}" is

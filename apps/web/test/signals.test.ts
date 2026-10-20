@@ -3,14 +3,13 @@ import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
 import { describe, expect, it, vi } from "vitest";
-import { replayResponse } from "../src/server/analytics/replay.ts";
 import { clientErrorResponse } from "../src/server/client-errors/client-errors.ts";
 import { useRecord } from "../src/server/palette-use/record.ts";
 import { prunePaletteUse, usedResponse } from "../src/server/palette-use/use.ts";
 import { makeVisitKeys } from "../src/server/visits/keys.ts";
 import { address, count, ORIGIN, post, testEnv, unique } from "./helpers.ts";
 
-/* What readers' pages tell the Worker: palette use, client errors and the session recordings' way out. */
+/* What readers' pages tell the Worker: palette use and client errors. */
 
 const DAY = 86_400_000;
 const today = () => Math.floor(Date.now() / DAY);
@@ -227,16 +226,5 @@ describe("client errors", () => {
     ).toBe(204);
     expect(logged).not.toHaveBeenCalled();
     logged.mockRestore();
-  });
-});
-
-describe("the recordings' way out", () => {
-  it("answers and sends nothing on, off the production hosts", async () => {
-    const env = testEnv();
-    const fetched = vi.spyOn(globalThis, "fetch");
-    const answer = await replayResponse(post("/e/s/", { token: "phc_any" }), env);
-    expect(answer.status).toBe(204);
-    expect(fetched).not.toHaveBeenCalled();
-    fetched.mockRestore();
   });
 });

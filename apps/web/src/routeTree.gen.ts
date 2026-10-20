@@ -36,7 +36,6 @@ import { Route as ApiBuildRouteImport } from './routes/api/build'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as ApiFramesRouteImport } from './routes/api/frames'
-import { Route as ApiGeoRouteImport } from './routes/api/geo'
 import { Route as ApiHotRouteImport } from './routes/api/hot'
 import { Route as ApiLikeCountsRouteImport } from './routes/api/like-counts'
 import { Route as ApiNewsletterRouteImport } from './routes/api/newsletter'
@@ -52,7 +51,6 @@ import { Route as ApiSearchDotjsonRouteImport } from './routes/api/search[.]json
 import { Route as ApiSearchedRouteImport } from './routes/api/searched'
 import { Route as ApiUsedRouteImport } from './routes/api/used'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
-import { Route as ESplatRouteImport } from './routes/e/$'
 import { Route as FaviconChar123weekChar125DotsvgRouteImport } from './routes/favicon/{$week}[.]svg'
 import { Route as LoginPasswordRouteImport } from './routes/login_.password'
 import { Route as McpIndexRouteImport } from './routes/mcp/index'
@@ -258,11 +256,6 @@ const ApiFramesRoute = ApiFramesRouteImport.update({
   path: '/api/frames',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiGeoRoute = ApiGeoRouteImport.update({
-  id: '/api/geo',
-  path: '/api/geo',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiHotRoute = ApiHotRouteImport.update({
   id: '/api/hot',
   path: '/api/hot',
@@ -336,11 +329,6 @@ const ApiUsedRoute = ApiUsedRouteImport.update({
 const CollectionsSavedRoute = CollectionsSavedRouteImport.update({
   id: '/collections/saved',
   path: '/collections/saved',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ESplatRoute = ESplatRouteImport.update({
-  id: '/e/$',
-  path: '/e/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaviconChar123weekChar125DotsvgRoute =
@@ -743,7 +731,6 @@ export interface FileRoutesByFullPath {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/contact': typeof ApiContactRoute
   '/api/frames': typeof ApiFramesRoute
-  '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
@@ -759,7 +746,6 @@ export interface FileRoutesByFullPath {
   '/api/searched': typeof ApiSearchedRoute
   '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
-  '/e/$': typeof ESplatRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/login/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
@@ -857,7 +843,6 @@ export interface FileRoutesByTo {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/contact': typeof ApiContactRoute
   '/api/frames': typeof ApiFramesRoute
-  '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
@@ -873,7 +858,6 @@ export interface FileRoutesByTo {
   '/api/searched': typeof ApiSearchedRoute
   '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
-  '/e/$': typeof ESplatRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/login/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
@@ -972,7 +956,6 @@ export interface FileRoutesById {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/contact': typeof ApiContactRoute
   '/api/frames': typeof ApiFramesRoute
-  '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
@@ -988,7 +971,6 @@ export interface FileRoutesById {
   '/api/searched': typeof ApiSearchedRoute
   '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
-  '/e/$': typeof ESplatRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/login_/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
@@ -1088,7 +1070,6 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/contact'
     | '/api/frames'
-    | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
     | '/api/newsletter'
@@ -1104,7 +1085,6 @@ export interface FileRouteTypes {
     | '/api/searched'
     | '/api/used'
     | '/collections/saved'
-    | '/e/$'
     | '/favicon/{$week}.svg'
     | '/login/password'
     | '/mcp/server-card'
@@ -1202,7 +1182,6 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/contact'
     | '/api/frames'
-    | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
     | '/api/newsletter'
@@ -1218,7 +1197,6 @@ export interface FileRouteTypes {
     | '/api/searched'
     | '/api/used'
     | '/collections/saved'
-    | '/e/$'
     | '/favicon/{$week}.svg'
     | '/login/password'
     | '/mcp/server-card'
@@ -1316,7 +1294,6 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/contact'
     | '/api/frames'
-    | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
     | '/api/newsletter'
@@ -1332,7 +1309,6 @@ export interface FileRouteTypes {
     | '/api/searched'
     | '/api/used'
     | '/collections/saved'
-    | '/e/$'
     | '/favicon/{$week}.svg'
     | '/login_/password'
     | '/mcp/server-card'
@@ -1431,7 +1407,6 @@ export interface RootRouteChildren {
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiContactRoute: typeof ApiContactRoute
   ApiFramesRoute: typeof ApiFramesRoute
-  ApiGeoRoute: typeof ApiGeoRoute
   ApiHotRoute: typeof ApiHotRoute
   ApiLikeCountsRoute: typeof ApiLikeCountsRoute
   ApiNewsletterRoute: typeof ApiNewsletterRoute
@@ -1447,7 +1422,6 @@ export interface RootRouteChildren {
   ApiSearchedRoute: typeof ApiSearchedRoute
   ApiUsedRoute: typeof ApiUsedRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
-  ESplatRoute: typeof ESplatRoute
   FaviconChar123weekChar125DotsvgRoute: typeof FaviconChar123weekChar125DotsvgRoute
   LoginPasswordRoute: typeof LoginPasswordRoute
   McpServerCardRoute: typeof McpServerCardRoute
@@ -1710,13 +1684,6 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiFramesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/geo': {
-      id: '/api/geo'
-      path: '/api/geo'
-      fullPath: '/api/geo'
-      preLoaderRoute: typeof ApiGeoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/hot': {
       id: '/api/hot'
       path: '/api/hot'
@@ -1820,13 +1787,6 @@ declare module '@tanstack/solid-router' {
       path: '/collections/saved'
       fullPath: '/collections/saved'
       preLoaderRoute: typeof CollectionsSavedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/e/$': {
-      id: '/e/$'
-      path: '/e/$'
-      fullPath: '/e/$'
-      preLoaderRoute: typeof ESplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/favicon/{$week}.svg': {
@@ -2335,7 +2295,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiContactRoute: ApiContactRoute,
   ApiFramesRoute: ApiFramesRoute,
-  ApiGeoRoute: ApiGeoRoute,
   ApiHotRoute: ApiHotRoute,
   ApiLikeCountsRoute: ApiLikeCountsRoute,
   ApiNewsletterRoute: ApiNewsletterRoute,
@@ -2351,7 +2310,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSearchedRoute: ApiSearchedRoute,
   ApiUsedRoute: ApiUsedRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
-  ESplatRoute: ESplatRoute,
   FaviconChar123weekChar125DotsvgRoute: FaviconChar123weekChar125DotsvgRoute,
   LoginPasswordRoute: LoginPasswordRoute,
   McpServerCardRoute: McpServerCardRoute,

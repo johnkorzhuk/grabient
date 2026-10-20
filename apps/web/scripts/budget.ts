@@ -35,13 +35,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
 const EVERY_PAGE = ["src/app/tab-icon.ts"];
 
-/** The session recorder, loaded only where a reader allows a replay: measured on its own, so it hides no other chunk. */
-const RECORDER = "/node_modules/posthog-js/";
-
 const BUDGETS = {
   stylesheet: 29,
   onDemand: 12,
-  recorder: 106,
   names: 285,
   // the Worker holds every language's messages as text from its start, the admins' among them, and counts the pages
   // browsers load with the admins' reader of those counts (server/visits, mcp/admin/visits.ts: 5 KiB)
@@ -110,18 +106,13 @@ rows.push({
   unit: KB
 });
 
-const recorder = chunks.find(chunk => chunk.src?.includes(RECORDER));
 const onDemand = chunks
-  .filter(chunk => chunk.file.endsWith(".js") && !started.has(chunk.file) && chunk !== recorder)
+  .filter(chunk => chunk.file.endsWith(".js") && !started.has(chunk.file))
   .map(chunk => ({ file: chunk.file, size: clientGzip(chunk.file) }))
   .sort((a, b) => b.size - a.size)[0];
 if (onDemand) {
   const name = `largest on-demand chunk (${onDemand.file.replace(/^assets\//, "")})`;
   rows.push({ name, size: onDemand.size, budget: BUDGETS.onDemand, unit: KB });
-}
-if (recorder) {
-  const size = clientGzip(recorder.file);
-  rows.push({ name: "session recorder", size, budget: BUDGETS.recorder, unit: KB });
 }
 
 const names = readdirSync(join(assets, "assets")).find(file => /^color-names-.*\.txt$/.test(file));

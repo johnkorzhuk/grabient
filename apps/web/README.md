@@ -52,7 +52,7 @@ its own would turn a render error into an empty 200.
 ## The frame
 
 The root route renders the document and, as its component, the frame every page stands in (`src/app/Shell.tsx`): the
-privacy banner, the water, the header with the wordmark and its corner, the keys, the toast line and the embed notice.
+water, the header with the wordmark and its corner, the keys, the toast line and the embed notice.
 It stays mounted as pages change. A route says how it is framed in its `staticData` (`src/app/shell.ts`): `frame`
 (`app`, `brand` or `sheet`), `corner` (the tools before the theme button: a list's `ListAppearance`, the editor's own),
 `still` and `moving` (the water under reduced motion), `translated` (the language menu lets crawlers follow) and
@@ -99,27 +99,21 @@ A switch the server keeps outside the copy (a feature flag, the newsletter, a vo
 `src/lib/optimistic.ts`. The production build writes `/sw.js` (`scripts/service-worker.ts`), which opens the
 account's pages and the pages whose words are in the code with no connection; `SW=off` builds one that removes itself.
 
-## Privacy choices
+## Privacy
 
-Where a reader's choices start is one rule, `consentRule` in `packages/server/src/consent.ts`, read from the place
-Cloudflare finds the request in (`request.cf`). `ask` (the EEA, wherever the place is unknown, and the others the
-module names, the UK among them until GA4 holds its data as Google's processor) has Analytics, Marketing and Session
-replay start off; `tell` (Switzerland) has Analytics start on and the rest off; `none` has Analytics and Marketing start
-on. Replay starts off everywhere, a browser that sends Global Privacy Control or Do Not Track starts with all three off,
-and a page in another site's frame, which shows no banner, starts under `tell` as under `ask`. A choice stands for 13
-months. `/api/geo` answers the page's rule, kept by no
-cache, and the browser keeps a reader's choice in `consent-preferences` (`src/features/analytics/consent.ts`), written
-only once the reader chooses. Analytics itself runs on grabient.com alone (`src/features/analytics/analytics.ts`), and
-it and a recording name an account's collection (`/@handle/slug`) by its kind, never by its address.
+The site runs no analytics script, sets no cookie of its own beyond what the site needs to work, and asks no reader for
+consent. Visits are counted by the Worker from what browsers ask for anyway (`src/server/visits/visits.ts`): a page a
+browser navigates to, and the palette uses and searches a page already reports, each a `visit` point in Analytics
+Engine with the page's kind, language, country, device, browser, system and network, and for a landing the referring
+site and campaign tags. A visitor is a code made with a random key that KV deletes ten minutes past its day's end
+(`src/server/visits/keys.ts`, made a day ahead by the ten-minute job), so no code outlives its day and no address is
+kept; China and Vietnam get no code, and a browser that sends Global Privacy Control or Do Not Track is counted and
+nothing else. The admins' `site_visits` tool reads them back, with what it left out as programs and a self-check: the
+share of a day's people who used a palette, a collection or the search. The zone's Zaraz still holds its old GA4 tool,
+which nothing loads.
 
-Under `ask` and `tell` a reader who has not chosen sees the banner (`@grabient/ui/ConsentBanner.tsx`, wired in
-`src/app/ConsentBanner.tsx`). The frame mounts it right after the skip link, fixed over the screen's foot, and loads
-its code only for a reader who sees it; the server never draws it. It stays out of another site's frame, the pages
-analytics stays out of and Settings, whose Privacy section is the whole choice. Reject all, Accept all or any switch in
-Settings is the reader's choice, and the banner is gone from then on in that browser. A press on the banner is no use
-of the page: analytics waits for the next one.
-
-An account made under `ask` or `tell` waits for its own yes before the newsletter (`auth_user.newsletter_opt_in`,
+An account made under `ask` (`consentRule` in `packages/server/src/consent.ts`, by the place Cloudflare finds its
+sign-up in) waits for its own yes before the newsletter (`auth_user.newsletter_opt_in`,
 written by the sign-in library as it makes the account); `src/server/newsletter/list.ts` reads a missing choice as off
 for it and on for everyone else. An account made before the column holds none, and keeps the newsletter.
 
@@ -135,12 +129,6 @@ send and account keep any reader from getting an issue twice: a row counts a try
 Resend, and one Resend may have taken a day ago or more is marked unknown and never tried again. Only production at
 grabient.com sends to readers: every other deploy, staging among them, sends only to admins and Resend's test
 addresses (`send.ts`, `reachesReaders`).
-
-The zone's Zaraz has its auto-inject, its single-page support and its own consent modal off, and no tool without a
-purpose, and the zone's Web Analytics is not set up automatically (its beacon would run before any choice): the page
-loads `/cdn-cgi/zaraz/i.js` itself once Analytics is allowed and the reader has pressed something, tells Zaraz each
-purpose and Google's consent mode, and sends each page's view. `vite dev` places requests where this machine is, so the
-browser tests start as a reader who has answered, all off, except the banner's own (`e2e/consent.spec.ts`).
 
 ## Scheduled work
 

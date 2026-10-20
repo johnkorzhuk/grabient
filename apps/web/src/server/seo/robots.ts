@@ -43,7 +43,6 @@ const PRIVATE = [
   "/api/like-counts",
   // who a palette credits: a name a renderer would read into the page and keep past its owner taking it back
   "/api/palette-credit",
-  "/api/geo",
   "/api/settings/",
   "/cdn-cgi/",
   "/api/me/",

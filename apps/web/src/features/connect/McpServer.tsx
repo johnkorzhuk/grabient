@@ -10,7 +10,6 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { createMemo, type Element, For, Show } from "solid-js";
 import { unreachable } from "../../app/connection.ts";
 import { account } from "../account/session.ts";
-import { trackEvent } from "../analytics/analytics.ts";
 import { ConnectedApps } from "./ConnectedApps.tsx";
 import styles from "./McpServer.module.css";
 import { MCP_LINKS, MCP_PATH, MCP_SETUPS, otherSetup } from "./mcp-apps.ts";
@@ -101,11 +100,7 @@ export function McpServerPage(props: {
               {t("In your app, add a custom connector or MCP server with this address.")}
             </Text>
           </div>
-          <CopyLine
-            text={address()}
-            aria-label={t("Copy address")}
-            onCopy={() => trackEvent("copy_mcp_address")}
-          />
+          <CopyLine text={address()} aria-label={t("Copy address")} />
           <div class={styles.clicks}>
             <Text variant="body" as="p" id="mcp-ways">
               {t("Or add it in one click.")}
@@ -119,7 +114,6 @@ export function McpServerPage(props: {
                       href={way().link(address())}
                       external={way().web}
                       disabled={unreachable(way().link(address()))}
-                      onClick={() => trackEvent("add_mcp_app", { app: way().label })}
                     >
                       {t("Add to {app}", { app: way().label })}
                     </Button>
@@ -132,11 +126,7 @@ export function McpServerPage(props: {
         {/* each tab says where its setup goes, so the heading stands alone */}
         <section class={styles.section}>
           <Text variant="h2">{t("Manual setup")}</Text>
-          <CodeTabs
-            aria-label={t("Apps")}
-            tabs={setups()}
-            onCopy={tab => trackEvent("copy_mcp_setup", { app: tab.label })}
-          />
+          <CodeTabs aria-label={t("Apps")} tabs={setups()} />
         </section>
         <section class={styles.section}>
           <div class={styles.intro}>

@@ -3,7 +3,6 @@ import { isServer } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import * as v from "valibot";
 import { READ_TIMEOUT } from "../../lib/query.ts";
-import { setAnalyticsInternal, setAnalyticsUser, trackEvent } from "../analytics/analytics.ts";
 import { onAccountChange } from "./state.ts";
 import type { Profile } from "./wire.ts";
 
@@ -148,7 +147,6 @@ function closeCopy(ended: boolean) {
   const id = openUser;
   openUser = null;
   admin = false;
-  setAnalyticsInternal(false);
   if (id) forgetting = engine().then(sync => sync.closeAccount(id, ended).catch(() => {}));
 }
 
@@ -160,7 +158,6 @@ if (!isServer) {
   onAccountChange(change => {
     if (change.admin === admin) return;
     admin = change.admin;
-    setAnalyticsInternal(admin);
     publish();
   });
 }
@@ -187,7 +184,6 @@ function heard(next: Profile | null) {
   user = next;
   publish();
   setReady(true);
-  setAnalyticsUser(next && { id: next.id, createdAt: new Date(next.createdAt) });
   if (renamed && engineLoaded) {
     void engineLoaded.openAccount(copyUser(next));
     engineLoaded.schedule(0, true);
@@ -294,8 +290,6 @@ export async function accountForCopy(): Promise<string | null> {
 export async function signOut(to = "/"): Promise<void> {
   const answer = await authPost("/api/auth/sign-out");
   if (!answer.ok) throw new Error(authError(answer.body, msg("Couldn't sign out.")));
-  trackEvent("logout");
-  setAnalyticsUser(null);
   generation++;
   request = null;
   checkedAt = Date.now();

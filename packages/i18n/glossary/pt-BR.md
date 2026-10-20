@@ -73,7 +73,6 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | size presets | Esta tela, Ultrawide, "{device} interna" / "{device} externa" | "Esta tela" is the reader's own screen. "Ultrawide" stays: Brazilian stores and tech press say "monitor ultrawide". A foldable's inner and cover screens are its "tela interna" and "tela externa"; the label leaves out "tela" because the English already fills the menu's row. |
 | public gallery | galeria pública | |
 | newsletter issue / lead palette (admins) | edição / paleta de abertura | The palette an issue opens with, as a magazine's "foto de abertura": "Abrir a edição com esta paleta", "Próxima paleta de abertura". |
-| Analytics / Session replay (the consent switches) | Análise / Gravação de sessão | Lowercase in a sentence ("quando a análise está ativada"), capitalized where the text names the switch. |
 | sign-in link / sign-in code | link de acesso / código de acesso | "Seu código de acesso ao Grabient", "como links de acesso". |
 | Text contrast (the pane) | Contraste de texto | The grid of text colors over each of the palette's colors. |
 | text color | cor de texto | "Adicionar cor de texto". |

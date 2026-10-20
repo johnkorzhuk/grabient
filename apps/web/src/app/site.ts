@@ -58,8 +58,7 @@ export function navLinks(
   ]);
 }
 
-/** The footer's links, the page on screen marked: the legal pages and the privacy choices in Settings, how an AI app
-    is connected, then the code. */
+/** The footer's links, the page on screen marked: the legal pages, how an AI app is connected, then the code. */
 export function footerLinks(
   current: "privacy" | "terms" | "mcp" | null,
   stars: number | null,
@@ -74,7 +73,6 @@ export function footerLinks(
   return marked([
     own("/privacy", t("Privacy"), current === "privacy"),
     own("/terms", t("Terms"), current === "terms"),
-    { ...own("/settings", t("Privacy choices")), href: `${href("/settings")}#privacy` },
     own("/mcp-server", "MCP", current === "mcp"),
     codeLink(stars)
   ]);

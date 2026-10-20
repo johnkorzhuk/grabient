@@ -71,8 +71,13 @@ export function SettingsPage(props: {
         <MotionSetting />
         <Rule />
         <ColorFormatSetting />
-        <Rule />
-        <PrivacySection />
+        {/* the account's choices, drawn before the session answers as the account's own section is */}
+        <Show when={account() || !sessionReady()}>
+          <div class={styles.own} data-for={sessionReady() ? "account" : undefined}>
+            <Rule />
+            <PrivacySection />
+          </div>
+        </Show>
         <Show when={account()}>
           <Rule />
           <DeletionSection token={token} />

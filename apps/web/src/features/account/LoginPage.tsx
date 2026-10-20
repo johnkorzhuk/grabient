@@ -11,7 +11,6 @@ import { createSignal, onCleanup, onSettled, Show, untrack } from "solid-js";
 import { offline } from "../../app/connection.ts";
 import { Languages } from "../../app/Frames.tsx";
 import { shownError } from "../../lib/query.ts";
-import { trackLoginStart } from "../analytics/analytics.ts";
 import styles from "./Login.module.css";
 import { keepReturn, keptReturn } from "./return.ts";
 import { account, authError, authPost, loadAccount, loginHref, safeRedirect } from "./session.ts";
@@ -148,7 +147,6 @@ export function LoginPage(props: {
     setSending(true);
     say(t("Sending…"));
     try {
-      trackLoginStart("magic_link");
       const answer = await authPost("/api/auth/sign-in/magic-link", {
         email,
         callbackURL: localHref(to())
@@ -244,7 +242,6 @@ export function LoginPage(props: {
     setSending(true);
     say("");
     try {
-      trackLoginStart("google");
       // a failure comes back to this sheet in its language, where what is kept here says where it led
       keepReturn(to() === "/" ? null : to());
       const answer = await authPost("/api/auth/sign-in/social", {

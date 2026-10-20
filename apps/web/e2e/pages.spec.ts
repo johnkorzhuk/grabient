@@ -41,7 +41,7 @@ test("the sign-in sheet is in the server's document, kept by no one", async ({ p
   expect(errors).toEqual([]);
 });
 
-test("Settings arrives drawn for anyone, and the browser's own choices come once it has started", async ({
+test("Settings arrives drawn for anyone, and holds no account's choices for a reader signed out", async ({
   page,
   request
 }) => {
@@ -50,7 +50,7 @@ test("Settings arrives drawn for anyone, and the browser's own choices come once
   const html = await answer.text();
   expect(html).toContain("Profile, account and privacy.");
   expect(html).toContain('href="/login?redirect=%2Fsettings"');
-  // the server knows no reader's choices: no switch says on or off in its document
+  // a reader signed out has no account's choices to make
   expect(html).not.toContain('role="switch"');
 
   const errors = watch(page);
@@ -58,19 +58,7 @@ test("Settings arrives drawn for anyone, and the browser's own choices come once
   await started(page);
   await expect(page).toHaveTitle("Settings | Grabient");
   await expect(page.getByRole("button", { name: "Theme: System" })).toBeVisible();
-  const switches = page.locator('#privacy [role="switch"]');
-  await expect(switches).toHaveCount(3);
-  // a choice outlasts a reload
-  const analytics = switches.first();
-  const was = await analytics.getAttribute("aria-checked");
-  await analytics.press("Space");
-  await expect(analytics).not.toHaveAttribute("aria-checked", was ?? "");
-  const now = await analytics.getAttribute("aria-checked");
-  await page.reload();
-  await expect(page.locator('#privacy [role="switch"]').first()).toHaveAttribute(
-    "aria-checked",
-    now ?? ""
-  );
+  await expect(page.locator("#privacy")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
