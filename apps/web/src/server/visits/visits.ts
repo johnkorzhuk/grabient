@@ -236,6 +236,13 @@ export function pageVisit(
   };
 }
 
+/** Whether a visit shows a person by what it is: a landing from another site or a campaign's link, a page loaded from
+    within the site or in a partner's frame, or something used or searched on a page. A landing that came from nowhere,
+    typed, bookmarked or a program's, shows nothing: on 21 Oct 2026 every visit of a scraper passing for browsers on
+    residential addresses was one, thousands a minute, with no page after it and nothing used. */
+export const showsPerson = (visit: Visit): boolean =>
+  visit.what !== "landing" || !!(visit.referrer || visit.source || visit.medium || visit.campaign);
+
 /** A palette used, a collection's page used once the reader is present (features/palette-use/use.ts), or a search
     made, as a visit to the page it was made on, or null for a program's. */
 export function actVisit(request: Request, what: "use" | "search"): Visit | null {
@@ -335,9 +342,11 @@ export async function countVisit(
     visitor
   );
   /* on to Google Analytics, a person's visit alone: a code, nothing a program's request says, none of the large
-     clouds' networks, and a browser no more than six versions behind Chrome's stable one, which must be known: until
-     it is, nothing is sent, as programs on old versions would pass for people */
+     clouds' networks, a browser no more than six versions behind Chrome's stable one, which must be known (until it
+     is, nothing is sent, as programs on old versions would pass for people), and a visit that shows a person. A
+     landing from nowhere stays in the counts here, unconfirmed, and goes no further */
   if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_API_SECRET) return;
+  if (!showsPerson(visit)) return;
   const lead = env.CACHE ? await dayLead(env.CACHE).catch(() => null) : null;
   if (!lead || tooOld(browser, lead)) return;
   await sendToGa4(

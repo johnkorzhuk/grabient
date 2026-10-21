@@ -7,7 +7,12 @@ import { DATASETS } from "./usage.ts";
    ANALYTICS binding for the site_visits tool. A visit is a person's when its request said nothing a program's would
    (no signals), its browser, where it is a Chromium, is no more than six versions behind Chrome's stable one as KV
    keeps it (visits/keys.ts; where none is kept, the newest a share of the window's visitors had), a version more for
-   each four weeks of window as it moves, and its network is none of the large clouds' (visits/rules.ts). People are counted by their visitor's code, which is a day's alone: a reader on two days
+   each four weeks of window as it moves, and its network is none of the large clouds' (visits/rules.ts). Of those
+   visitors, people are the ones whose day showed a person (visits.ts `showsPerson`): a landing from another site or a
+   campaign's link, a page loaded within the site or in a partner's frame, or something used or searched. They are
+   what Google Analytics receives, and the lists by page, language, country, device, browser, system and landing are
+   theirs. The rest are unconfirmed: every page a landing from nowhere with nothing after it, which programs passing
+   for browsers make by the thousand and a reader who only glances makes too. People are counted by their visitor's code, which is a day's alone: a reader on two days
    is two visitor-days, so a week's or a month's visitors are fewer than its visitor-days. A page in a partner's frame
    is a page the person saw. The window is whole UTC days, today's so far the last of them and marked partial. Each
    check is kept beside the totals, so a rule that leaves people out shows: what share of a day's visitors used a
@@ -37,8 +42,12 @@ export interface Day {
   day: string;
   /** today's, still counting */
   partial?: true;
-  /** people by their code */
+  /** visitors by their code, past the checks of what a request says, its network and its browser's version */
   visitors: number;
+  /** of them, those whose day showed a person, as Google Analytics receives them */
+  people: number;
+  /** the rest: a landing from nowhere and nothing after it */
+  unconfirmed: number;
   landings: number;
   loads: number;
   framed: number;
@@ -56,9 +65,12 @@ export interface VisitsReport {
   empty: boolean;
   daily: Day[];
   /** the window's sums: a reader on two days is two visitor-days; the average is of whole days alone */
-  totals: Omit<Day, "day" | "visitors" | "partial"> & {
+  totals: Omit<Day, "day" | "visitors" | "people" | "partial"> & {
     visitorDays: number;
     averageVisitors: number;
+    /** people's days, a reader on two days counted twice, and the average of whole days */
+    peopleDays: number;
+    averagePeople: number;
   };
   /** people's pages by their kind of page, language, country, device, browser and system */
   by: Record<"page" | "language" | "country" | "device" | "browser" | "system", Row[]>;
@@ -70,6 +82,8 @@ export interface VisitsReport {
     leading: Record<string, number>;
     old: { visitors: number; count: number };
     hosting: { visitors: number; count: number };
+    /** visitor-days that showed no person, and the landings from nowhere they made */
+    unconfirmed: { visitors: number; count: number };
   };
   /** the window's share of people who used a palette, a collection or the search against the usual, and the countries
       and networks whose visitors use them far less than the site's (`count` their share in thousandths) */
@@ -150,6 +164,9 @@ export async function readVisits(
   );
   const personIs = `blob10 = '' AND blob9 NOT IN (${quoted(HOSTING)})${old.length ? ` AND blob7 NOT IN (${quoted(old)})` : ""}`;
   const person = `AND ${personIs}`;
+  // a point that shows a person (visits.ts `showsPerson`), and a landing from nowhere, which shows none
+  const nowhere = "blob11 = '' AND blob12 = '' AND blob13 = '' AND blob14 = ''";
+  const shown = `AND NOT (blob2 = 'landing' AND ${nowhere})`;
   const coded = "AND blob15 != ''";
   const grouped = (name: string, column: string, where: string, order = "visitors") =>
     sql(
@@ -160,6 +177,7 @@ export async function readVisits(
   const [
     sums,
     visitorsByDay,
+    peopleByDay,
     actingByDay,
     page,
     language,
@@ -173,6 +191,7 @@ export async function readVisits(
     signals,
     oldRows,
     hostingRows,
+    nowhereRows,
     countryVisitors,
     countryActing,
     networkVisitors,
@@ -193,18 +212,22 @@ export async function readVisits(
       `SELECT ${day}, COUNT(DISTINCT blob15) AS visitors ${pages} ${person} ${coded} GROUP BY day ORDER BY day`
     ),
     sql(
+      "people",
+      `SELECT ${day}, COUNT(DISTINCT blob15) AS visitors ${from} ${person} ${shown} ${coded} GROUP BY day ORDER BY day`
+    ),
+    sql(
       "acting",
       `SELECT ${day}, COUNT(DISTINCT blob15) AS visitors ${acts} ${person} ${coded} GROUP BY day ORDER BY day`
     ),
-    grouped("pages", "blob3", `${pages} ${person}`),
-    grouped("languages", "blob4", `${pages} ${person}`),
+    grouped("pages", "blob3", `${pages} ${person} ${shown}`),
+    grouped("languages", "blob4", `${pages} ${person} ${shown}`),
     // by pages, so China and Vietnam, whose visitors go uncounted, stand where their pages put them
-    grouped("countries", "blob5", `${pages} ${person}`, "n"),
-    grouped("devices", "blob6", `${pages} ${person}`),
-    grouped("browsers", "blob7", `${pages} ${person}`),
-    grouped("systems", "blob8", `${pages} ${person}`),
-    grouped("landing pages", "blob3", `${from} AND blob2 = 'landing' ${person}`),
-    grouped("referrers", "blob11", `${from} AND blob2 = 'landing' ${person}`),
+    grouped("countries", "blob5", `${pages} ${person} ${shown}`, "n"),
+    grouped("devices", "blob6", `${pages} ${person} ${shown}`),
+    grouped("browsers", "blob7", `${pages} ${person} ${shown}`),
+    grouped("systems", "blob8", `${pages} ${person} ${shown}`),
+    grouped("landing pages", "blob3", `${from} AND blob2 = 'landing' ${person} ${shown}`),
+    grouped("referrers", "blob11", `${from} AND blob2 = 'landing' ${person} ${shown}`),
     sql(
       "campaigns",
       `SELECT blob12 AS source, blob13 AS medium, blob14 AS campaign, ${counted}, SUM(double1) AS n ${from} AND blob2 = 'landing' AND (blob12 != '' OR blob13 != '' OR blob14 != '') ${person} GROUP BY source, medium, campaign ORDER BY visitors DESC LIMIT ${top}`
@@ -219,6 +242,10 @@ export async function readVisits(
     sql(
       "hosting",
       `SELECT ${counted}, SUM(double1) AS n ${pages} AND blob10 = '' AND blob9 IN (${quoted(HOSTING)})`
+    ),
+    sql(
+      "landings from nowhere",
+      `SELECT SUM(double1) AS n ${from} AND blob2 = 'landing' AND ${nowhere} ${person}`
     ),
     sql(
       "check: countries",
@@ -252,6 +279,8 @@ export async function readVisits(
       day: key,
       ...(key === today ? { partial: true as const } : {}),
       visitors: 0,
+      people: 0,
+      unconfirmed: 0,
       landings: 0,
       loads: 0,
       framed: 0,
@@ -272,16 +301,34 @@ export async function readVisits(
     held.held = whole(row.held);
   }
   for (const row of visitorsByDay) dayRow(row.day).visitors = whole(row.visitors);
+  for (const row of peopleByDay) dayRow(row.day).people = whole(row.visitors);
   for (const row of actingByDay) dayRow(row.day).acting = whole(row.visitors);
   const daily = [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
   const rate = (acting: number, visitors: number) =>
     visitors ? Math.round((acting / visitors) * 1000) / 1000 : null;
-  for (const held of daily) held.share = rate(held.acting, held.visitors);
+  for (const held of daily) {
+    held.unconfirmed = Math.max(0, held.visitors - held.people);
+    held.share = rate(held.acting, held.visitors);
+  }
 
-  const sum = (key: "visitors" | "landings" | "loads" | "framed" | "acting" | "uncoded" | "held") =>
-    daily.reduce((total, held) => total + held[key], 0);
+  const sum = (
+    key:
+      | "visitors"
+      | "people"
+      | "unconfirmed"
+      | "landings"
+      | "loads"
+      | "framed"
+      | "acting"
+      | "uncoded"
+      | "held"
+  ) => daily.reduce((total, held) => total + held[key], 0);
   const visitorDays = sum("visitors");
   const wholeDays = daily.filter(held => !held.partial);
+  const averageOf = (key: "visitors" | "people") =>
+    wholeDays.length
+      ? Math.round(wholeDays.reduce((total, held) => total + held[key], 0) / wholeDays.length)
+      : 0;
   const site = rate(sum("acting"), visitorDays);
   /** The values whose visitors act at under LOW of the site's rate, with their own rate as `count` in thousandths. */
   const low = (visitors: Record<string, unknown>[], acting: Record<string, unknown>[]): Row[] => {
@@ -308,9 +355,10 @@ export async function readVisits(
     daily,
     totals: {
       visitorDays,
-      averageVisitors: wholeDays.length
-        ? Math.round(wholeDays.reduce((total, held) => total + held.visitors, 0) / wholeDays.length)
-        : 0,
+      averageVisitors: averageOf("visitors"),
+      peopleDays: sum("people"),
+      averagePeople: averageOf("people"),
+      unconfirmed: sum("unconfirmed"),
       landings: sum("landings"),
       loads: sum("loads"),
       framed: sum("framed"),
@@ -338,7 +386,13 @@ export async function readVisits(
         }))
       )
     },
-    programs: { signals: rows(signals), leading, old: first(oldRows), hosting: first(hostingRows) },
+    programs: {
+      signals: rows(signals),
+      leading,
+      old: first(oldRows),
+      hosting: first(hostingRows),
+      unconfirmed: { visitors: sum("unconfirmed"), count: whole(nowhereRows[0]?.n) }
+    },
     check: {
       share: site,
       usual: USUAL,

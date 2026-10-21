@@ -7,6 +7,7 @@ import {
   deviceOf,
   pageKind,
   pageVisit,
+  showsPerson,
   signalsOf,
   systemOf
 } from "./visits.ts";
@@ -422,6 +423,39 @@ describe("a visit sent on to Google Analytics", () => {
     });
     await countVisit({ ...env, DEPLOYMENT: "staging" } as never, german, visit, NOON);
     expect(sent[1]!.url).toMatch(/^https:\/\/region1\.google-analytics\.com\/debug\/mp\/collect\?/);
+  });
+  test("is a visit that shows a person: a landing from nowhere is counted and goes no further", async () => {
+    stubFetch();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    const nowhere = { what: "landing", page: "home", language: "en" } as const;
+    await countVisit(env as never, from("203.0.113.9"), nowhere, NOON);
+    expect(USAGE.points).toHaveLength(1);
+    expect(sent).toEqual([]);
+    const shown = [
+      { ...nowhere, campaign: "october" },
+      { what: "load", page: "palette", language: "en" },
+      { what: "framed", page: "palette", language: "en" },
+      { what: "use", page: "palette", language: "en" }
+    ] as const;
+    for (const visit of shown) await countVisit(env as never, from("203.0.113.9"), visit, NOON);
+    expect(sent.map(hit => (hit.body.events as { name: string }[]).at(-1)?.name)).toEqual([
+      "page_view",
+      "page_view",
+      "page_view",
+      "use_palette"
+    ]);
+    expect(showsPerson(nowhere)).toBe(false);
+    expect(showsPerson({ ...nowhere, referrer: "news.ycombinator.com" })).toBe(true);
   });
   test("sends nothing while Chrome's stable version is unknown, as programs on old versions would pass", async () => {
     stubFetch();

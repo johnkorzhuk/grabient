@@ -107,6 +107,15 @@ describe("the visits read back", () => {
           { day: "2026-10-20 00:00:00", visitors: 20 }
         ]
       ],
+      // the visitors whose day showed a person, out of all the visit's kinds
+      [
+        /^SELECT toStartOfDay\(timestamp\) AS day, COUNT\(DISTINCT blob15\) AS visitors FROM .*AND NOT \(blob2 = 'landing' AND blob11 = ''.*GROUP BY day/s,
+        [
+          { day: "2026-10-19 00:00:00", visitors: 40 },
+          { day: "2026-10-20 00:00:00", visitors: 12 }
+        ]
+      ],
+      [/^SELECT SUM\(double1\) AS n FROM .*blob2 = 'landing' AND blob11 = ''/s, [{ n: 700 }]],
       [
         /^SELECT toStartOfDay\(timestamp\) AS day, COUNT\(DISTINCT blob15\) AS visitors .*blob2 IN \('use', 'search'\)/s,
         [
@@ -148,6 +157,8 @@ describe("the visits read back", () => {
       {
         day: "2026-10-19",
         visitors: 60,
+        people: 40,
+        unconfirmed: 20,
         landings: 100,
         loads: 40,
         framed: 5,
@@ -160,6 +171,8 @@ describe("the visits read back", () => {
         day: "2026-10-20",
         partial: true,
         visitors: 20,
+        people: 12,
+        unconfirmed: 8,
         landings: 30,
         loads: 10,
         framed: 0,
@@ -170,12 +183,27 @@ describe("the visits read back", () => {
       }
     ]);
     // the average is of whole days: today's so far is not one
-    expect(report.totals).toMatchObject({ visitorDays: 80, averageVisitors: 60, share: 0.325 });
+    expect(report.totals).toMatchObject({
+      visitorDays: 80,
+      averageVisitors: 60,
+      peopleDays: 52,
+      averagePeople: 40,
+      unconfirmed: 28,
+      share: 0.325
+    });
     expect(report.programs).toMatchObject({
       leading: { Chrome: 155 },
       old: { visitors: 300, count: 9000 },
-      hosting: { visitors: 2, count: 8 }
+      hosting: { visitors: 2, count: 8 },
+      unconfirmed: { visitors: 28, count: 700 }
     });
+    // the lists are people's: a landing from nowhere stays out of them
+    for (const list of ["blob3", "blob4", "blob5", "blob6", "blob7", "blob8", "blob11"])
+      expect(
+        ANALYTICS.queries.find(query => query.startsWith(`SELECT ${list} AS value`))
+      ).toContain(
+        "AND NOT (blob2 = 'landing' AND blob11 = '' AND blob12 = '' AND blob13 = '' AND blob14 = '')"
+      );
     expect(report.check).toMatchObject({ share: 0.325, usual: [0.2, 0.5], outside: false });
     // Singapore's 25 visitors used nothing: a program passing for browsers
     expect(report.check.countries).toEqual([{ value: "SG", visitors: 25, count: 0 }]);
