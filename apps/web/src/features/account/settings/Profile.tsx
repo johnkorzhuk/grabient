@@ -30,9 +30,10 @@ import styles from "./Settings.module.css";
    name's rules are the Worker's own (username.ts), so the field says what the server would refuse, in the reader's
    language, under itself, where it is the field's description, and asks the server whether the name is free, and
    allowed, half a second after the last keystroke. A picture is cropped to a square and drawn at 256 by 256 as WebP in
-   the browser, and sent with the name when Save is pressed. A name set while it shows on no palette comes with an offer
-   to show it on the palettes the account liked first, which stays off unless taken (the switch under the form); one
-   set while it shows is checked again, and the line says if it went off. */
+   the browser, and sent with the name when Save is pressed. An empty field changes no name: the account keeps the one
+   it has, or stays without one, so a picture saves on its own. A name set while it shows on no palette comes with an
+   offer to show it on the palettes the account liked first, which stays off unless taken (the switch under the form);
+   one set while it shows is checked again, and the line says if it went off. */
 
 /** What a rename did to the account's name on palettes: still shown, or off until the new name is checked. A name
     the checks refuse is no name the server keeps. */
@@ -114,13 +115,11 @@ export function Profile(props: {
     const read = readUsername(name);
     return read.problem === null ? "" : t(read.problem);
   };
-  const changed = () => wanted() !== current() || !!staged();
+  /* a name Save would send: an empty field sends none */
+  const renaming = () => wanted() !== "" && wanted() !== current();
+  /* a new name waits for its check and must pass it; with none, a chosen picture is enough */
   const canSave = () =>
-    changed() &&
-    !saving() &&
-    !checking() &&
-    available() &&
-    (wanted() === current() || !problem(wanted()));
+    !saving() && (renaming() ? !checking() && available() && !problem(wanted()) : !!staged());
   const unstage = () => {
     const held = staged();
     if (held) URL.revokeObjectURL(held.url);
@@ -145,7 +144,7 @@ export function Profile(props: {
     clearTimeout(checkTimer);
     const turn = ++asked;
     const name = value.trim();
-    if (name === current()) return;
+    if (name === "" || name === current()) return;
     const broken = problem(name);
     if (broken) {
       setNameError(broken);
@@ -213,7 +212,7 @@ export function Profile(props: {
         }
         unstage();
       }
-      const renamed = wanted() !== current();
+      const renamed = renaming();
       const answer = renamed
         ? await api<{ credit?: RenamedCredit }>("/api/settings/username", { username: wanted() })
         : undefined;

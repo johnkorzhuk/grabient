@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
 
 /* The account's pages, the newsletter's and the contact form, each as its document arrives and once it has started:
@@ -578,6 +579,84 @@ test("a display name set in Settings comes with the offer to show it on the pale
   expect(asked).toEqual([{ on: true }]);
   await expect(credit).toHaveAttribute("aria-checked", "true");
   await expect(credit).toBeEnabled();
+});
+
+test("a new avatar saves with the display name field empty: an account without a display name, and one whose name was cleared", async ({
+  page
+}) => {
+  const account = {
+    id: "e2e-avatar",
+    name: "Ada",
+    email: "ada@grabient.test",
+    emailVerified: true,
+    image: null as string | null,
+    username: null as string | null,
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  const named: unknown[] = [];
+  let uploads = 0;
+  // the later a route is added, the sooner it answers
+  await page.route("**/api/me/**", route => route.fulfill({ status: 404, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: account.id }, user: account } })
+  );
+  await page.route("**/api/me/sync*", route =>
+    route.fulfill({
+      json: {
+        cursor: 1,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: false,
+        account
+      }
+    })
+  );
+  await page.route("**/api/me/credit", route => route.fulfill({ json: { on: false } }));
+  await page.route("**/api/settings/username**", route => {
+    named.push(route.request().postDataJSON());
+    return route.fulfill({ json: { available: true } });
+  });
+  await page.route("**/api/settings/avatar", route => {
+    uploads++;
+    account.image = `https://uploads.grabient.test/avatars/${account.id}/${uploads}.webp`;
+    return route.fulfill({ json: { imageUrl: account.image } });
+  });
+  const profile = page.locator("#profile");
+  const field = profile.locator('input[name="username"]');
+  const save = profile.getByRole("button", { name: "Save" });
+  const pick = async () => {
+    const chooser = page.waitForEvent("filechooser");
+    await profile.getByRole("button", { name: "Change avatar" }).click();
+    await (await chooser).setFiles(
+      fileURLToPath(new URL("../public/android-chrome-192x192.png", import.meta.url))
+    );
+  };
+  await page.goto("/settings");
+  await started(page);
+  await expect(field).toHaveValue("");
+  await expect(save).toBeDisabled();
+  await pick();
+  await expect(profile.getByRole("button", { name: "Keep current avatar" })).toBeVisible();
+  await save.click();
+  await expect(profile).toContainText("Saved.");
+  expect(uploads).toBe(1);
+  // a name the account has, cleared: the field refuses nothing, and the picture saves with the name kept
+  account.username = "ada";
+  await page.reload();
+  await started(page);
+  await expect(field).toHaveValue("ada");
+  await field.fill("");
+  await pick();
+  await expect(profile).not.toContainText("Use at least 3 characters.");
+  await save.click();
+  await expect(profile).toContainText("Saved.");
+  await expect(field).toHaveValue("ada");
+  expect(uploads).toBe(2);
+  expect(named).toEqual([]);
 });
 
 test("on a Settings page loaded whole, a newsletter save that fails says so and goes back, and a second press is sent", async ({
