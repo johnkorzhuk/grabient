@@ -1,5 +1,12 @@
 import { type Letter, newsletter } from "@grabient/email";
-import { DEFAULT_LOCALE, isLocale, type Locale, localizePath, msg } from "@grabient/i18n";
+import {
+  DEFAULT_LOCALE,
+  isLocale,
+  isPagePath,
+  type Locale,
+  localizePath,
+  msg
+} from "@grabient/i18n";
 import { all, batch, first, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOffNow } from "@grabient/server/flags/flags.ts";
@@ -113,16 +120,53 @@ const sendOf = (env: Pick<Env, "DB">, id: string) =>
 
 const published = () => ISSUES.filter(issue => issue.published);
 
-/* An issue's email in one language, with the token's place where the reader's unsubscribe token goes. */
+/** The campaign an issue's email carries on its links, as the visit counts and Google Analytics read it
+    (server/visits): source newsletter, medium email, campaign issue-<number>. */
+export const campaignTags = (issue: number) =>
+  `utm_source=newsletter&utm_medium=email&utm_campaign=issue-${issue}`;
+
+/** A letter whose links to the site's pages carry its issue's campaign, so a reader the email brings counts as the
+    newsletter's: a click from a mail app says nothing of where it came from, and would show no person at all. The way
+    out, the pictures and every address that is no page keep none, so the MCP's address is copied as it stands. A
+    redirect passes the tags on (pipeline.ts). */
+export function tagLinks(letter: Letter, origin: string, issue: number): Letter {
+  const tags = campaignTags(issue);
+  const tag = (url: string) => {
+    const rest =
+      url === origin ? "/" : url.startsWith(`${origin}/`) ? url.slice(origin.length) : null;
+    if (rest === null || url.includes(TOKEN_SLOT) || !isPagePath(rest)) return url;
+    const cut = url.indexOf("#");
+    const [base, fragment] = cut < 0 ? [url, ""] : [url.slice(0, cut), url.slice(cut)];
+    return `${base}${base.includes("?") ? "&" : "?"}${tags}${fragment}`;
+  };
+  // the markup writes each & of an address as &#38;, whose # is no fragment: read plain, tag, written back the same way
+  const html = letter.html.replace(/href="([^"]+)"/g, (whole, held: string) => {
+    const url = held.replaceAll("&#38;", "&").replaceAll("&amp;", "&");
+    const tagged = tag(url);
+    return tagged === url ? whole : `href="${tagged.replaceAll("&", "&#38;")}"`;
+  });
+  const site = new RegExp(
+    `${origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[/?#][^\\s<>")]*)?`,
+    "g"
+  );
+  return { ...letter, html, text: letter.text.replace(site, tag) };
+}
+
+/* An issue's email in one language, with the token's place where the reader's unsubscribe token goes, and its links
+   tagged with its campaign. */
 function letterIn(issueNumber: number, origin: string, facts: IssueFacts, locale: Locale) {
   const issue = ISSUES.find(held => held.number === issueNumber);
   if (!issue) throw new Error(`No issue ${issueNumber}`);
   const unsubscribe = origin + localizePath(`/unsubscribe/${TOKEN_SLOT}`, locale);
-  return newsletter({
-    ...asRun(issue, origin, facts),
-    ...issueFoot({ locale, unsubscribe }),
-    origin
-  });
+  return tagLinks(
+    newsletter({
+      ...asRun(issue, origin, facts),
+      ...issueFoot({ locale, unsubscribe }),
+      origin
+    }),
+    origin,
+    issueNumber
+  );
 }
 
 /* Every address a letter's markup names: its links, its pictures and its stylesheet's files. */
@@ -130,7 +174,7 @@ const ADDRESSES = /\b(?:href|src)="([^"]+)"|url\((['"]?)([^'")]+)\2\)/g;
 export function addressesOf(html: string): string[] {
   const found = new Set<string>();
   for (const match of html.matchAll(ADDRESSES)) {
-    found.add((match[1] ?? match[3] ?? "").replaceAll("&amp;", "&"));
+    found.add((match[1] ?? match[3] ?? "").replaceAll("&amp;", "&").replaceAll("&#38;", "&"));
   }
   return [...found];
 }

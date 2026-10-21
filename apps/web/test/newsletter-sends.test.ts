@@ -7,6 +7,7 @@ import { NotReachable, sendIssue } from "../src/server/newsletter/send.ts";
 import {
   AHEAD_MS,
   arm,
+  campaignTags,
   checkLetters,
   DAILY,
   deliverDue,
@@ -219,9 +220,10 @@ describe("preparing a send", () => {
     );
     const made = await prepare(env, SITE, admin.id, 1, "admins");
     expect(made).toMatchObject({ status: 422 });
+    // the address as a reader's mail app opens it, the issue's campaign and all
     expect(made && "problems" in made && made.problems).toContainEqual({
       kind: "link",
-      url: `${SITE}/collections`,
+      url: `${SITE}/collections?${campaignTags(1)}`,
       status: 404
     });
     expect(await all(env.DB, "SELECT id FROM k_newsletter_sends")).toEqual([]);

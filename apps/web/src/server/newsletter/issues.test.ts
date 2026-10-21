@@ -18,6 +18,7 @@ import { issueFoot } from "./list.ts";
 import { draftsAmong, drawn, publishedPage, testIssue } from "./page.ts";
 import { draftWords, leaks } from "./private.ts";
 import { beforeOf, issuesKey, languageOf } from "./query.ts";
+import { tagLinks } from "./sends.ts";
 
 const ORIGIN = "https://grabient.test";
 const fixture = (name: string) =>
@@ -80,6 +81,32 @@ describe("the issues", () => {
     const page = issuePage({ ...run(number), ...foot, origin: ORIGIN });
     expect(page.text).toBe(fixture(`${name}.txt`));
     expect(meaning(page.html)).toBe(meaning(fixture(`${name}.html`)));
+  });
+  test("a send's letter tags its links to the site's pages with the issue's campaign, and nothing else", () => {
+    const tags = (n: number) => `utm_source=newsletter&utm_medium=email&utm_campaign=issue-${n}`;
+    const one = newsletter({ ...run(1), ...footFor("en"), origin: ORIGIN });
+    const sent = tagLinks(one, ORIGIN, 1);
+    // in the markup each & is written as the email writes it, after the address's own query
+    expect(sent.html).toContain(`href="${ORIGIN}/collections?${tags(1).replaceAll("&", "&#38;")}"`);
+    expect(sent.html).toContain(
+      `href="${ORIGIN}/kWziAlUZi-bxAvSmqr2kRe7g?style=angularSwatches&#38;steps=32&#38;angle=0&#38;${tags(1).replaceAll("&", "&#38;")}"`
+    );
+    expect(sent.text).toContain(`${ORIGIN}/palettes/rising?${tags(1)}\n`);
+    // the way out and the pictures keep none
+    expect(sent.html).toContain(`href="${ORIGIN}/unsubscribe/${"0".repeat(64)}"`);
+    const pictures = (html: string) => [...html.matchAll(/src="([^"]+)"/g)].map(m => m[1]);
+    expect(pictures(sent.html)).toEqual(pictures(one.html));
+    // every link to a page has them, once
+    for (const [, href] of sent.html.matchAll(/href="([^"]+)"/g)) {
+      const page = href!.startsWith(ORIGIN) && !href!.includes("/unsubscribe/");
+      expect(href!.split("utm_source=").length - 1).toBe(page ? 1 : 0);
+    }
+    // another site's address keeps its own, the MCP's inside it too
+    const two = tagLinks(newsletter({ ...run(2), ...footFor("en"), origin: ORIGIN }), ORIGIN, 2);
+    expect(two.html).toContain(
+      `href="https://claude.ai/customize/connectors?modal=add-custom-connector&#38;connectorName=Grabient&#38;connectorUrl=${encodeURIComponent(`${ORIGIN}/mcp`)}"`
+    );
+    expect(two.html).toContain(`href="${ORIGIN}/mcp-server?${tags(2).replaceAll("&", "&#38;")}"`);
   });
   test("No. 2's one press into another app is Claude's own add-connector link", () => {
     const letter = newsletter({ ...run(2), ...footFor("en"), origin: ORIGIN });
