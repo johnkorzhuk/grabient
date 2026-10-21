@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { behind } from "../../visits/rules.ts";
+import { behind, tooOld } from "../../visits/rules.ts";
 import { readVisits } from "./visits.ts";
 
 test("a Chromium more than six versions behind the one its people lead with is a program's", () => {
@@ -14,20 +14,42 @@ test("a Chromium more than six versions behind the one its people lead with is a
     { browser: "Safari 19", visitors: 30 },
     { browser: "Firefox 120", visitors: 9 }
   ];
-  // a beta's few lead nothing, and a scraper's thousands on one old version do not hold the line back
+  // a beta's few lead nothing, and a scraper's thousands on one old version do not hold the line back; a Firefox far
+  // behind Chrome's line is old as well
   expect(behind(rows)).toEqual({
     leading: { Chrome: 155, Edge: 155 },
-    old: ["Chrome 145", "Chrome 99"]
+    old: ["Chrome 145", "Chrome 99", "Firefox 120"]
   });
   // a long window leaves room for the lead to have moved within it
-  expect(behind(rows, 2).old).toEqual(["Chrome 145", "Chrome 99"]);
-  expect(behind(rows, 10).old).toEqual(["Chrome 99"]);
+  expect(behind(rows, 2).old).toEqual(["Chrome 145", "Chrome 99", "Firefox 120"]);
+  expect(behind(rows, 10).old).toEqual(["Chrome 99", "Firefox 120"]);
   expect(behind([])).toEqual({ leading: {}, old: [] });
   // Chrome's stable version, where it is known, leads every Chromium
   expect(behind(rows, 0, 156)).toEqual({
     leading: { Chrome: 156, Edge: 156 },
-    old: ["Chrome 149", "Chrome 145", "Chrome 99"]
+    old: ["Chrome 149", "Chrome 145", "Chrome 99", "Firefox 120"]
   });
+});
+
+test("a browser is too old for a person's against Chrome's stable version, each by its own line", () => {
+  // Chromiums six versions behind at most
+  expect(tooOld("Chrome 150", 156)).toBe(false);
+  expect(tooOld("Chrome 149", 156)).toBe(true);
+  expect(tooOld("Edge 145", 156)).toBe(true);
+  expect(tooOld("WebView 149", 156)).toBe(true);
+  // Firefox a year's extended support release behind at most
+  expect(tooOld("Firefox 157", 156)).toBe(false);
+  expect(tooOld("Firefox 140", 156)).toBe(false);
+  expect(tooOld("Firefox 126", 156)).toBe(true);
+  expect(tooOld("Firefox 120", 156)).toBe(true);
+  // Safari from 17
+  expect(tooOld("Safari 26", 156)).toBe(false);
+  expect(tooOld("Safari 17", 156)).toBe(false);
+  expect(tooOld("Safari 16", 156)).toBe(true);
+  // no line for the rest, nor without Chrome's version
+  expect(tooOld("Samsung Internet 12", 156)).toBe(false);
+  expect(tooOld("other", 156)).toBe(false);
+  expect(tooOld("Safari 16", null)).toBe(false);
 });
 
 test("a program that outnumbers people leads by share, and is old against Chrome's stable version", () => {

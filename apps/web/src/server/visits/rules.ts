@@ -21,6 +21,12 @@ export const HOSTING: readonly string[] = [
 const CHROMIUMS = ["Chrome", "Edge", "WebView"];
 /** How many versions behind the leading one a browser may be and still be a person's. */
 export const BEHIND = 6;
+/** How far behind Chrome's stable version a Firefox may be: it updates itself every four weeks as Chrome does, a version
+    ahead of it, and its extended support release, a year behind at most, is still a person's. */
+const FIREFOX_BEHIND = 17;
+/** The oldest Safari still a person's: 16 is iOS 16's, the last an iPhone 8 or X runs, and on 21 Oct 2026 it came many
+    times as often as Safari 26, from the programs that pass for people. */
+const SAFARI_OLDEST = 17;
 /** A version leads when this share of its browser's visitors has it, and three of them at least: a beta's few do not. */
 const LEADS = 0.03;
 const LABEL = /^[\w .-]{1,40}$/;
@@ -60,12 +66,33 @@ export function behind(
     leading[name] = led;
     for (const { major, row } of versions) if (major < led - BEHIND - slack) old.push(row.browser);
   }
+  // Firefox and Safari are weighed against Chrome's line, however it was found
+  const chrome = lead ?? leading.Chrome ?? null;
+  if (chrome) {
+    for (const row of rows) {
+      const version = versionOf(row.browser);
+      const line =
+        version && !CHROMIUMS.includes(version.name) ? oldest(version.name, chrome, slack) : null;
+      if (line !== null && version!.major < line) old.push(row.browser);
+    }
+  }
   return { leading, old };
 }
 
-/** Whether a browser label is a Chromium more than BEHIND versions behind `lead`, Chrome's stable version. */
+/** The oldest major version of a browser that is still a person's, against Chrome's stable version `lead`, or null for
+    a browser no line is drawn for. */
+function oldest(name: string, lead: number, slack = 0): number | null {
+  if (CHROMIUMS.includes(name)) return lead - BEHIND - slack;
+  if (name === "Firefox") return lead - FIREFOX_BEHIND - slack;
+  if (name === "Safari") return SAFARI_OLDEST;
+  return null;
+}
+
+/** Whether a browser label is older than a person's would be, against `lead`, Chrome's stable version: a Chromium
+    more than BEHIND versions behind it, a Firefox more than FIREFOX_BEHIND, a Safari before SAFARI_OLDEST. */
 export function tooOld(browser: string, lead: number | null): boolean {
   if (!lead) return false;
   const version = versionOf(browser);
-  return !!version && CHROMIUMS.includes(version.name) && version.major < lead - BEHIND;
+  const line = version ? oldest(version.name, lead) : null;
+  return line !== null && version!.major < line;
 }
