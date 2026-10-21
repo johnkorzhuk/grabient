@@ -260,13 +260,14 @@ async function dayKey(store: KVNamespace, day: string): Promise<string | null> {
   return key;
 }
 
-/* the version Chrome's people led with yesterday (keys.ts), read as the key is, again after an hour */
+/* Chrome's stable version (keys.ts), read as the key is: again after an hour, or after five minutes while none is
+   kept */
 const leads = new WeakMap<KVNamespace, { lead: number | null; at: number }>();
 const HOUR = 3_600_000;
 
 async function dayLead(store: KVNamespace): Promise<number | null> {
   const was = leads.get(store);
-  if (was && Date.now() - was.at < HOUR) return was.lead;
+  if (was && Date.now() - was.at < (was.lead ? HOUR : 5 * MINUTE)) return was.lead;
   const kept = await store.get<{ lead?: unknown }>(leadName, { type: "json", cacheTtl: 300 });
   const lead = typeof kept?.lead === "number" ? kept.lead : null;
   leads.set(store, { lead, at: Date.now() });
@@ -334,10 +335,11 @@ export async function countVisit(
     visitor
   );
   /* on to Google Analytics, a person's visit alone: a code, nothing a program's request says, none of the large
-     clouds' networks, and a browser its people still use */
+     clouds' networks, and a browser no more than six versions behind Chrome's stable one, which must be known: until
+     it is, nothing is sent, as programs on old versions would pass for people */
   if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_API_SECRET) return;
   const lead = env.CACHE ? await dayLead(env.CACHE).catch(() => null) : null;
-  if (tooOld(browser, lead)) return;
+  if (!lead || tooOld(browser, lead)) return;
   await sendToGa4(
     env,
     {

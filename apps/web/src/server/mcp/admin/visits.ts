@@ -1,12 +1,13 @@
 import type { Env } from "@grabient/server/env.ts";
+import { leadName } from "../../visits/keys.ts";
 import { behind, HOSTING } from "../../visits/rules.ts";
 import { DATASETS } from "./usage.ts";
 
 /* The visits the Worker counts (server/visits/visits.ts), read back from Workers Analytics Engine through the deploy's
    ANALYTICS binding for the site_visits tool. A visit is a person's when its request said nothing a program's would
-   (no signals), its browser, where it is a Chromium, is no more than six versions behind the one the window's people
-   lead with (a version more for each four weeks of window, as the lead moves), and its network is none of the large
-   clouds' (visits/rules.ts). People are counted by their visitor's code, which is a day's alone: a reader on two days
+   (no signals), its browser, where it is a Chromium, is no more than six versions behind Chrome's stable one as KV
+   keeps it (visits/keys.ts; where none is kept, the newest a share of the window's visitors had), a version more for
+   each four weeks of window as it moves, and its network is none of the large clouds' (visits/rules.ts). People are counted by their visitor's code, which is a day's alone: a reader on two days
    is two visitor-days, so a week's or a month's visitors are fewer than its visitor-days. A page in a partner's frame
    is a page the person saw. The window is whole UTC days, today's so far the last of them and marked partial. Each
    check is kept beside the totals, so a rule that leaves people out shows: what share of a day's visitors used a
@@ -93,7 +94,7 @@ const people = (row: Record<string, unknown>) =>
 /** The last `days` whole UTC days of the deploy's visits and today's so far, or the sentence that says why the deploy
     cannot read them. A query the service refuses leaves its part empty and is named in `failed`. */
 export async function readVisits(
-  env: Pick<Env, "ANALYTICS" | "DEPLOYMENT">,
+  env: Pick<Env, "ANALYTICS" | "DEPLOYMENT" | "CACHE">,
   days: number,
   limit = 20
 ): Promise<VisitsReport | string> {
@@ -141,9 +142,11 @@ export async function readVisits(
     // the first query answers for the binding and the dataset: refused, the tool says why
     true
   );
+  const kept = await env.CACHE?.get<{ lead?: unknown }>(leadName, "json").catch(() => null);
   const { leading, old } = behind(
     versions.map(row => ({ browser: String(row.browser ?? ""), visitors: whole(row.visitors) })),
-    Math.floor(span / 28)
+    Math.floor(span / 28),
+    typeof kept?.lead === "number" ? kept.lead : null
   );
   const personIs = `blob10 = '' AND blob9 NOT IN (${quoted(HOSTING)})${old.length ? ` AND blob7 NOT IN (${quoted(old)})` : ""}`;
   const person = `AND ${personIs}`;

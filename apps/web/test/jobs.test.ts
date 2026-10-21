@@ -155,11 +155,14 @@ test("every ten minutes: the star count is kept, the visits' keys are made and t
     SEED,
     Date.now()
   );
-  vi.spyOn(globalThis, "fetch").mockImplementation(async input =>
-    String(input instanceof Request ? input.url : input).startsWith("https://api.github.com/repos/")
-      ? Response.json({ stargazers_count: 4321 })
-      : new Response(null, { status: 503 })
-  );
+  vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (url.startsWith("https://api.github.com/repos/"))
+      return Response.json({ stargazers_count: 4321 });
+    if (url.startsWith("https://chromiumdash.appspot.com/"))
+      return Response.json([{ channel: "Stable", milestone: 156 }]);
+    return new Response(null, { status: 503 });
+  });
 
   // nothing is due in the queue, and a deploy that is not production's sends no list to the search engines
   expect(await logged(env, "*/10 * * * *")).toEqual([
@@ -172,6 +175,8 @@ test("every ten minutes: the star count is kept, the visits' keys are made and t
   // today's key and tomorrow's, which the next run leaves as they are
   const today = new Date().toISOString().slice(0, 10);
   expect(await env.CACHE?.get(`visit-key:${today}`)).toMatch(/^[0-9a-f]{64}$/);
+  // and Chrome's stable version, which the feed to Google Analytics weighs a browser against
+  expect(await env.CACHE?.get("visit-lead", "json")).toEqual({ day: today, lead: 156 });
   expect((await env.SEARCH_SNAPSHOTS?.list())?.objects).toHaveLength(1);
   // a day's count and an unchanged site leave the next run nothing to say
   expect(await logged(env, "*/10 * * * *")).toEqual([]);

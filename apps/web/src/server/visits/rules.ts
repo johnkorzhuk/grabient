@@ -33,11 +33,14 @@ export function versionOf(browser: string): { name: string; major: number } | nu
   return Number.isSafeInteger(major) ? { name: found[1]!, major } : null;
 }
 
-/** Each Chromium's leading version, from the visitors each version had, and the labels more than `BEHIND + slack`
-    versions behind it. `slack` widens the line for a window long enough for the lead to move within it. */
+/** Each Chromium's leading version and the labels more than `BEHIND + slack` versions behind it. The leading version
+    is `lead`, Chrome's stable one, where it is known (keys.ts); else the newest a share of its browser's visitors had,
+    which a program's thousands on one version make their own. `slack` widens the line for a window long enough for
+    the lead to move within it. */
 export function behind(
   rows: readonly { browser: string; visitors: number }[],
-  slack = 0
+  slack = 0,
+  lead: number | null = null
 ): { leading: Record<string, number>; old: string[] } {
   const leading: Record<string, number> = {};
   const old: string[] = [];
@@ -46,10 +49,13 @@ export function behind(
       .map(row => ({ row, version: versionOf(row.browser) }))
       .filter(({ version }) => version?.name === name)
       .map(({ row, version }) => ({ row, major: version!.major }));
+    if (!versions.length) continue;
     const all = versions.reduce((sum, { row }) => sum + row.visitors, 0);
-    const led = versions
-      .filter(({ row }) => row.visitors >= Math.max(3, all * LEADS))
-      .reduce((top, { major }) => Math.max(top, major), 0);
+    const led =
+      lead ??
+      versions
+        .filter(({ row }) => row.visitors >= Math.max(3, all * LEADS))
+        .reduce((top, { major }) => Math.max(top, major), 0);
     if (!led) continue;
     leading[name] = led;
     for (const { major, row } of versions) if (major < led - BEHIND - slack) old.push(row.browser);
@@ -57,8 +63,7 @@ export function behind(
   return { leading, old };
 }
 
-/** Whether a browser label is a Chromium more than BEHIND versions behind `lead`, the version Chrome's people lead
-    with. */
+/** Whether a browser label is a Chromium more than BEHIND versions behind `lead`, Chrome's stable version. */
 export function tooOld(browser: string, lead: number | null): boolean {
   if (!lead) return false;
   const version = versionOf(browser);

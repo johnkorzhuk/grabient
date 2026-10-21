@@ -1,6 +1,4 @@
 import type { Env } from "@grabient/server/env.ts";
-import { DATASETS } from "../mcp/admin/usage.ts";
-import { behind } from "./rules.ts";
 
 /* The day's key a visitor's code is made with (visits.ts): 32 random bytes in KV under visit-key:<UTC day>, made a day
    ahead by the ten-minute job, so every data center holds a day's key before its first visit, and kept until ten
@@ -12,8 +10,8 @@ const KEY_GRACE_S = 600;
 
 export const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 export const keyName = (day: string) => `visit-key:${day}`;
-/** The version Chrome's people led with over the last day, which the feed to Google Analytics weighs a browser
-    against (ga4.ts): { day, lead }. */
+/** Chrome's stable version, which the feed to Google Analytics (ga4.ts) and the site_visits tool weigh a Chromium
+    against: { day, lead }. */
 export const leadName = "visit-lead";
 export const hex = (bytes: Uint8Array) =>
   [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("");
@@ -38,29 +36,30 @@ export async function makeVisitKeys(
   return made;
 }
 
-/** The day's leading Chrome version, worked out once a day from the last day's visits a person's request made: the
-    ten-minute job's step. It answers the version when it worked one out. */
+/** Google's release dashboard: the newest stable Chrome for Windows, its milestone the major version. */
+const STABLE =
+  "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Windows&num=1";
+const ASK_MS = 5000;
+
+/** Chrome's stable version, asked of Google's release dashboard once a day: the ten-minute job's step. Never worked
+    out from the visits: on 21 Oct 2026 a scraper on Chrome 142 to 145 outnumbered the site's people more than a
+    hundred to one, so the version most visitors had was its own. A dashboard that does not answer is asked again at
+    the next run, and the version kept before stands meanwhile. It answers the version it kept, "unanswered", or null
+    when today's is kept already. */
 export async function makeVisitLead(
-  env: Pick<Env, "CACHE" | "ANALYTICS" | "DEPLOYMENT">,
+  env: Pick<Env, "CACHE">,
   now = Date.now()
-): Promise<number | null> {
+): Promise<number | "unanswered" | null> {
   const store = env.CACHE;
-  const dataset = DATASETS[env.DEPLOYMENT];
-  if (!store || !env.ANALYTICS || !dataset) return null;
+  if (!store) return null;
   const today = dayOf(now);
-  const kept = await store.get<{ day?: unknown; lead?: unknown }>(leadName, "json");
+  const kept = await store.get<{ day?: unknown }>(leadName, "json");
   if (kept?.day === today) return null;
-  const was = typeof kept?.lead === "number" ? kept.lead : null;
-  const answer = (await env.ANALYTICS.query({
-    query: `SELECT blob7 AS browser, COUNT(DISTINCT blob15) AS visitors FROM events.analyticsEngine.${dataset} WHERE timestamp >= NOW() - INTERVAL '1' DAY AND blob1 = 'visit' AND blob2 IN ('landing', 'load', 'framed') AND blob10 = '' AND blob15 != '' GROUP BY browser`
-  }).catch(() => null)) as { data?: { browser?: unknown; visitors?: unknown }[] } | null;
-  if (!answer) return null;
-  const rows = (answer?.data ?? []).map(row => ({
-    browser: String(row.browser ?? ""),
-    visitors: Number(row.visitors) || 0
-  }));
-  // a day with too few visits to lead keeps the version before it, and is not asked again until the next
-  const lead = behind(rows).leading.Chrome ?? was;
+  const releases = (await fetch(STABLE, { signal: AbortSignal.timeout(ASK_MS) })
+    .then(answer => (answer.ok ? answer.json() : null))
+    .catch(() => null)) as { milestone?: unknown }[] | null;
+  const lead = Number(Array.isArray(releases) ? releases[0]?.milestone : Number.NaN);
+  if (!Number.isSafeInteger(lead) || lead < 100 || lead > 999) return "unanswered";
   await store.put(leadName, JSON.stringify({ day: today, lead }));
   return lead;
 }

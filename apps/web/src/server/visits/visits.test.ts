@@ -423,6 +423,22 @@ describe("a visit sent on to Google Analytics", () => {
     await countVisit({ ...env, DEPLOYMENT: "staging" } as never, german, visit, NOON);
     expect(sent[1]!.url).toMatch(/^https:\/\/region1\.google-analytics\.com\/debug\/mp\/collect\?/);
   });
+  test("sends nothing while Chrome's stable version is unknown, as programs on old versions would pass", async () => {
+    stubFetch();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    await countVisit(env as never, from("203.0.113.9"), visit, NOON);
+    expect(USAGE.points).toHaveLength(1);
+    expect(sent).toEqual([]);
+  });
   test("leaves the visit counted when Google cannot be reached", async () => {
     vi.stubGlobal("fetch", async () => {
       throw new Error("offline");
@@ -430,6 +446,7 @@ describe("a visit sent on to Google Analytics", () => {
     const CACHE = memoryKV();
     const USAGE = usage();
     await makeVisitKeys({ CACHE } as never, NOON);
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
     const env = {
       CACHE,
       USAGE,
@@ -444,29 +461,39 @@ describe("a visit sent on to Google Analytics", () => {
   });
 });
 
-test("the day's lead is the version Chrome's people used most recently, worked out once a day", async () => {
-  const CACHE = memoryKV();
-  const asked: string[] = [];
-  const ANALYTICS = {
-    async query({ query }: { query: string }) {
-      asked.push(query);
-      return {
-        data: [
-          { browser: "Chrome 155", visitors: 60 },
-          { browser: "Chrome 154", visitors: 30 },
-          { browser: "Chrome 158", visitors: 1 },
-          { browser: "Chrome 145", visitors: 400 }
-        ]
-      };
+describe("the day's lead", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+  test("is Chrome's stable version as Google's release dashboard gives it, asked once a day", async () => {
+    const CACHE = memoryKV();
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      asked.push(String(url));
+      return Response.json([{ channel: "Stable", milestone: 156, version: "156.0.8078.48" }]);
+    });
+    expect(await makeVisitLead({ CACHE } as never, NOON)).toBe(156);
+    expect(JSON.parse(CACHE.kept.get(leadName)!.value)).toEqual({ day: "2026-10-20", lead: 156 });
+    expect(asked).toEqual([
+      "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Windows&num=1"
+    ]);
+    expect(await makeVisitLead({ CACHE } as never, NOON + 3_600_000)).toBeNull();
+    expect(asked).toHaveLength(1);
+  });
+  test("is asked again at the next run when the dashboard does not answer, the version before it standing", async () => {
+    const CACHE = memoryKV();
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-19", lead: 155 }));
+    for (const answer of [
+      async () => {
+        throw new Error("offline");
+      },
+      async () => new Response(null, { status: 503 }),
+      async () => Response.json({ error: "moved" }),
+      async () => Response.json([{ version: "156.0.8078.48" }])
+    ]) {
+      vi.stubGlobal("fetch", answer);
+      expect(await makeVisitLead({ CACHE } as never, NOON)).toBe("unanswered");
     }
-  };
-  const env = { CACHE, ANALYTICS, DEPLOYMENT: "staging" };
-  expect(await makeVisitLead(env as never, NOON)).toBe(155);
-  expect(JSON.parse(CACHE.kept.get(leadName)!.value)).toEqual({ day: "2026-10-20", lead: 155 });
-  expect(asked[0]).toContain(
-    "FROM events.analyticsEngine.grabient_staging_usage WHERE timestamp >= NOW() - INTERVAL '1' DAY"
-  );
-  // asked once a day
-  expect(await makeVisitLead(env as never, NOON + 3_600_000)).toBeNull();
-  expect(asked).toHaveLength(1);
+    expect(JSON.parse(CACHE.kept.get(leadName)!.value)).toEqual({ day: "2026-10-19", lead: 155 });
+  });
 });

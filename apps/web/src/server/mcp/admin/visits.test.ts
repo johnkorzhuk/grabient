@@ -23,6 +23,25 @@ test("a Chromium more than six versions behind the one its people lead with is a
   expect(behind(rows, 2).old).toEqual(["Chrome 145", "Chrome 99"]);
   expect(behind(rows, 10).old).toEqual(["Chrome 99"]);
   expect(behind([])).toEqual({ leading: {}, old: [] });
+  // Chrome's stable version, where it is known, leads every Chromium
+  expect(behind(rows, 0, 156)).toEqual({
+    leading: { Chrome: 156, Edge: 156 },
+    old: ["Chrome 149", "Chrome 145", "Chrome 99"]
+  });
+});
+
+test("a program that outnumbers people leads by share, and is old against Chrome's stable version", () => {
+  // grabient.com's first quarter hour of codes, 21 Oct 2026: a scraper on Chrome 142 to 145, and a few people
+  const rows = [
+    { browser: "Chrome 145", visitors: 1848 },
+    { browser: "Chrome 144", visitors: 1815 },
+    { browser: "Chrome 143", visitors: 937 },
+    { browser: "Edge 145", visitors: 903 },
+    { browser: "Chrome 156", visitors: 6 },
+    { browser: "Chrome 155", visitors: 4 }
+  ];
+  expect(behind(rows)).toEqual({ leading: { Chrome: 145, Edge: 145 }, old: [] });
+  expect(behind(rows, 0, 156).old).toEqual(["Chrome 145", "Chrome 144", "Chrome 143", "Edge 145"]);
 });
 
 /** An ANALYTICS binding that answers each query by the first pattern it matches, and keeps what it was asked. */
@@ -158,6 +177,39 @@ describe("the visits read back", () => {
       );
       expect(query).not.toMatch(/sample_?interval/i);
     }
+  });
+
+  test("weigh a Chromium against Chrome's stable version as KV keeps it, where one is kept", async () => {
+    const versions: [RegExp, Record<string, unknown>[]] = [
+      /^SELECT blob7 AS browser/,
+      [
+        { browser: "Chrome 145", visitors: 1848 },
+        { browser: "Chrome 144", visitors: 1815 },
+        { browser: "Chrome 156", visitors: 6 }
+      ]
+    ];
+    const CACHE = {
+      async get(name: string) {
+        return name === "visit-lead" ? { day: "2026-10-21", lead: 156 } : null;
+      }
+    };
+    const kept = binding([versions]);
+    const report = await readVisits(
+      { ANALYTICS: kept, DEPLOYMENT: "production", CACHE } as never,
+      7
+    );
+    if (typeof report === "string") throw new Error(report);
+    expect(report.programs.leading).toEqual({ Chrome: 156 });
+    const people = kept.queries.filter(query => query.includes("blob9 NOT IN"));
+    expect(people.length).toBeGreaterThan(10);
+    for (const query of people)
+      expect(query).toContain("AND blob7 NOT IN ('Chrome 145', 'Chrome 144')");
+    // without it the scraper's own version leads, and nothing is old
+    const none = binding([versions]);
+    const fallen = await readVisits({ ANALYTICS: none, DEPLOYMENT: "production" }, 7);
+    if (typeof fallen === "string") throw new Error(fallen);
+    expect(fallen.programs.leading).toEqual({ Chrome: 145 });
+    expect(none.queries.join("\n")).not.toContain("blob7 NOT IN");
   });
 
   test("leave a part a query was refused for empty, and name it", async () => {
