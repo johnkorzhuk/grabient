@@ -699,6 +699,33 @@ test("the sheet asks for the palettes like this one only once it is in view", as
   expect(asks[0]?.searchParams.get("query")).toBe(new URL(page.url()).pathname.slice(1));
 });
 
+test("Text contrast sets a sample too low for text only in the cell its line says, under the pointer or the keyboard", async ({
+  page
+}) => {
+  await open(page);
+  await page.mouse.move(200, 200);
+  await page.mouse.wheel(0, 2000);
+  const grid = page.getByRole("grid", { name: "Text contrast" });
+  const low = grid
+    .getByRole("gridcell", { name: /^#ffffff on #[0-9a-f]{6}: [\d.]+, too low for text$/ })
+    .first();
+  await expect(low).toHaveText("", { timeout: 30_000 });
+  await low.hover();
+  await expect(low).toHaveText("Aa");
+  await page.mouse.move(0, 0);
+  await expect(low).toHaveText("");
+  await low.focus();
+  await expect(low).toHaveText("Aa");
+  await low.blur();
+  await expect(low).toHaveText("");
+  // an ink on its own color is no pair the line says
+  const own = grid
+    .getByRole("gridcell", { name: /^(#[0-9a-f]{6}) on \1: 1, too low for text$/ })
+    .first();
+  await own.hover();
+  await expect(own).toHaveText("");
+});
+
 test("the palettes like this one lead with the nearest its collection holds, on Popular and on Rising", async ({
   page,
   request

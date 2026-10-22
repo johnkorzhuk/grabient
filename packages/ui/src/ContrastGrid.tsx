@@ -23,13 +23,13 @@ import { space } from "./tokens.ts";
 
 /* Which text reads on a palette's colors, as samples and no words: the colors stand side by side as grounds, and each
    row is one ink set as a sample (two letters of the reader's script, "Aa" in Latin) on every ground it reads on, at
-   text size where it reaches 4.5 to 1, at large size where it reaches 3 to 1, and not at all under that. White and
-   black always have rows; then each of the palette's colors that reads on another; then, a step apart, the reader's
-   own (`inks`), read or not; no color is two rows (the engine's contrastInks). The line under the grid says the cell
-   under the pointer, a finger or the keyboard: both colors, the contrast and the WCAG level it reaches, set as a tag so
-   it never reads as a sample; at rest what the two sizes stand for. The plus at its start adds a text color where the
-   next coin would stand, and a reader's coin hangs the color picker from it. Eight colors at most, evenly taken, left
-   to right in every language. */
+   text size where it reaches 4.5 to 1, at large size where it reaches 3 to 1, and under that only in the cell the line
+   says, at text size, so the reader sees how it would look. White and black always have rows; then each of the
+   palette's colors that reads on another; then, a step apart, the reader's own (`inks`), read or not; no color is two
+   rows (the engine's contrastInks). The line under the grid says the cell under the pointer, a finger or the keyboard:
+   both colors, the contrast and the WCAG level it reaches, set as a tag so it never reads as a sample; at rest what
+   the two sizes stand for. The plus at its start adds a text color where the next coin would stand, and a reader's
+   coin hangs the color picker from it. Eight colors at most, evenly taken, left to right in every language. */
 
 /** A palette color as the grid draws it: its hex, and the wider color the screen paints where it has one. */
 export interface GridColor {
@@ -368,7 +368,8 @@ export function ContrastGrid(props: {
                                 : ON_LIGHT
                           }}
                         >
-                          <Show when={ratio() >= CONTRAST_LARGE}>
+                          {/* too low even for large text, a sample only while the line says this cell */}
+                          <Show when={ratio() >= CONTRAST_LARGE || (lit() && j !== row().at)}>
                             <span aria-hidden="true">{sample()}</span>
                           </Show>
                         </span>
