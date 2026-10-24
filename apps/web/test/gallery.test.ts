@@ -1,7 +1,7 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { randomPalette } from "@grabient/engine/random.ts";
 import { all, first, run } from "@grabient/server/db/d1.ts";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import corpus from "../public/corpus-k.json" with { type: "json" };
 import golden from "../src/features/gallery/fixtures/list-pages.json" with { type: "json" };
 import { type HeadAnswer, homeHead } from "../src/server/gallery/home.ts";
@@ -11,6 +11,7 @@ import { rescore } from "../src/server/gallery/rescore.ts";
 import { risen } from "../src/server/gallery/scores.ts";
 import { searchPool } from "../src/server/gallery/search.ts";
 import { loadSnapshot } from "../src/server/search/snapshot.ts";
+import { readyOldIds } from "../src/server/seo/legacy.ts";
 import {
   address,
   bodyOf,
@@ -21,6 +22,9 @@ import {
   testEnv,
   unique
 } from "./helpers.ts";
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 /* The gallery against D1 with every migration: its lists, likes as the server applies them, and the six-hour pass.
    The list tests read the gallery whole, so each starts from the fifty palettes grabient4's goldens were made with. */

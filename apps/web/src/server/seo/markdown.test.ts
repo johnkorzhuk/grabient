@@ -2,14 +2,18 @@ import { readFileSync } from "node:fs";
 import type { PaletteWords } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { parseView } from "@grabient/engine/view.ts";
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
 import files from "../files/fixtures/file-bodies.json" with { type: "json" };
+import { readyOldIds } from "./legacy.ts";
 import {
   type CollectionWords,
   collectionMarkdown,
   type MarkdownReads,
   markdownFile
 } from "./markdown.ts";
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 const ORIGIN = "https://grabient-lite.jkorzhuk.workers.dev";
 const golden = readFileSync(new URL("fixtures/collection-markdown.md", import.meta.url), "utf8");

@@ -9,7 +9,8 @@ interface Window {
 }
 
 declare module "virtual:i18n/catalogs" {
-  /** Every translated language's catalog as JSON text: the Worker's alone. */
+  /** Every translated language's catalog as JSON text under `vite dev` and in tests, the Worker's alone; empty in a
+      build, whose Worker reads the catalogs' files (server/i18n.ts). */
   const catalogs: Readonly<Partial<Record<import("@grabient/i18n").Locale, string>>>;
   export default catalogs;
 }

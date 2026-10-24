@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { readyOldIds } from "../seo/legacy.ts";
 import { paletteNamed, readArgs } from "./args.ts";
 import namedGolden from "./fixtures/paletteNamed.json" with { type: "json" };
 import readGolden from "./fixtures/read-args.json" with { type: "json" };
 import accountGolden from "./fixtures/tools-account.json" with { type: "json" };
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 const SEED = "kSWUkczDNDewdRK";
 

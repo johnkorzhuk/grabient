@@ -17,7 +17,7 @@ import {
 } from "../search/rank.ts";
 import { hexLiterals, knownQuery, queryWords, titleNames } from "../search/read.ts";
 import { type Background, loadSnapshot, type SnapshotEnv } from "../search/snapshot.ts";
-import { legacySeed } from "../seo/legacy.ts";
+import { legacySeed, mayBeOld, readyOldIds } from "../seo/legacy.ts";
 import type { Reading, SearchSpace, Standing } from "./meaning.ts";
 
 /* The seam between the collections and the palette search, whose space they read: the snapshot of every public
@@ -91,6 +91,7 @@ export async function searchSpace(
 
   return {
     async read(query) {
+      if (mayBeOld(query.trim())) await readyOldIds();
       const seed = paletteSeed(query);
       const hexes = seed ? null : hexLiterals(query);
       if (seed || hexes) {

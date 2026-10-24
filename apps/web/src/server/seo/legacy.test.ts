@@ -1,7 +1,19 @@
 import { decodePalette } from "@grabient/engine";
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
 import { canonicalRedirect } from "../canonical.ts";
-import { countLegacy, legacyRedirect, legacySeed, oldAddress } from "./legacy.ts";
+import {
+  countLegacy,
+  legacyRedirect,
+  legacySeed,
+  mayBeOld,
+  mayNameOld,
+  oldAddress,
+  oldIds,
+  readyOldIds
+} from "./legacy.ts";
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 describe("old grabient.com addresses", () => {
   test("an old seed the maps hold leads to its keyframe palette at the link's view, its editor's address too", () => {
@@ -106,4 +118,43 @@ test("grabient.com's lists lead to the nearest of today's: its newest to Rising,
   expect(canonicalRedirect("/newest?page=3")).toBe("/palettes/rising?page=3");
   expect(canonicalRedirect("/oldest?page=3")).toBe("/palettes?page=3");
   expect(canonicalRedirect("/palettes/oldest")).toBe("/palettes");
+});
+
+test("only an address that may name an old palette readies the maps: every id they hold may, no seed of today does", async () => {
+  const ids = await oldIds();
+  expect(ids.length).toBeGreaterThan(6000);
+  expect(ids.filter(id => !mayBeOld(id))).toEqual([]);
+  for (const name of [
+    "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "kKSAEDEVJVQQpMqxBWXeGPsNYdzUyx-eqwA",
+    "palettes",
+    "warm-sunset-gradients-for-designers",
+    "linearSwatches",
+    "@ada"
+  ]) {
+    expect([name, mayBeOld(name)]).toEqual([name, false]);
+  }
+  const named = (address: string) => {
+    const url = new URL(address, "https://grabient.com");
+    return mayNameOld(url.pathname, url.searchParams);
+  };
+  for (const address of [
+    "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu/edit?steps=9",
+    "/palettes/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu",
+    "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu.svg",
+    "/api/og?seed=LQBgdAjALAHANGAbBECoFZ6kgJldnCAZgRxhOyJwvChH3B3UTmwgE51XwUXt6IQA",
+    "/api/like-counts?keys=kY4mpDazO-mUuu_fuLqXU49dvVP6,_chhgKLgDyjuCgCzgCXgBggPfgS4gO2gMjgMg"
+  ]) {
+    expect([address, named(address)]).toEqual([address, true]);
+  }
+  for (const address of [
+    "/",
+    "/palettes/rising/1w?page=2",
+    "/kY4mpDazO-mUuu_fuLqXU49dvVP6.svg?style=bands&w=1080&h=1080",
+    "/@ada/warm-sunsets",
+    "/api/like-counts?keys=kY4mpDazO-mUuu_fuLqXU49dvVP6,kS7Q8Yy5S_SChv0",
+    "/palettes?q=sunset"
+  ]) {
+    expect([address, named(address)]).toEqual([address, false]);
+  }
 });

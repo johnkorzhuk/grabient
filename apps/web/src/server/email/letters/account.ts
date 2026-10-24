@@ -20,6 +20,7 @@ import { all } from "@grabient/server/db/d1.ts";
 import { type AccountEmail, type Email, sendEmail } from "@grabient/server/email/send.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { emailHead } from "../../images/cards.ts";
+import { readyLocale } from "../../languages.ts";
 
 /* The three emails an account receives, as the Worker sends them: in the language of the page that asked, wearing one
    of the Rising list's first palettes, and carrying its head. An account email is opened the moment it comes, and a
@@ -90,7 +91,7 @@ export async function sendAccountEmail(
   const origin =
     env.BETTER_AUTH_URL ?? env.PUBLIC_ORIGIN ?? new URL(options.request?.url ?? "").origin;
   const locale = emailLocale(options.request?.headers);
-  const palette = await wornPalette(env);
+  const [palette] = await Promise.all([wornPalette(env), readyLocale(env, locale)]);
   const write = (carried: boolean) => letterOf(email, { origin, locale, palette, carried });
   let head: Uint8Array | undefined;
   try {

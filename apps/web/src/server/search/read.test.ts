@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { decodeSnapshot } from "@grabient/search/snapshot.ts";
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
+import { readyOldIds } from "../seo/legacy.ts";
 import { loadVocabulary } from "./files.ts";
 import { answerBar, knownScores } from "./rank.ts";
 import {
@@ -21,6 +22,9 @@ import {
   unreadPalette
 } from "./search.ts";
 import { assets, fixture, searchFile } from "./testing.ts";
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 const round = (x: number) => Math.round(x * 1e6) / 1e6;
 const env = { ASSETS: assets() };

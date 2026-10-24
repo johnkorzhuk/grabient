@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeAll, describe, expect, test, vi } from "vitest";
 
 vi.hoisted(() => Object.assign(globalThis, { __BUILD_ID__: "b1" }));
 
@@ -14,6 +14,7 @@ import validate from "../../features/collections/fixtures/validate.json" with { 
 import type { CollectionItemInput } from "../../features/collections/schema.ts";
 import { cacheKey } from "../cache-keys.ts";
 import { canonicalRedirect } from "../canonical.ts";
+import { readyOldIds } from "../seo/legacy.ts";
 import { type CollectionContent, mergeCopy } from "./copies.ts";
 import { fitOf } from "./fit.ts";
 import { ownCloseness, searchTokens } from "./letters.ts";
@@ -27,6 +28,9 @@ import {
   strength
 } from "./meaning.ts";
 import { readRestoreToken, restoreToken } from "./tokens.ts";
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 /* grabient4's own answers (features/collections/fixtures), which the rebuild must keep. */
 

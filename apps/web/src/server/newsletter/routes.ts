@@ -17,6 +17,7 @@ import { PAGE } from "../../lib/cache.ts";
 import { json as publicJson } from "../../lib/responses.ts";
 import { cacheKey } from "../cache-keys.ts";
 import { forget } from "../edge-cache.ts";
+import { readyLocale } from "../languages.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { newsletterReader } from "./access.ts";
 import { ISSUES } from "./issues/index.ts";
@@ -233,7 +234,8 @@ export async function testResponse(request: Request, env: Env): Promise<Response
     ["newsletter-day", "newsletterDaily"]
   ]);
   if (limited) return limited;
-  const words = asRun(testIssue(ISSUES), origin, await issueFacts(env));
+  const [facts] = await Promise.all([issueFacts(env), readyLocale(env, reader.locale)]);
+  const words = asRun(testIssue(ISSUES), origin, facts);
   try {
     await sendIssue(
       env,

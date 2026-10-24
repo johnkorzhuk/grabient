@@ -1,5 +1,9 @@
-import { expect, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
+import { readyOldIds } from "./legacy.ts";
 import { oldFit } from "./legacy-fit.ts";
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 const OLD = "_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa";
 

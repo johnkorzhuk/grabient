@@ -21,6 +21,7 @@ import { listWords, looksLikeLink, paletteId } from "../../lib/words.ts";
 import type { AssetsEnv } from "../assets.ts";
 import { isCrawler } from "../crawlers.ts";
 import { canonicalPaletteSeed } from "../files/resolve.ts";
+import { mayBeOld, readyOldIds } from "../seo/legacy.ts";
 import { digest, sharedRead } from "../shared-reads.ts";
 import {
   blendOf,
@@ -229,6 +230,8 @@ export async function searchPalettes(
   rawQuery: string,
   options: SearchOptions = {}
 ): Promise<SearchResult> {
+  // a connected app may search for an old palette's id, which no address of its request names
+  if (mayBeOld(String(rawQuery).trim())) await readyOldIds();
   const asked = (options.colors ?? []).map(sixDigits);
   const query = asked.length && !String(rawQuery).trim() ? "" : normalizeSearchQuery(rawQuery);
   if (query === null)
@@ -488,6 +491,7 @@ export async function searchOwnSeeds(
   seeds: readonly string[],
   options: Pick<SearchOptions, "request" | "ctx" | "payer"> = {}
 ): Promise<{ tier: SearchTier; found: Candidate[] }> {
+  if (mayBeOld(String(rawQuery).trim())) await readyOldIds();
   const query = normalizeSearchQuery(rawQuery);
   const [snapshot, vocabulary] = query
     ? await Promise.all([loadSnapshot(env, options.ctx), loadVocabulary(env)])

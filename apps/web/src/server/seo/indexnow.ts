@@ -131,7 +131,7 @@ export async function sendIndexNow(
       sitemapAddresses(env, origin)
     ]);
     const urls = [
-      ...new Set([...listed, ...oldIds().map(id => new URL(`/${id}`, origin).toString())])
+      ...new Set([...listed, ...(await oldIds()).map(id => new URL(`/${id}`, origin).toString())])
     ];
     for (let at = 0; at < urls.length; at += MAX_URLS) {
       const status = await send(urls.slice(at, at + MAX_URLS));

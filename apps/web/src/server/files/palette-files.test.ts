@@ -1,8 +1,12 @@
 import { colorNamesText, preciseNamer } from "@grabient/engine/precise-names.ts";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { collectionForFiles, writtenWords } from "../collections/files.ts";
+import { readyOldIds } from "../seo/legacy.ts";
 import golden from "./fixtures/file-bodies.json" with { type: "json" };
 import { apiJsonAnswer, fileAnswer } from "./palette-files.ts";
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 vi.hoisted(() => Object.assign(globalThis, { __COLOR_NAMES__: "/assets/color-names-test.txt" }));
 vi.mock("../collections/files.ts", () => ({

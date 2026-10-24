@@ -8,8 +8,10 @@ import { messageKey } from "./src/message-key.ts";
 /* The catalogs as the app ships them. messages/<tag>.json keeps a language's translations keyed by the English, for
    people and review; the build turns each into a catalog keyed by messageKey(English), holding only messages the code
    still says (messages/en.json).
-     virtual:i18n/catalogs  every catalog as JSON text, for the Worker, which parses one when a request first needs it.
-                            The browser's build refuses it.
+     virtual:i18n/catalogs  every catalog as JSON text under `vite dev` and in tests, for the Worker, which parses one
+                            when a request first needs it. A build's is empty: the Worker reads each catalog's file
+                            (below) through its ASSETS binding when a request first needs that language, so a
+                            language or a message more costs the Worker's start nothing. The browser's build refuses it.
      virtual:i18n/assets    each catalog's address, for the head's preload and the browser's fetch:
                             /assets/i18n-<segment>-<hash>.json, content-hashed, so it is cached for good like the build's
                             other assets. Development serves them fresh from /@i18n/<tag>.json.
@@ -95,6 +97,7 @@ export function i18n(): Plugin {
             `${CATALOGS_ID} holds every language and is the Worker's alone; the browser reads ${ASSETS_ID}.`
           );
         }
+        if (!dev) return "export default {};";
         const sources = Object.fromEntries(
           [...files()].map(([locale, file]) => [locale, file.source])
         );

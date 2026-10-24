@@ -3,9 +3,8 @@ import { alignedLegacySeed, decodeLegacySeed, legacyTarget } from "@grabient/eng
 import { parseView, viewSearch } from "@grabient/engine/view.ts";
 import { first, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { madeOnce } from "@grabient/server/shared-work.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
-import migrated from "../../../data/legacy-k.json" with { type: "json" };
-import links from "../../../data/legacy-links.json" with { type: "json" };
 import { paletteAddress } from "../../lib/page-meta.ts";
 import { SAVED_TEXT, savedView } from "../collections/files.ts";
 import { isCrawler } from "../crawlers.ts";
@@ -16,12 +15,63 @@ import { isCrawler } from "../crawlers.ts";
    grabient.com's gallery, data/legacy-links.json every other old address an index has shown, fitted offline. An
    lz-string id the maps lack leads to its `_` form, and a `_` seed they lack stands at its own address with its view,
    where the Worker fits it (legacy-fit.ts). Resolving an old id never fetches the old site or writes anything. Server
-   only: neither map reaches the browser. */
+   only: neither map reaches the browser.
 
-const MAPS: readonly Readonly<Record<string, string>>[] = [migrated, links];
-const mapped = (id: string) => MAPS.find(map => Object.hasOwn(map, id))?.[id];
+   The maps load when first needed, not with the Worker: an isolate that sees no old address never builds their 6,718
+   entries. A request whose address may name an old palette readies them before it is answered (pipeline.ts), and so do
+   a search and a job that read them; read before they are ready, they hold nothing, and ready themselves for the next
+   request. */
+
+type Maps = readonly Readonly<Record<string, string>>[];
+const loadMaps = madeOnce(async (): Promise<Maps> => {
+  const [migrated, links] = await Promise.all([
+    import("../../../data/legacy-k.json", { with: { type: "json" } }),
+    import("../../../data/legacy-links.json", { with: { type: "json" } })
+  ]);
+  return [migrated.default, links.default];
+});
+let MAPS: Maps | null = null;
+
+/** Readies the old addresses' maps in this isolate; a failure leaves them unready, and the next request tries again. */
+export async function readyOldIds(): Promise<void> {
+  if (MAPS) return;
+  try {
+    MAPS = await loadMaps();
+  } catch (error) {
+    console.error("legacy: the old addresses' maps did not load", String(error));
+  }
+}
+
+const mapped = (id: string) => {
+  if (MAPS) return MAPS.find(map => Object.hasOwn(map, id))?.[id];
+  if (mayBeOld(id)) {
+    console.warn("legacy: an old id was read before the maps were ready", id);
+    void readyOldIds();
+  }
+  return undefined;
+};
 /** An old `_` or `~` seed, as grabient.com wrote them. */
 const OLD_SEED = /^[_~][A-Za-z0-9_-]{6,}$/;
+/** An lz-string id: long, in that encoding's letters, with capitals, never beginning with the k a seed of today does. */
+const OLD_TEXT = /^(?!k)(?=[^A-Z]*[A-Z])[A-Za-z0-9+$-]{20,}$/;
+
+/** Whether a name may be an old palette's id, which only the maps lead from. */
+export const mayBeOld = (name: string): boolean => OLD_SEED.test(name) || OLD_TEXT.test(name);
+
+/** Whether an address (its path without the language) may name an old palette: any part of its path, a file's
+    without its extension, or any value of its query or of a comma-separated list in it (a seed, a search's words, the
+    keys a page counts likes for). */
+export function mayNameOld(path: string, query: URLSearchParams): boolean {
+  const parts = path.split("/").map(part => {
+    try {
+      return decodeURIComponent(part).replace(/\.[a-z]+(\.json)?$/, "");
+    } catch {
+      return part;
+    }
+  });
+  const values = [...query.values()].flatMap(value => value.split(","));
+  return [...parts, ...values].some(name => mayBeOld(name.trim()));
+}
 /** An old palette's address, or its editor's. */
 const OLD_PATH = /^\/([^/]+?)(?:\/edit)?$/;
 
@@ -68,6 +118,7 @@ export const legacyRedirect = (address: string): string | null => {
     which only the database knows, so a link a search index holds leads to the page its written words name. Null for
     an address that names a view or that no map holds, and where the read fails: the canonical rule's address stands. */
 export async function legacyLanding(env: Pick<Env, "DB">, address: string): Promise<string | null> {
+  await readyOldIds();
   const old = oldAddress(address);
   if (!old?.to || old.via === "fitted") return null;
   const asked = new URL(address, "https://grabient.com").searchParams;
@@ -83,7 +134,10 @@ export async function legacyLanding(env: Pick<Env, "DB">, address: string): Prom
 }
 
 /** Every old palette id the maps lead from. */
-export const oldIds = (): string[] => [...new Set(MAPS.flatMap(map => Object.keys(map)))];
+export async function oldIds(): Promise<string[]> {
+  await readyOldIds();
+  return [...new Set((MAPS ?? []).flatMap(map => Object.keys(map)))];
+}
 
 /** Counts how an old address resolved, by readers and by crawlers. The maps stay a year at least, while search
     indexes and the sites that link here move to the new addresses; the counts say when few arrive. */

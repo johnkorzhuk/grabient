@@ -1,6 +1,10 @@
-import { expect, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
+import { readyOldIds } from "../seo/legacy.ts";
 import golden from "./fixtures/cache-keys.json" with { type: "json" };
 import { fileCacheKey } from "./keys.ts";
+
+// the old addresses' maps load on first need; these tests read them through the plain functions
+beforeAll(readyOldIds);
 
 /** A key as the fixture writes it: path and sorted query, without the card version a picture's key adds. */
 function written(address: string) {

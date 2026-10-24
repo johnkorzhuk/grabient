@@ -22,6 +22,7 @@ import {
   UNSUBSCRIBE_TOKEN
 } from "../../features/newsletter/input.ts";
 import { PRODUCTION_ORIGIN } from "../../lib/page-meta.ts";
+import { readyLocales } from "../languages.ts";
 import { ISSUES } from "./issues/index.ts";
 import { asRun, type IssueFacts, readFacts } from "./lead.ts";
 import { issueFoot, type Reader, readerOf } from "./list.ts";
@@ -265,8 +266,8 @@ export async function prepare(
       ...read.map(row => (isLocale(row.locale) ? row.locale : DEFAULT_LOCALE))
     ])
   ];
-  // the admin's choices of lead and tip, read or refused: never drawn without them
-  const facts = await readFacts(env, ISSUES);
+  // the admin's choices of lead and tip, read or refused: never drawn without them; each language ready to write in
+  const [facts] = await Promise.all([readFacts(env, ISSUES), readyLocales(env, locales)]);
   const letters: Stored[] = locales.map(locale => ({
     locale,
     ...letterIn(issueNumber, origin, facts, locale)

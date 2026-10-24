@@ -26,6 +26,7 @@ import { edgeCached, keepFor } from "./edge-cache.ts";
 import { addressParams } from "./files/address.ts";
 import { countFile } from "./files/count.ts";
 import { siteCard } from "./images/serve.ts";
+import { readyLocale } from "./languages.ts";
 import {
   connectPath,
   consentPath,
@@ -35,7 +36,7 @@ import {
   serverFunctionPath,
   uncachedPath
 } from "./paths.ts";
-import { countLegacy, legacyLanding } from "./seo/legacy.ts";
+import { countLegacy, legacyLanding, mayNameOld, readyOldIds } from "./seo/legacy.ts";
 import { fittedRedirect, oldFit } from "./seo/legacy-fit.ts";
 import { indexed, NOINDEX } from "./seo/site.ts";
 import { knowSite } from "./shared-reads.ts";
@@ -112,6 +113,13 @@ export async function handle(
   }
   let response: Response;
   try {
+    /* what the answer may read that no isolate holds from its start: the request's language, and the old addresses'
+       maps where the address may name an old palette or a body may (a connected app's call, a like) */
+    const read = request.method === "GET" || request.method === "HEAD";
+    await Promise.all([
+      readyLocale(env, locale),
+      !read || mayNameOld(path, url.searchParams) ? readyOldIds() : undefined
+    ]);
     response = await route(request, url, locale, path, env, ctx, app);
   } catch (error) {
     /* the error alone, as Workers Issues reads one: an issue for each error whatever the address, its stack read as
