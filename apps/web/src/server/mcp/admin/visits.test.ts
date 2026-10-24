@@ -138,7 +138,7 @@ describe("the visits read back", () => {
       [
         /^SELECT blob5 AS value, COUNT\(DISTINCT blob15\) AS visitors, sumIf/s,
         [
-          { value: "CN", visitors: 1, uncoded: 12, n: 12 },
+          { value: "CN", visitors: 4, uncoded: 0, n: 12 },
           { value: "US", visitors: 31, uncoded: 2, n: 90 }
         ]
       ],
@@ -207,9 +207,9 @@ describe("the visits read back", () => {
     expect(report.check).toMatchObject({ share: 0.325, usual: [0.2, 0.5], outside: false });
     // Singapore's 25 visitors used nothing: a program passing for browsers
     expect(report.check.countries).toEqual([{ value: "SG", visitors: 25, count: 0 }]);
-    // China's pages carry no code; the US's code-less points add no visitor
+    // China counts its visitors as any country does; the US's code-less points add no visitor
     expect(report.by.country).toEqual([
-      { value: "CN", visitors: 0, count: 12 },
+      { value: "CN", visitors: 4, count: 12 },
       { value: "US", visitors: 30, count: 90 }
     ]);
     expect(report.landings.campaign).toEqual([

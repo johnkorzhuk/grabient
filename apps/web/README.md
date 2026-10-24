@@ -107,8 +107,7 @@ browser navigates to, and the palette uses and searches a page already reports, 
 Engine with the page's kind, language, country, device, browser, system and network, and for a landing the referring
 site and campaign tags. A visitor is a code made with a random key that KV deletes ten minutes past its day's end
 (`src/server/visits/keys.ts`, made a day ahead by the ten-minute job), so no code outlives its day and no address is
-kept; China and Vietnam get no code, and a browser that sends Global Privacy Control or Do Not Track is counted and
-nothing else. The admins' `site_visits` tool reads them back, with what it left out as programs and a self-check: the
+kept; a browser that sends Global Privacy Control or Do Not Track is counted and nothing else. The admins' `site_visits` tool reads them back, with what it left out as programs and a self-check: the
 share of a day's people who used a palette, a collection or the search. The zone's Zaraz still holds its old GA4 tool,
 which nothing loads.
 

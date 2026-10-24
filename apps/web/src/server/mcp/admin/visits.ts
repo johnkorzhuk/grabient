@@ -21,8 +21,6 @@ import { DATASETS } from "./usage.ts";
    use nothing. A query the service refuses past the first leaves its part empty and is named in `failed`; the first
    refused, the tool says why. */
 
-/** The countries whose visits carry no visitor's code (server/visits/visits.ts). */
-const UNCODED = new Set(["CN", "VN"]);
 /** A country or network whose visitors use palettes at under this share of the site's rate is shown for a look. */
 const LOW = 1 / 3;
 /** Visitors a country or network needs before its rate is weighed. */
@@ -55,7 +53,7 @@ export interface Day {
   /** people who used a palette, a collection or the search, and their share of the day's visitors */
   acting: number;
   share: number | null;
-  /** pages a person's browser loaded with no code: in China or Vietnam, or before the day's key was read */
+  /** pages a person's browser loaded with no code, before the day's key was read */
   uncoded: number;
   /** pages of a browser that sends Global Privacy Control or Do Not Track, counted and nothing else */
   held: number;
@@ -222,7 +220,7 @@ export async function readVisits(
     ),
     grouped("pages", "blob3", `${pages} ${person} ${shown}`),
     grouped("languages", "blob4", `${pages} ${person} ${shown}`),
-    // by pages, so China and Vietnam, whose visitors go uncounted, stand where their pages put them
+    // by pages, so a country stands where its pages put it
     grouped("countries", "blob5", `${pages} ${person} ${shown}`, "n"),
     grouped("devices", "blob6", `${pages} ${person} ${shown}`),
     grouped("browsers", "blob7", `${pages} ${person} ${shown}`),
@@ -371,8 +369,7 @@ export async function readVisits(
     by: {
       page: rows(page),
       language: rows(language),
-      // China's and Vietnam's pages carry no code, so their visitors go uncounted
-      country: rows(country).map(row => (UNCODED.has(row.value) ? { ...row, visitors: 0 } : row)),
+      country: rows(country),
       device: rows(device),
       browser: rows(browser),
       system: rows(system)
