@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { countPage } from "./count.ts";
 import { leadName, makeVisitKeys, makeVisitLead } from "./keys.ts";
 import {
   actVisit,
   browserOf,
+  checkedSession,
   countVisit,
   deviceOf,
   pageKind,
@@ -248,6 +250,46 @@ const from = (address: string, headers: Record<string, string> = {}, country = "
   Object.assign(arriving("/", { "CF-Connecting-IP": address, ...headers }), {
     cf: { country, asn: 7922 }
   });
+/** The session check a page's script makes right after its first render, from the browser that loaded the page. */
+const checking = (address: string, headers: Record<string, string> = {}, country = "US") =>
+  Object.assign(
+    new Request("https://grabient.test/api/auth/get-session", {
+      headers: {
+        ...browser,
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Site": "same-origin",
+        Referer: "https://grabient.test/",
+        "CF-Connecting-IP": address,
+        ...headers
+      }
+    }),
+    { cf: { country, asn: 7922 } }
+  );
+
+/** A data center's cache in memory, which a page's visit waits in. */
+function memoryCache() {
+  const kept = new Map<string, Response>();
+  return {
+    kept,
+    async match(key: Request) {
+      return kept.get(key.url)?.clone();
+    },
+    async put(key: Request, value: Response) {
+      kept.set(key.url, value);
+    },
+    async delete(key: Request) {
+      return kept.delete(key.url);
+    }
+  };
+}
+const stubCache = () => {
+  const cache = memoryCache();
+  vi.stubGlobal("caches", { default: cache });
+  return cache;
+};
+const named = (points: { blobs: string[] }[], event: string) =>
+  points.filter(point => point.blobs[0] === event);
 
 describe("the day's key", () => {
   test("is made for today and tomorrow, each deleted ten minutes after its day ends, and never made twice", async () => {
@@ -360,8 +402,9 @@ describe("a visit sent on to Google Analytics", () => {
       return Response.json({ validationMessages: [] });
     });
   };
-  test("is a person's alone: production sends to the property, staging to the check, Europe to Google's European endpoint", async () => {
+  test("is a person's alone, once the page has run: production sends to the property, staging to the check, Europe to Google's European endpoint", async () => {
     stubFetch();
+    stubCache();
     const CACHE = memoryKV();
     const USAGE = usage();
     await makeVisitKeys({ CACHE } as never, NOON);
@@ -380,6 +423,10 @@ describe("a visit sent on to Google Analytics", () => {
       { ...visit, path: "/ja/@ada/warm-tones" },
       NOON
     );
+    // the page waits for its own session check, and goes at its own time
+    expect(sent).toEqual([]);
+    await checkedSession(env as never, checking("203.0.113.9"), NOON + 2_000);
+    expect(sent[0]!.body.timestamp_micros).toBe(NOON * 1000);
     expect(sent.map(hit => hit.url)).toEqual([
       "https://www.google-analytics.com/mp/collect?measurement_id=G-TEST&api_secret=the-secret"
     ]);
@@ -421,11 +468,17 @@ describe("a visit sent on to Google Analytics", () => {
     const german = Object.assign(from("203.0.113.9"), {
       cf: { country: "DE", isEUCountry: "1", asn: 3320 }
     });
+    // the same browser, its page run, goes at once
     await countVisit({ ...env, DEPLOYMENT: "staging" } as never, german, visit, NOON);
     expect(sent[1]!.url).toMatch(/^https:\/\/region1\.google-analytics\.com\/debug\/mp\/collect\?/);
+    expect(named(USAGE.points, "ga4").map(point => point.blobs)).toEqual([
+      ["ga4", "landing", "US", "Chrome 155"],
+      ["ga4", "landing", "DE", "Chrome 155"]
+    ]);
   });
   test("is a visit that shows a person: a landing from nowhere is counted and goes no further", async () => {
     stubFetch();
+    stubCache();
     const CACHE = memoryKV();
     const USAGE = usage();
     await makeVisitKeys({ CACHE } as never, NOON);
@@ -439,6 +492,8 @@ describe("a visit sent on to Google Analytics", () => {
     };
     const nowhere = { what: "landing", page: "home", language: "en" } as const;
     await countVisit(env as never, from("203.0.113.9"), nowhere, NOON);
+    // its browser ran the page, and it still shows no person
+    await checkedSession(env as never, checking("203.0.113.9"), NOON);
     expect(USAGE.points).toHaveLength(1);
     expect(sent).toEqual([]);
     const shown = [
@@ -477,6 +532,7 @@ describe("a visit sent on to Google Analytics", () => {
     vi.stubGlobal("fetch", async () => {
       throw new Error("offline");
     });
+    stubCache();
     const CACHE = memoryKV();
     const USAGE = usage();
     await makeVisitKeys({ CACHE } as never, NOON);
@@ -491,7 +547,133 @@ describe("a visit sent on to Google Analytics", () => {
     await expect(
       countVisit(env as never, from("203.0.113.9"), visit, NOON)
     ).resolves.toBeUndefined();
+    await expect(
+      checkedSession(env as never, checking("203.0.113.9"), NOON)
+    ).resolves.toBeUndefined();
+    // counted here, and nothing counted as sent
     expect(USAGE.points).toHaveLength(1);
+  });
+  test("waits for the page's own session check: pages a program fetches with every header a click sends go nowhere", async () => {
+    stubFetch();
+    stubCache();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    const load = { what: "load", page: "list", language: "ja", path: "/ja/palettes" } as const;
+    const clicked = {
+      "Sec-Fetch-Site": "same-origin",
+      "Sec-Fetch-User": "?1",
+      Referer: "https://grabient.test/ja/palettes/rising"
+    };
+    // as on 24 Oct 2026: a load from each address, and no page run after it
+    for (const address of ["198.51.100.1", "198.51.100.2", "198.51.100.3"])
+      await countVisit(env as never, from(address, clicked), load, NOON);
+    expect(sent).toEqual([]);
+    // a check from another address, from another site's page, or by a program stands for none of them
+    await checkedSession(env as never, checking("203.0.113.50"), NOON);
+    await checkedSession(
+      env as never,
+      checking("198.51.100.1", { "Sec-Fetch-Site": "cross-site" }),
+      NOON
+    );
+    await checkedSession(
+      env as never,
+      checking("198.51.100.2", { "User-Agent": "python-requests/2.32" }),
+      NOON
+    );
+    expect(sent).toEqual([]);
+    // the page's own check sends its visit once
+    await checkedSession(env as never, checking("198.51.100.3"), NOON + 1_500);
+    await checkedSession(env as never, checking("198.51.100.3"), NOON + 3_000);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.body.timestamp_micros).toBe(NOON * 1000);
+    // and that browser's next page goes at once
+    await countVisit(
+      env as never,
+      from("198.51.100.3", clicked),
+      { ...load, path: "/ja/palettes/rising" },
+      NOON + 60_000
+    );
+    expect(sent).toHaveLength(2);
+    expect(named(USAGE.points, "visit")).toHaveLength(4);
+    expect(named(USAGE.points, "ga4").map(point => point.blobs)).toEqual([
+      ["ga4", "load", "US", "Chrome 155"],
+      ["ga4", "load", "US", "Chrome 155"]
+    ]);
+  });
+  test("a palette used on the page says its browser ran it, and the page goes first", async () => {
+    stubFetch();
+    stubCache();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    await countVisit(env as never, from("203.0.113.9"), visit, NOON);
+    expect(sent).toEqual([]);
+    const fetched = {
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Site": "same-origin"
+    };
+    await countVisit(
+      env as never,
+      from("203.0.113.9", fetched),
+      { what: "use", page: "home", language: "en", path: "/" },
+      NOON + 30_000
+    );
+    expect(sent.map(hit => (hit.body.events as { name: string }[]).at(-1)?.name)).toEqual([
+      "page_view",
+      "use_palette"
+    ]);
+  });
+  test("the session check is read after its answer, and only a 200 says the page ran", async () => {
+    stubFetch();
+    stubCache();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, Date.now());
+    await CACHE.put(
+      leadName,
+      JSON.stringify({ day: new Date().toISOString().slice(0, 10), lead: 155 })
+    );
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    await countPage(env as never, from("203.0.113.9"), "/", "en", html(), "");
+    expect(named(USAGE.points, "visit")).toHaveLength(1);
+    const check = checking("203.0.113.9");
+    await countPage(
+      env as never,
+      check,
+      "/api/auth/get-session",
+      "en",
+      new Response(null, { status: 500 }),
+      ""
+    );
+    expect(sent).toEqual([]);
+    await countPage(env as never, check, "/api/auth/get-session", "en", Response.json(null), "");
+    expect(sent).toHaveLength(1);
+    // a check is no visit of its own
+    expect(named(USAGE.points, "visit")).toHaveLength(1);
   });
 });
 

@@ -108,9 +108,9 @@ export const ga4Ready = (env: Ga4Env): boolean =>
   !!env.GA4_MEASUREMENT_ID &&
   (env.DEPLOYMENT === "production" || env.DEPLOYMENT === "staging");
 
-/** Sends one visit, and never throws. */
-export async function sendToGa4(env: Ga4Env, hit: Ga4Hit, now = Date.now()): Promise<void> {
-  if (!ga4Ready(env)) return;
+/** Sends one visit, and never throws: whether Google took it. */
+export async function sendToGa4(env: Ga4Env, hit: Ga4Hit, now = Date.now()): Promise<boolean> {
+  if (!ga4Ready(env)) return false;
   const live = env.DEPLOYMENT === "production";
   const host = hit.european ? "region1.google-analytics.com" : "www.google-analytics.com";
   const url = `https://${host}/${live ? "mp" : "debug/mp"}/collect?measurement_id=${encodeURIComponent(
@@ -123,7 +123,7 @@ export async function sendToGa4(env: Ga4Env, hit: Ga4Hit, now = Date.now()): Pro
       body: JSON.stringify(ga4Body(hit, now)),
       signal: AbortSignal.timeout(WAIT_MS)
     });
-    if (live) return;
+    if (live) return answer.ok;
     const checked = (await answer.json().catch(() => null)) as {
       validationMessages?: { description?: string; fieldPath?: string }[];
     } | null;
@@ -133,7 +133,9 @@ export async function sendToGa4(env: Ga4Env, hit: Ga4Hit, now = Date.now()): Pro
         "ga4: the validation endpoint refused a visit",
         JSON.stringify(wrong.map(m => `${m.fieldPath ?? ""} ${m.description ?? ""}`.trim()))
       );
+    return answer.ok && !wrong.length;
   } catch {
     // dropped: counting never fails a request
+    return false;
   }
 }

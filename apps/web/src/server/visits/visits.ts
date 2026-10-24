@@ -4,7 +4,7 @@ import { clientAddress } from "@grabient/server/limits/address.ts";
 import { countUsageUnder } from "@grabient/server/usage/count.ts";
 import { isSeed } from "../../features/editor/address.ts";
 import { isCrawler } from "../crawlers.ts";
-import { sendToGa4 } from "./ga4.ts";
+import { type Ga4Hit, sendToGa4 } from "./ga4.ts";
 import { dayOf, hex, keyName, leadName } from "./keys.ts";
 import { HOSTING, tooOld } from "./rules.ts";
 
@@ -343,35 +343,135 @@ export async function countVisit(
   );
   /* on to Google Analytics, a person's visit alone: a code, nothing a program's request says, none of the large
      clouds' networks, a browser no more than six versions behind Chrome's stable one, which must be known (until it
-     is, nothing is sent, as programs on old versions would pass for people), and a visit that shows a person. A
-     landing from nowhere stays in the counts here, unconfirmed, and goes no further */
+     is, nothing is sent, as programs on old versions would pass for people), a visit that shows a person, and a
+     browser that ran the page (below). A landing from nowhere stays in the counts here, unconfirmed, and goes no
+     further */
   if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_API_SECRET) return;
   if (!showsPerson(visit)) return;
   const lead = env.CACHE ? await dayLead(env.CACHE).catch(() => null) : null;
   if (!lead || tooOld(browser, lead)) return;
-  await sendToGa4(
-    env,
-    {
-      visitor,
-      what: visit.what,
-      path: visit.path ?? "",
-      country,
-      region: typeof cf?.regionCode === "string" ? cf.regionCode : "",
-      european: cf?.isEUCountry === "1" || EUROPE.has(country),
-      device,
-      browser,
-      system,
-      language:
-        (headers.get("Accept-Language") ?? "").split(",")[0]?.split(";")[0]?.trim().slice(0, 12) ??
-        "",
-      referrer: visit.referrer ?? "",
-      source: visit.source ?? "",
-      medium: visit.medium ?? "",
-      campaign: visit.campaign ?? ""
-    },
-    now
-  );
+  const hit: Ga4Hit = {
+    visitor,
+    what: visit.what,
+    path: visit.path ?? "",
+    country,
+    region: typeof cf?.regionCode === "string" ? cf.regionCode : "",
+    european: cf?.isEUCountry === "1" || EUROPE.has(country),
+    device,
+    browser,
+    system,
+    language:
+      (headers.get("Accept-Language") ?? "").split(",")[0]?.split(";")[0]?.trim().slice(0, 12) ??
+      "",
+    referrer: visit.referrer ?? "",
+    source: visit.source ?? "",
+    medium: visit.medium ?? "",
+    campaign: visit.campaign ?? ""
+  };
+  const origin = new URL(request.url).origin;
+  if (visit.what === "use" || visit.what === "search") {
+    // the page's own script made it: its browser ran the page, whose waiting visit goes first
+    if (headers.get("Sec-Fetch-Site") === "same-origin") await ranPage(env, origin, visitor);
+    await sendHit(env, hit, now);
+  } else await sendOnceRan(env, origin, hit, now);
 }
 
 /** Europe beyond the EU, whose visits go to Google's European endpoint too. */
 const EUROPE = new Set(["GB", "CH", "NO", "IS", "LI"]);
+
+/* A page goes on to Google Analytics once its browser has run it. Every page's script asks who is signed in (GET
+   /api/auth/get-session, features/account/session.ts) right after its first render, from the page's address and
+   browser, so under the page's visitor code; a program that fetches pages and runs none of them never asks. Until the
+   check comes, the page waits in this data center's cache (the Cache API: never the reader's device) under its
+   visitor's code, ten minutes at most and the latest page alone. A visitor whose browser ran a page is taken as one for
+   half an hour, and its pages go at once. A palette used or a search made comes from the page's script too.
+
+   On 24 Oct 2026 a scraper on current Chrome versions, from home connections in Brazil, Bangladesh, Iraq and Türkiye,
+   sent about 33,000 page loads in two hours with every header a person's click sends (a Referer on the site,
+   Sec-Fetch-Site same-origin, Sec-Fetch-User), each from a new address, and made 94 session checks; people's browsers
+   made one for about every other page. Google Analytics counted each of its loads as a new person. */
+const WAITS_SECONDS = 600;
+const RAN_SECONDS = 1800;
+
+const visitCache = () => (globalThis as { caches?: { default?: Cache } }).caches?.default;
+const waitingKey = (origin: string, visitor: string) =>
+  new Request(`${origin}/__visits/waiting/${visitor}`);
+const ranKey = (origin: string, visitor: string) =>
+  new Request(`${origin}/__visits/ran/${visitor}`);
+const kept = (body: string, seconds: number) =>
+  new Response(body, {
+    headers: { "Content-Type": "application/json", "Cache-Control": `max-age=${seconds}` }
+  });
+
+type Sends = Pick<Env, "USAGE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">;
+
+/** A hit sent on, and counted (`ga4`, under its visitor) when Google took it. */
+async function sendHit(env: Sends, hit: Ga4Hit, at: number): Promise<void> {
+  if (await sendToGa4(env, hit, at))
+    countUsageUnder(env, hit.visitor, "ga4", hit.what, hit.country, hit.browser);
+}
+
+/** A page's hit: sent when its visitor's browser has run a page, else kept until it does. */
+async function sendOnceRan(env: Sends, origin: string, hit: Ga4Hit, now: number): Promise<void> {
+  const cache = visitCache();
+  if (!cache) return;
+  try {
+    if (await cache.match(ranKey(origin, hit.visitor))) {
+      await sendHit(env, hit, now);
+      return;
+    }
+    await cache.put(
+      waitingKey(origin, hit.visitor),
+      kept(JSON.stringify({ hit, at: now }), WAITS_SECONDS)
+    );
+    // the page's check may have come between the two
+    if (await cache.match(ranKey(origin, hit.visitor)))
+      await release(env, cache, origin, hit.visitor);
+  } catch {
+    // not sent: a cache that cannot be read or written leaves the visit in the counts here alone
+  }
+}
+
+/** The visitor's browser ran a page: taken as one for half an hour, and its waiting page goes on. */
+async function ranPage(env: Sends, origin: string, visitor: string): Promise<void> {
+  const cache = visitCache();
+  if (!cache) return;
+  try {
+    await cache.put(ranKey(origin, visitor), kept("1", RAN_SECONDS));
+    await release(env, cache, origin, visitor);
+  } catch {
+    // nothing sent
+  }
+}
+
+/** The visitor's waiting page, sent once: only the call that deletes it sends it. */
+async function release(env: Sends, cache: Cache, origin: string, visitor: string): Promise<void> {
+  const waiting = await cache.match(waitingKey(origin, visitor));
+  if (!waiting || !(await cache.delete(waitingKey(origin, visitor)))) return;
+  const { hit, at } = (await waiting.json()) as { hit: Ga4Hit; at: number };
+  await sendHit(env, hit, at);
+}
+
+/** The page's own session check (GET /api/auth/get-session), which says its visitor's browser ran the page. */
+export async function checkedSession(
+  env: Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">,
+  request: Request,
+  now = Date.now()
+): Promise<void> {
+  if (!env.USAGE || !env.CACHE || !env.GA4_API_SECRET || request.method !== "GET") return;
+  const headers = request.headers;
+  if (headers.get("Sec-Fetch-Site") !== "same-origin" || automated(request)) return;
+  if (headers.get("Sec-GPC") === "1" || headers.get("DNT") === "1") return;
+  const cf = (request as { cf?: { country?: unknown } }).cf;
+  const country = typeof cf?.country === "string" ? cf.country : "";
+  const address = clientAddress(request);
+  if (!address || NO_CODE.has(country)) return;
+  try {
+    const key = await dayKey(env.CACHE, dayOf(now));
+    if (!key) return;
+    const visitor = await visitorOf(key, address, headers.get("User-Agent") ?? "");
+    await ranPage(env, new URL(request.url).origin, visitor);
+  } catch {
+    // nothing sent
+  }
+}

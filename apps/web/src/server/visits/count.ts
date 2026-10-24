@@ -6,7 +6,11 @@ import type { Env } from "@grabient/server/env.ts";
 
 type Counts = Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">;
 
-/** A page a browser navigated to, counted after its answer (ctx.waitUntil). */
+/** The call every page's script makes right after its first render (features/account/session.ts). */
+const SESSION_CHECK = "/api/auth/get-session";
+
+/** A page a browser navigated to, counted after its answer (ctx.waitUntil), and the page's own session check, which
+    says its browser ran it (visits.ts `checkedSession`). */
 export async function countPage(
   env: Counts,
   request: Request,
@@ -15,13 +19,15 @@ export async function countPage(
   answered: Response,
   tracking: string
 ): Promise<void> {
-  if (
-    !env.USAGE ||
-    request.method !== "GET" ||
-    request.headers.get("Sec-Fetch-Mode") !== "navigate"
-  )
-    return;
+  if (!env.USAGE || request.method !== "GET") return;
   try {
+    if (path === SESSION_CHECK) {
+      if (answered.status !== 200) return;
+      const { checkedSession } = await import("./visits.ts");
+      await checkedSession(env, request);
+      return;
+    }
+    if (request.headers.get("Sec-Fetch-Mode") !== "navigate") return;
     const { countVisit, pageVisit } = await import("./visits.ts");
     const visit = pageVisit(request, path, locale, answered, tracking);
     if (visit) await countVisit(env, request, visit);

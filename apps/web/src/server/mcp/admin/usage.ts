@@ -22,7 +22,8 @@ const USAGE_COLUMNS = {
   "client-error": ["page", "browser"],
   "script-load": ["page", "browser"],
   file: ["format", "from", "who"],
-  failure: ["status", "kind"]
+  failure: ["status", "kind"],
+  ga4: ["what", "country", "browser"]
 } as const;
 type UsageEventName = keyof typeof USAGE_COLUMNS;
 /** Every event the dataset holds, in the order a report lists them. */

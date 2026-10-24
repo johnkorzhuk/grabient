@@ -9,9 +9,9 @@ import { DATASETS } from "./usage.ts";
    keeps it (visits/keys.ts; where none is kept, the newest a share of the window's visitors had), a version more for
    each four weeks of window as it moves, and its network is none of the large clouds' (visits/rules.ts). Of those
    visitors, people are the ones whose day showed a person (visits.ts `showsPerson`): a landing from another site or a
-   campaign's link, a page loaded within the site or in a partner's frame, or something used or searched. They are
-   what Google Analytics receives, and the lists by page, language, country, device, browser, system and landing are
-   theirs. The rest are unconfirmed: every page a landing from nowhere with nothing after it, which programs passing
+   campaign's link, a page loaded within the site or in a partner's frame, or something used or searched. Google
+   Analytics receives only those whose browser then ran the page (visits.ts `checkedSession`, counted as the `ga4`
+   event), and the lists by page, language, country, device, browser, system and landing are theirs. The rest are unconfirmed: every page a landing from nowhere with nothing after it, which programs passing
    for browsers make by the thousand and a reader who only glances makes too. People are counted by their visitor's code, which is a day's alone: a reader on two days
    is two visitor-days, so a week's or a month's visitors are fewer than its visitor-days. A page in a partner's frame
    is a page the person saw. The window is whole UTC days, today's so far the last of them and marked partial. Each
@@ -44,7 +44,7 @@ export interface Day {
   partial?: true;
   /** visitors by their code, past the checks of what a request says, its network and its browser's version */
   visitors: number;
-  /** of them, those whose day showed a person, as Google Analytics receives them */
+  /** of them, those whose day showed a person; Google Analytics receives those whose browser then ran the page */
   people: number;
   /** the rest: a landing from nowhere and nothing after it */
   unconfirmed: number;

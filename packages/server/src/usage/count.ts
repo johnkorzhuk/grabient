@@ -30,7 +30,8 @@ export type UsageEvent =
   | "script-load"
   | "file"
   | "failure"
-  | "visit";
+  | "visit"
+  | "ga4";
 
 const BLOB_MAX = 96;
 

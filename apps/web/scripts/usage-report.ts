@@ -19,7 +19,8 @@ const TITLES: Record<(typeof USAGE_EVENTS)[number], string> = {
   "client-error": "Errors pages reported",
   "script-load": "Scripts browsers could not load",
   file: "Palette files fetched",
-  failure: "Answers that failed"
+  failure: "Answers that failed",
+  ga4: "Visits sent to Google Analytics"
 };
 const ROWS = 40;
 
