@@ -14,6 +14,17 @@ export const PALETTE_PAGE = {
   "Cache-Control": REVALIDATE,
   "CDN-Cache-Control": "max-age=86400"
 } as const;
+/** A public list's page: half an hour at the edge, as the gallery's (features/gallery/load.ts). The app reads the list's
+    data apart, which stays fresher. */
+export const LIST_PAGE = {
+  "Cache-Control": REVALIDATE,
+  "CDN-Cache-Control": "max-age=1800"
+} as const;
+/** A list's page in an order that moves (Rising): ten minutes at the edge. */
+export const MOVING_LIST_PAGE = {
+  "Cache-Control": REVALIDATE,
+  "CDN-Cache-Control": "max-age=600"
+} as const;
 /** What changed lately (Rising): a minute at the edge, so a like shows within the minute. */
 export const FRESH = { "Cache-Control": REVALIDATE, "CDN-Cache-Control": "max-age=60" } as const;
 /** Who a palette credits: half a minute at the edge, which a page that reaches the palette again asks again after, so

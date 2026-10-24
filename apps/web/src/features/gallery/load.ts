@@ -28,8 +28,13 @@ export interface Loaded extends FramedData {
   palettes?: string[];
 }
 
-const PUBLIC_EDGE = 300;
-const RISING_EDGE = 60;
+/* How long a list's page (and the home) is kept at each data center's edge: half an hour, Rising ten minutes. The
+   data under it stays fresher (server/gallery/cache.ts `listTtl`), and the app reads that data as a reader moves
+   through the site; the page is what a browser or a program gets when it asks for the address itself. On 24 Oct 2026
+   scrapers asked for the lists in every language from home connections everywhere, so most data centers drew each
+   page anew at about 130 ms of CPU; kept five minutes (Rising one), nine in ten of their pages were drawn again. */
+const PUBLIC_EDGE = 1800;
+const RISING_EDGE = 600;
 const left = (fetchedAt: number, ttl: number) =>
   Math.max(0, Math.min(ttl, Math.floor((fetchedAt + ttl * 1000 - Date.now()) / 1000)));
 

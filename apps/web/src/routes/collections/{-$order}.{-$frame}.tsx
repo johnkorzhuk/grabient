@@ -4,7 +4,7 @@ import { ListRoute } from "../../features/collections/ListRoute.tsx";
 import type { ListPlace } from "../../features/collections/params.ts";
 import { listHead, listPlace, loadList } from "../../features/collections/route.ts";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
-import { FRESH, NO_STORE, PAGE } from "../../lib/cache.ts";
+import { LIST_PAGE, MOVING_LIST_PAGE, NO_STORE } from "../../lib/cache.ts";
 import { DEFAULT_FRAME, isFrame } from "../../lib/orders.ts";
 import { drawnSearch, searchOf } from "../../lib/route.ts";
 
@@ -44,7 +44,11 @@ export const Route = createFileRoute("/collections/{-$order}/{-$frame}")({
       new URLSearchParams(location.searchStr).has("selection")
     ),
   headers: ({ params, loaderData }) =>
-    loaderData?.status || loaderData?.unkept ? NO_STORE : params.order ? FRESH : PAGE,
+    loaderData?.status || loaderData?.unkept
+      ? NO_STORE
+      : params.order
+        ? MOVING_LIST_PAGE
+        : LIST_PAGE,
   head: ({ match, params, loaderData }) =>
     listHead(placeOf(params, searchOf(match.search))!, loaderData),
   staticData: { corner: ListAppearance },
