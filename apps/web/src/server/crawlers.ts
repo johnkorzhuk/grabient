@@ -7,3 +7,11 @@ const CRAWLER =
 
 export const isCrawler = (request: Request): boolean =>
   CRAWLER.test(request.headers.get("User-Agent") ?? "");
+
+/* The apps that draw a preview of a link someone posts: X, Facebook and iMessage, Slack, Discord, LinkedIn, Telegram,
+   WhatsApp, Reddit, Pinterest, Teams and Skype, Mastodon, Bluesky and the embed services. */
+const LINK_PREVIEW =
+  /Twitterbot|facebookexternalhit|Facebot|Slackbot|Discordbot|LinkedInBot|TelegramBot|WhatsApp|redditbot|Pinterestbot|SkypeUriPreview|Mastodon|Cardyb|Iframely|Embedly/i;
+
+export const isLinkPreview = (request: Request): boolean =>
+  LINK_PREVIEW.test(request.headers.get("User-Agent") ?? "");

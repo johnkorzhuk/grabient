@@ -332,3 +332,48 @@ export function bandsSvg(P: Palette, view: BandsView, size: Size, credit: string
   const comment = `<!-- ${credit.replace(/--/g, "-%2D")} -->`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="${id}">\n${comment}\n<style>${frames}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n<defs>${gradients.join("")}</defs>\n<g id="${id}h"><g id="${id}q">${paths.join("")}</g><use href="#${id}q" transform="matrix(-1 0 0 1 ${W} 0)"/></g><use href="#${id}h" transform="matrix(1 0 0 -1 0 ${H})"/>\n</svg>`;
 }
+
+/** The frame the file's stops hold, as pixels at a size, three bytes each and row after row, with every band's stops in
+    full: the file where no animation plays, such as a link's preview. */
+export function bandsStill(P: Palette, view: BandsView, size: Size): Uint8Array<ArrayBuffer> {
+  const { width: W, height: H } = size;
+  const color = paletteLevels(P, view.reverse);
+  const side = (view.bands - 1) / 2;
+  const rgb = new Float64Array(3);
+  /* each band's column of pixels, read down its gradient from the middle out and the same above it */
+  const columns = Array.from({ length: side + 1 }, (_, b) => {
+    const u = b / side;
+    const ring = (RING_CENTER + RING_EDGE * u) * H;
+    const height = pulse(STILL - SPREAD * (view.dir === "in" ? 1 - u : u));
+    const stops = bandStops(restLevel(u)).map(s => {
+      color(s.rest + (s.peak - s.rest) * height, rgb, 0);
+      return { at: s.at * ring, rgb: [rgb[0], rgb[1], rgb[2]] };
+    });
+    const column = new Uint8Array(3 * H);
+    for (let y = 0; y < H; y++) {
+      const d = Math.abs(y + 0.5 - H / 2);
+      let k = 0;
+      while (k < stops.length - 2 && stops[k + 1].at < d) k++;
+      const [a, z] = [stops[k], stops[k + 1]];
+      const f = clamp01((d - a.at) / (z.at - a.at));
+      for (let c = 0; c < 3; c++) {
+        column[3 * y + c] = Math.round(255 * clamp01(a.rgb[c] + (z.rgb[c] - a.rgb[c]) * f));
+      }
+    }
+    return column;
+  });
+  const band = Array.from({ length: W }, (_, x) =>
+    Math.abs(Math.min(view.bands - 1, Math.floor(((x + 0.5) * view.bands) / W)) - side)
+  );
+  const out = new Uint8Array(3 * W * H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const column = columns[band[x]];
+      const at = 3 * (y * W + x);
+      out[at] = column[3 * y];
+      out[at + 1] = column[3 * y + 1];
+      out[at + 2] = column[3 * y + 2];
+    }
+  }
+  return out;
+}

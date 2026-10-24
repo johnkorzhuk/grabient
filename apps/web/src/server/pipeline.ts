@@ -1,3 +1,4 @@
+import { isBands } from "@grabient/engine/bands.ts";
 import {
   canonicalLocalePath,
   DEFAULT_LOCALE,
@@ -20,8 +21,9 @@ import { PRODUCTION_ORIGIN } from "../lib/page-meta.ts";
 import { json, redirect, withHeaders } from "../lib/responses.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
-import { isCrawler } from "./crawlers.ts";
+import { isCrawler, isLinkPreview } from "./crawlers.ts";
 import { edgeCached, keepFor } from "./edge-cache.ts";
+import { addressParams } from "./files/address.ts";
 import { countFile } from "./files/count.ts";
 import { siteCard } from "./images/serve.ts";
 import {
@@ -223,7 +225,10 @@ async function route(
   if (!read || env.DEPLOYMENT === "development") return answer(request, app);
   const render = async () =>
     (listingPath(path) && (await overListing(env, request))) || answer(request, app);
-  return uncachedPath(path)
+  // a link preview of the animated SVG gets a page of its own (files/palette-files.ts), which no cache keeps or answers
+  const preview =
+    isLinkPreview(request) && path.endsWith(".svg") && isBands(addressParams(url.searchParams));
+  return uncachedPath(path) || preview
     ? render()
     : edgeCached(request, cacheKey(url, path, locale), ctx, render);
 }

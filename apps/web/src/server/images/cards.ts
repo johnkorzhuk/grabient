@@ -1,15 +1,21 @@
 /* A palette's pictures: its share card (/api/og) and its picture alone (/api/png, /{seed}.png), each in the view the
    address asks for, and the head an email wears. The key names what is drawn, so every address of one picture shares
    it. */
+import { bandsSearch, bandsStill, isBands, parseBands } from "@grabient/engine/bands.ts";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { hexBytes } from "@grabient/engine/color.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
 import { MARK_FIXED } from "@grabient/ui/mark.ts";
 import { type Saved, viewAt } from "../files/address.ts";
 import type { Resolved } from "../files/resolve.ts";
-import { drawCard, drawPicture, keyframeColors, type Look, lookOf } from "./paint.ts";
+import { drawCard, drawCardOver, drawPicture, keyframeColors, type Look, lookOf } from "./paint.ts";
+import { encodePng } from "./png.ts";
 import { answerPicture, type Keep, type PictureEnv } from "./serve.ts";
 import { cardSize, pictureSize } from "./size.ts";
+
+/** The animated SVG's drawing, which a change to engine/bands.ts that moves its pixels counts up, so no card or picture
+    drawn before is kept for it. */
+const BANDS_DRAWING = "bands-1";
 
 export function paletteCard(
   request: Request,
@@ -18,6 +24,30 @@ export function paletteCard(
   params: URLSearchParams,
   keep: Keep
 ): Promise<Response> {
+  // style=bands: the animated SVG's still frame under the wordmark, which a link to that SVG previews as
+  if (isBands(params)) {
+    const bands = parseBands(params);
+    const { width, height } = cardSize(params);
+    return answerPicture(
+      request,
+      env,
+      {
+        kind: "card",
+        branded: true,
+        parts: [BANDS_DRAWING, found.seed, bands, width, height, true],
+        width,
+        height,
+        draw: () =>
+          drawCardOver(
+            bandsStill(found.palette, bands, { width, height }),
+            keyframeColors(found.palette),
+            width,
+            height
+          )
+      },
+      keep
+    );
+  }
   const view = viewAt(params, found.palette.anchors.length);
   const { width, height, chips } = cardSize(params);
   return answerPicture(
@@ -58,8 +88,26 @@ export function palettePicture(
   params: URLSearchParams,
   keep: Keep
 ): Promise<Response> {
-  const view = viewAt(params, found.palette.anchors.length);
   const { width, height } = pictureSize(params);
+  // style=bands: the animated SVG's still frame alone
+  if (isBands(params)) {
+    const bands = parseBands(params);
+    return answerPicture(
+      request,
+      env,
+      {
+        kind: "png",
+        branded: false,
+        svg: `/${found.seed}.svg${bandsSearch(bands, [`size=${width}x${height}`])}`,
+        parts: [BANDS_DRAWING, found.seed, bands, width, height, false],
+        width,
+        height,
+        draw: () => encodePng(width, height, bandsStill(found.palette, bands, { width, height }))
+      },
+      keep
+    );
+  }
+  const view = viewAt(params, found.palette.anchors.length);
   return answerPicture(
     request,
     env,

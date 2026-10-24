@@ -262,6 +262,19 @@ export async function drawCard(
   return encodePng(width, height, canvas.data);
 }
 
+/** A share card over pixels drawn elsewhere (the animated SVG's still frame): the wordmark at their top left, its bar
+    in the palette's keyframes' colors, and no chips. */
+export async function drawCardOver(
+  rgb: Uint8Array,
+  colors: readonly Rgb[],
+  width: number,
+  height: number
+): Promise<Uint8Array<ArrayBuffer>> {
+  const canvas: Canvas = { width, data: rgb };
+  await paintWordmark(canvas, colors);
+  return encodePng(width, height, canvas.data);
+}
+
 /** Where the first of `count` wedges begins, clockwise from the top: turned so its middle runs through the wordmark's
     middle (175, 64.5 on a 1200 by 630 card, scaled with the picture). */
 const mix = (into: number[], with_: readonly number[], part: number) => {

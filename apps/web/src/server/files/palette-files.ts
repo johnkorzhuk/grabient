@@ -1,10 +1,19 @@
 /* A palette as a file at its address plus an extension: CSS, SVG, JSON and the swatch files design apps import, each
    written by the engine in the view the address asks for. A name that is no palette may be a collection's address: its
    swatch files are the collection's. Every file is English. Markdown is the agent files' (seo/markdown.ts). */
-import { BANDS_SIZE, bandsSvg, isBands, parseBands } from "@grabient/engine/bands.ts";
+import {
+  BANDS_SIZE,
+  type BandsView,
+  bandsSearch,
+  bandsSvg,
+  isBands,
+  parseBands
+} from "@grabient/engine/bands.ts";
 import { colorKind, paletteCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { paletteDocument, paletteJson } from "@grabient/engine/document.ts";
+import { readingName, readPalette } from "@grabient/engine/name.ts";
+import type { Palette } from "@grabient/engine/palette.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import {
   SWATCH_FILES,
@@ -12,11 +21,12 @@ import {
   swatchFile,
   swatchPalette
 } from "@grabient/engine/swatches.ts";
-import { parseSize, parseView, resolveSize } from "@grabient/engine/view.ts";
+import { parseSize, parseView, resolveSize, sizeParam } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { ANIMATION, FILE, TEXT } from "../../lib/cache.ts";
+import { ANIMATION, FILE, NO_STORE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { texts, writtenWords } from "../collections/files.ts";
+import { isLinkPreview } from "../crawlers.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
@@ -38,6 +48,32 @@ export function svgSize(params: URLSearchParams) {
   const w = side("w");
   const h = side("h");
   return ((w || h) && parseSize(`${w ?? "auto"}x${h ?? "auto"}`)) || parseView(params).size;
+}
+
+const attribute = (text: string) =>
+  text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** The animated SVG as an app that previews a posted link reads it: a page whose card is the SVG's still frame under the
+    wordmark (/api/og?style=bands), titled with the palette's name, since an SVG carries no card of its own. The page is
+    the link preview's alone: the edge keeps no copy of it (pipeline.ts), and a reader's browser gets the SVG. */
+function bandsPreview(
+  origin: string,
+  seed: string,
+  palette: Palette,
+  bands: BandsView,
+  size: string | null
+) {
+  const address = attribute(
+    `${origin}/${seed}.svg${bandsSearch(bands, size ? [`size=${size}`] : [])}`
+  );
+  const card = attribute(`${origin}/api/og${bandsSearch(bands, [`seed=${seed}`])}`);
+  const title = attribute(`${readingName(readPalette(palette))} · Grabient`);
+  const about =
+    "An animated SVG of a Grabient palette: bands that bloom from the center out, drawn by CSS alone.";
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${about}"><link rel="canonical" href="${address}"><meta property="og:type" content="website"><meta property="og:site_name" content="Grabient"><meta property="og:title" content="${title}"><meta property="og:description" content="${about}"><meta property="og:url" content="${address}"><meta property="og:image" content="${card}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${about}"><meta name="twitter:image" content="${card}"></head><body><img src="${address}" alt="" width="1200" height="630"></body></html>`;
+  return new Response(html, {
+    headers: { ...NO_STORE, "Content-Type": "text/html; charset=utf-8", Vary: "User-Agent" }
+  });
 }
 
 async function paletteFile(
@@ -70,6 +106,15 @@ async function paletteFile(
     case "svg":
       // style=bands is the animated SVG (engine/bands.ts), at 400 by 500 unless asked
       if (isBands(params)) {
+        if (isLinkPreview(request)) {
+          return bandsPreview(
+            origin,
+            seed,
+            palette,
+            parseBands(params),
+            sizeParam(svgSize(params))
+          );
+        }
         const size = resolveSize(svgSize(params), BANDS_SIZE);
         return new Response(bandsSvg(palette, parseBands(params), size, `${origin}/${seed}`), {
           headers: { ...ANIMATION, "Content-Type": "image/svg+xml; charset=utf-8" }

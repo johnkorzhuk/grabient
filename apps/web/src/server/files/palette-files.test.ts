@@ -57,6 +57,30 @@ describe("a palette's file", () => {
     );
   });
 
+  test("a link preview asking for the animated SVG gets a page whose card is its still frame", async () => {
+    const asked = (agent: string) =>
+      fileAnswer(
+        new Request(`https://grabient.test/${seed}.svg?style=bands&w=1080&h=1080&junk=1`, {
+          headers: { "User-Agent": agent }
+        }),
+        env,
+        "svg"
+      );
+    const preview = await asked("Twitterbot/1.0");
+    expect([preview.headers.get("Content-Type"), preview.headers.get("Cache-Control")]).toEqual([
+      "text/html; charset=utf-8",
+      "no-store"
+    ]);
+    const html = await preview.text();
+    expect(html).toContain(
+      `<meta property="og:image" content="${golden.origin}/api/og?style=bands&amp;seed=${seed}">`
+    );
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
+    expect(html).toContain(`content="${golden.origin}/${seed}.svg?style=bands&amp;size=1080x1080"`);
+    const browser = await asked("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/152.0.0.0");
+    expect(browser.headers.get("Content-Type")).toBe("image/svg+xml; charset=utf-8");
+  });
+
   test("SVG takes w and h before the view's size", async () => {
     const svg = await file(`/${seed}.svg?${view}`);
     expect([svg.headers.get("Content-Type"), await svg.text()]).toEqual([

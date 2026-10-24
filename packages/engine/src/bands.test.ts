@@ -1,5 +1,12 @@
 import { expect, test } from "vitest";
-import { BANDS_SIZE, type BandsView, bandsSearch, bandsSvg, parseBands } from "./bands.ts";
+import {
+  BANDS_SIZE,
+  type BandsView,
+  bandsSearch,
+  bandsStill,
+  bandsSvg,
+  parseBands
+} from "./bands.ts";
 import { decodePalette } from "./codec.ts";
 
 const read = (query: string) => parseBands(new URLSearchParams(query));
@@ -62,4 +69,22 @@ test("the palette's darker end makes the ring unless the address says otherwise"
   expect(ring(bandsSvg(lightFirst, view, BANDS_SIZE, "x"))).toBe(
     ring(bandsSvg(lightFirst, { ...view, reverse: true }, BANDS_SIZE, "x"))
   );
+});
+
+test("the still frame as pixels: mirrored left to right and top to bottom, the ring in the palette's dark end", () => {
+  const [W, H] = [120, 80];
+  const pixels = bandsStill(P, read(""), { width: W, height: H });
+  expect(pixels).toHaveLength(3 * W * H);
+  const at = (x: number, y: number) => [...pixels.subarray(3 * (y * W + x), 3 * (y * W + x) + 3)];
+  for (const [x, y] of [
+    [3, 5],
+    [40, 30],
+    [59, 39],
+    [100, 70]
+  ]) {
+    expect(at(W - 1 - x, y)).toEqual(at(x, y));
+    expect(at(x, H - 1 - y)).toEqual(at(x, y));
+  }
+  // the center band's ring, 0.097 to 0.136 of the height from the middle
+  expect(at(W / 2, Math.round(H / 2 + 0.115 * H))).toEqual([0x20, 0x04, 0x0c]);
 });
