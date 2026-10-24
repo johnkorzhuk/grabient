@@ -121,7 +121,7 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   const { seed, palette } = found;
   if (file.format === "old") return picture("/api/og", new URLSearchParams({ seed }), CARD);
   // the animated SVG, its still frame and its card: their animation and size, kept for one build
-  if (isBands(params) && ["svg", "png", "og"].includes(file.format)) {
+  if (isBands(params) && ["svg", "css", "png", "og"].includes(file.format)) {
     const bands = parseBands(params);
     if (file.format === "png") {
       return picture(
@@ -137,10 +137,10 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     }
     const size = sizeParam(svgSize(params));
     const query = new URLSearchParams(bandsSearch(bands, size ? [`size=${size}`] : []));
-    return { path: `/${seed}.svg`, query, acrossBuilds: false };
+    return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
   }
   const view = viewAt(params, palette.anchors.length);
-  const svg = file.format === "svg" ? { size: svgSize(params) } : {};
+  const svg = file.format === "svg" || file.format === "css" ? { size: svgSize(params) } : {};
   const query = new URLSearchParams(viewSearch({ ...view, ...svg }));
   if (file.format === "og") {
     const card = cardSize(params);

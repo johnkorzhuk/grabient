@@ -4,6 +4,7 @@
 import {
   BANDS_SIZE,
   type BandsView,
+  bandsCss,
   bandsSearch,
   bandsSvg,
   isBands,
@@ -21,7 +22,13 @@ import {
   swatchFile,
   swatchPalette
 } from "@grabient/engine/swatches.ts";
-import { parseSize, parseView, resolveSize, sizeParam } from "@grabient/engine/view.ts";
+import {
+  DEFAULT_SIZE,
+  parseSize,
+  parseView,
+  resolveSize,
+  sizeParam
+} from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { ANIMATION, FILE, NO_STORE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
@@ -98,8 +105,18 @@ async function paletteFile(
   const stops = () => sampleStops(palette, view.steps);
   switch (format) {
     case "css": {
+      // w and h (or size) set the page's box; style=bands plays the animated SVG, carried inside
+      const asked = svgSize(params);
+      if (isBands(params)) {
+        const size = asked ? resolveSize(asked, BANDS_SIZE) : null;
+        return new Response(bandsCss(palette, parseBands(params), size, `${origin}/${seed}`), {
+          headers: { ...ANIMATION, "Content-Type": "text/css; charset=utf-8" }
+        });
+      }
+      const size = asked ? resolveSize(asked, DEFAULT_SIZE) : null;
       const address = paletteDocument(seed, palette, origin, view).url;
-      return new Response(paletteCss(stops(), view, address, colorKind(params.get("colors"))), {
+      const kind = colorKind(params.get("colors"));
+      return new Response(paletteCss(stops(), view, address, kind, size), {
         headers: { ...FILE, "Content-Type": "text/css; charset=utf-8" }
       });
     }

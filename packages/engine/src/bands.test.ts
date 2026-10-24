@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   BANDS_SIZE,
   type BandsView,
+  bandsCss,
   bandsSearch,
   bandsStill,
   bandsSvg,
@@ -87,4 +88,16 @@ test("the still frame as pixels: mirrored left to right and top to bottom, the r
   }
   // the center band's ring, 0.097 to 0.136 of the height from the middle
   expect(at(W / 2, Math.round(H / 2 + 0.115 * H))).toEqual([0x20, 0x04, 0x0c]);
+});
+
+test("the CSS carries the file inside it, the box at the size asked for", () => {
+  const css = bandsCss(P, read(""), { width: 1080, height: 1350 }, "https://grabient.com/k");
+  expect(css).toMatch(
+    /^\/\* https:\/\/grabient\.com\/k \*\/\nhtml \{\n {2}width: 1080px;\n {2}height: 1350px;\n {2}background: #20040c url\("data:image\/svg\+xml,/
+  );
+  const data = /url\("data:image\/svg\+xml,([^"]*)"\)/.exec(css)![1];
+  expect(data).not.toMatch(/[#<>"]/);
+  const svg = bandsSvg(P, read(""), { width: 1080, height: 1350 }, "https://grabient.com/k");
+  expect(decodeURIComponent(data)).toBe(svg.replace(/\n/g, "").replace(/"/g, "'"));
+  expect(bandsCss(P, read(""), null, "x")).toContain("html {\n  min-height: 100%;\n  background:");
 });

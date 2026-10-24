@@ -6,7 +6,7 @@ import { decodePalette } from "./codec.ts";
 import { fitChroma, hexBytes, lchToP3, srgbToLch, type Triple, toCssP3 } from "./color.ts";
 import { type Stop, sampleStops } from "./curve.ts";
 import { clamp01, onWheel } from "./math.ts";
-import { isSwatchStyle, type Style, type View } from "./view.ts";
+import { isSwatchStyle, type Size, type Style, type View } from "./view.ts";
 
 /** The spellings of a color in CSS. OKLCH is the default; hex, rgb() and hsl() are the same sRGB color. */
 export type ColorKind = "hex" | "rgb" | "hsl" | "oklch";
@@ -127,12 +127,17 @@ export function paletteCss(
   stops: readonly Stop[],
   view: Pick<View, "style" | "angle">,
   address: string,
-  kind: ColorKind = "oklch"
+  kind: ColorKind = "oklch",
+  size?: Size | null
 ): string {
   const p3 = cssP3(stops, view.style, view.angle, kind);
   const wide = p3 ? `@media (color-gamut: p3) {\n  html {\n    ${p3}\n  }\n}\n` : "";
-  return `/* ${address} */\nhtml {\n  min-height: 100%;\n  ${cssLine(stops, view.style, view.angle, kind)}\n}\n${wide}`;
+  return `/* ${address} */\nhtml {\n  ${pageBox(size)}\n  ${cssLine(stops, view.style, view.angle, kind)}\n}\n${wide}`;
 }
+
+/** The page's box in a CSS file: the size its address asks for, else at least the window's height. */
+export const pageBox = (size?: Size | null) =>
+  size ? `width: ${size.width}px;\n  height: ${size.height}px;` : "min-height: 100%;";
 
 /** A card's background from its seed: the hex gradient at the view; null for a seed that is no palette. */
 export function cardBackground(

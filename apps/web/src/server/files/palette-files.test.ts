@@ -57,6 +57,22 @@ describe("a palette's file", () => {
     );
   });
 
+  test("CSS takes w and h for the page's box, and style=bands plays the animated SVG inside it", async () => {
+    const sized = await (await file(`/${seed}.css?${view}&w=1080&h=1350`)).text();
+    expect(sized).toContain(
+      "html {\n  width: 1080px;\n  height: 1350px;\n  background: linear-gradient("
+    );
+    expect(sized).not.toContain("min-height");
+    const bands = await file(`/${seed}.css?style=bands&w=1080&h=1350`);
+    expect([bands.headers.get("Content-Type"), bands.headers.get("Cache-Control")]).toEqual([
+      "text/css; charset=utf-8",
+      "public, max-age=3600"
+    ]);
+    const text = await bands.text();
+    expect(text).toContain("width: 1080px;\n  height: 1350px;");
+    expect(text).toContain('url("data:image/svg+xml,%3Csvg ');
+  });
+
   test("a link preview asking for the animated SVG gets a page whose card is its still frame", async () => {
     const asked = (agent: string) =>
       fileAnswer(

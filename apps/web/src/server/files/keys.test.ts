@@ -94,3 +94,12 @@ test("the animated SVG's card and still frame are kept under their animation and
     "/kS7Q8Yy5S_SChv0.png?dir=in&h=600&style=bands&w=600"
   );
 });
+
+test("a palette's CSS is kept under its size, and the animated CSS under its animation and size", () => {
+  expect(written("/kS7Q8Yy5S_SChv0.css?w=1080&h=1350&junk=1")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.css?size=1080x1350"
+  );
+  expect(written("/kS7Q8Yy5S_SChv0.css?style=bands&colors=hex&w=1080&h=1350")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.css?size=1080x1350&style=bands"
+  );
+});
