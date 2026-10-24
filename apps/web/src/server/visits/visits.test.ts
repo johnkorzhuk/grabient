@@ -345,18 +345,19 @@ describe("a visit's point", () => {
     // no address and no code anywhere in it
     expect(JSON.stringify(USAGE.points)).not.toContain("203.0.113");
   });
-  test("of China or Vietnam, or without a key, has no code", async () => {
+  test("has its code in China and Vietnam as anywhere, and none without a key", async () => {
     const CACHE = memoryKV();
     const USAGE = usage();
     await makeVisitKeys({ CACHE } as never, NOON);
     for (const country of ["CN", "VN"])
       await countVisit({ CACHE, USAGE } as never, from("203.0.113.9", {}, country), visit, NOON);
     await countVisit({ CACHE: memoryKV(), USAGE } as never, from("203.0.113.9"), visit, NOON);
-    expect(USAGE.points.map(point => [point.index, point.blobs[4], point.blobs[14]])).toEqual([
-      ["visit", "CN", ""],
-      ["visit", "VN", ""],
-      ["visit", "US", ""]
-    ]);
+    const [china, vietnam, keyless] = USAGE.points;
+    expect([china!.blobs[4], vietnam!.blobs[4], keyless!.blobs[4]]).toEqual(["CN", "VN", "US"]);
+    // one browser on one day is one code, wherever Cloudflare places it
+    expect(china!.index).toMatch(/^[0-9a-f]{16}$/);
+    expect([vietnam!.index, china!.blobs[14]]).toEqual([china!.index, china!.index]);
+    expect([keyless!.index, keyless!.blobs[14]]).toEqual(["visit", ""]);
   });
   test("of a browser that sends Global Privacy Control or Do Not Track says only that it was one", async () => {
     const CACHE = memoryKV();
@@ -454,9 +455,8 @@ describe("a visit sent on to Google Analytics", () => {
     });
     // the address and the user agent never go
     expect(JSON.stringify(sent[0]!.body)).not.toMatch(/203\.0\.113|Mozilla/);
-    // a program's request, China's and a browser that asks not to be followed send nothing
+    // a program's request and a browser that asks not to be followed send nothing
     await countVisit(env as never, from("203.0.113.9", { "Accept-Language": "" }), visit, NOON);
-    await countVisit(env as never, from("203.0.113.9", {}, "CN"), visit, NOON);
     await countVisit(env as never, from("203.0.113.9", { "Sec-GPC": "1" }), visit, NOON);
     // nor a Chromium far behind the version its people lead with
     const old = {
@@ -471,9 +471,13 @@ describe("a visit sent on to Google Analytics", () => {
     // the same browser, its page run, goes at once
     await countVisit({ ...env, DEPLOYMENT: "staging" } as never, german, visit, NOON);
     expect(sent[1]!.url).toMatch(/^https:\/\/region1\.google-analytics\.com\/debug\/mp\/collect\?/);
+    // and China's as any country's
+    await countVisit(env as never, from("203.0.113.9", {}, "CN"), visit, NOON);
+    expect(sent[2]!.body).toMatchObject({ user_location: { country_id: "CN" } });
     expect(named(USAGE.points, "ga4").map(point => point.blobs)).toEqual([
       ["ga4", "landing", "US", "Chrome 155", "7922"],
-      ["ga4", "landing", "DE", "Chrome 155", "3320"]
+      ["ga4", "landing", "DE", "Chrome 155", "3320"],
+      ["ga4", "landing", "CN", "Chrome 155", "7922"]
     ]);
   });
   test("goes on whatever brought it, a landing from nowhere too, once its browser ran the page", async () => {

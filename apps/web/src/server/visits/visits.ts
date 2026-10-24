@@ -19,9 +19,10 @@ import { HOSTING, tooOld } from "./rules.ts";
    Its visitor is a code: the first 16 hex digits of the SHA-256 of the day's key, the request's address (an IPv6
    address by its /64) and its user agent, so a day's points from one browser count once. The key is random, made a day
    ahead and deleted ten minutes past its day's end (keys.ts): after that no code can be made again or matched to an
-   address, and the codes of two days never meet. No code is made in China or
-   Vietnam, whose laws want consent before a person's visits are analysed, and a browser that sends Global Privacy
-   Control or Do Not Track adds one to its day's count and says nothing else.
+   address, and the codes of two days never meet. A browser that sends Global Privacy Control or Do Not Track adds
+   one to its day's count and says nothing else. China and Vietnam are counted as everywhere else since 24 Oct 2026,
+   on the owner's word: until then no code was made there, as their laws want consent before a person's visits are
+   analysed.
 
    A page counts when a browser navigates to it (Sec-Fetch-Mode navigate, into a document or another site's frame) and
    the site answers with it: never a prefetch, a program that names itself, a crawler crawlers.ts lists or a bot
@@ -45,8 +46,6 @@ export interface Visit {
   campaign?: string;
 }
 
-/** Countries where no visitor's code is made. */
-const NO_CODE = new Set(["CN", "VN"]);
 const MINUTE = 60_000;
 
 /** A program that names itself in its user agent, as the page's own analytics knows them, and the usual HTTP
@@ -309,7 +308,7 @@ export async function countVisit(
   const country = typeof cf?.country === "string" ? cf.country : "";
   const address = clientAddress(request);
   let visitor = "";
-  if (address && env.CACHE && !NO_CODE.has(country)) {
+  if (address && env.CACHE) {
     try {
       const key = await dayKey(env.CACHE, dayOf(now));
       if (key) visitor = await visitorOf(key, address, agent);
@@ -463,10 +462,8 @@ export async function checkedSession(
   const headers = request.headers;
   if (headers.get("Sec-Fetch-Site") !== "same-origin" || automated(request)) return;
   if (headers.get("Sec-GPC") === "1" || headers.get("DNT") === "1") return;
-  const cf = (request as { cf?: { country?: unknown } }).cf;
-  const country = typeof cf?.country === "string" ? cf.country : "";
   const address = clientAddress(request);
-  if (!address || NO_CODE.has(country)) return;
+  if (!address) return;
   try {
     const key = await dayKey(env.CACHE, dayOf(now));
     if (!key) return;
