@@ -30,6 +30,8 @@ export interface Ga4Hit {
   source: string;
   medium: string;
   campaign: string;
+  /** the network's number (ASN), for the site's own count of what Google received; never sent to Google */
+  network?: string;
 }
 
 const ORIGIN = "https://grabient.com";

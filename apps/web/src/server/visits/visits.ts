@@ -343,11 +343,11 @@ export async function countVisit(
   );
   /* on to Google Analytics, a person's visit alone: a code, nothing a program's request says, none of the large
      clouds' networks, a browser no more than six versions behind Chrome's stable one, which must be known (until it
-     is, nothing is sent, as programs on old versions would pass for people), a visit that shows a person, and a
-     browser that ran the page (below). A landing from nowhere stays in the counts here, unconfirmed, and goes no
-     further */
+     is, nothing is sent, as programs on old versions would pass for people), and a browser that ran the page (below).
+     A landing from nowhere (typed, bookmarked, an app's link) goes too once its page has run: until 24 Oct 2026 it
+     never went, as the scrapers' visits were all such landings, and Google Analytics left out every person who came
+     straight to the site */
   if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_API_SECRET) return;
-  if (!showsPerson(visit)) return;
   const lead = env.CACHE ? await dayLead(env.CACHE).catch(() => null) : null;
   if (!lead || tooOld(browser, lead)) return;
   const hit: Ga4Hit = {
@@ -366,7 +366,8 @@ export async function countVisit(
     referrer: visit.referrer ?? "",
     source: visit.source ?? "",
     medium: visit.medium ?? "",
-    campaign: visit.campaign ?? ""
+    campaign: visit.campaign ?? "",
+    network
   };
   const origin = new URL(request.url).origin;
   if (visit.what === "use" || visit.what === "search") {
@@ -408,7 +409,7 @@ type Sends = Pick<Env, "USAGE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREM
 /** A hit sent on, and counted (`ga4`, under its visitor) when Google took it. */
 async function sendHit(env: Sends, hit: Ga4Hit, at: number): Promise<void> {
   if (await sendToGa4(env, hit, at))
-    countUsageUnder(env, hit.visitor, "ga4", hit.what, hit.country, hit.browser);
+    countUsageUnder(env, hit.visitor, "ga4", hit.what, hit.country, hit.browser, hit.network ?? "");
 }
 
 /** A page's hit: sent when its visitor's browser has run a page, else kept until it does. */

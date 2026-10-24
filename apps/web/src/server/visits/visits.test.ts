@@ -472,11 +472,11 @@ describe("a visit sent on to Google Analytics", () => {
     await countVisit({ ...env, DEPLOYMENT: "staging" } as never, german, visit, NOON);
     expect(sent[1]!.url).toMatch(/^https:\/\/region1\.google-analytics\.com\/debug\/mp\/collect\?/);
     expect(named(USAGE.points, "ga4").map(point => point.blobs)).toEqual([
-      ["ga4", "landing", "US", "Chrome 155"],
-      ["ga4", "landing", "DE", "Chrome 155"]
+      ["ga4", "landing", "US", "Chrome 155", "7922"],
+      ["ga4", "landing", "DE", "Chrome 155", "3320"]
     ]);
   });
-  test("is a visit that shows a person: a landing from nowhere is counted and goes no further", async () => {
+  test("goes on whatever brought it, a landing from nowhere too, once its browser ran the page", async () => {
     stubFetch();
     stubCache();
     const CACHE = memoryKV();
@@ -492,10 +492,11 @@ describe("a visit sent on to Google Analytics", () => {
     };
     const nowhere = { what: "landing", page: "home", language: "en" } as const;
     await countVisit(env as never, from("203.0.113.9"), nowhere, NOON);
-    // its browser ran the page, and it still shows no person
-    await checkedSession(env as never, checking("203.0.113.9"), NOON);
-    expect(USAGE.points).toHaveLength(1);
     expect(sent).toEqual([]);
+    // typed, bookmarked or an app's link: it goes once its browser ran the page
+    await checkedSession(env as never, checking("203.0.113.9"), NOON + 1_000);
+    expect(named(USAGE.points, "visit")).toHaveLength(1);
+    expect(sent).toHaveLength(1);
     const shown = [
       { ...nowhere, campaign: "october" },
       { what: "load", page: "palette", language: "en" },
@@ -507,8 +508,10 @@ describe("a visit sent on to Google Analytics", () => {
       "page_view",
       "page_view",
       "page_view",
+      "page_view",
       "use_palette"
     ]);
+    // the site's own counts still tell people by what a visit shows (mcp/admin/visits.ts)
     expect(showsPerson(nowhere)).toBe(false);
     expect(showsPerson({ ...nowhere, referrer: "news.ycombinator.com" })).toBe(true);
   });
@@ -605,9 +608,33 @@ describe("a visit sent on to Google Analytics", () => {
     expect(sent).toHaveLength(2);
     expect(named(USAGE.points, "visit")).toHaveLength(4);
     expect(named(USAGE.points, "ga4").map(point => point.blobs)).toEqual([
-      ["ga4", "load", "US", "Chrome 155"],
-      ["ga4", "load", "US", "Chrome 155"]
+      ["ga4", "load", "US", "Chrome 155", "7922"],
+      ["ga4", "load", "US", "Chrome 155", "7922"]
     ]);
+  });
+  test("never goes from a large cloud's network, even once its page ran", async () => {
+    stubFetch();
+    stubCache();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    // Amazon, Microsoft and DigitalOcean: the programs that ran pages on 24 Oct 2026 came from these
+    for (const asn of [14618, 8075, 14061]) {
+      const page = Object.assign(from("198.51.100.20"), { cf: { country: "US", asn } });
+      const check = Object.assign(checking("198.51.100.20"), { cf: { country: "US", asn } });
+      await countVisit(env as never, page, visit, NOON);
+      await checkedSession(env as never, check, NOON + 1_000);
+    }
+    expect(named(USAGE.points, "visit")).toHaveLength(3);
+    expect(sent).toEqual([]);
   });
   test("a palette used on the page says its browser ran it, and the page goes first", async () => {
     stubFetch();

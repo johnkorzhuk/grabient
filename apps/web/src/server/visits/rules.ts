@@ -1,10 +1,14 @@
 /* What tells a person's visit from a program's beyond what the request says of itself (visits.ts), shared by the reader
    of the counts (mcp/admin/visits.ts) and the feed to Google Analytics (ga4.ts). No imports. */
 
-/** Networks of the large clouds programs run from: Amazon, Google, Alibaba, Tencent and Huawei. The hosting providers
-    VPNs exit through (M247, Datacamp, Hetzner, OVH, DigitalOcean and the like) and Microsoft's, which carries Windows
-    365 and Azure Virtual Desktop, are not among them: people browse through those. */
+/** Networks of the large clouds programs run from: Amazon, Google, Alibaba, Tencent, Huawei, Microsoft and
+    DigitalOcean. The hosting providers VPNs exit through (M247, Datacamp, Hetzner, OVH and the like) are not among
+    them: people browse through those. Microsoft's (Windows 365, Azure Virtual Desktop) and DigitalOcean's carry some
+    people too, but on 24 Oct 2026 they sent about 4,800 and 3,700 landings a day from the United States, where the
+    home networks of the people who used a palette sent about 350, so they count as programs. */
 export const HOSTING: readonly string[] = [
+  "8075",
+  "14061",
   "16509",
   "14618",
   "15169",
