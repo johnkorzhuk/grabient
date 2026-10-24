@@ -1,6 +1,7 @@
 /* A palette as a file at its address plus an extension: CSS, SVG, JSON and the swatch files design apps import, each
    written by the engine in the view the address asks for. A name that is no palette may be a collection's address: its
    swatch files are the collection's. Every file is English. Markdown is the agent files' (seo/markdown.ts). */
+import { BANDS_SIZE, bandsSvg, isBands, parseBands } from "@grabient/engine/bands.ts";
 import { colorKind, paletteCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { paletteDocument, paletteJson } from "@grabient/engine/document.ts";
@@ -11,9 +12,9 @@ import {
   swatchFile,
   swatchPalette
 } from "@grabient/engine/swatches.ts";
-import { parseSize, parseView } from "@grabient/engine/view.ts";
+import { parseSize, parseView, resolveSize } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { FILE, TEXT } from "../../lib/cache.ts";
+import { ANIMATION, FILE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { texts, writtenWords } from "../collections/files.ts";
 import { publicOrigin } from "../seo/site.ts";
@@ -67,6 +68,13 @@ async function paletteFile(
       });
     }
     case "svg":
+      // style=bands is the animated SVG (engine/bands.ts), at 400 by 500 unless asked
+      if (isBands(params)) {
+        const size = resolveSize(svgSize(params), BANDS_SIZE);
+        return new Response(bandsSvg(palette, parseBands(params), size, `${origin}/${seed}`), {
+          headers: { ...ANIMATION, "Content-Type": "image/svg+xml; charset=utf-8" }
+        });
+      }
       return new Response(artworkSvg(stops(), { ...view, size: svgSize(params) }, seed, origin), {
         headers: { ...FILE, "Content-Type": "image/svg+xml; charset=utf-8" }
       });

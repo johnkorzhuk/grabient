@@ -43,6 +43,20 @@ describe("a palette's file", () => {
     );
   });
 
+  test("SVG with style=bands is the animated file, which a browser keeps an hour", async () => {
+    const svg = await file(`/${seed}.svg?style=bands&bands=7&w=320&h=200&steps=8`);
+    expect([svg.status, svg.headers.get("Content-Type"), svg.headers.get("Cache-Control")]).toEqual(
+      [200, "image/svg+xml; charset=utf-8", "public, max-age=3600"]
+    );
+    const text = await svg.text();
+    expect(text).toContain('width="320" height="200" viewBox="0 0 320 200"');
+    expect(text.match(/<linearGradient /g)).toHaveLength(4);
+    expect(text).toContain("@keyframes");
+    expect((await file(`/${seed}.svg?style=bands`)).headers.get("Cache-Control")).toBe(
+      "public, max-age=3600"
+    );
+  });
+
   test("SVG takes w and h before the view's size", async () => {
     const svg = await file(`/${seed}.svg?${view}`);
     expect([svg.headers.get("Content-Type"), await svg.text()]).toEqual([

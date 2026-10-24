@@ -75,3 +75,12 @@ test("an old card's address shares the card's key, and other addresses are no fi
   expect(written("/kS7Q8Yy5S_SChv0")).toBeNull();
   expect(written("/api/hot")).toBeNull();
 });
+
+test("the animated SVG is kept under its animation and size, defaults and other parameters left out", () => {
+  expect(written("/kS7Q8Yy5S_SChv0.svg?style=bands&steps=9&angle=30&junk=1")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.svg?style=bands"
+  );
+  expect(
+    written("/kS7Q8Yy5S_SChv0.svg?duration=3&style=bands&bands=8&dir=in&w=800&h=1000")?.key
+  ).toBe("/kS7Q8Yy5S_SChv0.svg?bands=9&dir=in&duration=3&size=800x1000&style=bands");
+});

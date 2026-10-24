@@ -4,8 +4,9 @@
    across deploys. A picture of several palettes changes with what the site holds, so it is kept for one build, as its
    page is, and a collection's also by when the collection changed (`t`, which its page names). A text file is the
    engine's writing, kept for one build. */
+import { bandsSearch, isBands, parseBands } from "@grabient/engine/bands.ts";
 import { colorKind } from "@grabient/engine/css.ts";
-import { parseView, type Size, viewSearch } from "@grabient/engine/view.ts";
+import { parseView, type Size, sizeParam, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
 import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montage-address.ts";
@@ -119,6 +120,13 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   }
   const { seed, palette } = found;
   if (file.format === "old") return picture("/api/og", new URLSearchParams({ seed }), CARD);
+  if (file.format === "svg" && isBands(params)) {
+    const size = sizeParam(svgSize(params));
+    const query = new URLSearchParams(
+      bandsSearch(parseBands(params), size ? [`size=${size}`] : [])
+    );
+    return { path: `/${seed}.svg`, query, acrossBuilds: false };
+  }
   const view = viewAt(params, palette.anchors.length);
   const svg = file.format === "svg" ? { size: svgSize(params) } : {};
   const query = new URLSearchParams(viewSearch({ ...view, ...svg }));

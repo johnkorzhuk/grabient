@@ -39,6 +39,12 @@ export const FILE = {
   "Cache-Control": "public, max-age=2592000",
   "CDN-Cache-Control": "max-age=604800"
 } as const;
+/** A palette's animated SVG (engine/bands.ts): its address decides every byte, but its drawing may still be tuned, so
+    a browser keeps it an hour and the edge a day. */
+export const ANIMATION = {
+  "Cache-Control": "public, max-age=3600",
+  "CDN-Cache-Control": "max-age=86400, stale-while-revalidate=86400"
+} as const;
 /** Where an old link no map holds leads, which its fit decides for good: a month at the edge, and a day in the
     browser, so a map that comes to hold the link leads there within the day. */
 export const FITTED = {
