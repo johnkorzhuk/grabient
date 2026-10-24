@@ -137,7 +137,7 @@ Unknown query parameters are ignored.
 | \`/api/hot?q={query}&page=1\` | The home page searched: {page, query, palettes, collections, tier}, sixty palettes that answer the words, the ones that carry \`lead\` first and then the most liked, and a page of the collections that answer them |
 | \`/\`, \`/palettes\`, \`/palettes/rising\`, \`/collections\`, \`/collections/rising\` | The home page and the lists for a person. Rising is the week's${others.length ? `, and ${others.join(" or ")} after it its other ${others.length > 1 ? "frames" : "frame"}` : ""} |
 | \`/palettes?q={query}\`, \`/collections?q={query}\`, \`/?q={query}\` | Search pages for a person: palettes, collections, or both |
-| \`/random\` | Redirects to a new random palette |
+| \`/random\` | Redirects to a new random palette; \`/random.svg\`, \`.png\`, \`.css\` or \`.json\` to a new random palette's file, the query kept: \`/random.svg?style=bands&size=3840x2160\` |
 
 ## Search
 

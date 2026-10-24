@@ -42,10 +42,12 @@ const BUDGETS = {
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,
   // mcp/admin/visits.ts: 5 KiB). It starts with no language's messages and no old address's map: it reads a language's
   // catalog from the deploy's files when a request first needs it, and the maps when an address may first name an old
-  // palette (server/i18n.ts, seo/legacy.ts), which took its start from 745 KiB to 232 on 24 Oct 2026
+  // palette (server/i18n.ts, seo/legacy.ts), which took its start from 745 KiB to 226 on 24 Oct 2026
   worker: 1360,
-  workerStart: 245,
-  firstRequest: 165
+  workerStart: 237,
+  // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
+  // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026)
+  firstRequest: 173
 };
 
 const out = process.argv[2] ?? ".cloudflare/output";

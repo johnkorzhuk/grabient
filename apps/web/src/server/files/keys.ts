@@ -12,8 +12,7 @@ import { listWords } from "../../lib/words.ts";
 import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montage-address.ts";
 import { CARD, cardSize, montageSize, pictureSize } from "../images/size.ts";
 import { oldFit } from "../seo/legacy-fit.ts";
-import { addressParams, fileName, viewAt } from "./address.ts";
-import { svgSize } from "./palette-files.ts";
+import { addressParams, fileName, svgSize, viewAt } from "./address.ts";
 import { resolvePalette } from "./resolve.ts";
 
 export interface FileKey {

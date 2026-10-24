@@ -1,5 +1,11 @@
 /* How the file and picture routes read an address: its query, and the name before a file's extension. */
-import { type ParamReader, parseView, type Style, type View } from "@grabient/engine/view.ts";
+import {
+  type ParamReader,
+  parseSize,
+  parseView,
+  type Style,
+  type View
+} from "@grabient/engine/view.ts";
 
 /** The query as every file and picture reads it: a key a crawler copied from HTML as `amp;style` is read as `style`,
     and of a repeated key the last wins. */
@@ -45,4 +51,16 @@ export function viewAt(
   };
   const { style, steps, angle } = parseView(reader);
   return { style, steps: Math.max(steps, keyframes), angle };
+}
+
+/** The SVG's size: `w` and `h` first, as a PNG's, so an address keeps its size when .png becomes .svg; a pair the
+    size's bounds refuse leaves the view's own. */
+export function svgSize(params: URLSearchParams) {
+  const side = (key: string) => {
+    const raw = params.get(key);
+    return raw && /^\d+$/.test(raw) ? raw : null;
+  };
+  const w = side("w");
+  const h = side("h");
+  return ((w || h) && parseSize(`${w ?? "auto"}x${h ?? "auto"}`)) || parseView(params).size;
 }

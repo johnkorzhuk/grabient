@@ -9,6 +9,7 @@ import { listWords } from "../../lib/words.ts";
 import { collectionImagePalettes } from "../collections/read.ts";
 import { publicCollections } from "../collections/search.ts";
 import { addressParams, fileName } from "../files/address.ts";
+import { RANDOM, randomFile } from "../files/random.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import { listPalettes } from "../gallery/list.ts";
 import { type SearchEnv, searchLeaders } from "../search/search.ts";
@@ -48,8 +49,13 @@ export const pngAnswer = (request: Request, env: PictureEnv, keep: Keep) =>
   paletteImage(request, env, keep, paramsOf(request).get("seed") ?? "", false);
 
 /** /{seed}.png: a palette's picture beside its page. */
-export const seedPngAnswer = (request: Request, env: PictureEnv, keep: Keep) =>
-  paletteImage(request, env, keep, fileName(pathOf(request), "png"), false);
+export const seedPngAnswer = (request: Request, env: PictureEnv, keep: Keep) => {
+  const name = fileName(pathOf(request), "png");
+  // /random.png: a new random palette's picture
+  return name === RANDOM
+    ? randomFile(request, "png")
+    : paletteImage(request, env, keep, name, false);
+};
 
 /** /og/{version}/{seed}.png, where the build once wrote a palette's card as a file: that card at its plain address's
     view, whatever the query says, as the file was. */

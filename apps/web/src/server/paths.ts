@@ -31,6 +31,7 @@ export const uncachedPath = (path: string) =>
   path === "/api/palettes" ||
   path === "/api/build" ||
   path === "/random" ||
+  /^\/random\.(svg|png|css|json|tokens\.json|ase|gpl|grd)$/.test(path) ||
   path === "/api/search/status";
 
 /** The search's JSON, at each of its addresses. */

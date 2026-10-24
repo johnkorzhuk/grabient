@@ -22,40 +22,23 @@ import {
   swatchFile,
   swatchPalette
 } from "@grabient/engine/swatches.ts";
-import {
-  DEFAULT_SIZE,
-  parseSize,
-  parseView,
-  resolveSize,
-  sizeParam
-} from "@grabient/engine/view.ts";
+import { DEFAULT_SIZE, resolveSize, sizeParam } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { ANIMATION, FILE, NO_STORE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { texts, writtenWords } from "../collections/files.ts";
 import { isLinkPreview } from "../crawlers.ts";
 import { publicOrigin } from "../seo/site.ts";
-import { addressParams, fileName, viewAt } from "./address.ts";
+import { addressParams, fileName, svgSize, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
 import { colorNames } from "./names.ts";
+import { RANDOM, randomFile } from "./random.ts";
 import { resolvePalette } from "./resolve.ts";
 
 export type FileFormat = "svg" | "css" | "json" | SwatchFormat;
 export type FileEnv = Pick<Env, "DB"> & Partial<Pick<Env, "PUBLIC_ORIGIN" | "ASSETS">>;
 
 const DATA = { "X-Robots-Tag": "noindex" };
-
-/** The SVG's size: `w` and `h` first, as a PNG's, so an address keeps its size when .png becomes .svg; a pair the
-    size's bounds refuse leaves the view's own. */
-export function svgSize(params: URLSearchParams) {
-  const side = (key: string) => {
-    const raw = params.get(key);
-    return raw && /^\d+$/.test(raw) ? raw : null;
-  };
-  const w = side("w");
-  const h = side("h");
-  return ((w || h) && parseSize(`${w ?? "auto"}x${h ?? "auto"}`)) || parseView(params).size;
-}
 
 const attribute = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -168,6 +151,11 @@ export function fileAnswer(
   extension: "svg" | "css" | "json" | "ase" | "gpl" | "grd"
 ): Promise<Response> {
   const name = fileName(new URL(request.url).pathname, extension);
+  // /random.svg and the rest: a new random palette's file
+  if (name === RANDOM) return Promise.resolve(randomFile(request, extension));
+  if (extension === "json" && name === `${RANDOM}.tokens`) {
+    return Promise.resolve(randomFile(request, "tokens.json"));
+  }
   return extension === "json" && name.endsWith(".tokens")
     ? paletteFile(request, env, name.slice(0, -".tokens".length), "tokens")
     : paletteFile(request, env, name, extension);

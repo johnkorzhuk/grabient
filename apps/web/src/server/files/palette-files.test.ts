@@ -101,6 +101,22 @@ describe("a palette's file", () => {
     expect(browser.headers.get("Content-Type")).toBe("image/svg+xml; charset=utf-8");
   });
 
+  test("random in a file's address leads to a new random palette's file, its query kept, for no cache to keep", async () => {
+    const first = await file("/random.svg?style=bands&angle=0&size=3840x2160");
+    const second = await file("/random.svg?style=bands&angle=0&size=3840x2160");
+    const to = (response: Response) => new URL(response.headers.get("Location") ?? "", "https://x");
+    expect(first.status).toBe(302);
+    expect(to(first).pathname).toMatch(/^\/k[A-Za-z0-9_-]+\.svg$/);
+    expect(to(first).search).toBe("?style=bands&angle=0&size=3840x2160");
+    expect(to(second).pathname).not.toBe(to(first).pathname);
+    const seed = to(first).pathname.slice(1, -".svg".length);
+    expect((await file(`/${seed}.svg?style=bands`)).status).toBe(200);
+    expect(to(await file("/random.css?w=1080&h=1350")).pathname).toMatch(/\.css$/);
+    expect(to(await file("/random.tokens.json")).pathname).toMatch(
+      /^\/k[A-Za-z0-9_-]+\.tokens\.json$/
+    );
+  });
+
   test("SVG takes w and h before the view's size", async () => {
     const svg = await file(`/${seed}.svg?${view}`);
     expect([svg.headers.get("Content-Type"), await svg.text()]).toEqual([
