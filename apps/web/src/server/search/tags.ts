@@ -350,10 +350,35 @@ async function inLanguage(
 
 /** The tags for what a field holds, in the language asked: with nothing typed and `both`, the home's row; else the
     searches that answer it. A page's first paint and `GET /api/search-suggestions` both read them here. */
-export async function suggestionsFor(env: TagEnv, params: URLSearchParams): Promise<HomeTag[]> {
+export async function suggestionsFor(
+  env: TagEnv,
+  params: URLSearchParams,
+  now = Date.now()
+): Promise<HomeTag[]> {
   const { typed, both, limit, lang } = asked(params);
+  const key = typed ? null : `${both ? "both" : "searches"}:${limit}:${lang ?? ""}`;
+  const held = key ? heldRows(env.DB) : null;
+  const kept = key ? held?.get(key) : undefined;
+  if (kept && now - kept.at < ROW_KEPT_MS) return kept.tags;
   const tags = await (both ? homeTags(env, "", limit) : suggestSearches(env, typed, limit));
-  return inLanguage(env, lang, tags);
+  const row = await inLanguage(env, lang, tags);
+  if (key && held && row.length) held.set(key, { at: now, tags: row });
+  return row;
+}
+
+/* The row at rest is the same for every reader of a language, and `GET /api/search-suggestions` keeps it five minutes
+   at the edge; a page's first paint keeps it as long in its isolate, where it was made again from the search files,
+   the popular lists and the collections for every page (about a sixth of a list page's CPU, 24 Oct 2026). Only a
+   made row is kept, never a request's work (@grabient/server/shared-work.ts); words typed are never kept. */
+const ROW_KEPT_MS = 300_000;
+const rows = new WeakMap<D1Database, Map<string, { at: number; tags: HomeTag[] }>>();
+function heldRows(db: D1Database): Map<string, { at: number; tags: HomeTag[] }> {
+  let held = rows.get(db);
+  if (!held) {
+    held = new Map();
+    rows.set(db, held);
+  }
+  return held;
 }
 
 /** `GET /api/search-suggestions?q=&limit=&lang=` (`both=1`: the home's row): public, the same for everyone. Answers to
