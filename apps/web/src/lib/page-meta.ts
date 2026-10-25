@@ -313,6 +313,8 @@ const FIXED = {
   bindings: {
     path: "/bindings",
     title: msg("Keyboard shortcuts"),
+    /* its share card (scripts/page-cards.ts) */
+    image: "/bindings.png",
     description: msg(
       "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it."
     )
@@ -321,6 +323,8 @@ const FIXED = {
     path: "/mcp-server",
     // the protocol's name, in every language
     title: "MCP",
+    /* its share card (scripts/page-cards.ts) */
+    image: "/mcp-server.png",
     description: msg(
       "Connect an AI app like Claude, ChatGPT or Cursor to your Grabient account. It can search, make and save palettes and collections for you."
     )
@@ -349,6 +353,8 @@ const FIXED = {
   contact: {
     path: "/contact",
     title: msg("Contact"),
+    /* its share card (scripts/page-cards.ts) */
+    image: "/contact.png",
     description: msg(
       "Tell Grabient what's broken or what you need. Send a message with the contact form, and leave your email only if you want a reply."
     )
@@ -374,6 +380,8 @@ const FIXED = {
   settings: {
     path: "/settings",
     title: msg("Settings"),
+    /* its share card (scripts/page-cards.ts) */
+    image: "/settings.png",
     description: msg("Manage your Grabient account."),
     robots: "noindex,nofollow"
   },
@@ -391,7 +399,7 @@ const FIXED = {
     description: string;
     named?: true;
     robots?: string;
-    /** a share image of its own, or the one for now, and its alt */
+    /** a share image of its own, or the one for now, and its alt; without one, the alt names the page */
     image?: string | (() => string);
     imageAlt?: string;
   }
@@ -975,7 +983,10 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
           typeof fixed.image === "function" ? fixed.image() : fixed.image,
           origin
         );
-        meta.imageAlt = t(fixed.imageAlt);
+        meta.imageAlt =
+          "imageAlt" in fixed
+            ? t(fixed.imageAlt)
+            : t("{name} on Grabient", { name: t(fixed.title) });
       }
     }
   }

@@ -49,6 +49,18 @@
 /about-*
   Cache-Control: public, max-age=604800
 
+/settings.png
+  Cache-Control: public, max-age=604800
+
+/bindings.png
+  Cache-Control: public, max-age=604800
+
+/mcp-server.png
+  Cache-Control: public, max-age=604800
+
+/contact.png
+  Cache-Control: public, max-age=604800
+
 /grabber.png
   Cache-Control: public, max-age=604800
 

@@ -21,8 +21,8 @@ export const ABOUT_CARD = { w: 800, h: 420, scale: 1.5 } as const;
 const H = ABOUT_CARD.h - 2 * space.s6;
 const PANE = { w: 340, h: H };
 const PICTURE = { w: ABOUT_CARD.w - 2 * space.s6 - space.s4 - PANE.w, h: H };
-/* the scene's box: the pane less its edge and its padding */
-const SCENE = {
+/** The pane's box: the pane less its edge and its padding. */
+export const SCENE = {
   w: PANE.w - 2 * (size.hairline + space.s4),
   h: PANE.h - 2 * (size.hairline + space.s4)
 };
@@ -59,7 +59,27 @@ export function aboutDraw(rand: () => number = Math.random): AboutDraw {
   return { palette, style, steps, angle: int(0, 359) };
 }
 
-/** The card as a page of ABOUT_CARD's CSS size, in the theme's colors. */
+/** A card as a page of ABOUT_CARD's CSS size, in the theme's colors: the draw's picture on the left and, on the right,
+    a pane holding `pane`, whose box is SCENE's. */
+export function cardPage(
+  draw: AboutDraw,
+  pane: { html: string; css?: string },
+  theme: "dark" | "light" = "dark"
+): string {
+  const c = color[theme];
+  const hexes = sampleStops(draw.palette, draw.steps).map(stop => stop.hex);
+  const css = `*{box-sizing:border-box}
+html,body{margin:0;width:${ABOUT_CARD.w}px;height:${ABOUT_CARD.h}px;overflow:hidden;background:${c.bg}}
+body{display:flex;gap:${space.s4}px;padding:${space.s6}px}
+.picture{width:${PICTURE.w}px;height:${PICTURE.h}px;border-radius:${radius.surface}px;background:${gradientCss(hexes, draw.style, draw.angle)};box-shadow:${c.rim}}
+.pane{width:${PANE.w}px;height:${PANE.h}px;padding:${space.s4}px;border:${size.hairline}px solid ${c.edge};border-radius:${radius.control}px;background:${c.paperSolid}}
+.box{width:${SCENE.w}px;height:${SCENE.h}px}
+svg{display:block}
+${pane.css ?? ""}`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${css}</style></head><body><div class="picture"></div><div class="pane"><div class="box">${pane.html}</div></div></body></html>`;
+}
+
+/** About's card: the pane is the Color space scene of the same palette. */
 export function aboutCardHtml(draw: AboutDraw, theme: "dark" | "light" = "dark"): string {
   const c = color[theme];
   const scene = solidScene(
@@ -70,12 +90,11 @@ export function aboutCardHtml(draw: AboutDraw, theme: "dark" | "light" = "dark")
     SCENE.h,
     { hullK: 0, outline: true }
   );
-  const hexes = sampleStops(draw.palette, draw.steps).map(stop => stop.hex);
-  const css = `*{box-sizing:border-box}
-html,body{margin:0;width:${ABOUT_CARD.w}px;height:${ABOUT_CARD.h}px;overflow:hidden;background:${c.bg}}
-body{display:flex;gap:${space.s4}px;padding:${space.s6}px}
-.picture{width:${PICTURE.w}px;height:${PICTURE.h}px;border-radius:${radius.surface}px;background:${gradientCss(hexes, draw.style, draw.angle)};box-shadow:${c.rim}}
-.pane{width:${PANE.w}px;height:${PANE.h}px;padding:${space.s4}px;border:${size.hairline}px solid ${c.edge};border-radius:${radius.control}px;background:${c.paperSolid}}
-svg{display:block}`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${css}</style></head><body><div class="picture"></div><div class="pane"><svg width="${SCENE.w}" height="${SCENE.h}" viewBox="0 0 ${SCENE.w} ${SCENE.h}">${marksSvg(scene.marks, "s")}</svg></div></body></html>`;
+  return cardPage(
+    draw,
+    {
+      html: `<svg width="${SCENE.w}" height="${SCENE.h}" viewBox="0 0 ${SCENE.w} ${SCENE.h}">${marksSvg(scene.marks, "s")}</svg>`
+    },
+    theme
+  );
 }
