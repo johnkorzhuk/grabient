@@ -10,7 +10,7 @@ import {
   collectionCard,
   type PaletteView,
   paletteAddress,
-  paletteCard
+  paletteFile
 } from "../../lib/page-meta.ts";
 import { collectionSitemapRows } from "../collections/read.ts";
 import { collectionLanguages } from "../mcp/admin/translations.ts";
@@ -172,7 +172,7 @@ function collectionEntries(origin: string, rows: readonly ListedCollection[]): E
 }
 
 /** A file of gallery palettes, each at its own address, in the view it was saved in, with the day it joined and its
-    card. A seed that is no palette is left out, and one written two ways is listed once, as its canonical seed. */
+    picture. A seed that is no palette is left out, and one written two ways is listed once, as its canonical seed. */
 export const palettesSitemap = (origin: string, rows: readonly ListedPalette[]): string =>
   urlset(paletteEntries(origin, rows), origin);
 interface ListedPalette {
@@ -209,7 +209,8 @@ export async function paletteShards(env: Pick<Env, "DB">): Promise<number> {
 }
 
 /** One palette file's rows, a rowid range ((shard - 1) * SHARD_SIZE, shard * SHARD_SIZE], each in the view the gallery
-    saved it in, with its card in that view, as its page names them. */
+    saved it in, with its picture in that view: the PNG its page shows an image search, where its share card would
+    carry the site's name and the palette's hexes over it. */
 export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
   const rows = await all<{
     seed: string;
@@ -233,7 +234,7 @@ export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
       seed,
       ...(view ? { view } : {}),
       createdAt: row.created_at,
-      image: view ? paletteCard(seed, view) : undefined
+      image: view ? paletteFile(seed, view, "png") : undefined
     };
   });
 }

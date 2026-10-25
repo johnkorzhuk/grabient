@@ -75,19 +75,20 @@ describe("sitemaps", () => {
     await palette(env, "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", 12_000, 1_704_153_600_000);
     await palette(env, "kY4mpDazO-mUuu_fuLqXU49dvVP6", 9_000);
     expect(await paletteShards(env)).toBe(3);
-    // each in the view the gallery saved it in, which its page names as canonical, its steps never under its keyframes
+    // each in the view the gallery saved it in, which its page names as canonical, its steps never under its keyframes,
+    // with its picture in that view: the PNG under its page's painted picture
     expect(await paletteRows(env, 3)).toEqual([
       {
         seed: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
         view: { style: "linearGradient", steps: 8, angle: 90 },
         createdAt: 1_704_153_600_000,
-        image: "/api/og?seed=kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ&v=k4&steps=8"
+        image: "/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ.png?steps=8"
       },
       {
         seed: "kS7Q8Yy5S_SChv0",
         view: { style: "linearSwatches", steps: 9, angle: 45 },
         createdAt: 1_700_000_000_000,
-        image: "/api/og?seed=kS7Q8Yy5S_SChv0&v=k4&style=linearSwatches&steps=9&angle=45"
+        image: "/kS7Q8Yy5S_SChv0.png?style=linearSwatches&steps=9&angle=45"
       }
     ]);
     const xml = await sitemapFile(env, "palettes-3", "https://grabient.com");
@@ -96,6 +97,9 @@ describe("sitemaps", () => {
     );
     expect(xml).toContain(
       "<loc>https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&amp;steps=9&amp;angle=45</loc>"
+    );
+    expect(xml).toContain(
+      "<image:loc>https://grabient.com/kS7Q8Yy5S_SChv0.png?style=linearSwatches&amp;steps=9&amp;angle=45</image:loc>"
     );
     expect(xml).not.toContain("kY4mpDazO");
     expect(await sitemapFile(env, "palettes-0", "https://grabient.com")).toBeNull();

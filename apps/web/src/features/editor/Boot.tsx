@@ -12,12 +12,13 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { createMemo, Show } from "solid-js";
 import type { SeedPage } from "./address.ts";
 import styles from "./Editor.module.css";
+import { FilePicture } from "./FilePicture.tsx";
 
 /** What the editor draws first, where it draws it, from the address alone: shown while the page boots (boot.ts), so
     the editor arriving changes nothing in the picture or the strip. The parts are the editor's own, with its classes:
     the picture in its stage, the rail while the side is away, the strip, and the sheet's name row under them with the
     palette's presses hidden at its end, as at rest; the side's place stands empty until its controls come. */
-export function Boot(props: { page: SeedPage; title: string; likes: number }) {
+export function Boot(props: { page: SeedPage; title: string; likes: number; alt: string }) {
   const view = () => props.page.view;
   const stops = createMemo(() =>
     sampleStops(props.page.palette, view().steps).map(s => ({
@@ -49,6 +50,12 @@ export function Boot(props: { page: SeedPage; title: string; likes: number }) {
         <div class={styles.first}>
           <div class={styles.stage}>
             <Show when={!view().size}>
+              <FilePicture
+                class={styles.under}
+                seed={props.page.seed}
+                view={view()}
+                alt={props.alt}
+              />
               <div class={styles.paint} />
             </Show>
             <Show when={fixed()}>

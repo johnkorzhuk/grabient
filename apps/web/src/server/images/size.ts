@@ -4,8 +4,9 @@
    side or four cards' pixels both sides are drawn smaller by one factor: drawing is the one costly thing here, and a
    bound keeps every picture's cost known. */
 import { parseSize, resolveSize, type Size } from "@grabient/engine/view.ts";
+import { CARD_SIZE } from "../../lib/page-meta.ts";
 
-export const CARD: Size = { width: 1200, height: 630 };
+export const CARD: Size = CARD_SIZE;
 export const SIDE_MAX = 2400;
 export const PIXELS_MAX = 4 * CARD.width * CARD.height;
 
