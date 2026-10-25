@@ -76,7 +76,7 @@
     ]
   },
   "A color palette's path through the OKLCH color space": {
-    "note": "Alt text of About's share image: the editor's Color space pane, with a palette's path winding up through the color solid around the lightness axis.",
+    "note": "Alt text of About's share image: a random palette's gradient beside its path through the color solid, as the editor's Color space pane draws it.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:304"
     ]

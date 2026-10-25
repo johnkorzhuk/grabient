@@ -7,11 +7,12 @@
    - the icons a browser takes as raster files, drawn from the mark by Chromium: favicon.ico, the bar alone in the light
      scheme's colors, for Safari, Google Search and tabs of a file that names no icon; favicon-tile.ico and its PNGs,
      the bar on a rounded tile of the dark ground (the design document shows it); and a home screen's full squares;
-   - public/about.png, About's card: the editor's Color space pane on the dark ground (about-card.ts), by Chromium.
+   - public/about.png, About's card: a palette Random draws, in a view drawn at random, beside the Color space pane's
+     scene of it (about-card.ts), by Chromium; each run draws a new one, and logs it.
    Run it by hand when what a card draws changes (with a new CARD_VERSION), or the brand's gradient, the mark, or what
    the color space or its pane draws: node apps/web/scripts/build-icons.ts */
 import { writeFile } from "node:fs/promises";
-import { decodePalette } from "@grabient/engine/codec.ts";
+import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { drawnView } from "@grabient/engine/view.ts";
 import { MARK_FIXED, markSvg, markTileSvg } from "@grabient/ui/mark.ts";
 import { color } from "@grabient/ui/tokens.ts";
@@ -19,7 +20,7 @@ import { chromium } from "@playwright/test";
 import { DEFAULT_SEED } from "../src/lib/page-meta.ts";
 import { emailHead } from "../src/server/images/cards.ts";
 import { drawCard, keyframeColors, lookOf } from "../src/server/images/paint.ts";
-import { ABOUT_CARD, aboutCardHtml } from "./about-card.ts";
+import { ABOUT_CARD, aboutCardHtml, aboutDraw } from "./about-card.ts";
 
 const web = new URL("../public/", import.meta.url);
 const design = new URL("../../design/public/", import.meta.url);
@@ -104,9 +105,12 @@ try {
     viewport: { width: ABOUT_CARD.w, height: ABOUT_CARD.h },
     deviceScaleFactor: ABOUT_CARD.scale
   });
-  await about.setContent(await aboutCardHtml());
-  await about.evaluate(() => document.fonts.ready);
+  const drawn = aboutDraw();
+  await about.setContent(aboutCardHtml(drawn));
   await write(await about.screenshot(), "about.png", web);
+  console.log(
+    `about.png: /${encodePalette(drawn.palette)}?style=${drawn.style}&steps=${drawn.steps}&angle=${drawn.angle}`
+  );
 } finally {
   await browser.close();
 }
