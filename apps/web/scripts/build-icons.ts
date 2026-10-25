@@ -112,7 +112,7 @@ try {
     throw new Error(`${ABOUT_SEEDS.length} seeds for About's ${ABOUT_CARDS} cards`);
   for (const [i, seed] of ABOUT_SEEDS.entries()) {
     const drawn = aboutDraw(seeded(seed));
-    await about.setContent(aboutCardHtml(drawn));
+    await about.setContent(await aboutCardHtml(drawn));
     await write(await about.screenshot(), `about-${i + 1}.png`, web);
     console.log(
       `about-${i + 1}.png: /${encodePalette(drawn.palette)}?style=${drawn.style}&steps=${drawn.steps}&angle=${drawn.angle}`

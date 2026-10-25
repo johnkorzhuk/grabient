@@ -312,8 +312,12 @@ const LISTS = {
     minutes of midnight UTC. */
 export const ABOUT_CARDS = 7;
 const DAY_MS = 86_400_000;
+/** The share cards build-icons.ts draws into public/ (About's and the side menu's pages'), their version in their
+    addresses, so a link preview that kept an earlier drawing fetches the new one: raise it when they are drawn anew. */
+const SHARE_CARDS = 2;
+const shareCard = (file: string) => `/${file}?v=${SHARE_CARDS}`;
 export const aboutCard = (now = Date.now()) =>
-  `/about-${(Math.floor(now / DAY_MS) % ABOUT_CARDS) + 1}.png`;
+  shareCard(`about-${(Math.floor(now / DAY_MS) % ABOUT_CARDS) + 1}.png`);
 /** The pages whose words are fixed: where each is, its title and description, and how the index takes it. An account's
     own pages hold an app's request or name an account in their addresses, which no metadata repeats. Privacy, Terms
     and the newsletter, whose issues are English, are indexed in English alone. */
@@ -333,7 +337,7 @@ const FIXED = {
     path: "/bindings",
     title: msg("Keyboard shortcuts"),
     /* its share card (scripts/page-cards.ts) */
-    image: "/bindings.png",
+    image: shareCard("bindings.png"),
     description: msg(
       "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it."
     )
@@ -343,7 +347,7 @@ const FIXED = {
     // the protocol's name, in every language
     title: "MCP",
     /* its share card (scripts/page-cards.ts) */
-    image: "/mcp-server.png",
+    image: shareCard("mcp-server.png"),
     description: msg(
       "Connect an AI app like Claude, ChatGPT or Cursor to your Grabient account. It can search, make and save palettes and collections for you."
     )
@@ -373,7 +377,7 @@ const FIXED = {
     path: "/contact",
     title: msg("Contact"),
     /* its share card (scripts/page-cards.ts) */
-    image: "/contact.png",
+    image: shareCard("contact.png"),
     description: msg(
       "Tell Grabient what's broken or what you need. Send a message with the contact form, and leave your email only if you want a reply."
     )
@@ -400,7 +404,7 @@ const FIXED = {
     path: "/settings",
     title: msg("Settings"),
     /* its share card (scripts/page-cards.ts) */
-    image: "/settings.png",
+    image: shareCard("settings.png"),
     description: msg("Manage your Grabient account."),
     robots: "noindex,nofollow"
   },
