@@ -232,6 +232,38 @@ describe("the allowances", () => {
     expect(limits.asked).toEqual(["imageRenderDaily"]);
   });
 
+  test("give the crawlers Cloudflare verifies and the apps that preview a posted link days of their own", async () => {
+    const { env, keep, limits } = world({ refuse: ["imageRenderDaily"] });
+    // everyone's day is spent, and a search engine's card is still drawn
+    const crawler = get(`/api/og?seed=${SEED}&steps=14`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+      }
+    });
+    Object.defineProperty(crawler, "cf", {
+      value: { verifiedBotCategory: "Search Engine Crawler" }
+    });
+    expect((await cardAnswer(crawler, env, keep)).status).toBe(200);
+    // so is the card of a link posted on Discord, which Cloudflare does not verify
+    const discord = get(`/api/og?seed=${SEED}&steps=15`, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)" }
+    });
+    expect((await cardAnswer(discord, env, keep)).status).toBe(200);
+    // a request that only claims a search engine's name counts against everyone's day
+    const claimed = await cardAnswer(
+      get(`/api/og?seed=${SEED}&steps=16`, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)" }
+      }),
+      env,
+      keep
+    );
+    expect([claimed.status, claimed.headers.get("Location")]).toEqual([
+      302,
+      `${ORIGIN}/grabient.png`
+    ]);
+    expect(limits.asked).toEqual(["imageVerifiedDaily", "imagePreviewDaily", "imageRenderDaily"]);
+  });
+
   test("count a picture larger than a card against its own day first, and a strip as any small picture", async () => {
     const large = world({ refuse: ["largeImageDaily"] });
     const big = await pngAnswer(get(`/api/png?seed=${SEED}&size=8000x4000`), large.env, large.keep);
