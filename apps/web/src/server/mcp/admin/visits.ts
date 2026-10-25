@@ -5,7 +5,7 @@ import { DATASETS } from "./usage.ts";
 
 /* The visits the Worker counts (server/visits/visits.ts), read back from Workers Analytics Engine through the deploy's
    ANALYTICS binding for the site_visits tool. A visit is a person's when its request said nothing a program's would
-   (no signals), its browser, where it is a Chromium, is no more than six versions behind Chrome's stable one as KV
+   (no signals), its browser, where it is a Chromium, is no more than five versions behind Chrome's stable one as KV
    keeps it (visits/keys.ts; where none is kept, the newest a share of the window's visitors had), a version more for
    each four weeks of window as it moves, and its network is none of the large clouds' (visits/rules.ts). Of those
    visitors, people are the ones whose day showed a person (visits.ts `showsPerson`): a landing from another site or a
