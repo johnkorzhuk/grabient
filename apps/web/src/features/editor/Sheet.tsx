@@ -594,7 +594,6 @@ export function Sheet(props: {
               title={t("Similar palettes")}
               href={unreachable(likeHref()) ? undefined : localHref(likeHref())}
               rel={relTo(localHref(likeHref()))}
-              icon="search"
               palettes={list()}
               card={card}
               whole

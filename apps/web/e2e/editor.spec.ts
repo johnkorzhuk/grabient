@@ -836,14 +836,13 @@ test("the picture's magnifier searches for the palettes like it: the palette alo
   await expect(similar).toBeVisible();
   await expect(similar).toHaveAttribute("href", `/palettes?q=${SEED}`);
   await expect(similar).toHaveAttribute("rel", "nofollow");
-  // the heading of the palettes like it under the picture is the same press, with the same glyph
+  // the heading of the palettes like it under the picture leads to a search by the palette too, nofollow as well
   await page.mouse.move(200, 200);
   const order = page.getByRole("radiogroup", { name: "Order" });
   await order.scrollIntoViewIfNeeded();
   const heading = page
     .getByRole("region", { name: "Similar palettes" })
     .getByRole("link", { name: "Similar palettes", exact: true });
-  await expect(heading.locator("svg")).toHaveCount(1);
   await expect(heading).toHaveAttribute("rel", "nofollow");
   await page.evaluate(() => scrollTo(0, 0));
   await similar.click();
