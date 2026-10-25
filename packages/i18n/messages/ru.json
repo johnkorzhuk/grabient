@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "<signin>Войдите</signin> как владелец, чтобы её увидеть.",
   "<text/> on <ground/>": "<text/> на <ground/>",
   "A collection of color palettes on Grabient.": "Коллекция цветовых палитр на Grabient.",
+  "A color palette's path through the OKLCH color space": "Путь цветовой палитры в цветовом пространстве OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "Бесплатный генератор CSS градиентов и поиск цветовых палитр для дизайнеров и разработчиков.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "Ключевой точкой называется цвет, который вы выбираете. Как в анимации, вы задаёте несколько точек, а цвета между ними дорисовываются. В палитре от 2 до 8 ключевых точек, равномерно расставленных вдоль градиента, и градиент проходит через каждую:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "Ключевая точка, заданная hex-кодом, сохраняет этот цвет в точности, в 24 битах. Такой сид занимает от 9 до 50 символов.",

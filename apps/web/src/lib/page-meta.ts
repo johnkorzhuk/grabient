@@ -298,7 +298,10 @@ const FIXED = {
     description: msg(
       "How Grabient makes gradients from 2 to 8 keyframes in OKLCH: the formula, steps, hue past 360°, colors a screen can't show and the seed in each URL."
     ),
-    named: true
+    named: true,
+    /* the editor's Color space pane, drawn by scripts/build-icons.ts */
+    image: "/about.png",
+    imageAlt: msg("A color palette's path through the OKLCH color space")
   },
   bindings: {
     path: "/bindings",
@@ -375,7 +378,16 @@ const FIXED = {
   }
 } satisfies Record<
   string,
-  { path: string; title: string; description: string; named?: true; robots?: string }
+  {
+    path: string;
+    title: string;
+    description: string;
+    named?: true;
+    robots?: string;
+    /** a share image of its own, and its alt */
+    image?: string;
+    imageAlt?: string;
+  }
 >;
 /* The pages whose words are the site's own and translated, so each language's copy is indexed and names the others. A
    palette's, a search's and a collection's words are their writers', in English: in another language those pages are
@@ -951,6 +963,10 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
       meta.title = "named" in fixed ? t(fixed.title) : titled(t(fixed.title));
       meta.description = t(fixed.description);
       if ("robots" in fixed) meta.robots = fixed.robots;
+      if ("image" in fixed) {
+        meta.image = absolute(fixed.image, origin);
+        meta.imageAlt = t(fixed.imageAlt);
+      }
     }
   }
   meta.canonical = pageUrl(path, origin);

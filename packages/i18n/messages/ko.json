@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "보려면 소유자로 <signin>로그인</signin>하세요.",
   "<text/> on <ground/>": "<ground/> 위의 <text/>",
   "A collection of color palettes on Grabient.": "Grabient의 색상 팔레트 컬렉션이에요.",
+  "A color palette's path through the OKLCH color space": "OKLCH 색 공간을 지나는 색상 팔레트의 경로",
   "A free CSS gradient generator and color palette finder for designers and developers.": "디자이너와 개발자를 위한 무료 CSS 그라데이션 생성기이자 색상 팔레트 검색 도구예요.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "키프레임은 직접 고르는 색이에요. 애니메이션에서처럼 몇 개를 정하면 그 사이의 색이 채워져요. 팔레트에는 키프레임이 2~8개 있고, 그라데이션을 따라 같은 간격으로 놓여요. 그라데이션은 키프레임을 하나하나 지나요:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "hex 색상으로 정한 키프레임은 그 색을 24비트로 정확히 유지해요. 이런 시드는 9~50자예요.",

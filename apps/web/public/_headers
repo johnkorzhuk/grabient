@@ -46,6 +46,9 @@
 /grabient.png
   Cache-Control: public, max-age=604800
 
+/about.png
+  Cache-Control: public, max-age=604800
+
 /grabber.png
   Cache-Control: public, max-age=604800
 

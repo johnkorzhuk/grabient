@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "以所有者身份<signin>登录</signin>后可查看。",
   "<text/> on <ground/>": "<ground/> 上的 <text/>",
   "A collection of color palettes on Grabient.": "Grabient 上的一个配色方案合集。",
+  "A color palette's path through the OKLCH color space": "配色方案在 OKLCH 色彩空间中的路径",
   "A free CSS gradient generator and color palette finder for designers and developers.": "面向设计师和开发者的免费 CSS 渐变色生成器与配色方案查找工具。",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "关键帧是你选择的颜色。和动画一样，你设定几个关键帧，它们之间的颜色会自动补全。一个调色板有 2 到 8 个关键帧，沿渐变均匀分布，渐变会经过每一个关键帧：",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "由十六进制颜色设定的关键帧会以 24 位精确保留该颜色。这样的种子长度为 9 到 50 个字符。",

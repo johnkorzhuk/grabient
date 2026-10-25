@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "به‌عنوان مالک آن <signin>وارد شوید</signin> تا آن را ببینید.",
   "<text/> on <ground/>": "<text/> روی <ground/>",
   "A collection of color palettes on Grabient.": "مجموعه‌ای از پالت‌های رنگ در Grabient.",
+  "A color palette's path through the OKLCH color space": "مسیر یک پالت رنگ در فضای رنگی OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "ابزار رایگان ساخت گرادیان CSS و یافتن پالت رنگ، برای طراحان و توسعه‌دهندگان.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "کی‌فریم رنگی است که شما انتخاب می‌کنید. مانند پویانمایی، چند کی‌فریم تعیین می‌کنید و رنگ‌های میان آن‌ها پر می‌شوند. هر پالت 2 تا 8 کی‌فریم دارد که با فاصله برابر در طول گرادیان قرار گرفته‌اند و گرادیان از تک‌تک آن‌ها می‌گذرد:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "کی‌فریمی که با یک رنگ hex تعیین شود، دقیقاً همان رنگ را در 24 بیت نگه می‌دارد. طول چنین بذری 9 تا 50 کاراکتر است.",

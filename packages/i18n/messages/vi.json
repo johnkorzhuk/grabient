@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "<signin>Đăng nhập</signin> với tư cách chủ sở hữu để xem.",
   "<text/> on <ground/>": "<text/> trên <ground/>",
   "A collection of color palettes on Grabient.": "Một bộ sưu tập bảng màu trên Grabient.",
+  "A color palette's path through the OKLCH color space": "Đường đi của một bảng màu trong không gian màu OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "Công cụ miễn phí tạo gradient CSS và tìm bảng màu cho nhà thiết kế và lập trình viên.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "Keyframe là một màu bạn chọn. Như trong hoạt ảnh, bạn đặt vài keyframe và các màu ở giữa chúng được điền vào. Một bảng màu có từ 2 đến 8 keyframe, cách đều nhau dọc theo gradient, và gradient đi qua từng keyframe:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "Keyframe đặt từ một màu hex giữ đúng màu đó, bằng 24 bit. Mã seed như vậy dài từ 9 đến 50 ký tự.",

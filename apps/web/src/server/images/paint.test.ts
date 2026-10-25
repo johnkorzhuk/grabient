@@ -204,4 +204,11 @@ describe("the pictures the site serves as files", () => {
       expect([file, await served(file)]).toEqual([file, head]);
     }
   });
+
+  test("hold About's card, which Chromium draws, at a share card's size", async () => {
+    const about = await decodePng(
+      await readFile(new URL("../../../public/about.png", import.meta.url))
+    );
+    expect([about.width, about.height]).toEqual([1200, 630]);
+  });
 });

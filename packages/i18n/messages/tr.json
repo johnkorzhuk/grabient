@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "Görmek için sahibi olarak <signin>giriş yapın</signin>.",
   "<text/> on <ground/>": "<ground/> üzerinde <text/>",
   "A collection of color palettes on Grabient.": "Grabient'te bir renk paleti koleksiyonu.",
+  "A color palette's path through the OKLCH color space": "Bir renk paletinin OKLCH renk uzayındaki yolu",
   "A free CSS gradient generator and color palette finder for designers and developers.": "Tasarımcılar ve geliştiriciler için ücretsiz CSS gradyan oluşturucu ve renk paleti bulucu.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "Anahtar kare, seçtiğiniz bir renktir. Animasyonda olduğu gibi birkaçını belirlersiniz ve aralarındaki renkler doldurulur. Bir palette, gradyan boyunca eşit aralıklarla dizilen 2 ile 8 arası anahtar kare bulunur; gradyan her birinden geçer:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "Hex renkle belirlenen bir anahtar kare, tam o rengi 24 bit olarak korur. Böyle bir tohum 9 ile 50 karakter arasındadır.",
