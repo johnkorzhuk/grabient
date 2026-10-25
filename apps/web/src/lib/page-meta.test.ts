@@ -695,6 +695,12 @@ describe("a link's rel", () => {
     expect(relTo("/ja/ocean-gradients")).toBeUndefined();
     expect(relTo("/ja/@ada/warm-sunsets")).toBe("nofollow");
   });
+
+  test("keeps a crawler out of a search by a palette, a page every palette would mint", () => {
+    expect(relTo("/palettes?q=kS7Q8Yy5S_SChv0")).toBe("nofollow");
+    expect(relTo("/palettes/rising?q=kS7Q8Yy5S_SChv0")).toBe("nofollow");
+    expect(relTo("/palettes?q=blue")).toBeUndefined();
+  });
 });
 
 describe("a page's limit and its canonical", () => {

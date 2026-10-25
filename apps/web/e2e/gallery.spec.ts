@@ -159,6 +159,8 @@ test("a card's magnifier searches for the palettes like it: the palette alone, i
   const similar = card(page, 0).getByRole("link", { name: /^Palettes like / });
   await expect(similar).toBeVisible();
   await expect(similar).toHaveAttribute("href", `/palettes/rising?q=${seed}`);
+  // a search by a palette is a page every palette mints, which the index never keeps
+  await expect(similar).toHaveAttribute("rel", "nofollow");
   await similar.click();
   await expect.poll(() => here(page)).toBe(`/palettes/rising?q=${seed}`);
   await expect(page.locator("main h1")).toHaveText(/^Palettes like /);

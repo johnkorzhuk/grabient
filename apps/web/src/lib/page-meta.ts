@@ -461,8 +461,10 @@ export function indexedAddress(address: string, languages?: readonly string[]): 
   if (path === "/") return !words && !(Number(url.searchParams.get("page")) > 1);
   if (first === "palettes" || first === "collections") {
     if (second === "saved" || (third !== undefined && third !== DEFAULT_FRAME)) return false;
-    /* a search is the palettes' own, in English and in the popular order: the rest repeat it */
-    return !words || (first === "palettes" && !second && english);
+    /* a search is the palettes' own, in English and in the popular order: the rest repeat it. A search by a palette
+       is none, as pageMeta says */
+    const byPalette = !!decodePalette(url.searchParams.get("q") ?? "");
+    return !words || (first === "palettes" && !second && english && !byPalette);
   }
   const fixed = (Object.keys(FIXED) as FixedKind[]).find(
     kind => path === FIXED[kind].path || path.startsWith(`${FIXED[kind].path}/`)
@@ -987,8 +989,9 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
       const order = page.order === "rising" ? rising(page.frame) : {};
       meta.image = cardUrl("/api/og/query", { query: page.query, ...order }, page.view, origin);
       meta.imageAlt = name;
-      /* the words in the popular order are the page the index keeps; Rising first is the same palettes again */
-      if (page.order === "rising") meta.robots = "noindex,follow";
+      /* the words in the popular order are the page the index keeps; Rising first is the same palettes again. A search
+         by a palette is a page every palette mints, which the index never keeps, as its answer says (load.ts) */
+      if (page.order === "rising" || decodePalette(page.query)) meta.robots = "noindex,follow";
       break;
     }
     case "collections": {
