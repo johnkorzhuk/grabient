@@ -288,6 +288,13 @@ const LISTS = {
     )
   }
 };
+/** About's share cards, one a day: build-icons.ts draws this many (public/about-1.png on), and the UTC day picks one,
+    round again every ABOUT_CARDS days. About's page is kept five minutes at the edge, so a new day's card shows within
+    minutes of midnight UTC. */
+export const ABOUT_CARDS = 7;
+const DAY_MS = 86_400_000;
+export const aboutCard = (now = Date.now()) =>
+  `/about-${(Math.floor(now / DAY_MS) % ABOUT_CARDS) + 1}.png`;
 /** The pages whose words are fixed: where each is, its title and description, and how the index takes it. An account's
     own pages hold an app's request or name an account in their addresses, which no metadata repeats. Privacy, Terms
     and the newsletter, whose issues are English, are indexed in English alone. */
@@ -299,8 +306,8 @@ const FIXED = {
       "How Grabient makes gradients from 2 to 8 keyframes in OKLCH: the formula, steps, hue past 360°, colors a screen can't show and the seed in each URL."
     ),
     named: true,
-    /* a palette Random drew beside its Color space scene, drawn by scripts/build-icons.ts */
-    image: "/about.png",
+    /* the day's card: a palette Random drew beside its Color space scene (scripts/build-icons.ts) */
+    image: aboutCard,
     imageAlt: msg("A color palette's path through the OKLCH color space")
   },
   bindings: {
@@ -384,8 +391,8 @@ const FIXED = {
     description: string;
     named?: true;
     robots?: string;
-    /** a share image of its own, and its alt */
-    image?: string;
+    /** a share image of its own, or the one for now, and its alt */
+    image?: string | (() => string);
     imageAlt?: string;
   }
 >;
@@ -964,7 +971,10 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
       meta.description = t(fixed.description);
       if ("robots" in fixed) meta.robots = fixed.robots;
       if ("image" in fixed) {
-        meta.image = absolute(fixed.image, origin);
+        meta.image = absolute(
+          typeof fixed.image === "function" ? fixed.image() : fixed.image,
+          origin
+        );
         meta.imageAlt = t(fixed.imageAlt);
       }
     }

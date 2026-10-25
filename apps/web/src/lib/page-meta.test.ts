@@ -10,10 +10,12 @@ import {
   translate
 } from "@grabient/i18n";
 import { buildCatalogs } from "@grabient/i18n/vite.ts";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import golden from "./fixtures/page-meta.json" with { type: "json" };
 import type { RisingFrame } from "./orders.ts";
 import {
+  ABOUT_CARDS,
+  aboutCard,
   clipWords,
   DESCRIPTION_MAX,
   heading,
@@ -143,6 +145,14 @@ const summary = (meta: PageMeta) => ({
 });
 
 describe("every page's metadata, as grabient.com serves it", () => {
+  /* the day the golden file was read on, for the one picture that turns with the day: About's card */
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.UTC(2026, 9, 25, 12));
+  });
+  afterAll(() => {
+    vi.useRealTimers();
+  });
   test.each(golden.map(row => [`${row.locale} ${row.path}`, row] as const))("%s", (_, row) => {
     current = row.locale as Locale;
     const { locale, path, facts, descriptionLength, stagingRobots, factsSent, icon, ...expected } =
@@ -156,6 +166,28 @@ describe("every page's metadata, as grabient.com serves it", () => {
       expected.image = expected.image.replace(/\/og\/k4\/(\w+)\.png$/, "/api/og?seed=$1&v=k4");
     expect(summary(meta)).toEqual(expected);
     expect(meta.description.length).toBe(descriptionLength);
+  });
+});
+
+describe("About's share card", () => {
+  const DAY = 86_400_000;
+  const midnight = Date.UTC(2026, 9, 25);
+  test("turns at midnight UTC, a new card each day until it comes round again", () => {
+    const week = Array.from({ length: ABOUT_CARDS + 1 }, (_, i) => aboutCard(midnight + i * DAY));
+    expect(new Set(week.slice(0, ABOUT_CARDS)).size).toBe(ABOUT_CARDS);
+    expect(week[ABOUT_CARDS]).toBe(week[0]);
+    expect(aboutCard(midnight + DAY - 1)).toBe(week[0]);
+    expect(week.every(card => /^\/about-[1-9]\d*\.png$/.test(card))).toBe(true);
+  });
+  test("is the page's picture on the day it is asked for", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(midnight + 3 * DAY);
+      const meta = pageMeta(pageOf("/about"), PRODUCTION_ORIGIN);
+      expect(meta.image).toBe(`${PRODUCTION_ORIGIN}${aboutCard(midnight + 3 * DAY)}`);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
