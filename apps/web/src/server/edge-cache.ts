@@ -36,12 +36,13 @@ function fromCache(request: Request, kept: Response): Response {
   return response;
 }
 
-/** The answer kept under `key`, or `render`'s, kept when it may be. */
+/** The answer kept under `key`, or `render`'s, kept when it may be and `keep` takes it. */
 export async function edgeCached(
   request: Request,
   key: string,
   ctx: ExecutionContext,
-  render: () => Promise<Response>
+  render: () => Promise<Response>,
+  keep: (response: Response) => boolean = () => true
 ): Promise<Response> {
   const cache = edgeCache();
   if (!cache || (request.method !== "GET" && request.method !== "HEAD")) return render();
@@ -50,14 +51,18 @@ export async function edgeCached(
   if (kept) return fromCache(request, kept);
   const rendered = await render();
   const response = new Response(rendered.body, rendered);
-  const seconds = request.method === "GET" || response.status === 301 ? keepFor(response) : null;
+  const seconds =
+    (request.method === "GET" || response.status === 301) && keep(response)
+      ? keepFor(response)
+      : null;
   if (seconds !== null) {
     const copy = response.clone();
     copy.headers.set("Cache-Control", `public, max-age=${seconds}`);
     copy.headers.set(BROWSER_POLICY, response.headers.get("Cache-Control") ?? "no-cache");
     ctx.waitUntil(cache.put(keyRequest, copy).catch(() => {}));
   }
-  response.headers.set(STATUS, "MISS");
+  // an answer an inner cache gave keeps its word
+  if (!response.headers.has(STATUS)) response.headers.set(STATUS, "MISS");
   return response;
 }
 

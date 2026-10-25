@@ -331,7 +331,7 @@ describe("an old grabient.com link", () => {
   const OLD = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa";
   const FITTED = "/kYq5wTxGc3MlDuPtT7O58281NAs8";
 
-  test("an old seed no map holds leads to the palette its colors fit, at its view, by a redirect the edge keeps", async () => {
+  test("an old seed no map holds leads to the palette its colors fit, at its view, by a redirect the edge keeps across deploys", async () => {
     const crawler = { headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)" } };
     const answers = [
       await get(`${OLD}?style=angularGradient`),
@@ -350,7 +350,8 @@ describe("an old grabient.com link", () => {
     ]);
     expect([asked, [...cache.kept.keys()]]).toEqual([
       [],
-      [`https://grabient.test${OLD}?__build=b1&style=angularGradient`]
+      // kept by the fit's own key, which no deploy moves
+      [`https://grabient.test${OLD}?__fit=1-k4&style=angularGradient`]
     ]);
     expect(counted).toEqual(["legacy fitted reader", "legacy fitted crawler"]);
   });
@@ -387,7 +388,7 @@ describe("an old grabient.com link", () => {
     ]);
     expect([asked, [...cache.kept.keys()]]).toEqual([
       [],
-      [`https://grabient.test/api/og?__build=b1&seed=${OLD.slice(1)}&style=angularGradient`]
+      [`https://grabient.test/api/og?__fit=1-k4&seed=${OLD.slice(1)}&style=angularGradient`]
     ]);
     // the card of an old seed a map holds is drawn by its route
     const png = () => new Response("png", { headers: { ...PAGE, "Content-Type": "image/png" } });
@@ -422,6 +423,37 @@ describe("an old grabient.com link", () => {
     expect(counted).toEqual([
       "legacy fitted reader",
       "limit oldLinkFitDaily site",
+      "limit oldLinkFitDaily site"
+    ]);
+  });
+
+  test("the app's page for one the Worker will not fit is kept by the build, and the next reader's asks no fit", async () => {
+    const spent = {
+      idFromName: (name: string) => name,
+      get: () => ({
+        fetch: async () =>
+          Response.json(
+            { success: false, limit: 1, remaining: 0, reset: Date.now() / 1000 + 60, results: [] },
+            { status: 429 }
+          )
+      })
+    };
+    const worker = { ...env, RATE_LIMITER: spent } as unknown as Env;
+    const answers = [
+      await get(OLD, {}, () => page(), worker),
+      await get(OLD, {}, () => page(), worker)
+    ];
+    expect(
+      answers.map(response => [response.status, response.headers.get("X-Grabient-Cache")])
+    ).toEqual([
+      [200, "MISS"],
+      [200, "HIT"]
+    ]);
+    expect([asked.length, [...cache.kept.keys()]]).toEqual([
+      1,
+      [`https://grabient.test${OLD}?__build=b1`]
+    ]);
+    expect(counted.filter(point => point.startsWith("limit"))).toEqual([
       "limit oldLinkFitDaily site"
     ]);
   });
