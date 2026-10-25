@@ -3,7 +3,8 @@
    site draws its controls, with the tokens' values. The panes carry keys, names, code, values and icons rather than
    sentences, so one picture serves every language. Each page's palette is a fixed seed's draw, and its colors light
    the pane: the key Random answers to, the palettes an app finds, the colors as Settings spells them, the press that
-   sends. build-icons.ts draws each into public/{page}.png. */
+   sends. The picture carries the wordmark at its top left, as every share card does. build-icons.ts draws each into
+   public/{page}.png. */
 import { readFile } from "node:fs/promises";
 import { oklchOf } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";

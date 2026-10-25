@@ -177,7 +177,7 @@ describe("About's share card", () => {
     expect(new Set(week.slice(0, ABOUT_CARDS)).size).toBe(ABOUT_CARDS);
     expect(week[ABOUT_CARDS]).toBe(week[0]);
     expect(aboutCard(midnight + DAY - 1)).toBe(week[0]);
-    expect(week.every(card => /^\/about-[1-9]\d*\.png$/.test(card))).toBe(true);
+    expect(week.every(card => /^\/about-[1-9]\d*\.png\?v=\d+$/.test(card))).toBe(true);
   });
   test("is the page's picture on the day it is asked for", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
