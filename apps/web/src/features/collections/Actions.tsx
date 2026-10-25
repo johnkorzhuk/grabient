@@ -4,6 +4,7 @@ import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createEffect, createSignal, type Element, flush, onSettled, Show } from "solid-js";
 import { offline } from "../../app/connection.ts";
+import { goTo } from "../../app/go.ts";
 import { record } from "../../app/undo.ts";
 import type { Drawn } from "../../lib/palette.ts";
 import {
@@ -81,7 +82,7 @@ export function Actions(props: {
   const [saving, setSaving] = createSignal(false);
   const save = async () => {
     if (!account()) {
-      if (sessionReady()) location.assign(localHref(loginHref()));
+      if (sessionReady()) goTo(localHref(loginHref()));
       return;
     }
     const pressed = row.contains(document.activeElement);

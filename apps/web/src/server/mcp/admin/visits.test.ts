@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { behind, tooOld } from "../../visits/rules.ts";
 import { readVisits } from "./visits.ts";
 
-test("a Chromium more than six versions behind the one its people lead with is a program's", () => {
+test("a Chromium more than five versions behind the one its people lead with is a program's", () => {
   const rows = [
     { browser: "Chrome 158", visitors: 1 },
     { browser: "Chrome 155", visitors: 50 },
@@ -18,7 +18,7 @@ test("a Chromium more than six versions behind the one its people lead with is a
   // behind Chrome's line is old as well
   expect(behind(rows)).toEqual({
     leading: { Chrome: 155, Edge: 155 },
-    old: ["Chrome 145", "Chrome 99", "Firefox 120"]
+    old: ["Chrome 149", "Chrome 145", "Chrome 99", "Firefox 120"]
   });
   // a long window leaves room for the lead to have moved within it
   expect(behind(rows, 2).old).toEqual(["Chrome 145", "Chrome 99", "Firefox 120"]);
@@ -32,9 +32,9 @@ test("a Chromium more than six versions behind the one its people lead with is a
 });
 
 test("a browser is too old for a person's against Chrome's stable version, each by its own line", () => {
-  // Chromiums six versions behind at most
-  expect(tooOld("Chrome 150", 156)).toBe(false);
-  expect(tooOld("Chrome 149", 156)).toBe(true);
+  // Chromiums five versions behind at most
+  expect(tooOld("Chrome 151", 156)).toBe(false);
+  expect(tooOld("Chrome 150", 156)).toBe(true);
   expect(tooOld("Edge 145", 156)).toBe(true);
   expect(tooOld("WebView 149", 156)).toBe(true);
   // Firefox a year's extended support release behind at most

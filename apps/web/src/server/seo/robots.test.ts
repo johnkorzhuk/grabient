@@ -116,7 +116,7 @@ test("production's rules keep crawlers from an account's pages, search crawlers 
     "/sitemap.xml",
     "/llms.txt"
   ];
-  for (const agent of ["Googlebot", "GPTBot"]) {
+  for (const agent of ["Googlebot", "GPTBot", "Amazonbot"]) {
     for (const path of kept)
       expect([agent, path, allowed(text, agent, path)]).toEqual([agent, path, false]);
     for (const path of open)
@@ -128,15 +128,16 @@ test("production's rules keep crawlers from an account's pages, search crawlers 
       agent,
       false
     ]);
-  // the old site's addresses: search crawlers follow their 301s, AI crawlers read today's from the sitemap
+  // the old site's addresses: search crawlers follow their 301s, AI crawlers and Amazon's read today's from the sitemap
   for (const path of ["/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu", "/~abcdefg?style=radialGradient"])
     expect([
       path,
       allowed(text, "Googlebot", path),
       allowed(text, "Bingbot", path),
       allowed(text, "meta-externalagent", path),
-      allowed(text, "ClaudeBot", path)
-    ]).toEqual([path, true, true, false, false]);
+      allowed(text, "ClaudeBot", path),
+      allowed(text, "Amazonbot", path)
+    ]).toEqual([path, true, true, false, false, false]);
   // the gallery's lists as JSON and Random are the agents' to read, as llms.txt says, and no search crawler's
   for (const path of [
     "/api/palettes",
@@ -144,9 +145,10 @@ test("production's rules keep crawlers from an account's pages, search crawlers 
     "/random?style=radialGradient",
     "/ja/random?style=radialGradient"
   ])
-    expect([path, allowed(text, "Googlebot", path), allowed(text, "GPTBot", path)]).toEqual([
+    expect([
       path,
-      false,
-      true
-    ]);
+      allowed(text, "Googlebot", path),
+      allowed(text, "Amazonbot", path),
+      allowed(text, "GPTBot", path)
+    ]).toEqual([path, false, false, true]);
 });

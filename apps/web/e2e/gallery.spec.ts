@@ -185,9 +185,15 @@ test("a card the server drew answers focus and a press that reach it before the 
   await like(page, 6).evaluate(el => (el as HTMLElement).focus());
   expect(await still(page, 6)).toBe(false);
   await expect(like(page, 6)).toBeFocused();
-  // and the control answers: signed out, a heart leads to sign in and back
+  // and the control answers: signed out, a heart leads to sign in and back, within the app, with no page to load
+  const loads: string[] = [];
+  page.on("request", request => {
+    if (request.isNavigationRequest() && request.frame() === page.mainFrame())
+      loads.push(request.url());
+  });
   await page.keyboard.press("Enter");
   await expect.poll(() => here(page)).toBe("/login?redirect=/palettes");
+  expect(loads).toEqual([]);
 });
 
 test("a card's tools leave with the pointer after a press of the mouse, and stay with the keyboard's focus", async ({

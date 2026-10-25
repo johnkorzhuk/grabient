@@ -21,6 +21,20 @@ import { legacySeed } from "./legacy.ts";
    new isolate, and none can pass about 0.3 s, a tenth of what a request may spend. */
 const FIT_BUDGET = 6000;
 
+/* The fits' own key in the edge cache, in place of the build's: a fitted 301 is the same in every build that fits the
+   same way, so it is kept across deploys. Raise it when a fit's answer changes (the budget, the engine's fit, the seed's
+   or the view's writing); a card's 301 names the card's version as well. */
+const FIT_KEY = `1-${CARD_VERSION}`;
+
+/** The key a fitted old link's 301 is kept under: the build's key `key`, with the fit's in place of the build's. */
+export function fitCacheKey(key: string): string {
+  const url = new URL(key);
+  url.searchParams.delete("__build");
+  url.searchParams.set("__fit", FIT_KEY);
+  url.searchParams.sort();
+  return url.toString();
+}
+
 /** An old seed no map holds, the view its address asks for, and whether the address is its share card's. */
 export interface OldFit {
   seed: string;

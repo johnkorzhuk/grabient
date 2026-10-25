@@ -37,7 +37,7 @@ import {
   uncachedPath
 } from "./paths.ts";
 import { countLegacy, legacyLanding, mayNameOld, readyOldIds } from "./seo/legacy.ts";
-import { fittedRedirect, oldFit } from "./seo/legacy-fit.ts";
+import { fitCacheKey, fittedRedirect, oldFit } from "./seo/legacy-fit.ts";
 import { indexed, NOINDEX } from "./seo/site.ts";
 import { knowSite } from "./shared-reads.ts";
 import { countPage } from "./visits/count.ts";
@@ -222,12 +222,23 @@ async function route(
   // is the site's card, never a blank preview; under `vite dev` nothing is kept
   const old = read ? oldFit(path, url.searchParams) : null;
   if (old) {
-    const fit = async () =>
-      (await fittedRedirect(env, request, old, at)) ??
-      (old.card ? siteCard(request) : answer(request, app));
-    return env.DEPLOYMENT === "development"
-      ? fit()
-      : edgeCached(request, cacheKey(url, path, locale), ctx, fit);
+    let fitted = false;
+    const fit = async () => {
+      const redirect = await fittedRedirect(env, request, old, at);
+      fitted = redirect !== null;
+      return redirect ?? (old.card ? siteCard(request) : answer(request, app));
+    };
+    if (env.DEPLOYMENT === "development") return fit();
+    /* a fitted 301 outlives a deploy under the fit's key, so a crawler's walk of old links is fitted once; the page or
+       card an unfitted link gets names the build's files and keeps the build's key */
+    const key = cacheKey(url, path, locale);
+    return edgeCached(
+      request,
+      fitCacheKey(key),
+      ctx,
+      () => edgeCached(request, key, ctx, fit, () => !fitted),
+      () => fitted
+    );
   }
   // under `vite dev` nothing is kept or counted: a page kept from before an edit would hydrate against the edited code
   if (!read || env.DEPLOYMENT === "development") return answer(request, app);

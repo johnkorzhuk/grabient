@@ -33,6 +33,7 @@ import {
   unreachable
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
+import { goTo } from "../../app/go.ts";
 import list from "../../app/list.module.css";
 import { OfflineWays } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
@@ -552,7 +553,7 @@ export function CollectionPage(props: {
     if (!current) return;
     if (!account()) {
       if (!sessionReady()) return;
-      return location.assign(localHref(loginHref()));
+      return goTo(localHref(loginHref()));
     }
     const seed = item.kseed;
     const sending = waiting.has(seed);

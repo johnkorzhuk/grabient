@@ -23,8 +23,9 @@ export const HOSTING: readonly string[] = [
 
 /** The browsers whose versions keep Chrome's, which update themselves every four weeks. */
 const CHROMIUMS = ["Chrome", "Edge", "WebView"];
-/** How many versions behind the leading one a browser may be and still be a person's. */
-export const BEHIND = 6;
+/** How many versions behind the leading one a browser may be and still be a person's. People's Chrome keeps within
+    two or three of the stable one, where a program can pin an older build. */
+export const BEHIND = 5;
 /** How far behind Chrome's stable version a Firefox may be: it updates itself every four weeks as Chrome does, a version
     ahead of it, and its extended support release, a year behind at most, is still a person's. */
 const FIREFOX_BEHIND = 17;

@@ -341,7 +341,7 @@ export async function countVisit(
     visitor
   );
   /* on to Google Analytics, a person's visit alone: a code, nothing a program's request says, none of the large
-     clouds' networks, a browser no more than six versions behind Chrome's stable one, which must be known (until it
+     clouds' networks, a browser no more than five versions behind Chrome's stable one, which must be known (until it
      is, nothing is sent, as programs on old versions would pass for people), and a browser that ran the page (below).
      A landing from nowhere (typed, bookmarked, an app's link) goes too once its page has run: until 24 Oct 2026 it
      never went, as the scrapers' visits were all such landings, and Google Analytics left out every person who came
