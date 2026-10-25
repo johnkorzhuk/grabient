@@ -365,6 +365,24 @@ describe("descriptions", () => {
     expect(by("/theater").endsWith("…")).toBe(true);
   });
 
+  test("a title of typed words is cut at a word to the room, its page and the site's name kept", () => {
+    const words = "dreamy+pastel+sunset+over+the+ocean+with+soft+pink+clouds+and+gold";
+    const title = (address: string) => pageMeta(pageOf(address), PRODUCTION_ORIGIN).title;
+    expect(title(`/palettes?q=${words}`)).toBe(
+      "Dreamy pastel sunset over the ocean with soft pink clouds… | Grabient"
+    );
+    expect(title(`/palettes?q=${words}&page=2`)).toBe(
+      "Dreamy pastel sunset over the ocean with soft pink…, page 2 | Grabient"
+    );
+    for (const address of [
+      `/palettes?q=${words}`,
+      `/palettes?q=${words}&page=2`,
+      `/collections?q=${words}`
+    ]) {
+      expect([address, title(address).length <= 70]).toEqual([address, true]);
+    }
+  });
+
   test("a list's later pages each say which page they are", () => {
     expect(describe("/palettes?page=2")).toBe(`${describe("/palettes")} Page 2.`);
     expect(describe("/collections/rising")).not.toBe(describe("/collections"));
