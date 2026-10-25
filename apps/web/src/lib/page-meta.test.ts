@@ -353,8 +353,9 @@ describe("descriptions", () => {
 
   test("a collection says its words, then what it holds while that fits; one with none, its title", () => {
     const by = (path: string) => describe(...collections.find(([at]) => at === path)!);
+    /* a collection of one color leads with its codes */
     expect(by("/cyan-gradients")).toBe(
-      "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients."
+      "#00ffff, rgb(0 255 255). Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients."
     );
     expect(by("/liminal-hours")).toBe(
       "Twenty gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain. 21 color palettes and CSS gradients."
@@ -363,6 +364,41 @@ describe("descriptions", () => {
       "Ocean gradients: 25 color palettes and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG."
     );
     expect(by("/theater").endsWith("…")).toBe(true);
+  });
+
+  test("a search for one color names its hex after the name and leads with its codes", () => {
+    const meta = (address: string) => pageMeta(pageOf(address), PRODUCTION_ORIGIN);
+    const burgundy = meta("/palettes?q=burgundy");
+    expect(burgundy.title).toBe("Burgundy (#900020) gradients and color palettes | Grabient");
+    expect(burgundy.description).toBe(
+      "#900020, rgb(144 0 32). Explore burgundy gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG."
+    );
+    /* a hex alone is its own name */
+    expect(meta("/palettes?q=%23800020").title).toBe(
+      "#800020 gradients and color palettes | Grabient"
+    );
+    expect(
+      meta("/palettes?q=%23800020").description.startsWith("#800020, rgb(128 0 32). Explore")
+    ).toBe(true);
+    expect(meta("/palettes?q=sunset").title).toBe("Sunset gradients and color palettes | Grabient");
+  });
+
+  test("a title of typed words is cut at a word to the room, its page and the site's name kept", () => {
+    const words = "dreamy+pastel+sunset+over+the+ocean+with+soft+pink+clouds+and+gold";
+    const title = (address: string) => pageMeta(pageOf(address), PRODUCTION_ORIGIN).title;
+    expect(title(`/palettes?q=${words}`)).toBe(
+      "Dreamy pastel sunset over the ocean with soft pink clouds… | Grabient"
+    );
+    expect(title(`/palettes?q=${words}&page=2`)).toBe(
+      "Dreamy pastel sunset over the ocean with soft pink…, page 2 | Grabient"
+    );
+    for (const address of [
+      `/palettes?q=${words}`,
+      `/palettes?q=${words}&page=2`,
+      `/collections?q=${words}`
+    ]) {
+      expect([address, title(address).length <= 70]).toEqual([address, true]);
+    }
   });
 
   test("a list's later pages each say which page they are", () => {

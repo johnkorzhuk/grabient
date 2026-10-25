@@ -1,6 +1,7 @@
 import { decodePalette, sampleStops } from "@grabient/engine";
 import { type PaletteWords, paletteMarkdown, plain } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
+import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
 import type { Namer } from "@grabient/engine/precise-names.ts";
 import { drawnView, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
 import { PAGE, TEXT } from "../../lib/cache.ts";
@@ -65,6 +66,8 @@ const markdown = (page: string, cache: Record<string, string>) => ({
     collection says of it. */
 export function collectionMarkdown(doc: CollectionWords, origin: string): string {
   const base = origin.replace(/\/$/, "");
+  /* a collection of one color, by its address, gives the color's codes as its page does */
+  const color = colorFacts(namedColor(doc.slug));
   const rows = doc.items.map((item, i) => {
     const P = decodePalette(item.seed);
     const colors = P ? sampleStops(P, drawnView(P, item).steps).map(stop => `\`${stop.hex}\``) : [];
@@ -77,7 +80,7 @@ export function collectionMarkdown(doc: CollectionWords, origin: string): string
 
 ${doc.description ? `${plain(doc.description)}\n\n` : ""}- Page: ${base}/${doc.slug}
 - Palettes: ${doc.itemCount}
-${doc.tags.length ? `- Tags: ${doc.tags.map(plain).join(", ")}\n` : ""}- Collected by: ${plain(doc.owner)}
+${color ? `- Color: ${[color.hex, color.rgb, color.hsl, color.oklch].map(code => `\`${code}\``).join(" ")}\n` : ""}${doc.tags.length ? `- Tags: ${doc.tags.map(plain).join(", ")}\n` : ""}- Collected by: ${plain(doc.owner)}
 - Updated: ${isoDay(doc.updatedAt) ?? ""}
 
 ## Palettes

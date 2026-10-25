@@ -10,6 +10,7 @@ import { Button } from "../src/Button.tsx";
 import { CodeLines } from "../src/CodeBlock.tsx";
 import { CodeTabs } from "../src/CodeTabs.tsx";
 import { Coins } from "../src/Coins.tsx";
+import { ColorCodes } from "../src/ColorCodes.tsx";
 import { CopyButton } from "../src/CopyButton.tsx";
 import { CopyLine } from "../src/CopyLine.tsx";
 import { BarLight } from "../src/contexts.ts";
@@ -652,6 +653,20 @@ describe("copying", () => {
     const copied = html(() => <CopyButton text="kAbc" state="copied" />);
     expect(tag(copied, "button")["aria-label"]).toBe("Copied");
     expect(tag(copied, "path").d).toBe("M20 6 9 17l-5-5");
+  });
+
+  test("a color's codes follow a swatch named for it, each a press named for the code it copies", () => {
+    const markup = html(() => <ColorCodes hex="#900020" name="burgundy" />);
+    expect(tags(markup, "span").find(s => s.role === "img")?.["aria-label"]).toBe("burgundy");
+    expect(tags(markup, "button").map(b => b["aria-label"])).toEqual([
+      "Copy #900020",
+      "Copy rgb(144 0 32)",
+      "Copy hsl(347 100% 28%)",
+      "Copy oklch(41.3% 0.166 20.8)"
+    ]);
+    /* a hex alone is named by what people call its color, in the reader's language */
+    const alone = html(() => <ColorCodes hex="#000080" />);
+    expect(tags(alone, "span").find(s => s.role === "img")?.["aria-label"]).toBe("blue");
   });
 
   test("a line to copy holds an address in its parts", () => {

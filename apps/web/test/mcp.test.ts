@@ -860,6 +860,20 @@ describe("the tools", () => {
     expect((await call(env, token, "search_palettes", { colors: ["red"] })).error).toBe(
       'color 1 is "red", and a color is taken as hex: #rrggbb or #rgb.'
     );
+    // one color asked for by its name or its hex answers its codes, as its page shows them
+    expect(
+      (await call(env, token, "search_palettes", { query: "burgundy", limit: 1 })).value.color
+    ).toEqual({
+      name: "burgundy",
+      hex: "#900020",
+      rgb: "rgb(144 0 32)",
+      hsl: "hsl(347 100% 28%)",
+      oklch: "oklch(41.3% 0.166 20.8)"
+    });
+    expect(
+      (await call(env, token, "search_palettes", { query: "#800020", limit: 1 })).value.color
+    ).toMatchObject({ hex: "#800020", rgb: "rgb(128 0 32)" });
+    expect(words).not.toHaveProperty("color");
     // with neither words nor colors it lists the gallery
     expect((await call(env, token, "search_palettes", {})).value).toMatchObject({
       order: "popular",
@@ -986,6 +1000,26 @@ describe("the tools", () => {
       })
     ).value;
     expect(read).toMatchObject({ slug, title, mine: false, total: 3, page: 2, limit: 2 });
+    expect(read).not.toHaveProperty("color");
+    // a collection of one color, by its address, answers the color's codes
+    const greige = await createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: "Greige color palette",
+        description: "",
+        tags: [],
+        visibility: "public",
+        items: [{ seed: a, style: "linearGradient", steps: 7, angle: 90 }]
+      },
+      { slug: "greige-color-palette" }
+    );
+    expect(
+      (await call(env, token, "get_collection", { slug: greige.slug })).value.color
+    ).toMatchObject({
+      name: "greige",
+      hex: "#b0a999"
+    });
     expect(read.palettes).toEqual([
       expect.objectContaining({ seed: c, style: "linearGradient", steps: 9, angle: 45, likes: 0 })
     ]);

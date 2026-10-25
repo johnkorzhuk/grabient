@@ -1,3 +1,4 @@
+import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
 import { msg } from "@grabient/i18n";
 import { json } from "@grabient/server/auth/http.ts";
 import { replica } from "@grabient/server/db/d1.ts";
@@ -159,7 +160,15 @@ export async function collectionAnswer(request: Request, env: Env): Promise<Resp
       localizeCollections(db, askedLocale(url), [found]),
       tagColors(env, found.tags)
     ]);
-    return publicJson(withUrl(publicOrigin(env, request), { ...doc!, tagColors: colors }));
+    /* a collection of one color, by its address, gives the color's codes as its page does */
+    const color = colorFacts(namedColor(at.slug));
+    return publicJson(
+      withUrl(publicOrigin(env, request), {
+        ...doc!,
+        tagColors: colors,
+        ...(color ? { color } : {})
+      })
+    );
   }
   if (request.method === "PATCH") return changeAnswer(request, env, at.slug);
   if (request.method === "DELETE") return deleteAnswer(request, env, at.slug);
