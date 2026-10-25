@@ -1,6 +1,7 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
+import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
 import {
   asSaved,
   drawnView,
@@ -22,6 +23,7 @@ import {
   splitLocale,
   t
 } from "@grabient/i18n";
+import { queryColor } from "@grabient/search/colors.ts";
 import { DEFAULT_FRAME, framePath, type RisingFrame } from "./orders.ts";
 
 /* A page's metadata: its title, the description a search result shows under it, its canonical address, whether search
@@ -495,6 +497,16 @@ function listTitle(name: string, page = 1): string {
     )
   );
 }
+/** A description led by a color's hex and RGB, the codes a search for the color asks for, cut to the room. In a
+    right-to-left language the codes are isolated, as a sentence's values are, so "#ff00aa" never reads "ff00aa#". */
+function coded(hex: string, description: string): string {
+  const c = colorCodes(hex);
+  if (!c) return description;
+  const codes = `${c.hex}, ${c.rgb}.`;
+  return clipWords(
+    `${LOCALE_INFO[locale()].dir === "rtl" ? `\u2068${codes}\u2069` : codes} ${description}`
+  );
+}
 /** The words written for a palette as its page wears them: in English, and while it is drawn as it was saved, the one
     view they describe. Drawn any other way, its colors name it. */
 const ownWords = (page: Extract<Page, { kind: "palette" }>) =>
@@ -843,13 +855,16 @@ function collectionPage(
   /* the rising order is the same palettes as the collection's own page */
   if (page.order === "rising") meta.robots = "noindex,follow";
   if (!c) return undefined;
+  /* a collection of one color, by its address, says the color's hex after its title */
+  const color = namedColor(page.slug);
+  const title = color ? `${c.title} (${color.hex})` : c.title;
   const counted = titled(
     t("{title}: {count, plural, one {# color palette} other {# color palettes}}", {
-      title: c.title,
+      title,
       count: c.count
     })
   );
-  meta.title = c.count > 0 && counted.length <= 62 ? counted : listTitle(c.title);
+  meta.title = c.count > 0 && counted.length <= 62 ? counted : listTitle(title);
   const count = c.count;
   meta.description = c.description
     ? fitted(c.description, [
@@ -872,6 +887,7 @@ function collectionPage(
             { title, count }
           )
       ]);
+  if (color) meta.description = coded(color.hex, meta.description);
   meta.image = collectionCard(page.slug, origin, c.updatedAt, page.order, page.view);
   meta.imageAlt = t("{title}: a collection of color palettes", { title: c.title });
   meta.markdown = absolute(`/${page.slug}.md`, origin);
@@ -954,10 +970,20 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
     }
     case "search": {
       const name = heading(page);
+      const color = queryColor(page.query);
       path = listPath("/palettes", page.order, page.frame) + listQuery(page);
       list = { name };
-      meta.title = listTitle(name, page.page);
-      meta.description = searchDescription(page.query);
+      meta.title = listTitle(
+        color?.name
+          ? t("{subject} gradients and color palettes", {
+              subject: `${subjectOf(page.query)} (${color.hex})`
+            })
+          : name,
+        page.page
+      );
+      meta.description = color
+        ? coded(color.hex, searchDescription(page.query))
+        : searchDescription(page.query);
       const order = page.order === "rising" ? rising(page.frame) : {};
       meta.image = cardUrl("/api/og/query", { query: page.query, ...order }, page.view, origin);
       meta.imageAlt = name;

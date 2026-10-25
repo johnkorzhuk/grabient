@@ -3,6 +3,7 @@
 import { canonical, decodePalette, encodePalette, K_MAX, type Palette } from "@grabient/engine";
 import { hexToSrgb, srgbToOklab } from "@grabient/engine/color.ts";
 import { sampleSrgb } from "@grabient/engine/curve.ts";
+import { colorWords, namedColor } from "@grabient/engine/named-colors.ts";
 import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 import type { Style } from "@grabient/engine/view.ts";
 
@@ -20,6 +21,14 @@ export const queryColors = (query: string): string[] => (query.match(HEX) ?? [])
 /** The query without its hex codes. */
 export const withoutColors = (query: string): string =>
   query.replace(HEX, " ").replace(/\s+/g, " ").trim();
+
+/** The one color a query asks about: a color's name ("burgundy", "sky blue colors"), or one hex code alone, which has
+    no name of its own. Null for a theme, a palette or more than one color. */
+export function queryColor(query: string): { hex: string; name?: string } | null {
+  const hexes = queryColors(query);
+  if (hexes.length === 1 && !colorWords(withoutColors(query))) return { hex: hexes[0] };
+  return hexes.length ? null : namedColor(query);
+}
 
 /** OKLab of a six-digit hex code. */
 export const labOf = (hex: string) => srgbToOklab(...hexToSrgb(hex)!);

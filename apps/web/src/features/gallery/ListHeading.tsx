@@ -1,8 +1,9 @@
 import type { Style } from "@grabient/engine/view.ts";
 import { rich } from "@grabient/i18n";
+import { ColorCodes } from "@grabient/ui/ColorCodes.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { Thumbnail } from "@grabient/ui/Thumbnail.tsx";
-import type { Element } from "solid-js";
+import { type Element, Show } from "solid-js";
 import styles from "./gallery.module.css";
 
 export interface SearchedPalette {
@@ -14,11 +15,12 @@ export interface SearchedPalette {
 }
 
 /** A feed's title, and the words it was searched for after it: the palette searched by stands there as a small picture
-    of itself that leads to it. */
+    of itself that leads to it, and the one color searched for by its name or its hex, after the words, as its codes. */
 export function ListHeading(props: {
   title: string;
   words?: string;
   palette?: SearchedPalette | null;
+  color?: { hex: string; name?: string } | null;
 }) {
   const subject = (words: (string | Element)[]): Element =>
     props.palette ? (
@@ -43,6 +45,9 @@ export function ListHeading(props: {
             )
           : props.title}
       </Text>
+      <Show when={props.color}>
+        {color => <ColorCodes hex={color().hex} name={color().name} alone />}
+      </Show>
     </div>
   );
 }

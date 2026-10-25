@@ -4,6 +4,8 @@
    The tags' answer is tags.ts's, at /api/search-suggestions and at its first address, /api/popular-searches. None
    reads the session, and the pipeline adds the CORS of those any site may read. An account's own search is
    account.ts. */
+import { colorFacts } from "@grabient/engine/named-colors.ts";
+import { queryColor } from "@grabient/search/colors.ts";
 import { replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { sortSearch } from "../../features/gallery/sort.ts";
@@ -71,9 +73,12 @@ export async function searchJsonResponse(
         .then(held => localizeHeld(db, askedLocale(new URL(request.url)), held))
         .catch(() => [])
     : [];
+  /* a search for one color, by its name or its hex, answers its codes as its page shows them */
+  const color = like ? null : colorFacts(queryColor(query));
   const body = {
     ...result,
     items: sortSearch(result.items, sort),
+    ...(color ? { color } : {}),
     ...(heldBy.length ? { heldBy } : {}),
     fetchedAt: Date.now()
   };

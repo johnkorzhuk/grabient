@@ -1,7 +1,9 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { paletteTitle, readPalette } from "@grabient/engine/name.ts";
+import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
 import { isStyle, STEPS_MAX, STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
 import { splitLocale } from "@grabient/i18n";
+import { queryColor } from "@grabient/search/colors.ts";
 import { QUERY_MAX } from "@grabient/search/text.ts";
 import { first } from "@grabient/server/db/d1.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
@@ -171,6 +173,12 @@ const slugOf = (value: unknown): string => {
 
 const PLAINER = " The search reads common color, mood and theme words, hex codes and seeds.";
 const WORDS = new Intl.ListFormat("en-US", { type: "conjunction" });
+/** The one color an answer is about, by its name or its hex, as its codes: the site's page for it shows the same. */
+function colorAnswer(color: { hex: string; name?: string } | null) {
+  const facts = colorFacts(color);
+  return facts ? { color: facts } : {};
+}
+
 /** What a search says of words only the model read: it places any words near something, nonsense too. */
 const guessed = (words: readonly string[], found: string) =>
   `The search does not know ${WORDS.format(words.map(word => `"${word}"`))}, so the search model read the query whole: these ${found} are its best guess and may not fit.`;
@@ -366,6 +374,7 @@ export const accountTools: readonly Tool[] = [
         .join(" ");
       return answer({
         query: result.query,
+        ...colorAnswer(named ? null : queryColor(typed)),
         ...(phrases.length || unread.length
           ? { read: { words: phrases, ...(unread.length ? { notRead: unread } : {}) } }
           : {}),
@@ -442,6 +451,7 @@ export const accountTools: readonly Tool[] = [
       const { palettes: total, ...summary } = summaryOf(c, doc);
       return answer({
         ...summary,
+        ...colorAnswer(namedColor(slug ?? "")),
         mine,
         total,
         page,

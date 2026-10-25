@@ -5,6 +5,7 @@ import {
   invented,
   madePalettes,
   madeView,
+  queryColor,
   queryColors,
   sixDigits,
   withoutColors
@@ -49,5 +50,15 @@ test("the palettes colors make, and how each is first drawn, as G4 made them", (
     expect(seeds[0] ? round(invented(decodePalette(seeds[0])!, colors.slice(0, 8))) : null).toBe(
       most
     );
+  }
+});
+
+test("a query asks about one color by its name, or by one hex code alone", () => {
+  expect(queryColor("burgundy")).toEqual({ name: "burgundy", hex: "#900020" });
+  expect(queryColor("Sky blue colors")).toEqual({ name: "sky blue", hex: "#87ceeb" });
+  expect(queryColor("#800020")).toEqual({ hex: "#800020" });
+  expect(queryColor("hex #ABC")).toEqual({ hex: "#aabbcc" });
+  for (const query of ["#800020 #ffffff", "#800020 sunset", "sunset", "blue and green", ""]) {
+    expect([query, queryColor(query)]).toEqual([query, null]);
   }
 });

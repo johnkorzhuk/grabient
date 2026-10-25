@@ -1,4 +1,5 @@
 import { decodePalette } from "@grabient/engine";
+import { namedColor } from "@grabient/engine/named-colors.ts";
 import { localHref, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Curation } from "@grabient/ui/Curation.tsx";
@@ -781,6 +782,7 @@ export function CollectionPage(props: {
               <div class={styles.body}>
                 <Heading
                   doc={current()}
+                  color={namedColor(props.slug)}
                   visibility={turning() ?? current().visibility}
                   savedFrom={savedFrom()}
                   now={now()}

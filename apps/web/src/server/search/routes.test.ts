@@ -107,6 +107,25 @@ test("the search JSON marks with lead the palette the words name and a palette's
   expect(similar.slice(6).some(item => "lead" in item)).toBe(false);
 });
 
+test("a search for one color answers its codes, a search of other words none", async () => {
+  const env = searchEnv();
+  const color = async (path: string) =>
+    (
+      (await (await searchJsonResponse(ask(path), env)).json()) as {
+        color?: Record<string, string>;
+      }
+    ).color;
+  expect(await color("/api/search.json?query=burgundy")).toEqual({
+    name: "burgundy",
+    hex: "#900020",
+    rgb: "rgb(144 0 32)",
+    hsl: "hsl(347 100% 28%)",
+    oklch: "oklch(41.3% 0.166 20.8)"
+  });
+  expect(await color("/api/search.json?query=%23800020")).toMatchObject({ hex: "#800020" });
+  expect(await color("/api/search.json?query=sunset")).toBeUndefined();
+});
+
 test("the edge keys a search by what its handler reads, whichever of its addresses asked", () => {
   const [json, tags] = searchKeyRules;
   const key = (params: string, path = "/api/search.json") =>

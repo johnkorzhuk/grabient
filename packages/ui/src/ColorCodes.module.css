@@ -1,0 +1,73 @@
+@layer components {
+  /* the facts at the line's end, as a collection's byline stands: one line on the heading's baseline, a byline's
+     spacing between them. What a narrower page has no room for goes from the end, the hex stays */
+  .codes {
+    display: flex;
+    flex-shrink: 0;
+    align-items: baseline;
+    gap: var(--space-s3);
+    margin-inline-start: auto;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    /* on a phone a title's line keeps its room for the title: a byline of its own keeps the hex */
+    &[data-alone] {
+      @container page (max-width: 600px) {
+        display: none;
+      }
+    }
+  }
+  /* the color as the site's coins are: a circle with the hairline, so a color near the page's own keeps an edge */
+  .coin {
+    forced-color-adjust: none;
+    flex-shrink: 0;
+    align-self: center;
+    width: var(--space-s3);
+    height: var(--space-s3);
+    border-radius: var(--radius-circle);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
+  }
+  .item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-s3);
+    /* the coin and the hex first, then RGB, then HSL and OKLCH: a narrower page keeps the first */
+    &:nth-child(n + 4) {
+      @container page (max-width: 1200px) {
+        display: none;
+      }
+    }
+    &:nth-child(n + 3) {
+      @container page (max-width: 800px) {
+        display: none;
+      }
+    }
+  }
+  /* a code is a quiet press in the byline's ink, a hairline under it to the pointer */
+  .code {
+    display: inline-grid;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+    transition: text-decoration-color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      text-decoration-color: var(--color-ink4);
+    }
+    &:focus-visible {
+      outline: 1px solid var(--color-ring);
+      outline-offset: 2px;
+    }
+  }
+  /* the code and Copied share one cell, so a copy moves nothing beside it */
+  .word {
+    grid-area: 1 / 1;
+    &[data-unseen] {
+      visibility: hidden;
+    }
+  }
+}

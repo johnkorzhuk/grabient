@@ -1,5 +1,5 @@
 import { localHref, msg, t } from "@grabient/i18n";
-import { queryColors } from "@grabient/search/colors.ts";
+import { queryColor, queryColors } from "@grabient/search/colors.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { CollectionCard } from "@grabient/ui/CollectionCard.tsx";
@@ -448,7 +448,12 @@ export function Palettes(props: { place: ListPlace }) {
                 }
               />
             </Show>
-            <ListHeading title={feedTitle()} words={words()} palette={searched()} />
+            <ListHeading
+              title={feedTitle()}
+              words={words()}
+              palette={searched()}
+              color={saved ? null : queryColor(words())}
+            />
             <Show
               when={!signedOut()}
               fallback={

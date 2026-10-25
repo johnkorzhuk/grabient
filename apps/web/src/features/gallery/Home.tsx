@@ -1,5 +1,5 @@
 import { localHref, t } from "@grabient/i18n";
-import { queryColors } from "@grabient/search/colors.ts";
+import { queryColor, queryColors } from "@grabient/search/colors.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { CollectionGroup, shownAt } from "@grabient/ui/CollectionGroup.tsx";
@@ -333,7 +333,12 @@ export function Home(props: { params: ListParams }) {
               <Made title={t("From your colors")} items={made()} />
             </Show>
             <div>
-              <ListHeading title={t("Trending")} words={words()} palette={searched()} />
+              <ListHeading
+                title={t("Trending")}
+                words={words()}
+                palette={searched()}
+                color={queryColor(words())}
+              />
               <Show when={signInToSearch()}>
                 <div class={styles.empty}>
                   <Text variant="h3">{t("No results.")}</Text>

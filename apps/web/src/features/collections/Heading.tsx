@@ -3,6 +3,7 @@ import { announce } from "@grabient/ui/announce.ts";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Coins, coinHost } from "@grabient/ui/Coins.tsx";
 import { PaletteCount } from "@grabient/ui/CollectionGroup.tsx";
+import { ColorCodes } from "@grabient/ui/ColorCodes.tsx";
 import { Field } from "@grabient/ui/Field.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { Label } from "@grabient/ui/Label.tsx";
@@ -36,6 +37,8 @@ export function Heading(props: {
   /** the clock its age is told against */
   now: number;
   admin: boolean;
+  /** the one color the collection is of, by its address: its codes close the byline */
+  color?: { hex: string } | null;
   /** the owner of an account's collection, who may edit its words */
   editable: boolean;
   /** writes new words; rejects with the reason to show. Answers true when they moved the collection to a new address,
@@ -194,6 +197,14 @@ export function Heading(props: {
           </time>
           <Text variant="ui">·</Text>
           <PaletteCount count={props.doc.itemCount} />
+          <Show when={props.color}>
+            {color => (
+              <>
+                <Text variant="ui">·</Text>
+                <ColorCodes hex={color().hex} name={props.doc.title} />
+              </>
+            )}
+          </Show>
         </span>
       </div>
       <Show when={editing()}>

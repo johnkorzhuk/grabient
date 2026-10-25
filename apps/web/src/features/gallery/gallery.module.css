@@ -14,6 +14,8 @@
 }
 .heading {
   composes: heading from "../../app/list.module.css";
+  /* a color's codes at the line's end keep a byline's distance from the title */
+  gap: var(--space-s4);
 }
 /* a list under its row: its title, its cards, the mark and the line, with no space of the page's between them */
 .list {
