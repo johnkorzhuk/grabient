@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { paletteCard } from "../../lib/page-meta.ts";
+import { paletteFile } from "../../lib/page-meta.ts";
 import {
   collectionsSitemap,
   MAX_SHARDS,
@@ -55,14 +55,14 @@ describe("the sitemaps, as grabient.com serves them", () => {
     expect(collectionsSitemap(ORIGIN, [ocean, ocean])).toBe(golden("collections.sample"));
   });
 
-  test("a palette is listed at its own address, in the view it was saved in, with its card in that view, once", () => {
+  test("a palette is listed at its own address, in the view it was saved in, with its picture in that view, once", () => {
     const saved = { style: "linearSwatches", steps: 9, angle: 45 } as const;
     const text = palettesSitemap(ORIGIN, [
       {
         seed: "kS7Q8Yy5S_SChv0",
         view: saved,
         createdAt: 1_700_000_000_000,
-        image: paletteCard("kS7Q8Yy5S_SChv0", saved)
+        image: paletteFile("kS7Q8Yy5S_SChv0", saved, "png")
       },
       { seed: "not a seed", createdAt: 1_700_000_000_000 },
       // eight keyframes and no view saved: its own address carries its stop count

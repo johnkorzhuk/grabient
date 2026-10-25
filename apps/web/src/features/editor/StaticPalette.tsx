@@ -3,7 +3,14 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 import { isFixedSize, viewSearch } from "@grabient/engine/view.ts";
 import { locale, localHref, t } from "@grabient/i18n";
 import { For, Show } from "solid-js";
-import { heading, type Page, paletteFacts, relTo } from "../../lib/page-meta.ts";
+import {
+  CARD_SIZE,
+  heading,
+  type Page,
+  paletteFacts,
+  paletteFile,
+  relTo
+} from "../../lib/page-meta.ts";
 import type { SeedPage } from "./address.ts";
 import { Boot } from "./Boot.tsx";
 import { BOOT_MARK, BOOT_SCRIPT } from "./boot.ts";
@@ -35,7 +42,7 @@ export const STATIC_CSS = [
   ".palette-static h1{margin:0;font-size:var(--font-fs6);font-weight:var(--font-bold);line-height:var(--font-lh-tight);letter-spacing:var(--font-ls-title)}",
   ".palette-static h2{margin:var(--space-s4) 0 0;font-size:var(--font-fs4)}",
   ".palette-static p{margin:0;line-height:var(--font-lh-prose)}",
-  "[data-picture]{width:100%;aspect-ratio:2/1;border-radius:var(--radius-surface);box-shadow:var(--color-shadow)}",
+  `[data-picture]{display:block;width:100%;height:auto;aspect-ratio:${CARD_SIZE.width}/${CARD_SIZE.height};object-fit:cover;border-radius:var(--radius-surface);box-shadow:var(--color-shadow)}`,
   "[data-stops]{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:var(--space-s2) var(--space-s4);font-family:var(--font-mono);font-size:var(--font-fs2)}",
   "[data-stops] li{display:flex;align-items:center;gap:var(--space-s2)}",
   "[data-stops] span{width:var(--space-s5);height:var(--space-s5);border-radius:var(--radius-circle);box-shadow:var(--color-rim);forced-color-adjust:none}",
@@ -58,25 +65,25 @@ export function StaticPalette(props: { data: PaletteData }) {
   /* the same palette as data and as Markdown, drawn the same way; a picture at a fixed size keeps it */
   const view = () => viewSearch({ ...page().view, size: null });
   const size = () => (isFixedSize(page().view.size) ? page().view.size : null);
-  const png = () => {
-    const query = new URLSearchParams(view().slice(1));
-    const fixed = size();
-    if (fixed) {
-      query.set("w", String(fixed.width));
-      query.set("h", String(fixed.height));
-    }
-    return `/${page().seed}.png${query.size ? `?${query}` : ""}`;
-  };
+  const png = () => paletteFile(page().seed, page().view, "png");
+  /* the picture's words, as its share card's say them */
+  const alt = () => props.data.meta?.imageAlt ?? title();
   return (
     <>
       <script innerHTML={BOOT_SCRIPT} />
       <main id="main" class="palette-static">
         <a href={localHref("/")}>{t("Grabient palettes")}</a>
         <h1 dir="auto">{title()}</h1>
-        <div
+        {/* the palette as a file, which an image search indexes, over its painted colors while it loads; lazy, so a
+            browser that boots the editor, which hides this page, never asks for it */}
+        <img
           data-picture=""
-          role="img"
-          aria-label={title()}
+          src={png()}
+          alt={alt()}
+          width={size()?.width ?? CARD_SIZE.width}
+          height={size()?.height ?? CARD_SIZE.height}
+          loading="lazy"
+          decoding="async"
           style={{
             background:
               cardBackground(
@@ -144,7 +151,7 @@ export function StaticPalette(props: { data: PaletteData }) {
           <a href={localHref("/about")}>{t("How it works")}</a>
         </p>
       </main>
-      <Boot page={page()} title={title()} likes={props.data.facts?.likes ?? 0} />
+      <Boot page={page()} title={title()} likes={props.data.facts?.likes ?? 0} alt={alt()} />
     </>
   );
 }

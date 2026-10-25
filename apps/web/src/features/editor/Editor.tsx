@@ -39,6 +39,7 @@ import {
 import { signInUnavailable } from "../../app/connection.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
+import type { PaletteView } from "../../lib/page-meta.ts";
 import { shownError } from "../../lib/query.ts";
 import {
   countDue,
@@ -63,6 +64,7 @@ import { Corner, type Panel } from "./Corner.tsx";
 import styles from "./Editor.module.css";
 import { holdCorner } from "./EditorCorner.tsx";
 import { createPaletteEditor, type PaletteEditor } from "./editor.ts";
+import { FilePicture } from "./FilePicture.tsx";
 import {
   copyFormat,
   copyLink,
@@ -295,6 +297,21 @@ export default function Editor(props: { data: PaletteData }) {
     e.style() === first.page.view.style &&
     e.steps() === first.page.view.steps;
   const heading = () => (own() ? first.heading : undefined);
+  /* the palette the server's page opened, as its files, while the editor draws it as it opened: the picture under the
+     paint an image search indexes. One the browser opened later, a size, or an edit has none, so no edit asks for one. */
+  const file = () => {
+    const { seed, view } = first.page;
+    const alt = first.meta?.imageAlt;
+    return alt &&
+      !view.size &&
+      !e.size() &&
+      e.seed() === seed &&
+      e.style() === view.style &&
+      e.steps() === view.steps &&
+      e.angle() === view.angle
+      ? { seed, view, alt }
+      : undefined;
+  };
   /* a press that turned the palette into another at once tells a screen reader, once, the name the page shows for it
      now; a drag's palettes are named only as they are drawn */
   let said = 0;
@@ -318,6 +335,7 @@ export default function Editor(props: { data: PaletteData }) {
         facts={facts}
         frames={first.frames}
         heading={heading}
+        file={file}
         opened={e.openedSeed}
         taken={taken}
         used={used}
@@ -345,6 +363,8 @@ interface PageProps {
   frames: PaletteData["frames"];
   /** the server's heading, while the palette and view are the page's own */
   heading: () => string | undefined;
+  /** the server's palette as its files, while it is drawn as its page opened (FilePicture) */
+  file: () => { seed: string; view: PaletteView; alt: string } | undefined;
   opened: () => string;
   taken: (stage: Size) => Taken;
   used: (action: "copy" | "download", format: string) => void;
@@ -664,12 +684,24 @@ function Stage(
       <Show
         when={drawn()}
         fallback={
-          <div
-            class={styles.paint}
-            role="img"
-            aria-label={t("The gradient")}
-            style={{ background: art() }}
-          />
+          <>
+            <Show when={props.file()}>
+              {file => (
+                <FilePicture
+                  class={styles.under}
+                  seed={file().seed}
+                  view={file().view}
+                  alt={file().alt}
+                />
+              )}
+            </Show>
+            <div
+              class={styles.paint}
+              role="img"
+              aria-label={t("The gradient")}
+              style={{ background: art() }}
+            />
+          </>
         }
       >
         {size => (

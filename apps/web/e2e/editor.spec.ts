@@ -33,6 +33,58 @@ test("the server sends the static page, and the editor takes its place", async (
   await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
 });
 
+test("an image search finds the palette's PNG under the painted picture, which no reader sees and the browser never asks for", async ({
+  page
+}) => {
+  const asked: string[] = [];
+  page.on("request", request => {
+    const { pathname } = new URL(request.url());
+    if (pathname.startsWith(`/${SEED}.`)) asked.push(pathname);
+  });
+  await open(page);
+  const under = page.locator(
+    `picture:has(source[type="image/svg+xml"][srcset="/${SEED}.svg"]) img[src="/${SEED}.png"]`
+  );
+  await expect(under).toHaveAttribute("alt", / color palette$/);
+  await expect(under).toHaveAttribute("aria-hidden", "true");
+  await expect
+    .poll(() => under.evaluate((img: HTMLImageElement) => img.complete && img.currentSrc))
+    .toMatch(new RegExp(`/${SEED}\\.svg$`));
+  expect(asked.filter(path => path.endsWith(".png"))).toEqual([]);
+  // the paint covers it: without it no pixel of the picture changes by more than the level the glass presses' blur rounds
+  const box = await page.getByRole("img", { name: "The gradient" }).boundingBox();
+  if (!box) throw new Error("no picture");
+  const shot = async () =>
+    (await page.screenshot({ clip: box, animations: "disabled" })).toString("base64");
+  const over = await shot();
+  await under.evaluate(img => img.closest("picture")?.remove());
+  const bare = await shot();
+  const step = await page.evaluate(
+    async pngs => {
+      const pixels = async (png: string) => {
+        const image = new Image();
+        image.src = `data:image/png;base64,${png}`;
+        await image.decode();
+        const canvas = new OffscreenCanvas(image.width, image.height);
+        const context = canvas.getContext("2d");
+        context?.drawImage(image, 0, 0);
+        return context?.getImageData(0, 0, image.width, image.height).data ?? [];
+      };
+      const [a, b] = await Promise.all(pngs.map(pixels));
+      let most = a.length === b.length ? 0 : 255;
+      for (let i = 0; i < a.length; i++) most = Math.max(most, Math.abs(a[i] - b[i]));
+      return most;
+    },
+    [over, bare]
+  );
+  expect(step).toBeLessThanOrEqual(1);
+  await open(page);
+  await expect(under).toHaveCount(1);
+  // an edit draws another palette, which has no file under it
+  await page.keyboard.press(".");
+  await expect(under).toHaveCount(0);
+});
+
 test("the server's page says how its palette is drawn for a crawler, and the editor's page says it to no reader", async ({
   page,
   request
@@ -202,6 +254,20 @@ test.describe("while the editor's code loads", () => {
         "href",
         `/${SEED}.json`
       );
+    });
+    test("the static page's picture is the palette's own PNG, which an image search indexes, in its shape", async ({
+      page
+    }) => {
+      await page.goto(`/${SEED}`);
+      const picture = page.locator(".palette-static img[data-picture]");
+      await expect(picture).toHaveAttribute("src", `/${SEED}.png`);
+      await expect(picture).toHaveAttribute("alt", / color palette$/);
+      await expect
+        .poll(() => picture.evaluate((img: HTMLImageElement) => img.naturalWidth))
+        .toBeGreaterThan(0);
+      const box = await picture.boundingBox();
+      if (!box) throw new Error("no picture");
+      expect(box.width / box.height).toBeCloseTo(1200 / 630, 2);
     });
   });
 });

@@ -102,6 +102,18 @@
     position: absolute;
     inset: 0;
   }
+  /* the palette's files, before the paint and so under it: an image search's picture, never seen (FilePicture.tsx) */
+  .under {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    & img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
   /* a chosen size: that shape inside the stage, never larger than its pixels, clear of the presses over and under it */
   .fitted {
     forced-color-adjust: none;

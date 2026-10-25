@@ -1,7 +1,14 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
-import { asSaved, drawnView, type Style, type View, viewSearch } from "@grabient/engine/view.ts";
+import {
+  asSaved,
+  drawnView,
+  isFixedSize,
+  type Style,
+  type View,
+  viewSearch
+} from "@grabient/engine/view.ts";
 import {
   DEFAULT_LOCALE,
   isLocale,
@@ -34,6 +41,8 @@ export const DESCRIPTION_MAX = 160;
 /** The version of everything a picture draws. A change to what any picture draws takes a new one: kept pictures are
     named by it, and a card's address carries it, so a network that keeps cards by address asks again. */
 export const CARD_VERSION = "k4";
+/** A share card's size, and a palette's own picture's where its address names none. */
+export const CARD_SIZE = { width: 1200, height: 630 } as const;
 /** The palette of the site's own card: what a share card shows when its address names none. */
 export const DEFAULT_SEED = "kS7Q8Yy5S_SChv0";
 /** Grabient's code. */
@@ -198,6 +207,16 @@ export function paletteAddress(seed: string, saved?: Partial<PaletteView>): stri
 /** A palette's share card in a view, as its page and its sitemap entry name it. */
 export const paletteCard = (seed: string, view: PaletteView) =>
   `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`;
+/** A palette's own picture beside its page, in a view: a fixed size is the file's `w` and `h`. The PNG is the one its
+    page shows an image search and its sitemap entry names. */
+export function paletteFile(seed: string, view: View, type: "png" | "svg"): string {
+  const query = new URLSearchParams(viewSearch({ ...view, size: null }).slice(1));
+  if (isFixedSize(view.size)) {
+    query.set("w", String(view.size.width));
+    query.set("h", String(view.size.height));
+  }
+  return `/${seed}.${type}${query.size ? `?${query}` : ""}`;
+}
 
 /** A list's query as its canonical writes it: the words, a page past the first and a page size other than the
     default. A page at another size lists other palettes than the same page at the default, so it keeps its size. */
@@ -759,7 +778,9 @@ function palettePage(
       ...(called ? { alternateName: called } : {}),
       inLanguage: LOCALE_INFO[locale()].tag,
       url: pageUrl(path, origin),
-      image: meta.image,
+      /* the page's subject, so a search's thumbnail for it is its picture drawn plain; the share card carries words */
+      mainEntityOfPage: pageUrl(path, origin),
+      image: absolute(paletteFile(seed, view, "png"), origin),
       description: t(
         "{name} {style} with {steps, plural, one {# color} other {# colors}}: {hexes}. Edit it and copy or download CSS, SVG, PNG or shader code.",
         { name, style, steps: view.steps, hexes: hexes.join(", ") }
@@ -1080,8 +1101,8 @@ export function headOf(meta: PageMeta) {
       { property: "og:image", content: meta.image },
       { property: "og:image:secure_url", content: meta.image },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
+      { property: "og:image:width", content: String(CARD_SIZE.width) },
+      { property: "og:image:height", content: String(CARD_SIZE.height) },
       { property: "og:image:alt", content: meta.imageAlt },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: meta.title },
