@@ -3,7 +3,7 @@ import { type CardCollect, CollectPress } from "@grabient/ui/CollectPress.tsx";
 import { FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { createMemo, type Element, onSettled, untrack, useContext } from "solid-js";
-import { signInUnavailable } from "../../app/connection.ts";
+import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
@@ -11,6 +11,7 @@ import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../acc
 import { askFacts } from "../editor/page.ts";
 import { askCredit, creditName, creditOf } from "../gallery/credit.ts";
 import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
+import { similarHref } from "../gallery/similar.ts";
 import { cardTakings } from "../gallery/take.ts";
 import { cardWords, type Words } from "../gallery/words.ts";
 import { AppearanceContext, drawnIn, type ListView } from "../list/appearance.ts";
@@ -53,6 +54,7 @@ export function ItemCard(props: {
   const seed = () => props.own.seed;
   const words = () => cardWords(shown(), props.words);
   const href = () => paletteHref(shown(), props.view.size);
+  const similar = () => similarHref(seed());
   const collect = props.collect(shown);
   const take = cardTakings({
     palette: shown,
@@ -96,6 +98,7 @@ export function ItemCard(props: {
       onSelect={() => {
         if (toggle(shown()) === "made room") props.note(roomNote(1));
       }}
+      similar={{ href: similar(), rel: relTo(similar()), disabled: unreachable(similar()) }}
       onIntent={() => {
         askFacts(seed());
         askCredit(seed());

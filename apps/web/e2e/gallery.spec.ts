@@ -148,6 +148,22 @@ test("a search leads with the palette its words name, on Popular and on Rising, 
   }
 });
 
+test("a card's magnifier searches for the palettes like it: the palette alone, in the list's order, none of its view", async ({
+  page
+}) => {
+  await page.goto("/palettes/rising?style=linearSwatches&steps=5");
+  await hydrated(page);
+  await card(page, 0).hover();
+  const edit = card(page, 0).locator('a[aria-label^="Edit "]');
+  const seed = new URL((await edit.getAttribute("href")) ?? "", page.url()).pathname.slice(1);
+  const similar = card(page, 0).getByRole("link", { name: /^Palettes like / });
+  await expect(similar).toBeVisible();
+  await expect(similar).toHaveAttribute("href", `/palettes/rising?q=${seed}`);
+  await similar.click();
+  await expect.poll(() => here(page)).toBe(`/palettes/rising?q=${seed}`);
+  await expect(page.locator("main h1")).toHaveText(/^Palettes like /);
+});
+
 test("forced colors leave every palette its own colors: the cards, the stage, the strip, the chips and the tiles", async ({
   page
 }) => {

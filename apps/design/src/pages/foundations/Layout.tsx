@@ -103,6 +103,7 @@ export function Layout() {
               style={CARD.style}
               angle={CARD.angle}
               href={`/${CARD.seed}`}
+              similar={{ href: `/palettes?q=${CARD.seed}` }}
               age="12 days"
               likes={CARD.likes}
               state="hover"
@@ -112,7 +113,7 @@ export function Layout() {
             <Pin n={2} left="100%" top="0px" />
             <Pin n={3} left="100%" top={`${size.card}px`} />
           </div>
-          <Legend labels={["Edit", "Add to selection", "Copy, download, link"]} />
+          <Legend labels={["Edit, similar palettes", "Add to selection", "Copy, download, link"]} />
         </div>
       </div>
       <Block title="Rules">

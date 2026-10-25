@@ -101,6 +101,10 @@ export interface PaletteCardProps {
   selectable?: boolean;
   /** Edit was pressed, before the editor opens */
   onOpen?: (e: MouseEvent) => void;
+  /** where Similar palettes leads, beside Edit: the palettes like this one, as a search of a list. It comes with the
+      hover tools, so a list's markup and its links stay as the server sends them; `disabled` while that page needs a
+      server there is none of */
+  similar?: { href: string; rel?: string; disabled?: boolean };
   /** the pointer or the focus reached the card, or a finger's tap opened it: Edit shows, and a press may follow */
   onIntent?: () => void;
   /** presses beside Edit: an admin's curation, a collection owner's removal, or the Undo of one */
@@ -121,10 +125,10 @@ export interface PaletteCardProps {
     copy of it under the card, which the water behind the page takes in, and shows the tools on glass; nothing moves.
     Under the pointer, the keyboard's focus or a finger's tap, a palette's title stands where its age stood, and its
     owner may write one there.
-    On touch a tap on the picture shows Edit and the plus, one card at a time, and nothing is lit: a finger's hover
-    stays where it last tapped. The picture is no link: Edit opens the editor. The hover tools stay out of the
-    server's markup and hydration, where they would be most of a list's weight, and mount in idle time or as soon as
-    the pointer or focus reaches the card. */
+    On touch a tap on the picture shows Edit, Similar palettes and the plus, one card at a time, and nothing is lit: a
+    finger's hover stays where it last tapped. The picture is no link: Edit opens the editor. The hover tools, Similar
+    palettes among them, stay out of the server's markup and hydration, where they would be most of a list's weight,
+    and mount in idle time or as soon as the pointer or focus reaches the card. */
 export function PaletteCard(props: PaletteCardProps) {
   const [armed, setArmed] = createSignal(untrack(() => props.state === "hover"));
   const arm = () => setArmed(true);
@@ -261,6 +265,22 @@ export function PaletteCard(props: PaletteCardProps) {
                 {/* the link's words for whoever reads them, a crawler among them */}
                 <span class={hidden.text}>{t("Edit {name}", { name: props.name })}</span>
               </Button>
+              <Show when={armed() && props.similar}>
+                {similar => (
+                  <Button
+                    variant="art"
+                    icon
+                    size="sm"
+                    href={similar().href}
+                    rel={similar().rel}
+                    disabled={similar().disabled}
+                    aria-label={t("Palettes like {name}", { name: props.name })}
+                    tip={t("Similar palettes")}
+                  >
+                    <Icon name="search" size={13} />
+                  </Button>
+                )}
+              </Show>
               {props.lead}
             </span>
             <span class={styles.pick} data-kept={props.selected ? "" : undefined}>

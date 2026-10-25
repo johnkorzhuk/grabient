@@ -169,6 +169,7 @@
       pointer-events: var(--tools-pe);
     }
   }
+  .topStart,
   .tools,
   .bottomStart,
   .bottomEnd {
@@ -184,6 +185,12 @@
       visibility: hidden;
       pointer-events: none;
     }
+  }
+  /* where a card has its Edit: the palettes like this one */
+  .topStart {
+    top: var(--space-s4);
+    inset-inline-start: max(var(--space-s4), env(safe-area-inset-left));
+    align-items: flex-start;
   }
   .tools {
     top: var(--space-s4);

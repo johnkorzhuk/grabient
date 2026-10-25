@@ -36,10 +36,10 @@ import {
   untrack,
   useContext
 } from "solid-js";
-import { signInUnavailable } from "../../app/connection.ts";
+import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
-import type { PaletteView } from "../../lib/page-meta.ts";
+import { type PaletteView, relTo } from "../../lib/page-meta.ts";
 import { shownError } from "../../lib/query.ts";
 import {
   countDue,
@@ -49,6 +49,7 @@ import {
   readLikeCounts,
   toggleLike
 } from "../account/likes.ts";
+import { similarHref } from "../gallery/similar.ts";
 import { useInEditor } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import {
@@ -662,6 +663,7 @@ function Stage(
       () => props.used("download", f),
       () => toast(t("Couldn't download the file."))
     );
+  const similar = () => similarHref(e.seed());
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: a tap on the artwork shows its presses to a finger; a mouse and the keyboard have them anyway */
     <div
@@ -721,6 +723,25 @@ function Stage(
       <p class={styles.caption} dir="auto" aria-hidden="true">
         {paletteName(e, props.heading(), props.facts())}
       </p>
+      {/* the palettes like this one, where a card has its Edit; it goes with the presses beside it */}
+      <div class={styles.topStart} data-away={props.raised ? "" : undefined}>
+        <span class={styles.waits}>
+          <Button
+            variant="art"
+            icon
+            size="lg"
+            href={similar()}
+            rel={relTo(similar())}
+            disabled={unreachable(similar())}
+            aria-label={t("Palettes like {name}", {
+              name: paletteName(e, props.heading(), props.facts())
+            })}
+            tip={t("Similar palettes")}
+          >
+            <Icon name="search" size={15} />
+          </Button>
+        </span>
+      </div>
       {/* biome-ignore lint/a11y/useSemanticElements: the palette's presses, which a fieldset would box */}
       <div
         class={styles.tools}

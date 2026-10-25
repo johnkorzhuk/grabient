@@ -2940,10 +2940,12 @@
     ]
   },
   "Palettes like {name}": {
-    "note": "Title of a search by a palette.",
+    "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:452",
-      "apps/web/src/lib/page-meta.ts:463"
+      "apps/web/src/features/editor/Editor.tsx:736",
+      "apps/web/src/lib/page-meta.ts:532",
+      "apps/web/src/lib/page-meta.ts:543",
+      "packages/ui/src/PaletteCard.tsx:277"
     ]
   },
   "Palettes you like appear here.": {
@@ -4157,10 +4159,12 @@
     ]
   },
   "Similar palettes": {
-    "note": "Heading and link: palettes like the one shown.",
+    "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:591",
-      "apps/web/src/features/editor/StaticPalette.tsx:132"
+      "apps/web/src/features/editor/Editor.tsx:739",
+      "apps/web/src/features/editor/Sheet.tsx:594",
+      "apps/web/src/features/editor/StaticPalette.tsx:139",
+      "packages/ui/src/PaletteCard.tsx:278"
     ]
   },
   "Since lightness, chroma and hue are separate, changing a keyframe's hue keeps its lightness.": {
