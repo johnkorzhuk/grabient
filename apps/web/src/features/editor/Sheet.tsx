@@ -39,6 +39,7 @@ import { relativeAge } from "../gallery/drawing.ts";
 import { inPlace } from "../gallery/feed.ts";
 import { readerOrder, recallOrder, rememberOrder } from "../gallery/order.ts";
 import { framesQuery } from "../gallery/queries.ts";
+import { similarHref } from "../gallery/similar.ts";
 import { sortSearch } from "../gallery/sort.ts";
 import { cardWords } from "../gallery/words.ts";
 import { drawnIn, type ListView, viewParams } from "../list/appearance.ts";
@@ -384,6 +385,7 @@ export function Sheet(props: {
     const seed = () => item().kseed;
     const words = () => cardWords(palette());
     const address = () => seedAddress({ seed: seed(), view: { ...palette(), size: e.size() } });
+    const similar = () => similarHref(seed());
     /* a card's pictures are the stage's size once the reader set one, and its files' addresses name it */
     const taken = (): Taken => {
       const decoded = decodePalette(seed());
@@ -448,6 +450,7 @@ export function Sheet(props: {
             <AddToCollection palette={palette} />
           </Loading>
         }
+        similar={{ href: similar(), rel: relTo(similar()), disabled: unreachable(similar()) }}
         onIntent={() => {
           askFacts(seed());
           askCredit(seed());

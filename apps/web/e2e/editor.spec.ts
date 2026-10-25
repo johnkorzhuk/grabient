@@ -828,6 +828,18 @@ test("the palettes like this one lead with the nearest its collection holds, on 
   await expect.poll(mates).toBe(6);
 });
 
+test("the picture's magnifier searches for the palettes like it: the palette alone, none of the view it is drawn in", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?style=linearSwatches&steps=5`);
+  const similar = page.locator('main a[aria-label^="Palettes like "]').first();
+  await expect(similar).toBeVisible();
+  await expect(similar).toHaveAttribute("href", `/palettes?q=${SEED}`);
+  await similar.click();
+  await expect.poll(() => here(page)).toBe(`/palettes?q=${SEED}`);
+  await expect(page.locator("main h1")).toHaveText(/^Palettes like /);
+});
+
 test("the order of the palettes like this one is kept for the tab, in the lists' own record", async ({
   page
 }) => {

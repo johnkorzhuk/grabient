@@ -4,7 +4,7 @@ import { FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { useNavigate } from "@tanstack/solid-router";
 import { createMemo, type Element, onSettled, untrack, useContext } from "solid-js";
-import { signInUnavailable } from "../../app/connection.ts";
+import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { relTo } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
@@ -19,6 +19,7 @@ import { nameOf, ownOf, paletteHref, picturedAs, relativeAge } from "./drawing.t
 import { inPlace } from "./feed.ts";
 import { GalleryContext } from "./page.tsx";
 import type { PaletteItem } from "./schema.ts";
+import { similarHref } from "./similar.ts";
 import { cardTakings } from "./take.ts";
 import { cardWords, type Words } from "./words.ts";
 
@@ -49,6 +50,7 @@ export function GalleryCard(props: {
     picturedAs(ownOf(props.item), page.params(), look.draft(), look.peek())
   );
   const path = () => paletteHref(shown(), page.params().size);
+  const similar = () => similarHref(seed());
   const where = () => props.at?.() ?? {};
   const words = () => cardWords(shown(), props.words);
   onSettled(() => {
@@ -102,6 +104,7 @@ export function GalleryCard(props: {
           onLink={take.link}
         />
       )}
+      similar={{ href: similar(), rel: relTo(similar()), disabled: unreachable(similar()) }}
       onIntent={() => {
         askFacts(seed());
         askCredit(seed());

@@ -127,6 +127,7 @@ function Kit() {
         style={sample.style}
         angle={sample.angle}
         href={`/${sample.seed}`}
+        similar={{ href: `/palettes?q=${sample.seed}` }}
         age="12 days"
         likes={sample.likes}
         state="hover"
