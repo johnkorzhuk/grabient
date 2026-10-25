@@ -225,7 +225,7 @@
   "description": "Color palettes and CSS gradients like analogous gray, brown and maroon. Edit any of them, then copy CSS or export SVG and PNG.",
   "descriptionLength": 126,
   "canonical": "https://grabient.com/palettes?q=kS7Q8Yy5S_SChv0",
-  "robots": "index,follow",
+  "robots": "noindex,follow",
   "stagingRobots": "noindex,nofollow",
   "image": "https://grabient.com/api/og/query?query=kS7Q8Yy5S_SChv0&v=k4",
   "imageAlt": "Palettes like analogous gray, brown and maroon",

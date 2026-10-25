@@ -41,6 +41,19 @@
   .words {
     composes: cut from "./Text.module.css";
   }
+  /* the glyph after the title, quiet beside its words until the link is reached for */
+  .mark {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-self: center;
+    margin-inline-start: var(--space-s3);
+    color: var(--color-ink3);
+    transition: color var(--motion-fast) var(--motion-ease);
+    .title:hover > &,
+    .title:focus-visible > & {
+      color: var(--color-ink);
+    }
+  }
   .facts {
     display: flex;
     flex-shrink: 0;

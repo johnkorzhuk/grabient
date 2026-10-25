@@ -72,7 +72,7 @@ export function PaletteCards() {
           rules={[
             "One height at every width: a wider column makes a wider picture.",
             "Hover or focus in the picture fades in the glow and the tools; nothing moves.",
-            "Beside Edit, the magnifier searches for palettes like this one: the palette alone, in the reader's order, none of the view it is drawn in. The editor has it in the same corner of its picture.",
+            "Beside Edit, the magnifier searches for palettes like this one: the palette alone, in the reader's order, none of the view it is drawn in. The editor has it in the same corner of its picture, and its Similar palettes heading ends with it.",
             "A palette's title, where it has one, stands in its age's place under the pointer or focus; the owner of a collection writes one there.",
             "The title's tooltip says what the palette's colors call it in the reader's language and a person's own words for it, then, a step quieter, its age and who brought it: 12 days · Grabient.",
             "With no title, the age says who brought it after itself while the card is open, in the room it keeps unseen at rest.",

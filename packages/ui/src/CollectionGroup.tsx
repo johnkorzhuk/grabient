@@ -1,6 +1,7 @@
 import { rich } from "@grabient/i18n";
 import { type Element, For, Show } from "solid-js";
 import styles from "./CollectionGroup.module.css";
+import { Icon, type IconName } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import { Label } from "./Label.tsx";
 import { PaletteGrid } from "./PaletteGrid.tsx";
@@ -41,6 +42,9 @@ export function CollectionGroup<T>(props: {
   href?: string;
   /** the title link's relation to its page: nofollow where the index keeps it out */
   rel?: string;
+  /** a glyph after the linked title, where the press it stands for elsewhere is the same: the magnifier of Similar
+      palettes */
+  icon?: IconName;
   description?: string;
   /** who made it: a display name, @username, or Grabient */
   owner?: string;
@@ -77,6 +81,13 @@ export function CollectionGroup<T>(props: {
               onFocus={() => props.onIntent?.()}
             >
               <span class={styles.words}>{props.title}</span>
+              <Show when={props.icon}>
+                {icon => (
+                  <span class={styles.mark}>
+                    <Icon name={icon()} size={24} />
+                  </span>
+                )}
+              </Show>
             </a>
           </Show>
         </Text>
