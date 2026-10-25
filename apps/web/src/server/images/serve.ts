@@ -15,6 +15,7 @@ import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { FILE, NO_STORE } from "../../lib/cache.ts";
 import { CARD_VERSION } from "../../lib/page-meta.ts";
+import { isLinkPreview } from "../crawlers.ts";
 import { CARD } from "./size.ts";
 
 export type PictureEnv = Pick<Env, "DB" | "DEPLOYMENT"> &
@@ -83,21 +84,31 @@ export async function drawingPaused(
   return picture.svg ? standIn(request, picture.svg) : unavailable(pausedBy("share-images"));
 }
 
+/** Whose day a picture counts against: a crawler Cloudflare verifies, which no request can pass for; an app that names
+    itself as a link's preview; or everyone else. */
+function dayOf(request: Request): LimitCheck {
+  const verified = (request as { cf?: { verifiedBotCategory?: string } }).cf?.verifiedBotCategory;
+  if (verified) return ["image-day-verified", "imageVerifiedDaily"];
+  if (isLinkPreview(request)) return ["image-day-preview", "imagePreviewDaily"];
+  return ["image-day", "imageRenderDaily"];
+}
+const DAYS: readonly string[] = ["imageVerifiedDaily", "imagePreviewDaily", "imageRenderDaily"];
+
 /* One call counts the address's minute in this isolate, then a picture larger than a card against the large pictures'
-   day, then the site's day: a large picture its own ceiling refuses never takes a card's place. */
+   day, then its asker's day: a large picture its own ceiling refuses never takes a card's place. */
 async function overLimit(request: Request, env: PictureEnv, picture: Picture) {
   const who = clientAddress(request);
   const large = picture.width * picture.height > CARD.width * CARD.height;
   const checks: LimitCheck[] = [
     ...(who ? [[`image:${who}`, "imageRender"] as const] : []),
     ...(large ? [["image-large-day", "largeImageDaily"] as const] : []),
-    ["image-day", "imageRenderDaily"]
+    dayOf(request)
   ];
   const result = await checkLimits(env, checks);
   if (!result) return unavailable();
   if (result.success) return null;
-  // The site's day is spent: a share card is the site's card until the day turns, never a blank preview.
-  if (picture.branded && result.type === "imageRenderDaily") return siteCard(request);
+  // The asker's day is spent: a share card is the site's card until the day turns, never a blank preview.
+  if (picture.branded && DAYS.includes(result.type ?? "")) return siteCard(request);
   const wait = Math.max(1, result.reset - Math.floor(Date.now() / 1000));
   return failure(429, "Too many new images. Try again later.", { "Retry-After": String(wait) });
 }

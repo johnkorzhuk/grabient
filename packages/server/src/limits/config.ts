@@ -65,6 +65,10 @@ export const LIMITS = {
   // A picture no cache held, per address and for the site's day; a large one costs several times as much.
   imageRender: { requests: 60, window: 60, local: true },
   imageRenderDaily: { requests: 20000, window: 86400, site: true, lease: 20 },
+  // The crawlers Cloudflare verifies and the apps that preview a posted link draw against days of their own, so a
+  // scraper that spends everyone's day never leaves a search result or a shared link without its picture.
+  imageVerifiedDaily: { requests: 40000, window: 86400, site: true, lease: 20 },
+  imagePreviewDaily: { requests: 10000, window: 86400, site: true, lease: 5 },
   largeImageDaily: { requests: 2000, window: 86400, site: true, lease: 5 },
   avatarUpload: { requests: 10, window: 3600 },
   avatarUploadDaily: { requests: 500, window: 86400, site: true },
