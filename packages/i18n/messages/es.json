@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "<signin>Inicia sesión</signin> como su propietario para verla.",
   "<text/> on <ground/>": "<text/> sobre <ground/>",
   "A collection of color palettes on Grabient.": "Una colección de paletas de colores en Grabient.",
+  "A color palette's path through the OKLCH color space": "El recorrido de una paleta de colores por el espacio de color OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "Un generador gratuito de degradados CSS y buscador de paletas de colores para diseñadores y desarrolladores.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "Un fotograma clave es un color que eliges. Como en animación, defines unos pocos y se rellenan los colores intermedios. Una paleta tiene de 2 a 8 fotogramas clave, espaciados uniformemente a lo largo del degradado, que pasa por cada uno:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "Un fotograma clave definido a partir de un color hex conserva ese color exacto, en 24 bits. Una semilla así tiene de 9 a 50 caracteres.",

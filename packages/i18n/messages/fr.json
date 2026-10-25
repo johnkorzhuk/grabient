@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "<signin>Connectez-vous</signin> en tant que propriétaire pour la voir.",
   "<text/> on <ground/>": "<text/> sur <ground/>",
   "A collection of color palettes on Grabient.": "Une collection de palettes de couleurs sur Grabient.",
+  "A color palette's path through the OKLCH color space": "Le parcours d’une palette de couleurs dans l’espace colorimétrique OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "Un générateur de dégradé CSS et un moteur de recherche de palettes de couleurs, gratuits, pour les designers et les développeurs.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "Un point clé est une couleur que vous choisissez. Comme en animation, vous en placez quelques-uns et les couleurs entre eux sont interpolées. Une palette compte de 2 à 8 points clés, répartis régulièrement le long du dégradé, qui passe par chacun d’eux :",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "Un point clé défini à partir d’une couleur hex conserve exactement cette couleur, sur 24 bits. Une telle graine compte de 9 à 50 caractères.",

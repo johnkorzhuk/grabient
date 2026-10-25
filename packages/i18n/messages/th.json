@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "<signin>เข้าสู่ระบบ</signin>ในฐานะเจ้าของเพื่อดู",
   "<text/> on <ground/>": "<text/> บน <ground/>",
   "A collection of color palettes on Grabient.": "คอลเลกชันพาเลตต์สีบน Grabient",
+  "A color palette's path through the OKLCH color space": "เส้นทางของพาเลตต์สีในปริภูมิสี OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "เครื่องมือฟรีสำหรับนักออกแบบและนักพัฒนา ใช้สร้างไล่เฉดสี CSS และค้นหาพาเลตต์สี",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "คีย์เฟรมคือสีที่คุณเลือก เช่นเดียวกับในงานแอนิเมชัน คุณตั้งไว้ไม่กี่อัน แล้วสีระหว่างคีย์เฟรมจะถูกเติมให้ พาเลตต์หนึ่งมีคีย์เฟรม 2 ถึง 8 อัน วางห่างเท่า ๆ กันตามแนวไล่เฉดสี และไล่เฉดสีผ่านคีย์เฟรมทุกอัน:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "คีย์เฟรมที่ตั้งจากสี hex จะเก็บสีนั้นไว้ตรงตามเดิมใน 24 บิต รหัสพาเลตต์แบบนี้ยาว 9 ถึง 50 ตัวอักษร",

@@ -75,6 +75,12 @@
       "apps/web/src/lib/page-meta.ts:772"
     ]
   },
+  "A color palette's path through the OKLCH color space": {
+    "note": "Alt text of About's share image: the editor's Color space pane, with a palette's path winding up through the color solid around the lightness axis.",
+    "refs": [
+      "apps/web/src/lib/page-meta.ts:304"
+    ]
+  },
   "A free CSS gradient generator and color palette finder for designers and developers.": {
     "note": "The site's description in search results and in emails.",
     "refs": [

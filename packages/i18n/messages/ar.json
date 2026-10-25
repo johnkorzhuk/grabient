@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "<signin>سجّل الدخول</signin> بصفتك مالكها لرؤيتها.",
   "<text/> on <ground/>": "<text/> على <ground/>",
   "A collection of color palettes on Grabient.": "مجموعة لوحات ألوان على Grabient.",
+  "A color palette's path through the OKLCH color space": "مسار لوحة ألوان عبر فضاء الألوان OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "مولد تدرجات CSS مجاني وأداة للعثور على لوحات الألوان، للمصممين والمطورين.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "الإطار الرئيسي لون تختاره. وكما في الرسوم المتحركة، تضع بضعة إطارات رئيسية فتُملأ الألوان بينها. وللوحة الألوان من 2 إلى 8 إطارات رئيسية، موزعة بالتساوي على امتداد التدرج الذي يمر بكل منها:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "الإطار الرئيسي المضبوط من لون hex يحتفظ بذلك اللون تمامًا، في 24 بت. ويتراوح طول مثل هذه البذرة بين 9 و50 حرفًا.",

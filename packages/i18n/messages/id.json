@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "<signin>Masuk</signin> sebagai pemiliknya untuk melihatnya.",
   "<text/> on <ground/>": "<text/> di atas <ground/>",
   "A collection of color palettes on Grabient.": "Koleksi palet warna di Grabient.",
+  "A color palette's path through the OKLCH color space": "Lintasan palet warna di ruang warna OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "Pembuat gradien CSS dan pencari palet warna gratis untuk desainer dan pengembang.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "Keyframe adalah warna yang Anda pilih. Seperti dalam animasi, Anda menetapkan beberapa, lalu warna di antaranya terisi. Palet memiliki 2 sampai 8 keyframe yang tersebar merata di sepanjang gradien, dan gradien melewati setiap keyframe itu:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "Keyframe yang ditetapkan dari warna hex menyimpan warna itu dengan tepat, dalam 24 bit. Seed seperti itu panjangnya 9 sampai 50 karakter.",

@@ -6,9 +6,10 @@
    - favicon.svg and favicon-dark.svg, the mark in the brand's gradient (also the design document's);
    - the icons a browser takes as raster files, drawn from the mark by Chromium: favicon.ico, the bar alone in the light
      scheme's colors, for Safari, Google Search and tabs of a file that names no icon; favicon-tile.ico and its PNGs,
-     the bar on a rounded tile of the dark ground (the design document shows it); and a home screen's full squares.
-   Run it by hand when what a card draws changes (with a new CARD_VERSION), or the brand's gradient or the mark:
-   node apps/web/scripts/build-icons.ts */
+     the bar on a rounded tile of the dark ground (the design document shows it); and a home screen's full squares;
+   - public/about.png, About's card: the editor's Color space pane on the dark ground (about-card.ts), by Chromium.
+   Run it by hand when what a card draws changes (with a new CARD_VERSION), or the brand's gradient, the mark, or what
+   the color space or its pane draws: node apps/web/scripts/build-icons.ts */
 import { writeFile } from "node:fs/promises";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { drawnView } from "@grabient/engine/view.ts";
@@ -18,6 +19,7 @@ import { chromium } from "@playwright/test";
 import { DEFAULT_SEED } from "../src/lib/page-meta.ts";
 import { emailHead } from "../src/server/images/cards.ts";
 import { drawCard, keyframeColors, lookOf } from "../src/server/images/paint.ts";
+import { ABOUT_CARD, aboutCardHtml } from "./about-card.ts";
 
 const web = new URL("../public/", import.meta.url);
 const design = new URL("../../design/public/", import.meta.url);
@@ -98,7 +100,16 @@ try {
   await write(tile[1].png, "favicon-32x32.png", web);
   await write(ico(tile), "favicon-tile.ico", web);
   await write(ico(await frames(markSvg(MARK_FIXED, "light"))), "favicon.ico", web);
+  const about = await browser.newPage({
+    viewport: { width: ABOUT_CARD.w, height: ABOUT_CARD.h },
+    deviceScaleFactor: ABOUT_CARD.scale
+  });
+  await about.setContent(await aboutCardHtml());
+  await about.evaluate(() => document.fonts.ready);
+  await write(await about.screenshot(), "about.png", web);
 } finally {
   await browser.close();
 }
-console.log("icons: grabient.png, the email heads, the favicons and the home screen's icons");
+console.log(
+  "icons: grabient.png, the email heads, the favicons, the home screen's icons and about.png"
+);

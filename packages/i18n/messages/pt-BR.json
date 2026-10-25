@@ -11,6 +11,7 @@
   "<signin>Sign in</signin> as its owner to see it.": "<signin>Entre</signin> como proprietário para vê-la.",
   "<text/> on <ground/>": "<text/> sobre <ground/>",
   "A collection of color palettes on Grabient.": "Uma coleção de paletas de cores no Grabient.",
+  "A color palette's path through the OKLCH color space": "O caminho de uma paleta de cores pelo espaço de cores OKLCH",
   "A free CSS gradient generator and color palette finder for designers and developers.": "Um gerador gratuito de gradientes CSS (degradês) e buscador de paletas de cores para designers e desenvolvedores.",
   "A keyframe is a color you choose. As in animation, you set a few and the colors between them are filled in. A palette has 2 to 8 keyframes, spaced evenly along the gradient, which passes through each one:": "Um quadro-chave é uma cor que você escolhe. Como na animação, você define alguns, e as cores entre eles são preenchidas. Uma paleta tem de 2 a 8 quadros-chave, espaçados por igual ao longo do gradiente, que passa por cada um deles:",
   "A keyframe set from a hex color keeps that exact color, in 24 bits. Such a seed runs from 9 to 50 characters.": "Um quadro-chave definido por uma cor hex mantém essa cor exata, em 24 bits. Uma semente assim tem de 9 a 50 caracteres.",
