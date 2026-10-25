@@ -8,7 +8,9 @@
      scheme's colors, for Safari, Google Search and tabs of a file that names no icon; favicon-tile.ico and its PNGs,
      the bar on a rounded tile of the dark ground (the design document shows it); and a home screen's full squares;
    - public/about-1.png on, About's cards, one a day: a palette Random draws, in a view drawn at random, beside the
-     Color space pane's scene of it (about-card.ts), by Chromium, from fixed seeds, and each logged.
+     Color space pane's scene of it (about-card.ts), by Chromium, from fixed seeds, and each logged;
+   - public/settings.png, bindings.png, mcp-server.png and contact.png, the cards of the pages beside About in the side
+     menu: a palette Random drew beside what the page does (page-cards.ts), by Chromium.
    Run it by hand when what a card draws changes (with a new CARD_VERSION), or the brand's gradient, the mark, or what
    the color space or its pane draws: node apps/web/scripts/build-icons.ts */
 import { writeFile } from "node:fs/promises";
@@ -21,6 +23,7 @@ import { ABOUT_CARDS, DEFAULT_SEED } from "../src/lib/page-meta.ts";
 import { emailHead } from "../src/server/images/cards.ts";
 import { drawCard, keyframeColors, lookOf } from "../src/server/images/paint.ts";
 import { ABOUT_CARD, ABOUT_SEEDS, aboutCardHtml, aboutDraw, seeded } from "./about-card.ts";
+import { PAGE_CARDS, type PageCard, pageCardHtml } from "./page-cards.ts";
 
 const web = new URL("../public/", import.meta.url);
 const design = new URL("../../design/public/", import.meta.url);
@@ -115,9 +118,14 @@ try {
       `about-${i + 1}.png: /${encodePalette(drawn.palette)}?style=${drawn.style}&steps=${drawn.steps}&angle=${drawn.angle}`
     );
   }
+  for (const page of Object.keys(PAGE_CARDS) as PageCard[]) {
+    await about.setContent(await pageCardHtml(page));
+    await about.evaluate(() => document.fonts.ready);
+    await write(await about.screenshot(), PAGE_CARDS[page].file, web);
+  }
 } finally {
   await browser.close();
 }
 console.log(
-  "icons: grabient.png, the email heads, the favicons, the home screen's icons and About's cards"
+  "icons: grabient.png, the email heads, the favicons, the home screen's icons, About's cards and the pages' cards"
 );
