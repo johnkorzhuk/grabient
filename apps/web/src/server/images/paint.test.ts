@@ -5,6 +5,7 @@ import { decodePalette } from "@grabient/engine/codec.ts";
 import { drawnView, STYLES, type View } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
 import { at, decodePng, pixelHash } from "../../../test/png.ts";
+import { ABOUT_CARDS } from "../../lib/page-meta.ts";
 import { emailHead } from "./cards.ts";
 import golden from "./fixtures/pictures.json" with { type: "json" };
 import { HEX_SIZES } from "./hex-glyphs.data.ts";
@@ -205,10 +206,12 @@ describe("the pictures the site serves as files", () => {
     }
   });
 
-  test("hold About's card, which Chromium draws, at a share card's size", async () => {
-    const about = await decodePng(
-      await readFile(new URL("../../../public/about.png", import.meta.url))
-    );
-    expect([about.width, about.height]).toEqual([1200, 630]);
+  test("hold About's cards, which Chromium draws, one for each day of their round, at a share card's size", async () => {
+    for (let n = 1; n <= ABOUT_CARDS; n++) {
+      const about = await decodePng(
+        await readFile(new URL(`../../../public/about-${n}.png`, import.meta.url))
+      );
+      expect([n, about.width, about.height]).toEqual([n, 1200, 630]);
+    }
   });
 });

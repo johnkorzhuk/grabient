@@ -1,9 +1,10 @@
-/* About's share card: the editor in small. A palette the site's Random draws, in a view drawn at random as well (a
+/* About's share cards: the editor in small. A palette the site's Random draws, in a view drawn at random as well (a
    style, steps and an angle; band styles take few steps or many, gradients many), stands beside the Color space pane's
    scene of the same palette: its path through the solid, a dot for each step where the view draws bands. The scene is
-   the pane's own marks (solid.ts) at the pane's first camera, the frames are the site's CSS with the tokens' values,
-   and build-icons.ts draws the page at ABOUT_CARD's scale into public/about.png, a new draw each time it runs. The
-   scene's few labels stay as written: one picture serves every language, as the site's card does. */
+   the pane's own marks (solid.ts) at the pane's first camera, and the frames are the site's CSS with the tokens'
+   values. build-icons.ts draws a card for each of ABOUT_SEEDS at ABOUT_CARD's scale, public/about-1.png on, and
+   About's metadata shows one a day (page-meta.ts). The scene's few labels stay as written: one picture serves every
+   language, as the site's card does. */
 import { canonical } from "@grabient/engine/codec.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
@@ -26,7 +27,21 @@ const SCENE = {
   h: PANE.h - 2 * (size.hairline + space.s4)
 };
 
-/** What the card shows: a palette and how its picture is drawn. */
+/** The cards' draws: Random's from these seeds, each kept for how it reads at a share card's size, one style family
+    apiece and a seventh; page-meta.ts's ABOUT_CARDS says how many there are. */
+export const ABOUT_SEEDS = [11, 53, 47, 32, 33, 50, 41] as const;
+/** Chance from a seed (mulberry32), the same draws on every machine. */
+export function seeded(seed: number): () => number {
+  let s = seed | 0;
+  return () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** What a card shows: a palette and how its picture is drawn. */
 export interface AboutDraw {
   palette: Palette;
   style: Style;
