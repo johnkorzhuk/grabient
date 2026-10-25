@@ -299,7 +299,7 @@ const FIXED = {
       "How Grabient makes gradients from 2 to 8 keyframes in OKLCH: the formula, steps, hue past 360°, colors a screen can't show and the seed in each URL."
     ),
     named: true,
-    /* the editor's Color space pane, drawn by scripts/build-icons.ts */
+    /* a palette Random drew beside its Color space scene, drawn by scripts/build-icons.ts */
     image: "/about.png",
     imageAlt: msg("A color palette's path through the OKLCH color space")
   },

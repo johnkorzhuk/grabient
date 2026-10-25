@@ -1,59 +1,66 @@
-/* About's share card: the editor's Color space pane as a component on the site's ground, its head (the name, and the
-   strip that copies and saves the figure) over the solid it draws. The scene is the pane's own marks (solid.ts) at the
-   pane's first camera, its frame is the pane's CSS with the tokens' values, and build-icons.ts draws the page at
-   ABOUT_CARD's scale into public/about.png. Its words are English: one picture serves every language, as the site's
-   card does. */
-import { readFile } from "node:fs/promises";
+/* About's share card: the editor in small. A palette the site's Random draws, in a view drawn at random as well (a
+   style, steps and an angle; band styles take few steps or many, gradients many), stands beside the Color space pane's
+   scene of the same palette: its path through the solid, a dot for each step where the view draws bands. The scene is
+   the pane's own marks (solid.ts) at the pane's first camera, the frames are the site's CSS with the tokens' values,
+   and build-icons.ts draws the page at ABOUT_CARD's scale into public/about.png, a new draw each time it runs. The
+   scene's few labels stay as written: one picture serves every language, as the site's card does. */
+import { canonical } from "@grabient/engine/codec.ts";
+import { gradientCss } from "@grabient/engine/css.ts";
+import { sampleStops } from "@grabient/engine/curve.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { t } from "@grabient/i18n";
-import { ICONS, type IconName } from "@grabient/ui/icons.data.ts";
+import { randomPalette } from "@grabient/engine/random.ts";
+import { isSwatchStyle, STYLES, type Style } from "@grabient/engine/view.ts";
 import { marksSvg } from "@grabient/ui/marks.ts";
 import { CAM0, solidFrame, solidScene } from "@grabient/ui/solid.ts";
-import { color, font, radius, size, space } from "@grabient/ui/tokens.ts";
+import { color, radius, size, space } from "@grabient/ui/tokens.ts";
 
 /** The page in CSS px, drawn at `scale`: 1200 by 630. */
 export const ABOUT_CARD = { w: 800, h: 420, scale: 1.5 } as const;
-/* the pane stands in the middle with the ground around it, as narrow as its scene needs */
-const PANE = { w: 440, h: ABOUT_CARD.h - 2 * space.s6 };
-/* the scene's box: the pane less its edge, its padding, its head and the gap under the head */
+/* the picture and the pane side by side on the ground, as tall as the margins leave them */
+const H = ABOUT_CARD.h - 2 * space.s6;
+const PANE = { w: 340, h: H };
+const PICTURE = { w: ABOUT_CARD.w - 2 * space.s6 - space.s4 - PANE.w, h: H };
+/* the scene's box: the pane less its edge and its padding */
 const SCENE = {
   w: PANE.w - 2 * (size.hairline + space.s4),
-  h: PANE.h - 2 * (size.hairline + space.s4) - size.controlSm - space.s3
-};
-/* a palette that climbs the pole: lightness 0.4 to 0.9 at one chroma while hue travels 600°, inside sRGB all the
-   way, so the coil keeps its radius and nothing in it is gamut-mapped */
-const CLIMB: Palette = {
-  anchors: [0, 1, 2, 3, 4].map(i => ({ l: 0.4 + 0.125 * i, c: 0.11, h: 270 + 150 * i }))
+  h: PANE.h - 2 * (size.hairline + space.s4)
 };
 
-const icon = (name: IconName) =>
-  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"/></svg>`;
+/** What the card shows: a palette and how its picture is drawn. */
+export interface AboutDraw {
+  palette: Palette;
+  style: Style;
+  steps: number;
+  angle: number;
+}
 
-/** The card as a page of ABOUT_CARD's CSS size, in the theme's colors, Poppins inlined. */
-export async function aboutCardHtml(theme: "dark" | "light" = "dark"): Promise<string> {
+/** A palette as Random draws one, and a view for it: any style and angle; bands in a few steps or many (3 to 7, or 20
+    to 40, even odds), a gradient in many (16 to 48), so it follows its curve smoothly. */
+export function aboutDraw(rand: () => number = Math.random): AboutDraw {
+  const int = (lo: number, hi: number) => lo + Math.floor(rand() * (hi - lo + 1));
+  const palette = canonical(randomPalette(rand));
+  const style = STYLES[Math.floor(rand() * STYLES.length)] ?? STYLES[0];
+  const steps = isSwatchStyle(style) ? (rand() < 0.5 ? int(3, 7) : int(20, 40)) : int(16, 48);
+  return { palette, style, steps, angle: int(0, 359) };
+}
+
+/** The card as a page of ABOUT_CARD's CSS size, in the theme's colors. */
+export function aboutCardHtml(draw: AboutDraw, theme: "dark" | "light" = "dark"): string {
   const c = color[theme];
-  const poppins = await readFile(
-    new URL("../public/fonts/poppins-latin-700-normal.woff2", import.meta.url)
-  );
   const scene = solidScene(
-    solidFrame(CLIMB, 7, false, false),
+    solidFrame(draw.palette, draw.steps, isSwatchStyle(draw.style), false),
     CAM0,
     { ink: c.ink, ink3: c.ink3, edge: c.edge, paper: c.paperSolid },
     SCENE.w,
     SCENE.h,
     { hullK: 0, outline: true }
   );
-  const words = `${font.bold} ${font.fs1}px/${font.lhNone} ${font.sans}`;
-  const css = `@font-face{font-family:Poppins;font-weight:${font.bold};src:url(data:font/woff2;base64,${poppins.toString("base64")}) format("woff2")}
-*{box-sizing:border-box}
+  const hexes = sampleStops(draw.palette, draw.steps).map(stop => stop.hex);
+  const css = `*{box-sizing:border-box}
 html,body{margin:0;width:${ABOUT_CARD.w}px;height:${ABOUT_CARD.h}px;overflow:hidden;background:${c.bg}}
-body{display:grid;place-items:center}
-.pane{display:flex;flex-direction:column;gap:${space.s3}px;width:${PANE.w}px;height:${PANE.h}px;padding:${space.s4}px;border:${size.hairline}px solid ${c.edge};border-radius:${radius.control}px;background:${c.paperSolid}}
-.head{display:flex;align-items:center;justify-content:space-between;gap:${space.s3}px;min-height:${size.controlSm}px}
-.name{color:${c.ink3};font:${words};letter-spacing:${font.lsMicro};text-transform:uppercase}
-.strip{display:flex;outline:${size.hairline}px solid ${c.edge};outline-offset:-${size.hairline}px;border-radius:${radius.tight}px;background:${c.paper2};color:${c.ink2}}
-.chip{display:flex;align-items:center;justify-content:center;gap:${space.s1}px;height:${size.controlSm}px;padding:0 ${space.s2}px;font:${words};white-space:pre}
-.mode{width:${size.controlSm}px;padding:0;border-right:${size.hairline}px solid ${c.edge}}
-svg.scene{display:block}`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${css}</style></head><body><div class="pane"><div class="head"><span class="name">${t("Color space")}</span><span class="strip"><span class="chip mode">${icon("copy")}</span><span class="chip">${icon("vector")} SVG</span><span class="chip">${icon("image")} PNG</span></span></div><svg class="scene" width="${SCENE.w}" height="${SCENE.h}" viewBox="0 0 ${SCENE.w} ${SCENE.h}">${marksSvg(scene.marks, "s")}</svg></div></body></html>`;
+body{display:flex;gap:${space.s4}px;padding:${space.s6}px}
+.picture{width:${PICTURE.w}px;height:${PICTURE.h}px;border-radius:${radius.surface}px;background:${gradientCss(hexes, draw.style, draw.angle)};box-shadow:${c.rim}}
+.pane{width:${PANE.w}px;height:${PANE.h}px;padding:${space.s4}px;border:${size.hairline}px solid ${c.edge};border-radius:${radius.control}px;background:${c.paperSolid}}
+svg{display:block}`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${css}</style></head><body><div class="picture"></div><div class="pane"><svg width="${SCENE.w}" height="${SCENE.h}" viewBox="0 0 ${SCENE.w} ${SCENE.h}">${marksSvg(scene.marks, "s")}</svg></div></body></html>`;
 }
