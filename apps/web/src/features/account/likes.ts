@@ -4,6 +4,7 @@ import { isServer } from "@solidjs/web";
 import { createStore } from "solid-js";
 import * as v from "valibot";
 import { openedOutside } from "../../app/framed.ts";
+import { goTo } from "../../app/go.ts";
 import { record } from "../../app/undo.ts";
 import {
   account,
@@ -275,7 +276,7 @@ async function setLiked(
   if (account() === undefined) await accountKnown();
   if (!account()) {
     const to = loginHref();
-    if (!openedOutside(to)) location.assign(localHref(to));
+    if (!openedOutside(to)) goTo(localHref(to));
     return;
   }
   const sync = await copyEngine();

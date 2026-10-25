@@ -1,6 +1,7 @@
 import { localHref, msg } from "@grabient/i18n";
 import type { FitVote } from "@grabient/ui/Fit.tsx";
 import { createEffect, createSignal } from "solid-js";
+import { goTo } from "../../app/go.ts";
 import { account, loginHref, sessionReady } from "../account/session.ts";
 import { castVote, readVotes } from "./client.ts";
 import { failedWrite } from "./collect.ts";
@@ -72,7 +73,7 @@ export function createFit(options: {
     vote(slug: string, seed: string, next: FitVote | null) {
       if (!account()) {
         if (!sessionReady()) return;
-        return location.assign(localHref(loginHref()));
+        return goTo(localHref(loginHref()));
       }
       const key = `${slug} ${seed}`;
       const before = votes()[slug]?.[seed] ?? null;

@@ -5,6 +5,7 @@ import { type AnyRouter, type HistoryLocation, useRouterState } from "@tanstack/
 import { createSignal, untrack } from "solid-js";
 import { landView } from "../features/list/appearance.ts";
 import { openedOutside } from "./framed.ts";
+import { goThrough } from "./go.ts";
 import { forgetUndoFrom, landUndo } from "./undo.ts";
 
 /* What the frame does as the reader moves between pages, in the browser.
@@ -143,6 +144,7 @@ const shown = (selector: string) =>
 
 /** The router's ways in: link presses, landings and their undo. Returns the way out. */
 export function watchNavigation(router: AnyRouter): () => void {
+  const stopGoing = goThrough(router);
   const placeOf = (location: HistoryLocation) => location.state.__TSR_index ?? 0;
   /* the link a page was left by, by its entry: Back lands the focus on it again, at the depth the reader left */
   const leftBy = new Map<number, string>();
@@ -229,6 +231,7 @@ export function watchNavigation(router: AnyRouter): () => void {
     moved = false;
   });
   return () => {
+    stopGoing();
     document.removeEventListener("click", onClick);
     document.removeEventListener("click", noteLink, true);
     clearTimeout(timer);
