@@ -49,24 +49,22 @@ test("an address's animation: speed, depth, fill, frost, shape and ground, each 
   expect(blobSearch(read("speed=2&fill=1"), [], false)).toBe("?style=blob&fill=1");
 });
 
-test("the file: the balls drawn far and near, cross-faded by a spot of focus, both frosted, moved by CSS alone", () => {
+test("the file: the balls melted and frosted by one filter, moved by CSS alone", () => {
   const svg = draw();
   expect(svg).toBe(draw());
   expect(svg).toContain('width="500" height="500" viewBox="0 0 500 500"');
   expect(svg).not.toContain("preserveAspectRatio");
-  // eight balls in each drawing, and the spot in each of the two masks
-  expect(count(svg, "circle")).toBe(18);
-  expect(count(svg, "filter")).toBe(2);
-  expect(count(svg, "mask")).toBe(2);
-  // near or far, the blob keeps some frost: both drawings scatter and speckle
-  expect(count(svg, "feTurbulence")).toBe(2);
-  expect(count(svg, "feDisplacementMap")).toBe(2);
-  expect(count(svg, "feComposite")).toBe(2);
-  expect(svg).toContain("mix-blend-mode:plus-lighter");
+  expect(count(svg, "circle")).toBe(8);
+  // one filter and nothing layered over it, which Chrome's GPU painter flickered on
+  expect(count(svg, "filter")).toBe(1);
+  expect(svg).not.toContain("<mask ");
+  expect(svg).not.toContain("mix-blend-mode");
+  for (const step of ["feGaussianBlur", "feTurbulence", "feDisplacementMap", "feComposite"])
+    expect(count(svg, step)).toBe(1);
   // nothing behind the blob: the file is transparent around it
   expect(after(svg)).not.toContain("<rect ");
   expect(svg).toContain("@media (prefers-reduced-motion:no-preference){");
-  expect(svg.length).toBeLessThan(7_500);
+  expect(svg.length).toBeLessThan(3_500);
 });
 
 test("no transform attribute anywhere, so an optimizer moving one onto a moving element cannot shift the drawing", () => {
@@ -100,26 +98,23 @@ test("every turn and every to-and-fro makes whole laps in the loop, and speed sh
 test("frost scales the scatter and the speckle, and none leaves the noise out", () => {
   const scatter = (svg: string) =>
     [...svg.matchAll(/feDisplacementMap in="b" in2="n" scale="([\d.]+)"/g)].map(m => Number(m[1]));
-  const [far, near] = scatter(draw());
-  expect(far).toBe(37.5);
-  expect(near).toBeCloseTo(far * 0.3, 1);
-  expect(scatter(draw("frost=2"))).toEqual([75, 22.5]);
+  expect(scatter(draw())).toEqual([37.5]);
+  expect(scatter(draw("frost=2"))).toEqual([75]);
   const clean = draw("frost=0");
   expect(clean).not.toContain("feTurbulence");
   expect(clean).not.toContain("arithmetic");
 });
 
-test("without depth, one frosted drawing at one depth; filled, three blobs that melt past the box", () => {
+test("in depth the blob grows and shrinks, without it it keeps its size; filled, three blobs melt past the box", () => {
+  expect(draw()).toContain("transform:scale(.88)}to{transform:scale(1.12)");
   const still = draw("depth=0");
   expect(count(still, "circle")).toBe(8);
-  expect(count(still, "filter")).toBe(1);
-  expect(still).not.toContain("<mask ");
   expect(still).not.toContain("scale(");
   const filled = draw("fill=1", { width: 1280, height: 720 });
-  expect(count(filled, "circle")).toBe(3 * 8 * 2 + 3 * 2);
+  expect(count(filled, "circle")).toBe(3 * 8);
   expect(filled).toMatch(/<filter id="\w+" x="-[\d.]+" y="-[\d.]+"/);
   // filled and transparent unless a ground is asked for
-  expect(after(filled)).not.toMatch(/<rect width="1280"/);
+  expect(after(filled)).not.toMatch(/<rect /);
 });
 
 test("the ground: the palette's deep tone or a color, drawn behind the blobs", () => {
@@ -219,7 +214,7 @@ test("the first frame as pixels: transparent around the blobs, or on their groun
   const grounded = blobStill(P, read("bg=101014"), { width: W, height: H }, backdrop);
   expect(grounded).toHaveLength(3 * W * H);
   expect(at(grounded, 3, 0, 0)).toEqual([0x10, 0x10, 0x14]);
-  expect(blobStill(P, read("depth=0"), { width: W, height: H })).not.toEqual(alone);
+  expect(blobStill(P, read("frost=0"), { width: W, height: H })).not.toEqual(alone);
   expect(blobStill(P, read("shape=7"), { width: W, height: H })).not.toEqual(alone);
 });
 

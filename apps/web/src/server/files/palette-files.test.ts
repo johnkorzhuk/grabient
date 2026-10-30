@@ -68,12 +68,13 @@ describe("a palette's file", () => {
     );
     const text = await svg.text();
     expect(text).toContain('width="320" height="200" viewBox="0 0 320 200"');
-    expect(text).toContain("mix-blend-mode:plus-lighter");
+    expect(text).toContain("<feTurbulence ");
+    expect(text).not.toContain("<mask ");
     expect(text).toContain("animation-duration:8s");
     expect(text).toContain(`<!-- ${golden.origin}/${seed} -->`);
     expect(text).not.toMatch(/\stransform=/);
-    const frosted = await (await file(`/${seed}.svg?style=blob&depth=0`)).text();
-    expect(frosted).not.toContain("<mask ");
+    const still = await (await file(`/${seed}.svg?style=blob&depth=0`)).text();
+    expect(still).not.toContain("scale(");
     const css = await file(`/${seed}.css?style=blob&w=1080&h=1350`);
     expect([css.headers.get("Content-Type"), css.headers.get("Cache-Control")]).toEqual([
       "text/css; charset=utf-8",

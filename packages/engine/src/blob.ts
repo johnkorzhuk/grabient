@@ -1,22 +1,20 @@
 /* A palette as an animated SVG blob, after the grainy gradient blobs of poster design: soft balls of the palette's
    colors, a ring of them turning about the middle while each swings on a circle of its own, melted into one amorphous
-   shape by a blur and a lift of its edge. The blob wanders a figure eight as far as the box allows, and drifts toward
-   the screen and away from it.
+   shape by a blur and a lift of its edge, and frosted by a fine noise that scatters the melt's pixels before the edge
+   is lifted, so the edge breaks into sprayed dots, and that speckles the surface. The blob wanders a figure eight as
+   far as the box allows and drifts near and far, growing and shrinking. Filled, three blobs wander the whole box, each
+   at a depth of its own. Nothing is drawn behind the blobs unless the address asks for a ground: the palette's deep
+   tone, or a color.
 
-   Depth reads as frost. Frost is a fine noise that scatters the melt's pixels before the edge is lifted, so the edge
-   breaks into sprayed dots, and that speckles the surface. Far off the blob is frosted through; near, it comes clear,
-   keeping a light frost. A spot of focus that circles over the blob shows the near drawing inside it and the far one
-   outside, and the spot grows as the blob comes near, so a part of the blob comes clear first and all of it when it
-   is nearest. Filled, three blobs wander the whole box, each at a depth of its own. Nothing is drawn behind the blobs
-   unless the address asks for a ground: the palette's deep tone, or a color.
-
-   Plain CSS moves everything: no script and no SMIL, so the file moves as an <img>, a CSS background and inline markup
-   alike, and a reader who asks for less motion sees the first frame held. Every motion makes whole laps in a loop, so
-   the loop closes on itself. Every shape is written where it stands in the first frame and turns about an origin of
-   its own, with no transform attribute for an optimizer to move onto a moving element, and a renderer without CSS
-   draws that first frame. The palette's colors lie across each blob, its darker end on one side. Where the balls sit,
-   how they swing and turn and when they come near are drawn from the palette, or from the palette and a shape number,
-   so every palette has blobs of its own and keeps them. */
+   One filter draws everything: a second, masked drawing cross-faded by depth made Chrome's GPU painter drop the filter on
+   some tiles and flicker, so the file keeps to the work it paints reliably. Plain CSS
+   moves everything: no script and no SMIL, so the file moves as an <img>, a CSS background and inline markup alike,
+   and a reader who asks for less motion sees the first frame held. Every motion makes whole laps in a loop, so the loop
+   closes on itself. Every shape is written where it stands in the first frame and turns about an origin of its own,
+   with no transform attribute for an optimizer to move onto a moving element, and a renderer without CSS draws that
+   first frame. The palette's colors lie across each blob, its darker end on one side. Where the balls sit, how they
+   swing and turn and when they come near are drawn from the palette, or from the palette and a shape number, so every
+   palette has blobs of its own and keeps them. */
 import { contrastOf, hexBytes, lchToSrgb, luminance, toHex } from "./color.ts";
 import { pageBox, svgUrl } from "./css.ts";
 import { sampleLCH, sampleSrgb } from "./curve.ts";
@@ -38,11 +36,11 @@ export const BLOB_SIZE: Size = { width: 500, height: 500 };
 export interface BlobView {
   /** How fast it moves: the loop is BLOB_LOOP seconds over this. */
   speed: number;
-  /** Depth: the blob drifts near and far, clearer when near. Without it, it stays at the far frost. */
+  /** Depth: the blob drifts near and far, growing and shrinking. */
   depth: boolean;
   /** Three blobs over the whole box, as a background. */
   fill: boolean;
-  /** How much frost, far and near alike: 1 as designed, 0 none, 2 twice. */
+  /** How much frost: 1 as designed, 0 none, 2 twice. */
   frost: number;
   /** Another drawing of the same palette's blobs, or null for the palette's own. */
   shape: number | null;
@@ -97,20 +95,16 @@ export function blobSearch(view: BlobView, extra: readonly string[] = [], loop =
 /* Sizes are in a blob's radius unless said: RADIUS of the box's shorter side, FILL.radius when filled. */
 const RADIUS = 0.26;
 /** The melt: a blur this wide, then alpha lifted SLOPE times as steeply about its half, so the edge sits where the
-    melt is half; far it fades over about a tenth of the blob, near over less than half of that. */
+    melt is half and fades over about a tenth of the blob. */
 const MELT = 0.24;
 const SLOPE = 2.2;
-const NEAR_SLOPE = 3.2;
 /** The frost: noise this fine a pixel, which scatters the melt's pixels up to about a third of SCATTER of the shorter
-    side, and which moves the surface's colors by up to SPECKLE of themselves at CONTRAST. Near, the scatter is
-    NEAR_SCATTER of the far one's and the speckle NEAR_SPECKLE of it. */
+    side, and which moves the surface's colors by up to SPECKLE of themselves at CONTRAST. */
 const FREQUENCY = 0.75;
 const OCTAVES = 2;
 const SCATTER = 0.075;
 const SPECKLE = 0.1;
 const CONTRAST = 2.2;
-const NEAR_SCATTER = 0.3;
-const NEAR_SPECKLE = 0.5;
 /** Six balls on a ring and a drop among them that swells the edge further, all turning about the middle, and a core
     over them. A ball's size and swing vary by up to VARY of their own about these. */
 const RING = { count: 6, at: 0.55, r: 0.42, swing: 0.28 };
@@ -124,9 +118,6 @@ const SPRAY = 0.04;
 const WANDER = 0.5;
 /** Depth: the blob's size from far to near, about its size in the first frame, which is midway. */
 const DEPTH = { far: 0.88, near: 1.12 };
-/** The spot of focus: its radius, the share of it that is wholly near, how far its middle circles from the blob's, and
-    its size far and near, about its size midway. */
-const SPOT = { r: 0.75, sharp: 0.55, orbit: 0.4, far: 0.3, near: 1.7 };
 /** Filled: three blobs this large, out from the box's middle by a share of its width and height, each wandering
     `wander` of the box. */
 const FILL = { count: 3, radius: 0.33, out: 0.27, wander: 0.13 };
@@ -192,15 +183,13 @@ export interface Blob {
   wander: [Sweep, Sweep];
   /** its depth: laps a loop, the sign whether it comes near first */
   depth: number;
-  /** its spot of focus: the turn it starts at about the blob's middle and its laps a loop */
-  spot: { phase: number; laps: number };
 }
 
 export interface BlobScene {
   blobs: Blob[];
   /** what the blobs are drawn on, or null for nothing */
   backdrop: string | null;
-  /** how far past the box the melt reads, in pixels: what wanders out of a filled box still melts at its edge */
+  /** how far past the box the melt reads, in pixels: a filled box's blobs wander past its edge and still melt there */
   pad: number;
   /** the palette's color at a place on it */
   color: (at: number) => string;
@@ -316,8 +305,7 @@ export function blobScene(
           { reach: FILL.wander * W, laps: across * sign() },
           { reach: FILL.wander * H, laps: down * sign() }
         ],
-        depth: (k % 2 ? 2 : 1) * sign(),
-        spot: { phase: rand(), laps: sign() }
+        depth: (k % 2 ? 2 : 1) * sign()
       };
     });
     return {
@@ -333,7 +321,6 @@ export function blobScene(
   const spin = sign();
   const balls = ballsOf(rand, spin);
   const depth = sign();
-  const spot = { phase: rand(), laps: sign() };
   /* the wander as wide as keeps every ball, its feather and its spray inside the box at every sampled moment */
   const margin = SPRAY * S;
   let wx = WANDER * S;
@@ -369,8 +356,7 @@ export function blobScene(
           { reach: Math.max(0, wx * 0.97), laps: 1 },
           { reach: Math.max(0, wy * 0.97), laps: 2 }
         ],
-        depth,
-        spot
+        depth
       }
     ],
     backdrop,
@@ -392,14 +378,10 @@ export function ballPlace(blob: Blob, b: Ball, f: number, depth = true): [number
   ];
 }
 
-/** The frost far and near at a view's frost: how far the noise scatters, as a share of the shorter side, and how much
-    it speckles. */
+/** The frost at a view's frost: how far the noise scatters, as a share of the shorter side, and how much it speckles. */
 const frostOf = (frost: number) => ({
-  far: { scatter: SCATTER * frost, speckle: Math.min(0.4, SPECKLE * frost) },
-  near: {
-    scatter: SCATTER * NEAR_SCATTER * frost,
-    speckle: Math.min(0.4, SPECKLE * NEAR_SPECKLE * frost)
-  }
+  scatter: SCATTER * frost,
+  speckle: Math.min(0.4, SPECKLE * frost)
 });
 
 /* the file's mark, which keeps its names apart from another such file's in one page */
@@ -492,64 +474,30 @@ export function blobSvg(P: Palette, view: BlobView, size: Size, credit: string):
     })
     .join("");
 
-  /* each blob's spot of focus: circling its middle, wandering with it, and growing as it comes near */
-  const spots = (fill: string) =>
-    scene.blobs
-      .map(blob => {
-        const turn = 2 * Math.PI * blob.spot.phase;
-        const [sx, sy] = [
-          blob.x + SPOT.orbit * blob.R * Math.cos(turn),
-          blob.y + SPOT.orbit * blob.R * Math.sin(turn)
-        ];
-        return wandering(
-          blob,
-          `<g class="s ${turnClass(blob.spot.laps)}" style="transform-origin:${px(blob.x, blob.y)}"><circle class="${deepening(blob, SPOT.far, SPOT.near)}" style="transform-origin:${px(sx, sy)}" cx="${num(sx)}" cy="${num(sy)}" r="${num(SPOT.r * blob.R)}" fill="${fill}"/></g>`
-        );
-      })
-      .join("");
-
   const R = Math.max(...scene.blobs.map(b => b.R));
   const pad = scene.pad;
   const region = `x="${num(-pad)}" y="${num(-pad)}" width="${num(W + 2 * pad)}" height="${num(H + 2 * pad)}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"`;
-  const lift = (slope: number) => `0 0 0 ${num(slope, 3)} ${num(0.5 - slope / 2, 3)}`;
   const gray = `0 0 ${num(CONTRAST, 3)} 0 ${num(0.5 - CONTRAST / 2, 3)}`;
-  /* blur; scatter by the noise's red and green; lift the edge; speckle by the noise's blue, alpha kept. Both drawings
-     read the same noise, so the grain stays put as one gives way to the other */
-  const frost = frostOf(view.frost);
-  const filter = (
-    name: string,
-    slope: number,
-    { scatter, speckle }: { scatter: number; speckle: number }
-  ) =>
-    [
-      `<filter id="${id}${name}" ${region}>`,
-      `<feGaussianBlur stdDeviation="${num(MELT * R)}" result="b"/>`,
-      scatter || speckle
-        ? `<feTurbulence type="fractalNoise" baseFrequency="${FREQUENCY}" numOctaves="${OCTAVES}" seed="${scene.seed}" result="n"/>`
-        : "",
-      scatter
-        ? `<feDisplacementMap in="b" in2="n" scale="${num(scatter * S)}" xChannelSelector="R" yChannelSelector="G"/>`
-        : "",
-      `<feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 ${lift(slope)}" result="g"/>`,
-      speckle
-        ? `<feColorMatrix in="n" values="${gray} ${gray} ${gray} 0 0 0 0 1"/><feComposite in="g" operator="arithmetic" k1="${num(2 * speckle, 3)}" k2="${num(1 - speckle, 3)}"/>`
-        : "",
-      "</filter>"
-    ].join("");
-
+  /* blur; scatter by the noise's red and green; lift the edge; speckle by the noise's blue, alpha kept */
+  const { scatter, speckle } = frostOf(view.frost);
+  const filter = [
+    `<filter id="${id}f" ${region}>`,
+    `<feGaussianBlur stdDeviation="${num(MELT * R)}" result="b"/>`,
+    scatter || speckle
+      ? `<feTurbulence type="fractalNoise" baseFrequency="${FREQUENCY}" numOctaves="${OCTAVES}" seed="${scene.seed}" result="n"/>`
+      : "",
+    scatter
+      ? `<feDisplacementMap in="b" in2="n" scale="${num(scatter * S)}" xChannelSelector="R" yChannelSelector="G"/>`
+      : "",
+    `<feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 ${num(SLOPE, 3)} ${num(0.5 - SLOPE / 2, 3)}" result="g"/>`,
+    speckle
+      ? `<feColorMatrix in="n" values="${gray} ${gray} ${gray} 0 0 0 0 1"/><feComposite in="g" operator="arithmetic" k1="${num(2 * speckle, 3)}" k2="${num(1 - speckle, 3)}"/>`
+      : "",
+    "</filter>"
+  ].join("");
   const base = scene.backdrop ? `<rect width="${W}" height="${H}" fill="${scene.backdrop}"/>` : "";
-  let defs = filter("f", SLOPE, frost.far);
-  let body: string;
-  if (view.depth) {
-    /* the two drawings added, each masked by its share of the spots, so they cross-fade without losing alpha */
-    const stops = (ink: string) =>
-      `<stop offset="${SPOT.sharp}" stop-color="${ink}"/><stop offset="1" stop-color="${ink}" stop-opacity="0"/>`;
-    const box = `maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"`;
-    defs += `${filter("c", NEAR_SLOPE, frost.near)}<radialGradient id="${id}w">${stops("#fff")}</radialGradient><radialGradient id="${id}k">${stops("#000")}</radialGradient><mask id="${id}m" ${box}>${spots(`url(#${id}w)`)}</mask><mask id="${id}n" ${box}><rect width="${W}" height="${H}" fill="#fff"/>${spots(`url(#${id}k)`)}</mask>`;
-    body = `${base}<g style="isolation:isolate"><g mask="url(#${id}n)"><g filter="url(#${id}f)">${balls}</g></g><g mask="url(#${id}m)" style="mix-blend-mode:plus-lighter"><g filter="url(#${id}c)">${balls}</g></g></g>`;
-  } else {
-    body = `${base}<g filter="url(#${id}f)">${balls}</g>`;
-  }
+  const defs = filter;
+  const body = `${base}<g filter="url(#${id}f)">${balls}</g>`;
 
   const motion = [
     `.${id} .s{animation:${id}s 1s linear infinite}`,
@@ -626,10 +574,10 @@ const near = (bits: number) => 0.5 + ((bits & 255) + ((bits >>> 8) & 255) - 255)
 /** The first frame as pixels at a size, row after row: four bytes each, alpha the file's, or three on the scene's
     ground, or on `backdrop` (0 to 255 a channel) where it has none. It is the file's drawing by the same numbers, its
     blur in three boxes at a smaller scale and its frost noise of the same spread, so it is the frame a reader who asks
-    for less motion sees, not its every pixel. */
+    for less motion sees (no depth moves the first frame), not its every pixel. */
 export function blobStill(
   P: Palette,
-  view: Pick<BlobView, "depth" | "fill" | "frost" | "shape" | "bg">,
+  view: Pick<BlobView, "fill" | "frost" | "shape" | "bg">,
   size: Size,
   backdrop?: readonly number[]
 ): Uint8Array<ArrayBuffer> {
@@ -689,69 +637,33 @@ export function blobStill(
       }
     }
   };
-  /* the spots of focus in the first frame, and how near they leave a pixel: their union */
-  const spots = view.depth
-    ? scene.blobs.map(blob => {
-        const turn = 2 * Math.PI * blob.spot.phase;
-        return {
-          x: blob.x + SPOT.orbit * blob.R * Math.cos(turn),
-          y: blob.y + SPOT.orbit * blob.R * Math.sin(turn),
-          r: SPOT.r * blob.R
-        };
-      })
-    : [];
-  const nearAt = (x: number, y: number) => {
-    let far = 1;
-    for (const s of spots) {
-      const d = Math.hypot(x - s.x, y - s.y) / s.r;
-      far *= 1 - clamp01((1 - d) / (1 - SPOT.sharp));
-    }
-    return 1 - far;
-  };
-
   const channels = under ? 3 : 4;
   const out = new Uint8Array(channels * W * H);
-  const frost = frostOf(view.frost);
+  const { scatter, speckle } = frostOf(view.frost);
   const seed = Math.imul(scene.seed + 1, 0x9e3779b1);
-  const pixel = [0, 0, 0, 0];
-  /* one drawing's share of a pixel, premultiplied: the melt read through the scattered place, lifted, speckled */
-  const draw = (
-    x: number,
-    y: number,
-    a: number,
-    b: number,
-    weight: number,
-    slope: number,
-    { scatter, speckle }: { scatter: number; speckle: number }
-  ) => {
-    sample(
-      (x + 0.5 + scatter * S * (near(a) - 0.5)) / q - 0.5 + pad,
-      (y + 0.5 + scatter * S * (near(a >>> 16) - 0.5)) / q - 0.5 + pad
-    );
-    const melted = pick[3];
-    const lift = melted > 0 ? clamp01(slope * melted + 0.5 - slope / 2) : 0;
-    if (!lift) return;
-    const alpha = Math.min(1, lift * (1 + speckle));
-    const grain = 1 - speckle + 2 * speckle * clamp01(0.5 + CONTRAST * (near(b) - 0.5));
-    for (let c = 0; c < 3; c++)
-      pixel[c] += weight * Math.min(alpha, (pick[c] / melted) * lift * grain);
-    pixel[3] += weight * alpha;
-  };
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const p = y * W + x;
-      const m = spots.length ? nearAt(x + 0.5, y + 0.5) : 0;
       const a = noise((2 * p) ^ seed);
       const b = noise((2 * p + 1) ^ seed);
-      pixel.fill(0);
-      if (m < 1) draw(x, y, a, b, 1 - m, SLOPE, frost.far);
-      if (m > 0) draw(x, y, a, b, m, NEAR_SLOPE, frost.near);
-      const alpha = Math.min(1, pixel[3]);
+      /* the melt read through the scattered place, lifted, speckled */
+      sample(
+        (x + 0.5 + scatter * S * (near(a) - 0.5)) / q - 0.5 + pad,
+        (y + 0.5 + scatter * S * (near(a >>> 16) - 0.5)) / q - 0.5 + pad
+      );
+      const melted = pick[3];
+      const lift = melted > 0 ? clamp01(SLOPE * melted + 0.5 - SLOPE / 2) : 0;
+      const alpha = Math.min(1, lift * (1 + speckle));
       const at = channels * p;
+      if (!alpha) {
+        if (under) out.set(under, at);
+        continue;
+      }
+      const grain = 1 - speckle + 2 * speckle * clamp01(0.5 + CONTRAST * (near(b) - 0.5));
       for (let c = 0; c < 3; c++) {
-        const value = Math.min(alpha, pixel[c]);
+        const value = Math.min(alpha, (pick[c] / melted) * lift * grain);
         out[at + c] = Math.round(
-          under ? 255 * value + under[c] * (1 - alpha) : alpha ? (255 * value) / alpha : 0
+          under ? 255 * value + under[c] * (1 - alpha) : (255 * value) / alpha
         );
       }
       if (!under) out[at + 3] = Math.round(255 * alpha);
