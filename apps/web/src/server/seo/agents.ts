@@ -85,6 +85,7 @@ Every palette route takes \`style\`, \`steps\` and \`angle\`.
 - One collection as GRD, a gradient to each palette: \`${base}/{slug}.grd\`
 - One collection as design tokens, a group to each palette: \`${base}/{slug}.tokens.json\`
 - One collection as an image, the nine palettes its page shows first: \`${base}/api/png/collection?slug={slug}\`, and \`${base}/api/og/collection?slug={slug}\` for the card with the wordmark
+- One collection as a sheet, its first eight palettes as rows with their hex codes, the picture its page shows under its cards: \`${base}/{slug}.png\`
 - One collection's page: \`${base}/{slug}\`
 
 ## Tools for agents
