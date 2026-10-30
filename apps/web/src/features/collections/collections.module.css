@@ -187,8 +187,8 @@
     width: var(--size-control-big);
     height: var(--size-control-big);
     border-radius: var(--radius-circle);
+    color: var(--color-ink);
     background: var(--color-paper);
-    font-size: var(--font-fs6);
     transform-origin: 50% 85%;
   }
   @media (prefers-reduced-motion: no-preference) {

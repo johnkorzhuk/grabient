@@ -931,8 +931,8 @@ export function CollectionPage(props: {
                 >
                   <section class={styles.bots} aria-labelledby="for-the-bots">
                     <div class={styles.botsHead}>
-                      <span class={styles.bot} aria-hidden="true">
-                        🤖
+                      <span class={styles.bot}>
+                        <Icon name="bot" size={20} />
                       </span>
                       <div>
                         <Text variant="h2" as="h2" id="for-the-bots">
