@@ -17,8 +17,9 @@ import {
   blobSvg,
   parseBlob
 } from "./blob.ts";
-import { blobGif } from "./blob-gif.ts";
+import { blobGif, blobGifPart, blobGifParts, blobGifTable } from "./blob-gif.ts";
 import { decodePalette } from "./codec.ts";
+import { GIF_END, joinBytes } from "./gif.ts";
 import { randomPalette } from "./random.ts";
 
 const read = (query: string) => parseBlob(new URLSearchParams(query));
@@ -321,4 +322,25 @@ test("a blob's GIF: its size, its loop's frames and their delays, transparent un
   expect(new Set(frames.map(f => f.disposal))).toEqual(new Set([2]));
   const grounded = controls(await blobGif(P, read("speed=4&fps=10&bg=deep"), size));
   expect(new Set(grounded.map(f => f.disposal))).toEqual(new Set([1]));
+});
+
+test("a GIF drawn in parts against one table reads back as the GIF drawn in one piece", async () => {
+  const size = { width: 40, height: 30 };
+  for (const query of ["speed=4&fps=10", "speed=4&fps=10&bg=deep&frost=0"]) {
+    const view = read(query);
+    const whole = readGif(await blobGif(P, view, size)).frames;
+    // seven frames a part
+    const parts = blobGifParts(view, size, 40 * 30 * 7);
+    expect(parts.length).toBe(6);
+    expect([parts[0][0], parts.at(-1)?.[1]]).toEqual([0, 40]);
+    const { table, start } = blobGifTable(P, view, size);
+    const drawn = await Promise.all(
+      parts.map(([from, to]) => blobGifPart(P, view, size, table, from, to))
+    );
+    const split = readGif(joinBytes([start, ...drawn, GIF_END])).frames;
+    expect(split.map(f => f.pixels)).toEqual(whole.map(f => f.pixels));
+    expect(split.map(f => f.delay)).toEqual(whole.map(f => f.delay));
+  }
+  expect(blobGifParts(read(""), BLOB_GIF_SIZE)).toHaveLength(6);
+  expect(blobGifParts(read("fill=1"), BLOB_GIF_SIZE).length).toBeLessThanOrEqual(9);
 });

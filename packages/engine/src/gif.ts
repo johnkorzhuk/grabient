@@ -408,81 +408,67 @@ function hash(n: number): number {
   return (n ^ (n >>> 16)) >>> 0;
 }
 
-/** The GIF of the frames. */
-export async function encodeGif(
-  source: GifSource,
-  { colors: most = 255, tolerance = 0, dither = 0, pause = async () => {} }: GifOptions = {}
-): Promise<Uint8Array<ArrayBuffer>> {
-  const { width: W, height: H, channels, frames } = source;
-  const N = W * H;
-  const alpha = channels === 4;
-  /* each pixel's alpha threshold, the same in every frame */
-  const threshold = new Uint8Array(alpha ? N : 0);
-  for (let p = 0; p < threshold.length; p++) threshold[p] = 1 + (hash(p ^ 0x51ed27) % 254);
-  /* each pixel's dither, in levels */
-  const shift = new Int8Array(dither ? N : 0);
-  for (let y = 0, p = 0; dither && y < H; y++) {
-    for (let x = 0; x < W; x++, p++) shift[p] = Math.round(dither * BAYER[(y & 3) * 4 + (x & 3)]);
-  }
+/** Each pixel's alpha threshold, the same in every frame and every part of a GIF. */
+function thresholds(N: number): Uint8Array {
+  const threshold = new Uint8Array(N);
+  for (let p = 0; p < N; p++) threshold[p] = 1 + (hash(p ^ 0x51ed27) % 254);
+  return threshold;
+}
 
-  /* the color table from frames across the loop, kept to be written in their turn */
-  const sampled = new Map<number, Uint8Array>();
+/** The frames of a loop of `frames` that its color table is cut from. */
+export function gifSamples(frames: number): number[] {
   const count = Math.min(SAMPLES, frames);
-  for (let s = 0; s < count; s++) {
-    const i = Math.floor((s * frames) / count);
-    if (!sampled.has(i)) sampled.set(i, source.frame(i));
-  }
-  const table = tableOf(
+  return [...new Set(Array.from({ length: count }, (_, s) => Math.floor((s * frames) / count)))];
+}
+
+/** A GIF's color table, at most `most` colors, from frames sampled across its loop (gifSamples), as [r, g, b] each. */
+export function gifTable(
+  samples: readonly Uint8Array[],
+  size: { width: number; height: number },
+  channels: 3 | 4,
+  most = 255
+): number[][] {
+  const N = size.width * size.height;
+  const threshold = channels === 4 ? thresholds(N) : null;
+  return tableOf(
     count => {
-      for (const pixels of sampled.values()) {
+      for (const pixels of samples) {
         for (let p = 0, o = 0; p < N; p++, o += channels) {
-          if (alpha && pixels[o + 3] <= threshold[p]) continue;
+          if (threshold && pixels[o + 3] <= threshold[p]) continue;
           count(pixels[o], pixels[o + 1], pixels[o + 2]);
         }
       }
     },
     Math.max(2, Math.min(255, most))
   );
-  const flat = Int32Array.from(table.flat());
-  const colors = table.length;
-  /* the index after the colors stands for nothing: a transparent pixel, or one that did not change */
-  const none = colors;
+}
+
+/** The bits an index of the table takes, one index past its colors standing for nothing. */
+const bitsOf = (table: readonly number[][]) => {
   let bits = 1;
-  while (1 << bits < colors + 1) bits++;
-  const least = Math.max(2, bits);
+  while (1 << bits < table.length + 1) bits++;
+  return bits;
+};
 
-  /* a pixel's nearest color, looked up by six bits a channel and worked out the first time each is met */
-  const lookup = new Int16Array(1 << 18).fill(-1);
-  const nearest = (key: number) => {
-    const R = ((key >>> 12) << 2) + 2;
-    const G = (((key >>> 6) & 63) << 2) + 2;
-    const B = ((key & 63) << 2) + 2;
-    let near = 0;
-    let least = Infinity;
-    for (let i = 0, c = 0; i < colors; i++, c += 3) {
-      const d = WR * (flat[c] - R) ** 2 + WG * (flat[c + 1] - G) ** 2 + WB * (flat[c + 2] - B) ** 2;
-      if (d < least) {
-        least = d;
-        near = i;
-      }
-    }
-    lookup[key] = near;
-    return near;
-  };
-
+/** A GIF's start: its screen, its color table and a loop forever. */
+export function gifStart(
+  size: { width: number; height: number },
+  table: readonly number[][]
+): Uint8Array<ArrayBuffer> {
+  const bits = bitsOf(table);
   const out = new Bytes();
   out.text("GIF89a");
-  out.short(W);
-  out.short(H);
+  out.short(size.width);
+  out.short(size.height);
   out.byte(0x80 | (7 << 4) | (bits - 1));
-  out.byte(none);
+  out.byte(table.length);
   out.byte(0);
   for (let i = 0; i < 1 << bits; i++) {
-    out.byte(i < colors ? flat[3 * i] : 0);
-    out.byte(i < colors ? flat[3 * i + 1] : 0);
-    out.byte(i < colors ? flat[3 * i + 2] : 0);
+    const c = table[i] ?? [0, 0, 0];
+    out.byte(c[0]);
+    out.byte(c[1]);
+    out.byte(c[2]);
   }
-  /* loop forever */
   out.byte(0x21);
   out.byte(0xff);
   out.byte(11);
@@ -491,19 +477,67 @@ export async function encodeGif(
   out.byte(1);
   out.short(0);
   out.byte(0);
+  return out.result();
+}
 
+/** A GIF's end. */
+export const GIF_END: Uint8Array<ArrayBuffer> = Uint8Array.of(0x3b);
+
+/** Frames `from` to `to` of the source, written against the table: what goes between a GIF's start and its end. The
+    first is drawn whole, so a GIF's frames can be written in parts, each by work of its own, and joined in order. */
+export async function gifFrames(
+  source: GifSource,
+  table: readonly number[][],
+  from: number,
+  to: number,
+  { tolerance = 0, dither = 0, pause = async () => {} }: Omit<GifOptions, "colors"> = {}
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { width: W, height: H, channels } = source;
+  const N = W * H;
+  const alpha = channels === 4;
+  const threshold = alpha ? thresholds(N) : new Uint8Array(0);
+  /* each pixel's dither, in levels */
+  const shift = new Int8Array(dither ? N : 0);
+  for (let y = 0, p = 0; dither && y < H; y++) {
+    for (let x = 0; x < W; x++, p++) shift[p] = Math.round(dither * BAYER[(y & 3) * 4 + (x & 3)]);
+  }
+  const flat = Int32Array.from(table.flat());
+  const colors = table.length;
+  /* the index after the colors stands for nothing: a transparent pixel, or one that did not change */
+  const none = colors;
+  const least = Math.max(2, bitsOf(table));
+
+  /* a pixel's nearest color, looked up by six bits a channel and worked out the first time each is met */
+  const lookup = new Int16Array(1 << 18).fill(-1);
+  const nearest = (key: number) => {
+    const R = ((key >>> 12) << 2) + 2;
+    const G = (((key >>> 6) & 63) << 2) + 2;
+    const B = ((key & 63) << 2) + 2;
+    let near = 0;
+    let best = Infinity;
+    for (let i = 0, c = 0; i < colors; i++, c += 3) {
+      const d = WR * (flat[c] - R) ** 2 + WG * (flat[c + 1] - G) ** 2 + WB * (flat[c + 2] - B) ** 2;
+      if (d < best) {
+        best = d;
+        near = i;
+      }
+    }
+    lookup[key] = near;
+    return near;
+  };
+
+  const out = new Bytes();
   let now = new Uint8Array(N);
   let before = new Uint8Array(N);
   /* what an opaque frame writes: its pixel where it changed, nothing where it did not */
   const ink = new Uint8Array(alpha ? 0 : N);
   const edges = new Int32Array(4);
-  for (let i = 0; i < frames; i++) {
-    const pixels = sampled.get(i) ?? source.frame(i);
-    sampled.delete(i);
-    const keep = !alpha && tolerance > 0 && i > 0;
+  for (let i = from; i < to; i++) {
+    const pixels = source.frame(i);
+    const keep = !alpha && tolerance > 0 && i > from;
     /* with transparency every drawn pixel is written, else what changed since the frame before, in the box they fall
        in */
-    const whole = alpha || i === 0;
+    const whole = alpha || i === from;
     indexFrame(
       pixels,
       W,
@@ -541,6 +575,41 @@ export async function encodeGif(
     lzw(written, top * W + left, right - left + 1, bottom - top + 1, W, least, out);
     await pause();
   }
-  out.byte(0x3b);
   return out.result();
+}
+
+/** Byte arrays one after another. */
+export function joinBytes(parts: readonly Uint8Array[]): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(parts.reduce((n, part) => n + part.length, 0));
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.length;
+  }
+  return out;
+}
+
+/** The GIF of the frames, in one piece. */
+export async function encodeGif(
+  source: GifSource,
+  { colors: most = 255, ...options }: GifOptions = {}
+): Promise<Uint8Array<ArrayBuffer>> {
+  /* the frames the table is cut from, kept to be written in their turn */
+  const sampled = new Map(gifSamples(source.frames).map(i => [i, source.frame(i)]));
+  const table = gifTable([...sampled.values()], source, source.channels, most);
+  const frames = await gifFrames(
+    {
+      ...source,
+      frame: i => {
+        const kept = sampled.get(i);
+        sampled.delete(i);
+        return kept ?? source.frame(i);
+      }
+    },
+    table,
+    0,
+    source.frames,
+    options
+  );
+  return joinBytes([gifStart(source, table), frames, GIF_END]);
 }

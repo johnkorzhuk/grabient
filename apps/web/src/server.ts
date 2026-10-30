@@ -12,6 +12,7 @@ import { NO_STORE } from "./lib/cache.ts";
 import { handle } from "./server/pipeline.ts";
 
 export { RateLimiter } from "@grabient/server/limits/rate-limiter.ts";
+export { GifParts } from "./server/images/gif-parts.ts";
 
 // sign-in's emails are the app's letters, which load with the first email an isolate sends
 setAccountMailer(async (...sent) =>

@@ -16,7 +16,7 @@ import { resolvePalette } from "../files/resolve.ts";
 import { listPalettes } from "../gallery/list.ts";
 import { type SearchEnv, searchLeaders } from "../search/search.ts";
 import { paletteCard, palettePicture } from "./cards.ts";
-import { paletteGif } from "./gifs.ts";
+import { type GifPartRunner, paletteGif } from "./gifs.ts";
 import {
   MONTAGE_PALETTES,
   montageOrder,
@@ -63,9 +63,14 @@ export const seedPngAnswer = (request: Request, env: PictureEnv, keep: Keep) => 
   return paletteImage(request, env, keep, name, false);
 };
 
-/** /{seed}.gif?style=blob: a palette's animated blob as a GIF. Only the blob moves, so a GIF of any other style is
-    no file. */
-export function seedGifAnswer(request: Request, env: PictureEnv, keep: Keep) {
+/** /{seed}.gif?style=blob: a palette's animated blob as a GIF, a large one drawn in parts by `parts`. Only the blob
+    moves, so a GIF of any other style is no file. */
+export function seedGifAnswer(
+  request: Request,
+  env: PictureEnv,
+  keep: Keep,
+  parts?: GifPartRunner
+) {
   const found = resolvePalette(fileName(pathOf(request), "gif"));
   if (!found) return json({ error: "Invalid palette seed." }, { status: 404 });
   const params = paramsOf(request);
@@ -75,7 +80,7 @@ export function seedGifAnswer(request: Request, env: PictureEnv, keep: Keep) {
       { status: 404 }
     );
   }
-  return paletteGif(request, env, found, params, keep);
+  return paletteGif(request, env, found, params, keep, parts);
 }
 
 /* A public collection's first palettes in its page's order, read as its share card reads them, under the card's key. */
