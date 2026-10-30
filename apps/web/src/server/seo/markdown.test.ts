@@ -55,7 +55,7 @@ const reads = (found: Partial<MarkdownReads> = {}): MarkdownReads => ({
 const get = (path: string) => new Request(`https://grabient.com${path}`);
 
 describe("a collection as Markdown", () => {
-  test("is the file grabient-lite served, byte for byte, with its sheet under its words and among its forms", () => {
+  test("is the file grabient-lite served, with its sheet under its words and its files at its own address among its forms", () => {
     const doc = brightGradients();
     expect(doc.items).toHaveLength(30);
     // some titles are the palettes' own names, which the file writes from their colors

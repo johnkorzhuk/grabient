@@ -4,6 +4,7 @@ import { localHref, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Curation } from "@grabient/ui/Curation.tsx";
 import { Fit, type FitVote } from "@grabient/ui/Fit.tsx";
+import { FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { PaletteGrid } from "@grabient/ui/PaletteGrid.tsx";
 import { PaletteCardPlaceholder } from "@grabient/ui/PalettePlaceholder.tsx";
@@ -82,6 +83,7 @@ import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./
 import { listSearch, pageSearch } from "./params.ts";
 import { collectionQuery, type Found, forgetStates, stateQuery } from "./queries.ts";
 import { ITEM_TITLE_MAX, type Visibility } from "./schema.ts";
+import { COLLECTION_FORMATS, collectionTakings } from "./take.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 
 type ViewerRead = ViewerState & { collection?: CollectionDocument };
@@ -146,6 +148,11 @@ export function CollectionPage(props: {
     setNote(message);
     setError(isError);
   };
+  /* the collection's own files, for its strip under the cards */
+  const files = collectionTakings(() => {
+    const c = doc();
+    return { slug: c?.slug ?? props.slug, updatedAt: c?.updatedAt ?? 0 };
+  }, say);
   /* the loader read the collection before the page was drawn, so its answer is always at hand */
   const answer = () => found.data;
   /* what the page was read as: a read that failed keeps what it showed, a list's summary or the collection */
@@ -913,7 +920,8 @@ export function CollectionPage(props: {
                     )}
                   </For>
                 </PaletteGrid>
-                {/* its first palettes as one picture under its cards, which image searches show, and its file */}
+                {/* for the bots: its first palettes as one picture, which image searches show, and the files it is
+                    written as, for crawlers, agents and apps */}
                 <Show
                   when={
                     !provisional() &&
@@ -921,27 +929,54 @@ export function CollectionPage(props: {
                     current().items.length > 0
                   }
                 >
-                  <figure class={styles.sheet}>
+                  <section class={styles.bots} aria-labelledby="for-the-bots">
+                    <div class={styles.botsHead}>
+                      <span class={styles.bot} aria-hidden="true">
+                        🤖
+                      </span>
+                      <div>
+                        <Text variant="h2" as="h2" id="for-the-bots">
+                          {t("For the bots")}
+                        </Text>
+                        <Text variant="small">
+                          {t("Beep boop. This collection as files, for crawlers, agents and apps.")}
+                        </Text>
+                      </div>
+                    </div>
                     <img
                       class={styles.sheetPicture}
                       src={collectionSheet(current().slug, current().updatedAt)}
-                      alt={t("{title}: a collection of color palettes", { title: current().title })}
+                      alt={t("{title}: a collection of color palettes", {
+                        title: current().title
+                      })}
                       width={SHEET_SIZE.width}
                       height={SHEET_SIZE.height}
                       loading="lazy"
                       decoding="async"
                     />
-                    <figcaption>
-                      <Button
-                        size="sm"
-                        href={collectionSheet(current().slug, current().updatedAt)}
-                        download={`${current().slug.split("/").pop()}.png`}
-                        disabled={offline()}
-                      >
-                        <Icon name="download" size={13} /> {t("Download PNG")}
-                      </Button>
-                    </figcaption>
-                  </figure>
+                    <FormatStrip
+                      size="md"
+                      variant="paper"
+                      copy={COLLECTION_FORMATS.copy}
+                      download={COLLECTION_FORMATS.download}
+                      link={COLLECTION_FORMATS.link}
+                      swatches={SWATCH_CHIPS}
+                      onCopy={files.copy}
+                      onDownload={files.download}
+                      onLink={files.link}
+                    />
+                    <div class={styles.botLinks}>
+                      <a class={styles.inline} href={`/${current().slug}.md`}>
+                        {t("This page as Markdown")}
+                      </a>
+                      <a class={styles.inline} href="/llms.txt">
+                        {t("Guide for AI agents")}
+                      </a>
+                      <a class={styles.inline} href={localHref("/mcp-server")}>
+                        {t("MCP server")}
+                      </a>
+                    </div>
+                  </section>
                 </Show>
               </div>
             </>

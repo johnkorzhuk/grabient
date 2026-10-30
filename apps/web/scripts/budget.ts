@@ -36,7 +36,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
 const EVERY_PAGE = ["src/app/tab-icon.ts"];
 
 const BUDGETS = {
-  stylesheet: 29,
+  // the blob's controls and a collection's For the bots section (its bot, its picture and its strip) took the one
+  // stylesheet from 28.8 KB to 29.1 on 30 Oct 2026
+  stylesheet: 30,
   onDemand: 12,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,

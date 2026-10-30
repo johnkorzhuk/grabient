@@ -45,12 +45,14 @@ Bright yellow, orange, coral, pink, cyan, blue, violet, lime, and green sweep th
 
 ## Other forms
 
-- [JSON](https://grabient-lite.jkorzhuk.workers.dev/api/collections/bright-gradients)
+- [JSON](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.json)
 - [ASE](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.ase)
 - [GPL](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.gpl)
 - [GRD](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.grd)
 - [Design tokens](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.tokens.json)
 - [Sheet](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.png?t=1790892165883)
+- [Sheet as SVG](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.svg)
+- [CSS](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.css)
 - [Image](https://grabient-lite.jkorzhuk.workers.dev/api/png/collection?slug=bright-gradients)
 - [Social card](https://grabient-lite.jkorzhuk.workers.dev/api/og/collection?slug=bright-gradients&v=k4)
 - [More collections](https://grabient-lite.jkorzhuk.workers.dev/collections)

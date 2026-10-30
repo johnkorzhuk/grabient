@@ -4,11 +4,13 @@
    its palettes are read. */
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { joined } from "@grabient/server/shared-work.ts";
+import { PAGE } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { addressParams, type Saved, viewAt } from "../files/address.ts";
 import { MONTAGE_PALETTES } from "./montage-address.ts";
 import { drawSheet, drawWedges, keyframeColors, lookOf } from "./paint.ts";
 import { answerPicture, drawingPaused, failure, type Keep, type PictureEnv } from "./serve.ts";
+import { sheetSvg } from "./sheet-svg.ts";
 import { CARD, montageSize, SHEET } from "./size.ts";
 
 /* How the wedges are drawn: a new drawing names itself anew, so a card kept in R2 is drawn again */
@@ -133,6 +135,22 @@ export async function montageAnswer(
   return montagePicture(request, env, palettes, branded, keep);
 }
 
+/** A sheet's rows: the first eight of the palettes that are palettes, each as it was saved. */
+function sheetRows(palettes: readonly MontagePalette[]) {
+  const none = new URLSearchParams();
+  return palettes.slice(0, SHEET_PALETTES).flatMap(saved => {
+    const palette = decodePalette(saved.seed);
+    if (!palette) return [];
+    return [
+      { seed: encodePalette(palette), palette, view: viewAt(none, palette.anchors.length, saved) }
+    ];
+  });
+}
+const drawnRow = ({ palette, view }: ReturnType<typeof sheetRows>[number]) => ({
+  look: lookOf(palette, view),
+  chips: keyframeColors(palette)
+});
+
 /** A sheet's answer: refused while drawing is off, as a montage is, else its palettes read once per `key` in this
     isolate (a collection's share card reads the same) and the first eight drawn as rows, each as it was saved. */
 export async function sheetAnswer(
@@ -144,15 +162,7 @@ export async function sheetAnswer(
 ): Promise<Response> {
   const paused = await drawingPaused(request, env, { branded: false });
   if (paused) return paused;
-  const palettes = await montagePalettes(key, read);
-  const none = new URLSearchParams();
-  const shown = palettes.slice(0, SHEET_PALETTES).flatMap(saved => {
-    const palette = decodePalette(saved.seed);
-    if (!palette) return [];
-    return [
-      { seed: encodePalette(palette), palette, view: viewAt(none, palette.anchors.length, saved) }
-    ];
-  });
+  const shown = sheetRows(await montagePalettes(key, read));
   if (!shown.length) return json({ error: "No palettes found." }, { status: 404 });
   const { width, height } = SHEET;
   return answerPicture(
@@ -170,16 +180,28 @@ export async function sheetAnswer(
       ],
       width,
       height,
-      draw: () =>
-        drawSheet(
-          shown.map(({ palette, view }) => ({
-            look: lookOf(palette, view),
-            chips: keyframeColors(palette)
-          })),
-          width,
-          height
-        )
+      draw: () => drawSheet(shown.map(drawnRow), width, height)
     },
     keep
   );
+}
+
+/** The same sheet as SVG: shapes and text, no drawing to pay for, so no allowance and no pause. Its page names the PNG
+    to image searches, so the SVG asks to be left out of them. */
+export async function sheetSvgAnswer(
+  key: string,
+  read: () => Promise<MontagePalette[]>,
+  title: () => Promise<string>
+): Promise<Response> {
+  const [palettes, named] = await Promise.all([montagePalettes(key, read), title()]);
+  const shown = sheetRows(palettes);
+  if (!shown.length) return json({ error: "No palettes found." }, { status: 404 });
+  return new Response(sheetSvg(shown.map(drawnRow), SHEET.width, SHEET.height, named), {
+    headers: {
+      ...PAGE,
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      "X-Robots-Tag": "noindex"
+    }
+  });
 }

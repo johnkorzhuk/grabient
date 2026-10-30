@@ -23,7 +23,7 @@ export interface Look {
   angle: number;
 }
 
-interface Box {
+export interface Box {
   x: number;
   y: number;
   width: number;
@@ -131,7 +131,7 @@ function lay(canvas: Canvas, at: number, color: Rgb, share: number) {
 }
 
 /** WCAG's choice between black and white: whichever contrasts more with a color of this luminance. */
-const blackReads = (L: number) => (L + 0.05) / 0.05 >= 1.05 / (L + 0.05);
+export const blackReads = (L: number) => (L + 0.05) / 0.05 >= 1.05 / (L + 0.05);
 
 /* The wordmark at the card's top left, in near black or near white by the mean light of what lies under it (every
    fourth pixel each way), and its bar running these colors left to right. */
@@ -169,7 +169,7 @@ async function paintWordmark(canvas: Canvas, colors: readonly Rgb[]) {
   }
 }
 
-interface Chip {
+export interface Chip {
   x: number;
   width: number;
   rgb: number[];
@@ -180,7 +180,7 @@ const hexOf = (rgb: readonly number[]) =>
 
 /** A chip to a color across the width, each filled with the 8-bit color its hex names; neighbors of one hex are one
     chip. */
-function chipsAcross(colors: readonly Rgb[], width: number): Chip[] {
+export function chipsAcross(colors: readonly Rgb[], width: number): Chip[] {
   const chips: Chip[] = [];
   const n = colors.length;
   colors.forEach((exact, i) => {
@@ -196,8 +196,19 @@ function chipsAcross(colors: readonly Rgb[], width: number): Chip[] {
   });
   return chips;
 }
-const textWidth = (set: Glyphs, text: string) =>
+const textWidth = (set: Pick<Glyphs, "widths">, text: string) =>
   [...text].reduce((sum, char) => sum + set.widths[HEX_CHARS.indexOf(char)], 0);
+
+/** Which of the hex sizes (HEX_SIZES) a row of chips sets its hexes at: the largest whose widest hex fits the narrowest
+    chip with its inset and whose letters fit the row's height; -1 for none. */
+export function chipLetters(chips: readonly Chip[], height: number): number {
+  const narrowest = Math.min(...chips.map(chip => chip.width));
+  return HEX_SIZES.findIndex(
+    set =>
+      set.height <= height &&
+      Math.max(...chips.map(chip => textWidth(set, chip.hex))) + 2 * CHIP_INSET <= narrowest
+  );
+}
 
 function paintText(canvas: Canvas, set: Glyphs, text: string, left: number, top: number, ink: Rgb) {
   let along = left;
@@ -218,12 +229,8 @@ function paintText(canvas: Canvas, set: Glyphs, text: string, left: number, top:
    and whose letters fit the box's height. */
 async function paintChips(canvas: Canvas, colors: readonly Rgb[], box: Box) {
   const chips = chipsAcross(colors, box.width);
-  const narrowest = Math.min(...chips.map(chip => chip.width));
-  const set = (await glyphSets()).find(
-    s =>
-      s.height <= box.height &&
-      Math.max(...chips.map(chip => textWidth(s, chip.hex))) + 2 * CHIP_INSET <= narrowest
-  );
+  const letters = chipLetters(chips, box.height);
+  const set = letters < 0 ? undefined : (await glyphSets())[letters];
   for (const chip of chips) {
     const row = new Uint8Array(chip.width * 3);
     for (let x = 0; x < chip.width; x++) row.set(chip.rgb, x * 3);
@@ -279,9 +286,9 @@ export async function drawCardOver(
 
 /* A sheet's paper (the light theme's solid paper), the room between its rows, their corners' radius, and the share of
    a row its chips take. */
-const PAPER: Rgb = [250, 249, 247];
+export const PAPER: Rgb = [250, 249, 247];
 const ROW_GAP = 24;
-const CORNER = 14;
+export const CORNER = 14;
 const CHIP_SHARE = 0.42;
 
 /** A palette as a sheet's row shows it: its look blended or banded left to right, and its keyframes' colors as chips. */
@@ -291,7 +298,7 @@ export interface SheetRow {
 }
 
 /** A look laid left to right: a swatch style as bands, any other as a blend. */
-const across = (look: Look): Look => ({
+export const across = (look: Look): Look => ({
   colors: look.colors,
   style: isSwatchStyle(look.style) ? "linearSwatches" : "linearGradient",
   angle: 90
@@ -319,6 +326,31 @@ function roundCorners(canvas: Canvas, box: Box, radius: number) {
   }
 }
 
+/** Where a sheet's row stands, its strip over its chips. */
+export interface SheetBox {
+  row: Box;
+  strip: Box;
+  chips: Box;
+}
+/** A sheet's rows: under the wordmark's bar, sharing the height left above the margin, the chips the same share of
+    each. The PNG and the SVG lay them out alike. */
+export function sheetBoxes(count: number, width: number, height: number): SheetBox[] {
+  const top = BAR.y + BAR.height + MARGIN;
+  const pitch = (height - MARGIN - top + ROW_GAP) / count;
+  const tall = pitch - ROW_GAP;
+  const chipRow = Math.round(Math.min(CHIP_ROW, Math.max(40, tall * CHIP_SHARE)));
+  const inner = width - 2 * MARGIN;
+  return Array.from({ length: count }, (_, i) => {
+    const y = Math.round(top + i * pitch);
+    const h = Math.round(top + i * pitch + tall) - y;
+    return {
+      row: { x: MARGIN, y, width: inner, height: h },
+      strip: { x: MARGIN, y, width: inner, height: h - chipRow },
+      chips: { x: MARGIN, y: y + h - chipRow, width: inner, height: chipRow }
+    };
+  });
+}
+
 /** Several palettes as a sheet, the picture a collection's page shows of it: on the paper under the wordmark, a row to
     each, its look running left to right over a chip to each of its keyframes with its hex, as image searches show
     palettes. The rows share the height under the wordmark's bar; the wordmark's bar runs the first row's colors. */
@@ -330,22 +362,11 @@ export async function drawSheet(
   const canvas = canvasOf(width, height);
   const paper = Uint8Array.from(PAPER);
   for (let at = 0; at < canvas.data.length; at += 3) canvas.data.set(paper, at);
-  const top = BAR.y + BAR.height + MARGIN;
-  const pitch = (height - MARGIN - top + ROW_GAP) / rows.length;
-  const tall = pitch - ROW_GAP;
-  const chipRow = Math.round(Math.min(CHIP_ROW, Math.max(40, tall * CHIP_SHARE)));
-  const inner = width - 2 * MARGIN;
+  const boxes = sheetBoxes(rows.length, width, height);
   for (const [i, row] of rows.entries()) {
-    const y = Math.round(top + i * pitch);
-    const h = Math.round(top + i * pitch + tall) - y;
-    paintLook(canvas, across(row.look), { x: MARGIN, y, width: inner, height: h - chipRow });
-    await paintChips(canvas, row.chips, {
-      x: MARGIN,
-      y: y + h - chipRow,
-      width: inner,
-      height: chipRow
-    });
-    roundCorners(canvas, { x: MARGIN, y, width: inner, height: h }, CORNER);
+    paintLook(canvas, across(row.look), boxes[i].strip);
+    await paintChips(canvas, row.chips, boxes[i].chips);
+    roundCorners(canvas, boxes[i].row, CORNER);
   }
   if (rows.length) await paintWordmark(canvas, rows[0].look.colors);
   return encodePng(width, height, canvas.data);

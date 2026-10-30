@@ -66,6 +66,16 @@ function searchKey(path: string, params: URLSearchParams): FileKey {
   );
 }
 
+/** A search's own sheet beside its page, as PNG or SVG: its words and its order, each palette drawn as saved. */
+const SEARCH_SHEETS = /^\/(search|palettes)\/.+\.(png|svg)$/;
+function searchSheetKey(path: string, params: URLSearchParams): FileKey {
+  const { sort, frame } = montageOrder(params);
+  const query = new URLSearchParams({ query: pictureWords(path, params) ?? "" });
+  if (sort === "rising") query.set("sort", sort);
+  if (frame) query.set("frame", frame);
+  return { path: `/api/sheet/query.${path.slice(-3)}`, query, acrossBuilds: false };
+}
+
 function montageKey(path: string, params: URLSearchParams): FileKey {
   const branded = path.startsWith("/api/og/");
   const query = new URLSearchParams();
@@ -104,21 +114,23 @@ function namedFile(path: string, params: URLSearchParams) {
 /** The key of a file or picture address, or null for any other address. */
 export function fileCacheKey(path: string, search: URLSearchParams): FileKey | null {
   const params = addressParams(search);
-  if (SEARCH_PICTURES.has(path) || /^\/(search|palettes)\/.+\.png$/.test(path)) {
-    return searchKey(path, params);
-  }
+  if (SEARCH_PICTURES.has(path)) return searchKey(path, params);
+  if (SEARCH_SHEETS.test(path)) return searchSheetKey(path, params);
   if (MONTAGES.has(path)) return montageKey(path, params);
   const file = namedFile(path, params);
   if (!file) return null;
   const found = resolvePalette(file.name);
-  /* A name that is no palette is a collection's file, which reads no query, or no file at all. Its sheet (.png) is kept
-     also by when the collection changed (`t`, which its page names), as its share card is. An old seed no map holds
+  /* A name that is no palette is a collection's file, which reads no query but its CSS's colors, or no file at all. Its
+     sheet (.png, .svg) is kept also by when the collection changed (`t`, which its page names), as its share card is. An old seed no map holds
      names a card the Worker fits, whose redirect the seed and the view decide (seo/legacy-fit.ts). */
   if (!found) {
     const old = file.format === "og" ? oldFit(path, search) : null;
     const query = new URLSearchParams(old ? viewSearch(old.view, [`seed=${old.seed}`]) : "");
     const changed = params.get("t");
-    if (file.format === "png" && changed && /^\d{1,15}$/.test(changed)) query.set("t", changed);
+    const sheet = file.format === "png" || file.format === "svg";
+    if (sheet && changed && /^\d{1,15}$/.test(changed)) query.set("t", changed);
+    const colors = colorKind(params.get("colors"));
+    if (file.format === "css" && colors !== "oklch") query.set("colors", colors);
     return { path, query, acrossBuilds: false };
   }
   const { seed, palette } = found;

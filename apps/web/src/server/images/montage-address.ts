@@ -48,12 +48,12 @@ export function montageOrder(params: URLSearchParams): { sort: MontageSort; fram
   return { sort: sort === "newest" || sort === "hot" ? sort : "popular" };
 }
 
-/** The words a search picture's address asks for: `query`, then `q`, then its path's (/palettes/{words}.png or
-    /search/{words}.png, a palette's address kept as its seed and hyphens read as spaces), as the search reads words;
-    null when they are no search. */
+/** The words a search picture's address asks for: `query`, then `q`, then its path's (/palettes/{words}.png or .svg,
+    or /search/{words}.png or .svg, a palette's address kept as its seed and hyphens read as spaces), as the search
+    reads words; null when they are no search. */
 export function pictureWords(path: string, params: URLSearchParams): string | null {
   const asked = params.get("query") ?? params.get("q");
   if (asked !== null) return normalizeSearchQuery(asked);
-  const segment = /^\/(?:search|palettes)\/(.+)\.png$/.exec(path)?.[1];
+  const segment = /^\/(?:search|palettes)\/(.+)\.(?:png|svg)$/.exec(path)?.[1];
   return segment ? queryFromParam(segment) : null;
 }
