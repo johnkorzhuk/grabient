@@ -10,6 +10,7 @@ import {
   isBands,
   parseBands
 } from "@grabient/engine/bands.ts";
+import { BLOB_SIZE, blobCss, blobSvg, isBlob, parseBlob } from "@grabient/engine/blob.ts";
 import { colorKind, paletteCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { paletteDocument, paletteJson } from "@grabient/engine/document.ts";
@@ -88,11 +89,17 @@ async function paletteFile(
   const stops = () => sampleStops(palette, view.steps);
   switch (format) {
     case "css": {
-      // w and h (or size) set the page's box; style=bands plays the animated SVG, carried inside
+      // w and h (or size) set the page's box; style=bands or blob plays that animated SVG, carried inside
       const asked = svgSize(params);
       if (isBands(params)) {
         const size = asked ? resolveSize(asked, BANDS_SIZE) : null;
         return new Response(bandsCss(palette, parseBands(params), size, `${origin}/${seed}`), {
+          headers: { ...ANIMATION, "Content-Type": "text/css; charset=utf-8" }
+        });
+      }
+      if (isBlob(params)) {
+        const size = asked ? resolveSize(asked, BLOB_SIZE) : null;
+        return new Response(blobCss(palette, parseBlob(params), size, `${origin}/${seed}`), {
           headers: { ...ANIMATION, "Content-Type": "text/css; charset=utf-8" }
         });
       }
@@ -117,6 +124,13 @@ async function paletteFile(
         }
         const size = resolveSize(svgSize(params), BANDS_SIZE);
         return new Response(bandsSvg(palette, parseBands(params), size, `${origin}/${seed}`), {
+          headers: { ...ANIMATION, "Content-Type": "image/svg+xml; charset=utf-8" }
+        });
+      }
+      // style=blob is the animated blob (engine/blob.ts), at 500 by 500 unless asked
+      if (isBlob(params)) {
+        const size = resolveSize(svgSize(params), BLOB_SIZE);
+        return new Response(blobSvg(palette, parseBlob(params), size, `${origin}/${seed}`), {
           headers: { ...ANIMATION, "Content-Type": "image/svg+xml; charset=utf-8" }
         });
       }

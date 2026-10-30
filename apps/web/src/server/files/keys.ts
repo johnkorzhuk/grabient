@@ -5,6 +5,7 @@
    page is, and a collection's also by when the collection changed (`t`, which its page names). A text file is the
    engine's writing, kept for one build. */
 import { bandsSearch, isBands, parseBands } from "@grabient/engine/bands.ts";
+import { blobSearch, isBlob, parseBlob } from "@grabient/engine/blob.ts";
 import { colorKind } from "@grabient/engine/css.ts";
 import { parseView, type Size, sizeParam, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
@@ -136,6 +137,12 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     }
     const size = sizeParam(svgSize(params));
     const query = new URLSearchParams(bandsSearch(bands, size ? [`size=${size}`] : []));
+    return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
+  }
+  // the animated blob as SVG or CSS: its animation and size, kept for one build
+  if (isBlob(params) && (file.format === "svg" || file.format === "css")) {
+    const size = sizeParam(svgSize(params));
+    const query = new URLSearchParams(blobSearch(parseBlob(params), size ? [`size=${size}`] : []));
     return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
   }
   const view = viewAt(params, palette.anchors.length);

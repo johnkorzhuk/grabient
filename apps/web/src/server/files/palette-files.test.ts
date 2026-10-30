@@ -61,6 +61,26 @@ describe("a palette's file", () => {
     );
   });
 
+  test("SVG with style=blob is the animated blob, transparent around it, which a browser keeps an hour", async () => {
+    const svg = await file(`/${seed}.svg?style=blob&duration=9&w=320&h=200&steps=8`);
+    expect([svg.status, svg.headers.get("Content-Type"), svg.headers.get("Cache-Control")]).toEqual(
+      [200, "image/svg+xml; charset=utf-8", "public, max-age=3600"]
+    );
+    const text = await svg.text();
+    expect(text).toContain('width="320" height="200" viewBox="0 0 320 200"');
+    expect(text.match(/<circle /g)).toHaveLength(8);
+    expect(text).toContain("animation-duration:9s");
+    expect(text).toContain(`<!-- ${golden.origin}/${seed} -->`);
+    const css = await file(`/${seed}.css?style=blob&w=1080&h=1350`);
+    expect([css.headers.get("Content-Type"), css.headers.get("Cache-Control")]).toEqual([
+      "text/css; charset=utf-8",
+      "public, max-age=3600"
+    ]);
+    expect(await css.text()).toContain(
+      'width: 1080px;\n  height: 1350px;\n  background: url("data:image/svg+xml,%3Csvg '
+    );
+  });
+
   test("CSS takes w and h for the page's box, and style=bands plays the animated SVG inside it", async () => {
     const sized = await (await file(`/${seed}.css?${view}&w=1080&h=1350`)).text();
     expect(sized).toContain(
