@@ -33,6 +33,8 @@ export interface ButtonProps {
   danger?: boolean;
   /** a link that looks like the press */
   href?: string;
+  /** a link's file saved under this name rather than opened: one of the site's own */
+  download?: string;
   /** another site, in a new tab, ending in the external glyph */
   external?: boolean;
   /** a link's relation to its page, for one of the site's own: nofollow where the index keeps it out */
@@ -76,6 +78,7 @@ export function Button(props: ButtonProps) {
         data-danger={flag(props.danger)}
         data-state={props.state}
         href={props.disabled ? undefined : props.href}
+        download={props.download}
         target={props.external ? "_blank" : undefined}
         rel={props.external ? "noopener noreferrer" : props.rel}
         aria-label={props["aria-label"]}

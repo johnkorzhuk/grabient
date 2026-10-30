@@ -39,7 +39,7 @@ import list from "../../app/list.module.css";
 import { OfflineWays } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
-import { relTo } from "../../lib/page-meta.ts";
+import { collectionSheet, relTo, SHEET_SIZE } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { failed } from "../../lib/query.ts";
 import { listWords } from "../../lib/words.ts";
@@ -913,6 +913,36 @@ export function CollectionPage(props: {
                     )}
                   </For>
                 </PaletteGrid>
+                {/* its first palettes as one picture under its cards, which image searches show, and its file */}
+                <Show
+                  when={
+                    !provisional() &&
+                    (turning() ?? current().visibility) === "public" &&
+                    current().items.length > 0
+                  }
+                >
+                  <figure class={styles.sheet}>
+                    <img
+                      class={styles.sheetPicture}
+                      src={collectionSheet(current().slug, current().updatedAt)}
+                      alt={t("{title}: a collection of color palettes", { title: current().title })}
+                      width={SHEET_SIZE.width}
+                      height={SHEET_SIZE.height}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <figcaption>
+                      <Button
+                        size="sm"
+                        href={collectionSheet(current().slug, current().updatedAt)}
+                        download={`${current().slug.split("/").pop()}.png`}
+                        disabled={offline()}
+                      >
+                        <Icon name="download" size={13} /> {t("Download PNG")}
+                      </Button>
+                    </figcaption>
+                  </figure>
+                </Show>
               </div>
             </>
           )}

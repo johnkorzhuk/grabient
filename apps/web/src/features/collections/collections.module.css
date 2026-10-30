@@ -166,6 +166,22 @@
   .status {
     composes: status from "../../app/list.module.css";
   }
+  /* a collection's sheet under its cards: its first palettes as one picture, on the light paper it is drawn on in either
+     theme, with its download under it */
+  .sheet {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-s4);
+    margin: 0;
+    padding-top: var(--space-s8);
+  }
+  .sheetPicture {
+    display: block;
+    width: min(100%, calc(1.5 * var(--size-card)));
+    height: auto;
+    border-radius: var(--radius-surface);
+  }
   /* a collection's line, under its cards */
   .line {
     display: flex;

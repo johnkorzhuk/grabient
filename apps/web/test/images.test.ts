@@ -1,7 +1,14 @@
+import { run } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import { fileAnswer } from "../src/server/files/palette-files.ts";
-import { cardAnswer, pngAnswer, searchPictureAnswer } from "../src/server/images/answers.ts";
+import {
+  cardAnswer,
+  pngAnswer,
+  searchPictureAnswer,
+  seedPngAnswer
+} from "../src/server/images/answers.ts";
 import golden from "../src/server/images/fixtures/pictures.json" with { type: "json" };
 import { get, testEnv, unique, watchLimits } from "./helpers.ts";
 import { decodePng, pixelHash } from "./png.ts";
@@ -33,6 +40,62 @@ const fresh = () =>
 
 afterEach(async () => {
   await testEnv().DB.prepare("DELETE FROM k_flags").run();
+});
+
+describe("a collection's sheet", () => {
+  /** A collection of Grabient's holding two palettes, at an address of its own. */
+  async function stocked(env: Env, visibility: "public" | "private") {
+    const id = unique("sheet");
+    const slug = id.toLowerCase();
+    await run(
+      env.DB,
+      `INSERT INTO k_collections (id, slug, owner_kind, owner_id, title, visibility, item_count, created_at, updated_at)
+       VALUES (?, ?, 'agent', 'grabient', 'Sheet', ?, 2, 1, 1)`,
+      id,
+      slug,
+      visibility
+    );
+    await run(
+      env.DB,
+      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
+       VALUES (?, 0, ?, 'linearGradient', 7, 90, 1), (?, 1, ?, 'radialSwatches', 5, 90, 1)`,
+      id,
+      SEED,
+      id,
+      golden.graySeed
+    );
+    return slug;
+  }
+
+  it("is drawn at the collection's address plus .png, kept in R2, and read from there whatever its t", async () => {
+    const env = testEnv();
+    const slug = await stocked(env, "public");
+    const first = isolate(env);
+    const answer = await seedPngAnswer(get(`/${slug}.png?t=1`), first.env, first.keep);
+    expect([
+      answer.status,
+      answer.headers.get("Content-Type"),
+      answer.headers.get("X-Cache")
+    ]).toEqual([200, "image/png", "MISS"]);
+    const sheet = await decodePng(new Uint8Array(await answer.arrayBuffer()));
+    expect([sheet.width, sheet.height]).toEqual([1200, 1200]);
+    await first.settled();
+    const again = isolate(env);
+    const read = await seedPngAnswer(get(`/${slug}.png?t=2`), again.env, again.keep);
+    expect([read.status, read.headers.get("X-Cache")]).toEqual([200, "HIT"]);
+  });
+
+  it("is no file for a private collection, nor where no collection lives", async () => {
+    const env = testEnv();
+    const slug = await stocked(env, "private");
+    const { env: bound, keep } = isolate(env);
+    expect((await seedPngAnswer(get(`/${slug}.png`), bound, keep)).status).toBe(404);
+    expect((await seedPngAnswer(get("/no-collection-lives-here.png"), bound, keep)).status).toBe(
+      404
+    );
+    // a palette's address is still its picture
+    expect((await seedPngAnswer(get(`/${SEED}.png?${fresh()}`), bound, keep)).status).toBe(200);
+  });
 });
 
 describe("a share card", () => {

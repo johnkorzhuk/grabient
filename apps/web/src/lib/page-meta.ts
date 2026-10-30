@@ -45,6 +45,8 @@ export const DESCRIPTION_MAX = 160;
 export const CARD_VERSION = "k4";
 /** A share card's size, and a palette's own picture's where its address names none. */
 export const CARD_SIZE = { width: 1200, height: 630 } as const;
+/** A collection's sheet, square as image searches show palettes (server/images/montages.ts). */
+export const SHEET_SIZE = { width: 1200, height: 1200 } as const;
 /** The palette of the site's own card: what a share card shows when its address names none. */
 export const DEFAULT_SEED = "kS7Q8Yy5S_SChv0";
 /** Grabient's code. */
@@ -608,6 +610,14 @@ export const collectionCard = (
     updatedAt
   );
 
+/** One collection's sheet: its first palettes as rows with their hex codes, which its page shows under its cards and
+    the sitemap and its structured data name for image searches; by when it changed, as its card is. A path unless an
+    origin is given. */
+export const collectionSheet = (slug: string, updatedAt?: number, origin?: string) => {
+  const path = `/${slug}.png${updatedAt ? `?t=${updatedAt}` : ""}`;
+  return origin ? new URL(path, origin).toString() : path;
+};
+
 const SCHEMA = "https://schema.org";
 /** The site, as a page that is part of it names it: by the one WebSite every page describes. */
 const website = (origin: string) => ({ "@id": `${absolute("/", origin)}#website` });
@@ -903,6 +913,8 @@ function collectionPage(
   );
   return {
     ...(c.tags.length ? { keywords: c.tags.join(", ") } : {}),
+    /* the page's own picture of its palettes is its image; the share card stays its link's preview */
+    ...(c.count > 0 ? { image: collectionSheet(page.slug, c.updatedAt, origin) } : {}),
     ...(iso(c.createdAt) ? { datePublished: iso(c.createdAt) } : {}),
     ...(iso(c.updatedAt) ? { dateModified: iso(c.updatedAt) } : {})
   };

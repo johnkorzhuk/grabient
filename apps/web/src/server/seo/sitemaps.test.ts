@@ -42,7 +42,7 @@ describe("the sitemaps, as grabient.com serves them", () => {
     );
   });
 
-  test("a collection is listed once, with the day it last changed and its card, then in each language it reads in", () => {
+  test("a collection is listed once, with the day it last changed and its sheet, then in each language it reads in with the same sheet", () => {
     const ocean = {
       slug: "ocean-gradients",
       updatedAt: 1_760_000_000_000,

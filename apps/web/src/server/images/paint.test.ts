@@ -9,7 +9,15 @@ import { ABOUT_CARDS } from "../../lib/page-meta.ts";
 import { emailHead } from "./cards.ts";
 import golden from "./fixtures/pictures.json" with { type: "json" };
 import { HEX_SIZES } from "./hex-glyphs.data.ts";
-import { drawCard, drawPicture, drawWedges, keyframeColors, lookOf, wedgeStart } from "./paint.ts";
+import {
+  drawCard,
+  drawPicture,
+  drawSheet,
+  drawWedges,
+  keyframeColors,
+  lookOf,
+  wedgeStart
+} from "./paint.ts";
 
 const { defaultSeed, graySeed, eightSeed } = golden;
 const palette = (seed: string) => {
@@ -185,6 +193,43 @@ describe("a picture of several palettes", () => {
       const middle = wedgeStart(n, 1200, 630) + Math.PI / n;
       expect(middle).toBeCloseTo(Math.atan2(32 + 286 / 2 - 600, 315 - (32 + 97) / 2), 12);
     }
+  });
+});
+
+describe("a sheet of several palettes", () => {
+  const views: Partial<View>[] = [
+    { style: "linearGradient", steps: 32 },
+    { style: "radialSwatches", steps: 6 },
+    {},
+    { style: "angularGradient", steps: 9, angle: 30 },
+    { style: "linearSwatches", steps: 12 },
+    { style: "radialGradient", steps: 100 },
+    { style: "angularSwatches", steps: 5 },
+    { style: "linearGradient", steps: 3, angle: 180 }
+  ];
+  const seeds = [defaultSeed, graySeed, eightSeed];
+  const rows = views.map((view, i) => ({
+    look: look(seeds[i % 3], view),
+    chips: keyframeColors(palette(seeds[i % 3]))
+  }));
+
+  test.each([1, 3, 8])(
+    "of %i is a row to each under the wordmark, its look left to right over a chip to each keyframe",
+    async n => {
+      await matches(`sheet of ${n}`, await drawSheet(rows.slice(0, n), 1200, 1200));
+    }
+  );
+
+  test("stands on the paper, its rows' corners rounded into it, each chip its keyframe's color beside its hex", async () => {
+    const sheet = await decodePng(await drawSheet(rows, 1200, 1200));
+    const paper = [250, 249, 247];
+    // the first row starts under the wordmark's bar (88 + 9) and the margin, 46 pixels of chips at its foot
+    expect([at(sheet, 0, 0), at(sheet, 1199, 1199), at(sheet, 32, 129)]).toEqual([
+      paper,
+      paper,
+      paper
+    ]);
+    expect(at(sheet, 37, 195)).toEqual(keyframeColors(palette(defaultSeed))[0].map(Math.round));
   });
 });
 
