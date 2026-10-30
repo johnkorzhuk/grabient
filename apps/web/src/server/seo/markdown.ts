@@ -5,7 +5,12 @@ import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
 import type { Namer } from "@grabient/engine/precise-names.ts";
 import { drawnView, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
 import { PAGE, TEXT } from "../../lib/cache.ts";
-import { collectionCard, type PaletteView, paletteAddress } from "../../lib/page-meta.ts";
+import {
+  collectionCard,
+  collectionSheet,
+  type PaletteView,
+  paletteAddress
+} from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { addressParams, viewAt } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
@@ -78,7 +83,9 @@ export function collectionMarkdown(doc: CollectionWords, origin: string): string
   });
   return `# ${plain(doc.title)}
 
-${doc.description ? `${plain(doc.description)}\n\n` : ""}- Page: ${base}/${doc.slug}
+${doc.description ? `${plain(doc.description)}\n\n` : ""}![${plain(doc.title)}: a collection of color palettes](${collectionSheet(doc.slug, doc.updatedAt, origin)})
+
+- Page: ${base}/${doc.slug}
 - Palettes: ${doc.itemCount}
 ${color ? `- Color: ${[color.hex, color.rgb, color.hsl, color.oklch].map(code => `\`${code}\``).join(" ")}\n` : ""}${doc.tags.length ? `- Tags: ${doc.tags.map(plain).join(", ")}\n` : ""}- Collected by: ${plain(doc.owner)}
 - Updated: ${isoDay(doc.updatedAt) ?? ""}
@@ -94,6 +101,7 @@ ${rows.join("\n")}
 - [GPL](${base}/${doc.slug}.gpl)
 - [GRD](${base}/${doc.slug}.grd)
 - [Design tokens](${base}/${doc.slug}.tokens.json)
+- [Sheet](${collectionSheet(doc.slug, doc.updatedAt, origin)})
 - [Image](${base}/api/png/collection?slug=${encodeURIComponent(doc.slug)})
 - [Social card](${collectionCard(doc.slug, origin)})
 - [More collections](${base}/collections)

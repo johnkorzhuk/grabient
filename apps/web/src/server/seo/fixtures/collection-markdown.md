@@ -2,6 +2,8 @@
 
 Bright yellow, orange, coral, pink, cyan, blue, violet, lime, and green sweep through vivid midtones and luminous highlights.
 
+![Bright gradients: a collection of color palettes](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.png?t=1790892165883)
+
 - Page: https://grabient-lite.jkorzhuk.workers.dev/bright-gradients
 - Palettes: 30
 - Tags: bright gradients, yellow, pink, cyan, blue, green, violet, vibrant
@@ -48,6 +50,7 @@ Bright yellow, orange, coral, pink, cyan, blue, violet, lime, and green sweep th
 - [GPL](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.gpl)
 - [GRD](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.grd)
 - [Design tokens](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.tokens.json)
+- [Sheet](https://grabient-lite.jkorzhuk.workers.dev/bright-gradients.png?t=1790892165883)
 - [Image](https://grabient-lite.jkorzhuk.workers.dev/api/png/collection?slug=bright-gradients)
 - [Social card](https://grabient-lite.jkorzhuk.workers.dev/api/og/collection?slug=bright-gradients&v=k4)
 - [More collections](https://grabient-lite.jkorzhuk.workers.dev/collections)

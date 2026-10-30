@@ -55,7 +55,7 @@ const reads = (found: Partial<MarkdownReads> = {}): MarkdownReads => ({
 const get = (path: string) => new Request(`https://grabient.com${path}`);
 
 describe("a collection as Markdown", () => {
-  test("is the file grabient-lite served, byte for byte", () => {
+  test("is the file grabient-lite served, byte for byte, with its sheet under its words and among its forms", () => {
     const doc = brightGradients();
     expect(doc.items).toHaveLength(30);
     // some titles are the palettes' own names, which the file writes from their colors
@@ -100,10 +100,12 @@ describe("a collection as Markdown", () => {
       },
       files.origin
     );
-    expect(text.split("\n").slice(0, 9)).toEqual([
+    expect(text.split("\n").slice(0, 11)).toEqual([
       "# Ocean gradients",
       "",
       "Blues and \\*greens\\* of the sea",
+      "",
+      `![Ocean gradients: a collection of color palettes](${files.origin}/@ada/ocean-gradients.png?t=${Date.parse("2026-10-01T12:00:00Z")})`,
       "",
       `- Page: ${files.origin}/@ada/ocean-gradients`,
       "- Palettes: 2",
