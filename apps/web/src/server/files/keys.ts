@@ -25,7 +25,7 @@ export interface FileKey {
 /** A palette or a collection under another extension, the shortest name that leaves one: /{seed}.tokens.json is a
     seed's design tokens. */
 export const FILE_PATH =
-  /^\/([^/]+?|@[a-z0-9_-]{3,30}\/[a-z0-9-]+)\.(png|svg|css|json|md|ase|gpl|grd|tokens\.json)$/;
+  /^\/([^/]+?|@[a-z0-9_-]{3,30}\/[a-z0-9-]+)\.(png|svg|css|js|json|md|ase|gpl|grd|tokens\.json)$/;
 /** Where the build once wrote palettes' cards as files: the card, which the Worker now draws. */
 const OLD_CARD = /^\/og\/[^/]+\/[^/]+\.png$/;
 const SEARCH_PICTURES = new Set(["/api/og/query", "/api/png/query"]);
@@ -141,6 +141,14 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     const size = sizeParam(svgSize(params));
     const query = new URLSearchParams(bandsSearch(bands, size ? [`size=${size}`] : []));
     return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
+  }
+  // the blob's embed: one script for every palette, kept for a build under the palette and the blob's options
+  if (file.format === "js") {
+    return {
+      path: `/${seed}.js`,
+      query: new URLSearchParams(blobSearch(parseBlob(params)).slice(1)),
+      acrossBuilds: false
+    };
   }
   /* the animated blob: as SVG or CSS its loop and size, kept for one build; its first frame and its card their size
      alone, since no loop moves the first frame */

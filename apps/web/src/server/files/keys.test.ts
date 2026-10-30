@@ -121,6 +121,12 @@ test("the animated blob is kept under its speed, options and size, its first fra
   });
 });
 
+test("the blob's embed is kept under the palette and the blob's options alone", () => {
+  expect(written("/kS7Q8Yy5S_SChv0.js?style=blob&fill=1&steps=9&junk=1&w=800")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.js?fill=1&style=blob"
+  );
+});
+
 test("the animated SVG's card and still frame are kept under their animation and size", () => {
   expect(written("/api/og?seed=kS7Q8Yy5S_SChv0&style=bands&bands=8&steps=3")).toEqual({
     key: "/api/og?bands=9&h=630&seed=kS7Q8Yy5S_SChv0&style=bands&w=1200",
