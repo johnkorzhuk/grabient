@@ -1,3 +1,5 @@
+import { decodePalette } from "@grabient/engine";
+import type { BlobView } from "@grabient/engine/blob.ts";
 import { type ContrastMeasures, contrastPicture, contrastSvg } from "@grabient/engine/contrast.ts";
 import { cssBlock } from "@grabient/engine/css.ts";
 import type { Stop } from "@grabient/engine/curve.ts";
@@ -38,6 +40,8 @@ export interface Taken {
   size: SizeChoice | null;
   pixels: Size;
   stops: readonly Stop[];
+  /** the animated blob the picture plays, whose files a copy or a download takes in place of the gradient's */
+  blob?: BlobView | null;
 }
 
 /** The reason a copy of a picture fails where the browser has no image clipboard. */
@@ -48,10 +52,33 @@ const view = (p: Taken) => ({ style: p.style, steps: p.steps, angle: p.angle });
 /* the palette's address as people share it: no language, no locks, no selection */
 const pageUrl = (p: Taken) =>
   origin() + seedAddress({ seed: p.seed, view: { ...view(p), size: p.size } });
-const svgText = (p: Taken) => artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels);
+/* the blob's drawing, loaded with its first file: the editor's first load carries none of it */
+const blobFiles = () => import("@grabient/engine/blob.ts");
+/* the blob's SVG at the pixels taken, moving or as its first frame alone (what a PNG of it holds) */
+const blobText = async (p: Taken, blob: BlobView, still = false) =>
+  (await blobFiles()).blobSvg(
+    decodePalette(p.seed)!,
+    { ...blob, still },
+    p.pixels,
+    `${origin()}/${p.seed}`
+  );
+const svgText = async (p: Taken) =>
+  p.blob ? blobText(p, p.blob) : artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels);
+const pngSvg = async (p: Taken) => (p.blob ? blobText(p, p.blob, true) : svgText(p));
 /* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
-const fileUrl = (p: Taken, f: Format) =>
-  fileAddress({ seed: p.seed, ...view(p) }, f, sizeParam(p.size) ? p.pixels : undefined);
+const fileUrl = async (p: Taken, f: Format) => {
+  const sized = sizeParam(p.size) ? p.pixels : undefined;
+  if (p.blob && (f === "svg" || f === "png" || f === "css"))
+    return `${origin()}/${p.seed}.${f}${(await blobFiles()).blobSearch(p.blob, sized ? [`w=${sized.width}`, `h=${sized.height}`] : [])}`;
+  return fileAddress({ seed: p.seed, ...view(p) }, f, sized);
+};
+const blobCssText = async (p: Taken, blob: BlobView) =>
+  (await blobFiles()).blobCss(
+    decodePalette(p.seed)!,
+    blob,
+    sizeParam(p.size) ? p.pixels : null,
+    `${origin()}/${p.seed}`
+  );
 
 async function writeImage(png: Promise<Blob>): Promise<void> {
   if (!(await copyImage(png))) throw new Error(NO_IMAGE_CLIPBOARD);
@@ -61,31 +88,38 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
 export async function copyFormat(f: Format, p: Taken): Promise<void> {
   if (isSwatchFormat(f))
     return copySwatches(names => swatchFile(f, [swatchesOf({ seed: p.seed, ...view(p) }, names)]));
-  if (f === "png") return writeImage(svgToPngBlob(svgText(p), 1));
+  if (f === "png") return writeImage(pngSvg(p).then(svg => svgToPngBlob(svg, 1)));
   return writeText(
     f === "css"
-      ? cssBlock(p.stops, p.style, p.angle, colorFormat())
+      ? p.blob
+        ? await blobCssText(p, p.blob)
+        : cssBlock(p.stops, p.style, p.angle, colorFormat())
       : f === "svg"
-        ? svgText(p)
+        ? await svgText(p)
         : pageUrl(p)
   );
 }
 
 /** The format to a file. */
 export async function saveFormat(f: Format, p: Taken): Promise<void> {
-  const name = `grabient-${p.seed}`;
+  const name = `grabient-${p.seed}${p.blob ? "-blob" : ""}`;
+  if (p.blob && f === "css")
+    return downloadFile(
+      `${name}.css`,
+      new Blob([await blobCssText(p, p.blob)], { type: "text/css;charset=utf-8" })
+    );
   if (f === "md" || f === "css" || isSwatchFormat(f))
     return saveFile({ seed: p.seed, ...view(p) }, f);
   if (f === "svg")
     return downloadFile(
       `${name}.svg`,
-      new Blob([svgText(p)], { type: "image/svg+xml;charset=utf-8" })
+      new Blob([await svgText(p)], { type: "image/svg+xml;charset=utf-8" })
     );
-  downloadFile(`${name}.png`, await svgToPngBlob(svgText(p), 1));
+  downloadFile(`${name}.png`, await svgToPngBlob(await pngSvg(p), 1));
 }
 
 /** The address of the palette's file onto the clipboard. */
-export const copyLink = (f: Format, p: Taken) => writeText(fileUrl(p, f));
+export const copyLink = async (f: Format, p: Taken) => writeText(await fileUrl(p, f));
 
 /* Which text reads on the palette's colors, as a picture of its own, the reader's own text colors among its rows: an
    SVG whose samples are text, and a PNG drawn in the page's face at twice its size. */

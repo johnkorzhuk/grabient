@@ -5,6 +5,8 @@ import {
   ballPlace,
   blobBackdrop,
   blobCss,
+  blobFrame,
+  blobLook,
   blobScene,
   blobSearch,
   blobStill,
@@ -28,7 +30,8 @@ test("an address's animation: speed, depth, fill, frost, shape and ground, each 
     fill: false,
     frost: 1,
     shape: null,
-    bg: null
+    bg: null,
+    still: false
   } satisfies BlobView);
   expect(read("speed=0.05&frost=3").speed).toBe(0.1);
   expect(read("speed=20&frost=3")).toMatchObject({ speed: 10, frost: 2 });
@@ -45,8 +48,9 @@ test("an address's animation: speed, depth, fill, frost, shape and ground, each 
   expect(
     blobSearch(read("bg=101014&shape=7&frost=0.5&fill=1&depth=0&speed=2"), ["size=800x600"])
   ).toBe("?style=blob&speed=2&depth=0&fill=1&frost=0.5&shape=7&bg=101014&size=800x600");
-  // the first frame's query leaves the speed out
-  expect(blobSearch(read("speed=2&fill=1"), [], false)).toBe("?style=blob&fill=1");
+  expect(blobSearch(read("still=1"))).toBe("?style=blob&still=1");
+  // the first frame's query leaves the speed out, and whether it moves
+  expect(blobSearch(read("speed=2&fill=1&still=1"), [], false)).toBe("?style=blob&fill=1");
 });
 
 test("the file: the balls melted and frosted by one filter, moved by CSS alone", () => {
@@ -142,7 +146,32 @@ test("each file's names are its own; each palette, and each shape of it, has blo
   expect(places(P)).not.toEqual(places(other));
   expect(places(P, 7)).not.toEqual(places(P));
   expect(places(P, 7)).toEqual(places(P, 7));
+  // a shape number alone decides the shape: recolored, the blob keeps it
+  expect(places(other, 7)).toEqual(places(P, 7));
   expect(draw("shape=7")).not.toBe(draw());
+});
+
+test("the still frame is the first frame with no motion, which a player takes over from", () => {
+  const still = draw("still=1");
+  expect(still).not.toContain("<style>");
+  expect(still).not.toContain("@keyframes");
+  const circles = (svg: string) => svg.match(/<circle [^>]*>/g);
+  expect(circles(still)).toEqual(circles(draw()));
+  // a player's first frame puts every ball where the file draws it
+  const scene = blobScene(P, BLOB_SIZE);
+  const dots = blobFrame(scene, 0, true);
+  expect(dots).toHaveLength(8);
+  const drawn = [...(circles(draw()) ?? [])].map(c => [
+    Number(/cx="([\d.]+)"/.exec(c)![1]),
+    Number(/cy="([\d.]+)"/.exec(c)![1]),
+    Number(/r="([\d.]+)"/.exec(c)![1])
+  ]);
+  dots.forEach((d, i) => {
+    expect(d.x).toBeCloseTo(drawn[i][0], 1);
+    expect(d.y).toBeCloseTo(drawn[i][1], 1);
+    expect(d.r).toBeCloseTo(drawn[i][2], 1);
+  });
+  expect(blobLook(read(""), BLOB_SIZE, scene)).toMatchObject({ slope: 2.2, scatter: 37.5, pad: 0 });
 });
 
 test("the palette's colors lie across the blob, its darker end on one side", () => {

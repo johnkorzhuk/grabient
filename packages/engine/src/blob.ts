@@ -42,10 +42,12 @@ export interface BlobView {
   fill: boolean;
   /** How much frost: 1 as designed, 0 none, 2 twice. */
   frost: number;
-  /** Another drawing of the same palette's blobs, or null for the palette's own. */
+  /** A shape of its own, the same whatever the colors, or null for the shape the palette's own numbers draw. */
   shape: number | null;
   /** The ground behind the blobs: none, the palette's deep tone, or a color as #rrggbb. */
   bg: "deep" | `#${string}` | null;
+  /** The first frame alone, with no motion: what a page paints before a player takes over. */
+  still: boolean;
 }
 
 export const isBlob = (params: ParamReader) => params.get("style") === BLOB_STYLE;
@@ -57,7 +59,8 @@ const decimal = (raw: string | null, min: number, max: number, otherwise: number
 
 /** The animation an address asks for. A speed or frost that is missing or no number takes the default and one out of
     bounds comes into them; `depth=0` keeps the blob at one depth; `fill=1` fills the box; `shape` takes up to four
-    digits; `bg` takes `deep` or a hex color of three or six digits, with or without its `#`. */
+    digits; `bg` takes `deep` or a hex color of three or six digits, with or without its `#`; `still=1` is the first
+    frame alone. */
 export function parseBlob(params: ParamReader): BlobView {
   const shape = params.get("shape");
   const bg = params.get("bg")?.toLowerCase().replace(/^#/, "") ?? "";
@@ -72,7 +75,8 @@ export function parseBlob(params: ParamReader): BlobView {
     fill: params.get("fill") === "1",
     frost: decimal(params.get("frost"), 0, BLOB_FROST_MAX, 1),
     shape: shape && /^\d{1,4}$/.test(shape) ? Number(shape) : null,
-    bg: bg === "deep" ? "deep" : hex ? `#${hex}` : null
+    bg: bg === "deep" ? "deep" : hex ? `#${hex}` : null,
+    still: params.get("still") === "1"
   };
 }
 
@@ -87,6 +91,7 @@ export function blobSearch(view: BlobView, extra: readonly string[] = [], loop =
     view.frost !== 1 && `frost=${view.frost}`,
     view.shape !== null && `shape=${view.shape}`,
     view.bg && `bg=${view.bg.replace("#", "")}`,
+    loop && view.still && "still=1",
     ...extra
   ].filter(Boolean);
   return `?${parts.join("&")}`;
@@ -271,8 +276,8 @@ function deepTone(P: Palette, flip: boolean): string {
   return contrastOf(mean, lum(deep)) >= contrastOf(mean, lum(pale)) ? deep : pale;
 }
 
-/** The scene a palette draws in a box: its blobs, read from the palette's own numbers and the shape number, and its
-    ground. Alone, the one blob wanders as far as keeps it whole inside the box at every moment of the loop, near or
+/** The scene a palette draws in a box: its blobs, read from the shape number or else the palette's own numbers, and
+    its ground. Alone, the one blob wanders as far as keeps it whole inside the box at every moment of the loop, near or
     far. */
 export function blobScene(
   P: Palette,
@@ -281,7 +286,8 @@ export function blobScene(
 ): BlobScene {
   const { width: W, height: H } = size;
   const S = Math.min(W, H);
-  const own = JSON.stringify(P.anchors) + (view.shape === null ? "" : `/${view.shape}`);
+  /* a shape number alone decides the shape, so recoloring a palette keeps its blobs; without one the palette does */
+  const own = view.shape === null ? JSON.stringify(P.anchors) : `shape/${view.shape}`;
   const rand = dice(hash(own));
   const sign = () => (rand() < 0.5 ? -1 : 1);
   const flip = sampleLCH(P, 0)[0] > sampleLCH(P, 1)[0];
@@ -376,6 +382,38 @@ export function ballPlace(blob: Blob, b: Ball, f: number, depth = true): [number
     blob.y + blob.wander[1].reach * sweepAt(blob.wander[1].laps, f) + y * scale,
     b.r * scale
   ];
+}
+
+/** One ball as a player draws it at a moment: its middle and radius in pixels and its color. */
+export interface BlobDot {
+  x: number;
+  y: number;
+  r: number;
+  color: string;
+}
+/** Every ball of a scene at a share `f` of the loop, in the order the file paints them, with each blob's wander and,
+    given `depth`, its growing and shrinking: what a player draws, frame after frame, from the file's own motion. */
+export function blobFrame(scene: BlobScene, f: number, depth: boolean): BlobDot[] {
+  return scene.blobs.flatMap(blob =>
+    blob.balls.map(b => {
+      const [x, y, r] = ballPlace(blob, b, f, depth);
+      return { x, y, r, color: scene.color(b.at) };
+    })
+  );
+}
+
+/** How a player melts and frosts a scene in a box, in the box's pixels: the melt's blur, the lift of its edge, how far
+    the frost scatters and how much it speckles at what contrast, and how far past the box the melt reads. */
+export function blobLook(view: Pick<BlobView, "frost">, size: Size, scene: BlobScene) {
+  const { scatter, speckle } = frostOf(view.frost);
+  return {
+    melt: MELT * Math.max(...scene.blobs.map(b => b.R)),
+    slope: SLOPE,
+    scatter: scatter * Math.min(size.width, size.height),
+    speckle,
+    contrast: CONTRAST,
+    pad: scene.pad
+  };
 }
 
 /** The frost at a view's frost: how far the noise scatters, as a share of the shorter side, and how much it speckles. */
@@ -511,7 +549,11 @@ export function blobSvg(P: Palette, view: BlobView, size: Size, credit: string):
     .map(([name, between]) => `@keyframes ${id}${name}{${between}}`)
     .join("");
   const comment = `<!-- ${credit.replace(/--/g, "-%2D")} -->`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="${id}">\n${comment}\n<style>${keyframes}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n<defs>${defs}</defs>\n${body}\n</svg>`;
+  /* the still frame carries no motion at all: what it draws is where every motion starts */
+  const style = view.still
+    ? ""
+    : `<style>${keyframes}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="${id}">\n${comment}\n${style}<defs>${defs}</defs>\n${body}\n</svg>`;
 }
 
 /** The animated SVG as CSS that works alone: the page's background plays it, the SVG carried inside as a data URI, on

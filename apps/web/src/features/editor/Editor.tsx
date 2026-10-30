@@ -59,6 +59,8 @@ import {
   selection,
   toggle as toggleSelected
 } from "../selection/selection.ts";
+import { BlobSection } from "./BlobControls.tsx";
+import { type BlobSettings, createBlobSettings } from "./blob.ts";
 import { endBoot } from "./boot.ts";
 import { Actions, AxisRow } from "./Controls.tsx";
 import { Corner, type Panel } from "./Corner.tsx";
@@ -93,6 +95,8 @@ import { createPaletteSave, type PaletteSave } from "./save.ts";
 
 /* a window this low or lower shows nothing of the sheet under the first screen (the styles' own max-height) */
 const LOW = 560;
+/* The blob's drawing and its player come when the reader turns the blob on. */
+const BlobStage = lazy(() => import("./BlobStage.tsx").then(m => ({ default: m.BlobStage })));
 /* The account's collections come with the first palette selected: no page needs them before. */
 const AddToCollection = lazy(() =>
   import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
@@ -264,7 +268,9 @@ export default function Editor(props: { data: PaletteData }) {
   onSettled(loadSelection);
   onSettled(endBoot);
 
-  /* the palette as a copy or a download takes it */
+  /* the blob the picture plays instead of the gradient, where the reader turned it on */
+  const blob = createBlobSettings(e.seed);
+  /* the palette as a copy or a download takes it: the blob's files while the blob plays */
   const taken = (stage: Size): Taken => ({
     seed: e.seed(),
     style: e.style(),
@@ -272,7 +278,8 @@ export default function Editor(props: { data: PaletteData }) {
     angle: e.angle(),
     size: e.size(),
     pixels: resolveSize(e.size(), stage),
-    stops: e.stopsTaken()
+    stops: e.stopsTaken(),
+    blob: blob.on() ? blob.view() : null
   });
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
@@ -342,6 +349,7 @@ export default function Editor(props: { data: PaletteData }) {
         used={used}
         heart={heart}
         chosen={chosen}
+        blob={blob}
       />
       {chosen.screen()}
     </>
@@ -372,6 +380,8 @@ interface PageProps {
   heart: Heart;
   /** the selection's export screen: while it stands the page steps away, kept as it was for Close */
   chosen: ReturnType<typeof createSelectionScreen>;
+  /** the animated blob, while the reader has it play in the picture */
+  blob: BlobSettings;
 }
 
 function Page(props: PageProps) {
@@ -684,40 +694,71 @@ function Stage(
       }}
     >
       <Show
-        when={drawn()}
+        when={!props.blob.on()}
         fallback={
-          <>
-            <Show when={props.file()}>
-              {file => (
-                <FilePicture
-                  class={styles.under}
-                  seed={file().seed}
-                  view={file().view}
-                  alt={file().alt}
+          <Loading>
+            <Show
+              when={drawn()}
+              fallback={
+                <BlobStage
+                  class={styles.paint}
+                  palette={e.shownPalette()}
+                  view={props.blob.view()}
+                />
+              }
+            >
+              {size => (
+                <BlobStage
+                  class={styles.fitted}
+                  style={{
+                    position: "relative",
+                    "--ar": String(size().width / size().height),
+                    "--w": `${size().width}px`
+                  }}
+                  palette={e.shownPalette()}
+                  view={props.blob.view()}
                 />
               )}
             </Show>
-            <div
-              class={styles.paint}
-              role="img"
-              aria-label={t("The gradient")}
-              style={{ background: art() }}
-            />
-          </>
+          </Loading>
         }
       >
-        {size => (
-          <div
-            class={styles.fitted}
-            role="img"
-            aria-label={t("The gradient")}
-            style={{
-              "--ar": String(size().width / size().height),
-              "--w": `${size().width}px`,
-              background: art()
-            }}
-          />
-        )}
+        <Show
+          when={drawn()}
+          fallback={
+            <>
+              <Show when={props.file()}>
+                {file => (
+                  <FilePicture
+                    class={styles.under}
+                    seed={file().seed}
+                    view={file().view}
+                    alt={file().alt}
+                  />
+                )}
+              </Show>
+              <div
+                class={styles.paint}
+                role="img"
+                aria-label={t("The gradient")}
+                style={{ background: art() }}
+              />
+            </>
+          }
+        >
+          {size => (
+            <div
+              class={styles.fitted}
+              role="img"
+              aria-label={t("The gradient")}
+              style={{
+                "--ar": String(size().width / size().height),
+                "--w": `${size().width}px`,
+                background: art()
+              }}
+            />
+          )}
+        </Show>
       </Show>
       {/* the name at the picture's foot, on a phone, where the sheet's name row is under the first screen */}
       <p class={styles.caption} dir="auto" aria-hidden="true">
@@ -1090,6 +1131,9 @@ function Side(props: Omit<PageProps, "narrow"> & { narrow: boolean }) {
             </Show>
           </span>
         </div>
+      </div>
+      <div class={styles.section} data-ruled="">
+        <BlobSection blob={props.blob} beside={() => (props.narrow ? undefined : side)} />
       </div>
     </aside>
   );
