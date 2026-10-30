@@ -7,12 +7,16 @@ import { joined } from "@grabient/server/shared-work.ts";
 import { json } from "../../lib/responses.ts";
 import { addressParams, type Saved, viewAt } from "../files/address.ts";
 import { MONTAGE_PALETTES } from "./montage-address.ts";
-import { drawWedges, lookOf } from "./paint.ts";
+import { drawSheet, drawWedges, keyframeColors, lookOf } from "./paint.ts";
 import { answerPicture, drawingPaused, failure, type Keep, type PictureEnv } from "./serve.ts";
-import { CARD, montageSize } from "./size.ts";
+import { CARD, montageSize, SHEET } from "./size.ts";
 
 /* How the wedges are drawn: a new drawing names itself anew, so a card kept in R2 is drawn again */
 const WEDGES = "wedges-smooth";
+/* How a sheet is drawn, named as the wedges are */
+const SHEET_DRAWING = "sheet-1";
+/** The most palettes a sheet shows: its rows. */
+export const SHEET_PALETTES = 8;
 
 export interface MontagePalette extends Saved {
   seed: string;
@@ -127,4 +131,55 @@ export async function montageAnswer(
   const palettes = await montagePalettes(key, read);
   if (!palettes.length) return json({ error: "No palettes found." }, { status: 404 });
   return montagePicture(request, env, palettes, branded, keep);
+}
+
+/** A sheet's answer: refused while drawing is off, as a montage is, else its palettes read once per `key` in this
+    isolate (a collection's share card reads the same) and the first eight drawn as rows, each as it was saved. */
+export async function sheetAnswer(
+  request: Request,
+  env: PictureEnv,
+  key: string,
+  read: () => Promise<MontagePalette[]>,
+  keep: Keep
+): Promise<Response> {
+  const paused = await drawingPaused(request, env, { branded: false });
+  if (paused) return paused;
+  const palettes = await montagePalettes(key, read);
+  const none = new URLSearchParams();
+  const shown = palettes.slice(0, SHEET_PALETTES).flatMap(saved => {
+    const palette = decodePalette(saved.seed);
+    if (!palette) return [];
+    return [
+      { seed: encodePalette(palette), palette, view: viewAt(none, palette.anchors.length, saved) }
+    ];
+  });
+  if (!shown.length) return json({ error: "No palettes found." }, { status: 404 });
+  const { width, height } = SHEET;
+  return answerPicture(
+    request,
+    env,
+    {
+      kind: "sheet",
+      branded: false,
+      kept: true,
+      parts: [
+        SHEET_DRAWING,
+        shown.map(({ seed, view }) => [seed, view.style, view.steps, view.angle]),
+        width,
+        height
+      ],
+      width,
+      height,
+      draw: () =>
+        drawSheet(
+          shown.map(({ palette, view }) => ({
+            look: lookOf(palette, view),
+            chips: keyframeColors(palette)
+          })),
+          width,
+          height
+        )
+    },
+    keep
+  );
 }

@@ -7,7 +7,7 @@ import { flagOff } from "@grabient/server/flags/flags.ts";
 import {
   type Alternate,
   alternatesOf,
-  collectionCard,
+  collectionSheet,
   type PaletteView,
   paletteAddress,
   paletteFile
@@ -139,8 +139,8 @@ const searchEntries = (queries: readonly string[]): Entry[] =>
     .slice(0, MAX_SEARCHES)
     .map(query => ({ path: `/palettes?${new URLSearchParams({ q: query })}` }));
 
-/** Every public collection, the latest change first, with its card, then its page in each other language it reads in,
-    dated by the later of its change and its translation. */
+/** Every public collection, the latest change first, with its sheet, then its page in each other language it reads in
+    with the same sheet, dated by the later of its change and its translation. */
 export const collectionsSitemap = (origin: string, rows: readonly ListedCollection[]): string =>
   urlset(collectionEntries(origin, rows), origin);
 interface ListedCollection {
@@ -154,19 +154,15 @@ function collectionEntries(origin: string, rows: readonly ListedCollection[]): E
   for (const row of rows.slice(0, MAX_COLLECTIONS)) {
     if (seen.has(row.slug)) continue;
     seen.add(row.slug);
+    // its sheet has no words, so every language's page shows the same one
+    const image = collectionSheet(row.slug, row.updatedAt, origin);
     const said = (row.languages ?? []).map(({ locale, updatedAt }) => ({
       path: localizePath(`/${row.slug}`, locale),
-      lastmod: isoDay(Math.max(row.updatedAt, updatedAt))
+      lastmod: isoDay(Math.max(row.updatedAt, updatedAt)),
+      image
     }));
     if (entries.length + 1 + said.length > MAX_URLS) break;
-    entries.push(
-      {
-        path: `/${row.slug}`,
-        lastmod: isoDay(row.updatedAt),
-        image: collectionCard(row.slug, origin, row.updatedAt)
-      },
-      ...said
-    );
+    entries.push({ path: `/${row.slug}`, lastmod: isoDay(row.updatedAt), image }, ...said);
   }
   return entries;
 }

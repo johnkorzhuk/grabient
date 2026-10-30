@@ -2,6 +2,7 @@
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 
 import { MARK_WEEK, markSvg, markWeek, weekMark } from "@grabient/ui/mark.ts";
+import { isCollectionSlug } from "../../features/collections/address.ts";
 import { MAX_COLLECTION_ITEMS } from "../../features/collections/schema.ts";
 import { DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
@@ -21,7 +22,7 @@ import {
   picksKey,
   pictureWords
 } from "./montage-address.ts";
-import { type MontagePalette, montageAnswer } from "./montages.ts";
+import { type MontagePalette, montageAnswer, sheetAnswer } from "./montages.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
 
 const paramsOf = (request: Request) => addressParams(new URL(request.url).searchParams);
@@ -48,14 +49,27 @@ export const cardAnswer = (request: Request, env: PictureEnv, keep: Keep) =>
 export const pngAnswer = (request: Request, env: PictureEnv, keep: Keep) =>
   paletteImage(request, env, keep, paramsOf(request).get("seed") ?? "", false);
 
-/** /{seed}.png: a palette's picture beside its page. */
+/** /{seed}.png: a palette's picture beside its page; /{slug}.png and /@{handle}/{slug}.png, a public collection's
+    sheet beside its page. */
 export const seedPngAnswer = (request: Request, env: PictureEnv, keep: Keep) => {
   const name = fileName(pathOf(request), "png");
   // /random.png: a new random palette's picture
-  return name === RANDOM
-    ? randomFile(request, "png")
-    : paletteImage(request, env, keep, name, false);
+  if (name === RANDOM) return randomFile(request, "png");
+  if (!resolvePalette(name) && isCollectionSlug(name)) {
+    return collectionSheetAnswer(request, env, keep, name);
+  }
+  return paletteImage(request, env, keep, name, false);
 };
+
+/** A public collection's sheet: its first palettes in its page's order, read as its share card reads them. */
+const collectionSheetAnswer = (request: Request, env: PictureEnv, keep: Keep, slug: string) =>
+  sheetAnswer(
+    request,
+    env,
+    `collection:${slug}:popular:`,
+    () => collectionImagePalettes(env, slug, MONTAGE_PALETTES, "popular"),
+    keep
+  );
 
 /** /og/{version}/{seed}.png, where the build once wrote a palette's card as a file: that card at its plain address's
     view, whatever the query says, as the file was. */

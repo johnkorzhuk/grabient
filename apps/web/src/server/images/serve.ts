@@ -2,9 +2,9 @@
    half a second), and any palette can be asked for at any size, so a picture no cache holds is drawn only within
    allowances and only while the `share-images` flag is on, and either refusal fails closed.
 
-   In front of the drawing: the edge cache (the pipeline's), then, for a share card, R2. A card is kept in the UPLOADS
-   bucket under cards/{version}/{key}.png the first time it is drawn, so each card is drawn once for every data center
-   and every deploy until its version changes. A palette's picture, or several palettes' at a size the asker chose,
+   In front of the drawing: the edge cache (the pipeline's), then, for a share card or a collection's sheet, R2. A card
+   is kept in the UPLOADS bucket under cards/{version}/{key}.png the first time it is drawn, so each card is drawn once
+   for every data center and every deploy until its version changes. A palette's picture, or several palettes' at a size the asker chose,
    lives at the edge alone: kept for good, the few asked twice would cost more to store than to draw. A Preview keeps
    nothing: it may draw differently from staging under the same version, and shares staging's bucket. */
 
@@ -26,9 +26,12 @@ export type Keep = (work: Promise<unknown>) => void;
 
 export interface Picture {
   /** What was asked for, as the usage counts say it. */
-  kind: "card" | "png" | "montage";
+  kind: "card" | "png" | "montage" | "sheet";
   /** A share card: kept in R2, and the site's card stands in when it cannot be drawn. */
   branded: boolean;
+  /** Kept in R2 as a card is, with nothing standing in: a collection's sheet, which crawlers ask for at its page's
+      address, so a deploy or a cold data center reads it rather than drawing it again. */
+  kept?: boolean;
   /** A palette's own picture: the address of its SVG in the same view and size, which stands in while drawing is off. */
   svg?: string;
   /** Everything the pixels depend on, in order: the key is their hash, so one picture has one key. */
@@ -143,7 +146,8 @@ export async function answerPicture(
   }
   // A HEAD names the picture without reading a cache or drawing it.
   if (request.method === "HEAD") return new Response(null, { headers });
-  const store = picture.branded && env.DEPLOYMENT !== "preview" ? env.UPLOADS : undefined;
+  const store =
+    (picture.branded || picture.kept) && env.DEPLOYMENT !== "preview" ? env.UPLOADS : undefined;
   const name = `cards/${CARD_VERSION}/${hash}.png`;
   const kept = await store?.get(name).catch(() => null);
   if (kept) {

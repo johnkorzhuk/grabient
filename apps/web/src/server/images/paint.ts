@@ -214,23 +214,25 @@ function paintText(canvas: Canvas, set: Glyphs, text: string, left: number, top:
   }
 }
 
-/* The chips along the card's foot, each with its hex in black or white, at the largest size whose widest hex fits the
-   narrowest chip. */
-async function paintChips(canvas: Canvas, colors: readonly Rgb[], top: number) {
-  const chips = chipsAcross(colors, canvas.width);
+/* Chips across a box, each with its hex in black or white, at the largest size whose widest hex fits the narrowest chip
+   and whose letters fit the box's height. */
+async function paintChips(canvas: Canvas, colors: readonly Rgb[], box: Box) {
+  const chips = chipsAcross(colors, box.width);
   const narrowest = Math.min(...chips.map(chip => chip.width));
   const set = (await glyphSets()).find(
-    s => Math.max(...chips.map(chip => textWidth(s, chip.hex))) + 2 * CHIP_INSET <= narrowest
+    s =>
+      s.height <= box.height &&
+      Math.max(...chips.map(chip => textWidth(s, chip.hex))) + 2 * CHIP_INSET <= narrowest
   );
   for (const chip of chips) {
     const row = new Uint8Array(chip.width * 3);
     for (let x = 0; x < chip.width; x++) row.set(chip.rgb, x * 3);
-    for (let y = top; y < top + CHIP_ROW; y++)
-      canvas.data.set(row, (y * canvas.width + chip.x) * 3);
+    for (let y = box.y; y < box.y + box.height; y++)
+      canvas.data.set(row, (y * canvas.width + box.x + chip.x) * 3);
     if (!set) continue;
     const ink = blackReads(luminance(chip.rgb.map(v => v / 255))) ? [0, 0, 0] : [255, 255, 255];
-    const left = chip.x + Math.round((chip.width - textWidth(set, chip.hex)) / 2);
-    paintText(canvas, set, chip.hex, left, top + Math.round((CHIP_ROW - set.height) / 2), ink);
+    const left = box.x + chip.x + Math.round((chip.width - textWidth(set, chip.hex)) / 2);
+    paintText(canvas, set, chip.hex, left, box.y + Math.round((box.height - set.height) / 2), ink);
   }
 }
 
@@ -257,7 +259,7 @@ export async function drawCard(
   const canvas = canvasOf(width, height);
   const top = chips ? height - CHIP_ROW : height;
   paintLook(canvas, look, { x: 0, y: 0, width, height: top });
-  if (chips) await paintChips(canvas, chips, top);
+  if (chips) await paintChips(canvas, chips, { x: 0, y: top, width, height: CHIP_ROW });
   await paintWordmark(canvas, look.colors);
   return encodePng(width, height, canvas.data);
 }
@@ -272,6 +274,80 @@ export async function drawCardOver(
 ): Promise<Uint8Array<ArrayBuffer>> {
   const canvas: Canvas = { width, data: rgb };
   await paintWordmark(canvas, colors);
+  return encodePng(width, height, canvas.data);
+}
+
+/* A sheet's paper (the light theme's solid paper), the room between its rows, their corners' radius, and the share of
+   a row its chips take. */
+const PAPER: Rgb = [250, 249, 247];
+const ROW_GAP = 24;
+const CORNER = 14;
+const CHIP_SHARE = 0.42;
+
+/** A palette as a sheet's row shows it: its look blended or banded left to right, and its keyframes' colors as chips. */
+export interface SheetRow {
+  look: Look;
+  chips: readonly Rgb[];
+}
+
+/** A look laid left to right: a swatch style as bands, any other as a blend. */
+const across = (look: Look): Look => ({
+  colors: look.colors,
+  style: isSwatchStyle(look.style) ? "linearSwatches" : "linearGradient",
+  angle: 90
+});
+
+/* A box's corners rounded into the paper: each pixel inside a corner's square keeps as much of itself as the circle
+   covers, read by its middle's distance from the circle's center. */
+function roundCorners(canvas: Canvas, box: Box, radius: number) {
+  const corners = [
+    [box.x, box.y, 1, 1],
+    [box.x + box.width - radius, box.y, -1, 1],
+    [box.x, box.y + box.height - radius, 1, -1],
+    [box.x + box.width - radius, box.y + box.height - radius, -1, -1]
+  ] as const;
+  for (const [left, top, sx, sy] of corners) {
+    const cx = sx > 0 ? left + radius : left;
+    const cy = sy > 0 ? top + radius : top;
+    for (let y = top; y < top + radius; y++) {
+      for (let x = left; x < left + radius; x++) {
+        const outside = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) - radius;
+        const share = Math.min(1, Math.max(0, outside + 0.5));
+        if (share) lay(canvas, (y * canvas.width + x) * 3, PAPER, share);
+      }
+    }
+  }
+}
+
+/** Several palettes as a sheet, the picture a collection's page shows of it: on the paper under the wordmark, a row to
+    each, its look running left to right over a chip to each of its keyframes with its hex, as image searches show
+    palettes. The rows share the height under the wordmark's bar; the wordmark's bar runs the first row's colors. */
+export async function drawSheet(
+  rows: readonly SheetRow[],
+  width: number,
+  height: number
+): Promise<Uint8Array<ArrayBuffer>> {
+  const canvas = canvasOf(width, height);
+  const paper = Uint8Array.from(PAPER);
+  for (let at = 0; at < canvas.data.length; at += 3) canvas.data.set(paper, at);
+  const top = BAR.y + BAR.height + MARGIN;
+  const pitch = (height - MARGIN - top + ROW_GAP) / rows.length;
+  const tall = pitch - ROW_GAP;
+  const chipRow = Math.round(Math.min(CHIP_ROW, Math.max(40, tall * CHIP_SHARE)));
+  const inner = width - 2 * MARGIN;
+  for (const [i, row] of rows.entries()) {
+    const y = Math.round(top + i * pitch);
+    const h = Math.round(top + i * pitch + tall) - y;
+    paintLook(canvas, across(row.look), { x: MARGIN, y, width: inner, height: h - chipRow });
+    await paintChips(canvas, row.chips, {
+      x: MARGIN,
+      y: y + h - chipRow,
+      width: inner,
+      height: chipRow
+    });
+    roundCorners(canvas, { x: MARGIN, y, width: inner, height: h }, CORNER);
+  }
+  if (rows.length) await paintWordmark(canvas, rows[0].look.colors);
   return encodePng(width, height, canvas.data);
 }
 

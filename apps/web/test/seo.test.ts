@@ -138,7 +138,7 @@ describe("sitemaps", () => {
     await translate(stale.id, "ja", fingerprint("Ocean, before", ""), 1_760_000_000_000);
     const xml = (await sitemapFile(env, "collections", "https://grabient.com")) ?? "";
     expect(xml).toContain(
-      `<url><loc>https://grabient.com/ja/${current.slug}</loc><lastmod>2025-10-09</lastmod></url>`
+      `<url><loc>https://grabient.com/ja/${current.slug}</loc><lastmod>2025-10-09</lastmod><image:image><image:loc>https://grabient.com/${current.slug}.png?t=1000</image:loc></image:image></url>`
     );
     expect(xml).not.toContain(`/de/${current.slug}`);
     expect(xml).not.toContain(`/ja/${stale.slug}`);

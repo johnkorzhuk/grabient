@@ -54,6 +54,19 @@ test("a collection's card is drawn again once its page names a newer change", ()
   expect(card("junk")).toBe("/api/og/collection?h=630&slug=coastal-gradients&w=1200");
 });
 
+test("a collection's sheet is kept for one build and drawn again once its page names a newer change", () => {
+  const sheet = (query: string) => written(`/ocean-gradients.png${query}`);
+  expect(sheet("?t=1790000000000&w=10&style=radialGradient")).toEqual({
+    key: "/ocean-gradients.png?t=1790000000000",
+    acrossBuilds: false
+  });
+  expect(sheet("?t=1799999999999")?.key).not.toBe(sheet("?t=1790000000000")?.key);
+  expect(sheet("?t=junk")?.key).toBe("/ocean-gradients.png");
+  expect(written("/@ada/my-blues.png?t=5")?.key).toBe("/@ada/my-blues.png?t=5");
+  // a palette's picture reads no t
+  expect(written("/kS7Q8Yy5S_SChv0.png?t=5")?.key).toBe(written("/kS7Q8Yy5S_SChv0.png")?.key);
+});
+
 test("a collection's card keys the palettes it names, however the address spells them", () => {
   const card = (pick: string) => written(`/api/og/collection?slug=between-tides&pick=${pick}`)?.key;
   const named = "kS7Q8Yy5S_SChv0~linearSwatches~3~90,kQAAAAfwA_4";

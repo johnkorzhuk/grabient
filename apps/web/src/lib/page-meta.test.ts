@@ -584,6 +584,32 @@ describe("structured data", () => {
     }
   });
 
+  test("names a collection's sheet as its page's image, while its link preview stays its card", () => {
+    const collection = {
+      title: "Ocean",
+      description: "",
+      tags: [],
+      count: 12,
+      createdAt: 1,
+      updatedAt: 1_790_000_000_000
+    };
+    const items = [{ seed: "kS7Q8Yy5S_SChv0" }];
+    const meta = pageMeta(pageOf("/ocean-gradients", { collection, items }), PRODUCTION_ORIGIN);
+    const list = meta.structuredData.find(data => data["@type"] === "CollectionPage");
+    expect([list?.image, meta.image]).toEqual([
+      "https://grabient.com/ocean-gradients.png?t=1790000000000",
+      "https://grabient.com/api/og/collection?slug=ocean-gradients&v=k4&t=1790000000000"
+    ]);
+    // an empty collection has no sheet: its card stands as its image
+    const empty = pageMeta(
+      pageOf("/ocean-gradients", { collection: { ...collection, count: 0 }, items }),
+      PRODUCTION_ORIGIN
+    );
+    expect(empty.structuredData.find(data => data["@type"] === "CollectionPage")?.image).toBe(
+      empty.image
+    );
+  });
+
   test("names the site a page is part of by its one WebSite", () => {
     current = "ja";
     const meta = pageMeta(

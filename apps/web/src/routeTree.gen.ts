@@ -79,6 +79,7 @@ import { Route as AtChar123handleChar125Char123slugChar125DotgplIndexRouteImport
 import { Route as AtChar123handleChar125Char123slugChar125DotgrdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]grd/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotjsonIndexRouteImport } from './routes/@{$handle}/{$slug}[.]json/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]md/index'
+import { Route as AtChar123handleChar125Char123slugChar125DotpngIndexRouteImport } from './routes/@{$handle}/{$slug}[.]png/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCollectionsIndexRouteImport } from './routes/api/collections/index'
 import { Route as ApiCollectionsSplatRouteImport } from './routes/api/collections/$'
@@ -494,6 +495,12 @@ const AtChar123handleChar125Char123slugChar125DotmdIndexRoute =
     path: '/@{$handle}/{$slug}.md/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AtChar123handleChar125Char123slugChar125DotpngIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotpngIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.png/',
+    path: '/@{$handle}/{$slug}.png/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -797,6 +804,7 @@ export interface FileRoutesByFullPath {
   '/@{$handle}/{$slug}.grd/': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   '/@{$handle}/{$slug}.json/': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  '/@{$handle}/{$slug}.png/': typeof AtChar123handleChar125Char123slugChar125DotpngIndexRoute
   '/api/collections/': typeof ApiCollectionsIndexRoute
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
@@ -909,6 +917,7 @@ export interface FileRoutesByTo {
   '/@{$handle}/{$slug}.grd': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   '/@{$handle}/{$slug}.json': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   '/@{$handle}/{$slug}.md': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  '/@{$handle}/{$slug}.png': typeof AtChar123handleChar125Char123slugChar125DotpngIndexRoute
   '/api/collections': typeof ApiCollectionsIndexRoute
   '/api/og': typeof ApiOgIndexRoute
   '/api/png': typeof ApiPngIndexRoute
@@ -1022,6 +1031,7 @@ export interface FileRoutesById {
   '/@{$handle}/{$slug}.grd/': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   '/@{$handle}/{$slug}.json/': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  '/@{$handle}/{$slug}.png/': typeof AtChar123handleChar125Char123slugChar125DotpngIndexRoute
   '/api/collections/': typeof ApiCollectionsIndexRoute
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
@@ -1136,6 +1146,7 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.grd/'
     | '/@{$handle}/{$slug}.json/'
     | '/@{$handle}/{$slug}.md/'
+    | '/@{$handle}/{$slug}.png/'
     | '/api/collections/'
     | '/api/og/'
     | '/api/png/'
@@ -1248,6 +1259,7 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.grd'
     | '/@{$handle}/{$slug}.json'
     | '/@{$handle}/{$slug}.md'
+    | '/@{$handle}/{$slug}.png'
     | '/api/collections'
     | '/api/og'
     | '/api/png'
@@ -1360,6 +1372,7 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.grd/'
     | '/@{$handle}/{$slug}.json/'
     | '/@{$handle}/{$slug}.md/'
+    | '/@{$handle}/{$slug}.png/'
     | '/api/collections/'
     | '/api/og/'
     | '/api/png/'
@@ -1473,6 +1486,7 @@ export interface RootRouteChildren {
   AtChar123handleChar125Char123slugChar125DotgrdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   AtChar123handleChar125Char123slugChar125DotjsonIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   AtChar123handleChar125Char123slugChar125DotmdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  AtChar123handleChar125Char123slugChar125DotpngIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotpngIndexRoute
   ApiCollectionsIndexRoute: typeof ApiCollectionsIndexRoute
   ApiOgIndexRoute: typeof ApiOgIndexRoute
   ApiPngIndexRoute: typeof ApiPngIndexRoute
@@ -1985,6 +1999,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/@{$handle}/{$slug}.png/': {
+      id: '/@{$handle}/{$slug}.png/'
+      path: '/@{$handle}/{$slug}.png'
+      fullPath: '/@{$handle}/{$slug}.png/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotpngIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -2372,6 +2393,8 @@ const rootRouteChildren: RootRouteChildren = {
     AtChar123handleChar125Char123slugChar125DotjsonIndexRoute,
   AtChar123handleChar125Char123slugChar125DotmdIndexRoute:
     AtChar123handleChar125Char123slugChar125DotmdIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotpngIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotpngIndexRoute,
   ApiCollectionsIndexRoute: ApiCollectionsIndexRoute,
   ApiOgIndexRoute: ApiOgIndexRoute,
   ApiPngIndexRoute: ApiPngIndexRoute,
