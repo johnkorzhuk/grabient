@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { decodePng } from "../../../test/png.ts";
 import { cardAnswer, pngAnswer } from "./answers.ts";
 import keys from "./fixtures/image-keys.json" with { type: "json" };
-import { montageAnswer, montagePicture } from "./montages.ts";
+import { montageAnswer, montagePicture, sheetAnswer } from "./montages.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
 
 const ORIGIN = "https://grabient.test";
@@ -161,6 +161,27 @@ describe("a share card", () => {
     const { env, keep } = world();
     const answer = await cardAnswer(get("/api/og?seed=broken"), env, keep);
     expect([answer.status, await answer.json()]).toEqual([404, { error: "Invalid palette seed." }]);
+  });
+});
+
+describe("a sheet", () => {
+  test("is kept in the folder it is asked for: a collection's in sheets/, a search's with the cards", async () => {
+    for (const folder of ["sheets", "cards"] as const) {
+      const { env, keep, store, settled } = world();
+      const read = async () => [{ seed: SEED }, { seed: GRAY }];
+      const answer = await sheetAnswer(
+        get("/sheet.png"),
+        env,
+        `sheet:${folder}`,
+        read,
+        folder,
+        keep
+      );
+      expect([answer.status, answer.headers.get("X-Cache")]).toEqual([200, "MISS"]);
+      await settled();
+      const hash = answer.headers.get("ETag")?.slice(10, -1);
+      expect([...store.objects.keys()]).toEqual([`${folder}/k4/${hash}.png`]);
+    }
   });
 });
 

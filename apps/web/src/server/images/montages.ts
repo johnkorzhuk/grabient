@@ -9,7 +9,14 @@ import { json } from "../../lib/responses.ts";
 import { addressParams, type Saved, viewAt } from "../files/address.ts";
 import { MONTAGE_PALETTES } from "./montage-address.ts";
 import { drawSheet, drawWedges, keyframeColors, lookOf } from "./paint.ts";
-import { answerPicture, drawingPaused, failure, type Keep, type PictureEnv } from "./serve.ts";
+import {
+  answerPicture,
+  drawingPaused,
+  type Folder,
+  failure,
+  type Keep,
+  type PictureEnv
+} from "./serve.ts";
 import { sheetSvg } from "./sheet-svg.ts";
 import { CARD, montageSize, SHEET } from "./size.ts";
 
@@ -152,12 +159,14 @@ const drawnRow = ({ palette, view }: ReturnType<typeof sheetRows>[number]) => ({
 });
 
 /** A sheet's answer: refused while drawing is off, as a montage is, else its palettes read once per `key` in this
-    isolate (a collection's share card reads the same) and the first eight drawn as rows, each as it was saved. */
+    isolate (a collection's share card reads the same) and the first eight drawn as rows, each as it was saved, and
+    kept in R2 under `folder`. */
 export async function sheetAnswer(
   request: Request,
   env: PictureEnv,
   key: string,
   read: () => Promise<MontagePalette[]>,
+  folder: Folder,
   keep: Keep
 ): Promise<Response> {
   const paused = await drawingPaused(request, env, { branded: false });
@@ -171,7 +180,7 @@ export async function sheetAnswer(
     {
       kind: "sheet",
       branded: false,
-      kept: true,
+      kept: folder,
       parts: [
         SHEET_DRAWING,
         shown.map(({ seed, view }) => [seed, view.style, view.steps, view.angle]),

@@ -67,7 +67,7 @@ describe("a collection's sheet", () => {
     return slug;
   }
 
-  it("is drawn at the collection's address plus .png, kept in R2, and read from there whatever its t", async () => {
+  it("is drawn at the collection's address plus .png, kept in R2 for good, and read from there whatever its t", async () => {
     const env = testEnv();
     const slug = await stocked(env, "public");
     const first = isolate(env);
@@ -80,6 +80,12 @@ describe("a collection's sheet", () => {
     const sheet = await decodePng(new Uint8Array(await answer.arrayBuffer()));
     expect([sheet.width, sheet.height]).toEqual([1200, 1200]);
     await first.settled();
+    // Under sheets/, which the bucket's 30-day rule for cards/ never empties.
+    const hash = answer.headers.get("ETag")?.slice('"image:k4:'.length, -1);
+    expect([
+      !!(await first.env.UPLOADS?.get(`sheets/k4/${hash}.png`)),
+      !!(await first.env.UPLOADS?.get(`cards/k4/${hash}.png`))
+    ]).toEqual([true, false]);
     const again = isolate(env);
     const read = await seedPngAnswer(get(`/${slug}.png?t=2`), again.env, again.keep);
     expect([read.status, read.headers.get("X-Cache")]).toEqual([200, "HIT"]);

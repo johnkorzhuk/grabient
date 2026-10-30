@@ -66,9 +66,9 @@ const collectionSheetKey = (slug: string) => `collection:${slug}:popular:`;
 const collectionFirst = (env: Pick<PictureEnv, "DB">, slug: string) => () =>
   collectionImagePalettes(env, slug, MONTAGE_PALETTES, "popular");
 
-/** A public collection's sheet. */
+/** A public collection's sheet, kept for good: its page shows it. */
 const collectionSheetAnswer = (request: Request, env: PictureEnv, keep: Keep, slug: string) =>
-  sheetAnswer(request, env, collectionSheetKey(slug), collectionFirst(env, slug), keep);
+  sheetAnswer(request, env, collectionSheetKey(slug), collectionFirst(env, slug), "sheets", keep);
 
 /** /{slug}.svg and /@{handle}/{slug}.svg: a public collection's sheet as SVG, titled with the collection's title. */
 export const collectionSheetSvg = (env: Pick<PictureEnv, "DB">, slug: string) =>
@@ -117,7 +117,7 @@ export function searchPictureAnswer(
   const search = searchFirst(request, env);
   if (!search) return json({ error: "Invalid search query." }, { status: 400 });
   if (!branded && SEARCH_SHEET.test(pathOf(request))) {
-    return sheetAnswer(request, env, search.key, search.read, keep);
+    return sheetAnswer(request, env, search.key, search.read, "cards", keep);
   }
   return montageAnswer(request, env, branded, search.key, search.read, keep);
 }
