@@ -96,12 +96,14 @@ ${rows.join("\n")}
 
 ## Other forms
 
-- [JSON](${base}/api/collections/${doc.slug})
+- [JSON](${base}/${doc.slug}.json)
 - [ASE](${base}/${doc.slug}.ase)
 - [GPL](${base}/${doc.slug}.gpl)
 - [GRD](${base}/${doc.slug}.grd)
 - [Design tokens](${base}/${doc.slug}.tokens.json)
 - [Sheet](${collectionSheet(doc.slug, doc.updatedAt, origin)})
+- [Sheet as SVG](${base}/${doc.slug}.svg)
+- [CSS](${base}/${doc.slug}.css)
 - [Image](${base}/api/png/collection?slug=${encodeURIComponent(doc.slug)})
 - [Social card](${collectionCard(doc.slug, origin)})
 - [More collections](${base}/collections)

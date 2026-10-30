@@ -85,6 +85,35 @@ describe("a collection's sheet", () => {
     expect([read.status, read.headers.get("X-Cache")]).toEqual([200, "HIT"]);
   });
 
+  it("is the same rows as SVG at the collection's address plus .svg, titled, and no file for a private one", async () => {
+    const env = testEnv();
+    const slug = await stocked(env, "public");
+    const { env: bound } = isolate(env);
+    const answer = await fileAnswer(get(`/${slug}.svg?t=1`), bound, "svg");
+    const svg = await answer.text();
+    expect([
+      answer.status,
+      answer.headers.get("Content-Type"),
+      answer.headers.get("X-Robots-Tag")
+    ]).toEqual([200, "image/svg+xml; charset=utf-8", "noindex"]);
+    expect(
+      svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200"')
+    ).toBe(true);
+    expect([svg.includes("<title>Sheet</title>"), svg.match(/<clipPath /g)?.length]).toEqual([
+      true,
+      2
+    ]);
+    const hidden = await stocked(env, "private");
+    expect((await fileAnswer(get(`/${hidden}.svg`), bound, "svg")).status).toBe(404);
+  });
+
+  it("is a search's own picture too, which has none to stand in while drawing is off", async () => {
+    const off = isolate();
+    await setFlag(off.env, "share-images", false, unique("admin"));
+    const sheet = await searchPictureAnswer(get("/palettes/red.png"), off.env, off.keep, false);
+    expect([sheet.status, sheet.headers.get(PAUSED)]).toEqual([503, "share-images"]);
+  });
+
   it("is no file for a private collection, nor where no collection lives", async () => {
     const env = testEnv();
     const slug = await stocked(env, "private");

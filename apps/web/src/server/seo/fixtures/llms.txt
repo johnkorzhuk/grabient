@@ -38,7 +38,7 @@ Every palette route takes `style`, `steps` and `angle`.
 
 - [Search as JSON](https://grabient.com/api/search.json?query=sunset&limit=24): words, hex codes or a seed. Pattern: `https://grabient.com/api/search.json?query={query}&limit=24`
 - [Search page](https://grabient.com/palettes?q=sunset): the same search for a person. Pattern: `https://grabient.com/palettes?q={query}`
-- [Search as one image](https://grabient.com/palettes/sunset.png): the nine palettes its page shows first. Pattern: `https://grabient.com/palettes/{query}.png`
+- [Search as one image](https://grabient.com/palettes/sunset.png): its sheet, the first eight palettes its page shows as rows with their hex codes. Pattern: `https://grabient.com/palettes/{query}.png`, or `.svg` for the same sheet as SVG
 - [The home page as JSON](https://grabient.com/api/hot?page=1): the Hot feed, palettes and collections in one, by what was liked lately and what is new
 - [The gallery as JSON](https://grabient.com/api/palettes?sort=popular&page=1&limit=24): the most liked first, or `sort` rising or newest
 
@@ -53,7 +53,9 @@ Every palette route takes `style`, `steps` and `angle`.
 - One collection as GRD, a gradient to each palette: `https://grabient.com/{slug}.grd`
 - One collection as design tokens, a group to each palette: `https://grabient.com/{slug}.tokens.json`
 - One collection as an image, the nine palettes its page shows first: `https://grabient.com/api/png/collection?slug={slug}`, and `https://grabient.com/api/og/collection?slug={slug}` for the card with the wordmark
-- One collection as a sheet, its first eight palettes as rows with their hex codes, the picture its page shows under its cards: `https://grabient.com/{slug}.png`
+- One collection as a sheet, its first eight palettes as rows with their hex codes, the picture its page shows under its cards: `https://grabient.com/{slug}.png`, or `https://grabient.com/{slug}.svg` as SVG
+- One collection as CSS, a class to each palette in its order: `https://grabient.com/{slug}.css`
+- One collection as JSON at its address, each palette as its own JSON writes it: `https://grabient.com/{slug}.json`
 - One collection's page: `https://grabient.com/{slug}`
 
 ## Tools for agents

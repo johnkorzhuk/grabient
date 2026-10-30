@@ -2,12 +2,12 @@
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 
 import { MARK_WEEK, markSvg, markWeek, weekMark } from "@grabient/ui/mark.ts";
-import { isCollectionSlug } from "../../features/collections/address.ts";
+import { isCollectionSlug, slugWords } from "../../features/collections/address.ts";
 import { MAX_COLLECTION_ITEMS } from "../../features/collections/schema.ts";
 import { DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { listWords } from "../../lib/words.ts";
-import { collectionImagePalettes } from "../collections/read.ts";
+import { collectionBySlug, collectionImagePalettes } from "../collections/read.ts";
 import { publicCollections } from "../collections/search.ts";
 import { addressParams, fileName } from "../files/address.ts";
 import { RANDOM, randomFile } from "../files/random.ts";
@@ -22,7 +22,7 @@ import {
   picksKey,
   pictureWords
 } from "./montage-address.ts";
-import { type MontagePalette, montageAnswer, sheetAnswer } from "./montages.ts";
+import { type MontagePalette, montageAnswer, sheetAnswer, sheetSvgAnswer } from "./montages.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
 
 const paramsOf = (request: Request) => addressParams(new URL(request.url).searchParams);
@@ -61,14 +61,21 @@ export const seedPngAnswer = (request: Request, env: PictureEnv, keep: Keep) => 
   return paletteImage(request, env, keep, name, false);
 };
 
-/** A public collection's sheet: its first palettes in its page's order, read as its share card reads them. */
+/* A public collection's first palettes in its page's order, read as its share card reads them, under the card's key. */
+const collectionSheetKey = (slug: string) => `collection:${slug}:popular:`;
+const collectionFirst = (env: Pick<PictureEnv, "DB">, slug: string) => () =>
+  collectionImagePalettes(env, slug, MONTAGE_PALETTES, "popular");
+
+/** A public collection's sheet. */
 const collectionSheetAnswer = (request: Request, env: PictureEnv, keep: Keep, slug: string) =>
-  sheetAnswer(
-    request,
-    env,
-    `collection:${slug}:popular:`,
-    () => collectionImagePalettes(env, slug, MONTAGE_PALETTES, "popular"),
-    keep
+  sheetAnswer(request, env, collectionSheetKey(slug), collectionFirst(env, slug), keep);
+
+/** /{slug}.svg and /@{handle}/{slug}.svg: a public collection's sheet as SVG, titled with the collection's title. */
+export const collectionSheetSvg = (env: Pick<PictureEnv, "DB">, slug: string) =>
+  sheetSvgAnswer(
+    collectionSheetKey(slug),
+    collectionFirst(env, slug),
+    async () => (await collectionBySlug(env, slug))?.title ?? slugWords(slug)
   );
 
 /** /og/{version}/{seed}.png, where the build once wrote a palette's card as a file: that card at its plain address's
@@ -79,30 +86,47 @@ export function oldCardAnswer(request: Request, env: PictureEnv, keep: Keep) {
   return paletteImage(request, env, keep, name, true, new URLSearchParams());
 }
 
-/** /api/og/query, /api/png/query, /palettes/{words}.png and /search/{words}.png: the search's first nine. Newest and
-    Hot read as Popular, which a search's page shows. */
+/* A search's first nine in its page's order, Newest and Hot read as Popular, which a search's page shows; null when its
+   address names no words. */
+function searchFirst(request: Request, env: SearchEnv) {
+  const params = paramsOf(request);
+  const words = pictureWords(pathOf(request), params);
+  if (!words) return null;
+  const { sort, frame = "1w" } = montageOrder(params);
+  const order = sort === "rising" ? "rising" : "popular";
+  return {
+    words,
+    key: `query:${words}:${order}:${frame}`,
+    read: async () =>
+      (await searchLeaders(env, words, MONTAGE_PALETTES, { sort: order, frame, request })).map(
+        item => ({ seed: item.kseed, style: item.style, steps: item.steps, angle: item.angle })
+      )
+  };
+}
+/** A search's own picture beside its page: /palettes/{words}.png or /search/{words}.png, its sheet. */
+const SEARCH_SHEET = /^\/(?:search|palettes)\/.+\.png$/;
+
+/** /api/og/query and /api/png/query: the search's first nine as wedges; /palettes/{words}.png and
+    /search/{words}.png: its sheet, the first eight as rows with their hexes. */
 export function searchPictureAnswer(
   request: Request,
   env: PictureEnv & SearchEnv,
   keep: Keep,
   branded: boolean
 ) {
-  const params = paramsOf(request);
-  const words = pictureWords(pathOf(request), params);
-  if (!words) return json({ error: "Invalid search query." }, { status: 400 });
-  const { sort, frame = "1w" } = montageOrder(params);
-  const order = sort === "rising" ? "rising" : "popular";
-  return montageAnswer(
-    request,
-    env,
-    branded,
-    `query:${words}:${order}:${frame}`,
-    async () =>
-      (await searchLeaders(env, words, MONTAGE_PALETTES, { sort: order, frame, request })).map(
-        item => ({ seed: item.kseed, style: item.style, steps: item.steps, angle: item.angle })
-      ),
-    keep
-  );
+  const search = searchFirst(request, env);
+  if (!search) return json({ error: "Invalid search query." }, { status: 400 });
+  if (!branded && SEARCH_SHEET.test(pathOf(request))) {
+    return sheetAnswer(request, env, search.key, search.read, keep);
+  }
+  return montageAnswer(request, env, branded, search.key, search.read, keep);
+}
+
+/** /palettes/{words}.svg and /search/{words}.svg: a search's sheet as SVG, titled with its words. */
+export function searchSheetSvg(request: Request, env: PictureEnv & SearchEnv) {
+  const search = searchFirst(request, env);
+  if (!search) return json({ error: "Invalid search query." }, { status: 400 });
+  return sheetSvgAnswer(search.key, search.read, async () => search.words);
 }
 
 /** /api/og/list: the gallery's first nine in a list's order, or the home's (Hot). */

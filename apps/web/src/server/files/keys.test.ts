@@ -67,6 +67,28 @@ test("a collection's sheet is kept for one build and drawn again once its page n
   expect(written("/kS7Q8Yy5S_SChv0.png?t=5")?.key).toBe(written("/kS7Q8Yy5S_SChv0.png")?.key);
 });
 
+test("a collection's SVG sheet keys by its change as its PNG does, and its CSS by its colors alone", () => {
+  expect(written("/ocean-gradients.svg?t=1790000000000&w=9")?.key).toBe(
+    "/ocean-gradients.svg?t=1790000000000"
+  );
+  expect(written("/ocean-gradients.css?colors=hex&junk=1")?.key).toBe(
+    "/ocean-gradients.css?colors=hex"
+  );
+  expect(written("/ocean-gradients.css?colors=oklch")?.key).toBe("/ocean-gradients.css");
+  expect(written("/ocean-gradients.json?t=5")?.key).toBe("/ocean-gradients.json");
+});
+
+test("a search's own picture beside its page is its sheet, as PNG or SVG, apart from the search's wedges", () => {
+  expect(written("/palettes/blue.png?w=10&steps=9")).toEqual({
+    key: "/api/sheet/query.png?query=blue",
+    acrossBuilds: false
+  });
+  expect(written("/search/blue.svg?sort=rising")?.key).toBe(
+    "/api/sheet/query.svg?query=blue&sort=rising"
+  );
+  expect(written("/api/png/query?query=blue")?.key).toBe("/api/png/query?h=630&query=blue&w=1200");
+});
+
 test("a collection's card keys the palettes it names, however the address spells them", () => {
   const card = (pick: string) => written(`/api/og/collection?slug=between-tides&pick=${pick}`)?.key;
   const named = "kS7Q8Yy5S_SChv0~linearSwatches~3~90,kQAAAAfwA_4";

@@ -59,8 +59,10 @@ import { Route as OauthSplatRouteImport } from './routes/oauth/$'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
 import { Route as PalettesChar123wordsChar125DotjsonRouteImport } from './routes/palettes/{$words}[.]json'
 import { Route as PalettesChar123wordsChar125DotpngRouteImport } from './routes/palettes/{$words}[.]png'
+import { Route as PalettesChar123wordsChar125DotsvgRouteImport } from './routes/palettes/{$words}[.]svg'
 import { Route as SearchChar123wordsChar125DotjsonRouteImport } from './routes/search/{$words}[.]json'
 import { Route as SearchChar123wordsChar125DotpngRouteImport } from './routes/search/{$words}[.]png'
+import { Route as SearchChar123wordsChar125DotsvgRouteImport } from './routes/search/{$words}[.]svg'
 import { Route as SitemapChar123nameChar125DotxmlIndexRouteImport } from './routes/sitemap-{$name}[.]xml/index'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
 import { Route as Char123keyChar125DottxtIndexRouteImport } from './routes/{$key}[.]txt/index'
@@ -76,11 +78,13 @@ import { Route as Char123seedChar125DotsvgIndexRouteImport } from './routes/{$se
 import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{$handle}/$slug/index'
 import { Route as AtChar123handleChar125SlugRisingRouteImport } from './routes/@{$handle}/$slug/rising'
 import { Route as AtChar123handleChar125Char123slugChar125DotaseIndexRouteImport } from './routes/@{$handle}/{$slug}[.]ase/index'
+import { Route as AtChar123handleChar125Char123slugChar125DotcssIndexRouteImport } from './routes/@{$handle}/{$slug}[.]css/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotgplIndexRouteImport } from './routes/@{$handle}/{$slug}[.]gpl/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotgrdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]grd/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotjsonIndexRouteImport } from './routes/@{$handle}/{$slug}[.]json/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]md/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotpngIndexRouteImport } from './routes/@{$handle}/{$slug}[.]png/index'
+import { Route as AtChar123handleChar125Char123slugChar125DotsvgIndexRouteImport } from './routes/@{$handle}/{$slug}[.]svg/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCollectionsIndexRouteImport } from './routes/api/collections/index'
 import { Route as ApiCollectionsSplatRouteImport } from './routes/api/collections/$'
@@ -376,6 +380,12 @@ const PalettesChar123wordsChar125DotpngRoute =
     path: '/palettes/{$words}.png',
     getParentRoute: () => rootRouteImport,
   } as any)
+const PalettesChar123wordsChar125DotsvgRoute =
+  PalettesChar123wordsChar125DotsvgRouteImport.update({
+    id: '/palettes/{$words}.svg',
+    path: '/palettes/{$words}.svg',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SearchChar123wordsChar125DotjsonRoute =
   SearchChar123wordsChar125DotjsonRouteImport.update({
     id: '/search/{$words}.json',
@@ -386,6 +396,12 @@ const SearchChar123wordsChar125DotpngRoute =
   SearchChar123wordsChar125DotpngRouteImport.update({
     id: '/search/{$words}.png',
     path: '/search/{$words}.png',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SearchChar123wordsChar125DotsvgRoute =
+  SearchChar123wordsChar125DotsvgRouteImport.update({
+    id: '/search/{$words}.svg',
+    path: '/search/{$words}.svg',
     getParentRoute: () => rootRouteImport,
   } as any)
 const SitemapChar123nameChar125DotxmlIndexRoute =
@@ -478,6 +494,12 @@ const AtChar123handleChar125Char123slugChar125DotaseIndexRoute =
     path: '/@{$handle}/{$slug}.ase/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AtChar123handleChar125Char123slugChar125DotcssIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotcssIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.css/',
+    path: '/@{$handle}/{$slug}.css/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AtChar123handleChar125Char123slugChar125DotgplIndexRoute =
   AtChar123handleChar125Char123slugChar125DotgplIndexRouteImport.update({
     id: '/@{$handle}/{$slug}.gpl/',
@@ -506,6 +528,12 @@ const AtChar123handleChar125Char123slugChar125DotpngIndexRoute =
   AtChar123handleChar125Char123slugChar125DotpngIndexRouteImport.update({
     id: '/@{$handle}/{$slug}.png/',
     path: '/@{$handle}/{$slug}.png/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125Char123slugChar125DotsvgIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotsvgIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.svg/',
+    path: '/@{$handle}/{$slug}.svg/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -767,8 +795,10 @@ export interface FileRoutesByFullPath {
   '/palettes/saved': typeof PalettesSavedRoute
   '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/palettes/{$words}.svg': typeof PalettesChar123wordsChar125DotsvgRoute
   '/search/{$words}.json': typeof SearchChar123wordsChar125DotjsonRoute
   '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
+  '/search/{$words}.svg': typeof SearchChar123wordsChar125DotsvgRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/mcp/': typeof McpIndexRoute
@@ -808,11 +838,13 @@ export interface FileRoutesByFullPath {
   '/palettes/{-$order}/{-$frame}': typeof PalettesChar123OrderChar125Char123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
   '/@{$handle}/{$slug}.ase/': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
+  '/@{$handle}/{$slug}.css/': typeof AtChar123handleChar125Char123slugChar125DotcssIndexRoute
   '/@{$handle}/{$slug}.gpl/': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
   '/@{$handle}/{$slug}.grd/': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   '/@{$handle}/{$slug}.json/': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/@{$handle}/{$slug}.png/': typeof AtChar123handleChar125Char123slugChar125DotpngIndexRoute
+  '/@{$handle}/{$slug}.svg/': typeof AtChar123handleChar125Char123slugChar125DotsvgIndexRoute
   '/api/collections/': typeof ApiCollectionsIndexRoute
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
@@ -881,8 +913,10 @@ export interface FileRoutesByTo {
   '/palettes/saved': typeof PalettesSavedRoute
   '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/palettes/{$words}.svg': typeof PalettesChar123wordsChar125DotsvgRoute
   '/search/{$words}.json': typeof SearchChar123wordsChar125DotjsonRoute
   '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
+  '/search/{$words}.svg': typeof SearchChar123wordsChar125DotsvgRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id': typeof IdIndexRoute
   '/mcp': typeof McpIndexRoute
@@ -922,11 +956,13 @@ export interface FileRoutesByTo {
   '/palettes/{-$order}/{-$frame}': typeof PalettesChar123OrderChar125Char123FrameChar125Route
   '/@{$handle}/$slug': typeof AtChar123handleChar125SlugIndexRoute
   '/@{$handle}/{$slug}.ase': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
+  '/@{$handle}/{$slug}.css': typeof AtChar123handleChar125Char123slugChar125DotcssIndexRoute
   '/@{$handle}/{$slug}.gpl': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
   '/@{$handle}/{$slug}.grd': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   '/@{$handle}/{$slug}.json': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   '/@{$handle}/{$slug}.md': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/@{$handle}/{$slug}.png': typeof AtChar123handleChar125Char123slugChar125DotpngIndexRoute
+  '/@{$handle}/{$slug}.svg': typeof AtChar123handleChar125Char123slugChar125DotsvgIndexRoute
   '/api/collections': typeof ApiCollectionsIndexRoute
   '/api/og': typeof ApiOgIndexRoute
   '/api/png': typeof ApiPngIndexRoute
@@ -996,8 +1032,10 @@ export interface FileRoutesById {
   '/palettes/saved': typeof PalettesSavedRoute
   '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/palettes/{$words}.svg': typeof PalettesChar123wordsChar125DotsvgRoute
   '/search/{$words}.json': typeof SearchChar123wordsChar125DotjsonRoute
   '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
+  '/search/{$words}.svg': typeof SearchChar123wordsChar125DotsvgRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/mcp/': typeof McpIndexRoute
@@ -1037,11 +1075,13 @@ export interface FileRoutesById {
   '/palettes/{-$order}/{-$frame}': typeof PalettesChar123OrderChar125Char123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
   '/@{$handle}/{$slug}.ase/': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
+  '/@{$handle}/{$slug}.css/': typeof AtChar123handleChar125Char123slugChar125DotcssIndexRoute
   '/@{$handle}/{$slug}.gpl/': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
   '/@{$handle}/{$slug}.grd/': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   '/@{$handle}/{$slug}.json/': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/@{$handle}/{$slug}.png/': typeof AtChar123handleChar125Char123slugChar125DotpngIndexRoute
+  '/@{$handle}/{$slug}.svg/': typeof AtChar123handleChar125Char123slugChar125DotsvgIndexRoute
   '/api/collections/': typeof ApiCollectionsIndexRoute
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
@@ -1112,8 +1152,10 @@ export interface FileRouteTypes {
     | '/palettes/saved'
     | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
+    | '/palettes/{$words}.svg'
     | '/search/{$words}.json'
     | '/search/{$words}.png'
+    | '/search/{$words}.svg'
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/mcp/'
@@ -1153,11 +1195,13 @@ export interface FileRouteTypes {
     | '/palettes/{-$order}/{-$frame}'
     | '/@{$handle}/$slug/'
     | '/@{$handle}/{$slug}.ase/'
+    | '/@{$handle}/{$slug}.css/'
     | '/@{$handle}/{$slug}.gpl/'
     | '/@{$handle}/{$slug}.grd/'
     | '/@{$handle}/{$slug}.json/'
     | '/@{$handle}/{$slug}.md/'
     | '/@{$handle}/{$slug}.png/'
+    | '/@{$handle}/{$slug}.svg/'
     | '/api/collections/'
     | '/api/og/'
     | '/api/png/'
@@ -1226,8 +1270,10 @@ export interface FileRouteTypes {
     | '/palettes/saved'
     | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
+    | '/palettes/{$words}.svg'
     | '/search/{$words}.json'
     | '/search/{$words}.png'
+    | '/search/{$words}.svg'
     | '/unsubscribe/{-$token}'
     | '/$id'
     | '/mcp'
@@ -1267,11 +1313,13 @@ export interface FileRouteTypes {
     | '/palettes/{-$order}/{-$frame}'
     | '/@{$handle}/$slug'
     | '/@{$handle}/{$slug}.ase'
+    | '/@{$handle}/{$slug}.css'
     | '/@{$handle}/{$slug}.gpl'
     | '/@{$handle}/{$slug}.grd'
     | '/@{$handle}/{$slug}.json'
     | '/@{$handle}/{$slug}.md'
     | '/@{$handle}/{$slug}.png'
+    | '/@{$handle}/{$slug}.svg'
     | '/api/collections'
     | '/api/og'
     | '/api/png'
@@ -1340,8 +1388,10 @@ export interface FileRouteTypes {
     | '/palettes/saved'
     | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
+    | '/palettes/{$words}.svg'
     | '/search/{$words}.json'
     | '/search/{$words}.png'
+    | '/search/{$words}.svg'
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/mcp/'
@@ -1381,11 +1431,13 @@ export interface FileRouteTypes {
     | '/palettes/{-$order}/{-$frame}'
     | '/@{$handle}/$slug/'
     | '/@{$handle}/{$slug}.ase/'
+    | '/@{$handle}/{$slug}.css/'
     | '/@{$handle}/{$slug}.gpl/'
     | '/@{$handle}/{$slug}.grd/'
     | '/@{$handle}/{$slug}.json/'
     | '/@{$handle}/{$slug}.md/'
     | '/@{$handle}/{$slug}.png/'
+    | '/@{$handle}/{$slug}.svg/'
     | '/api/collections/'
     | '/api/og/'
     | '/api/png/'
@@ -1455,8 +1507,10 @@ export interface RootRouteChildren {
   PalettesSavedRoute: typeof PalettesSavedRoute
   PalettesChar123wordsChar125DotjsonRoute: typeof PalettesChar123wordsChar125DotjsonRoute
   PalettesChar123wordsChar125DotpngRoute: typeof PalettesChar123wordsChar125DotpngRoute
+  PalettesChar123wordsChar125DotsvgRoute: typeof PalettesChar123wordsChar125DotsvgRoute
   SearchChar123wordsChar125DotjsonRoute: typeof SearchChar123wordsChar125DotjsonRoute
   SearchChar123wordsChar125DotpngRoute: typeof SearchChar123wordsChar125DotpngRoute
+  SearchChar123wordsChar125DotsvgRoute: typeof SearchChar123wordsChar125DotsvgRoute
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
   IdIndexRoute: typeof IdIndexRoute
   McpIndexRoute: typeof McpIndexRoute
@@ -1496,11 +1550,13 @@ export interface RootRouteChildren {
   PalettesChar123OrderChar125Char123FrameChar125Route: typeof PalettesChar123OrderChar125Char123FrameChar125Route
   AtChar123handleChar125SlugIndexRoute: typeof AtChar123handleChar125SlugIndexRoute
   AtChar123handleChar125Char123slugChar125DotaseIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
+  AtChar123handleChar125Char123slugChar125DotcssIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotcssIndexRoute
   AtChar123handleChar125Char123slugChar125DotgplIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
   AtChar123handleChar125Char123slugChar125DotgrdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   AtChar123handleChar125Char123slugChar125DotjsonIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   AtChar123handleChar125Char123slugChar125DotmdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   AtChar123handleChar125Char123slugChar125DotpngIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotpngIndexRoute
+  AtChar123handleChar125Char123slugChar125DotsvgIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotsvgIndexRoute
   ApiCollectionsIndexRoute: typeof ApiCollectionsIndexRoute
   ApiOgIndexRoute: typeof ApiOgIndexRoute
   ApiPngIndexRoute: typeof ApiPngIndexRoute
@@ -1873,6 +1929,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof PalettesChar123wordsChar125DotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/palettes/{$words}.svg': {
+      id: '/palettes/{$words}.svg'
+      path: '/palettes/{$words}.svg'
+      fullPath: '/palettes/{$words}.svg'
+      preLoaderRoute: typeof PalettesChar123wordsChar125DotsvgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search/{$words}.json': {
       id: '/search/{$words}.json'
       path: '/search/{$words}.json'
@@ -1885,6 +1948,13 @@ declare module '@tanstack/solid-router' {
       path: '/search/{$words}.png'
       fullPath: '/search/{$words}.png'
       preLoaderRoute: typeof SearchChar123wordsChar125DotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search/{$words}.svg': {
+      id: '/search/{$words}.svg'
+      path: '/search/{$words}.svg'
+      fullPath: '/search/{$words}.svg'
+      preLoaderRoute: typeof SearchChar123wordsChar125DotsvgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap-{$name}.xml/': {
@@ -1992,6 +2062,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotaseIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/@{$handle}/{$slug}.css/': {
+      id: '/@{$handle}/{$slug}.css/'
+      path: '/@{$handle}/{$slug}.css'
+      fullPath: '/@{$handle}/{$slug}.css/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotcssIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/@{$handle}/{$slug}.gpl/': {
       id: '/@{$handle}/{$slug}.gpl/'
       path: '/@{$handle}/{$slug}.gpl'
@@ -2025,6 +2102,13 @@ declare module '@tanstack/solid-router' {
       path: '/@{$handle}/{$slug}.png'
       fullPath: '/@{$handle}/{$slug}.png/'
       preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotpngIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/{$slug}.svg/': {
+      id: '/@{$handle}/{$slug}.svg/'
+      path: '/@{$handle}/{$slug}.svg'
+      fullPath: '/@{$handle}/{$slug}.svg/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotsvgIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -2361,8 +2445,11 @@ const rootRouteChildren: RootRouteChildren = {
     PalettesChar123wordsChar125DotjsonRoute,
   PalettesChar123wordsChar125DotpngRoute:
     PalettesChar123wordsChar125DotpngRoute,
+  PalettesChar123wordsChar125DotsvgRoute:
+    PalettesChar123wordsChar125DotsvgRoute,
   SearchChar123wordsChar125DotjsonRoute: SearchChar123wordsChar125DotjsonRoute,
   SearchChar123wordsChar125DotpngRoute: SearchChar123wordsChar125DotpngRoute,
+  SearchChar123wordsChar125DotsvgRoute: SearchChar123wordsChar125DotsvgRoute,
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
   IdIndexRoute: IdIndexRoute,
   McpIndexRoute: McpIndexRoute,
@@ -2407,6 +2494,8 @@ const rootRouteChildren: RootRouteChildren = {
   AtChar123handleChar125SlugIndexRoute: AtChar123handleChar125SlugIndexRoute,
   AtChar123handleChar125Char123slugChar125DotaseIndexRoute:
     AtChar123handleChar125Char123slugChar125DotaseIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotcssIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotcssIndexRoute,
   AtChar123handleChar125Char123slugChar125DotgplIndexRoute:
     AtChar123handleChar125Char123slugChar125DotgplIndexRoute,
   AtChar123handleChar125Char123slugChar125DotgrdIndexRoute:
@@ -2417,6 +2506,8 @@ const rootRouteChildren: RootRouteChildren = {
     AtChar123handleChar125Char123slugChar125DotmdIndexRoute,
   AtChar123handleChar125Char123slugChar125DotpngIndexRoute:
     AtChar123handleChar125Char123slugChar125DotpngIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotsvgIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotsvgIndexRoute,
   ApiCollectionsIndexRoute: ApiCollectionsIndexRoute,
   ApiOgIndexRoute: ApiOgIndexRoute,
   ApiPngIndexRoute: ApiPngIndexRoute,

@@ -33,8 +33,9 @@ import { DEFAULT_SIZE, resolveSize, sizeParam } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { ANIMATION, FILE, NO_STORE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
-import { texts, writtenWords } from "../collections/files.ts";
+import { isCollectionSlug, texts, writtenWords } from "../collections/files.ts";
 import { isLinkPreview } from "../crawlers.ts";
+import { collectionSheetSvg } from "../images/answers.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { addressParams, fileName, svgSize, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
@@ -84,12 +85,15 @@ async function paletteFile(
   const origin = publicOrigin(env, request);
   const found = resolvePalette(name);
   if (!found) {
-    // Of these files a collection has the swatch files alone.
-    const swatches = format !== "svg" && format !== "css" && format !== "json";
-    return (
-      (swatches && (await collectionFile(env, name, origin, format))) ||
-      json({ error: "Invalid palette seed." }, { status: 404 })
-    );
+    // a name that is no palette may be a collection's: its sheet as SVG, else the file it is written as
+    const asked = addressParams(new URL(request.url).searchParams);
+    const file =
+      format !== "svg"
+        ? await collectionFile(env, name, origin, format, asked)
+        : isCollectionSlug(name)
+          ? await collectionSheetSvg(env, name)
+          : null;
+    return file ?? json({ error: "Invalid palette seed." }, { status: 404 });
   }
   const { seed, palette } = found;
   const params = addressParams(new URL(request.url).searchParams);

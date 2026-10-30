@@ -169,17 +169,17 @@
   {
    "address": "/palettes/blue.png",
    "status": 404,
-   "key": "/api/png/query?h=630&query=blue&w=1200"
+   "key": "/api/sheet/query.png?query=blue"
   },
   {
    "address": "/search/warm-sunset.png?style=radialGradient",
    "status": 404,
-   "key": "/api/png/query?h=630&query=warm+sunset&style=radialGradient&w=1200"
+   "key": "/api/sheet/query.png?query=warm+sunset"
   },
   {
    "address": "/palettes/rising/blue.png",
    "status": 404,
-   "key": "/api/png/query?h=630&query=rising%2Fblue&w=1200"
+   "key": "/api/sheet/query.png?query=rising%2Fblue"
   },
   {
    "address": "/api/og/list?sort=popular&v=k4&t=123",

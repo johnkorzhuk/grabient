@@ -71,7 +71,7 @@ Every palette route takes \`style\`, \`steps\` and \`angle\`.
 
 - [Search as JSON](${base}/api/search.json?query=sunset&limit=24): words, hex codes or a seed. Pattern: \`${base}/api/search.json?query={query}&limit=24\`
 - [Search page](${base}/palettes?q=sunset): the same search for a person. Pattern: \`${base}/palettes?q={query}\`
-- [Search as one image](${base}/palettes/sunset.png): the nine palettes its page shows first. Pattern: \`${base}/palettes/{query}.png\`
+- [Search as one image](${base}/palettes/sunset.png): its sheet, the first eight palettes its page shows as rows with their hex codes. Pattern: \`${base}/palettes/{query}.png\`, or \`.svg\` for the same sheet as SVG
 - [The home page as JSON](${base}/api/hot?page=1): the Hot feed, palettes and collections in one, by what was liked lately and what is new
 - [The gallery as JSON](${base}/api/palettes?sort=popular&page=1&limit=24): the most liked first, or \`sort\` rising or newest
 
@@ -86,7 +86,9 @@ Every palette route takes \`style\`, \`steps\` and \`angle\`.
 - One collection as GRD, a gradient to each palette: \`${base}/{slug}.grd\`
 - One collection as design tokens, a group to each palette: \`${base}/{slug}.tokens.json\`
 - One collection as an image, the nine palettes its page shows first: \`${base}/api/png/collection?slug={slug}\`, and \`${base}/api/og/collection?slug={slug}\` for the card with the wordmark
-- One collection as a sheet, its first eight palettes as rows with their hex codes, the picture its page shows under its cards: \`${base}/{slug}.png\`
+- One collection as a sheet, its first eight palettes as rows with their hex codes, the picture its page shows under its cards: \`${base}/{slug}.png\`, or \`${base}/{slug}.svg\` as SVG
+- One collection as CSS, a class to each palette in its order: \`${base}/{slug}.css\`
+- One collection as JSON at its address, each palette as its own JSON writes it: \`${base}/{slug}.json\`
 - One collection's page: \`${base}/{slug}\`
 
 ## Tools for agents

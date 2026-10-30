@@ -280,7 +280,7 @@ describe("a palette's file", () => {
   });
 
   test("a name that is no palette and no collection is 404", async () => {
-    for (const address of ["/broken.css", "/Ocean.gpl", "/kAAAAAAAAAAAA.json", "/%E0%A4%A.svg"]) {
+    for (const address of ["/Ocean.gpl", "/kAAAAAAAAAAAA.json", "/%E0%A4%A.svg", "/Broken.css"]) {
       const answer = await file(address);
       expect([address, answer.status, await answer.json()]).toEqual([
         address,
@@ -307,12 +307,70 @@ describe("a collection's file", () => {
   };
 
   test("is 404 where no public collection has the address", async () => {
-    const answer = await file("/ocean-gradients.ase?junk=1");
-    expect([answer.status, await answer.json()]).toEqual([
-      404,
-      { error: "No collection has this address." }
-    ]);
+    for (const address of [
+      "/ocean-gradients.ase?junk=1",
+      "/ocean-gradients.css",
+      "/ocean-gradients.json"
+    ]) {
+      const answer = await file(address);
+      expect([address, answer.status, await answer.json()]).toEqual([
+        address,
+        404,
+        { error: "No collection has this address." }
+      ]);
+    }
     expect(collectionForFiles).toHaveBeenCalledWith(env, "ocean-gradients");
+  });
+
+  test("as CSS gives each palette a class in its order, named by the collection's address", async () => {
+    vi.mocked(collectionForFiles).mockResolvedValue(doc);
+    const css = await file("/ocean-gradients.css");
+    const text = await css.text();
+    expect([
+      css.status,
+      css.headers.get("Content-Type"),
+      css.headers.get("X-Robots-Tag"),
+      css.headers.get("Access-Control-Allow-Origin")
+    ]).toEqual([200, "text/css; charset=utf-8", "noindex", "*"]);
+    expect(text.split("\n").slice(0, 4)).toEqual([
+      `/* Ocean gradients: ${golden.origin}/ocean-gradients`,
+      '   A class to each palette, in the collection\'s order: <div class="ocean-gradients-1"></div> */',
+      ".ocean-gradients-1 {",
+      `  /* Sea [glass]: ${golden.origin}/${seed}?steps=8&angle=45 */`
+    ]);
+    expect(text).toContain("  background: linear-gradient(45deg in oklch, ");
+    expect(text).toContain(".ocean-gradients-2 {");
+    expect(text).toContain("  background: radial-gradient(");
+    // colors=hex writes every stop as the palette's own CSS does
+    const hex = await (await file("/ocean-gradients.css?colors=hex")).text();
+    expect(hex).toContain("  background: linear-gradient(45deg, #");
+  });
+
+  test("as JSON holds its words, its files' addresses and each palette's own JSON, in its order", async () => {
+    vi.mocked(collectionForFiles).mockResolvedValue(doc);
+    const answer = await file("/ocean-gradients.json");
+    const body = (await answer.json()) as {
+      slug: string;
+      count: number;
+      url: string;
+      files: Record<string, string>;
+      palettes: { seed: string; colors: string[] }[];
+    };
+    expect([answer.status, answer.headers.get("X-Robots-Tag")]).toEqual([200, "noindex"]);
+    expect([body.slug, body.count, body.url]).toEqual([
+      "ocean-gradients",
+      2,
+      `${golden.origin}/ocean-gradients`
+    ]);
+    expect([body.files.png, body.files.svg, body.files.css]).toEqual([
+      `${golden.origin}/ocean-gradients.png`,
+      `${golden.origin}/ocean-gradients.svg`,
+      `${golden.origin}/ocean-gradients.css`
+    ]);
+    expect(body.palettes.map(p => [p.seed, p.colors.length])).toEqual([
+      [seed, 8],
+      ["kQAAAAfwA_4", 5]
+    ]);
   });
 
   test("as a swatch file holds every palette in its order, a GIMP palette named for the collection", async () => {
