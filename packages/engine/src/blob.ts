@@ -1,18 +1,26 @@
 /* A palette as an animated SVG blob, after the grainy gradient blobs of poster design: soft balls of the palette's
    colors, a ring of them turning about the middle while each swings on a circle of its own, melted into one amorphous
-   shape by a blur and a lift of its edge, and grained by a fine noise. The noise scatters the melt's pixels before the
-   edge is lifted, so the edge breaks into sprayed dots, and it speckles the surface. The blob wanders a figure eight
-   as far as the box allows. Nothing else is drawn: the background is transparent.
+   shape by a blur and a lift of its edge. The blob wanders a figure eight as far as the box allows, and drifts toward
+   the screen and away from it.
 
-   Plain CSS turns the balls: no script and no SMIL, so the file moves as an <img>, a CSS background and inline markup
+   Depth reads as frost. Far off, the blob is frosted: a fine noise scatters the melt's pixels before the edge is
+   lifted, so the edge breaks into sprayed dots, and speckles its surface. Near, it comes clear: a crisp edge and clean
+   color. A spot of focus that circles over the blob shows the clear drawing inside it and the frosted one outside, and
+   the spot grows as the blob comes near, so a part of the blob comes into focus first and all of it when it is
+   nearest. Filled, three blobs wander the whole box over a deep tone of the palette, each at a depth of its own, to be
+   a page's background. Otherwise nothing else is drawn: the background is transparent.
+
+   Plain CSS moves everything: no script and no SMIL, so the file moves as an <img>, a CSS background and inline markup
    alike, and a reader who asks for less motion sees the first frame held. Every motion makes whole laps in a loop, so
-   the loop closes on itself. The palette's colors lie across the blob, its darker end on one side. Where the balls
-   sit, how far they swing and which way the blob turns are drawn from the palette, so every palette has a blob of its
-   own and keeps it. */
-import { toHex } from "./color.ts";
+   the loop closes on itself. Every shape is written where it stands in the first frame and turns about an origin of
+   its own, with no transform attribute for an optimizer to move onto a moving element, and a renderer without CSS
+   draws that first frame. The palette's colors lie across each blob, its darker end on one side. Where the balls sit,
+   how they swing and turn and when they come near are drawn from the palette, so every palette has blobs of its own
+   and keeps them. */
+import { contrastOf, hexBytes, lchToSrgb, luminance, toHex } from "./color.ts";
 import { pageBox, svgUrl } from "./css.ts";
 import { sampleLCH, sampleSrgb } from "./curve.ts";
-import { clamp } from "./math.ts";
+import { clamp, clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
 import type { ParamReader, Size } from "./view.ts";
 
@@ -21,45 +29,55 @@ export const BLOB_STYLE = "blob";
 export const BLOB_DURATION_MIN = 2;
 export const BLOB_DURATION_MAX = 120;
 export const DEFAULT_BLOB_DURATION = 16;
-/** The picture stretches to any box, the blob keeping its shape. */
+/** The picture fits any box, the blob keeping its shape. */
 export const BLOB_SIZE: Size = { width: 500, height: 500 };
 
 export interface BlobView {
   /** A loop's seconds. */
   duration: number;
+  /** Depth: the blob drifts near and far, clear when near and frosted when far. Without it, frosted and still in depth. */
+  focus: boolean;
+  /** Three blobs over the whole box on a deep tone of the palette, as a background. */
+  fill: boolean;
 }
 
 export const isBlob = (params: ParamReader) => params.get("style") === BLOB_STYLE;
 
 /** The animation an address asks for: a duration that is missing or no number takes the default, and one out of
-    bounds comes into them. */
+    bounds comes into them; `focus=0` keeps the blob frosted at one depth, and `fill=1` fills the box. */
 export function parseBlob(params: ParamReader): BlobView {
   const seconds = params.get("duration");
   return {
     duration:
       seconds && /^\d+(\.\d+)?$/.test(seconds)
         ? clamp(Math.round(Number(seconds) * 100) / 100, BLOB_DURATION_MIN, BLOB_DURATION_MAX)
-        : DEFAULT_BLOB_DURATION
+        : DEFAULT_BLOB_DURATION,
+    focus: params.get("focus") !== "0",
+    fill: params.get("fill") === "1"
   };
 }
 
-/** The animation's query: `style=blob`, then what differs from the default, then `extra`. */
-export function blobSearch(view: BlobView, extra: readonly string[] = []): string {
+/** The animation's query: `style=blob`, then what differs from the defaults in one order, then `extra`. Without the
+    loop, the query of its first frame, which no duration changes. */
+export function blobSearch(view: BlobView, extra: readonly string[] = [], loop = true): string {
   const parts = [
     `style=${BLOB_STYLE}`,
-    view.duration !== DEFAULT_BLOB_DURATION && `duration=${view.duration}`,
+    loop && view.duration !== DEFAULT_BLOB_DURATION && `duration=${view.duration}`,
+    !view.focus && "focus=0",
+    view.fill && "fill=1",
     ...extra
   ].filter(Boolean);
   return `?${parts.join("&")}`;
 }
 
-/* Sizes are in the blob's radius unless said: RADIUS of the box's shorter side. */
-const RADIUS = 0.29;
+/* Sizes are in a blob's radius unless said: RADIUS of the box's shorter side, FILL.radius when filled. */
+const RADIUS = 0.27;
 /** The melt: a blur this wide, then alpha lifted SLOPE times as steeply about its half, so the edge sits where the
-    melt is half and fades over about a tenth of the blob. */
+    melt is half; frosted it fades over about a tenth of the blob, clear over a third of that. */
 const MELT = 0.24;
 const SLOPE = 2.2;
-/** The grain: noise this fine a pixel, which scatters the melt's pixels up to about a third of SCATTER of the shorter
+const CLEAR_SLOPE = 4;
+/** The frost: noise this fine a pixel, which scatters the melt's pixels up to about a third of SCATTER of the shorter
     side, and which moves the surface's colors by up to SPECKLE of themselves at CONTRAST. */
 const FREQUENCY = 0.75;
 const OCTAVES = 2;
@@ -72,14 +90,29 @@ const RING = { count: 6, at: 0.55, r: 0.42, swing: 0.28 };
 const DROP = { at: 0.8, r: 0.34, swing: 0.32 };
 const CORE = { r: 0.6, swing: 0.1 };
 const VARY = 0.2;
-/** How far past its balls the lifted edge and the grain reach: the edge, in radii; the scatter, of the shorter side. */
+/** How far past its balls the lifted edge and the frost reach: the edge, in radii; the scatter, of the shorter side. */
 const FEATHER = 0.1;
 const SPRAY = 0.04;
 /** The farthest the blob wanders, of the shorter side. */
 const WANDER = 0.5;
+/** Depth: the blob's size from far to near, about its size in the first frame, which is midway. */
+const DEPTH = { far: 0.88, near: 1.12 };
+/** The spot of focus: its radius, the share of it that is wholly in focus, how far its middle circles from the blob's,
+    and its size far and near, about its size midway. */
+const SPOT = { r: 0.75, sharp: 0.55, orbit: 0.4, far: 0.3, near: 1.7 };
+/** Filled: three blobs this large, out from the box's middle by a share of its width and height, each wandering
+    `wander` of the box. */
+const FILL = { count: 3, radius: 0.33, out: 0.27, wander: 0.13 };
+/** How many laps of the loop each filled blob's wander makes across and down. */
+const FILL_LAPS: readonly (readonly [number, number])[] = [
+  [1, 2],
+  [2, 1],
+  [1, 3]
+];
 
 /** A number as the file writes it: at most `digits` decimals, no trailing zeros, no zero before the point. */
 const num = (v: number, digits = 2) => String(Number(v.toFixed(digits))).replace(/^(-?)0\./, "$1.");
+const px = (x: number, y: number) => `${num(x)}px ${num(y)}px`;
 
 /* FNV-1a */
 function hash(text: string): number {
@@ -99,7 +132,7 @@ function dice(seed: number) {
 }
 
 interface Ball {
-  /** its place at rest from the blob's middle, in radii */
+  /** its place at rest from its blob's middle, in radii */
   x: number;
   y: number;
   r: number;
@@ -114,20 +147,41 @@ interface Ball {
   ring: boolean;
 }
 
-export interface BlobScene {
-  /** the blob's radius in pixels */
+/** A wander to and fro along one axis: half its width in pixels, and whole laps a loop, its sign the way it starts. */
+interface Sweep {
+  reach: number;
+  laps: number;
+}
+
+export interface Blob {
+  /** its middle at rest, in pixels */
+  x: number;
+  y: number;
+  /** its radius in pixels, midway in depth */
   R: number;
   balls: Ball[];
   spin: number;
-  /** how far the blob wanders left and right, and up and down, in pixels */
-  wander: { x: number; y: number };
+  /** its wander across and down */
+  wander: [Sweep, Sweep];
+  /** its depth: laps a loop, the sign whether it comes near first */
+  depth: number;
+  /** its spot of focus: the turn it starts at about the blob's middle and its laps a loop */
+  spot: { phase: number; laps: number };
+}
+
+export interface BlobScene {
+  blobs: Blob[];
+  /** what a filled box is drawn on, or null */
+  backdrop: string | null;
+  /** how far past the box the melt reads, in pixels: what wanders out of a filled box still melts at its edge */
+  pad: number;
   /** the palette's color at a place on it */
   color: (at: number) => string;
   /** the noise's seed */
   seed: number;
 }
 
-/** A ball's middle at a share `f` of the loop, in radii from the blob's middle. */
+/** A ball's middle at a share `f` of the loop, in radii from its blob's middle. */
 function ballAt(b: Ball, spin: number, f: number): [number, number] {
   const swing = 2 * Math.PI * (b.phase + b.laps * f);
   const x = b.x + b.swing * Math.cos(swing);
@@ -136,21 +190,16 @@ function ballAt(b: Ball, spin: number, f: number): [number, number] {
   const turn = 2 * Math.PI * spin * f;
   return [x * Math.cos(turn) - y * Math.sin(turn), x * Math.sin(turn) + y * Math.cos(turn)];
 }
-/** The wander's shape at a share of the loop, -1 to 1 a side: a sine across the loop, twice as fast up and down. */
-const wanderAt = (f: number): [number, number] => [
-  Math.sin(2 * Math.PI * f),
-  Math.sin(4 * Math.PI * f)
-];
+/** A to-and-fro at a share of the loop, -1 to 1: a sine of its laps, starting from the middle. */
+const sweepAt = (laps: number, f: number) => Math.sin(2 * Math.PI * laps * f);
+/** A blob's size at a share of the loop, as a share of its size midway. */
+const depthAt = (depth: number, f: number) =>
+  1 + ((DEPTH.near - DEPTH.far) / 2) * sweepAt(depth, f);
 
-/** The blob a palette draws in a box: its balls, read from the palette's own numbers, and how far it may wander and
-    stay whole inside the box at every moment of the loop. */
-export function blobScene(P: Palette, size: Size): BlobScene {
-  const { width: W, height: H } = size;
-  const S = Math.min(W, H);
-  const R = RADIUS * S;
-  const rand = dice(hash(JSON.stringify(P.anchors)));
+/** A blob's balls about its middle: six on a ring, a drop among them and a core, the palette across them, drawn from
+    `rand`. */
+function ballsOf(rand: () => number, spin: number): Ball[] {
   const vary = () => 1 - VARY / 2 + VARY * rand();
-  const spin = rand() < 0.5 ? -1 : 1;
   const across = 2 * Math.PI * rand();
   const start = 2 * Math.PI * rand();
   /* the palette's darker end on the side `across` points away from, its lighter end on the side it points to */
@@ -190,7 +239,62 @@ export function blobScene(P: Palette, size: Size): BlobScene {
     phase: rand(),
     ring: false
   });
+  return balls;
+}
 
+/** The scene a palette draws in a box: its blobs, read from the palette's own numbers. Alone, the one blob wanders as
+    far as keeps it whole inside the box at every moment of the loop, near or far. */
+export function blobScene(P: Palette, size: Size, fill = false): BlobScene {
+  const { width: W, height: H } = size;
+  const S = Math.min(W, H);
+  const rand = dice(hash(JSON.stringify(P.anchors)));
+  const sign = () => (rand() < 0.5 ? -1 : 1);
+  const flip = sampleLCH(P, 0)[0] > sampleLCH(P, 1)[0];
+  const color = (at: number) => toHex(sampleSrgb(P, flip ? 1 - at : at));
+  const seed = hash(JSON.stringify(P.anchors)) % 9973;
+
+  if (fill) {
+    const turn = 2 * Math.PI * rand();
+    const blobs = Array.from({ length: FILL.count }, (_, k): Blob => {
+      const spin = sign();
+      const angle = turn + (2 * Math.PI * k) / FILL.count;
+      const [across, down] = FILL_LAPS[k % FILL_LAPS.length];
+      return {
+        x: W / 2 + FILL.out * W * Math.cos(angle),
+        y: H / 2 + FILL.out * H * Math.sin(angle),
+        R: FILL.radius * S * (0.9 + 0.2 * rand()),
+        balls: ballsOf(rand, spin),
+        spin,
+        wander: [
+          { reach: FILL.wander * W, laps: across * sign() },
+          { reach: FILL.wander * H, laps: down * sign() }
+        ],
+        depth: (k % 2 ? 2 : 1) * sign(),
+        spot: { phase: rand(), laps: sign() }
+      };
+    });
+    /* the deep tone: the palette's darker end, darkened and calmed, or its lighter end paled for a dark palette */
+    const [dark, light] = [sampleLCH(P, flip ? 1 : 0), sampleLCH(P, flip ? 0 : 1)];
+    const deep = toHex(lchToSrgb(Math.min(dark[0], 0.19), Math.min(dark[1], 0.05), dark[2]));
+    const pale = toHex(lchToSrgb(Math.max(light[0], 0.94), Math.min(light[1], 0.03), light[2]));
+    const mean =
+      Array.from({ length: 9 }, (_, i) => luminance(sampleSrgb(P, i / 8))).reduce((a, b) => a + b) /
+      9;
+    const lum = (hex: string) => luminance(hexBytes(hex).map(v => v / 255));
+    return {
+      blobs,
+      backdrop: contrastOf(mean, lum(deep)) >= contrastOf(mean, lum(pale)) ? deep : pale,
+      pad: 1.5 * MELT * DEPTH.near * Math.max(...blobs.map(b => b.R)),
+      color,
+      seed
+    };
+  }
+
+  const R = RADIUS * S;
+  const spin = sign();
+  const balls = ballsOf(rand, spin);
+  const depth = sign();
+  const spot = { phase: rand(), laps: sign() };
   /* the wander as wide as keeps every ball, its feather and its spray inside the box at every sampled moment */
   const margin = SPRAY * S;
   let wx = WANDER * S;
@@ -198,30 +302,55 @@ export function blobScene(P: Palette, size: Size): BlobScene {
   const STEPS = 240;
   for (let k = 0; k < STEPS; k++) {
     const f = k / STEPS;
-    const [sx, sy] = wanderAt(f);
+    const [sx, sy] = [sweepAt(1, f), sweepAt(2, f)];
+    const scale = depthAt(depth, f) * R;
     let [left, right, top, bottom] = [0, 0, 0, 0];
     for (const b of balls) {
       const [x, y] = ballAt(b, spin, f);
       const reach = b.r + FEATHER;
-      left = Math.min(left, (x - reach) * R);
-      right = Math.max(right, (x + reach) * R);
-      top = Math.min(top, (y - reach) * R);
-      bottom = Math.max(bottom, (y + reach) * R);
+      left = Math.min(left, (x - reach) * scale);
+      right = Math.max(right, (x + reach) * scale);
+      top = Math.min(top, (y - reach) * scale);
+      bottom = Math.max(bottom, (y + reach) * scale);
     }
     const room = (side: number, toward: number, far: number) =>
       toward > 1e-9 ? (side / 2 - margin - far) / toward : Number.POSITIVE_INFINITY;
     wx = Math.min(wx, room(W, sx, right), room(W, -sx, -left));
     wy = Math.min(wy, room(H, sy, bottom), room(H, -sy, -top));
   }
-  const flip = sampleLCH(P, 0)[0] > sampleLCH(P, 1)[0];
   return {
-    R,
-    balls,
-    spin,
-    wander: { x: Math.max(0, wx * 0.97), y: Math.max(0, wy * 0.97) },
-    color: (at: number) => toHex(sampleSrgb(P, flip ? 1 - at : at)),
-    seed: hash(JSON.stringify(P.anchors)) % 9973
+    blobs: [
+      {
+        x: W / 2,
+        y: H / 2,
+        R,
+        balls,
+        spin,
+        wander: [
+          { reach: Math.max(0, wx * 0.97), laps: 1 },
+          { reach: Math.max(0, wy * 0.97), laps: 2 }
+        ],
+        depth,
+        spot
+      }
+    ],
+    backdrop: null,
+    pad: 0,
+    color,
+    seed
   };
+}
+
+/** Where a blob's ball stands at a share of the loop, in pixels from the box's corner, and its radius there, with the
+    blob's wander and, given `focus`, its depth: what the file draws then. */
+export function ballPlace(blob: Blob, b: Ball, f: number, focus = true): [number, number, number] {
+  const [x, y] = ballAt(b, blob.spin, f);
+  const scale = (focus ? depthAt(blob.depth, f) : 1) * blob.R;
+  return [
+    blob.x + blob.wander[0].reach * sweepAt(blob.wander[0].laps, f) + x * scale,
+    blob.y + blob.wander[1].reach * sweepAt(blob.wander[1].laps, f) + y * scale,
+    b.r * scale
+  ];
 }
 
 /* the file's mark, which keeps its names apart from another such file's in one page */
@@ -231,81 +360,358 @@ const mark = (text: string) => `b${(hash(text) % 36 ** 4).toString(36).padStart(
 export function blobSvg(P: Palette, view: BlobView, size: Size, credit: string): string {
   const { width: W, height: H } = size;
   const S = Math.min(W, H);
-  const scene = blobScene(P, size);
-  const { R } = scene;
+  const scene = blobScene(P, size, view.fill);
   const id = mark(JSON.stringify([P.anchors, view, W, H]));
   const D = view.duration;
+  const ease = "cubic-bezier(.37,0,.63,1)";
 
-  /* one class to each count of laps, which sets its duration and way round */
-  const laps = new Map<number, string>();
-  const lapClass = (n: number) => {
-    let name = laps.get(n);
+  /* one class to each count of laps a turn makes, which sets its duration and way round */
+  const turns = new Map<number, string>();
+  const turnClass = (n: number) => {
+    let name = turns.get(n);
     if (!name) {
-      name = `t${laps.size}`;
-      laps.set(n, name);
+      name = `t${turns.size}`;
+      turns.set(n, name);
     }
     return name;
   };
-  const ball = (b: Ball) =>
-    `<g transform="translate(${num(b.x * R)} ${num(b.y * R)}) rotate(${num(b.phase * 360, 1)})"><g class="s ${lapClass(b.laps)}"><circle cx="${num(b.swing * R)}" r="${num(b.r * R)}" fill="${scene.color(b.at)}"/></g></g>`;
-  const ring = scene.balls
-    .filter(b => b.ring)
-    .map(ball)
-    .join("");
-  const core = scene.balls
-    .filter(b => !b.ring)
-    .map(ball)
-    .join("");
-  const spin = lapClass(scene.spin);
+  /* one class to each to-and-fro, played forward and back from the middle of its first half; keyframes are shared by
+     every to-and-fro between the same two ends */
+  const rules = new Map<string, string>();
+  const frames = new Map<string, string>([["s", "to{transform:rotate(360deg)}"]]);
+  const sweepClass = (between: string, laps: number) => {
+    let keyframes = [...frames].find(([, b]) => b === between)?.[0];
+    if (!keyframes) {
+      keyframes = `k${frames.size}`;
+      frames.set(keyframes, between);
+    }
+    const half = D / (2 * Math.abs(laps));
+    const rule = `animation:${id}${keyframes} ${num(half, 3)}s ${ease} -${num(half / 2, 3)}s infinite alternate${laps < 0 ? "-reverse" : ""}`;
+    let name = rules.get(rule);
+    if (!name) {
+      name = `a${rules.size}`;
+      rules.set(rule, name);
+    }
+    return name;
+  };
+  const wandering = (blob: Blob, inner: string) => {
+    let body = inner;
+    for (const [axis, sweep] of [
+      ["Y", blob.wander[1]],
+      ["X", blob.wander[0]]
+    ] as const) {
+      if (sweep.reach < 0.5) continue;
+      const a = num(sweep.reach);
+      const name = sweepClass(
+        `from{transform:translate${axis}(-${a}px)}to{transform:translate${axis}(${a}px)}`,
+        sweep.laps
+      );
+      body = `<g class="${name}">${body}</g>`;
+    }
+    return body;
+  };
+  const deepening = (blob: Blob, far: number, near: number) =>
+    sweepClass(
+      `from{transform:scale(${num(far, 3)})}to{transform:scale(${num(near, 3)})}`,
+      blob.depth
+    );
 
-  const ease = "cubic-bezier(.37,0,.63,1)";
-  const { x: wx, y: wy } = scene.wander;
-  const wanders = [wx >= 0.5 && ["x", "X", wx, D / 2], wy >= 0.5 && ["y", "Y", wy, D / 4]].filter(
-    w => w !== false
-  ) as [string, string, number, number][];
-  const motion = [
-    `.${id} .s{animation:${id}s 1s linear infinite}`,
-    ...[...laps].map(
-      ([n, name]) =>
-        `.${id} .${name}{animation-duration:${num(D / Math.abs(n), 3)}s${n < 0 ? ";animation-direction:reverse" : ""}}`
-    ),
-    /* half a sweep each way, played forward and back from the middle of the first */
-    ...wanders.map(
-      ([axis, , , half]) =>
-        `.${id} .${axis}{animation:${id}${axis} ${num(half, 3)}s ${ease} -${num(half / 2, 3)}s infinite alternate}`
-    )
-  ].join("");
-  const frames = [
-    `@keyframes ${id}s{to{transform:rotate(360deg)}}`,
-    ...wanders.map(
-      ([axis, Axis, a]) =>
-        `@keyframes ${id}${axis}{from{transform:translate${Axis}(${num(-a)}px)}to{transform:translate${Axis}(${num(a)}px)}}`
-    )
-  ].join("");
-  let body = `<g class="s ${spin}">${ring}</g>${core}`;
-  for (const [axis] of [...wanders].reverse()) body = `<g class="${axis}">${body}</g>`;
+  /* each blob's balls where they stand in the first frame, each swinging about its place at rest, the ring turning
+     about the blob's middle and, in depth, the whole drawing growing and shrinking about it */
+  const balls = scene.blobs
+    .map(blob => {
+      const { R } = blob;
+      const ball = (b: Ball) => {
+        const [hx, hy] = [blob.x + b.x * R, blob.y + b.y * R];
+        const turn = 2 * Math.PI * b.phase;
+        return `<circle class="s ${turnClass(b.laps)}" style="transform-origin:${px(hx, hy)}" cx="${num(hx + b.swing * R * Math.cos(turn))}" cy="${num(hy + b.swing * R * Math.sin(turn))}" r="${num(b.r * R)}" fill="${scene.color(b.at)}"/>`;
+      };
+      const middle = `transform-origin:${px(blob.x, blob.y)}`;
+      const ring = `<g class="s ${turnClass(blob.spin)}" style="${middle}">${blob.balls
+        .filter(b => b.ring)
+        .map(ball)
+        .join("")}</g>${blob.balls
+        .filter(b => !b.ring)
+        .map(ball)
+        .join("")}`;
+      return wandering(
+        blob,
+        view.focus
+          ? `<g class="${deepening(blob, DEPTH.far, DEPTH.near)}" style="${middle}">${ring}</g>`
+          : ring
+      );
+    })
+    .join("");
 
-  /* blur; scatter by the noise's red and green; lift the edge; speckle by its blue, alpha kept */
-  const lift = `0 0 0 ${num(SLOPE, 3)} ${num(0.5 - SLOPE / 2, 3)}`;
+  /* each blob's spot of focus: circling its middle, wandering with it, and growing as it comes near */
+  const spots = (fill: string) =>
+    scene.blobs
+      .map(blob => {
+        const turn = 2 * Math.PI * blob.spot.phase;
+        const [sx, sy] = [
+          blob.x + SPOT.orbit * blob.R * Math.cos(turn),
+          blob.y + SPOT.orbit * blob.R * Math.sin(turn)
+        ];
+        return wandering(
+          blob,
+          `<g class="s ${turnClass(blob.spot.laps)}" style="transform-origin:${px(blob.x, blob.y)}"><circle class="${deepening(blob, SPOT.far, SPOT.near)}" style="transform-origin:${px(sx, sy)}" cx="${num(sx)}" cy="${num(sy)}" r="${num(SPOT.r * blob.R)}" fill="${fill}"/></g>`
+        );
+      })
+      .join("");
+
+  const R = Math.max(...scene.blobs.map(b => b.R));
+  const pad = scene.pad;
+  const region = `x="${num(-pad)}" y="${num(-pad)}" width="${num(W + 2 * pad)}" height="${num(H + 2 * pad)}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"`;
+  const lift = (slope: number) => `0 0 0 ${num(slope, 3)} ${num(0.5 - slope / 2, 3)}`;
   const gray = `0 0 ${num(CONTRAST, 3)} 0 ${num(0.5 - CONTRAST / 2, 3)}`;
-  const filter = [
-    `<filter id="${id}f" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">`,
+  /* frosted: blur; scatter by the noise's red and green; lift the edge; speckle by the noise's blue, alpha kept */
+  const frosted = [
+    `<filter id="${id}f" ${region}>`,
     `<feGaussianBlur stdDeviation="${num(MELT * R)}" result="b"/>`,
     `<feTurbulence type="fractalNoise" baseFrequency="${FREQUENCY}" numOctaves="${OCTAVES}" seed="${scene.seed}" result="n"/>`,
     `<feDisplacementMap in="b" in2="n" scale="${num(SCATTER * S)}" xChannelSelector="R" yChannelSelector="G"/>`,
-    `<feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 ${lift}" result="g"/>`,
+    `<feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 ${lift(SLOPE)}" result="g"/>`,
     `<feColorMatrix in="n" values="${gray} ${gray} ${gray} 0 0 0 0 1"/>`,
     `<feComposite in="g" operator="arithmetic" k1="${num(2 * SPECKLE, 3)}" k2="${num(1 - SPECKLE, 3)}"/>`,
     "</filter>"
   ].join("");
+  /* clear: blur, and a steeper lift */
+  const clear = `<filter id="${id}c" ${region}><feGaussianBlur stdDeviation="${num(MELT * R)}"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 ${lift(CLEAR_SLOPE)}"/></filter>`;
+
+  const base = scene.backdrop ? `<rect width="${W}" height="${H}" fill="${scene.backdrop}"/>` : "";
+  let defs = frosted;
+  let body: string;
+  if (view.focus) {
+    /* the two drawings added, each masked by its share of the spots, so they cross-fade without losing alpha */
+    const stops = (ink: string) =>
+      `<stop offset="${SPOT.sharp}" stop-color="${ink}"/><stop offset="1" stop-color="${ink}" stop-opacity="0"/>`;
+    const box = `maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"`;
+    defs += `${clear}<radialGradient id="${id}w">${stops("#fff")}</radialGradient><radialGradient id="${id}k">${stops("#000")}</radialGradient><mask id="${id}m" ${box}>${spots(`url(#${id}w)`)}</mask><mask id="${id}n" ${box}><rect width="${W}" height="${H}" fill="#fff"/>${spots(`url(#${id}k)`)}</mask>`;
+    body = `${base}<g style="isolation:isolate"><g mask="url(#${id}n)"><g filter="url(#${id}f)">${balls}</g></g><g mask="url(#${id}m)" style="mix-blend-mode:plus-lighter"><g filter="url(#${id}c)">${balls}</g></g></g>`;
+  } else {
+    body = `${base}<g filter="url(#${id}f)">${balls}</g>`;
+  }
+
+  const motion = [
+    `.${id} .s{animation:${id}s 1s linear infinite}`,
+    ...[...turns].map(
+      ([n, name]) =>
+        `.${id} .${name}{animation-duration:${num(D / Math.abs(n), 3)}s${n < 0 ? ";animation-direction:reverse" : ""}}`
+    ),
+    ...[...rules].map(([rule, name]) => `.${id} .${name}{${rule}}`)
+  ].join("");
+  const keyframes = [...frames]
+    .map(([name, between]) => `@keyframes ${id}${name}{${between}}`)
+    .join("");
   const comment = `<!-- ${credit.replace(/--/g, "-%2D")} -->`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="${id}">\n${comment}\n<style>${frames}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n<defs>${filter}</defs>\n<g filter="url(#${id}f)"><g transform="translate(${num(W / 2)} ${num(H / 2)})">${body}</g></g>\n</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="${id}">\n${comment}\n<style>${keyframes}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n<defs>${defs}</defs>\n${body}\n</svg>`;
 }
 
-/** The animated SVG as CSS that works alone: the page's background plays it, the SVG carried inside as a data URI,
-    the blob as large as the page's box holds it and over whatever the page draws. The box is the size asked for, else
-    at least the window's height. */
+/** The animated SVG as CSS that works alone: the page's background plays it, the SVG carried inside as a data URI.
+    Filled, it covers the page's box over the deep tone; alone, the blob is as large as the box holds it, over whatever
+    the page draws. The box is the size asked for, else at least the window's height. */
 export function blobCss(P: Palette, view: BlobView, size: Size | null, credit: string): string {
-  const svg = blobSvg(P, view, size ?? BLOB_SIZE, credit);
-  return `/* ${credit} */\nhtml {\n  ${pageBox(size)}\n  background: ${svgUrl(svg)} center / contain no-repeat;\n}\n`;
+  const box = size ?? BLOB_SIZE;
+  const svg = blobSvg(P, view, box, credit);
+  const under = view.fill ? `${blobScene(P, box, true).backdrop} ` : "";
+  return `/* ${credit} */\nhtml {\n  ${pageBox(size)}\n  background: ${under}${svgUrl(svg)} center / ${view.fill ? "cover" : "contain"} no-repeat;\n}\n`;
+}
+
+/* The still frame. */
+
+/** The widths of three boxes whose blurs, one after another, come near a Gaussian blur of `sigma`. */
+function boxes(sigma: number): number[] {
+  const ideal = Math.sqrt(4 * sigma * sigma + 1);
+  let lower = Math.floor(ideal);
+  if (lower % 2 === 0) lower--;
+  const m = Math.round(
+    (12 * sigma * sigma - 3 * lower * lower - 12 * lower - 9) / (-4 * lower - 4)
+  );
+  return [0, 1, 2].map(i => (i < m ? lower : lower + 2));
+}
+/** One box blur of four channels, across rows (`step` 4) or down columns (`step` 4 × the width), nothing outside. */
+function boxBlur(
+  from: Float32Array,
+  to: Float32Array,
+  lines: number,
+  length: number,
+  line: number,
+  step: number,
+  width: number
+) {
+  const r = (width - 1) / 2;
+  for (let l = 0; l < lines; l++) {
+    for (let c = 0; c < 4; c++) {
+      const at = (i: number) => l * line + i * step + c;
+      let sum = 0;
+      for (let i = 0; i <= r && i < length; i++) sum += from[at(i)];
+      for (let i = 0; i < length; i++) {
+        to[at(i)] = sum / width;
+        if (i + r + 1 < length) sum += from[at(i + r + 1)];
+        if (i - r >= 0) sum -= from[at(i - r)];
+      }
+    }
+  }
+}
+
+/** lowbias32: a pixel's noise from its index. */
+function noise(n: number): number {
+  n = Math.imul(n ^ (n >>> 16), 0x7feb352d);
+  n = Math.imul(n ^ (n >>> 15), 0x846ca68b);
+  return (n ^ (n >>> 16)) >>> 0;
+}
+/** Two bytes of noise as one value about a half with the file's turbulence's spread, 0.12. */
+const SPREAD = 0.292 / 255;
+const near = (bits: number) => 0.5 + ((bits & 255) + ((bits >>> 8) & 255) - 255) * SPREAD;
+
+/** The first frame as pixels at a size, row after row: four bytes each, alpha the file's, or three over `backdrop`
+    (0 to 255 a channel) where the scene has no ground of its own. It is the file's drawing by the same numbers, its
+    blur in three boxes at a smaller scale and its frost noise of the same spread, so it is the frame a reader who asks
+    for less motion sees, not its every pixel. */
+export function blobStill(
+  P: Palette,
+  view: Pick<BlobView, "focus" | "fill">,
+  size: Size,
+  backdrop?: readonly number[]
+): Uint8Array<ArrayBuffer> {
+  const { width: W, height: H } = size;
+  const S = Math.min(W, H);
+  const scene = blobScene(P, size, view.fill);
+  const R = Math.max(...scene.blobs.map(b => b.R));
+  const under = scene.backdrop ? hexBytes(scene.backdrop) : backdrop;
+  /* the melt, drawn and blurred at 1/q of the size, where the blur is about four pixels, over the box and its pad */
+  const q = Math.max(1, Math.floor((MELT * R) / 4));
+  const pad = Math.ceil(scene.pad / q);
+  const w = Math.ceil(W / q) + 2 * pad;
+  const h = Math.ceil(H / q) + 2 * pad;
+  const melt = new Float32Array(4 * w * h);
+  for (const blob of scene.blobs) {
+    for (const b of blob.balls) {
+      const turn = 2 * Math.PI * b.phase;
+      const cx = (blob.x + (b.x + b.swing * Math.cos(turn)) * blob.R) / q + pad;
+      const cy = (blob.y + (b.y + b.swing * Math.sin(turn)) * blob.R) / q + pad;
+      const r = (b.r * blob.R) / q;
+      const [red, green, blue] = hexBytes(scene.color(b.at)).map(v => v / 255);
+      for (let y = Math.max(0, Math.floor(cy - r - 1)); y < Math.min(h, cy + r + 1); y++) {
+        for (let x = Math.max(0, Math.floor(cx - r - 1)); x < Math.min(w, cx + r + 1); x++) {
+          const cover = clamp01(r - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + 0.5);
+          if (!cover) continue;
+          const at = 4 * (y * w + x);
+          const keep = 1 - cover;
+          melt[at] = red * cover + melt[at] * keep;
+          melt[at + 1] = green * cover + melt[at + 1] * keep;
+          melt[at + 2] = blue * cover + melt[at + 2] * keep;
+          melt[at + 3] = cover + melt[at + 3] * keep;
+        }
+      }
+    }
+  }
+  const across = new Float32Array(melt.length);
+  for (const width of boxes((MELT * R) / q)) {
+    boxBlur(melt, across, h, w, 4 * w, 4, width);
+    boxBlur(across, melt, w, h, 4, 4 * w, width);
+  }
+
+  const sample = (into: Float32Array, u: number, v: number) => {
+    into.fill(0);
+    const x0 = Math.floor(u);
+    const y0 = Math.floor(v);
+    for (let dy = 0; dy < 2; dy++) {
+      const y = y0 + dy;
+      if (y < 0 || y >= h) continue;
+      const fy = dy ? v - y0 : 1 - (v - y0);
+      for (let dx = 0; dx < 2; dx++) {
+        const x = x0 + dx;
+        if (x < 0 || x >= w) continue;
+        const f = fy * (dx ? u - x0 : 1 - (u - x0));
+        const at = 4 * (y * w + x);
+        for (let c = 0; c < 4; c++) into[c] += melt[at + c] * f;
+      }
+    }
+  };
+  /* the spots of focus in the first frame, and how clear they leave a pixel: their union */
+  const spots = view.focus
+    ? scene.blobs.map(blob => {
+        const turn = 2 * Math.PI * blob.spot.phase;
+        return {
+          x: blob.x + SPOT.orbit * blob.R * Math.cos(turn),
+          y: blob.y + SPOT.orbit * blob.R * Math.sin(turn),
+          r: SPOT.r * blob.R
+        };
+      })
+    : [];
+  const clearAt = (x: number, y: number) => {
+    let frost = 1;
+    for (const s of spots) {
+      const d = Math.hypot(x - s.x, y - s.y) / s.r;
+      frost *= 1 - clamp01((1 - d) / (1 - SPOT.sharp));
+    }
+    return 1 - frost;
+  };
+
+  const channels = under ? 3 : 4;
+  const out = new Uint8Array(channels * W * H);
+  const scatter = SCATTER * S;
+  const seed = Math.imul(scene.seed + 1, 0x9e3779b1);
+  const frostPick = new Float32Array(4);
+  const clearPick = new Float32Array(4);
+  const pixel = [0, 0, 0, 0];
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const p = y * W + x;
+      const m = spots.length ? clearAt(x + 0.5, y + 0.5) : 0;
+      pixel.fill(0);
+      /* frosted, premultiplied, weighed by what the spots leave of it */
+      if (m < 1) {
+        const a = noise((2 * p) ^ seed);
+        const b = noise((2 * p + 1) ^ seed);
+        sample(
+          frostPick,
+          (x + 0.5 + scatter * (near(a) - 0.5)) / q - 0.5 + pad,
+          (y + 0.5 + scatter * (near(a >>> 16) - 0.5)) / q - 0.5 + pad
+        );
+        const melted = frostPick[3];
+        const lift = melted > 0 ? clamp01(SLOPE * melted + 0.5 - SLOPE / 2) : 0;
+        if (lift) {
+          const alpha = Math.min(1, lift * (1 + SPECKLE));
+          const speckle = 1 - SPECKLE + 2 * SPECKLE * clamp01(0.5 + CONTRAST * (near(b) - 0.5));
+          for (let c = 0; c < 3; c++)
+            pixel[c] += (1 - m) * Math.min(alpha, (frostPick[c] / melted) * lift * speckle);
+          pixel[3] += (1 - m) * alpha;
+        }
+      }
+      /* clear, weighed by the spots */
+      if (m > 0) {
+        sample(clearPick, (x + 0.5) / q - 0.5 + pad, (y + 0.5) / q - 0.5 + pad);
+        const melted = clearPick[3];
+        const lift = melted > 0 ? clamp01(CLEAR_SLOPE * melted + 0.5 - CLEAR_SLOPE / 2) : 0;
+        if (lift) {
+          for (let c = 0; c < 3; c++) pixel[c] += m * (clearPick[c] / melted) * lift;
+          pixel[3] += m * lift;
+        }
+      }
+      const alpha = Math.min(1, pixel[3]);
+      const at = channels * p;
+      for (let c = 0; c < 3; c++) {
+        const value = Math.min(alpha, pixel[c]);
+        out[at + c] = Math.round(
+          under ? 255 * value + under[c] * (1 - alpha) : alpha ? (255 * value) / alpha : 0
+        );
+      }
+      if (!under) out[at + 3] = Math.round(255 * alpha);
+    }
+  }
+  return out;
+}
+
+const DARK = [14, 14, 16];
+const LIGHT = [243, 241, 238];
+/** What a picture that cannot be transparent, such as a link's card, sets a lone blob on: near black, or near white for
+    a palette whose colors are darker than that reads well on. A filled scene is on its own deep tone. */
+export function blobBackdrop(P: Palette): number[] {
+  const light =
+    Array.from({ length: 9 }, (_, i) => luminance(sampleSrgb(P, i / 8))).reduce((a, b) => a + b) /
+    9;
+  const lum = (rgb: number[]) => luminance(rgb.map(v => v / 255));
+  return contrastOf(light, lum(DARK)) >= contrastOf(light, lum(LIGHT)) ? DARK : LIGHT;
 }

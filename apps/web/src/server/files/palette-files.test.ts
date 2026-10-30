@@ -68,9 +68,12 @@ describe("a palette's file", () => {
     );
     const text = await svg.text();
     expect(text).toContain('width="320" height="200" viewBox="0 0 320 200"');
-    expect(text.match(/<circle /g)).toHaveLength(8);
+    expect(text).toContain("mix-blend-mode:plus-lighter");
     expect(text).toContain("animation-duration:9s");
     expect(text).toContain(`<!-- ${golden.origin}/${seed} -->`);
+    expect(text).not.toMatch(/\stransform=/);
+    const frosted = await (await file(`/${seed}.svg?style=blob&focus=0`)).text();
+    expect(frosted).not.toContain("<mask ");
     const css = await file(`/${seed}.css?style=blob&w=1080&h=1350`);
     expect([css.headers.get("Content-Type"), css.headers.get("Cache-Control")]).toEqual([
       "text/css; charset=utf-8",
@@ -78,6 +81,9 @@ describe("a palette's file", () => {
     ]);
     expect(await css.text()).toContain(
       'width: 1080px;\n  height: 1350px;\n  background: url("data:image/svg+xml,%3Csvg '
+    );
+    expect(await (await file(`/${seed}.css?style=blob&fill=1`)).text()).toMatch(
+      /background: #[0-9a-f]{6} url\("data:image\/svg\+xml,.*"\) center \/ cover no-repeat;/
     );
   });
 
@@ -119,6 +125,24 @@ describe("a palette's file", () => {
     expect(html).toContain(`content="${golden.origin}/${seed}.svg?style=bands&amp;size=1080x1080"`);
     const browser = await asked("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/152.0.0.0");
     expect(browser.headers.get("Content-Type")).toBe("image/svg+xml; charset=utf-8");
+  });
+
+  test("a link preview asking for the animated blob gets a page whose card is its first frame", async () => {
+    const preview = await fileAnswer(
+      new Request(`https://grabient.test/${seed}.svg?style=blob&fill=1&w=1200&h=630`, {
+        headers: { "User-Agent": "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)" }
+      }),
+      env,
+      "svg"
+    );
+    expect(preview.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    const html = await preview.text();
+    expect(html).toContain(
+      `<meta property="og:image" content="${golden.origin}/api/og?style=blob&amp;fill=1&amp;seed=${seed}">`
+    );
+    expect(html).toContain(
+      `content="${golden.origin}/${seed}.svg?style=blob&amp;fill=1&amp;size=1200x630"`
+    );
   });
 
   test("random in a file's address leads to a new random palette's file, its query kept, for no cache to keep", async () => {

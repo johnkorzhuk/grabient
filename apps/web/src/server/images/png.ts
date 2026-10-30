@@ -1,5 +1,6 @@
-/* The PNG every picture is: 8-bit RGB with no alpha and an sRGB chunk, each row filtered by Sub and the rows deflated
-   by the platform's CompressionStream, so the Worker needs no image library (https://www.w3.org/TR/png-3/). */
+/* The PNG every picture is: 8-bit RGB with no alpha (RGBA for a picture with transparent parts) and an sRGB chunk, each
+   row filtered by Sub and the rows deflated by the platform's CompressionStream, so the Worker needs no image library
+   (https://www.w3.org/TR/png-3/). */
 
 const CRC_TABLE = Uint32Array.from({ length: 256 }, (_, n) => {
   let c = n;
@@ -26,16 +27,18 @@ async function deflate(data: Uint8Array<ArrayBuffer>): Promise<Uint8Array> {
 
 const SIGNATURE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10);
 
-/** Pixels, three bytes each, row after row, as a PNG file. */
+/** Pixels, three bytes each (four with `alpha`, unpremultiplied), row after row, as a PNG file. */
 export async function encodePng(
   width: number,
   height: number,
-  rgb: Uint8Array
+  rgb: Uint8Array,
+  alpha = false
 ): Promise<Uint8Array<ArrayBuffer>> {
-  if (rgb.length !== width * height * 3 || width < 1 || height < 1) {
+  const bytes = alpha ? 4 : 3;
+  if (rgb.length !== width * height * bytes || width < 1 || height < 1) {
     throw new Error(`${rgb.length} bytes are no ${width} by ${height} picture`);
   }
-  const stride = width * 3;
+  const stride = width * bytes;
   // Sub turns a smooth ramp or a flat band into a run of near-equal bytes, which deflates to little.
   const rows = new Uint8Array((stride + 1) * height);
   for (let y = 0; y < height; y++) {
@@ -43,7 +46,7 @@ export async function encodePng(
     const from = y * stride;
     rows[to] = 1;
     for (let x = 0; x < stride; x++) {
-      rows[to + 1 + x] = rgb[from + x] - (x < 3 ? 0 : rgb[from + x - 3]);
+      rows[to + 1 + x] = rgb[from + x] - (x < bytes ? 0 : rgb[from + x - bytes]);
     }
   }
   const header = new Uint8Array(13);
@@ -51,7 +54,7 @@ export async function encodePng(
   view.setUint32(0, width);
   view.setUint32(4, height);
   header[8] = 8;
-  header[9] = 2;
+  header[9] = alpha ? 6 : 2;
   const parts = [
     SIGNATURE,
     chunk("IHDR", header),

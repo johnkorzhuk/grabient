@@ -142,10 +142,20 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     const query = new URLSearchParams(bandsSearch(bands, size ? [`size=${size}`] : []));
     return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
   }
-  // the animated blob as SVG or CSS: its animation and size, kept for one build
-  if (isBlob(params) && (file.format === "svg" || file.format === "css")) {
+  /* the animated blob: as SVG or CSS its loop and size, kept for one build; its first frame and its card their size
+     alone, since no loop moves the first frame */
+  if (isBlob(params) && ["svg", "css", "png", "og"].includes(file.format)) {
+    const blob = parseBlob(params);
+    if (file.format === "png") {
+      const query = new URLSearchParams(blobSearch(blob, [], false));
+      return picture(`/${seed}.png`, query, pictureSize(params), false);
+    }
+    if (file.format === "og") {
+      const query = new URLSearchParams(blobSearch(blob, [`seed=${seed}`], false));
+      return picture("/api/og", query, cardSize(params), false);
+    }
     const size = sizeParam(svgSize(params));
-    const query = new URLSearchParams(blobSearch(parseBlob(params), size ? [`size=${size}`] : []));
+    const query = new URLSearchParams(blobSearch(blob, size ? [`size=${size}`] : []));
     return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
   }
   const view = viewAt(params, palette.anchors.length);
