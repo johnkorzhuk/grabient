@@ -10,6 +10,7 @@ import { PaletteGrid } from "@grabient/ui/PaletteGrid.tsx";
 import { PaletteCardPlaceholder } from "@grabient/ui/PalettePlaceholder.tsx";
 import { Placeholder } from "@grabient/ui/Placeholder.tsx";
 import { RemovePress, UndoPress } from "@grabient/ui/RemovePress.tsx";
+import { Rule } from "@grabient/ui/Rule.tsx";
 import { SaveToCollection } from "@grabient/ui/SaveToCollection.tsx";
 import { Segmented } from "@grabient/ui/Segmented.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
@@ -920,8 +921,8 @@ export function CollectionPage(props: {
                     )}
                   </For>
                 </PaletteGrid>
-                {/* for the bots: its first palettes as one picture, which image searches show, and the files it is
-                    written as, for crawlers, agents and apps */}
+                {/* its own section under the cards, set apart by the rule: its first palettes as one picture, which
+                    image searches show, and the files it is written as, for readers and for programs alike */}
                 <Show
                   when={
                     !provisional() &&
@@ -929,54 +930,47 @@ export function CollectionPage(props: {
                     current().items.length > 0
                   }
                 >
-                  <section class={styles.bots} aria-labelledby="for-the-bots">
-                    <div class={styles.botsHead}>
-                      <span class={styles.bot}>
-                        <Icon name="bot" size={20} />
-                      </span>
-                      <div>
-                        <Text variant="h2" as="h2" id="for-the-bots">
-                          {t("For the bots")}
-                        </Text>
-                        <Text variant="small">
-                          {t("Beep boop. This collection as files, for crawlers, agents and apps.")}
-                        </Text>
+                  <div class={styles.apart}>
+                    <Rule />
+                    <section class={styles.files} aria-labelledby="collection-export">
+                      <Text variant="h2" as="h2" id="collection-export">
+                        {t("Export")}
+                      </Text>
+                      <img
+                        class={styles.sheetPicture}
+                        src={collectionSheet(current().slug, current().updatedAt)}
+                        alt={t("{title}: a collection of color palettes", {
+                          title: current().title
+                        })}
+                        width={SHEET_SIZE.width}
+                        height={SHEET_SIZE.height}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <FormatStrip
+                        size="md"
+                        variant="paper"
+                        copy={COLLECTION_FORMATS.copy}
+                        download={COLLECTION_FORMATS.download}
+                        link={COLLECTION_FORMATS.link}
+                        swatches={SWATCH_CHIPS}
+                        onCopy={files.copy}
+                        onDownload={files.download}
+                        onLink={files.link}
+                      />
+                      <div class={styles.fileLinks}>
+                        <a class={styles.inline} href={`/${current().slug}.md`}>
+                          {t("This page as Markdown")}
+                        </a>
+                        <a class={styles.inline} href="/llms.txt">
+                          {t("Guide for AI agents")}
+                        </a>
+                        <a class={styles.inline} href={localHref("/mcp-server")}>
+                          {t("MCP server")}
+                        </a>
                       </div>
-                    </div>
-                    <img
-                      class={styles.sheetPicture}
-                      src={collectionSheet(current().slug, current().updatedAt)}
-                      alt={t("{title}: a collection of color palettes", {
-                        title: current().title
-                      })}
-                      width={SHEET_SIZE.width}
-                      height={SHEET_SIZE.height}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <FormatStrip
-                      size="md"
-                      variant="paper"
-                      copy={COLLECTION_FORMATS.copy}
-                      download={COLLECTION_FORMATS.download}
-                      link={COLLECTION_FORMATS.link}
-                      swatches={SWATCH_CHIPS}
-                      onCopy={files.copy}
-                      onDownload={files.download}
-                      onLink={files.link}
-                    />
-                    <div class={styles.botLinks}>
-                      <a class={styles.inline} href={`/${current().slug}.md`}>
-                        {t("This page as Markdown")}
-                      </a>
-                      <a class={styles.inline} href="/llms.txt">
-                        {t("Guide for AI agents")}
-                      </a>
-                      <a class={styles.inline} href={localHref("/mcp-server")}>
-                        {t("MCP server")}
-                      </a>
-                    </div>
-                  </section>
+                    </section>
+                  </div>
                 </Show>
               </div>
             </>

@@ -60,7 +60,7 @@
   "<signin>Sign in</signin> as its owner to see it.": {
     "note": "Line under the private collection title; <signin> is a link to sign in.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:750"
+      "apps/web/src/features/collections/CollectionPage.tsx:751"
     ]
   },
   "<text/> on <ground/>": {
@@ -190,8 +190,8 @@
     "refs": [
       "apps/web/src/features/collections/Actions.tsx:330",
       "apps/web/src/features/collections/Actions.tsx:331",
-      "apps/web/src/features/collections/CollectionPage.tsx:707",
-      "apps/web/src/features/collections/CollectionPage.tsx:708"
+      "apps/web/src/features/collections/CollectionPage.tsx:708",
+      "apps/web/src/features/collections/CollectionPage.tsx:709"
     ]
   },
   "Add keyframe": {
@@ -470,12 +470,6 @@
       "packages/ui/src/curation.ts:17"
     ]
   },
-  "Beep boop. This collection as files, for crawlers, agents and apps.": {
-    "note": "Line under \"For the bots\". \"Beep boop\" is a robot's sound: use your language's own playful robot noise. Crawlers are search engines' bots, agents are AI agents, apps are programs.",
-    "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:942"
-    ]
-  },
   "Between two hues, a gradient can go either way around the color wheel, and most tools take the shorter way. Grabient lets hue count past 360°: 690° is the same color as 330°, one lap later. The gradient goes the whole way:": {
     "note": "About: paragraph.",
     "refs": [
@@ -504,7 +498,7 @@
     "note": "Press or link: opens the palettes list.",
     "refs": [
       "apps/web/src/app/NotFound.tsx:37",
-      "apps/web/src/features/collections/CollectionPage.tsx:1015",
+      "apps/web/src/features/collections/CollectionPage.tsx:1009",
       "apps/web/src/features/collections/CollectionsPage.tsx:547",
       "apps/web/src/features/connect/Connect.tsx:125"
     ]
@@ -692,20 +686,20 @@
   "Collection not found": {
     "note": "Title on a collection page that has no collection.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:744"
+      "apps/web/src/features/collections/CollectionPage.tsx:745"
     ]
   },
   "Collection not found. It may have been deleted.": {
     "note": "Error line: the collection is gone.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1002"
+      "apps/web/src/features/collections/CollectionPage.tsx:996"
     ]
   },
   "Collections": {
     "note": "The collections list, its tab and links to it.",
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:118",
-      "apps/web/src/features/collections/CollectionPage.tsx:690",
+      "apps/web/src/features/collections/CollectionPage.tsx:691",
       "apps/web/src/features/editor/StaticPalette.tsx:141",
       "apps/web/src/lib/page-meta.ts:847",
       "apps/web/src/lib/page-meta.ts:910",
@@ -1128,7 +1122,7 @@
   "Couldn't load this collection.": {
     "note": "Title and error line where a collection failed to load, beside Retry.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:743",
+      "apps/web/src/features/collections/CollectionPage.tsx:744",
       "apps/web/src/features/collections/queries.ts:119"
     ]
   },
@@ -1141,8 +1135,8 @@
   "Couldn't put the palette back.": {
     "note": "Error line after a failed undo of a removal.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:447",
-      "apps/web/src/features/collections/CollectionPage.tsx:510"
+      "apps/web/src/features/collections/CollectionPage.tsx:448",
+      "apps/web/src/features/collections/CollectionPage.tsx:511"
     ]
   },
   "Couldn't read this image.": {
@@ -1178,7 +1172,7 @@
   "Couldn't remove the palette.": {
     "note": "Error line after a failed removal.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:453",
+      "apps/web/src/features/collections/CollectionPage.tsx:454",
       "apps/web/src/server/collections/me.ts:367"
     ]
   },
@@ -1203,7 +1197,7 @@
   "Couldn't save your vote.": {
     "note": "Error line after a failed fit vote.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:583",
+      "apps/web/src/features/collections/CollectionPage.tsx:584",
       "apps/web/src/features/collections/fit.ts:66",
       "apps/web/src/features/search/fit.ts:72"
     ]
@@ -1219,8 +1213,8 @@
       "apps/web/src/features/account/settings/Profile.tsx:237",
       "apps/web/src/features/account/settings/Profile.tsx:254",
       "apps/web/src/features/account/sync.ts:148",
-      "apps/web/src/features/collections/CollectionPage.tsx:473",
-      "apps/web/src/features/collections/CollectionPage.tsx:479",
+      "apps/web/src/features/collections/CollectionPage.tsx:474",
+      "apps/web/src/features/collections/CollectionPage.tsx:480",
       "apps/web/src/features/collections/ItemCard.tsx:76",
       "apps/web/src/features/collections/collect.ts:456",
       "apps/web/src/features/editor/Sheet.tsx:441",
@@ -1579,8 +1573,9 @@
     ]
   },
   "Export": {
-    "note": "Heading and tab of the export panel; also its screen reader name.",
+    "note": "Heading and tab of the export panel; also its screen reader name, and the heading of a collection's section of files under its cards.",
     "refs": [
+      "apps/web/src/features/collections/CollectionPage.tsx:937",
       "packages/ui/src/ExportPanel.tsx:141",
       "packages/ui/src/ExportPanel.tsx:143",
       "packages/ui/src/ExportPanel.tsx:149"
@@ -1677,12 +1672,6 @@
     "note": "Settings: Reduce motion is System and the device asks for less motion.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:50"
-    ]
-  },
-  "For the bots": {
-    "note": "Heading of the section at the end of a public collection's page that holds its picture and the files it is written as, for web crawlers, AI agents and apps. Playful: the bots are those programs, addressed warmly; a robot emoji stands before it.",
-    "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:939"
     ]
   },
   "Format": {
@@ -1837,7 +1826,7 @@
   "Guide for AI agents": {
     "note": "Title of the link in the page's head to llms.txt.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:973",
+      "apps/web/src/features/collections/CollectionPage.tsx:966",
       "apps/web/src/routes/__root.tsx:96"
     ]
   },
@@ -2061,7 +2050,7 @@
   "It may have been deleted.": {
     "note": "Line under Collection not found.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:760"
+      "apps/web/src/features/collections/CollectionPage.tsx:761"
     ]
   },
   "It says it is <name>{name}</name>.": {
@@ -2269,7 +2258,7 @@
   "Liked by someone": {
     "note": "Tooltip on a disabled admin press: a person liked the palette, so it can't change.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:124",
+      "apps/web/src/features/collections/CollectionPage.tsx:125",
       "apps/web/src/features/collections/CollectionsPage.tsx:96",
       "apps/web/src/features/editor/save.ts:133",
       "apps/web/src/features/gallery/curate.tsx:62"
@@ -2337,7 +2326,7 @@
     "note": "Admin feature switch.",
     "refs": [
       "apps/web/src/features/account/settings/flags.ts:28",
-      "apps/web/src/features/collections/CollectionPage.tsx:976"
+      "apps/web/src/features/collections/CollectionPage.tsx:969"
     ]
   },
   "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
@@ -2821,7 +2810,7 @@
   "Order": {
     "note": "Screen reader name of the tabs for a list's order (Popular, Rising, Saved).",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:636",
+      "apps/web/src/features/collections/CollectionPage.tsx:637",
       "apps/web/src/features/editor/Sheet.tsx:509",
       "packages/ui/src/ListNav.tsx:102"
     ]
@@ -2888,7 +2877,7 @@
   "Palette deleted.": {
     "note": "Status after an admin deletes a palette.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:546",
+      "apps/web/src/features/collections/CollectionPage.tsx:547",
       "apps/web/src/features/collections/CollectionsPage.tsx:226",
       "apps/web/src/features/gallery/curate.tsx:70"
     ]
@@ -2914,15 +2903,15 @@
   "Palette put back.": {
     "note": "Status after an undo puts a removed palette back.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:440",
-      "apps/web/src/features/collections/CollectionPage.tsx:496"
+      "apps/web/src/features/collections/CollectionPage.tsx:441",
+      "apps/web/src/features/collections/CollectionPage.tsx:497"
     ]
   },
   "Palette removed.": {
     "note": "Status after a palette is taken out of a collection.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:445",
-      "apps/web/src/features/collections/CollectionPage.tsx:451"
+      "apps/web/src/features/collections/CollectionPage.tsx:446",
+      "apps/web/src/features/collections/CollectionPage.tsx:452"
     ]
   },
   "Palette title": {
@@ -3526,7 +3515,7 @@
     "refs": [
       "apps/web/src/app/ErrorPage.tsx:40",
       "apps/web/src/features/account/settings/Admin.tsx:230",
-      "apps/web/src/features/collections/CollectionPage.tsx:1009",
+      "apps/web/src/features/collections/CollectionPage.tsx:1003",
       "apps/web/src/features/collections/CollectionsPage.tsx:521",
       "apps/web/src/features/collections/CollectionsPage.tsx:526",
       "apps/web/src/features/connect/ConnectedApps.tsx:94",
@@ -3651,7 +3640,7 @@
       "apps/web/src/features/account/settings/Profile.tsx:356",
       "apps/web/src/features/collections/Actions.tsx:345",
       "apps/web/src/features/collections/Actions.tsx:346",
-      "apps/web/src/features/collections/CollectionPage.tsx:713",
+      "apps/web/src/features/collections/CollectionPage.tsx:714",
       "apps/web/src/features/collections/Heading.tsx:251",
       "apps/web/src/features/editor/Controls.tsx:459",
       "packages/ui/src/CollectList.tsx:164",
@@ -4680,19 +4669,19 @@
   "This collection is empty.": {
     "note": "Empty state of a collection.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1004"
+      "apps/web/src/features/collections/CollectionPage.tsx:998"
     ]
   },
   "This collection is private.": {
     "note": "Title on a private collection opened signed out.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:741"
+      "apps/web/src/features/collections/CollectionPage.tsx:742"
     ]
   },
   "This collection opens offline once you've seen it online.": {
     "note": "A collection with no connection, never opened online on this device: why it shows no palettes.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:727"
+      "apps/web/src/features/collections/CollectionPage.tsx:728"
     ]
   },
   "This deploy sends only to admins and Resend's test addresses.": {
@@ -4734,7 +4723,7 @@
   "This page as Markdown": {
     "note": "Title of the link in the page's head to its Markdown version.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:970",
+      "apps/web/src/features/collections/CollectionPage.tsx:963",
       "apps/web/src/lib/page-meta.ts:1191"
     ]
   },
@@ -4766,8 +4755,8 @@
   "This palette can't be put back.": {
     "note": "Error line: an undo of a removal came too late.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:437",
-      "apps/web/src/features/collections/CollectionPage.tsx:492",
+      "apps/web/src/features/collections/CollectionPage.tsx:438",
+      "apps/web/src/features/collections/CollectionPage.tsx:493",
       "apps/web/src/server/account/collections.ts:178",
       "apps/web/src/server/collections/me.ts:323",
       "apps/web/src/server/collections/me.ts:353"
@@ -5070,7 +5059,7 @@
   "View saved.": {
     "note": "Status after an admin saves a palette's style, steps and angle.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:535",
+      "apps/web/src/features/collections/CollectionPage.tsx:536",
       "apps/web/src/features/gallery/curate.tsx:76"
     ]
   },
@@ -5231,7 +5220,7 @@
       "apps/web/src/app/ErrorPage.tsx:32",
       "apps/web/src/app/OfflineList.tsx:38",
       "apps/web/src/features/account/settings/Profile.tsx:352",
-      "apps/web/src/features/collections/CollectionPage.tsx:722"
+      "apps/web/src/features/collections/CollectionPage.tsx:723"
     ]
   },
   "You're subscribed again.": {
@@ -5748,7 +5737,7 @@
   "order\u0004Popular": {
     "note": "List order and its tab: the most liked first.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:107",
+      "apps/web/src/features/collections/CollectionPage.tsx:108",
       "apps/web/src/features/editor/Sheet.tsx:512",
       "apps/web/src/features/gallery/Palettes.tsx:324",
       "packages/ui/src/ListNav.tsx:15"
@@ -5757,7 +5746,7 @@
   "order\u0004Rising": {
     "note": "List order and its tab: palettes gaining likes now.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:108",
+      "apps/web/src/features/collections/CollectionPage.tsx:109",
       "apps/web/src/features/editor/Sheet.tsx:261",
       "apps/web/src/features/gallery/Palettes.tsx:323",
       "packages/ui/src/ListNav.tsx:16"
@@ -6369,7 +6358,7 @@
   "{title}: a collection of color palettes": {
     "note": "Alt text of a collection's share image.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:949",
+      "apps/web/src/features/collections/CollectionPage.tsx:942",
       "apps/web/src/lib/page-meta.ts:904"
     ]
   },
