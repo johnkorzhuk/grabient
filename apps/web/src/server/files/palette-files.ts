@@ -35,7 +35,6 @@ import { ANIMATION, FILE, NO_STORE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { isCollectionSlug, texts, writtenWords } from "../collections/files.ts";
 import { isLinkPreview } from "../crawlers.ts";
-import { collectionSheetSvg } from "../images/answers.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { addressParams, fileName, svgSize, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
@@ -91,7 +90,8 @@ async function paletteFile(
       format !== "svg"
         ? await collectionFile(env, name, origin, format, asked)
         : isCollectionSlug(name)
-          ? await collectionSheetSvg(env, name)
+          ? // the drawing's modules load with the first sheet asked for, never with the files' writers
+            await (await import("../images/answers.ts")).collectionSheetSvg(env, name)
           : null;
     return file ?? json({ error: "Invalid palette seed." }, { status: 404 });
   }
