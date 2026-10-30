@@ -63,6 +63,7 @@ afterEach(async () => {
     env.DB.prepare("DELETE FROM k_translations")
   ]);
   await env.CACHE?.delete("indexnow");
+  await env.CACHE?.delete("indexnow-refused");
   await env.CACHE?.delete("github-stars");
 });
 
@@ -192,13 +193,36 @@ describe("an old grabient.com link that names no view", () => {
 });
 
 describe("IndexNow", () => {
+  const ENGINES = [
+    "https://yandex.com/indexnow",
+    "https://search.seznam.cz/indexnow",
+    "https://api.indexnow.org/indexnow"
+  ];
+  const ALL_REFUSED = (status: number) => ({
+    "yandex.com": status,
+    "search.seznam.cz": status,
+    "api.indexnow.org": status
+  });
   const posts: { url: string; body: Record<string, unknown> }[] = [];
+  /** Engines that answer `status`, or each its own by host (202 where none is named). */
   const engine =
-    (status = 202): typeof fetch =>
+    (status: number | Record<string, number> = 202): typeof fetch =>
     async (input, init) => {
       posts.push({ url: String(input), body: JSON.parse(String(init?.body)) });
-      return new Response(null, { status });
+      const answer =
+        typeof status === "number" ? status : (status[new URL(String(input)).hostname] ?? 202);
+      return new Response(null, { status: answer });
     };
+  /** A translation of a collection's words, of the English whose fingerprint is `source`. */
+  const translation = (env: Env, id: string, locale: string, source: string, updatedAt: number) =>
+    run(
+      env.DB,
+      "INSERT INTO k_translations (kind, locale, key, title, source, updated_at) VALUES ('collection', ?, ?, '海', ?, ?)",
+      locale,
+      id,
+      source,
+      updatedAt
+    );
   afterEach(() => {
     posts.length = 0;
   });
@@ -233,13 +257,18 @@ describe("IndexNow", () => {
     await palette(env, "kS7Q8Yy5S_SChv0", 10, 1, ["linearSwatches", 9, 45]);
     const before = await collection(env, "public", 5_000);
     const first = await sendIndexNow(env, engine());
-    expect(first).toMatchObject({ marked: { palette: 10, collection: 5_000, translation: 0 } });
+    expect(first).toMatchObject({
+      marked: { version: 2, palette: 10, collection: 5_000, translation: 0 },
+      engine: "yandex.com"
+    });
     const sent = posts.flatMap(post => post.body.urlList as string[]);
     expect(first).toMatchObject({ sent: sent.length });
     expect(new Set(sent).size).toBe(sent.length);
     expect(sent.length).toBeGreaterThan(6_718);
-    for (const post of posts)
+    for (const post of posts) {
+      expect(post.url).toBe("https://yandex.com/indexnow");
       expect((post.body.urlList as string[]).length).toBeLessThanOrEqual(10_000);
+    }
     expect(sent).toEqual(
       expect.arrayContaining([
         "https://grabient.com/",
@@ -255,25 +284,53 @@ describe("IndexNow", () => {
     expect(posts).toEqual([]);
   });
 
-  it("then sends what is new in one ordered list and moves its marks on", async () => {
+  it("sends the whole site again over marks of an earlier version, whose lists went to Microsoft alone", async () => {
+    const env = production();
+    await palette(env, "kS7Q8Yy5S_SChv0", 10);
+    // the old marks, and eleven tries of a list they held back
+    await env.CACHE?.put(
+      "indexnow",
+      JSON.stringify({ palette: 10, collection: 0, translation: 0 })
+    );
+    await env.CACHE?.put("indexnow-refused", "11");
+    // that list's tries go with them: a first pass refused for now has a dozen of its own
+    expect(await sendIndexNow(env, engine(429))).toMatchObject({ sent: 0, status: 429 });
+    expect(await env.CACHE?.get("indexnow")).toBeNull();
+    expect(await env.CACHE?.get("indexnow-refused")).toBe("1");
+    posts.length = 0;
+    expect(await sendIndexNow(env, engine())).toMatchObject({
+      marked: { version: 2, palette: 10 },
+      engine: "yandex.com"
+    });
+    expect(posts.flatMap(post => post.body.urlList as string[]).length).toBeGreaterThan(6_718);
+    expect(await env.CACHE?.get("indexnow-refused")).toBeNull();
+  });
+
+  it("then sends what is new in one ordered list, a changed collection in each language its page is indexed in, and moves its marks on", async () => {
     const env = production();
     await palette(env, "kS7Q8Yy5S_SChv0", 10);
     const before = await collection(env, "public", 5_000);
+    const changed = await collection(env, "public", 5_500);
+    await translation(env, changed.id, "ja", fingerprint("Ocean", ""), 5_500);
+    // a German translation of words the collection no longer has: its German page is not indexed
+    await translation(env, changed.id, "de", fingerprint("Ocean, before", ""), 5_500);
     await sendIndexNow(env, engine());
     posts.length = 0;
 
     await palette(env, "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", 11, 1, ["linearSwatches", 9, 45]);
-    const changed = await collection(env, "public", 6_000);
+    await run(env.DB, "UPDATE k_collections SET updated_at = 6000 WHERE id = ?", changed.id);
     await collection(env, "private", 7_000);
-    await run(
-      env.DB,
-      "INSERT INTO k_translations (kind, locale, key, title, updated_at) VALUES ('collection', 'ja', ?, '海', 8000)",
-      changed.id
-    );
-    expect(await sendIndexNow(env, engine())).toEqual({ sent: 3, status: 202 });
+    const translated = await collection(env, "public", 4_000);
+    await translation(env, translated.id, "fr", fingerprint("Ocean", ""), 8_000);
+    await translation(env, translated.id, "ko", fingerprint("Ocean, before", ""), 8_500);
+    expect(await sendIndexNow(env, engine())).toEqual({
+      sent: 4,
+      status: 202,
+      engine: "yandex.com"
+    });
     expect(posts).toEqual([
       {
-        url: "https://api.indexnow.org/indexnow",
+        url: "https://yandex.com/indexnow",
         body: {
           host: "grabient.com",
           key: KEY,
@@ -281,51 +338,98 @@ describe("IndexNow", () => {
           urlList: [
             "https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?style=linearSwatches&steps=9&angle=45",
             `https://grabient.com/${changed.slug}`,
-            `https://grabient.com/ja/${changed.slug}`
+            `https://grabient.com/ja/${changed.slug}`,
+            `https://grabient.com/fr/${translated.slug}`
           ]
         }
       }
     ]);
     expect(posts[0].body.urlList).not.toContain(`https://grabient.com/${before.slug}`);
     expect(await env.CACHE?.get("indexnow", "json")).toEqual({
+      version: 2,
       palette: 11,
       collection: 6_000,
-      translation: 8_000
+      translation: 8_500
     });
     expect(await sendIndexNow(env, engine())).toEqual({ sent: 0, status: 0 });
   });
 
-  it("sends a refused list again on the next pass", async () => {
+  it("goes on to the next engine when one refuses a list, and says who took it", async () => {
     const env = production();
-    // a first pass refused marks nothing, and the next sends it all again
-    expect(await sendIndexNow(env, engine(429))).toEqual({ sent: 0, status: 429 });
-    expect(posts).toHaveLength(1);
-    expect(await env.CACHE?.get("indexnow")).toBeNull();
-    expect(await sendIndexNow(env, engine())).toMatchObject({ marked: {} });
-    expect(posts[1]?.body.urlList).toEqual(posts[0]?.body.urlList);
+    await sendIndexNow(env, engine());
     posts.length = 0;
     await palette(env, "kS7Q8Yy5S_SChv0");
-    expect(await sendIndexNow(env, engine(429))).toEqual({ sent: 0, status: 429 });
-    expect(await sendIndexNow(env, engine(200))).toEqual({ sent: 1, status: 200 });
-    expect(posts.map(post => post.body.urlList)).toEqual([
-      ["https://grabient.com/kS7Q8Yy5S_SChv0"],
-      ["https://grabient.com/kS7Q8Yy5S_SChv0"]
-    ]);
+    expect(await sendIndexNow(env, engine({ "yandex.com": 429 }))).toEqual({
+      sent: 1,
+      status: 202,
+      engine: "search.seznam.cz",
+      refused: { "yandex.com": 429 }
+    });
+    expect(posts.map(post => post.url)).toEqual(ENGINES.slice(0, 2));
+    expect(await env.CACHE?.get("indexnow-refused")).toBeNull();
+    // a refusal for good from one engine and for now from the rest: the list goes again
+    posts.length = 0;
+    await palette(env, "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ");
+    const mixed = { "yandex.com": 403, "search.seznam.cz": 429, "api.indexnow.org": 503 };
+    expect(await sendIndexNow(env, engine(mixed))).toEqual({
+      sent: 0,
+      status: 429,
+      refused: mixed
+    });
+    expect(await sendIndexNow(env, engine())).toEqual({
+      sent: 1,
+      status: 202,
+      engine: "yandex.com"
+    });
+    expect(posts.map(post => post.url)).toEqual([...ENGINES, ENGINES[0]]);
+  });
+
+  it("sends a list every engine refused for now again on the next pass", async () => {
+    const env = production();
+    // a first pass refused marks nothing, and the next sends it all again
+    expect(await sendIndexNow(env, engine(429))).toEqual({
+      sent: 0,
+      status: 429,
+      refused: ALL_REFUSED(429)
+    });
+    expect(posts.map(post => post.url)).toEqual(ENGINES);
+    expect(await env.CACHE?.get("indexnow")).toBeNull();
+    expect(await sendIndexNow(env, engine())).toMatchObject({ marked: {} });
+    expect(posts[3]?.body.urlList).toEqual(posts[0]?.body.urlList);
+    posts.length = 0;
+    await palette(env, "kS7Q8Yy5S_SChv0");
+    expect(await sendIndexNow(env, engine(429))).toMatchObject({ sent: 0, status: 429 });
+    expect(await sendIndexNow(env, engine(200))).toEqual({
+      sent: 1,
+      status: 200,
+      engine: "yandex.com"
+    });
+    expect(posts.map(post => post.body.urlList)).toEqual(
+      Array(4).fill(["https://grabient.com/kS7Q8Yy5S_SChv0"])
+    );
   });
 
   it("moves on from a list refused for good at once, and from one refused for now after a dozen passes", async () => {
     const env = production();
-    // a key the engine cannot check: sending it again changes nothing, so the first pass marks where things stand
-    expect(await sendIndexNow(env, engine(403))).toEqual({ sent: 0, status: 403 });
-    expect(await env.CACHE?.get("indexnow", "json")).toMatchObject({ palette: 0 });
+    // a key the engines cannot check: sending it again changes nothing, so the first pass marks where things stand
+    expect(await sendIndexNow(env, engine(403))).toEqual({
+      sent: 0,
+      status: 403,
+      refused: ALL_REFUSED(403)
+    });
+    expect(await env.CACHE?.get("indexnow", "json")).toMatchObject({ version: 2, palette: 0 });
     posts.length = 0;
     expect(await sendIndexNow(env, engine())).toEqual({ sent: 0, status: 0 });
     expect(posts).toEqual([]);
     // a list refused for now goes again on the next eleven passes, and the twelfth moves on
     await palette(env, "kS7Q8Yy5S_SChv0");
     for (let pass = 1; pass <= 12; pass++)
-      expect(await sendIndexNow(env, engine(503))).toEqual({ sent: 0, status: 503 });
-    expect(posts).toHaveLength(12);
+      expect(await sendIndexNow(env, engine(503))).toEqual({
+        sent: 0,
+        status: 503,
+        refused: ALL_REFUSED(503)
+      });
+    expect(posts).toHaveLength(12 * ENGINES.length);
     expect(await env.CACHE?.get("indexnow-refused")).toBeNull();
     posts.length = 0;
     expect(await sendIndexNow(env, engine())).toEqual({ sent: 0, status: 0 });
