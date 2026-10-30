@@ -166,50 +166,26 @@
   .status {
     composes: status from "../../app/list.module.css";
   }
-  /* for the bots: a section's room under a collection's cards, its picture of its first palettes and the files it is
-     written as, for crawlers, agents and apps */
-  .bots {
+  /* a collection's own section under its cards, set apart by the rule a section's room below them: its picture of its
+     first palettes, the strip that copies, downloads or links each of its files, and where agents read it */
+  .apart {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s8);
+    padding-top: var(--space-s10);
+  }
+  .files {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-s4);
-    padding-top: var(--space-s10);
-  }
-  .botsHead {
-    display: flex;
-    align-items: center;
-    gap: var(--space-s3);
-  }
-  /* the bot in a coin of the quiet paper, waving while the section is pointed at or holds the focus */
-  .bot {
-    display: grid;
-    place-items: center;
-    width: var(--size-control-big);
-    height: var(--size-control-big);
-    border-radius: var(--radius-circle);
-    color: var(--color-ink);
-    background: var(--color-paper);
-    transform-origin: 50% 85%;
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .bots:is(:hover, :focus-within) .bot {
-      animation: wave 0.9s ease-in-out;
-    }
-  }
-  @keyframes wave {
-    25% {
-      transform: rotate(-14deg);
-    }
-    75% {
-      transform: rotate(12deg);
-    }
   }
   .sheetPicture {
     width: min(100%, calc(1.5 * var(--size-card)));
     height: auto;
     border-radius: var(--radius-surface);
   }
-  .botLinks {
+  .fileLinks {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-s4);
