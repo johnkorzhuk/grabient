@@ -62,17 +62,17 @@ describe("a palette's file", () => {
   });
 
   test("SVG with style=blob is the animated blob, transparent around it, which a browser keeps an hour", async () => {
-    const svg = await file(`/${seed}.svg?style=blob&duration=9&w=320&h=200&steps=8`);
+    const svg = await file(`/${seed}.svg?style=blob&speed=2&w=320&h=200&steps=8`);
     expect([svg.status, svg.headers.get("Content-Type"), svg.headers.get("Cache-Control")]).toEqual(
       [200, "image/svg+xml; charset=utf-8", "public, max-age=3600"]
     );
     const text = await svg.text();
     expect(text).toContain('width="320" height="200" viewBox="0 0 320 200"');
     expect(text).toContain("mix-blend-mode:plus-lighter");
-    expect(text).toContain("animation-duration:9s");
+    expect(text).toContain("animation-duration:8s");
     expect(text).toContain(`<!-- ${golden.origin}/${seed} -->`);
     expect(text).not.toMatch(/\stransform=/);
-    const frosted = await (await file(`/${seed}.svg?style=blob&focus=0`)).text();
+    const frosted = await (await file(`/${seed}.svg?style=blob&depth=0`)).text();
     expect(frosted).not.toContain("<mask ");
     const css = await file(`/${seed}.css?style=blob&w=1080&h=1350`);
     expect([css.headers.get("Content-Type"), css.headers.get("Cache-Control")]).toEqual([
@@ -83,6 +83,9 @@ describe("a palette's file", () => {
       'width: 1080px;\n  height: 1350px;\n  background: url("data:image/svg+xml,%3Csvg '
     );
     expect(await (await file(`/${seed}.css?style=blob&fill=1`)).text()).toMatch(
+      /background: url\("data:image\/svg\+xml,.*"\) center \/ cover no-repeat;/
+    );
+    expect(await (await file(`/${seed}.css?style=blob&fill=1&bg=deep`)).text()).toMatch(
       /background: #[0-9a-f]{6} url\("data:image\/svg\+xml,.*"\) center \/ cover no-repeat;/
     );
   });

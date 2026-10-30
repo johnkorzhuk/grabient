@@ -102,21 +102,21 @@ test("the animated SVG is kept under its animation and size, defaults and other 
   ).toBe("/kS7Q8Yy5S_SChv0.svg?bands=9&dir=in&duration=3&size=800x1000&style=bands");
 });
 
-test("the animated blob is kept under its loop, depth, fill and size, its first frame without the loop", () => {
-  expect(written("/kS7Q8Yy5S_SChv0.svg?style=blob&steps=9&duration=16&focus=1&junk=1")?.key).toBe(
+test("the animated blob is kept under its speed, options and size, its first frame without the speed", () => {
+  expect(written("/kS7Q8Yy5S_SChv0.svg?style=blob&steps=9&speed=1&depth=1&junk=1")?.key).toBe(
     "/kS7Q8Yy5S_SChv0.svg?style=blob"
   );
-  expect(written("/kS7Q8Yy5S_SChv0.svg?duration=9&style=blob&w=800&h=1000&focus=0")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.svg?duration=9&focus=0&size=800x1000&style=blob"
+  expect(written("/kS7Q8Yy5S_SChv0.svg?speed=2&style=blob&w=800&h=1000&depth=0&shape=7")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.svg?depth=0&shape=7&size=800x1000&speed=2&style=blob"
   );
-  expect(written("/kS7Q8Yy5S_SChv0.css?style=blob&colors=hex&size=1080x1350&fill=1")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.css?fill=1&size=1080x1350&style=blob"
+  expect(
+    written("/kS7Q8Yy5S_SChv0.css?style=blob&colors=hex&size=1080x1350&fill=1&bg=%23ABC")?.key
+  ).toBe("/kS7Q8Yy5S_SChv0.css?bg=aabbcc&fill=1&size=1080x1350&style=blob");
+  expect(written("/kS7Q8Yy5S_SChv0.png?style=blob&speed=2&fill=1&frost=0.5&w=600&h=600")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.png?fill=1&frost=0.5&h=600&style=blob&w=600"
   );
-  expect(written("/kS7Q8Yy5S_SChv0.png?style=blob&duration=9&fill=1&w=600&h=600")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.png?fill=1&h=600&style=blob&w=600"
-  );
-  expect(written("/api/og?seed=kS7Q8Yy5S_SChv0&style=blob&duration=3")).toEqual({
-    key: "/api/og?h=630&seed=kS7Q8Yy5S_SChv0&style=blob&w=1200",
+  expect(written("/api/og?seed=kS7Q8Yy5S_SChv0&style=blob&speed=3&bg=deep")).toEqual({
+    key: "/api/og?bg=deep&h=630&seed=kS7Q8Yy5S_SChv0&style=blob&w=1200",
     acrossBuilds: false
   });
 });

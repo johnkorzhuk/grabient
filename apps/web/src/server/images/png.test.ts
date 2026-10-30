@@ -1,4 +1,4 @@
-import { blobStill } from "@grabient/engine/blob.ts";
+import { blobStill, parseBlob } from "@grabient/engine/blob.ts";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { expect, test } from "vitest";
 import { at, decodePng } from "../../../test/png.ts";
@@ -14,7 +14,7 @@ test("a picture with alpha is written as RGBA and reads back byte for byte", asy
 
 test("the blob's first frame as a PNG: clear around the blob, opaque in its middle", async () => {
   const palette = decodePalette("kS4mdDYzY8lhFPW")!;
-  const view = { focus: true, fill: false };
+  const view = parseBlob(new URLSearchParams(""));
   const png = await decodePng(
     await encodePng(120, 90, blobStill(palette, view, { width: 120, height: 90 }), true)
   );

@@ -18,7 +18,7 @@ import { cardSize, pictureSize } from "./size.ts";
     drawn before is kept for it. */
 const BANDS_DRAWING = "bands-1";
 /** The animated blob's drawing, counted up the same way for a change to engine/blob.ts that moves its pixels. */
-const BLOB_DRAWING = "blob-1";
+const BLOB_DRAWING = "blob-2";
 
 export function paletteCard(
   request: Request,
@@ -51,9 +51,9 @@ export function paletteCard(
       keep
     );
   }
-  // style=blob: the blob's first frame on its backdrop under the wordmark, which a link to that SVG previews as
+  // style=blob: the blob's first frame on its ground, or on a backdrop, under the wordmark: what a link to it previews as
   if (isBlob(params)) {
-    const { focus, fill } = parseBlob(params);
+    const blob = parseBlob(params);
     const { width, height } = cardSize(params);
     return answerPicture(
       request,
@@ -61,17 +61,12 @@ export function paletteCard(
       {
         kind: "card",
         branded: true,
-        parts: [BLOB_DRAWING, found.seed, focus, fill, width, height, true],
+        parts: [BLOB_DRAWING, found.seed, blobSearch(blob, [], false), width, height, true],
         width,
         height,
         draw: () =>
           drawCardOver(
-            blobStill(
-              found.palette,
-              { focus, fill },
-              { width, height },
-              blobBackdrop(found.palette)
-            ),
+            blobStill(found.palette, blob, { width, height }, blobBackdrop(found.palette)),
             keyframeColors(found.palette),
             width,
             height
@@ -139,10 +134,9 @@ export function palettePicture(
       keep
     );
   }
-  // style=blob: the blob's first frame alone, transparent around it as the SVG is unless it fills the box
+  // style=blob: the blob's first frame alone, transparent around it as the SVG is unless it asks for a ground
   if (isBlob(params)) {
     const blob = parseBlob(params);
-    const { focus, fill } = blob;
     return answerPicture(
       request,
       env,
@@ -150,16 +144,11 @@ export function palettePicture(
         kind: "png",
         branded: false,
         svg: `/${found.seed}.svg${blobSearch(blob, [`size=${width}x${height}`])}`,
-        parts: [BLOB_DRAWING, found.seed, focus, fill, width, height, false],
+        parts: [BLOB_DRAWING, found.seed, blobSearch(blob, [], false), width, height, false],
         width,
         height,
         draw: () =>
-          encodePng(
-            width,
-            height,
-            blobStill(found.palette, { focus, fill }, { width, height }),
-            !fill
-          )
+          encodePng(width, height, blobStill(found.palette, blob, { width, height }), !blob.bg)
       },
       keep
     );

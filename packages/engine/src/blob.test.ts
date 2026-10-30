@@ -19,23 +19,37 @@ const P = decodePalette("kS4mdDYzY8lhFPW")!;
 const draw = (query = "", size = BLOB_SIZE, palette = P) =>
   blobSvg(palette, read(query), size, "https://grabient.com/k");
 const count = (svg: string, tag: string) => svg.split(`<${tag} `).length - 1;
+const after = (svg: string) => svg.split("</defs>")[1];
 
-test("an address's animation: the default loop with depth, a duration brought into bounds, focus and fill", () => {
-  expect(read("")).toEqual({ duration: 16, focus: true, fill: false } satisfies BlobView);
-  expect(read("duration=0.5").duration).toBe(2);
-  expect(read("duration=600").duration).toBe(120);
-  expect(read("duration=7.255").duration).toBe(7.26);
-  expect(read("duration=-3&bands=9&focus=1&fill=0")).toEqual(read(""));
-  expect(read("focus=0&fill=1")).toMatchObject({ focus: false, fill: true });
-  expect(blobSearch(read("duration=16.00&junk=1"))).toBe("?style=blob");
-  expect(blobSearch(read("fill=1&duration=9&focus=0"), ["size=800x600"])).toBe(
-    "?style=blob&duration=9&focus=0&fill=1&size=800x600"
-  );
-  // the first frame's query leaves the loop out
-  expect(blobSearch(read("duration=9&fill=1"), [], false)).toBe("?style=blob&fill=1");
+test("an address's animation: speed, depth, fill, frost, shape and ground, each brought into bounds", () => {
+  expect(read("")).toEqual({
+    speed: 1,
+    depth: true,
+    fill: false,
+    frost: 1,
+    shape: null,
+    bg: null
+  } satisfies BlobView);
+  expect(read("speed=0.05&frost=3").speed).toBe(0.1);
+  expect(read("speed=20&frost=3")).toMatchObject({ speed: 10, frost: 2 });
+  expect(read("speed=0.755&frost=0.333")).toMatchObject({ speed: 0.76, frost: 0.33 });
+  expect(read("depth=0&fill=1&shape=7")).toMatchObject({ depth: false, fill: true, shape: 7 });
+  expect(read("shape=12345").shape).toBeNull();
+  expect(read("shape=x").shape).toBeNull();
+  expect(read("bg=deep").bg).toBe("deep");
+  expect(read("bg=FFF").bg).toBe("#ffffff");
+  expect(read("bg=%23101014").bg).toBe("#101014");
+  expect(read("bg=red").bg).toBeNull();
+  expect(read("speed=-1&depth=1&fill=0&frost=x&bg=none&duration=9")).toEqual(read(""));
+  expect(blobSearch(read("speed=1.00&junk=1"))).toBe("?style=blob");
+  expect(
+    blobSearch(read("bg=101014&shape=7&frost=0.5&fill=1&depth=0&speed=2"), ["size=800x600"])
+  ).toBe("?style=blob&speed=2&depth=0&fill=1&frost=0.5&shape=7&bg=101014&size=800x600");
+  // the first frame's query leaves the speed out
+  expect(blobSearch(read("speed=2&fill=1"), [], false)).toBe("?style=blob&fill=1");
 });
 
-test("the file: the balls drawn frosted and clear, cross-faded by a spot of focus, moved by CSS alone", () => {
+test("the file: the balls drawn far and near, cross-faded by a spot of focus, both frosted, moved by CSS alone", () => {
   const svg = draw();
   expect(svg).toBe(draw());
   expect(svg).toContain('width="500" height="500" viewBox="0 0 500 500"');
@@ -44,17 +58,19 @@ test("the file: the balls drawn frosted and clear, cross-faded by a spot of focu
   expect(count(svg, "circle")).toBe(18);
   expect(count(svg, "filter")).toBe(2);
   expect(count(svg, "mask")).toBe(2);
-  for (const step of ["feGaussianBlur", "feTurbulence", "feDisplacementMap", "feComposite"])
-    expect(svg).toContain(`<${step} `);
+  // near or far, the blob keeps some frost: both drawings scatter and speckle
+  expect(count(svg, "feTurbulence")).toBe(2);
+  expect(count(svg, "feDisplacementMap")).toBe(2);
+  expect(count(svg, "feComposite")).toBe(2);
   expect(svg).toContain("mix-blend-mode:plus-lighter");
   // nothing behind the blob: the file is transparent around it
-  expect(svg.split("</defs>")[1]).not.toContain("<rect ");
+  expect(after(svg)).not.toContain("<rect ");
   expect(svg).toContain("@media (prefers-reduced-motion:no-preference){");
-  expect(svg.length).toBeLessThan(7_000);
+  expect(svg.length).toBeLessThan(7_500);
 });
 
 test("no transform attribute anywhere, so an optimizer moving one onto a moving element cannot shift the drawing", () => {
-  for (const query of ["", "focus=0", "fill=1"]) {
+  for (const query of ["", "depth=0", "fill=1&bg=deep"]) {
     const svg = draw(query, { width: 640, height: 360 });
     expect(svg).not.toMatch(/\stransform=/);
     // every element that turns or grows turns about an origin of its own
@@ -67,7 +83,7 @@ test("no transform attribute anywhere, so an optimizer moving one onto a moving 
   }
 });
 
-test("every turn and every to-and-fro makes whole laps in the loop", () => {
+test("every turn and every to-and-fro makes whole laps in the loop, and speed shortens the loop", () => {
   const svg = draw("", { width: 900, height: 500 });
   const turns = [...svg.matchAll(/animation-duration:([\d.]+)s/g)].map(m => 16 / Number(m[1]));
   const sweeps = [...svg.matchAll(/animation:\w+ ([\d.]+)s cubic/g)].map(
@@ -76,31 +92,62 @@ test("every turn and every to-and-fro makes whole laps in the loop", () => {
   expect(turns.length).toBeGreaterThanOrEqual(3);
   expect(sweeps.length).toBeGreaterThanOrEqual(3);
   for (const n of [...turns, ...sweeps]) expect(n).toBeCloseTo(Math.round(n), 2);
-  expect(draw("duration=4")).toContain("animation-duration:4s");
+  expect(draw()).toContain("animation-duration:16s");
+  expect(draw("speed=2")).toContain("animation-duration:8s");
+  expect(draw("speed=2")).not.toContain("animation-duration:16s");
 });
 
-test("without focus, one frosted drawing at one depth; filled, three blobs on the deep tone, melting past the box", () => {
-  const still = draw("focus=0");
+test("frost scales the scatter and the speckle, and none leaves the noise out", () => {
+  const scatter = (svg: string) =>
+    [...svg.matchAll(/feDisplacementMap in="b" in2="n" scale="([\d.]+)"/g)].map(m => Number(m[1]));
+  const [far, near] = scatter(draw());
+  expect(far).toBe(37.5);
+  expect(near).toBeCloseTo(far * 0.3, 1);
+  expect(scatter(draw("frost=2"))).toEqual([75, 22.5]);
+  const clean = draw("frost=0");
+  expect(clean).not.toContain("feTurbulence");
+  expect(clean).not.toContain("arithmetic");
+});
+
+test("without depth, one frosted drawing at one depth; filled, three blobs that melt past the box", () => {
+  const still = draw("depth=0");
   expect(count(still, "circle")).toBe(8);
   expect(count(still, "filter")).toBe(1);
   expect(still).not.toContain("<mask ");
   expect(still).not.toContain("scale(");
   const filled = draw("fill=1", { width: 1280, height: 720 });
-  const { backdrop } = blobScene(P, { width: 1280, height: 720 }, true);
-  expect(filled).toContain(`<rect width="1280" height="720" fill="${backdrop}"/>`);
   expect(count(filled, "circle")).toBe(3 * 8 * 2 + 3 * 2);
   expect(filled).toMatch(/<filter id="\w+" x="-[\d.]+" y="-[\d.]+"/);
+  // filled and transparent unless a ground is asked for
+  expect(after(filled)).not.toMatch(/<rect width="1280"/);
 });
 
-test("each file's names are its own, and each palette has a blob of its own", () => {
+test("the ground: the palette's deep tone or a color, drawn behind the blobs", () => {
+  const { backdrop } = blobScene(P, BLOB_SIZE, { fill: true, shape: null, bg: "deep" });
+  expect(backdrop).toMatch(/^#[0-9a-f]{6}$/);
+  expect(after(draw("fill=1&bg=deep"))).toContain(
+    `<rect width="500" height="500" fill="${backdrop}"/>`
+  );
+  expect(after(draw("bg=101014"))).toContain('<rect width="500" height="500" fill="#101014"/>');
+  // a dark palette's deep tone is pale
+  const black = decodePalette("kYAABnAAA_wAAQEAAD8kpHAR6VwS")!;
+  const pale = blobScene(black, BLOB_SIZE, { fill: true, shape: null, bg: "deep" }).backdrop!;
+  expect(parseInt(pale.slice(1, 3), 16)).toBeGreaterThan(200);
+});
+
+test("each file's names are its own; each palette, and each shape of it, has blobs of its own", () => {
   const mark = (svg: string) => /class="(b[0-9a-z]{4})"/.exec(svg)?.[1];
   const other = decodePalette("kKSAEDEVJVQQpMqxBWXeGPsNYdzUyx-eqwA")!;
   expect(mark(draw())).not.toBe(mark(draw("", BLOB_SIZE, other)));
-  expect(mark(draw())).not.toBe(mark(draw("duration=8")));
+  expect(mark(draw())).not.toBe(mark(draw("speed=2")));
   expect(mark(draw())).not.toBe(mark(draw("fill=1")));
   expect(mark(draw())).not.toBe(mark(draw("", { width: 400, height: 400 })));
-  const places = (palette: typeof P) => blobScene(palette, BLOB_SIZE).blobs[0].balls.map(b => b.x);
+  const places = (palette: typeof P, shape: number | null = null) =>
+    blobScene(palette, BLOB_SIZE, { fill: false, shape, bg: null }).blobs[0].balls.map(b => b.x);
   expect(places(P)).not.toEqual(places(other));
+  expect(places(P, 7)).not.toEqual(places(P));
+  expect(places(P, 7)).toEqual(places(P, 7));
+  expect(draw("shape=7")).not.toBe(draw());
 });
 
 test("the palette's colors lie across the blob, its darker end on one side", () => {
@@ -127,7 +174,8 @@ test("alone, the blob stays whole inside its box at every moment of the loop, ne
   for (let i = 0; i < 50; i++) {
     const palette = randomPalette(rand);
     for (const size of sizes) {
-      const [blob] = blobScene(palette, size).blobs;
+      const shape = i % 3 ? null : i;
+      const [blob] = blobScene(palette, size, { fill: false, shape, bg: null }).blobs;
       const S = Math.min(size.width, size.height);
       for (let k = 0; k < 64; k++) {
         for (const b of blob.balls) {
@@ -151,7 +199,7 @@ test("a wide box lets the blob wander across it, and a square one a little", () 
   expect(wide.wander[1].reach).toBeLessThan(wide.wander[0].reach);
 });
 
-test("the first frame as pixels: transparent around the blob, or on a backdrop, and filled on the deep tone", () => {
+test("the first frame as pixels: transparent around the blobs, or on their ground, or on a backdrop", () => {
   const [W, H] = [160, 120];
   const at = (pixels: Uint8Array, n: number, x: number, y: number) => [
     ...pixels.subarray(n * (y * W + x), n * (y * W + x) + n)
@@ -166,11 +214,13 @@ test("the first frame as pixels: transparent around the blob, or on a backdrop, 
   const card = blobStill(P, read(""), { width: W, height: H }, backdrop);
   expect(card).toHaveLength(3 * W * H);
   expect(at(card, 3, 0, 0)).toEqual(backdrop);
-  const filled = blobStill(P, read("fill=1"), { width: W, height: H });
-  expect(filled).toHaveLength(3 * W * H);
-  const deep = blobScene(P, { width: W, height: H }, true).backdrop!;
-  expect(blobStill(P, read("focus=0"), { width: W, height: H })).not.toEqual(alone);
-  expect(deep).toMatch(/^#[0-9a-f]{6}$/);
+  // filled, still transparent unless a ground is asked for
+  expect(blobStill(P, read("fill=1"), { width: W, height: H })).toHaveLength(4 * W * H);
+  const grounded = blobStill(P, read("bg=101014"), { width: W, height: H }, backdrop);
+  expect(grounded).toHaveLength(3 * W * H);
+  expect(at(grounded, 3, 0, 0)).toEqual([0x10, 0x10, 0x14]);
+  expect(blobStill(P, read("depth=0"), { width: W, height: H })).not.toEqual(alone);
+  expect(blobStill(P, read("shape=7"), { width: W, height: H })).not.toEqual(alone);
 });
 
 test("a dark palette's card sets the blob on light, any other on dark", () => {
@@ -189,8 +239,9 @@ test("the CSS carries the file inside it: a lone blob as large as the box holds 
   const svg = blobSvg(P, read(""), { width: 1080, height: 1350 }, "https://grabient.com/k");
   expect(decodeURIComponent(data)).toBe(svg.replace(/\n/g, "").replace(/"/g, "'"));
   expect(blobCss(P, read(""), null, "x")).toContain("html {\n  min-height: 100%;\n  background:");
-  const filled = blobCss(P, read("fill=1"), null, "x");
-  const { backdrop } = blobScene(P, BLOB_SIZE, true);
-  expect(filled).toContain(`background: ${backdrop} url("data:image/svg+xml,`);
-  expect(filled).toContain('") center / cover no-repeat;');
+  expect(blobCss(P, read("fill=1"), null, "x")).toContain('background: url("data:image/svg+xml,');
+  const grounded = blobCss(P, read("fill=1&bg=deep"), null, "x");
+  const { backdrop } = blobScene(P, BLOB_SIZE, { fill: true, shape: null, bg: "deep" });
+  expect(grounded).toContain(`background: ${backdrop} url("data:image/svg+xml,`);
+  expect(grounded).toContain('") center / cover no-repeat;');
 });
