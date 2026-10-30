@@ -18,7 +18,6 @@ export type Format =
   | "css"
   | "svg"
   | "png"
-  | "gif"
   | "jpeg"
   | "url"
   | "json"
@@ -39,7 +38,6 @@ const ICON: Readonly<Record<Format, IconName>> = {
   css: "code",
   svg: "vector",
   png: "image",
-  gif: "film",
   jpeg: "image",
   url: "link",
   json: "braces",
@@ -53,7 +51,6 @@ const LABEL: Readonly<Record<Format, string>> = {
   css: "CSS",
   svg: "SVG",
   png: "PNG",
-  gif: "GIF",
   jpeg: "JPEG",
   url: "URL",
   json: "JSON",

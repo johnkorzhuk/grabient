@@ -12,13 +12,7 @@ const web = fileURLToPath(new URL("..", import.meta.url));
 export default defineConfig({
   root: web,
   // the MCP view is built by its own plugin (src/mcp-view/build.ts); the tests serve a page of the same shape
-  resolve: {
-    alias: {
-      "virtual:mcp-view": `${web}/test/mcp-view-page.ts`,
-      // the blob's embed is built by its own plugin (src/embed/build.ts); the tests serve a script in its place
-      "virtual:blob-embed": `${web}/test/blob-embed-script.ts`
-    }
-  },
+  resolve: { alias: { "virtual:mcp-view": `${web}/test/mcp-view-page.ts` } },
   // the build's name, which the edge cache's keys carry (lib/build.ts)
   define: { __BUILD_ID__: JSON.stringify("test") },
   plugins: [

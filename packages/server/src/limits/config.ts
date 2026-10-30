@@ -70,9 +70,6 @@ export const LIMITS = {
   imageVerifiedDaily: { requests: 40000, window: 86400, site: true, lease: 20 },
   imagePreviewDaily: { requests: 10000, window: 86400, site: true, lease: 5 },
   largeImageDaily: { requests: 2000, window: 86400, site: true, lease: 5 },
-  // An animated GIF draws every frame of its loop, about a second of work: per address, and for the site's day.
-  gifRender: { requests: 6, window: 60, local: true },
-  gifDaily: { requests: 2000, window: 86400, site: true, lease: 5 },
   avatarUpload: { requests: 10, window: 3600 },
   avatarUploadDaily: { requests: 500, window: 86400, site: true },
   usernameCheck: { requests: 120, window: 3600 },

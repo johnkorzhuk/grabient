@@ -2,7 +2,6 @@
    address asks for, and the head an email wears. The key names what is drawn, so every address of one picture shares
    it. */
 import { bandsSearch, bandsStill, isBands, parseBands } from "@grabient/engine/bands.ts";
-import { blobBackdrop, blobSearch, blobStill, isBlob, parseBlob } from "@grabient/engine/blob.ts";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { hexBytes } from "@grabient/engine/color.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
@@ -17,8 +16,6 @@ import { cardSize, pictureSize } from "./size.ts";
 /** The animated SVG's drawing, which a change to engine/bands.ts that moves its pixels counts up, so no card or picture
     drawn before is kept for it. */
 const BANDS_DRAWING = "bands-1";
-/** The animated blob's drawing, counted up the same way for a change to engine/blob.ts that moves its pixels. */
-const BLOB_DRAWING = "blob-2";
 
 export function paletteCard(
   request: Request,
@@ -43,30 +40,6 @@ export function paletteCard(
         draw: () =>
           drawCardOver(
             bandsStill(found.palette, bands, { width, height }),
-            keyframeColors(found.palette),
-            width,
-            height
-          )
-      },
-      keep
-    );
-  }
-  // style=blob: the blob's first frame on its ground, or on a backdrop, under the wordmark: what a link to it previews as
-  if (isBlob(params)) {
-    const blob = parseBlob(params);
-    const { width, height } = cardSize(params);
-    return answerPicture(
-      request,
-      env,
-      {
-        kind: "card",
-        branded: true,
-        parts: [BLOB_DRAWING, found.seed, blobSearch(blob, [], false), width, height, true],
-        width,
-        height,
-        draw: () =>
-          drawCardOver(
-            blobStill(found.palette, blob, { width, height }, blobBackdrop(found.palette)),
             keyframeColors(found.palette),
             width,
             height
@@ -130,25 +103,6 @@ export function palettePicture(
         width,
         height,
         draw: () => encodePng(width, height, bandsStill(found.palette, bands, { width, height }))
-      },
-      keep
-    );
-  }
-  // style=blob: the blob's first frame alone, transparent around it as the SVG is unless it asks for a ground
-  if (isBlob(params)) {
-    const blob = parseBlob(params);
-    return answerPicture(
-      request,
-      env,
-      {
-        kind: "png",
-        branded: false,
-        svg: `/${found.seed}.svg${blobSearch(blob, [`size=${width}x${height}`])}`,
-        parts: [BLOB_DRAWING, found.seed, blobSearch(blob, [], false), width, height, false],
-        width,
-        height,
-        draw: () =>
-          encodePng(width, height, blobStill(found.palette, blob, { width, height }), !blob.bg)
       },
       keep
     );

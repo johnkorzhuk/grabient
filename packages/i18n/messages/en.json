@@ -227,8 +227,8 @@
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
       "apps/web/src/features/editor/Boot.tsx:98",
-      "apps/web/src/features/editor/Editor.tsx:575",
-      "apps/web/src/features/editor/Editor.tsx:576",
+      "apps/web/src/features/editor/Editor.tsx:564",
+      "apps/web/src/features/editor/Editor.tsx:565",
       "packages/ui/src/PaletteCard.tsx:396",
       "packages/ui/src/PaletteCard.tsx:397"
     ]
@@ -422,7 +422,6 @@
   "Auto": {
     "note": "A value chosen by the app: size, steps, angle or columns follow the content.",
     "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:59",
       "packages/ui/src/Appearance.tsx:262",
       "packages/ui/src/Appearance.tsx:274",
       "packages/ui/src/ExportPanel.tsx:129",
@@ -436,7 +435,7 @@
     "note": "Press: back to the previous menu or page.",
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:265",
-      "packages/ui/src/FormatStrip.tsx:168",
+      "packages/ui/src/FormatStrip.tsx:165",
       "packages/ui/src/Menu.tsx:431",
       "packages/ui/src/SizeControl.tsx:247"
     ]
@@ -445,13 +444,6 @@
     "note": "Press: scrolls to the top of the page. Also its tooltip.",
     "refs": [
       "packages/ui/src/BackToTop.tsx:62"
-    ]
-  },
-  "Background": {
-    "note": "Editor side, the blob: what is drawn behind the blob. The name of a choice of None, Deep or Color, and of the color field under it.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:120",
-      "apps/web/src/features/editor/BlobControls.tsx:140"
     ]
   },
   "Bad fit": {
@@ -482,12 +474,6 @@
     "note": "About: paragraph.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:495"
-    ]
-  },
-  "Blob": {
-    "note": "Editor side: the name of the section and its On/Off switch that plays the palette as an animated blob, a soft amorphous shape of its colors, in the picture. A shape word, like a drop of paint; not a database blob.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:32"
     ]
   },
   "Both strips end on the same color. Top: hue 210° to 330°. Bottom: 210° to 690°, one more lap.": {
@@ -685,7 +671,7 @@
     "note": "Press and key list entry: closes the selection view.",
     "refs": [
       "apps/web/src/app/navigation.ts:182",
-      "apps/web/src/features/editor/Editor.tsx:207",
+      "apps/web/src/features/editor/Editor.tsx:202",
       "apps/web/src/features/selection/SelectionScreen.tsx:257",
       "apps/web/src/features/selection/SelectionScreen.tsx:314",
       "packages/ui/src/ExportPanel.tsx:154"
@@ -771,12 +757,6 @@
     "note": "Alt text of the collections list's share image.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:1042"
-    ]
-  },
-  "Color": {
-    "note": "Editor side, the blob's background: a color of the reader's choosing, set in the field under the choice.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:19"
     ]
   },
   "Color format": {
@@ -928,7 +908,7 @@
       "packages/ui/src/CopyButton.tsx:28",
       "packages/ui/src/CopyButton.tsx:34",
       "packages/ui/src/CopyButton.tsx:48",
-      "packages/ui/src/FormatStrip.tsx:180",
+      "packages/ui/src/FormatStrip.tsx:177",
       "packages/ui/src/StopStrip.tsx:101",
       "packages/ui/src/StopStrip.tsx:182"
     ]
@@ -940,7 +920,7 @@
       "packages/ui/src/CopyButton.tsx:28",
       "packages/ui/src/CopyButton.tsx:45",
       "packages/ui/src/ExportPanel.tsx:257",
-      "packages/ui/src/FormatStrip.tsx:73",
+      "packages/ui/src/FormatStrip.tsx:70",
       "packages/ui/src/StopStrip.tsx:156"
     ]
   },
@@ -968,19 +948,19 @@
   "Copy link": {
     "note": "Label of the format row while its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:75"
+      "packages/ui/src/FormatStrip.tsx:72"
     ]
   },
   "Copy {format}": {
     "note": "Tooltip on a format press (CSS, SVG, PNG...): copies it.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:78"
+      "packages/ui/src/FormatStrip.tsx:75"
     ]
   },
   "Copy {format} link": {
     "note": "Tooltip on a format press: copies the address of that file.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:80"
+      "packages/ui/src/FormatStrip.tsx:77"
     ]
   },
   "Copy {hex}": {
@@ -993,19 +973,19 @@
   "Copying links. Switch to copy": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy file links: what the row is doing, then the mode a press turns it to, after which its presses copy.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:86"
+      "packages/ui/src/FormatStrip.tsx:83"
     ]
   },
   "Copying. Switch to download": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy: what the row is doing, then the mode a press turns it to, after which its presses download.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:84"
+      "packages/ui/src/FormatStrip.tsx:81"
     ]
   },
   "Copying. Switch to links": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy, on a row with no downloads: what the row is doing, then the mode a press turns it to, after which its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:84"
+      "packages/ui/src/FormatStrip.tsx:81"
     ]
   },
   "Corners": {
@@ -1030,8 +1010,8 @@
   "Couldn't copy the palette.": {
     "note": "Error line after a failed copy of a palette.",
     "refs": [
+      "apps/web/src/features/editor/Editor.tsx:646",
       "apps/web/src/features/editor/Editor.tsx:657",
-      "apps/web/src/features/editor/Editor.tsx:668",
       "apps/web/src/features/editor/Sheet.tsx:143",
       "apps/web/src/features/gallery/take.ts:102",
       "apps/web/src/features/gallery/take.ts:115"
@@ -1090,7 +1070,7 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
-      "apps/web/src/features/editor/Editor.tsx:675",
+      "apps/web/src/features/editor/Editor.tsx:664",
       "apps/web/src/features/editor/Sheet.tsx:478",
       "apps/web/src/features/editor/Sheet.tsx:555",
       "apps/web/src/lib/files.ts:65"
@@ -1211,7 +1191,7 @@
   "Couldn't save the palette.": {
     "note": "Error line after a failed like.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:296"
+      "apps/web/src/features/editor/Editor.tsx:288"
     ]
   },
   "Couldn't save your vote.": {
@@ -1330,12 +1310,6 @@
       "apps/web/src/app/Shell.tsx:208"
     ]
   },
-  "Deep": {
-    "note": "Editor side, the blob's background: a deep, dark tone of the palette's own colors.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:18"
-    ]
-  },
   "Delete": {
     "note": "Admin press: confirms a delete.",
     "refs": [
@@ -1367,12 +1341,6 @@
     "refs": [
       "apps/web/src/features/collections/Actions.tsx:427",
       "packages/ui/src/Curation.tsx:44"
-    ]
-  },
-  "Depth": {
-    "note": "Editor side, the blob: label of an On/Off switch that makes the blob drift toward the viewer and away, growing and shrinking.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:101"
     ]
   },
   "Description": {
@@ -1427,7 +1395,7 @@
     "note": "Press or label: downloads a file.",
     "refs": [
       "packages/ui/src/ExportPanel.tsx:257",
-      "packages/ui/src/FormatStrip.tsx:74"
+      "packages/ui/src/FormatStrip.tsx:71"
     ]
   },
   "Download PNG": {
@@ -1439,19 +1407,19 @@
   "Download {format}": {
     "note": "Tooltip on a format press (CSS, SVG, PNG...): downloads it.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:79"
+      "packages/ui/src/FormatStrip.tsx:76"
     ]
   },
   "Downloading. Switch to copy": {
     "note": "Press at the end of the format row, and its tooltip, while its presses download, on a row with no file links: what the row is doing, then the mode a press turns it to, after which its presses copy.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:85"
+      "packages/ui/src/FormatStrip.tsx:82"
     ]
   },
   "Downloading. Switch to links": {
     "note": "Press at the end of the format row, and its tooltip, while its presses download: what the row is doing, then the mode a press turns it to, after which its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:85"
+      "packages/ui/src/FormatStrip.tsx:82"
     ]
   },
   "Drafts": {
@@ -1504,7 +1472,7 @@
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1074",
+      "apps/web/src/features/editor/Editor.tsx:1032",
       "packages/ui/src/KeyList.tsx:10"
     ]
   },
@@ -1643,22 +1611,10 @@
       "apps/web/src/features/account/settings/Appearance.tsx:65"
     ]
   },
-  "FPS": {
-    "note": "Editor side, the blob: a short number field, frames a second the blob plays at (and its GIF is made at); it reads Auto, the screen's own pace, under 1. Keep it as short as FPS: it shares a row with Speed.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:52"
-    ]
-  },
   "Fewer or more steps": {
     "note": "Shortcut list entry: fewer or more steps in the gradient.",
     "refs": [
       "packages/ui/src/keymap.ts:42"
-    ]
-  },
-  "Fill": {
-    "note": "Editor side, the blob: label of an On/Off switch that fills the whole picture with three blobs, for a background.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:109"
     ]
   },
   "Find five calm palettes for a meditation app.": {
@@ -1743,12 +1699,6 @@
     "note": "Heading over the palettes made from the colors picked out of the reader's image, shown beside the image.",
     "refs": [
       "apps/web/src/features/gallery/Palettes.tsx:440"
-    ]
-  },
-  "Frost": {
-    "note": "Editor side, the blob: a number field, how much grain and sprayed edge the blob has, as of frosted glass; 0 is none.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:66"
     ]
   },
   "Full screen": {
@@ -1989,7 +1939,7 @@
   "Images can't be copied here.": {
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:656",
+      "apps/web/src/features/editor/Editor.tsx:645",
       "apps/web/src/features/editor/Sheet.tsx:142",
       "apps/web/src/mcp-view/PaletteView.tsx:247",
       "apps/web/src/mcp-view/PaletteView.tsx:255",
@@ -2148,21 +2098,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:893",
+      "apps/web/src/features/editor/Editor.tsx:851",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:889",
+      "apps/web/src/features/editor/Editor.tsx:847",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:878",
+      "apps/web/src/features/editor/Editor.tsx:836",
       "apps/web/src/features/editor/code.ts:190",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -2502,13 +2452,6 @@
       "apps/web/src/features/connect/McpServer.tsx:161"
     ]
   },
-  "New shape": {
-    "note": "Editor side, the blob: a press (a die) that picks another shape number at random. Its tooltip and its name.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:91",
-      "apps/web/src/features/editor/BlobControls.tsx:92"
-    ]
-  },
   "Newsletter": {
     "note": "The newsletter, its page and its Settings switch.",
     "refs": [
@@ -2600,12 +2543,6 @@
       "apps/web/src/features/gallery/Palettes.tsx:335"
     ]
   },
-  "None": {
-    "note": "Editor side, the blob's background: nothing behind the blob, which shows the page through.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:17"
-    ]
-  },
   "Not found": {
     "note": "Error: the thing asked for does not exist.",
     "refs": [
@@ -2620,9 +2557,9 @@
       "apps/web/src/server/newsletter/routes.ts:132",
       "apps/web/src/server/newsletter/routes.ts:136",
       "apps/web/src/server/newsletter/routes.ts:65",
-      "apps/web/src/server/pipeline.ts:169",
-      "apps/web/src/server/pipeline.ts:174",
-      "apps/web/src/server/pipeline.ts:185"
+      "apps/web/src/server/pipeline.ts:168",
+      "apps/web/src/server/pipeline.ts:173",
+      "apps/web/src/server/pipeline.ts:184"
     ]
   },
   "Not in the gallery or a collection": {
@@ -2921,7 +2858,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:792",
+      "apps/web/src/features/editor/Editor.tsx:750",
       "packages/ui/src/PaletteSheet.tsx:128"
     ]
   },
@@ -3018,7 +2955,7 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:778",
+      "apps/web/src/features/editor/Editor.tsx:736",
       "apps/web/src/lib/page-meta.ts:536",
       "apps/web/src/lib/page-meta.ts:547",
       "packages/ui/src/PaletteCard.tsx:277"
@@ -3452,8 +3389,8 @@
   "Remove from selection": {
     "note": "Press (a check) on a palette in the selection: takes it out. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:575",
-      "apps/web/src/features/editor/Editor.tsx:576",
+      "apps/web/src/features/editor/Editor.tsx:564",
+      "apps/web/src/features/editor/Editor.tsx:565",
       "packages/ui/src/ExportPreview.tsx:83",
       "packages/ui/src/PaletteCard.tsx:396",
       "packages/ui/src/PaletteCard.tsx:397"
@@ -3469,7 +3406,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1091",
+      "apps/web/src/features/editor/Editor.tsx:1049",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3477,7 +3414,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1091"
+      "apps/web/src/features/editor/Editor.tsx:1049"
     ]
   },
   "Remove {hex}": {
@@ -4019,12 +3956,6 @@
       "apps/web/src/features/editor/code.ts:181"
     ]
   },
-  "Shape": {
-    "note": "Editor side, the blob: a number field, which of many shapes the blob takes; each number is another shape.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:78"
-    ]
-  },
   "Share images": {
     "note": "Admin feature switch.",
     "refs": [
@@ -4079,7 +4010,7 @@
     "note": "Press: shows the editor's side panel. Also its tooltip, before its key.",
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:32",
-      "apps/web/src/features/editor/Editor.tsx:196"
+      "apps/web/src/features/editor/Editor.tsx:191"
     ]
   },
   "Show shortcuts": {
@@ -4243,7 +4174,7 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:781",
+      "apps/web/src/features/editor/Editor.tsx:739",
       "apps/web/src/features/editor/Sheet.tsx:594",
       "apps/web/src/features/editor/StaticPalette.tsx:139",
       "packages/ui/src/PaletteCard.tsx:278"
@@ -4332,19 +4263,13 @@
       "apps/web/src/lib/query.ts:109",
       "apps/web/src/server/editor/facts.ts:117",
       "apps/web/src/server/gallery/credit.ts:120",
-      "apps/web/src/server/pipeline.ts:129"
+      "apps/web/src/server/pipeline.ts:128"
     ]
   },
   "Spectrum: two keyframes with equal lightness and chroma, and hue that travels 360°.": {
     "note": "About: a recipe.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:246"
-    ]
-  },
-  "Speed": {
-    "note": "Editor side, the blob: a number field, how fast the blob moves, written like 1×.",
-    "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:40"
     ]
   },
   "Square": {
@@ -4444,7 +4369,7 @@
   "Swatches": {
     "note": "Name of the format strip's swatch files mode, read aloud and shown over the selection's strip: its chips download files design apps import (Tokens, ASE, GPL, GRD). Swatches as in a design app's Swatches panel, not the hard-band style.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:168"
+      "packages/ui/src/FormatStrip.tsx:165"
     ]
   },
   "Syntax": {
@@ -4570,12 +4495,6 @@
       "apps/web/src/server/newsletter/sends.ts:341"
     ]
   },
-  "The animated blob": {
-    "note": "Spoken name of the editor's picture while it plays the palette as the animated blob.",
-    "refs": [
-      "apps/web/src/features/editor/BlobStage.tsx:60"
-    ]
-  },
   "The app is connected. You can close this tab.": {
     "note": "Connect page status after Allow.",
     "refs": [
@@ -4621,8 +4540,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:744",
-      "apps/web/src/features/editor/Editor.tsx:754"
+      "apps/web/src/features/editor/Editor.tsx:703",
+      "apps/web/src/features/editor/Editor.tsx:713"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -4909,7 +4828,7 @@
     "note": "Error: a rate limit was reached.",
     "refs": [
       "apps/web/src/routes/api/saved.ts:28",
-      "apps/web/src/server/pipeline.ts:283"
+      "apps/web/src/server/pipeline.ts:281"
     ]
   },
   "Too many searches. Try again in a moment.": {

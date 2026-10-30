@@ -5,20 +5,12 @@
    page is, and a collection's also by when the collection changed (`t`, which its page names). A text file is the
    engine's writing, kept for one build. */
 import { bandsSearch, isBands, parseBands } from "@grabient/engine/bands.ts";
-import {
-  BLOB_GIF_FPS,
-  BLOB_GIF_FPS_MAX,
-  BLOB_GIF_SIZE,
-  blobSearch,
-  isBlob,
-  parseBlob
-} from "@grabient/engine/blob.ts";
 import { colorKind } from "@grabient/engine/css.ts";
 import { parseView, type Size, sizeParam, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
 import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montage-address.ts";
-import { CARD, cardSize, gifSize, montageSize, pictureSize } from "../images/size.ts";
+import { CARD, cardSize, montageSize, pictureSize } from "../images/size.ts";
 import { oldFit } from "../seo/legacy-fit.ts";
 import { addressParams, fileName, svgSize, viewAt } from "./address.ts";
 import { resolvePalette } from "./resolve.ts";
@@ -32,7 +24,7 @@ export interface FileKey {
 /** A palette or a collection under another extension, the shortest name that leaves one: /{seed}.tokens.json is a
     seed's design tokens. */
 export const FILE_PATH =
-  /^\/([^/]+?|@[a-z0-9_-]{3,30}\/[a-z0-9-]+)\.(png|gif|svg|css|js|json|md|ase|gpl|grd|tokens\.json)$/;
+  /^\/([^/]+?|@[a-z0-9_-]{3,30}\/[a-z0-9-]+)\.(png|svg|css|json|md|ase|gpl|grd|tokens\.json)$/;
 /** Where the build once wrote palettes' cards as files: the card, which the Worker now draws. */
 const OLD_CARD = /^\/og\/[^/]+\/[^/]+\.png$/;
 const SEARCH_PICTURES = new Set(["/api/og/query", "/api/png/query"]);
@@ -159,40 +151,6 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     }
     const size = sizeParam(svgSize(params));
     const query = new URLSearchParams(bandsSearch(bands, size ? [`size=${size}`] : []));
-    return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
-  }
-  // the blob's embed: one script for every palette, kept for a build under the palette and the blob's options
-  if (file.format === "js") {
-    return {
-      path: `/${seed}.js`,
-      query: new URLSearchParams(blobSearch(parseBlob(params)).slice(1)),
-      acrossBuilds: false
-    };
-  }
-  /* the blob's GIF: its loop at its frame rate and the size asked for, kept for one build; a GIF of any other style is
-     no file */
-  if (file.format === "gif") {
-    if (!isBlob(params))
-      return { path: `/${seed}.gif`, query: new URLSearchParams(), acrossBuilds: false };
-    const blob = parseBlob(params);
-    const fps = Math.min(blob.fps ?? BLOB_GIF_FPS, BLOB_GIF_FPS_MAX);
-    const query = new URLSearchParams(blobSearch({ ...blob, still: false, fps }));
-    return picture(`/${seed}.gif`, query, gifSize(params, BLOB_GIF_SIZE), false);
-  }
-  /* the animated blob: as SVG or CSS its loop and size, kept for one build; its first frame and its card their size
-     alone, since no loop moves the first frame */
-  if (isBlob(params) && ["svg", "css", "png", "og"].includes(file.format)) {
-    const blob = parseBlob(params);
-    if (file.format === "png") {
-      const query = new URLSearchParams(blobSearch(blob, [], false));
-      return picture(`/${seed}.png`, query, pictureSize(params), false);
-    }
-    if (file.format === "og") {
-      const query = new URLSearchParams(blobSearch(blob, [`seed=${seed}`], false));
-      return picture("/api/og", query, cardSize(params), false);
-    }
-    const size = sizeParam(svgSize(params));
-    const query = new URLSearchParams(blobSearch(blob, size ? [`size=${size}`] : []));
     return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
   }
   const view = viewAt(params, palette.anchors.length);

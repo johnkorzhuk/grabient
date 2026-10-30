@@ -12,7 +12,7 @@
    The shapes and timing were measured from the reference animation (19 bands, 4.4 seconds a loop at 30 frames a
    second). A level is a place on the palette, 0 its dark end and 1 its light end. */
 import { toHex } from "./color.ts";
-import { pageBox, svgUrl } from "./css.ts";
+import { pageBox } from "./css.ts";
 import { sampleLCH, sampleSrgb } from "./curve.ts";
 import { clamp, clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
@@ -379,12 +379,19 @@ export function bandsStill(P: Palette, view: BandsView, size: Size): Uint8Array<
   return out;
 }
 
-/** The animated SVG as CSS that works alone: the page's background plays it, the SVG carried inside as a data URI,
-    over the palette's dim end until it is drawn. The box is the size asked for,
+/** The animated SVG as CSS that works alone: the page's background plays it, the SVG carried inside as a data URI with
+    only what a URL must escape escaped, over the palette's dim end until it is drawn. The box is the size asked for,
     else at least the window's height, and the SVG stretches to it. */
 export function bandsCss(P: Palette, view: BandsView, size: Size | null, credit: string): string {
   const svg = bandsSvg(P, view, size ?? BANDS_SIZE, credit);
+  const uri = svg
+    .replace(/\n/g, "")
+    .replace(/"/g, "'")
+    .replace(/%/g, "%25")
+    .replace(/#/g, "%23")
+    .replace(/</g, "%3C")
+    .replace(/>/g, "%3E");
   const dim = new Float64Array(3);
   paletteLevels(P, view.reverse)(0, dim, 0);
-  return `/* ${credit} */\nhtml {\n  ${pageBox(size)}\n  background: ${hexAt(dim, 0)} ${svgUrl(svg)} center / 100% 100% no-repeat;\n}\n`;
+  return `/* ${credit} */\nhtml {\n  ${pageBox(size)}\n  background: ${hexAt(dim, 0)} url("data:image/svg+xml,${uri}") center / 100% 100% no-repeat;\n}\n`;
 }

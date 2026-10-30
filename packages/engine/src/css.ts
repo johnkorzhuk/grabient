@@ -135,16 +135,6 @@ export function paletteCss(
   return `/* ${address} */\nhtml {\n  ${pageBox(size)}\n  ${cssLine(stops, view.style, view.angle, kind)}\n}\n${wide}`;
 }
 
-/** An SVG as a CSS url(): a data URI with only what a URL must escape escaped, its double quotes made single. */
-export const svgUrl = (svg: string) =>
-  `url("data:image/svg+xml,${svg
-    .replace(/\n/g, "")
-    .replace(/"/g, "'")
-    .replace(/%/g, "%25")
-    .replace(/#/g, "%23")
-    .replace(/</g, "%3C")
-    .replace(/>/g, "%3E")}")`;
-
 /** The page's box in a CSS file: the size its address asks for, else at least the window's height. */
 export const pageBox = (size?: Size | null) =>
   size ? `width: ${size.width}px;\n  height: ${size.height}px;` : "min-height: 100%;";

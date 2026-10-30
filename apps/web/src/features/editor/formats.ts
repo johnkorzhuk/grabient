@@ -1,5 +1,3 @@
-import { decodePalette } from "@grabient/engine";
-import type { BlobView } from "@grabient/engine/blob.ts";
 import { type ContrastMeasures, contrastPicture, contrastSvg } from "@grabient/engine/contrast.ts";
 import { cssBlock } from "@grabient/engine/css.ts";
 import type { Stop } from "@grabient/engine/curve.ts";
@@ -30,8 +28,6 @@ import { seedAddress } from "./address.ts";
    place as the mode turns, so only the first chip changes. */
 export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
-/** While the blob plays, its GIF too: a file and a link, never a copy, since a clipboard takes no GIF. */
-export const STRIP_BLOB_FILES: readonly Format[] = [...STRIP_FILES, "gif"];
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {
@@ -42,8 +38,6 @@ export interface Taken {
   size: SizeChoice | null;
   pixels: Size;
   stops: readonly Stop[];
-  /** the animated blob the picture plays, whose files a copy or a download takes in place of the gradient's */
-  blob?: BlobView | null;
 }
 
 /** The reason a copy of a picture fails where the browser has no image clipboard. */
@@ -54,48 +48,10 @@ const view = (p: Taken) => ({ style: p.style, steps: p.steps, angle: p.angle });
 /* the palette's address as people share it: no language, no locks, no selection */
 const pageUrl = (p: Taken) =>
   origin() + seedAddress({ seed: p.seed, view: { ...view(p), size: p.size } });
-/* the blob's drawing, loaded with its first file: the editor's first load carries none of it */
-const blobFiles = () => import("@grabient/engine/blob.ts");
-/* the blob's SVG at the pixels taken, moving or as its first frame alone (what a PNG of it holds) */
-const blobText = async (p: Taken, blob: BlobView, still = false) =>
-  (await blobFiles()).blobSvg(
-    decodePalette(p.seed)!,
-    { ...blob, still },
-    p.pixels,
-    `${origin()}/${p.seed}`
-  );
-const svgText = async (p: Taken) =>
-  p.blob ? blobText(p, p.blob) : artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels);
-const pngSvg = async (p: Taken) => (p.blob ? blobText(p, p.blob, true) : svgText(p));
+const svgText = (p: Taken) => artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels);
 /* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
-const fileUrl = async (p: Taken, f: Format) => {
-  const sized = sizeParam(p.size) ? p.pixels : undefined;
-  if (p.blob && (f === "svg" || f === "png" || f === "css" || f === "gif"))
-    return `${origin()}/${p.seed}.${f}${(await blobFiles()).blobSearch(p.blob, sized ? [`w=${sized.width}`, `h=${sized.height}`] : [])}`;
-  return fileAddress({ seed: p.seed, ...view(p) }, f, sized);
-};
-/* the blob's GIF, made here as the site makes it at its address, so the file and its link hold the same frames; a turn
-   for the page between frames keeps it answering while the GIF is made */
-const blobGifFile = async (p: Taken, blob: BlobView) => {
-  const [{ BLOB_GIF_SIZE }, { blobGif }] = await Promise.all([
-    blobFiles(),
-    import("@grabient/engine/blob-gif.ts")
-  ]);
-  const gif = await blobGif(
-    decodePalette(p.seed)!,
-    { ...blob, still: false },
-    sizeParam(p.size) ? p.pixels : BLOB_GIF_SIZE,
-    () => new Promise(resolve => setTimeout(resolve, 0))
-  );
-  return new Blob([gif], { type: "image/gif" });
-};
-const blobCssText = async (p: Taken, blob: BlobView) =>
-  (await blobFiles()).blobCss(
-    decodePalette(p.seed)!,
-    blob,
-    sizeParam(p.size) ? p.pixels : null,
-    `${origin()}/${p.seed}`
-  );
+const fileUrl = (p: Taken, f: Format) =>
+  fileAddress({ seed: p.seed, ...view(p) }, f, sizeParam(p.size) ? p.pixels : undefined);
 
 async function writeImage(png: Promise<Blob>): Promise<void> {
   if (!(await copyImage(png))) throw new Error(NO_IMAGE_CLIPBOARD);
@@ -105,39 +61,31 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
 export async function copyFormat(f: Format, p: Taken): Promise<void> {
   if (isSwatchFormat(f))
     return copySwatches(names => swatchFile(f, [swatchesOf({ seed: p.seed, ...view(p) }, names)]));
-  if (f === "png") return writeImage(pngSvg(p).then(svg => svgToPngBlob(svg, 1)));
+  if (f === "png") return writeImage(svgToPngBlob(svgText(p), 1));
   return writeText(
     f === "css"
-      ? p.blob
-        ? await blobCssText(p, p.blob)
-        : cssBlock(p.stops, p.style, p.angle, colorFormat())
+      ? cssBlock(p.stops, p.style, p.angle, colorFormat())
       : f === "svg"
-        ? await svgText(p)
+        ? svgText(p)
         : pageUrl(p)
   );
 }
 
 /** The format to a file. */
 export async function saveFormat(f: Format, p: Taken): Promise<void> {
-  const name = `grabient-${p.seed}${p.blob ? "-blob" : ""}`;
-  if (p.blob && f === "gif") return downloadFile(`${name}.gif`, await blobGifFile(p, p.blob));
-  if (p.blob && f === "css")
-    return downloadFile(
-      `${name}.css`,
-      new Blob([await blobCssText(p, p.blob)], { type: "text/css;charset=utf-8" })
-    );
+  const name = `grabient-${p.seed}`;
   if (f === "md" || f === "css" || isSwatchFormat(f))
     return saveFile({ seed: p.seed, ...view(p) }, f);
   if (f === "svg")
     return downloadFile(
       `${name}.svg`,
-      new Blob([await svgText(p)], { type: "image/svg+xml;charset=utf-8" })
+      new Blob([svgText(p)], { type: "image/svg+xml;charset=utf-8" })
     );
-  downloadFile(`${name}.png`, await svgToPngBlob(await pngSvg(p), 1));
+  downloadFile(`${name}.png`, await svgToPngBlob(svgText(p), 1));
 }
 
 /** The address of the palette's file onto the clipboard. */
-export const copyLink = async (f: Format, p: Taken) => writeText(await fileUrl(p, f));
+export const copyLink = (f: Format, p: Taken) => writeText(fileUrl(p, f));
 
 /* Which text reads on the palette's colors, as a picture of its own, the reader's own text colors among its rows: an
    SVG whose samples are text, and a PNG drawn in the page's face at twice its size. */

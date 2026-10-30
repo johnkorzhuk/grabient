@@ -3,20 +3,13 @@
    swatch files are the collection's. Every file is English. Markdown is the agent files' (seo/markdown.ts). */
 import {
   BANDS_SIZE,
+  type BandsView,
   bandsCss,
   bandsSearch,
   bandsSvg,
   isBands,
   parseBands
 } from "@grabient/engine/bands.ts";
-import {
-  BLOB_SIZE,
-  blobCss,
-  blobSearch,
-  blobSvg,
-  isBlob,
-  parseBlob
-} from "@grabient/engine/blob.ts";
 import { colorKind, paletteCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { paletteDocument, paletteJson } from "@grabient/engine/document.ts";
@@ -50,30 +43,28 @@ const DATA = { "X-Robots-Tag": "noindex" };
 const attribute = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/** An animated SVG as an app that previews a posted link reads it: a page whose card is the SVG's still frame under the
-    wordmark (/api/og?style=bands or blob), titled with the palette's name, since an SVG carries no card of its own. The
-    page is the link preview's alone: the edge keeps no copy of it (pipeline.ts), and a reader's browser gets the SVG.
-    `search` writes the animation's query around what it is given. */
-function animationPreview(
+/** The animated SVG as an app that previews a posted link reads it: a page whose card is the SVG's still frame under the
+    wordmark (/api/og?style=bands), titled with the palette's name, since an SVG carries no card of its own. The page is
+    the link preview's alone: the edge keeps no copy of it (pipeline.ts), and a reader's browser gets the SVG. */
+function bandsPreview(
   origin: string,
   seed: string,
   palette: Palette,
-  search: (extra: string[]) => string,
-  size: string | null,
-  about: string
+  bands: BandsView,
+  size: string | null
 ) {
-  const address = attribute(`${origin}/${seed}.svg${search(size ? [`size=${size}`] : [])}`);
-  const card = attribute(`${origin}/api/og${search([`seed=${seed}`])}`);
+  const address = attribute(
+    `${origin}/${seed}.svg${bandsSearch(bands, size ? [`size=${size}`] : [])}`
+  );
+  const card = attribute(`${origin}/api/og${bandsSearch(bands, [`seed=${seed}`])}`);
   const title = attribute(`${readingName(readPalette(palette))} · Grabient`);
+  const about =
+    "An animated SVG of a Grabient palette: bands that bloom from the center out, drawn by CSS alone.";
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${about}"><link rel="canonical" href="${address}"><meta property="og:type" content="website"><meta property="og:site_name" content="Grabient"><meta property="og:title" content="${title}"><meta property="og:description" content="${about}"><meta property="og:url" content="${address}"><meta property="og:image" content="${card}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${about}"><meta name="twitter:image" content="${card}"></head><body><img src="${address}" alt="" width="1200" height="630"></body></html>`;
   return new Response(html, {
     headers: { ...NO_STORE, "Content-Type": "text/html; charset=utf-8", Vary: "User-Agent" }
   });
 }
-const BANDS_ABOUT =
-  "An animated SVG of a Grabient palette: bands that bloom from the center out, drawn by CSS alone.";
-const BLOB_ABOUT =
-  "An animated SVG of a Grabient palette: a blob of its colors that changes shape as it wanders, frosted when far and clear when near, drawn by CSS alone.";
 
 async function paletteFile(
   request: Request,
@@ -101,17 +92,11 @@ async function paletteFile(
   const stops = () => sampleStops(palette, view.steps);
   switch (format) {
     case "css": {
-      // w and h (or size) set the page's box; style=bands or blob plays that animated SVG, carried inside
+      // w and h (or size) set the page's box; style=bands plays the animated SVG, carried inside
       const asked = svgSize(params);
       if (isBands(params)) {
         const size = asked ? resolveSize(asked, BANDS_SIZE) : null;
         return new Response(bandsCss(palette, parseBands(params), size, `${origin}/${seed}`), {
-          headers: { ...ANIMATION, "Content-Type": "text/css; charset=utf-8" }
-        });
-      }
-      if (isBlob(params)) {
-        const size = asked ? resolveSize(asked, BLOB_SIZE) : null;
-        return new Response(blobCss(palette, parseBlob(params), size, `${origin}/${seed}`), {
           headers: { ...ANIMATION, "Content-Type": "text/css; charset=utf-8" }
         });
       }
@@ -126,36 +111,16 @@ async function paletteFile(
       // style=bands is the animated SVG (engine/bands.ts), at 400 by 500 unless asked
       if (isBands(params)) {
         if (isLinkPreview(request)) {
-          const bands = parseBands(params);
-          return animationPreview(
+          return bandsPreview(
             origin,
             seed,
             palette,
-            extra => bandsSearch(bands, extra),
-            sizeParam(svgSize(params)),
-            BANDS_ABOUT
+            parseBands(params),
+            sizeParam(svgSize(params))
           );
         }
         const size = resolveSize(svgSize(params), BANDS_SIZE);
         return new Response(bandsSvg(palette, parseBands(params), size, `${origin}/${seed}`), {
-          headers: { ...ANIMATION, "Content-Type": "image/svg+xml; charset=utf-8" }
-        });
-      }
-      // style=blob is the animated blob (engine/blob.ts), at 500 by 500 unless asked
-      if (isBlob(params)) {
-        if (isLinkPreview(request)) {
-          const blob = parseBlob(params);
-          return animationPreview(
-            origin,
-            seed,
-            palette,
-            extra => blobSearch(blob, extra),
-            sizeParam(svgSize(params)),
-            BLOB_ABOUT
-          );
-        }
-        const size = resolveSize(svgSize(params), BLOB_SIZE);
-        return new Response(blobSvg(palette, parseBlob(params), size, `${origin}/${seed}`), {
           headers: { ...ANIMATION, "Content-Type": "image/svg+xml; charset=utf-8" }
         });
       }

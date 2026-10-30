@@ -124,47 +124,6 @@ test("the animated SVG is kept under its animation and size, defaults and other 
   ).toBe("/kS7Q8Yy5S_SChv0.svg?bands=9&dir=in&duration=3&size=800x1000&style=bands");
 });
 
-test("the animated blob is kept under its speed, options and size, its first frame without the speed", () => {
-  expect(written("/kS7Q8Yy5S_SChv0.svg?style=blob&steps=9&speed=1&depth=1&junk=1")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.svg?style=blob"
-  );
-  expect(written("/kS7Q8Yy5S_SChv0.svg?speed=2&style=blob&w=800&h=1000&depth=0&shape=7")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.svg?depth=0&shape=7&size=800x1000&speed=2&style=blob"
-  );
-  expect(
-    written("/kS7Q8Yy5S_SChv0.css?style=blob&colors=hex&size=1080x1350&fill=1&bg=%23ABC")?.key
-  ).toBe("/kS7Q8Yy5S_SChv0.css?bg=aabbcc&fill=1&size=1080x1350&style=blob");
-  expect(written("/kS7Q8Yy5S_SChv0.png?style=blob&speed=2&fill=1&frost=0.5&w=600&h=600")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.png?fill=1&frost=0.5&h=600&style=blob&w=600"
-  );
-  expect(written("/api/og?seed=kS7Q8Yy5S_SChv0&style=blob&speed=3&bg=deep")).toEqual({
-    key: "/api/og?bg=deep&h=630&seed=kS7Q8Yy5S_SChv0&style=blob&w=1200",
-    acrossBuilds: false
-  });
-});
-
-test("the blob's GIF is kept under its loop, frame rate and size, 12 frames a second and 400 by 400 named where unasked", () => {
-  expect(written("/kS7Q8Yy5S_SChv0.gif?style=blob&steps=9&still=1&junk=1")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.gif?fps=12&h=400&style=blob&w=400"
-  );
-  expect(written("/kS7Q8Yy5S_SChv0.gif?style=blob&fps=12&w=400")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.gif?fps=12&h=400&style=blob&w=400"
-  );
-  expect(
-    written("/kS7Q8Yy5S_SChv0.gif?speed=2&style=blob&fill=1&bg=deep&fps=99&size=640x360")?.key
-  ).toBe("/kS7Q8Yy5S_SChv0.gif?bg=deep&fill=1&fps=50&h=360&speed=2&style=blob&w=640");
-  // a GIF of another style is no file: one key for every such address
-  expect(written("/kS7Q8Yy5S_SChv0.gif?style=linearGradient&w=5")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.gif"
-  );
-});
-
-test("the blob's embed is kept under the palette and the blob's options alone", () => {
-  expect(written("/kS7Q8Yy5S_SChv0.js?style=blob&fill=1&steps=9&junk=1&w=800")?.key).toBe(
-    "/kS7Q8Yy5S_SChv0.js?fill=1&style=blob"
-  );
-});
-
 test("the animated SVG's card and still frame are kept under their animation and size", () => {
   expect(written("/api/og?seed=kS7Q8Yy5S_SChv0&style=bands&bands=8&steps=3")).toEqual({
     key: "/api/og?bands=9&h=630&seed=kS7Q8Yy5S_SChv0&style=bands&w=1200",

@@ -1,10 +1,8 @@
 import type { Env } from "@grabient/server/env.ts";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { decodePng } from "../../../test/png.ts";
-import { resolvePalette } from "../files/resolve.ts";
-import { cardAnswer, pngAnswer, seedGifAnswer } from "./answers.ts";
+import { cardAnswer, pngAnswer } from "./answers.ts";
 import keys from "./fixtures/image-keys.json" with { type: "json" };
-import { drawGifPart, type GifPartJob, paletteGif } from "./gifs.ts";
 import { montageAnswer, montagePicture } from "./montages.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
 
@@ -277,50 +275,6 @@ describe("the allowances", () => {
     ]);
   });
 
-  test("draw a blob's GIF against a day of its own in the large pictures' place, and no GIF of any other style", async () => {
-    const { env, keep, limits, points } = world();
-    const gif = await seedGifAnswer(
-      get(`/${SEED}.gif?style=blob&speed=4&fps=10&w=48&h=32`),
-      env,
-      keep
-    );
-    const head = await bytes(gif);
-    expect([gif.status, gif.headers.get("Content-Type")]).toEqual([200, "image/gif"]);
-    expect(String.fromCharCode(...head.subarray(0, 6))).toBe("GIF89a");
-    expect([head[6] | (head[7] << 8), head[8] | (head[9] << 8)]).toEqual([48, 32]);
-    expect([limits.asked, points]).toEqual([["gifDaily", "imageRenderDaily"], ["image gif drawn"]]);
-    const spent = world({ refuse: ["gifDaily"] });
-    const refused = await seedGifAnswer(get(`/${SEED}.gif?style=blob&w=40`), spent.env, spent.keep);
-    expect(refused.status).toBe(429);
-    const flat = await seedGifAnswer(get(`/${SEED}.gif?style=linearGradient`), env, keep);
-    expect(flat.status).toBe(404);
-  });
-
-  test("draw a large GIF in parts, each handed to its runner, joined into the GIF drawn in one piece", async () => {
-    const { env, keep } = world();
-    const found = resolvePalette(SEED);
-    if (!found) throw new Error("no palette");
-    const params = new URLSearchParams("style=blob&speed=4&fps=10&w=40&h=30");
-    const ask = () => get(`/${SEED}.gif?${params}`);
-    const jobs: GifPartJob[] = [];
-    const run = (job: GifPartJob) => {
-      jobs.push(job);
-      return drawGifPart(job);
-    };
-    // seven frames a part
-    const split = await paletteGif(ask(), env, found, params, keep, run, 40 * 30 * 7);
-    expect(jobs.map(job => [job.from, job.to])).toEqual([
-      [0, 7],
-      [7, 13],
-      [13, 20],
-      [20, 27],
-      [27, 33],
-      [33, 40]
-    ]);
-    const whole = await paletteGif(ask(), env, found, params, keep);
-    expect(await bytes(split)).toEqual(await bytes(whole));
-  });
-
   test("fail closed: a limiter that cannot answer, or production without one, draws nothing", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const down = world();
@@ -342,6 +296,6 @@ describe("the allowances", () => {
     });
     const answer = await cardAnswer(get(`/api/og?seed=${SEED}&style=radialGradient`), env, keep);
     expect([answer.status, points]).toEqual([503, ["image card failed"]]);
-    expect(error).toHaveBeenCalledWith("Picture (card) render failed", expect.any(Error));
+    expect(error).toHaveBeenCalledWith("Palette PNG render failed", expect.any(Error));
   });
 });

@@ -1,5 +1,4 @@
 import { isBands } from "@grabient/engine/bands.ts";
-import { isBlob } from "@grabient/engine/blob.ts";
 import {
   canonicalLocalePath,
   DEFAULT_LOCALE,
@@ -245,10 +244,9 @@ async function route(
   if (!read || env.DEPLOYMENT === "development") return answer(request, app);
   const render = async () =>
     (listingPath(path) && (await overListing(env, request))) || answer(request, app);
-  // a link preview of an animated SVG gets a page of its own (files/palette-files.ts), which no cache keeps or answers
-  const animated = (params: URLSearchParams) => isBands(params) || isBlob(params);
+  // a link preview of the animated SVG gets a page of its own (files/palette-files.ts), which no cache keeps or answers
   const preview =
-    isLinkPreview(request) && path.endsWith(".svg") && animated(addressParams(url.searchParams));
+    isLinkPreview(request) && path.endsWith(".svg") && isBands(addressParams(url.searchParams));
   return uncachedPath(path) || preview
     ? render()
     : edgeCached(request, cacheKey(url, path, locale), ctx, render);

@@ -6,7 +6,6 @@ import { defineConfig, type Rolldown } from "vite";
 import { colorNames } from "./scripts/color-names.ts";
 import { LICENSES, licenses } from "./scripts/licenses.ts";
 import { serviceWorker } from "./scripts/service-worker.ts";
-import { blobEmbed } from "./src/embed/build.ts";
 import { mcpView } from "./src/mcp-view/build.ts";
 import { draftsStayPrivate } from "./src/server/newsletter/private.ts";
 
@@ -104,8 +103,6 @@ export default defineConfig({
     i18n(),
     // The MCP App view, built into one page the Worker serves to AI apps.
     mcpView(),
-    // The animated blob as one script any page embeds, which the Worker serves at /{seed}.js.
-    blobEmbed(),
     // A newsletter issue that has no publication day yet never reaches a file the browser is given.
     draftsStayPrivate(),
     // The precise color names swatch files carry, one file the browser and the Worker read when a file needs them.
