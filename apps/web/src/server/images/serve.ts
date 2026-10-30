@@ -26,7 +26,9 @@ export type Keep = (work: Promise<unknown>) => void;
 
 export interface Picture {
   /** What was asked for, as the usage counts say it. */
-  kind: "card" | "png" | "montage" | "sheet";
+  kind: "card" | "png" | "gif" | "montage" | "sheet";
+  /** PNG unless said. */
+  type?: "image/png" | "image/gif";
   /** A share card: kept in R2, and the site's card stands in when it cannot be drawn. */
   branded: boolean;
   /** Kept in R2 as a card is, with nothing standing in: a collection's sheet, which crawlers ask for at its page's
@@ -40,6 +42,9 @@ export interface Picture {
   height: number;
   draw: () => Promise<Uint8Array<ArrayBuffer>>;
 }
+
+/** A palette's own picture changes with nothing but its address. */
+const own = (picture: Picture) => picture.kind === "png" || picture.kind === "gif";
 
 /** A card or a picture of several changes with what it shows: a day in the browser, a week at the edge. A palette's
     own picture changes with nothing but its address, and is kept as its other files are. */
@@ -98,13 +103,20 @@ function dayOf(request: Request): LimitCheck {
 const DAYS: readonly string[] = ["imageVerifiedDaily", "imagePreviewDaily", "imageRenderDaily"];
 
 /* One call counts the address's minute in this isolate, then a picture larger than a card against the large pictures'
-   day, then its asker's day: a large picture its own ceiling refuses never takes a card's place. */
+   day, then its asker's day: a large picture its own ceiling refuses never takes a card's place. A GIF, every frame of
+   a loop, has a minute and a day of its own in place of the large pictures'. */
 async function overLimit(request: Request, env: PictureEnv, picture: Picture) {
   const who = clientAddress(request);
+  const gif = picture.kind === "gif";
   const large = picture.width * picture.height > CARD.width * CARD.height;
   const checks: LimitCheck[] = [
     ...(who ? [[`image:${who}`, "imageRender"] as const] : []),
-    ...(large ? [["image-large-day", "largeImageDaily"] as const] : []),
+    ...(gif && who ? [[`gif:${who}`, "gifRender"] as const] : []),
+    ...(gif
+      ? [["gif-day", "gifDaily"] as const]
+      : large
+        ? [["image-large-day", "largeImageDaily"] as const]
+        : []),
     dayOf(request)
   ];
   const result = await checkLimits(env, checks);
@@ -135,9 +147,10 @@ export async function answerPicture(
 ): Promise<Response> {
   const hash = await hashOf(picture.parts);
   const tag = `"image:${CARD_VERSION}:${hash}"`;
+  const type = picture.type ?? "image/png";
   const headers = {
-    "Content-Type": "image/png",
-    ...(picture.kind === "png" ? FILE : CARD_CACHE),
+    "Content-Type": type,
+    ...(own(picture) ? FILE : CARD_CACHE),
     ...ANY_SITE,
     ETag: tag
   };
@@ -148,7 +161,7 @@ export async function answerPicture(
   if (request.method === "HEAD") return new Response(null, { headers });
   const store =
     (picture.branded || picture.kept) && env.DEPLOYMENT !== "preview" ? env.UPLOADS : undefined;
-  const name = `cards/${CARD_VERSION}/${hash}.png`;
+  const name = `cards/${CARD_VERSION}/${hash}.${type.slice("image/".length)}`;
   const kept = await store?.get(name).catch(() => null);
   if (kept) {
     countUsage(env, "image", picture.kind, "cache");
@@ -160,18 +173,18 @@ export async function answerPicture(
     countUsage(env, "image", picture.kind, "refused");
     return refused;
   }
-  let png: Uint8Array<ArrayBuffer>;
+  let drawn: Uint8Array<ArrayBuffer>;
   try {
-    png = await picture.draw();
+    drawn = await picture.draw();
   } catch (error) {
     countUsage(env, "image", picture.kind, "failed");
-    console.error("Palette PNG render failed", error);
+    console.error(`Picture (${picture.kind}) render failed`, error);
     return unavailable();
   }
   countUsage(env, "image", picture.kind, "drawn");
   if (store) {
-    const put = store.put(name, png, { httpMetadata: { contentType: "image/png" } });
+    const put = store.put(name, drawn, { httpMetadata: { contentType: type } });
     keep(put.catch(error => console.warn("cards: R2 kept no card", String(error))));
   }
-  return new Response(png, { headers: { ...headers, "X-Cache": "MISS" } });
+  return new Response(drawn, { headers: { ...headers, "X-Cache": "MISS" } });
 }

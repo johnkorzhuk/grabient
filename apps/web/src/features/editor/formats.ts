@@ -30,6 +30,8 @@ import { seedAddress } from "./address.ts";
    place as the mode turns, so only the first chip changes. */
 export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
+/** While the blob plays, its GIF too: a file and a link, never a copy, since a clipboard takes no GIF. */
+export const STRIP_BLOB_FILES: readonly Format[] = [...STRIP_FILES, "gif"];
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {
@@ -68,9 +70,24 @@ const pngSvg = async (p: Taken) => (p.blob ? blobText(p, p.blob, true) : svgText
 /* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
 const fileUrl = async (p: Taken, f: Format) => {
   const sized = sizeParam(p.size) ? p.pixels : undefined;
-  if (p.blob && (f === "svg" || f === "png" || f === "css"))
+  if (p.blob && (f === "svg" || f === "png" || f === "css" || f === "gif"))
     return `${origin()}/${p.seed}.${f}${(await blobFiles()).blobSearch(p.blob, sized ? [`w=${sized.width}`, `h=${sized.height}`] : [])}`;
   return fileAddress({ seed: p.seed, ...view(p) }, f, sized);
+};
+/* the blob's GIF, made here as the site makes it at its address, so the file and its link hold the same frames; a turn
+   for the page between frames keeps it answering while the GIF is made */
+const blobGifFile = async (p: Taken, blob: BlobView) => {
+  const [{ BLOB_GIF_SIZE }, { blobGif }] = await Promise.all([
+    blobFiles(),
+    import("@grabient/engine/blob-gif.ts")
+  ]);
+  const gif = await blobGif(
+    decodePalette(p.seed)!,
+    { ...blob, still: false },
+    sizeParam(p.size) ? p.pixels : BLOB_GIF_SIZE,
+    () => new Promise(resolve => setTimeout(resolve, 0))
+  );
+  return new Blob([gif], { type: "image/gif" });
 };
 const blobCssText = async (p: Taken, blob: BlobView) =>
   (await blobFiles()).blobCss(
@@ -103,6 +120,7 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
 /** The format to a file. */
 export async function saveFormat(f: Format, p: Taken): Promise<void> {
   const name = `grabient-${p.seed}${p.blob ? "-blob" : ""}`;
+  if (p.blob && f === "gif") return downloadFile(`${name}.gif`, await blobGifFile(p, p.blob));
   if (p.blob && f === "css")
     return downloadFile(
       `${name}.css`,

@@ -11,6 +11,7 @@ import { createSignal, onSettled } from "solid-js";
 export const SPEED = { min: 0.1, max: 10 };
 export const FROST_MAX = 2;
 export const SHAPE_MAX = 9999;
+export const FPS_MAX = 60;
 const DEFAULT: BlobView = {
   speed: 1,
   depth: true,
@@ -18,7 +19,8 @@ const DEFAULT: BlobView = {
   frost: 1,
   shape: null,
   bg: null,
-  still: false
+  still: false,
+  fps: null
 };
 
 const KEY = "grabient-blob";
@@ -79,7 +81,11 @@ export function createBlobSettings(seed: () => string): BlobSettings {
         ? null
         : clamp(Math.round(Number(v.shape)) || 0, 0, SHAPE_MAX),
     bg: v.bg === "deep" || (typeof v.bg === "string" && /^#[0-9a-f]{6}$/.test(v.bg)) ? v.bg : null,
-    still: false
+    still: false,
+    fps:
+      v.fps === null || v.fps === undefined
+        ? null
+        : clamp(Math.round(Number(v.fps)) || 12, 1, FPS_MAX)
   });
   return {
     on,

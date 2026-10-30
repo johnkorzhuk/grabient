@@ -54,6 +54,21 @@ export function pictureSize(params: URLSearchParams): Size {
   return bounded(asked?.width ?? w ?? CARD.width, asked?.height ?? h ?? CARD.height, 1);
 }
 
+/** The pixels a palette's GIF asks for: `w` and `h`, a missing one the other's, else `size` as two sides, else
+    `otherwise`. The GIF may be drawn smaller (engine/blob-gif.ts). */
+export function gifSize(params: URLSearchParams, otherwise: Size): Size {
+  const w = whole(params.get("w"));
+  const h = whole(params.get("h"));
+  const sides = /^(\d+)x(\d+)$/.exec(params.get("size") ?? "");
+  const asked =
+    w !== null || h !== null
+      ? { width: w ?? h ?? 0, height: h ?? w ?? 0 }
+      : sides
+        ? { width: whole(sides[1]) ?? 0, height: whole(sides[2]) ?? 0 }
+        : otherwise;
+  return bounded(asked.width, asked.height, 16);
+}
+
 /** The pixels of a picture of several palettes, which reads no `size`. */
 export const montageSize = (params: URLSearchParams): Size =>
   bounded(whole(params.get("w")) ?? CARD.width, whole(params.get("h")) ?? CARD.height, 16);

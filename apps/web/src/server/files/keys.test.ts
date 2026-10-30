@@ -143,6 +143,22 @@ test("the animated blob is kept under its speed, options and size, its first fra
   });
 });
 
+test("the blob's GIF is kept under its loop, frame rate and size, 12 frames a second and 400 by 400 named where unasked", () => {
+  expect(written("/kS7Q8Yy5S_SChv0.gif?style=blob&steps=9&still=1&junk=1")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.gif?fps=12&h=400&style=blob&w=400"
+  );
+  expect(written("/kS7Q8Yy5S_SChv0.gif?style=blob&fps=12&w=400")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.gif?fps=12&h=400&style=blob&w=400"
+  );
+  expect(
+    written("/kS7Q8Yy5S_SChv0.gif?speed=2&style=blob&fill=1&bg=deep&fps=99&size=640x360")?.key
+  ).toBe("/kS7Q8Yy5S_SChv0.gif?bg=deep&fill=1&fps=50&h=360&speed=2&style=blob&w=640");
+  // a GIF of another style is no file: one key for every such address
+  expect(written("/kS7Q8Yy5S_SChv0.gif?style=linearGradient&w=5")?.key).toBe(
+    "/kS7Q8Yy5S_SChv0.gif"
+  );
+});
+
 test("the blob's embed is kept under the palette and the blob's options alone", () => {
   expect(written("/kS7Q8Yy5S_SChv0.js?style=blob&fill=1&steps=9&junk=1&w=800")?.key).toBe(
     "/kS7Q8Yy5S_SChv0.js?fill=1&style=blob"

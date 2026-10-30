@@ -1,6 +1,7 @@
 /* The answers of the picture addresses, which the route files hand the Worker's bindings and its `waitUntil`. A
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 
+import { isBlob } from "@grabient/engine/blob.ts";
 import { MARK_WEEK, markSvg, markWeek, weekMark } from "@grabient/ui/mark.ts";
 import { isCollectionSlug, slugWords } from "../../features/collections/address.ts";
 import { MAX_COLLECTION_ITEMS } from "../../features/collections/schema.ts";
@@ -15,6 +16,7 @@ import { resolvePalette } from "../files/resolve.ts";
 import { listPalettes } from "../gallery/list.ts";
 import { type SearchEnv, searchLeaders } from "../search/search.ts";
 import { paletteCard, palettePicture } from "./cards.ts";
+import { paletteGif } from "./gifs.ts";
 import {
   MONTAGE_PALETTES,
   montageOrder,
@@ -60,6 +62,21 @@ export const seedPngAnswer = (request: Request, env: PictureEnv, keep: Keep) => 
   }
   return paletteImage(request, env, keep, name, false);
 };
+
+/** /{seed}.gif?style=blob: a palette's animated blob as a GIF. Only the blob moves, so a GIF of any other style is
+    no file. */
+export function seedGifAnswer(request: Request, env: PictureEnv, keep: Keep) {
+  const found = resolvePalette(fileName(pathOf(request), "gif"));
+  if (!found) return json({ error: "Invalid palette seed." }, { status: 404 });
+  const params = paramsOf(request);
+  if (!isBlob(params)) {
+    return json(
+      { error: "A palette's GIF is its animated blob: add ?style=blob to the address." },
+      { status: 404 }
+    );
+  }
+  return paletteGif(request, env, found, params, keep);
+}
 
 /* A public collection's first palettes in its page's order, read as its share card reads them, under the card's key. */
 const collectionSheetKey = (slug: string) => `collection:${slug}:popular:`;

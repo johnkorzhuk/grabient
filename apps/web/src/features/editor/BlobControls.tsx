@@ -6,12 +6,12 @@ import { Scrub } from "@grabient/ui/Scrub.tsx";
 import { Segmented } from "@grabient/ui/Segmented.tsx";
 import { Switch } from "@grabient/ui/Switch.tsx";
 import { Show } from "solid-js";
-import { type BlobSettings, FROST_MAX, SHAPE_MAX, SPEED } from "./blob.ts";
+import { type BlobSettings, FPS_MAX, FROST_MAX, SHAPE_MAX, SPEED } from "./blob.ts";
 import styles from "./Controls.module.css";
 
 /* The side's blob: a switch that plays the palette as the animated blob in the picture, and, while it plays, how: its
-   pace, its frost, its shape (a number, and a press for another), whether it drifts near and far, whether three fill
-   the box, and the ground behind it. */
+   pace and frames a second (Auto, the screen's own, under 1; a GIF takes 12 then), its frost, its shape (a number, and
+   a press for another), whether it drifts near and far, whether three fill the box, and the ground behind it. */
 
 const GROUNDS = [
   { value: "none", label: msg("None") },
@@ -49,6 +49,20 @@ export function BlobSection(props: { blob: BlobSettings; beside?: () => HTMLElem
             />
             <Scrub
               small
+              label={t("FPS")}
+              value={v().fps ?? 0}
+              min={0}
+              max={FPS_MAX}
+              step={1}
+              grain={1}
+              def={0}
+              fmt={x => (x < 1 ? t("Auto") : String(Math.round(x)))}
+              onInput={fps => b.set({ fps: fps < 1 ? null : Math.round(fps) })}
+            />
+          </div>
+          <div class={styles.fields}>
+            <Scrub
+              small
               label={t("Frost")}
               value={v().frost}
               min={0}
@@ -59,8 +73,6 @@ export function BlobSection(props: { blob: BlobSettings; beside?: () => HTMLElem
               fmt={x => x.toFixed(2)}
               onInput={frost => b.set({ frost })}
             />
-          </div>
-          <div class={styles.fields}>
             <Scrub
               small
               label={t("Shape")}

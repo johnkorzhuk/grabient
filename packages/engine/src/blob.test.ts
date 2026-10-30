@@ -1,11 +1,15 @@
 import { expect, test } from "vitest";
+import { readGif } from "../test/gif.ts";
 import {
+  BLOB_GIF_SIZE,
+  BLOB_GIF_WORK,
   BLOB_SIZE,
   type BlobView,
   ballPlace,
   blobBackdrop,
   blobCss,
   blobFrame,
+  blobGifPlan,
   blobLook,
   blobScene,
   blobSearch,
@@ -13,6 +17,7 @@ import {
   blobSvg,
   parseBlob
 } from "./blob.ts";
+import { blobGif } from "./blob-gif.ts";
 import { decodePalette } from "./codec.ts";
 import { randomPalette } from "./random.ts";
 
@@ -31,8 +36,13 @@ test("an address's animation: speed, depth, fill, frost, shape and ground, each 
     frost: 1,
     shape: null,
     bg: null,
-    still: false
+    still: false,
+    fps: null
   } satisfies BlobView);
+  expect(read("fps=24").fps).toBe(24);
+  expect(read("fps=90").fps).toBe(60);
+  expect(read("fps=0").fps).toBeNull();
+  expect(blobSearch(read("fps=24"))).toBe("?style=blob&fps=24");
   expect(read("speed=0.05&frost=3").speed).toBe(0.1);
   expect(read("speed=20&frost=3")).toMatchObject({ speed: 10, frost: 2 });
   expect(read("speed=0.755&frost=0.333")).toMatchObject({ speed: 0.76, frost: 0.33 });
@@ -268,4 +278,47 @@ test("the CSS carries the file inside it: a lone blob as large as the box holds 
   const { backdrop } = blobScene(P, BLOB_SIZE, { fill: true, shape: null, bg: "deep" });
   expect(grounded).toContain(`background: ${backdrop} url("data:image/svg+xml,`);
   expect(grounded).toContain('") center / cover no-repeat;');
+});
+
+test("a GIF is one whole loop at its frame rate, fewer frames past its budget, smaller where too few would be left", () => {
+  const plan = (query: string, size = BLOB_GIF_SIZE) => blobGifPlan(read(query), size);
+  // 16 seconds at 12 frames a second
+  expect(plan("")).toEqual({ size: BLOB_GIF_SIZE, frames: 192, seconds: 16 });
+  expect(plan("speed=2&fps=24")).toEqual({ size: BLOB_GIF_SIZE, frames: 192, seconds: 8 });
+  // 50 a second at most: browsers slow a shorter delay
+  expect(plan("speed=4&fps=60").frames).toBe(200);
+  // a filled GIF counts half again: its loop in fewer frames
+  const filled = plan("fill=1");
+  expect(filled.frames).toBe(Math.floor(BLOB_GIF_WORK / (1.5 * 400 * 400)));
+  // a slow blob takes the budget's frames over its long loop
+  expect(plan("speed=0.1")).toEqual({ size: BLOB_GIF_SIZE, frames: 200, seconds: 160 });
+  // a large size leaves too few frames: drawn smaller, its shape kept
+  const large = plan("", { width: 1600, height: 900 });
+  expect(large.frames).toBeGreaterThanOrEqual(96);
+  expect(large.size.width / large.size.height).toBeCloseTo(16 / 9, 1);
+  expect(large.size.width * large.size.height * large.frames).toBeLessThanOrEqual(BLOB_GIF_WORK);
+  // a low frame rate leaves room for a larger size
+  expect(plan("fps=2", { width: 900, height: 900 })).toEqual({
+    size: { width: 900, height: 900 },
+    frames: 32,
+    seconds: 16
+  });
+});
+
+test("a blob's GIF: its size, its loop's frames and their delays, transparent unless it has a ground", async () => {
+  const header = (gif: Uint8Array) => ({
+    signature: String.fromCharCode(...gif.subarray(0, 6)),
+    width: gif[6] | (gif[7] << 8),
+    height: gif[8] | (gif[9] << 8)
+  });
+  const controls = (gif: Uint8Array) => readGif(gif).frames;
+  const size = { width: 48, height: 32 };
+  const alone = await blobGif(P, read("speed=4&fps=10"), size);
+  expect(header(alone)).toEqual({ signature: "GIF89a", width: 48, height: 32 });
+  const frames = controls(alone);
+  expect(frames.length).toBe(40);
+  expect(frames.reduce((sum, f) => sum + f.delay, 0)).toBe(400);
+  expect(new Set(frames.map(f => f.disposal))).toEqual(new Set([2]));
+  const grounded = controls(await blobGif(P, read("speed=4&fps=10&bg=deep"), size));
+  expect(new Set(grounded.map(f => f.disposal))).toEqual(new Set([1]));
 });

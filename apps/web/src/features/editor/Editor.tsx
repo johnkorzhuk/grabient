@@ -72,6 +72,7 @@ import {
   copyFormat,
   copyLink,
   NO_IMAGE_CLIPBOARD,
+  STRIP_BLOB_FILES,
   STRIP_COPY,
   STRIP_FILES,
   saveFormat,
@@ -811,9 +812,9 @@ function Stage(
             size="lg"
             variant="art"
             copy={STRIP_COPY}
-            download={STRIP_FILES}
+            download={props.blob.on() ? STRIP_BLOB_FILES : STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={STRIP_FILES}
+            link={props.blob.on() ? STRIP_BLOB_FILES : STRIP_FILES}
             onCopy={copy}
             onDownload={f => void download(f)}
             onLink={link}

@@ -30,6 +30,17 @@ export const BLOB_SPEED_MIN = 0.1;
 export const BLOB_SPEED_MAX = 10;
 export const BLOB_FROST_MAX = 2;
 export const BLOB_SHAPE_MAX = 9999;
+export const BLOB_FPS_MAX = 60;
+/** A GIF's frames a second where its address asks for none. */
+export const BLOB_GIF_FPS = 12;
+/** The fastest a GIF plays as written: browsers draw a delay under two hundredths of a second at a tenth. */
+export const BLOB_GIF_FPS_MAX = 50;
+/** A GIF's size where its address asks for none. */
+export const BLOB_GIF_SIZE: Size = { width: 400, height: 400 };
+/** The most a GIF is drawn with, its pixels times its frames, a filled one's counted half again: about a second. */
+export const BLOB_GIF_WORK = 32_000_000;
+/** The fewest frames a GIF's loop is drawn in before its size is made smaller. */
+const GIF_FRAMES_LEAST = 96;
 /** The picture fits any box, the blob keeping its shape. */
 export const BLOB_SIZE: Size = { width: 500, height: 500 };
 
@@ -48,6 +59,9 @@ export interface BlobView {
   bg: "deep" | `#${string}` | null;
   /** The first frame alone, with no motion: what a page paints before a player takes over. */
   still: boolean;
+  /** Frames a second: a GIF's own (BLOB_GIF_FPS where none is asked), a player's most; null leaves a player the
+      screen's own pace. The SVG, which the browser moves, takes none. */
+  fps: number | null;
 }
 
 export const isBlob = (params: ParamReader) => params.get("style") === BLOB_STYLE;
@@ -60,9 +74,10 @@ const decimal = (raw: string | null, min: number, max: number, otherwise: number
 /** The animation an address asks for. A speed or frost that is missing or no number takes the default and one out of
     bounds comes into them; `depth=0` keeps the blob at one depth; `fill=1` fills the box; `shape` takes up to four
     digits; `bg` takes `deep` or a hex color of three or six digits, with or without its `#`; `still=1` is the first
-    frame alone. */
+    frame alone; `fps` takes 1 to 60. */
 export function parseBlob(params: ParamReader): BlobView {
   const shape = params.get("shape");
+  const fps = params.get("fps");
   const bg = params.get("bg")?.toLowerCase().replace(/^#/, "") ?? "";
   const hex = /^[0-9a-f]{6}$/.test(bg)
     ? bg
@@ -76,8 +91,39 @@ export function parseBlob(params: ParamReader): BlobView {
     frost: decimal(params.get("frost"), 0, BLOB_FROST_MAX, 1),
     shape: shape && /^\d{1,4}$/.test(shape) ? Number(shape) : null,
     bg: bg === "deep" ? "deep" : hex ? `#${hex}` : null,
-    still: params.get("still") === "1"
+    still: params.get("still") === "1",
+    fps:
+      fps && /^\d{1,2}$/.test(fps) && Number(fps) > 0 ? Math.min(Number(fps), BLOB_FPS_MAX) : null
   };
+}
+
+export interface BlobGifPlan {
+  size: Size;
+  frames: number;
+  /** the loop's length */
+  seconds: number;
+}
+
+/** What a GIF is drawn as (blob-gif.ts): one whole loop in frames of the rate asked for (BLOB_GIF_FPS where none is,
+    at most BLOB_GIF_FPS_MAX), as many as BLOB_GIF_WORK allows, at the size asked for or smaller. Past the budget the
+    loop takes fewer frames, which a slow blob, moving little from frame to frame, hardly shows; a size that would
+    leave fewer than GIF_FRAMES_LEAST is drawn smaller, its shape kept. */
+export function blobGifPlan(
+  view: Pick<BlobView, "speed" | "fill" | "fps">,
+  asked: Size
+): BlobGifPlan {
+  const seconds = BLOB_LOOP / view.speed;
+  const weight = view.fill ? 1.5 : 1;
+  const fps = Math.min(view.fps ?? BLOB_GIF_FPS, BLOB_GIF_FPS_MAX);
+  const wanted = Math.max(2, Math.round(seconds * fps));
+  const most = BLOB_GIF_WORK / (weight * Math.min(wanted, GIF_FRAMES_LEAST));
+  const scale = Math.min(1, Math.sqrt(most / (asked.width * asked.height)));
+  const size = {
+    width: Math.max(1, Math.floor(asked.width * scale)),
+    height: Math.max(1, Math.floor(asked.height * scale))
+  };
+  const fits = Math.floor(BLOB_GIF_WORK / (weight * size.width * size.height));
+  return { size, frames: Math.max(2, Math.min(wanted, fits)), seconds };
 }
 
 /** The animation's query: `style=blob`, then what differs from the defaults in one order, then `extra`. Without the
@@ -92,6 +138,7 @@ export function blobSearch(view: BlobView, extra: readonly string[] = [], loop =
     view.shape !== null && `shape=${view.shape}`,
     view.bg && `bg=${view.bg.replace("#", "")}`,
     loop && view.still && "still=1",
+    loop && view.fps !== null && `fps=${view.fps}`,
     ...extra
   ].filter(Boolean);
   return `?${parts.join("&")}`;
@@ -613,36 +660,77 @@ function noise(n: number): number {
 const SPREAD = 0.292 / 255;
 const near = (bits: number) => 0.5 + ((bits & 255) + ((bits >>> 8) & 255) - 255) * SPREAD;
 
-/** The first frame as pixels at a size, row after row: four bytes each, alpha the file's, or three on the scene's
-    ground, or on `backdrop` (0 to 255 a channel) where it has none. It is the file's drawing by the same numbers, its
-    blur in three boxes at a smaller scale and its frost noise of the same spread, so it is the frame a reader who asks
-    for less motion sees (no depth moves the first frame), not its every pixel. */
-export function blobStill(
+/** Draws the scene's frames as pixels at a size, row after row: four bytes each, alpha the file's, or three on the
+    scene's ground, or on `backdrop` (0 to 255 a channel) where it has none. It is the file's drawing by the same
+    numbers, its blur in three boxes at a smaller scale and its frost noise of the same spread, which stays put from
+    frame to frame as the file's does, so it is read once: a frame then costs the balls, the small blur and one pass. */
+export function blobRenderer(
   P: Palette,
-  view: Pick<BlobView, "fill" | "frost" | "shape" | "bg">,
+  view: Pick<BlobView, "fill" | "frost" | "shape" | "bg" | "depth">,
   size: Size,
   backdrop?: readonly number[]
-): Uint8Array<ArrayBuffer> {
+) {
   const { width: W, height: H } = size;
   const S = Math.min(W, H);
   const scene = blobScene(P, size, view);
   const R = Math.max(...scene.blobs.map(b => b.R));
   const under = scene.backdrop ? hexBytes(scene.backdrop) : backdrop;
-  /* the melt, drawn and blurred at 1/q of the size, where the blur is about four pixels, over the box and its pad */
+  const channels: 3 | 4 = under ? 3 : 4;
+  /* the melt, drawn and blurred at 1/q of the size, where the blur is about four pixels, over the box and its pad, with
+     a texel of nothing around it, so a read past its edge needs no test */
   const q = Math.max(1, Math.floor((MELT * R) / 4));
-  const pad = Math.ceil(scene.pad / q);
+  const pad = Math.ceil(scene.pad / q) + 1;
   const w = Math.ceil(W / q) + 2 * pad;
   const h = Math.ceil(H / q) + 2 * pad;
   const melt = new Float32Array(4 * w * h);
-  for (const blob of scene.blobs) {
-    for (const b of blob.balls) {
-      const turn = 2 * Math.PI * b.phase;
-      const cx = (blob.x + (b.x + b.swing * Math.cos(turn)) * blob.R) / q + pad;
-      const cy = (blob.y + (b.y + b.swing * Math.sin(turn)) * blob.R) / q + pad;
-      const r = (b.r * blob.R) / q;
-      const [red, green, blue] = hexBytes(scene.color(b.at)).map(v => v / 255);
-      for (let y = Math.max(0, Math.floor(cy - r - 1)); y < Math.min(h, cy + r + 1); y++) {
-        for (let x = Math.max(0, Math.floor(cx - r - 1)); x < Math.min(w, cx + r + 1); x++) {
+  const across = new Float32Array(melt.length);
+  const widths = boxes((MELT * R) / q);
+  const colors = new Map<string, number[]>();
+  /* each pixel's place in the melt, scattered by the frost, and its speckle: the same in every frame, so each pixel's
+     four texels and its share of each are read once */
+  const { scatter, speckle } = frostOf(view.frost);
+  const seed = Math.imul(scene.seed + 1, 0x9e3779b1);
+  const N = W * H;
+  const corner = new Int32Array(N);
+  const across_ = new Float32Array(N);
+  const down = new Float32Array(N);
+  const grains = new Float32Array(N);
+  for (let y = 0, p = 0; y < H; y++) {
+    for (let x = 0; x < W; x++, p++) {
+      const a = noise((2 * p) ^ seed);
+      const b = noise((2 * p + 1) ^ seed);
+      const u = clamp((x + 0.5 + scatter * S * (near(a) - 0.5)) / q - 0.5 + pad, 0, w - 1.001);
+      const v = clamp(
+        (y + 0.5 + scatter * S * (near(a >>> 16) - 0.5)) / q - 0.5 + pad,
+        0,
+        h - 1.001
+      );
+      const x0 = Math.floor(u);
+      const y0 = Math.floor(v);
+      corner[p] = 4 * (y0 * w + x0);
+      across_[p] = u - x0;
+      down[p] = v - y0;
+      grains[p] = 1 - speckle + 2 * speckle * clamp01(0.5 + CONTRAST * (near(b) - 0.5));
+    }
+  }
+  const row = 4 * w;
+  const lift0 = 0.5 - SLOPE / 2;
+
+  /** The frame at a share `f` of the loop. */
+  const frame = (f: number): Uint8Array<ArrayBuffer> => {
+    melt.fill(0);
+    for (const dot of blobFrame(scene, f, view.depth)) {
+      const cx = dot.x / q + pad;
+      const cy = dot.y / q + pad;
+      const r = dot.r / q;
+      let rgb = colors.get(dot.color);
+      if (!rgb) {
+        rgb = hexBytes(dot.color).map(v => v / 255);
+        colors.set(dot.color, rgb);
+      }
+      const [red, green, blue] = rgb;
+      for (let y = Math.max(1, Math.floor(cy - r - 1)); y < Math.min(h - 1, cy + r + 1); y++) {
+        for (let x = Math.max(1, Math.floor(cx - r - 1)); x < Math.min(w - 1, cx + r + 1); x++) {
           const cover = clamp01(r - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + 0.5);
           if (!cover) continue;
           const at = 4 * (y * w + x);
@@ -654,65 +742,84 @@ export function blobStill(
         }
       }
     }
-  }
-  const across = new Float32Array(melt.length);
-  for (const width of boxes((MELT * R) / q)) {
-    boxBlur(melt, across, h, w, 4 * w, 4, width);
-    boxBlur(across, melt, w, h, 4, 4 * w, width);
-  }
-
-  const pick = new Float32Array(4);
-  const sample = (u: number, v: number) => {
-    pick.fill(0);
-    const x0 = Math.floor(u);
-    const y0 = Math.floor(v);
-    for (let dy = 0; dy < 2; dy++) {
-      const y = y0 + dy;
-      if (y < 0 || y >= h) continue;
-      const fy = dy ? v - y0 : 1 - (v - y0);
-      for (let dx = 0; dx < 2; dx++) {
-        const x = x0 + dx;
-        if (x < 0 || x >= w) continue;
-        const f = fy * (dx ? u - x0 : 1 - (u - x0));
-        const at = 4 * (y * w + x);
-        for (let c = 0; c < 4; c++) pick[c] += melt[at + c] * f;
-      }
+    for (const width of widths) {
+      boxBlur(melt, across, h, w, 4 * w, 4, width);
+      boxBlur(across, melt, w, h, 4, 4 * w, width);
     }
-  };
-  const channels = under ? 3 : 4;
-  const out = new Uint8Array(channels * W * H);
-  const { scatter, speckle } = frostOf(view.frost);
-  const seed = Math.imul(scene.seed + 1, 0x9e3779b1);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const p = y * W + x;
-      const a = noise((2 * p) ^ seed);
-      const b = noise((2 * p + 1) ^ seed);
-      /* the melt read through the scattered place, lifted, speckled */
-      sample(
-        (x + 0.5 + scatter * S * (near(a) - 0.5)) / q - 0.5 + pad,
-        (y + 0.5 + scatter * S * (near(a >>> 16) - 0.5)) / q - 0.5 + pad
-      );
-      const melted = pick[3];
-      const lift = melted > 0 ? clamp01(SLOPE * melted + 0.5 - SLOPE / 2) : 0;
+    const out = new Uint8Array(channels * N);
+    for (let p = 0; p < N; p++) {
+      /* the melt read through the scattered place, bilinear */
+      const at = corner[p];
+      const fx = across_[p];
+      const fy = down[p];
+      const w00 = (1 - fx) * (1 - fy);
+      const w10 = fx * (1 - fy);
+      const w01 = (1 - fx) * fy;
+      const w11 = fx * fy;
+      const a0 =
+        melt[at + 3] * w00 +
+        melt[at + 7] * w10 +
+        melt[at + row + 3] * w01 +
+        melt[at + row + 7] * w11;
+      /* lifted, speckled */
+      const lift = a0 > 0 ? Math.min(1, Math.max(0, SLOPE * a0 + lift0)) : 0;
       const alpha = Math.min(1, lift * (1 + speckle));
-      const at = channels * p;
+      const o = channels * p;
       if (!alpha) {
-        if (under) out.set(under, at);
+        if (under) {
+          out[o] = under[0];
+          out[o + 1] = under[1];
+          out[o + 2] = under[2];
+        }
         continue;
       }
-      const grain = 1 - speckle + 2 * speckle * clamp01(0.5 + CONTRAST * (near(b) - 0.5));
-      for (let c = 0; c < 3; c++) {
-        const value = Math.min(alpha, (pick[c] / melted) * lift * grain);
-        out[at + c] = Math.round(
-          under ? 255 * value + under[c] * (1 - alpha) : (255 * value) / alpha
-        );
+      const scale = (lift * grains[p]) / a0;
+      const red = Math.min(
+        alpha,
+        (melt[at] * w00 + melt[at + 4] * w10 + melt[at + row] * w01 + melt[at + row + 4] * w11) *
+          scale
+      );
+      const green = Math.min(
+        alpha,
+        (melt[at + 1] * w00 +
+          melt[at + 5] * w10 +
+          melt[at + row + 1] * w01 +
+          melt[at + row + 5] * w11) *
+          scale
+      );
+      const blue = Math.min(
+        alpha,
+        (melt[at + 2] * w00 +
+          melt[at + 6] * w10 +
+          melt[at + row + 2] * w01 +
+          melt[at + row + 6] * w11) *
+          scale
+      );
+      if (under) {
+        const rest = 1 - alpha;
+        out[o] = 255 * red + under[0] * rest + 0.5;
+        out[o + 1] = 255 * green + under[1] * rest + 0.5;
+        out[o + 2] = 255 * blue + under[2] * rest + 0.5;
+      } else {
+        out[o] = (255 * red) / alpha + 0.5;
+        out[o + 1] = (255 * green) / alpha + 0.5;
+        out[o + 2] = (255 * blue) / alpha + 0.5;
+        out[o + 3] = 255 * alpha + 0.5;
       }
-      if (!under) out[at + 3] = Math.round(255 * alpha);
     }
-  }
-  return out;
+    return out;
+  };
+  return { width: W, height: H, channels, frame };
 }
+
+/** The first frame as pixels at a size (blobRenderer's): the frame a reader who asks for less motion sees, and the
+    one link previews and the PNG still show. No depth moves the first frame. */
+export const blobStill = (
+  P: Palette,
+  view: Pick<BlobView, "fill" | "frost" | "shape" | "bg">,
+  size: Size,
+  backdrop?: readonly number[]
+): Uint8Array<ArrayBuffer> => blobRenderer(P, { ...view, depth: false }, size, backdrop).frame(0);
 
 const DARK = [14, 14, 16];
 const LIGHT = [243, 241, 238];

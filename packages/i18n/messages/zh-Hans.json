@@ -246,6 +246,7 @@
   "Exported CSS is in OKLCH.": "导出的 CSS 以 OKLCH 表示。",
   "Exported CSS is in RGB.": "导出的 CSS 以 RGB 表示。",
   "Exported CSS is in hex.": "导出的 CSS 以十六进制表示。",
+  "FPS": "帧率",
   "Fewer or more steps": "减少或增加步数",
   "Fill": "铺满",
   "Find five calm palettes for a meditation app.": "帮我找五个适合冥想应用的平静调色板。",

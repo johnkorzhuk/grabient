@@ -246,6 +246,7 @@
   "Exported CSS is in OKLCH.": "CSS экспортируется в формате OKLCH.",
   "Exported CSS is in RGB.": "CSS экспортируется в формате RGB.",
   "Exported CSS is in hex.": "CSS экспортируется в формате hex.",
+  "FPS": "Кадр/с",
   "Fewer or more steps": "Меньше или больше шагов",
   "Fill": "Заполнить",
   "Find five calm palettes for a meditation app.": "Подбери пять спокойных палитр к приложению для медитации.",

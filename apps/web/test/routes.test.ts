@@ -55,6 +55,7 @@ test.each([
   ["/kS7Q8Yy5S_SChv0.svg", "/{$seed}.svg/", "image/svg+xml; charset=utf-8"],
   ["/kS7Q8Yy5S_SChv0.css", "/{$seed}.css/", "text/css; charset=utf-8"],
   ["/kS7Q8Yy5S_SChv0.js?style=blob", "/{$seed}.js/", "text/javascript; charset=utf-8"],
+  ["/kS7Q8Yy5S_SChv0.gif?style=blob&w=24&h=24&speed=8&fps=2", "/{$seed}.gif/", "image/gif"],
   ["/kS7Q8Yy5S_SChv0.json", "/{$name}.json/", "application/json"],
   ["/kS7Q8Yy5S_SChv0.tokens.json", "/{$name}.json/", "application/design-tokens+json"],
   ["/kS7Q8Yy5S_SChv0.md", "/{$name}.md/", "text/markdown; charset=utf-8"],

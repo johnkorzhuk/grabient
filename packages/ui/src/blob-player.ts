@@ -335,17 +335,31 @@ export function playBlob(
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   };
 
-  /* the clock: a share of the loop, carried over when the speed changes so the motion never jumps */
+  /* the clock: a share of the loop, carried over when the speed changes so the motion never jumps. With a frame rate
+     the share steps through the loop's frames as a GIF of that rate does, and a frame is drawn only when it changes */
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   let started = performance.now();
   let shown = true;
   let raf = 0;
   let first = true;
-  const share = (now: number) =>
+  let drawn = -1;
+  let changed = true;
+  const phase = (now: number) =>
     reduced.matches ? 0 : ((((now - started) / 1000) * view_.speed) / BLOB_LOOP) % 1;
+  const share = (now: number) => {
+    const at = phase(now);
+    if (!view_.fps) return at;
+    const frames = Math.max(2, Math.round((BLOB_LOOP / view_.speed) * view_.fps));
+    return Math.floor(at * frames) / frames;
+  };
   const tick = (now: number) => {
     raf = 0;
-    draw(share(now));
+    const at = share(now);
+    if (changed || at !== drawn) {
+      draw(at);
+      drawn = at;
+      changed = false;
+    }
     if (first) {
       first = false;
       onFirstFrame?.();
@@ -360,6 +374,7 @@ export function playBlob(
 
   const sizes = new ResizeObserver(() => {
     layout();
+    changed = true;
     wake();
   });
   sizes.observe(canvas);
@@ -383,11 +398,12 @@ export function playBlob(
   return {
     set(palette: Palette, view: BlobView) {
       const now = performance.now();
-      const at = share(now);
+      const at = phase(now);
       palette_ = palette;
       if (view.speed !== view_.speed) started = now - ((at * BLOB_LOOP) / view.speed) * 1000;
       view_ = view;
       layout();
+      changed = true;
       wake();
     },
     destroy() {
