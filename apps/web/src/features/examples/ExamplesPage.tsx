@@ -22,7 +22,15 @@ import { localHref, msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, createUniqueId, type Element, For, onSettled, Show } from "solid-js";
+import {
+  createSignal,
+  createUniqueId,
+  type Element,
+  For,
+  onSettled,
+  Show,
+  untrack
+} from "solid-js";
 import { AppPage } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
 import { colorFormat } from "../../lib/color-format.ts";
@@ -168,8 +176,9 @@ export function ExamplesPage(props: { seed: string; view: View; effect: Effect |
 function HeroEffect(props: { P: Palette; seed: string; effect: Effect; angle: number }) {
   let canvas!: HTMLCanvasElement;
   const [covered, setCovered] = createSignal(false);
-  const kind = props.effect.kind;
-  const named =
+  /* the effect the page names, which a page's address fixes: read once */
+  const kind = untrack(() => props.effect.kind);
+  const named = untrack(() =>
     kind === "glass"
       ? {
           "data-glass-still": glassStillKey(
@@ -178,7 +187,8 @@ function HeroEffect(props: { P: Palette; seed: string; effect: Effect; angle: nu
             props.effect.look.shape
           )
         }
-      : { "data-blob-still": blobStillKey(props.seed, props.effect.look, props.angle) };
+      : { "data-blob-still": blobStillKey(props.seed, props.effect.look, props.angle) }
+  );
   onSettled(() => {
     if (props.effect.speed === 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let alive = true;

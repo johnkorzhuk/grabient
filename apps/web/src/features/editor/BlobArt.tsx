@@ -24,11 +24,13 @@ export function BlobArt(props: {
   bare?: boolean;
 }) {
   const keyOf = () => blobStillKey(encodePalette(props.palette), props.settings.look, props.angle);
-  const first = untrack(keyOf);
-  /* the still the box shows: its name, and its picture where the server's style does not paint that name */
-  const [shown, setShown] = createSignal<{ key: string; paint: string | null } | null>(
-    serverBlobStill(first) ? { key: first, paint: null } : null
-  );
+  /* the still the box shows: its name, and its picture where the server's style does not paint that name. It starts
+     by naming its own, alike on the server, which cannot tell whether its style paints that name, and in the browser,
+     so the page's markup and the browser's agree; the browser draws the picture where no style does */
+  const [shown, setShown] = createSignal<{ key: string; paint: string | null } | null>({
+    key: untrack(keyOf),
+    paint: null
+  });
   const [ready, setReady] = createSignal(false);
   onSettled(() => {
     void loadBlob().then(() => setReady(true));
@@ -48,7 +50,7 @@ export function BlobArt(props: {
     next => {
       clearTimeout(timer);
       const now = untrack(shown);
-      if (now?.key === next.key) return;
+      if (now?.key === next.key && (now.paint !== null || serverBlobStill(next.key))) return;
       const draw = () => {
         if (serverBlobStill(next.key)) return setShown({ key: next.key, paint: null });
         const paint = blobStillBackground(
