@@ -456,6 +456,7 @@ export function Sheet(props: {
             : undefined
         }
         pictureLabel={pictureLabel()}
+        bare={playing() === "blob" && e.effects.settings("blob").look.bg === null}
         href={localHref(address())}
         rel={relTo(localHref(address()))}
         age={relativeAge(item().createdAt, now)}

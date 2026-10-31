@@ -124,6 +124,8 @@ export interface PaletteCardProps {
   picture?: (active: () => boolean) => Element;
   /** what a screen reader calls that picture */
   pictureLabel?: string;
+  /** the picture stands on the list with no ground of its own (a blob with none): no gradient under it, no glow */
+  bare?: boolean;
 }
 
 /** One palette in a list: its picture, then its age and its like. Hover or focus inside the picture lights a blurred
@@ -148,7 +150,7 @@ export function PaletteCard(props: PaletteCardProps) {
   const shine = (picture: HTMLElement) =>
     untrack(() => {
       setActive((over || within) && !props.removed);
-      if ((over || within) && !props.removed) {
+      if ((over || within) && !props.removed && !props.bare) {
         glowOn(
           picture,
           [{ stops: props.stops, style: props.style, angle: props.angle }],
@@ -228,12 +230,12 @@ export function PaletteCard(props: PaletteCardProps) {
         }}
         onClick={tap}
       >
-        <Show when={armed() && !props.removed}>
+        <Show when={armed() && !props.removed && !props.bare}>
           <span class={styles.glow} style={{ background: art() }} aria-hidden="true" />
         </Show>
         <div
           class={styles.paint}
-          style={{ background: art() }}
+          style={{ background: props.bare ? undefined : art() }}
           role="img"
           aria-label={
             props.pictureLabel ??

@@ -157,6 +157,9 @@
     inset: 0;
     border-radius: inherit;
     background-color: var(--color-bg);
+    &[data-bare] {
+      background-color: transparent;
+    }
   }
   /* the glass's still as a small picture: the Appearance menu's tile and the header's swatch (GlassArt.tsx) */
   .glassArt {

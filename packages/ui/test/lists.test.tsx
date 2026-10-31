@@ -91,6 +91,15 @@ describe("PaletteCard", () => {
     expect(html(() => <PaletteCard {...card()} />)).not.toContain("data-picture");
   });
 
+  test("stands bare where its picture has no ground of its own: no gradient under it", () => {
+    const picture = () => <span data-picture="" />;
+    const grounded = html(() => <PaletteCard {...card({ picture })} />);
+    const bare = html(() => <PaletteCard {...card({ picture, bare: true })} />);
+    expect(tag(grounded, "div", 1).style).toContain("gradient");
+    expect(tag(bare, "div", 1).style ?? "").not.toContain("gradient");
+    expect(bare).toContain("data-picture");
+  });
+
   test("leads to its editor, named for its palette, and keeps its hover tools out of the server's markup", () => {
     const markup = html(() => <PaletteCard {...card({ tools: () => <i data-strip="" /> })} />);
     expect(tag(markup, "a")).toMatchObject({

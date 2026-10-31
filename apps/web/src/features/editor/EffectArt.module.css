@@ -1,12 +1,17 @@
 @layer components {
   /* an effect's picture filling its card (EffectArt.tsx): the still, and over it while the card is lit the player's
-     canvas, clear until its first frame */
+     canvas, clear until its first frame. Nothing in it takes the pointer: the card under it does, so the still and the
+     canvas changing places never reads as the pointer leaving the card */
   .art {
     position: absolute;
     inset: 0;
     display: block;
     overflow: hidden;
     border-radius: inherit;
+    pointer-events: none;
+    & * {
+      pointer-events: none;
+    }
   }
   .canvas {
     position: absolute;
@@ -16,7 +21,6 @@
     height: 100%;
     border-radius: inherit;
     opacity: 0;
-    pointer-events: none;
     transition: opacity 0.7s ease-in-out;
   }
   .art[data-covered] > .canvas {
@@ -27,6 +31,6 @@
     transition: none;
   }
   .art[data-kind="blob"][data-covered] > :first-child {
-    visibility: hidden;
+    opacity: 0;
   }
 }

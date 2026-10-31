@@ -36,6 +36,10 @@
     &:focus-visible {
       outline-width: 1px;
     }
+    /* a blob with no ground of its own stands on the sheet */
+    &[data-bare] {
+      background: none;
+    }
   }
   .caption {
     display: flex;

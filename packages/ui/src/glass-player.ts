@@ -112,8 +112,12 @@ export function playGlass(
   canvas: HTMLCanvasElement,
   palette: Palette,
   view: GlassView,
-  onFirstFrame?: () => void
+  onFirstFrame?: () => void,
+  /** `ease: false` starts the motion at its pace, as a card's picture under the pointer does, where a page's picture
+      eases in from rest */
+  options: { ease?: boolean } = {}
 ): GlassPlayer | null {
+  const easing = options.ease === false ? 0 : EASE_S;
   const gl = canvas.getContext("webgl2", {
     alpha: false,
     antialias: false,
@@ -391,8 +395,8 @@ export function playGlass(
     last = now;
     if (!playing() || view_.speed === 0) warm = 0;
     else if (ready && !first) {
-      warm = Math.min(EASE_S, warm + dt);
-      const e = warm / EASE_S;
+      warm = Math.min(easing, warm + dt);
+      const e = easing ? warm / easing : 1;
       t += dt * view_.speed * e * e * (3 - 2 * e);
     }
     if (ready) {

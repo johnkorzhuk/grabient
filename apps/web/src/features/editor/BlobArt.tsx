@@ -15,7 +15,12 @@ const REST_MS = 250;
     the first screen's swatch (EditorCorner.tsx): nothing changes as the editor takes the header over. Another still
     is drawn here once the blob's code has come, at once the first time and after that once the palette or the look
     rests, on the page's ground where the blob has none of its own. */
-export function BlobArt(props: { palette: Palette; settings: EffectSettings }) {
+export function BlobArt(props: {
+  palette: Palette;
+  settings: EffectSettings;
+  /** no ground of the page's under a blob with none of its own: a card's picture, where the blob stands on the list */
+  bare?: boolean;
+}) {
   const keyOf = () => blobStillKey(encodePalette(props.palette), props.settings.look);
   const first = untrack(keyOf);
   /* the still the box shows: its name, and its picture where the server's style does not paint that name */
@@ -35,7 +40,11 @@ export function BlobArt(props: { palette: Palette; settings: EffectSettings }) {
       if (now?.key === next.key) return;
       const draw = () => {
         if (serverBlobStill(next.key)) return setShown({ key: next.key, paint: null });
-        const paint = blobStillBackground(next.P, next.s, "var(--color-bg)");
+        const paint = blobStillBackground(
+          next.P,
+          next.s,
+          props.bare ? undefined : "var(--color-bg)"
+        );
         if (paint) setShown({ key: next.key, paint });
       };
       if (!now) draw();
@@ -46,6 +55,7 @@ export function BlobArt(props: { palette: Palette; settings: EffectSettings }) {
   return (
     <span
       class={styles.blobArt}
+      data-bare={props.bare ? "" : undefined}
       data-blob-still={shown()?.key}
       style={{ background: shown()?.paint ?? undefined }}
     />

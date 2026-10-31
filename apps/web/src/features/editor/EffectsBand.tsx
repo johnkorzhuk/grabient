@@ -136,6 +136,7 @@ function Tile(props: {
       <button
         type="button"
         class={styles.picture}
+        data-bare={props.kind === "blob" && props.settings.look.bg === null ? "" : undefined}
         aria-label={t("Show the palette as {name}", { name: name() })}
         onPointerEnter={() => reach(true)}
         onPointerLeave={() => reach(false)}

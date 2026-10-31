@@ -223,8 +223,12 @@ export function playBlob(
   canvas: HTMLCanvasElement,
   palette: Palette,
   view: BlobView,
-  onFirstFrame?: () => void
+  onFirstFrame?: () => void,
+  /** `ease: false` starts the motion at its pace, as a card's picture under the pointer does, where a page's picture
+      eases in from rest */
+  options: { ease?: boolean } = {}
 ): BlobPlayer | null {
+  const easing = options.ease === false ? 0 : EASE_S;
   const gl = canvas.getContext("webgl2", {
     alpha: true,
     premultipliedAlpha: true,
@@ -578,8 +582,8 @@ export function playBlob(
     last = now;
     if (!moving()) warm = 0;
     else if (!first) {
-      warm = Math.min(EASE_S, warm + dt);
-      const e = warm / EASE_S;
+      warm = Math.min(easing, warm + dt);
+      const e = easing ? warm / easing : 1;
       t += dt * view_.speed * e * e * (3 - 2 * e);
     }
     const at = share();
