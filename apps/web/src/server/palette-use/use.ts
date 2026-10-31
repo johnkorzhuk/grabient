@@ -40,11 +40,11 @@ export const USE_SURFACES = [
 export type UseAction = (typeof USE_ACTIONS)[number];
 export type UseSurface = (typeof USE_SURFACES)[number];
 
-/** What a take is in: a strip's formats (md as a file saved), the swatch files, one color's hex, the editor's code
+/** What a take is in: a strip's formats (md as a file saved, html an effect's two tags), the swatch files, one color's hex, the editor's code
     blocks as code:<block> with the spelling copied, a file's address as link:<format>, and the editor's contrast sheet
     and color space as pictures. CSS and its address name the color spelling when Settings' is not OKLCH (css:hex). */
 const FORMAT =
-  /^(?:css(?::(?:hex|rgb|hsl))?|svg|png|jpeg|url|md|hex|ase|gpl|grd|tokens|code:[a-z]{2,12}(?::[a-z0-9]{2,12})?|link:css(?::(?:hex|rgb|hsl))?|link:(?:md|json|svg|png|ase|gpl|grd|tokens)|(?:contrast|space):(?:svg|png))$/;
+  /^(?:css(?::(?:hex|rgb|hsl))?|svg|png|jpeg|url|md|html|hex|ase|gpl|grd|tokens|code:[a-z]{2,12}(?::[a-z0-9]{2,12})?|link:css(?::(?:hex|rgb|hsl))?|link:(?:md|json|svg|png|js|ase|gpl|grd|tokens)|(?:contrast|space):(?:svg|png))$/;
 const ITEMS_MAX = 50;
 const POSITION_MAX = 999;
 const DAY = 86_400_000;

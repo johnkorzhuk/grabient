@@ -25,6 +25,8 @@ export const ICONS = {
   thumbDown: "M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z",
   copy: "M8 8h12v12H8zM16 8V4H4v12h4",
   code: "m16 18 6-6-6-6M8 6l-6 6 6 6",
+  /* HTML on the format strip: the tags that play an effect behind a page, apart from CSS's code */
+  codeXml: "m18 16 4-4-4-4M6 8l-4 4 4 4m8.5-12-5 16",
   /* JSON on the format strip */
   braces: "M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1",
   /* Markdown on the format strip: a page of text, never a # (a color's hex) or the M mark beside the letters MD */

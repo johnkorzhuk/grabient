@@ -10,12 +10,15 @@
    for less motion sees the first frame held. It writes no markup and no style attribute, only CSSOM properties, so a
    page with a strict Content Security Policy runs it. */
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { type Effect, type EffectKind, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  type Effect,
+  type EffectKind,
+  EMBED_PLAYING,
+  parseEffect
+} from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { parseView } from "@grabient/engine/view.ts";
 
-/** effect-files.ts's EMBED_PLAYING: the root's mark once the canvas shows, which takes the blob's still away. */
-const PLAYING = "data-grabient-playing";
 /** How long the glass's canvas takes to fade in over its still, as the editor's does (GlassStage.tsx). */
 const FADE_MS = 700;
 
@@ -89,7 +92,7 @@ export function mount(embed: EmbedEffect): void {
           look.opacity = "1";
           return;
         }
-        root.setAttribute(PLAYING, "");
+        root.setAttribute(EMBED_PLAYING, "");
         if (own) box.backgroundImage = "none";
         look.opacity = "1";
       })

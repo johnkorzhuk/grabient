@@ -5,7 +5,7 @@
    The gradient's steps leave the address while an effect plays, so an address says only what its picture shows (the
    editor keeps them to give back); the angle is the view's, and turns the glass's ribs. */
 import { clamp } from "./math.ts";
-import type { ParamReader } from "./view.ts";
+import { DEFAULT_ANGLE, type ParamReader, type Size } from "./view.ts";
 
 export const EFFECTS = ["glass", "blob"] as const;
 export type EffectKind = (typeof EFFECTS)[number];
@@ -170,6 +170,62 @@ export const effectParts = (effect: Effect): string[] => [
   ]),
   ...effectLookParts(effect)
 ];
+
+/** An effect's address after its palette's seed, which its page and its files are named by: its style, the glass's
+    angle where it is not the view's default, how it plays and the blob's look. */
+export const effectAddressParts = (effect: Effect, angle: number): string[] => [
+  `style=${effect.kind}`,
+  ...(effect.kind === "glass" && angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : []),
+  ...effectParts(effect)
+];
+
+/** The address of one of an effect's files: the stylesheet that paints its first frame behind a page, the script that
+    plays it from there, its moving SVG, or its first frame as PNG, these two at a size where one is asked. */
+export function effectFileAddress(
+  origin: string,
+  seed: string,
+  effect: Effect,
+  angle: number,
+  extension: "css" | "js" | "svg" | "png",
+  size?: Size
+): string {
+  const sized =
+    size && (extension === "svg" || extension === "png")
+      ? [`w=${size.width}`, `h=${size.height}`]
+      : [];
+  return `${origin}/${seed}.${extension}?${[...effectAddressParts(effect, angle), ...sized].join("&")}`;
+}
+
+/** The mark the embed's script sets on a page's root once its canvas shows (apps/web/src/embed/mount.ts), which takes
+    the blob's still away: the blob's canvas is clear around the blob. */
+export const EMBED_PLAYING = "data-grabient-playing";
+
+/** The rules that paint an effect's first frame behind a page: a layer fixed behind it, under its content and over its
+    ground, showing the still (a CSS background), which the blob's gives up once the script's canvas shows. */
+export function effectLayerCss(kind: EffectKind, still: string): string {
+  const layer = `html::before {\n  content: "";\n  position: fixed;\n  inset: 0;\n  z-index: -1;\n  pointer-events: none;\n  background: ${still};\n}\n`;
+  return kind === "blob"
+    ? `${layer}html[${EMBED_PLAYING}]::before {\n  background-image: none;\n}\n`
+    : layer;
+}
+
+/** The tags that play an effect behind a page, for its head: its first frame, then the script that plays it from
+    there. With the still, the first frame is in the page itself, a style, so the page waits on no other site to paint;
+    without, the stylesheet of the same address paints it. */
+export function effectEmbedHtml(
+  origin: string,
+  seed: string,
+  effect: Effect,
+  angle: number,
+  still?: string
+): string {
+  const at = (extension: "css" | "js") =>
+    effectFileAddress(origin, seed, effect, angle, extension).replaceAll("&", "&amp;");
+  const first = still
+    ? `<style>\n${effectLayerCss(effect.kind, still)}</style>`
+    : `<link rel="stylesheet" href="${at("css")}">`;
+  return `${first}\n<script src="${at("js")}" async></script>`;
+}
 
 /** Whether two settings are the same. */
 export const sameSettings = (a: EffectSettings, b: EffectSettings): boolean =>

@@ -75,8 +75,9 @@ import {
   copyLink,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
+  STRIP_EFFECT_COPY,
+  STRIP_EFFECT_LINKS,
   STRIP_FILES,
-  STRIP_GLASS_LINKS,
   saveFormat,
   type Taken
 } from "./formats.ts";
@@ -826,10 +827,10 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={STRIP_COPY}
+            copy={e.effect() ? STRIP_EFFECT_COPY : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={e.effect() ? STRIP_GLASS_LINKS : STRIP_FILES}
+            link={e.effect() ? STRIP_EFFECT_LINKS : STRIP_FILES}
             onCopy={copy}
             onDownload={f => void download(f)}
             onLink={link}

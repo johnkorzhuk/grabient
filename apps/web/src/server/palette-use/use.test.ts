@@ -57,6 +57,11 @@ test("an open keeps no view, and a take needs a format the site knows", () => {
     useInput({ action: "open", format: "css", surface: "list", items: [{ seed: SEED }] })
   ).toBeNull();
   expect(useInput({ action: "copy", format: "png", surface: "list", items: [] })).toBeNull();
+  // an effect's two tags, and its script's address
+  for (const format of ["html", "link:js"])
+    expect(
+      useInput({ action: "copy", format, surface: "editor", items: [{ seed: SEED }] })?.format
+    ).toBe(format);
   expect(useInput({ action: "share", surface: "list", items: [{ seed: SEED }] })).toBeNull();
   expect(useInput(null)).toBeNull();
 });

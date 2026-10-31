@@ -181,3 +181,17 @@ test("an effect's script is one for every setting, its stylesheet one for every 
   );
   expect(written(`/${seed}.css?style=glass`)?.key).not.toBe(written(`/${seed}.css`)?.key);
 });
+
+test("an effect's moving SVG is kept under its pace and size as well as its look", () => {
+  const seed = "kS7Q8Yy5S_SChv0";
+  expect(written(`/${seed}.svg?style=glass&speed=2&w=320&h=200&junk=1`)).toEqual({
+    key: `/${seed}.svg?angle=90&size=320x200&speed=2&style=glass`,
+    acrossBuilds: false
+  });
+  expect(written(`/${seed}.svg?style=glass&speed=3`)?.key).not.toBe(
+    written(`/${seed}.svg?style=glass&speed=2`)?.key
+  );
+  expect(written(`/${seed}.svg?style=blob&shape=3&angle=45`)?.key).toBe(
+    `/${seed}.svg?shape=3&style=blob`
+  );
+});

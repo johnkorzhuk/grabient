@@ -1,9 +1,9 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { EMBED_PLAYING, parseEffect } from "@grabient/engine/effect.ts";
 import { glassStillBackground } from "@grabient/engine/glass.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { expect, test } from "vitest";
-import { EMBED_PLAYING, effectCss, effectStill } from "./effect-files.ts";
+import { effectCss, effectStill } from "./effect-files.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 const P = decodePalette(SEED);

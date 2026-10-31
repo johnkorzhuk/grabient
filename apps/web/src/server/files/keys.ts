@@ -6,7 +6,7 @@
    engine's writing, kept for one build. */
 import { bandsSearch, isBands, parseBands } from "@grabient/engine/bands.ts";
 import { colorKind } from "@grabient/engine/css.ts";
-import { effectLookParts, parseEffect } from "@grabient/engine/effect.ts";
+import { effectLookParts, effectParts, parseEffect } from "@grabient/engine/effect.ts";
 import { parseView, type Size, sizeParam, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
@@ -159,6 +159,15 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
      (effect-files.ts), its picture and its card (images/cards.ts), all the glass's angle or the blob's look decide,
      none of its pace; each kept for one build, as the bands' are */
   const effect = parseEffect(params);
+  /* its moving SVG: its pace too, and its size */
+  if (effect && file.format === "svg") {
+    const size = sizeParam(svgSize(params));
+    const query = new URLSearchParams(
+      [`style=${effect.kind}`, ...effectParts(effect), ...(size ? [`size=${size}`] : [])].join("&")
+    );
+    if (effect.kind === "glass") query.set("angle", String(view.angle));
+    return { path: `/${seed}.svg`, query, acrossBuilds: false };
+  }
   if (effect && file.format === "js") {
     /* under the name it was asked by: the script reads its palette from its own address, so an old id is no script */
     return {

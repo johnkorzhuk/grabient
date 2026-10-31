@@ -1,4 +1,5 @@
 import { isBands } from "@grabient/engine/bands.ts";
+import { parseEffect } from "@grabient/engine/effect.ts";
 import {
   canonicalLocalePath,
   DEFAULT_LOCALE,
@@ -244,9 +245,13 @@ async function route(
   if (!read || env.DEPLOYMENT === "development") return answer(request, app);
   const render = async () =>
     (listingPath(path) && (await overListing(env, request))) || answer(request, app);
-  // a link preview of the animated SVG gets a page of its own (files/palette-files.ts), which no cache keeps or answers
+  /* a link preview of an animated SVG, the bands' or an effect's, gets a page of its own (files/preview.ts), which no
+     cache keeps or answers */
+  const asked = addressParams(url.searchParams);
   const preview =
-    isLinkPreview(request) && path.endsWith(".svg") && isBands(addressParams(url.searchParams));
+    isLinkPreview(request) &&
+    path.endsWith(".svg") &&
+    (isBands(asked) || parseEffect(asked) !== null);
   return uncachedPath(path) || preview
     ? render()
     : edgeCached(request, cacheKey(url, path, locale), ctx, render);

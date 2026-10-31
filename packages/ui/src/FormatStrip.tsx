@@ -21,6 +21,8 @@ export type Format =
   | "jpeg"
   | "url"
   | "json"
+  | "js"
+  | "html"
   | "md"
   | "ase"
   | "gpl"
@@ -41,6 +43,8 @@ const ICON: Readonly<Record<Format, IconName>> = {
   jpeg: "image",
   url: "link",
   json: "braces",
+  js: "braces",
+  html: "codeXml",
   md: "fileText",
   ase: "swatchGrid",
   gpl: "palette",
@@ -54,6 +58,8 @@ const LABEL: Readonly<Record<Format, string>> = {
   jpeg: "JPEG",
   url: "URL",
   json: "JSON",
+  js: "JS",
+  html: "HTML",
   md: "MD",
   ase: "ASE",
   gpl: "GPL",

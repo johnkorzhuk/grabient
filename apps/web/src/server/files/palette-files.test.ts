@@ -129,6 +129,54 @@ describe("a palette's file", () => {
     expect(browser.headers.get("Content-Type")).toBe("image/svg+xml; charset=utf-8");
   });
 
+  test("SVG with style=glass or blob is the effect moving, at its first frame for speed 0, for any site to load", async () => {
+    const glass = await file(`/${seed}.svg?style=glass&angle=135&speed=2`);
+    expect([
+      glass.status,
+      glass.headers.get("Content-Type"),
+      glass.headers.get("Cache-Control")
+    ]).toEqual([200, "image/svg+xml; charset=utf-8", "public, max-age=3600"]);
+    expect(glass.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    const moving = await glass.text();
+    // the glass covers 800 by 400 unless asked, its discs on CSS orbits
+    expect(moving).toContain('width="800" height="400" preserveAspectRatio="xMidYMid slice"');
+    expect(moving).toContain("@keyframes");
+    const still = await (
+      await file(`/${seed}.svg?style=glass&angle=135&speed=0&w=320&h=200`)
+    ).text();
+    expect(still).toContain('width="320" height="200"');
+    expect(still).not.toContain("@keyframes");
+    // the blob is 500 by 500 unless asked
+    const blob = await (await file(`/${seed}.svg?style=blob&shape=12`)).text();
+    expect(blob).toContain('width="500" height="500"');
+    expect(blob).toContain("@keyframes");
+  });
+
+  test("a link preview asking for an effect's SVG gets a page whose card is the effect's first frame", async () => {
+    const asked = (agent: string) =>
+      fileAnswer(
+        new Request(
+          `https://grabient.test/${seed}.svg?style=glass&angle=135&speed=2&w=1080&h=1080`,
+          {
+            headers: { "User-Agent": agent }
+          }
+        ),
+        env,
+        "svg"
+      );
+    const preview = await asked("Discordbot/2.0");
+    expect(preview.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    const html = await preview.text();
+    expect(html).toContain(
+      `<meta property="og:image" content="${golden.origin}/api/og?seed=${seed}&amp;v=k4&amp;style=glass&amp;angle=135">`
+    );
+    expect(html).toContain(
+      `content="${golden.origin}/${seed}.svg?style=glass&amp;angle=135&amp;speed=2&amp;w=1080&amp;h=1080"`
+    );
+    const browser = await asked("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/152.0.0.0");
+    expect(browser.headers.get("Content-Type")).toBe("image/svg+xml; charset=utf-8");
+  });
+
   test("random in a file's address leads to a new random palette's file, its query kept, for no cache to keep", async () => {
     const first = await file("/random.svg?style=bands&angle=0&size=3840x2160");
     const second = await file("/random.svg?style=bands&angle=0&size=3840x2160");

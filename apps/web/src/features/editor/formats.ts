@@ -2,7 +2,7 @@ import { decodePalette } from "@grabient/engine";
 import { type ContrastMeasures, contrastPicture, contrastSvg } from "@grabient/engine/contrast.ts";
 import { cssBlock } from "@grabient/engine/css.ts";
 import type { Stop } from "@grabient/engine/curve.ts";
-import type { Effect } from "@grabient/engine/effect.ts";
+import { type Effect, effectEmbedHtml, effectFileAddress } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
@@ -31,8 +31,11 @@ import { seedAddress } from "./address.ts";
    place as the mode turns, so only the first chip changes. */
 export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
-/** While the glass plays, its links are the page's alone: the site serves no file of the glass yet. */
-export const STRIP_GLASS_LINKS: readonly Format[] = ["md"];
+/** While an effect plays, Copy also hands over the two tags that play it behind a page (HTML), and Copy link the
+    addresses of its files: the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the script
+    that plays it (server/files/effect-files.ts, embed.ts). */
+export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html"];
+export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {
@@ -122,6 +125,43 @@ const blobCssText = async (p: Taken) => {
     `${origin()}/${p.seed}`
   );
 };
+/* The first frame the copied tags carry inside the page, a CSS background covering it as the player covers its canvas:
+   the glass as a WebP of its design square, drawn by its CPU renderer (a JPEG where the browser makes no WebP), which a
+   browser paints at no cost where the glass's SVG held a page's first paint ~80 ms; the blob as its SVG still, whose
+   grain its player matches exactly, since the blob's canvas takes the still's place in one frame. */
+const STILL_SIDE = 1000;
+const encoded = (canvas: HTMLCanvasElement, type: string, quality: number) =>
+  new Promise<Blob | null>(done => canvas.toBlob(done, type, quality));
+const dataUrl = (blob: Blob) =>
+  new Promise<string>((done, fail) => {
+    const reader = new FileReader();
+    reader.onload = () => done(String(reader.result));
+    reader.onerror = () => fail(reader.error);
+    reader.readAsDataURL(blob);
+  });
+const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
+  if (effect.kind === "blob") {
+    const b = await blobCode();
+    return b.blobStillBackground(decodePalette(p.seed)!, {
+      speed: 1,
+      fps: null,
+      still: true,
+      ...effect.look
+    });
+  }
+  const [g, r] = await Promise.all([model(), render()]);
+  const side = { width: STILL_SIDE, height: STILL_SIDE };
+  const { geometry, window } = r.glassCover(side, 1, p.angle);
+  const pixels = r.glassRenderer(geometry, window).frame(g.glassField(geometry, colorsOf(p)), 0);
+  const canvas = document.createElement("canvas");
+  canvas.width = window.w;
+  canvas.height = window.h;
+  canvas.getContext("2d")?.putImageData(new ImageData(pixels, window.w, window.h), 0, 0);
+  const webp = await encoded(canvas, "image/webp", 0.8);
+  const picture = webp?.type === "image/webp" ? webp : await encoded(canvas, "image/jpeg", 0.85);
+  if (!picture) throw new Error("no still");
+  return `url("${await dataUrl(picture)}") 50% 50%/cover no-repeat`;
+};
 /* a page's background: the first frame, since a background that moved would repaint the glass's whole filter under
    everything on the page every frame */
 const glassCss = async (p: Taken) =>
@@ -154,6 +194,10 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
   if (isSwatchFormat(f))
     return copySwatches(names => swatchFile(f, [swatchesOf({ seed: p.seed, ...view(p) }, names)]));
   if (f === "png") return writeImage(pngOf(p));
+  if (f === "html" && p.effect)
+    return writeText(
+      effectEmbedHtml(origin(), p.seed, p.effect, p.angle, await stillOf(p, p.effect))
+    );
   return writeText(
     f === "css"
       ? p.effect
@@ -183,8 +227,21 @@ export async function saveFormat(f: Format, p: Taken): Promise<void> {
   downloadFile(`${name}.png`, await pngOf(p));
 }
 
-/** The address of the palette's file onto the clipboard. */
-export const copyLink = async (f: Format, p: Taken) => writeText(fileUrl(p, f));
+/** The address of the palette's file onto the clipboard: while an effect plays, its file's, at the pixels the stage
+    shows once the reader set a size. */
+export const copyLink = async (f: Format, p: Taken) =>
+  writeText(
+    p.effect && (f === "css" || f === "js" || f === "svg" || f === "png")
+      ? effectFileAddress(
+          origin(),
+          p.seed,
+          p.effect,
+          p.angle,
+          f,
+          sizeParam(p.size) ? p.pixels : undefined
+        )
+      : fileUrl(p, f)
+  );
 
 /* Which text reads on the palette's colors, as a picture of its own, the reader's own text colors among its rows: an
    SVG whose samples are text, and a PNG drawn in the page's face at twice its size. */
