@@ -10,6 +10,10 @@
     min-width: 0;
     padding-inline: var(--size-gutter);
     padding-block: var(--space-s4) var(--space-s16);
+    /* a phone's side margin, as the lists' (app/list.module.css) */
+    @container page (max-width: 800px) {
+      padding-inline: var(--space-s4);
+    }
     @container page (max-width: 600px) {
       gap: var(--space-s10);
     }
@@ -44,6 +48,8 @@
       position: relative;
       inset: auto;
       grid-row: 1;
+      /* the row's whole width: its picture is all placed, so the hero's start alignment would leave it none */
+      justify-self: stretch;
       border-radius: var(--radius-surface);
       overflow: hidden;
     }
