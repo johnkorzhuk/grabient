@@ -87,12 +87,19 @@ export const loadGpuStill = (): Promise<void> =>
     m =>
       new Promise<void>(done => {
         const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 300));
+        /* once the page's still is painted, which a context would otherwise wait on (painted.ts) */
         idle(
           () =>
-            void m.warmGlassStill().then(() => {
-              gpu = m;
-              done();
-            }),
+            void (
+              import.meta.env.SSR
+                ? Promise.resolve()
+                : import("./painted.ts").then(p => p.stillPainted())
+            )
+              .then(() => m.warmGlassStill())
+              .then(() => {
+                gpu = m;
+                done();
+              }),
           { timeout: 1000 }
         );
       })

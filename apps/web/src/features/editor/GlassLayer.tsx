@@ -157,6 +157,8 @@ export function GlassLayer(props: { palette: Palette; view: GlassView }) {
           fill(colors, untrack(angle), untrack(shape));
         }}
         class={styles.glassStill}
+        /* the player makes its context once the browser has painted this (painted.ts's STILL_TIMING) */
+        elementtiming="effect-still"
       />
       <Show when={live() && kept()}>
         <Loading>

@@ -3,6 +3,7 @@ import type { Palette } from "@grabient/engine/palette.ts";
 import { type GlassPlayer, playGlass } from "@grabient/ui/glass-player.ts";
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./GlassStage.module.css";
+import { stillPainted } from "./painted.ts";
 
 /** How long the canvas takes to fade in or out over the still (GlassStage.module.css). */
 const FADE_MS = 700;
@@ -27,13 +28,19 @@ export function GlassStage(props: {
   let player: GlassPlayer | null = null;
   let rewinding: ReturnType<typeof setTimeout> | undefined;
   onSettled(() => {
-    player = playGlass(
-      canvas,
-      untrack(() => props.palette),
-      untrack(() => props.view),
-      () => setDrawn(true)
-    );
+    let gone = false;
+    /* its context once the still is painted, which it would otherwise wait on (painted.ts) */
+    void stillPainted().then(() => {
+      if (gone) return;
+      player = playGlass(
+        canvas,
+        untrack(() => props.palette),
+        untrack(() => props.view),
+        () => setDrawn(true)
+      );
+    });
     return () => {
+      gone = true;
       clearTimeout(rewinding);
       player?.destroy();
       player = null;

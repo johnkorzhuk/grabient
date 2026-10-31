@@ -194,12 +194,18 @@ function HeroEffect(props: { P: Palette; seed: string; effect: Effect; angle: nu
     let alive = true;
     let player: { destroy(): void } | null = null;
     const drawn = () => requestAnimationFrame(() => alive && setCovered(true));
-    const made =
-      kind === "glass"
-        ? (import.meta.env.SSR
-            ? (new Promise(() => {}) as never)
-            : import("@grabient/ui/glass-player.ts")
-          ).then(m =>
+    /* the player's code at once, and its context once the still is painted, which it would otherwise wait on
+       (painted.ts) */
+    const glass =
+      kind === "glass" && !import.meta.env.SSR ? import("@grabient/ui/glass-player.ts") : null;
+    const blob =
+      kind === "blob" && !import.meta.env.SSR ? import("@grabient/ui/blob-player.ts") : null;
+    const painted = import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("../editor/painted.ts").then(p => p.stillPainted());
+    const made = painted.then(() =>
+      glass
+        ? glass.then(m =>
             m.playGlass(
               canvas,
               props.P,
@@ -212,13 +218,11 @@ function HeroEffect(props: { P: Palette; seed: string; effect: Effect; angle: nu
               drawn
             )
           )
-        : (import.meta.env.SSR
-            ? (new Promise(() => {}) as never)
-            : import("@grabient/ui/blob-player.ts")
-          ).then(m => m.playBlob(canvas, props.P, blobViewOf(props.effect, props.angle), drawn));
+        : blob?.then(m => m.playBlob(canvas, props.P, blobViewOf(props.effect, props.angle), drawn))
+    );
     void made.then(
       p => {
-        if (alive) player = p;
+        if (alive) player = p ?? null;
         else p?.destroy();
       },
       () => {}
@@ -230,7 +234,7 @@ function HeroEffect(props: { P: Palette; seed: string; effect: Effect; angle: nu
   });
   return (
     <div class={styles.effect} data-kind={kind} data-covered={covered() ? "" : undefined}>
-      <div class={styles.still} {...named} />
+      <div class={styles.still} {...named} elementtiming="effect-still" />
       <canvas ref={canvas} class={styles.canvas} />
     </div>
   );

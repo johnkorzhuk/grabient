@@ -148,6 +148,8 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings; a
           untrack(() => still(props.palette, props.settings, props.angle));
         }}
         class={styles.glassStill}
+        /* the player makes its context once the browser has painted this (painted.ts's STILL_TIMING) */
+        elementtiming="effect-still"
       />
       <Show when={live() && kept()}>
         <Loading>
