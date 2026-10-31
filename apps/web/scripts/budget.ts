@@ -28,7 +28,13 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   "/": { route: "src/routes/index.tsx", budget: 285 },
   "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 290 },
   "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 285 },
-  "a collection": { route: "src/routes/$id/index.tsx", budget: 280 },
+  /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
+     names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026) */
+  "a collection": {
+    route: "src/routes/$id/index.tsx",
+    also: ["src/features/collections/CollectionRoute.tsx"],
+    budget: 280
+  },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
      their settings in the address, the menu's tiles, the header's still) took it from 347.8 KB to 351.7 on 30 Oct

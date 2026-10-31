@@ -3,7 +3,6 @@ import { isServer } from "@solidjs/web";
 import { createFileRoute, notFound, redirect, useMatch, useParams } from "@tanstack/solid-router";
 import { Errored, Loading, lazy, Match, Show, Switch, untrack } from "solid-js";
 import { isCollectionSlug } from "../../features/collections/address.ts";
-import { CollectionRoute } from "../../features/collections/CollectionRoute.tsx";
 import { collectionHead, loadCollection } from "../../features/collections/route.ts";
 import { isSeed } from "../../features/editor/address.ts";
 import { booting, endBoot } from "../../features/editor/boot.ts";
@@ -29,6 +28,12 @@ import { answerWith, drawnSearch, searchOf } from "../../lib/route.ts";
    its words. An old link the Worker neither maps nor fits (server/seo/legacy-fit.ts) is a 404 to the server; the
    browser fits the ones it can read, and the address becomes the palette's. */
 const Editor = lazy(loadEditor);
+/* A collection's page is a collection's code alone, which a palette's page never loads: the loader asks for it with the
+   collection's data, and the server renders it with the page, whose document then names it for the browser to load
+   before it hydrates. Imported by its name, which tells the server the module it rendered. */
+const CollectionRoute = lazy(() => import("../../features/collections/CollectionRoute.tsx"), {
+  export: "CollectionRoute"
+});
 
 /** An old grabient.com seed the browser can read: `_` and 36 characters, or 44 with its globals. */
 const OLD_SEED = /^_[A-Za-z0-9_-]{36}(?:[A-Za-z0-9_-]{8})?$/;
@@ -81,14 +86,19 @@ export const Route = createFileRoute("/$id/")({
       return { palette, collection: null, paint };
     }
     if (isCollectionSlug(params.id)) {
-      const collection = await loadCollection(context.queryClient, {
-        slug: params.id,
-        order: "popular",
-        // words that are no collection lead to their search with the selection still open
-        searchStr: searchOf(location.search as Record<string, unknown>),
-        publicHref: location.publicHref,
-        preload
-      });
+      /* the page's code comes with its data, so it draws the moment both are in, as a palette's does; code that does
+         not come is the page's own to say, where it renders */
+      const [collection] = await Promise.all([
+        loadCollection(context.queryClient, {
+          slug: params.id,
+          order: "popular",
+          // words that are no collection lead to their search with the selection still open
+          searchStr: searchOf(location.search as Record<string, unknown>),
+          publicHref: location.publicHref,
+          preload
+        }),
+        CollectionRoute.preload().catch(() => {})
+      ]);
       /* what the collections' loader hands the frame stands where the frame reads it */
       return { ...collection, palette: null, collection };
     }
