@@ -54,6 +54,8 @@ test.each([
   ["/kS7Q8Yy5S_SChv0.png", "/{$seed}.png/", "image/png"],
   ["/kS7Q8Yy5S_SChv0.svg", "/{$seed}.svg/", "image/svg+xml; charset=utf-8"],
   ["/kS7Q8Yy5S_SChv0.css", "/{$seed}.css/", "text/css; charset=utf-8"],
+  ["/kS7Q8Yy5S_SChv0.css?style=blob&fill=1", "/{$seed}.css/", "text/css; charset=utf-8"],
+  ["/kS7Q8Yy5S_SChv0.js?style=glass", "/{$seed}.js/", "text/javascript; charset=utf-8"],
   ["/kS7Q8Yy5S_SChv0.json", "/{$name}.json/", "application/json"],
   ["/kS7Q8Yy5S_SChv0.tokens.json", "/{$name}.json/", "application/design-tokens+json"],
   ["/kS7Q8Yy5S_SChv0.md", "/{$name}.md/", "text/markdown; charset=utf-8"],
@@ -76,6 +78,18 @@ test.each([
   ["/ocean-gradients.md", "/{$name}.md/"]
 ])("%s reaches %s, which knows no such collection", async (address, route) => {
   expect(await reach(address)).toEqual({ route, type: "application/json", status: 404 });
+});
+
+test("a script names an effect: a seed alone, or an old id, is no script", async () => {
+  for (const address of [
+    "/kS7Q8Yy5S_SChv0.js",
+    "/kS7Q8Yy5S_SChv0.js?style=radialGradient",
+    "/nope.js?style=glass"
+  ])
+    expect([address, await reach(address)]).toEqual([
+      address,
+      { route: "/{$seed}.js/", type: "application/json", status: 404 }
+    ]);
 });
 
 test("an address without a suffix is still its page's", () => {

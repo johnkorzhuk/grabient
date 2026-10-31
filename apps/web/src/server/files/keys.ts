@@ -25,7 +25,7 @@ export interface FileKey {
 /** A palette or a collection under another extension, the shortest name that leaves one: /{seed}.tokens.json is a
     seed's design tokens. */
 export const FILE_PATH =
-  /^\/([^/]+?|@[a-z0-9_-]{3,30}\/[a-z0-9-]+)\.(png|svg|css|json|md|ase|gpl|grd|tokens\.json)$/;
+  /^\/([^/]+?|@[a-z0-9_-]{3,30}\/[a-z0-9-]+)\.(png|svg|css|js|json|md|ase|gpl|grd|tokens\.json)$/;
 /** Where the build once wrote palettes' cards as files: the card, which the Worker now draws. */
 const OLD_CARD = /^\/og\/[^/]+\/[^/]+\.png$/;
 const SEARCH_PICTURES = new Set(["/api/og/query", "/api/png/query"]);
@@ -155,14 +155,24 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
   }
   const view = viewAt(params, palette.anchors.length);
-  /* an effect's first frame and its card (images/cards.ts): the glass's angle or the blob's look, none of its pace,
-     kept for one build, as the bands' are */
+  /* an effect's script (embed.ts), one for every palette and setting, and its first frame: its stylesheet
+     (effect-files.ts), its picture and its card (images/cards.ts), all the glass's angle or the blob's look decide,
+     none of its pace; each kept for one build, as the bands' are */
   const effect = parseEffect(params);
-  if (effect && (file.format === "png" || file.format === "og")) {
+  if (effect && file.format === "js") {
+    /* under the name it was asked by: the script reads its palette from its own address, so an old id is no script */
+    return {
+      path: `/${file.name}.js`,
+      query: new URLSearchParams({ style: effect.kind }),
+      acrossBuilds: false
+    };
+  }
+  if (effect && (file.format === "png" || file.format === "og" || file.format === "css")) {
     const query = new URLSearchParams(
       [`style=${effect.kind}`, ...effectLookParts(effect)].join("&")
     );
     if (effect.kind === "glass") query.set("angle", String(view.angle));
+    if (file.format === "css") return { path: `/${seed}.css`, query, acrossBuilds: false };
     if (file.format === "png") return picture(`/${seed}.png`, query, pictureSize(params), false);
     query.set("seed", seed);
     return picture("/api/og", query, cardSize(params), false);

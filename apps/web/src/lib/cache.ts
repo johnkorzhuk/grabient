@@ -45,6 +45,13 @@ export const ANIMATION = {
   "Cache-Control": "public, max-age=3600",
   "CDN-Cache-Control": "max-age=86400, stale-while-revalidate=86400"
 } as const;
+/** A file other sites' pages load (an effect's stylesheet and script, server/files/embed.ts): any page may read it,
+    a cross-origin-isolated one too, and no search engine lists it. */
+export const EMBEDDED = {
+  "Access-Control-Allow-Origin": "*",
+  "Cross-Origin-Resource-Policy": "cross-origin",
+  "X-Robots-Tag": "noindex"
+} as const;
 /** Where an old link no map holds leads, which its fit decides for good: a month at the edge, and a day in the
     browser, so a map that comes to hold the link leads there within the day. */
 export const FITTED = {

@@ -1,5 +1,12 @@
 import { TEXT } from "../../lib/cache.ts";
 
+/** The headers of what agents read: open to every site's pages, and out of search results. Kept apart from
+    agents.ts, whose texts load only with the routes that answer them. */
+export const AGENT_DATA = {
+  "Access-Control-Allow-Origin": "*",
+  "X-Robots-Tag": "noindex"
+} as const;
+
 /** Text for crawlers and agents: kept an hour by a browser and a day at the edge, which serves it a day longer while
     it asks again. */
 export const textResponse = (body: string, type: string, headers: Record<string, string> = {}) =>

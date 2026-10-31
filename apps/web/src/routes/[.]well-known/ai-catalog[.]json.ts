@@ -1,12 +1,14 @@
 import { env } from "cloudflare:workers";
 import { createFileRoute } from "@tanstack/solid-router";
-import { AGENT_DATA, aiCatalog } from "../../server/seo/agents.ts";
 import { publicOrigin } from "../../server/seo/site.ts";
-import { textResponse } from "../../server/seo/text.ts";
+import { AGENT_DATA, textResponse } from "../../server/seo/text.ts";
 
 /** The AI Catalog, which leads an agent to the MCP server's card. */
 export async function catalogResponse(request: Request) {
-  const { mcpFacts } = await import("../../server/seo/mcp.ts");
+  const [{ aiCatalog }, { mcpFacts }] = await Promise.all([
+    import("../../server/seo/agents.ts"),
+    import("../../server/seo/mcp.ts")
+  ]);
   return textResponse(
     JSON.stringify(aiCatalog(publicOrigin(env, request), mcpFacts())),
     "application/ai-catalog+json",

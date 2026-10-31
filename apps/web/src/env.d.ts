@@ -2,6 +2,8 @@
 declare const __BUILD_ID__: string;
 /** The address of the precise color names the build writes (scripts/color-names.ts). */
 declare const __COLOR_NAMES__: string;
+/** The addresses of the effects' embed scripts the build writes (src/embed/build.ts). */
+declare const __EFFECT_EMBEDS__: { readonly glass: string; readonly blob: string };
 
 interface Window {
   /** the page's messages, asked for by the head as the document is read (routes/__root.tsx) */

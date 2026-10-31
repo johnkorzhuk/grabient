@@ -13,8 +13,12 @@ export default defineConfig({
   root: web,
   // the MCP view is built by its own plugin (src/mcp-view/build.ts); the tests serve a page of the same shape
   resolve: { alias: { "virtual:mcp-view": `${web}/test/mcp-view-page.ts` } },
-  // the build's name, which the edge cache's keys carry (lib/build.ts)
-  define: { __BUILD_ID__: JSON.stringify("test") },
+  define: {
+    // the build's name, which the edge cache's keys carry (lib/build.ts)
+    __BUILD_ID__: JSON.stringify("test"),
+    // the effects' scripts are written by their own plugin (src/embed/build.ts); a static file stands in for both
+    __EFFECT_EMBEDS__: JSON.stringify({ glass: "/ads.txt", blob: "/ads.txt" })
+  },
   plugins: [
     // a route file loads the router, whose components are compiled for the server here as the build compiles them
     solid({ ssr: true }),

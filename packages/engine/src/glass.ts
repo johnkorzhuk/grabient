@@ -468,3 +468,17 @@ export function glassSvg(
     `<g filter="url(#${id}f)"><rect x="${region.x}" y="${region.y}" width="${region.w}" height="${region.h}" fill="${field.base}"/>${body}</g></svg>`
   );
 }
+
+const stillDesigns = new Map<number, GlassGeometry>();
+/** The first frame as a background covering its box, which a page paints before the player takes over: the one
+    design at the angle under the colors (glass-colors.ts), cropped to the box's shape. A design's ribs are worked out
+    once for each angle. */
+export function glassStillBackground(colors: readonly string[], angle: number): string {
+  let design = stillDesigns.get(angle);
+  if (!design) {
+    design = glassGeometry(GLASS_DESIGN, angle);
+    stillDesigns.set(angle, design);
+  }
+  const svg = glassSvg(design, glassField(design, colors), { still: true, cover: true });
+  return `url("${glassDataUri(svg)}") 50% 50%/cover no-repeat`;
+}

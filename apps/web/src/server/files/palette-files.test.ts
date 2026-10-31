@@ -61,6 +61,34 @@ describe("a palette's file", () => {
     );
   });
 
+  test("CSS with style=glass or blob paints the effect's first frame behind the page, for any site to load", async () => {
+    const glass = await file(`/${seed}.css?style=glass&angle=45&speed=2`);
+    const text = await glass.text();
+    expect([glass.status, glass.headers.get("Content-Type")]).toEqual([
+      200,
+      "text/css; charset=utf-8"
+    ]);
+    expect(text).toContain(`/* ${golden.origin}/${seed}?style=glass&angle=45&speed=2 */`);
+    expect(text).toContain("html::before {");
+    expect(text).toContain("position: fixed;");
+    expect(text).toContain("z-index: -1;");
+    expect(text).toContain('url("data:image/svg+xml,');
+    // the glass's canvas is opaque: its still stays under it
+    expect(text).not.toContain("data-grabient-playing");
+    expect(glass.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(glass.headers.get("Cross-Origin-Resource-Policy")).toBe("cross-origin");
+    expect(glass.headers.get("Cache-Control")).toBe("public, max-age=3600");
+    // its angle turns the ribs; its pace draws no other first frame
+    const turned = await (await file(`/${seed}.css?style=glass&angle=135`)).text();
+    const paced = await (await file(`/${seed}.css?style=glass&angle=45&speed=5`)).text();
+    const still = (css: string) => css.slice(css.indexOf("background:"));
+    expect(still(turned)).not.toBe(still(text));
+    expect(still(paced)).toBe(still(text));
+    // the blob, clear around itself, gives its still up when the script's canvas shows
+    const blob = await (await file(`/${seed}.css?style=blob&shape=12`)).text();
+    expect(blob).toContain("html[data-grabient-playing]::before {\n  background-image: none;\n}");
+  });
+
   test("CSS takes w and h for the page's box, and style=bands plays the animated SVG inside it", async () => {
     const sized = await (await file(`/${seed}.css?${view}&w=1080&h=1350`)).text();
     expect(sized).toContain(

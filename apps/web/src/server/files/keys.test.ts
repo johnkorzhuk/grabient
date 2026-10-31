@@ -164,3 +164,20 @@ test("an effect's card and picture are kept under its look, apart from the gradi
   });
   expect(written(`/${seed}.png?style=glass`)?.key).not.toBe(written(`/${seed}.png`)?.key);
 });
+
+test("an effect's script is one for every setting, its stylesheet one for every look", () => {
+  const seed = "kS7Q8Yy5S_SChv0";
+  expect(written(`/${seed}.js?style=glass&speed=2&angle=45&junk=1`)).toEqual({
+    key: `/${seed}.js?style=glass`,
+    acrossBuilds: false
+  });
+  expect(written(`/${seed}.js?style=blob&shape=3`)?.key).toBe(`/${seed}.js?style=blob`);
+  expect(written(`/${seed}.css?style=glass&angle=45&speed=2&fps=30`)).toEqual({
+    key: `/${seed}.css?angle=45&style=glass`,
+    acrossBuilds: false
+  });
+  expect(written(`/${seed}.css?style=blob&shape=3&speed=2`)?.key).toBe(
+    `/${seed}.css?shape=3&style=blob`
+  );
+  expect(written(`/${seed}.css?style=glass`)?.key).not.toBe(written(`/${seed}.css`)?.key);
+});

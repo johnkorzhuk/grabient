@@ -14,8 +14,7 @@ import {
 import { json } from "../../lib/responses.ts";
 import { addressParams, viewAt } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
-import { AGENT_DATA } from "./agents.ts";
-import { isoDay } from "./text.ts";
+import { AGENT_DATA, isoDay } from "./text.ts";
 
 /* A palette or a collection as Markdown at its address plus .md, for an agent that reads text. A palette's is the
    engine's, with what only the database knows: the words written for it that its colors bear out, and the public

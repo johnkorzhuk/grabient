@@ -13,6 +13,7 @@ import {
 import { colorKind, paletteCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { paletteDocument, paletteJson } from "@grabient/engine/document.ts";
+import { effectParts, parseEffect } from "@grabient/engine/effect.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
@@ -22,9 +23,9 @@ import {
   swatchFile,
   swatchPalette
 } from "@grabient/engine/swatches.ts";
-import { DEFAULT_SIZE, resolveSize, sizeParam } from "@grabient/engine/view.ts";
+import { DEFAULT_ANGLE, DEFAULT_SIZE, resolveSize, sizeParam } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { ANIMATION, FILE, NO_STORE, TEXT } from "../../lib/cache.ts";
+import { ANIMATION, EMBEDDED, FILE, NO_STORE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { isCollectionSlug, texts, writtenWords } from "../collections/files.ts";
 import { isLinkPreview } from "../crawlers.ts";
@@ -92,6 +93,18 @@ async function paletteFile(
   const stops = () => sampleStops(palette, view.steps);
   switch (format) {
     case "css": {
+      /* style=glass or blob: the effect's first frame behind the page, which /{seed}.js plays from (effect-files.ts),
+         loaded with the first one asked for */
+      const effect = parseEffect(params);
+      if (effect) {
+        const { effectCss } = await import("./effect-files.ts");
+        const turned = effect.kind === "glass" && view.angle !== DEFAULT_ANGLE;
+        const parts = [`style=${effect.kind}`, ...(turned ? [`angle=${view.angle}`] : [])];
+        const credit = `${origin}/${seed}?${[...parts, ...effectParts(effect)].join("&")}`;
+        return new Response(effectCss(palette, effect, view.angle, credit), {
+          headers: { ...ANIMATION, ...EMBEDDED, "Content-Type": "text/css; charset=utf-8" }
+        });
+      }
       // w and h (or size) set the page's box; style=bands plays the animated SVG, carried inside
       const asked = svgSize(params);
       if (isBands(params)) {
