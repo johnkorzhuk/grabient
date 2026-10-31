@@ -35,8 +35,6 @@ export function GlassArt(props: {
   onSettled(() => {
     const sizes = new ResizeObserver(() => setSeen(el.clientWidth > 0));
     sizes.observe(el);
-    /* the GPU's still code, and its canvas as the page idles, before a change asks for a still */
-    void loadGpuStill().catch(() => {});
     return () => sizes.disconnect();
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -90,6 +88,9 @@ export function GlassArt(props: {
         away = true;
         return;
       }
+      /* the GPU's still code, and its canvas as the page idles, once a page shows the glass and before a change asks
+         for a still: a tile in a menu still closed asks for nothing */
+      void loadGpuStill().catch(() => {});
       const { named, colors, angle, shape } = next;
       const was = away;
       away = false;

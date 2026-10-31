@@ -77,19 +77,29 @@ export function recolorStill(
 let gpu: typeof import("@grabient/ui/glass-still.ts") | null = null;
 let gpuLoading: Promise<void> | null = null;
 
-/** The GPU's still code (ui/glass-still.ts, which shares the player's chunk), asked for once; the browser's alone. */
+/** The GPU's still code (ui/glass-still.ts, which shares the player's chunk), asked for once as a page shows the glass,
+    and its canvas made as the page next idles, its programs built as the GPU gets to them: done once they are, or
+    once they cannot be. The browser's alone. */
 export const loadGpuStill = (): Promise<void> =>
   (gpuLoading ??= (
     import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/glass-still.ts")
-  ).then(m => {
-    gpu = m;
-    /* its canvas made as the page next idles, its programs compiled then, so no still waits on them */
-    const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 300));
-    idle(() => m.warmGlassStill());
-  }));
+  ).then(
+    m =>
+      new Promise<void>(done => {
+        const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 300));
+        idle(
+          () =>
+            void m.warmGlassStill().then(() => {
+              gpu = m;
+              done();
+            }),
+          { timeout: 1000 }
+        );
+      })
+  ));
 
-/** The still drawn on the GPU as a bitmap at a size in device pixels: undefined while its code loads, null where the
-    GPU cannot draw it (the SVG then stands in). */
+/** The still drawn on the GPU as a bitmap at a size in device pixels: undefined until its code and its canvas are
+    ready, null where the GPU cannot draw it (the SVG then stands in). */
 export function gpuStill(
   colors: readonly string[],
   angle: number,

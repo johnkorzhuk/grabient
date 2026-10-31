@@ -23,18 +23,25 @@ const open = () => {
       premultipliedAlpha: true,
       preserveDrawingBuffer: false
     });
-    const drawing = gl ? createGlassDrawing(gl) : null;
-    shared = gl && drawing ? { canvas, gl, drawing } : null;
+    shared = gl ? { canvas, gl, drawing: createGlassDrawing(gl) } : null;
   } catch {
     shared = null;
   }
   return shared;
 };
 
-/** Makes the shared canvas and its drawing now, about a tenth of a second of compiling, so the first still a page asks
-    for later costs only its frame: for an idle moment once a page shows the glass. */
-export function warmGlassStill(): void {
-  open();
+/** Makes the shared canvas and its drawing now, its programs built as the GPU gets to them, so the first still a page
+    asks for later costs only its frame: for an idle moment once a page shows the glass. True once they are built,
+    false where they cannot be. */
+export function warmGlassStill(): Promise<boolean> {
+  return new Promise(resolve => {
+    const check = () => {
+      const state = open()?.drawing.built() ?? null;
+      if (state === false) requestAnimationFrame(check);
+      else resolve(state === true);
+    };
+    check();
+  });
 }
 
 /** The glass's first frame for its colors (glassColors), turned to `angle` and drawn in `shape`, at a size in device

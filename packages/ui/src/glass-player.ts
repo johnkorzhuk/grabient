@@ -24,6 +24,7 @@ import {
   glassPlan
 } from "@grabient/engine/glass-render.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
+import { buildPrograms } from "./gl-build.ts";
 import { glassBake } from "./glass-bake.ts";
 import { createPace } from "./pace.ts";
 
@@ -110,8 +111,8 @@ const hexRgb = (hex: string) => {
 /** The glass's drawing in a WebGL 2 context: its programs and textures, laid out for a size in device pixels, an angle
     and a shape (the design covering it, its rib map baked on the GPU), colored for a palette, and drawn a frame at a
     time into the context's own framebuffer, the size laid out. The player draws its canvas with one frame after frame;
-    a still (glass-still.ts) draws one frame of another into a canvas the page shares. Null where WebGL 2 cannot build
-    its programs. */
+    a still (glass-still.ts) draws one frame of another into a canvas the page shares. Its programs are built as the
+    GPU gets to them (gl-build.ts): it draws once they are. */
 export interface GlassDrawing {
   /** lays the design out for the box; true where its size changed, so the canvas takes it before the next frame */
   layout(width: number, height: number, angle: number, shape: number | null): boolean;
@@ -119,41 +120,22 @@ export interface GlassDrawing {
   recolor(colors: readonly string[]): void;
   /** the frame at t, seconds of the loop at speed 1 */
   draw(t: number): void;
-  /** laid out and colored: a frame can be drawn */
+  /** built, laid out and colored: a frame can be drawn */
   ready(): boolean;
+  /** its programs: true once built, false while the GPU is still at them, null where they failed */
+  built(): boolean | null;
 }
 
-export function createGlassDrawing(gl: WebGL2RenderingContext): GlassDrawing | null {
-  const shader = (type: number, src: string) => {
-    const s = gl.createShader(type);
-    if (!s) throw new Error("no shader");
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-      throw new Error(gl.getShaderInfoLog(s) ?? "shader");
-    return s;
-  };
-  const program = (vs: string, fs: string) => {
-    const p = gl.createProgram();
-    gl.attachShader(p, shader(gl.VERTEX_SHADER, vs));
-    gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
-    gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS))
-      throw new Error(gl.getProgramInfoLog(p) ?? "link");
-    return p;
-  };
-  let pDisc: WebGLProgram;
-  let pBlur: WebGLProgram;
-  let pFinal: WebGLProgram;
-  try {
-    pDisc = program(DISC_VS, DISC_FS);
-    pBlur = program(FULL_VS, BLUR_FS);
-    pFinal = program(FULL_VS, FINAL_FS);
-  } catch {
-    return null;
-  }
+export function createGlassDrawing(gl: WebGL2RenderingContext): GlassDrawing {
+  const programs = buildPrograms(gl, [
+    [DISC_VS, DISC_FS],
+    [FULL_VS, BLUR_FS],
+    [FULL_VS, FINAL_FS]
+  ]);
+  const [pDisc, pBlur, pFinal] = programs.list as [WebGLProgram, WebGLProgram, WebGLProgram];
   const loc = (p: WebGLProgram, n: string) => gl.getUniformLocation(p, n);
-  const U = {
+  /* read once the programs are built: reading them before waits for them */
+  const locations = () => ({
     dField: loc(pDisc, "uField"),
     bSrc: loc(pBlur, "uSrc"),
     bStep: loc(pBlur, "uStep"),
@@ -165,7 +147,8 @@ export function createGlassDrawing(gl: WebGL2RenderingContext): GlassDrawing | n
     fOffset: loc(pFinal, "uOffset"),
     fInv: loc(pFinal, "uInv"),
     fScale: loc(pFinal, "uScale")
-  };
+  });
+  let U: ReturnType<typeof locations> | null = null;
   const quad = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -199,7 +182,13 @@ export function createGlassDrawing(gl: WebGL2RenderingContext): GlassDrawing | n
   };
   const mapTex = texture(gl.NEAREST);
   const baker = glassBake(gl, quad);
-  if (!baker) return null;
+  const built = () => {
+    const own = programs.built();
+    const bake = baker.built();
+    return own === null || bake === null ? null : own && bake;
+  };
+  /* the rib map waits for its bake, done with the next frame once the programs are built */
+  let stale = false;
   const fieldTex = [texture(gl.LINEAR), texture(gl.LINEAR)];
   const fbo = [gl.createFramebuffer(), gl.createFramebuffer()];
 
@@ -261,7 +250,7 @@ export function createGlassDrawing(gl: WebGL2RenderingContext): GlassDrawing | n
         gl.bindTexture(gl.TEXTURE_2D, mapTex);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, win.w, win.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       }
-      baker.bake(g, win, mapTex);
+      stale = true;
       if (resized || !was || was.fw !== plan.fw || was.fh !== plan.fh) {
         for (let i = 0; i < 2; i++) {
           gl.bindTexture(gl.TEXTURE_2D, fieldTex[i]);
@@ -299,9 +288,15 @@ export function createGlassDrawing(gl: WebGL2RenderingContext): GlassDrawing | n
       colors_ = colors;
       if (colors.join() !== colorsKey) color();
     },
-    ready: () => !!(geometry && window_ && plan && field),
+    ready: () => built() === true && !!(geometry && window_ && plan && field),
+    built,
     draw(t) {
-      if (!geometry || !window_ || !plan || !field) return;
+      if (!geometry || !window_ || !plan || !field || built() !== true) return;
+      U ??= locations();
+      if (stale) {
+        baker.bake(geometry, window_, mapTex);
+        stale = false;
+      }
       const { region } = geometry;
       const win = window_;
       const q = plan.q;
@@ -379,7 +374,6 @@ export function playGlass(
   });
   if (!gl) return null;
   const drawing = createGlassDrawing(gl);
-  if (!drawing) return null;
   let palette_ = palette;
   let view_ = view;
   let ready = false;
@@ -427,6 +421,11 @@ export function playGlass(
     raf = 0;
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
+    /* its programs built since the last frame: the first frame is due */
+    if (!ready && drawing.ready()) {
+      ready = true;
+      changed = true;
+    }
     if (!playing() || view_.speed === 0) warm = 0;
     else if (ready && !first) {
       warm = Math.min(easing, warm + dt);
@@ -446,8 +445,10 @@ export function playGlass(
         }
       }
     }
-    /* held at speed 0, a frame comes only with a change, which wakes the loop (set, a size, the motion setting) */
-    if (playing() && view_.speed > 0) raf = requestAnimationFrame(tick);
+    /* held at speed 0, a frame comes only with a change, which wakes the loop (set, a size, the motion setting); while
+       the GPU builds the programs, each frame asks again, until it is done or they failed (the still stays) */
+    if ((playing() && view_.speed > 0) || (!ready && drawing.built() === false))
+      raf = requestAnimationFrame(tick);
   };
   const wake = () => {
     last = performance.now();

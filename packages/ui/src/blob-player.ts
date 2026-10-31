@@ -32,6 +32,7 @@ import {
 import { hexBytes } from "@grabient/engine/color.ts";
 import { groundParts } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
+import { buildPrograms } from "./gl-build.ts";
 import { createPace } from "./pace.ts";
 
 export interface BlobPlayer {
@@ -202,24 +203,6 @@ void main() {
   color = s + ground * (1.0 - s.a);
 }`;
 
-function program(gl: WebGL2RenderingContext, vs: string, fs: string): WebGLProgram {
-  const shader = (type: number, source: string) => {
-    const s = gl.createShader(type)!;
-    gl.shaderSource(s, source);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-      throw new Error(gl.getShaderInfoLog(s) ?? "shader");
-    return s;
-  };
-  const p = gl.createProgram()!;
-  gl.attachShader(p, shader(gl.VERTEX_SHADER, vs));
-  gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
-  gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
-    throw new Error(gl.getProgramInfoLog(p) ?? "program");
-  return p;
-}
-
 /** Plays a palette's blob into a canvas the page sizes with CSS. `onFirstFrame` is told once the first frame is on the
     canvas, so a page can fade it in over what it drew before. */
 export function playBlob(
@@ -241,25 +224,27 @@ export function playBlob(
     preserveDrawingBuffer: false
   });
   if (!gl) return null;
-  let dots: WebGLProgram;
-  let blur: WebGLProgram;
-  let bake: WebGLProgram;
-  let final: WebGLProgram;
-  try {
-    dots = program(gl, DOTS_VS, DOTS_FS);
-    blur = program(gl, FULL_VS, BLUR_FS);
-    bake = program(gl, FULL_VS, NOISE_FS);
-    final = program(gl, FULL_VS, FINAL_FS);
-  } catch {
-    return null;
-  }
+  /* built as the GPU gets to them (gl-build.ts): the first frame waits for them, the still covering the box */
+  const programs = buildPrograms(gl, [
+    [DOTS_VS, DOTS_FS],
+    [FULL_VS, BLUR_FS],
+    [FULL_VS, NOISE_FS],
+    [FULL_VS, FINAL_FS]
+  ]);
+  const [dots, blur, bake, final] = programs.list as [
+    WebGLProgram,
+    WebGLProgram,
+    WebGLProgram,
+    WebGLProgram
+  ];
   /* the melt in half floats where they can be drawn into, so its blur adds no rounding of its own */
   const half = !!(
     gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float")
   );
   const at = (p: WebGLProgram, names: string[]) =>
     Object.fromEntries(names.map(n => [n, gl.getUniformLocation(p, n)]));
-  const U = {
+  /* read once the programs are built: reading them before waits for them */
+  const locations = () => ({
     dots: at(dots, ["size"]),
     blur: at(blur, ["source", "step_by", "taps", "weights"]),
     bake: at(bake, ["lattice", "gradients", "scale", "offset", "frequency"]),
@@ -277,7 +262,8 @@ export function playBlob(
       "k",
       "ground"
     ])
-  };
+  });
+  let U = null as ReturnType<typeof locations> | null;
 
   const quad = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -474,6 +460,8 @@ export function playBlob(
 
   /** the frost's noise at every device pixel, once a size and seed */
   const bakeNoise = () => {
+    U ??= locations();
+    const u = U.bake;
     const { w, h } = canvasSize;
     gl.bindTexture(gl.TEXTURE_2D, noise.texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -483,13 +471,13 @@ export function playBlob(
     gl.useProgram(bake);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, latticeTex);
-    gl.uniform1i(U.bake.lattice, 0);
+    gl.uniform1i(u.lattice, 0);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, gradientTex);
-    gl.uniform1i(U.bake.gradients, 1);
-    gl.uniform2f(U.bake.scale, map.sx, map.sy);
-    gl.uniform2f(U.bake.offset, map.tx, map.ty);
-    gl.uniform1f(U.bake.frequency, look.frequency);
+    gl.uniform1i(u.gradients, 1);
+    gl.uniform2f(u.scale, map.sx, map.sy);
+    gl.uniform2f(u.offset, map.tx, map.ty);
+    gl.uniform1f(u.frequency, look.frequency);
     gl.bindVertexArray(fullVao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.activeTexture(gl.TEXTURE0);
@@ -497,6 +485,7 @@ export function playBlob(
   };
 
   const draw = (f: number) => {
+    U ??= locations();
     if (look.noise && !baked) bakeNoise();
     /* the balls, small: each a quad its own color covers, painted in the file's order */
     const { texel } = meltBox;
@@ -581,6 +570,12 @@ export function playBlob(
   const tick = (now: number) => {
     raf = 0;
     if (!sized) return;
+    /* the programs: each frame asks again while the GPU builds them; where they failed, the still stays */
+    const built = programs.built();
+    if (!built) {
+      if (built === false) raf = requestAnimationFrame(tick);
+      return;
+    }
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     if (!moving()) warm = 0;

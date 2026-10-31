@@ -6,6 +6,7 @@
    a row each; the normal's stops and the light's table in uniforms. */
 import type { GlassGeometry } from "@grabient/engine/glass.ts";
 import type { GlassWindow } from "@grabient/engine/glass-render.ts";
+import { buildPrograms } from "./gl-build.ts";
 
 const VS = `#version 300 es
 layout(location=0) in vec2 corner;
@@ -80,39 +81,24 @@ void main() {
 }`;
 
 export interface GlassBake {
-  /** the rib map of `geometry`'s `window` into `target`, an RGBA8 texture the window's size */
+  /** its program: true once built, false while the GPU is still at it, null where it failed (gl-build.ts) */
+  built(): boolean | null;
+  /** the rib map of `geometry`'s `window` into `target`, an RGBA8 texture the window's size, once built */
   bake(geometry: GlassGeometry, window: GlassWindow, target: WebGLTexture): void;
   destroy(): void;
 }
 
-/** The baker for a context, or null where its program will not build. `quad` is a buffer of the two triangles over
-    the whole target, as the player's own passes draw. */
-export function glassBake(gl: WebGL2RenderingContext, quad: WebGLBuffer): GlassBake | null {
-  const shader = (type: number, src: string) => {
-    const s = gl.createShader(type);
-    if (!s) return null;
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null;
-  };
-  const vs = shader(gl.VERTEX_SHADER, VS);
-  const fs = shader(gl.FRAGMENT_SHADER, FS);
-  if (!vs || !fs) return null;
-  const program = gl.createProgram();
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fs);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+/** The baker for a context, its program built as the GPU gets to it. `quad` is a buffer of the two triangles over the
+    whole target, as the player's own passes draw. */
+export function glassBake(gl: WebGL2RenderingContext, quad: WebGLBuffer): GlassBake {
+  const programs = buildPrograms(gl, [[VS, FS]]);
+  const program = programs.list[0] as WebGLProgram;
   const at = (name: string) => gl.getUniformLocation(program, name);
-  const U = {
-    ribs: at("uRibs"),
-    count: at("uCount"),
-    stops: at("uStops"),
-    origin: at("uOrigin"),
-    line: at("uLine"),
-    normals: at("uNormals"),
-    shade: at("uShade")
-  };
+  /* read once the program is built: reading them before waits for it */
+  let U: Record<
+    "ribs" | "count" | "stops" | "origin" | "line" | "normals" | "shade",
+    WebGLUniformLocation | null
+  > | null = null;
   const ribs = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, ribs);
   for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER])
@@ -127,7 +113,17 @@ export function glassBake(gl: WebGL2RenderingContext, quad: WebGLBuffer): GlassB
   const normals = new Float32Array(17 * 3);
   const shade = new Float32Array(17);
   return {
+    built: () => programs.built(),
     bake(geometry, window, target) {
+      U ??= {
+        ribs: at("uRibs"),
+        count: at("uCount"),
+        stops: at("uStops"),
+        origin: at("uOrigin"),
+        line: at("uLine"),
+        normals: at("uNormals"),
+        shade: at("uShade")
+      };
       const list = geometry.ribs;
       const stops = list[0]?.stops.length ?? 0;
       const width = 1 + stops;
