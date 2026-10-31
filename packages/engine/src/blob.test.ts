@@ -151,14 +151,20 @@ test("depth: three blobs far to near, the nearer larger, wandering farther and p
   expect(count(draw(), "circle")).toBe(24);
 });
 
-test("a shape's blobs: some fill the box, some are small with the ground between them", () => {
-  const sizes = Array.from({ length: 200 }, (_, shape) => {
-    const { blobs } = blobScene(P, BLOB_SIZE, { shape, bg: null, angle: 90 });
-    return blobs.reduce((sum, b) => sum + b.R * b.R, 0);
-  }).sort((a, b) => a - b);
-  // the smallest shapes cover well under half what the largest do, and most are near full
-  expect(sizes[0] / sizes[199]).toBeLessThan(0.35);
-  expect(sizes[100] / sizes[199]).toBeGreaterThan(0.55);
+test("a shape's blobs: small, with the ground about them, as often as middling or full; a palette's own fills its box", () => {
+  const cover = (shape: number | null, palette = P) =>
+    blobScene(palette, BLOB_SIZE, { shape, bg: null, angle: 90 }).blobs.reduce(
+      (sum, b) => sum + b.R * b.R,
+      0
+    );
+  const sizes = Array.from({ length: 300 }, (_, shape) => cover(shape)).sort((a, b) => a - b);
+  const most = sizes[299];
+  // about a third of the shapes cover under a quarter of what the largest do, and about a third over half
+  expect(sizes.filter(s => s < most / 4).length).toBeGreaterThan(80);
+  expect(sizes.filter(s => s > most / 2).length).toBeGreaterThan(80);
+  // with no shape asked, a palette's own blob stays near full
+  for (const seed of ["kW05tMQrDKBsGxK-msT483KI", "kS4mdDYzY8lhFPW", "kS7Q8Yy5S_SChv0"])
+    expect(cover(null, decodePalette(seed) ?? P) / most).toBeGreaterThan(0.5);
 });
 
 test("the ground: a color drawn behind the blobs over the whole box, which may let what is behind it through", () => {

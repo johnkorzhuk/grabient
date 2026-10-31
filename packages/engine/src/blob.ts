@@ -164,10 +164,12 @@ const VARY = 0.2;
 /** Each blob's breath: its size from far to near as it drifts, about its size in the first frame, which is midway. */
 const DEPTH = { far: 0.88, near: 1.12 };
 /** Three blobs this large, out from the design's middle by a share of its side, each wandering `wander` of it. A
-    shape scales them all by SCALE and spreads them by REACH, so some shapes are small blobs
-    with the ground between them and some fill it. */
+    scale sizes them all and REACH spreads them: a palette's own blob, with no shape asked, by SCALE, leaning to its
+    top, so it fills its box; a shape number by SHAPE_SCALE, as often small blobs with the ground between them as
+    middling ones or a full box. */
 const FILL = { count: 3, radius: 0.33, out: 0.27, wander: 0.13 };
 const SCALE = { least: 0.55, most: 1.12 };
+const SHAPE_SCALE = { least: 0.3, most: 1.12 };
 const REACH = { least: 0.8, most: 1.15 };
 /** The three layers, far to near, in the order they are painted: each one's size and the reach of its wander, so the
     nearer is larger and moves farther, as nearer things do. */
@@ -360,9 +362,16 @@ export function blobScene(
       depth: (k % 2 ? 2 : 1) * sign()
     };
   });
-  /* most shapes near full, a few small: the scale's draw leans toward its top */
-  const scale = SCALE.least + (SCALE.most - SCALE.least) * Math.sqrt(rand());
-  const spread = REACH.least + (REACH.most - REACH.least) * rand();
+  /* a palette's own blob near full, its scale's draw leaning toward its top; a shape's any size, small as often as full */
+  const sized = rand();
+  const scale =
+    view.shape === null
+      ? SCALE.least + (SCALE.most - SCALE.least) * Math.sqrt(sized)
+      : SHAPE_SCALE.least + (SHAPE_SCALE.most - SHAPE_SCALE.least) * sized;
+  /* a shape's small blobs gather toward the middle as they shrink, one smaller blob with the ground around it rather
+     than three dots apart */
+  const near = view.shape === null ? 1 : 0.5 + 0.5 * sized;
+  const spread = (REACH.least + (REACH.most - REACH.least) * rand()) * near;
   /* far to near: the blob drawn largest is the nearest, painted last */
   const order = blobs
     .map((b, k) => ({ b, k }))
