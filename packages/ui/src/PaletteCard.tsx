@@ -124,8 +124,10 @@ export interface PaletteCardProps {
   picture?: (active: () => boolean) => Element;
   /** what a screen reader calls that picture */
   pictureLabel?: string;
-  /** the picture stands on the list with no ground of its own (a blob with none): no gradient under it, no glow */
+  /** the picture stands on the list with no ground of its own (a blob with none): no glow under it */
   bare?: boolean;
+  /** what lights under the card where its picture is not its gradient: the colors the picture shows, or none */
+  glow?: { stops: readonly string[]; style: Style; angle: number } | null;
 }
 
 /** One palette in a list: its picture, then its age and its like. Hover or focus inside the picture lights a blurred
@@ -141,6 +143,11 @@ export function PaletteCard(props: PaletteCardProps) {
   const arm = () => setArmed(true);
   onSettled(() => (armed() ? undefined : whenIdle(arm)));
   const art = () => gradientCss(props.stops, props.style, props.angle);
+  /* what lights under the card: its gradient, or what its picture brings in its place, or nothing */
+  const lit = () =>
+    props.bare || props.glow === null
+      ? null
+      : (props.glow ?? { stops: props.stops, style: props.style, angle: props.angle });
   /* the water takes the glow in while a mouse or a pen is in the picture or the keyboard's focus is within it */
   let over = false;
   let within = false;
@@ -150,12 +157,9 @@ export function PaletteCard(props: PaletteCardProps) {
   const shine = (picture: HTMLElement) =>
     untrack(() => {
       setActive((over || within) && !props.removed);
-      if ((over || within) && !props.removed && !props.bare) {
-        glowOn(
-          picture,
-          [{ stops: props.stops, style: props.style, angle: props.angle }],
-          () => !props.removed
-        );
+      const glow = lit();
+      if ((over || within) && !props.removed && glow) {
+        glowOn(picture, [glow], () => !props.removed);
       } else glowOff(picture);
     });
   const inside = (e: PointerEvent | FocusEvent) =>
@@ -230,12 +234,19 @@ export function PaletteCard(props: PaletteCardProps) {
         }}
         onClick={tap}
       >
-        <Show when={armed() && !props.removed && !props.bare}>
-          <span class={styles.glow} style={{ background: art() }} aria-hidden="true" />
+        <Show when={armed() && !props.removed && lit()}>
+          {glow => (
+            <span
+              class={styles.glow}
+              style={{ background: gradientCss(glow().stops, glow().style, glow().angle) }}
+              aria-hidden="true"
+            />
+          )}
         </Show>
+        {/* a picture in the gradient's place stands alone: no gradient shows under it as it comes */}
         <div
           class={styles.paint}
-          style={{ background: props.bare ? undefined : art() }}
+          style={{ background: props.picture ? undefined : art() }}
           role="img"
           aria-label={
             props.pictureLabel ??

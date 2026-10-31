@@ -1,5 +1,5 @@
 import { glassStillKey } from "@grabient/engine/glass-colors.ts";
-import { createEffect, createSignal, onCleanup, onSettled } from "solid-js";
+import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./Editor.module.css";
 import { loadStill, serverStill, stillUri } from "./glass-draw.ts";
 
@@ -12,14 +12,19 @@ const REST_MS = 250;
     The server's still where it is this one (the head's style paints any holder that names it), otherwise drawn here
     once the still's code has come: at once as the box comes into sight, and after that once the palette rests. A tile
     made before its menu opens draws nothing until the menu shows it. */
-export function GlassArt(props: { colors: readonly string[]; angle: number }) {
+export function GlassArt(props: {
+  colors: readonly string[];
+  angle: number;
+  /** drawn as it mounts, where a tile waits to be in sight: a card's picture, which a list shows as it comes */
+  eager?: boolean;
+}) {
   let el!: HTMLSpanElement;
   const key = () => glassStillKey(props.colors, props.angle);
   const [uri, setUri] = createSignal<string | null>(null);
   /* the still the box shows: until one is drawn, the one it names, which the server's may paint */
   const [showing, setShowing] = createSignal<string | null>(null);
   /* the box is in the page with a size */
-  const [seen, setSeen] = createSignal(false);
+  const [seen, setSeen] = createSignal(untrack(() => props.eager === true));
   onSettled(() => {
     const sizes = new ResizeObserver(() => setSeen(el.clientWidth > 0));
     sizes.observe(el);

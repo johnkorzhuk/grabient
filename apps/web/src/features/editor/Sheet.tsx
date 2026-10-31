@@ -1,5 +1,6 @@
 import { decodePalette } from "@grabient/engine";
 import { sampleStops } from "@grabient/engine/curve.ts";
+import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { DEFAULT_SIZE } from "@grabient/engine/view.ts";
 import { locale, localHref, msg, t } from "@grabient/i18n";
@@ -384,12 +385,31 @@ export function Sheet(props: {
   /* the clock the cards' ages are told against */
   const now = Date.now();
   /** One of the palettes like this one, as a list's card: liked, selected, collected, taken and opened from here. */
+  /* once the page plays an effect, its cards' pictures are made ready before the cards come: their code and their
+     stills', so a card shows the effect from its first frame, never the gradient first */
+  createEffect(
+    () => e.effects.kind(),
+    kind => {
+      if (!kind) return;
+      void EffectArt.preload().catch(() => {});
+      void import("./EffectArt.tsx").then(m => m.preloadEffectArt(kind)).catch(() => {});
+    }
+  );
   const card = (item: () => Item, position: number) => {
     const palette = createMemo(() => drawnIn(itemDrawn(item()), listed()));
     const seed = () => item().kseed;
     /* while the page's picture plays an effect, each card plays it too: its still at rest, moving while it is lit */
     const decoded = createMemo(() => decodePalette(seed()));
     const playing = () => (decoded() ? e.effects.kind() : null);
+    /* the glow under a card that plays the glass: the glass's own colors along its ribs; a blob lights nothing */
+    const glowOf = () => {
+      const kind = playing();
+      const P = decoded();
+      if (!kind || !P) return undefined;
+      return kind === "glass"
+        ? { stops: glassColors(P), style: "linearGradient" as const, angle: palette().angle }
+        : null;
+    };
     const pictureLabel = () => {
       const kind = playing();
       return kind
@@ -456,6 +476,7 @@ export function Sheet(props: {
             : undefined
         }
         pictureLabel={pictureLabel()}
+        glow={glowOf()}
         bare={playing() === "blob" && e.effects.settings("blob").look.bg === null}
         href={localHref(address())}
         rel={relTo(localHref(address()))}
