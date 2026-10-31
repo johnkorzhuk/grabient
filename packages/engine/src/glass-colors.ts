@@ -11,21 +11,29 @@ const COLORS = 6;
 export const glassColors = (P: Palette): string[] =>
   Array.from({ length: COLORS }, (_, i) => toHex(sampleSrgb(P, i / (COLORS - 1))));
 
-/** The name the glass's still goes by in a page, for the angle its ribs run at and the colors: "90|#aabbcc,…". The
-    server writes the still under it (server/glass-still.ts), and every holder that shows the same still names it. */
-export const glassStillKey = (colors: readonly string[], angle: number): string =>
-  `${angle}|${colors.join(",")}`;
+/** The name the glass's still goes by in a page, for the angle its ribs run at, its shape and the colors:
+    "90|0|#aabbcc,…". The server writes the still under it (server/glass-still.ts), and every holder that shows the
+    same still names it. */
+export const glassStillKey = (
+  colors: readonly string[],
+  angle: number,
+  shape: number | null = null
+): string => `${angle}|${shape ?? 0}|${colors.join(",")}`;
 
 /** A still's name read back, or null for one no page wrote. */
-export function readStillKey(key: string): { angle: number; colors: string[] } | null {
-  const [a, list] = key.split("|");
+export function readStillKey(
+  key: string
+): { angle: number; shape: number; colors: string[] } | null {
+  const [a, s, list] = key.split("|");
   const angle = Number(a);
+  const shape = Number(s);
   const colors = (list ?? "").split(",");
   return Number.isInteger(angle) &&
     angle >= 0 &&
     angle <= 360 &&
+    /^\d{1,4}$/.test(s ?? "") &&
     colors.length >= 2 &&
     colors.every(c => /^#[0-9a-f]{6}$/.test(c))
-    ? { angle, colors }
+    ? { angle, shape, colors }
     : null;
 }

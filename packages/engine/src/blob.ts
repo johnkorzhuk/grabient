@@ -1,10 +1,12 @@
 /* A palette as an animated SVG blob, after the grainy gradient blobs of poster design: soft balls of the palette's
    colors, a ring of them turning about the middle while each swings on a circle of its own, melted into one amorphous
    shape by a blur and a lift of its edge, and frosted by a fine noise that scatters the melt's pixels before the edge
-   is lifted, so the edge breaks into sprayed dots, and that speckles the surface. The blob wanders a figure eight as
-   far as the box allows and drifts near and far, growing and shrinking. Filled, three blobs wander the whole box, each
-   at a depth of its own. Nothing is drawn behind the blobs unless the address asks for a ground: the palette's deep
-   tone, or a color.
+   is lifted, so the edge breaks into sprayed dots, and that speckles the surface. Three blobs fill the box, one far,
+   one midway and one near: the nearer is larger, wanders farther and is painted later, so where they melt into one
+   another its colors lie over the farther's, and each swells and shrinks a little as it drifts near and far. The
+   palette lies across every blob along the view's angle, as a gradient's does at it, its first color toward the
+   angle's tail. Nothing is drawn behind the blobs unless the address asks for a ground: a color, which may let what
+   is behind it through.
 
    One filter draws everything: a second, masked drawing cross-faded by depth made Chrome's GPU painter drop the filter on
    some tiles and flicker, so the file keeps to the work it paints reliably. Plain CSS
@@ -16,20 +18,20 @@
    swing and turn and when they come near are drawn from the palette, or from the palette and a shape number, so every
    palette has blobs of its own and keeps them.
 
-   Everything is drawn in one square design, BLOB_DESIGN, scaled to the box as an image is: a lone blob contained in
-   it (the SVG's default preserveAspectRatio, xMidYMid meet), filled ones covering it (xMidYMid slice). So one still
-   SVG, drawn before anyone knows the screen, fits any box, and the WebGL player (ui/blob-player.ts) draws the same
-   design scaled the same way, its frost the SVG's own feTurbulence computed as Chromium computes it, so it takes over
-   from the still without a seam. A lone blob is centered and sized by the box's shorter side, so contain is exact for
-   its first frame; it wanders within the design square. The ground fills the box: the file's ground rect covers its
-   whole viewport, and a page that shows a fluid still (no size) paints it behind (blobScene's backdrop). */
+   Everything is drawn in one square design, BLOB_DESIGN, scaled to cover the box as a background image is (xMidYMid
+   slice). So one still SVG, drawn before anyone knows the screen, fits any box, and the WebGL player
+   (ui/blob-player.ts) draws the same design scaled the same way, its frost the SVG's own feTurbulence computed as
+   Chromium computes it, so it takes over from the still without a seam. The ground fills the box: the file's ground
+   rect covers its whole viewport, and a page that shows a fluid still (no size) paints it behind (blobScene's
+   backdrop). */
 import { encodePalette } from "./codec.ts";
-import { contrastOf, hexBytes, lchToSrgb, luminance, toHex } from "./color.ts";
+import { contrastOf, hexBytes, luminance, toHex } from "./color.ts";
 import { pageBox, svgUrl } from "./css.ts";
-import { sampleLCH, sampleSrgb } from "./curve.ts";
+import { sampleSrgb } from "./curve.ts";
+import { groundHex, groundParts } from "./effect.ts";
 import { clamp, clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
-import type { ParamReader, Size } from "./view.ts";
+import { type ParamReader, parseView, type Size } from "./view.ts";
 
 /** The `style` that asks a palette's SVG for this animation. */
 export const BLOB_STYLE = "blob";
@@ -39,7 +41,7 @@ export const BLOB_SPEED_MIN = 0.1;
 export const BLOB_SPEED_MAX = 10;
 export const BLOB_FROST_MAX = 2;
 export const BLOB_SHAPE_MAX = 9999;
-export const BLOB_FPS_MAX = 60;
+export const BLOB_FPS_MAX = 120;
 /** A GIF's frames a second where its address asks for none. */
 export const BLOB_GIF_FPS = 12;
 /** The fastest a GIF plays as written: browsers draw a delay under two hundredths of a second at a tenth. */
@@ -50,24 +52,22 @@ export const BLOB_GIF_SIZE: Size = { width: 400, height: 400 };
 export const BLOB_GIF_WORK = 32_000_000;
 /** The fewest frames a GIF's loop is drawn in before its size is made smaller. */
 const GIF_FRAMES_LEAST = 96;
-/** The picture fits any box, the blob keeping its shape: the file's size where its address asks for none. */
+/** The picture fits any box, covering it: the file's size where its address asks for none. */
 export const BLOB_SIZE: Size = { width: 500, height: 500 };
-/** The one square design every box shows, scaled to it: contained alone, covering it filled (blobFit). */
+/** The one square design every box shows, scaled to cover it (blobFit). */
 export const BLOB_DESIGN: Size = { width: 500, height: 500 };
 
 export interface BlobView {
   /** How fast it moves: the loop is BLOB_LOOP seconds over this. */
   speed: number;
-  /** Depth: the blob drifts near and far, growing and shrinking. */
-  depth: boolean;
-  /** Three blobs over the whole box, as a background. */
-  fill: boolean;
   /** How much frost: 1 as designed, 0 none, 2 twice. */
   frost: number;
   /** A shape of its own, the same whatever the colors, or null for the shape the palette's own numbers draw. */
   shape: number | null;
-  /** The ground behind the blobs: none, the palette's deep tone, or a color as #rrggbb. */
-  bg: "deep" | `#${string}` | null;
+  /** The ground behind the blobs: none, or a color as #rrggbb, or #rrggbbaa where it lets what is behind it through. */
+  bg: string | null;
+  /** The view's angle, in degrees: the palette lies across every blob along it, its first color toward its tail. */
+  angle: number;
   /** The first frame alone, with no motion: what a page paints before a player takes over. */
   still: boolean;
   /** Frames a second: a GIF's own (BLOB_GIF_FPS where none is asked), a player's most; null leaves a player the
@@ -83,28 +83,20 @@ const decimal = (raw: string | null, min: number, max: number, otherwise: number
     : otherwise;
 
 /** The animation an address asks for. A speed or frost that is missing or no number takes the default and one out of
-    bounds comes into them; `depth=0` keeps the blob at one depth; `fill=1` fills the box; `shape` takes up to four
-    digits; `bg` takes `deep` or a hex color of three or six digits, with or without its `#`; `still=1` is the first
-    frame alone; `fps` takes 1 to 60. */
+    bounds comes into them; `shape` takes up to four digits; `bg` a hex color of 3, 4, 6 or 8 digits, with or without
+    its `#` (effect.ts's groundHex); `angle` the view's; `still=1` is the first frame alone; `fps` takes 1 to 120. */
 export function parseBlob(params: ParamReader): BlobView {
   const shape = params.get("shape");
   const fps = params.get("fps");
-  const bg = params.get("bg")?.toLowerCase().replace(/^#/, "") ?? "";
-  const hex = /^[0-9a-f]{6}$/.test(bg)
-    ? bg
-    : /^[0-9a-f]{3}$/.test(bg)
-      ? bg.replace(/./g, c => c + c)
-      : null;
   return {
     speed: decimal(params.get("speed"), BLOB_SPEED_MIN, BLOB_SPEED_MAX, 1),
-    depth: params.get("depth") !== "0",
-    fill: params.get("fill") === "1",
     frost: decimal(params.get("frost"), 0, BLOB_FROST_MAX, 1),
     shape: shape && /^\d{1,4}$/.test(shape) ? Number(shape) : null,
-    bg: bg === "deep" ? "deep" : hex ? `#${hex}` : null,
+    bg: groundHex(params.get("bg")),
+    angle: parseView(params).angle,
     still: params.get("still") === "1",
     fps:
-      fps && /^\d{1,2}$/.test(fps) && Number(fps) > 0 ? Math.min(Number(fps), BLOB_FPS_MAX) : null
+      fps && /^\d{1,3}$/.test(fps) && Number(fps) > 0 ? Math.min(Number(fps), BLOB_FPS_MAX) : null
   };
 }
 
@@ -119,12 +111,9 @@ export interface BlobGifPlan {
     at most BLOB_GIF_FPS_MAX), as many as BLOB_GIF_WORK allows, at the size asked for or smaller. Past the budget the
     loop takes fewer frames, which a slow blob, moving little from frame to frame, hardly shows; a size that would
     leave fewer than GIF_FRAMES_LEAST is drawn smaller, its shape kept. */
-export function blobGifPlan(
-  view: Pick<BlobView, "speed" | "fill" | "fps">,
-  asked: Size
-): BlobGifPlan {
+export function blobGifPlan(view: Pick<BlobView, "speed" | "fps">, asked: Size): BlobGifPlan {
   const seconds = BLOB_LOOP / view.speed;
-  const weight = view.fill ? 1.5 : 1;
+  const weight = 1.5;
   const fps = Math.min(view.fps ?? BLOB_GIF_FPS, BLOB_GIF_FPS_MAX);
   const wanted = Math.max(2, Math.round(seconds * fps));
   const most = BLOB_GIF_WORK / (weight * Math.min(wanted, GIF_FRAMES_LEAST));
@@ -142,9 +131,8 @@ export function blobGifPlan(
 export function blobSearch(view: BlobView, extra: readonly string[] = [], loop = true): string {
   const parts = [
     `style=${BLOB_STYLE}`,
+    view.angle !== 90 && `angle=${view.angle}`,
     loop && view.speed !== 1 && `speed=${view.speed}`,
-    !view.depth && "depth=0",
-    view.fill && "fill=1",
     view.frost !== 1 && `frost=${view.frost}`,
     view.shape !== null && `shape=${view.shape}`,
     view.bg && `bg=${view.bg.replace("#", "")}`,
@@ -155,8 +143,7 @@ export function blobSearch(view: BlobView, extra: readonly string[] = [], loop =
   return `?${parts.join("&")}`;
 }
 
-/* Sizes are in a blob's radius unless said: RADIUS of the box's shorter side, FILL.radius when filled. */
-const RADIUS = 0.26;
+/* Sizes are in a blob's radius unless said; a blob's radius is FILL.radius of the design's side, times its layer's. */
 /** The melt: a blur this wide, then alpha lifted SLOPE times as steeply about its half, so the edge sits where the
     melt is half and fades over about a tenth of the blob. */
 const MELT = 0.24;
@@ -174,17 +161,22 @@ const RING = { count: 6, at: 0.55, r: 0.42, swing: 0.28 };
 const DROP = { at: 0.8, r: 0.34, swing: 0.32 };
 const CORE = { r: 0.6, swing: 0.1 };
 const VARY = 0.2;
-/** How far past its balls the lifted edge and the frost reach: the edge, in radii; the scatter, of the shorter side. */
-const FEATHER = 0.1;
-const SPRAY = 0.04;
-/** The farthest the blob wanders, of the shorter side. */
-const WANDER = 0.5;
-/** Depth: the blob's size from far to near, about its size in the first frame, which is midway. */
+/** Each blob's breath: its size from far to near as it drifts, about its size in the first frame, which is midway. */
 const DEPTH = { far: 0.88, near: 1.12 };
-/** Filled: three blobs this large, out from the box's middle by a share of its width and height, each wandering
-    `wander` of the box. */
+/** Three blobs this large, out from the design's middle by a share of its side, each wandering `wander` of it. A
+    shape scales them all by SCALE and spreads them by REACH, so some shapes are small blobs
+    with the ground between them and some fill it. */
 const FILL = { count: 3, radius: 0.33, out: 0.27, wander: 0.13 };
-/** How many laps of the loop each filled blob's wander makes across and down. */
+const SCALE = { least: 0.55, most: 1.12 };
+const REACH = { least: 0.8, most: 1.15 };
+/** The three layers, far to near, in the order they are painted: each one's size and the reach of its wander, so the
+    nearer is larger and moves farther, as nearer things do. */
+const LAYERS = [
+  { size: 0.8, reach: 0.65 },
+  { size: 1, reach: 1 },
+  { size: 1.2, reach: 1.4 }
+] as const;
+/** How many laps of the loop each blob's wander makes across and down. */
 const FILL_LAPS: readonly (readonly [number, number])[] = [
   [1, 2],
   [2, 1],
@@ -277,14 +269,15 @@ const sweepAt = (laps: number, f: number) => Math.sin(2 * Math.PI * laps * f);
 const depthAt = (depth: number, f: number) =>
   1 + ((DEPTH.near - DEPTH.far) / 2) * sweepAt(depth, f);
 
-/** A blob's balls about its middle: six on a ring, a drop among them and a core, the palette across them, drawn from
-    `rand`. */
-function ballsOf(rand: () => number, spin: number): Ball[] {
+/** A blob's balls about its middle: six on a ring, a drop among them and a core, drawn from `rand`, the palette across
+    them toward `toward` (radians on the screen, clockwise from the right): its first color on the far side, its last
+    on that one. */
+function ballsOf(rand: () => number, spin: number, toward: number): Ball[] {
   const vary = () => 1 - VARY / 2 + VARY * rand();
-  const across = 2 * Math.PI * rand();
+  /* a number drawn and left, so a shape's blobs stand where they stood before the angle laid their colors */
+  rand();
   const start = 2 * Math.PI * rand();
-  /* the palette's darker end on the side `across` points away from, its lighter end on the side it points to */
-  const along = (angle: number) => 0.5 - 0.5 * Math.cos(angle - across);
+  const along = (angle: number) => 0.5 + 0.5 * Math.cos(angle - toward);
   const balls: Ball[] = [];
   for (let i = 0; i < RING.count; i++) {
     const angle = start + (2 * Math.PI * i) / RING.count;
@@ -323,26 +316,17 @@ function ballsOf(rand: () => number, spin: number): Ball[] {
   return balls;
 }
 
-/** The palette's deep tone: its darker end darkened and calmed, or its lighter end paled for a dark palette, whichever
-    sets its colors off more. */
-function deepTone(P: Palette, flip: boolean): string {
-  const [dark, light] = [sampleLCH(P, flip ? 1 : 0), sampleLCH(P, flip ? 0 : 1)];
-  const deep = toHex(lchToSrgb(Math.min(dark[0], 0.19), Math.min(dark[1], 0.05), dark[2]));
-  const pale = toHex(lchToSrgb(Math.max(light[0], 0.94), Math.min(light[1], 0.03), light[2]));
-  const mean =
-    Array.from({ length: 9 }, (_, i) => luminance(sampleSrgb(P, i / 8))).reduce((a, b) => a + b) /
-    9;
-  const lum = (hex: string) => luminance(hexBytes(hex).map(v => v / 255));
-  return contrastOf(mean, lum(deep)) >= contrastOf(mean, lum(pale)) ? deep : pale;
-}
+/** The direction a view's angle points on the screen, in radians clockwise from the right: CSS's angle, 0 up and 90
+    to the right. */
+const towardOf = (angle: number) => ((angle - 90) * Math.PI) / 180;
 
-/** The scene a palette draws, in the design square (BLOB_DESIGN) whatever the box, `size`, it is shown in: its blobs,
-    read from the shape number or else the palette's own numbers, and its ground. Alone, the one blob wanders as far as
-    keeps it whole inside the design square at every moment of the loop, near or far. */
+/** The scene a palette draws, in the design square (BLOB_DESIGN) whatever the box, `size`, it is shown in: its three
+    blobs, far to near, read from the shape number or else the palette's own numbers, the palette across each along
+    the angle, and its ground. */
 export function blobScene(
   P: Palette,
   _size: Size = BLOB_DESIGN,
-  view: Pick<BlobView, "fill" | "shape" | "bg"> = { fill: false, shape: null, bg: null }
+  view: Pick<BlobView, "shape" | "bg" | "angle"> = { shape: null, bg: null, angle: 90 }
 ): BlobScene {
   const { width: W, height: H } = BLOB_DESIGN;
   const S = Math.min(W, H);
@@ -353,93 +337,63 @@ export function blobScene(
   const own = view.shape === null ? encodePalette(P) : `shape/${view.shape}`;
   const rand = dice(hash(own));
   const sign = () => (rand() < 0.5 ? -1 : 1);
-  const flip = sampleLCH(P, 0)[0] > sampleLCH(P, 1)[0];
-  const color = (at: number) => toHex(sampleSrgb(P, flip ? 1 - at : at));
+  const color = (at: number) => toHex(sampleSrgb(P, at));
   const seed = hash(own) % 9973;
-  const backdrop = view.bg === "deep" ? deepTone(P, flip) : view.bg;
-
-  if (view.fill) {
-    const turn = 2 * Math.PI * rand();
-    const blobs = Array.from({ length: FILL.count }, (_, k): Blob => {
-      const spin = sign();
-      const angle = turn + (2 * Math.PI * k) / FILL.count;
-      const [across, down] = FILL_LAPS[k % FILL_LAPS.length];
+  const backdrop = view.bg ?? null;
+  const toward = towardOf(view.angle ?? 90);
+  const turn = 2 * Math.PI * rand();
+  /* the shape's own scale and spread, drawn after the blobs so they stand where they did */
+  const blobs = Array.from({ length: FILL.count }, (_, k): Blob => {
+    const spin = sign();
+    const angle = turn + (2 * Math.PI * k) / FILL.count;
+    const [across, down] = FILL_LAPS[k % FILL_LAPS.length];
+    return {
+      x: W / 2 + FILL.out * W * Math.cos(angle),
+      y: H / 2 + FILL.out * H * Math.sin(angle),
+      R: FILL.radius * S * (0.9 + 0.2 * rand()),
+      balls: ballsOf(rand, spin, toward),
+      spin,
+      wander: [
+        { reach: FILL.wander * W, laps: across * sign() },
+        { reach: FILL.wander * H, laps: down * sign() }
+      ],
+      depth: (k % 2 ? 2 : 1) * sign()
+    };
+  });
+  /* most shapes near full, a few small: the scale's draw leans toward its top */
+  const scale = SCALE.least + (SCALE.most - SCALE.least) * Math.sqrt(rand());
+  const spread = REACH.least + (REACH.most - REACH.least) * rand();
+  /* far to near: the blob drawn largest is the nearest, painted last */
+  const order = blobs
+    .map((b, k) => ({ b, k }))
+    .sort((p, q) => p.b.R - q.b.R || p.k - q.k)
+    .map(({ b }, layer) => {
+      const { size, reach } = LAYERS[layer];
       return {
-        x: W / 2 + FILL.out * W * Math.cos(angle),
-        y: H / 2 + FILL.out * H * Math.sin(angle),
-        R: FILL.radius * S * (0.9 + 0.2 * rand()),
-        balls: ballsOf(rand, spin),
-        spin,
+        ...b,
+        x: W / 2 + (b.x - W / 2) * spread,
+        y: H / 2 + (b.y - H / 2) * spread,
+        R: b.R * size * scale,
         wander: [
-          { reach: FILL.wander * W, laps: across * sign() },
-          { reach: FILL.wander * H, laps: down * sign() }
-        ],
-        depth: (k % 2 ? 2 : 1) * sign()
+          { ...b.wander[0], reach: b.wander[0].reach * reach },
+          { ...b.wander[1], reach: b.wander[1].reach * reach }
+        ] as [Sweep, Sweep]
       };
     });
-    return {
-      blobs,
-      backdrop,
-      pad: 1.5 * MELT * DEPTH.near * Math.max(...blobs.map(b => b.R)),
-      color,
-      seed
-    };
-  }
-
-  const R = RADIUS * S;
-  const spin = sign();
-  const balls = ballsOf(rand, spin);
-  const depth = sign();
-  /* the wander as wide as keeps every ball, its feather and its spray inside the box at every sampled moment */
-  const margin = SPRAY * S;
-  let wx = WANDER * S;
-  let wy = WANDER * S;
-  const STEPS = 240;
-  for (let k = 0; k < STEPS; k++) {
-    const f = k / STEPS;
-    const [sx, sy] = [sweepAt(1, f), sweepAt(2, f)];
-    const scale = depthAt(depth, f) * R;
-    let [left, right, top, bottom] = [0, 0, 0, 0];
-    for (const b of balls) {
-      const [x, y] = ballAt(b, spin, f);
-      const reach = b.r + FEATHER;
-      left = Math.min(left, (x - reach) * scale);
-      right = Math.max(right, (x + reach) * scale);
-      top = Math.min(top, (y - reach) * scale);
-      bottom = Math.max(bottom, (y + reach) * scale);
-    }
-    const room = (side: number, toward: number, far: number) =>
-      toward > 1e-9 ? (side / 2 - margin - far) / toward : Number.POSITIVE_INFINITY;
-    wx = Math.min(wx, room(W, sx, right), room(W, -sx, -left));
-    wy = Math.min(wy, room(H, sy, bottom), room(H, -sy, -top));
-  }
   return {
-    blobs: [
-      {
-        x: W / 2,
-        y: H / 2,
-        R,
-        balls,
-        spin,
-        wander: [
-          { reach: Math.max(0, wx * 0.97), laps: 1 },
-          { reach: Math.max(0, wy * 0.97), laps: 2 }
-        ],
-        depth
-      }
-    ],
+    blobs: order,
     backdrop,
-    pad: 0,
+    pad: 1.5 * MELT * DEPTH.near * Math.max(...order.map(b => b.R)),
     color,
     seed
   };
 }
 
 /** Where a blob's ball stands at a share of the loop, in the design's units from its corner, and its radius there,
-    with the blob's wander and, given `depth`, its depth: what the file draws then. */
-export function ballPlace(blob: Blob, b: Ball, f: number, depth = true): [number, number, number] {
+    with the blob's wander and its breath: what the file draws then. */
+export function ballPlace(blob: Blob, b: Ball, f: number): [number, number, number] {
   const [x, y] = ballAt(b, blob.spin, f);
-  const scale = (depth ? depthAt(blob.depth, f) : 1) * blob.R;
+  const scale = depthAt(blob.depth, f) * blob.R;
   return [
     blob.x + blob.wander[0].reach * sweepAt(blob.wander[0].laps, f) + x * scale,
     blob.y + blob.wander[1].reach * sweepAt(blob.wander[1].laps, f) + y * scale,
@@ -449,16 +403,10 @@ export function ballPlace(blob: Blob, b: Ball, f: number, depth = true): [number
 
 /** ballPlace for every ball of a scene at a share `f` of the loop, in the file's order, written into `out` as x, y and
     radius at every `stride` from 0, allocating nothing: what a player draws each frame. */
-export function blobPlaces(
-  scene: BlobScene,
-  f: number,
-  depth: boolean,
-  out: Float32Array,
-  stride: number
-): void {
+export function blobPlaces(scene: BlobScene, f: number, out: Float32Array, stride: number): void {
   let k = 0;
   for (const blob of scene.blobs) {
-    const scale = (depth ? depthAt(blob.depth, f) : 1) * blob.R;
+    const scale = depthAt(blob.depth, f) * blob.R;
     const x0 = blob.x + blob.wander[0].reach * sweepAt(blob.wander[0].laps, f);
     const y0 = blob.y + blob.wander[1].reach * sweepAt(blob.wander[1].laps, f);
     const turn = 2 * Math.PI * blob.spin * f;
@@ -483,12 +431,12 @@ export interface BlobDot {
   r: number;
   color: string;
 }
-/** Every ball of a scene at a share `f` of the loop, in the order the file paints them, with each blob's wander and,
-    given `depth`, its growing and shrinking: what a player draws, frame after frame, from the file's own motion. */
-export function blobFrame(scene: BlobScene, f: number, depth: boolean): BlobDot[] {
+/** Every ball of a scene at a share `f` of the loop, in the order the file paints them, with each blob's wander and
+    breath: what a player draws, frame after frame, from the file's own motion. */
+export function blobFrame(scene: BlobScene, f: number): BlobDot[] {
   return scene.blobs.flatMap(blob =>
     blob.balls.map(b => {
-      const [x, y, r] = ballPlace(blob, b, f, depth);
+      const [x, y, r] = ballPlace(blob, b, f);
       return { x, y, r, color: scene.color(b.at) };
     })
   );
@@ -499,7 +447,7 @@ export function blobFrame(scene: BlobScene, f: number, depth: boolean): BlobDot[
     `lift`), how far the frost scatters (the displacement's scale), the speckle's arithmetic (k1, k2) and its gray
     (the noise's blue times `contrast` plus `gray`), how far past the design square the melt reads (the filter
     region's pad), and the frost's noise: feTurbulence's frequency, octaves and seed, none at frost 0. */
-export function blobLook(view: Pick<BlobView, "frost">, _size: Size, scene: BlobScene) {
+export function blobFilter(view: Pick<BlobView, "frost">, _size: Size, scene: BlobScene) {
   const { scatter, speckle } = frostOf(view.frost);
   const written = (v: number, digits = 2) => Number(num(v, digits));
   return {
@@ -521,17 +469,17 @@ export function blobLook(view: Pick<BlobView, "frost">, _size: Size, scene: Blob
   };
 }
 
-/** How the design fills a box: scaled by `scale`, its corner at (x, y) in the box. A lone blob is contained, the
-    design as large as the box holds it and centered; filled, it covers the box, cropped to its shape. */
+/** How the design fills a box: scaled by `scale`, its corner at (x, y) in the box. It covers the box, cropped to its
+    shape and centered. */
 export interface BlobFit {
   scale: number;
   x: number;
   y: number;
 }
-export function blobFit(view: Pick<BlobView, "fill">, size: Size): BlobFit {
+export function blobFit(size: Size): BlobFit {
   const across = size.width / BLOB_DESIGN.width;
   const down = size.height / BLOB_DESIGN.height;
-  const scale = view.fill ? Math.max(across, down) : Math.min(across, down);
+  const scale = Math.max(across, down);
   return {
     scale,
     x: (size.width - scale * BLOB_DESIGN.width) / 2,
@@ -549,9 +497,9 @@ const frostOf = (frost: number) => ({
 const mark = (text: string) => `b${(hash(text) % 36 ** 4).toString(36).padStart(4, "0")}`;
 
 /** The animated SVG of a palette at a size, credited in a comment to `credit`, the palette's address: the design
-    scaled to the size, contained alone and covering it filled, its ground (if any) over the whole of it. With no size
-    it is fluid, as wide and tall as what holds it, which then paints the ground behind it (blobScene's backdrop):
-    one still a server draws before it knows the box. */
+    scaled to cover the size, its ground (if any) over the whole of it. With no size it is fluid, as wide and tall as
+    what holds it, which then paints the ground behind it (blobScene's backdrop): one still a server draws before it
+    knows the box. */
 export function blobSvg(P: Palette, view: BlobView, size: Size | null, credit: string): string {
   const W = size?.width;
   const H = size?.height;
@@ -613,7 +561,7 @@ export function blobSvg(P: Palette, view: BlobView, size: Size | null, credit: s
     );
 
   /* each blob's balls where they stand in the first frame, each swinging about its place at rest, the ring turning
-     about the blob's middle and, in depth, the whole drawing growing and shrinking about it */
+     about the blob's middle and the whole drawing breathing about it */
   const balls = scene.blobs
     .map(blob => {
       const { R } = blob;
@@ -632,9 +580,7 @@ export function blobSvg(P: Palette, view: BlobView, size: Size | null, credit: s
         .join("")}`;
       return wandering(
         blob,
-        view.depth
-          ? `<g class="${deepening(blob, DEPTH.far, DEPTH.near)}" style="${middle}">${ring}</g>`
-          : ring
+        `<g class="${deepening(blob, DEPTH.far, DEPTH.near)}" style="${middle}">${ring}</g>`
       );
     })
     .join("");
@@ -661,17 +607,18 @@ export function blobSvg(P: Palette, view: BlobView, size: Size | null, credit: s
       : "",
     "</filter>"
   ].join("");
-  /* the ground over the whole viewport, in the design's units: past the design square where it is contained, rounded
-     outward so no sliver of the box is left bare */
+  /* the ground over the whole viewport, in the design's units, rounded outward so no sliver of the box is left bare */
   let base = "";
   if (scene.backdrop && W !== undefined && H !== undefined) {
-    const fit = blobFit(view, { width: W, height: H });
+    const fit = blobFit({ width: W, height: H });
     const x0 = Math.floor((-fit.x / fit.scale) * 100) / 100;
     const y0 = Math.floor((-fit.y / fit.scale) * 100) / 100;
     const x1 = Math.ceil(((W - fit.x) / fit.scale) * 100) / 100;
     const y1 = Math.ceil(((H - fit.y) / fit.scale) * 100) / 100;
     const at = `${x0 ? ` x="${num(x0)}"` : ""}${y0 ? ` y="${num(y0)}"` : ""}`;
-    base = `<rect${at} width="${num(x1 - x0)}" height="${num(y1 - y0)}" fill="${scene.backdrop}"/>`;
+    const { hex, alpha } = groundParts(scene.backdrop);
+    const clear = alpha < 1 ? ` fill-opacity="${num(alpha, 3)}"` : "";
+    base = `<rect${at} width="${num(x1 - x0)}" height="${num(y1 - y0)}" fill="${hex}"${clear}/>`;
   }
   const defs = filter;
   const body = `${base}<g filter="url(#${id}f)">${balls}</g>`;
@@ -692,20 +639,19 @@ export function blobSvg(P: Palette, view: BlobView, size: Size | null, credit: s
   const style = view.still
     ? ""
     : `<style>${keyframes}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n`;
-  /* the design scaled to the box: contained alone (the default, xMidYMid meet), covering it filled */
+  /* the design scaled to cover the box */
   const box = W === undefined ? 'width="100%" height="100%"' : `width="${W}" height="${H}"`;
-  const aspect = view.fill ? ' preserveAspectRatio="xMidYMid slice"' : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${box} viewBox="0 0 ${DW} ${DH}"${aspect} class="${id}">\n${comment}\n${style}<defs>${defs}</defs>\n${body}\n</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${box} viewBox="0 0 ${DW} ${DH}" preserveAspectRatio="xMidYMid slice" class="${id}">\n${comment}\n${style}<defs>${defs}</defs>\n${body}\n</svg>`;
 }
 
-/** The animated SVG as CSS that works alone: the page's background plays it, the SVG carried inside as a data URI, on
-    its ground's color where it has one. Filled, it covers the page's box; alone, the blob is as large as the box holds
-    it. The box is the size asked for, else at least the window's height. */
+/** The animated SVG as CSS that works alone: the page's background plays it, the SVG carried inside as a data URI,
+    covering the page's box, on its ground's color where it has one. The box is the size asked for, else at least the
+    window's height. */
 export function blobCss(P: Palette, view: BlobView, size: Size | null, credit: string): string {
   const box = size ?? BLOB_SIZE;
+  /* the file's own ground covers the box: no color under it, which would show through a ground that lets it */
   const svg = blobSvg(P, view, box, credit);
-  const { backdrop } = blobScene(P, BLOB_DESIGN, view);
-  return `/* ${credit} */\nhtml {\n  ${pageBox(size)}\n  background: ${backdrop ? `${backdrop} ` : ""}${svgUrl(svg)} center / ${view.fill ? "cover" : "contain"} no-repeat;\n}\n`;
+  return `/* ${credit} */\nhtml {\n  ${pageBox(size)}\n  background: ${svgUrl(svg)} center / cover no-repeat;\n}\n`;
 }
 
 /** feTurbulence's tables for a seed as Chromium's Skia builds them (SkPerlinNoiseShaderImpl.h): the SVG 1.1 reference
@@ -808,25 +754,37 @@ function noise(n: number): number {
 const SPREAD = 0.292 / 255;
 const near = (bits: number) => 0.5 + ((bits & 255) + ((bits >>> 8) & 255) - 255) * SPREAD;
 
-/** Draws the scene's frames as pixels at a size, row after row: four bytes each, alpha the file's, or three on the
-    scene's ground, or on `backdrop` (0 to 255 a channel) where it has none. It is the file's drawing by the same
-    numbers, the design scaled to the box as the file scales it (blobFit), its blur in three boxes at a smaller scale
-    and its frost noise of the same spread, which stays put from frame to frame as the file's does, so it is read
-    once: a frame then costs the balls, the small blur and one pass. */
+/** Draws the scene's frames as pixels at a size, row after row: four bytes each, alpha the file's and its ground's,
+    or three on `backdrop` (0 to 255 a channel), the ground laid over it where it has one. It is the file's drawing by
+    the same numbers, the design scaled to cover the box as the file scales it (blobFit), its blur in three boxes at a
+    smaller scale and its frost noise of the same spread, which stays put from frame to frame as the file's does, so
+    it is read once: a frame then costs the balls, the small blur and one pass. */
 export function blobRenderer(
   P: Palette,
-  view: Pick<BlobView, "fill" | "frost" | "shape" | "bg" | "depth">,
+  view: Pick<BlobView, "frost" | "shape" | "bg" | "angle">,
   size: Size,
   backdrop?: readonly number[]
 ) {
   const { width: W, height: H } = size;
   const scene = blobScene(P, BLOB_DESIGN, view);
   /* the design in the box's pixels */
-  const fit = blobFit(view, size);
+  const fit = blobFit(size);
   const k = fit.scale;
   const S = BLOB_DESIGN.width * k;
   const R = Math.max(...scene.blobs.map(b => b.R)) * k;
-  const under = scene.backdrop ? hexBytes(scene.backdrop) : backdrop;
+  /* the ground, a color and how much of it covers what is behind; over the backdrop where one is given */
+  const ground = scene.backdrop ? groundParts(scene.backdrop) : null;
+  const groundRgb = ground ? hexBytes(ground.hex) : null;
+  const under: number[] | undefined =
+    backdrop && groundRgb && ground
+      ? groundRgb.map((v, i) => Math.round(v * ground.alpha + backdrop[i] * (1 - ground.alpha)))
+      : backdrop
+        ? [...backdrop]
+        : groundRgb && ground && ground.alpha === 1
+          ? groundRgb
+          : undefined;
+  /* a clear picture's ground that lets something through: its color and alpha under every pixel */
+  const veil = !under && groundRgb && ground ? { rgb: groundRgb, alpha: ground.alpha } : null;
   const channels: 3 | 4 = under ? 3 : 4;
   /* the melt, drawn and blurred at 1/q of the size, where the blur is about four pixels, over the box and its pad, with
      a texel of nothing around it, so a read past its edge needs no test */
@@ -871,7 +829,7 @@ export function blobRenderer(
   /** The frame at a share `f` of the loop. */
   const frame = (f: number): Uint8Array<ArrayBuffer> => {
     melt.fill(0);
-    for (const dot of blobFrame(scene, f, view.depth)) {
+    for (const dot of blobFrame(scene, f)) {
       const cx = (fit.x + dot.x * k) / q + pad;
       const cy = (fit.y + dot.y * k) / q + pad;
       const r = (dot.r * k) / q;
@@ -922,6 +880,11 @@ export function blobRenderer(
           out[o] = under[0];
           out[o + 1] = under[1];
           out[o + 2] = under[2];
+        } else if (veil) {
+          out[o] = veil.rgb[0];
+          out[o + 1] = veil.rgb[1];
+          out[o + 2] = veil.rgb[2];
+          out[o + 3] = 255 * veil.alpha + 0.5;
         }
         continue;
       }
@@ -952,6 +915,14 @@ export function blobRenderer(
         out[o] = 255 * red + under[0] * rest + 0.5;
         out[o + 1] = 255 * green + under[1] * rest + 0.5;
         out[o + 2] = 255 * blue + under[2] * rest + 0.5;
+      } else if (veil) {
+        /* the blobs over a ground that lets something through: premultiplied, then unpremultiplied */
+        const rest = veil.alpha * (1 - alpha);
+        const all = alpha + rest;
+        out[o] = (255 * red + veil.rgb[0] * rest) / all + 0.5;
+        out[o + 1] = (255 * green + veil.rgb[1] * rest) / all + 0.5;
+        out[o + 2] = (255 * blue + veil.rgb[2] * rest) / all + 0.5;
+        out[o + 3] = 255 * all + 0.5;
       } else {
         out[o] = (255 * red) / alpha + 0.5;
         out[o + 1] = (255 * green) / alpha + 0.5;
@@ -965,13 +936,13 @@ export function blobRenderer(
 }
 
 /** The first frame as pixels at a size (blobRenderer's): the frame a reader who asks for less motion sees, and the
-    one link previews and the PNG still show. No depth moves the first frame. */
+    one link previews and the PNG still show. */
 export const blobStill = (
   P: Palette,
-  view: Pick<BlobView, "fill" | "frost" | "shape" | "bg">,
+  view: Pick<BlobView, "frost" | "shape" | "bg" | "angle">,
   size: Size,
   backdrop?: readonly number[]
-): Uint8Array<ArrayBuffer> => blobRenderer(P, { ...view, depth: false }, size, backdrop).frame(0);
+): Uint8Array<ArrayBuffer> => blobRenderer(P, view, size, backdrop).frame(0);
 
 const DARK = [14, 14, 16];
 const LIGHT = [243, 241, 238];
@@ -985,10 +956,10 @@ export function blobBackdrop(P: Palette): number[] {
   return contrastOf(light, lum(DARK)) >= contrastOf(light, lum(LIGHT)) ? DARK : LIGHT;
 }
 
-/** A blob's first frame as a CSS background for a box of any size: the design fitted inside it, a lone blob contained
-    and a filling one covering it, over the blob's own ground where it has one, else over `ground` where given. The
-    server's still on a blob's page (apps/web/src/server/blob-still.ts) and the editor's holders take it alike, so the
-    player's first frame picks up from it (blob-player.ts). */
+/** A blob's first frame as a CSS background for a box of any size: the design covering it, over the blob's own ground
+    where it has one, else over `ground` where given. The server's still on a blob's page
+    (apps/web/src/server/blob-still.ts) and the editor's holders take it alike, so the player's first frame picks up
+    from it (blob-player.ts). */
 export function blobStillBackground(P: Palette, view: BlobView, ground?: string): string {
   const still = { ...view, still: true };
   const under = blobScene(P, BLOB_DESIGN, still).backdrop ?? ground;

@@ -23,13 +23,18 @@ import styles from "./Editor.module.css";
    motion keeps the still. While the palette or the look changes the player shows it, over a still blob too, and the
    still is drawn for the last one once they rest, under the canvas, which then fades back to it. */
 
-const BlobStage = lazy(() => import("./BlobStage.tsx").then(m => ({ default: m.BlobStage })));
+/* the player is the browser's alone (the page stands live first): the server's build carries none of it */
+const BlobStage = lazy(() =>
+  (import.meta.env.SSR ? (new Promise(() => {}) as never) : import("./BlobStage.tsx")).then(m => ({
+    default: m.BlobStage
+  }))
+);
 
 /** How long the palette or the look stands before the still is drawn for it under the player, which then lets it
     show. */
 const REST_MS = 250;
 
-export function BlobLayer(props: { palette: Palette; settings: EffectSettings }) {
+export function BlobLayer(props: { palette: Palette; settings: EffectSettings; angle: number }) {
   const [live, setLive] = createSignal(false);
   const [covered, setCovered] = createSignal(false);
   const [reduced, setReduced] = createSignal(false);
@@ -62,12 +67,13 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings })
     setLive(true);
     return () => motion.removeEventListener("change", read);
   });
-  const keyOf = (P: Palette, s: EffectSettings) => blobStillKey(encodePalette(P), s.look);
+  const keyOf = (P: Palette, s: EffectSettings, angle: number) =>
+    blobStillKey(encodePalette(P), s.look, angle);
   /* the still the holder shows: the server's where the head holds it, else drawn here once the code has come; a name
      is only taken with its picture, so the holder never stands empty between two */
   let shown = "";
-  const still = (P: Palette, s: EffectSettings) => {
-    const key = keyOf(P, s);
+  const still = (P: Palette, s: EffectSettings, angle: number) => {
+    const key = keyOf(P, s, angle);
     if (key === shown) return;
     if (serverBlobStill(key)) {
       shown = key;
@@ -75,7 +81,7 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings })
       holder.style.background = "";
       return;
     }
-    const paint = blobStillBackground(P, s);
+    const paint = blobStillBackground(P, s, angle);
     if (!paint) return;
     shown = key;
     holder.dataset.blobStill = key;
@@ -84,20 +90,21 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings })
   /* the still, drawn again as the palette or the look change while it is the picture, once a frame at most */
   let pending = 0;
   createEffect(
-    () => (covered() || !ready() ? null : { P: props.palette, s: props.settings }),
+    () =>
+      covered() || !ready() ? null : { P: props.palette, s: props.settings, angle: props.angle },
     next => {
       if (!next) return;
       cancelAnimationFrame(pending);
-      pending = requestAnimationFrame(() => still(next.P, next.s));
+      pending = requestAnimationFrame(() => still(next.P, next.s, next.angle));
     }
   );
-  /* a palette or a look that changes holds the player over the still until it rests, and the still is drawn for the
-     last one under it */
+  /* a palette, a look or an angle that changes holds the player over the still until it rests, and the still is drawn
+     for the last one under it */
   let resting: ReturnType<typeof setTimeout> | undefined;
   let letting = 0;
   let last: { P: Palette; look: string } | null = null;
   createEffect(
-    () => ({ P: props.palette, look: JSON.stringify(props.settings.look) }),
+    () => ({ P: props.palette, look: JSON.stringify([props.settings.look, props.angle]) }),
     next => {
       const was = last;
       last = next;
@@ -111,7 +118,8 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings })
         if (!untrack(moving) && untrack(ready))
           still(
             untrack(() => props.palette),
-            untrack(() => props.settings)
+            untrack(() => props.settings),
+            untrack(() => props.angle)
           );
         letting = requestAnimationFrame(() => {
           letting = requestAnimationFrame(() => setHeld(false));
@@ -137,7 +145,7 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings })
           holder = el;
           /* the still at once: the server's where it drew this one, else drawn here where the code has come (a blob
              page asks for it with the editor's), so the holder stands painted from its first frame */
-          untrack(() => still(props.palette, props.settings));
+          untrack(() => still(props.palette, props.settings, props.angle));
         }}
         class={styles.glassStill}
       />
@@ -145,7 +153,7 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings })
         <Loading>
           <BlobStage
             palette={props.palette}
-            view={blobViewOf(props.settings)}
+            view={blobViewOf(props.settings, props.angle)}
             still={!moving()}
             held={held()}
             onLive={setCovered}

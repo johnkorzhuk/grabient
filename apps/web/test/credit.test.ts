@@ -41,8 +41,10 @@ function models(judge: (name: string, model: string) => boolean | Error = () => 
   return { ai, read };
 }
 const fresh = () => encodePalette(randomPalette());
-/** A username no other test holds. */
-const handle = (stem: string) => `${stem}${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
+/** A username no other test holds, its tail from consonants alone: hex's digits read as letters (5 as s, 4 as a) and
+    spelled a word refusedName holds now and then, which failed the run. */
+const handle = (stem: string) =>
+  `${stem}${Array.from(crypto.getRandomValues(new Uint8Array(10)), b => "bcdfghjmnpqrvwxz"[b % 16]).join("")}`;
 
 /** A JSON request with any method, from the site's own page. */
 function json(method: string, path: string, body: unknown, cookie?: string) {

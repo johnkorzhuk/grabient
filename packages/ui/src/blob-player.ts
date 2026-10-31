@@ -1,5 +1,5 @@
-/* The blob as WebGL: the same scene the SVG draws (engine/blob.ts), the one design scaled to the canvas as the SVG
-   scales it (contained alone, covering it filled), at the screen's own density, and drawn by the SVG's own filter as
+/* The blob as WebGL: the same scene the SVG draws (engine/blob.ts), the one design scaled to cover the canvas as the
+   SVG scales it, at the screen's own density, and drawn by the SVG's own filter as
    Chromium's GPU raster runs it, so its first frame is the still's to about a level and it takes over without a
    seam. Measured stage by stage against Chromium (W/blob-ref/proto/blob-parity):
      - the frost is feTurbulence exactly: Skia's tables (blobNoiseTables) read as Ganesh reads them, each device
@@ -12,8 +12,9 @@
        The filter region crops what the blur gives, not what it reads;
      - feDisplacementMap reads the noise unpremultiplied and saturated and the melt at the nearest device pixel,
        floor(p + 0.5 + scale * (noise - 0.5)); the lift and the speckle are the filter's color matrices and arithmetic
-       composite in float on those 8-bit values, the result kept as 8 bits and laid on the ground.
-   A frame costs the balls (8 or 24 instanced quads into a texture of a few thousand texels), two blur passes there,
+       composite in float on those 8-bit values, the result kept as 8 bits and laid on the ground, which may let what is
+       behind the canvas through.
+   A frame costs the balls (24 instanced quads into a texture of a few thousand texels), two blur passes there,
    and one full-size pass of two texture reads and a few dozen operations. Nothing is allocated per frame. It stops
    while the canvas is out of view or the page hidden, draws the first frame alone for a reader who asks for less
    motion, and returns null where WebGL 2 is missing, which leaves whatever the page drew under it. */
@@ -22,14 +23,16 @@ import {
   BLOB_LOOP,
   type BlobScene,
   type BlobView,
+  blobFilter,
   blobFit,
-  blobLook,
   blobNoiseTables,
   blobPlaces,
   blobScene
 } from "@grabient/engine/blob.ts";
 import { hexBytes } from "@grabient/engine/color.ts";
+import { groundParts } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
+import { createPace } from "./pace.ts";
 
 export interface BlobPlayer {
   /** a new palette or view: the motion carries on from where it is; at speed 0 it holds its frame */
@@ -176,7 +179,7 @@ uniform bool frosted;
 uniform vec2 lift;                  // alpha * lift.x + lift.y
 uniform vec2 gray;                  // blue * gray.x + gray.y
 uniform vec2 k;                     // the arithmetic's k1 and k2
-uniform vec4 ground;                // the ground's color and 1, or 0s for none
+uniform vec4 ground;                // the ground, premultiplied: its color times its alpha, and its alpha; 0s for none
 out vec4 color;
 bool within(vec2 p) { return all(greaterThanEqual(p, region.xy)) && all(lessThan(p, region.zw)); }
 vec4 bytes(vec4 v) { return floor(clamp(v, 0.0, 1.0) * 255.0 + 0.5) / 255.0; }
@@ -196,7 +199,7 @@ void main() {
     s.rgb = min(s.rgb, s.a);
   }
   s = within(at) ? bytes(s) : vec4(0.0);
-  color = ground.a > 0.0 ? vec4(s.rgb + ground.rgb * (1.0 - s.a), 1.0) : s;
+  color = s + ground * (1.0 - s.a);
 }`;
 
 function program(gl: WebGL2RenderingContext, vs: string, fs: string): WebGLProgram {
@@ -317,7 +320,7 @@ export function playBlob(
   let palette_ = palette;
   let view_ = view;
   let scene: BlobScene;
-  let look: ReturnType<typeof blobLook>;
+  let look: ReturnType<typeof blobFilter>;
   let tablesSeed = -1;
   let data = new Float32Array(0);
   let ground = [0, 0, 0, 0];
@@ -336,7 +339,7 @@ export function playBlob(
   /** the scene, its colors and its numbers, for the palette and the view */
   const prepare = () => {
     scene = blobScene(palette_, BLOB_DESIGN, view_);
-    look = blobLook(view_, BLOB_DESIGN, scene);
+    look = blobFilter(view_, BLOB_DESIGN, scene);
     const n = scene.blobs.reduce((sum, b) => sum + b.balls.length, 0);
     if (data.length !== 8 * n) {
       data = new Float32Array(8 * n);
@@ -353,7 +356,10 @@ export function playBlob(
         data[8 * i + 7] = 1;
         i++;
       }
-    ground = scene.backdrop ? [...hexBytes(scene.backdrop).map(v => v / 255), 1] : [0, 0, 0, 0];
+    if (scene.backdrop) {
+      const { hex, alpha } = groundParts(scene.backdrop);
+      ground = [...hexBytes(hex).map(v => (v / 255) * alpha), alpha];
+    } else ground = [0, 0, 0, 0];
     if (look.seed !== tablesSeed) {
       const { lattice, gradients } = blobNoiseTables(look.seed);
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
@@ -411,7 +417,7 @@ export function playBlob(
     const { W, H, kx, ky } = box;
     const cw = canvasSize.w;
     const ch = canvasSize.h;
-    const f = blobFit(view_, { width: W, height: H });
+    const f = blobFit({ width: W, height: H });
     const next = { sx: f.scale * kx, sy: f.scale * ky, tx: f.x * kx, ty: f.y * ky };
     if (next.sx !== map.sx || next.sy !== map.sy || next.tx !== map.tx || next.ty !== map.ty)
       baked = false;
@@ -493,7 +499,7 @@ export function playBlob(
     /* the balls, small: each a quad its own color covers, painted in the file's order */
     const { texel } = meltBox;
     const n = data.length / 8;
-    blobPlaces(scene, f, view_.depth, data, 8);
+    blobPlaces(scene, f, data, 8);
     for (let i = 0; i < 8 * n; i += 8) {
       data[i] = (data[i] * map.sx + map.tx - meltBox.x) / texel;
       data[i + 1] = (data[i + 1] * map.sy + map.ty - meltBox.y) / texel;
@@ -554,8 +560,7 @@ export function playBlob(
 
   /* the clock: seconds of the loop at speed 1, advanced by the speed, so a change of speed never jumps. It starts once
      the first frame, the still's own, is drawn, eases in from rest (warm) whenever the motion starts again, and holds
-     at speed 0. With a frame rate the share steps through the loop's frames as a GIF of that rate does, and a frame
-     is drawn only when it changes */
+     at speed 0. A frame is drawn when it changes and the frame rate has one due (pace.ts) */
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   let t = 0;
   let warm = 0;
@@ -569,12 +574,8 @@ export function playBlob(
   /* whether the canvas has its size: the observer's first word, which the browser gives before the next paint */
   let sized = false;
   const moving = () => shown && !document.hidden && !reduced.matches && view_.speed > 0;
-  const share = () => {
-    const at = reduced.matches ? 0 : (t / BLOB_LOOP) % 1;
-    if (!view_.fps || view_.speed === 0) return at;
-    const frames = Math.max(2, Math.round((BLOB_LOOP / view_.speed) * view_.fps));
-    return Math.floor(at * frames) / frames;
-  };
+  const pace = createPace();
+  const share = () => (reduced.matches ? 0 : (t / BLOB_LOOP) % 1);
   const tick = (now: number) => {
     raf = 0;
     if (!sized) return;
@@ -587,7 +588,7 @@ export function playBlob(
       t += dt * view_.speed * e * e * (3 - 2 * e);
     }
     const at = share();
-    if (changed || at !== drawn) {
+    if (changed || (at !== drawn && pace.due(now, view_.fps))) {
       draw(at);
       drawn = at;
       changed = false;

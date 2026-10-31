@@ -115,21 +115,27 @@ describe("an effect page's head", () => {
     };
     expect(image("style=glass")).toContain("/api/og?seed=");
     expect(image("style=glass")).toContain("style=glass");
-    expect(image("style=blob&shape=12&fill=1&bg=deep")).toContain("style=blob");
-    expect(image("style=blob&shape=12&fill=1&bg=deep")).toContain("shape=12");
-    expect(image("style=blob&shape=12&fill=1&bg=deep")).toContain("fill=1");
-    expect(image("style=blob&shape=12&fill=1&bg=deep")).not.toContain("speed");
+    expect(image("style=blob&shape=12&bg=%23101014")).toContain("style=blob");
+    expect(image("style=blob&shape=12&bg=%23101014")).toContain("shape=12");
+    expect(image("style=blob&shape=12&bg=%23101014")).toContain("bg=%23101014");
+    expect(image("style=blob&shape=12&bg=%23101014&speed=2")).not.toContain("speed");
     expect(image("")).not.toContain("style=glass");
   });
 
   test("the effect's card address writes only what changes its picture", () => {
     const glass = parseEffect(new URLSearchParams("style=glass&speed=2&fps=30"));
-    const blob = parseEffect(new URLSearchParams("style=blob&depth=0&frost=0.5&shape=3"));
-    if (!glass || !blob) throw new Error("no effect");
+    const blob = parseEffect(new URLSearchParams("style=blob&frost=0.5&shape=3"));
+    const shaped = parseEffect(new URLSearchParams("style=glass&shape=12"));
+    if (!glass || !blob || !shaped) throw new Error("no effect");
     expect(effectCard(SEED, glass, 90)).toBe(`/api/og?seed=${SEED}&v=k4&style=glass`);
     expect(effectCard(SEED, glass, 45)).toBe(`/api/og?seed=${SEED}&v=k4&style=glass&angle=45`);
+    expect(effectCard(SEED, shaped, 90)).toBe(`/api/og?seed=${SEED}&v=k4&style=glass&shape=12`);
     expect(effectCard(SEED, blob, 90)).toBe(
-      `/api/og?seed=${SEED}&v=k4&style=blob&depth=0&frost=0.5&shape=3`
+      `/api/og?seed=${SEED}&v=k4&style=blob&frost=0.5&shape=3`
+    );
+    // the blob's angle lays its palette, so its card names it
+    expect(effectCard(SEED, blob, 30)).toBe(
+      `/api/og?seed=${SEED}&v=k4&style=blob&angle=30&frost=0.5&shape=3`
     );
   });
 });

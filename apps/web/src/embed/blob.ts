@@ -6,13 +6,13 @@ import { mount } from "./mount.ts";
 
 mount({
   kind: "blob",
-  still: (P, effect) =>
-    blobStillBackground(P, { speed: 1, fps: null, still: true, ...effect.look }),
-  play: (canvas, P, effect, _angle, drawn) =>
+  still: (P, effect, angle) =>
+    blobStillBackground(P, { speed: 1, fps: null, still: true, angle, ...effect.look }),
+  play: (canvas, P, effect, angle, drawn) =>
     playBlob(
       canvas,
       P,
-      { speed: effect.speed, fps: effect.fps, still: false, ...effect.look },
+      { speed: effect.speed, fps: effect.fps, still: false, angle, ...effect.look },
       drawn
     )
 });

@@ -86,7 +86,7 @@ describe("a palette's file", () => {
     expect(still(paced)).toBe(still(text));
     // the blob, clear around itself, gives its still up when the script's canvas shows
     const blob = await (await file(`/${seed}.css?style=blob&shape=12`)).text();
-    expect(blob).toContain("html[data-grabient-playing]::before {\n  background-image: none;\n}");
+    expect(blob).toContain("html[data-grabient-playing]::before {\n  background: none;\n}");
   });
 
   test("CSS takes w and h for the page's box, and style=bands plays the animated SVG inside it", async () => {

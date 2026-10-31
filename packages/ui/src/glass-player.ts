@@ -3,9 +3,9 @@
    server's still without a seam: its first frame is the still's moment, and the motion eases in from rest. Each frame
    the discs go as instanced quads into a small texture (1/q of the filter's region, q set so the blur spans about
    three texels), a blur runs across and down at that size (eleven bilinear taps a pass), and one full-size pass reads
-   the baked rib map (one texelFetch) and the field at the displaced pixel (one bilinear read). The rib map is baked
-   once a size, a slice a frame so the page never stalls, and a recolor changes the discs' colors alone. Nothing is
-   allocated per frame. It stops while the canvas is out of view or the page hidden, holds the first frame for a
+   the baked rib map (one texelFetch) and the field at the displaced pixel (one bilinear read). The rib map is baked on
+   the GPU in one pass (glass-bake.ts) for each size, angle and shape, in the frame it changes, and a recolor changes
+   the discs' colors alone. Nothing is allocated per frame. It stops while the canvas is out of view or the page hidden, holds the first frame for a
    reader who asks for less motion, keeps to a frame rate where one is asked, and returns null where WebGL 2 is
    missing. */
 import {
@@ -21,10 +21,11 @@ import {
   type GlassPlan,
   type GlassWindow,
   glassCover,
-  glassMapRows,
   glassPlan
 } from "@grabient/engine/glass-render.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
+import { glassBake } from "./glass-bake.ts";
+import { createPace } from "./pace.ts";
 
 export interface GlassPlayer {
   /** a new palette or view: the motion carries on from where it is; at speed 0 it holds its frame */
@@ -37,8 +38,6 @@ export interface GlassPlayer {
 /** The device pixels a frame, at most (a 4K screen's): the canvas is drawn at the screen's density, as the still is,
     up to this. */
 const PIXELS_MAX = 8_300_000;
-/** Pixels of the rib map baked a frame, about 10 ms of work. */
-const BAKE_PIXELS = 100_000;
 /** A resize settles this long before the map is baked again. */
 const SETTLE_MS = 150;
 /** Seconds the motion takes from rest to its pace, as it starts and as it resumes, so a still picture comes alive
@@ -201,6 +200,8 @@ export function playGlass(
     return t;
   };
   const mapTex = texture(gl.NEAREST);
+  const baker = glassBake(gl, quad);
+  if (!baker) return null;
   const fieldTex = [texture(gl.LINEAR), texture(gl.LINEAR)];
   const fbo = [gl.createFramebuffer(), gl.createFramebuffer()];
 
@@ -216,13 +217,6 @@ export function playGlass(
   const pos = new Float32Array(2);
   const taps = new Float32Array(12);
   let base = [0, 0, 0];
-  /* the bake in progress: the map's bytes, and the next row */
-  let baking: {
-    geometry: GlassGeometry;
-    window: GlassWindow;
-    bytes: Uint8Array;
-    row: number;
-  } | null = null;
   let ready = false;
 
   const recolor = () => {
@@ -247,7 +241,7 @@ export function playGlass(
   };
   /* the canvas's size in device pixels, as the browser lays it out, where it says (devicePixelContentBoxSize) */
   let device: { w: number; h: number } | null = null;
-  /** a size the canvas now has: the design covering it, and the bake begun */
+  /** a size, an angle or a shape the canvas now has: the design covering it, its rib map baked at once */
   const resize = () => {
     const dpr = devicePixelRatio || 1;
     const css = canvas.getBoundingClientRect();
@@ -261,37 +255,29 @@ export function playGlass(
     const next = glassCover(
       { width: Math.max(1, Math.round(w0 * fit)), height: Math.max(1, Math.round(h0 * fit)) },
       1,
-      view_.angle ?? GLASS_ANGLE
+      view_.angle ?? GLASS_ANGLE,
+      view_.shape ?? null
     );
-    const current = baking ?? (geometry && window_ ? { geometry, window: window_ } : null);
     if (
-      current &&
-      current.geometry.width === next.geometry.width &&
-      current.geometry.angle === next.geometry.angle &&
-      current.window.w === next.window.w &&
-      current.window.h === next.window.h
+      geometry &&
+      window_ &&
+      geometry.width === next.geometry.width &&
+      geometry.angle === next.geometry.angle &&
+      geometry.shape === next.geometry.shape &&
+      window_.w === next.window.w &&
+      window_.h === next.window.h
     )
       return;
-    const { w, h } = next.window;
-    baking = { ...next, bytes: new Uint8Array(w * h * 4), row: 0 };
-  };
-  /** a slice of the bake; once done, the map, the field's textures and the canvas take the new size */
-  const bake = () => {
-    if (!baking) return;
-    const { geometry: g, window: win, bytes } = baking;
-    const to = Math.min(win.h, baking.row + Math.max(8, Math.floor(BAKE_PIXELS / win.w)));
-    glassMapRows(g, bytes, baking.row, to, win);
-    baking.row = to;
-    if (to < win.h) return;
-    baking = null;
+    const g = next.geometry;
+    const win = next.window;
     geometry = g;
     window_ = win;
     plan = glassPlan(g);
     canvas.width = win.w;
     canvas.height = win.h;
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.bindTexture(gl.TEXTURE_2D, mapTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, win.w, win.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, win.w, win.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    baker.bake(g, win, mapTex);
     for (let i = 0; i < 2; i++) {
       gl.bindTexture(gl.TEXTURE_2D, fieldTex[i]);
       gl.texImage2D(
@@ -388,9 +374,9 @@ export function playGlass(
   let first = true;
   let settle = 0;
   const playing = () => shown && !document.hidden && !reduced.matches;
+  const pace = createPace();
   const tick = (now: number) => {
     raf = 0;
-    if (baking) bake();
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     if (!playing() || view_.speed === 0) warm = 0;
@@ -401,11 +387,10 @@ export function playGlass(
     }
     if (ready) {
       const at = reduced.matches ? 0 : t;
-      /* a frame rate asked for: the clock steps through its frames, drawn only when they change */
-      const step = view_.fps ? Math.floor((at / view_.speed) * view_.fps) : at;
-      if (changed || step !== lastDrawn) {
+      /* a frame where the picture changed and the frame rate has one due (pace.ts) */
+      if (changed || (at !== lastDrawn && pace.due(now, view_.fps))) {
         draw(at);
-        lastDrawn = step;
+        lastDrawn = at;
         changed = false;
         if (first) {
           first = false;
@@ -413,7 +398,7 @@ export function playGlass(
         }
       }
     }
-    if (baking || playing()) raf = requestAnimationFrame(tick);
+    if (playing()) raf = requestAnimationFrame(tick);
   };
   const wake = () => {
     last = performance.now();
@@ -430,7 +415,7 @@ export function playGlass(
         changed = true;
         wake();
       },
-      geometry || baking ? SETTLE_MS : 0
+      geometry ? SETTLE_MS : 0
     );
   });
   try {
@@ -462,9 +447,11 @@ export function playGlass(
   return {
     set(palette: Palette, view: GlassView) {
       palette_ = palette;
-      const turned = (view.angle ?? GLASS_ANGLE) !== (view_.angle ?? GLASS_ANGLE);
+      const turned =
+        (view.angle ?? GLASS_ANGLE) !== (view_.angle ?? GLASS_ANGLE) ||
+        (view.shape ?? 0) !== (view_.shape ?? 0);
       view_ = view;
-      /* another angle turns the ribs: their map is baked again, the frame shown meanwhile */
+      /* another angle or shape turns the ribs or draws others: their map is baked again, the frame shown meanwhile */
       if (turned) resize();
       if (glassColors(palette).join() !== colorsKey) recolor();
       changed = true;

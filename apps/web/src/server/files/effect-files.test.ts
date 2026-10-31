@@ -22,12 +22,27 @@ test("the glass's stylesheet paints the still the palette's page paints, on a la
   expect(css).not.toContain(EMBED_PLAYING);
 });
 
-test("the blob's stylesheet draws its look, and gives the still up once the script's canvas shows", () => {
+test("the blob's stylesheet draws its look, and gives the still and its ground up once the script's canvas shows", () => {
   if (!P) throw new Error("no palette");
-  const css = effectCss(P, effect("style=blob&fill=1&bg=deep"), 90, "c");
-  expect(css).toContain(`background: ${effectStill(P, effect("style=blob&fill=1&bg=deep"), 90)};`);
-  expect(css).toContain(`html[${EMBED_PLAYING}]::before {\n  background-image: none;\n}`);
+  const css = effectCss(P, effect("style=blob&bg=%2310101480"), 90, "c");
+  expect(css).toContain(`background: ${effectStill(P, effect("style=blob&bg=%2310101480"), 90)};`);
+  // the canvas draws the ground itself: a ground that lets the page through is painted once
+  expect(css).toContain(`html[${EMBED_PLAYING}]::before {\n  background: none;\n}`);
   expect(effectStill(P, effect("style=blob&shape=3"), 90)).not.toBe(
     effectStill(P, effect("style=blob&shape=4"), 90)
+  );
+  // the angle lays the palette across the blobs
+  expect(effectStill(P, effect("style=blob&shape=3"), 90)).not.toBe(
+    effectStill(P, effect("style=blob&shape=3"), 180)
+  );
+});
+
+test("the glass's shape draws a still of its own", () => {
+  if (!P) throw new Error("no palette");
+  expect(effectStill(P, effect("style=glass&shape=12"), 90)).toBe(
+    glassStillBackground(glassColors(P), 90, 12)
+  );
+  expect(effectStill(P, effect("style=glass&shape=12"), 90)).not.toBe(
+    effectStill(P, effect("style=glass"), 90)
   );
 });

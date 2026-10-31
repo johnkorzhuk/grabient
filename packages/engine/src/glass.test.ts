@@ -88,3 +88,23 @@ test("the CPU's frames: the box's pixels, opaque, the same twice, moving, in the
   /* a yellow to orange palette stays warm */
   expect(red).toBeGreaterThan(2 * blue);
 });
+
+test("a shape draws ribs and discs of its own, and 0 is the glass as designed", () => {
+  const at = (shape: number | null) => {
+    const geometry = glassGeometry(size, 90, shape);
+    return { geometry, field: glassField(geometry, glassColors(P)) };
+  };
+  const designed = at(null);
+  expect(at(0)).toEqual(designed);
+  expect(designed.geometry.shape).toBe(0);
+  const other = at(12);
+  expect(other.geometry.shape).toBe(12);
+  expect(other.field.discs.map(d => d.cx)).not.toEqual(designed.field.discs.map(d => d.cx));
+  expect(other.geometry.ribs).not.toEqual(designed.geometry.ribs);
+  // the same shape draws the same glass, and a recolor keeps it
+  expect(at(12)).toEqual(other);
+  const recolored = glassField(other.geometry, glassColors(decodePalette("kS7Q8Yy5S_SChv0")!));
+  expect(recolored.discs.map(d => [d.cx, d.cy, d.R])).toEqual(
+    other.field.discs.map(d => [d.cx, d.cy, d.R])
+  );
+});

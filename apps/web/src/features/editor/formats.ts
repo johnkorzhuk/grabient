@@ -63,11 +63,14 @@ const pageUrl = (p: Taken) =>
 const model = () => import("@grabient/engine/glass.ts");
 const render = () => import("@grabient/engine/glass-render.ts");
 const colorsOf = (p: Taken) => glassColors(decodePalette(p.seed)!);
-/* the glass at the pixels taken: the one design covering the box, its ribs at the view's angle, as the picture shows
-   it. Moving as the picture moves (`moving`: its speed, its discs on their CSS orbits), otherwise its first frame */
+/* the glass's shape where the picture plays it: 0, as designed, otherwise */
+const shapeOf = (p: Taken) => (p.effect?.kind === "glass" ? p.effect.look.shape : null);
+/* the glass at the pixels taken: the one design covering the box, its ribs at the view's angle and in its shape, as
+   the picture shows it. Moving as the picture moves (`moving`: its speed, its discs on their CSS orbits), otherwise its
+   first frame */
 const glassText = async (p: Taken, moving: boolean) => {
   const g = await model();
-  const design = g.glassGeometry(g.GLASS_DESIGN, p.angle);
+  const design = g.glassGeometry(g.GLASS_DESIGN, p.angle, shapeOf(p));
   const speed = p.effect?.speed ?? 0;
   return g
     .glassSvg(design, g.glassField(design, colorsOf(p)), {
@@ -80,7 +83,7 @@ const glassText = async (p: Taken, moving: boolean) => {
 /* its PNG, its first frame drawn as the player draws it */
 const glassPng = async (p: Taken): Promise<Blob> => {
   const [g, r] = await Promise.all([model(), render()]);
-  const { geometry, window } = r.glassCover(p.pixels, 1, p.angle);
+  const { geometry, window } = r.glassCover(p.pixels, 1, p.angle, shapeOf(p));
   const pixels = r.glassRenderer(geometry, window).frame(g.glassField(geometry, colorsOf(p)), 0);
   const canvas = document.createElement("canvas");
   canvas.width = window.w;
@@ -92,11 +95,12 @@ const glassPng = async (p: Taken): Promise<Blob> => {
 };
 /* an SVG as a CSS url(), its markup escaped as a data URI */
 const svgUrl = (svg: string) => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-/* the blob's view of an effect's settings: moving, or its first frame alone */
-const blobViewOf = (effect: Effect, still: boolean) => ({
+/* the blob's view of an effect's settings at the view's angle: moving, or its first frame alone */
+const blobViewOf = (effect: Effect, angle: number, still: boolean) => ({
   speed: effect.speed || 1,
   fps: effect.fps,
   still,
+  angle,
   ...effect.look
 });
 /* the blob at the pixels taken, credited to the palette's page: moving as the picture moves, otherwise its first
@@ -109,7 +113,7 @@ const blobText = async (p: Taken, moving: boolean) => {
   const still = !moving || effect.speed === 0;
   return b.blobSvg(
     decodePalette(p.seed)!,
-    blobViewOf(effect, still),
+    blobViewOf(effect, p.angle, still),
     p.pixels,
     `${origin()}/${p.seed}`
   );
@@ -120,7 +124,7 @@ const blobCssText = async (p: Taken) => {
   const b = await blobCode();
   return b.blobCss(
     decodePalette(p.seed)!,
-    blobViewOf(effect, true),
+    blobViewOf(effect, p.angle, true),
     p.size && sizeParam(p.size) ? p.pixels : null,
     `${origin()}/${p.seed}`
   );
@@ -142,16 +146,11 @@ const dataUrl = (blob: Blob) =>
 const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
   if (effect.kind === "blob") {
     const b = await blobCode();
-    return b.blobStillBackground(decodePalette(p.seed)!, {
-      speed: 1,
-      fps: null,
-      still: true,
-      ...effect.look
-    });
+    return b.blobStillBackground(decodePalette(p.seed)!, blobViewOf(effect, p.angle, true));
   }
   const [g, r] = await Promise.all([model(), render()]);
   const side = { width: STILL_SIDE, height: STILL_SIDE };
-  const { geometry, window } = r.glassCover(side, 1, p.angle);
+  const { geometry, window } = r.glassCover(side, 1, p.angle, shapeOf(p));
   const pixels = r.glassRenderer(geometry, window).frame(g.glassField(geometry, colorsOf(p)), 0);
   const canvas = document.createElement("canvas");
   canvas.width = window.w;

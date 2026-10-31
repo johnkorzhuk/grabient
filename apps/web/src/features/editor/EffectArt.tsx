@@ -22,9 +22,12 @@ interface Session {
   player: Player;
 }
 
+/* the players are the browser's alone: the server's build carries neither */
 const players = {
-  glass: () => import("@grabient/ui/glass-player.ts"),
-  blob: () => import("@grabient/ui/blob-player.ts")
+  glass: () =>
+    import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/glass-player.ts"),
+  blob: () =>
+    import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/blob-player.ts")
 };
 
 /** Everything a card's picture of an effect needs, fetched before a card asks: its players' code and its still's. */
@@ -69,8 +72,13 @@ export function EffectArt(props: {
   const moving = () => props.active && props.settings.speed > 0 && !reduced();
   const view = () =>
     props.kind === "glass"
-      ? { speed: props.settings.speed, fps: props.settings.fps, angle: props.angle }
-      : blobViewOf(props.settings);
+      ? {
+          speed: props.settings.speed,
+          fps: props.settings.fps,
+          angle: props.angle,
+          shape: props.settings.look.shape
+        }
+      : blobViewOf(props.settings, props.angle);
   let session: Session | null = null;
   let leaving: (Session & { timer: ReturnType<typeof setTimeout> }) | null = null;
   /* a start whose code is still on its way when the card goes dark again makes no player */
@@ -170,9 +178,19 @@ export function EffectArt(props: {
       data-fading={fading() ? "" : undefined}
     >
       {props.kind === "glass" ? (
-        <GlassArt colors={glassColors(props.palette)} angle={props.angle} eager />
+        <GlassArt
+          colors={glassColors(props.palette)}
+          angle={props.angle}
+          shape={props.settings.look.shape}
+          eager
+        />
       ) : (
-        <BlobArt palette={props.palette} settings={props.settings} bare={bare()} />
+        <BlobArt
+          palette={props.palette}
+          settings={props.settings}
+          angle={props.angle}
+          bare={bare()}
+        />
       )}
     </span>
   );

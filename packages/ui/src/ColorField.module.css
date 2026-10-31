@@ -1,0 +1,42 @@
+@layer components {
+  /* the color over a checkerboard, so a color that lets what is behind it through shows it does; none, a slash */
+  .chip {
+    background:
+      linear-gradient(var(--chip), var(--chip)),
+      repeating-conic-gradient(var(--color-paper3) 0 25%, var(--color-paper-solid) 0 50%) 0 0 / 8px
+      8px;
+    &[data-empty] {
+      background:
+        linear-gradient(
+          to top right,
+          transparent calc(50% - 0.75px),
+          var(--color-ink3) calc(50% - 0.75px) calc(50% + 0.75px),
+          transparent calc(50% + 0.75px)
+        ),
+        var(--color-paper-solid);
+    }
+  }
+  /* clears the color: a small press at the field's end */
+  .clear {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    margin-inline-end: calc(-1 * var(--space-s1));
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-tight);
+    background: transparent;
+    color: var(--color-ink3);
+    cursor: pointer;
+    &:hover {
+      color: var(--color-ink);
+      background: var(--color-paper2);
+    }
+    &:focus-visible {
+      outline: 1px solid var(--color-ring);
+    }
+  }
+}

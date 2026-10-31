@@ -223,15 +223,12 @@ export function paletteAddress(seed: string, saved?: Partial<PaletteView>): stri
 export const paletteCard = (seed: string, view: PaletteView) =>
   `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`;
 /** A palette's share card where its address plays an effect: the effect's first frame, as the page shows it before it
-    moves (server/images/cards.ts), named by all it depends on: the glass's angle, the blob's look but its pace. */
+    moves (server/images/cards.ts), named by all it depends on: its angle and its look, but not its pace. */
 export function effectCard(seed: string, effect: Effect, angle: number): string {
-  const turned = effect.kind === "glass" && angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
+  const turned = angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
   const parts = [`style=${effect.kind}`, ...turned, ...effectLookParts(effect)];
   return `/api/og?seed=${seed}&v=${CARD_VERSION}&${parts.join("&")}`;
 }
-/** A palette's examples (routes/$id/examples.tsx): kept out of the index, since what it says is the palette's own page's
-    and the code any palette takes; its card is the palette's in the style it shows. Its address is the palette's plus
-    /examples, with the view's query or the effect's. */
 /** A palette's examples page (routes/$id/examples.tsx): its address and /examples, then the style it shows, a
     gradient's view or an effect's address, as the palette's own page names them, with no size. */
 export function examplesPath(
@@ -245,6 +242,9 @@ export function examplesPath(
   return `/${seed}/examples${query}`;
 }
 
+/** A palette's examples (routes/$id/examples.tsx): kept out of the index, since what it says is the palette's own page's
+    and the code any palette takes; its card is the palette's in the style it shows. Its address is the palette's plus
+    /examples, with the view's query or the effect's. */
 function examplesPage(
   page: Extract<Page, { kind: "examples" }>,
   meta: PageMeta,

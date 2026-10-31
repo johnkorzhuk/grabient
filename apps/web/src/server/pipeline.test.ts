@@ -914,3 +914,36 @@ describe("a visit", () => {
     expect(visits()).toEqual([]);
   });
 });
+
+describe("a blob's ground written in other words than hex", () => {
+  test.each([
+    [
+      "/kS7Q8Yy5S_SChv0?style=blob&shape=7&bg=red",
+      "/kS7Q8Yy5S_SChv0?style=blob&shape=7&bg=%23ff0000"
+    ],
+    [
+      "/kS7Q8Yy5S_SChv0?bg=rgb(0%200%200%20/%2050%25)&style=blob&shape=7",
+      "/kS7Q8Yy5S_SChv0?style=blob&shape=7&bg=%2300000080"
+    ],
+    ["/kS7Q8Yy5S_SChv0?style=blob&shape=7&bg=transparent", "/kS7Q8Yy5S_SChv0?style=blob&shape=7"],
+    ["/kS7Q8Yy5S_SChv0?style=blob&shape=7&bg=nope", "/kS7Q8Yy5S_SChv0?style=blob&shape=7"],
+    [
+      "/ja/kS7Q8Yy5S_SChv0?style=blob&shape=7&bg=navy",
+      "/ja/kS7Q8Yy5S_SChv0?style=blob&shape=7&bg=%23000080"
+    ],
+    // a file keeps its query as it is, its ground written as hex
+    [
+      "/kS7Q8Yy5S_SChv0.png?style=blob&bg=oklch(62.8%25%200.2577%2029.23)",
+      "/kS7Q8Yy5S_SChv0.png?style=blob&bg=%23ff0000"
+    ]
+  ])("%s is answered at %s, the page's canonical address", async (from, to) => {
+    const response = await get(from);
+    expect([response.status, location(response)]).toEqual([301, to]);
+    expect(asked).toEqual([]);
+  });
+
+  test("a ground in hex, or another effect's bg, goes on as it came", async () => {
+    expect((await get("/kS7Q8Yy5S_SChv0?style=blob&shape=7&bg=%23ff000080")).status).toBe(200);
+    expect(location(await get("/kS7Q8Yy5S_SChv0?style=glass&bg=red"))).not.toContain("ff0000");
+  });
+});

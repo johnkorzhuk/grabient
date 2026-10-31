@@ -6,27 +6,27 @@
    and effectScript hides it before the first paint where this browser chose otherwise. In the editor the blob always
    has a shape number, so a drag that recolors the palette keeps the blob it is looking at. */
 import {
-  BLOB_LOOK,
-  BLOB_SHAPE_MAX,
-  type BlobLook,
-  blobLook,
   blobShapeOf,
-  EFFECT_FPS_MAX,
+  EFFECT_FPS,
+  EFFECT_LOOK,
   EFFECT_PLAY,
   EFFECT_SPEED,
   EFFECTS,
   type Effect,
   type EffectKind,
+  type EffectLook,
   type EffectSettings,
   effectFps,
+  effectLook,
   effectSpeed,
   isEffect,
+  SHAPE_MAX,
   sameSettings
 } from "@grabient/engine/effect.ts";
 import { createSignal, untrack } from "solid-js";
 import { EFFECT_KEY } from "./effect-page.ts";
 
-export { EFFECT_FPS_MAX as FPS_MAX, EFFECT_SPEED as SPEED };
+export { EFFECT_FPS as FPS, EFFECT_SPEED as SPEED };
 
 type Settings = Record<EffectKind, EffectSettings>;
 /** The reader's choice as this browser keeps it. */
@@ -34,7 +34,7 @@ interface Kept {
   kind: EffectKind | null;
   settings: Settings;
 }
-const DEFAULT_SETTINGS: EffectSettings = { ...EFFECT_PLAY, look: BLOB_LOOK };
+const DEFAULT_SETTINGS: EffectSettings = { ...EFFECT_PLAY, look: EFFECT_LOOK };
 const DEFAULT_KEPT: Kept = {
   kind: "glass",
   settings: { glass: DEFAULT_SETTINGS, blob: DEFAULT_SETTINGS }
@@ -44,7 +44,7 @@ const DEFAULT_KEPT: Kept = {
 const sane = (v: Partial<EffectSettings> | null | undefined): EffectSettings => ({
   speed: effectSpeed(v?.speed ?? 1),
   fps: effectFps(v?.fps),
-  look: blobLook(v?.look)
+  look: effectLook(v?.look)
 });
 
 function readKept(): Kept {
@@ -81,10 +81,10 @@ export interface Effects {
   choose: (kind: EffectKind | null) => void;
   /** the reader changes how an effect plays */
   set: (kind: EffectKind, part: Partial<Omit<EffectSettings, "look">>) => void;
-  /** the reader changes the blob's look */
-  look: (part: Partial<BlobLook>) => void;
-  /** another shape for the blob, other than the one shown */
-  shuffle: () => void;
+  /** the reader changes an effect's look: its shape, the blob's frost and ground */
+  look: (kind: EffectKind, part: Partial<EffectLook>) => void;
+  /** another shape for an effect, other than the one shown */
+  shuffle: (kind: EffectKind) => void;
   /** an address landed: the effect it names, or, where it names no style, the reader's own choice */
   arrive: (effect: Effect | null, styled: boolean) => void;
   /** whether the effect differs from the one the page opened with, which Reset gives back */
@@ -158,16 +158,18 @@ export function createEffects(
     set(k, part) {
       commit(withSettings(k, sane({ ...now.settings[k], ...part })));
     },
-    look(part) {
-      const blob = now.settings.blob;
-      commit(withSettings("blob", sane({ ...blob, look: { ...blob.look, ...part } })));
+    look(k, part) {
+      const s = now.settings[k];
+      commit(withSettings(k, sane({ ...s, look: { ...s.look, ...part } })));
     },
-    shuffle() {
-      const blob = now.settings.blob;
-      const was = blob.look.shape ?? -1;
+    shuffle(k) {
+      const s = now.settings[k];
+      const was = s.look.shape ?? 0;
       let next = was;
-      while (next === was) next = Math.floor(Math.random() * (BLOB_SHAPE_MAX + 1));
-      commit(withSettings("blob", { ...blob, look: { ...blob.look, shape: next } }));
+      /* the glass's 0 is its design, which a shuffle leaves for another */
+      while (next === was || (k === "glass" && next === 0))
+        next = Math.floor(Math.random() * (SHAPE_MAX + 1));
+      commit(withSettings(k, { ...s, look: { ...s.look, shape: next } }));
     },
     /* an address landed: what it names shows, and the reader's own choice stays as it was kept */
     arrive(next, addressStyled) {

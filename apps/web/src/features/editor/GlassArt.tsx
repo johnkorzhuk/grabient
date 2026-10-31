@@ -3,9 +3,10 @@ import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid
 import styles from "./Editor.module.css";
 import { loadStill, serverStill, stillUri } from "./glass-draw.ts";
 
-/** How long a palette stands before the small picture is drawn for it: a drag changes the palette every frame, and
-    each still is a new image whose decoding (its filter, and the rib maps the filter reads) holds up the frame that
-    shows it. The big picture shows every change; this one catches up once the hand rests. */
+/** How often the small picture is drawn while its palette, angle or shape keeps changing: a drag changes them every
+    frame, and each still is a new image whose decoding (its filter, and the rib maps the filter reads) holds up the
+    frame that shows it. A change after a rest is drawn at once; while the hand moves, at most once in this, and the
+    last change once it rests. The big picture shows every change. */
 const REST_MS = 250;
 
 /** The fluted glass's still as a small picture filling its box: the Appearance menu's tile and the header's swatch.
@@ -15,11 +16,13 @@ const REST_MS = 250;
 export function GlassArt(props: {
   colors: readonly string[];
   angle: number;
+  /** the glass's shape: 0 or none as designed */
+  shape?: number | null;
   /** drawn as it mounts, where a tile waits to be in sight: a card's picture, which a list shows as it comes */
   eager?: boolean;
 }) {
   let el!: HTMLSpanElement;
-  const key = () => glassStillKey(props.colors, props.angle);
+  const key = () => glassStillKey(props.colors, props.angle, props.shape ?? null);
   const [uri, setUri] = createSignal<string | null>(null);
   /* the still the box shows: until one is drawn, the one it names, which the server's may paint */
   const [showing, setShowing] = createSignal<string | null>(null);
@@ -33,34 +36,40 @@ export function GlassArt(props: {
   let timer: ReturnType<typeof setTimeout> | undefined;
   /* out of sight since the last still: the next one is drawn at once */
   let away = true;
-  const draw = (colors: readonly string[], angle: number, named: string) => {
+  /* when the last still was drawn */
+  let drawnAt = Number.NEGATIVE_INFINITY;
+  const draw = (colors: readonly string[], angle: number, shape: number | null, named: string) => {
     if (key() !== named) return;
-    const made = stillUri(colors, angle);
+    const made = stillUri(colors, angle, shape);
     if (made) {
+      drawnAt = performance.now();
       setUri(made);
       setShowing(named);
-    } else void loadStill().then(() => draw(colors, angle, named));
+    } else void loadStill().then(() => draw(colors, angle, shape, named));
   };
   createEffect(
-    () => (seen() ? key() : null),
-    named => {
+    () =>
+      seen()
+        ? { named: key(), colors: props.colors, angle: props.angle, shape: props.shape ?? null }
+        : null,
+    next => {
       clearTimeout(timer);
-      if (named === null) {
+      if (next === null) {
         away = true;
         return;
       }
+      const { named, colors, angle, shape } = next;
       const was = away;
       away = false;
-      if (named === showing()) return;
+      if (named === untrack(showing)) return;
       if (serverStill(named)) {
         setUri(null);
         setShowing(named);
         return;
       }
-      const colors = props.colors;
-      const angle = props.angle;
-      if (was) draw(colors, angle, named);
-      else timer = setTimeout(() => draw(colors, angle, named), REST_MS);
+      const wait = drawnAt + REST_MS - performance.now();
+      if (was || wait <= 0) draw(colors, angle, shape, named);
+      else timer = setTimeout(() => draw(colors, angle, shape, named), wait);
     }
   );
   onCleanup(() => clearTimeout(timer));

@@ -690,7 +690,8 @@ function Stage(
         view={{
           speed: e.effects.settings("glass").speed,
           fps: e.effects.settings("glass").fps,
-          angle: e.angle()
+          angle: e.angle(),
+          shape: e.effects.settings("glass").look.shape
         }}
       />
     </Show>
@@ -706,13 +707,18 @@ function Stage(
               class={styles.glassStill}
               data-blob-still={blobStillKey(
                 encodePalette(calmPalette()),
-                e.effects.settings("blob").look
+                e.effects.settings("blob").look,
+                e.angle()
               )}
             />
           </div>
         }
       >
-        <BlobLayer palette={calmPalette()} settings={e.effects.settings("blob")} />
+        <BlobLayer
+          palette={calmPalette()}
+          settings={e.effects.settings("blob")}
+          angle={e.angle()}
+        />
       </Loading>
     </Show>
   );

@@ -31,7 +31,8 @@ const whole = (geometry: GlassGeometry): GlassWindow => ({
 export function glassCover(
   size: Size,
   dpr = 1,
-  angle = GLASS_ANGLE
+  angle = GLASS_ANGLE,
+  shape: number | null = null
 ): { geometry: GlassGeometry; window: GlassWindow } {
   const k = Math.max(size.width / GLASS_DESIGN.width, size.height / GLASS_DESIGN.height) * dpr;
   const geometry = glassGeometry(
@@ -39,7 +40,8 @@ export function glassCover(
       width: Math.max(1, Math.round(GLASS_DESIGN.width * k)),
       height: Math.max(1, Math.round(GLASS_DESIGN.height * k))
     },
-    angle
+    angle,
+    shape
   );
   const w = Math.max(1, Math.round(size.width * dpr));
   const h = Math.max(1, Math.round(size.height * dpr));

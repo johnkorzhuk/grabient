@@ -20,7 +20,7 @@ import { clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
 import type { Size } from "./view.ts";
 
-/** The most a part of a GIF is drawn with, its pixels times its frames, a filled one's counted half again: a few
+/** The most a part of a GIF is drawn with, its pixels times its frames counted half again, for its three blobs: a few
     tenths of a second. */
 export const BLOB_GIF_PART_WORK = 6_000_000;
 
@@ -52,7 +52,7 @@ export function blobGifParts(
   work = BLOB_GIF_PART_WORK
 ): [number, number][] {
   const { size, frames } = blobGifPlan(view, asked);
-  const weight = view.fill ? 1.5 : 1;
+  const weight = 1.5;
   const each = Math.max(1, Math.floor(work / (weight * size.width * size.height)));
   const count = Math.ceil(frames / each);
   /* the frames shared out evenly */

@@ -1,5 +1,5 @@
 /* The fluted glass's still on a palette's page, drawn by the server. The page's first screen (Boot.tsx) leaves an
-   empty holder naming the still it shows (data-glass-still: the ribs' angle and the palette's colors); this writes the
+   empty holder naming the still it shows (data-glass-still: the ribs' angle, the shape and the palette's colors); this writes the
    glass's first frame into the head as a style for that name, the one design as a background covering the holder. A
    rule rather than markup in the holder, since the browser draws the first screen again as the page starts, and the
    editor's own holders (GlassLayer.tsx, GlassArt.tsx) take the same rule: the still stands through both, the browser
@@ -16,7 +16,7 @@ export function glassStills(html: string): string {
   const key = HOLDER.exec(html)?.[1] ?? "";
   const named = readStillKey(key);
   if (!named) return html;
-  const style = `<style id="${GLASS_STILL_STYLE}" data-key="${key}">[data-glass-still="${key}"]{background:${glassStillBackground(named.colors, named.angle)}}</style>`;
+  const style = `<style id="${GLASS_STILL_STYLE}" data-key="${key}">[data-glass-still="${key}"]{background:${glassStillBackground(named.colors, named.angle, named.shape)}}</style>`;
   const head = html.indexOf("</head>");
   return head < 0 ? html : html.slice(0, head) + style + html.slice(head);
 }

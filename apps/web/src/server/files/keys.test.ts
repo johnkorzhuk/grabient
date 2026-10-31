@@ -154,14 +154,16 @@ test("an effect's card and picture are kept under its look, apart from the gradi
   // its pace draws no other first frame; its angle turns the ribs
   expect(written(`/api/og?seed=${seed}&v=k4&style=glass&speed=3&fps=24`)?.key).toBe(glass?.key);
   expect(written(`/api/og?seed=${seed}&style=glass&angle=45`)?.key).not.toBe(glass?.key);
-  // the blob's look, but no angle, which it has none of
+  // the blob's look and its angle, which lays its palette; none of its pace
   expect(written(`/api/og?seed=${seed}&style=blob&shape=7&fill=1&angle=45&speed=2`)?.key).toBe(
-    `/api/og?fill=1&h=630&seed=${seed}&shape=7&style=blob&w=1200`
+    `/api/og?angle=45&h=630&seed=${seed}&shape=7&style=blob&w=1200`
   );
   expect(written(`/${seed}.png?style=blob&bg=%23101014&w=400&h=300&junk=1`)).toEqual({
-    key: `/${seed}.png?bg=%23101014&h=300&style=blob&w=400`,
+    key: `/${seed}.png?angle=90&bg=%23101014&h=300&style=blob&w=400`,
     acrossBuilds: false
   });
+  // the glass's shape draws other ribs and discs
+  expect(written(`/api/og?seed=${seed}&style=glass&shape=12`)?.key).not.toBe(glass?.key);
   expect(written(`/${seed}.png?style=glass`)?.key).not.toBe(written(`/${seed}.png`)?.key);
 });
 
@@ -177,7 +179,7 @@ test("an effect's script is one for every setting, its stylesheet one for every 
     acrossBuilds: false
   });
   expect(written(`/${seed}.css?style=blob&shape=3&speed=2`)?.key).toBe(
-    `/${seed}.css?shape=3&style=blob`
+    `/${seed}.css?angle=90&shape=3&style=blob`
   );
   expect(written(`/${seed}.css?style=glass`)?.key).not.toBe(written(`/${seed}.css`)?.key);
 });
@@ -192,6 +194,6 @@ test("an effect's moving SVG is kept under its pace and size as well as its look
     written(`/${seed}.svg?style=glass&speed=2`)?.key
   );
   expect(written(`/${seed}.svg?style=blob&shape=3&angle=45`)?.key).toBe(
-    `/${seed}.svg?shape=3&style=blob`
+    `/${seed}.svg?angle=45&shape=3&style=blob`
   );
 });

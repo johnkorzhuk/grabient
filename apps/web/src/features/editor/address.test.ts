@@ -74,17 +74,20 @@ test("a card hands on the parts its page set, over the palette's own view", () =
   });
 });
 
-/* An effect's address says only what its picture shows: its style, the angle, the size and how it plays, never the
-   gradient's steps; a speed of 0 holds its first frame and stays. */
+/* An effect's address says only what its picture shows: its style, the angle, the size, how it plays and its look,
+   never the gradient's steps; a speed of 0 holds its first frame and stays, and 60 frames a second is no setting. */
 test.each([
   [`/${SEED}?style=glass&steps=12`, `/${SEED}?style=glass`],
   [
-    `/${SEED}?fps=60&speed=1.6&angle=77&style=glass`,
-    `/${SEED}?style=glass&angle=77&speed=1.6&fps=60`
+    `/${SEED}?fps=30&speed=1.6&angle=77&style=glass`,
+    `/${SEED}?style=glass&angle=77&speed=1.6&fps=30`
   ],
+  [`/${SEED}?style=glass&fps=60`, `/${SEED}?style=glass`],
   [`/${SEED}?style=glass&speed=0`, `/${SEED}?style=glass&speed=0`],
   [`/${SEED}?style=glass&speed=1&fps=0`, `/${SEED}?style=glass`],
-  [`/${SEED}?style=glass&speed=99&fps=240`, `/${SEED}?style=glass&speed=10&fps=60`],
+  [`/${SEED}?style=glass&speed=99&fps=240`, `/${SEED}?style=glass&speed=10&fps=120`],
+  [`/${SEED}?style=glass&shape=0`, `/${SEED}?style=glass`],
+  [`/${SEED}?shape=12&style=glass`, `/${SEED}?style=glass&shape=12`],
   [`/${SEED}?style=glass&speed=0.04`, `/${SEED}?style=glass&speed=0.1`],
   [`/${SEED}?style=glass&size=400x300&lock=hue`, `/${SEED}?style=glass&size=400x300&lock=hue`],
   [`/${SEED}?speed=3&fps=24`, `/${SEED}`]
@@ -117,7 +120,10 @@ test("a blob always has a shape: the palette's own suggestion where its address 
   expect(page?.effect?.look.shape).toEqual(expect.any(Number));
   const shape = page?.effect?.look.shape;
   expect(canonicalSeedAddress(`/${SEED}?style=blob`)).toBe(`/${SEED}?style=blob&shape=${shape}`);
+  // its old depth and fill are no more; its ground keeps its alpha
   expect(
-    canonicalSeedAddress(`/${SEED}?style=blob&shape=7&frost=1.5&fill=1&depth=0&bg=%23aabbcc`)
-  ).toBe(`/${SEED}?style=blob&depth=0&fill=1&frost=1.5&shape=7&bg=%23aabbcc`);
+    canonicalSeedAddress(
+      `/${SEED}?style=blob&shape=7&frost=1.5&fill=1&depth=0&bg=%23aabbcc80&angle=30`
+    )
+  ).toBe(`/${SEED}?style=blob&angle=30&frost=1.5&shape=7&bg=%23aabbcc80`);
 });

@@ -18,19 +18,20 @@ import { effectCard } from "../../lib/page-meta.ts";
 import { isLinkPreview } from "../crawlers.ts";
 import { svgPreview } from "./preview.ts";
 
-/** The effect's first frame as a background, all it depends on named: the glass's colors and angle, the blob's look. */
+/** The effect's first frame as a background, all it depends on named: the glass's colors, angle and shape, the blob's
+    look and angle. */
 export const effectStill = (P: Palette, effect: Effect, angle: number): string =>
   effect.kind === "glass"
-    ? glassStillBackground(glassColors(P), angle)
-    : blobStillBackground(P, { speed: 1, fps: null, still: true, ...effect.look });
+    ? glassStillBackground(glassColors(P), angle, effect.look.shape)
+    : blobStillBackground(P, { speed: 1, fps: null, still: true, angle, ...effect.look });
 
 /** The stylesheet: the still on a layer fixed behind the page, under the page's own content and over its ground
     (engine/effect.ts's effectLayerCss, which the editor's copied tags hold too). */
 export const effectCss = (P: Palette, effect: Effect, angle: number, credit: string): string =>
   `/* ${credit} */\n${effectLayerCss(effect.kind, effectStill(P, effect, angle))}`;
 
-/** The effect as a moving SVG, moved by CSS alone: the glass covering its box, its colors drifting behind the ribs, or
-    the blob fitted in it; at speed 0 its first frame. */
+/** The effect as a moving SVG, moved by CSS alone: the glass or the blobs covering its box; at speed 0 its first
+    frame. */
 export function effectSvg(
   P: Palette,
   effect: Effect,
@@ -42,11 +43,11 @@ export function effectSvg(
   if (effect.kind === "blob")
     return blobSvg(
       P,
-      { ...effect.look, speed: effect.speed || 1, fps: effect.fps, still },
+      { ...effect.look, speed: effect.speed || 1, fps: effect.fps, still, angle },
       size,
       credit
     );
-  const design = glassDesign(angle);
+  const design = glassDesign(angle, effect.look.shape);
   return glassSvg(design, glassField(design, glassColors(P)), {
     still,
     speed: effect.speed || 1,

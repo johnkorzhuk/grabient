@@ -1,11 +1,16 @@
 import { expect, test } from "vitest";
 import {
+  blobStillKey,
+  EFFECT_FPS,
   EMBED_PLAYING,
   effectAddressParts,
   effectEmbedHtml,
   effectFileAddress,
   effectLayerCss,
-  parseEffect
+  groundHex,
+  groundParts,
+  parseEffect,
+  readBlobStillKey
 } from "./effect.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
@@ -15,21 +20,50 @@ const effect = (query: string) => {
   return found;
 };
 
-test("an effect's address names its style, the glass's angle off its default, its pace and the blob's look", () => {
+test("an effect's address names its style, its angle off its default, its pace, its frames a second and its look", () => {
   expect(effectAddressParts(effect("style=glass"), 90)).toEqual(["style=glass"]);
+  // 60 frames a second unless it says
+  expect(effect("style=glass").fps).toBe(EFFECT_FPS.default);
   expect(effectAddressParts(effect("style=glass&speed=2.45&fps=60"), 135)).toEqual([
     "style=glass",
     "angle=135",
-    "speed=2.45",
-    "fps=60"
+    "speed=2.45"
   ]);
-  // the blob has no angle
-  expect(effectAddressParts(effect("style=blob&fill=1&bg=deep&shape=12"), 135)).toEqual([
-    "style=blob",
-    "fill=1",
-    "shape=12",
-    "bg=deep"
+  expect(effectAddressParts(effect("style=glass&fps=120&shape=12"), 90)).toEqual([
+    "style=glass",
+    "fps=120",
+    "shape=12"
   ]);
+  expect(effect("style=glass&fps=500").fps).toBe(120);
+  expect(effect("style=glass&fps=0").fps).toBe(60);
+  // the glass's shape 0 is the glass as designed, as none is
+  expect(effect("style=glass&shape=0").look.shape).toBeNull();
+  // the blob turns with the angle too; its old depth and fill are no more
+  expect(
+    effectAddressParts(effect("style=blob&fill=1&depth=0&bg=%2310101480&shape=12&frost=0.5"), 135)
+  ).toEqual(["style=blob", "angle=135", "frost=0.5", "shape=12", "bg=%2310101480"]);
+  expect(effect("style=blob&bg=deep").look.bg).toBeNull();
+});
+
+test("a ground is hex, its alpha kept where it lets something through", () => {
+  expect(groundHex("FFF")).toBe("#ffffff");
+  expect(groundHex("#ff000080")).toBe("#ff000080");
+  expect(groundHex("f008")).toBe("#ff000088");
+  expect(groundHex("#123456ff")).toBe("#123456");
+  expect(groundHex("#12345600")).toBeNull();
+  expect(groundHex("red")).toBeNull();
+  expect(groundHex(" #ABCDEF ")).toBe("#abcdef");
+  expect(groundParts("#ff000080")).toEqual({ hex: "#ff0000", alpha: 128 / 255 });
+  expect(groundParts("#ff0000")).toEqual({ hex: "#ff0000", alpha: 1 });
+});
+
+test("a blob's still is named by its palette, its look and its angle, and read back", () => {
+  const look = effect("style=blob&shape=7&bg=%2310101480&frost=0.5").look;
+  const key = blobStillKey(SEED, look, 30);
+  expect(key).toBe(`${SEED}|0.5|7|#10101480|30`);
+  expect(readBlobStillKey(key)).toEqual({ seed: SEED, look, angle: 30 });
+  expect(readBlobStillKey(`${SEED}|1|7||400`)).toBeNull();
+  expect(readBlobStillKey(`${SEED}|1|7|`)).toBeNull();
 });
 
 test("an effect's file is named by the same address, its pictures at the size asked", () => {
@@ -79,9 +113,7 @@ test("with its still, the tags hold the first frame in the page itself, and the 
     )
   ).toBe(true);
   const blob = effectEmbedHtml("https://grabient.test", SEED, effect("style=blob"), 90, "url(x)");
-  expect(blob).toContain(
-    `html[${EMBED_PLAYING}]::before {\n  background-image: none;\n}\n</style>`
-  );
+  expect(blob).toContain(`html[${EMBED_PLAYING}]::before {\n  background: none;\n}\n</style>`);
   expect(effectLayerCss("glass", "red")).toBe(
     'html::before {\n  content: "";\n  position: fixed;\n  inset: 0;\n  z-index: -1;\n  pointer-events: none;\n  background: red;\n}\n'
   );

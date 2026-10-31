@@ -54,7 +54,11 @@ function Still(props: { page: SeedPage }) {
         /* the server's still, which the head's style paints into any holder that names it */
         <span
           class={styles.swatchStill}
-          data-glass-still={glassStillKey(glassColors(props.page.palette), props.page.view.angle)}
+          data-glass-still={glassStillKey(
+            glassColors(props.page.palette),
+            props.page.view.angle,
+            props.page.effect?.kind === "glass" ? props.page.effect.look.shape : null
+          )}
         />
       }
       label={t("Fluted glass")}
@@ -68,7 +72,10 @@ function Still(props: { page: SeedPage }) {
     <AppearanceButton
       swatch="transparent"
       swatchArt={
-        <span class={styles.swatchStill} data-blob-still={blobStillKey(props.page.seed, look)} />
+        <span
+          class={styles.swatchStill}
+          data-blob-still={blobStillKey(props.page.seed, look, props.page.view.angle)}
+        />
       }
       label={t("Blob")}
       summary={effectSummary(props.page.effect ?? EFFECT_PLAY, null)}

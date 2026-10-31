@@ -19,26 +19,20 @@ import { cardSize, pictureSize } from "./size.ts";
 const BANDS_DRAWING = "bands-1";
 /** The effects' drawings, counted up as the bands' is by a change that moves their pixels (engine/glass.ts and
     glass-render.ts, engine/blob.ts). */
-const EFFECT_DRAWING = { glass: "glass-1", blob: "blob-1" } as const;
+const EFFECT_DRAWING = { glass: "glass-1", blob: "blob-2" } as const;
 
-/** Everything an effect's first frame depends on: the glass's colors are its palette's and its ribs turn with the
-    angle; the blob's look, all but its pace, shapes it. */
+/** Everything an effect's first frame depends on: the glass's colors are its palette's, its ribs turn with the angle
+    and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and the angle lays its
+    palette. */
 const effectParts = (effect: Effect, angle: number) =>
   effect.kind === "glass"
-    ? [EFFECT_DRAWING.glass, angle]
-    : [
-        EFFECT_DRAWING.blob,
-        effect.look.depth,
-        effect.look.fill,
-        effect.look.frost,
-        effect.look.shape,
-        effect.look.bg
-      ];
+    ? [EFFECT_DRAWING.glass, angle, effect.look.shape ?? 0]
+    : [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg, angle];
 
 /** An effect's first frame at a size, as the editor shows it before it moves, in three bytes a pixel: the glass
-    covering the box (its CPU renderer, engine/glass-render.ts), the blob fitted in it on its own ground, or where it
-    has none on the near-black or near-white a picture that cannot be clear takes (engine/blob.ts). Their code comes
-    with the first picture that needs it. */
+    covering the box (its CPU renderer, engine/glass-render.ts), the blobs covering it on their own ground, laid over
+    the near-black or near-white a picture that cannot be clear takes where the ground lets it through or there is none
+    (engine/blob.ts). Their code comes with the first picture that needs it. */
 async function effectStill(
   found: Resolved,
   effect: Effect,
@@ -47,14 +41,19 @@ async function effectStill(
 ): Promise<Uint8Array<ArrayBuffer>> {
   if (effect.kind === "blob") {
     const blob = await import("@grabient/engine/blob.ts");
-    return blob.blobStill(found.palette, effect.look, size, blob.blobBackdrop(found.palette));
+    return blob.blobStill(
+      found.palette,
+      { ...effect.look, angle },
+      size,
+      blob.blobBackdrop(found.palette)
+    );
   }
   const [model, render, colors] = await Promise.all([
     import("@grabient/engine/glass.ts"),
     import("@grabient/engine/glass-render.ts"),
     import("@grabient/engine/glass-colors.ts")
   ]);
-  const { geometry, window } = render.glassCover(size, 1, angle);
+  const { geometry, window } = render.glassCover(size, 1, angle, effect.look.shape);
   const rgba = render
     .glassRenderer(geometry, window)
     .frame(model.glassField(geometry, colors.glassColors(found.palette)), 0);

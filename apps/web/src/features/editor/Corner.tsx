@@ -67,21 +67,25 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
     return s.look.shape === null ? { ...s, look: { ...s.look, shape: shapeOf(e.seed()) } } : s;
   };
   /* the effects' pictures, made once: the swatches and the menu's tiles */
-  const glassSwatch = <GlassArt colors={colors()} angle={e.angle()} />;
+  const glassShape = () => fx.settings("glass").look.shape;
+  const glassSwatch = <GlassArt colors={colors()} angle={e.angle()} shape={glassShape()} />;
   /* while the blob's picture loads, the server's still stands in its place, as on the first screen (EditorCorner.tsx) */
   const blobHeld = () => (
-    <span class={styles.swatchStill} data-blob-still={blobStillKey(e.seed(), blob().look)} />
+    <span
+      class={styles.swatchStill}
+      data-blob-still={blobStillKey(e.seed(), blob().look, e.angle())}
+    />
   );
   const blobSwatch = (
     <Loading fallback={blobHeld()}>
-      <BlobArt palette={e.palette()} settings={blob()} />
+      <BlobArt palette={e.palette()} settings={blob()} angle={e.angle()} />
     </Loading>
   );
   const extras: readonly ExtraTile[] = [
     {
       key: "glass",
       label: t("Fluted glass"),
-      art: <GlassArt colors={colors()} angle={e.angle()} />,
+      art: <GlassArt colors={colors()} angle={e.angle()} shape={glassShape()} />,
       get chosen() {
         return fx.kind() === "glass";
       },
@@ -95,7 +99,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       label: t("Blob"),
       art: (
         <Loading>
-          <BlobArt palette={e.palette()} settings={blob()} />
+          <BlobArt palette={e.palette()} settings={blob()} angle={e.angle()} />
         </Loading>
       ),
       get chosen() {

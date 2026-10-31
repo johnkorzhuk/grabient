@@ -1,5 +1,5 @@
 import { isBands } from "@grabient/engine/bands.ts";
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { groundHex, parseEffect } from "@grabient/engine/effect.ts";
 import {
   canonicalLocalePath,
   DEFAULT_LOCALE,
@@ -214,6 +214,20 @@ async function route(
   // has no server functions for Start's endpoint to call
   if (path.startsWith("//") || serverFunctionPath(path)) {
     return json({ error: msg("Not found") }, { status: 404 });
+  }
+  /* a blob's ground written in other words than hex (bg=red, bg=rgb(0 0 0 / 50%), any CSS color): the same address
+     with the hex its pages and files read (engine/effect.ts's groundHex), canonical where it is a page, found by the
+     color reader, which loads for such an address alone (css-color.ts); a ground that is no color, or none, goes */
+  const ground =
+    read && url.searchParams.get("style") === "blob" ? url.searchParams.get("bg") : null;
+  if (ground !== null && groundHex(ground) === null) {
+    const { cssColorText } = await import("@grabient/engine/css-color.ts");
+    const hex = cssColorText(ground);
+    const fixed = new URL(url);
+    if (hex) fixed.searchParams.set("bg", hex);
+    else fixed.searchParams.delete("bg");
+    const to = path + fixed.search;
+    return redirect(at(page ? (canonicalRedirect(to) ?? to) : to));
   }
   /* The build's files are served before the Worker runs, so one that reaches it is gone: an earlier deploy's chunk that
      a page open across a deploy or a crawler asks for, thousands a day, each of which rendered the not-found page with

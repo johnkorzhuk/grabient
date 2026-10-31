@@ -156,8 +156,8 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   }
   const view = viewAt(params, palette.anchors.length);
   /* an effect's script (embed.ts), one for every palette and setting, and its first frame: its stylesheet
-     (effect-files.ts), its picture and its card (images/cards.ts), all the glass's angle or the blob's look decide,
-     none of its pace; each kept for one build, as the bands' are */
+     (effect-files.ts), its picture and its card (images/cards.ts), all its angle and its look decide, none of its
+     pace; each kept for one build, as the bands' are */
   const effect = parseEffect(params);
   /* its moving SVG: its pace too, and its size */
   if (effect && file.format === "svg") {
@@ -165,7 +165,7 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     const query = new URLSearchParams(
       [`style=${effect.kind}`, ...effectParts(effect), ...(size ? [`size=${size}`] : [])].join("&")
     );
-    if (effect.kind === "glass") query.set("angle", String(view.angle));
+    query.set("angle", String(view.angle));
     return { path: `/${seed}.svg`, query, acrossBuilds: false };
   }
   if (effect && file.format === "js") {
@@ -180,7 +180,7 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     const query = new URLSearchParams(
       [`style=${effect.kind}`, ...effectLookParts(effect)].join("&")
     );
-    if (effect.kind === "glass") query.set("angle", String(view.angle));
+    query.set("angle", String(view.angle));
     if (file.format === "css") return { path: `/${seed}.css`, query, acrossBuilds: false };
     if (file.format === "png") return picture(`/${seed}.png`, query, pictureSize(params), false);
     query.set("seed", seed);

@@ -11,8 +11,10 @@
      4. Each rib's light: a factor of the lens gray (feComponentTransfer) that the last composite multiplies in.
    Every number the SVG writes is rounded once here and the arithmetic uses the rounded number, so the file and the
    players agree. Each disc rides an ellipse along the ribs by two counter-turning linear CSS rotations inside a
-   scale, which is the closed form glassDiscAt computes. The ribs depend on the size alone and the field on the
-   palette, so a recolor bakes nothing. This module is the model and its SVG, all a page needs to show the still;
+   scale, which is the closed form glassDiscAt computes. The ribs depend on the size, the angle and the shape alone and
+   the field on the palette and the shape, so a recolor bakes nothing. A shape (0 or none the design itself) draws the
+   discs from a seed of its own and varies the ribs within what still reads as the reference's glass: their width, how
+   fast they widen away from the middle and which way they bend. This module is the model and its SVG, all a page needs to show the still;
    glass-render.ts draws it by the CPU and prepares it for the GPU. */
 import type { Size } from "./view.ts";
 
@@ -25,7 +27,7 @@ export const GLASS_LOOP = 56;
 export const GLASS_DESIGN: Size = { width: 1000, height: 1000 };
 export const GLASS_SPEED_MIN = 0.1;
 export const GLASS_SPEED_MAX = 10;
-export const GLASS_FPS_MAX = 60;
+export const GLASS_FPS_MAX = 120;
 /** The angle the ribs run at as the hill climb drew them: the view's default (view.ts). Another angle turns them, and
     the discs' orbits along them, about the middle; the colors stay where they are. */
 export const GLASS_ANGLE = 90;
@@ -37,6 +39,8 @@ export interface GlassView {
   fps: number | null;
   /** The view's angle, in degrees, GLASS_ANGLE as designed. */
   angle?: number;
+  /** The shape: 0 or none as designed, another number its own ribs and discs. */
+  shape?: number | null;
 }
 
 /* The hill climb's numbers (W/blob-ref/proto/v4/final.json). Lengths are in the box's diagonal, or in pixels at the
@@ -94,17 +98,46 @@ function dice(seed: number) {
   };
 }
 
+type Geo = {
+  [K in keyof typeof T.geo]: (typeof T.geo)[K] extends readonly number[]
+    ? readonly number[]
+    : number;
+};
+
+/** A shape's seed for its numbers, scrambled so near shapes draw unlike ones. */
+const seedOf = (shape: number) => (Math.imul(shape + 1, 0x9e3779b1) ^ 0x5bd1e995) >>> 0;
+
+/** The ribs a shape draws: the hill climb's for 0 or none; another's as wide as 0.8 to 1.3 of them, widening away from
+    the middle 0.8 to 1.25 as fast, bent the other way half the time (mirrored across the ribs' run) and moved along
+    by a share of a rib. */
+function geoOf(shape: number | null | undefined): Geo {
+  if (!shape) return T.geo;
+  const rand = dice(seedOf(shape) ^ 0x2545f491);
+  const between = (least: number, most: number) => least + (most - least) * rand();
+  const mirror = rand() < 0.5 ? -1 : 1;
+  const widen = between(0.8, 1.25);
+  return {
+    ...T.geo,
+    arcC: [T.geo.arcC[0] * mirror, T.geo.arcC[1]],
+    arcDir: [T.geo.arcDir[0] * mirror, T.geo.arcDir[1]],
+    p0: T.geo.p0 * between(0.8, 1.3),
+    betaP: T.geo.betaP * widen,
+    betaM: T.geo.betaM * widen,
+    phase: T.geo.phase + rand()
+  };
+}
+
 /* The ribs: circles |p − (C + s·dir)| = R0 + g·s, p from the box's middle in diagonals; the pitch in s grows away from
    s0 by beta a step, so the rib index k(s) is a logarithm. `turn` (radians, clockwise on the screen) turns C and dir,
    and with them every rib, about the middle. */
-function ribs(W: number, H: number, turn: number) {
+function ribs(W: number, H: number, turn: number, geo: Geo = T.geo) {
   const c = Math.cos(turn);
   const sn = Math.sin(turn);
   const rot = (v: readonly number[]): [number, number] => [
     v[0] * c - v[1] * sn,
     v[0] * sn + v[1] * c
   ];
-  const g = { ...T.geo, arcC: rot(T.geo.arcC), arcDir: rot(T.geo.arcDir) };
+  const g = { ...geo, arcC: rot(geo.arcC), arcDir: rot(geo.arcDir) };
   const D = Math.hypot(W, H);
   const levelAt = (X: number, Y: number) => {
     const q0 = (X - W / 2) / D - g.arcC[0];
@@ -162,6 +195,8 @@ export interface GlassGeometry {
   height: number;
   /** the view's angle the ribs are turned to */
   angle: number;
+  /** the shape the ribs and the discs are drawn for: 0 as designed */
+  shape: number;
   D: number;
   ribs: GlassRib[];
   normal: { x1: number; y1: number; x2: number; y2: number; stops: [number, number, number][] };
@@ -176,9 +211,18 @@ export interface GlassGeometry {
   region: GlassRegion;
 }
 
-export function glassGeometry(size: Size, angle = GLASS_ANGLE): GlassGeometry {
+export function glassGeometry(
+  size: Size,
+  angle = GLASS_ANGLE,
+  shape: number | null = null
+): GlassGeometry {
   const { width: W, height: H } = size;
-  const { g, D, levelAt, kOf, sOf } = ribs(W, H, ((angle - GLASS_ANGLE) * Math.PI) / 180);
+  const { g, D, levelAt, kOf, sOf } = ribs(
+    W,
+    H,
+    ((angle - GLASS_ANGLE) * Math.PI) / 180,
+    geoOf(shape)
+  );
   const u = D / REF_D;
   /* the ribs the box shows */
   const edgeK: number[] = [];
@@ -295,6 +339,7 @@ export function glassGeometry(size: Size, angle = GLASS_ANGLE): GlassGeometry {
     width: W,
     height: H,
     angle,
+    shape: shape ?? 0,
     D,
     ribs: ribList,
     normal,
@@ -329,10 +374,10 @@ export interface GlassField {
 }
 
 /** The field of a palette's colors (glassColors) at speed 1: a player scales its clock by the speed, and an animated
-    SVG writes its durations over it. */
+    SVG writes its durations over it. Its discs are drawn from the hill climb's seed, or the geometry's shape's. */
 export function glassField(geometry: GlassGeometry, colors: readonly string[]): GlassField {
   const { width: W, height: H, D } = geometry;
-  const rand = dice(T.seed);
+  const rand = dice(geometry.shape ? seedOf(geometry.shape) : T.seed);
   const rows = Math.ceil(T.nPts / T.gridX);
   const discs: GlassDisc[] = [];
   for (let i = 0; i < T.nPts; i++) {
@@ -469,21 +514,26 @@ export function glassSvg(
   );
 }
 
-const designs = new Map<number, GlassGeometry>();
-/** The one design at an angle, its ribs worked out once for each angle. */
-export function glassDesign(angle: number): GlassGeometry {
-  let design = designs.get(angle);
+const designs = new Map<string, GlassGeometry>();
+/** The one design at an angle and a shape, its ribs worked out once for each. */
+export function glassDesign(angle: number, shape: number | null = null): GlassGeometry {
+  const key = `${angle}|${shape ?? 0}`;
+  let design = designs.get(key);
   if (!design) {
-    design = glassGeometry(GLASS_DESIGN, angle);
-    designs.set(angle, design);
+    design = glassGeometry(GLASS_DESIGN, angle, shape);
+    designs.set(key, design);
   }
   return design;
 }
 
 /** The first frame as a background covering its box, which a page paints before the player takes over: the one
-    design at the angle under the colors (glass-colors.ts), cropped to the box's shape. */
-export function glassStillBackground(colors: readonly string[], angle: number): string {
-  const design = glassDesign(angle);
+    design at the angle and the shape under the colors (glass-colors.ts), cropped to the box's shape. */
+export function glassStillBackground(
+  colors: readonly string[],
+  angle: number,
+  shape: number | null = null
+): string {
+  const design = glassDesign(angle, shape);
   const svg = glassSvg(design, glassField(design, colors), { still: true, cover: true });
   return `url("${glassDataUri(svg)}") 50% 50%/cover no-repeat`;
 }

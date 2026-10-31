@@ -21,20 +21,27 @@ export const loadBlob = (): Promise<void> =>
 export const serverBlobStill = (key: string): boolean =>
   typeof document !== "undefined" && document.getElementById(BLOB_STILL_STYLE)?.dataset.key === key;
 
-/** The blob's view of an effect's settings: moving at its speed (0 holds the first frame), or its first frame alone. */
-export const blobViewOf = (s: EffectSettings, still = false): BlobView => ({
+/** The blob's view of an effect's settings at the view's angle: moving at its speed (0 holds the first frame), or its
+    first frame alone. */
+export const blobViewOf = (s: EffectSettings, angle: number, still = false): BlobView => ({
   speed: s.speed,
   fps: s.fps,
   still,
-  depth: s.look.depth,
-  fill: s.look.fill,
   frost: s.look.frost,
   shape: s.look.shape,
-  bg: s.look.bg
+  bg: s.look.bg,
+  angle
 });
 
-/** The blob's first frame as a background for a box of any size (engine/blob.ts's blobStillBackground), on `ground`
-    where the blob has none of its own, or null while its code loads. */
-export function blobStillBackground(P: Palette, s: EffectSettings, ground?: string): string | null {
-  return blob ? blob.blobStillBackground(P, { ...blobViewOf(s, true), speed: 1 }, ground) : null;
+/** The blob's first frame at the angle as a background for a box of any size (engine/blob.ts's blobStillBackground),
+    on `ground` where the blob has none of its own, or null while its code loads. */
+export function blobStillBackground(
+  P: Palette,
+  s: EffectSettings,
+  angle: number,
+  ground?: string
+): string | null {
+  return blob
+    ? blob.blobStillBackground(P, { ...blobViewOf(s, angle, true), speed: 1 }, ground)
+    : null;
 }

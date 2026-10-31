@@ -171,8 +171,14 @@ function HeroEffect(props: { P: Palette; seed: string; effect: Effect; angle: nu
   const kind = props.effect.kind;
   const named =
     kind === "glass"
-      ? { "data-glass-still": glassStillKey(glassColors(props.P), props.angle) }
-      : { "data-blob-still": blobStillKey(props.seed, props.effect.look) };
+      ? {
+          "data-glass-still": glassStillKey(
+            glassColors(props.P),
+            props.angle,
+            props.effect.look.shape
+          )
+        }
+      : { "data-blob-still": blobStillKey(props.seed, props.effect.look, props.angle) };
   onSettled(() => {
     if (props.effect.speed === 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let alive = true;
@@ -180,17 +186,26 @@ function HeroEffect(props: { P: Palette; seed: string; effect: Effect; angle: nu
     const drawn = () => requestAnimationFrame(() => alive && setCovered(true));
     const made =
       kind === "glass"
-        ? import("@grabient/ui/glass-player.ts").then(m =>
+        ? (import.meta.env.SSR
+            ? (new Promise(() => {}) as never)
+            : import("@grabient/ui/glass-player.ts")
+          ).then(m =>
             m.playGlass(
               canvas,
               props.P,
-              { speed: props.effect.speed, fps: props.effect.fps, angle: props.angle },
+              {
+                speed: props.effect.speed,
+                fps: props.effect.fps,
+                angle: props.angle,
+                shape: props.effect.look.shape
+              },
               drawn
             )
           )
-        : import("@grabient/ui/blob-player.ts").then(m =>
-            m.playBlob(canvas, props.P, blobViewOf(props.effect), drawn)
-          );
+        : (import.meta.env.SSR
+            ? (new Promise(() => {}) as never)
+            : import("@grabient/ui/blob-player.ts")
+          ).then(m => m.playBlob(canvas, props.P, blobViewOf(props.effect, props.angle), drawn));
     void made.then(
       p => {
         if (alive) player = p;
@@ -322,8 +337,14 @@ function EffectExamples(props: {
   const card = () => `${props.origin}${effectCard(props.seed, props.effect, props.angle)}`;
   const still = () =>
     props.effect.kind === "glass"
-      ? { "data-glass-still": glassStillKey(glassColors(props.P), props.angle) }
-      : { "data-blob-still": blobStillKey(props.seed, props.effect.look) };
+      ? {
+          "data-glass-still": glassStillKey(
+            glassColors(props.P),
+            props.angle,
+            props.effect.look.shape
+          )
+        }
+      : { "data-blob-still": blobStillKey(props.seed, props.effect.look, props.angle) };
   const art = (where: Where) => (
     <EffectArt
       kind={props.effect.kind}
