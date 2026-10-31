@@ -102,7 +102,7 @@ export function ExamplesPage(props: { seed: string; view: View; effect: Effect |
       : cssLine(stops(), props.view.style, props.view.angle, "hex");
   return (
     <AppPage>
-      <article class={styles.page}>
+      <main id="main" class={styles.page}>
         <section class={styles.hero} aria-labelledby={heading}>
           <div class={styles.backdrop} aria-hidden="true">
             <Show
@@ -165,7 +165,7 @@ export function ExamplesPage(props: { seed: string; view: View; effect: Effect |
             </section>
           )}
         </Show>
-      </article>
+      </main>
     </AppPage>
   );
 }
