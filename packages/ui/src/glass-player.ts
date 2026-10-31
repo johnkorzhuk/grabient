@@ -395,7 +395,9 @@ export function playGlass(
     const w = Math.max(1, Math.round(w0 * fit));
     const h = Math.max(1, Math.round(h0 * fit));
     drawing.recolor(glassColors(palette_));
-    if (drawing.layout(w, h, view_.angle ?? GLASS_ANGLE, view_.shape ?? null)) {
+    drawing.layout(w, h, view_.angle ?? GLASS_ANGLE, view_.shape ?? null);
+    /* a canvas given a size, even the one it has, throws its drawing buffer away and makes another */
+    if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
     }

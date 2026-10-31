@@ -21,6 +21,8 @@ interface Player {
 interface Session {
   canvas: HTMLCanvasElement;
   player: Player;
+  /** made ahead and never laid out: it takes the size of the card it goes to */
+  fresh?: boolean;
 }
 
 /* the players are the browser's alone: the server's build carries neither */
@@ -31,15 +33,19 @@ interface Session {
    lights. */
 const POOL = 2;
 const pool: Record<EffectKind, Session[]> = { glass: [], blob: [] };
-/** A player kept for a box this size in device pixels, taken out of the pool; none where none fits. */
+/** A player kept for a box this size in device pixels, or one made ahead, taken out of the pool; none where none
+    fits. */
 function pooled(kind: EffectKind, width: number, height: number): Session | null {
   const dpr = devicePixelRatio || 1;
   const at = pool[kind].findIndex(
     s =>
-      Math.abs(s.canvas.width - Math.round(width * dpr)) <= 2 &&
-      Math.abs(s.canvas.height - Math.round(height * dpr)) <= 2
+      s.fresh ||
+      (Math.abs(s.canvas.width - Math.round(width * dpr)) <= 2 &&
+        Math.abs(s.canvas.height - Math.round(height * dpr)) <= 2)
   );
-  return at < 0 ? null : (pool[kind].splice(at, 1)[0] ?? null);
+  const s = at < 0 ? null : (pool[kind].splice(at, 1)[0] ?? null);
+  if (s) s.fresh = false;
+  return s;
 }
 /** A player let go: kept for the next card where there is room, its loop stopped; otherwise gone with its context. */
 function release(kind: EffectKind, s: Session): void {
@@ -57,6 +63,41 @@ const players = {
   blob: () =>
     import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/blob-player.ts")
 };
+
+/* One player of the kind the cards play, made ahead as the page idles once its still is painted (painted.ts), where a
+   pointer can light a card: the first card lit takes it from the pool, so no hover waits on making a WebGL context,
+   some tens of milliseconds on the page's thread and its first extension as long again. Its canvas is off the page,
+   never laid out, held at its first frame, its drawing buffer already the size of the card that asked; the first card
+   it goes to lays it out. */
+const readied: Partial<Record<EffectKind, true>> = {};
+async function makeAhead(
+  kind: EffectKind,
+  palette: Palette,
+  view: unknown,
+  size: { width: number; height: number }
+): Promise<void> {
+  if (readied[kind] || pool[kind].length || !matchMedia("(hover: hover)").matches) return;
+  readied[kind] = true;
+  if (import.meta.env.SSR) return;
+  await (await import("./painted.ts")).stillPainted();
+  const code = await players[kind]();
+  if (pool[kind].length) return;
+  const canvas = document.createElement("canvas");
+  canvas.className = styles.canvas;
+  /* the cards' size in device pixels, as a player measures it: its buffer made now, not under the pointer */
+  const dpr = devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(size.width * dpr));
+  canvas.height = Math.max(1, Math.round(size.height * dpr));
+  const player =
+    "playGlass" in code
+      ? code.playGlass(canvas, palette, view as Parameters<typeof code.playGlass>[2], undefined, {
+          ease: false
+        })
+      : code.playBlob(canvas, palette, view as Parameters<typeof code.playBlob>[2], undefined, {
+          ease: false
+        });
+  if (player) release(kind, { canvas, player, fresh: true });
+}
 
 /** Everything a card's picture of an effect needs, fetched before a card asks: its players' code and its still's. */
 export function preloadEffectArt(kind: EffectKind): void {
@@ -92,9 +133,19 @@ export function EffectArt(props: {
     const read = () => setReduced(motion.matches);
     read();
     motion.addEventListener("change", read);
-    /* the players' code, while the page idles */
+    /* the players' code while the page idles, and a player made ahead for the first card lit */
     const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200));
-    idle(() => void players[untrack(() => props.kind)]().catch(() => {}));
+    idle(() => {
+      const kind = untrack(() => props.kind);
+      void players[kind]().catch(() => {});
+      if (untrack(() => props.settings.speed) > 0)
+        void makeAhead(
+          kind,
+          untrack(() => props.palette),
+          { ...untrack(view), speed: 0 },
+          holder.getBoundingClientRect()
+        ).catch(() => {});
+    });
     return () => motion.removeEventListener("change", read);
   });
   const moving = () => props.active && props.settings.speed > 0 && !reduced();
