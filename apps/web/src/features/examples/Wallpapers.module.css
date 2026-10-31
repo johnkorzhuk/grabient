@@ -1,0 +1,175 @@
+@layer components {
+  /* Wallpapers (Wallpapers.tsx): a phone and a desktop standing on one line on a wide page, each with its download under
+     it, one above the other where the desktop beside the phone would be too narrow for its clock's words to keep to
+     the part of the screen their ink is chosen for. Each screen wears the palette with its clock where its ink reads
+     (data-at), its words sized by the screen's width. The devices' black glass is the same in both themes, as hardware
+     is: it is part of the picture, as the palette is. */
+  .stage {
+    --hardware: #0a0a0c;
+    display: grid;
+    grid-template-columns: auto minmax(0, 600px);
+    align-items: end;
+    justify-content: center;
+    gap: var(--space-s12);
+    width: 100%;
+    @container page (max-width: 800px) {
+      grid-template-columns: minmax(0, 600px);
+      gap: var(--space-s8);
+    }
+  }
+  .device {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-s4);
+    width: 100%;
+    min-width: 0;
+  }
+  /* the black edge around a screen: a phone's round corners, a monitor's thin edge on its stand */
+  .frame {
+    width: 196px;
+    padding: 5px;
+    border-radius: 31px;
+    background-color: var(--hardware);
+    box-shadow:
+      0 0 0 1px var(--color-edge2),
+      var(--color-shadow);
+    .monitor > & {
+      width: 100%;
+      padding: 7px;
+      border-radius: var(--radius-tight);
+    }
+  }
+  .monitor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    /* its neck, then its foot */
+    &::before,
+    &::after {
+      content: "";
+      background-color: var(--color-paper3);
+    }
+    &::before {
+      order: 1;
+      width: 12%;
+      aspect-ratio: 2;
+    }
+    &::after {
+      order: 2;
+      width: 32%;
+      height: 6px;
+      border-radius: var(--radius-tight) var(--radius-tight) 0 0;
+    }
+  }
+  .screen {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    container-type: inline-size;
+    aspect-ratio: 1080 / 2340;
+    border-radius: 26px;
+    /* where the clock stands, from the screen's edges; a phone's date no wider than its hours, a long one on two lines */
+    --edge: 8cqi;
+    --top: 22cqi;
+    --middle: 78cqi;
+    --widest: 36cqi;
+    .monitor & {
+      aspect-ratio: 16 / 9;
+      border-radius: 1px;
+      --edge: 4cqi;
+      --top: 4cqi;
+      --middle: 21cqi;
+      --widest: 44cqi;
+    }
+  }
+  .paint {
+    position: absolute;
+    inset: 0;
+  }
+  .clock {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-inline-size: var(--widest);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    &[data-at^="top"] {
+      inset-block-start: var(--top);
+    }
+    &[data-at^="middle"] {
+      inset-block-start: var(--middle);
+    }
+    &[data-at^="bottom"] {
+      inset-block-end: var(--edge);
+    }
+    &[data-at$="start"] {
+      inset-inline-start: var(--edge);
+    }
+    &[data-at$="end"] {
+      inset-inline-end: var(--edge);
+      align-items: flex-end;
+      text-align: end;
+    }
+    &[data-at$="center"] {
+      inset-inline: 0;
+      width: max-content;
+      margin-inline: auto;
+      align-items: center;
+      text-align: center;
+    }
+  }
+  .digits {
+    font-size: 28cqi;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .time {
+    font-size: max(20px, 6.5cqi);
+    line-height: var(--font-lh-none);
+    letter-spacing: -0.02em;
+  }
+  .day {
+    margin-block-start: 2.5cqi;
+    font-size: 6cqi;
+    line-height: 1.25;
+    text-wrap: balance;
+    .monitor & {
+      margin-block-start: 0.8cqi;
+      font-size: max(10px, 2.1cqi);
+      line-height: 1.3;
+    }
+  }
+  .camera {
+    position: absolute;
+    inset-block-start: 3.5cqi;
+    inset-inline: 0;
+    width: 4.5cqi;
+    aspect-ratio: 1;
+    margin-inline: auto;
+    border-radius: var(--radius-circle);
+    background-color: var(--hardware);
+  }
+  /* the download, a real press among the pictures: forced colors draw it as they draw every control */
+  .take {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-s2) var(--space-s3);
+    forced-color-adjust: auto;
+  }
+  .size {
+    color: var(--color-ink3);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+  }
+  /* a clock's contrast in the chip, the tag's ink */
+  .value {
+    color: var(--color-ink);
+  }
+}

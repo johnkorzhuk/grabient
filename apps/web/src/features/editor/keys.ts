@@ -25,10 +25,11 @@ export const keyOf = (id: string, i = 0): string => {
   return key ? showKey(key) : "";
 };
 
-/* A held key repeats faster than the editor can draw what each press makes, and every repeat it cannot draw waits
-   behind the last: its repeats change the palette at most once a drawn frame, so each change is seen and none queues. */
 let drawing = false;
-const onceAFrame =
+/** A held key repeats faster than a page can draw what each press makes, and every repeat it cannot draw waits behind
+    the last: its repeats change the palette at most once a drawn frame, so each change is seen and none queues. The
+    editor's keys and a palette's examples' alike. */
+export const onceAFrame =
   (run: Binding["run"]): Binding["run"] =>
   i => {
     if (keyPress()?.repeat) {

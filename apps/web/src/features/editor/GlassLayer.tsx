@@ -141,7 +141,9 @@ export function GlassLayer(props: { palette: Palette; view: GlassView }) {
       pending = requestAnimationFrame(() => fill(next.colors, next.at, next.form));
     }
   );
+  /* the server draws the layer for a page's first paint (the examples' hero) and has no frames to cancel */
   onCleanup(() => {
+    if (import.meta.env.SSR) return;
     cancelAnimationFrame(pending);
     cancelAnimationFrame(letting);
     clearTimeout(resting);
@@ -157,6 +159,11 @@ export function GlassLayer(props: { palette: Palette; view: GlassView }) {
           fill(colors, untrack(angle), untrack(shape));
         }}
         class={styles.glassStill}
+        /* named as the page is drawn, so a page the server draws with this layer has the still in its first paint
+           (server/glass-still.ts); the name follows the palette from here */
+        data-glass-still={untrack(() =>
+          glassStillKey(glassColors(props.palette), angle(), shape())
+        )}
         /* the player makes its context once the browser has painted this (painted.ts's STILL_TIMING) */
         elementtiming="effect-still"
       />

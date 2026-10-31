@@ -12,6 +12,9 @@ import { t } from "./i18n.ts";
 export function CopyButton(props: {
   /** what a press copies */
   text: string;
+  /** what a press copies where it is made then, in place of `text`: the shown text with the parts it leaves out
+      written in whole (an effect's first frame inside its tags) */
+  take?: () => Promise<string>;
   /** its name at rest, saying what it copies */
   "aria-label"?: string;
   /** a press happened, before the browser answers */
@@ -27,9 +30,9 @@ export function CopyButton(props: {
   const done = () => props.state === "copied" || copied() !== null;
   const label = () => (done() ? t("Copied") : (props["aria-label"] ?? t("Copy")));
   const copy = async () => {
-    const text = props.text;
+    const text = props.take ? await props.take().catch(() => "") : props.text;
     props.onCopy?.(text);
-    if (await copyText(text)) {
+    if (text && (await copyText(text))) {
       mark(true);
       announce(t("Copied"));
     } else if (props.onRefused) {

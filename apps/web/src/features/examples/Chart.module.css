@@ -1,0 +1,246 @@
+@layer components {
+  /* The charts (Chart.tsx): a small dashboard on the stage in the tile theme its checks chose (data-theme on the board),
+     the charts that want the width across it and the others two to a row, one over another on a narrow page. The
+     palette's colors fill the marks; words keep the tiles' inks, and a number inside a color takes the ink the code
+     chose for it. Nothing changes under the pointer. */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-s4);
+    width: min(100%, 880px);
+    @container page (max-width: 800px) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-s3);
+    }
+  }
+  /* a tile: its title and period over its chart, whose parts lay themselves out by the tile's own width */
+  .tile {
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    min-width: 0;
+    padding: var(--space-s5);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-surface);
+    background-color: var(--color-paper-solid);
+    box-shadow: var(--color-shadow);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    &[data-wide] {
+      grid-column: 1 / -1;
+    }
+    @container page (max-width: 600px) {
+      padding: var(--space-s4);
+    }
+  }
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-s1) var(--space-s4);
+  }
+  .title {
+    margin: 0;
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs4);
+    line-height: var(--font-lh-ui);
+  }
+  .period,
+  .caption {
+    color: var(--color-ink3);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+  }
+
+  /* the numbers inside the marks, each in the ink chosen for its color, centered on its mark */
+  .marks {
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs1);
+    font-variant-numeric: tabular-nums;
+    & text {
+      dominant-baseline: central;
+    }
+  }
+  /* marks that touch: a gap of the tile's own paper between two, as wide however the chart is stretched */
+  .gaps :is(rect, path) {
+    stroke: var(--color-paper-solid);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* the series' names beside their colors */
+  .keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s1) var(--space-s4);
+    margin: 0;
+    padding: 0;
+    color: var(--color-ink2);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    list-style: none;
+    & li {
+      display: flex;
+      align-items: center;
+      gap: var(--space-s2);
+    }
+  }
+  .key {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: calc(var(--radius-tight) / 2);
+  }
+  /* the bars: a month's name beside its bar, row for row (Chart.tsx sets the rows' height and gap) */
+  .bars {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-s3);
+    align-items: start;
+  }
+  .months {
+    display: grid;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    color: var(--color-ink3);
+    font-size: var(--font-fs2);
+    line-height: 1;
+    list-style: none;
+  }
+  .plot {
+    display: block;
+    width: 100%;
+  }
+
+  /* the donut, in the middle of the room it is given */
+  .round {
+    display: block;
+    width: 200px;
+    aspect-ratio: 1;
+    margin: auto;
+  }
+  .total {
+    fill: var(--color-ink);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs6);
+    letter-spacing: var(--font-ls-title);
+  }
+  .unit {
+    fill: var(--color-ink3);
+    font-size: var(--font-fs1);
+  }
+
+  /* the trends: the chart in the tile's room left over, stretched to it, and its labels along the foot */
+  .trend {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: var(--space-s2);
+  }
+  .frame {
+    position: relative;
+    flex-grow: 1;
+    min-height: 120px;
+  }
+  .fill {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .line {
+    fill: none;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+  .wash {
+    opacity: 0.14;
+  }
+  /* the latest week: a dot in its color, ringed in the tile's paper */
+  .dot {
+    position: absolute;
+    inset-inline-end: 0;
+    width: 8px;
+    height: 8px;
+    margin-block-start: -4px;
+    margin-inline-end: -4px;
+    border-radius: var(--radius-circle);
+    box-shadow: 0 0 0 2px var(--color-paper-solid);
+  }
+  .axis {
+    position: relative;
+    height: calc(var(--font-fs1) * var(--font-lh-ui));
+    color: var(--color-ink3);
+    font-size: var(--font-fs1);
+    line-height: var(--font-lh-ui);
+    & > span {
+      position: absolute;
+      white-space: nowrap;
+    }
+  }
+
+  /* the calendar beside its month's figure and scale; over them in a narrow tile */
+  .body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-s8);
+    align-items: center;
+    @container (max-width: 560px) {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+      gap: var(--space-s5);
+    }
+  }
+  .calendar {
+    display: block;
+    width: 340px;
+    max-width: 100%;
+    height: auto;
+  }
+  .weekday {
+    fill: var(--color-ink3);
+    font-size: var(--font-fs1);
+  }
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s6);
+    width: 100%;
+    max-width: 360px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+  .figure {
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs7);
+    line-height: var(--font-lh-tight);
+    letter-spacing: var(--font-ls-title);
+  }
+  /* the scale runs as the palette does, from the fewest at its left to the most */
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s1);
+    direction: ltr;
+  }
+  .scale {
+    height: 10px;
+    border-radius: calc(var(--radius-tight) / 2);
+  }
+  .ends {
+    display: flex;
+    justify-content: space-between;
+    color: var(--color-ink3);
+    font-size: var(--font-fs1);
+    font-variant-numeric: tabular-nums;
+  }
+}

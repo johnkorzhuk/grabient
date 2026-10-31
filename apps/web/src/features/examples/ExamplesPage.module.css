@@ -1,41 +1,37 @@
 @layer components {
-  /* A palette's examples (ExamplesPage.tsx): the hero, the palette as a large background in its style with the code
-     that puts it there on a card of paper over it, then the examples, side by side where there is room and one under
-     another on a phone. */
+  /* A palette's examples (ExamplesPage.tsx): the hero from the window's top, edge to edge, then the examples in one
+     column, centered, at the lists' margins. */
   .page {
+    --examples-column: 1120px;
     display: flex;
     flex-direction: column;
-    gap: var(--space-s12);
+    gap: var(--space-s16);
     width: 100%;
     min-width: 0;
-    padding-inline: var(--size-gutter);
-    padding-block: var(--space-s4) var(--space-s16);
-    /* a phone's side margin, as the lists' (app/list.module.css) */
-    @container page (max-width: 800px) {
-      padding-inline: var(--space-s4);
-    }
+    padding-block-end: var(--space-s16);
     @container page (max-width: 600px) {
-      gap: var(--space-s10);
+      gap: var(--space-s12);
     }
   }
 
+  /* The hero runs up under the header, whose bar and rule it pulls in under, so the palette reaches the window's top;
+     its parts stand clear of the header and of the screen's sides at the lists' margins. On a phone it is a screen
+     tall, the code at its foot over the palette as on a wide screen. */
   .hero {
     position: relative;
-    display: grid;
-    align-content: end;
-    justify-items: start;
-    min-height: clamp(460px, 74vh, 780px);
-    padding: var(--space-s8);
-    border-radius: var(--radius-surface);
-    overflow: hidden;
     isolation: isolate;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: var(--space-s8);
+    min-height: max(640px, 92svh);
+    margin-block-start: calc(-1 * (var(--size-top) + var(--size-hairline)));
+    padding: calc(var(--size-top) + var(--space-s4)) var(--size-gutter) var(--space-s10);
+    @container page (max-width: 800px) {
+      padding-inline: var(--space-s4);
+      padding-block-end: var(--space-s6);
+    }
     @container page (max-width: 600px) {
-      min-height: 0;
-      padding: 0;
-      /* on a phone the picture stands above the card, a screen tall at most */
-      grid-template-rows: min(62vh, 520px) auto;
-      align-content: start;
-      border-radius: var(--radius-surface);
+      min-height: max(560px, 100svh);
     }
   }
   .backdrop {
@@ -44,350 +40,88 @@
     z-index: -1;
     /* the palette's colors are the content: forced colors leave them as they are */
     forced-color-adjust: none;
-    @container page (max-width: 600px) {
-      position: relative;
-      inset: auto;
-      grid-row: 1;
-      /* the row's whole width: its picture is all placed, so the hero's start alignment would leave it none */
-      justify-self: stretch;
-      border-radius: var(--radius-surface);
-      overflow: hidden;
-    }
   }
   .fill {
     position: absolute;
     inset: 0;
   }
-  /* the effect: its still, painted by the server in the first paint, and the player's canvas over it once its first
-     frame is drawn, which is the still's */
-  .effect {
-    position: absolute;
-    inset: 0;
+  /* the way back to the editor at the row's start, a random palette at its end */
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s2);
   }
-  .still,
-  .canvas {
-    position: absolute;
-    inset: 0;
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-  .canvas {
-    opacity: 0;
-  }
-  .effect[data-covered] > .canvas {
-    opacity: 1;
-  }
-  /* the blob's canvas is clear around the blob: it and its still change places */
-  .effect[data-kind="blob"][data-covered] > .still {
-    opacity: 0;
-  }
-
-  .panel {
+  /* The words and the code at the hero's foot, in the theme that reads on the colors under them (tone.ts): no sheet of
+     their own, their ink the theme's and the code's paper too. Where neither theme reads they stand on a sheet of the
+     page's own. */
+  .words {
+    grid-row: 3;
     display: flex;
     flex-direction: column;
-    gap: var(--space-s4);
-    width: min(100%, 620px);
+    gap: var(--space-s3);
+    width: min(100%, 640px);
     min-width: 0;
-    padding: var(--space-s6);
-    border: 1px solid var(--color-edge);
-    border-radius: var(--radius-surface);
-    background: var(--color-paper-solid);
-    box-shadow: 0 18px 48px -24px var(--color-shadow);
+    /* where the examples' column starts below, so the page reads down one edge on a wide screen */
+    margin-inline-start: max(0px, (100% - var(--examples-column)) / 2);
+    color: var(--color-ink);
+    /* the code is a taste of the whole, which Copy takes: a few lines show, the rest scroll, so the palette stays the
+       hero's (the code block's tallest is this token) */
+    --size-code: 320px;
     @container page (max-width: 600px) {
-      grid-row: 2;
-      width: 100%;
-      padding: var(--space-s5) 0 0;
-      border: 0;
-      background: none;
-      box-shadow: none;
+      --size-code: 248px;
+    }
+    &[data-sheet] {
+      padding: var(--space-s6);
+      border: 1px solid var(--color-edge);
+      border-radius: var(--radius-surface);
+      background-color: var(--color-paper-solid);
+      box-shadow: var(--color-shadow);
+    }
+    @container page (max-width: 600px) {
+      &[data-sheet] {
+        padding: var(--space-s4);
+      }
     }
   }
   .kicker {
-    margin: 0;
-    color: var(--color-ink3);
     font-family: var(--font-sans);
     font-weight: var(--font-medium);
     font-size: var(--font-fs1);
     line-height: var(--font-lh-ui);
-    letter-spacing: var(--font-ls-wide);
+    letter-spacing: var(--font-ls-micro);
     text-transform: uppercase;
   }
   .title {
     margin: 0;
-    color: var(--color-ink);
     font-family: var(--font-sans);
     font-weight: var(--font-bold);
-    font-size: var(--font-fs6);
+    font-size: clamp(32px, 3.6vw, 52px);
     line-height: var(--font-lh-tight);
     letter-spacing: var(--font-ls-title);
+    text-wrap: balance;
     overflow-wrap: anywhere;
   }
-  .note {
-    margin: 0;
-    color: var(--color-ink3);
+  .drawn {
+    margin: 0 0 var(--space-s2);
     font-family: var(--font-sans);
     font-weight: var(--font-medium);
-    font-size: var(--font-fs2);
-    line-height: var(--font-lh-prose);
-  }
-  .back {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    gap: var(--space-s2);
-    color: var(--color-ink);
-    font-family: var(--font-sans);
-    font-weight: var(--font-medium);
-    font-size: var(--font-fs2);
-    line-height: var(--font-lh-ui);
-    text-decoration: underline;
-    text-decoration-color: var(--color-edge2);
-    text-underline-offset: 3px;
-    &:hover {
-      text-decoration-color: currentColor;
-    }
-    &:focus-visible {
-      outline: 1px solid var(--color-ring);
-      outline-offset: 2px;
-      border-radius: var(--radius-tight);
-    }
-  }
-
-  /* a block of code, and its Copy at its foot with whatever else takes the example */
-  .takes {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-s2);
-  }
-  .code {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-s3);
-    min-width: 0;
-    & pre {
-      width: 100%;
-      max-height: 15em;
-      margin: 0;
-      padding: var(--space-s4) var(--space-s5);
-      overflow: auto;
-      border-radius: var(--radius-control);
-      background: var(--color-paper2);
-      color: var(--color-ink2);
-      font-family: var(--font-mono);
-      font-size: var(--font-fs1);
-      line-height: 1.6;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      tab-size: 2;
-    }
-  }
-
-  .examples {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-    gap: var(--space-s10) var(--space-s8);
-    min-width: 0;
-    /* an effect's examples two by two, the wide ones across */
-    &[data-pairs] {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      @container page (max-width: 760px) {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-  }
-  .example {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-s4);
-    min-width: 0;
-    margin: 0;
-    &[data-wide] {
-      grid-column: 1 / -1;
-    }
-  }
-  /* where an example stands: its picture centered on the sheet's second paper */
-  .stage {
-    position: relative;
-    display: grid;
-    place-items: center;
-    aspect-ratio: 4 / 3;
-    padding: var(--space-s6);
-    border-radius: var(--radius-surface);
-    background: var(--color-paper2);
-    overflow: hidden;
-    forced-color-adjust: none;
-  }
-  .example[data-wide] .stage {
-    aspect-ratio: auto;
-    min-height: 360px;
-  }
-  .caption {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-s1);
-    min-width: 0;
-  }
-  .name {
-    color: var(--color-ink);
-    font-family: var(--font-sans);
-    font-weight: var(--font-medium);
-    font-size: var(--font-fs3);
+    font-size: var(--font-fs4);
     line-height: var(--font-lh-ui);
   }
-  .about {
-    color: var(--color-ink3);
-    font-family: var(--font-sans);
-    font-weight: var(--font-medium);
-    font-size: var(--font-fs2);
-    line-height: var(--font-lh-prose);
-  }
 
-  /* each gradient style as the background of a shape it suits */
-  .shape {
-    display: block;
-    border-radius: var(--radius-surface);
-    box-shadow: 0 10px 30px -18px var(--color-shadow);
-    &[data-style="linearGradient"] {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-    }
-    &[data-style="linearSwatches"] {
-      width: 100%;
-      aspect-ratio: 3 / 1;
-      border-radius: var(--radius-control);
-    }
-    &[data-style="angularGradient"],
-    &[data-style="angularSwatches"],
-    &[data-style="radialGradient"],
-    &[data-style="radialSwatches"] {
-      height: 82%;
-      aspect-ratio: 1;
-      border-radius: var(--radius-circle);
-    }
-  }
-
-  /* the effect behind a card: its picture fills the card, and over it the card's own matter on paper */
-  .card {
-    position: relative;
-    display: flex;
-    align-items: flex-end;
-    width: min(100%, 720px);
-    aspect-ratio: 16 / 9;
-    padding: var(--space-s6);
-    border-radius: var(--radius-surface);
-    overflow: hidden;
-    box-shadow: 0 24px 60px -30px var(--color-shadow);
-    isolation: isolate;
-  }
-  .cardBody {
-    position: relative;
+  /* the examples, one under another, at the lists' margins and no wider than a page reads well */
+  .sections {
     display: flex;
     flex-direction: column;
-    gap: var(--space-s3);
-    width: min(100%, 300px);
-    padding: var(--space-s5);
-    border-radius: var(--radius-surface);
-    background: var(--color-paper-solid);
-  }
-  .cardLine {
-    display: block;
-    width: 80%;
-    height: 10px;
-    border-radius: var(--radius-circle);
-    background: var(--color-ink);
-    opacity: 0.85;
-    &[data-short] {
-      width: 55%;
-      opacity: 0.35;
-    }
-  }
-  .cardPress {
-    display: block;
-    width: 96px;
-    height: 28px;
-    margin-top: var(--space-s2);
-    border-radius: var(--radius-control);
-    background: var(--color-ink);
-  }
-
-  /* a phone, its screen the wallpaper */
-  .phone {
-    position: relative;
-    height: 100%;
-    aspect-ratio: 1080 / 2340;
-    border: 5px solid var(--color-ink);
-    border-radius: 28px;
-    overflow: hidden;
-    box-shadow: 0 18px 40px -22px var(--color-shadow);
-    background: var(--color-ink);
-  }
-  .stage:has(.phone) {
-    aspect-ratio: 4 / 3;
-    padding-block: var(--space-s5);
-  }
-
-  /* the effect inside a headline's letters: its still at rest (the holder's background, which the server paints), its
-     moving SVG under the pointer; the clip is inline, over the still's rule */
-  .headline {
-    margin: 0;
-    padding-block: 0.06em;
-    font-family: var(--font-sans);
-    font-weight: var(--font-bold);
-    font-size: clamp(44px, 7.4vw, 120px);
-    line-height: 1;
-    letter-spacing: -0.035em;
-    text-align: center;
-    text-wrap: balance;
-    color: transparent;
-  }
-  .example[data-wide] .stage:has(.headline) {
-    min-height: 300px;
-    background: var(--color-paper-solid);
-    border: 1px solid var(--color-edge);
-  }
-
-  /* a desktop: its screen the wallpaper, on a stand */
-  .desktop {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 86%;
-  }
-  .screen {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border: 5px solid var(--color-ink);
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--color-ink);
-    box-shadow: 0 18px 40px -22px var(--color-shadow);
-  }
-  .desktop::after {
-    content: "";
-    display: block;
-    width: 22%;
-    height: 14px;
-    border-radius: 0 0 6px 6px;
-    background: var(--color-ink);
-    opacity: 0.85;
-  }
-
-  /* the picture a link shows, as a chat draws it */
-  .preview {
-    width: min(100%, 640px);
-    border: 1px solid var(--color-edge);
-    border-radius: var(--radius-control);
-    overflow: hidden;
-    background: var(--color-paper-solid);
-    & img {
-      display: block;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 1200 / 630;
+    gap: var(--space-s16);
+    width: min(100% - 2 * var(--size-gutter), var(--examples-column));
+    min-width: 0;
+    margin-inline: auto;
+    @container page (max-width: 800px) {
+      width: calc(100% - 2 * var(--space-s4));
+      gap: var(--space-s12);
     }
   }
 }

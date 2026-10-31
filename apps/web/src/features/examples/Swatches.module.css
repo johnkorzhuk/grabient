@@ -1,0 +1,223 @@
+@layer components {
+  /* Color tokens (Swatches.tsx). Up to nine colors stand as roomy chips in one row, none wider than 232px so a few are
+     no wall, the gradient's token as wide as the row over them. A row whose chips would stand under 96px folds into two
+     even rows, and on a phone each chip is a row of its own, its reading beside it. More colors stand in a grid of
+     small chips, as many a row as the example sets (--cols, --cols-narrow where the sheet is narrow). The strip under
+     them. The palette's colors are the content: forced colors leave them as they are. */
+  .whole {
+    container: tokens / inline-size;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s6);
+    width: 100%;
+    min-width: 0;
+    &[data-layout="roomy"] {
+      width: min(100%, calc(var(--n) * 232px + (var(--n) - 1) * var(--space-s3)));
+    }
+  }
+  .specimen {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s2);
+  }
+  .tile {
+    display: block;
+    height: 96px;
+    border-radius: var(--radius-control);
+    box-shadow: var(--color-rim);
+    forced-color-adjust: none;
+    @container page (max-width: 600px) {
+      height: 72px;
+    }
+  }
+  .name {
+    min-width: 0;
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-ui);
+    overflow-wrap: anywhere;
+  }
+  /* the rows between folded rows of roomy chips are wide; small chips stand close */
+  .sheet {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: var(--space-s6) var(--space-s3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    [data-layout="dense"] > & {
+      grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+      gap: var(--space-s1);
+    }
+  }
+  /* nine to six chips under 96px each fold in two (n × 96px and the gaps between them), and small chips take fewer
+     columns where ten would cut their hexes */
+  @container tokens (max-width: 959px) {
+    .whole[data-n="9"] > .sheet {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+  @container tokens (max-width: 851px) {
+    .whole[data-n="8"] > .sheet {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @container tokens (max-width: 743px) {
+    .whole[data-n="7"] > .sheet {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @container tokens (max-width: 635px) {
+    .whole[data-n="6"] > .sheet {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @container tokens (max-width: 699px) {
+    .whole[data-layout="dense"] > .sheet {
+      grid-template-columns: repeat(var(--cols-narrow), minmax(0, 1fr));
+    }
+  }
+  /* five small chips on a sheet under 320px (a phone under 390px) are too narrow for a hex at their sides' width: their
+     sides narrow, and under 286px (a phone of 320px) four stand a row (--cols-tight) */
+  @container tokens (max-width: 319px) {
+    .whole[data-layout="dense"] .color {
+      padding-inline: var(--space-s1);
+    }
+  }
+  @container tokens (max-width: 285px) {
+    .whole[data-layout="dense"] > .sheet {
+      grid-template-columns: repeat(var(--cols-tight), minmax(0, 1fr));
+    }
+  }
+  @container page (max-width: 600px) {
+    .whole[data-layout="roomy"] > .sheet {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-s2);
+    }
+  }
+  /* A roomy token's three parts, its chip, its name and its reading, each stand on a row the tokens beside it share,
+     so a sample that wraps in a narrow row or a long language keeps every token's lines level. On a phone the chip
+     leads its row and the rest stand beside it. */
+  .token {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    [data-layout="roomy"] & {
+      display: grid;
+      grid-row: span 3;
+      grid-template-rows: subgrid;
+      row-gap: var(--space-s1);
+      @container page (max-width: 600px) {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-s4);
+        grid-row: auto;
+      }
+    }
+  }
+  .label {
+    display: contents;
+    > .name {
+      margin-block-start: var(--space-s2);
+    }
+    @container page (max-width: 600px) {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: var(--space-s1);
+      min-width: 0;
+      > .name {
+        margin-block-start: 0;
+      }
+    }
+  }
+  /* a chip: its color, a press that copies its hex; the hex and the samples in the inks the example gives them, and
+     the keyboard's ring in the hex's. A roomy chip is at least its height and grows where its samples wrap */
+  .color {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-s2);
+    min-width: 0;
+    min-height: 144px;
+    margin: 0;
+    padding: var(--space-s3);
+    border: 0;
+    border-radius: var(--radius-control);
+    box-shadow: var(--color-rim);
+    text-align: start;
+    outline: 0 solid currentColor;
+    outline-offset: -4px;
+    forced-color-adjust: none;
+    &:focus-visible {
+      outline-width: 2px;
+    }
+    [data-layout="dense"] & {
+      gap: 0;
+      min-height: 56px;
+      padding: var(--space-s2);
+      border-radius: var(--radius-tight);
+    }
+    /* past forty, a chip is its hex alone, as short as it reads */
+    [data-many] & {
+      justify-content: center;
+      min-height: 36px;
+    }
+    @container page (max-width: 600px) {
+      [data-layout="roomy"] & {
+        flex: 0 0 40%;
+        min-height: 80px;
+      }
+      [data-layout="dense"] & {
+        min-height: 48px;
+      }
+      [data-many] & {
+        min-height: 32px;
+      }
+    }
+  }
+  .hex {
+    display: flex;
+    font-family: var(--font-mono);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs4);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    [data-layout="dense"] & {
+      font-size: var(--font-fs1);
+    }
+  }
+  .index {
+    font-family: var(--font-mono);
+    font-size: var(--font-fs0);
+    line-height: var(--font-lh-none);
+  }
+  /* "Aa" in white and in black, at a heading's size: where a script's two letters are wider than a narrow chip, the
+     black sample goes under the white */
+  .samples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s1) var(--space-s3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs6);
+    line-height: var(--font-lh-none);
+  }
+  /* what the token's ink reaches on its color, a chip at the caption's size (Example's Chip) */
+  .reading {
+    display: flex;
+    min-width: 0;
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+  }
+  /* the strip at its own width, at the start */
+  .files {
+    display: flex;
+    min-width: 0;
+  }
+}

@@ -1,0 +1,116 @@
+@layer components {
+  /* The headline (Headline.tsx): the palette's name set on a panel two ways, side by side where both fit across the
+     stage, else one under the other: inside the letters on a page of the theme its colors read in, and on the palette
+     as a banner, the words where their ink reads. Each panel is 12:5 from 600 px across and 3:2 under (Headline.tsx's
+     ASPECT), padded by 6% of its width (PAD). */
+  .stage {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+    gap: var(--space-s6);
+    width: 100%;
+    @container page (max-width: 600px) {
+      gap: var(--space-s4);
+    }
+  }
+  /* what a panel's shape, its rows and its words' size are told by */
+  .slot {
+    container-type: inline-size;
+    min-width: 0;
+  }
+  .panel {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 2;
+    padding: 6cqi;
+    border-radius: var(--radius-surface);
+    box-shadow: inset 0 0 0 1px var(--color-edge);
+    text-align: center;
+    forced-color-adjust: none;
+    @container (width >= 600px) {
+      aspect-ratio: 12 / 5;
+    }
+  }
+  .page {
+    background-color: var(--color-paper-solid);
+  }
+  /* the palette: a gradient as its background, an effect as a picture under its words (.art) */
+  .banner {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--paint, none);
+  }
+  /* an effect's picture filling its holder, a line of its colors (--rest) standing in while its still is drawn */
+  .art {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--rest);
+  }
+  /* an effect inside the letters: the heading over its picture, white on black multiplied with it, keeps the picture
+     in the letters and black around them, and the pair lightened onto the dark paper leaves the paper there; on a
+     light paper the heading is black on white, screened, and the pair darkened onto it */
+  .blend {
+    position: relative;
+    isolation: isolate;
+    mix-blend-mode: lighten;
+    :where([data-theme="light"]) > & {
+      mix-blend-mode: darken;
+    }
+  }
+  .cut {
+    position: relative;
+    background-color: #000;
+    color: #fff;
+    mix-blend-mode: multiply;
+    :where([data-theme="light"]) > .blend > & {
+      background-color: #fff;
+      color: #000;
+      mix-blend-mode: screen;
+    }
+  }
+  /* A heading as large as fits its room (--across, --high-*: in hundredths of the panel's width) by its widest row in
+     em (--em-*) and its height in em (--rows-*), in the wide panel's layout or the narrow one's, the other layout's
+     breaks hidden. Tall enough that no letter reaches past its box, where a background is not painted. */
+  .name {
+    position: relative;
+    --em: var(--em-narrow);
+    --rows: var(--rows-narrow);
+    --high: var(--high-narrow);
+    max-width: calc(var(--across) * 1cqi);
+    margin: 0;
+    padding: 0.1em 0.04em;
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: clamp(
+      20px,
+      min(var(--across) * 1cqi / var(--em), var(--high) * 1cqi / var(--rows)),
+      88px
+    );
+    line-height: 1.04;
+    letter-spacing: var(--font-ls-title);
+    text-wrap: balance;
+    overflow-wrap: break-word;
+    @container (width >= 600px) {
+      --em: var(--em-wide);
+      --rows: var(--rows-wide);
+      --high: var(--high-wide);
+      & br:not([data-wide]) {
+        display: none;
+      }
+    }
+    @container (width < 600px) {
+      & br:not([data-narrow]) {
+        display: none;
+      }
+    }
+  }
+  /* a gradient inside the letters: the heading as wide as its longest row, so the palette spans the words */
+  .letters {
+    background: var(--paint, none);
+    color: transparent;
+  }
+  .mono {
+    font-family: var(--font-mono);
+  }
+}

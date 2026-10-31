@@ -51,6 +51,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     also: ["src/features/editor/Editor.tsx", "src/features/editor/Sheet.tsx"],
     budget: 323
   },
+  /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
+     the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 287 },
   "/newsletter": { route: "src/routes/newsletter.tsx", budget: 225 },
   "/about": { route: "src/routes/about.tsx", budget: 250 }
 };
@@ -59,15 +62,18 @@ const EVERY_PAGE = ["src/app/tab-icon.ts"];
 
 const BUDGETS = {
   // the blob's controls and a collection's For the bots section (its bot, its picture and its strip) took the one
-  // stylesheet from 28.8 KB to 29.1 on 30 Oct 2026; a palette's examples page (features/examples) to 30.6 on 31 Oct
-  stylesheet: 31,
+  // stylesheet from 28.8 KB to 29.1 on 30 Oct 2026; a palette's examples page (features/examples) to 30.6 on 31 Oct,
+  // and its rebuild as six sections with a masonry of ten media (10.4 KB of its own, gzipped alone) from 31.0 to 35.4
+  // the same day
+  stylesheet: 37,
   onDemand: 12,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,
   // mcp/admin/visits.ts: 5 KiB). It starts with no language's messages and no old address's map: it reads a language's
   // catalog from the deploy's files when a request first needs it, and the maps when an address may first name an old
-  // palette (server/i18n.ts, seo/legacy.ts), which took its start from 745 KiB to 226 on 24 Oct 2026
-  worker: 1360,
+  // palette (server/i18n.ts, seo/legacy.ts), which took its start from 745 KiB to 226 on 24 Oct 2026. The examples page's
+  // six sections, which the Worker renders, took it from 1347.4 KiB to 1374.7 on 31 Oct 2026
+  worker: 1430,
   workerStart: 237,
   // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
   // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026)

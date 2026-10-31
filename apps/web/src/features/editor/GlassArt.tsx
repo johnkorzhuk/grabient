@@ -56,7 +56,7 @@ export function GlassArt(props: {
   /* the GPU's still asked for, ahead of a change */
   let warming = false;
   const draw = (colors: readonly string[], angle: number, shape: number | null, named: string) => {
-    if (key() !== named) return;
+    if (untrack(key) !== named) return;
     if (!noGpu) {
       const dpr = devicePixelRatio || 1;
       const bitmap = gpuStill(colors, angle, shape, el.clientWidth * dpr, el.clientHeight * dpr);

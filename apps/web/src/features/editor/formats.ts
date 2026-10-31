@@ -212,6 +212,10 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
   return figmaGlassHtml({ colors: colorsOf(p), angle: p.angle, shape: shapeOf(p), ...frame });
 };
 
+/** The tags that play an effect behind a page, its first frame inside them, as Copy HTML gives them. */
+export const effectHtml = async (p: Taken, effect: Effect): Promise<string> =>
+  effectEmbedHtml(origin(), p.seed, effect, p.angle, await stillOf(p, effect));
+
 /** The format onto the clipboard. */
 export async function copyFormat(f: Format, p: Taken): Promise<void> {
   if (isSwatchFormat(f))
@@ -221,10 +225,7 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
     if (!(await copyHtml(await figmaHtml(p, p.effect)))) throw new Error("Couldn't copy.");
     return;
   }
-  if (f === "html" && p.effect)
-    return writeText(
-      effectEmbedHtml(origin(), p.seed, p.effect, p.angle, await stillOf(p, p.effect))
-    );
+  if (f === "html" && p.effect) return writeText(await effectHtml(p, p.effect));
   return writeText(
     f === "css"
       ? p.effect

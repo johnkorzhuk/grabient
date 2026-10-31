@@ -11,7 +11,10 @@ import { tooltip } from "./Tooltip.tsx";
     surface and no rule, and leaves the wordmark's bar open so the water shows through it; once the page scrolls under
     it, the surface comes up and the bar fills, at the same height, so nothing on the page moves. The app form (lists,
     editor) has a nearly opaque surface, the bar filled with the palette in view, and the dashed rule beneath. The
-    surface is a layer behind the bar: a blur on the header itself would keep its menus' own blur inside it. */
+    surface is a layer behind the bar: a blur on the header itself would keep its menus' own blur inside it. Over a
+    page that opens on a picture of its own (`clear`), the app form has no surface and no rule until the page scrolls,
+    and each side stands in the theme whose ink reads on the picture there (`tone`); where one side reads in neither,
+    the surface is frosted, so the picture shows through it and the bar still reads. */
 export function Header(props: {
   stops: readonly string[];
   /** the brand form */
@@ -24,6 +27,10 @@ export function Header(props: {
   moves?: boolean;
   /** the dashed rule under the bar: the app routes */
   rule?: boolean;
+  /** the page's own picture is under the header, which the page has not scrolled from */
+  clear?: boolean;
+  /** over that picture, the theme the wordmark's side and the corner's stand in; null frosts the surface */
+  tone?: { start: "light" | "dark"; end: "light" | "dark" } | null;
   barRef?: (el: SVGRectElement) => void;
   /** where the wordmark leads and what it says it leads to; the site's lists by default */
   home?: { href: string; label: string };
@@ -40,12 +47,23 @@ export function Header(props: {
     <header class={styles.header}>
       <span
         class={styles.surface}
-        data-on={!props.brand || props.scrolled ? "" : undefined}
+        data-on={
+          (!props.brand && !props.clear) || props.scrolled || (props.clear && !props.tone)
+            ? ""
+            : undefined
+        }
+        data-frost={props.clear && !props.tone ? "" : undefined}
         aria-hidden="true"
       />
       <div class={styles.bar} data-brand={props.brand ? "" : undefined}>
         {/* data-home: the way home, which the app opens with the reader's view */}
-        <a class={styles.home} href={props.home?.href ?? "/"} data-home="" aria-label={home()}>
+        <a
+          class={styles.home}
+          href={props.home?.href ?? "/"}
+          data-home=""
+          data-theme={props.clear ? props.tone?.start : undefined}
+          aria-label={home()}
+        >
           <span class={styles.logo} data-motion-keep={props.moves ? "" : undefined}>
             <Logo
               stops={props.stops}
@@ -55,7 +73,11 @@ export function Header(props: {
           </span>
         </a>
         {/* read aloud as it changes, so it stands empty while there is nothing to say */}
-        <span class={styles.status} role="status">
+        <span
+          class={styles.status}
+          data-theme={props.clear ? props.tone?.start : undefined}
+          role="status"
+        >
           <Show when={props.status}>
             {words => (
               <span class={styles.mark} ref={tooltip(() => words())}>
@@ -71,7 +93,10 @@ export function Header(props: {
         </span>
         <div class={styles.corner}>{props.children}</div>
       </div>
-      <div class={styles.rule} data-off={props.brand || !props.rule ? "" : undefined}>
+      <div
+        class={styles.rule}
+        data-off={props.brand || !props.rule || props.clear ? "" : undefined}
+      >
         <Rule inset />
       </div>
     </header>

@@ -127,7 +127,9 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings; a
       }, REST_MS);
     }
   );
+  /* the server draws the layer for a page's first paint (the examples' hero) and has no frames to cancel */
   onCleanup(() => {
+    if (import.meta.env.SSR) return;
     cancelAnimationFrame(pending);
     cancelAnimationFrame(settling);
     cancelAnimationFrame(letting);
@@ -148,6 +150,9 @@ export function BlobLayer(props: { palette: Palette; settings: EffectSettings; a
           untrack(() => still(props.palette, props.settings, props.angle));
         }}
         class={styles.glassStill}
+        /* named as the page is drawn, so a page the server draws with this layer has the still in its first paint
+           (server/blob-still.ts); the name follows the palette from here */
+        data-blob-still={untrack(() => keyOf(props.palette, props.settings, props.angle))}
         /* the player makes its context once the browser has painted this (painted.ts's STILL_TIMING) */
         elementtiming="effect-still"
       />

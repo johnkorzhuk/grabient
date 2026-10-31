@@ -31,7 +31,17 @@ declare module "@tanstack/solid-router" {
     strip?: boolean;
     /** false where the page takes the water away, nothing in its place: the editor, whose picture is its own light */
     water?: boolean;
+    /** the page opens on a picture of its own that runs under the header to the window's top (a palette's examples):
+        the header stands over it with no surface and no rule until the page scrolls, each side in the theme whose ink
+        reads on the picture there (the loader's `tone`, or what the page hands in), or frosted where none reads */
+    clear?: boolean;
   }
+}
+
+/** The themes a clear page's header stands in over its picture: the wordmark's side and the corner's. */
+export interface HeaderTone {
+  start: "light" | "dark";
+  end: "light" | "dark";
 }
 
 /** What a route's loader returns for the frame, beside whatever else it returns. */
@@ -41,6 +51,9 @@ export interface FramedData {
   /** the languages besides English a collection's page reads in, where its translation is of the English it has now:
       the language menu lets a crawler follow those */
   languages?: readonly string[];
+  /** a clear page's picture under the header: the theme each side of the header reads in there, or null where one side
+      reads in neither, and the header is frosted */
+  tone?: HeaderTone | null;
 }
 
 /** The page on screen as the frame reads it from the router's matches: its route's options and the palettes its
@@ -60,7 +73,8 @@ export function pageFrom(
     lost,
     options: leaf?.staticData ?? {},
     painted: data?.paint ?? [],
-    languages: data?.languages
+    languages: data?.languages,
+    tone: data?.tone ?? null
   };
 }
 
@@ -71,6 +85,9 @@ export interface Shell {
   /** The page's own keys while the calling component is mounted, listed by ? beside the shared ones. A binding with
       the id of a shared one (undo, copyUrl) stands in for it while it applies. */
   keys(bindings: () => readonly Binding[]): void;
+  /** A clear page's header tone while the calling component is mounted, over its loader's: the picture under the
+      header changed as the reader works. */
+  tone(tone: () => HeaderTone | null): void;
   /** This page's address without its language, as the language menu offers it in every language. */
   here(): string;
   /** The languages besides English a collection's page reads in, which its loader read: the menu follows those. */

@@ -1,0 +1,93 @@
+@layer components {
+  /* An example (Example.tsx): its heading and words at the reading measure, then its stage as wide as the column, the
+     line under it, and its code. The anchor clears the header when the page is led to it. */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s5);
+    min-width: 0;
+    scroll-margin-top: calc(var(--size-top) + var(--space-s6));
+  }
+  .head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s2);
+    max-width: var(--size-prose);
+  }
+  .figure {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+    margin: 0;
+  }
+  /* where the example stands: a quiet paper, or the page's own ground for one that shows how it sits on a page. Its
+     colors are the content, so forced colors leave them as they are */
+  .stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 360px;
+    padding: var(--space-s10) var(--space-s8);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-surface);
+    background-color: var(--color-paper);
+    overflow: hidden;
+    forced-color-adjust: none;
+    &[data-ground="page"] {
+      background-color: var(--color-bg);
+    }
+    @container page (max-width: 600px) {
+      min-height: 280px;
+      padding: var(--space-s6) var(--space-s4);
+    }
+  }
+  /* the line under the stage: how the palette is drawn there, a tag in the code's face, then what more it has to say */
+  .caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-s2) var(--space-s3);
+    min-width: 0;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+  }
+  /* the tag and the chips beside it: one shape, the facts' digits in the system face, each set apart */
+  .drawn,
+  .chip {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s2);
+    padding: 1px var(--space-s2);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-tight);
+    background-color: var(--color-paper2);
+    color: var(--color-ink2);
+    white-space: nowrap;
+  }
+  /* shown otherwise than the address names it: the tag's edge says so */
+  .drawn[data-differs] {
+    border-style: dashed;
+    border-color: var(--color-edge2);
+  }
+  .chip {
+    font-family: var(--font-system);
+    font-variant-numeric: tabular-nums;
+  }
+  .coin {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-circle);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-hole-rim);
+    forced-color-adjust: none;
+  }
+  .ratio {
+    color: var(--color-ink);
+  }
+}

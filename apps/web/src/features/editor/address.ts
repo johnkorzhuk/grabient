@@ -106,8 +106,8 @@ export function seedAddress(page: Addressed): string {
   return `/${page.seed}?${parts.join("&")}`;
 }
 
-/* the parameters the router keeps as numbers: a number-like string would be written quoted */
-const NUMBERS = new Set(["steps", "angle", "speed", "fps", "frost", "shape"]);
+/** The parameters the router keeps as numbers: a number-like string would be written quoted. */
+export const NUMBERS = new Set(["steps", "angle", "speed", "fps", "frost", "shape"]);
 
 /** The same address as the router's search object, its keys in the canonical order. The router spells it its own way
     (commas escaped, `selection=`), which reads back the same, so the Worker takes it as canonical too. */

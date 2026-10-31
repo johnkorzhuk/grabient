@@ -41,6 +41,8 @@ import { toast } from "./toast.ts";
 export function AccountMenu(props: {
   /** this page's address without its language, as the language menu offers it */
   path: () => string;
+  /** the theme its press stands in over a clear page's picture; the menu it opens keeps the page's */
+  tone?: "light" | "dark";
 }) {
   const router = useRouter();
   const [open, setOpen] = createSignal(false);
@@ -243,6 +245,7 @@ export function AccountMenu(props: {
         }}
         type="button"
         class={styles.trigger}
+        data-theme={props.tone}
         aria-haspopup="menu"
         aria-expanded={open() ? "true" : "false"}
         aria-label={t(account() ? msg("Your account") : msg("Sign in"))}

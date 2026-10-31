@@ -1,471 +1,197 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { cssBlock, cssLine, gradientCss } from "@grabient/engine/css.ts";
-import { sampleStops } from "@grabient/engine/curve.ts";
-import {
-  blobStillKey,
-  type Effect,
-  type EffectKind,
-  effectEmbedHtml,
-  effectFileAddress
-} from "@grabient/engine/effect.ts";
-import { glassColors, glassStillKey } from "@grabient/engine/glass-colors.ts";
+import { cssBlock } from "@grabient/engine/css.ts";
+import { type Effect, type EffectKind, effectEmbedHtml } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import {
-  DEFAULT_SIZE,
-  type Size,
-  STYLE_LABELS,
-  STYLES,
-  type Style,
-  type View
-} from "@grabient/engine/view.ts";
-import { localHref, msg, t } from "@grabient/i18n";
+import { type View, viewSearch } from "@grabient/engine/view.ts";
+import { localHref, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
-import { createDone } from "@grabient/ui/done.ts";
+import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
+import { CodeTabs } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import {
-  createSignal,
-  createUniqueId,
-  type Element,
-  For,
-  onSettled,
-  Show,
-  untrack
-} from "solid-js";
+import { Dynamic } from "@solidjs/web";
+import { useLocation, useRouter } from "@tanstack/solid-router";
+import { type Component, createUniqueId, For, Match, Switch, untrack, useContext } from "solid-js";
 import { AppPage } from "../../app/Frames.tsx";
-import { toast } from "../../app/toast.ts";
+import { ShellContext } from "../../app/shell.ts";
 import { colorFormat } from "../../lib/color-format.ts";
-import { writeText } from "../../lib/files.ts";
-import { effectCard, paletteName, siteOrigin } from "../../lib/page-meta.ts";
+import { paletteName, siteOrigin } from "../../lib/page-meta.ts";
 import { seedAddress } from "../editor/address.ts";
-import { blobViewOf } from "../editor/blob-draw.ts";
-import { EffectArt } from "../editor/EffectArt.tsx";
-import { copyFormat, type Taken } from "../editor/formats.ts";
+import { BlobLayer } from "../editor/BlobLayer.tsx";
+import { effectHtml } from "../editor/formats.ts";
+import { GlassLayer } from "../editor/GlassLayer.tsx";
+import { keyOf } from "../editor/keys.ts";
+import { CardsExample, cardsFits } from "./Cards.tsx";
+import { ChartExample, chartFits } from "./Chart.tsx";
+import type { ExampleProps } from "./Example.tsx";
 import styles from "./ExamplesPage.module.css";
+import { HeadlineExample, headlineFits } from "./Headline.tsx";
+import { ProfileExample, profileFits } from "./Profile.tsx";
+import type { Shown } from "./paint.ts";
+import { SwatchesExample, swatchesFits } from "./Swatches.tsx";
+import { drawnWords, gradientOf, stopsOf, takenOf } from "./shared.ts";
+import { createExamplesState, examplesBindings } from "./state.ts";
+import { headerTone, wordsTone } from "./tone.ts";
+import { WallpapersExample, wallpapersFits } from "./Wallpapers.tsx";
 
-/* A palette's examples (routes/$id/examples.tsx): first the palette as a hero's background in the style its address
-   names, with the code that puts it there, then ways to put it to use. An effect (the fluted glass, the blob) behind a
-   card, inside a headline's letters, as a phone's and a desktop's wallpaper and as the picture a link to it shows; a
-   gradient in each of the six styles, each the background of a shape it suits. Every example shows its code, and Copy
-   takes it whole. Each effect's picture is its still at rest and moves under the pointer, so the page holds no player
-   but the hero's. */
+/* A palette's examples (routes/$id/examples.tsx), the same page whatever style its address names, each example
+   deciding how that style serves it and saying so where it shows the palette another way. First the hero: the palette
+   as a page's background in that style, a gradient, the fluted glass or the blob playing from the server's still, run
+   under the header to the window's top and edge to edge, with the way back to the editor at its top and at its foot the
+   palette's name, how it is drawn and the code that puts it there, in the theme that reads on the colors under them
+   (tone.ts), or on a sheet of the page's own where neither does. Then the examples, each in the documentation's frame
+   (Example.tsx). The editor's keys turn the palette here too (state.ts). */
+
+/** The examples in their order, each with the check of whether the palette suits it (fit.ts): the page shows the ones
+    it suits, numbered as they stand, and the keys that turn the palette may bring one in or take one out. */
+const SECTIONS: readonly { fits: (s: Shown) => boolean; example: Component<ExampleProps> }[] = [
+  { fits: headlineFits, example: HeadlineExample },
+  { fits: cardsFits, example: CardsExample },
+  { fits: profileFits, example: ProfileExample },
+  { fits: chartFits, example: ChartExample },
+  { fits: wallpapersFits, example: WallpapersExample },
+  { fits: swatchesFits, example: SwatchesExample }
+];
 
 /** The still as the hero's code shows it: its data elided, which Copy writes in full. */
 const STILL_SHOWN: Readonly<Record<EffectKind, string>> = {
   glass: 'url("data:image/webp;base64,…") 50% 50%/cover no-repeat',
   blob: 'url("data:image/svg+xml,…") 50% 50% / 100% 100% no-repeat'
 };
-const TIPS = msg(
-  "Copy HTML gives the tags that play it behind a web page: its first frame inside the page, so the page paints it at once, and a script that plays it from that frame with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays."
-);
-const GRADIENT_TIP = msg(
-  "Copy CSS gives the declaration that paints it: paste it into any rule, and the element wears the palette."
-);
-/* wallpapers at the sizes they are made for, within a PNG's 3 million pixels */
-const PHONE: Size = { width: 1080, height: 2340 };
-const DESKTOP: Size = { width: 1920, height: 1080 };
-
-type Shown = "CSS" | "HTML" | "URL";
 
 export function ExamplesPage(props: { seed: string; view: View; effect: Effect | null }) {
-  const P = () => decodePalette(props.seed) as Palette;
-  const stops = () => sampleStops(P(), props.view.steps);
-  const name = () => paletteName(P(), props.view);
-  const heading = createUniqueId();
-  const origin = siteOrigin();
-  const taken = (): Taken => ({
-    seed: props.seed,
-    style: props.view.style,
-    steps: props.view.steps,
-    angle: props.view.angle,
-    size: null,
-    pixels: DEFAULT_SIZE,
-    stops: stops(),
-    effect: props.effect
+  const shell = useContext(ShellContext);
+  const router = useRouter();
+  const location = useLocation();
+  const st = createExamplesState({
+    initial: untrack(() => ({
+      seed: props.seed,
+      palette: decodePalette(props.seed) as Palette,
+      view: props.view,
+      effect: props.effect
+    })),
+    router,
+    location
   });
-  const editor = () =>
-    localHref(
-      seedAddress({
-        seed: props.seed,
-        view: props.view,
-        ...(props.effect ? { effect: props.effect } : {})
-      })
-    );
-  const heroCode = () =>
-    props.effect
-      ? effectEmbedHtml(
-          origin,
-          props.seed,
-          props.effect,
-          props.view.angle,
-          STILL_SHOWN[props.effect.kind]
-        )
-      : cssLine(stops(), props.view.style, props.view.angle, "hex");
+  const s = st.painted;
+  const origin = siteOrigin();
+  shell?.keys(() => examplesBindings(st));
+  shell?.paint(() => [
+    { seed: s().seed, style: s().view.style, steps: s().view.steps, angle: s().view.angle }
+  ]);
+  shell?.tone(() => headerTone(s()));
   return (
     <AppPage>
       <main id="main" class={styles.page}>
-        <section class={styles.hero} aria-labelledby={heading}>
-          <div class={styles.backdrop} aria-hidden="true">
-            <Show
-              when={props.effect}
-              fallback={
-                <div
-                  class={styles.fill}
-                  style={{
-                    background: gradientCss(
-                      stops().map(s => s.hex),
-                      props.view.style,
-                      props.view.angle
-                    )
-                  }}
-                />
-              }
-            >
-              {effect => (
-                <HeroEffect P={P()} seed={props.seed} effect={effect()} angle={props.view.angle} />
-              )}
-            </Show>
-          </div>
-          <div class={styles.panel}>
-            <p class={styles.kicker}>{t("Examples")}</p>
-            <h1 id={heading} class={styles.title}>
-              {name()}
-            </h1>
-            <p class={styles.note}>{t(props.effect ? TIPS : GRADIENT_TIP)}</p>
-            <Code
-              text={heroCode()}
-              shown={props.effect ? "HTML" : "CSS"}
-              onCopy={() => copyFormat(props.effect ? "html" : "css", taken())}
-            />
-            <a class={styles.back} href={editor()}>
-              <Icon name="edit" size={14} />
-              {t("Open in the editor")}
-            </a>
-          </div>
-        </section>
-        <Show
-          when={props.effect}
-          fallback={
-            <section class={styles.examples} aria-label={t("Examples")}>
-              <For each={STYLES}>
-                {style => <StyleExample style={style} stops={stops()} angle={props.view.angle} />}
-              </For>
-            </section>
-          }
-        >
-          {effect => (
-            <section class={styles.examples} data-pairs="" aria-label={t("Examples")}>
-              <EffectExamples
-                P={P()}
-                seed={props.seed}
-                name={name()}
-                effect={effect()}
-                angle={props.view.angle}
-                origin={origin}
-              />
-            </section>
-          )}
-        </Show>
+        <Hero s={s()} origin={origin} onLeave={st.settle} onRandom={st.random} />
+        <div class={styles.sections}>
+          <For each={SECTIONS.filter(section => section.fits(s()))}>
+            {(section, i) => (
+              <Dynamic component={section.example} s={s()} origin={origin} n={i() + 1} />
+            )}
+          </For>
+        </div>
       </main>
     </AppPage>
   );
 }
 
-/** The hero's effect: its first frame, which the server's still paints in the first paint (a holder naming it, as the
-    palette's page has), and its player taking over from that frame, playing as long as the page stands, unless the
-    reader asks for less motion or the effect is still. */
-function HeroEffect(props: { P: Palette; seed: string; effect: Effect; angle: number }) {
-  let canvas!: HTMLCanvasElement;
-  const [covered, setCovered] = createSignal(false);
-  /* the effect the page names, which a page's address fixes: read once */
-  const kind = untrack(() => props.effect.kind);
-  const named = untrack(() =>
-    kind === "glass"
-      ? {
-          "data-glass-still": glassStillKey(
-            glassColors(props.P),
-            props.angle,
-            props.effect.look.shape
-          )
-        }
-      : { "data-blob-still": blobStillKey(props.seed, props.effect.look, props.angle) }
-  );
-  onSettled(() => {
-    if (props.effect.speed === 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let alive = true;
-    let player: { destroy(): void } | null = null;
-    const drawn = () => requestAnimationFrame(() => alive && setCovered(true));
-    /* the player's code at once, and its context once the still is painted, which it would otherwise wait on
-       (painted.ts) */
-    const glass =
-      kind === "glass" && !import.meta.env.SSR ? import("@grabient/ui/glass-player.ts") : null;
-    const blob =
-      kind === "blob" && !import.meta.env.SSR ? import("@grabient/ui/blob-player.ts") : null;
-    const painted = import.meta.env.SSR
-      ? (new Promise(() => {}) as never)
-      : import("../editor/painted.ts").then(p => p.stillPainted());
-    const made = painted.then(() =>
-      glass
-        ? glass.then(m =>
-            m.playGlass(
-              canvas,
-              props.P,
-              {
-                speed: props.effect.speed,
-                fps: props.effect.fps,
-                angle: props.angle,
-                shape: props.effect.look.shape
-              },
-              drawn
-            )
-          )
-        : blob?.then(m => m.playBlob(canvas, props.P, blobViewOf(props.effect, props.angle), drawn))
+/** The hero: the palette as a page's background, from the window's top, edge to edge. */
+function Hero(props: { s: Shown; origin: string; onLeave: () => void; onRandom: () => void }) {
+  const heading = createUniqueId();
+  const s = () => props.s;
+  const name = () => paletteName(s().palette, s().view);
+  /* the way back: the editor at this palette as the keys left it */
+  const editor = () =>
+    localHref(
+      seedAddress({
+        seed: s().seed,
+        view: s().view,
+        ...(s().effect ? { effect: s().effect } : {})
+      })
     );
-    void made.then(
-      p => {
-        if (alive) player = p ?? null;
-        else p?.destroy();
+  const tone = () => wordsTone(s());
+  const code = (): CodeTab[] => {
+    const effect = s().effect;
+    if (effect)
+      return [
+        {
+          label: "HTML",
+          code: effectEmbedHtml(
+            props.origin,
+            s().seed,
+            effect,
+            s().view.angle,
+            STILL_SHOWN[effect.kind]
+          ),
+          take: () => effectHtml(takenOf(s()), effect),
+          where: { text: t("In the page's head") }
+        },
+        {
+          label: t("Linked"),
+          code: effectEmbedHtml(props.origin, s().seed, effect, s().view.angle),
+          where: { text: t("In the page's head") }
+        }
+      ];
+    return [
+      {
+        label: "CSS",
+        code: cssBlock(stopsOf(s()), s().view.style, s().view.angle, colorFormat()),
+        where: { text: t("In any CSS rule") }
       },
-      () => {}
-    );
-    return () => {
-      alive = false;
-      player?.destroy();
-    };
-  });
-  return (
-    <div class={styles.effect} data-kind={kind} data-covered={covered() ? "" : undefined}>
-      <div class={styles.still} {...named} elementtiming="effect-still" />
-      <canvas ref={canvas} class={styles.canvas} />
-    </div>
-  );
-}
-
-/** A block of code with Copy at its foot, which confirms on itself, and whatever else takes the example beside it. */
-function Code(props: {
-  text: string;
-  shown: Shown;
-  onCopy: () => Promise<unknown>;
-  extra?: Element;
-}) {
-  const [done, mark] = createDone();
-  return (
-    <div class={styles.code}>
-      <pre>
-        <code>{props.text}</code>
-      </pre>
-      <div class={styles.takes}>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() =>
-            void props.onCopy().then(
-              () => mark(true),
-              () => toast(t("Couldn't copy."))
-            )
-          }
-        >
-          <Icon name={done() ? "check" : "copy"} size={14} />
-          {t("Copy {format}", { format: props.shown })}
-        </Button>
-        {props.extra}
-      </div>
-    </div>
-  );
-}
-
-/** One way to use the palette: its picture, its name and what it is for, then its code. */
-function Example(props: {
-  title: string;
-  note?: string;
-  wide?: boolean;
-  picture: Element;
-  code: string;
-  shown: Shown;
-  onCopy: () => Promise<unknown>;
-  extra?: Element;
-  /** the pointer arrives on the picture, or leaves it */
-  onLit?: (lit: boolean) => void;
-}) {
-  return (
-    <figure class={styles.example} data-wide={props.wide ? "" : undefined}>
-      <div
-        class={styles.stage}
-        onPointerEnter={() => props.onLit?.(true)}
-        onPointerLeave={() => props.onLit?.(false)}
-      >
-        {props.picture}
-      </div>
-      <figcaption class={styles.caption}>
-        <span class={styles.name}>{props.title}</span>
-        <Show when={props.note}>
-          <span class={styles.about}>{props.note}</span>
-        </Show>
-      </figcaption>
-      <Code text={props.code} shown={props.shown} onCopy={props.onCopy} extra={props.extra} />
-    </figure>
-  );
-}
-
-/** The palette in one of the six styles, as the background of a shape that style suits. */
-function StyleExample(props: {
-  style: Style;
-  stops: ReturnType<typeof sampleStops>;
-  angle: number;
-}) {
-  const paint = () =>
-    gradientCss(
-      props.stops.map(s => s.hex),
-      props.style,
-      props.angle
-    );
-  return (
-    <Example
-      title={t(STYLE_LABELS[props.style])}
-      picture={
-        <div class={styles.shape} data-style={props.style} style={{ background: paint() }} />
+      {
+        label: "HTML",
+        code: `<link rel="stylesheet" href="${props.origin}/${s().seed}.css${viewSearch(s().view)}">`,
+        where: { text: t("In the page's head") }
       }
-      code={cssLine(props.stops, props.style, props.angle, "hex")}
-      shown="CSS"
-      onCopy={() => writeText(cssBlock(props.stops, props.style, props.angle, colorFormat()))}
-    />
-  );
-}
-
-type Where = "card" | "headline" | "phone" | "desktop";
-
-/** An effect put to use: behind a card, inside a headline's letters, as a phone's and a desktop's wallpaper, and as
-    the picture a link to it shows. Each picture moves while the pointer is on it. */
-function EffectExamples(props: {
-  P: Palette;
-  seed: string;
-  name: string;
-  effect: Effect;
-  angle: number;
-  origin: string;
-}) {
-  const [lit, setLit] = createSignal<Where | null>(null);
-  const light = (where: Where) => (on: boolean) =>
-    setLit(was => (on ? where : was === where ? null : was));
-  const file = (extension: "svg" | "png", size?: Size) =>
-    effectFileAddress(props.origin, props.seed, props.effect, props.angle, extension, size);
-  const card = () => `${props.origin}${effectCard(props.seed, props.effect, props.angle)}`;
-  const still = () =>
-    props.effect.kind === "glass"
-      ? {
-          "data-glass-still": glassStillKey(
-            glassColors(props.P),
-            props.angle,
-            props.effect.look.shape
-          )
-        }
-      : { "data-blob-still": blobStillKey(props.seed, props.effect.look, props.angle) };
-  const art = (where: Where) => (
-    <EffectArt
-      kind={props.effect.kind}
-      palette={props.P}
-      settings={props.effect}
-      angle={props.angle}
-      active={lit() === where}
-    />
-  );
-  const download = (size: Size, label: string) => (
-    <Button
-      size="sm"
-      variant="secondary"
-      href={file("png", size)}
-      download={`grabient-${props.seed}-${label}.png`}
-    >
-      <Icon name="download" size={14} />
-      {t("Download {format}", { format: "PNG" })}
-    </Button>
-  );
-  const cardCode = () =>
-    `<div style="background: url('${file("svg")}') 50% 50% / cover no-repeat">\n  …\n</div>`;
-  const headlineCode = () =>
-    `<h1 style="background: url('${file("svg")}') 50% 50% / cover no-repeat; -webkit-background-clip: text; background-clip: text; color: transparent">\n  ${props.name}\n</h1>`;
-  const metaCode = () => `<meta property="og:image" content="${card().replaceAll("&", "&amp;")}">`;
+    ];
+  };
   return (
-    <>
-      <Example
-        wide
-        title={t("Card")}
-        note={t("The effect moving behind any element, as an animated SVG.")}
-        onLit={light("card")}
-        picture={
-          <div class={styles.card} data-kind={props.effect.kind}>
-            {art("card")}
-            <div class={styles.cardBody} aria-hidden="true">
-              <span class={styles.cardLine} />
-              <span class={styles.cardLine} data-short="" />
-              <span class={styles.cardPress} />
-            </div>
-          </div>
-        }
-        code={cardCode()}
-        shown="HTML"
-        onCopy={() => writeText(cardCode())}
-      />
-      <Example
-        wide
-        title={t("Headline")}
-        note={t("The same SVG inside a headline's letters.")}
-        onLit={light("headline")}
-        picture={
-          <p
-            class={styles.headline}
-            /* inline, over the still's own rule, which the server writes outside the page's layers: the letters
-               clip it, and under the pointer the moving SVG takes its place */
-            style={{
-              "-webkit-background-clip": "text",
-              "background-clip": "text",
-              ...(lit() === "headline" ? { "background-image": `url("${file("svg")}")` } : {})
-            }}
-            {...still()}
-          >
-            {props.name}
-          </p>
-        }
-        code={headlineCode()}
-        shown="HTML"
-        onCopy={() => writeText(headlineCode())}
-      />
-      <Example
-        title={t("Phone wallpaper")}
-        note={t("Its first frame as a PNG at a phone's size.")}
-        onLit={light("phone")}
-        picture={<div class={styles.phone}>{art("phone")}</div>}
-        code={file("png", PHONE)}
-        shown="URL"
-        onCopy={() => writeText(file("png", PHONE))}
-        extra={download(PHONE, "phone")}
-      />
-      <Example
-        title={t("Desktop wallpaper")}
-        note={t("Its first frame as a PNG at a desktop's size.")}
-        onLit={light("desktop")}
-        picture={
-          <div class={styles.desktop}>
-            <div class={styles.screen}>{art("desktop")}</div>
-          </div>
-        }
-        code={file("png", DESKTOP)}
-        shown="URL"
-        onCopy={() => writeText(file("png", DESKTOP))}
-        extra={download(DESKTOP, "desktop")}
-      />
-      <Example
-        wide
-        title={t("Link preview")}
-        note={t("The picture a link to the palette shows in chats and posts.")}
-        picture={
-          <div class={styles.preview}>
-            <img src={card()} alt="" width="1200" height="630" loading="lazy" decoding="async" />
-          </div>
-        }
-        code={metaCode()}
-        shown="HTML"
-        onCopy={() => writeText(metaCode())}
-      />
-    </>
+    <section class={styles.hero} aria-labelledby={heading}>
+      <div class={styles.backdrop} aria-hidden="true">
+        <Switch fallback={<div class={styles.fill} style={{ background: gradientOf(s()) }} />}>
+          <Match when={s().effect?.kind === "glass" && s().effect}>
+            {effect => (
+              <GlassLayer
+                palette={s().palette}
+                view={{
+                  speed: effect().speed,
+                  fps: effect().fps,
+                  angle: s().view.angle,
+                  shape: effect().look.shape
+                }}
+              />
+            )}
+          </Match>
+          <Match when={s().effect?.kind === "blob" && s().effect}>
+            {effect => (
+              <BlobLayer palette={s().palette} settings={effect()} angle={s().view.angle} />
+            )}
+          </Match>
+        </Switch>
+      </div>
+      {/* the way back to the editor, and a random palette for a reader with no keyboard, the key in its tip */}
+      <div class={styles.top}>
+        <Button variant="art" size="sm" href={editor()} onClick={() => props.onLeave()}>
+          <Icon name="back" size={13} />
+          {t("Editor")}
+        </Button>
+        <Button variant="art" size="sm" tip={keyOf("random")} onClick={() => props.onRandom()}>
+          <Icon name="dice" size={13} />
+          {t("Random")}
+        </Button>
+      </div>
+      <div
+        class={styles.words}
+        data-theme={tone() ?? undefined}
+        data-sheet={tone() ? undefined : ""}
+      >
+        <span class={styles.kicker}>{t("Examples")}</span>
+        <h1 id={heading} class={styles.title}>
+          {name()}
+        </h1>
+        <p class={styles.drawn}>{drawnWords(s())}</p>
+        <CodeTabs tabs={code()} aria-label={t("The code that paints it")} />
+      </div>
+    </section>
   );
 }

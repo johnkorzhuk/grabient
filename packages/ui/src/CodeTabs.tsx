@@ -18,6 +18,8 @@ export interface CodeTab {
   where?: { text: string; path?: boolean };
   /** the maker's guide, at the end of that line; with no `href` it cannot be reached now and leads nowhere */
   guide?: { label: string; href?: string };
+  /** what Copy takes where it is not the code as shown: the code with what it elides written in whole */
+  take?: () => Promise<string>;
 }
 
 /** Code in tabs, one shown at a time, with one Copy: the tabs and Copy at their end, the chosen code, then where it
@@ -94,6 +96,7 @@ export function CodeTabs(props: {
         {/* a copy the browser refuses selects the code for the reader to copy */}
         <CopyButton
           text={tab()?.code ?? ""}
+          take={tab()?.take}
           aria-label={t("Copy code")}
           compact
           state={props.state}

@@ -1,0 +1,601 @@
+@layer components {
+  /* Covers and cards (Cards.tsx): a masonry of the palette's media at their own shapes. On a wide stage four columns,
+     each tile at its place (Cards.tsx's PLACES), every row a hundredth of the stage's width so the shapes hold at any
+     width; narrower, two columns of tiles at their shapes, then one. A tile's words are sized by its own width. */
+  .wrap {
+    container-type: inline-size;
+    width: 100%;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 1cqi;
+    column-gap: 1cqi;
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    @container (max-width: 760px) {
+      display: block;
+      columns: 2;
+      column-gap: var(--space-s3);
+    }
+    @container (max-width: 460px) {
+      columns: 1;
+    }
+  }
+  .tile {
+    position: relative;
+    container-type: inline-size;
+    grid-column: var(--col);
+    grid-row: var(--row);
+    min-width: 0;
+    @container (max-width: 760px) {
+      break-inside: avoid;
+      aspect-ratio: var(--aspect);
+      margin-block-end: var(--space-s3);
+    }
+  }
+  /* the palette filling its holder; its colors are the content, so forced colors leave them */
+  .picture {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    forced-color-adjust: none;
+  }
+  .fill {
+    position: absolute;
+    inset: 0;
+  }
+  /* a medium standing on the stage: its shape, its corners and its lift */
+  .poster,
+  .thumbnail,
+  .post,
+  .event,
+  .member,
+  .ticket,
+  .buttons {
+    position: absolute;
+    inset: 0;
+    overflow: clip;
+    border-radius: var(--radius-surface);
+    box-shadow: var(--color-shadow);
+    forced-color-adjust: none;
+  }
+  /* words on paper: a band under a picture, a card's body, a ticket */
+  :is(.poster, .post)[data-at="under"] > :last-child,
+  .event[data-layout="under"],
+  .member[data-layout="under"] > :last-child,
+  .ticket,
+  .business,
+  .buttons {
+    background-color: var(--color-paper-solid);
+    color: var(--color-ink);
+  }
+  .kicker {
+    margin: 0;
+    font-size: clamp(10px, 3.6cqi, 13px);
+    line-height: var(--font-lh-ui);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .handle {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 3.4cqi, 14px);
+  }
+
+  /* the poster: its words at its foot or top over the picture, or on a band under it */
+  .poster,
+  .post {
+    display: flex;
+    flex-direction: column;
+    /* the picture over a band of paper: square where they meet, the medium's clip rounding its outer corners */
+    &[data-at="under"] > .picture {
+      position: relative;
+      flex: 1;
+      border-radius: 0;
+    }
+  }
+  .posterWords,
+  .postWords {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5cqi;
+    padding: 9cqi;
+    [data-at="foot"] > & {
+      margin-block-start: auto;
+    }
+    /* on a side, inside the part the ink was read on (Cards.tsx's partAt) */
+    [data-side="start"] > & {
+      padding-inline-end: 40cqi;
+    }
+    [data-side="end"] > & {
+      align-items: flex-end;
+      padding-inline-start: 40cqi;
+      text-align: end;
+    }
+  }
+  .posterTitle {
+    margin: 0;
+    font-weight: var(--font-bold);
+    font-size: 13cqi;
+    [data-side="start"] &,
+    [data-side="end"] & {
+      font-size: 9.5cqi;
+    }
+    /* one long word in a language that joins them (Nachtmarkt) breaks where the language's own hyphens allow */
+    hyphens: auto;
+    overflow-wrap: break-word;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .venue {
+    margin: 0;
+    font-size: clamp(12px, 5cqi, 18px);
+  }
+
+  /* the album: its sleeve, the record half out of it, the title and band beside them */
+  .album {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+  }
+  .sleeve {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    aspect-ratio: 1;
+    border-radius: var(--radius-tight);
+    box-shadow: var(--color-shadow);
+  }
+  .record {
+    position: absolute;
+    inset-block: 3%;
+    inset-inline-start: 22%;
+    aspect-ratio: 1;
+    border-radius: var(--radius-circle);
+    background:
+      conic-gradient(
+        from 40deg,
+        transparent 0 12%,
+        rgb(255 255 255 / 0.09) 17%,
+        transparent 23% 62%,
+        rgb(255 255 255 / 0.07) 67%,
+        transparent 73%
+      ),
+      repeating-radial-gradient(circle, #121214 0 1.5px, #1c1c20 1.5px 3px);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.08),
+      var(--color-shadow);
+  }
+  .label {
+    inset: 33%;
+    border-radius: var(--radius-circle);
+  }
+  .track {
+    margin-inline-start: auto;
+    padding-inline: 2cqi;
+    min-width: 0;
+    @container (max-width: 380px) {
+      display: none;
+    }
+  }
+  .trackTitle {
+    margin: 0;
+    font-weight: var(--font-bold);
+    font-size: clamp(14px, 3.6cqi, 22px);
+    line-height: var(--font-lh-tight);
+  }
+  .trackBand {
+    margin: 0;
+    color: var(--color-ink3);
+    font-size: clamp(12px, 2.4cqi, 15px);
+  }
+
+  /* the thumbnail: its play button, and its length on a chip of its own */
+  .thumbnail {
+    display: grid;
+    place-items: center;
+  }
+  .play {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 16cqi;
+    aspect-ratio: 1;
+    border-radius: var(--radius-circle);
+    /* the triangle's path is centered by its weight, as a play glyph is drawn: no nudge, and none mirrored */
+    & svg {
+      width: 46%;
+    }
+  }
+  .length {
+    position: absolute;
+    inset-block-end: 3cqi;
+    inset-inline-end: 3cqi;
+    padding: 0.2em 0.5em;
+    border-radius: var(--radius-tight);
+    background-color: #000;
+    color: #fff;
+    font-size: clamp(11px, 2.4cqi, 15px);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* the post: its quote set large, the language's own opening mark over it */
+  .postWords {
+    gap: 4cqi;
+    [data-at="top"] > & {
+      margin-block-end: auto;
+    }
+  }
+  .quote {
+    margin: 0;
+    font-weight: var(--font-bold);
+    font-size: 11cqi;
+    [data-side="start"] &,
+    [data-side="end"] & {
+      font-size: 9cqi;
+    }
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    /* a quotation mark drawn over the words as the post's graphic, one shape in every language (a language's own
+       opening mark may hang below its baseline, as German's does, into the words) */
+    &::before {
+      content: "\201C";
+      display: block;
+      height: 0.62em;
+      font-size: 2em;
+      line-height: 1;
+    }
+  }
+
+  /* the event's card: its words on the palette, the kicker at its top; or the palette as its cover over the paper */
+  .event {
+    display: flex;
+    flex-direction: column;
+    &[data-layout="under"] {
+      border: 1px solid var(--color-edge);
+    }
+  }
+  .cover {
+    position: relative;
+    flex: 1 1 30%;
+    [data-layout="on"] > & {
+      position: absolute;
+      inset: 0;
+    }
+  }
+  .eventBody {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1cqi;
+    padding: 5cqi;
+    /* a narrow column along the start, inside the part the ink was read on */
+    [data-narrow] > & {
+      padding-inline-end: 50cqi;
+    }
+    [data-layout="on"] > & {
+      flex-grow: 1;
+      & > .kicker {
+        margin-block-end: auto;
+      }
+    }
+  }
+  .eventTitle {
+    margin: 0;
+    font-weight: var(--font-bold);
+    font-size: clamp(20px, 5.4cqi, 34px);
+    line-height: var(--font-lh-tight);
+    letter-spacing: var(--font-ls-title);
+  }
+  .eventMeta {
+    margin: 0;
+    font-size: clamp(13px, 2.8cqi, 18px);
+    line-height: var(--font-lh-ui);
+  }
+
+  /* the ticket: its stub, a perforation cut into its edges, its words and a barcode on the paper */
+  .ticket {
+    --cut: 36%;
+    display: flex;
+    box-shadow: none;
+    filter: drop-shadow(0 6px 18px rgb(0 0 0 / 0.22));
+    mask:
+      radial-gradient(circle at var(--cut) 0, transparent 2.4cqi, #000 calc(2.4cqi + 0.5px)) top /
+      100% 51% no-repeat,
+      radial-gradient(circle at var(--cut) 100%, transparent 2.4cqi, #000 calc(2.4cqi + 0.5px))
+      bottom / 100% 51% no-repeat;
+    &:dir(rtl) {
+      --cut: 64%;
+    }
+  }
+  .stub {
+    position: relative;
+    display: grid;
+    flex: 0 0 36%;
+    place-items: center;
+  }
+  .admit {
+    position: relative;
+    font-size: clamp(10px, 2.4cqi, 14px);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+  }
+  .ticketBody {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.6cqi;
+    min-width: 0;
+    padding: 4cqi 5cqi;
+    border-inline-start: 2px dashed var(--color-edge2);
+  }
+  .ticketTitle {
+    margin: 0;
+    font-weight: var(--font-bold);
+    font-size: clamp(16px, 4.6cqi, 28px);
+    line-height: var(--font-lh-tight);
+  }
+  .ticketLine {
+    margin: 0;
+    color: var(--color-ink2);
+    font-size: clamp(11px, 2.4cqi, 15px);
+  }
+  .barcode {
+    width: 70%;
+    height: 4cqi;
+    margin-block-start: auto;
+    background: repeating-linear-gradient(
+      90deg,
+      currentColor 0 2px,
+      transparent 0 4px,
+      currentColor 0 5px,
+      transparent 0 8px,
+      currentColor 0 11px,
+      transparent 0 12px,
+      currentColor 0 13px,
+      transparent 0 16px
+    );
+    opacity: 0.8;
+  }
+
+  /* the membership card: its kind and chip at its top, its number and holder at its foot; or those on a strip of
+     paper where no ink reads on its face */
+  .member {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 5cqi;
+  }
+  .memberTop,
+  .memberFoot {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4cqi;
+    padding: 7cqi;
+  }
+  .memberTop {
+    align-items: flex-start;
+    [data-layout="under"] > & {
+      visibility: hidden;
+    }
+  }
+  .chipMark {
+    width: 14cqi;
+    aspect-ratio: 1.3;
+    border-radius: 2.4cqi;
+    background:
+      linear-gradient(currentColor 0 0) 50% 0 / 1px 100% no-repeat,
+      linear-gradient(currentColor 0 0) 0 50% / 100% 1px no-repeat;
+    box-shadow: inset 0 0 0 1px currentColor;
+    opacity: 0.6;
+  }
+  .number {
+    font-family: var(--font-mono);
+    font-size: clamp(12px, 6.4cqi, 22px);
+    letter-spacing: 0.06em;
+  }
+  .holder {
+    font-size: clamp(10px, 4cqi, 15px);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* the app's icon in its rounded square, its name under it */
+  .app {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4cqi;
+  }
+  .icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 50cqi;
+    aspect-ratio: 1;
+    overflow: clip;
+    border-radius: 23%;
+    box-shadow: var(--color-shadow);
+    forced-color-adjust: none;
+  }
+  .glyph {
+    position: relative;
+    display: grid;
+    width: 46%;
+    & svg {
+      width: 100%;
+      height: auto;
+    }
+  }
+  .appName {
+    color: var(--color-ink2);
+    font-size: clamp(12px, 5cqi, 16px);
+  }
+
+  /* the business card: the palette as a band along its start, the words on the paper */
+  .business {
+    position: absolute;
+    inset: 4% 0;
+    display: flex;
+    overflow: clip;
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-control);
+    box-shadow: var(--color-shadow);
+  }
+  /* square where it meets the paper: the card's clip rounds its outer corners */
+  .band {
+    position: relative;
+    flex: 0 0 16%;
+    border-radius: 0;
+  }
+  .businessWords {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.2cqi;
+    min-width: 0;
+    padding: 6cqi 7cqi;
+  }
+  .businessName {
+    margin: 0;
+    font-weight: var(--font-bold);
+    font-size: clamp(14px, 6.6cqi, 22px);
+    line-height: var(--font-lh-tight);
+  }
+  .businessRole {
+    margin: 0;
+    color: var(--color-ink2);
+    font-size: clamp(11px, 4.2cqi, 14px);
+    line-height: var(--font-lh-ui);
+  }
+
+  /* the buttons on their paper: one filled with the palette, one framed by it */
+  .buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-s3);
+    border: 1px solid var(--color-edge);
+  }
+  /* a press: its fill and label (--fill, --label), its next color under the pointer (--hover), or an outline where
+     the palette gives no fill */
+  .press {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-s2);
+    min-height: var(--size-control-big);
+    padding-inline: var(--space-s5);
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    background-color: var(--fill);
+    color: var(--label);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    cursor: pointer;
+    &:hover {
+      background-color: var(--hover);
+    }
+    &[data-outline] {
+      border-color: currentColor;
+      background-color: transparent;
+      color: inherit;
+    }
+  }
+  .press.painted {
+    isolation: isolate;
+    overflow: clip;
+    & > .picture {
+      z-index: -1;
+    }
+  }
+  .pressWords {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+  }
+  .framed {
+    background-color: transparent;
+    color: var(--color-ink);
+    &::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      padding: 2px;
+      border-radius: inherit;
+      background: var(--frame);
+      mask:
+        linear-gradient(#000 0 0) content-box exclude,
+        linear-gradient(#000 0 0);
+    }
+    &:hover {
+      background-color: var(--color-paper2);
+    }
+  }
+  /* the event's press: both its words in one cell, the one not shown hidden, so it keeps one width */
+  .seat {
+    display: inline-grid;
+    align-self: flex-start;
+    margin-block-start: var(--space-s2);
+    & > span {
+      display: inline-flex;
+      grid-area: 1 / 1;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-s2);
+    }
+    & > [data-off] {
+      visibility: hidden;
+    }
+  }
+  /* the app's strip in a tile's top corner, as small as a card's (it shows its formats' glyphs alone in under 300px):
+     shown under the pointer, with the keyboard in the tile, or where a finger opened it; hidden by its opacity so Tab
+     still reaches it */
+  .tools {
+    position: absolute;
+    inset-block-start: var(--space-s2);
+    inset-inline-end: var(--space-s2);
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+    width: min(300px, calc(100% - 2 * var(--space-s2)));
+    container-type: inline-size;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    & > * {
+      pointer-events: none;
+    }
+    .tile:focus-within > &,
+    .tile[data-open] > & {
+      opacity: 1;
+      & > * {
+        pointer-events: auto;
+      }
+    }
+    @media (hover: hover) {
+      .tile:hover > & {
+        opacity: 1;
+        & > * {
+          pointer-events: auto;
+        }
+      }
+    }
+  }
+}
