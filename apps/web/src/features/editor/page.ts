@@ -139,11 +139,23 @@ export const NARROW = 900;
 /** The sheet, under the first screen. */
 export const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet })));
 
+/** The selection's export screen's code where the address (its query) opens the screen, which the editor's first
+    frame then is: asked for with the editor's code, its own and the one that waits for it at once. Code that does not
+    come leaves the editor to stand without it. The browser's alone: the server's build carries none of it. */
+export const loadSelectionScreen = (search: string) =>
+  !import.meta.env.SSR && new URLSearchParams(search).has("selection")
+    ? Promise.all([
+        import("../selection/ExportScreen.tsx"),
+        import("../selection/SelectionScreen.tsx").then(m => m.loadExportScreen())
+      ]).catch(() => {})
+    : null;
+
 /** The editor's code, asked for as soon as a palette's page starts. Beside the page the sheet's name shows under the
     picture and sizes it, so there the sheet's code comes with the editor's, and the first screen is whole from its
-    first frame. */
+    first frame; so does the selection's screen where the address opens it. */
 export const loadEditor = () =>
   Promise.all([
     import("./Editor.tsx"),
-    matchMedia(`(min-width: ${NARROW + 1}px)`).matches ? Sheet.preload() : null
+    matchMedia(`(min-width: ${NARROW + 1}px)`).matches ? Sheet.preload() : null,
+    loadSelectionScreen(location.search)
   ]).then(([editor]) => editor);

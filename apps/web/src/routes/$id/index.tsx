@@ -10,6 +10,7 @@ import { EditorCorner, editing } from "../../features/editor/EditorCorner.tsx";
 import {
   askFacts,
   loadEditor,
+  loadSelectionScreen,
   paletteData,
   paletteHead,
   searchReader
@@ -72,7 +73,9 @@ export const Route = createFileRoute("/$id/")({
               ? import("../../features/editor/glass-draw.ts").then(m =>
                   m.stillWanted() ? m.loadStill() : null
                 )
-              : null
+              : null,
+            /* and the selection's screen's, where the address opens it over the editor */
+            loadSelectionScreen(location.searchStr)
           ]).catch(() => {});
     const palette = await paletteData(params.id, deps.search);
     if (palette) {

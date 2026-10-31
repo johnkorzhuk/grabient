@@ -13,30 +13,12 @@ import {
   type Style,
   viewSearch
 } from "@grabient/engine/view.ts";
+import { EXPORT_DEFAULTS, type ExportSettings } from "./export-settings.ts";
 import { t } from "./i18n.ts";
 
-/** Width and Height are each palette's size: its pixels, or auto, which follows the other side at Auto's shape (both
-    auto with `preset` auto is Auto itself). `preset` names the row the size is: auto, a preset, screen or custom. Gap,
-    padding and corners are percentages of a palette's shorter side. */
-export interface ExportSettings {
-  preset: string;
-  width: number | "auto";
-  height: number | "auto";
-  /** auto: the count of columns that suits the size */
-  columns: number | "auto";
-  gap: number;
-  padding: number;
-  corners: number;
-}
-export const EXPORT_DEFAULTS: ExportSettings = {
-  preset: "auto",
-  width: "auto",
-  height: "auto",
-  columns: "auto",
-  gap: 10,
-  padding: 15,
-  corners: 29
-};
+/* the settings themselves are export-settings.ts's, which a page starts with while this loads with the screen */
+export { EXPORT_DEFAULTS, type ExportSettings };
+
 /* Auto where no stage gives one: a list's cell, and the 16 by 9 room its columns are fitted to */
 const CELL: Size = { width: 1200, height: 720 };
 const FRAME: Size = { width: 1920, height: 1080 };

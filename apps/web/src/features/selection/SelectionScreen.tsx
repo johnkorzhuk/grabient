@@ -1,19 +1,18 @@
 import { clampSize, parseSize, type Size, sizeParam } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
-import { EXPORT_DEFAULTS, ExportPanel, type ExportSettings } from "@grabient/ui/ExportPanel.tsx";
-import { ExportPreview } from "@grabient/ui/ExportPreview.tsx";
-import type { Format } from "@grabient/ui/FormatStrip.tsx";
-import hidden from "@grabient/ui/hidden.module.css";
+import { EXPORT_DEFAULTS, type ExportSettings } from "@grabient/ui/export-settings.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { SIZE_PRESETS, screenSize, sizePresetOf } from "@grabient/ui/sizes.ts";
 import { Text } from "@grabient/ui/Text.tsx";
+import { isServer } from "@solidjs/web";
 import { useLocation, useRouter, useSearch } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
   createSignal,
   type Element,
+  lazy,
   onCleanup,
   onSettled,
   Show,
@@ -22,19 +21,9 @@ import {
 } from "solid-js";
 import { rewriteInPlace, rewriteQuietly, SELECTION_MARK } from "../../app/navigation.ts";
 import { ShellContext } from "../../app/shell.ts";
-import { hexesOf } from "../../lib/palette.ts";
-import { nameOf } from "../gallery/drawing.ts";
 import { inOrder, rememberedView, rememberView } from "../list/appearance.ts";
-import { useTaken } from "../palette-use/use.ts";
-import { copySelection, downloadSelection } from "./export.ts";
 import styles from "./Selection.module.css";
-import {
-  clearSelection,
-  loadSelection,
-  removeSelected,
-  selection,
-  selectionRead
-} from "./selection.ts";
+import { loadSelection, selection, selectionRead } from "./selection.ts";
 
 /* The selection on a page that lists palettes: the lists, the collections, the home and a collection's page. Once the
    selection holds something, Selection opens selection mode: the export screen the editor has, the selection drawn on
@@ -42,7 +31,8 @@ import {
    mounted and out of sight (`away`), so Close returns to the same depth. Selection mode is the page's address with
    `selection`, an entry of its own: Back closes it, and Close and Escape are Back when the entry was opened here.
    Each palette's size is the address's `size`, which travels with the reader; the column's other numbers are this
-   browser's. A page draws the parts where they stand in its own markup (`button`, `float`, `screen`). */
+   browser's. A page draws the parts where they stand in its own markup (`button`, `float`, `screen`). What a page
+   starts with is here: the way in, the address and the numbers; the screen itself is ExportScreen.tsx. */
 
 /** A size dragged in the column reaches the address at most this often, and the route takes it once it rests. */
 const WRITE_MS = 350;
@@ -97,53 +87,29 @@ function keepLayout(next: Layout) {
   }
 }
 
-/** While the column covers the page (a narrow screen, where it is fixed), the page beneath it is inert, so the
-    keyboard stays in the column. Returns the way out. */
-function inertBehind(panel: HTMLElement): () => void {
-  const marked: HTMLElement[] = [];
-  const release = () => {
-    for (const el of marked.splice(0)) el.inert = false;
-  };
-  const apply = () => {
-    release();
-    const main = panel.closest("main");
-    if (!main || getComputedStyle(panel).position !== "fixed") return;
-    for (let el: HTMLElement | null = panel; el && el !== main; el = el.parentElement) {
-      for (const sibling of el.parentElement?.children ?? []) {
-        if (sibling !== el && sibling instanceof HTMLElement && !sibling.inert) {
-          sibling.inert = true;
-          marked.push(sibling);
-        }
-      }
-    }
-  };
-  let frame = 0;
-  const later = () => {
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(apply);
-  };
-  apply();
-  window.addEventListener("resize", later);
-  return () => {
-    cancelAnimationFrame(frame);
-    window.removeEventListener("resize", later);
-    release();
-  };
-}
-
-/** The export column's place, which makes the page beneath inert while the column covers it. */
-function Covering(props: { children: Element }) {
-  let box!: HTMLDivElement;
-  onSettled(() => {
-    const panel = box.firstElementChild;
-    return panel instanceof HTMLElement ? inertBehind(panel) : undefined;
+/* The export screen's code (ExportScreen.tsx) is no page's start: it is asked for in an idle moment once the selection
+   holds something, so its way in stands; at once as the pointer, the keyboard or a finger reaches that press; and as an
+   address asks for the screen, a palette's page waiting for it with the editor's own code (editor/page.ts). The page
+   stands until it has come, as it stands until the selection is read, so the screen takes its place whole. The screen
+   never stands on the server, whose build carries none of it. */
+const ExportScreen = lazy(() =>
+  (import.meta.env.SSR ? (new Promise(() => {}) as never) : import("./ExportScreen.tsx")).then(
+    m => ({ default: m.ExportScreen })
+  )
+);
+/* whether its code has come: plain for a page made after, a signal for a page that waits for it */
+let came = false;
+const [loaded, setLoaded] = createSignal(false);
+const ready = () => came || loaded();
+/** Asks for the export screen's code, once while it comes; settles once it is in. */
+export function loadExportScreen(): Promise<void> {
+  return ExportScreen.preload().then(() => {
+    if (came) return;
+    came = true;
+    setLoaded(true);
   });
-  return (
-    <div ref={box} class={styles.covering}>
-      {props.children}
-    </div>
-  );
 }
+const prefetch = () => void loadExportScreen().catch(() => {});
 
 export function createSelectionScreen(page: {
   /** the page's status line: what the selection could not do */
@@ -156,10 +122,32 @@ export function createSelectionScreen(page: {
   const location = useLocation();
   const search = useSearch({ strict: false });
   const params = () => search() as Record<string, unknown>;
-  /* the address asks for the selection; it stands once this browser's selection is read and holds something, so the
-     page stands until then, on the server and through hydration alike */
+  /* the address asks for the selection; it stands once this browser's selection is read and holds something, and its
+     screen's code is in, so the page stands until then, on the server and through hydration alike */
   const asked = () => params().selection !== undefined;
-  const open = () => asked() && selectionRead() && selection().length > 0;
+  const wanted = () => asked() && selectionRead() && selection().length > 0;
+  const open = () => wanted() && ready();
+  /* an address that asks for the screen asks for its code as the page starts */
+  if (!isServer && untrack(asked)) prefetch();
+  createEffect(
+    () => wanted() && !ready(),
+    waiting => {
+      if (waiting) prefetch();
+    }
+  );
+  /* once the selection holds something its way in stands, and the screen's code comes in an idle moment */
+  createEffect(
+    () => selection().length > 0 && !ready(),
+    idle => {
+      if (!idle) return;
+      if (typeof requestIdleCallback === "function") {
+        const id = requestIdleCallback(prefetch, { timeout: 2000 });
+        return () => cancelIdleCallback(id);
+      }
+      const id = setTimeout(prefetch, 200);
+      return () => clearTimeout(id);
+    }
+  );
 
   const [layout, setLayout] = createSignal<Layout>(LAYOUT);
   /* what Auto is: a list's palettes have no picture of their own and take the grid's cell; a page that has one hands
@@ -264,6 +252,8 @@ export function createSelectionScreen(page: {
     setTimeout(() => land(8));
   };
   const show = () => {
+    /* the screen's code, if it has not come: asked for again where an earlier ask failed */
+    prefetch();
     if (asked()) return;
     scrolledTo = scrollY;
     focusPress("close");
@@ -313,49 +303,17 @@ export function createSelectionScreen(page: {
   shell?.paint(() => (open() ? selection() : null));
   shell?.keys(() => [{ key: "Escape", label: msg("Close selection"), run: close, when: open }]);
 
-  const previews = createMemo(() =>
-    selection().map(item => ({
-      id: item.id,
-      name: nameOf(item),
-      stops: hexesOf(item),
-      style: item.style,
-      angle: item.angle
-    }))
-  );
-  const copy = (format: Format) =>
-    copySelection(selection(), settings(), format, auto()).then(
-      done => {
-        if (done === "downloaded")
-          page.note(t("Images can't be copied here, so the file was downloaded."));
-        useTaken(
-          done === "downloaded" ? "download" : "copy",
-          format,
-          { surface: "selection" },
-          selection()
-        );
-        return done === "copied";
-      },
-      (reason: unknown) => {
-        page.note(reason instanceof Error ? reason.message : t("Couldn't copy the selection."));
-        return false;
-      }
-    );
-  const download = (format: Format) =>
-    void downloadSelection(selection(), settings(), format, auto()).then(
-      () =>
-        useTaken(
-          format === "url" ? "copy" : "download",
-          format,
-          { surface: "selection" },
-          selection()
-        ),
-      (reason: unknown) =>
-        page.note(reason instanceof Error ? reason.message : t("Couldn't download the selection."))
-    );
-  /* the way in appears once something is in the selection; open, the column's head has Close */
+  /* the way in appears once something is in the selection; open, the column's head has Close. The pointer, the keyboard
+     or a finger that reaches it asks for the screen's code, if an idle moment has not */
   const press = () => (
     <Show when={selection().length && !open()}>
-      <span data-selection="open" class={styles.covering}>
+      <span
+        data-selection="open"
+        class={styles.covering}
+        onPointerEnter={prefetch}
+        onPointerDown={prefetch}
+        onFocusIn={prefetch}
+      >
         <Button variant="primary" size="lg" onClick={show}>
           <Icon name="grid" size={14} />
           <span>{t("Selection")}</span>{" "}
@@ -384,45 +342,17 @@ export function createSelectionScreen(page: {
         {press()}
       </span>
     ),
-    /** the export screen while the selection stands, in the page's content's place */
+    /** the export screen while the selection stands, in the page's content's place: its code is in by then */
     screen: () => (
       <Show when={open()}>
-        <main class={styles.screen} data-beside-scrollbar="">
-          <h1 class={hidden.text}>{t("Selection")}</h1>
-          <div class={styles.stage}>
-            <div class={styles.fit}>
-              <ExportPreview
-                items={previews()}
-                settings={settings()}
-                autoSize={auto()}
-                onRemove={removeSelected}
-              />
-            </div>
-          </div>
-          <div class={styles.column}>
-            <Covering>
-              <ExportPanel
-                count={selection().length}
-                settings={settings()}
-                onSettings={onSettings}
-                onClear={clearSelection}
-                onCopy={copy}
-                onDownload={download}
-                save={page.save?.()}
-                autoSize={auto()}
-                onClose={close}
-                preview={
-                  <ExportPreview
-                    items={previews()}
-                    settings={settings()}
-                    autoSize={auto()}
-                    onRemove={removeSelected}
-                  />
-                }
-              />
-            </Covering>
-          </div>
-        </main>
+        <ExportScreen
+          settings={settings()}
+          onSettings={onSettings}
+          autoSize={auto()}
+          note={page.note}
+          save={page.save?.()}
+          onClose={close}
+        />
       </Show>
     )
   };
