@@ -722,10 +722,24 @@ describe("the day's lead", () => {
     expect(await makeVisitLead({ CACHE } as never, NOON)).toBe(156);
     expect(JSON.parse(CACHE.kept.get(leadName)!.value)).toEqual({ day: "2026-10-20", lead: 156 });
     expect(asked).toEqual([
-      "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Windows&num=1"
+      "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Windows&num=10"
     ]);
     expect(await makeVisitLead({ CACHE } as never, NOON + 3_600_000)).toBeNull();
     expect(asked).toHaveLength(1);
+  });
+  test("is the highest milestone among the latest releases, not the newest by date", async () => {
+    const CACHE = memoryKV();
+    // as the dashboard answered on 28 Oct 2026: a security update for 156 released five days after 157
+    vi.stubGlobal("fetch", async () =>
+      Response.json([
+        { channel: "Stable", milestone: 156, version: "156.0.8078.74" },
+        { channel: "Stable", milestone: 156, version: "156.0.8078.73" },
+        { channel: "Stable", milestone: 157, version: "157.0.8103.15" },
+        { channel: "Stable", milestone: 156, version: "156.0.8078.49" }
+      ])
+    );
+    expect(await makeVisitLead({ CACHE } as never, NOON)).toBe(157);
+    expect(JSON.parse(CACHE.kept.get(leadName)!.value)).toEqual({ day: "2026-10-20", lead: 157 });
   });
   test("is asked again at the next run when the dashboard does not answer, the version before it standing", async () => {
     const CACHE = memoryKV();

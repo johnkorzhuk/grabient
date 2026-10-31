@@ -36,9 +36,11 @@ export async function makeVisitKeys(
   return made;
 }
 
-/** Google's release dashboard: the newest stable Chrome for Windows, its milestone the major version. */
+/** Google's release dashboard: the latest stable Chrome releases for Windows, each with its milestone, the major
+    version. The newest by date is not always the highest: on 27 Oct 2026 a security update for 156 came out five days
+    after 157, so the lead is the highest milestone among the latest releases. */
 const STABLE =
-  "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Windows&num=1";
+  "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Windows&num=10";
 const ASK_MS = 5000;
 
 /** Chrome's stable version, asked of Google's release dashboard once a day: the ten-minute job's step. Never worked
@@ -58,7 +60,10 @@ export async function makeVisitLead(
   const releases = (await fetch(STABLE, { signal: AbortSignal.timeout(ASK_MS) })
     .then(answer => (answer.ok ? answer.json() : null))
     .catch(() => null)) as { milestone?: unknown }[] | null;
-  const lead = Number(Array.isArray(releases) ? releases[0]?.milestone : Number.NaN);
+  const milestones = (Array.isArray(releases) ? releases : [])
+    .map(release => Number(release?.milestone))
+    .filter(milestone => Number.isSafeInteger(milestone));
+  const lead = milestones.length ? Math.max(...milestones) : Number.NaN;
   if (!Number.isSafeInteger(lead) || lead < 100 || lead > 999) return "unanswered";
   await store.put(leadName, JSON.stringify({ day: today, lead }));
   return lead;
