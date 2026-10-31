@@ -27,7 +27,8 @@ export type Format =
   | "ase"
   | "gpl"
   | "grd"
-  | "tokens";
+  | "tokens"
+  | "figma";
 /** What a chip does: copies its format, saves it as a file, or copies the address the site serves it at. */
 export type StripMode = "copy" | "download" | "link";
 /** A palette's swatch files by mode: the two that are text copy, all four save and link. */
@@ -49,7 +50,8 @@ const ICON: Readonly<Record<Format, IconName>> = {
   ase: "swatchGrid",
   gpl: "palette",
   grd: "rainbow",
-  tokens: "cube"
+  tokens: "cube",
+  figma: "figma"
 };
 const LABEL: Readonly<Record<Format, string>> = {
   css: "CSS",
@@ -64,7 +66,8 @@ const LABEL: Readonly<Record<Format, string>> = {
   ase: "ASE",
   gpl: "GPL",
   grd: "GRD",
-  tokens: "Tokens"
+  tokens: "Tokens",
+  figma: "Figma"
 };
 const MODES: readonly StripMode[] = ["copy", "download", "link"];
 const MODE_ICON: Readonly<Record<StripMode, IconName>> = {
@@ -82,6 +85,10 @@ const CHIP: Readonly<Record<StripMode, string>> = {
   download: msg("Download {format}"),
   link: msg("Copy {format} link")
 };
+/* a chip named for where its copy goes rather than what it is: Figma takes its layers off the clipboard */
+const CHIP_FOR: Readonly<Partial<Record<Format, string>>> = { figma: msg("Copy for {format}") };
+const chipOf = (f: Format, mode: StripMode) => (mode === "copy" && CHIP_FOR[f]) || CHIP[mode];
+
 /* what the strip does now and what a press on the mode turns it to: one without downloads turns from copying to links */
 const TURN: Readonly<Record<StripMode, Partial<Record<StripMode, string>>>> = {
   copy: { download: msg("Copying. Switch to download"), link: msg("Copying. Switch to links") },
@@ -255,7 +262,7 @@ export function FormatStrip(props: FormatStripProps) {
             const shown = () => place().find(f => formats().includes(f));
             const tip = tooltip(() => {
               const f = shown();
-              return f ? t(CHIP[mode()], { format: LABEL[f] }) : null;
+              return f ? t(chipOf(f, mode()), { format: LABEL[f] }) : null;
             });
             return (
               <Show
@@ -272,7 +279,7 @@ export function FormatStrip(props: FormatStripProps) {
                     ref={tip}
                     type="button"
                     class={styles.chip}
-                    aria-label={t(CHIP[mode()], { format: LABEL[f()] })}
+                    aria-label={t(chipOf(f(), mode()), { format: LABEL[f()] })}
                     onClick={() => void act(f())}
                   >
                     <Icon name={done() === f() ? "check" : ICON[f()]} size={glyph()} />

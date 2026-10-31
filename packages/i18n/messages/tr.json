@@ -146,6 +146,7 @@
   "Copy URL": "URL kopyala",
   "Copy address": "Adresi kopyala",
   "Copy code": "Kodu kopyala",
+  "Copy for {format}": "{format} için kopyala",
   "Copy link": "Bağlantıyı kopyala",
   "Copy {format}": "{format} olarak kopyala",
   "Copy {format} link": "{format} bağlantısını kopyala",

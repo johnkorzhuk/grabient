@@ -27,6 +27,8 @@ export const ICONS = {
   code: "m16 18 6-6-6-6M8 6l-6 6 6 6",
   /* HTML on the format strip: the tags that play an effect behind a page, apart from CSS's code */
   codeXml: "m18 16 4-4-4-4M6 8l-4 4 4 4m8.5-12-5 16",
+  /* Figma on the format strip: a copy Figma pastes as its own layers */
+  figma: "M5 5.5A3.5 3.5 0 0 1 8.5 2H12v7H8.5A3.5 3.5 0 0 1 5 5.5zM12 2h3.5a3.5 3.5 0 1 1 0 7H12V2zM12 12.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0zM5 19.5A3.5 3.5 0 0 1 8.5 16H12v3.5a3.5 3.5 0 1 1-7 0zM5 12.5A3.5 3.5 0 0 1 8.5 9H12v7H8.5A3.5 3.5 0 0 1 5 12.5z",
   /* JSON on the format strip */
   braces: "M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1",
   /* Markdown on the format strip: a page of text, never a # (a color's hex) or the M mark beside the letters MD */

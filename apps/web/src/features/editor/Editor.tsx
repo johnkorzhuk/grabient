@@ -78,6 +78,7 @@ import {
   STRIP_EFFECT_COPY,
   STRIP_EFFECT_LINKS,
   STRIP_FILES,
+  STRIP_GLASS_COPY,
   saveFormat,
   type Taken
 } from "./formats.ts";
@@ -283,7 +284,8 @@ export default function Editor(props: { data: PaletteData }) {
     size: e.size(),
     pixels: resolveSize(e.size(), stage),
     stops: e.stopsTaken(),
-    effect: e.effect()
+    effect: e.effect(),
+    name: name()
   });
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
@@ -833,7 +835,13 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={e.effect() ? STRIP_EFFECT_COPY : STRIP_COPY}
+            copy={
+              e.effect()?.kind === "glass"
+                ? STRIP_GLASS_COPY
+                : e.effect()
+                  ? STRIP_EFFECT_COPY
+                  : STRIP_COPY
+            }
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={e.effect() ? STRIP_EFFECT_LINKS : STRIP_FILES}

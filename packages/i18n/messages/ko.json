@@ -146,6 +146,7 @@
   "Copy URL": "URL 복사",
   "Copy address": "주소 복사",
   "Copy code": "코드 복사",
+  "Copy for {format}": "{format}용으로 복사",
   "Copy link": "링크 복사",
   "Copy {format}": "{format} 복사",
   "Copy {format} link": "{format} 링크 복사",

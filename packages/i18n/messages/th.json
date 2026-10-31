@@ -146,6 +146,7 @@
   "Copy URL": "คัดลอก URL",
   "Copy address": "คัดลอกที่อยู่",
   "Copy code": "คัดลอกโค้ด",
+  "Copy for {format}": "คัดลอกไปยัง {format}",
   "Copy link": "คัดลอกลิงก์",
   "Copy {format}": "คัดลอก {format}",
   "Copy {format} link": "คัดลอกลิงก์ {format}",

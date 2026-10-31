@@ -1,0 +1,184 @@
+{
+  "message": {
+    "type": "NODE_CHANGES",
+    "sessionID": 0,
+    "ackID": 0,
+    "pasteID": 123456,
+    "pasteOffset": {
+      "x": 0,
+      "y": 0
+    },
+    "pasteFileKey": "grabientPasteGlass00000",
+    "pasteIsPartiallyOutsideEnclosingFrame": false,
+    "pastePageId": {
+      "sessionID": 0,
+      "localID": 1
+    },
+    "isCut": false,
+    "pasteEditorType": "DESIGN",
+    "clipboardSelectionRegions": [
+      {
+        "parent": {
+          "sessionID": 0,
+          "localID": 1
+        },
+        "nodes": [
+          {
+            "sessionID": 1,
+            "localID": 1
+          }
+        ],
+        "enclosingFrameOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "pasteIsPartiallyOutsideEnclosingFrame": false,
+        "focusType": "NONE"
+      }
+    ],
+    "pasteAssetType": "UNKNOWN",
+    "nodeChangeOrder": "GUID",
+    "nodeChanges": [
+      {
+        "guid": {
+          "sessionID": 0,
+          "localID": 0
+        },
+        "phase": "CREATED",
+        "type": "DOCUMENT",
+        "name": "Document",
+        "visible": true,
+        "opacity": 1,
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 0,
+          "m10": 0,
+          "m11": 1,
+          "m12": 0
+        }
+      },
+      {
+        "guid": {
+          "sessionID": 1,
+          "localID": 1
+        },
+        "phase": "CREATED",
+        "parentIndex": {
+          "guid": {
+            "sessionID": 0,
+            "localID": 1
+          },
+          "position": "!"
+        },
+        "type": "BOOLEAN_OPERATION",
+        "name": "rib 1 · ünïcode",
+        "visible": true,
+        "opacity": 0.5,
+        "size": {
+          "x": 812.25,
+          "y": 1000
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": -300,
+          "m10": 0,
+          "m11": 1,
+          "m12": 12.5
+        },
+        "booleanOperation": "INTERSECT",
+        "mask": false,
+        "maskType": "ALPHA",
+        "fillPaints": [
+          {
+            "type": "GRADIENT_RADIAL",
+            "opacity": 1,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "transform": {
+              "m00": 1,
+              "m01": 0,
+              "m02": 0,
+              "m10": 0,
+              "m11": 1,
+              "m12": 0
+            },
+            "stops": [
+              {
+                "color": {
+                  "r": 0.2,
+                  "g": 0.4,
+                  "b": 0.6,
+                  "a": 1
+                },
+                "position": 0
+              },
+              {
+                "color": {
+                  "r": 0.2,
+                  "g": 0.4,
+                  "b": 0.6,
+                  "a": 0
+                },
+                "position": 1
+              }
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 0,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "refractionRadius": 100,
+            "specularAngle": -45,
+            "specularIntensity": 0,
+            "bevelSize": 1,
+            "chromaticAberration": 0,
+            "reflectionDistance": 0,
+            "refractionIntensity": 1.5
+          },
+          {
+            "type": "FOREGROUND_BLUR",
+            "offset": {
+              "x": 0,
+              "y": 0
+            },
+            "radius": 70.74,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": true,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bytes": "AQECAAMABAIBAAACAAQBBURvY3VtZW50AAYBCH8AAAAMfwAAAAAAAH8AAAAAAAEBAQIAAwABIQAEBQVyaWIgMSDCtyDDvG7Dr2NvZGUABgEIfgAAAAuIACCWiAAA9Ax/AAAAAIcBACwAfwAAAIIAAJAQAL0CACYBAQIDfwAAAAQBBQEGAnyamZl9mpmZfjQzM38AAAAAfJqZmX2amZl+NDMzAH8AAAAHfwAAAAAAAH8AAAAAACsCAQgDAIEAAAAEAAUBBgEHAAgAAgAAAH0AAAAYfwAAAH8AAAB/AAAAAB6FAACQH4QBAGggACF/AAAAIgAjACR/AACAAAECAwAABIXC9RoFAQYBBwAIAQIAAAB/AAAAACQBAAyAiQ8NAAAOZ3JhYmllbnRQYXN0ZUdsYXNzMDAwMDAAEwAUAAEVABsAIQEBAAECAQEBAwAABAAFAAApADAAAA=="
+}

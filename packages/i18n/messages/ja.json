@@ -146,6 +146,7 @@
   "Copy URL": "URL をコピー",
   "Copy address": "アドレスをコピー",
   "Copy code": "コードをコピー",
+  "Copy for {format}": "{format} 用にコピー",
   "Copy link": "リンクをコピー",
   "Copy {format}": "{format} をコピー",
   "Copy {format} link": "{format} のリンクをコピー",

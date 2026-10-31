@@ -7,7 +7,7 @@ import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { type Size, type SizeChoice, type Style, sizeParam } from "@grabient/engine/view.ts";
-import { downloadFile } from "@grabient/ui/copy.ts";
+import { copyHtml, downloadFile } from "@grabient/ui/copy.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { svgToPngBlob } from "@grabient/ui/figure.ts";
 import { colorFormat } from "../../lib/color-format.ts";
@@ -35,6 +35,8 @@ export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
     addresses of its files: the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the script
     that plays it (server/files/effect-files.ts, embed.ts). */
 export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html"];
+/** While the glass plays, Copy also hands Figma the glass as its own layers (engine/figma-paste.ts). */
+export const STRIP_GLASS_COPY: readonly Format[] = [...STRIP_EFFECT_COPY, "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
@@ -49,6 +51,8 @@ export interface Taken {
   /** the effect the picture plays in place of the gradient, which a copy or a download takes: moving where it moves
       (an SVG), its first frame otherwise */
   effect?: Effect | null;
+  /** the palette's name, which a copy for Figma names its frame */
+  name?: string;
 }
 
 /** The reason a copy of a picture fails where the browser has no image clipboard. */
@@ -193,6 +197,22 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
   if (isSwatchFormat(f))
     return copySwatches(names => swatchFile(f, [swatchesOf({ seed: p.seed, ...view(p) }, names)]));
   if (f === "png") return writeImage(pngOf(p));
+  if (f === "figma" && p.effect?.kind === "glass") {
+    /* the browser's alone: the Worker's build carries none of it */
+    const { figmaGlassHtml } = await (import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/engine/figma-paste.ts"));
+    const html = figmaGlassHtml({
+      colors: colorsOf(p),
+      angle: p.angle,
+      shape: shapeOf(p),
+      width: p.pixels.width,
+      height: p.pixels.height,
+      name: p.name || "Grabient"
+    });
+    if (!(await copyHtml(html))) throw new Error("Couldn't copy.");
+    return;
+  }
   if (f === "html" && p.effect)
     return writeText(
       effectEmbedHtml(origin(), p.seed, p.effect, p.angle, await stillOf(p, p.effect))
