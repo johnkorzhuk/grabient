@@ -3,7 +3,7 @@ import { type Element, For, onSettled, Show } from "solid-js";
 import styles from "./Appearance.module.css";
 import { BarRim } from "./BarRim.tsx";
 import { Button } from "./Button.tsx";
-import { focusLeft, pressOutside, typingIn } from "./dismiss.ts";
+import { focusLeft, fromPanelOf, pressOutside, typingIn } from "./dismiss.ts";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
 import joined from "./joined.module.css";
@@ -176,8 +176,9 @@ export function AppearanceMenu(props: AppearanceProps) {
     if (!props.onClose) return;
     root.querySelector<HTMLElement>('button[aria-pressed="true"]')?.focus({ preventScroll: true });
     const onEscape = (e: KeyboardEvent) => {
-      /* a number being typed takes Escape to put itself back first */
-      if (e.key !== "Escape" || typingIn(root, e.target)) return;
+      /* a number being typed takes Escape to put itself back first, and a color picker opened from a field here puts
+         itself away first */
+      if (e.key !== "Escape" || typingIn(root, e.target) || fromPanelOf(root, e.target)) return;
       e.stopPropagation();
       closeBack();
     };

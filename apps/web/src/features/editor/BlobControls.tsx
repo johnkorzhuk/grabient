@@ -55,6 +55,7 @@ export function BlobFields(props: { editor: PaletteEditor }) {
           read={read}
           onCommit={bg => fx.look("blob", { bg })}
           onPick={bg => fx.look("blob", { bg })}
+          beside={() => document.getElementById("appearance-menu") ?? undefined}
         />
       </div>
     </>

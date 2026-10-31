@@ -6,7 +6,7 @@ import { createEffect, createSignal, type Element, onSettled, Show } from "solid
 import { BarRim } from "./BarRim.tsx";
 import { Button } from "./Button.tsx";
 import styles from "./ColorPicker.module.css";
-import { focusLeft, pressOutside } from "./dismiss.ts";
+import { focusLeft, openedBy, pressOutside } from "./dismiss.ts";
 import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import { composing, matches } from "./keys.ts";
@@ -357,6 +357,8 @@ export function ColorPicker(props: ColorPickerProps) {
   onSettled(() => {
     const Dropper = (window as unknown as { EyeDropper?: new () => EyeDropperLike }).EyeDropper;
     if (Dropper) setDropper(() => Dropper);
+    /* a press or the keyboard in it is inside the panel its press stands in (the appearance menu) */
+    openedBy(host, props.anchor);
     place();
     /* the field takes the keyboard once the panel is seen: a field not yet shown takes no focus */
     requestAnimationFrame(() => {
