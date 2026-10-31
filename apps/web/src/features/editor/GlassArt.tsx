@@ -32,10 +32,15 @@ export function GlassArt(props: {
   const [showing, setShowing] = createSignal<string | null>(null);
   /* the GPU's bitmap is on the canvas, over the box */
   const [painted, setPainted] = createSignal(false);
-  /* the box is in the page with a size */
+  /* the box is in the page with a size, and that size: a GPU still drawn at another is drawn again at this one, where
+     it would be stretched to the box (the window made narrower), and a card's player would not take it over */
   const [seen, setSeen] = createSignal(untrack(() => props.eager === true));
+  const [box, setBox] = createSignal("");
   onSettled(() => {
-    const sizes = new ResizeObserver(() => setSeen(el.clientWidth > 0));
+    const sizes = new ResizeObserver(() => {
+      setSeen(el.clientWidth > 0);
+      setBox(`${el.clientWidth}x${el.clientHeight}`);
+    });
     sizes.observe(el);
     return () => sizes.disconnect();
   });
@@ -46,6 +51,8 @@ export function GlassArt(props: {
   let drawnAt = Number.NEGATIVE_INFINITY;
   /* the GPU drew nothing here once: the SVG from then on */
   let noGpu = false;
+  /* the box the GPU's last still was drawn for */
+  let drawnBox = "";
   /* the GPU's still asked for, ahead of a change */
   let warming = false;
   const draw = (colors: readonly string[], angle: number, shape: number | null, named: string) => {
@@ -65,6 +72,7 @@ export function GlassArt(props: {
       }
       if (bitmap) {
         canvas.getContext("bitmaprenderer")?.transferFromImageBitmap(bitmap);
+        drawnBox = `${el.clientWidth}x${el.clientHeight}`;
         drawnAt = performance.now();
         setPainted(true);
         setUri(null);
@@ -84,7 +92,13 @@ export function GlassArt(props: {
   createEffect(
     () =>
       seen()
-        ? { named: key(), colors: props.colors, angle: props.angle, shape: props.shape ?? null }
+        ? {
+            named: key(),
+            colors: props.colors,
+            angle: props.angle,
+            shape: props.shape ?? null,
+            at: box()
+          }
         : null,
     next => {
       clearTimeout(timer);
@@ -105,7 +119,8 @@ export function GlassArt(props: {
       const { named, colors, angle, shape } = next;
       const was = away;
       away = false;
-      if (named === untrack(showing)) return;
+      /* the same still, unless the GPU drew it for another box: the server's and the SVG cover any box */
+      if (named === untrack(showing) && (!untrack(painted) || next.at === drawnBox)) return;
       /* the server's still where it is this one, until a change asks for another */
       if (serverStill(named) && !untrack(painted)) {
         setUri(null);
