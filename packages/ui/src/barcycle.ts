@@ -9,8 +9,9 @@ import { waterAllowed } from "./renderer.ts";
    editor's) the bar mirrors them instead, so the next tween starts from what was on screen. Under reduced motion the
    bar holds and a new list lands at once; on a software renderer each change lands in one frame, since every frame of
    a tween repaints the header's glass. Paced by time; the clock stops while the tab is hidden. It asks for frames only
-   while the bar moves or mirrors: through a dwell it waits on a timer, which a new list or colors to mirror cut short.
-   Browser only. */
+   while the bar moves: through a dwell it waits on a timer, which a new list or colors to mirror cut short, and while
+   it mirrors it draws each colors `follow` gives once and waits for the next, so a palette's page standing still asks
+   for none (a brand page's palette arriving gives new colors every frame, and has one each). Browser only. */
 export function createBarCycle(
   palettes: () => readonly (readonly string[])[],
   opts: {
@@ -70,12 +71,10 @@ export function createBarCycle(
     }
   );
   let loop: { start(): void; stop(): void; wake(): void } | null = null;
-  // colors to mirror end a dwell's wait at once
+  // colors to mirror, new ones or the first, end a wait at once; none any more, and the cycle carries on
   createEffect(
-    () => !!opts.follow?.()?.length,
-    following => {
-      if (following) loop?.wake();
-    }
+    () => opts.follow?.(),
+    () => loop?.wake()
   );
   /* reduced, the bar stops where it is; moving again, it carries on from there */
   createEffect(reducedMotion, reduce => {
@@ -89,6 +88,8 @@ export function createBarCycle(
     let rest: ReturnType<typeof setTimeout> | undefined;
     let restAt = 0;
     let stopped = false;
+    /* the colors last mirrored: the same ones again ask for no frame */
+    let mirrored: readonly string[] | null = null;
     void waterAllowed().then(ok => {
       if (!ok) stepped = true;
     });
@@ -108,10 +109,14 @@ export function createBarCycle(
       last = now;
       const followed = opts.follow?.();
       if (followed?.length) {
+        /* the same colors as the frame before: none to draw, and no frames until follow gives others */
+        if (followed === mirrored) return;
+        mirrored = followed;
         current = a = b = lchSamples(followed, n);
         phase = tween;
         setStops(followed);
       } else {
+        mirrored = null;
         phase += dt;
         if (phase < tween) {
           current = mixStops(a, b, phase / tween, move, dir);

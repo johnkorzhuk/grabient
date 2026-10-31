@@ -270,14 +270,26 @@ export function playGlass(
       return;
     const g = next.geometry;
     const win = next.window;
+    /* another angle or shape at the same size keeps the canvas and the textures: a canvas given its size again
+       throws its drawing buffer away, and the page waits on the compositor for the new one (about a tenth of a
+       second a turn of the angle, measured) */
+    const resized = !window_ || window_.w !== win.w || window_.h !== win.h;
+    const was = plan;
     geometry = g;
     window_ = win;
     plan = glassPlan(g);
-    canvas.width = win.w;
-    canvas.height = win.h;
-    gl.bindTexture(gl.TEXTURE_2D, mapTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, win.w, win.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    if (resized) {
+      canvas.width = win.w;
+      canvas.height = win.h;
+      gl.bindTexture(gl.TEXTURE_2D, mapTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, win.w, win.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
     baker.bake(g, win, mapTex);
+    if (!resized && was && was.fw === plan.fw && was.fh === plan.fh) {
+      recolor();
+      ready = true;
+      return;
+    }
     for (let i = 0; i < 2; i++) {
       gl.bindTexture(gl.TEXTURE_2D, fieldTex[i]);
       gl.texImage2D(
@@ -398,7 +410,8 @@ export function playGlass(
         }
       }
     }
-    if (playing()) raf = requestAnimationFrame(tick);
+    /* held at speed 0, a frame comes only with a change, which wakes the loop (set, a size, the motion setting) */
+    if (playing() && view_.speed > 0) raf = requestAnimationFrame(tick);
   };
   const wake = () => {
     last = performance.now();
