@@ -142,24 +142,34 @@ export function parseEffect(params: ParamReader): Effect | null {
   };
 }
 
-/** The effect's parts of an address after its style, defaults left out, in one order: how it plays, then the blob's
-    look. A ground color is written with its `#` (escaped), so no color reads as a number. */
-export const effectParts = (effect: Effect): string[] => {
+const written = (parts: (string | false | null)[]): string[] =>
+  parts.filter((part): part is string => Boolean(part));
+
+/** The blob's look as an address writes it, defaults left out: all its first frame depends on but its palette (the
+    glass's look is its palette and its angle alone). A ground color is written with its `#` (escaped), so no color
+    reads as a number. */
+export const effectLookParts = (effect: Effect): string[] => {
   const look = effect.look;
-  return [
-    effect.speed !== 1 && `speed=${effect.speed}`,
-    effect.fps !== null && `fps=${effect.fps}`,
-    ...(effect.kind === "blob"
-      ? [
-          !look.depth && "depth=0",
-          look.fill && "fill=1",
-          look.frost !== 1 && `frost=${look.frost}`,
-          look.shape !== null && `shape=${look.shape}`,
-          look.bg && `bg=${look.bg.replace("#", "%23")}`
-        ]
-      : [])
-  ].filter((part): part is string => Boolean(part));
+  return effect.kind === "blob"
+    ? written([
+        !look.depth && "depth=0",
+        look.fill && "fill=1",
+        look.frost !== 1 && `frost=${look.frost}`,
+        look.shape !== null && `shape=${look.shape}`,
+        look.bg && `bg=${look.bg.replace("#", "%23")}`
+      ])
+    : [];
 };
+
+/** The effect's parts of an address after its style, defaults left out, in one order: how it plays, then the blob's
+    look. */
+export const effectParts = (effect: Effect): string[] => [
+  ...written([
+    effect.speed !== 1 && `speed=${effect.speed}`,
+    effect.fps !== null && `fps=${effect.fps}`
+  ]),
+  ...effectLookParts(effect)
+];
 
 /** Whether two settings are the same. */
 export const sameSettings = (a: EffectSettings, b: EffectSettings): boolean =>

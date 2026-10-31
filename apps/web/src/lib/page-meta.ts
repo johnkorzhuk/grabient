@@ -1,9 +1,11 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
+import { type Effect, effectLookParts } from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
 import {
   asSaved,
+  DEFAULT_ANGLE,
   drawnView,
   isFixedSize,
   type Style,
@@ -129,6 +131,8 @@ export type Page = Facts &
         seed: string;
         palette: Palette;
         view: PaletteView;
+        /** the effect its address plays (the fluted glass or the blob), which its card shows in its view's place */
+        effect?: Effect;
         /** the view it was saved in, which its canonical address draws: none for a palette neither the gallery nor
             Grabient's collections hold */
         saved?: PaletteView;
@@ -211,6 +215,13 @@ export function paletteAddress(seed: string, saved?: Partial<PaletteView>): stri
 /** A palette's share card in a view, as its page and its sitemap entry name it. */
 export const paletteCard = (seed: string, view: PaletteView) =>
   `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`;
+/** A palette's share card where its address plays an effect: the effect's first frame, as the page shows it before it
+    moves (server/images/cards.ts), named by all it depends on: the glass's angle, the blob's look but its pace. */
+export function effectCard(seed: string, effect: Effect, angle: number): string {
+  const turned = effect.kind === "glass" && angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
+  const parts = [`style=${effect.kind}`, ...turned, ...effectLookParts(effect)];
+  return `/api/og?seed=${seed}&v=${CARD_VERSION}&${parts.join("&")}`;
+}
 /** A palette's own picture beside its page, in a view: a fixed size is the file's `w` and `h`. The PNG is the one its
     page shows an image search and its sitemap entry names. */
 export function paletteFile(seed: string, view: View, type: "png" | "svg"): string {
@@ -802,7 +813,10 @@ function palettePage(
   const path = paletteAddress(seed, page.saved);
   meta.title = titled(heading(page));
   meta.description = describe(page, name, hexes);
-  meta.image = absolute(paletteCard(seed, view), origin);
+  meta.image = absolute(
+    page.effect ? effectCard(seed, page.effect, view.angle) : paletteCard(seed, view),
+    origin
+  );
   meta.imageAlt = t("{name} color palette", { name });
   meta.themeColor = hexes[0];
   meta.markdown = absolute(`/${seed}.md${viewSearch(view)}`, origin);

@@ -6,6 +6,7 @@
    engine's writing, kept for one build. */
 import { bandsSearch, isBands, parseBands } from "@grabient/engine/bands.ts";
 import { colorKind } from "@grabient/engine/css.ts";
+import { effectLookParts, parseEffect } from "@grabient/engine/effect.ts";
 import { parseView, type Size, sizeParam, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
@@ -154,6 +155,18 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     return { path: `/${seed}.${file.format}`, query, acrossBuilds: false };
   }
   const view = viewAt(params, palette.anchors.length);
+  /* an effect's first frame and its card (images/cards.ts): the glass's angle or the blob's look, none of its pace,
+     kept for one build, as the bands' are */
+  const effect = parseEffect(params);
+  if (effect && (file.format === "png" || file.format === "og")) {
+    const query = new URLSearchParams(
+      [`style=${effect.kind}`, ...effectLookParts(effect)].join("&")
+    );
+    if (effect.kind === "glass") query.set("angle", String(view.angle));
+    if (file.format === "png") return picture(`/${seed}.png`, query, pictureSize(params), false);
+    query.set("seed", seed);
+    return picture("/api/og", query, cardSize(params), false);
+  }
   const svg = file.format === "svg" || file.format === "css" ? { size: svgSize(params) } : {};
   const query = new URLSearchParams(viewSearch({ ...view, ...svg }));
   if (file.format === "og") {

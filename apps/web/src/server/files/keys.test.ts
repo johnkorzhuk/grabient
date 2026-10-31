@@ -142,3 +142,25 @@ test("a palette's CSS is kept under its size, and the animated CSS under its ani
     "/kS7Q8Yy5S_SChv0.css?size=1080x1350&style=bands"
   );
 });
+
+test("an effect's card and picture are kept under its look, apart from the gradient's, for one build", () => {
+  const seed = "kS7Q8Yy5S_SChv0";
+  const glass = written(`/api/og?seed=${seed}&style=glass`);
+  expect(glass).toEqual({
+    key: `/api/og?angle=90&h=630&seed=${seed}&style=glass&w=1200`,
+    acrossBuilds: false
+  });
+  expect(glass?.key).not.toBe(written(`/api/og?seed=${seed}`)?.key);
+  // its pace draws no other first frame; its angle turns the ribs
+  expect(written(`/api/og?seed=${seed}&v=k4&style=glass&speed=3&fps=24`)?.key).toBe(glass?.key);
+  expect(written(`/api/og?seed=${seed}&style=glass&angle=45`)?.key).not.toBe(glass?.key);
+  // the blob's look, but no angle, which it has none of
+  expect(written(`/api/og?seed=${seed}&style=blob&shape=7&fill=1&angle=45&speed=2`)?.key).toBe(
+    `/api/og?fill=1&h=630&seed=${seed}&shape=7&style=blob&w=1200`
+  );
+  expect(written(`/${seed}.png?style=blob&bg=%23101014&w=400&h=300&junk=1`)).toEqual({
+    key: `/${seed}.png?bg=%23101014&h=300&style=blob&w=400`,
+    acrossBuilds: false
+  });
+  expect(written(`/${seed}.png?style=glass`)?.key).not.toBe(written(`/${seed}.png`)?.key);
+});
