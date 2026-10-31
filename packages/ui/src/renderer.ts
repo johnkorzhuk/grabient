@@ -30,6 +30,12 @@ function nameHere(): string {
 }
 const software = (name: string) => name === "none" || SOFTWARE.test(name);
 
+/** Whether a renderer's name is a software rasterizer's. */
+export const softwareNamed = (name: string): boolean => SOFTWARE.test(name);
+
+/** The probe's answer where it has run (true: software), else undefined. */
+export const knownSoftware = (): boolean | undefined => known;
+
 function softwareRenderer(): Promise<boolean> {
   if (known !== undefined) return Promise.resolve(known);
   if (asking) return asking;

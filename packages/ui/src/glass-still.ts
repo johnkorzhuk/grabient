@@ -3,6 +3,7 @@
    handed over as a bitmap: the glass's first frame at the picture's size in a few milliseconds, where the browser took
    about a tenth of a second to paint the still's SVG, whose filter reads two maps it draws whole, and the very frame a
    player at that size starts from. Null where WebGL 2 or an off-screen canvas is missing: the picture keeps the SVG. */
+import { knownSoftwareRenderer, softwareContext } from "./gl-build.ts";
 import { createGlassDrawing, type GlassDrawing } from "./glass-player.ts";
 
 let shared:
@@ -13,6 +14,10 @@ let shared:
 /* the shared canvas and its drawing, made with the first still and again where the browser lost its context */
 const open = () => {
   if (shared === null || (shared && !shared.gl.isContextLost())) return shared;
+  if (knownSoftwareRenderer()) {
+    shared = null;
+    return shared;
+  }
   try {
     const canvas = new OffscreenCanvas(1, 1);
     const gl = canvas.getContext("webgl2", {
@@ -23,7 +28,9 @@ const open = () => {
       premultipliedAlpha: true,
       preserveDrawingBuffer: false
     });
-    shared = gl ? { canvas, gl, drawing: createGlassDrawing(gl) } : null;
+    /* a renderer on the CPU leaves the stills to the SVG (gl-build.ts) */
+    if (gl && softwareContext(gl)) gl.getExtension("WEBGL_lose_context")?.loseContext();
+    shared = gl && !gl.isContextLost() ? { canvas, gl, drawing: createGlassDrawing(gl) } : null;
   } catch {
     shared = null;
   }

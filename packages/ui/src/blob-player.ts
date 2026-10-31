@@ -32,7 +32,7 @@ import {
 import { hexBytes } from "@grabient/engine/color.ts";
 import { groundParts } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { buildPrograms } from "./gl-build.ts";
+import { buildPrograms, knownSoftwareRenderer, softwareContext } from "./gl-build.ts";
 import { createPace } from "./pace.ts";
 
 export interface BlobPlayer {
@@ -215,6 +215,8 @@ export function playBlob(
   options: { ease?: boolean } = {}
 ): BlobPlayer | null {
   const easing = options.ease === false ? 0 : EASE_S;
+  /* a renderer the page has found on the CPU plays nothing, no context made: the still stays (gl-build.ts) */
+  if (knownSoftwareRenderer()) return null;
   const gl = canvas.getContext("webgl2", {
     alpha: true,
     premultipliedAlpha: true,
@@ -224,6 +226,11 @@ export function playBlob(
     preserveDrawingBuffer: false
   });
   if (!gl) return null;
+  /* a renderer on the CPU plays nothing: the still stays (gl-build.ts) */
+  if (softwareContext(gl)) {
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return null;
+  }
   /* built as the GPU gets to them (gl-build.ts): the first frame waits for them, the still covering the box */
   const programs = buildPrograms(gl, [
     [DOTS_VS, DOTS_FS],

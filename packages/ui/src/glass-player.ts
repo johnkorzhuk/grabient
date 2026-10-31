@@ -24,7 +24,7 @@ import {
   glassPlan
 } from "@grabient/engine/glass-render.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { buildPrograms } from "./gl-build.ts";
+import { buildPrograms, knownSoftwareRenderer, softwareContext } from "./gl-build.ts";
 import { glassBake } from "./glass-bake.ts";
 import { createPace } from "./pace.ts";
 
@@ -364,6 +364,8 @@ export function playGlass(
   options: { ease?: boolean } = {}
 ): GlassPlayer | null {
   const easing = options.ease === false ? 0 : EASE_S;
+  /* a renderer the page has found on the CPU plays nothing, no context made: the still stays (gl-build.ts) */
+  if (knownSoftwareRenderer()) return null;
   const gl = canvas.getContext("webgl2", {
     alpha: false,
     antialias: false,
@@ -373,6 +375,11 @@ export function playGlass(
     preserveDrawingBuffer: false
   });
   if (!gl) return null;
+  /* a renderer on the CPU plays nothing: the still stays (gl-build.ts) */
+  if (softwareContext(gl)) {
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return null;
+  }
   const drawing = createGlassDrawing(gl);
   let palette_ = palette;
   let view_ = view;

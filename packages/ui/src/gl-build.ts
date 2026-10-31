@@ -1,3 +1,5 @@
+import { knownSoftware, softwareNamed } from "./renderer.ts";
+
 /* WebGL programs built without holding the page: every shader compiled and every program linked at once, and their
    state read only once the browser says the GPU is done with them (KHR_parallel_shader_compile), a frame at a time.
    Reading a shader's or a program's state waits for all the work the page queued for the GPU before it, which in a
@@ -49,3 +51,20 @@ export function buildPrograms(
     }
   };
 }
+
+/** Whether effects draw nowhere here: the renderer is software (renderer.ts: SwiftShader, llvmpipe, Windows' Basic
+    Render Driver), a headless browser's, a virtual machine's, a GPU the browser blocks. An effect's every frame there
+    is the page's thread's work, a tenth of a second and more on a phone's CPU, so the effects play nowhere such a
+    context is all there is: their still stays, which is their first frame. The page's probe answers where it has run,
+    else the context's own renderer's name. */
+export function softwareContext(gl: WebGL2RenderingContext): boolean {
+  const known = knownSoftware();
+  if (known !== undefined) return known;
+  const named = gl.getExtension("WEBGL_debug_renderer_info");
+  return softwareNamed(
+    String(named ? gl.getParameter(named.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER))
+  );
+}
+
+/** Whether the page's probe has found the renderer software, so no effect makes a context at all. */
+export const knownSoftwareRenderer = (): boolean => knownSoftware() === true;
