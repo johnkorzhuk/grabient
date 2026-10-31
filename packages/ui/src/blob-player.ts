@@ -377,11 +377,11 @@ export function playBlob(
       texture and the blur's weights. `measure` reads the box again and sizes the canvas to it; a palette or a look
       alone (set) keeps the box measured last, whose read would lay the page out in the middle of a drag, and makes
       the textures again only for another size. */
-  const layout = (measure = true) => {
+  const layout = (measure = true): boolean => {
     if (measure) {
       const rect = canvas.getBoundingClientRect();
       /* a canvas off the page or hidden has no box: it keeps the layout it had, for the box it comes back to */
-      if (!rect.width || !rect.height) return;
+      if (!rect.width || !rect.height) return false;
       const W = Math.max(1, rect.width);
       const H = Math.max(1, rect.height);
       const dpr = devicePixelRatio || 1;
@@ -445,7 +445,7 @@ export function playBlob(
       total += i ? 2 * weights[i] : weights[i];
     }
     for (let i = 0; i <= RADIUS; i++) weights[i] /= total;
-    if (!measure && meltBox.w === made.w && meltBox.h === made.h) return;
+    if (!measure && meltBox.w === made.w && meltBox.h === made.h) return true;
     made = { w: meltBox.w, h: meltBox.h };
     const format = half ? gl.RGBA16F : gl.RGBA8;
     const type = half ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
@@ -456,6 +456,7 @@ export function playBlob(
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return true;
   };
 
   /** the frost's noise at every device pixel, once a size and seed */
@@ -604,21 +605,22 @@ export function playBlob(
   };
   prepare();
 
-  /* the size the observer reports in device pixels, the canvas's own: its first word is taken at once, before the
-     first frame, and later ones settle before the noise is baked again, the last frame covering the box meanwhile */
+  /* the size the observer reports in device pixels, the canvas's own: its first word with a box is taken at once,
+     before the first frame, and later ones settle before the noise is baked again, the last frame covering the box
+     meanwhile. A canvas made off the page (a card's player made ahead) hears a first word with no box, and draws
+     nothing until it has one: its textures are made with its first layout */
   const sizes = new ResizeObserver(entries => {
     const box = entries[entries.length - 1]?.devicePixelContentBoxSize?.[0];
     device = box ? { w: box.inlineSize, h: box.blockSize } : null;
     clearTimeout(settle);
     const apply = () => {
-      layout();
+      if (!layout() && !sized) return;
+      sized = true;
       changed = true;
       wake();
     };
-    if (!sized) {
-      sized = true;
-      apply();
-    } else settle = window.setTimeout(apply, SETTLE_MS);
+    if (!sized) apply();
+    else settle = window.setTimeout(apply, SETTLE_MS);
   });
   try {
     sizes.observe(canvas, { box: "device-pixel-content-box" });
