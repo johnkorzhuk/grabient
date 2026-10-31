@@ -89,6 +89,14 @@ test("the CPU's frames: the box's pixels, opaque, the same twice, moving, in the
   expect(red).toBeGreaterThan(2 * blue);
 });
 
+test("a shape never turns the ribs: they run as the angle turns them, whatever the shape", () => {
+  for (const angle of [90, 135, 20, 300]) {
+    const designed = glassGeometry(size, angle, null).alpha;
+    for (let shape = 1; shape <= 200; shape++)
+      expect(glassGeometry(size, angle, shape).alpha).toBeCloseTo(designed, 6);
+  }
+});
+
 test("a shape draws ribs and discs of its own, and 0 is the glass as designed", () => {
   const at = (shape: number | null) => {
     const geometry = glassGeometry(size, 90, shape);

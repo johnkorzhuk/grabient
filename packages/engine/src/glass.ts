@@ -108,18 +108,18 @@ type Geo = {
 const seedOf = (shape: number) => (Math.imul(shape + 1, 0x9e3779b1) ^ 0x5bd1e995) >>> 0;
 
 /** The ribs a shape draws: the hill climb's for 0 or none; another's as wide as 0.8 to 1.3 of them, widening away from
-    the middle 0.8 to 1.25 as fast, bent the other way half the time (mirrored across the ribs' run) and moved along
-    by a share of a rib. */
+    the middle 0.8 to 1.25 as fast and moved along by a share of a rib, always running as the angle turns them: which
+    way the ribs run is the view's Angle alone. */
 function geoOf(shape: number | null | undefined): Geo {
   if (!shape) return T.geo;
   const rand = dice(seedOf(shape) ^ 0x2545f491);
   const between = (least: number, most: number) => least + (most - least) * rand();
-  const mirror = rand() < 0.5 ? -1 : 1;
+  /* the draw that once mirrored the ribs half the time, which turned them as another angle would: kept, so every
+     shape keeps the width, the widening and the place it had */
+  rand();
   const widen = between(0.8, 1.25);
   return {
     ...T.geo,
-    arcC: [T.geo.arcC[0] * mirror, T.geo.arcC[1]],
-    arcDir: [T.geo.arcDir[0] * mirror, T.geo.arcDir[1]],
     p0: T.geo.p0 * between(0.8, 1.3),
     betaP: T.geo.betaP * widen,
     betaM: T.geo.betaM * widen,

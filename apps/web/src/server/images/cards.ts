@@ -19,7 +19,7 @@ import { cardSize, pictureSize } from "./size.ts";
 const BANDS_DRAWING = "bands-1";
 /** The effects' drawings, counted up as the bands' is by a change that moves their pixels (engine/glass.ts and
     glass-render.ts, engine/blob.ts). */
-const EFFECT_DRAWING = { glass: "glass-1", blob: "blob-2" } as const;
+const EFFECT_DRAWING = { glass: "glass-2", blob: "blob-2" } as const;
 
 /** Everything an effect's first frame depends on: the glass's colors are its palette's, its ribs turn with the angle
     and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and the angle lays its
