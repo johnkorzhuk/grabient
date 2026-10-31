@@ -167,8 +167,8 @@ const TILE_H = Math.round((12 * MARK_BAR.h) / MARK_BAR.w);
 const TILE_BAR: Box = { x: 2, y: 14 - TILE_H, w: 12, h: TILE_H };
 const SQUARE_H = (56 * MARK_BAR.h) / MARK_BAR.w;
 const SQUARE_BAR: Box = { x: 22, y: 78 - SQUARE_H, w: 56, h: SQUARE_H };
-/** The mark on a ground of its own, for the icons that never change: a rounded `tile` (favicon-tile.ico and its PNGs,
-    which cannot tell a light browser from a dark one) or a full `square` a device cuts its own shape from. */
+/** The mark on a ground of its own, for the icons that never change: a rounded `tile` (favicon-tile.ico, which cannot
+    tell a light browser from a dark one) or a full `square` a device cuts its own shape from. */
 export function markTileSvg(
   ground: string,
   colors: readonly string[],
