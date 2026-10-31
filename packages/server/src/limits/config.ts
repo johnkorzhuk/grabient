@@ -6,8 +6,12 @@
    - work: liking and making. On staging, where contributors and their agents work before it reaches production, an
      admin's check is `scaled` and allows STAGING_WORK_SCALE times as much (writes.ts workChecks).
    - lease: taken from the Durable Object in blocks of one, then twice the last, up to this many. An isolate asks once
-     per block, and the limit can refuse early by at most the blocks isolates hold unspent.
-   - kept: an isolate's own count that must last its window, remembered apart from the burst counts that come and go. */
+     per block while fewer requests than a block come during one ask; each that comes while a block's ask is out asks
+     for its own unit, so a burst into one isolate asks about as often as it counts. The limit can refuse early by at
+     most the blocks isolates hold unspent.
+   - kept: an isolate's own count that must last its window, remembered apart from the burst counts that come and go.
+   - fixed: such a count under a few fixed identifiers, remembered with the site's ceilings, where no stream of new
+     addresses or accounts can push it out. */
 
 export interface Limit {
   requests: number;
@@ -17,6 +21,7 @@ export interface Limit {
   work?: true;
   lease?: number;
   kept?: true;
+  fixed?: true;
 }
 
 export const LIMITS = {
@@ -142,6 +147,20 @@ export const LIMITS = {
   clientErrorDaily: { requests: 5000, window: 86400, site: true, lease: 10 },
   // A public list or search the edge cache did not hold: each reads the database.
   listMiss: { requests: 60, window: 60, local: true },
+  /* Work no cache holds, for the whole site (apps/web/src/server/ceiling.ts): an address's minute in this isolate for
+     what is no list, and for the search's suggestions, which a reader typing asks for at each pause; the site's ten
+     minutes of pages, and of the lists' and searches' data; past those, an account's ten minutes inside every
+     signed-in reader's, and browsers on HTTP/3 and link previews each their own; and what this isolate draws alone
+     while the limiter cannot answer, for anyone and again for readers signed in. */
+  renderMiss: { requests: 60, window: 60, local: true },
+  suggestMiss: { requests: 240, window: 60, local: true },
+  pageRender: { requests: 3000, window: 600, site: true, lease: 8 },
+  dataMiss: { requests: 1000, window: 600, site: true, lease: 4 },
+  renderAccount: { requests: 200, window: 600, lease: 2 },
+  renderSignedIn: { requests: 300, window: 600, site: true, lease: 2 },
+  renderHttp3: { requests: 500, window: 600, site: true, lease: 4 },
+  renderPreview: { requests: 100, window: 600, site: true, lease: 2 },
+  renderLocal: { requests: 300, window: 600, local: true, fixed: true },
   // An old link no map holds and the edge cache did not hold, fitted on the Worker: a fit is CPU alone, tens of
   // milliseconds, per address and for the site's day. The day's is sized for the move from the old app: crawlers asked
   // about 150,000 such links a day after it (17 Oct 2026) and spent 50,000 in nine hours, after which an old link

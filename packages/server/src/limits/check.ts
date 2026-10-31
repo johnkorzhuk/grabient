@@ -46,8 +46,9 @@ interface Tally {
   exact?: boolean;
 }
 
-/* The site's ceilings, the leased and kept tallies, and the burst counts live apart, so a stream of new addresses can
-   never push a spent ceiling or a held block out of memory. Each holds at most TALLY_MAX. */
+/* The site's ceilings with the isolate's counts under fixed identifiers, the leased and kept tallies, and the burst
+   counts live apart, so a stream of new addresses or accounts can never push a spent ceiling, its held block or the
+   isolate's own count out of memory. Each holds at most TALLY_MAX. */
 interface Memory {
   site: Map<string, Tally>;
   kept: Map<string, Tally>;
@@ -77,7 +78,8 @@ function memoryOf(namespace: object | undefined): Memory {
 
 function shelfOf(memory: Memory, name: LimitName): Map<string, Tally> {
   const limit = limitOf(name);
-  return limit.site ? memory.site : limit.lease || limit.kept ? memory.kept : memory.other;
+  if (limit.site || limit.fixed) return memory.site;
+  return limit.lease || limit.kept ? memory.kept : memory.other;
 }
 
 function tallyOf(memory: Memory, name: LimitName, identifier: string, now: number): Tally {
@@ -138,7 +140,8 @@ interface Answer extends LimitResult {
    requests waiting together never spend a unit twice. When they run short, the request asks for a block: FIRST_BLOCK,
    then twice the last, up to the lease, and never less than it lacks. One block is asked for at a time; a request
    arriving meanwhile asks for exactly what it lacks, so no request waits on another's ask. A refused block means less
-   than a block is left, and from then on each request asks for exactly what it lacks. */
+   than a block is left: from then on each request asks for exactly what it lacks, or none does when what is left would
+   not cover it, which spares a pool run dry a second ask from every isolate. */
 async function takeLeased(
   tally: Tally,
   name: LimitName,
@@ -182,7 +185,7 @@ async function takeLeased(
     if (answer.success) {
       tally.held = (tally.held ?? 0) + amount;
       if (asksBlock) tally.block = size;
-    } else if (amount > lacking) tally.exact = true;
+    } else if (amount > lacking && answer.remaining >= lacking) tally.exact = true;
     else tally.denied = true;
   }
 }

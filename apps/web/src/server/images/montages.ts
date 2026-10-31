@@ -31,54 +31,62 @@ export interface MontagePalette extends Saved {
   seed: string;
 }
 
-/* A montage's palettes, kept a few minutes in this isolate: every size, view, HEAD and refused retry of one card reads
-   the database or the search once. An empty or failed read is not kept. A request that comes while another reads
-   waits for it beside a timer of its own, and reads for itself when it has not come by then
+/* What a picture reads, kept a few minutes in this isolate: every size, view, HEAD and refused retry of one card reads
+   the database or the search once. A read that finds nothing, or fails, is not kept. A request that comes while
+   another reads waits for it beside a timer of its own, and reads for itself when it has not come by then
    (@grabient/server/shared-work.ts). */
 const KEPT_MS = 180_000;
 const KEPT_MAX = 256;
-interface Entry {
+interface Entry<T> {
   at: number;
-  palettes: Promise<MontagePalette[]>;
-  found?: MontagePalette[];
+  value: Promise<T>;
+  found?: { value: T };
 }
-const kept = new Map<string, Entry>();
 
-export function montagePalettes(
-  key: string,
-  read: () => Promise<MontagePalette[]>
-): Promise<MontagePalette[]> {
-  const held = kept.get(key);
-  if (held && Date.now() - held.at < KEPT_MS) {
-    if (held.found) return Promise.resolve(held.found);
-    return joined(held.palettes, () =>
-      kept.get(key) === held ? readAnew(key, read) : montagePalettes(key, read)
+/** Reads by key, at most `max` of them, each kept as above when `found` says it found something, and read anew for an
+    address that says what it reads changed after the read began (`changed`, in milliseconds, a time still to come taken
+    as now). */
+export function keptReads<T>(
+  found: (value: T) => boolean,
+  max = KEPT_MAX
+): (key: string, read: () => Promise<T>, changed?: number) => Promise<T> {
+  const kept = new Map<string, Entry<T>>();
+  const readAnew = (key: string, read: () => Promise<T>): Promise<T> => {
+    kept.delete(key);
+    if (kept.size >= max) kept.delete(kept.keys().next().value!);
+    const entry: Entry<T> = { at: Date.now(), value: read() };
+    const forget = () => {
+      if (kept.get(key) === entry) kept.delete(key);
+    };
+    entry.value = entry.value.then(
+      value => {
+        if (found(value)) entry.found = { value };
+        else forget();
+        return value;
+      },
+      error => {
+        forget();
+        throw error;
+      }
     );
-  }
-  return readAnew(key, read);
+    kept.set(key, entry);
+    return entry.value;
+  };
+  const get = (key: string, read: () => Promise<T>, changed = 0): Promise<T> => {
+    const held = kept.get(key);
+    const now = Date.now();
+    if (!held || now - held.at >= KEPT_MS || held.at < Math.min(changed, now))
+      return readAnew(key, read);
+    if (held.found) return Promise.resolve(held.found.value);
+    return joined(held.value, () =>
+      kept.get(key) === held ? readAnew(key, read) : get(key, read, changed)
+    );
+  };
+  return get;
 }
 
-function readAnew(key: string, read: () => Promise<MontagePalette[]>): Promise<MontagePalette[]> {
-  kept.delete(key);
-  if (kept.size >= KEPT_MAX) kept.delete(kept.keys().next().value!);
-  const entry: Entry = { at: Date.now(), palettes: read() };
-  const forget = () => {
-    if (kept.get(key) === entry) kept.delete(key);
-  };
-  entry.palettes = entry.palettes.then(
-    found => {
-      if (found.length) entry.found = found;
-      else forget();
-      return found;
-    },
-    error => {
-      forget();
-      throw error;
-    }
-  );
-  kept.set(key, entry);
-  return entry.palettes;
-}
+/** A montage's palettes, by what they are of. */
+export const montagePalettes = keptReads<MontagePalette[]>(palettes => palettes.length > 0);
 
 /** The picture of the palettes the address's feature found, the first nine of them that are palettes. */
 export function montagePicture(

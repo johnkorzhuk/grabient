@@ -14,13 +14,14 @@ export const Route = createFileRoute("/$id/rising")({
     if (!isPagePath(`/${params.id}`) || !isCollectionSlug(params.id)) throw notFound();
   },
   loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
-  loader: ({ context, params, location }) =>
+  loader: ({ context, params, location, preload }) =>
     loadCollection(context.queryClient, {
       slug: params.id,
       order: "rising",
       // words that are no collection lead to their search with the selection still open
       searchStr: searchOf(location.search as Record<string, unknown>),
-      publicHref: location.publicHref
+      publicHref: location.publicHref,
+      preload
     }),
   headers: ({ loaderData }) => (loaderData && !loaderData.status ? PAGE : NO_STORE),
   head: ({ match, params, loaderData }) =>

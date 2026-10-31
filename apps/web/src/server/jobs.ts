@@ -2,7 +2,7 @@ import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { pruneExpired, pruneSync } from "./account/changes.ts";
-import { documentAlert, failingAlert, signInDigest } from "./alerts/alerts.ts";
+import { ceilingAlert, documentAlert, failingAlert, signInDigest } from "./alerts/alerts.ts";
 import { rescore } from "./gallery/rescore.ts";
 import { applyQueue } from "./mcp/admin/queue.ts";
 import { deliverDue } from "./newsletter/sends.ts";
@@ -47,12 +47,16 @@ export const EVERY_MINUTE: Steps = {
   newsletter: env => deliverDue(env)
 };
 
-/** Every ten minutes. The owner hears first if the site is failing, before any step that a failing database could
-    hold. IndexNow follows the queue, so the palettes it just published are on this pass's list, and the search
-    snapshot comes last, built again only when something public changed. */
+/** Every ten minutes. The owner hears first if the site is failing or past its ceilings, before any step that a
+    failing database could hold. IndexNow follows the queue, so the palettes it just published are on this pass's
+    list, and the search snapshot comes last, built again only when something public changed. */
 export const TEN_MINUTES: Steps = {
   "failing site": async env => {
     const check = await failingAlert(env);
+    return when(check.skipped || check.emailed.length, check);
+  },
+  "render ceiling": async env => {
+    const check = await ceilingAlert(env);
     return when(check.skipped || check.emailed.length, check);
   },
   "github stars": async env => {

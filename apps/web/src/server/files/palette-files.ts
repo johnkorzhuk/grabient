@@ -75,7 +75,7 @@ async function paletteFile(
         ? await collectionFile(env, name, origin, format, asked)
         : isCollectionSlug(name)
           ? // the drawing's modules load with the first sheet asked for, never with the files' writers
-            await (await import("../images/answers.ts")).collectionSheetSvg(env, name)
+            await (await import("../images/answers.ts")).collectionSheetSvg(request, env, name)
           : null;
     return file ?? json({ error: "Invalid palette seed." }, { status: 404 });
   }

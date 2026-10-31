@@ -74,6 +74,12 @@ export const FLAGS: Readonly<Record<FlagName, Words>> = {
     line: msg(
       "Send sign-in links and codes and contact messages. When off, sign-in offers Google, and deletion emails and owner alerts still go."
     )
+  },
+  "draw-past-ceiling": {
+    label: msg("Pages past the ceiling"),
+    line: msg(
+      "Draw every page and list for every reader past the site's ten-minute ceilings. When off, past them, readers who aren't signed in get the page drawn in their browser, and crawlers Cloudflare verifies are always drawn."
+    )
   }
 };
 

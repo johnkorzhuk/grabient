@@ -1,6 +1,7 @@
 /* The build's size budgets: what a reader's phone downloads before a page can run, and what the Worker loads. Read
    from a build's output, staging's or production's; ci:build and deploy:production run it after their build, so a
-   deploy over budget stops before it deploys. Prints every figure beside its budget and exits 1 when one is over.
+   deploy over budget stops before it deploys. Prints every figure beside its budget and exits 1 when one is over, or
+   when the site's ceilings no longer load on demand.
      node scripts/budget.ts [output folder, .cloudflare/output by default]
    Each budget is the trimmed figure and about 5% more, so a real regression fails and a small change does not. A
    change that needs more raises its budget here, in the same commit, saying why. */
@@ -8,7 +9,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 
-type Chunk = { file: string; isEntry?: boolean; imports?: string[]; src?: string };
+type Chunk = {
+  file: string;
+  isEntry?: boolean;
+  isDynamicEntry?: boolean;
+  imports?: string[];
+  src?: string;
+};
 type Manifest = Record<string, Chunk>;
 
 const KB = 1000;
@@ -171,6 +178,11 @@ rows.push({
   budget: BUDGETS.firstRequest,
   unit: KIB
 });
+/* The site's ceilings load with the first work no cache holds (server/ceiling.ts): an import from the start would fit
+   either budget above and still slow every isolate's start, so its place is checked apart. */
+const ceiling = server["src/server/ceiling.ts"];
+const ceilingLazy =
+  !!ceiling?.isDynamicEntry && !isolate.has(ceiling.file) && !routed.includes(ceiling.file);
 
 const over = rows.filter(row => row.size > row.budget * row.unit);
 const width = Math.max(...rows.map(row => row.name.length));
@@ -184,9 +196,11 @@ for (const row of rows) {
 console.log(
   "gzip: each client file at level 9; the Worker at the default level, all of it as one and its parts chunk by chunk"
 );
+if (!ceilingLazy)
+  console.error("the ceiling must load on demand: import src/server/ceiling.ts lazily");
 if (over.length) {
   console.error(
     `${over.length} over budget: trim what grew, or raise its budget in scripts/budget.ts`
   );
-  process.exit(1);
 }
+if (over.length || !ceilingLazy) process.exit(1);

@@ -29,10 +29,11 @@ test("every schedule in cloudflare.config.ts has its job, to the character", () 
 
 test("each job runs these steps, in this order", () => {
   expect(Object.keys(EVERY_MINUTE)).toEqual(["newsletter"]);
-  // the owner hears of a failing site before anything a failing database holds; IndexNow lists what the queue just
-  // published; the snapshot is built from what both left
+  // the owner hears of a failing site and of the ceilings before anything a failing database holds; IndexNow lists
+  // what the queue just published; the snapshot is built from what both left
   expect(Object.keys(TEN_MINUTES)).toEqual([
     "failing site",
+    "render ceiling",
     "github stars",
     "visit keys",
     "seeding queue",

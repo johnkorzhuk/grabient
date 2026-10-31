@@ -516,21 +516,6 @@ export async function collectionSitemapRows(
   return rows.map(row => ({ slug: row.slug, updatedAt: Number(row.updated_at) }));
 }
 
-/** The palettes a public collection's page shows first, in the page's order, each as the collection saved it: what
-    its share card draws. A private one has no picture. */
-export async function collectionImagePalettes(
-  env: Reader,
-  slug: string,
-  limit = 9,
-  order: PaletteOrder = "popular"
-): Promise<CollectionItemInput[]> {
-  const doc = await collectionBySlug(env, slug);
-  if (!doc) return [];
-  return sortCollectionItems(doc.items, order)
-    .slice(0, Math.max(1, Math.min(MAX_COLLECTION_ITEMS, Math.floor(limit))))
-    .map(item => ({ seed: item.kseed, style: item.style, steps: item.steps, angle: item.angle }));
-}
-
 /** One of Grabient's collections as an admin's checklist offers it: its first palettes give its colors. */
 export interface SiteCollectionChoice {
   slug: string;

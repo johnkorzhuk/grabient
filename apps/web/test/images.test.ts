@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { fileAnswer } from "../src/server/files/palette-files.ts";
 import {
   cardAnswer,
+  collectionPictureAnswer,
   pngAnswer,
   searchPictureAnswer,
   seedPngAnswer
@@ -130,6 +131,110 @@ describe("a collection's sheet", () => {
     );
     // a palette's address is still its picture
     expect((await seedPngAnswer(get(`/${SEED}.png?${fresh()}`), bound, keep)).status).toBe(200);
+  });
+
+  /** The bindings with each read of a collection's row or its palettes noted. */
+  function reading(env: Env) {
+    const read: string[] = [];
+    const DB = new Proxy(env.DB, {
+      get(target, key) {
+        if (key === "prepare")
+          return (query: string) => {
+            if (query.includes("k_collection")) read.push(query);
+            return target.prepare(query);
+          };
+        const value = Reflect.get(target, key);
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+    });
+    return { bound: { ...env, DB }, read };
+  }
+
+  /** The title and the rows of a collection's sheet as SVG. */
+  async function svgSheet(env: Env, slug: string, t: number) {
+    const svg = await (await fileAnswer(get(`/${slug}.svg?t=${t}`), env, "svg")).text();
+    return [/<title>(.*)<\/title>/.exec(svg)?.[1], svg.match(/<clipPath /g)?.length];
+  }
+
+  it("reads its collection once for its SVG, the SVG's title and any card of its palettes, whatever their t or picks", async () => {
+    const env = testEnv();
+    const slug = await stocked(env, "public");
+    const { bound, read } = reading(env);
+    for (const t of [1, 2, 3])
+      expect((await fileAnswer(get(`/${slug}.svg?t=${t}`), bound, "svg")).status).toBe(200);
+    // its row and its palettes, once
+    expect(read).toHaveLength(2);
+    // a palette it does not hold is no card, and reads nothing more
+    for (const pick of [golden.eightSeed, `${golden.eightSeed}~linearSwatches~6~90`]) {
+      const card = await collectionPictureAnswer(
+        get(`/api/og/collection?slug=${slug}&pick=${pick}`),
+        bound,
+        () => {},
+        true
+      );
+      expect([pick, card.status]).toEqual([pick, 404]);
+    }
+    expect(read).toHaveLength(2);
+  });
+
+  it("reads its collection again for an address whose t names a change made after the read, and draws the change", async () => {
+    const env = testEnv();
+    const slug = await stocked(env, "public");
+    const { bound, read } = reading(env);
+    expect(await svgSheet(bound, slug, 1)).toEqual(["Sheet", 2]);
+    // renamed and a palette taken out a moment later, which the collection's page names as its t
+    await new Promise(done => setTimeout(done, 5));
+    const changed = Date.now();
+    await run(
+      env.DB,
+      "UPDATE k_collections SET title = 'Renamed', item_count = 1, updated_at = ? WHERE slug = ?",
+      changed,
+      slug
+    );
+    await run(
+      env.DB,
+      "DELETE FROM k_collection_items WHERE position = 1 AND collection_id = (SELECT id FROM k_collections WHERE slug = ?)",
+      slug
+    );
+    expect(await svgSheet(bound, slug, changed)).toEqual(["Renamed", 1]);
+    expect(read).toHaveLength(4);
+    // its card for the same change, and the sheet asked for again, read nothing more
+    const card = await collectionPictureAnswer(
+      get(`/api/og/collection?slug=${slug}&t=${changed}`),
+      bound,
+      () => {},
+      true
+    );
+    expect(card.status).toBe(200);
+    expect(await svgSheet(bound, slug, changed)).toEqual(["Renamed", 1]);
+    expect(read).toHaveLength(4);
+  });
+
+  it("holds more collections than are public, so a walk over all of them reads each once", async () => {
+    const env = testEnv();
+    const stem = unique("walk").toLowerCase();
+    // four hundred and twenty public collections of one palette each: the copy of staging's data holds 411
+    await run(
+      env.DB,
+      `WITH RECURSIVE n(i) AS (SELECT 0 UNION ALL SELECT i + 1 FROM n WHERE i < 419)
+       INSERT INTO k_collections (id, slug, owner_kind, owner_id, title, visibility, item_count, created_at, updated_at)
+       SELECT ? || '-' || i, ? || '-' || i, 'agent', 'grabient', 'Walk', 'public', 1, 1, 1 FROM n`,
+      stem,
+      stem
+    );
+    await run(
+      env.DB,
+      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
+       SELECT id, 0, ?, 'linearGradient', 7, 90, 1 FROM k_collections WHERE id LIKE ? || '-%'`,
+      SEED,
+      stem
+    );
+    const { bound, read } = reading(env);
+    const slugs = Array.from({ length: 420 }, (_, i) => `${stem}-${i}`);
+    for (const slug of slugs) expect(await svgSheet(bound, slug, 0)).toEqual(["Walk", 1]);
+    expect(read).toHaveLength(840);
+    for (const slug of slugs) expect(await svgSheet(bound, slug, 0)).toEqual(["Walk", 1]);
+    expect(read).toHaveLength(840);
   });
 });
 

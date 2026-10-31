@@ -2,12 +2,16 @@
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 
 import { MARK_WEEK, markSvg, markWeek, weekMark } from "@grabient/ui/mark.ts";
-import { isCollectionSlug, slugWords } from "../../features/collections/address.ts";
-import { MAX_COLLECTION_ITEMS } from "../../features/collections/schema.ts";
+import {
+  isCollectionSlug,
+  type PaletteOrder,
+  slugWords,
+  sortCollectionItems
+} from "../../features/collections/address.ts";
 import { DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { listWords } from "../../lib/words.ts";
-import { collectionBySlug, collectionImagePalettes } from "../collections/read.ts";
+import { collectionBySlug } from "../collections/read.ts";
 import { publicCollections } from "../collections/search.ts";
 import { addressParams, fileName } from "../files/address.ts";
 import { RANDOM, randomFile } from "../files/random.ts";
@@ -22,7 +26,13 @@ import {
   picksKey,
   pictureWords
 } from "./montage-address.ts";
-import { type MontagePalette, montageAnswer, sheetAnswer, sheetSvgAnswer } from "./montages.ts";
+import {
+  keptReads,
+  type MontagePalette,
+  montageAnswer,
+  sheetAnswer,
+  sheetSvgAnswer
+} from "./montages.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
 
 const paramsOf = (request: Request) => addressParams(new URL(request.url).searchParams);
@@ -61,22 +71,70 @@ export const seedPngAnswer = (request: Request, env: PictureEnv, keep: Keep) => 
   return paletteImage(request, env, keep, name, false);
 };
 
-/* A public collection's first palettes in its page's order, read as its share card reads them, under the card's key. */
-const collectionSheetKey = (slug: string) => `collection:${slug}:popular:`;
-const collectionFirst = (env: Pick<PictureEnv, "DB">, slug: string) => () =>
-  collectionImagePalettes(env, slug, MONTAGE_PALETTES, "popular");
+/* When the address says its collection last changed (`t`, which its page names), as its cache key reads it, or 0. */
+const changedOf = (request: Request) => {
+  const changed = paramsOf(request).get("t");
+  return changed && /^\d{1,15}$/.test(changed) ? Number(changed) : 0;
+};
+
+/* A public collection as its pictures read it, its title and its palettes in each order its page has, each as it saved
+   them: kept as a montage's palettes are, for more collections than are public, so its sheet, its SVG's title and a
+   card of any of its palettes read it once whatever their picks, and again for an address whose `t` names a change
+   made after that read began. A private one has no picture. */
+const collectionRead = keptReads<{
+  title: string;
+  palettes: Record<PaletteOrder, MontagePalette[]>;
+} | null>(read => read !== null, 1024);
+const collectionOf = (env: Pick<PictureEnv, "DB">, slug: string, changed: number) =>
+  collectionRead(
+    slug,
+    async () => {
+      const doc = await collectionBySlug(env, slug);
+      if (!doc) return null;
+      const inOrder = (order: PaletteOrder) =>
+        sortCollectionItems(doc.items, order).map(item => ({
+          seed: item.kseed,
+          style: item.style,
+          steps: item.steps,
+          angle: item.angle
+        }));
+      return {
+        title: doc.title,
+        palettes: { popular: inOrder("popular"), rising: inOrder("rising") }
+      };
+    },
+    changed
+  );
+const collectionPalettes = async (
+  env: Pick<PictureEnv, "DB">,
+  slug: string,
+  order: PaletteOrder,
+  changed: number
+) => (await collectionOf(env, slug, changed))?.palettes[order] ?? [];
+
+/* A public collection's first palettes in its page's order, read as its share card reads them, under the card's key,
+   which names when the collection changed, so no picture of a change is drawn from a read made before it. */
+const collectionSheetKey = (slug: string, changed: number) =>
+  `collection:${slug}:popular::${changed}`;
+const collectionFirst = (env: Pick<PictureEnv, "DB">, slug: string, changed: number) => async () =>
+  (await collectionPalettes(env, slug, "popular", changed)).slice(0, MONTAGE_PALETTES);
 
 /** A public collection's sheet, kept for good: its page shows it. */
-const collectionSheetAnswer = (request: Request, env: PictureEnv, keep: Keep, slug: string) =>
-  sheetAnswer(request, env, collectionSheetKey(slug), collectionFirst(env, slug), "sheets", keep);
+function collectionSheetAnswer(request: Request, env: PictureEnv, keep: Keep, slug: string) {
+  const changed = changedOf(request);
+  const key = collectionSheetKey(slug, changed);
+  return sheetAnswer(request, env, key, collectionFirst(env, slug, changed), "sheets", keep);
+}
 
 /** /{slug}.svg and /@{handle}/{slug}.svg: a public collection's sheet as SVG, titled with the collection's title. */
-export const collectionSheetSvg = (env: Pick<PictureEnv, "DB">, slug: string) =>
-  sheetSvgAnswer(
-    collectionSheetKey(slug),
-    collectionFirst(env, slug),
-    async () => (await collectionBySlug(env, slug))?.title ?? slugWords(slug)
+export function collectionSheetSvg(request: Request, env: Pick<PictureEnv, "DB">, slug: string) {
+  const changed = changedOf(request);
+  return sheetSvgAnswer(
+    collectionSheetKey(slug, changed),
+    collectionFirst(env, slug, changed),
+    async () => (await collectionOf(env, slug, changed))?.title ?? slugWords(slug)
   );
+}
 
 /** /og/{version}/{seed}.png, where the build once wrote a palette's card as a file: that card at its plain address's
     view, whatever the query says, as the file was. */
@@ -161,15 +219,16 @@ export function collectionPictureAnswer(
   const slug = (params.get("slug") ?? "").slice(0, 120);
   const sort = params.get("sort") === "rising" ? "rising" : "popular";
   const picks = montagePicks(params);
+  const changed = changedOf(request);
   return montageAnswer(
     request,
     env,
     branded,
-    `collection:${slug}:${sort}:${picksKey(picks)}`,
+    `collection:${slug}:${sort}:${picksKey(picks)}:${changed}`,
     async () => {
-      if (!picks.length) return collectionImagePalettes(env, slug, MONTAGE_PALETTES, sort);
+      const held = await collectionPalettes(env, slug, sort, changed);
+      if (!picks.length) return held.slice(0, MONTAGE_PALETTES);
       /* the palettes the address names, in its order, each one the collection holds */
-      const held = await collectionImagePalettes(env, slug, MAX_COLLECTION_ITEMS, sort);
       return picks.flatMap(({ seed, view }) => {
         const saved = held.find(item => item.seed === seed);
         return saved ? [{ ...saved, ...view }] : [];

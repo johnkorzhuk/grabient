@@ -89,7 +89,16 @@ describe("the limits", () => {
       collectionWriteDaily: { requests: 100, window: 86400, work: true },
       collectionWritesSite: { requests: 2000, window: 86400, site: true, work: true, lease: 5 },
       collectionItems: { requests: 300, window: 3600, work: true },
-      collectionItemsDaily: { requests: 500, window: 86400, work: true }
+      collectionItemsDaily: { requests: 500, window: 86400, work: true },
+      renderMiss: { requests: 60, window: 60, local: true },
+      suggestMiss: { requests: 240, window: 60, local: true },
+      pageRender: { requests: 3000, window: 600, site: true, lease: 8 },
+      dataMiss: { requests: 1000, window: 600, site: true, lease: 4 },
+      renderAccount: { requests: 200, window: 600, lease: 2 },
+      renderSignedIn: { requests: 300, window: 600, site: true, lease: 2 },
+      renderHttp3: { requests: 500, window: 600, site: true, lease: 4 },
+      renderPreview: { requests: 100, window: 600, site: true, lease: 2 },
+      renderLocal: { requests: 300, window: 600, local: true, fixed: true }
     };
     for (const [name, limit] of Object.entries(pinned))
       expect([name, LIMITS[name as LimitName]]).toEqual([name, limit]);
@@ -183,6 +192,45 @@ describe("checkLimits", () => {
     expect(answers.map(answer => answer?.success)).toEqual([true, true, true, false]);
   });
 
+  it("knows a leased limit spent from one refused block once less is left than a request lacks, until it resets", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // the object's day begins part of the way into a second
+    const begun = Date.UTC(2026, 9, 30, 12, 0, 0, 700);
+    vi.setSystemTime(begun);
+    const env = objects();
+    // this isolate holds blocks of one and two, and spends them
+    for (let i = 0; i < 3; i++)
+      expect((await checkLimits(env, [["site", "collectionWritesSite"]]))?.success).toBe(true);
+    // another isolate takes the rest of the site's day
+    expect(
+      (await checkLimits(env.isolate(), [["site", "collectionWritesSite", 1997]]))?.success
+    ).toBe(true);
+    const asked = env.asks.length;
+    const answers = await times(3, () => checkLimits(env, [["site", "collectionWritesSite"]]));
+    expect(answers.map(answer => answer?.success)).toEqual([false, false, false]);
+    // the refused block of four, and no ask for exactly one after it
+    expect(env.asks.slice(asked)).toEqual(["collectionWritesSite 4"]);
+    // the second the object's day ends, as the object names it
+    const reset = Math.floor((begun + 86_400_000) / 1000);
+    expect(answers[0]?.reset).toBe(reset);
+    vi.setSystemTime(reset * 1000 - 1);
+    expect((await checkLimits(env, [["site", "collectionWritesSite"]]))?.success).toBe(false);
+    expect(env.asks).toHaveLength(asked + 1);
+    // the object's day over, it is asked again
+    vi.setSystemTime(begun + 86_400_001);
+    expect((await checkLimits(env, [["site", "collectionWritesSite"]]))?.success).toBe(true);
+    expect(env.asks).toHaveLength(asked + 2);
+  });
+
+  it("asks for exactly what a request lacks once a block is refused with enough left for it", async () => {
+    const env = objects();
+    for (let i = 0; i < 3; i++) await checkLimits(env, [["site", "collectionWritesSite"]]);
+    await checkLimits(env.isolate(), [["site", "collectionWritesSite", 1995]]);
+    const asked = env.asks.length;
+    expect((await checkLimits(env, [["site", "collectionWritesSite"]]))?.success).toBe(true);
+    expect(env.asks.slice(asked)).toEqual(["collectionWritesSite 4", "collectionWritesSite 1"]);
+  });
+
   it("counts an address's own limits before the site's, and an isolate limit without asking", async () => {
     const env = objects();
     const ok = await checkLimits(env, [
@@ -274,6 +322,27 @@ describe("checkLimits", () => {
       limit: 120
     });
     expect(env.asks).toEqual([]);
+  });
+
+  it("keeps the isolate's own count under a fixed identifier however many new identifiers it counts meanwhile", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const unreachable = {
+      idFromName: (name: string) => name,
+      get: () => ({
+        fetch: async () => {
+          throw new Error("The object is unreachable");
+        }
+      })
+    };
+    const env = { RATE_LIMITER: unreachable as unknown as DurableObjectNamespace };
+    for (let i = 0; i < 300; i++) await checkLimits(env, [["isolate", "renderLocal"]]);
+    expect(knownLimit(env, ["isolate", "renderLocal"])?.type).toBe("renderLocal");
+    // a day's leased count begun for each of five thousand new addresses, whose asks all fail
+    for (let i = 0; i < 5000; i++)
+      await checkLimits(env, [
+        [`search-model:198.51.${i >> 8}.${i & 255}`, ["searchModel", "searchModelDaily"]]
+      ]);
+    expect(knownLimit(env, ["isolate", "renderLocal"])?.type).toBe("renderLocal");
   });
 
   it("answers an account's first two hundred MCP lists a day in the isolate", () => {

@@ -1,15 +1,17 @@
-import { env, waitUntil } from "cloudflare:workers";
+import type { Env } from "@grabient/server/env.ts";
 import type { PalettePage as AnsweredPage } from "../../features/gallery/schema.ts";
 import { BUILD } from "../../lib/build.ts";
-import { isFrame, type ListSort, parseSort, type RisingFrame } from "../../lib/orders.ts";
 import {
   bounded,
   DEFAULT_LIMIT,
+  isFrame,
   LIMIT_MAX,
-  listPalettes,
+  type ListSort,
   PAGE_MAX,
-  type PalettePage
-} from "./list.ts";
+  parseSort,
+  type RisingFrame
+} from "../../lib/orders.ts";
+import type { listPalettes, PalettePage } from "./list.ts";
 
 /* A public list page is read once for its HTML in every view and for its JSON: this data center's Cache API keeps it
    by order, frame, page, size and build for as long as its data stays fresh from the database read, and both answers
@@ -92,11 +94,9 @@ function pageOf(value: unknown, query: ListQuery, now: number): value is Answere
   );
 }
 
-/** A public list page from the record cache, or from the database. */
-export async function publicList(request: Request, query: ListQuery): Promise<AnsweredPage> {
-  const cache = cacheOf();
-  const key = new Request(
-    `${new URL(request.url).origin}/.grabient-cache/list?${new URLSearchParams({
+const recordKey = (origin: string, query: ListQuery) =>
+  new Request(
+    `${origin}/.grabient-cache/list?${new URLSearchParams({
       build: BUILD,
       sort: query.sort,
       page: String(query.page),
@@ -104,32 +104,57 @@ export async function publicList(request: Request, query: ListQuery): Promise<An
       ...(query.frame ? { frame: query.frame } : {})
     })}`
   );
-  const ttl = listTtl(query.sort);
-  let past: AnsweredPage | null = null;
+
+/* the page of this query this data center keeps, of any age, or null */
+async function record(key: Request, query: ListQuery): Promise<AnsweredPage | null> {
   try {
-    const kept = await cache?.match(key);
+    const kept = await cacheOf()?.match(key);
     const page: unknown = kept?.ok ? await kept.json() : null;
-    const now = Date.now();
-    if (pageOf(page, query, now)) {
-      if (now - page.fetchedAt < ttl * 1000) return page;
-      past = page;
-    }
+    return pageOf(page, query, Date.now()) ? page : null;
   } catch {
     // a cache that cannot be read is passed by
+    return null;
   }
+}
+
+const fresh = (page: AnsweredPage, query: ListQuery) =>
+  Date.now() - page.fetchedAt < listTtl(query.sort) * 1000;
+
+/** A public list page from the record cache, or from the database through `list`, which its callers hand in: the
+    ceiling loads this module on demand (ceiling.ts), and a start module it imported would leave the chunk it shares.
+    `keep` holds the request open for the copy kept. */
+export async function publicList(
+  env: Pick<Env, "DB">,
+  request: Request,
+  query: ListQuery,
+  keep: (work: Promise<unknown>) => void,
+  list: typeof listPalettes
+): Promise<AnsweredPage> {
+  const key = recordKey(new URL(request.url).origin, query);
+  const past = await record(key, query);
+  if (past && fresh(past, query)) return past;
   let read: PalettePage;
   try {
-    read = await listPalettes(env, query);
+    read = await list(env, query);
   } catch (error) {
     if (past) return past;
     throw error;
   }
   const page = { ...read, fetchedAt: Date.now() };
+  const cache = cacheOf();
   if (cache) {
     const kept = Response.json(page, {
-      headers: { "Cache-Control": `public, max-age=${ttl + KEPT_PAST}` }
+      headers: { "Cache-Control": `public, max-age=${listTtl(query.sort) + KEPT_PAST}` }
     });
-    waitUntil(cache.put(key, kept).catch(() => {}));
+    keep(cache.put(key, kept).catch(() => {}));
   }
   return page;
+}
+
+/** Whether the record cache holds the list API's page at `url` fresh, which it answers from with no database read:
+    no work for the site's ceilings to count (ceiling.ts). */
+export async function listHeld(url: URL): Promise<boolean> {
+  const query = listQueryOf(url.searchParams);
+  const page = await record(recordKey(url.origin, query), query);
+  return !!page && fresh(page, query);
 }

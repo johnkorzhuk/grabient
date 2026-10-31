@@ -45,7 +45,7 @@ export const Route = createFileRoute("/$id/")({
   /* The view rides the address: a page is read again as it changes, from the address alone, never as the selection
      opens or a lock turns. */
   loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
-  loader: async ({ context, params, deps, location }) => {
+  loader: async ({ context, params, deps, location, preload }) => {
     /* A navigation in the browser keeps the page it leaves until the editor can draw, so nothing is drawn between the
        two: its code is asked for at once. Code that does not come is the page's own to say, where it renders. */
     const code =
@@ -86,7 +86,8 @@ export const Route = createFileRoute("/$id/")({
         order: "popular",
         // words that are no collection lead to their search with the selection still open
         searchStr: searchOf(location.search as Record<string, unknown>),
-        publicHref: location.publicHref
+        publicHref: location.publicHref,
+        preload
       });
       /* what the collections' loader hands the frame stands where the frame reads it */
       return { ...collection, palette: null, collection };

@@ -22,6 +22,8 @@ interface Known {
   writes: number;
   /** when the read that is out began, whichever request began it */
   asked?: number;
+  /** when the read begun behind a request's answer began (flagOffKnown), which no request's own read waits for */
+  behind?: number;
 }
 
 // By database binding: an isolate keeps its bindings from request to request.
@@ -45,13 +47,10 @@ function offOf(rows: readonly { name: string; enabled: number }[]): Set<string> 
   ]);
 }
 
-async function offFlags(env: Pick<Env, "DB">): Promise<ReadonlySet<string>> {
-  const flags = knownOf(env.DB);
-  const now = Date.now();
-  if (now - flags.at < READ_EVERY_MS) return flags.off;
-  if (flags.at > 0 && flags.asked !== undefined && now - flags.asked < READ_OUT_MS)
-    return flags.off;
-  flags.asked = now;
+const out = (began: number | undefined, now: number) =>
+  began !== undefined && now - began < READ_OUT_MS;
+
+async function readFlags(env: Pick<Env, "DB">, flags: Known): Promise<void> {
   const writes = flags.writes;
   try {
     const rows = await all<{ name: string; enabled: number }>(
@@ -64,6 +63,18 @@ async function offFlags(env: Pick<Env, "DB">): Promise<ReadonlySet<string>> {
     // the isolate keeps what it read last
   } finally {
     flags.at = Date.now();
+  }
+}
+
+async function offFlags(env: Pick<Env, "DB">): Promise<ReadonlySet<string>> {
+  const flags = knownOf(env.DB);
+  const now = Date.now();
+  if (now - flags.at < READ_EVERY_MS) return flags.off;
+  if (flags.at > 0 && out(flags.asked, now)) return flags.off;
+  flags.asked = now;
+  try {
+    await readFlags(env, flags);
+  } finally {
     flags.asked = undefined;
   }
   return flags.off;
@@ -73,6 +84,28 @@ async function offFlags(env: Pick<Env, "DB">): Promise<ReadonlySet<string>> {
 export async function flagOff(env: Pick<Env, "DB">, name: FlagName): Promise<boolean> {
   const off = await offFlags(env);
   return off.has(name) || off.has("all");
+}
+
+/** Whether an admin has turned this feature off, as this isolate read the flags last, with no wait: a copy past its
+    half minute is read again behind the request, one read at a time, which `keep` holds open. That read leaves a
+    request's own `flagOff` to read the flags itself, as it does without it. An isolate that has not read them yet takes
+    each flag as it starts. */
+export function flagOffKnown(
+  env: Pick<Env, "DB">,
+  name: FlagName,
+  keep: (work: Promise<unknown>) => void
+): boolean {
+  const flags = knownOf(env.DB);
+  const now = Date.now();
+  if (now - flags.at >= READ_EVERY_MS && !out(flags.asked, now) && !out(flags.behind, now)) {
+    flags.behind = now;
+    keep(
+      readFlags(env, flags).finally(() => {
+        flags.behind = undefined;
+      })
+    );
+  }
+  return flags.off.has(name) || flags.off.has("all");
 }
 
 /** Whether a feature is off right now, read from the database past the isolate's half-minute copy: for work that must

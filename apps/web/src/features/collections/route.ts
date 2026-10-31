@@ -5,14 +5,13 @@ import { redirect } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import type { FramedData } from "../../app/shell.ts";
-import { parseSort } from "../../lib/orders.ts";
 import { type CollectionFacts, type Page, pageHead, paletteAddress } from "../../lib/page-meta.ts";
 import { type Failed, failed } from "../../lib/query.ts";
 import { searchOf } from "../../lib/route.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
-import { collectionHref, type PaletteOrder, slugWords, sortCollectionItems } from "./address.ts";
+import { collectionHref, type PaletteOrder, sortCollectionItems } from "./address.ts";
 import { inputOf } from "./client.ts";
 import {
   COLLECTION_LIMIT,
@@ -22,7 +21,8 @@ import {
   listKey,
   listSearch,
   pageSearch,
-  viewOf
+  viewOf,
+  wordsSearch
 } from "./params.ts";
 import { collectionQuery, collectionsQuery, type Found, tagsQuery } from "./queries.ts";
 import type { CollectionDocument, CollectionPage } from "./types.ts";
@@ -143,10 +143,19 @@ export interface CollectionLoaded extends Loaded {
     and which its owner's browser fills in, and answers 404, as does an account's address that holds nothing. A
     one-segment address that holds nothing leads, for now, to the palette search for its words, in its order and view
     (an old link's newer `?sort=` is Rising's): a collection may take the address tomorrow. Only the server can tell
-    nothing from a private collection, so a browser's navigation that finds nothing loads the address whole. */
+    nothing from a private collection, so a browser's navigation that finds nothing loads the address whole; in the
+    app's frame, or where the browser cannot say it is not the frame, one that finds nothing again within seconds, or
+    that can keep no note of the last, says nothing is here. */
 export async function loadCollection(
   client: QueryClient,
-  at: { slug: string; order: PaletteOrder; searchStr: string; publicHref: string }
+  at: {
+    slug: string;
+    order: PaletteOrder;
+    searchStr: string;
+    publicHref: string;
+    /** the router reads the page ahead of a press, which leaves no note of a load */
+    preload?: boolean;
+  }
 ): Promise<CollectionLoaded> {
   const query = collectionQuery(at.slug);
   if (!isServer && !client.getQueryData(query.queryKey)) {
@@ -175,16 +184,41 @@ export async function loadCollection(
     };
   }
   if (here) return { status: 404, robots: "noindex,follow", signedOut: noSession() };
-  if (!isServer) throw redirect({ href: at.publicHref, reloadDocument: true });
-  const search = listSearch(
-    { query: listWords(slugWords(at.slug)), view: viewOf(params) },
-    params.has("selection")
-  );
-  const rising = at.order === "rising" || parseSort(params.get("sort")) !== "popular";
+  if (!isServer) {
+    if (at.preload || framed() === false || reloadsWhole(at.publicHref))
+      throw redirect({ href: at.publicHref, reloadDocument: true });
+    return { status: 404, robots: "noindex,follow" };
+  }
   throw redirect({
-    href: localHref(`${rising ? "/palettes/rising" : "/palettes"}${search}`),
+    href: localHref(wordsSearch(at.slug, at.order, at.searchStr)),
     statusCode: 302
   });
+}
+
+/* Whether the server sent this document as the app's frame, past the site's ceiling (server/ceiling.ts), whose answer
+   names it in Server-Timing; undefined in a browser that does not say. A document the server did not send so loads the
+   address whole each time, as the server answers it. */
+const framed = (): boolean | undefined =>
+  (
+    performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined
+  )?.serverTiming?.some(timing => timing.name === "frame");
+
+const RELOADS_APART_MS = 10_000;
+const RELOADED = "grabient-collection-reloaded";
+
+/* Whether the frame, which found nothing at a one-segment address, loads it whole: once in ten seconds for an address,
+   noted in sessionStorage, and never without the note. The server answers what lives there now, but past the site's
+   ceiling that may be the frame again, from a read of the collection a moment older than the browser's. */
+function reloadsWhole(href: string): boolean {
+  try {
+    const [at, last] = (sessionStorage.getItem(RELOADED) ?? "").split("\n");
+    if (last === href && Date.now() - Number(at) < RELOADS_APART_MS) return false;
+    sessionStorage.setItem(RELOADED, `${Date.now()}\n${href}`);
+    return true;
+  } catch {
+    // a frame that keeps no note would load the address whole again each time
+    return false;
+  }
 }
 
 /* A list this tab read holds the collection's summary: its page shows it at once, provisional and never fresh, while

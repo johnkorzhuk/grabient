@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env, waitUntil } from "cloudflare:workers";
 import { msg, t } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
@@ -17,8 +17,8 @@ import {
   READ_TIMEOUT,
   readAnswer
 } from "../../lib/query.ts";
-import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
+import { listPalettes } from "../../server/gallery/list.ts";
 import { searchPool } from "../../server/gallery/search.ts";
 import { engineNow } from "../account/session.ts";
 import { onAccountChange, viewNow } from "../account/state.ts";
@@ -63,10 +63,12 @@ export interface ListKey {
 }
 
 const readList = createIsomorphicFn()
-  .server(
-    (key: ListKey, _signal: AbortSignal): Promise<PalettePage | Failed> =>
-      publicList(getRequest(), listQuery(key))
-  )
+  .server(async (key: ListKey, _signal: AbortSignal): Promise<PalettePage | Failed> => {
+    const request = getRequest();
+    // the record loads with the first list read (routes/api/palettes.ts)
+    const { listQuery, publicList } = await import("../../server/gallery/cache.ts");
+    return publicList(env, request, listQuery(key), waitUntil, listPalettes);
+  })
   .client((key: ListKey, signal: AbortSignal) => {
     const params = new URLSearchParams({
       sort: key.sort,

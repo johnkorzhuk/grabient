@@ -1154,7 +1154,7 @@
   "Couldn't load the home page.": {
     "note": "Error line on the home page, beside a Retry press.",
     "refs": [
-      "apps/web/src/features/gallery/queries.ts:133"
+      "apps/web/src/features/gallery/queries.ts:135"
     ]
   },
   "Couldn't load the newsletter.": {
@@ -1489,6 +1489,12 @@
     "note": "Admin section of the newsletter page: issues not published.",
     "refs": [
       "apps/web/src/features/newsletter/NewsletterPage.tsx:157"
+    ]
+  },
+  "Draw every page and list for every reader past the site's ten-minute ceilings. When off, past them, readers who aren't signed in get the page drawn in their browser, and crawlers Cloudflare verifies are always drawn.": {
+    "note": "Admin: line under Pages past the ceiling. When off, a reader who isn't signed in gets the app's empty frame, and their browser draws the page into it. Cloudflare is a company's name.",
+    "refs": [
+      "apps/web/src/features/account/settings/flags.ts:80"
     ]
   },
   "Draw share cards and PNG files on the server. When off, links show the site's card.": {
@@ -2692,9 +2698,9 @@
       "apps/web/src/server/newsletter/routes.ts:132",
       "apps/web/src/server/newsletter/routes.ts:136",
       "apps/web/src/server/newsletter/routes.ts:65",
-      "apps/web/src/server/pipeline.ts:169",
-      "apps/web/src/server/pipeline.ts:174",
-      "apps/web/src/server/pipeline.ts:185"
+      "apps/web/src/server/pipeline.ts:216",
+      "apps/web/src/server/pipeline.ts:221",
+      "apps/web/src/server/pipeline.ts:232"
     ]
   },
   "Not in the gallery or a collection": {
@@ -2983,6 +2989,12 @@
       "apps/web/src/features/collections/CollectionsPage.tsx:389",
       "apps/web/src/features/gallery/Home.tsx:263",
       "apps/web/src/features/gallery/Palettes.tsx:329"
+    ]
+  },
+  "Pages past the ceiling": {
+    "note": "Admin feature switch: drawing every page on the server once the site has drawn as many as it allows in ten minutes. The ceiling is that allowance.",
+    "refs": [
+      "apps/web/src/features/account/settings/flags.ts:79"
     ]
   },
   "Palette": {
@@ -3850,7 +3862,8 @@
       "apps/web/src/app/Shell.tsx:160",
       "apps/web/src/features/account/settings/Profile.tsx:278",
       "apps/web/src/lib/page-meta.ts:467",
-      "apps/web/src/lib/page-meta.ts:602"
+      "apps/web/src/lib/page-meta.ts:602",
+      "apps/web/src/server/ceiling.ts:533"
     ]
   },
   "Saved palettes for {query}": {
@@ -3936,6 +3949,7 @@
   "Search is busy. Try again later.": {
     "note": "Error: the site's daily search budget is spent.",
     "refs": [
+      "apps/web/src/server/ceiling.ts:428",
       "apps/web/src/server/search/model.ts:181"
     ]
   },
@@ -4292,7 +4306,7 @@
     "note": "Heading on Saved when signed out, over a Sign in press; also an error line.",
     "refs": [
       "apps/web/src/features/gallery/Palettes.tsx:462",
-      "apps/web/src/features/gallery/queries.ts:222"
+      "apps/web/src/features/gallery/queries.ts:224"
     ]
   },
   "Sign in to sync your changes": {
@@ -4418,7 +4432,7 @@
       "apps/web/src/lib/query.ts:109",
       "apps/web/src/server/editor/facts.ts:117",
       "apps/web/src/server/gallery/credit.ts:120",
-      "apps/web/src/server/pipeline.ts:129"
+      "apps/web/src/server/pipeline.ts:153"
     ]
   },
   "Spectrum: two keyframes with equal lightness and chroma, and hue that travels 360°.": {
@@ -5007,7 +5021,9 @@
     "note": "Error: a rate limit was reached.",
     "refs": [
       "apps/web/src/routes/api/saved.ts:28",
-      "apps/web/src/server/pipeline.ts:286"
+      "apps/web/src/server/ceiling.ts:429",
+      "apps/web/src/server/ceiling.ts:476",
+      "apps/web/src/server/pipeline.ts:349"
     ]
   },
   "Too many searches. Try again in a moment.": {

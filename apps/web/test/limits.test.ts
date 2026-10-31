@@ -3,7 +3,7 @@ import { overLimit } from "@grabient/server/auth/http.ts";
 import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { checkLimits, type LimitCheck, limiterName } from "@grabient/server/limits/check.ts";
 import { workChecks, writeRefusal } from "@grabient/server/limits/writes.ts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { testEnv, unique, watchLimits } from "./helpers.ts";
 
 describe("the RateLimiter object", () => {
@@ -46,6 +46,78 @@ describe("the RateLimiter object", () => {
   });
 });
 
+describe("the site's ten-minute ceilings", () => {
+  it("are learned spent from one refused ask, which leaves what the object holds as it was", async () => {
+    const bound = testEnv();
+    const namespace = bound.RATE_LIMITER!;
+    const pool = unique("page-render");
+    const stub = namespace.get(namespace.idFromName(await limiterName(pool)));
+    const resetTime = Date.now() + 600_000;
+    await runInDurableObject(stub, (_, state) =>
+      state.storage.put("pageRender", { count: 3000, resetTime })
+    );
+    const { env, asked } = watchLimits(bound);
+    const answers = [];
+    for (let i = 0; i < 3; i++) answers.push(await checkLimits(env, [[pool, "pageRender"]]));
+    expect(answers.map(answer => answer?.success)).toEqual([false, false, false]);
+    expect(answers[0]).toMatchObject({
+      type: "pageRender",
+      limit: 3000,
+      reset: Math.floor(resetTime / 1000)
+    });
+    expect(asked).toEqual(["pageRender"]);
+    expect(await runInDurableObject(stub, (_, state) => state.storage.get("pageRender"))).toEqual({
+      count: 3000,
+      resetTime
+    });
+  });
+
+  it("start a window anew once the last has ended", async () => {
+    const bound = testEnv();
+    const namespace = bound.RATE_LIMITER!;
+    const pool = unique("page-render");
+    const stub = namespace.get(namespace.idFromName(await limiterName(pool)));
+    await runInDurableObject(stub, (_, state) =>
+      state.storage.put("pageRender", { count: 3000, resetTime: Date.now() - 1000 })
+    );
+    const { env, asked } = watchLimits(bound);
+    const before = Date.now();
+    expect((await checkLimits(env, [[pool, "pageRender"]]))?.success).toBe(true);
+    expect(asked).toEqual(["pageRender"]);
+    const stored = await runInDurableObject(stub, (_, state) =>
+      state.storage.get<{ count: number; resetTime: number }>("pageRender")
+    );
+    expect(stored?.count).toBe(1);
+    expect(stored?.resetTime).toBeGreaterThanOrEqual(before + 600_000);
+  });
+
+  it("count nothing when the object knows no such limit, as an older deploy's, and say so", async () => {
+    const bound = testEnv();
+    const namespace = bound.RATE_LIMITER!;
+    const stub = namespace.get(namespace.idFromName(await limiterName(unique("pool"))));
+    expect((await stub.fetch("https://rate-limiter/?type=pageRenderSoon")).status).toBe(400);
+    // the same Worker's ask, answered by objects that know none of the ceilings: the caller draws the page
+    const older = {
+      idFromName: (name: string) => namespace.idFromName(name),
+      get: (id: DurableObjectId) => ({
+        fetch: (url: URL) => {
+          const asked = new URL(url);
+          asked.searchParams.set("type", "pageRenderSoon");
+          return namespace.get(id).fetch(asked);
+        }
+      })
+    } as unknown as DurableObjectNamespace;
+    const warned = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      await checkLimits({ DEPLOYMENT: "preview", RATE_LIMITER: older }, [
+        [unique("page-render"), "pageRender"]
+      ])
+    ).toBeNull();
+    expect(warned).toHaveBeenCalled();
+    warned.mockRestore();
+  });
+});
+
 describe("a refusal", () => {
   it("answers 429 with when to try again", async () => {
     const { env } = watchLimits(testEnv());
@@ -58,6 +130,23 @@ describe("a refusal", () => {
     expect(refused?.headers.get("X-RateLimit-Limit")).toBe("5");
     expect(refused?.headers.get("X-RateLimit-Remaining")).toBe("0");
     expect(refused?.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
+  it("names the second the object's window ends, and waits no longer than until then", async () => {
+    const bound = testEnv();
+    const namespace = bound.RATE_LIMITER!;
+    const who = unique("address");
+    const stub = namespace.get(namespace.idFromName(await limiterName(who)));
+    // a window that ends part of the way into a second
+    const resetTime = (Math.floor(Date.now() / 1000) + 300) * 1000 + 500;
+    await runInDurableObject(stub, (_, state) =>
+      state.storage.put("emailAsk", { count: 5, resetTime })
+    );
+    const asked = Math.floor(Date.now() / 1000);
+    const refused = await overLimit(bound, [[who, "emailAsk"]]);
+    const reset = Math.floor(resetTime / 1000);
+    expect(refused?.headers.get("X-RateLimit-Reset")).toBe(String(reset));
+    expect(Number(refused?.headers.get("Retry-After"))).toBeLessThanOrEqual(reset - asked);
   });
 
   it("answers 503 where production has lost its limiter, in the caller's words when given", async () => {

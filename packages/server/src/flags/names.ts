@@ -17,6 +17,9 @@
      on only admins read it and send themselves a test. An account's switch and unsubscribing always work
    - saving: accounts' and apps' writes (likes, collections, votes); reads keep working
    - email: sign-in links and codes and the contact form; deletion emails and owner alerts still go
+   - draw-past-ceiling: drawing pages and reading lists' and searches' data past the site's ten-minute ceilings, for
+     readers with no priority. While it is on, the ceiling only counts; off, or with `all` off, those readers get what
+     stands in (apps/web/src/server/ceiling.ts)
 
    No imports: the Settings page reads this list too. */
 
@@ -33,7 +36,8 @@ export const FLAG_NAMES = [
   "rising-1y",
   "newsletter",
   "saving",
-  "email"
+  "email",
+  "draw-past-ceiling"
 ] as const;
 
 export type FlagName = (typeof FLAG_NAMES)[number];

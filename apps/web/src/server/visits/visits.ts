@@ -59,7 +59,7 @@ const RELOAD = /max-age=0|no-cache/i;
 const SIGN_IN = new Set(["accounts.google.com"]);
 
 /** A program that names itself, a crawler, or a bot Cloudflare verified. */
-function automated(request: Request): boolean {
+export function automated(request: Request): boolean {
   const agent = request.headers.get("User-Agent") ?? "";
   if (!agent || PROGRAM.test(agent) || isCrawler(request)) return true;
   const cf = (request as { cf?: { botManagement?: { verifiedBot?: unknown } } }).cf;
@@ -209,7 +209,9 @@ export function pageVisit(
 ): Visit | null {
   if (request.method !== "GET" || !isPagePath(path)) return null;
   const html = answered.headers.get("Content-Type")?.startsWith("text/html");
-  if (!(answered.status === 200 && html) && answered.status !== 304) return null;
+  // the app's frame past the site's ceiling (ceiling.ts), which the browser draws the page into, is the page's visit
+  const shell = answered.headers.get("X-Grabient-Cache") === "SHELL";
+  if (!((answered.status === 200 || shell) && html) && answered.status !== 304) return null;
   if (!navigated(request)) return null;
   const url = new URL(request.url);
   const page = pageKind(path, url.searchParams);

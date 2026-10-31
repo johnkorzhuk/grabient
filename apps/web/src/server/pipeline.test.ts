@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.hoisted(() => Object.assign(globalThis, { __BUILD_ID__: "b1" }));
 
@@ -396,19 +396,29 @@ describe("an old grabient.com link", () => {
     expect(asked).toHaveLength(1);
   });
 
-  test("one the Worker will not fit: its page is the app's, which the reader's browser fits, and its card the site's", async () => {
-    // the site's day of fits is spent
-    const spent = {
+  /* A limiter whose day of fits is spent, and whose other limits have room: the site's ceilings count the page an
+     unfitted link gets (ceiling.ts), and none of their sampled points is drawn here. */
+  afterEach(() => vi.restoreAllMocks());
+  const fitsSpent = () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const answer = (refused: boolean) =>
+      Response.json(
+        { success: !refused, limit: 1, remaining: 0, reset: Date.now() / 1000 + 60, results: [] },
+        { status: refused ? 429 : 200 }
+      );
+    const RATE_LIMITER = {
       idFromName: (name: string) => name,
       get: () => ({
-        fetch: async () =>
-          Response.json(
-            { success: false, limit: 1, remaining: 0, reset: Date.now() / 1000 + 60, results: [] },
-            { status: 429 }
-          )
+        fetch: async (url: URL) =>
+          answer(url.searchParams.getAll("type").includes("oldLinkFitDaily"))
       })
     };
-    const worker = { ...env, RATE_LIMITER: spent } as unknown as Env;
+    return { ...env, RATE_LIMITER } as unknown as Env;
+  };
+
+  test("one the Worker will not fit: its page is the app's, which the reader's browser fits, and its card the site's", async () => {
+    // the site's day of fits is spent
+    const worker = fitsSpent();
     const response = await get(OLD, {}, () => page(404), worker);
     expect([response.status, asked.length, cache.kept.size]).toEqual([404, 1, 0]);
     // a link preview of the old page shows the site's card for a few minutes, as for a card that is not drawn now
@@ -428,17 +438,7 @@ describe("an old grabient.com link", () => {
   });
 
   test("the app's page for one the Worker will not fit is kept by the build, and the next reader's asks no fit", async () => {
-    const spent = {
-      idFromName: (name: string) => name,
-      get: () => ({
-        fetch: async () =>
-          Response.json(
-            { success: false, limit: 1, remaining: 0, reset: Date.now() / 1000 + 60, results: [] },
-            { status: 429 }
-          )
-      })
-    };
-    const worker = { ...env, RATE_LIMITER: spent } as unknown as Env;
+    const worker = fitsSpent();
     const answers = [
       await get(OLD, {}, () => page(), worker),
       await get(OLD, {}, () => page(), worker)
@@ -737,13 +737,19 @@ test("campaign tags come off an address and onto a redirect with the rest of it 
 });
 
 test("only a server route takes another method than GET and HEAD", async () => {
-  // a page is refused before it renders, so no method makes it draw or search again
+  /* a page, and any address outside the API where no route takes another method, is refused before it renders, so no
+     method makes it draw or search again: a file's route that takes no POST, and an address no route serves */
   for (const [path, method] of [
     ["/palettes?q=%23a1b2c3", "POST"],
     ["/about", "PUT"],
     ["/kY4mpDazO-mUuu_fuLqXU49dvVP6", "DELETE"],
     ["/ja/settings", "PATCH"],
-    ["/unsubscribe/abc", "PUT"]
+    ["/unsubscribe/abc", "PUT"],
+    ["/kS7Q8Yy5S_SChv0.png", "POST"],
+    ["/xmlrpc.php", "POST"],
+    ["/a/b.c", "DELETE"],
+    ["/mcp/server-card", "PUT"],
+    ["/e", "POST"]
   ]) {
     const refused = await get(path, { method });
     expect([path, refused.status, refused.headers.get("Allow")]).toEqual([path, 405, "GET, HEAD"]);
@@ -753,8 +759,13 @@ test("only a server route takes another method than GET and HEAD", async () => {
   // the newsletter's way out takes its press as a POST
   const unsubscribed = await get("/unsubscribe/abc", { method: "POST" }, () => Response.json({}));
   expect([unsubscribed.status, asked.length]).toEqual([200, 1]);
-  // a file's route that takes no POST, where Start would render a page instead
-  expect((await get("/kS7Q8Yy5S_SChv0.png", { method: "POST" })).status).toBe(405);
+  // the API, the MCP and authorization servers and the documents apps read take theirs
+  for (const path of ["/api/likes", "/mcp", "/oauth/token", "/.well-known/x"])
+    expect([path, (await get(path, { method: "POST" }, () => Response.json({}))).status]).toEqual([
+      path,
+      200
+    ]);
+  expect(asked).toHaveLength(5);
   const preflight = await get("/kS7Q8Yy5S_SChv0.json", { method: "OPTIONS" });
   expect(preflight.status).toBe(204);
   expect(preflight.headers.get("Access-Control-Allow-Origin")).toBe("*");

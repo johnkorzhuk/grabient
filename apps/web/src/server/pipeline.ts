@@ -15,6 +15,8 @@ import { PAUSED } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
+import { isCollectionSlug } from "../features/collections/address.ts";
+import { wordsSearch } from "../features/collections/params.ts";
 import { BUILD } from "../lib/build.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { TRACKING_PARAM } from "../lib/links.ts";
@@ -22,6 +24,7 @@ import { PRODUCTION_ORIGIN } from "../lib/page-meta.ts";
 import { json, redirect, withHeaders } from "../lib/responses.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
+import { collectionVisibility } from "./collections/read.ts";
 import { isCrawler, isLinkPreview } from "./crawlers.ts";
 import { edgeCached, keepFor } from "./edge-cache.ts";
 import { addressParams } from "./files/address.ts";
@@ -29,12 +32,17 @@ import { countFile } from "./files/count.ts";
 import { siteCard } from "./images/serve.ts";
 import { readyLocale } from "./languages.ts";
 import {
+  ceilingPath,
   connectPath,
   consentPath,
   listingPath,
+  methodsPath,
   privatePath,
   publicFile,
+  searchJsonPath,
+  searchPicturePath,
   serverFunctionPath,
+  suggestionPath,
   uncachedPath
 } from "./paths.ts";
 import { countLegacy, legacyLanding, mayNameOld, readyOldIds } from "./seo/legacy.ts";
@@ -52,13 +60,29 @@ import { countPage } from "./visits/count.ts";
    5. An address of the MCP server or the authorization server is the app's to answer as it stands. A private one is
       answered directly and never kept; every other GET goes through the edge cache. An old link no map holds is
       answered there with its fit (seo/legacy-fit.ts). A list, a search or the home that no cache holds reads the
-      database or runs the search: an address may make sixty of those a minute.
+      database or runs the search: an address may make sixty of those a minute. Every page, address no route serves
+      and read of the lists' and searches' data that no cache holds counts against the site's ceilings, past which
+      something stands in while an admin has draw-past-ceiling off (ceiling.ts).
    6. The headers every answer carries.
    7. A page a browser loaded for a reader is counted as a visit, after its answer (visits/visits.ts).
    Everything after step 3 reads the path without the language, and every address handed out gets it back. */
 
 /** What answers behind the pipeline: Start, and ahead of it the MCP and authorization servers (server.ts). */
 export type App = (request: Request) => Promise<Response>;
+
+/* What the site's ceilings read of an address and of a collection, handed to them with the work (ceiling.ts): a module
+   their own chunk imported would leave the start chunk it shares for one of its own, which each isolate loads apart. */
+const CEILING_READS = {
+  ceilingPath,
+  collectionVisibility,
+  isCollectionSlug,
+  listingPath,
+  searchJsonPath,
+  searchPicturePath,
+  suggestionPath,
+  wordsSearch
+};
+export type CeilingReads = typeof CEILING_READS;
 
 const PRODUCTION_HOSTS = new Set(["grabient.com", "www.grabient.com"]);
 /** The partner that embeds the site may frame its public pages. */
@@ -121,7 +145,7 @@ export async function handle(
       readyLocale(env, locale),
       !read || mayNameOld(path, url.searchParams) ? readyOldIds() : undefined
     ]);
-    response = await route(request, url, locale, path, env, ctx, app);
+    response = await route(request, url, locale, path, env, ctx, app, sent);
   } catch (error) {
     /* the error alone, as Workers Issues reads one: an issue for each error whatever the address, its stack read as
        source, and the request beside it */
@@ -156,12 +180,35 @@ async function route(
   path: string,
   env: Env,
   ctx: ExecutionContext,
-  app: App
+  app: App,
+  sent: Request
 ): Promise<Response> {
   const read = request.method === "GET" || request.method === "HEAD";
   const page = isPagePath(path);
   const address = path + url.search;
   const at = (to: string, language = locale) => new URL(localizePath(to, language), url).toString();
+  /* What stands in for work no cache holds past the site's ceilings (ceiling.ts), or null: drawn. It loads on demand,
+     for work it counts alone, and anything that fails in it draws the work. `refused` is the wait of an address past
+     its listings' minute. */
+  const ceiling = (refused?: number): Promise<Response | null> | null =>
+    env.DEPLOYMENT === "development" || !env.RATE_LIMITER || !ceilingPath(path, url.searchParams)
+      ? null
+      : import("./ceiling.ts")
+          .then(c =>
+            c.ceiling({
+              env,
+              ctx,
+              sent,
+              request,
+              url,
+              path,
+              locale,
+              app,
+              refused,
+              reads: CEILING_READS
+            })
+          )
+          .catch(() => null);
 
   // an empty first segment is no address of the site's, which a URL reads as another host (//host/path), and the app
   // has no server functions for Start's endpoint to call
@@ -200,11 +247,6 @@ async function route(
     }
   }
   if (canonical !== null) return redirect(at(canonical));
-  // Start renders a page whatever the method, so a page is refused any method but GET and HEAD before it renders. The
-  // newsletter's way out takes its press as a POST.
-  if (page && !read && !(request.method === "POST" && path.startsWith("/unsubscribe/"))) {
-    return notAllowed();
-  }
 
   if (request.method === "OPTIONS" && publicFile(path)) {
     return new Response(null, {
@@ -216,8 +258,19 @@ async function route(
       }
     });
   }
+  // Start renders a page whatever the method where no route takes it, so any other method is refused before it renders,
+  // but where a route may take one. The newsletter's way out takes its press as a POST.
+  if (
+    !read &&
+    !methodsPath(path) &&
+    !(request.method === "POST" && path.startsWith("/unsubscribe/"))
+  ) {
+    return notAllowed();
+  }
   if (connectPath(path)) return app(request);
-  if (privatePath(path)) return withHeaders(await answer(request, app), NO_STORE);
+  // counted here: an account's pages and the old analytics beacon's address, which no route serves; no private API
+  if (privatePath(path))
+    return withHeaders((read && (await ceiling())) || (await answer(request, app)), NO_STORE);
   countFile(env, request, path);
   // an old page the Worker does not fit is the app's to answer, whose page the reader's browser fits, and an old card
   // is the site's card, never a blank preview; under `vite dev` nothing is kept
@@ -227,7 +280,9 @@ async function route(
     const fit = async () => {
       const redirect = await fittedRedirect(env, request, old, at);
       fitted = redirect !== null;
-      return redirect ?? (old.card ? siteCard(request) : answer(request, app));
+      return (
+        redirect ?? (old.card ? siteCard(request) : ((await ceiling()) ?? answer(request, app)))
+      );
     };
     if (env.DEPLOYMENT === "development") return fit();
     /* a fitted 301 outlives a deploy under the fit's key, so a crawler's walk of old links is fitted once; the page or
@@ -244,7 +299,9 @@ async function route(
   // under `vite dev` nothing is kept or counted: a page kept from before an edit would hydrate against the edited code
   if (!read || env.DEPLOYMENT === "development") return answer(request, app);
   const render = async () =>
-    (listingPath(path) && (await overListing(env, request))) || answer(request, app);
+    (listingPath(path) && (await overListing(env, request, ceiling))) ||
+    (await ceiling()) ||
+    answer(request, app);
   /* a link preview of an animated SVG, the bands' or an effect's, gets a page of its own (files/preview.ts), which no
      cache keeps or answers */
   const asked = addressParams(url.searchParams);
@@ -276,14 +333,21 @@ function splitTracking(search: string): { rest: string; tracking: string } {
   return { rest: rest.length ? `?${rest.join("&")}` : "", tracking: tracking.join("&") };
 }
 
-/** The refusal of a list, a search or the home past the address's sixty reads a minute in this isolate, or null. */
-async function overListing(env: Env, request: Request): Promise<Response | null> {
+/** The refusal of a list, a search or the home past the address's sixty reads a minute in this isolate, or null: a
+    page's is what stands in past the ceiling, where one does. */
+async function overListing(
+  env: Env,
+  request: Request,
+  ceiling: (refused?: number) => Promise<Response | null> | null
+): Promise<Response | null> {
   const counted = await checkLimits(env, [
     [`list-miss:${clientAddress(request) ?? "local"}`, "listMiss"]
   ]);
-  return counted?.success
-    ? null
-    : json({ error: msg("Too many requests. Try again later.") }, { status: 429 });
+  if (counted?.success) return null;
+  return (
+    (await ceiling(60)) ??
+    json({ error: msg("Too many requests. Try again later.") }, { status: 429 })
+  );
 }
 
 /** A browser's page navigation from outside the site: a search result, another site, a typed address or a bookmark.

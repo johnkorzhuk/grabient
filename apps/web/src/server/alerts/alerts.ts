@@ -1,5 +1,7 @@
 import { CONTACT_EMAIL } from "@grabient/email/addresses.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
+import { LIMITS } from "@grabient/server/limits/config.ts";
 import { DATASETS } from "../mcp/admin/usage.ts";
 
 /* Emails to the site's own address from the scheduled jobs, about what nobody would otherwise see: the site failing,
@@ -199,4 +201,88 @@ export async function failingAlert(
     if (sent) emailed.push(kind.event);
   }
   return { counted, emailed };
+}
+
+/* The site's ceilings on work no cache holds (ceiling.ts), heard of in the last ten minutes. A pool ran out: each
+   isolate or data center that learned so wrote one refusal, never one per page. Or work was drawn while the limiter
+   could not count it, which the sampled answers weigh. While draw-past-ceiling is on, a pool that ran out only says
+   what would have stood in. */
+const POOLS = new Set(["pageRender", "dataMiss", "renderSignedIn", "renderHttp3", "renderPreview"]);
+/** Answers drawn uncounted in ten minutes past what one isolate's passing fault makes. */
+const UNMETERED_AT = 200;
+type Ceiling = "ceiling" | "ceiling-unmetered";
+
+/** The site's ceilings, mailed when a pool ran out or the limiter could not count, at most once a day each. The
+    ten-minute job's step, which reads the counts, and the flags only when a pool ran out. */
+export async function ceilingAlert(
+  env: Counted & Pick<Env, "DB">,
+  now = Date.now()
+): Promise<{ skipped?: string; pools: number; unmetered: number; emailed: Ceiling[] }> {
+  const dataset = DATASETS[env.DEPLOYMENT];
+  const analytics = env.ANALYTICS;
+  if (!analytics || !dataset) {
+    return {
+      skipped: "This deploy has no usage counts to read",
+      pools: 0,
+      unmetered: 0,
+      emailed: []
+    };
+  }
+  const rows = await rowsOf(
+    analytics,
+    `SELECT blob1 AS event, blob2 AS a, blob3 AS b, blob4 AS c, SUM(double1) AS n FROM events.analyticsEngine."${dataset}"
+    WHERE blob1 IN ('limit', 'render') AND timestamp > NOW() - INTERVAL '10' MINUTE
+    GROUP BY event, a, b, c ORDER BY n DESC`
+  );
+  const pools = rows.filter(
+    row => row.event === "limit" && row.b === "site" && POOLS.has(String(row.a))
+  );
+  const answers = rows.filter(row => row.event === "render");
+  const unmetered = answers
+    .filter(row => row.c === "unmetered")
+    .reduce((sum, row) => sum + whole(row), 0);
+  const counts = [
+    "The answers, by what, lane and answer, weighed from one in twenty:",
+    ...(answers.length
+      ? answers.slice(0, 12).map(row => `- ${row.a}, ${row.b}, ${row.c}: ${whole(row)}`)
+      : ["- none counted"])
+  ].join("\n");
+  const emailed: Ceiling[] = [];
+  if (pools.length) {
+    const enforced = await flagOff(env, "draw-past-ceiling");
+    // each subject goes once a day, so "is on" still goes the day "would be on" went
+    const sent = await alertOwner(
+      env,
+      enforced ? "ceiling-on" : "ceiling",
+      enforced ? "Grabient: the render ceiling is on" : "Grabient: the render ceiling would be on",
+      [
+        [
+          "In the last ten minutes these pools ran out, by the refusals isolates and data centers learned it from:",
+          ...pools.map(row => `- ${row.a}: ${whole(row)}`)
+        ].join("\n"),
+        counts,
+        enforced
+          ? "draw-past-ceiling is off in Settings, so readers past a pool without a lane got what stands in: the app's frame for a page, JSON 429 for data, and the site's card or a 429 for a search's picture. Turn it on to draw every page again."
+          : "draw-past-ceiling is on in Settings, so every reader was drawn and the ceiling only counted. Turn it off to have readers past a pool without a lane get what stands in.",
+        "This alert goes at most once a day. The site_usage tool shows every count."
+      ],
+      now
+    );
+    if (sent) emailed.push("ceiling");
+  }
+  if (unmetered >= UNMETERED_AT) {
+    const sent = await alertOwner(
+      env,
+      "ceiling-unmetered",
+      "Grabient: the render ceiling cannot count",
+      [
+        `In the last ten minutes about ${unmetered} answers were drawn while the limiter could not count them: it failed or took more than two seconds, and each isolate counted alone, up to ${LIMITS.renderLocal.requests} pages in ten minutes. The Worker's logs say why under "rate limiter unavailable".`,
+        counts,
+        "This alert goes at most once a day. The site_usage tool shows every count."
+      ],
+      now
+    );
+    if (sent) emailed.push("ceiling-unmetered");
+  }
+  return { pools: pools.length, unmetered, emailed };
 }

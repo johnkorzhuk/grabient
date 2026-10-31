@@ -18,6 +18,9 @@ import type { Env } from "../env.ts";
      visit         what (landing, load, framed, use, search), page, language, country, device, browser, system, network,
                    signals, referrer, source, medium, campaign, visitor: a page a browser loaded, or a palette used or
                    a search made on one, under its visitor's code as its index
+     render        what (page, data), lane (anyone, verified, signed-in, http3, preview), answer (drawn, watch,
+                   stand-in, unmetered), the kind of page or of data: work no cache held, as the site's ceilings met it
+                   (apps/web/src/server/ceiling.ts), one answer in twenty, weighted 20 in its double
    Each point rides on a request that is already limited, so the counts need no limit of their own. */
 
 export type UsageEvent =
@@ -31,7 +34,8 @@ export type UsageEvent =
   | "file"
   | "failure"
   | "visit"
-  | "ga4";
+  | "ga4"
+  | "render";
 
 const BLOB_MAX = 96;
 

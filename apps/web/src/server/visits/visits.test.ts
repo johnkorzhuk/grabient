@@ -187,6 +187,23 @@ describe("a page load", () => {
     const request = Object.assign(arriving("/"), { cf: { botManagement: { verifiedBot: true } } });
     expect(pageVisit(request, "/", "en", html(), "")).toBeNull();
   });
+  test("the frame answered past the site's ceiling is the visit of the address it answered", () => {
+    const past = (status: number, cache: string) =>
+      new Response(status === 302 ? null : "<p>frame</p>", {
+        status,
+        headers: { "Content-Type": "text/html", "X-Grabient-Cache": cache, Location: "/" }
+      });
+    const request = arriving("/palettes?q=x");
+    expect(pageVisit(request, "/palettes", "en", past(503, "SHELL"), "")).toMatchObject({
+      what: "landing",
+      page: "search",
+      path: "/palettes"
+    });
+    expect(pageVisit(request, "/palettes", "en", past(429, "SHELL"), "")?.page).toBe("search");
+    // the page that asks again, and the way to a search, are no visit of their own
+    expect(pageVisit(request, "/palettes", "en", past(503, "BUSY"), "")).toBeNull();
+    expect(pageVisit(arriving("/blue-sky"), "/blue-sky", "en", past(302, "MISS"), "")).toBeNull();
+  });
 });
 
 test("a palette used or a search made is a visit to the page it was made on", () => {

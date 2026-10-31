@@ -3,7 +3,15 @@ import { parseView } from "@grabient/engine/view.ts";
 import { all, type Db, first, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import type { PaletteItem } from "../../features/gallery/schema.ts";
-import { DEFAULT_FRAME, isFrame, type ListSort } from "../../lib/orders.ts";
+import {
+  bounded,
+  DEFAULT_FRAME,
+  DEFAULT_LIMIT,
+  isFrame,
+  LIMIT_MAX,
+  type ListSort,
+  PAGE_MAX
+} from "../../lib/orders.ts";
 import { RISE_COLUMN } from "./scores.ts";
 
 /* The gallery's palettes as lists read them. Every order reads an index: popular by likes_count (triggers keep it),
@@ -27,14 +35,8 @@ export interface PalettePage {
   totalPages: number;
 }
 
-export const PAGE_MAX = 10_000;
-export const LIMIT_MAX = 96;
-export const DEFAULT_LIMIT = 24;
 /** The lists are up to five minutes old at the edge already, so an isolate keeps the gallery's count as long. */
 const COUNT_TTL = 300_000;
-
-export const bounded = (value: unknown, fallback: number, min: number, max: number): number =>
-  Number.isFinite(value) ? Math.max(min, Math.min(max, Math.floor(value as number))) : fallback;
 
 export interface PaletteRow {
   seed: string;

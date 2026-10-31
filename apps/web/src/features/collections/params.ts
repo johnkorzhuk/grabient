@@ -3,10 +3,12 @@ import {
   framePath,
   isFrame,
   type Order,
+  parseSort,
   type RisingFrame
 } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
 import { AS_SAVED, type ListView, readListView, viewParams } from "../list/appearance.ts";
+import { type PaletteOrder, slugWords } from "./address.ts";
 import type { CollectionSort } from "./types.ts";
 
 /* The collections lists' and a collection page's addresses: their query read the one way the server and the browser
@@ -86,6 +88,18 @@ export const listSearch = (
     the selection. */
 export const pageSearch = (view: ListView, selection?: boolean): string =>
   query(viewParts(view), selection);
+
+/** Where a one-segment address that holds no collection leads for now: the palette search for its words, in its order
+    and view, with the selection still open where the address opened it. An old link's newer `?sort=` is Rising's. */
+export function wordsSearch(slug: string, order: PaletteOrder, searchStr: string): string {
+  const params = new URLSearchParams(searchStr);
+  const search = listSearch(
+    { query: listWords(slugWords(slug)), view: viewOf(params) },
+    params.has("selection")
+  );
+  const rising = order === "rising" || parseSort(params.get("sort")) !== "popular";
+  return `${rising ? "/palettes/rising" : "/palettes"}${search}`;
+}
 
 /** A collections list's address as its page draws it: the order and frame its path says, the words, the page and the
     size, and the view. */

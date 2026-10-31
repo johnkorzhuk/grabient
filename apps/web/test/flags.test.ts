@@ -1,6 +1,6 @@
 import { all, batch, first, replica, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { flagOff, listFlags, setFlag } from "@grabient/server/flags/flags.ts";
+import { flagOff, flagOffKnown, listFlags, setFlag } from "@grabient/server/flags/flags.ts";
 import { FLAG_NAMES, STARTS_OFF } from "@grabient/server/flags/names.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -131,6 +131,50 @@ describe("flags", () => {
     void flagOff(cold.env, "share-images");
     cold.stuck = false;
     expect(await flagOff(cold.env, "share-images")).toBe(false);
+  });
+
+  it("are known at once as the isolate read them last, and read again behind the request once for all", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const writer = isolate();
+    await setFlag(writer.env, "share-images", false, unique("admin"));
+    const reader = isolate();
+    const behind: Promise<unknown>[] = [];
+    const keep = (work: Promise<unknown>) => void behind.push(work);
+    // an isolate that has not read them takes each as it starts, and reads them behind the request, once
+    expect(flagOffKnown(reader.env, "share-images", keep)).toBe(false);
+    expect(flagOffKnown(reader.env, "newsletter", keep)).toBe(true);
+    expect(behind).toHaveLength(1);
+    await Promise.all(behind.splice(0));
+    expect(flagOffKnown(reader.env, "share-images", keep)).toBe(true);
+    expect(behind).toHaveLength(0);
+    // past half a minute, a read that never comes back holds no request, and another is made once it has been out ten
+    await setFlag(writer.env, "share-images", true, unique("admin"));
+    vi.advanceTimersByTime(30_001);
+    reader.stuck = true;
+    expect(flagOffKnown(reader.env, "share-images", keep)).toBe(true);
+    reader.stuck = false;
+    expect(flagOffKnown(reader.env, "share-images", keep)).toBe(true);
+    expect(behind).toHaveLength(1);
+    vi.advanceTimersByTime(10_001);
+    expect(flagOffKnown(reader.env, "share-images", keep)).toBe(true);
+    expect(behind).toHaveLength(2);
+    await behind[1];
+    expect(flagOffKnown(reader.env, "share-images", keep)).toBe(false);
+  });
+
+  it("leave a request's own read to the request while one begun behind another's answer is out", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const writer = isolate();
+    const reader = isolate();
+    expect(await flagOff(reader.env, "share-images")).toBe(false);
+    await setFlag(writer.env, "share-images", false, unique("admin"));
+    vi.advanceTimersByTime(30_001);
+    // the read behind an answer never comes back
+    reader.stuck = true;
+    expect(flagOffKnown(reader.env, "share-images", () => {})).toBe(false);
+    reader.stuck = false;
+    // the next request reads the flags itself, as it would with no read behind
+    expect(await flagOff(reader.env, "share-images")).toBe(true);
   });
 });
 

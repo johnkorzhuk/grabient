@@ -29,3 +29,11 @@ export type Order = "popular" | "rising" | "saved";
 
 export const parseSort = (value: unknown): ListSort =>
   value === "rising" || value === "newest" || value === "oldest" ? value : "popular";
+
+/** A list page's number and size as the database reads them: past its bounds, each reads as the nearest. */
+export const PAGE_MAX = 10_000;
+export const LIMIT_MAX = 96;
+export const DEFAULT_LIMIT = 24;
+
+export const bounded = (value: unknown, fallback: number, min: number, max: number): number =>
+  Number.isFinite(value) ? Math.max(min, Math.min(max, Math.floor(value as number))) : fallback;

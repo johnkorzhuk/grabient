@@ -6,10 +6,11 @@ import type { Env } from "@grabient/server/env.ts";
 import type { LimitCheck } from "@grabient/server/limits/check.ts";
 import * as v from "valibot";
 import type { PaletteItem, SavedPage } from "../../features/gallery/schema.ts";
+import { LIMIT_MAX } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
 import { canonicalPaletteSeed } from "../files/resolve.ts";
 import { searchOwnSeeds } from "../search/search.ts";
-import { forgetGalleryCount, itemsOf, LIMIT_MAX, type PaletteRow } from "./list.ts";
+import { forgetGalleryCount, itemsOf, type PaletteRow } from "./list.ts";
 import {
   collectionsRisingLiked,
   collectionsRisingUnliked,

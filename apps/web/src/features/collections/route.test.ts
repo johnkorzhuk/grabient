@@ -1,6 +1,6 @@
 import { setLocaleSource } from "@grabient/i18n";
 import { QueryClient } from "@tanstack/solid-query";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { heading, paletteAddress } from "../../lib/page-meta.ts";
 import { AS_SAVED } from "../list/appearance.ts";
 import type { ListPlace } from "./params.ts";
@@ -17,10 +17,17 @@ import {
 import type { CollectionDocument, CollectionPage } from "./types.ts";
 
 /* The collections' loaders as the server runs them, over a cache already holding what they read: the status and robots
-   a page answers with, where an address that holds nothing leads, and what the frame is handed. The router and the
-   reads stand aside; a redirect is the thrown object the router would act on. */
+   a page answers with, where an address that holds nothing leads, and what the frame is handed; and as a browser runs
+   one where nothing lives. The router and the reads stand aside; a redirect is the thrown object the router would act
+   on. */
 
-const request = vi.hoisted(() => ({ cookie: "" }));
+const request = vi.hoisted(() => ({ cookie: "", server: true }));
+vi.mock("@solidjs/web", async original => ({
+  ...(await original<object>()),
+  get isServer() {
+    return request.server;
+  }
+}));
 vi.mock("@tanstack/solid-router", () => ({ redirect: (to: object) => ({ redirect: to }) }));
 vi.mock("@tanstack/solid-start", () => ({
   createIsomorphicFn: () => ({ server: (run: unknown) => ({ client: () => run }) })
@@ -364,5 +371,102 @@ describe("a collection page's loader", () => {
   test("renders its page for a read that failed", async () => {
     const cache = holding("ocean-depths", { failed: "No answer." });
     expect(await loadCollection(cache, at("ocean-depths"))).toEqual({});
+  });
+});
+
+describe("a collection page's loader in a browser, where nothing lives", () => {
+  const at = (preload?: boolean) => ({
+    slug: "ocean-depths",
+    order: "popular" as const,
+    searchStr: "",
+    publicHref: "/ocean-depths",
+    preload
+  });
+  const load = (preload?: boolean) =>
+    loadCollection(
+      cacheOf({ "collection ocean-depths": { doc: null, fetchedAt: 0 } }),
+      at(preload)
+    );
+  const reload = { redirect: { href: "/ocean-depths", reloadDocument: true } };
+  const NOW = Date.UTC(2026, 9, 30, 12);
+  /** The document's own answer as the browser read it, which names the app's frame in Server-Timing. */
+  const answered = (framed: boolean) =>
+    vi
+      .spyOn(performance, "getEntriesByType")
+      .mockReturnValue([
+        { serverTiming: [...(framed ? [{ name: "frame" }] : []), { name: "build" }] }
+      ] as unknown as PerformanceEntryList);
+
+  beforeEach(() => {
+    request.server = false;
+    const noted = new Map<string, string>();
+    vi.stubGlobal("sessionStorage", {
+      getItem: (key: string) => noted.get(key) ?? null,
+      setItem: (key: string, value: string) => void noted.set(key, value)
+    });
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => {
+    request.server = true;
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("loads the address whole each time in a document the server drew for the address it was loaded at", async () => {
+    answered(false);
+    await expect(load()).rejects.toEqual(reload);
+    vi.setSystemTime(NOW + 5000);
+    await expect(load()).rejects.toEqual(reload);
+  });
+
+  test("loads it whole once in ten seconds in the app's frame, and in between says nothing is here", async () => {
+    answered(true);
+    await expect(load()).rejects.toEqual(reload);
+    vi.setSystemTime(NOW + 5000);
+    expect(await load()).toEqual({ status: 404, robots: "noindex,follow" });
+    vi.setSystemTime(NOW + 16_000);
+    await expect(load()).rejects.toEqual(reload);
+  });
+
+  test("leaves no note of a read ahead of a press, which the press then loads whole", async () => {
+    answered(true);
+    await expect(load(true)).rejects.toEqual(reload);
+    await expect(load()).rejects.toEqual(reload);
+  });
+
+  test.each([
+    [
+      "throws",
+      () => ({
+        getItem: () => {
+          throw new Error("The operation is insecure.");
+        },
+        setItem: () => {
+          throw new Error("The operation is insecure.");
+        }
+      })
+    ],
+    ["is not there", () => null]
+  ])(
+    "says nothing is here at once in the app's frame where sessionStorage %s",
+    async (_, storage) => {
+      answered(true);
+      vi.stubGlobal("sessionStorage", storage());
+      for (const at of [0, 1000, 2000]) {
+        vi.setSystemTime(NOW + at);
+        expect(await load()).toEqual({ status: 404, robots: "noindex,follow" });
+      }
+    }
+  );
+
+  test("loads it whole once in ten seconds where the browser does not say whether the server sent the frame", async () => {
+    vi.spyOn(performance, "getEntriesByType").mockReturnValue([
+      {}
+    ] as unknown as PerformanceEntryList);
+    await expect(load()).rejects.toEqual(reload);
+    vi.setSystemTime(NOW + 1000);
+    expect(await load()).toEqual({ status: 404, robots: "noindex,follow" });
   });
 });

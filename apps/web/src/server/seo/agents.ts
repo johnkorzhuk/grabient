@@ -168,9 +168,11 @@ A read a cache holds is never counted. Past a limit the answer is HTTP 429 with 
 
 - A list or a search: ${allowed("listMiss")} a minute for an address.
 - Words outside the vocabulary: ${allowed("searchModel")} new queries a minute and ${allowed("searchModelDaily")} a day, for an address or for an account through MCP.
-- A PNG: ${allowed("imageRender")} a minute for an address. One of more pixels than 1200 by 630 shares ${allowed("largeImageDaily")} a day with the whole site. SVG, CSS, JSON and Markdown are never counted.
+- A PNG: ${allowed("imageRender")} a minute for an address. One of more pixels than 1200 by 630 shares ${allowed("largeImageDaily")} a day with the whole site. SVG, CSS, JSON and Markdown are never counted against these.
 - MCP tool calls: ${allowed("mcpAccount")} a minute and ${allowed("mcpAccountDaily")} a day for an account.
 - A search takes 100 characters and answers 96 palettes at most.
+
+Other work no cache holds is counted too: any other page and a search's pictures, ${allowed("renderMiss")} a minute for an address, and the suggestions for searches and collections, ${allowed("suggestMiss")}; and for the whole site, ${allowed("pageRender")} pages and ${allowed("dataMiss")} reads of the lists' and searches' data in ten minutes. Crawlers Cloudflare verifies are never counted against these. Past them the site may answer a page with HTTP 503 and Retry-After, the app's frame, which a browser draws the page into; data with HTTP 429; and a search's share card with a redirect to the site's card.
 `;
 }
 

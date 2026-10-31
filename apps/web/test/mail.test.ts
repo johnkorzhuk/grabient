@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import {
   alertOwner,
+  ceilingAlert,
   documentAlert,
   failingAlert,
   signInDigest
@@ -362,6 +363,83 @@ describe("the owner's alerts", () => {
     expect(env.EMAIL.sent[0]?.text).toContain(
       "401 in all:\n- collection, Chrome 145: 396\n- collection, Chrome 152: 5"
     );
+  });
+
+  it("say the render ceiling would be on, or is on, once a pool ran out, and that it cannot count", async () => {
+    const queries: string[] = [];
+    let rows: Record<string, unknown>[] = [];
+    const env = testEnv({
+      DEPLOYMENT: "production",
+      ANALYTICS: {
+        query: async ({ query }) => {
+          queries.push(query);
+          return { data: rows };
+        }
+      }
+    });
+    const day = Date.UTC(2026, 9, 24, 6);
+    // pages drawn, and no pool ran out: nothing to say, and no flag read
+    rows = [{ event: "render", a: "page", b: "anyone", c: "drawn", n: 3200 }];
+    expect(await ceilingAlert(env, day)).toEqual({ pools: 0, unmetered: 0, emailed: [] });
+    expect(queries[0]).toContain('FROM events.analyticsEngine."grabient_usage"');
+    expect(queries[0]).toContain("blob1 IN ('limit', 'render')");
+    expect(queries[0]).toContain("timestamp > NOW() - INTERVAL '10' MINUTE");
+    expect(queries[0]).toContain("SUM(double1) AS n");
+    // the site's pages ran out while the flag has no row: the ceiling only counted
+    rows = [
+      { event: "limit", a: "pageRender", b: "site", c: "", n: 4 },
+      { event: "limit", a: "listMiss", b: "client", c: "", n: 9 },
+      { event: "render", a: "page", b: "anyone", c: "watch", n: 1840 },
+      { event: "render", a: "page", b: "signed-in", c: "drawn", n: 20 }
+    ];
+    expect(await ceilingAlert(env, day)).toEqual({ pools: 1, unmetered: 0, emailed: ["ceiling"] });
+    expect(env.EMAIL.last.subject).toBe("Grabient: the render ceiling would be on");
+    expect(env.EMAIL.last.text).toContain("- pageRender: 4");
+    expect(env.EMAIL.last.text).not.toContain("listMiss");
+    expect(env.EMAIL.last.text).toContain(
+      "- page, anyone, watch: 1840\n- page, signed-in, drawn: 20"
+    );
+    expect(env.EMAIL.last.text).toContain("draw-past-ceiling is on in Settings");
+    // once a day
+    expect((await ceilingAlert(env, day + 600_000)).emailed).toEqual([]);
+    expect(env.EMAIL.sent).toHaveLength(1);
+    // the flag turned off the same day: readers past it got what stands in, which that day hears too, once
+    await setFlag(env, "draw-past-ceiling", false, unique("admin"));
+    try {
+      expect((await ceilingAlert(env, day + 1_200_000)).emailed).toEqual(["ceiling"]);
+      expect(env.EMAIL.last.subject).toBe("Grabient: the render ceiling is on");
+      expect(env.EMAIL.last.text).toContain("Turn it on to draw every page again.");
+      expect((await ceilingAlert(env, day + 1_800_000)).emailed).toEqual([]);
+      expect(env.EMAIL.sent).toHaveLength(2);
+      // and the next day again
+      expect((await ceilingAlert(env, day + 86_400_000)).emailed).toEqual(["ceiling"]);
+      expect(env.EMAIL.last.subject).toBe("Grabient: the render ceiling is on");
+    } finally {
+      await setFlag(env, "draw-past-ceiling", true, unique("admin"));
+    }
+    // work drawn while the limiter could not count it, weighed from the sampled answers
+    rows = [{ event: "render", a: "page", b: "anyone", c: "unmetered", n: 199 }];
+    expect((await ceilingAlert(env, day)).emailed).toEqual([]);
+    rows = [
+      { event: "render", a: "page", b: "anyone", c: "unmetered", n: 120 },
+      { event: "render", a: "data", b: "anyone", c: "unmetered", n: 80.4 }
+    ];
+    expect(await ceilingAlert(env, day)).toEqual({
+      pools: 0,
+      unmetered: 200,
+      emailed: ["ceiling-unmetered"]
+    });
+    expect(env.EMAIL.last.subject).toBe("Grabient: the render ceiling cannot count");
+    expect(env.EMAIL.last.text).toContain("about 200 answers were drawn");
+    // a deploy that cannot read its counts, or cannot mail
+    expect(await ceilingAlert({ ...env, ANALYTICS: undefined }, day)).toMatchObject({
+      skipped: "This deploy has no usage counts to read",
+      emailed: []
+    });
+    rows = [{ event: "limit", a: "dataMiss", b: "site", c: "", n: 1 }];
+    const later = day + 2 * 86_400_000;
+    expect((await ceilingAlert({ ...env, EMAIL: undefined }, later)).emailed).toEqual([]);
+    expect((await ceilingAlert({ ...env, OAUTH_KV: undefined }, later)).emailed).toEqual([]);
   });
 
   it("find nothing failing in a dataset no point has reached, and fail their step when the counts cannot be read", async () => {
