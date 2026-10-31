@@ -224,5 +224,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-s3);
+    /* an effect's fields ask how wide they stand (EffectFields.module.css) */
+    container: fields / inline-size;
   }
 }

@@ -1,4 +1,11 @@
 @layer components {
+  /* as tall as the number fields beside it in the Appearance menu (Scrub) */
+  .box {
+    height: var(--size-control-big);
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
   /* the color over a checkerboard, so a color that lets what is behind it through shows it does; none, a slash */
   .chip {
     background:
@@ -24,19 +31,19 @@
     font-weight: var(--font-medium);
     opacity: 1;
   }
-  /* clears the color: a small press at the field's end */
-  .clear {
+  /* a press inside a field's box at its end, quiet until the pointer is on it: this field's clear, and a number
+     field's own (Scrub's action, the shape's dice) */
+  .press {
     display: grid;
     flex-shrink: 0;
     place-items: center;
-    width: 20px;
-    height: 20px;
-    margin: 0;
-    margin-inline-end: calc(-1 * var(--space-s1));
+    width: 24px;
+    height: 24px;
+    margin: 0 calc(-1 * var(--space-s1)) 0 0;
     padding: 0;
     border: 0;
     border-radius: var(--radius-tight);
-    background: transparent;
+    background: none;
     color: var(--color-ink3);
     cursor: pointer;
     &:hover {
@@ -45,6 +52,10 @@
     }
     &:focus-visible {
       outline: 1px solid var(--color-ring);
+    }
+    @media (pointer: coarse) {
+      width: 32px;
+      height: 32px;
     }
   }
 }

@@ -3,6 +3,7 @@ import { t } from "@grabient/i18n";
 import { ColorField } from "@grabient/ui/ColorField.tsx";
 import { Scrub } from "@grabient/ui/Scrub.tsx";
 import { createSignal, onSettled } from "solid-js";
+import fields from "./EffectFields.module.css";
 import type { PaletteEditor } from "./editor.ts";
 import { EffectFields } from "./GlassControls.tsx";
 
@@ -14,7 +15,6 @@ import { EffectFields } from "./GlassControls.tsx";
 export function BlobFields(props: { editor: PaletteEditor }) {
   const fx = props.editor.effects;
   const look = () => fx.settings("blob").look;
-  const wide = { "grid-column": "1 / -1" };
   /* the color reader, loaded as the fields first show */
   const [reader, setReader] = createSignal<typeof import("@grabient/engine/css-color.ts") | null>(
     null
@@ -47,7 +47,7 @@ export function BlobFields(props: { editor: PaletteEditor }) {
           />
         }
       />
-      <div style={wide}>
+      <div class={fields.pairs}>
         <ColorField
           label={t("Background")}
           value={look().bg}

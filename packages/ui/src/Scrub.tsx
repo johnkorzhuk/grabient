@@ -1,7 +1,7 @@
 import { numeral } from "@grabient/engine/typed.ts";
-import { createEffect, createSignal, untrack } from "solid-js";
+import { createEffect, createSignal, Show, untrack } from "solid-js";
 import { BarRim } from "./BarRim.tsx";
-import { Icon } from "./Icon.tsx";
+import { Icon, type IconName } from "./Icon.tsx";
 import joined from "./joined.module.css";
 import { composing } from "./keys.ts";
 import styles from "./Scrub.module.css";
@@ -14,7 +14,8 @@ import { tooltip } from "./Tooltip.tsx";
    that types takes it again. A finger's tap types from its touchend, where every phone opens the keyboard, and its
    Enter puts the keyboard away; a finger that goes on to scroll the page leaves the field alone. A hairline along the
    foot shows the value in its range, from zero.
-   With `onLock`, a lock is joined to its end past a line the two share, a toggle the drag never reaches. The field
+   With `onLock`, a lock is joined to its end past a line the two share, a toggle the drag never reaches. With `action`,
+   a press stands inside the box after the value (the shape's dice), which no drag or typing starts from. The field
    reads left to right in every language, as its drag does. */
 export interface ScrubProps {
   label: string;
@@ -47,6 +48,9 @@ export interface ScrubProps {
   lockApart?: boolean;
   /** what the field says on rest, focus or a long press: why it stands dimmed */
   tip?: string;
+  /** a press inside the box at its end, after the value: its icon, its name, which its tip says too, what it does, and
+      its class, which gives it its look (the shape's dice: apps/web's EffectFields.module.css) */
+  action?: { icon: IconName; label: string; onPress: () => void; class?: string };
   onInput: (v: number) => void;
 }
 
@@ -57,6 +61,9 @@ export function Scrub(props: ScrubProps) {
   let root!: HTMLDivElement;
   let input!: HTMLInputElement;
   const tipped = "tip" in props ? tooltip(() => props.tip) : undefined;
+  const actionTip = "action" in props ? tooltip(() => props.action?.label) : undefined;
+  /* the press inside the box is its own: a drag, a tap's typing and a double-click's reset never start from it */
+  let press: HTMLButtonElement | undefined;
   const [editing, setEditing] = createSignal(false);
   /* synchronous truth: a signal written now reads its old value until the write settles, and a blur right after Enter
      must already see the field as done */
@@ -118,6 +125,7 @@ export function Scrub(props: ScrubProps) {
     pointer = null;
   };
   const down = (e: PointerEvent) => {
+    if (press?.contains(e.target as Node)) return;
     /* a second finger is a pinch, the page's to zoom */
     if (pointer !== null && e.pointerId !== pointer) return cancel();
     if (edit) {
@@ -169,6 +177,7 @@ export function Scrub(props: ScrubProps) {
   /* a finger's tap types from its touchend, whichever of it and the pointerup comes first; taking the touchend's default
      leaves no click after it to take the focus the keyboard came up for */
   const touchEnd = (e: TouchEvent) => {
+    if (press?.contains(e.target as Node)) return;
     if (pointer !== null) {
       release();
       if (!drag.up()) {
@@ -291,6 +300,22 @@ export function Scrub(props: ScrubProps) {
             input.select();
           }}
         />
+        <Show when={props.action}>
+          {action => (
+            <button
+              ref={el => {
+                press = el;
+                actionTip?.(el);
+              }}
+              type="button"
+              class={action().class}
+              aria-label={action().label}
+              onClick={() => action().onPress()}
+            >
+              <Icon name={action().icon} size={14} />
+            </button>
+          )}
+        </Show>
         {/* the value in its range, at once: no transition */}
         <span
           class={styles.bar}

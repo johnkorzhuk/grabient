@@ -60,7 +60,7 @@ export function ColorField(props: {
     <div class={styles.host} dir="ltr">
       <BarRim />
       <div
-        class={styles.box}
+        class={[styles.box, own.box]}
         data-swatched={props.onPick ? "" : undefined}
         data-editing={editing() ? "" : undefined}
       >
@@ -130,7 +130,7 @@ export function ColorField(props: {
           <button
             ref={el => clearTip(el)}
             type="button"
-            class={own.clear}
+            class={own.press}
             aria-label={t("Clear")}
             onClick={() => {
               /* the field empty at once, its focus taken to type another */
