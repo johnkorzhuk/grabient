@@ -48,6 +48,7 @@ import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { openedFrom, seedAddress } from "./address.ts";
 import { codeSources } from "./code.ts";
 import type { PaletteEditor } from "./editor.ts";
+import { effectLabel } from "./effect-page.ts";
 import {
   copyContrast,
   copyFormat,
@@ -96,6 +97,9 @@ type OwnWords = typeof import("./Collect.tsx").ownWords;
 const AddToCollection = lazy(() =>
   import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
 );
+/* the effects' pictures and their band load with the sheet's first need of them, never with the page */
+const EffectArt = lazy(() => import("./EffectArt.tsx").then(m => ({ default: m.EffectArt })));
+const EffectsBand = lazy(() => import("./EffectsBand.tsx").then(m => ({ default: m.EffectsBand })));
 
 /** The reader's own text colors for the contrast grid, kept in this browser, written once they rest. */
 function createInks() {
@@ -383,6 +387,15 @@ export function Sheet(props: {
   const card = (item: () => Item, position: number) => {
     const palette = createMemo(() => drawnIn(itemDrawn(item()), listed()));
     const seed = () => item().kseed;
+    /* while the page's picture plays an effect, each card plays it too: its still at rest, moving while it is lit */
+    const decoded = createMemo(() => decodePalette(seed()));
+    const playing = () => (decoded() ? e.effects.kind() : null);
+    const pictureLabel = () => {
+      const kind = playing();
+      return kind
+        ? t("{name}, {style}", { name: sheetName(seed(), palette()), style: effectLabel(kind) })
+        : undefined;
+    };
     const words = () => cardWords(palette());
     const address = () => seedAddress({ seed: seed(), view: { ...palette(), size: e.size() } });
     const similar = () => similarHref(seed());
@@ -393,7 +406,9 @@ export function Sheet(props: {
         ...palette(),
         size: e.size(),
         pixels: e.size() ? props.taken().pixels : DEFAULT_SIZE,
-        stops: decoded ? sampleStops(decoded, palette().steps) : []
+        stops: decoded ? sampleStops(decoded, palette().steps) : [],
+        /* a card's copies follow its picture */
+        effect: e.effects.effect()
       };
     };
     const count = (action: "copy" | "download", format: string) =>
@@ -425,6 +440,22 @@ export function Sheet(props: {
         stops={hexesOf(palette())}
         style={palette().style}
         angle={palette().angle}
+        picture={
+          playing()
+            ? active => (
+                <Loading>
+                  <EffectArt
+                    kind={playing() ?? "glass"}
+                    palette={decoded() ?? e.palette()}
+                    settings={e.effects.settings(playing() ?? "glass")}
+                    angle={palette().angle}
+                    active={active()}
+                  />
+                </Loading>
+              )
+            : undefined
+        }
+        pictureLabel={pictureLabel()}
         href={localHref(address())}
         rel={relTo(localHref(address()))}
         age={relativeAge(item().createdAt, now)}
@@ -559,6 +590,13 @@ export function Sheet(props: {
       }
       inks={inks()}
       onInks={setInks}
+      effects={
+        e.effects.kind() === null && (
+          <Loading>
+            <EffectsBand editor={e} taken={props.taken} used={props.used} />
+          </Loading>
+        )
+      }
       solid={
         figured() && (
           <SolidPane

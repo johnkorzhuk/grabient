@@ -29,6 +29,7 @@ time; add a row when a new product word gets its translation.
 | Grabient | Grabient | Never translated. |
 | palette | bảng màu | |
 | gradient | gradient | The loanword Vietnamese designers and searchers use ("tạo gradient", "gradient CSS", "màu gradient"). Not "dải màu", so one word serves the UI and search. |
+| effect | hiệu ứng | Dải "Hiệu ứng" trong trang tính của trình chỉnh sửa: kính gân và đốm màu. |
 | swatches, bands (the style) | sọc màu, sọc | Hard bands of the colors. "khối" is taken by the color solid, and "ô màu" reads as square tiles. "{count} hard bands" = "{count} sọc". |
 | Swatches (the strip's swatch files) | Mẫu màu | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Chuyển sang mẫu màu. |
 | style | kiểu | "Sai kiểu, số bước hoặc góc". |

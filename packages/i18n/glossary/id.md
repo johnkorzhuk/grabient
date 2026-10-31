@@ -34,6 +34,7 @@ time, and add a row when a new product word gets its translation.
 | Grabient | Grabient | Never translated or transliterated. |
 | palette | palet | "color palette" is palet warna (the search phrase, used in titles and descriptions); palet alone in the UI. |
 | gradient | gradien | The word in design tools and CSS tutorials (gradien CSS, gradien linear). Judgment: never gradasi, the everyday word for any color transition. |
+| effect | efek | Pita "Efek" di lembar editor: kaca fluted dan blob. |
 | swatches (style) | pita warna | Judgment: the style draws hard bands, and the English menu itself says "bands". Pita is the band of pita frekuensi; blok warna would suggest squares. Menu: Pita linear, Pita angular, Pita radial. In titles: pita warna linear. |
 | Swatches (the strip's swatch files) | Swatch | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Beralih ke mode swatch. |
 | style | gaya | Canva's word. Linear, Angular, Radial stay as Figma names them (gradien linear, gradien angular, gradien radial). |

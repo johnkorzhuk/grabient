@@ -10,6 +10,7 @@ word gets its Turkish.
 | Grabient | Grabient | Never translated. Suffixes follow the last vowel, e: Grabient'e, Grabient'in, Grabient'te, Grabient'ten, Grabient'i. |
 | palette | palet (paleti, paletler) | "renk paleti" for color palette, as Turkish searchers write it. After a number the noun stays singular: "7 palet". |
 | gradient | gradyan | "CSS gradyan", "gradyan oluşturucu": the spelling Turkish design tools use, not "degrade" (Photoshop's older word). Kept on that basis; Search Console found no /tr impressions yet to confirm Turkish searchers type it too, so recheck once those pages are indexed. |
+| effect | efekt, efektler | Düzenleyici sayfasındaki "Efektler" bandı: oluklu cam ve damla. |
 | swatches / bands | şerit (şeritler) | One word for the hard-band styles: "Doğrusal şeritler", "linear swatches" = "doğrusal şeritler". |
 | Swatches (the strip's swatch files) | Renk örnekleri | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Renk örneklerine geç. |
 | banding (the fault) | bantlaşma | The unwanted steps in a smooth blend, the photography word. Kept apart from the şerit styles. |

@@ -33,6 +33,7 @@ How German says Grabient's words. Read `README.md` for what each word means here
 | Grabient | Grabient | Genitive „Grabients“; compounds „Grabient-Paletten“. |
 | palette | Palette, Paletten | „Farbpalette“ in titles, descriptions and alt text, where people search for it. |
 | gradient | Farbverlauf, Farbverläufe | Never the bare Adobe short form „Verlauf“ in the UI. „CSS-Farbverlauf“. |
+| effect | Effekt, Effekte | Die Leiste „Effekte“ im Blatt des Editors: Riffelglas und Blob. |
 | swatches | Farbfelder | Adobe's own word. „{name} swatches“ is „Farbfelder {name}“; „linear swatches“ is „lineare Farbfelder“. |
 | Swatches (the strip's swatch files) | Farbfelder | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Auf Farbfelder umschalten. |
 | bands (the style names „Linear bands“ …) | gestuft; a band is a Stufe | „Linear gestuft“, „Konisch gestuft“, „Radial gestuft“; „gestufte Stile“; „# harte Stufen“ in the code notes. Short enough for the style tiles on a phone. |

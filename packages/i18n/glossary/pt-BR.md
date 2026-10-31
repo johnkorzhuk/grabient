@@ -9,6 +9,7 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | Grabient | Grabient | Masculine when it takes an article: "o Grabient", "no Grabient", "do Grabient". |
 | palette | paleta (f.) | "paleta de cores" where the English says color palette. |
 | gradient | gradiente (m.) | The word Figma, Canva and Adobe use in pt-BR. "Degradê" is the everyday word people also search; it is not used in the interface, but the site's description keeps it for search: "gradientes CSS (degradês)". |
+| effect | efeito, efeitos | A faixa "Efeitos" da folha do editor: vidro canelado e mancha. |
 | swatches | amostras | "linear swatches" = "amostras lineares", "{name} swatches" = "Amostras {name}". |
 | Swatches (the strip's swatch files) | Amostras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Mudar para amostras. |
 | bands (style labels) | faixas | "Linear bands" = "Faixas lineares"; "hard band" = "faixa sólida"; a band of flat color is "uma faixa de cor sólida" (Photoshop's "Cor sólida"). |

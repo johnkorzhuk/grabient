@@ -10,6 +10,7 @@ and add a row when a new product word gets its translation.
 | Grabient | Grabient | Never translated. |
 | palette | palette (f.) | The product noun. In page titles and descriptions, "color palette(s)" is *palette(s) de couleurs* (what French searchers type) and "gradient palettes" is *palettes de dégradés*. |
 | gradient | dégradé (m.) | "CSS gradient" is *dégradé CSS*. "CSS gradient generator" in a title is *générateur de dégradé CSS* (the search term, singular). |
+| effect | effet, effets | La bande « Effets » de la feuille de l’éditeur : verre cannelé et tache. |
 | swatches | aplats | The hard-band styles in titles and card names: *aplats linéaires*, *aplats angulaires*, *aplats radiaux*, *Aplats {name}*. The style menu's English says "bands", so there it is *Bandes linéaires / angulaires / radiales*. Not *nuancier*, which is Adobe's panel of saved swatches, not a way of drawing. |
 | Swatches (the strip's swatch files) | Nuanciers | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Passer aux nuanciers. |
 | style | style | *Linéaire*, *Angulaire* (Photoshop's *dégradé angulaire*), *Radial*. "As saved" is *Tel qu’enregistré*. |

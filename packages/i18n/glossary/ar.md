@@ -63,6 +63,7 @@ around it: يتراوح عدد أحرفه بين 1 و{max}، ما لا يزيد 
 | palette | لوحة ألوان; short لوحة، pl. لوحات | The product's main noun. لوحة alone once a palette is already on screen; the full لوحة ألوان / لوحات الألوان at entry points with none visible (sign-in, the About intro, emails, page titles, meta descriptions), where a bare لوحة first reads as a panel or a painting. |
 | color palette (titles, search) | لوحة ألوان، لوحات ألوان | What Arabic searchers type. |
 | gradient | تدرج لوني; short تدرج، pl. تدرجات | CSS gradient: تدرج CSS. Gradient generator: مولد تدرجات. |
+| effect | المؤثرات | عنوان شريط المؤثرات في ورقة المحرر: الزجاج المضلع والكتلة. |
 | linear / angular / radial gradient | تدرج خطي / تدرج زاوي / تدرج شعاعي | Adobe's Arabic words for the three gradient types. |
 | swatches | عينات (عينات خطية، عينات زاوية، عينات شعاعية) | The page titles' word for the hard-band styles. |
 | Swatches (the strip's swatch files) | عينات الألوان | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": بدّل إلى عينات الألوان. |

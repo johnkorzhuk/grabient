@@ -74,6 +74,23 @@ describe("PaletteCard", () => {
     expect(swatches).toContain('aria-label="Navy, blue and lavender swatches"');
   });
 
+  test("draws a picture in its gradient's place, named for it, at rest until the card is lit", () => {
+    const markup = html(() => (
+      <PaletteCard
+        {...card({
+          picture: active => <span data-picture={active() ? "lit" : "rest"} />,
+          pictureLabel: "Navy, blue and lavender, Fluted glass"
+        })}
+      />
+    ));
+    expect(tag(markup, "div", 1)).toMatchObject({
+      role: "img",
+      "aria-label": "Navy, blue and lavender, Fluted glass"
+    });
+    expect(markup).toContain('data-picture="rest"');
+    expect(html(() => <PaletteCard {...card()} />)).not.toContain("data-picture");
+  });
+
   test("leads to its editor, named for its palette, and keeps its hover tools out of the server's markup", () => {
     const markup = html(() => <PaletteCard {...card({ tools: () => <i data-strip="" /> })} />);
     expect(tag(markup, "a")).toMatchObject({

@@ -18,7 +18,8 @@ import { Text } from "./Text.tsx";
    figures as panes of one frame, each
    given the shape of what it draws: the text that reads on its colors, its path through the color solid, and its code.
    On a large screen the three stand in a row; where the code has no room beside the path it goes under; on a phone
-   they stand one under another and there is no code. Then, past a rule, the palettes like this one as a list draws
+   they stand one under another and there is no code. Under them, while the picture shows a gradient, a band of the
+   effects the palette can play. Then, past a rule, the palettes like this one as a list draws
    them, and the site's footer. Its own matter is on solid paper; the palettes are on paper while the picture may stand
    behind them and on glass once it is out of sight (`clear`), so a lit card's light shows in the water. */
 export function PaletteSheet(props: {
@@ -59,6 +60,8 @@ export function PaletteSheet(props: {
   onInks?: (inks: string[]) => void;
   /** the palette's path through the color solid, in its pane (a SolidPane) */
   solid?: Element;
+  /** a band under the figures across the sheet's width: the effects the palette can play, while it shows another style */
+  effects?: Element;
   /** the palettes like this one, as the page draws them */
   children?: Element;
   /** the site's footer */
@@ -78,6 +81,7 @@ export function PaletteSheet(props: {
   const selection = children(() => props.selection);
   const copies = children(() => props.contrastCopies);
   const solid = children(() => props.solid);
+  const effects = children(() => props.effects);
   const foot = children(() => props.foot);
   /* A long name takes a second line and its row grows: the page is told, so its first screen ends on the row. It is
      told at once as the sheet mounts, so the first screen is right in its first frame, and from then on in the frame
@@ -209,6 +213,9 @@ export function PaletteSheet(props: {
             </div>
           </div>
         </div>
+        <Show when={effects()}>
+          <div class={styles.effects}>{effects()}</div>
+        </Show>
         <div class={styles.rule}>
           <Rule />
         </div>

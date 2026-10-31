@@ -10,6 +10,7 @@ every time, and add a row when a new product word gets its translation.
 | Grabient | Grabient | Never translated or transliterated. |
 | palette | 调色板 | The product noun in the interface, counted with 个 (`3 个调色板`). Procreate and Coolors use it for the same thing. In page titles and descriptions, where the English says "color palette(s)" or "gradient palettes" as a search phrase, use what Chinese searchers type: 配色方案 / 渐变配色. |
 | gradient | 渐变 | "CSS gradient" is CSS 渐变. "Gradient generator" in a page title is 渐变色生成器 (the search term). |
+| effect | 效果 | 编辑器页面下方的“效果”栏：长虹玻璃和色团。 |
 | swatches | 色块 | A style: 线性色块, 角度色块, 径向色块. The style menu's English says "Linear bands"; it is the same style and the same word (色块). Not 色带, which Chinese also uses for banding. |
 | Swatches (the strip's swatch files) | 色板 | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": 切换为色板. |
 | style | 样式 | Linear 线性渐变, Angular 角度渐变, Radial 径向渐变, paired with 线性色块 / 角度色块 / 径向色块, as Figma and MasterGo name them. 角度 alone is only the Angle control. |

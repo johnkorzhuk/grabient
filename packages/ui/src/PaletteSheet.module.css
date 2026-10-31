@@ -232,6 +232,9 @@
     height: 100%;
   }
   /* the palettes like this one, past a rule, as a list of palettes: its row, then the palettes */
+  .effects {
+    margin-top: var(--space-s12);
+  }
   .rule {
     margin-top: var(--space-s12);
   }

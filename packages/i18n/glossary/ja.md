@@ -11,6 +11,7 @@ follow JIS Z 8105.
 | Grabient | Grabient | Never translated or written in katakana. |
 | palette | パレット | In page titles and descriptions: カラーパレット, the term people search for. |
 | gradient | グラデーション | "CSS gradient" is CSS グラデーション. |
+| effect | エフェクト | エディターのシートの「エフェクト」帯：モールガラスとブロブ。 |
 | swatches | スウォッチ | The Adobe word, used where a style is named in titles and card names (線形スウォッチ, {name}のスウォッチ). The style tiles in the UI say "bands", written 帯: 線形の帯, 円錐の帯, 放射状の帯, which fits the small tiles. |
 | Swatches (the strip's swatch files) | スウォッチ | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": スウォッチに切り替え. |
 | style | スタイル | Linear 線形, Angular 円錐, Radial 放射状 (Photoshop, MDN and CSS articles say 線形, 円錐, 放射状 for linear, conic and radial). Angular is not 角度: that word is Angle. "As saved" 保存時のまま. |

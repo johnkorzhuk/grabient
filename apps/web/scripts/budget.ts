@@ -25,11 +25,13 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
      their settings in the address, the menu's tiles, the header's still) took it from 347.8 KB to 351.7 on 30 Oct
-     2026; their drawing, players and fields load when the menu opens or an effect plays */
+     2026; their drawing, players and fields load when the menu opens or an effect plays. The sheet's cards drawing the
+     effect the page plays, and its band of effects while a gradient shows, took it to 355.2 on 31 Oct 2026: what is
+     here is the cards' picture slot and the sheet's switches, the pictures and the band load as the sheet needs them */
   "a palette": {
     route: "src/routes/$id/index.tsx",
     also: ["src/features/editor/Editor.tsx", "src/features/editor/Sheet.tsx"],
-    budget: 355
+    budget: 356
   },
   "/newsletter": { route: "src/routes/newsletter.tsx", budget: 225 },
   "/about": { route: "src/routes/about.tsx", budget: 250 }

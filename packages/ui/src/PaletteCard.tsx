@@ -119,6 +119,11 @@ export interface PaletteCardProps {
   removed?: boolean;
   /** a state held at rest, for the design document: lit, with its tools shown */
   state?: "hover";
+  /** a picture over the gradient, in its place (the editor's sheet while its picture plays fluted glass or a blob),
+      told whether the pointer or the keyboard's focus is in the card, so it may move only then */
+  picture?: (active: () => boolean) => Element;
+  /** what a screen reader calls that picture */
+  pictureLabel?: string;
 }
 
 /** One palette in a list: its picture, then its age and its like. Hover or focus inside the picture lights a blurred
@@ -137,9 +142,12 @@ export function PaletteCard(props: PaletteCardProps) {
   /* the water takes the glow in while a mouse or a pen is in the picture or the keyboard's focus is within it */
   let over = false;
   let within = false;
+  /* the same, for a picture that moves only while the card is lit */
+  const [active, setActive] = createSignal(false);
   /* read as the event finds them: a focus that leaves as a route takes the card away runs inside Solid's commit */
   const shine = (picture: HTMLElement) =>
     untrack(() => {
+      setActive((over || within) && !props.removed);
       if ((over || within) && !props.removed) {
         glowOn(
           picture,
@@ -227,13 +235,15 @@ export function PaletteCard(props: PaletteCardProps) {
           class={styles.paint}
           style={{ background: art() }}
           role="img"
-          aria-label={t(
-            isSwatchStyle(props.style) ? msg("{name} swatches") : msg("{name} gradient"),
-            {
+          aria-label={
+            props.pictureLabel ??
+            t(isSwatchStyle(props.style) ? msg("{name} swatches") : msg("{name} gradient"), {
               name: props.name
-            }
-          )}
-        />
+            })
+          }
+        >
+          <Show when={props.picture}>{picture => picture()(active)}</Show>
+        </div>
         <Show
           when={!props.removed}
           fallback={
