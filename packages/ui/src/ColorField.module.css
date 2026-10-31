@@ -16,6 +16,14 @@
         var(--color-paper-solid);
     }
   }
+  /* with no color the field says what the ground is in a word, as the fields beside it say theirs (Scrub's value):
+     the color itself is written in the hex's mono */
+  .input::placeholder {
+    color: var(--color-ink2);
+    font-family: var(--font-system);
+    font-weight: var(--font-medium);
+    opacity: 1;
+  }
   /* clears the color: a small press at the field's end */
   .clear {
     display: grid;

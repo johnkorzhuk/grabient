@@ -90,7 +90,7 @@ export function ColorField(props: {
         </span>
         <input
           ref={input}
-          class={styles.input}
+          class={[styles.input, own.input]}
           type="text"
           spellcheck="false"
           autocomplete="off"
