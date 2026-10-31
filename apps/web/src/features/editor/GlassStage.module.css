@@ -1,0 +1,23 @@
+@layer components {
+  /* the player over the glass's still: clear until its first frame, which is the still's own, then fading in over it,
+     so what little the two differ by never shows as a cut, and out again to the still at speed 0 (GlassStage.tsx's
+     FADE_MS); a resize shows its last frame covering the box until the new size is baked */
+  .canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.7s ease-in-out;
+    &[data-live] {
+      opacity: 1;
+    }
+    /* over a still picture while the palette changes: in at once, its frame being the still's own, and out with the
+       fade once the still has caught up */
+    &[data-held] {
+      transition: none;
+    }
+  }
+}

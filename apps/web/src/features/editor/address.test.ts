@@ -73,3 +73,51 @@ test("a card hands on the parts its page set, over the palette's own view", () =
     opened: { ...own, set: { style: false, steps: true, angle: false } }
   });
 });
+
+/* An effect's address says only what its picture shows: its style, the angle, the size and how it plays, never the
+   gradient's steps; a speed of 0 holds its first frame and stays. */
+test.each([
+  [`/${SEED}?style=glass&steps=12`, `/${SEED}?style=glass`],
+  [
+    `/${SEED}?fps=60&speed=1.6&angle=77&style=glass`,
+    `/${SEED}?style=glass&angle=77&speed=1.6&fps=60`
+  ],
+  [`/${SEED}?style=glass&speed=0`, `/${SEED}?style=glass&speed=0`],
+  [`/${SEED}?style=glass&speed=1&fps=0`, `/${SEED}?style=glass`],
+  [`/${SEED}?style=glass&speed=99&fps=240`, `/${SEED}?style=glass&speed=10&fps=60`],
+  [`/${SEED}?style=glass&speed=0.04`, `/${SEED}?style=glass&speed=0.1`],
+  [`/${SEED}?style=glass&size=400x300&lock=hue`, `/${SEED}?style=glass&size=400x300&lock=hue`],
+  [`/${SEED}?speed=3&fps=24`, `/${SEED}`]
+])("an effect: %s is answered at %s", (address, canonical) =>
+  expect(canonicalSeedAddress(address)).toBe(canonical)
+);
+
+test("an address says whether it names a style, which one that names none leaves to the reader", () => {
+  expect(readSeedPage(SEED, new URLSearchParams(""))).toMatchObject({
+    effect: null,
+    styled: false
+  });
+  expect(readSeedPage(SEED, new URLSearchParams("style=linearSwatches"))).toMatchObject({
+    effect: null,
+    styled: true
+  });
+  expect(readSeedPage(SEED, new URLSearchParams("style=glass&speed=0&fps=12"))).toMatchObject({
+    effect: { kind: "glass", speed: 0, fps: 12 },
+    styled: true
+  });
+});
+
+test("the router keeps an effect's numbers as numbers, so it writes none of them quoted", () => {
+  const page = readSeedPage(SEED, new URLSearchParams("style=glass&speed=1.5&fps=30&angle=45"));
+  expect(page && seedSearch(page)).toEqual({ style: "glass", angle: 45, speed: 1.5, fps: 30 });
+});
+
+test("a blob always has a shape: the palette's own suggestion where its address names none", () => {
+  const page = readSeedPage(SEED, new URLSearchParams("style=blob"));
+  expect(page?.effect?.look.shape).toEqual(expect.any(Number));
+  const shape = page?.effect?.look.shape;
+  expect(canonicalSeedAddress(`/${SEED}?style=blob`)).toBe(`/${SEED}?style=blob&shape=${shape}`);
+  expect(
+    canonicalSeedAddress(`/${SEED}?style=blob&shape=7&frost=1.5&fill=1&depth=0&bg=%23aabbcc`)
+  ).toBe(`/${SEED}?style=blob&depth=0&fill=1&frost=1.5&shape=7&bg=%23aabbcc`);
+});

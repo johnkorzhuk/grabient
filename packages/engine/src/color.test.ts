@@ -5,6 +5,7 @@ import {
   hexToSrgb,
   lchToP3,
   lchToSrgb,
+  lchToSrgbBytes,
   oklabToLinearP3,
   p3ToLch,
   srgbToLab,
@@ -75,6 +76,21 @@ test("Display-P3 is a wider cube that holds sRGB and never shows less chroma", (
   }
   expect(wider).toBeGreaterThan(60);
   expect(toCssP3([0.5, 0.25, 0.125])).toBe("color(display-p3 0.5000 0.2500 0.1250)");
+});
+
+test("a picture's bytes are lchToSrgb's, after its fit of as many steps", () => {
+  const rand = lcg(7);
+  const out = new Uint8ClampedArray(4);
+  for (let i = 0; i < 40_000; i++) {
+    const L = rand() * 1.2 - 0.1;
+    const C = rand() * 0.45 - 0.02;
+    const H = rand() * 720 - 360;
+    for (const steps of [12, 24]) {
+      lchToSrgbBytes(L, C, H, steps, out, 0);
+      const want = lchToSrgb(L, fitChroma(L, C, H, false, steps), H).map(v => Math.round(v * 255));
+      expect([...out.subarray(0, 3)]).toEqual(want);
+    }
+  }
 });
 
 describe("Okhsv", () => {

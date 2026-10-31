@@ -48,7 +48,27 @@ export const Route = createFileRoute("/$id/")({
   loader: async ({ context, params, deps, location }) => {
     /* A navigation in the browser keeps the page it leaves until the editor can draw, so nothing is drawn between the
        two: its code is asked for at once. Code that does not come is the page's own to say, where it renders. */
-    const code = isServer || !isSeed(params.id) ? null : Editor.preload().catch(() => {});
+    const code =
+      isServer || !isSeed(params.id)
+        ? null
+        : Promise.all([
+            Editor.preload(),
+            /* a navigation's editor draws the glass's still itself, its code asked for with the editor's
+               (features/editor/glass-draw.ts), where the reader's effect may be the glass */
+            /* and the blob's, where the address names it (features/editor/blob-draw.ts, BlobLayer.tsx) */
+            new URLSearchParams(location.searchStr).get("style") === "blob"
+              ? Promise.all([
+                  import("../../features/editor/blob-draw.ts").then(m => m.loadBlob()),
+                  import("../../features/editor/BlobLayer.tsx"),
+                  import("../../features/editor/BlobArt.tsx")
+                ])
+              : null,
+            document.documentElement.dataset.glass !== "off"
+              ? import("../../features/editor/glass-draw.ts").then(m =>
+                  m.stillWanted() ? m.loadStill() : null
+                )
+              : null
+          ]).catch(() => {});
     const palette = await paletteData(params.id, deps.search);
     if (palette) {
       /* a palette nothing asked about before the press is asked about now, after the read that waits only for an
@@ -99,6 +119,10 @@ export const Route = createFileRoute("/$id/")({
        collection's nothing: read as the frame draws */
     get strip() {
       return editing() || booting();
+    },
+    /* and its picture is the light: no water flows from the wordmark behind it */
+    get water() {
+      return !(editing() || booting());
     }
   },
   /* Only the server's answer for a page the browser draws alone shows this: a navigation in the browser keeps the page

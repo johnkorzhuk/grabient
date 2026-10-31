@@ -11,6 +11,8 @@ import { searchReader } from "./page.ts";
 
    The address is written at most once per WRITE_MS, the first of a burst at once and the last always: Safari refuses a
    page more than a hundred history calls in thirty seconds, and a drag or a run of presses makes that many in a few.
+   While a pointer is down the write waits for its release: each write runs the route again (its data, its head, the
+   language menu's links), which in the middle of a drag costs frames, and nobody reads the address until it ends.
    A press on a link or on the way into the selection lands the last write before it is followed, and so does leaving
    the page. Another address arriving (Back, Forward, a link to another palette) is the editor's to take in, and a
    write waiting for its turn is dropped with the entry it was for. The campaign tags a reader landed with stay on
@@ -27,6 +29,7 @@ const addressOf = (e: PaletteEditor) =>
   seedAddress({
     seed: e.seed(),
     view: { style: e.style(), steps: e.steps(), angle: e.angle(), size: e.size() },
+    effect: e.effect(),
     locks: e.locks(),
     selection: e.selecting()
   });
@@ -50,8 +53,13 @@ export function followAddress(
   location: () => ParsedLocation,
   arrived: (page: SeedPage) => void
 ) {
-  /* the address the entry shows: the editor's last write, or the address that arrived */
-  let shown = untrack(() => addressOf(e));
+  /* the address the entry shows: the editor's last write, or the address that arrived. It starts as the address the
+     page landed on, which the editor writes over where it shows more (an effect the reader chose plays on a palette
+     whose address names no style) */
+  let shown = untrack(() => {
+    const page = pageAt(location());
+    return page ? seedAddress(page) : addressOf(e);
+  });
   let latest: string | null = null;
   let lastAt = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -82,10 +90,18 @@ export function followAddress(
       state: prev => ({ ...prev, ...e.entry() })
     });
   }
-  /* a write leaves the change that asked for it: the router reads its own state as it navigates */
-  const writeSoon = () => {
-    if (!timer) timer = setTimeout(flush, Math.max(0, WRITE_MS - (Date.now() - lastAt)));
+  /* a write leaves the change that asked for it: the router reads its own state as it navigates. One that comes due
+     while a pointer is down is the release's to write */
+  const due = () => {
+    timer = undefined;
+    if (!untrack(e.pressing)) flush();
   };
+  const writeSoon = () => {
+    if (!timer) timer = setTimeout(due, Math.max(0, WRITE_MS - (Date.now() - lastAt)));
+  };
+  createEffect(e.pressing, down => {
+    if (!down && latest) writeSoon();
+  });
 
   createEffect(
     () => addressOf(e),

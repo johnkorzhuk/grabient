@@ -10,4 +10,20 @@
       display: none;
     }
   }
+  /* the swatch's glass: the server's still (server/glass-still.ts) */
+  .swatchStill {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+  /* the appearance's button as the editor will draw it: the fluted glass, unless this browser turned it off (glass.ts
+     marks <html> before the first paint) */
+  .glassOn,
+  .glassOff {
+    display: contents;
+  }
+  :global(html[data-glass="off"]) .glassOn,
+  :global(html:not([data-glass="off"])) .glassOff {
+    display: none;
+  }
 }

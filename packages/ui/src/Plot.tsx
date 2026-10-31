@@ -1,4 +1,4 @@
-import { fitChroma, lchToSrgb } from "@grabient/engine/color.ts";
+import { fitChroma, lchToSrgbBytes } from "@grabient/engine/color.ts";
 import { sampleLCH } from "@grabient/engine/curve.ts";
 import type { Axis, Palette } from "@grabient/engine/palette.ts";
 import {
@@ -133,9 +133,10 @@ export function Plot(props: PlotProps) {
     `path("${line(data().samples.map(s => [x(s.t), yOf(outOf(s)) - PAD]))}L${x(1).toFixed(1)},${inner()}L0,${inner()}Z")`;
   /* Each pixel is the color as the curve draws it, found with less search since it is drawn again at every move of a
      drag. Under chroma a column shares a lightness and a hue, so the most chroma the screen shows there is found once;
-     under lightness each pixel's own most is found in 12 steps, well under a step of 8 bits. One image, kept. It is
-     drawn at once, and at most once more in the same frame, with the last palette: a key held down asks for a palette
-     faster than the screen shows them, and the ones between are never seen. */
+     under lightness each pixel's own most is found in 12 steps, well under a step of 8 bits, each step making no array
+     (lchToSrgbBytes). One image, kept. It is drawn at once, and at most once more in the same frame, with the last
+     palette: a key held down asks for a palette faster than the screen shows them, and the ones between are never
+     seen. */
   let image: ImageData | undefined;
   let frame = 0;
   let next: readonly [Axis, Palette, number] | null = null;
@@ -155,13 +156,8 @@ export function Plot(props: PlotProps) {
       for (let j = 0; j < ROWS; j++) {
         const up = 1 - (j + 0.5) / ROWS;
         const at = 4 * (j * COLS + i);
-        const rgb =
-          axis === "l"
-            ? lchToSrgb(up, fitChroma(up, C, H, false, 12), H)
-            : lchToSrgb(L, Math.min(up * cTop, most), H);
-        px[at] = Math.round(rgb[0] * 255);
-        px[at + 1] = Math.round(rgb[1] * 255);
-        px[at + 2] = Math.round(rgb[2] * 255);
+        if (axis === "l") lchToSrgbBytes(up, C, H, 12, px, at);
+        else lchToSrgbBytes(L, Math.min(up * cTop, most), H, 24, px, at);
         px[at + 3] = Math.round((WASH_FLOOR + (WASH_TOP - WASH_FLOOR) * up) * 255);
       }
     }

@@ -1,6 +1,10 @@
 import { K_MAX, K_MIN } from "@grabient/engine";
+import { encodePalette } from "@grabient/engine/codec.ts";
 import { hexToSrgb, luminance } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
+import { blobStillKey } from "@grabient/engine/effect.ts";
+import { glassColors } from "@grabient/engine/glass-colors.ts";
+import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
 import { resolveSize, type Size } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
@@ -72,9 +76,11 @@ import {
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
   STRIP_FILES,
+  STRIP_GLASS_LINKS,
   saveFormat,
   type Taken
 } from "./formats.ts";
+import { GlassLayer } from "./GlassLayer.tsx";
 import { followAddress, pageAt } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
 import { paletteName } from "./name.ts";
@@ -93,7 +99,10 @@ import { createPaletteSave, type PaletteSave } from "./save.ts";
 
 /* a window this low or lower shows nothing of the sheet under the first screen (the styles' own max-height) */
 const LOW = 560;
+/* The glass's drawing and its player come when the reader turns the glass on. */
 /* The account's collections come with the first palette selected: no page needs them before. */
+/* The blob comes when the reader chooses it, never with the editor's first load. */
+const BlobLayer = lazy(() => import("./BlobLayer.tsx").then(m => ({ default: m.BlobLayer })));
 const AddToCollection = lazy(() =>
   import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
 );
@@ -264,7 +273,7 @@ export default function Editor(props: { data: PaletteData }) {
   onSettled(loadSelection);
   onSettled(endBoot);
 
-  /* the palette as a copy or a download takes it */
+  /* the palette as a copy or a download takes it: the effect while one plays, moving or held as it plays */
   const taken = (stage: Size): Taken => ({
     seed: e.seed(),
     style: e.style(),
@@ -272,7 +281,8 @@ export default function Editor(props: { data: PaletteData }) {
     angle: e.angle(),
     size: e.size(),
     pixels: resolveSize(e.size(), stage),
-    stops: e.stopsTaken()
+    stops: e.stopsTaken(),
+    effect: e.effect()
   });
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
@@ -313,6 +323,9 @@ export default function Editor(props: { data: PaletteData }) {
       ? { seed, view, alt }
       : undefined;
   };
+  /* the name the page shows for the palette, read once a change by the sheet's name row, the picture's caption and the
+     press to palettes like it */
+  const name = createMemo(() => paletteName(e, heading(), facts()));
   /* a press that turned the palette into another at once tells a screen reader, once, the name the page shows for it
      now; a drag's palettes are named only as they are drawn */
   let said = 0;
@@ -322,7 +335,7 @@ export default function Editor(props: { data: PaletteData }) {
       const at = e.turnedAt();
       if (at === said || performance.now() - at >= TURN_SAID_MS) return;
       said = at;
-      announce(untrack(() => paletteName(e, heading(), facts())));
+      announce(untrack(name));
     }
   );
   return (
@@ -335,7 +348,7 @@ export default function Editor(props: { data: PaletteData }) {
         rest={rest}
         facts={facts}
         frames={first.frames}
-        heading={heading}
+        name={name}
         file={file}
         opened={e.openedSeed}
         taken={taken}
@@ -362,8 +375,8 @@ interface PageProps {
   rest: Rest;
   facts: () => PaletteData["facts"];
   frames: PaletteData["frames"];
-  /** the server's heading, while the palette and view are the page's own */
-  heading: () => string | undefined;
+  /** the palette's name as the page shows it (name.ts) */
+  name: () => string;
   /** the server's palette as its files, while it is drawn as its page opened (FilePicture) */
   file: () => { seed: string; view: PaletteView; alt: string } | undefined;
   opened: () => string;
@@ -496,7 +509,7 @@ function Page(props: PageProps) {
               rest={props.rest}
               facts={props.facts}
               frames={props.frames}
-              heading={props.heading}
+              name={props.name}
               opened={props.opened}
               taken={() => props.taken(stageSize())}
               used={props.used}
@@ -583,6 +596,8 @@ function Tools(props: {
 /* a picture's lights, for the flash guard: each color's relative luminance, in the order it draws them */
 const lights = (paints: readonly { hex: string }[]) =>
   paints.map(p => luminance(hexToSrgb(p.hex) ?? [0, 0, 0]));
+/* the colors the glass shows, as the flash guard reads a picture's */
+const stopsOf6 = (P: Palette) => glassColors(P).map(hex => ({ hex }));
 
 /** The stage: the artwork with the presses at its corners. The presses are the first screen's: the sheet comes up
     over the picture, so the ones at its foot go as the page leaves its rest, and the palette's own at its top go once
@@ -664,6 +679,42 @@ function Stage(
       () => toast(t("Couldn't download the file."))
     );
   const similar = () => similarHref(e.seed());
+  /* the fluted glass over the gradient while it plays, its colors held by the flash guard as the gradient's are: a
+     held key turns the palette faster than three times a second, and the glass repaints the whole picture */
+  const calmPalette = createFlashGuard(e.shownPalette, P => lights(stopsOf6(P)));
+  const glassLayer = () => (
+    <Show when={e.effects.kind() === "glass"}>
+      <GlassLayer
+        palette={calmPalette()}
+        view={{
+          speed: e.effects.settings("glass").speed,
+          fps: e.effects.settings("glass").fps,
+          angle: e.angle()
+        }}
+      />
+    </Show>
+  );
+  /* the blob over the gradient while it plays, its colors held by the flash guard too */
+  const blobLayer = () => (
+    <Show when={e.effects.kind() === "blob"}>
+      {/* while its code comes, the still the first screen showed stands in its place (server/blob-still.ts) */}
+      <Loading
+        fallback={
+          <div class={styles.blob}>
+            <div
+              class={styles.glassStill}
+              data-blob-still={blobStillKey(
+                encodePalette(calmPalette()),
+                e.effects.settings("blob").look
+              )}
+            />
+          </div>
+        }
+      >
+        <BlobLayer palette={calmPalette()} settings={e.effects.settings("blob")} />
+      </Loading>
+    </Show>
+  );
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: a tap on the artwork shows its presses to a finger; a mouse and the keyboard have them anyway */
     <div
@@ -702,7 +753,10 @@ function Stage(
               role="img"
               aria-label={t("The gradient")}
               style={{ background: art() }}
-            />
+            >
+              {glassLayer()}
+              {blobLayer()}
+            </div>
           </>
         }
       >
@@ -716,12 +770,15 @@ function Stage(
               "--w": `${size().width}px`,
               background: art()
             }}
-          />
+          >
+            {glassLayer()}
+            {blobLayer()}
+          </div>
         )}
       </Show>
       {/* the name at the picture's foot, on a phone, where the sheet's name row is under the first screen */}
       <p class={styles.caption} dir="auto" aria-hidden="true">
-        {paletteName(e, props.heading(), props.facts())}
+        {props.name()}
       </p>
       {/* the palettes like this one, where a card has its Edit; it goes with the presses beside it */}
       <div class={styles.topStart} data-away={props.raised ? "" : undefined}>
@@ -734,7 +791,7 @@ function Stage(
             rel={relTo(similar())}
             disabled={unreachable(similar())}
             aria-label={t("Palettes like {name}", {
-              name: paletteName(e, props.heading(), props.facts())
+              name: props.name()
             })}
             tip={t("Similar palettes")}
           >
@@ -772,7 +829,7 @@ function Stage(
             copy={STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={STRIP_FILES}
+            link={e.effect() ? STRIP_GLASS_LINKS : STRIP_FILES}
             onCopy={copy}
             onDownload={f => void download(f)}
             onLink={link}

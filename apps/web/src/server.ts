@@ -65,13 +65,18 @@ const start = createStartHandler(
 
        The router writes each match's id into its script with a NUL for every slash. HTML allows no NUL in a document,
        so each is written as the escape a script reads as the same character. */
-    const html = dataLast(await response.text())
+    let html = dataLast(await response.text())
       .replace(
         "<head>",
         '<head><meta charset="utf-8"><style>@layer reset, tokens, base, components;</style>'
       )
       .replaceAll('<link rel="modulepreload"', '<link rel="modulepreload" fetchpriority="low"')
       .replaceAll("\0", "\\u0000");
+    /* a palette's page: the fluted glass's still into the picture's placeholder, so the first paint is the glass */
+    if (html.includes("data-glass-still="))
+      html = (await import("./server/glass-still.ts")).glassStills(html);
+    if (html.includes("data-blob-still="))
+      html = (await import("./server/blob-still.ts")).blobStills(html);
     const headers = new Headers(response.headers);
     const locals = getRequestEvent()?.locals;
     const failed = locals?.renderFailed === true;

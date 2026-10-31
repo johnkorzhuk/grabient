@@ -1,6 +1,8 @@
 import { lchToP3, toCssP3 } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
+import { blobStillKey } from "@grabient/engine/effect.ts";
+import { glassColors, glassStillKey } from "@grabient/engine/glass-colors.ts";
 import { isFixedSize } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
@@ -32,6 +34,34 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
       view().style,
       view().angle
     );
+  /* the fluted glass's still over the gradient, where the glass may play: an address that names it, or one that names
+     no style, which takes the reader's own choice (effects.ts: the glass, unless this browser chose otherwise, when
+     effectScript hides it before the first paint). The holder names the still (its ribs' angle and the palette's
+     colors), which the server's style in the head paints (server/glass-still.ts), and the editor's holder names it
+     too (GlassLayer.tsx) */
+  const glassMay = () => props.page.effect?.kind === "glass" || !props.page.styled;
+  const glass = () => (
+    <Show when={glassMay()}>
+      <div class={styles.glass}>
+        <div
+          class={styles.glassStill}
+          data-glass-still={glassStillKey(glassColors(props.page.palette), props.page.view.angle)}
+        />
+      </div>
+    </Show>
+  );
+  /* the blob's still, where the address names the blob: the holder names it (its palette and its look), which the
+     server's style in the head paints (server/blob-still.ts), as the editor's holder does (BlobLayer.tsx), on the
+     page's own ground where the blob has none of its own */
+  const blob = () => (
+    <Show when={props.page.effect?.kind === "blob" ? props.page.effect.look : null}>
+      {look => (
+        <div class={styles.blob}>
+          <div class={styles.glassStill} data-blob-still={blobStillKey(props.page.seed, look())} />
+        </div>
+      )}
+    </Show>
+  );
   /* a size with an auto side is the stage's own shape, which only the editor measures: its stage stands empty */
   const fixed = () => {
     const size = view().size;
@@ -56,7 +86,10 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
                 view={view()}
                 alt={props.alt}
               />
-              <div class={styles.paint} />
+              <div class={styles.paint}>
+                {glass()}
+                {blob()}
+              </div>
             </Show>
             <Show when={fixed()}>
               {size => (
@@ -66,7 +99,10 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
                     "--ar": String(size().width / size().height),
                     "--w": `${size().width}px`
                   }}
-                />
+                >
+                  {glass()}
+                  {blob()}
+                </div>
               )}
             </Show>
             <p class={styles.caption} dir="auto">

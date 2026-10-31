@@ -1,5 +1,5 @@
 import { STEPS_MAX, STYLE_LABELS, type Style, type StyleChoice } from "@grabient/engine/view.ts";
-import { For, onSettled, Show } from "solid-js";
+import { type Element, For, onSettled, Show } from "solid-js";
 import styles from "./Appearance.module.css";
 import { BarRim } from "./BarRim.tsx";
 import { Button } from "./Button.tsx";
@@ -37,6 +37,8 @@ export const styleLabel = (s: StyleChoice): string =>
 export function AppearanceButton(props: {
   /** the palette at hand drawn as it is set: the swatch */
   swatch: string;
+  /** a picture drawn in the swatch instead, where a paint cannot say it: an effect's still */
+  swatchArt?: Element;
   /** the style's name, or As saved */
   label: string;
   /** what is set apart from it: "8 steps · 45°"; empty for nothing */
@@ -74,7 +76,9 @@ export function AppearanceButton(props: {
           )}
           onClick={() => props.onToggle()}
         >
-          <span class={styles.swatch} style={{ background: props.swatch }} aria-hidden="true" />
+          <span class={styles.swatch} style={{ background: props.swatch }} aria-hidden="true">
+            {props.swatchArt}
+          </span>
           <span class={styles.summary}>
             <span>{props.label}</span>
             <Show when={props.summary}>
@@ -134,6 +138,20 @@ export interface AppearanceProps {
   floating?: boolean;
   /** absent where the menu is part of its page: no Close, and the keys stay the page's */
   onClose?: () => void;
+  /** tiles after the styles for ways of drawing that are no style, such as the editor's effects: each one's name, its
+      picture, whether it is chosen and what choosing it does */
+  extras?: readonly ExtraTile[];
+  /** the fields that stand in Steps' and Angle's place while an extra tile is chosen */
+  extraFields?: Element;
+}
+
+export interface ExtraTile {
+  key: string;
+  label: string;
+  /** the tile's picture, filling it */
+  art: Element;
+  chosen: boolean;
+  onChoose: () => void;
 }
 
 export function AppearanceMenu(props: AppearanceProps) {
@@ -190,6 +208,35 @@ export function AppearanceMenu(props: AppearanceProps) {
   };
   const stepsFloor = () => props.stepsMin - (auto() ? 1 : 0);
   const angleFloor = () => (auto() ? -1 : 0);
+  /* the styles' fields: Steps, and Angle where the style takes one */
+  const pair = () => (
+    <div class={styles.pair}>
+      <Scrub
+        label={t("Steps")}
+        min={stepsFloor()}
+        max={STEPS_MAX}
+        step={1}
+        grain={1}
+        def={7}
+        fmt={v => (v < props.stepsMin ? t("Auto") : String(Math.round(v)))}
+        value={props.steps === "auto" ? stepsFloor() : props.steps}
+        onInput={v => props.onSteps(v < props.stepsMin ? "auto" : Math.round(v))}
+      />
+      <Show when={props.angle !== null}>
+        <Scrub
+          label={t("Angle")}
+          min={angleFloor()}
+          max={360}
+          step={1}
+          grain={1}
+          def={90}
+          fmt={v => (v < 0 ? t("Auto") : `${Math.round(v)}°`)}
+          value={props.angle === "auto" ? angleFloor() : (props.angle ?? 0)}
+          onInput={v => props.onAngle(v < 0 ? "auto" : Math.round(v))}
+        />
+      </Show>
+    </div>
+  );
   return (
     <div
       ref={root}
@@ -250,33 +297,33 @@ export function AppearanceMenu(props: AppearanceProps) {
             </button>
           )}
         </For>
+        <For each={props.extras ?? []}>
+          {extra => (
+            <button
+              type="button"
+              class={styles.tile}
+              aria-label={extra.label}
+              aria-pressed={extra.chosen ? "true" : "false"}
+              onPointerEnter={off}
+              onFocus={off}
+              onClick={() => {
+                off();
+                extra.onChoose();
+              }}
+            >
+              <span class={styles.art} aria-hidden="true">
+                {extra.art}
+              </span>
+              <span class={styles.name} aria-hidden="true">
+                {extra.label}
+              </span>
+            </button>
+          )}
+        </For>
       </div>
-      <div class={styles.pair}>
-        <Scrub
-          label={t("Steps")}
-          min={stepsFloor()}
-          max={STEPS_MAX}
-          step={1}
-          grain={1}
-          def={7}
-          fmt={v => (v < props.stepsMin ? t("Auto") : String(Math.round(v)))}
-          value={props.steps === "auto" ? stepsFloor() : props.steps}
-          onInput={v => props.onSteps(v < props.stepsMin ? "auto" : Math.round(v))}
-        />
-        <Show when={props.angle !== null}>
-          <Scrub
-            label={t("Angle")}
-            min={angleFloor()}
-            max={360}
-            step={1}
-            grain={1}
-            def={90}
-            fmt={v => (v < 0 ? t("Auto") : `${Math.round(v)}°`)}
-            value={props.angle === "auto" ? angleFloor() : (props.angle ?? 0)}
-            onInput={v => props.onAngle(v < 0 ? "auto" : Math.round(v))}
-          />
-        </Show>
-      </div>
+      <Show when={props.extras?.some(x => x.chosen)} fallback={pair()}>
+        <div class={styles.pair}>{props.extraFields}</div>
+      </Show>
     </div>
   );
 }
@@ -284,6 +331,7 @@ export function AppearanceMenu(props: AppearanceProps) {
 /** The control whole: the button, and its menu floating beneath while open, in the header's corner. */
 export function Appearance(props: {
   swatch: string;
+  swatchArt?: Element;
   label: string;
   summary?: string;
   open: boolean;
@@ -294,6 +342,7 @@ export function Appearance(props: {
     <span class={styles.control}>
       <AppearanceButton
         swatch={props.swatch}
+        swatchArt={props.swatchArt}
         label={props.label}
         summary={props.summary}
         open={props.open}

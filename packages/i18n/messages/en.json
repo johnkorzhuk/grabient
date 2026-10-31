@@ -226,9 +226,9 @@
   "Add to selection": {
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Boot.tsx:98",
-      "apps/web/src/features/editor/Editor.tsx:564",
-      "apps/web/src/features/editor/Editor.tsx:565",
+      "apps/web/src/features/editor/Boot.tsx:117",
+      "apps/web/src/features/editor/Editor.tsx:571",
+      "apps/web/src/features/editor/Editor.tsx:572",
       "packages/ui/src/PaletteCard.tsx:396",
       "packages/ui/src/PaletteCard.tsx:397"
     ]
@@ -328,7 +328,8 @@
   "Angle": {
     "note": "Field: the gradient's angle in degrees.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:268",
+      "apps/web/src/features/editor/GlassControls.tsx:21",
+      "packages/ui/src/Appearance.tsx:227",
       "packages/ui/src/Curation.tsx:271"
     ]
   },
@@ -366,20 +367,20 @@
   "Appearance": {
     "note": "The appearance press (style, steps and angle): its tooltip, and the heading of its menu.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:206",
-      "packages/ui/src/Appearance.tsx:50"
+      "packages/ui/src/Appearance.tsx:253",
+      "packages/ui/src/Appearance.tsx:52"
     ]
   },
   "Appearance: {label}": {
     "note": "Screen reader name of the appearance press, with the style.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:69"
+      "packages/ui/src/Appearance.tsx:71"
     ]
   },
   "Appearance: {label}, {summary}": {
     "note": "Screen reader name of the appearance press, with the style, steps and angle.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:69"
+      "packages/ui/src/Appearance.tsx:71"
     ]
   },
   "Apply to all palettes": {
@@ -422,8 +423,10 @@
   "Auto": {
     "note": "A value chosen by the app: size, steps, angle or columns follow the content.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:262",
-      "packages/ui/src/Appearance.tsx:274",
+      "apps/web/src/features/editor/GlassControls.tsx:27",
+      "apps/web/src/features/editor/GlassControls.tsx:51",
+      "packages/ui/src/Appearance.tsx:221",
+      "packages/ui/src/Appearance.tsx:233",
       "packages/ui/src/ExportPanel.tsx:129",
       "packages/ui/src/ExportPanel.tsx:209",
       "packages/ui/src/SizeControl.tsx:204",
@@ -444,6 +447,13 @@
     "note": "Press: scrolls to the top of the page. Also its tooltip.",
     "refs": [
       "packages/ui/src/BackToTop.tsx:62"
+    ]
+  },
+  "Background": {
+    "note": "Editor, the Appearance menu's blob fields: what is drawn behind the blob. The name of a choice of None, Deep or Color, and of the color field under it.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:108",
+      "apps/web/src/features/editor/BlobControls.tsx:87"
     ]
   },
   "Bad fit": {
@@ -474,6 +484,13 @@
     "note": "About: paragraph.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:495"
+    ]
+  },
+  "Blob": {
+    "note": "Editor, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as an animated blob, a soft amorphous shape of its colors.",
+    "refs": [
+      "apps/web/src/features/editor/Corner.tsx:82",
+      "apps/web/src/features/editor/effects.ts:223"
     ]
   },
   "Both strips end on the same color. Top: hue 210° to 330°. Bottom: 210° to 690°, one more lap.": {
@@ -662,7 +679,7 @@
     "refs": [
       "apps/web/src/mcp-view/PaletteView.tsx:425",
       "apps/web/src/mcp-view/PaletteView.tsx:426",
-      "packages/ui/src/Appearance.tsx:155",
+      "packages/ui/src/Appearance.tsx:173",
       "packages/ui/src/CollectList.tsx:164",
       "packages/ui/src/ExportPanel.tsx:155"
     ]
@@ -671,7 +688,7 @@
     "note": "Press and key list entry: closes the selection view.",
     "refs": [
       "apps/web/src/app/navigation.ts:182",
-      "apps/web/src/features/editor/Editor.tsx:202",
+      "apps/web/src/features/editor/Editor.tsx:208",
       "apps/web/src/features/selection/SelectionScreen.tsx:257",
       "apps/web/src/features/selection/SelectionScreen.tsx:314",
       "packages/ui/src/ExportPanel.tsx:154"
@@ -757,6 +774,12 @@
     "note": "Alt text of the collections list's share image.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:1042"
+    ]
+  },
+  "Color": {
+    "note": "Editor, the Appearance menu's blob fields's background: a color of the reader's choosing, set in the field under the choice.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:21"
     ]
   },
   "Color format": {
@@ -1010,8 +1033,8 @@
   "Couldn't copy the palette.": {
     "note": "Error line after a failed copy of a palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:646",
-      "apps/web/src/features/editor/Editor.tsx:657",
+      "apps/web/src/features/editor/Editor.tsx:655",
+      "apps/web/src/features/editor/Editor.tsx:666",
       "apps/web/src/features/editor/Sheet.tsx:143",
       "apps/web/src/features/gallery/take.ts:102",
       "apps/web/src/features/gallery/take.ts:115"
@@ -1070,7 +1093,7 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
-      "apps/web/src/features/editor/Editor.tsx:664",
+      "apps/web/src/features/editor/Editor.tsx:673",
       "apps/web/src/features/editor/Sheet.tsx:478",
       "apps/web/src/features/editor/Sheet.tsx:555",
       "apps/web/src/lib/files.ts:65"
@@ -1191,7 +1214,7 @@
   "Couldn't save the palette.": {
     "note": "Error line after a failed like.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:288"
+      "apps/web/src/features/editor/Editor.tsx:295"
     ]
   },
   "Couldn't save your vote.": {
@@ -1310,6 +1333,12 @@
       "apps/web/src/app/Shell.tsx:208"
     ]
   },
+  "Deep": {
+    "note": "Editor, the Appearance menu's blob fields's background: a deep, dark tone of the palette's own colors.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:20"
+    ]
+  },
   "Delete": {
     "note": "Admin press: confirms a delete.",
     "refs": [
@@ -1341,6 +1370,12 @@
     "refs": [
       "apps/web/src/features/collections/Actions.tsx:427",
       "packages/ui/src/Curation.tsx:44"
+    ]
+  },
+  "Depth": {
+    "note": "Editor, the Appearance menu's blob fields: label of an On/Off switch that makes the blob drift toward the viewer and away, growing and shrinking.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:69"
     ]
   },
   "Description": {
@@ -1472,7 +1507,7 @@
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1032",
+      "apps/web/src/features/editor/Editor.tsx:1068",
       "packages/ui/src/KeyList.tsx:10"
     ]
   },
@@ -1611,10 +1646,22 @@
       "apps/web/src/features/account/settings/Appearance.tsx:65"
     ]
   },
+  "FPS": {
+    "note": "Editor side, the blob: a short number field, frames a second the blob plays at (and its GIF is made at); it reads Auto, the screen's own pace, under 1. Keep it as short as FPS: it shares a row with Speed.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:44"
+    ]
+  },
   "Fewer or more steps": {
     "note": "Shortcut list entry: fewer or more steps in the gradient.",
     "refs": [
       "packages/ui/src/keymap.ts:42"
+    ]
+  },
+  "Fill": {
+    "note": "Editor, the Appearance menu's blob fields: label of an On/Off switch that fills the whole picture with three blobs, for a background.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:77"
     ]
   },
   "Find five calm palettes for a meditation app.": {
@@ -1648,6 +1695,14 @@
     "note": "Admin curation reason: its line.",
     "refs": [
       "packages/ui/src/curation.ts:18"
+    ]
+  },
+  "Fluted glass": {
+    "note": "Editor side: the switch that plays the palette behind fluted (reeded) glass in the picture, colors drifting behind a pane of curved ribs. Name it as the language's interior designers name ribbed decorative glass; also the picture's label for screen readers.",
+    "refs": [
+      "apps/web/src/features/editor/Corner.tsx:70",
+      "apps/web/src/features/editor/EditorCorner.tsx:58",
+      "apps/web/src/features/editor/effects.ts:223"
     ]
   },
   "Follows your device: dark.": {
@@ -1699,6 +1754,12 @@
     "note": "Heading over the palettes made from the colors picked out of the reader's image, shown beside the image.",
     "refs": [
       "apps/web/src/features/gallery/Palettes.tsx:440"
+    ]
+  },
+  "Frost": {
+    "note": "Editor, the Appearance menu's blob fields: a number field, how much grain and sprayed edge the blob has, as of frosted glass; 0 is none.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:35"
     ]
   },
   "Full screen": {
@@ -1827,7 +1888,7 @@
     "note": "Title of the link in the page's head to llms.txt.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:966",
-      "apps/web/src/routes/__root.tsx:96"
+      "apps/web/src/routes/__root.tsx:97"
     ]
   },
   "Hard steps where a blend was meant": {
@@ -1866,8 +1927,8 @@
   "Hide panel": {
     "note": "Press: hides the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:32",
-      "apps/web/src/features/editor/EditorCorner.tsx:52"
+      "apps/web/src/features/editor/Corner.tsx:98",
+      "apps/web/src/features/editor/EditorCorner.tsx:75"
     ]
   },
   "Hold all keyframes": {
@@ -1939,7 +2000,7 @@
   "Images can't be copied here.": {
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:645",
+      "apps/web/src/features/editor/Editor.tsx:654",
       "apps/web/src/features/editor/Sheet.tsx:142",
       "apps/web/src/mcp-view/PaletteView.tsx:247",
       "apps/web/src/mcp-view/PaletteView.tsx:255",
@@ -2098,21 +2159,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:851",
+      "apps/web/src/features/editor/Editor.tsx:887",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:847",
+      "apps/web/src/features/editor/Editor.tsx:883",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:836",
+      "apps/web/src/features/editor/Editor.tsx:872",
       "apps/web/src/features/editor/code.ts:190",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -2240,7 +2301,7 @@
   "Lightness straightened.": {
     "note": "Status line after Straighten lightness.",
     "refs": [
-      "apps/web/src/features/editor/editor.ts:394"
+      "apps/web/src/features/editor/editor.ts:404"
     ]
   },
   "Lightness, chroma and hue each have their own curve, drawn in the graph above. Each curve passes through the keyframes and bends smoothly between them. The color at any point is the three curves read there.": {
@@ -2452,6 +2513,13 @@
       "apps/web/src/features/connect/McpServer.tsx:161"
     ]
   },
+  "New shape": {
+    "note": "Editor, the Appearance menu's blob fields: a press (a die) that picks another shape number at random. Its tooltip and its name.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:61",
+      "apps/web/src/features/editor/BlobControls.tsx:62"
+    ]
+  },
   "Newsletter": {
     "note": "The newsletter, its page and its Settings switch.",
     "refs": [
@@ -2541,6 +2609,12 @@
     "note": "Empty state of a search in Saved, with words to try.",
     "refs": [
       "apps/web/src/features/gallery/Palettes.tsx:335"
+    ]
+  },
+  "None": {
+    "note": "Editor, the Appearance menu's blob fields's background: nothing behind the blob, which shows the page through.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:19"
     ]
   },
   "Not found": {
@@ -2639,6 +2713,8 @@
     "note": "A switch that is off.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:43",
+      "apps/web/src/features/editor/GlassControls.tsx:11",
+      "apps/web/src/features/editor/effects.ts:216",
       "packages/ui/src/Switch.tsx:34"
     ]
   },
@@ -2858,7 +2934,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:750",
+      "apps/web/src/features/editor/Editor.tsx:786",
       "packages/ui/src/PaletteSheet.tsx:128"
     ]
   },
@@ -2955,7 +3031,7 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:736",
+      "apps/web/src/features/editor/Editor.tsx:772",
       "apps/web/src/lib/page-meta.ts:536",
       "apps/web/src/lib/page-meta.ts:547",
       "packages/ui/src/PaletteCard.tsx:277"
@@ -3389,8 +3465,8 @@
   "Remove from selection": {
     "note": "Press (a check) on a palette in the selection: takes it out. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:564",
-      "apps/web/src/features/editor/Editor.tsx:565",
+      "apps/web/src/features/editor/Editor.tsx:571",
+      "apps/web/src/features/editor/Editor.tsx:572",
       "packages/ui/src/ExportPreview.tsx:83",
       "packages/ui/src/PaletteCard.tsx:396",
       "packages/ui/src/PaletteCard.tsx:397"
@@ -3406,7 +3482,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1049",
+      "apps/web/src/features/editor/Editor.tsx:1085",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3414,7 +3490,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1049"
+      "apps/web/src/features/editor/Editor.tsx:1085"
     ]
   },
   "Remove {hex}": {
@@ -3482,8 +3558,8 @@
       "apps/web/src/features/collections/Actions.tsx:386",
       "apps/web/src/features/search/Sampler.tsx:265",
       "apps/web/src/mcp-view/PaletteView.tsx:845",
-      "packages/ui/src/Appearance.tsx:210",
-      "packages/ui/src/Appearance.tsx:51"
+      "packages/ui/src/Appearance.tsx:257",
+      "packages/ui/src/Appearance.tsx:53"
     ]
   },
   "Reset all": {
@@ -3495,7 +3571,7 @@
   "Reset appearance": {
     "note": "Screen reader name of the press joined to the appearance press: back to the default style, steps and angle.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:96"
+      "packages/ui/src/Appearance.tsx:100"
     ]
   },
   "Resetting…": {
@@ -3956,6 +4032,12 @@
       "apps/web/src/features/editor/code.ts:181"
     ]
   },
+  "Shape": {
+    "note": "Editor, the Appearance menu's blob fields: a number field, which of many shapes the blob takes; each number is another shape.",
+    "refs": [
+      "apps/web/src/features/editor/BlobControls.tsx:48"
+    ]
+  },
   "Share images": {
     "note": "Admin feature switch.",
     "refs": [
@@ -4009,8 +4091,8 @@
   "Show panel": {
     "note": "Press: shows the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:32",
-      "apps/web/src/features/editor/Editor.tsx:191"
+      "apps/web/src/features/editor/Corner.tsx:98",
+      "apps/web/src/features/editor/Editor.tsx:197"
     ]
   },
   "Show shortcuts": {
@@ -4174,7 +4256,7 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:739",
+      "apps/web/src/features/editor/Editor.tsx:775",
       "apps/web/src/features/editor/Sheet.tsx:594",
       "apps/web/src/features/editor/StaticPalette.tsx:139",
       "packages/ui/src/PaletteCard.tsx:278"
@@ -4272,6 +4354,12 @@
       "apps/web/src/features/about/AboutPage.tsx:246"
     ]
   },
+  "Speed": {
+    "note": "Editor side, the blob: a number field, how fast the blob moves, written like 1×.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:33"
+    ]
+  },
   "Square": {
     "note": "Size preset: a square post, 1080 × 1080.",
     "refs": [
@@ -4313,7 +4401,7 @@
     "note": "Field: how many evenly spaced colors the gradient is drawn with.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:143",
-      "packages/ui/src/Appearance.tsx:256",
+      "packages/ui/src/Appearance.tsx:215",
       "packages/ui/src/Curation.tsx:262"
     ]
   },
@@ -4540,8 +4628,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:703",
-      "apps/web/src/features/editor/Editor.tsx:713"
+      "apps/web/src/features/editor/Editor.tsx:733",
+      "apps/web/src/features/editor/Editor.tsx:746"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -6040,7 +6128,7 @@
   "{count, plural, one {# step} other {# steps}}": {
     "note": "A count of steps: the evenly spaced colors a palette is drawn with.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:28",
+      "apps/web/src/features/editor/Corner.tsx:45",
       "apps/web/src/features/list/ListAppearance.tsx:142",
       "apps/web/src/mcp-view/PaletteView.tsx:95",
       "packages/ui/src/figure.ts:121"

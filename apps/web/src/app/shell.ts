@@ -29,6 +29,8 @@ declare module "@tanstack/solid-router" {
     /** the page pins its stops along the foot of the screen (the editor): a note the frame floats stands over the
         artwork's top corner instead */
     strip?: boolean;
+    /** false where the page takes the water away, nothing in its place: the editor, whose picture is its own light */
+    water?: boolean;
   }
 }
 

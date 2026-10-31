@@ -159,8 +159,11 @@ export function Shell() {
     offline() && account()
       ? { href: localHref(inView("/palettes/saved")), label: t("Saved palettes") }
       : { href: localHref(inView("/")), label: t("home") };
-  /* under reduced motion only the brand pages whose sheet stands on the water keep it, as one still frame */
-  const waterOff = () => reducedMotion() && !page().options.still && !page().options.moving;
+  /* no water where the page takes it away (a palette's editor); under reduced motion only the brand pages whose sheet
+     stands on the water keep it, as one still frame */
+  const waterOff = () =>
+    page().options.water === false ||
+    (reducedMotion() && !page().options.still && !page().options.moving);
 
   return (
     <ShellContext value={shell}>

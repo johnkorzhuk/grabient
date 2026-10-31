@@ -54,6 +54,8 @@
   }
   .swatch {
     forced-color-adjust: none;
+    position: relative;
+    overflow: hidden;
     flex-shrink: 0;
     width: var(--space-s6);
     height: var(--space-s6);
@@ -189,6 +191,8 @@
   .art {
     /* a palette's colors are the content: forced colors leave them as they are */
     forced-color-adjust: none;
+    position: relative;
+    overflow: hidden;
     display: block;
     width: 100%;
     height: var(--size-tile);

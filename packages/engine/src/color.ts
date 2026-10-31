@@ -85,6 +85,57 @@ export function lchToSrgb(L: number, C: number, H: number): Triple {
   const c = fitChroma(L, C, H, false);
   return encoded(oklabToLinear(L, c * Math.cos(H * DEG), c * Math.sin(H * DEG)));
 }
+/* oklabToLinear into these three, and whether the color fits sRGB, for a picture's bytes alone (lchToSrgbBytes): no
+   array made, and its cubes products, where a power is a library call and three of them most of a conversion's time.
+   The two differ in the last bit at most, and a picture's bytes not at all (color.test.ts); a color's own numbers keep
+   oklabToLinear's doubles, which fixtures and old links' fits pin. */
+let lr = 0;
+let lg = 0;
+let lb = 0;
+const fitsIn = (v: number) => v >= -1e-4 && v <= 1 + 1e-4;
+function linearInto(L: number, a: number, b: number): boolean {
+  const l1 = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m1 = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s1 = L - 0.0894841775 * a - 1.291485548 * b;
+  const l = l1 * l1 * l1;
+  const m = m1 * m1 * m1;
+  const s = s1 * s1 * s1;
+  lr = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+  lg = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+  lb = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
+  return fitsIn(lr) && fitsIn(lg) && fitsIn(lb);
+}
+const byte = (v: number) => Math.round(clamp01(toEncoded(clamp01(v))) * 255);
+/** lchToSrgb(L, fitChroma(L, C, H, false, steps), H) as bytes, 0 to 255, into `out` from `at`, for a picture of
+    thousands of colors drawn again at every move of a drag: the same bytes, made faster (linearInto). The fitted
+    color is in sRGB by its search, so the second fit lchToSrgb makes changes nothing and is not made. */
+export function lchToSrgbBytes(
+  L: number,
+  C: number,
+  H: number,
+  steps: number,
+  out: Uint8ClampedArray,
+  at: number
+): void {
+  L = clamp01(L);
+  C = Math.max(0, C);
+  const ca = Math.cos(H * DEG);
+  const sa = Math.sin(H * DEG);
+  if (!linearInto(L, C * ca, C * sa)) {
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < steps; i++) {
+      const m = (lo + hi) / 2;
+      if (linearInto(L, C * m * ca, C * m * sa)) lo = m;
+      else hi = m;
+    }
+    const c = C * lo;
+    linearInto(L, c * ca, c * sa);
+  }
+  out[at] = byte(lr);
+  out[at + 1] = byte(lg);
+  out[at + 2] = byte(lb);
+}
 /** OKLCH to Display-P3, fitted to P3 the same way. */
 export function lchToP3(L: number, C: number, H: number): Triple {
   L = clamp01(L);

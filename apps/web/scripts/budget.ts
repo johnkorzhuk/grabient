@@ -23,11 +23,13 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 285 },
   "a collection": { route: "src/routes/$id/index.tsx", budget: 280 },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
-     beside the page or once the first screen stands on a phone */
+     beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
+     their settings in the address, the menu's tiles, the header's still) took it from 347.8 KB to 351.7 on 30 Oct
+     2026; their drawing, players and fields load when the menu opens or an effect plays */
   "a palette": {
     route: "src/routes/$id/index.tsx",
     also: ["src/features/editor/Editor.tsx", "src/features/editor/Sheet.tsx"],
-    budget: 350
+    budget: 355
   },
   "/newsletter": { route: "src/routes/newsletter.tsx", budget: 225 },
   "/about": { route: "src/routes/about.tsx", budget: 250 }

@@ -15,6 +15,7 @@ import { Shell } from "../app/Shell.tsx";
 import { pageFrom } from "../app/shell.ts";
 import type { SiteFacts } from "../app/site.ts";
 import { iconLinks } from "../app/tab-icon.ts";
+import { effectScript } from "../features/editor/effect-page.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
 import { readSite } from "../server/site/facts.ts";
@@ -103,6 +104,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
          takes up (client.tsx), where a preload that the service worker answers is fetched twice */
       scripts: [
         { children: themeScript },
+        { children: effectScript },
         { children: motionScript },
         { children: scrollbarScript },
         ...(catalog ? [{ children: `self.$catalog=fetch(${JSON.stringify(catalog)})` }] : [])

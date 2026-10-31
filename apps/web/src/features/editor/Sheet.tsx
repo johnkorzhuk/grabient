@@ -59,7 +59,6 @@ import {
   saveFormat,
   type Taken
 } from "./formats.ts";
-import { paletteName } from "./name.ts";
 import { askFacts, type PaletteData } from "./page.ts";
 import type { Rest } from "./rest.ts";
 import { type Similar, similarQuery } from "./similar.ts";
@@ -156,7 +155,8 @@ export function Sheet(props: {
   facts: () => PaletteData["facts"];
   /** Rising's frames as the server told this document, where it drew the page */
   frames: PaletteData["frames"];
-  heading: () => string | undefined;
+  /** the palette's name as the page shows it (name.ts) */
+  name: () => string;
   opened: () => string;
   taken: () => Taken;
   used: (action: "copy" | "download", format: string) => void;
@@ -349,7 +349,7 @@ export function Sheet(props: {
     const list = sort() === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
     return `${list}?${query}`;
   };
-  const title = () => called()?.title ?? paletteName(e, props.heading(), props.facts());
+  const title = () => called()?.title ?? props.name();
   /* Under a name of other words (a written title, the reader's own), what its colors call the palette in the reader's
      language, said again for another palette or view once it has stood a moment, so no frame of an edit spends on it.
      The sentence a search reads of it, its colors as hex and what the editor makes of them, is the page's description

@@ -1,14 +1,17 @@
-/* A palette's page address: `/{seed}`, then how it is drawn (style, steps, angle, size), what Random keeps (`lock`,
-   `unlock`) and the selection's word. The seed is the palette; the rest is the reader's and never part of its identity.
+/* A palette's page address: `/{seed}`, then how it is drawn (style, steps, angle, size, or an effect and how it
+   plays: engine/effect.ts), what Random keeps (`lock`, `unlock`) and the selection's word. The seed is the palette; the rest is the reader's and never part of its identity.
    The Worker answers any other spelling with a 301 to `seedAddress` (server/canonical.ts), and the editor rewrites its
    entry in place as the palette changes. */
 import { decodePalette, encodePalette, type Palette } from "@grabient/engine";
 import { LOCKS, type Lock } from "@grabient/engine/edits.ts";
+import { blobShapeOf, type Effect, effectParts, parseEffect } from "@grabient/engine/effect.ts";
 import {
+  DEFAULT_ANGLE,
   type ParamReader,
   parseView,
   type Style,
   type StyleChoice,
+  sizeParam,
   type View,
   viewSearch
 } from "@grabient/engine/view.ts";
@@ -33,6 +36,10 @@ export interface SeedPage {
   seed: string;
   palette: Palette;
   view: View;
+  /** the effect the picture plays instead of the view's gradient, where the address names one */
+  effect?: Effect | null;
+  /** whether the address names a style, a gradient's or an effect's: one that names none takes the reader's own */
+  styled?: boolean;
   locks: Locks;
   /** the selection of palettes has the stage, with the export column beside it */
   selection: boolean;
@@ -54,35 +61,60 @@ export function readSeedPage(id: string, params: ParamReader): SeedPage | null {
   const palette = SEED_SHAPE.test(id) ? decodePalette(id) : null;
   if (!palette) return null;
   const view = parseView(params);
+  const seed = encodePalette(palette);
+  /* a blob always has a shape: one its address names, else the palette's own suggestion, which the canonical address
+     then names */
+  const parsed = parseEffect(params);
+  const effect =
+    parsed?.kind === "blob" && parsed.look.shape === null
+      ? { ...parsed, look: { ...parsed.look, shape: blobShapeOf(seed) } }
+      : parsed;
   return {
-    seed: encodePalette(palette),
+    seed,
     palette,
     view: { ...view, steps: Math.max(view.steps, palette.anchors.length) },
+    effect,
+    styled: params.get("style") !== null,
     locks: { lock: locksIn(params.get("lock")), unlock: locksIn(params.get("unlock")) },
     selection: params.get("selection") !== null
   };
 }
 
-type Addressed = Pick<SeedPage, "seed" | "view"> & Partial<Pick<SeedPage, "locks" | "selection">>;
+type Addressed = Pick<SeedPage, "seed" | "view"> &
+  Partial<Pick<SeedPage, "effect" | "locks" | "selection">>;
 
-/** The canonical address: the view's defaults left out and its parts in order, then the locks' words in the order
-    lightness, chroma, hue, then the selection's word with no value. */
+/** The canonical address: the view's defaults left out and its parts in order (an effect's style, the angle, the size
+    and how it plays, with no steps, while one plays), then the locks' words in the order lightness, chroma, hue, then
+    the selection's word with no value. */
 export function seedAddress(page: Addressed): string {
   const { lock, unlock } = page.locks ?? NO_LOCKS;
-  return `/${page.seed}${viewSearch(page.view, [
+  const extra = [
     lock.length ? `lock=${wordsOf(lock)}` : "",
     unlock.length ? `unlock=${wordsOf(unlock)}` : "",
     page.selection ? "selection" : ""
-  ])}`;
+  ];
+  const effect = page.effect;
+  if (!effect) return `/${page.seed}${viewSearch(page.view, extra)}`;
+  const size = sizeParam(page.view.size);
+  const parts = [
+    `style=${effect.kind}`,
+    page.view.angle !== DEFAULT_ANGLE ? `angle=${page.view.angle}` : "",
+    size ? `size=${size}` : "",
+    ...effectParts(effect),
+    ...extra
+  ].filter(Boolean);
+  return `/${page.seed}?${parts.join("&")}`;
 }
+
+/* the parameters the router keeps as numbers: a number-like string would be written quoted */
+const NUMBERS = new Set(["steps", "angle", "speed", "fps", "depth", "fill", "frost", "shape"]);
 
 /** The same address as the router's search object, its keys in the canonical order. The router spells it its own way
     (commas escaped, `selection=`), which reads back the same, so the Worker takes it as canonical too. */
 export function seedSearch(page: Addressed): Record<string, string | number> {
   const query = new URLSearchParams(seedAddress(page).split("?")[1] ?? "");
   const out: Record<string, string | number> = {};
-  for (const [key, value] of query)
-    out[key] = key === "steps" || key === "angle" ? Number(value) : value;
+  for (const [key, value] of query) out[key] = NUMBERS.has(key) ? Number(value) : value;
   return out;
 }
 

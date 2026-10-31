@@ -30,6 +30,7 @@ import {
 import { type ListView, rememberedView, rememberView } from "../list/appearance.ts";
 import { type Locks, type Opened, SEED_SHAPE, type SeedPage } from "./address.ts";
 import { createEdits, type EditsSnapshot } from "./edits.ts";
+import { createEffects } from "./effects.ts";
 import * as ops from "./ops.ts";
 
 /* The editor's state over one palette: the palette, how it is drawn, what Random keeps, which keyframes are held,
@@ -100,6 +101,13 @@ export function createPaletteEditor(
   const [locks, setLocks] = createSignal<Locks>(start.locks);
   const [selecting, setSelecting] = createSignal(start.selection);
   const [opened, setOpened] = createSignal<Opened>(openedOf(start, saved?.opened));
+  /* the effect the picture plays instead of the gradient, and how each plays (effects.ts) */
+  const effects = createEffects(
+    start.effect ?? null,
+    start.styled ?? false,
+    () => encodePalette(palette()),
+    own
+  );
   /* the palette the page opened on, which an admin's Save replaces and a copy counts as used: its entry keeps it, so a
      reload of an edited palette still knows where it began */
   const [openedSeed, setOpenedSeed] = createSignal(seedIn(saved?.edits) ?? start.seed);
@@ -138,6 +146,8 @@ export function createPaletteEditor(
 
   /* the pointers down now: a gesture one makes waits for its release */
   const pointers = new Set<number>();
+  /* the same, followed: what a drag changes every frame and nobody reads until it ends (the address) waits for it */
+  const [pressing, setPressing] = createSignal(false);
   /* the undo's own reads are plain; this makes what shows them follow */
   const [version, setVersion] = createSignal(0);
   const edits = createEdits({
@@ -195,10 +205,12 @@ export function createPaletteEditor(
       if (taken) edits.revert();
       else edits.close();
       taken = false;
+      setPressing(pointers.size > 0);
     };
     const down = (e: PointerEvent) => {
       if (!pointers.size) end();
       pointers.add(e.pointerId);
+      setPressing(true);
     };
     const lift = (e: PointerEvent) => {
       if (pointers.delete(e.pointerId) && !pointers.size) ending = setTimeout(end, 0);
@@ -306,6 +318,8 @@ export function createPaletteEditor(
     openedSeed,
     setOpenedSeed,
     wide,
+    effects,
+    effect: effects.effect,
     held,
     lead,
     whole,
@@ -313,6 +327,8 @@ export function createPaletteEditor(
     multi: () => held().length > 1,
     reading,
     setReading,
+    /** a pointer is down: a press, or a drag under way */
+    pressing,
     stops,
     stopsTaken,
     keyframes,
@@ -449,6 +465,8 @@ export function createPaletteEditor(
         the tab given back what it remembered then. */
     letViewGo(...parts: (keyof Opened["set"])[]) {
       const was = untrack(opened);
+      /* the whole view let go: the effect too, as the page opened with it */
+      if (!parts.length) effects.reset();
       const all = parts.length ? parts : (["style", "steps", "angle"] as const);
       if (all.includes("style")) setStyle(was.style);
       if (all.includes("steps")) setSteps(ops.clampSteps(was.steps, untrack(K)));
@@ -482,6 +500,7 @@ export function createPaletteEditor(
       shapes.forget();
       setPalette(page.palette);
       take(page);
+      effects.arrive(page.effect ?? null, page.styled ?? false);
       setOpened(openedOf(page, kept?.opened));
       setOpenedSeed(seedIn(kept?.edits) ?? page.seed);
       edits.begin(stepOf(page.seed, page.view.steps, page.view.steps), kept?.edits);
