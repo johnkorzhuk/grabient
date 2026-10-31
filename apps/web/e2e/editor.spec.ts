@@ -8,6 +8,15 @@ import { devices, expect, type Locator, type Page, type Route, test } from "@pla
 test.describe.configure({ timeout: 60_000 });
 
 const SEED = "kS7CQ31Do6asvY-";
+
+/* The palette's page as these tests meet it: a gradient. A page whose address names no style plays the reader's own
+   choice of effect, the fluted glass until they pick another, and writes it to the address as it lands; these tests
+   are the gradient's, so the reader here chose the gradient. */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("grabient-effect", JSON.stringify({ kind: null }))
+  );
+});
 const addressOf = (href: string) => {
   const url = new URL(href);
   return url.pathname + url.search;

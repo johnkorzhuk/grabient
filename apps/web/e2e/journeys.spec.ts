@@ -9,6 +9,15 @@ import {
   test
 } from "@playwright/test";
 
+/* The palette's page as these tests meet it: a gradient. A page whose address names no style plays the reader's own
+   choice of effect, the fluted glass until they pick another, and writes it to the address as it lands; these tests
+   are the gradient's, so the reader here chose the gradient. */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("grabient-effect", JSON.stringify({ kind: null }))
+  );
+});
+
 /* The readers' journeys, each walked as a reader walks it, at a desk's width with a mouse and at a phone's with a
    finger: from every list into a palette or a collection and back, a search in four languages, the editor from a list,
    the frame's own pages, and an account's likes and collections. They read a copy of staging's data, with its test

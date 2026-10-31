@@ -157,9 +157,20 @@ export function followAddress(
   };
   addEventListener("click", leaving, true);
   addEventListener("pagehide", flush);
+  /* A navigation begun to another page, Back above all, which no press here makes: a write coming due meanwhile would
+     land on the entry gone to. And a write still loading leaves the router told to keep the scroll (resetScroll:
+     false), which only a navigation it makes resets: Back, a history move, makes none, so the list Back returns to
+     was left at the editor's scroll rather than its own (a palette opened from a list writes the effect the reader's
+     choice plays at once, which a quick Back overtook). The router scrolls that page as it would any. */
+  const leave = router.subscribe("onBeforeNavigate", event => {
+    if (event.toLocation.pathname === event.fromLocation?.pathname) return;
+    cancel();
+    router._scroll.next = true;
+  });
   /* the page left for another: its address was written as the press that left it landed */
   onCleanup(() => {
     cancel();
+    leave();
     removeEventListener("click", leaving, true);
     removeEventListener("pagehide", flush);
   });
