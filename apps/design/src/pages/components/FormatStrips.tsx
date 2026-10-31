@@ -42,6 +42,17 @@ export function FormatStrips() {
               link={["md", "css", "svg", "png"]}
             />
           </Cell>
+          <Cell
+            caption="the editor's strip while the glass plays · Copy ends with Figma, the glass as Figma's own layers"
+            art={ART}
+          >
+            <FormatStrip
+              copy={["url", "css", "svg", "png", "html", "figma"]}
+              download={["md", "css", "svg", "png"]}
+              swatches={SWATCH_CHIPS}
+              link={["md", "css", "svg", "png", "js"]}
+            />
+          </Cell>
         </Cells>
       </Block>
       <Block title="Rules">
@@ -50,7 +61,8 @@ export function FormatStrips() {
             "Anchored at its picture's bottom right; a format keeps its place in every mode, and nothing else moves.",
             "Its height and radius follow the row's size. Below 300px it keeps its icons and drops their names.",
             "The mode is its glyph, a dot per mode over it on hover. Every strip on the page turns as one.",
-            "Named by its mode; the mode press names the next one; the swatch book is Swatches or Back."
+            "Named by its mode; the mode press names the next one; the swatch book is Swatches or Back.",
+            "A copy for another app is named for where it goes: Copy for Figma."
           ]}
         />
       </Block>
