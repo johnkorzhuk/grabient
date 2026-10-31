@@ -278,9 +278,10 @@ export function ColorPicker(props: ColorPickerProps) {
 
   /* It hangs from the press as a menu does, a gap from it and start to start: under it, or over it where there is more
      room above, inside the window and under a header pinned at its top. Beside a panel (`beside`) it stands next to
-     that panel instead, toward the side asked where there is room and the other where not, its top level with the
-     press, or its foot where the window has no room below; with room on neither side it hangs from the press. Read
-     again once a frame as the page scrolls or the window changes. */
+     that panel instead, toward the side asked where there is room and the other where not, level with the press as
+     far as the panel's height allows: its foot never below the panel's, its top never above it, so it stands against
+     the panel rather than hanging past it (the Appearance menu's ground, in its last row); with room on neither side
+     it hangs from the press. Read again once a frame as the page scrolls or the window changes. */
   const [placed, setPlaced] = createSignal(false);
   let placing = 0;
   const place = () => {
@@ -310,7 +311,7 @@ export function ColorPicker(props: ColorPickerProps) {
         (getComputedStyle(props.beside).direction === "rtl");
       if (fitsLeft || fitsRight) {
         x = (wantLeft ? fitsLeft : !fitsRight) ? left : right;
-        y = keep(press.top + h <= floor ? press.top : press.bottom - h, ceiling, floor - h);
+        y = keep(Math.max(box.top, Math.min(press.top, box.bottom - h)), ceiling, floor - h);
       }
     }
     if (x === null) {
