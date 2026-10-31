@@ -13,6 +13,7 @@ const FADE_MS = 300;
 
 interface Player {
   set(palette: Palette, view: unknown): void;
+  rewind(): void;
   destroy(): void;
 }
 /* a player and the canvas it draws in: each player has a canvas of its own, since one it lets go takes its WebGL
@@ -23,6 +24,33 @@ interface Session {
 }
 
 /* the players are the browser's alone: the server's build carries neither */
+/* Players let go, kept for the next card: a player's WebGL context and programs cost about a tenth of a second on the
+   page's thread, which every hover paid. One let go waits here, its loop stopped, its canvas left where it was or off
+   the page, and the next card of its size lit takes it: on to its own picture, back to the first frame, which is that
+   card's still, with that card's palette and view. Two of each kind at most, for a glass fading out as the next card
+   lights. */
+const POOL = 2;
+const pool: Record<EffectKind, Session[]> = { glass: [], blob: [] };
+/** A player kept for a box this size in device pixels, taken out of the pool; none where none fits. */
+function pooled(kind: EffectKind, width: number, height: number): Session | null {
+  const dpr = devicePixelRatio || 1;
+  const at = pool[kind].findIndex(
+    s =>
+      Math.abs(s.canvas.width - Math.round(width * dpr)) <= 2 &&
+      Math.abs(s.canvas.height - Math.round(height * dpr)) <= 2
+  );
+  return at < 0 ? null : (pool[kind].splice(at, 1)[0] ?? null);
+}
+/** A player let go: kept for the next card where there is room, its loop stopped; otherwise gone with its context. */
+function release(kind: EffectKind, s: Session): void {
+  if (pool[kind].length < POOL) {
+    pool[kind].push(s);
+    return;
+  }
+  s.player.destroy();
+  s.canvas.remove();
+}
+
 const players = {
   glass: () =>
     import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/glass-player.ts"),
@@ -83,9 +111,13 @@ export function EffectArt(props: {
   let leaving: (Session & { timer: ReturnType<typeof setTimeout> }) | null = null;
   /* a start whose code is still on its way when the card goes dark again makes no player */
   let wanted = false;
+  /* a player let go is kept for the next card, held at its frame (no loop runs at speed 0) */
   const end = (s: Session) => {
-    s.player.destroy();
-    s.canvas.remove();
+    s.player.set(
+      untrack(() => props.palette),
+      { ...untrack(view), speed: 0 }
+    );
+    release(props.kind, s);
   };
   const stop = () => {
     wanted = false;
@@ -125,6 +157,25 @@ export function EffectArt(props: {
       return;
     }
     const kind = props.kind;
+    /* a player kept from another card of this size: on to this one, from this card's first frame */
+    const kept = pooled(kind, holder.clientWidth, holder.clientHeight);
+    if (kept) {
+      holder.append(kept.canvas);
+      kept.player.rewind();
+      kept.player.set(
+        untrack(() => props.palette),
+        untrack(view)
+      );
+      const taken = kept;
+      session = taken;
+      /* its frame for this card is drawn in the next one: the canvas shows from the one after */
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (wanted && session === taken) setCovered(true);
+        })
+      );
+      return;
+    }
     const code = await players[kind]();
     if (!wanted || session || leaving) return;
     const canvas = document.createElement("canvas");

@@ -107,25 +107,23 @@ const hexRgb = (hex: string) => {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 };
 
-export function playGlass(
-  canvas: HTMLCanvasElement,
-  palette: Palette,
-  view: GlassView,
-  onFirstFrame?: () => void,
-  /** `ease: false` starts the motion at its pace, as a card's picture under the pointer does, where a page's picture
-      eases in from rest */
-  options: { ease?: boolean } = {}
-): GlassPlayer | null {
-  const easing = options.ease === false ? 0 : EASE_S;
-  const gl = canvas.getContext("webgl2", {
-    alpha: false,
-    antialias: false,
-    depth: false,
-    stencil: false,
-    premultipliedAlpha: true,
-    preserveDrawingBuffer: false
-  });
-  if (!gl) return null;
+/** The glass's drawing in a WebGL 2 context: its programs and textures, laid out for a size in device pixels, an angle
+    and a shape (the design covering it, its rib map baked on the GPU), colored for a palette, and drawn a frame at a
+    time into the context's own framebuffer, the size laid out. The player draws its canvas with one frame after frame;
+    a still (glass-still.ts) draws one frame of another into a canvas the page shares. Null where WebGL 2 cannot build
+    its programs. */
+export interface GlassDrawing {
+  /** lays the design out for the box; true where its size changed, so the canvas takes it before the next frame */
+  layout(width: number, height: number, angle: number, shape: number | null): boolean;
+  /** the glass's colors (glassColors) on the discs, where they changed */
+  recolor(colors: readonly string[]): void;
+  /** the frame at t, seconds of the loop at speed 1 */
+  draw(t: number): void;
+  /** laid out and colored: a frame can be drawn */
+  ready(): boolean;
+}
+
+export function createGlassDrawing(gl: WebGL2RenderingContext): GlassDrawing | null {
   const shader = (type: number, src: string) => {
     const s = gl.createShader(type);
     if (!s) throw new Error("no shader");
@@ -205,10 +203,9 @@ export function playGlass(
   const fieldTex = [texture(gl.LINEAR), texture(gl.LINEAR)];
   const fbo = [gl.createFramebuffer(), gl.createFramebuffer()];
 
-  let palette_ = palette;
-  let view_ = view;
+  let colors_: readonly string[] = [];
   let colorsKey = "";
-  /* the drawing: the geometry and its plan once a size, the field once a palette */
+  /* the drawing: the geometry and its plan once a size, an angle and a shape, the field once a palette */
   let geometry: GlassGeometry | null = null;
   let window_: GlassWindow | null = null;
   let plan: GlassPlan | null = null;
@@ -217,13 +214,12 @@ export function playGlass(
   const pos = new Float32Array(2);
   const taps = new Float32Array(12);
   let base = [0, 0, 0];
-  let ready = false;
 
-  const recolor = () => {
-    if (!geometry || !plan) return;
-    const colors = glassColors(palette_);
-    colorsKey = colors.join();
-    field = glassField(geometry, colors);
+  /* the discs, colored, for the geometry: its shape draws where they stand */
+  const color = () => {
+    if (!geometry || !plan || !colors_.length) return;
+    colorsKey = colors_.join();
+    field = glassField(geometry, colors_);
     if (data.length !== 7 * field.discs.length) {
       data = new Float32Array(7 * field.discs.length);
       gl.bindBuffer(gl.ARRAY_BUFFER, inst);
@@ -239,12 +235,162 @@ export function playGlass(
     });
     base = hexRgb(field.base);
   };
+  return {
+    layout(width, height, angle, shape) {
+      const next = glassCover({ width, height }, 1, angle, shape);
+      if (
+        geometry &&
+        window_ &&
+        geometry.width === next.geometry.width &&
+        geometry.angle === next.geometry.angle &&
+        geometry.shape === next.geometry.shape &&
+        window_.w === next.window.w &&
+        window_.h === next.window.h
+      )
+        return false;
+      const g = next.geometry;
+      const win = next.window;
+      /* another angle or shape at the same size keeps the textures, and the canvas its drawing buffer: a canvas given
+         its size again throws that away, and the page waits on the compositor for the new one */
+      const resized = !window_ || window_.w !== win.w || window_.h !== win.h;
+      const was = plan;
+      geometry = g;
+      window_ = win;
+      plan = glassPlan(g);
+      if (resized) {
+        gl.bindTexture(gl.TEXTURE_2D, mapTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, win.w, win.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      }
+      baker.bake(g, win, mapTex);
+      if (resized || !was || was.fw !== plan.fw || was.fh !== plan.fh) {
+        for (let i = 0; i < 2; i++) {
+          gl.bindTexture(gl.TEXTURE_2D, fieldTex[i]);
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA8,
+            plan.fw,
+            plan.fh,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null
+          );
+          gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[i]);
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            fieldTex[i],
+            0
+          );
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        taps.fill(0);
+        plan.taps.forEach(([o, w], i) => {
+          taps[2 * i] = o;
+          taps[2 * i + 1] = w;
+        });
+      }
+      color();
+      return resized;
+    },
+    recolor(colors) {
+      colors_ = colors;
+      if (colors.join() !== colorsKey) color();
+    },
+    ready: () => !!(geometry && window_ && plan && field),
+    draw(t) {
+      if (!geometry || !window_ || !plan || !field) return;
+      const { region } = geometry;
+      const win = window_;
+      const q = plan.q;
+      for (let i = 0; i < field.discs.length; i++) {
+        glassDiscAt(geometry, field.discs[i], t, pos, 0);
+        data[7 * i] = (pos[0] - region.x) / q;
+        data[7 * i + 1] = (pos[1] - region.y) / q;
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, inst);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
+      /* the field */
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[0]);
+      gl.viewport(0, 0, plan.fw, plan.fh);
+      gl.clearColor(base[0], base[1], base[2], 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.useProgram(pDisc);
+      gl.uniform2f(U.dField, plan.fw, plan.fh);
+      gl.bindVertexArray(discVao);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, field.discs.length);
+      gl.disable(gl.BLEND);
+      /* the blur: across into the second texture, down back into the first */
+      gl.useProgram(pBlur);
+      gl.bindVertexArray(fullVao);
+      gl.uniform2fv(U.bTaps, taps);
+      gl.uniform1i(U.bSrc, 0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[1]);
+      gl.bindTexture(gl.TEXTURE_2D, fieldTex[0]);
+      gl.uniform2f(U.bStep, 1 / plan.fw, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[0]);
+      gl.bindTexture(gl.TEXTURE_2D, fieldTex[1]);
+      gl.uniform2f(U.bStep, 0, 1 / plan.fh);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      /* the glass */
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, win.w, win.h);
+      gl.useProgram(pFinal);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, mapTex);
+      gl.uniform1i(U.fMap, 0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, fieldTex[0]);
+      gl.uniform1i(U.fField, 1);
+      gl.uniform1f(U.fH, win.h);
+      gl.uniform2f(U.fOrigin, region.x, region.y);
+      gl.uniform2f(U.fOffset, win.x, win.y);
+      gl.uniform2f(U.fInv, 1 / (q * plan.fw), 1 / (q * plan.fh));
+      gl.uniform1f(U.fScale, geometry.scale);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.activeTexture(gl.TEXTURE0);
+    }
+  };
+}
+
+export function playGlass(
+  canvas: HTMLCanvasElement,
+  palette: Palette,
+  view: GlassView,
+  onFirstFrame?: () => void,
+  /** `ease: false` starts the motion at its pace, as a card's picture under the pointer does, where a page's picture
+      eases in from rest */
+  options: { ease?: boolean } = {}
+): GlassPlayer | null {
+  const easing = options.ease === false ? 0 : EASE_S;
+  const gl = canvas.getContext("webgl2", {
+    alpha: false,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    premultipliedAlpha: true,
+    preserveDrawingBuffer: false
+  });
+  if (!gl) return null;
+  const drawing = createGlassDrawing(gl);
+  if (!drawing) return null;
+  let palette_ = palette;
+  let view_ = view;
+  let ready = false;
   /* the canvas's size in device pixels, as the browser lays it out, where it says (devicePixelContentBoxSize) */
   let device: { w: number; h: number } | null = null;
   /** a size, an angle or a shape the canvas now has: the design covering it, its rib map baked at once */
   const resize = () => {
     const dpr = devicePixelRatio || 1;
     const css = canvas.getBoundingClientRect();
+    /* a canvas off the page or hidden has no box: it keeps the layout it had, for the box it comes back to */
+    if (!css.width || !css.height) return;
     const ew = Math.round(css.width * dpr);
     const eh = Math.round(css.height * dpr);
     /* the browser's own count where it agrees with the box at this density (an emulated density reports CSS pixels) */
@@ -252,126 +398,16 @@ export function playGlass(
     const w0 = exact && device ? device.w : ew;
     const h0 = exact && device ? device.h : eh;
     const fit = Math.min(1, Math.sqrt(PIXELS_MAX / Math.max(1, w0 * h0)));
-    const next = glassCover(
-      { width: Math.max(1, Math.round(w0 * fit)), height: Math.max(1, Math.round(h0 * fit)) },
-      1,
-      view_.angle ?? GLASS_ANGLE,
-      view_.shape ?? null
-    );
-    if (
-      geometry &&
-      window_ &&
-      geometry.width === next.geometry.width &&
-      geometry.angle === next.geometry.angle &&
-      geometry.shape === next.geometry.shape &&
-      window_.w === next.window.w &&
-      window_.h === next.window.h
-    )
-      return;
-    const g = next.geometry;
-    const win = next.window;
-    /* another angle or shape at the same size keeps the canvas and the textures: a canvas given its size again
-       throws its drawing buffer away, and the page waits on the compositor for the new one (about a tenth of a
-       second a turn of the angle, measured) */
-    const resized = !window_ || window_.w !== win.w || window_.h !== win.h;
-    const was = plan;
-    geometry = g;
-    window_ = win;
-    plan = glassPlan(g);
-    if (resized) {
-      canvas.width = win.w;
-      canvas.height = win.h;
-      gl.bindTexture(gl.TEXTURE_2D, mapTex);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, win.w, win.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const w = Math.max(1, Math.round(w0 * fit));
+    const h = Math.max(1, Math.round(h0 * fit));
+    drawing.recolor(glassColors(palette_));
+    if (drawing.layout(w, h, view_.angle ?? GLASS_ANGLE, view_.shape ?? null)) {
+      canvas.width = w;
+      canvas.height = h;
     }
-    baker.bake(g, win, mapTex);
-    if (!resized && was && was.fw === plan.fw && was.fh === plan.fh) {
-      recolor();
-      ready = true;
-      return;
-    }
-    for (let i = 0; i < 2; i++) {
-      gl.bindTexture(gl.TEXTURE_2D, fieldTex[i]);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA8,
-        plan.fw,
-        plan.fh,
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        null
-      );
-      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[i]);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fieldTex[i], 0);
-    }
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    taps.fill(0);
-    plan.taps.forEach(([o, w], i) => {
-      taps[2 * i] = o;
-      taps[2 * i + 1] = w;
-    });
-    recolor();
-    ready = true;
+    ready = drawing.ready();
   };
-  /** the frame at t, seconds of the loop at speed 1 */
-  const draw = (t: number) => {
-    if (!geometry || !window_ || !plan || !field) return;
-    const { region } = geometry;
-    const win = window_;
-    const q = plan.q;
-    for (let i = 0; i < field.discs.length; i++) {
-      glassDiscAt(geometry, field.discs[i], t, pos, 0);
-      data[7 * i] = (pos[0] - region.x) / q;
-      data[7 * i + 1] = (pos[1] - region.y) / q;
-    }
-    gl.bindBuffer(gl.ARRAY_BUFFER, inst);
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
-    /* the field */
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[0]);
-    gl.viewport(0, 0, plan.fw, plan.fh);
-    gl.clearColor(base[0], base[1], base[2], 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    gl.useProgram(pDisc);
-    gl.uniform2f(U.dField, plan.fw, plan.fh);
-    gl.bindVertexArray(discVao);
-    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, field.discs.length);
-    gl.disable(gl.BLEND);
-    /* the blur: across into the second texture, down back into the first */
-    gl.useProgram(pBlur);
-    gl.bindVertexArray(fullVao);
-    gl.uniform2fv(U.bTaps, taps);
-    gl.uniform1i(U.bSrc, 0);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[1]);
-    gl.bindTexture(gl.TEXTURE_2D, fieldTex[0]);
-    gl.uniform2f(U.bStep, 1 / plan.fw, 0);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[0]);
-    gl.bindTexture(gl.TEXTURE_2D, fieldTex[1]);
-    gl.uniform2f(U.bStep, 0, 1 / plan.fh);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    /* the glass */
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, win.w, win.h);
-    gl.useProgram(pFinal);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, mapTex);
-    gl.uniform1i(U.fMap, 0);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, fieldTex[0]);
-    gl.uniform1i(U.fField, 1);
-    gl.uniform1f(U.fH, win.h);
-    gl.uniform2f(U.fOrigin, region.x, region.y);
-    gl.uniform2f(U.fOffset, win.x, win.y);
-    gl.uniform2f(U.fInv, 1 / (q * plan.fw), 1 / (q * plan.fh));
-    gl.uniform1f(U.fScale, geometry.scale);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.activeTexture(gl.TEXTURE0);
-  };
+  const draw = (t: number) => drawing.draw(t);
 
   /* the clock: seconds of the loop at speed 1, advanced by the speed, so a change of speed never jumps. It starts once
      the first frame, the still's own, is drawn, and eases in from rest (warm) whenever the motion starts again */
@@ -428,7 +464,7 @@ export function playGlass(
         changed = true;
         wake();
       },
-      geometry ? SETTLE_MS : 0
+      ready ? SETTLE_MS : 0
     );
   });
   try {
@@ -464,9 +500,9 @@ export function playGlass(
         (view.angle ?? GLASS_ANGLE) !== (view_.angle ?? GLASS_ANGLE) ||
         (view.shape ?? 0) !== (view_.shape ?? 0);
       view_ = view;
-      /* another angle or shape turns the ribs or draws others: their map is baked again, the frame shown meanwhile */
+      /* another angle or shape turns the ribs or draws others: their map is baked again, in this frame */
       if (turned) resize();
-      if (glassColors(palette).join() !== colorsKey) recolor();
+      drawing.recolor(glassColors(palette));
       changed = true;
       wake();
     },

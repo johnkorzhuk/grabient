@@ -167,6 +167,19 @@
     inset: 0;
     border-radius: inherit;
   }
+  /* the still the GPU drew (GlassArt.tsx), over the box once it is there */
+  .glassArtCanvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    opacity: 0;
+    &[data-painted] {
+      opacity: 1;
+    }
+  }
   .glassStill {
     position: absolute;
     inset: 0;

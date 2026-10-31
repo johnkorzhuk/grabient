@@ -394,6 +394,8 @@ export function playBlob(
   const layout = (measure = true) => {
     if (measure) {
       const rect = canvas.getBoundingClientRect();
+      /* a canvas off the page or hidden has no box: it keeps the layout it had, for the box it comes back to */
+      if (!rect.width || !rect.height) return;
       const W = Math.max(1, rect.width);
       const H = Math.max(1, rect.height);
       const dpr = devicePixelRatio || 1;
