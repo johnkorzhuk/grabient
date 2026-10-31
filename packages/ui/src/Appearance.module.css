@@ -213,7 +213,9 @@
     line-height: calc(var(--font-fs3) * var(--font-lh-ui));
     text-align: center;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    /* a name longer than its picture is wide takes a second line rather than lose its end: "Fluted glass" and the
+       bands' names on a phone, and in some languages more */
+    text-wrap: balance;
     [aria-pressed="true"] > & {
       color: var(--color-ink);
     }
