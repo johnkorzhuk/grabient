@@ -1,0 +1,387 @@
+@layer components {
+  /* A palette's examples (ExamplesPage.tsx): the hero, the palette as a large background in its style with the code
+     that puts it there on a card of paper over it, then the examples, side by side where there is room and one under
+     another on a phone. */
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s12);
+    width: 100%;
+    min-width: 0;
+    padding-inline: var(--size-gutter);
+    padding-block: var(--space-s4) var(--space-s16);
+    @container page (max-width: 600px) {
+      gap: var(--space-s10);
+    }
+  }
+
+  .hero {
+    position: relative;
+    display: grid;
+    align-content: end;
+    justify-items: start;
+    min-height: clamp(460px, 74vh, 780px);
+    padding: var(--space-s8);
+    border-radius: var(--radius-surface);
+    overflow: hidden;
+    isolation: isolate;
+    @container page (max-width: 600px) {
+      min-height: 0;
+      padding: 0;
+      /* on a phone the picture stands above the card, a screen tall at most */
+      grid-template-rows: min(62vh, 520px) auto;
+      align-content: start;
+      border-radius: var(--radius-surface);
+    }
+  }
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    /* the palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
+    @container page (max-width: 600px) {
+      position: relative;
+      inset: auto;
+      grid-row: 1;
+      border-radius: var(--radius-surface);
+      overflow: hidden;
+    }
+  }
+  .fill {
+    position: absolute;
+    inset: 0;
+  }
+  /* the effect: its still, painted by the server in the first paint, and the player's canvas over it once its first
+     frame is drawn, which is the still's */
+  .effect {
+    position: absolute;
+    inset: 0;
+  }
+  .still,
+  .canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .canvas {
+    opacity: 0;
+  }
+  .effect[data-covered] > .canvas {
+    opacity: 1;
+  }
+  /* the blob's canvas is clear around the blob: it and its still change places */
+  .effect[data-kind="blob"][data-covered] > .still {
+    opacity: 0;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    width: min(100%, 620px);
+    min-width: 0;
+    padding: var(--space-s6);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-surface);
+    background: var(--color-paper-solid);
+    box-shadow: 0 18px 48px -24px var(--color-shadow);
+    @container page (max-width: 600px) {
+      grid-row: 2;
+      width: 100%;
+      padding: var(--space-s5) 0 0;
+      border: 0;
+      background: none;
+      box-shadow: none;
+    }
+  }
+  .kicker {
+    margin: 0;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs1);
+    line-height: var(--font-lh-ui);
+    letter-spacing: var(--font-ls-wide);
+    text-transform: uppercase;
+  }
+  .title {
+    margin: 0;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs6);
+    line-height: var(--font-lh-tight);
+    letter-spacing: var(--font-ls-title);
+    overflow-wrap: anywhere;
+  }
+  .note {
+    margin: 0;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-prose);
+  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--space-s2);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    text-decoration: underline;
+    text-decoration-color: var(--color-edge2);
+    text-underline-offset: 3px;
+    &:hover {
+      text-decoration-color: currentColor;
+    }
+    &:focus-visible {
+      outline: 1px solid var(--color-ring);
+      outline-offset: 2px;
+      border-radius: var(--radius-tight);
+    }
+  }
+
+  /* a block of code, and its Copy at its foot with whatever else takes the example */
+  .takes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s2);
+  }
+  .code {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-s3);
+    min-width: 0;
+    & pre {
+      width: 100%;
+      max-height: 15em;
+      margin: 0;
+      padding: var(--space-s4) var(--space-s5);
+      overflow: auto;
+      border-radius: var(--radius-control);
+      background: var(--color-paper2);
+      color: var(--color-ink2);
+      font-family: var(--font-mono);
+      font-size: var(--font-fs1);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      tab-size: 2;
+    }
+  }
+
+  .examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: var(--space-s10) var(--space-s8);
+    min-width: 0;
+    /* an effect's examples two by two, the wide ones across */
+    &[data-pairs] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      @container page (max-width: 760px) {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  }
+  .example {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    min-width: 0;
+    margin: 0;
+    &[data-wide] {
+      grid-column: 1 / -1;
+    }
+  }
+  /* where an example stands: its picture centered on the sheet's second paper */
+  .stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 3;
+    padding: var(--space-s6);
+    border-radius: var(--radius-surface);
+    background: var(--color-paper2);
+    overflow: hidden;
+    forced-color-adjust: none;
+  }
+  .example[data-wide] .stage {
+    aspect-ratio: auto;
+    min-height: 360px;
+  }
+  .caption {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s1);
+    min-width: 0;
+  }
+  .name {
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-ui);
+  }
+  .about {
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-prose);
+  }
+
+  /* each gradient style as the background of a shape it suits */
+  .shape {
+    display: block;
+    border-radius: var(--radius-surface);
+    box-shadow: 0 10px 30px -18px var(--color-shadow);
+    &[data-style="linearGradient"] {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+    }
+    &[data-style="linearSwatches"] {
+      width: 100%;
+      aspect-ratio: 3 / 1;
+      border-radius: var(--radius-control);
+    }
+    &[data-style="angularGradient"],
+    &[data-style="angularSwatches"],
+    &[data-style="radialGradient"],
+    &[data-style="radialSwatches"] {
+      height: 82%;
+      aspect-ratio: 1;
+      border-radius: var(--radius-circle);
+    }
+  }
+
+  /* the effect behind a card: its picture fills the card, and over it the card's own matter on paper */
+  .card {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    width: min(100%, 720px);
+    aspect-ratio: 16 / 9;
+    padding: var(--space-s6);
+    border-radius: var(--radius-surface);
+    overflow: hidden;
+    box-shadow: 0 24px 60px -30px var(--color-shadow);
+    isolation: isolate;
+  }
+  .cardBody {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    width: min(100%, 300px);
+    padding: var(--space-s5);
+    border-radius: var(--radius-surface);
+    background: var(--color-paper-solid);
+  }
+  .cardLine {
+    display: block;
+    width: 80%;
+    height: 10px;
+    border-radius: var(--radius-circle);
+    background: var(--color-ink);
+    opacity: 0.85;
+    &[data-short] {
+      width: 55%;
+      opacity: 0.35;
+    }
+  }
+  .cardPress {
+    display: block;
+    width: 96px;
+    height: 28px;
+    margin-top: var(--space-s2);
+    border-radius: var(--radius-control);
+    background: var(--color-ink);
+  }
+
+  /* a phone, its screen the wallpaper */
+  .phone {
+    position: relative;
+    height: 100%;
+    aspect-ratio: 1080 / 2340;
+    border: 5px solid var(--color-ink);
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px -22px var(--color-shadow);
+    background: var(--color-ink);
+  }
+  .stage:has(.phone) {
+    aspect-ratio: 4 / 3;
+    padding-block: var(--space-s5);
+  }
+
+  /* the effect inside a headline's letters: its still at rest (the holder's background, which the server paints), its
+     moving SVG under the pointer; the clip is inline, over the still's rule */
+  .headline {
+    margin: 0;
+    padding-block: 0.06em;
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: clamp(44px, 7.4vw, 120px);
+    line-height: 1;
+    letter-spacing: -0.035em;
+    text-align: center;
+    text-wrap: balance;
+    color: transparent;
+  }
+  .example[data-wide] .stage:has(.headline) {
+    min-height: 300px;
+    background: var(--color-paper-solid);
+    border: 1px solid var(--color-edge);
+  }
+
+  /* a desktop: its screen the wallpaper, on a stand */
+  .desktop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 86%;
+  }
+  .screen {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 5px solid var(--color-ink);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--color-ink);
+    box-shadow: 0 18px 40px -22px var(--color-shadow);
+  }
+  .desktop::after {
+    content: "";
+    display: block;
+    width: 22%;
+    height: 14px;
+    border-radius: 0 0 6px 6px;
+    background: var(--color-ink);
+    opacity: 0.85;
+  }
+
+  /* the picture a link shows, as a chat draws it */
+  .preview {
+    width: min(100%, 640px);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-control);
+    overflow: hidden;
+    background: var(--color-paper-solid);
+    & img {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1200 / 630;
+    }
+  }
+}

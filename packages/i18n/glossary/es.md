@@ -10,7 +10,7 @@ The reader is addressed as **tú**. Read the English list in `README.md` first; 
 | Grabient | Grabient | Never translated. |
 | palette | paleta (f.) | "paleta de colores" in titles and descriptions, the phrase people search for. |
 | gradient | degradado (m.) | "degradado CSS", "generador de degradados", as in Photoshop and Canva. Not "gradiente". |
-| effect | efecto, efectos | La franja «Efectos» de la hoja del editor: vidrio acanalado y mancha. |
+| effect | efecto, efectos | Los estilos animados del menú «Apariencia»: vidrio acanalado y mancha. |
 | swatches | muestras | Only where the English says swatches ("muestras lineales" in page titles, "Muestras {name}"). |
 | Swatches (the strip's swatch files) | Muestras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Cambiar a muestras. |
 | bands / hard bands (the swatch styles) | franjas / franjas nítidas | The style names: "Franjas lineales", "Franjas angulares", "Franjas radiales". Kept apart from "Bandas", the curation fault (banding). |

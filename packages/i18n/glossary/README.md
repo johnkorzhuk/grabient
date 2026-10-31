@@ -12,7 +12,7 @@ product word gets its translation. Consistency matters more than any single choi
 | Grabient | The product. Never translated, never transliterated. |
 | palette | The thing Grabient makes: a sequence of colors along a smooth curve, drawn as a gradient or as swatches. The main noun of the product. |
 | gradient | A smooth color transition, and a palette drawn that way ("CSS gradient", "linear gradient"). |
-| effect | A palette played as something other than a gradient, which moves: fluted glass or a blob. The editor sheet's band "Effects". |
+| effect | A palette played as something other than a gradient, which moves: fluted glass or a blob, the animated styles of the Appearance menu. |
 | swatches | A palette drawn as hard bands of its colors instead of a smooth blend (a style: "Linear swatches"). |
 | Swatches (the strip's mode) | The swatch files design apps import: Tokens, ASE, GPL and GRD. Named as a design app's Swatches panel is, apart from the hard-band style. |
 | style | How a palette is drawn: linear, angular or radial, each as a gradient or as swatches. |

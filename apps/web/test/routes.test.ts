@@ -96,6 +96,7 @@ test("a script names an effect: a seed alone, or an old id, is no script", async
 test("an address without a suffix is still its page's", () => {
   const page = (path: string) => router.getMatchedRoutes(path)[2]?.fullPath;
   expect(page("/kS7Q8Yy5S_SChv0")).toBe("/$id/");
+  expect(page("/kS7Q8Yy5S_SChv0/examples")).toBe("/$id/examples");
   expect(page("/ocean-gradients")).toBe("/$id/");
   expect(page("/@ada/warm-sunsets")).toBe("/@{$handle}/$slug/");
   expect(page("/palettes")).toBe("/palettes/{-$order}/{-$frame}");

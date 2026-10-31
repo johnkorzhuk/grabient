@@ -9,7 +9,7 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | Grabient | Grabient | Never translated or transliterated. |
 | palette | палітра | Plural палітри, genitive plural палітр. |
 | gradient | градієнт | "CSS gradient" is CSS-градієнт (hyphen, as the orthography writes PDF-файл; search engines match it to "css градієнт"). "Gradient palettes" is градієнтні палітри. |
-| effect | ефект, ефекти | Смуга «Ефекти» на аркуші редактора: рифлене скло і крапля. |
+| effect | ефект, ефекти | Анімовані стилі в меню «Вигляд»: рифлене скло і крапля. |
 | color palette | палітра кольорів | The phrase Ukrainian searchers type; used in titles and descriptions. |
 | swatches | зразки | As Photoshop's Swatches panel is Зразки. Style names: лінійні / кутові / радіальні зразки. The style menu's "bands" is смуги (Лінійні смуги). |
 | Swatches (the strip's swatch files) | Зразки | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Перемкнути на зразки. |

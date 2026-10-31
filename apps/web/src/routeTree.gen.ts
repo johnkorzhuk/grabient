@@ -27,6 +27,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as IdIndexRouteImport } from './routes/$id/index'
 import { Route as IdEditRouteImport } from './routes/$id/edit'
+import { Route as IdExamplesRouteImport } from './routes/$id/examples'
 import { Route as IdRisingRouteImport } from './routes/$id/rising'
 import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as DotwellKnownAiCatalogDotjsonRouteImport } from './routes/[.]well-known/ai-catalog[.]json'
@@ -214,6 +215,11 @@ const IdIndexRoute = IdIndexRouteImport.update({
 const IdEditRoute = IdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IdExamplesRoute = IdExamplesRouteImport.update({
+  id: '/$id/examples',
+  path: '/$id/examples',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IdRisingRoute = IdRisingRouteImport.update({
@@ -764,6 +770,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
+  '/$id/examples': typeof IdExamplesRoute
   '/$id/rising': typeof IdRisingRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
@@ -882,6 +889,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
+  '/$id/examples': typeof IdExamplesRoute
   '/$id/rising': typeof IdRisingRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
@@ -1001,6 +1009,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
+  '/$id/examples': typeof IdExamplesRoute
   '/$id/rising': typeof IdRisingRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
@@ -1121,6 +1130,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
+    | '/$id/examples'
     | '/$id/rising'
     | '/.well-known/$'
     | '/.well-known/ai-catalog.json'
@@ -1239,6 +1249,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
+    | '/$id/examples'
     | '/$id/rising'
     | '/.well-known/$'
     | '/.well-known/ai-catalog.json'
@@ -1357,6 +1368,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
+    | '/$id/examples'
     | '/$id/rising'
     | '/.well-known/$'
     | '/.well-known/ai-catalog.json'
@@ -1476,6 +1488,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   IdEditRoute: typeof IdEditRoute
+  IdExamplesRoute: typeof IdExamplesRoute
   IdRisingRoute: typeof IdRisingRoute
   DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
   DotwellKnownAiCatalogDotjsonRoute: typeof DotwellKnownAiCatalogDotjsonRoute
@@ -1703,6 +1716,13 @@ declare module '@tanstack/solid-router' {
       path: '/$id/edit'
       fullPath: '/$id/edit'
       preLoaderRoute: typeof IdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$id/examples': {
+      id: '/$id/examples'
+      path: '/$id/examples'
+      fullPath: '/$id/examples'
+      preLoaderRoute: typeof IdExamplesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$id/rising': {
@@ -2412,6 +2432,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   IdEditRoute: IdEditRoute,
+  IdExamplesRoute: IdExamplesRoute,
   IdRisingRoute: IdRisingRoute,
   DotwellKnownSplatRoute: DotwellKnownSplatRoute,
   DotwellKnownAiCatalogDotjsonRoute: DotwellKnownAiCatalogDotjsonRoute,

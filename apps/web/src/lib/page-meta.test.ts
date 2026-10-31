@@ -1,4 +1,5 @@
 import { decodePalette } from "@grabient/engine";
+import { parseEffect } from "@grabient/engine/effect.ts";
 import { parseView } from "@grabient/engine/view.ts";
 import {
   addCatalog,
@@ -18,6 +19,7 @@ import {
   aboutCard,
   clipWords,
   DESCRIPTION_MAX,
+  examplesPath,
   heading,
   headOf,
   type Page,
@@ -910,4 +912,46 @@ test("every kind of page, in every language, fits its description in 160 charact
     }
   }
   expect(kinds.size).toBe(21);
+});
+
+describe("a palette's examples", () => {
+  const examples = (address: string) => {
+    const url = new URL(address, PRODUCTION_ORIGIN);
+    const seed = url.pathname.split("/")[1];
+    const palette = decodePalette(seed);
+    if (!palette) throw new Error(address);
+    const parsed = parseView(url.searchParams);
+    const view = { ...parsed, steps: Math.max(parsed.steps, palette.anchors.length) };
+    return pageMeta(
+      { kind: "examples", seed, view, effect: parseEffect(url.searchParams) },
+      PRODUCTION_ORIGIN
+    );
+  };
+
+  test("stand at the palette's address and /examples, in the style it shows, and are not indexed", () => {
+    const linear = examples("/kS7Q8Yy5S_SChv0/examples?style=linearSwatches&steps=9&size=800x400");
+    expect(linear.canonical).toBe(
+      "https://grabient.com/kS7Q8Yy5S_SChv0/examples?style=linearSwatches&steps=9"
+    );
+    expect(linear.robots).toBe("noindex,follow");
+    expect(linear.title).toMatch(/^.+ examples \| Grabient$/);
+    expect(linear.description).toMatch(
+      /^Ways to use the .+ palette, each with the code that does it\.$/
+    );
+    const glass = examples("/kS7Q8Yy5S_SChv0/examples?style=glass&angle=151&speed=2.45&steps=9");
+    expect(glass.canonical).toBe(
+      "https://grabient.com/kS7Q8Yy5S_SChv0/examples?style=glass&angle=151&speed=2.45"
+    );
+    expect(glass.image).toMatch(/style=glass/);
+  });
+
+  test("are the address the editor's sheet leads to", () => {
+    expect(
+      examplesPath("kS7Q8Yy5S_SChv0", { style: "radialGradient", steps: 7, angle: 90 }, null)
+    ).toBe("/kS7Q8Yy5S_SChv0/examples?style=radialGradient");
+    const blob = parseEffect(new URLSearchParams("style=blob&speed=0.5"));
+    expect(
+      examplesPath("kS7Q8Yy5S_SChv0", { style: "linearGradient", steps: 7, angle: 90 }, blob)
+    ).toBe("/kS7Q8Yy5S_SChv0/examples?style=blob&speed=0.5");
+  });
 });

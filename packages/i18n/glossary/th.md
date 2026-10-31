@@ -45,7 +45,7 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | Grabient | Grabient | Never translated or transliterated. |
 | palette | พาเลตต์ | The main noun. พาเลตต์สี in titles, descriptions and alt text, where the page is found by it. Not จานสี, which reads as a painter's plate, and not the casual spelling พาเลท. |
 | gradient | ไล่เฉดสี | The noun and the effect (Thai Canva and design tutorials say ไล่สี or ไล่เฉดสี, often with "Gradient" beside it). The drawn picture is ภาพไล่เฉดสี. "CSS gradient" stays in English beside it in descriptions, since Thai searchers type it that way. Kept over ไล่ระดับสี; Thai designers do not read ไล่เฉดสี as a hue term. |
-| effect | เอฟเฟกต์ | แถบ "เอฟเฟกต์" ในชีตของตัวแก้ไข: กระจกลายริ้วและบลอบ |
+| effect | เอฟเฟกต์ | สไตล์เคลื่อนไหวในเมนู "การแสดงผล": กระจกลายริ้วและบลอบ |
 | linear / angular / radial (style names) | เชิงเส้น / เชิงมุม / รัศมี | The usual Thai names for gradient types (เชิงเส้น, รัศมี); เชิงมุม follows Figma's Angular. In a phrase: ไล่เฉดสีเชิงเส้น, ไล่เฉดสีเชิงมุม, ไล่เฉดสีแบบรัศมี. |
 | swatches, bands | แถบสี | A palette drawn as hard bands: แถบสีเชิงเส้น, แถบสีเชิงมุม, แถบสีรัศมี. A single hard band is แถบ. |
 | Swatches (the strip's swatch files) | ตัวอย่างสี | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": เปลี่ยนเป็นตัวอย่างสี. |

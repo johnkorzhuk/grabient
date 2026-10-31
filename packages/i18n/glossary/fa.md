@@ -11,7 +11,7 @@ and add a row when a new product word gets its translation. Persian reads right 
 | Grabient | Grabient | Never translated or transliterated, always in Latin script. |
 | palette | پالت | Plural پالت‌ها. A noun after a number stays singular (`7 پالت`), so both plural cases are the same words. In page titles and descriptions "color palette" is پالت رنگ, the phrase Persian searchers type. |
 | gradient | گرادیان | "CSS gradient" is گرادیان CSS. "Gradient generator" in a title is ساخت گرادیان (the search phrase). Tutorials also say گرادینت, but گرادیان is the standard written form. |
-| effect | افکت، افکت‌ها | نوار «افکت‌ها» در برگهٔ ویرایشگر: شیشه شیاردار و لکه. |
+| effect | افکت، افکت‌ها | سبک‌های متحرک در منوی «ظاهر»: شیشه شیاردار و لکه. |
 | swatches | نوارهای رنگی | Judgment: نمونه‌رنگ is a swatch in a design tool's swatch panel, not a palette drawn as hard bands. The style menu's "bands" is the same word: نوارهای خطی، نوارهای زاویه‌ای، نوارهای شعاعی. |
 | Swatches (the strip's swatch files) | نمونه‌رنگ‌ها | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": تغییر به نمونه‌رنگ‌ها. |
 | hard band | نوار لبه‌تیز | |

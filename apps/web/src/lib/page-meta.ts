@@ -1,5 +1,5 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
-import { type Effect, effectLookParts } from "@grabient/engine/effect.ts";
+import { type Effect, effectAddressParts, effectLookParts } from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
@@ -127,6 +127,13 @@ export type Page = Facts &
         collection?: CollectionFacts;
       }
     | {
+        /** a palette's examples, in the style its address names */
+        kind: "examples";
+        seed: string;
+        view: View;
+        effect: Effect | null;
+      }
+    | {
         kind: "palette";
         seed: string;
         palette: Palette;
@@ -222,6 +229,44 @@ export function effectCard(seed: string, effect: Effect, angle: number): string 
   const parts = [`style=${effect.kind}`, ...turned, ...effectLookParts(effect)];
   return `/api/og?seed=${seed}&v=${CARD_VERSION}&${parts.join("&")}`;
 }
+/** A palette's examples (routes/$id/examples.tsx): kept out of the index, since what it says is the palette's own page's
+    and the code any palette takes; its card is the palette's in the style it shows. Its address is the palette's plus
+    /examples, with the view's query or the effect's. */
+/** A palette's examples page (routes/$id/examples.tsx): its address and /examples, then the style it shows, a
+    gradient's view or an effect's address, as the palette's own page names them, with no size. */
+export function examplesPath(
+  seed: string,
+  view: Pick<View, "style" | "steps" | "angle">,
+  effect: Effect | null
+): string {
+  const query = effect
+    ? `?${effectAddressParts(effect, view.angle).join("&")}`
+    : viewSearch({ style: view.style, steps: view.steps, angle: view.angle });
+  return `/${seed}/examples${query}`;
+}
+
+function examplesPage(
+  page: Extract<Page, { kind: "examples" }>,
+  meta: PageMeta,
+  origin: string
+): string {
+  const P = decodePalette(page.seed);
+  const name = P ? paletteName(P, page.view) : page.seed;
+  meta.title = titled(t("{name} examples", { name }));
+  meta.description = t("Ways to use the {name} palette, each with the code that does it.", {
+    name
+  });
+  meta.robots = "noindex,follow";
+  meta.image = absolute(
+    page.effect
+      ? effectCard(page.seed, page.effect, page.view.angle)
+      : paletteCard(page.seed, page.view),
+    origin
+  );
+  meta.imageAlt = t("{name} color palette", { name });
+  return examplesPath(page.seed, page.view, page.effect);
+}
+
 /** A palette's own picture beside its page, in a view: a fixed size is the file's `w` and `h`. The PNG is the one its
     page shows an image search and its sitemap entry names. */
 export function paletteFile(seed: string, view: View, type: "png" | "svg"): string {
@@ -952,6 +997,9 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
   switch (page.kind) {
     case "palette":
       path = palettePage(page, meta, origin);
+      break;
+    case "examples":
+      path = examplesPage(page, meta, origin);
       break;
     case "collection": {
       path = `/${page.slug}${page.order === "rising" ? "/rising" : ""}`;

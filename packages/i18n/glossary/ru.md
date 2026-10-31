@@ -28,7 +28,7 @@ How Russian says Grabient's own words. Read `README.md` first for what each word
 | Grabient | Grabient | Never transliterated. |
 | palette | палитра | |
 | gradient | градиент | «CSS градиент», «линейный градиент». |
-| effect | эффект, эффекты | Полоса «Эффекты» на листе редактора: рифлёное стекло и капля. |
+| effect | эффект, эффекты | Анимированные стили в меню «Оформление»: рифлёное стекло и капля. |
 | swatches (a style) | полосы, секторы, кольца | Named by what each draws: hard bands, wedges, rings. The style picker's tiles are narrow on a phone, and «Радиальные полосы» did not fit where "Radial bands" does, so Linear bands, Angular bands and Radial bands are «Полосы», «Секторы», «Кольца». In page titles the swatch styles are «цветовые полосы», «цветовые секторы», «цветовые кольца»; a card drawn as swatches is «Цветовые полосы «{name}»». «Образцы» (Adobe's Swatches panel) reads as color samples, not bands. |
 | Swatches (the strip's swatch files) | Образцы | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Переключить на образцы. |
 | style | стиль | Gradient styles: «Линейный», «Угловой» (Photoshop's name for the angle gradient), «Радиальный». |

@@ -9,7 +9,7 @@ The product's words in Korean, as Korean designers meet them in Figma, Adobe and
 | Grabient | Grabient | Never transliterated. Takes the particles of 그래비언트 (ends in a vowel): Grabient는, Grabient가, Grabient를, Grabient로. |
 | palette | 팔레트 | |
 | gradient | 그라데이션 | What Korean designers say and search ("CSS 그라데이션", "그라데이션 생성기"). Not 그레이디언트 (Adobe's and the standard spelling) nor 그라디언트 (developer usage). |
-| effect | 효과 | 편집기 시트의 '효과' 영역: 플루티드 유리와 블롭. |
+| effect | 효과 | '모양' 메뉴의 움직이는 스타일: 플루티드 유리와 블롭. |
 | color palette | 색상 팔레트 | The searched term. 색상 means "color" here, which is why hue is 색조 (below). |
 | gradient generator | 그라데이션 생성기 | Page titles and descriptions. |
 | swatches | 스와치 | Style names in titles: 선형 스와치, 원뿔형 스와치, 방사형 스와치; "{name} 스와치". |

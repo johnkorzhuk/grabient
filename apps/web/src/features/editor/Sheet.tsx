@@ -28,13 +28,14 @@ import { engaged } from "../../app/engaged.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
-import { heading, relTo } from "../../lib/page-meta.ts";
+import { examplesPath, heading, relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
 import { account } from "../account/session.ts";
 import { accountView } from "../account/state.ts";
 import { collectionHref } from "../collections/address.ts";
+import { ExamplesLink } from "../examples/ExamplesLink.tsx";
 import { askCredit, creditName, creditOf, creditWords } from "../gallery/credit.ts";
 import { relativeAge } from "../gallery/drawing.ts";
 import { inPlace } from "../gallery/feed.ts";
@@ -98,9 +99,8 @@ type OwnWords = typeof import("./Collect.tsx").ownWords;
 const AddToCollection = lazy(() =>
   import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
 );
-/* the effects' pictures and their band load with the sheet's first need of them, never with the page */
+/* the effects' pictures load with the sheet's first need of them, never with the page */
 const EffectArt = lazy(() => import("./EffectArt.tsx").then(m => ({ default: m.EffectArt })));
-const EffectsBand = lazy(() => import("./EffectsBand.tsx").then(m => ({ default: m.EffectsBand })));
 
 /** The reader's own text colors for the contrast grid, kept in this browser, written once they rest. */
 function createInks() {
@@ -612,13 +612,7 @@ export function Sheet(props: {
       }
       inks={inks()}
       onInks={setInks}
-      effects={
-        e.effects.kind() === null && (
-          <Loading>
-            <EffectsBand editor={e} taken={props.taken} used={props.used} />
-          </Loading>
-        )
-      }
+      examples={<ExamplesLink href={examplesPath(e.seed(), view(), e.effect())} />}
       solid={
         figured() && (
           <SolidPane

@@ -27,11 +27,12 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      their settings in the address, the menu's tiles, the header's still) took it from 347.8 KB to 351.7 on 30 Oct
      2026; their drawing, players and fields load when the menu opens or an effect plays. The sheet's cards drawing the
      effect the page plays, and its band of effects while a gradient shows, took it to 355.2 on 31 Oct 2026: what is
-     here is the cards' picture slot and the sheet's switches, the pictures and the band load as the sheet needs them */
+     here is the cards' picture slot and the sheet's switches, the pictures load as the sheet needs them. The band gave
+     way to the row that leads to the palette's examples (/{seed}/examples), whose route and head took it to 356.1 */
   "a palette": {
     route: "src/routes/$id/index.tsx",
     also: ["src/features/editor/Editor.tsx", "src/features/editor/Sheet.tsx"],
-    budget: 356
+    budget: 357
   },
   "/newsletter": { route: "src/routes/newsletter.tsx", budget: 225 },
   "/about": { route: "src/routes/about.tsx", budget: 250 }
@@ -41,8 +42,8 @@ const EVERY_PAGE = ["src/app/tab-icon.ts"];
 
 const BUDGETS = {
   // the blob's controls and a collection's For the bots section (its bot, its picture and its strip) took the one
-  // stylesheet from 28.8 KB to 29.1 on 30 Oct 2026
-  stylesheet: 30,
+  // stylesheet from 28.8 KB to 29.1 on 30 Oct 2026; a palette's examples page (features/examples) to 30.6 on 31 Oct
+  stylesheet: 31,
   onDemand: 12,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,
