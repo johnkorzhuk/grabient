@@ -31,12 +31,11 @@ import { seedAddress } from "./address.ts";
    place as the mode turns, so only the first chip changes. */
 export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
-/** While an effect plays, Copy also hands over the two tags that play it behind a page (HTML), and Copy link the
-    addresses of its files: the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the script
-    that plays it (server/files/effect-files.ts, embed.ts). */
-export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html"];
-/** While the glass plays, Copy also hands Figma the glass as its own layers (engine/figma-paste.ts). */
-export const STRIP_GLASS_COPY: readonly Format[] = [...STRIP_EFFECT_COPY, "figma"];
+/** While an effect plays, Copy also hands over the two tags that play it behind a page (HTML) and the effect as
+    Figma's own layers (engine/figma-glass.ts, figma-blob.ts), and Copy link the addresses of its files: the
+    stylesheet of its first frame, its moving SVG, its first frame as PNG, and the script that plays it
+    (server/files/effect-files.ts, embed.ts). */
+export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html", "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
@@ -192,25 +191,34 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
   if (!(await copyImage(png))) throw new Error(NO_IMAGE_CLIPBOARD);
 }
 
+/* The effect as Figma's own layers at the pixels taken, its first frame, the frame named for the palette: each
+   effect's code comes on the press, and the Worker's build carries none of it */
+const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
+  const frame = { width: p.pixels.width, height: p.pixels.height, name: p.name || "Grabient" };
+  if (effect.kind === "blob") {
+    const { figmaBlobHtml } = await (import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/engine/figma-blob.ts"));
+    return figmaBlobHtml({
+      palette: decodePalette(p.seed)!,
+      angle: p.angle,
+      ...effect.look,
+      ...frame
+    });
+  }
+  const { figmaGlassHtml } = await (import.meta.env.SSR
+    ? (new Promise(() => {}) as never)
+    : import("@grabient/engine/figma-glass.ts"));
+  return figmaGlassHtml({ colors: colorsOf(p), angle: p.angle, shape: shapeOf(p), ...frame });
+};
+
 /** The format onto the clipboard. */
 export async function copyFormat(f: Format, p: Taken): Promise<void> {
   if (isSwatchFormat(f))
     return copySwatches(names => swatchFile(f, [swatchesOf({ seed: p.seed, ...view(p) }, names)]));
   if (f === "png") return writeImage(pngOf(p));
-  if (f === "figma" && p.effect?.kind === "glass") {
-    /* the browser's alone: the Worker's build carries none of it */
-    const { figmaGlassHtml } = await (import.meta.env.SSR
-      ? (new Promise(() => {}) as never)
-      : import("@grabient/engine/figma-paste.ts"));
-    const html = figmaGlassHtml({
-      colors: colorsOf(p),
-      angle: p.angle,
-      shape: shapeOf(p),
-      width: p.pixels.width,
-      height: p.pixels.height,
-      name: p.name || "Grabient"
-    });
-    if (!(await copyHtml(html))) throw new Error("Couldn't copy.");
+  if (f === "figma" && p.effect) {
+    if (!(await copyHtml(await figmaHtml(p, p.effect)))) throw new Error("Couldn't copy.");
     return;
   }
   if (f === "html" && p.effect)

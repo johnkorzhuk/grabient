@@ -78,7 +78,6 @@ import {
   STRIP_EFFECT_COPY,
   STRIP_EFFECT_LINKS,
   STRIP_FILES,
-  STRIP_GLASS_COPY,
   saveFormat,
   type Taken
 } from "./formats.ts";
@@ -835,13 +834,7 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={
-              e.effect()?.kind === "glass"
-                ? STRIP_GLASS_COPY
-                : e.effect()
-                  ? STRIP_EFFECT_COPY
-                  : STRIP_COPY
-            }
+            copy={e.effect() ? STRIP_EFFECT_COPY : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={e.effect() ? STRIP_EFFECT_LINKS : STRIP_FILES}
