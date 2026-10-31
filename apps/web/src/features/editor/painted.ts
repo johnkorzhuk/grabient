@@ -47,6 +47,34 @@ export function stillPainted(): Promise<void> {
   return painted;
 }
 
+/** The element timing name of a small picture's holder (GlassArt.tsx): a menu's tile, the header's swatch, a card. */
+export const TILE_TIMING = "effect-tile";
+
+/** Done once the browser reports `el`, which carries an element timing name, painted, or after `cap` ms: what the GPU
+    paints as a menu opens (its tiles' filters) holds a context made meanwhile as the page's start does. At once where
+    the browser reports no element timing. */
+export function elementPainted(el: Element, cap: number): Promise<void> {
+  if (
+    typeof PerformanceObserver === "undefined" ||
+    !PerformanceObserver.supportedEntryTypes?.includes("element")
+  )
+    return Promise.resolve();
+  return new Promise<void>(resolve => {
+    let timer = 0;
+    const observer = new PerformanceObserver(list => {
+      for (const entry of list.getEntries() as unknown as ElementTiming[])
+        if (entry.element === el) return done();
+    });
+    const done = () => {
+      observer.disconnect();
+      clearTimeout(timer);
+      resolve();
+    };
+    timer = window.setTimeout(done, cap);
+    observer.observe({ type: "element", buffered: true });
+  });
+}
+
 /* a PerformanceElementTiming entry, which TypeScript's DOM types do not carry */
 interface ElementTiming {
   identifier: string;

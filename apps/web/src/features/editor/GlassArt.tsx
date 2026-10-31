@@ -7,6 +7,8 @@ import { gpuStill, loadGpuStill, loadStill, serverStill, stillUri } from "./glas
     frame. A change after a rest is drawn at once; while the hand moves, at most once in this, and the last change once
     it rests. The big picture shows every change. */
 const REST_MS = 120;
+/** How long a picture shown waits for its first paint before the GPU's still is made ready. */
+const TILE_WAIT_MS = 1000;
 
 /** The fluted glass's still as a small picture filling its box: the Appearance menu's tile, the header's swatch and a
     card's picture. The server's still where it is this one (the head's style paints any holder that names it),
@@ -44,6 +46,8 @@ export function GlassArt(props: {
   let drawnAt = Number.NEGATIVE_INFINITY;
   /* the GPU drew nothing here once: the SVG from then on */
   let noGpu = false;
+  /* the GPU's still asked for, ahead of a change */
+  let warming = false;
   const draw = (colors: readonly string[], angle: number, shape: number | null, named: string) => {
     if (key() !== named) return;
     if (!noGpu) {
@@ -89,8 +93,15 @@ export function GlassArt(props: {
         return;
       }
       /* the GPU's still code, and its canvas as the page idles, once a page shows the glass and before a change asks
-         for a still: a tile in a menu still closed asks for nothing */
-      void loadGpuStill().catch(() => {});
+         for a still: a tile in a menu still closed asks for nothing, and an open menu's tile waits for its first paint,
+         which a context made meanwhile would wait on (painted.ts) */
+      if (!warming && !import.meta.env.SSR) {
+        warming = true;
+        void import("./painted.ts")
+          .then(p => p.elementPainted(el, TILE_WAIT_MS))
+          .then(loadGpuStill)
+          .catch(() => {});
+      }
       const { named, colors, angle, shape } = next;
       const was = away;
       away = false;
@@ -111,6 +122,8 @@ export function GlassArt(props: {
     <span
       ref={el}
       class={styles.glassArt}
+      /* painted.ts's TILE_TIMING: the GPU's still is made ready once the browser has painted this */
+      elementtiming="effect-tile"
       data-glass-still={showing() ?? key()}
       style={{ background: uri() ? `url("${uri()}") 50% 50% / cover no-repeat` : undefined }}
     >
