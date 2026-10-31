@@ -56,6 +56,10 @@ test("an address's animation: speed, frost, shape, ground, angle and frames a se
   expect(read("speed=20&frost=3")).toMatchObject({ speed: 10, frost: 2 });
   expect(read("speed=0.755&frost=0.333")).toMatchObject({ speed: 0.76, frost: 0.33 });
   expect(read("shape=7&angle=45")).toMatchObject({ shape: 7, angle: 45 });
+  // a shape is 0 to 999: a longer number is none, never folded into another shape
+  expect(read("shape=0").shape).toBe(0);
+  expect(read("shape=999").shape).toBe(999);
+  expect(read("shape=1000").shape).toBeNull();
   expect(read("shape=12345").shape).toBeNull();
   expect(read("shape=x").shape).toBeNull();
   expect(read("angle=400").angle).toBe(90);

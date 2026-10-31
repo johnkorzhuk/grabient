@@ -88,6 +88,9 @@ test.each([
   [`/${SEED}?style=glass&speed=99&fps=240`, `/${SEED}?style=glass&speed=10&fps=120`],
   [`/${SEED}?style=glass&shape=0`, `/${SEED}?style=glass`],
   [`/${SEED}?shape=12&style=glass`, `/${SEED}?style=glass&shape=12`],
+  // a shape is 0 to 999; a longer number names none, the glass as designed
+  [`/${SEED}?style=glass&shape=999`, `/${SEED}?style=glass&shape=999`],
+  [`/${SEED}?style=glass&shape=1000`, `/${SEED}?style=glass`],
   [`/${SEED}?style=glass&speed=0.04`, `/${SEED}?style=glass&speed=0.1`],
   [`/${SEED}?style=glass&size=400x300&lock=hue`, `/${SEED}?style=glass&size=400x300&lock=hue`],
   [`/${SEED}?speed=3&fps=24`, `/${SEED}`]
@@ -120,6 +123,13 @@ test("a blob always has a shape: the palette's own suggestion where its address 
   expect(page?.effect?.look.shape).toEqual(expect.any(Number));
   const shape = page?.effect?.look.shape;
   expect(canonicalSeedAddress(`/${SEED}?style=blob`)).toBe(`/${SEED}?style=blob&shape=${shape}`);
+  // a shape is 0 to 999: a longer number names none, so the palette's own suggestion
+  expect(canonicalSeedAddress(`/${SEED}?style=blob&shape=999`)).toBe(
+    `/${SEED}?style=blob&shape=999`
+  );
+  expect(canonicalSeedAddress(`/${SEED}?style=blob&shape=1000`)).toBe(
+    `/${SEED}?style=blob&shape=${shape}`
+  );
   // its old depth and fill are no more; its ground keeps its alpha
   expect(
     canonicalSeedAddress(

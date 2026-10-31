@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { blobStills } from "./blob-still.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
-const LOOK = { frost: 1, shape: 4242, bg: null } as const;
+const LOOK = { frost: 1, shape: 424, bg: null } as const;
 const page = (key: string) =>
   `<html><head><title>t</title></head><body><div class="b"><div class="s" data-blob-still="${key}"></div></div></body></html>`;
 
@@ -23,12 +23,14 @@ describe("a blob's still on its page", () => {
     for (const key of [
       "",
       "x",
-      `${SEED}|1|4242|`,
-      `${SEED}|1.000|4242||90`,
-      `${SEED}|1|4242|red|90`,
-      `${SEED}|1|4242||400`,
-      `${SEED}|1|4242||9.5`,
-      `<b>|1|4242||90`
+      `${SEED}|1|424|`,
+      `${SEED}|1.000|424||90`,
+      `${SEED}|1|424|red|90`,
+      `${SEED}|1|424||400`,
+      `${SEED}|1|424||9.5`,
+      `<b>|1|424||90`,
+      // a shape is 0 to 999
+      `${SEED}|1|4242||90`
     ])
       expect(readBlobStillKey(key)).toBeNull();
   });

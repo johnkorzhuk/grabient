@@ -31,7 +31,7 @@ export function readStillKey(
   return Number.isInteger(angle) &&
     angle >= 0 &&
     angle <= 360 &&
-    /^\d{1,4}$/.test(s ?? "") &&
+    /^\d{1,3}$/.test(s ?? "") &&
     colors.length >= 2 &&
     colors.every(c => /^#[0-9a-f]{6}$/.test(c))
     ? { angle, shape, colors }

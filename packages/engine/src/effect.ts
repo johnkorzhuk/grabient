@@ -2,9 +2,9 @@
    An effect rides the palette's address as `style=glass` or `style=blob`, then the view's `angle`, which turns the
    glass's ribs and lays the palette across the blobs, then how it plays: `speed` (the loop's pace, 1 as designed, 0 its
    first frame held with no motion) and `fps` (frames a second at most: 60 unless it says, up to 120 where a screen
-   shows that many), then its look: `shape`, a number that picks the blobs' forms and wanderings or the glass's ribs and
-   the colors drifting behind them, and the blob's `frost` and `bg`, its ground: any CSS color, which an address keeps
-   as hex (the Worker writes any other spelling as hex, css-color.ts), none leaving it clear.
+   shows that many), then its look: `shape`, a number from 0 to 999 that picks the blobs' forms and wanderings or the
+   glass's ribs and the colors drifting behind them, and the blob's `frost` and `bg`, its ground: any CSS color, which
+   an address keeps as hex (the Worker writes any other spelling as hex, css-color.ts), none leaving it clear.
    The gradient's steps leave the address while an effect plays, so an address says only what its picture shows (the
    editor keeps them to give back). */
 import { clamp } from "./math.ts";
@@ -46,7 +46,8 @@ export interface EffectLook {
 }
 export const EFFECT_LOOK: EffectLook = { shape: null, frost: 1, bg: null };
 export const BLOB_FROST_MAX = 2;
-export const SHAPE_MAX = 9999;
+/** The last shape number, the same for both effects: an address writes a shape in one to three digits. */
+export const SHAPE_MAX = 999;
 
 /** A ground as an address writes it: 3, 4, 6 or 8 hex digits, with or without `#`, as `#rrggbb`, or `#rrggbbaa` while
     it lets something through; null for none, for one wholly clear and for anything else, which the Worker has
@@ -141,14 +142,15 @@ export const effectFps = (value: unknown): number => {
 };
 
 /** The effect an address asks for, or null where its style is a gradient's or none. The glass reads its shape alone
-    of the look, its shape 0 the glass as designed, as none is. */
+    of the look, its shape 0 the glass as designed, as none is. A shape of one to three digits is read; a longer number
+    is no shape, as any word that is no number is, rather than another shape under a second address. */
 export function parseEffect(params: ParamReader): Effect | null {
   const kind = params.get("style");
   if (!isEffect(kind)) return null;
   const speed = params.get("speed");
   const shape = params.get("shape");
   const frost = params.get("frost");
-  const shaped = shape !== null && /^\d{1,4}$/.test(shape) ? Number(shape) : null;
+  const shaped = shape !== null && /^\d{1,3}$/.test(shape) ? Number(shape) : null;
   return {
     kind,
     speed: speed === null ? 1 : effectSpeed(speed),

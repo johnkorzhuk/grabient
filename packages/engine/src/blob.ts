@@ -40,7 +40,6 @@ export const BLOB_LOOP = 16;
 export const BLOB_SPEED_MIN = 0.1;
 export const BLOB_SPEED_MAX = 10;
 export const BLOB_FROST_MAX = 2;
-export const BLOB_SHAPE_MAX = 9999;
 export const BLOB_FPS_MAX = 120;
 /** A GIF's frames a second where its address asks for none. */
 export const BLOB_GIF_FPS = 12;
@@ -83,15 +82,16 @@ const decimal = (raw: string | null, min: number, max: number, otherwise: number
     : otherwise;
 
 /** The animation an address asks for. A speed or frost that is missing or no number takes the default and one out of
-    bounds comes into them; `shape` takes up to four digits; `bg` a hex color of 3, 4, 6 or 8 digits, with or without
-    its `#` (effect.ts's groundHex); `angle` the view's; `still=1` is the first frame alone; `fps` takes 1 to 120. */
+    bounds comes into them; `shape` takes one to three digits, 0 to 999 (effect.ts's SHAPE_MAX), a longer number
+    none; `bg` a hex color of 3, 4, 6 or 8 digits, with or without its `#` (effect.ts's groundHex); `angle` the view's;
+    `still=1` is the first frame alone; `fps` takes 1 to 120. */
 export function parseBlob(params: ParamReader): BlobView {
   const shape = params.get("shape");
   const fps = params.get("fps");
   return {
     speed: decimal(params.get("speed"), BLOB_SPEED_MIN, BLOB_SPEED_MAX, 1),
     frost: decimal(params.get("frost"), 0, BLOB_FROST_MAX, 1),
-    shape: shape && /^\d{1,4}$/.test(shape) ? Number(shape) : null,
+    shape: shape && /^\d{1,3}$/.test(shape) ? Number(shape) : null,
     bg: groundHex(params.get("bg")),
     angle: parseView(params).angle,
     still: params.get("still") === "1",

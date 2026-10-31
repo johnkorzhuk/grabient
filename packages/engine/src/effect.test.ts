@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import {
+  blobShapeOf,
   blobStillKey,
   EFFECT_FPS,
   EMBED_PLAYING,
@@ -7,11 +8,14 @@ import {
   effectEmbedHtml,
   effectFileAddress,
   effectLayerCss,
+  effectLook,
   groundHex,
   groundParts,
   parseEffect,
-  readBlobStillKey
+  readBlobStillKey,
+  SHAPE_MAX
 } from "./effect.ts";
+import { glassStillKey, readStillKey } from "./glass-colors.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 const effect = (query: string) => {
@@ -43,6 +47,32 @@ test("an effect's address names its style, its angle off its default, its pace, 
     effectAddressParts(effect("style=blob&fill=1&depth=0&bg=%2310101480&shape=12&frost=0.5"), 135)
   ).toEqual(["style=blob", "angle=135", "frost=0.5", "shape=12", "bg=%2310101480"]);
   expect(effect("style=blob&bg=deep").look.bg).toBeNull();
+});
+
+test("a shape is a number from 0 to 999 for both effects: a longer one is none, a stored one comes into bounds", () => {
+  expect(SHAPE_MAX).toBe(999);
+  for (const kind of ["glass", "blob"]) {
+    expect(effect(`style=${kind}&shape=999`).look.shape).toBe(999);
+    // never folded into another shape, which would give one picture two addresses
+    expect(effect(`style=${kind}&shape=1000`).look.shape).toBeNull();
+    expect(effect(`style=${kind}&shape=0999`).look.shape).toBeNull();
+  }
+  expect(effectLook({ shape: 3857 }).shape).toBe(999);
+  expect(effectLook({ shape: -3 }).shape).toBe(0);
+  // a still is named for a shape in bounds, as a page writes it
+  expect(readBlobStillKey(`${SEED}|1|999||90`)?.look.shape).toBe(999);
+  expect(readBlobStillKey(`${SEED}|1|1000||90`)).toBeNull();
+  expect(readStillKey(glassStillKey(["#000000", "#ffffff"], 90, 999))?.shape).toBe(999);
+  expect(readStillKey("90|1000|#000000,#ffffff")).toBeNull();
+});
+
+test("a palette suggests its blob a shape from 0 to 999, the same each time", () => {
+  for (let i = 0; i < 2000; i++) {
+    const shape = blobShapeOf(`k${i.toString(36)}`);
+    expect(Number.isInteger(shape) && shape >= 0 && shape <= SHAPE_MAX).toBe(true);
+  }
+  // the last three digits of 9051, its suggestion while there were 10,000 shapes
+  expect(blobShapeOf(SEED)).toBe(51);
 });
 
 test("a ground is hex, its alpha kept where it lets something through", () => {

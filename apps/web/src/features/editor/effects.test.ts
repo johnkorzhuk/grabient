@@ -78,7 +78,7 @@ test("a figure's palette plays none, and neither marks the page nor keeps anythi
   expect(store.size).toBe(0);
 });
 
-test("a new shape is never the one shown, and never the glass as designed", () => {
+test("a new shape is never the one shown, never the glass as designed, and at most 999", () => {
   const fx = createEffects(null, true, () => SEED);
   for (let i = 0; i < 20; i++) {
     const was = fx.settings("glass").look.shape;
@@ -87,11 +87,13 @@ test("a new shape is never the one shown, and never the glass as designed", () =
     expect(now).not.toBe(was);
     expect(now).not.toBe(0);
     expect(now).not.toBeNull();
+    expect(now).toBeLessThanOrEqual(999);
   }
   fx.choose("blob");
   const blob = fx.settings("blob").look.shape;
   fx.shuffle("blob");
   expect(fx.settings("blob").look.shape).not.toBe(blob);
+  expect(fx.settings("blob").look.shape).toBeLessThanOrEqual(999);
 });
 
 test("frames a second are 60 unless set, and keep within 1 to 120", () => {
