@@ -151,8 +151,13 @@ export function EffectArt(props: {
         if (gone) return;
         void players[kind]().catch(() => {});
         /* one card of a list makes it, the others reading no layout for it; a card the layout hides has no size to
-           make one at */
-        if (readied[kind] || untrack(() => props.settings.speed) === 0) return;
+           make one at, and a reader who asks for less motion, whose cards never play, gets none */
+        if (
+          readied[kind] ||
+          untrack(() => props.settings.speed) === 0 ||
+          matchMedia("(prefers-reduced-motion: reduce)").matches
+        )
+          return;
         const box = holder.getBoundingClientRect();
         if (box.width && box.height)
           void makeAhead(
