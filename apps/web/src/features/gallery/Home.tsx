@@ -34,7 +34,7 @@ import {
   signInUnavailable
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
-import { useNavigating } from "../../app/navigation.ts";
+import { inPlace, useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { heading, relTo } from "../../lib/page-meta.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
@@ -51,7 +51,7 @@ import { type ListParams, listHref, listSearch, withView } from "./address.ts";
 import { createCuration } from "./curate.tsx";
 import { homePaint, madeItems, minuteOf, relativeAge } from "./drawing.ts";
 import { Find } from "./Find.tsx";
-import { createFeed, FIRST_SCREEN, inPlace, joinNext, preloadHref } from "./feed.ts";
+import { createFeed, FIRST_SCREEN, joinNext, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";

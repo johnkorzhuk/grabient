@@ -35,7 +35,7 @@ import {
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
 import list from "../../app/list.module.css";
-import { useNavigating } from "../../app/navigation.ts";
+import { inPlace, useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
@@ -44,7 +44,7 @@ import { hexesOf } from "../../lib/palette.ts";
 import { type Failed, failed } from "../../lib/query.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
-import { createFeed, inPlace, joinNext } from "../gallery/feed.ts";
+import { createFeed, joinNext } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
 import { searchedHere } from "../search/count.ts";

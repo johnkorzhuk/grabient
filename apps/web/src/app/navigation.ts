@@ -53,6 +53,13 @@ export const useNavigating = () =>
 export const rewriteQuietly = (href: string): void =>
   History.prototype.replaceState.call(history, history.state, "", href);
 
+/** A plain left press on a link the page answers in place; any other press follows the link. */
+export const inPlace = (e: MouseEvent, answer: () => void) => {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  answer();
+};
+
 /** Rewrites the page's address in place and has the route take it, the entry staying itself: the router keeps the
     depth a page was left at by the entry's key, which a navigation that replaces makes anew. */
 export const rewriteInPlace = (href: string): void => history.replaceState(history.state, "", href);

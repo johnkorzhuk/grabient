@@ -178,13 +178,6 @@ export function createFeed<P extends FeedPage>(o: {
   };
 }
 
-/** A plain left press on a link the page answers in place; any other press follows the link. */
-export const inPlace = (e: MouseEvent, answer: () => void) => {
-  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  e.preventDefault();
-  answer();
-};
-
 /** A More press answered in place: the next page joins, and a reader whose focus left with the press goes on at the
     first of what joined (`items`: its cards, or its collections), where one long list would have led the next Tab. */
 export async function joinNext(next: () => Promise<boolean>, items: string): Promise<void> {

@@ -26,6 +26,7 @@ import {
 import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { engaged } from "../../app/engaged.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
+import { inPlace } from "../../app/navigation.ts";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { examplesPath, heading, relTo } from "../../lib/page-meta.ts";
@@ -38,7 +39,6 @@ import { collectionHref } from "../collections/address.ts";
 import { ExamplesLink } from "../examples/ExamplesLink.tsx";
 import { askCredit, creditName, creditOf, creditWords } from "../gallery/credit.ts";
 import { relativeAge } from "../gallery/drawing.ts";
-import { inPlace } from "../gallery/feed.ts";
 import { readerOrder, recallOrder, rememberOrder } from "../gallery/order.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { similarHref } from "../gallery/similar.ts";
