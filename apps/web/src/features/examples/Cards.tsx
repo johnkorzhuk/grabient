@@ -1,22 +1,12 @@
 import { contrast } from "@grabient/engine/contrast.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import type { EffectKind } from "@grabient/engine/effect.ts";
-import { isSwatchStyle, type Size } from "@grabient/engine/view.ts";
+import { isSwatchStyle } from "@grabient/engine/view.ts";
 import { dir, formatDate, formatNumber, msg, rich, t } from "@grabient/i18n";
 import { createDone } from "@grabient/ui/done.ts";
-import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, type Element, For, onSettled, Show, untrack } from "solid-js";
-import { toast } from "../../app/toast.ts";
-import { paletteName } from "../../lib/page-meta.ts";
+import { createSignal, type Element, For, Show, untrack } from "solid-js";
 import { EffectArt } from "../editor/EffectArt.tsx";
-import {
-  copyFormat,
-  copyLink,
-  STRIP_EFFECT_COPY,
-  saveFormat,
-  type Taken
-} from "../editor/formats.ts";
 import styles from "./Cards.module.css";
 import { Chip, Example, type ExampleProps } from "./Example.tsx";
 import { inkThrough, MARK, type Press, pressPaper, standsOut, TEXT, TILE } from "./fit.ts";
@@ -30,35 +20,32 @@ import {
   type Shown,
   type Theme
 } from "./paint.ts";
-import { drawnWords, formWords, gradientOf, inForm, solidBlob, takenOf } from "./shared.ts";
+import { drawnWords, formWords, gradientOf, inForm, solidBlob } from "./shared.ts";
 
 /* Covers and cards: the palette as the media and the small things a designer makes with it, laid as a masonry of
    real shapes and sizes: a poster, an album's sleeve with its record, a video's thumbnail, a social post, an event's
    card, a ticket, a membership card, an app's icon, a business card and a pair of buttons. Each wears the palette as
-   the address draws it (an effect's still, playing while the pointer is on its tile). A medium's tile holds the app's
-   own strip in its corner, as a gallery card does, which copies, saves or links the palette at that medium's own
-   size: a poster's PNG at 1200 by 1800. Words stand on the palette only where the checks let them (fit.ts): in the
+   the address draws it (an effect's still, playing while the pointer is on its tile), and a press on a tile turns it
+   to its next look. Words stand on the palette only where the checks let them (fit.ts): in the
    ink that reads on every color under them, else on a band of paper, which takes the theme on whose paper the
    palette gives a press. A blob with no ground of its own stands on its darkest or lightest color, as a picture can't
    be clear. Three tiles show what else the palette can do, in the forms the address doesn't name, which their names
    say to a reader who listens. */
 
-/** Each medium's pixels, within a PNG's bounds (2400 a side, 3 million in all). */
-const SIZES = {
-  poster: { width: 1200, height: 1800 },
-  album: { width: 1500, height: 1500 },
-  thumbnail: { width: 1280, height: 720 },
-  post: { width: 1080, height: 1350 },
-  event: { width: 1120, height: 700 },
-  ticket: { width: 600, height: 600 },
-  member: { width: 1012, height: 638 },
-  icon: { width: 1024, height: 1024 },
-  business: { width: 1050, height: 600 },
-  buttons: { width: 600, height: 150 },
-  letters: { width: 1500, height: 1000 },
-  mark: { width: 1500, height: 1000 }
-} as const satisfies Record<string, Size>;
-type Kind = keyof typeof SIZES;
+/** The tiles of the masonry. */
+type Kind =
+  | "poster"
+  | "album"
+  | "thumbnail"
+  | "post"
+  | "event"
+  | "ticket"
+  | "member"
+  | "icon"
+  | "business"
+  | "buttons"
+  | "letters"
+  | "mark";
 
 /** Where each tile stands on a wide stage: its columns of four and its rows, each row a hundredth of the stage's width,
     so the masonry keeps its shapes at any width; and its shape, which it keeps where the tiles stand in columns. */
@@ -97,10 +84,6 @@ const NAMES: Readonly<Record<Kind, string>> = {
 
 /** The day every card names, the same on the server and in the browser. */
 const DAY = Date.UTC(2026, 10, 12, 19, 30);
-/** The strip's formats, as a gallery card's; an effect's copies as the editor's strip gives them while it plays, its
-    tags for a page and its layers for Figma among them. */
-const COPY: readonly Format[] = ["url", "css", "svg", "png"];
-const SAVE: readonly Format[] = ["css", "svg", "png"];
 
 /** The tag a message marks a hex with: `rich("… <c>{color}</c>", HEX)`. */
 const HEX = { c: (words: (string | Element)[]) => <span dir="ltr">{words}</span> };
@@ -154,22 +137,12 @@ function Picture(props: { s: Shown; lit: boolean; class?: string }) {
   );
 }
 
-/** The media whose tiles hold the app's strip, which takes the palette at that medium's size: the ones the palette
-    fills, the strip standing on the picture as on a gallery card (a poster's, a thumbnail's, a post's). The album's
-    sleeve and the icon stand smaller than their tiles, and the cards and the buttons are things made with the
-    palette, not its picture. */
-const MEDIA: ReadonlySet<Kind> = new Set(["poster", "thumbnail", "post"]);
-
-/** A tile of the masonry: what it shows, lit while the pointer or the focus is on it, and on a medium's tile the app's
-    strip in its corner, which takes the palette at the tile's size. The strip comes once the page idles; a finger
-    opens it by a tap. */
+/** A tile of the masonry: what it shows, lit while the pointer or the focus is on it. */
 function Tile(props: {
   kind: Kind;
   s: Shown;
   /** the tile shows the palette in another form than the address names, which its name says */
   other?: boolean;
-  open: Kind | null;
-  onOpen: (kind: Kind) => void;
   /** where it stands, where not where its kind stands (PLACES) */
   place?: { col: string; row: string; aspect: number };
   /** a press on the tile, anywhere but its own presses and links, shows the palette in its next look */
@@ -177,30 +150,14 @@ function Tile(props: {
   children: (lit: () => boolean) => Element;
 }) {
   const [lit, setLit] = createSignal(false);
-  const [armed, setArmed] = createSignal(false);
-  onSettled(() => {
-    const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200));
-    idle(() => setArmed(true));
-  });
-  const size = () => SIZES[props.kind];
-  const taken = (): Taken => ({
-    ...takenOf(props.s, size()),
-    size: size(),
-    name: paletteName(props.s.palette, props.s.view)
-  });
-  const refused = (message: string) => () => {
-    toast(message);
-    return false;
-  };
   const place = () => props.place ?? PLACES[props.kind];
   const content = untrack(() => props.children(lit));
   return (
-    /* biome-ignore lint/a11y/useSemanticElements: a picture and its strip, named for a reader who listens; a fieldset
-       is for a form's controls */
+    /* biome-ignore lint/a11y/useSemanticElements: a picture, named for a reader who listens; a fieldset is for a form's
+       controls */
     <div
       class={styles.tile}
       data-kind={props.kind}
-      data-open={props.open === props.kind ? "" : undefined}
       role="group"
       aria-label={
         props.other ? `${t(NAMES[props.kind])}, ${formWords(props.s)}` : t(NAMES[props.kind])
@@ -210,9 +167,6 @@ function Tile(props: {
       onPointerLeave={() => setLit(false)}
       onFocusIn={() => setLit(true)}
       onFocusOut={() => setLit(false)}
-      onPointerDown={e => {
-        if (e.pointerType !== "mouse" && MEDIA.has(props.kind)) props.onOpen(props.kind);
-      }}
       data-turns={props.onTurn ? "" : undefined}
       tabindex={props.onTurn ? 0 : undefined}
       onClick={e => {
@@ -227,26 +181,6 @@ function Tile(props: {
       }}
     >
       {content}
-      <Show when={armed() && MEDIA.has(props.kind)}>
-        <div class={styles.tools}>
-          <FormatStrip
-            size="sm"
-            copy={props.s.effect ? STRIP_EFFECT_COPY : COPY}
-            download={SAVE}
-            link={SAVE}
-            swatches={SWATCH_CHIPS}
-            onCopy={f =>
-              copyFormat(f, taken()).then(() => true, refused(t("Couldn't copy the palette.")))
-            }
-            onDownload={f => {
-              saveFormat(f, taken()).catch(refused(t("Couldn't download the file.")));
-            }}
-            onLink={f =>
-              copyLink(f, taken()).then(() => true, refused(t("Couldn't copy the palette.")))
-            }
-          />
-        </div>
-      </Show>
     </div>
   );
 }
@@ -698,7 +632,6 @@ export function CardsExample(props: ExampleProps) {
   /* the blob is shown on a ground its address doesn't name */
   const added = () => s() !== props.s;
   const paper = () => pressPaper(drawnColors(props.s));
-  const [open, setOpen] = createSignal<Kind | null>(null);
   /* the looks pressed onto tiles, for the palette they were pressed on */
   const [picked, setPicked] = createSignal<{ seed: string; looks: Partial<Record<Kind, Look>> }>({
     seed: "",
@@ -756,8 +689,6 @@ export function CardsExample(props: ExampleProps) {
                   kind={kind}
                   s={headline ? headlineShown(kind, props.s) : shown()}
                   other={other()}
-                  open={open()}
-                  onOpen={k => setOpen(open() === k ? null : k)}
                   place={headline && headlinesOf(props.s).length === 1 ? HEADLINE_ALONE : undefined}
                   onTurn={TURNING.has(kind) ? () => turn(kind) : undefined}
                 >

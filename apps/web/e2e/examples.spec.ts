@@ -87,23 +87,11 @@ test("the way back opens the editor at the palette the keys left", async ({ page
   await expect(page).toHaveURL(new RegExp(`/${turned}\\?style=glass$`));
 });
 
-test("a medium's tile holds the app's strip, which saves the palette at that medium's own size", async ({
-  page
-}) => {
+test("a press on a tile turns it to the palette's next look", async ({ page }) => {
   await open(page, `/${SEED}/examples`);
-  const tiles = page.locator("#cards [role=group]");
-  await expect(tiles).toHaveCount(10);
-  const poster = page.getByRole("group", { name: "Poster" });
-  /* the keyboard's focus in the tile shows its strip, as the pointer does where the browser has one */
-  const mode = poster.getByRole("button", { name: /^Copying/ });
-  await mode.focus();
-  await mode.click();
-  const [download] = await Promise.all([
-    page.waitForEvent("download"),
-    poster.getByRole("button", { name: "Download PNG" }).click()
-  ]);
-  const bytes = await (await download.createReadStream()).toArray();
-  const png = Buffer.concat(bytes);
-  /* a PNG's width and height stand in its header's first chunk */
-  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 1800]);
+  await expect(page.locator("#cards [role=group]")).toHaveCount(10);
+  const album = page.locator('#cards [data-kind="album"]');
+  const before = await album.getAttribute("aria-label");
+  await album.click({ position: { x: 12, y: 12 } });
+  await expect(album).not.toHaveAttribute("aria-label", before ?? "");
 });

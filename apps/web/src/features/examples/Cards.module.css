@@ -568,38 +568,4 @@
       visibility: hidden;
     }
   }
-  /* the app's strip in a tile's top corner, as small as a card's (it shows its formats' glyphs alone in under 300px):
-     shown under the pointer, with the keyboard in the tile, or where a finger opened it; hidden by its opacity so Tab
-     still reaches it */
-  .tools {
-    position: absolute;
-    inset-block-start: var(--space-s2);
-    inset-inline-end: var(--space-s2);
-    z-index: 2;
-    display: flex;
-    justify-content: flex-end;
-    width: min(300px, calc(100% - 2 * var(--space-s2)));
-    container-type: inline-size;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--motion-fast) var(--motion-ease);
-    & > * {
-      pointer-events: none;
-    }
-    .tile:focus-within > &,
-    .tile[data-open] > & {
-      opacity: 1;
-      & > * {
-        pointer-events: auto;
-      }
-    }
-    @media (hover: hover) {
-      .tile:hover > & {
-        opacity: 1;
-        & > * {
-          pointer-events: auto;
-        }
-      }
-    }
-  }
 }
