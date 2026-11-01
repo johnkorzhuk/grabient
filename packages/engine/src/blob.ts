@@ -31,6 +31,7 @@ import { sampleSrgb } from "./curve.ts";
 import { groundHex, groundParts } from "./effect.ts";
 import { clamp, clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
+import { svgComment } from "./svg.ts";
 import { type ParamReader, parseView, type Size } from "./view.ts";
 
 /** The `style` that asks a palette's SVG for this animation. */
@@ -646,14 +647,13 @@ export function blobSvg(P: Palette, view: BlobView, size: Size | null, credit: s
   const keyframes = [...frames]
     .map(([name, between]) => `@keyframes ${id}${name}{${between}}`)
     .join("");
-  const comment = `<!-- ${credit.replace(/--/g, "-%2D")} -->`;
   /* the still frame carries no motion at all: what it draws is where every motion starts */
   const style = view.still
     ? ""
     : `<style>${keyframes}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n`;
   /* the design scaled to cover the box */
   const box = W === undefined ? 'width="100%" height="100%"' : `width="${W}" height="${H}"`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${box} viewBox="0 0 ${DW} ${DH}" preserveAspectRatio="xMidYMid slice" class="${id}">\n${comment}\n${style}<defs>${defs}</defs>\n${body}\n</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${box} viewBox="0 0 ${DW} ${DH}" preserveAspectRatio="xMidYMid slice" class="${id}">\n${svgComment(credit)}\n${style}<defs>${defs}</defs>\n${body}\n</svg>`;
 }
 
 /** feTurbulence's tables for a seed as Chromium's Skia builds them (SkPerlinNoiseShaderImpl.h): the SVG 1.1 reference

@@ -17,6 +17,7 @@ import { glassColors } from "./glass-colors.ts";
 import type { MarkdownEffect } from "./markdown.ts";
 import type { Palette } from "./palette.ts";
 import { toSpec } from "./spec.ts";
+import { svgComment } from "./svg.ts";
 import { DEFAULT_ANGLE, DEFAULT_SIZE, type Size } from "./view.ts";
 
 /** The parts of an effect's address its first frame depends on: its style, its angle off the default and its look,
@@ -60,9 +61,6 @@ export const effectStylesheet = (
 export const effectSize = (effect: Effect): Size =>
   effect.kind === "blob" ? BLOB_SIZE : DEFAULT_SIZE;
 
-/* a comment can hold no double hyphen, which a seed may */
-const comment = (credit: string) => `<!-- ${credit.replace(/--/g, "-%2D")} -->`;
-
 /** The effect as an SVG moved by CSS alone, covering its box (effectSize where none is given), credited to the
     effect's page; at speed 0, its first frame. */
 export function effectSvg(
@@ -82,7 +80,7 @@ export function effectSvg(
   const design = glassDesign(angle, effect.look.shape);
   return glassSvg(design, glassField(design, glassColors(P)), { still, speed, cover: true })
     .replace('width="100%" height="100%"', `width="${box.width}" height="${box.height}"`)
-    .replace(/^<svg[^>]*>/, open => `${open}${comment(credit)}`);
+    .replace(/^<svg[^>]*>/, open => `${open}${svgComment(credit)}`);
 }
 
 /** The colors the effect draws, along the palette from its first: the glass's six behind its ribs, and the colors
