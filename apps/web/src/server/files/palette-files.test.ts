@@ -68,7 +68,8 @@ describe("a palette's file", () => {
       200,
       "text/css; charset=utf-8"
     ]);
-    expect(text).toContain(`/* ${golden.origin}/${seed}?style=glass&angle=45&speed=2 */`);
+    // credited by all its still depends on, which its cache key names: never its pace
+    expect(text).toContain(`/* ${golden.origin}/${seed}?style=glass&angle=45 */`);
     expect(text).toContain("html::before {");
     expect(text).toContain("position: fixed;");
     expect(text).toContain("z-index: -1;");
@@ -83,10 +84,12 @@ describe("a palette's file", () => {
     const paced = await (await file(`/${seed}.css?style=glass&angle=45&speed=5`)).text();
     const still = (css: string) => css.slice(css.indexOf("background:"));
     expect(still(turned)).not.toBe(still(text));
-    expect(still(paced)).toBe(still(text));
+    expect(paced).toBe(text);
     // the blob, clear around itself, gives its still up when the script's canvas shows
-    const blob = await (await file(`/${seed}.css?style=blob&shape=12`)).text();
+    const blob = await (await file(`/${seed}.css?style=blob&shape=12&angle=45`)).text();
     expect(blob).toContain("html[data-grabient-playing]::before {\n  background: none;\n}");
+    // the angle lays the palette across the blobs, so the blob's credit names it too
+    expect(blob).toContain(`/* ${golden.origin}/${seed}?style=blob&angle=45&shape=12 */`);
   });
 
   test("CSS takes w and h for the page's box, and style=bands plays the animated SVG inside it", async () => {
