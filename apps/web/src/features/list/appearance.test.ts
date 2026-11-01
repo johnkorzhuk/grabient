@@ -185,3 +185,17 @@ test("a pasted link's look is taken where a list sets neither a style nor an eff
     effect: BLOB
   });
 });
+
+test("an effect a field steps to is read back as the address keeps it", () => {
+  const stepped: Effect = {
+    kind: "blob",
+    speed: 0.45000000000000007,
+    fps: 60,
+    look: { ...EFFECT_LOOK, frost: 0.9500000000000001 }
+  };
+  expect(readListView(viewParams({ effect: stepped })).effect).toEqual({
+    ...stepped,
+    speed: 0.45,
+    look: { ...EFFECT_LOOK, frost: 0.95 }
+  });
+});

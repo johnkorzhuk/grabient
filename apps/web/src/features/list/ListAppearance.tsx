@@ -248,6 +248,7 @@ export function ListAppearance() {
       void import("./card-effect.tsx").then(m => m.preloadCardEffects(kind));
     }
   }));
+  /* a field's value goes to the cards as the address keeps it: a step of 0.05 from 1 is 0.95, not 0.9500000000000001 */
   const fields = () => (
     <Loading>
       <Show when={shown().effect}>
@@ -256,7 +257,7 @@ export function ListAppearance() {
             effect={effect()}
             angle={shown().angle}
             onAngle={angle => change({ angle })}
-            onEffect={next => change({ effect: next })}
+            onEffect={next => change({ effect: readListView(viewParams({ effect: next })).effect })}
           />
         )}
       </Show>
