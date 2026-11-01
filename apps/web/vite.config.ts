@@ -4,6 +4,7 @@ import solid from "@solidjs/vite-plugin";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { defineConfig, type Rolldown } from "vite";
 import { colorNames } from "./scripts/color-names.ts";
+import { leanManifest } from "./scripts/lean-manifest.ts";
 import { LICENSES, licenses } from "./scripts/licenses.ts";
 import { serviceWorker } from "./scripts/service-worker.ts";
 import { effectEmbed } from "./src/embed/build.ts";
@@ -111,6 +112,8 @@ export default defineConfig({
     // The precise color names swatch files carry, one file the browser and the Worker read when a file needs them.
     colorNames(),
     licenses(),
+    // The client's manifest the Worker's start carries, with only the fields a render reads.
+    leanManifest(),
     cloudflare({ viteEnvironment: { name: "ssr" }, remoteBindings: false }),
     tanstackStart({
       // Worker-only code never reaches the browser: the build fails on an import of it from code the client runs.
