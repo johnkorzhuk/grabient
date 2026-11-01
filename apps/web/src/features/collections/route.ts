@@ -163,9 +163,11 @@ export async function loadCollection(
     const shown = summaryOf(client, at.slug);
     if (shown) client.setQueryData(query.queryKey, shown);
   }
+  const params = new URLSearchParams(at.searchStr);
+  /* the code its cards play an effect with comes with the collection, not after it */
+  const ready = effectsReady(viewOf(params));
   const found = await client.ensureQueryData(query);
   if (failed(found)) return {};
-  const params = new URLSearchParams(at.searchStr);
   const here = found.doc || found.private || found.own || at.slug.startsWith("@");
   /* a collection lives here: an old link's order is none of its page's */
   if (here && params.has("sort"))
@@ -176,7 +178,7 @@ export async function loadCollection(
       statusCode: 301
     });
   if (found.doc) {
-    await effectsReady(viewOf(params));
+    await ready;
     const ordered = sortCollectionItems(found.doc.items, at.order);
     return {
       facts: factsOf(found.doc, found.languages),
