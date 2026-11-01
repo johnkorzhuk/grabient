@@ -138,21 +138,6 @@ export function seriesOf(
   return { fits: taken.length >= k && apart >= APART, colors: ordered, apart };
 }
 
-/** How far apart colors are by hue and chroma alone: the least distance between two of them in OKLab's a and b, their
-    lightness aside; infinite for fewer than two. Series told apart only by how light they are come closest (black and
-    a near black): where both themes give a part its series, the one farther apart here shows more of the palette
-    (orange, mauve and pink on a dark paper rather than brown, black and a near black on a light one). */
-export function huesApart(colors: readonly string[]): number {
-  const flat = colors.map(color => {
-    const [, C, H] = lchOf(color);
-    return [0, C, H];
-  });
-  return Math.min(
-    ...flat.flatMap((p, i) => flat.slice(i + 1).map(q => deltaE(p, q))),
-    Number.POSITIVE_INFINITY
-  );
-}
-
 /** A press filled with one of the palette's colors, on a surface: its fill, its label's ink and its color under the
     pointer. */
 export interface Press {
