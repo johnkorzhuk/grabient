@@ -79,7 +79,8 @@ export const linkPalette = (p: Drawn, format: Format): Promise<void> =>
 
 /* A card playing its list's effect hands the effect over as the editor's strips do, at the size the list sets (its
    code loads with the first press), and offers what they offer (editor/formats.ts STRIP_*): Copy adds the tags that
-   play it and its Figma layers, Copy link its script. */
+   play it and its Figma layers, Copy link its script. The formats are a copy of the editor's, which take.test.ts holds
+   alike: shared, they cost a list's start more than the copy does. */
 const formats = () => import("../editor/formats.ts");
 const playedTaken = (p: Drawn, effect: Effect, size: SizeChoice | null, name?: string) => ({
   ...p,
