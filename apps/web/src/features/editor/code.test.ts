@@ -10,6 +10,7 @@ import {
 import { flush } from "solid-js";
 import { afterEach, expect, test, vi } from "vitest";
 import { setColorFormat } from "../../lib/color-format.ts";
+import { markdownFile } from "../../server/seo/markdown.ts";
 import { codeSources } from "./code.ts";
 import type { Taken } from "./formats.ts";
 import { createRest } from "./rest.ts";
@@ -111,6 +112,33 @@ test("while an effect plays, the pane holds its code in the gradient's place, an
   const md = effectSource("style=glass&shape=12&speed=2", "md")!.text();
   expect(md).toContain("- Drawn as: fluted glass, its ribs at 45 degrees, shape 12, speed 2");
   expect(md).not.toContain("gradient(");
+});
+
+test("while an effect plays, the Markdown is the file its address serves, whatever gradient the editor keeps", async () => {
+  const served = async (query: string) =>
+    (
+      await (
+        await markdownFile(SEED, new Request(`${ORIGIN}/${SEED}.md?${query}`), ORIGIN, {
+          paletteWords: async () => ({ written: null, heldBy: [] }),
+          collection: async () => null,
+          isCollection: () => false
+        })
+      ).text()
+    ).trimEnd();
+  // the gradient kept is 5 radial bands, which an effect's address does not name
+  const pane = (query: string) =>
+    codeSources(
+      decodePalette(SEED)!,
+      { style: "radialSwatches", steps: 5, angle: 45 },
+      SEED,
+      () => ({ facts: null, opened: false }),
+      createRest(),
+      played(query)
+    ).find(s => s.id === "md")!;
+  for (const query of ["style=glass&angle=45&speed=2&shape=12", "style=blob&angle=45&shape=3"]) {
+    const md = pane(query);
+    expect(await loaded(() => md.text())).toBe(await served(query));
+  }
 });
 
 test("the effect's tags show its first frame inside the page or linked, and copy it whole", async () => {

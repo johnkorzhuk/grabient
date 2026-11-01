@@ -120,6 +120,9 @@ export function codeSources(
   };
   const swatch = () => swatchPalette(seed, v, origin(), { names: names() });
   const effect = taken?.effect ?? null;
+  /* an effect's address names no gradient, so its file is written in the default view at its angle, whatever
+     gradient the editor keeps for when the effect stops */
+  const drawn = effect ? { angle: v.angle } : v;
   const markdown = () => {
     const address = `/${seed}.md${effect ? `?${effectAddressParts(effect, v.angle).join("&")}` : viewSearch(v)}`;
     const had = files().get(address);
@@ -142,7 +145,7 @@ export function codeSources(
     if (effect && !words) return "";
     return (
       inLocale(DEFAULT_LOCALE, () =>
-        paletteMarkdown(seed, origin(), v, written ?? null, heldBy, names(), words)
+        paletteMarkdown(seed, origin(), drawn, written ?? null, heldBy, names(), words)
       )?.trimEnd() ?? ""
     );
   };
