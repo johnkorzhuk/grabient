@@ -53,8 +53,8 @@ import type { PaletteEditor } from "./editor.ts";
 import { effectLabel } from "./effect-page.ts";
 import {
   copyContrast,
-  copyFormat,
   copyLink,
+  copyOrSave,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
   STRIP_FILES,
@@ -444,23 +444,14 @@ export function Sheet(props: {
       useTaken(action, format, PLACE, [palette()], { position });
     /* where no picture can go on the clipboard, the file is saved instead */
     const copy = (f: Format) =>
-      copyFormat(f, taken()).then(
-        () => {
-          count("copy", f);
-          return true;
+      copyOrSave(f, taken()).then(
+        done => {
+          if (done === "downloaded")
+            toast(t("Images can't be copied here, so the file was downloaded."));
+          count(done === "copied" ? "copy" : "download", f);
+          return done === "copied";
         },
-        (reason: unknown) => {
-          if (f !== "png" || !(reason instanceof Error) || reason.message !== NO_IMAGE_CLIPBOARD)
-            return copied(Promise.reject(reason));
-          return saveFormat(f, taken()).then(
-            () => {
-              toast(t("Images can't be copied here, so the file was downloaded."));
-              count("download", f);
-              return false;
-            },
-            () => copied(Promise.reject(reason))
-          );
-        }
+        (reason: unknown) => copied(Promise.reject(reason))
       );
     return (
       <PaletteCard

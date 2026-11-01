@@ -79,28 +79,7 @@ export const linkPalette = (p: Drawn, format: Format): Promise<void> =>
 
 /* A card playing its list's effect hands the effect over as the editor's strips do, at the size the list sets (its
    code loads with the first press). */
-async function copyPlayed(
-  p: Drawn,
-  effect: Effect,
-  size: SizeChoice | null,
-  format: Format
-): Promise<"copied" | "downloaded"> {
-  const formats = await import("../editor/formats.ts");
-  const taken = playedTaken(p, effect, size);
-  try {
-    await formats.copyFormat(format, taken);
-    return "copied";
-  } catch (reason) {
-    if (
-      format !== "png" ||
-      !(reason instanceof Error) ||
-      reason.message !== formats.NO_IMAGE_CLIPBOARD
-    )
-      throw reason;
-    await formats.saveFormat(format, taken);
-    return "downloaded";
-  }
-}
+const formats = () => import("../editor/formats.ts");
 const playedTaken = (p: Drawn, effect: Effect, size: SizeChoice | null) => ({
   ...p,
   size,
@@ -132,7 +111,9 @@ export function cardTakings(card: {
       const fx = played();
       return (
         fx
-          ? copyPlayed(card.palette(), fx.effect, fx.size, format)
+          ? formats().then(m =>
+              m.copyOrSave(format, playedTaken(card.palette(), fx.effect, fx.size))
+            )
           : copyPalette(card.palette(), format)
       ).then(
         done => {
@@ -148,7 +129,7 @@ export function cardTakings(card: {
       const fx = played();
       void (
         fx
-          ? import("../editor/formats.ts").then(m =>
+          ? formats().then(m =>
               m.saveFormat(format, playedTaken(card.palette(), fx.effect, fx.size))
             )
           : downloadPalette(card.palette(), format)
@@ -161,9 +142,7 @@ export function cardTakings(card: {
       const fx = played();
       return (
         fx
-          ? import("../editor/formats.ts").then(m =>
-              m.copyLink(format, playedTaken(card.palette(), fx.effect, fx.size))
-            )
+          ? formats().then(m => m.copyLink(format, playedTaken(card.palette(), fx.effect, fx.size)))
           : linkPalette(card.palette(), format)
       ).then(
         () => {

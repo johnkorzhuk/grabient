@@ -245,6 +245,22 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
   );
 }
 
+/** The format onto the clipboard, or where no picture can go there its PNG saved instead: why a copy failed, where
+    the file could not be saved either. */
+export async function copyOrSave(f: Format, p: Taken): Promise<"copied" | "downloaded"> {
+  try {
+    await copyFormat(f, p);
+    return "copied";
+  } catch (reason) {
+    if (f !== "png" || !(reason instanceof Error) || reason.message !== NO_IMAGE_CLIPBOARD)
+      throw reason;
+    await saveFormat(f, p).catch(() => {
+      throw reason;
+    });
+    return "downloaded";
+  }
+}
+
 /** The format to a file. */
 export async function saveFormat(f: Format, p: Taken): Promise<void> {
   const name = `grabient-${p.seed}${p.effect ? `-${p.effect.kind}` : ""}`;
