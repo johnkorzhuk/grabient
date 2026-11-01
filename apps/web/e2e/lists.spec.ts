@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The gallery's lists as a reader sets how they are drawn: the header's control, the address it writes, what the feed
    keeps through a change and the view the tab remembers. Then the home searched, which reads the collections list's
@@ -6,7 +7,6 @@ import { expect, type Page, test } from "@playwright/test";
    `pnpm db:setup` loads. */
 
 const SEED = "kS7CQ31Do6asvY-";
-const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 const remembered = (page: Page) => page.evaluate(() => sessionStorage.getItem("grabient-view"));
 /** Every error the page reports as its own from now on: a page that threw posts one. */
 function reported(page: Page): string[] {
@@ -29,7 +29,7 @@ test("a change of view keeps the pages that joined and the depth the reader scro
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   const feed = page.locator("[data-count]").first();
   const cards = async () => Number(await feed.getAttribute("data-count"));
   await page.mouse.move(600, 600);
@@ -76,7 +76,7 @@ test("the home searched reads the collections list's own page, which the list th
     if (url.pathname === "/api/collections") asked.push(url.search);
   });
   await page.goto("/");
-  await hydrated(page);
+  await live(page);
   await search(page, "blue");
   // as the list asks: the popular order, and the words read through the model
   await expect.poll(() => asked[0]).toBe("?sort=popular&page=1&limit=24&q=blue&model=1");
@@ -115,7 +115,7 @@ test("the home shows a search cut short as its answer, and a read that fails lea
     route => route.abort()
   );
   await page.goto("/");
-  await hydrated(page);
+  await live(page);
   const head = page.locator("[data-count]").first();
   const retry = page.getByRole("button", { name: "Retry" });
   await search(page, "blue");
@@ -138,7 +138,7 @@ test("a list whose read fails keeps the cards of the list before it, beside Retr
     route => route.abort()
   );
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   const feed = page.locator("[data-count]").first();
   const first = await feed.locator("article a[href]").first().getAttribute("href");
   await page.locator('main a[href="/palettes/rising"]').click();
@@ -331,7 +331,7 @@ test("a list plays the effect chosen in its menu, paints its stills from the fir
 }) => {
   const reports = reported(page);
   await page.goto("/palettes?style=radialSwatches&steps=9");
-  await hydrated(page);
+  await live(page);
   const appearance = page.getByRole("button", { name: /^Appearance/ });
   await appearance.click();
   await page.getByRole("button", { name: "Fluted glass", exact: true }).click();
@@ -396,7 +396,7 @@ test("a list playing the blob is drawn with its stills, and its lists' links kee
   ]);
 
   await page.goto("/collections?style=blob&frost=0.5");
-  await hydrated(page);
+  await live(page);
   await expect(
     page
       .locator("main article")
@@ -421,7 +421,7 @@ test("a glass list draws the glass on every card in view once it idles, with no 
 }) => {
   for (const path of ["/palettes?style=glass", "/collections?style=glass"]) {
     await page.goto(path);
-    await hydrated(page);
+    await live(page);
     // the still each card draws itself, on the GPU or as its SVG, where the server's ribless field stood
     await expect
       .poll(
@@ -446,7 +446,7 @@ test("the editor's Reset gives the lists back the effect the tab had as the pale
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   const first = page.locator("main article").first();
   await first.hover();
   await first.getByRole("link", { name: /^Edit/ }).click();

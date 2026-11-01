@@ -1,10 +1,10 @@
 import { devices, expect, type Page, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The gallery's lists as a signed-out reader meets them: what a page asks the server, the cards the server drew that
    wait for the reader, the selection, a heart and Saved. They read the palettes `pnpm db:setup` loads. */
 
 const SEED = "kS7CQ31Do6asvY-";
-const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 const here = (page: Page) => {
   const url = new URL(page.url());
   return decodeURIComponent(url.pathname + url.search);
@@ -52,7 +52,7 @@ test("a list hydrates from what the server read, and the next page joins as the 
 }) => {
   const asked = calls(page);
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   await expect(page.locator("main article")).toHaveCount(24);
   await page.waitForTimeout(1000);
   // the session is the one thing a page asks for: the palettes and their counts came with the document
@@ -74,7 +74,7 @@ test("a screen taller than the first page asks for the next one once, and draws 
   await page.setViewportSize({ width: 2560, height: 1440 });
   const asked = calls(page);
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   const feed = page.locator("[data-count]").first();
   await expect(feed).toHaveAttribute("data-count", "48");
   const tall = await page.evaluate(() => document.documentElement.scrollHeight);
@@ -93,7 +93,7 @@ test("the footer under a list that grows as it scrolls is reached by the keyboar
 }) => {
   const asked = calls(page);
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   // from the page's first stop, Shift+Tab goes round to its last: the footer's
   await page.keyboard.press("Tab");
   await page.keyboard.press("Shift+Tab");
@@ -120,7 +120,7 @@ test("the search field is named in the browser's own tree, empty and with words 
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   // Chrome's computed name, which a screen reader and voice control are given
   const cdp = await page.context().newCDPSession(page);
   const name = async () => {
@@ -143,7 +143,7 @@ test("a search leads with the palette its words name, on Popular and on Rising, 
     const named = new RegExp(`^/${seed}(?:\\?|$)`);
     await page.goto(address);
     await expect(first).toHaveAttribute("href", named);
-    await hydrated(page);
+    await live(page);
     await expect(first).toHaveAttribute("href", named);
   }
 });
@@ -152,7 +152,7 @@ test("a card's magnifier searches for the palettes like it: the palette alone, i
   page
 }) => {
   await page.goto("/palettes/rising?style=linearSwatches&steps=5");
-  await hydrated(page);
+  await live(page);
   await card(page, 0).hover();
   const edit = card(page, 0).locator('a[aria-label^="Edit "]');
   const seed = new URL((await edit.getAttribute("href")) ?? "", page.url()).pathname.slice(1);
@@ -171,7 +171,7 @@ test("forced colors leave every palette its own colors: the cards, the stage, th
 }) => {
   await page.emulateMedia({ forcedColors: "active" });
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   const painted = async (paint: ReturnType<Page["locator"]>) => {
     await expect(paint).toHaveCSS("forced-color-adjust", "none");
     expect(await paint.evaluate(el => getComputedStyle(el).backgroundImage)).not.toBe("none");
@@ -196,7 +196,7 @@ test("a card the server drew answers focus and a press that reach it before the 
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   expect(await still(page, 3)).toBe(false);
   expect(await still(page, 6)).toBe(true);
   // a screen reader's own cursor: the focus lands on a control with no key and no pointer
@@ -218,7 +218,7 @@ test("a card's tools leave with the pointer after a press of the mouse, and stay
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   const card = page.locator("main article").first();
   const art = card.locator('[class*="_art_"]').first();
   const shown = () => art.evaluate(el => getComputedStyle(el).getPropertyValue("--show").trim());
@@ -236,7 +236,7 @@ test("a card's tools leave with the pointer after a press of the mouse, and stay
 
 test("Tab leads from the last live card into the next, live by then", async ({ page }) => {
   await page.goto("/palettes/rising");
-  await hydrated(page);
+  await live(page);
   await like(page, 3).focus();
   await page.keyboard.press("Tab");
   const next = await page.evaluate(() => {
@@ -253,7 +253,7 @@ test("a press on another order keeps the page: its field, its row and the focus 
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   await page.getByRole("searchbox").evaluate(el => el.setAttribute("data-was", "here"));
   const rising = page
     .getByRole("navigation", { name: "Order" })
@@ -270,7 +270,7 @@ test("a card's plus starts the selection, and its screen stands in the page's pl
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   // the keyboard's way: a card's tools show to the focus
   await card(page, 0).getByRole("button", { name: "Add to selection" }).focus();
   await page.keyboard.press("Enter");
@@ -357,7 +357,7 @@ test("a press between Saved and the public lists keeps the focus on the choice p
 }) => {
   await signedIn(page);
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   const order = page.getByRole("navigation", { name: "Order" });
   await order.getByRole("button", { name: "Saved" }).focus();
   await page.keyboard.press("Enter");
@@ -458,7 +458,7 @@ test("with no connection a list never kept offers the account's own lists, which
 test("signed out, Saved offers the way in and asks for nothing of an account", async ({ page }) => {
   const asked = calls(page);
   await page.goto("/palettes/saved?q=blue");
-  await hydrated(page);
+  await live(page);
   await expect(
     page.getByRole("heading", { name: "Sign in to see your saved palettes." })
   ).toBeVisible();
@@ -472,7 +472,7 @@ test("signed out, Saved offers the way in and asks for nothing of an account", a
 
 test("the home leads to the lists in the order the tab read last", async ({ page }) => {
   await page.goto("/palettes/rising");
-  await hydrated(page);
+  await live(page);
   await page.locator("a[data-home]").click();
   await expect.poll(() => here(page)).toBe("/");
   await expect(
@@ -484,7 +484,7 @@ test("a color dragged on a picture searched by is let go where it lands: a click
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   const picture = await searchByQuarters(page);
   const colors = picture.getByRole("button", { name: /^Color \d+,/ });
   const first = colors.first();
@@ -514,7 +514,7 @@ test.describe("on a phone", () => {
     page
   }) => {
     await page.goto("/palettes");
-    await hydrated(page);
+    await live(page);
     const picture = await searchByQuarters(page);
     const first = picture.getByRole("button", { name: /^Color 1,/ });
     await expect(first).toBeVisible();

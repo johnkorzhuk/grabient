@@ -8,6 +8,7 @@ import {
   type Page,
   test
 } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The palette's page as these tests meet it: a gradient. A page whose address names no style plays the reader's own
    choice of effect, the fluted glass until they pick another, and writes it to the address as it lands; these tests
@@ -67,7 +68,7 @@ function watch(page: Page): string[] {
 /** Opens a page, waits for the app to take over the server's document, and marks the document: a reload loses it. */
 async function open(page: Page, address: string) {
   await page.goto(address);
-  await page.waitForFunction(() => !("$_TSR" in window));
+  await live(page);
   await page.evaluate(() => Object.assign(window, { journey: true }));
 }
 const sameDocument = (page: Page) => page.evaluate(() => "journey" in window);
@@ -475,7 +476,7 @@ const shows = (page: Page) =>
 async function agrees(page: Page) {
   const whole = await page.context().newPage();
   await whole.goto(page.url());
-  await whole.waitForFunction(() => !("$_TSR" in window));
+  await live(whole);
   await expect(whole.locator("main article").first()).toBeVisible();
   const drawn = await shows(whole);
   await whole.close();
@@ -677,7 +678,7 @@ for (const width of WIDTHS)
       await expect(page).toHaveURL(locked("/ja"));
       await expect(hue("ja")).toHaveAttribute("aria-pressed", "true");
 
-      await page.waitForFunction(() => !("$_TSR" in window));
+      await live(page);
       await pressAt(
         page,
         page.locator("header").getByRole("button", { name: say("ja", "Sign in") }),

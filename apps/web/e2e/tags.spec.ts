@@ -1,10 +1,10 @@
 import { type APIResponse, expect, type Page, type Response, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* A tag on a page in another language as a reader presses it: it searches the words it shows, so the field, the heading
    and the tab's title read in the page's language, and it finds the palettes its English finds. The tags say the
    translations the local database holds; with none, every tag says its English and searches that. */
 
-const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 /** a tag's words as a list's address writes them */
 const wordsOf = (label: string) =>
   label.normalize("NFKC").replace(/\s+/gu, " ").trim().toLowerCase();
@@ -48,7 +48,7 @@ for (const [lang, said] of SAID) {
     page
   }) => {
     await page.goto(`/${lang}/palettes`);
-    await hydrated(page);
+    await live(page);
     if (lang === "ar") await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     // the server's first paint
     await rowSearchesItsWords(page, `/${lang}/palettes`);
@@ -86,7 +86,7 @@ for (const [lang, said] of SAID) {
 
   test(`/${lang}: the home's tags search the words they show`, async ({ page }) => {
     await page.goto(`/${lang}`);
-    await hydrated(page);
+    await live(page);
     await rowSearchesItsWords(page, `/${lang}`);
     const first = page.getByRole("toolbar").locator(`a[href^="/${lang}?q="]`).first();
     const words = wordsOf(await first.innerText());

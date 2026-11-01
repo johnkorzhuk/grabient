@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The MCP server and its authorization server behind the app's router. What each answers is the Worker tests' to say
    (test/mcp.test.ts, test/oauth.test.ts); these pin that their addresses reach them. They need the local sign-in
@@ -83,7 +84,7 @@ test("the page that says how to connect names the site's public address, whateve
     await route.fulfill({ response: answer, body: html });
   });
   await page.goto("/about");
-  await page.waitForFunction(() => !("$_TSR" in window));
+  await live(page);
   await page.getByRole("navigation").getByRole("link", { name: "MCP" }).click();
   await expect(page).toHaveURL(/\/mcp-server$/);
   await expect(page.locator("main code").first()).toHaveText("https://grabient.test/mcp");

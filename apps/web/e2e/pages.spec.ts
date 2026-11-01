@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The account's pages, the newsletter's and the contact form, each as its document arrives and once it has started:
    what the server draws for anyone, and what only the browser fills in. */
@@ -18,7 +19,6 @@ function watch(page: Page): string[] {
   page.on("pageerror", error => errors.push(error.message));
   return errors;
 }
-const started = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 
 test("the sign-in sheet is in the server's document, kept by no one", async ({ page, request }) => {
   const answer = await request.get("/login?redirect=%2Fsettings");
@@ -36,7 +36,7 @@ test("the sign-in sheet is in the server's document, kept by no one", async ({ p
 
   const errors = watch(page);
   await page.goto("/login?redirect=%2Fsettings");
-  await started(page);
+  await live(page);
   await expect(page).toHaveTitle("Sign in | Grabient");
   await expect(page.getByRole("button", { name: "Send link" })).toBeEnabled();
   expect(errors).toEqual([]);
@@ -56,7 +56,7 @@ test("Settings arrives drawn for anyone, and holds no account's choices for a re
 
   const errors = watch(page);
   await page.goto("/settings");
-  await started(page);
+  await live(page);
   await expect(page).toHaveTitle("Settings | Grabient");
   await expect(page.getByRole("button", { name: "Theme: System" })).toBeVisible();
   await expect(page.getByRole("switch")).toHaveCount(0);
@@ -71,7 +71,7 @@ test("the newsletter's newest issue comes with the document, in a tree of its ow
   expect(html.split('<template shadowrootmode="open">')).toHaveLength(2);
   const errors = watch(page);
   await page.goto("/newsletter");
-  await started(page);
+  await live(page);
   await expect(page).toHaveTitle("Newsletter | Grabient");
   const issue = page.locator("main article[data-issue]").first();
   await expect(issue).toBeVisible();
@@ -102,7 +102,7 @@ test("an issue's picture holds its place until the reader nears it, and only the
   });
   await page.setViewportSize({ width: 1600, height: 800 });
   await page.goto("/newsletter");
-  await started(page);
+  await live(page);
   await expect.poll(() => shows(page)).toMatch(/^data:image\/svg\+xml,/);
   const blank = await issuePicture(page).boundingBox();
   // its top is more than half a screen past the screen's foot
@@ -127,7 +127,7 @@ test("an issue's loop is the one for the page's theme, and the theme's switch sh
   });
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/newsletter");
-  await started(page);
+  await live(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await issuePicture(page).scrollIntoViewIfNeeded();
   await expect.poll(() => shows(page)).toMatch(/\/email\/collections-\d+-light\.gif$/);
@@ -220,7 +220,7 @@ test("an admin goes through the palettes an issue may lead with, over its lead, 
     { id: "kBetaBetaBetaBeta", name: "Beta" }
   ]);
   await page.goto("/newsletter");
-  await started(page);
+  await live(page);
   const picker = page
     .locator('main article[data-issue="1"]')
     .getByRole("group", { name: "Lead palette" });
@@ -262,7 +262,7 @@ test("an admin goes through the quick tips an issue offers, along its heading, a
     { id: "png", name: "A picture at any size" }
   ]);
   await page.goto("/newsletter");
-  await started(page);
+  await live(page);
   const picker = page
     .locator('main article[data-issue="1"]')
     .getByRole("group", { name: "Quick tip" });
@@ -328,7 +328,7 @@ test("an unsubscribe address answers its press, and one with no token says where
   expect(opened?.headers()["x-frame-options"]).toBe("DENY");
   expect(opened?.headers()["referrer-policy"]).toBe("no-referrer");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/unsubscribe$/);
-  await started(page);
+  await live(page);
   // no account holds this address: the Worker's own answer to the press, as an alert
   await page.getByRole("button", { name: "Unsubscribe" }).click();
   await expect(page.getByRole("alert")).toHaveText("This link isn't valid.");
@@ -380,7 +380,7 @@ test("the contact form says its rule before it asks the server", async ({ page }
     return route.abort();
   });
   await page.goto("/contact");
-  await started(page);
+  await live(page);
   await page.getByLabel("Message").fill("hey");
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByRole("alert")).toHaveText(
@@ -430,7 +430,7 @@ test("the brand pages stand in one frame: the side list, the sheet and its title
   for (const path of paths) {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto(path);
-    await started(page);
+    await live(page);
     const seen = [await frameOf(page)];
     await page.setViewportSize({ width: 390, height: 844 });
     seen.push(await frameOf(page));
@@ -447,7 +447,7 @@ test("the sheets stand where one another stand: one width, one middle, and on a 
   for (const path of paths) {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto(path);
-    await started(page);
+    await live(page);
     const wide = await page.locator("main").boundingBox();
     await page.setViewportSize({ width: 390, height: 844 });
     const narrow = await page.locator("main").boundingBox();
@@ -500,7 +500,7 @@ test("a returning reader's Settings stands where its document drew it when the a
     );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/settings");
-  await started(page);
+  await live(page);
   const drawn = await sections();
   answer();
   await expect(page.locator("#account")).toContainText("reader@grabient.test");
@@ -558,7 +558,7 @@ test("a display name set in Settings comes with the offer to show it on the pale
     return route.fulfill({ json: { success: true } });
   });
   await page.goto("/settings");
-  await started(page);
+  await live(page);
   // with no display name there is nothing to show: the switch stands off and says to add one
   const credit = page.getByRole("switch", { name: "Your display name on palettes" });
   await expect(credit).toHaveAttribute("aria-checked", "false");
@@ -636,7 +636,7 @@ test("a new avatar saves with the display name field empty: an account without a
     );
   };
   await page.goto("/settings");
-  await started(page);
+  await live(page);
   await expect(field).toHaveValue("");
   await expect(save).toBeDisabled();
   await pick();
@@ -647,7 +647,7 @@ test("a new avatar saves with the display name field empty: an account without a
   // a name the account has, cleared: the field refuses nothing, and the picture saves with the name kept
   account.username = "ada";
   await page.reload();
-  await started(page);
+  await live(page);
   await expect(field).toHaveValue("ada");
   await field.fill("");
   await pick();
@@ -705,7 +705,7 @@ test("on a Settings page loaded whole, a newsletter save that fails says so and 
   });
   // the section is drawn before the session answers, so the switch is made before there is an account to press for
   await page.goto("/settings");
-  await started(page);
+  await live(page);
   const letter = page.getByRole("switch", { name: "Newsletter" });
   await expect(letter).toHaveAttribute("aria-checked", "true");
   await letter.click();
@@ -732,7 +732,7 @@ test("Settings keeps the still water under reduced motion, as the other brand pa
     );
   for (const path of ["/about", "/settings"]) {
     await page.goto(path);
-    await started(page);
+    await live(page);
     await expect.poll(water, { message: path }).toBe(true);
   }
 });
@@ -746,7 +746,7 @@ test("the account menu opens the lists in the reader's view, a visitor's Collect
   };
   const list = "/palettes/rising?style=linearSwatches&steps=5";
   await page.goto(list);
-  await started(page);
+  await live(page);
   await menu("Collections")();
   await expect(page).toHaveURL(/\/collections\/rising\?style=linearSwatches&steps=5$/);
   // the page a row leads to takes the keyboard, as a link's does: Space pages down and leaves the menu shut
@@ -774,7 +774,7 @@ test("the account menu opens the lists in the reader's view, a visitor's Collect
     ["Your collections", /\/collections\/saved\?style=linearSwatches&steps=5$/]
   ] as const) {
     await page.goto(list);
-    await started(page);
+    await live(page);
     await menu(row)();
     await expect(page).toHaveURL(to);
   }
@@ -811,7 +811,7 @@ test("back from Google with an app's request kept in the tab, the sheet is the a
     sessionStorage.setItem("grabient-sign-in-return", `${Date.now()} /oauth/authorize?r=x`)
   );
   await page.goto("/login?error=access_denied");
-  await started(page);
+  await live(page);
   await expect(page.getByRole("alert")).toHaveText("Google sign-in failed.");
   await expect(page).toHaveURL(/\/login\?redirect=%2Foauth%2Fauthorize%3Fr%3Dx$/);
   await expect(page.locator('main [name="code"]')).toBeVisible();
@@ -846,13 +846,13 @@ test("the app reviewers' account gives itself its password in Settings, and no o
   });
   const section = page.locator("#account");
   await page.goto("/settings");
-  await started(page);
+  await live(page);
   await expect(section).toContainText("reviewer@grabient.test");
   await expect(section.locator('input[name="password"]')).toHaveCount(0);
 
   reviewer = true;
   await page.goto("/settings");
-  await started(page);
+  await live(page);
   const password = section.locator('input[name="password"]');
   await password.fill("a long password for the review");
   await section.getByRole("button", { name: "Save" }).click();

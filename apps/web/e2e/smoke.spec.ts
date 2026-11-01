@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 const PAGES = [
   { address: "/", lang: "en", landed: "/", next: "/palettes" },
@@ -20,8 +21,8 @@ for (const { address, lang, landed, next } of PAGES) {
     await page.goto(address);
     expect(new URL(page.url()).pathname).toBe(landed);
     await expect(page.locator("html")).toHaveAttribute("lang", lang);
-    // the router removes its handoff once the app has hydrated the server's document
-    await page.waitForFunction(() => !("$_TSR" in window));
+    // the app has taken the server's document over, its frame's link handler in place (live.ts)
+    await live(page);
 
     // a press is now the app's own navigation: the document stays
     await page.evaluate(() => Object.assign(window, { sameDocument: true }));
@@ -37,7 +38,7 @@ test("after a deploy, the next page loads whole with the build that serves it", 
   page
 }) => {
   await page.goto("/");
-  await page.waitForFunction(() => !("$_TSR" in window));
+  await live(page);
   // an answer from another build than the page's own
   await page.route("**/api/build", route =>
     route.fulfill({ status: 204, headers: { "Server-Timing": 'build;desc="newer"' } })
@@ -54,7 +55,7 @@ test("a brand page's links are the app's own navigation, and focus lands on the 
   baseURL
 }) => {
   await page.goto("/about");
-  await page.waitForFunction(() => !("$_TSR" in window));
+  await live(page);
   await page.evaluate(() => Object.assign(window, { sameDocument: true }));
   await page
     .getByRole("navigation", { name: "About and account" })
@@ -123,7 +124,7 @@ test("the Worker's modules go up with their maps, and a reader is sent none", {
       scripts.push(response.url());
   });
   await page.goto("/palettes");
-  await page.waitForFunction(() => !("$_TSR" in window));
+  await live(page);
   expect(scripts.length).toBeGreaterThan(0);
   for (const script of scripts) {
     expect(await (await request.get(script)).text()).not.toContain("sourceMappingURL");

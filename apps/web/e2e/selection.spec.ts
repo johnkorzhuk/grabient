@@ -1,9 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The selection's export screen over a list or a palette: what its undo walks, the size its column exports at, and the
    way Close takes back to the page beneath. */
 
-const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 const close = (page: Page) => page.getByRole("button", { name: "Close selection" });
 /** The palette at this place in the export preview: each is a press that takes it out of the selection. */
 const removable = (page: Page, number: number) =>
@@ -27,7 +27,7 @@ async function add(page: Page, ...at: number[]) {
 
 test("an undo on the selection's screen walks only the steps made there", async ({ page }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   await add(page, 0, 1);
   await page
     .getByRole("button", { name: /^Selection/ })
@@ -76,7 +76,7 @@ test("Close goes Back to the list after a size is set in the column, and the lis
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   await add(page, 0);
   await page
     .getByRole("button", { name: /^Selection/ })
@@ -101,7 +101,7 @@ test("the export's strip keeps its mode and its swatch book square beside the fo
   page
 }) => {
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   await add(page, 0);
   await page
     .getByRole("button", { name: /^Selection/ })

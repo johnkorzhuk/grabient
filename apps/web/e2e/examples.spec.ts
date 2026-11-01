@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* A palette's examples (features/examples): one page for each palette, whatever view or effect a link names, its parts
    in the looks its seed picks; its hero under the header to the window's top, the editor's keys turning the palette here
@@ -11,7 +12,7 @@ const ALWAYS = ["cards", "profile", "wallpapers", "swatches"];
 /** Opens a page and waits for the app to have hydrated the server's document. */
 async function open(page: Page, address: string) {
   await page.goto(address);
-  await page.waitForFunction(() => !("$_TSR" in window));
+  await live(page);
 }
 
 /** Presses B until the palette turns: the shell listens for keys once the page has settled, a moment after it

@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The frame around the pages: what its header's corner writes to the address and when the route takes it, the view a
    list takes on the way back, the document a page arrives in, the tab's icon, and the way from a list to the palette or
@@ -7,7 +8,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 /** Opens a page and waits for the app to have hydrated the server's document. */
 async function open(page: Page, address: string) {
   await page.goto(address);
-  await page.waitForFunction(() => !("$_TSR" in window));
+  await live(page);
 }
 
 test("a view being set reaches the address in the lists' order, and the route and the links once it rests", async ({

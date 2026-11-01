@@ -1,4 +1,5 @@
 import { devices, expect, type Locator, type Page, type Route, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The editor at a palette's address: the static page the server sends, the editor the browser draws over it, the
    address that follows each edit in place, the undo the entry keeps, and what the page asks the server. */
@@ -730,7 +731,7 @@ test("Back with an edit's address still waiting lands on the page it leaves for"
   const collection = `/${listed.items[0]?.slug}`;
   await page.goto(collection);
   // started, so the palette opens in the page
-  await page.waitForFunction(() => !("$_TSR" in window));
+  await live(page);
   await page.locator("main article a[aria-label^='Edit ']").first().focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();

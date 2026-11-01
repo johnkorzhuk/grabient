@@ -1,11 +1,11 @@
 import { expect, type Locator, type Page, type Route, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The collections' pages as a reader meets them. The lists, collections and accounts a test moves through are answered
    here, so the tests stand whatever the local database holds. */
 
 const SEED = "kS7CQ31Do6asvY-";
 const SLUG = "e2e-gradients";
-const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 
 const summary = {
   slug: SLUG,
@@ -101,7 +101,7 @@ test("signed out, the selection's Save leads to sign in and asks for no account'
     if (url.pathname.startsWith("/api/me/")) asked.push(url.pathname);
   });
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   await page
     .locator("main article")
     .first()
@@ -126,7 +126,7 @@ test("a press on another order keeps the collections page: its field, its row an
     rising
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.getByRole("searchbox").evaluate(el => el.setAttribute("data-was", "here"));
   const order = (name: RegExp) =>
     page.getByRole("navigation", { name: "Order" }).getByRole("link", { name });
@@ -152,7 +152,7 @@ test("a list read again on purpose that fails keeps its groups beside the reason
     route => (failing ? route.abort() : rising(route))
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   const group = page.locator(`main a[href="/${SLUG}/rising"]`);
   await page.locator('main a[href="/collections/rising"]').click();
   await expect(group).toBeVisible();
@@ -178,7 +178,7 @@ test("a collection opened from a list keeps the list's summary when its own read
     route => route.abort()
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   await expect(page).toHaveURL(new RegExp(`/${SLUG}/rising$`));
@@ -204,7 +204,7 @@ test("a press on a collection's other order leaves the focus on it, in the page 
       })
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   await expect(page).toHaveURL(new RegExp(`/${SLUG}/rising$`));
@@ -242,7 +242,7 @@ test("each page's head holds one block of structured data, its own", async ({ pa
       )
     );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await expect(blocks).toHaveCount(1);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
@@ -305,7 +305,7 @@ test("an admin's own collection made private says so at its new address, and qui
     route.fulfill({ json: state(hidden) })
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   const turn = page.locator("main button", { hasText: /^\s*(Make|Now) (public|private)$/ });
@@ -330,7 +330,7 @@ test("a search of Saved whose server read fails answers from the account's copy"
     route => route.abort()
   );
   await page.goto("/collections/saved");
-  await hydrated(page);
+  await live(page);
   const group = page.locator("main").getByRole("heading", { name: "My blues" });
   await expect(group).toBeVisible();
   await page.getByRole("searchbox").fill("blues");
@@ -359,7 +359,7 @@ test("a signed-in reader's one look at a public collection is counted once", asy
     if (new URL(request.url()).pathname === "/api/used" && body.includes('"view"')) seen.push(body);
   });
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   await expect(page.locator("main h1")).toHaveText(summary.title);
@@ -408,7 +408,7 @@ test("Save on someone else's collection says it saved, the keyboard on the Saved
     })
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   await expect(page.locator("main h1")).toHaveText(summary.title);
@@ -440,7 +440,7 @@ test("each undo and redo of a pick says what it did, and a new collection goes b
       })
   );
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   // the account's copy has heard from the server, so the checklist names its collections
   await page.waitForLoadState("networkidle");
   const card = page.locator("main article").first();
@@ -479,7 +479,7 @@ test("a pick leaves each of the account's collections where the checklist drew i
   };
   await signIn(page, "ada", false, [blues, warm]);
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   // the account's copy has heard from the server, so the checklist names its collections
   await page.waitForLoadState("networkidle");
   const card = page.locator("main article").first();
@@ -507,7 +507,7 @@ test("Add to collection open over a card is one piece: square where its parts me
 }) => {
   await signIn(page, "ada", false, [blues]);
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   // the account's copy has heard from the server, so the checklist names its collections
   await page.waitForLoadState("networkidle");
   const card = page.locator("main article").first();
@@ -579,7 +579,7 @@ test("a palette the admin likes is offered no curation", async ({ page }) => {
   // no person liked it, as the server knows: it leaves out the admin's own likes
   await page.route("**/api/me/palettes?*", route => route.fulfill({ json: { liked: [] } }));
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   const card = page.locator("main article").first();
@@ -607,7 +607,7 @@ test("Saved shows a pick made on another page when the reader comes back", async
     }
   ]);
   await page.goto("/collections/saved");
-  await hydrated(page);
+  await live(page);
   const blues = page.getByRole("region", { name: "My blues" });
   await expect(blues).toContainText("1 palette");
   await page
@@ -657,7 +657,7 @@ test("a fit vote made on a collection's page is there when the reader comes back
     return route.fulfill({ json: { seed, vote } });
   });
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   const good = page
@@ -705,7 +705,7 @@ test("a reader's votes on a collection that could not be read are read again whe
         })
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   const good = page
@@ -726,7 +726,7 @@ test("a palette removed with the keyboard leaves the focus on its Undo, which gi
 }) => {
   await signIn(page, "ada", false, [blues]);
   await page.goto("/@e2e-ada/my-blues");
-  await hydrated(page);
+  await live(page);
   const card = page.locator("main article").first();
   const remove = card.getByRole("button", { name: "Remove from collection" });
   await remove.focus();
@@ -753,7 +753,7 @@ test("a collection's read that failed and answers on Retry gives the tab the col
   );
   // a page that holds no summary of it, so the collection's own read is all the route has
   await page.goto("/palettes");
-  await hydrated(page);
+  await live(page);
   await page.evaluate(href => {
     const link = document.createElement("a");
     link.href = href;
@@ -824,7 +824,7 @@ test("a private collection renamed on its page is the account's own at its new a
       asked.push(pathname);
   });
   await page.goto(blues.url);
-  await hydrated(page);
+  await live(page);
   await page.getByRole("button", { name: "Edit My blues", exact: true }).focus();
   await page.keyboard.press("Enter");
   const title = page.getByRole("textbox", { name: "Title" });
@@ -849,7 +849,7 @@ test("a collection's words edited by keyboard take the focus into the title and 
 }) => {
   await signIn(page, "ada", false, [blues]);
   await page.goto(blues.url);
-  await hydrated(page);
+  await live(page);
   const edit = page.getByRole("button", { name: "Edit My blues", exact: true });
   const title = page.getByRole("textbox", { name: "Title" });
   await edit.focus();
@@ -885,7 +885,7 @@ test("a collection's title in a list, cut short at its line's end, shows its who
     risingWith(long)
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   const title = page.locator(`main a[href="/${SLUG}/rising"]`);
   await title.focus();
@@ -936,7 +936,7 @@ test("a collection's title in a list, cut short at its line's end, shows its who
 test("a title entered on Saved at once opens the account's collection", async ({ page }) => {
   await signIn(page, "ada", false, [blues]);
   await page.goto("/collections/saved");
-  await hydrated(page);
+  await live(page);
   await expect(page.locator("main").getByRole("heading", { name: "My blues" })).toBeVisible();
   await page.getByRole("searchbox").fill("my blues");
   await page.keyboard.press("Enter");
@@ -1037,7 +1037,7 @@ test("a collection's tags on a page in another language search palettes for the 
       })
   );
   await page.goto("/de/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/de/collections/rising"]').click();
   await page.locator(`main a[href="/de/${SLUG}/rising"]`).click();
   const tag = page.getByRole("toolbar").getByRole("link", { name: "blaue Stunde" });
@@ -1076,7 +1076,7 @@ test("a collection's tags show their colors under the pointer and keyboard focus
       })
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   const row = page.getByRole("toolbar", { name: "Tags" });
@@ -1131,7 +1131,7 @@ test("the collection a saved one came from shows its colors under the pointer an
       })
   );
   await page.goto(sunny.url);
-  await hydrated(page);
+  await live(page);
   const source = page.locator("main").getByRole("link", { name: summary.title });
   await expect(source).toHaveAttribute("href", `/${SLUG}`);
   const coins = coinsBy(source);
@@ -1180,7 +1180,7 @@ test("a palette's title stands in its age's place under the pointer and the keyb
     route => route.fulfill({ json: { credit: { by: "grabient" } } })
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   const card = page.getByRole("article", { name: "Violet hour palette" });
@@ -1231,7 +1231,7 @@ test("a card with no title says who brought its palette after its age while it i
     route => route.fulfill({ json: { credit: { by: "person", name: "ada" } } })
   );
   await page.goto("/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
   const card = page.getByRole("article").first();
@@ -1279,7 +1279,7 @@ test("in another language a card wears its palette's written title as it was wri
     }
   );
   await page.goto("/de/collections");
-  await hydrated(page);
+  await live(page);
   await page.locator('main a[href="/de/collections/rising"]').click();
   await page.locator(`main a[href="/de/${SLUG}/rising"]`).click();
   const card = page.getByRole("article").first();
@@ -1303,7 +1303,7 @@ test("the owner titles a palette on its card, an undo takes the title back, and 
         sent.push(change.op);
   });
   await page.goto(blues.url);
-  await hydrated(page);
+  await live(page);
   const card = page.locator("main article").first();
   await card.getByRole("img").hover();
   await card.getByRole("button", { name: "Add a title" }).click();
@@ -1380,7 +1380,7 @@ for (const [width, words] of [
         })
     );
     await page.goto("/collections");
-    await hydrated(page);
+    await live(page);
     await page.locator('main a[href="/collections/rising"]').click();
     await page.locator(`main a[href="/${SLUG}/rising"]`).click();
     const update = page.getByRole("button", { name: "Update your copy" });
