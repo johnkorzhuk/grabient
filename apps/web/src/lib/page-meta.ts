@@ -1,5 +1,11 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
-import { type Effect, effectAddressParts, effectLookParts } from "@grabient/engine/effect.ts";
+import {
+  EFFECT_FPS,
+  type Effect,
+  effectAddressParts,
+  effectFileAddress,
+  effectLookParts
+} from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
@@ -229,14 +235,6 @@ export function effectCard(seed: string, effect: Effect, angle: number): string 
   const parts = [`style=${effect.kind}`, ...turned, ...effectLookParts(effect)];
   return `/api/og?seed=${seed}&v=${CARD_VERSION}&${parts.join("&")}`;
 }
-/** A palette's examples page's share card: the palette put to use, its poster in the style the page shows, a gradient's
-    view or an effect's look (server/images/cards.ts's examplesCard). */
-export function examplesCard(seed: string, view: PaletteView, effect: Effect | null): string {
-  const query = effect
-    ? `&${[`style=${effect.kind}`, ...(view.angle !== DEFAULT_ANGLE ? [`angle=${view.angle}`] : []), ...effectLookParts(effect)].join("&")}`
-    : viewSearch(view).replace("?", "&");
-  return `/api/og/examples?seed=${seed}&v=${CARD_VERSION}${query}`;
-}
 /** A palette's examples page (routes/$id/examples.tsx): its address and /examples, then the style it shows, a
     gradient's view or an effect's address, as the palette's own page names them, with no size. */
 export function examplesPath(
@@ -251,7 +249,7 @@ export function examplesPath(
 }
 
 /** A palette's examples (routes/$id/examples.tsx): kept out of the index, since what it says is the palette's own page's
-    and the code any palette takes; its card shows the palette put to use, in the style it shows. Its address is the palette's plus
+    and the code any palette takes; its share image is the palette in the style it shows. Its address is the palette's plus
     /examples, with the view's query or the effect's. */
 function examplesPage(
   page: Extract<Page, { kind: "examples" }>,
@@ -265,7 +263,21 @@ function examplesPage(
     name
   });
   meta.robots = "noindex,follow";
-  meta.image = absolute(examplesCard(page.seed, page.view, page.effect), origin);
+  /* its share image is the palette alone from edge to edge at a card's size, in the form its address names: a
+     gradient's view, or an effect's first frame (a picture's address leaves the effect's pace out) */
+  meta.image = absolute(
+    page.effect
+      ? effectFileAddress(
+          "",
+          page.seed,
+          { ...page.effect, speed: 1, fps: EFFECT_FPS.default },
+          page.view.angle,
+          "png",
+          CARD_SIZE
+        )
+      : paletteFile(page.seed, { ...page.view, size: CARD_SIZE }, "png"),
+    origin
+  );
   meta.imageAlt = t("{name} color palette", { name });
   return examplesPath(page.seed, page.view, page.effect);
 }

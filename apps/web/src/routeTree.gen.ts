@@ -98,7 +98,6 @@ import { Route as ApiMeSyncRouteImport } from './routes/api/me/sync'
 import { Route as ApiOgIndexRouteImport } from './routes/api/og/index'
 import { Route as ApiOgCollectionRouteImport } from './routes/api/og/collection'
 import { Route as ApiOgCollectionsRouteImport } from './routes/api/og/collections'
-import { Route as ApiOgExamplesRouteImport } from './routes/api/og/examples'
 import { Route as ApiOgListRouteImport } from './routes/api/og/list'
 import { Route as ApiOgQueryRouteImport } from './routes/api/og/query'
 import { Route as ApiPalettesSearchRouteImport } from './routes/api/palettes_.search'
@@ -603,11 +602,6 @@ const ApiOgCollectionsRoute = ApiOgCollectionsRouteImport.update({
   path: '/api/og/collections',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiOgExamplesRoute = ApiOgExamplesRouteImport.update({
-  id: '/api/og/examples',
-  path: '/api/og/examples',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiOgListRoute = ApiOgListRouteImport.update({
   id: '/api/og/list',
   path: '/api/og/list',
@@ -837,7 +831,6 @@ export interface FileRoutesByFullPath {
   '/api/me/sync': typeof ApiMeSyncRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
-  '/api/og/examples': typeof ApiOgExamplesRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
   '/api/palettes/search': typeof ApiPalettesSearchRoute
@@ -957,7 +950,6 @@ export interface FileRoutesByTo {
   '/api/me/sync': typeof ApiMeSyncRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
-  '/api/og/examples': typeof ApiOgExamplesRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
   '/api/palettes/search': typeof ApiPalettesSearchRoute
@@ -1078,7 +1070,6 @@ export interface FileRoutesById {
   '/api/me/sync': typeof ApiMeSyncRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
-  '/api/og/examples': typeof ApiOgExamplesRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
   '/api/palettes_/search': typeof ApiPalettesSearchRoute
@@ -1200,7 +1191,6 @@ export interface FileRouteTypes {
     | '/api/me/sync'
     | '/api/og/collection'
     | '/api/og/collections'
-    | '/api/og/examples'
     | '/api/og/list'
     | '/api/og/query'
     | '/api/palettes/search'
@@ -1320,7 +1310,6 @@ export interface FileRouteTypes {
     | '/api/me/sync'
     | '/api/og/collection'
     | '/api/og/collections'
-    | '/api/og/examples'
     | '/api/og/list'
     | '/api/og/query'
     | '/api/palettes/search'
@@ -1440,7 +1429,6 @@ export interface FileRouteTypes {
     | '/api/me/sync'
     | '/api/og/collection'
     | '/api/og/collections'
-    | '/api/og/examples'
     | '/api/og/list'
     | '/api/og/query'
     | '/api/palettes_/search'
@@ -1561,7 +1549,6 @@ export interface RootRouteChildren {
   ApiMeSyncRoute: typeof ApiMeSyncRoute
   ApiOgCollectionRoute: typeof ApiOgCollectionRoute
   ApiOgCollectionsRoute: typeof ApiOgCollectionsRoute
-  ApiOgExamplesRoute: typeof ApiOgExamplesRoute
   ApiOgListRoute: typeof ApiOgListRoute
   ApiOgQueryRoute: typeof ApiOgQueryRoute
   ApiPalettesSearchRoute: typeof ApiPalettesSearchRoute
@@ -2228,13 +2215,6 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiOgCollectionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/og/examples': {
-      id: '/api/og/examples'
-      path: '/api/og/examples'
-      fullPath: '/api/og/examples'
-      preLoaderRoute: typeof ApiOgExamplesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/og/list': {
       id: '/api/og/list'
       path: '/api/og/list'
@@ -2517,7 +2497,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMeSyncRoute: ApiMeSyncRoute,
   ApiOgCollectionRoute: ApiOgCollectionRoute,
   ApiOgCollectionsRoute: ApiOgCollectionsRoute,
-  ApiOgExamplesRoute: ApiOgExamplesRoute,
   ApiOgListRoute: ApiOgListRoute,
   ApiOgQueryRoute: ApiOgQueryRoute,
   ApiPalettesSearchRoute: ApiPalettesSearchRoute,

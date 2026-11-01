@@ -2,7 +2,7 @@
   "(opens in a new tab)": {
     "note": "Spoken after a link that opens a new tab.",
     "refs": [
-      "packages/ui/src/Button.tsx:93",
+      "packages/ui/src/Button.tsx:95",
       "packages/ui/src/CodeTabs.tsx:137",
       "packages/ui/src/Footer.tsx:59",
       "packages/ui/src/Menu.tsx:270",
@@ -72,13 +72,13 @@
   "A collection of color palettes on Grabient.": {
     "note": "Collection page description before it is known.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:928"
+      "apps/web/src/lib/page-meta.ts:940"
     ]
   },
   "A color palette's path through the OKLCH color space": {
     "note": "Alt text of About's share image: a random palette's gradient beside its path through the color solid, as the editor's Color space pane draws it.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:397"
+      "apps/web/src/lib/page-meta.ts:409"
     ]
   },
   "A desktop screen with the palette as its wallpaper": {
@@ -90,7 +90,7 @@
   "A free CSS gradient generator and color palette finder for designers and developers.": {
     "note": "The site's description in search results and in emails.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:725",
+      "apps/web/src/lib/page-meta.ts:737",
       "packages/email/src/partner.ts:143"
     ]
   },
@@ -142,7 +142,7 @@
     "note": "About page title.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:410",
-      "apps/web/src/lib/page-meta.ts:390"
+      "apps/web/src/lib/page-meta.ts:402"
     ]
   },
   "About and account": {
@@ -328,7 +328,7 @@
   "Allow an app to use your Grabient account.": {
     "note": "Connect page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:457"
+      "apps/web/src/lib/page-meta.ts:469"
     ]
   },
   "Always dark.": {
@@ -500,7 +500,7 @@
     "note": "A chip under an example: the background color the example gives a blob that has none of its own. <c>…</c> marks the hex code (like #101828), which stays as written; keep the tags.",
     "refs": [
       "apps/web/src/features/examples/Cards.tsx:648",
-      "apps/web/src/features/examples/Headline.tsx:745",
+      "apps/web/src/features/examples/Headline.tsx:763",
       "apps/web/src/features/examples/Profile.tsx:143",
       "apps/web/src/features/examples/Wallpapers.tsx:277"
     ]
@@ -609,14 +609,14 @@
   "CSS gradient generator and color palette finder. Browse and edit gradient palettes, then export them as CSS, SVG, PNG or a shader.": {
     "note": "The app's description in structured data.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:704",
+      "apps/web/src/lib/page-meta.ts:716",
       "packages/email/src/partner.ts:137"
     ]
   },
   "CSS gradients and color palettes gaining likes now. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
     "note": "Rising list description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:368"
+      "apps/web/src/lib/page-meta.ts:380"
     ]
   },
   "Cancel": {
@@ -788,8 +788,8 @@
       "apps/web/src/app/AccountMenu.tsx:122",
       "apps/web/src/features/collections/CollectionPage.tsx:691",
       "apps/web/src/features/editor/StaticPalette.tsx:142",
-      "apps/web/src/lib/page-meta.ts:909",
-      "apps/web/src/lib/page-meta.ts:972",
+      "apps/web/src/lib/page-meta.ts:921",
+      "apps/web/src/lib/page-meta.ts:984",
       "packages/ui/src/ListNav.tsx:12"
     ]
   },
@@ -813,45 +813,45 @@
   "Collections like {name}": {
     "note": "Title of a collections search by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:621"
+      "apps/web/src/lib/page-meta.ts:633"
     ]
   },
   "Collections of gradients and color palettes by color, theme and use, from people and Grabient agents. Open any palette to edit and export it.": {
     "note": "Collections list description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1099"
+      "apps/web/src/lib/page-meta.ts:1111"
     ]
   },
   "Collections of gradients and color palettes for {query}, by people and Grabient agents.": {
     "note": "Description of a collections search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1087"
+      "apps/web/src/lib/page-meta.ts:1099"
     ]
   },
   "Collections of gradients and color palettes gaining likes now, from people and Grabient agents. Open any palette to edit and export it.": {
     "note": "Rising collections list description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1096"
+      "apps/web/src/lib/page-meta.ts:1108"
     ]
   },
   "Collections of gradients and color palettes like {name}, by people and Grabient agents.": {
     "note": "Description of a collections search by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1083"
+      "apps/web/src/lib/page-meta.ts:1095"
     ]
   },
   "Collections of gradients and color palettes on Grabient": {
     "note": "Alt text of the collections list's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1107"
+      "apps/web/src/lib/page-meta.ts:1119"
     ]
   },
   "Color for every screen": {
     "note": "Demo content: the heading of an example landing page hero beside a picture of the palette. A short, confident line about color that works on any device screen.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:630",
-      "apps/web/src/features/examples/Headline.tsx:640",
-      "apps/web/src/features/examples/Headline.tsx:849"
+      "apps/web/src/features/examples/Headline.tsx:648",
+      "apps/web/src/features/examples/Headline.tsx:658",
+      "apps/web/src/features/examples/Headline.tsx:868"
     ]
   },
   "Color format": {
@@ -875,7 +875,7 @@
   "Color palettes and CSS gradients like {name}. Edit any of them, then copy CSS or export SVG and PNG.": {
     "note": "Description of a search by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:770"
+      "apps/web/src/lib/page-meta.ts:782"
     ]
   },
   "Color picker": {
@@ -947,7 +947,7 @@
   "Connect an AI app like Claude, ChatGPT or Cursor to your Grabient account. It can search, make and save palettes and collections for you.": {
     "note": "MCP page description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:414"
+      "apps/web/src/lib/page-meta.ts:426"
     ]
   },
   "Connect an app": {
@@ -955,7 +955,7 @@
     "refs": [
       "apps/web/src/features/connect/Connect.tsx:111",
       "apps/web/src/features/connect/Connect.tsx:261",
-      "apps/web/src/lib/page-meta.ts:456"
+      "apps/web/src/lib/page-meta.ts:468"
     ]
   },
   "Connect an app to your account.": {
@@ -993,7 +993,7 @@
     "refs": [
       "apps/web/src/app/site.ts:38",
       "apps/web/src/features/contact/ContactPage.tsx:80",
-      "apps/web/src/lib/page-meta.ts:441"
+      "apps/web/src/lib/page-meta.ts:453"
     ]
   },
   "Contact is temporarily unavailable.": {
@@ -1699,7 +1699,7 @@
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": {
     "note": "Shortcuts page description in search results; the names are the shortcuts the page lists. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:404"
+      "apps/web/src/lib/page-meta.ts:416"
     ]
   },
   "Every other color is the glass's": {
@@ -1745,7 +1745,7 @@
   "Explore {subject} gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG.": {
     "note": "Description of a search; {subject} is the words, lowercase.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:774"
+      "apps/web/src/lib/page-meta.ts:786"
     ]
   },
   "Export": {
@@ -1904,7 +1904,7 @@
   "For landing pages, slides and posters.": {
     "note": "Examples page: the one short line under the 'Headlines' title, saying what big headings in the palette's colors are for. Plain, no marketing words.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:758"
+      "apps/web/src/features/examples/Headline.tsx:776"
     ]
   },
   "For phones and desktops, sized to each screen.": {
@@ -1989,9 +1989,9 @@
     "refs": [
       "apps/web/src/features/examples/Cards.tsx:546",
       "apps/web/src/features/examples/Cards.tsx:556",
-      "apps/web/src/features/examples/Headline.tsx:631",
-      "apps/web/src/features/examples/Headline.tsx:641",
-      "apps/web/src/features/examples/Headline.tsx:850"
+      "apps/web/src/features/examples/Headline.tsx:649",
+      "apps/web/src/features/examples/Headline.tsx:659",
+      "apps/web/src/features/examples/Headline.tsx:869"
     ]
   },
   "Glaring, clipped or too neon": {
@@ -2033,7 +2033,7 @@
   "Grabient gradient palette generator": {
     "note": "Alt text of the site's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:993"
+      "apps/web/src/lib/page-meta.ts:1005"
     ]
   },
   "Grabient makes gradients from keyframes: 2 to 8 colors joined by a smooth curve.": {
@@ -2057,13 +2057,13 @@
   "Grabient — CSS Gradient Generator & Color Palettes": {
     "note": "The home page title in search results. Kept as it is: the site ranks under it.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:352"
+      "apps/web/src/lib/page-meta.ts:364"
     ]
   },
   "Grabient's newsletter, about once a month: rising palettes, featured collections and new features. Read every issue here, or sign up to get it by email.": {
     "note": "Newsletter page description in search results. Every account gets the newsletter, so signing up is how to get it. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:421"
+      "apps/web/src/lib/page-meta.ts:433"
     ]
   },
   "Grabient, all palettes": {
@@ -2081,7 +2081,7 @@
   "Gradient and color palette collections": {
     "note": "Title of the collections list.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:625"
+      "apps/web/src/lib/page-meta.ts:637"
     ]
   },
   "Gray or brown through the middle": {
@@ -2130,8 +2130,8 @@
   "Headlines": {
     "note": "Examples page: title of a section, shown after its number as '1 · Headlines'. Big headings in the palette's colors. Short title, a noun or two.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:757",
-      "apps/web/src/features/examples/Headline.tsx:773"
+      "apps/web/src/features/examples/Headline.tsx:775",
+      "apps/web/src/features/examples/Headline.tsx:792"
     ]
   },
   "Height": {
@@ -2177,13 +2177,13 @@
   "Hot palettes and collections": {
     "note": "Title of the home feed from its second page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:353"
+      "apps/web/src/lib/page-meta.ts:365"
     ]
   },
   "How Grabient makes gradients from 2 to 8 keyframes in OKLCH: the formula, steps, hue past 360°, colors a screen can't show and the seed in each URL.": {
     "note": "About page description in search results; the list is the page's sections. The seed is the code in a palette's address. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:391"
+      "apps/web/src/lib/page-meta.ts:403"
     ]
   },
   "How it works": {
@@ -2393,9 +2393,9 @@
   "Journal": {
     "note": "Demo content: the small label above an example magazine or blog heading. One short word for a publication of articles, set in small capitals.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:677",
-      "apps/web/src/features/examples/Headline.tsx:681",
-      "apps/web/src/features/examples/Headline.tsx:882"
+      "apps/web/src/features/examples/Headline.tsx:695",
+      "apps/web/src/features/examples/Headline.tsx:699",
+      "apps/web/src/features/examples/Headline.tsx:901"
     ]
   },
   "Keep current avatar": {
@@ -2407,7 +2407,7 @@
   "Keyboard shortcuts": {
     "note": "Title of the shortcuts page in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:401"
+      "apps/web/src/lib/page-meta.ts:413"
     ]
   },
   "Keyframe count": {
@@ -2677,7 +2677,7 @@
   "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
     "note": "Home page description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:354"
+      "apps/web/src/lib/page-meta.ts:366"
     ]
   },
   "Make a palette from {first} and {second}, and save it.": {
@@ -2719,7 +2719,7 @@
   "Manage your Grabient account.": {
     "note": "Settings page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:471"
+      "apps/web/src/lib/page-meta.ts:483"
     ]
   },
   "Manual setup": {
@@ -2832,9 +2832,9 @@
   "New season": {
     "note": "Demo content: the small label above the heading of an example landing page hero, announcing a new season of products. Two or three words, set in small capitals.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:629",
-      "apps/web/src/features/examples/Headline.tsx:639",
-      "apps/web/src/features/examples/Headline.tsx:848"
+      "apps/web/src/features/examples/Headline.tsx:647",
+      "apps/web/src/features/examples/Headline.tsx:657",
+      "apps/web/src/features/examples/Headline.tsx:867"
     ]
   },
   "New shape": {
@@ -2850,7 +2850,7 @@
       "apps/web/src/features/account/settings/Newsletter.tsx:62",
       "apps/web/src/features/account/settings/flags.ts:60",
       "apps/web/src/features/newsletter/NewsletterPage.tsx:142",
-      "apps/web/src/lib/page-meta.ts:420"
+      "apps/web/src/lib/page-meta.ts:432"
     ]
   },
   "Newsletter test": {
@@ -2862,7 +2862,7 @@
   "Next headline": {
     "note": "Examples page: the press that shows the next example headline in the Headlines carousel, said to a screen reader.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:923"
+      "apps/web/src/features/examples/Headline.tsx:942"
     ]
   },
   "Next lead": {
@@ -3012,9 +3012,9 @@
   "Notes on color": {
     "note": "Demo content: the heading of an example magazine or blog article, set over a bar of the palette. Short, like an article title.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:678",
-      "apps/web/src/features/examples/Headline.tsx:682",
-      "apps/web/src/features/examples/Headline.tsx:883"
+      "apps/web/src/features/examples/Headline.tsx:696",
+      "apps/web/src/features/examples/Headline.tsx:700",
+      "apps/web/src/features/examples/Headline.tsx:902"
     ]
   },
   "Nothing changed.": {
@@ -3251,7 +3251,7 @@
     "note": "Title of the page for an address the site does not know.",
     "refs": [
       "apps/web/src/app/NotFound.tsx:31",
-      "apps/web/src/lib/page-meta.ts:1120"
+      "apps/web/src/lib/page-meta.ts:1132"
     ]
   },
   "Page {page} doesn't exist.": {
@@ -3291,7 +3291,7 @@
   "Palette collection": {
     "note": "Title of a collection page before its title is known.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:927"
+      "apps/web/src/lib/page-meta.ts:939"
     ]
   },
   "Palette colors": {
@@ -3325,7 +3325,7 @@
   "Palette not found": {
     "note": "Title of the page for a palette or address that does not exist.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1120"
+      "apps/web/src/lib/page-meta.ts:1132"
     ]
   },
   "Palette put back.": {
@@ -3384,8 +3384,8 @@
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:803",
-      "apps/web/src/lib/page-meta.ts:595",
-      "apps/web/src/lib/page-meta.ts:606",
+      "apps/web/src/lib/page-meta.ts:607",
+      "apps/web/src/lib/page-meta.ts:618",
       "packages/ui/src/PaletteCard.tsx:300"
     ]
   },
@@ -3546,13 +3546,13 @@
   "Popular gradient palettes": {
     "note": "Title of the Popular list from its second page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:360"
+      "apps/web/src/lib/page-meta.ts:372"
     ]
   },
   "Popular gradient palettes | Grabient": {
     "note": "Title of the Popular list in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:359"
+      "apps/web/src/lib/page-meta.ts:371"
     ]
   },
   "Poster": {
@@ -3663,7 +3663,7 @@
   "Previous headline": {
     "note": "Examples page: the press that shows the previous example headline in the Headlines carousel, said to a screen reader.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:899"
+      "apps/web/src/features/examples/Headline.tsx:918"
     ]
   },
   "Previous lead": {
@@ -3699,7 +3699,7 @@
   "Privacy policy": {
     "note": "Title of the Privacy Policy page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:427"
+      "apps/web/src/lib/page-meta.ts:439"
     ]
   },
   "Private": {
@@ -3923,7 +3923,7 @@
   "Requires JavaScript": {
     "note": "Structured data: the browser needs JavaScript.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:710"
+      "apps/web/src/lib/page-meta.ts:722"
     ]
   },
   "Reset": {
@@ -4008,19 +4008,19 @@
   "Rising gradient and color palette collections": {
     "note": "Title of the Rising collections list.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:624"
+      "apps/web/src/lib/page-meta.ts:636"
     ]
   },
   "Rising gradient palettes": {
     "note": "Title of the Rising list from its second page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:367"
+      "apps/web/src/lib/page-meta.ts:379"
     ]
   },
   "Rising gradient palettes | Grabient": {
     "note": "Title of the Rising list in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:366"
+      "apps/web/src/lib/page-meta.ts:378"
     ]
   },
   "Rising over 1 year": {
@@ -4159,21 +4159,21 @@
       "apps/web/src/app/OfflineList.tsx:11",
       "apps/web/src/app/Shell.tsx:175",
       "apps/web/src/features/account/settings/Profile.tsx:278",
-      "apps/web/src/lib/page-meta.ts:476",
-      "apps/web/src/lib/page-meta.ts:611",
+      "apps/web/src/lib/page-meta.ts:488",
+      "apps/web/src/lib/page-meta.ts:623",
       "apps/web/src/server/ceiling.ts:533"
     ]
   },
   "Saved palettes for {query}": {
     "note": "Title of a search in Saved.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:610"
+      "apps/web/src/lib/page-meta.ts:622"
     ]
   },
   "Saved palettes like {name}": {
     "note": "Title of a search in Saved by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:609"
+      "apps/web/src/lib/page-meta.ts:621"
     ]
   },
   "Saved.": {
@@ -4214,7 +4214,7 @@
   "Say it in <m>color</m>": {
     "note": "Demo content: an example headline where some words are marked with the palette like a highlighter. Keep <m></m> around the word for color (or the words that carry the point).",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:100"
+      "apps/web/src/features/examples/Headline.tsx:103"
     ]
   },
   "Scroll down": {
@@ -4420,7 +4420,7 @@
       "apps/web/src/app/site.ts:33",
       "apps/web/src/features/account/SettingsPage.tsx:45",
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:80",
-      "apps/web/src/lib/page-meta.ts:468"
+      "apps/web/src/lib/page-meta.ts:480"
     ]
   },
   "Shader": {
@@ -4539,7 +4539,7 @@
       "apps/web/src/features/gallery/Home.tsx:296",
       "apps/web/src/features/gallery/Palettes.tsx:397",
       "apps/web/src/features/gallery/Palettes.tsx:601",
-      "apps/web/src/lib/page-meta.ts:450",
+      "apps/web/src/lib/page-meta.ts:462",
       "packages/email/src/letters.ts:44",
       "packages/email/src/letters.ts:58",
       "packages/ui/src/SaveToCollection.tsx:38"
@@ -4602,7 +4602,7 @@
   "Sign in to save your favorite color palettes.": {
     "note": "Sign-in page description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:451"
+      "apps/web/src/lib/page-meta.ts:463"
     ]
   },
   "Sign in to search with all your words.": {
@@ -4835,7 +4835,7 @@
   "Stop the Grabient newsletter.": {
     "note": "Unsubscribe page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:463"
+      "apps/web/src/lib/page-meta.ts:475"
     ]
   },
   "Stop the newsletter for this email.": {
@@ -4916,7 +4916,7 @@
   "Tell Grabient what's broken or what you need. Send a message with the contact form, and leave your email only if you want a reply.": {
     "note": "Contact page description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:444"
+      "apps/web/src/lib/page-meta.ts:456"
     ]
   },
   "Tell us what's broken or what you need.": {
@@ -4940,7 +4940,7 @@
   "Terms of service": {
     "note": "Title of the Terms of Service page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:434"
+      "apps/web/src/lib/page-meta.ts:446"
     ]
   },
   "Text contrast": {
@@ -5081,7 +5081,7 @@
   "The headline's code": {
     "note": "Read by screen readers only: the name of the Headlines section's code tabs.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:763"
+      "apps/web/src/features/examples/Headline.tsx:781"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5099,13 +5099,13 @@
   "The letters' least contrast with their page: {ratio}, {level}.": {
     "note": "Read by screen readers only, for a chip under the headlines: the lowest contrast any of the palette's colors inside the heading's letters has with the page behind it. {ratio} is like '4.52:1', {level} a WCAG level such as 'WCAG AA'.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:717"
+      "apps/web/src/features/examples/Headline.tsx:735"
     ]
   },
   "The most liked CSS gradients and color palettes on Grabient. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
     "note": "Popular list description in search results. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:361"
+      "apps/web/src/lib/page-meta.ts:373"
     ]
   },
   "The newsletter has no sender yet. Add the RESEND_API_KEY secret.": {
@@ -5165,7 +5165,7 @@
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
     "note": "Terms page description in search results; the list is the page's sections. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:435"
+      "apps/web/src/lib/page-meta.ts:447"
     ]
   },
   "The tokens' code": {
@@ -5183,7 +5183,7 @@
   "The words' least contrast with the banner: {ratio}, {level}.": {
     "note": "Read by screen readers only, for a chip under the headlines: the lowest contrast the heading's white or black words have on the palette behind them. {ratio} is like '4.52:1', {level} a WCAG level such as 'WCAG AA'.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:729"
+      "apps/web/src/features/examples/Headline.tsx:747"
     ]
   },
   "Theme": {
@@ -5294,13 +5294,13 @@
     "note": "Title of the link in the page's head to its Markdown version.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:963",
-      "apps/web/src/lib/page-meta.ts:1256"
+      "apps/web/src/lib/page-meta.ts:1268"
     ]
   },
   "This page doesn't exist. Browse Grabient for color palettes.": {
     "note": "Not found page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1121"
+      "apps/web/src/lib/page-meta.ts:1133"
     ]
   },
   "This page is in English only.": {
@@ -5554,7 +5554,7 @@
     "refs": [
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:115",
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:54",
-      "apps/web/src/lib/page-meta.ts:462",
+      "apps/web/src/lib/page-meta.ts:474",
       "apps/web/src/server/newsletter/list.ts:135"
     ]
   },
@@ -5707,7 +5707,7 @@
   "Ways to use the {name} palette, each with the code that does it.": {
     "note": "Description of a palette's examples page in search results and link previews. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:264"
+      "apps/web/src/lib/page-meta.ts:262"
     ]
   },
   "Ways to use this palette, each with the code that does it.": {
@@ -5719,7 +5719,7 @@
   "What Grabient collects when you browse, sign in and save palettes, who can see it, who it's shared with, how long it's kept and how to delete it.": {
     "note": "Privacy page description in search results; the list is the page's sections. At most 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:428"
+      "apps/web/src/lib/page-meta.ts:440"
     ]
   },
   "What an app can do": {
@@ -5879,7 +5879,7 @@
   "Your Grabient collections.": {
     "note": "Your collections page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1113"
+      "apps/web/src/lib/page-meta.ts:1125"
     ]
   },
   "Your Grabient sign-in code": {
@@ -5911,20 +5911,20 @@
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:133",
       "apps/web/src/app/OfflineList.tsx:12",
-      "apps/web/src/lib/page-meta.ts:1112",
-      "apps/web/src/lib/page-meta.ts:617"
+      "apps/web/src/lib/page-meta.ts:1124",
+      "apps/web/src/lib/page-meta.ts:629"
     ]
   },
   "Your collections for {query}": {
     "note": "Title of a search in Your collections.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:616"
+      "apps/web/src/lib/page-meta.ts:628"
     ]
   },
   "Your collections like {name}": {
     "note": "Title of a search in Your collections by a palette.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:615"
+      "apps/web/src/lib/page-meta.ts:627"
     ]
   },
   "Your copy would hold more than {max} palettes. Remove some first.": {
@@ -5956,7 +5956,7 @@
   "Your saved Grabient palettes.": {
     "note": "Saved page description.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:477"
+      "apps/web/src/lib/page-meta.ts:489"
     ]
   },
   "agent": {
@@ -5974,13 +5974,13 @@
   "angular gradient": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:325"
+      "apps/web/src/lib/page-meta.ts:337"
     ]
   },
   "angular swatches": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:326"
+      "apps/web/src/lib/page-meta.ts:338"
     ]
   },
   "app\u0004Not verified": {
@@ -6293,13 +6293,13 @@
   "linear gradient": {
     "note": "Style words in a palette's title: \"Vivid navy and blue linear gradient\".",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:323"
+      "apps/web/src/lib/page-meta.ts:335"
     ]
   },
   "linear swatches": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:324"
+      "apps/web/src/lib/page-meta.ts:336"
     ]
   },
   "magenta": {
@@ -6446,13 +6446,13 @@
   "radial gradient": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:327"
+      "apps/web/src/lib/page-meta.ts:339"
     ]
   },
   "radial swatches": {
     "note": "Style words in a palette's title.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:328"
+      "apps/web/src/lib/page-meta.ts:340"
     ]
   },
   "rainbow": {
@@ -6604,8 +6604,8 @@
   "{at} of {count}": {
     "note": "Newsletter, admins only: which of the issue's lead palettes is shown, as \"3 of 13\". Also the Headlines carousel on the examples page: which slide a dot shows, as \"2 of 5\".",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:782",
-      "apps/web/src/features/examples/Headline.tsx:911",
+      "apps/web/src/features/examples/Headline.tsx:803",
+      "apps/web/src/features/examples/Headline.tsx:930",
       "apps/web/src/features/newsletter/Picker.tsx:237"
     ]
   },
@@ -6799,7 +6799,7 @@
   "{description} Page {page}.": {
     "note": "A list's description in search results on its second page and later: the list's own description, then the page number.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1148"
+      "apps/web/src/lib/page-meta.ts:1160"
     ]
   },
   "{device} cover": {
@@ -6879,14 +6879,14 @@
   "{name} color palette": {
     "note": "Alt text of a palette's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:269",
-      "apps/web/src/lib/page-meta.ts:868"
+      "apps/web/src/lib/page-meta.ts:281",
+      "apps/web/src/lib/page-meta.ts:880"
     ]
   },
   "{name} examples": {
     "note": "Title of a palette's examples page. {name} is the palette's name, e.g. 'Green, teal, navy and pink'.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:263"
+      "apps/web/src/lib/page-meta.ts:261"
     ]
   },
   "{name} gradient": {
@@ -6904,9 +6904,9 @@
   "{name} on Grabient": {
     "note": "Alt text of a list's share image.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1032",
-      "apps/web/src/lib/page-meta.ts:1046",
-      "apps/web/src/lib/page-meta.ts:1138"
+      "apps/web/src/lib/page-meta.ts:1044",
+      "apps/web/src/lib/page-meta.ts:1058",
+      "apps/web/src/lib/page-meta.ts:1150"
     ]
   },
   "{name} palette": {
@@ -6919,7 +6919,7 @@
   "{name} palette with {steps, plural, one {# color} other {# colors}}.": {
     "note": "Start of a palette's description in search results when it has no written words: its name, made from its colors, and how many colors it shows.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:799"
+      "apps/web/src/lib/page-meta.ts:811"
     ]
   },
   "{name} palette, removed": {
@@ -6937,15 +6937,15 @@
   "{name} {style}": {
     "note": "A palette's title: its name, then its style words.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:336",
-      "apps/web/src/lib/page-meta.ts:875",
+      "apps/web/src/lib/page-meta.ts:348",
+      "apps/web/src/lib/page-meta.ts:887",
       "packages/engine/src/name.ts:827"
     ]
   },
   "{name} {style} with {steps, plural, one {# color} other {# colors}}: {hexes}. Edit it and copy or download CSS, SVG, PNG or shader code.": {
     "note": "A palette's description in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:888",
+      "apps/web/src/lib/page-meta.ts:900",
       "packages/engine/src/name.ts:839"
     ]
   },
@@ -7006,32 +7006,32 @@
   "{style}, {steps, plural, one {# color} other {# colors}} at {angle}: {hexes}. Edit and export CSS, SVG, PNG or a shader.": {
     "note": "Line under a palette's name on its page, for its readers and for search engines: its style (\"linear gradient\", \"angular swatches\"), how many colors it shows, the angle it turns to ({angle}, with its sign: \"45°\"), its colors from first to last as hex codes, then what the editor exports. {style} comes in lower case; the line's first letter is capitalized.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:837"
+      "apps/web/src/lib/page-meta.ts:849"
     ]
   },
   "{style}, {steps, plural, one {# color} other {# colors}}: {hexes}. Edit and export CSS, SVG, PNG or a shader.": {
     "note": "The same line for a radial palette, which turns to no angle: its style (\"radial gradient\", \"radial swatches\"), how many colors it shows, its colors from first to last as hex codes, then what the editor exports.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:833"
+      "apps/web/src/lib/page-meta.ts:845"
     ]
   },
   "{subject} gradient and color palette collections": {
     "note": "Title of a collections search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:622"
+      "apps/web/src/lib/page-meta.ts:634"
     ]
   },
   "{subject} gradients and color palettes": {
     "note": "Title of a palettes search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:1057",
-      "apps/web/src/lib/page-meta.ts:606"
+      "apps/web/src/lib/page-meta.ts:1069",
+      "apps/web/src/lib/page-meta.ts:618"
     ]
   },
   "{subject} palettes and collections": {
     "note": "Title of a home page search.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:596"
+      "apps/web/src/lib/page-meta.ts:608"
     ]
   },
   "{text} on {ground}: {ratio}, enough for text": {
@@ -7069,7 +7069,7 @@
   "{title}, page {page}": {
     "note": "A list title from its second page.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:544"
+      "apps/web/src/lib/page-meta.ts:556"
     ]
   },
   "{title}: <subject>{subject}</subject>": {
@@ -7082,19 +7082,19 @@
     "note": "Alt text of a collection's share image.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:942",
-      "apps/web/src/lib/page-meta.ts:966"
+      "apps/web/src/lib/page-meta.ts:978"
     ]
   },
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": {
     "note": "A collection's title in search results.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:936"
+      "apps/web/src/lib/page-meta.ts:948"
     ]
   },
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": {
     "note": "A collection's description in search results when it has no words of its own: its title and how many palettes it holds.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:959"
+      "apps/web/src/lib/page-meta.ts:971"
     ]
   },
   "{url} answered {status}.": {
@@ -7124,25 +7124,25 @@
   "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients.": {
     "note": "A collection's description in search results: its own words (as written, in English), then how many palettes it holds. Used when the longer form would pass 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:951"
+      "apps/web/src/lib/page-meta.ts:963"
     ]
   },
   "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients. Open any palette to edit and export it.": {
     "note": "A collection's description in search results: its own words (as written, in English), then how many palettes it holds.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:946"
+      "apps/web/src/lib/page-meta.ts:958"
     ]
   },
   "{words} {hexes}.": {
     "note": "A palette's description in search results: its words (written ones, or its name and how many colors it shows), then some of its colors as hex codes. Used when the longer form would pass 160 characters.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:812"
+      "apps/web/src/lib/page-meta.ts:824"
     ]
   },
   "{words} {hexes}. Edit and export CSS, SVG, PNG or a shader.": {
     "note": "A palette's description in search results: its words (written ones, or its name and how many colors it shows), then its colors as hex codes.",
     "refs": [
-      "apps/web/src/lib/page-meta.ts:806"
+      "apps/web/src/lib/page-meta.ts:818"
     ]
   },
   "× each later keyframe": {

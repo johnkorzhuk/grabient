@@ -9,16 +9,7 @@ import { type Size, viewSearch } from "@grabient/engine/view.ts";
 import { MARK_FIXED } from "@grabient/ui/mark.ts";
 import { type Saved, viewAt } from "../files/address.ts";
 import type { Resolved } from "../files/resolve.ts";
-import {
-  drawCard,
-  drawCardOver,
-  drawExamples,
-  drawPicture,
-  EXAMPLES_POSTER,
-  keyframeColors,
-  type Look,
-  lookOf
-} from "./paint.ts";
+import { drawCard, drawCardOver, drawPicture, keyframeColors, type Look, lookOf } from "./paint.ts";
 import { encodePng } from "./png.ts";
 import { answerPicture, type Keep, type PictureEnv } from "./serve.ts";
 import { cardSize, pictureSize } from "./size.ts";
@@ -160,49 +151,6 @@ export function paletteCard(
           width,
           height
         )
-    },
-    keep
-  );
-}
-
-/** The examples card's drawing, counted up by a change that moves its pixels. */
-const EXAMPLES_DRAWING = "examples-2";
-
-/** A palette's examples page's share card (/api/og/examples): the palette put to use on the paper under the wordmark,
-    its poster in the address's form, an effect's first frame where the address plays one (paint.ts's drawExamples). */
-export function examplesCard(
-  request: Request,
-  env: PictureEnv,
-  found: Resolved,
-  params: URLSearchParams,
-  keep: Keep
-): Promise<Response> {
-  const effect = parseEffect(params);
-  const keyframes = found.palette.anchors.length;
-  const view = viewAt(params, keyframes);
-  /* an effect's tiles take its palette's gradient at the default steps, as the page's do */
-  const shown = effect
-    ? { style: "linearGradient" as const, steps: Math.max(7, keyframes), angle: view.angle }
-    : view;
-  return answerPicture(
-    request,
-    env,
-    {
-      kind: "card",
-      branded: true,
-      parts: [
-        EXAMPLES_DRAWING,
-        found.seed,
-        ...(effect ? effectParts(effect, view.angle) : [view.style, view.steps, view.angle])
-      ],
-      width: 1200,
-      height: 630,
-      draw: async () =>
-        drawExamples({
-          look: lookOf(found.palette, shown),
-          still: effect ? await effectStill(found, effect, view.angle, EXAMPLES_POSTER) : null,
-          keyframes: keyframeColors(found.palette)
-        })
     },
     keep
   );

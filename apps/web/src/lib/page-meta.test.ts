@@ -945,12 +945,12 @@ describe("a palette's examples", () => {
     expect(glass.image).toMatch(/style=glass/);
   });
 
-  test("share the palette put to use, its poster in the style the page shows", () => {
+  test("share the palette alone from edge to edge, in the style the page shows", () => {
     expect(examples("/kS7Q8Yy5S_SChv0/examples?style=linearSwatches&steps=9").image).toBe(
-      "https://grabient.com/api/og/examples?seed=kS7Q8Yy5S_SChv0&v=k4&style=linearSwatches&steps=9"
+      "https://grabient.com/kS7Q8Yy5S_SChv0.png?style=linearSwatches&steps=9&w=1200&h=630"
     );
-    expect(examples("/kS7Q8Yy5S_SChv0/examples?style=glass&angle=151").image).toMatch(
-      /^https:\/\/grabient\.com\/api\/og\/examples\?seed=kS7Q8Yy5S_SChv0&v=k4&style=glass&angle=151/
+    expect(examples("/kS7Q8Yy5S_SChv0/examples?style=glass&angle=151&speed=2.45").image).toBe(
+      "https://grabient.com/kS7Q8Yy5S_SChv0.png?style=glass&angle=151&w=1200&h=630"
     );
   });
 

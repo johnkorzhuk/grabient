@@ -18,7 +18,7 @@ import { RANDOM, randomFile } from "../files/random.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import { listPalettes } from "../gallery/list.ts";
 import { type SearchEnv, searchLeaders } from "../search/search.ts";
-import { examplesCard, paletteCard, palettePicture } from "./cards.ts";
+import { paletteCard, palettePicture } from "./cards.ts";
 import {
   MONTAGE_PALETTES,
   montageOrder,
@@ -54,14 +54,6 @@ function paletteImage(
 /** /api/og: a palette's share card, the default palette's when the address names none. */
 export const cardAnswer = (request: Request, env: PictureEnv, keep: Keep) =>
   paletteImage(request, env, keep, paramsOf(request).get("seed") || DEFAULT_SEED, true);
-
-/** /api/og/examples: a palette's examples page's share card, the default palette's when the address names none. */
-export function examplesCardAnswer(request: Request, env: PictureEnv, keep: Keep) {
-  const params = paramsOf(request);
-  const found = resolvePalette(params.get("seed") || DEFAULT_SEED);
-  if (!found) return json({ error: "Invalid palette seed." }, { status: 404 });
-  return examplesCard(request, env, found, params, keep);
-}
 
 /** /api/png?seed=: a palette's picture. */
 export const pngAnswer = (request: Request, env: PictureEnv, keep: Keep) =>
