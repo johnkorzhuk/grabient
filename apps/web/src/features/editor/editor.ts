@@ -109,7 +109,9 @@ export function createPaletteEditor(
     start.effect ?? null,
     start.styled ?? false,
     () => encodePalette(palette()),
-    own
+    own,
+    /* an effect the reader picks goes for the lists as a style does, each card in its own palette's shape */
+    effect => remember({ effect: effect && { ...effect, look: { ...effect.look, shape: null } } })
   );
   /* the palette the page opened on, which an admin's Save replaces and a copy counts as used: its entry keeps it, so a
      reload of an edited palette still knows where it began */
@@ -458,7 +460,7 @@ export function createPaletteEditor(
     setStyle(s: Style) {
       markSet("style");
       setStyle(s);
-      remember({ style: s });
+      remember({ style: s, effect: null });
     },
     setSteps(n: number) {
       markSet("steps");
