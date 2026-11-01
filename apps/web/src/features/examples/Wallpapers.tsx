@@ -7,7 +7,7 @@ import { dir, formatDate, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, createUniqueId, type Element, Show } from "solid-js";
+import { createMemo, createSignal, createUniqueId, type Element, Show } from "solid-js";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import { Chip, contrastWords, Example, type ExampleProps } from "./Example.tsx";
 import { LARGE } from "./fit.ts";
@@ -121,15 +121,25 @@ const NAMES: Readonly<Record<Device, string>> = { phone: msg("Phone"), desktop: 
 export const wallpapersFits = (_s: ExampleProps["s"]): boolean => true;
 
 export function WallpapersExample(props: ExampleProps) {
-  const wall = () => wallOf(props.s);
+  const wall = createMemo(() => wallOf(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const filled = () => wall() !== props.s;
-  const rtl = () => dir() === "rtl";
-  const rings = () => !wall().effect && wall().view.style.startsWith("radial");
-  const read = (d: Device) =>
-    d === "phone"
-      ? standing(wall(), rings() ? PHONE_RINGS : PHONE_PLACES, aspectOf("phone"), rtl())
-      : standing(wall(), DESKTOP_PLACES, aspectOf("desktop"), rtl());
+  /* where each screen's clock stands, read by its screen, its chip and its code: once for each palette */
+  const reads: Readonly<Record<Device, () => ReturnType<typeof standing>>> = {
+    phone: createMemo(() => {
+      const rings = !wall().effect && wall().view.style.startsWith("radial");
+      return standing(
+        wall(),
+        rings ? PHONE_RINGS : PHONE_PLACES,
+        aspectOf("phone"),
+        dir() === "rtl"
+      );
+    }),
+    desktop: createMemo(() =>
+      standing(wall(), DESKTOP_PLACES, aspectOf("desktop"), dir() === "rtl")
+    )
+  };
+  const read = (d: Device) => reads[d]();
   /* a screen shows its clock where an ink reads there as large figures must */
   const clocked = (d: Device) => read(d).ratio >= LARGE;
   const time = () =>

@@ -8,9 +8,17 @@ import { Button } from "@grabient/ui/Button.tsx";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
 import { CodeTabs } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { Dynamic } from "@solidjs/web";
 import { useLocation, useRouter } from "@tanstack/solid-router";
-import { type Component, createUniqueId, For, Match, Switch, untrack, useContext } from "solid-js";
+import {
+  type Component,
+  createMemo,
+  createUniqueId,
+  For,
+  Match,
+  Switch,
+  untrack,
+  useContext
+} from "solid-js";
 import { AppPage } from "../../app/Frames.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { colorFormat } from "../../lib/color-format.ts";
@@ -82,9 +90,10 @@ export function ExamplesPage(props: { seed: string; view: View; effect: Effect |
         <Hero s={s()} origin={origin} onLeave={st.settle} onRandom={st.random} />
         <div class={styles.sections}>
           <For each={SECTIONS.filter(section => section.fits(s()))}>
-            {(section, i) => (
-              <Dynamic component={section.example} s={s()} origin={origin} n={i() + 1} />
-            )}
+            {(section, i) => {
+              const Section = section.example;
+              return <Section s={s()} origin={origin} n={i() + 1} />;
+            }}
           </For>
         </div>
       </main>
@@ -106,7 +115,7 @@ function Hero(props: { s: Shown; origin: string; onLeave: () => void; onRandom: 
         ...(s().effect ? { effect: s().effect } : {})
       })
     );
-  const tone = () => wordsTone(s());
+  const tone = createMemo(() => wordsTone(s()));
   const code = (): CodeTab[] => {
     const effect = s().effect;
     if (effect)

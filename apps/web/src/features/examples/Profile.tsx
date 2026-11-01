@@ -4,7 +4,7 @@ import { msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, type Element, For, Show } from "solid-js";
+import { createMemo, createSignal, type Element, For, Show } from "solid-js";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import { Chip, ContrastChip, Example, type ExampleProps } from "./Example.tsx";
 import { type Press, pressPaper, TILE } from "./fit.ts";
@@ -48,14 +48,14 @@ const MONO = {
 export const profileFits = (_s: ExampleProps["s"]): boolean => true;
 
 export function ProfileExample(props: ExampleProps) {
-  const s = () => solidBlob(props.s);
+  const s = createMemo(() => solidBlob(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const added = () => s() !== props.s;
   /* the card is lit while the pointer is on it: its effect plays */
   const [lit, setLit] = createSignal(false);
   const [following, setFollowing] = createSignal(false);
   const owner = () => t(OWNER);
-  const paper = () => pressPaper(drawnColors(props.s));
+  const paper = createMemo(() => pressPaper(drawnColors(props.s)));
   const press = () => paper().press;
   const png = (size: Size) => pictureAddress(s(), props.origin, "png", size);
   const fileName = (size: Size) =>

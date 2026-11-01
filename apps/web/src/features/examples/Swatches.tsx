@@ -10,7 +10,7 @@ import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip
 import hidden from "@grabient/ui/hidden.module.css";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
-import { createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { toast } from "../../app/toast.ts";
 import { colorFormat } from "../../lib/color-format.ts";
 import { fileAddress, writeText } from "../../lib/files.ts";
@@ -127,12 +127,13 @@ export function SwatchesExample(props: ExampleProps) {
   /* the chips' colors: the stops at the page's steps, or the ones the effect is drawn from, which are its palette at
      as many even places */
   const count = () => (s().effect ? drawnColors(s()).length : s().view.steps);
-  const tokens = (): Token[] =>
+  const tokens = createMemo((): Token[] =>
     sampleStops(s().palette, count()).map(stop => ({
       stop,
       white: worstContrast(WHITE, [stop.hex]),
       black: worstContrast(BLACK, [stop.hex])
-    }));
+    }))
+  );
   const roomy = () => count() <= ROOMY;
   const files = () => filesView(s(), count());
   const search = () => viewSearch(files().view);

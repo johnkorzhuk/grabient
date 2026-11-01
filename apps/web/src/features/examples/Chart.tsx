@@ -4,7 +4,7 @@ import { isSwatchStyle, STYLE_LABELS, type Style } from "@grabient/engine/view.t
 import { dir, formatDate, formatNumber, type Locale, locale, msg, t } from "@grabient/i18n";
 import { intlTag } from "@grabient/i18n/format.ts";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
-import { createUniqueId, For, Match, Show, Switch } from "solid-js";
+import { createMemo, createUniqueId, For, Match, Show, Switch } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import styles from "./Chart.module.css";
 import { ContrastChip, Example, type ExampleProps } from "./Example.tsx";
@@ -279,8 +279,10 @@ const monthRange = (from: number, to: number) =>
   }).formatRange(new Date(from), new Date(to));
 
 export function ChartExample(props: ExampleProps) {
-  const plan = () => planOf(props.s, props.origin);
-  const charts = () => chartsOf(plan());
+  /* each chart, its code and its chips read the plan: worked out once for each palette */
+  const plan = createMemo(() => planOf(props.s, props.origin));
+  const charts = createMemo(() => chartsOf(plan()));
+  const code = createMemo(() => codeOf(plan()));
   /* the least contrast a number inside a color has on the board: every day's in the calendar, the shares the donut
      writes in its wedges */
   const inside = () => {
@@ -304,7 +306,7 @@ export function ChartExample(props: ExampleProps) {
       drawn={plan().drawn}
       differs={plan().differs}
       notes={<Show when={inside()}>{ratio => <ContrastChip ratio={ratio()} />}</Show>}
-      code={codeOf(plan())}
+      code={code()}
       codeLabel={t("The charts' code")}
     >
       <div class={styles.board} data-theme={plan().theme}>

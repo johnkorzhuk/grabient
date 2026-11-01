@@ -5,7 +5,7 @@ import { isSwatchStyle } from "@grabient/engine/view.ts";
 import { dir, formatDate, formatNumber, msg, rich, t } from "@grabient/i18n";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, type Element, For, Show, untrack } from "solid-js";
+import { createMemo, createSignal, type Element, For, Show, untrack } from "solid-js";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import styles from "./Cards.module.css";
 import { Chip, Example, type ExampleProps } from "./Example.tsx";
@@ -228,7 +228,7 @@ function PressOf(props: { press: Press | null; label: string; class?: string }) 
     there; else on a band of paper under the picture. */
 const POSTER_SPOTS = spotsFrom(["foot", "top"]);
 function Poster(props: TileProps) {
-  const read = () => placeWords(props.s, PLACES.poster.aspect, 0.44, POSTER_SPOTS);
+  const read = createMemo(() => placeWords(props.s, PLACES.poster.aspect, 0.44, POSTER_SPOTS));
   const day = () => formatDate(DAY, { month: "short", day: "numeric", timeZone: "UTC" });
   return (
     <div
@@ -269,12 +269,12 @@ function Album(props: TileProps) {
     a control must (else the press's color), and the video's length on a chip of its own. */
 const PLAY: Part = { x0: 0.4, y0: 0.32, x1: 0.6, y1: 0.68 };
 function Thumbnail(props: TileProps) {
-  const button = () => {
+  const button = createMemo(() => {
     const read = inkOn(colorsUnder(props.s, PLAY, PLACES.thumbnail.aspect));
     if (read.ratio >= MARK)
       return { fill: read.ink, glyph: read.ink === "#ffffff" ? "#000000" : "#ffffff" };
     return props.press ? { fill: props.press.fill, glyph: props.press.label } : null;
-  };
+  });
   const length = () => `${formatNumber(12)}:${formatNumber(4, { minimumIntegerDigits: 2 })}`;
   return (
     <div class={styles.thumbnail}>
@@ -299,7 +299,7 @@ function Thumbnail(props: TileProps) {
     on a side; else on a band of paper under it. */
 const POST_SPOTS = spotsFrom(["top", "foot"]);
 function Post(props: TileProps) {
-  const read = () => placeWords(props.s, PLACES.post.aspect, 0.6, POST_SPOTS);
+  const read = createMemo(() => placeWords(props.s, PLACES.post.aspect, 0.6, POST_SPOTS));
   return (
     <div
       class={styles.post}
@@ -324,19 +324,20 @@ function Post(props: TileProps) {
 const EVENT_COLUMNS = [0.74, 0.52];
 function Event(props: TileProps) {
   const [saved, setSaved] = createSignal(false);
-  const column = () =>
-    EVENT_COLUMNS.map(x1 => {
-      const part = { x0: 0, y0: 0, x1, y1: 1 };
-      const read = inkThrough(
-        colorsUnder(props.s, dir() === "rtl" ? mirrored(part) : part, PLACES.event.aspect),
-        TEXT
-      );
-      return read && { ...read, narrow: x1 < EVENT_COLUMNS[0] };
-    }).find(Boolean) ?? null;
-  const read = () => column();
+  const read = createMemo(
+    () =>
+      EVENT_COLUMNS.map(x1 => {
+        const part = { x0: 0, y0: 0, x1, y1: 1 };
+        const read = inkThrough(
+          colorsUnder(props.s, dir() === "rtl" ? mirrored(part) : part, PLACES.event.aspect),
+          TEXT
+        );
+        return read && { ...read, narrow: x1 < EVENT_COLUMNS[0] };
+      }).find(Boolean) ?? null
+  );
   /* on the palette the press takes the words' ink and, as its label, the palette's color that reads best on it where
      one reads as words must, else the other ink; under the cover, the press the palette gives on the paper */
-  const press = (): Press | null => {
+  const press = createMemo((): Press | null => {
     const on = read();
     if (!on) return props.press;
     const best = drawnColors(props.s).reduce((a, b) =>
@@ -345,7 +346,7 @@ function Event(props: TileProps) {
     const label =
       contrast(on.ink, best) >= TEXT ? best : on.ink === "#ffffff" ? "#000000" : "#ffffff";
     return { fill: on.ink, label, hover: on.ink };
-  };
+  });
   const date = () =>
     formatDate(DAY, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
   const time = () => formatDate(DAY, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
@@ -395,7 +396,7 @@ function Event(props: TileProps) {
     an ink reads there. */
 const STUB: Part = { x0: 0.1, y0: 0.1, x1: 0.9, y1: 0.9 };
 function Ticket(props: TileProps) {
-  const stub = () => inkThrough(colorsUnder(props.s, STUB, 1), TEXT);
+  const stub = createMemo(() => inkThrough(colorsUnder(props.s, STUB, 1), TEXT));
   const when = () =>
     formatDate(DAY, {
       weekday: "short",
@@ -429,7 +430,9 @@ function Ticket(props: TileProps) {
     strip of paper at its foot. */
 const MEMBER: Part = { x0: 0.06, y0: 0.06, x1: 0.94, y1: 0.94 };
 function Member(props: TileProps) {
-  const read = () => inkThrough(colorsUnder(props.s, MEMBER, PLACES.member.aspect), TEXT);
+  const read = createMemo(() =>
+    inkThrough(colorsUnder(props.s, MEMBER, PLACES.member.aspect), TEXT)
+  );
   return (
     <div class={styles.member} data-layout={read() ? "on" : "under"} style={{ color: read()?.ink }}>
       <Picture s={props.s} lit={props.lit()} />
@@ -451,10 +454,10 @@ function Member(props: TileProps) {
     control's part must, else none; its name under it on the page. */
 const GLYPH: Part = { x0: 0.3, y0: 0.3, x1: 0.7, y1: 0.7 };
 function AppIcon(props: TileProps) {
-  const glyph = () => {
+  const glyph = createMemo(() => {
     const read = inkOn(colorsUnder(props.s, GLYPH, 1));
     return read.ratio >= MARK ? read.ink : null;
-  };
+  });
   return (
     <div class={styles.app}>
       <span class={styles.icon} style={{ color: glyph() ?? undefined }}>
@@ -630,10 +633,13 @@ const TURNING: ReadonlySet<Kind> = new Set([
 export const cardsFits = (_s: ExampleProps["s"]): boolean => true;
 
 export function CardsExample(props: ExampleProps) {
-  const s = () => solidBlob(props.s);
+  /* what every tile reads, worked out once for each palette */
+  const s = createMemo(() => solidBlob(props.s));
+  const paper = createMemo(() => pressPaper(drawnColors(props.s)));
+  const looks = createMemo(() => looksOf(props.s));
+  const headlines = createMemo(() => headlinesOf(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const added = () => s() !== props.s;
-  const paper = () => pressPaper(drawnColors(props.s));
   /* the looks pressed onto tiles, for the palette they were pressed on */
   const [picked, setPicked] = createSignal<{ seed: string; looks: Partial<Record<Kind, Look>> }>({
     seed: "",
@@ -641,7 +647,7 @@ export function CardsExample(props: ExampleProps) {
   });
   const lookFor = (kind: Kind): Look =>
     (picked().seed === props.s.seed ? picked().looks[kind] : undefined) ??
-    looksOf(props.s)[kind] ??
+    looks()[kind] ??
     lookOf(props.s);
   const turn = (kind: Kind) => {
     const order = TURNS[kind] ?? TURN;
@@ -671,27 +677,27 @@ export function CardsExample(props: ExampleProps) {
     >
       <div class={styles.wrap}>
         <div class={styles.grid}>
-          <For each={[...ORDER, ...headlinesOf(props.s)]}>
+          <For each={[...ORDER, ...headlines()]}>
             {kind => {
               const Shape = TILES[kind];
               const headline = kind === "letters" || kind === "mark";
               /* the palette as this tile shows it: the address's form, or another the tile shows off; a headline
                  draws it as it works there, a blob's letters on a ground of their own */
-              const shown = () => {
+              const shown = createMemo(() => {
                 if (headline) return props.s;
                 const look = lookFor(kind);
                 return look === lookOf(props.s) ? s() : solidBlob(inLook(props.s, look));
-              };
+              });
+              /* the form the tile's name says, where it is not the address's */
+              const named = createMemo(() => (headline ? headlineShown(kind, props.s) : shown()));
               const other = () =>
-                headline
-                  ? headlineShown(kind, props.s) !== props.s
-                  : lookFor(kind) !== lookOf(props.s);
+                headline ? named() !== props.s : lookFor(kind) !== lookOf(props.s);
               return (
                 <Tile
                   kind={kind}
-                  s={headline ? headlineShown(kind, props.s) : shown()}
+                  s={named()}
                   other={other()}
-                  place={headline && headlinesOf(props.s).length === 1 ? HEADLINE_ALONE : undefined}
+                  place={headline && headlines().length === 1 ? HEADLINE_ALONE : undefined}
                   onTurn={TURNING.has(kind) ? () => turn(kind) : undefined}
                 >
                   {lit => (
