@@ -47,6 +47,7 @@ import { minuteOf, relativeAge } from "../gallery/drawing.ts";
 import { createFeed, joinNext } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
+import { createGlassWake } from "../list/appearance.ts";
 import { searchedHere } from "../search/count.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -107,6 +108,7 @@ export function CollectionsPage(props: {
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
   const navigating = useNavigating();
   const place = () => props.place;
+  const glassWake = createGlassWake(() => place().view);
   const mine = () => place().order === "saved";
   const signedOut = () => mine() && (sessionReady() ? !account() : !!props.signedOut);
   const frames = useQuery(() => framesQuery());
@@ -486,7 +488,7 @@ export function CollectionsPage(props: {
                   key={c => c.slug}
                   estimate={estimate}
                   initial={INITIAL}
-                  live={account() || selection().length ? INITIAL : 0}
+                  live={account() || selection().length || glassWake() ? INITIAL : 0}
                   depth={restoring}
                   group={collection => (
                     <CollectionGroup

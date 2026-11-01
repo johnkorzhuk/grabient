@@ -42,7 +42,7 @@ import { ownerLabel } from "../collections/drawing.ts";
 import { createFit } from "../collections/fit.ts";
 import { collectionGone, paletteGone } from "../collections/overlay.ts";
 import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
-import { AppearanceContext, inView } from "../list/appearance.ts";
+import { AppearanceContext, createGlassWake, inView } from "../list/appearance.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { createPicture } from "../search/picture.ts";
 import { selection } from "../selection/selection.ts";
@@ -97,6 +97,7 @@ export function Home(props: { params: ListParams }) {
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
   const navigating = useNavigating();
   const params = () => props.params;
+  const glassWake = createGlassWake(params);
   const words = () => params().words;
   const head = useQuery(() => homeHeadQuery(words()));
   /* What stood last, the head and the first collections: a read that fails leaves it on screen beside its reason. A
@@ -363,7 +364,7 @@ export function Home(props: { params: ListParams }) {
                     items={palettes()}
                     key={item => item.kseed}
                     live={FIRST_SCREEN}
-                    still={!account() && !selection().length}
+                    still={!account() && !selection().length && !glassWake()}
                     depth={restoring}
                     card={item => (
                       <GalleryCard
@@ -396,7 +397,7 @@ export function Home(props: { params: ListParams }) {
                 key={collection => collection.slug}
                 estimate={estimate}
                 initial={FIRST_GROUPS}
-                live={account() || selection().length ? FIRST_GROUPS : 0}
+                live={account() || selection().length || glassWake() ? FIRST_GROUPS : 0}
                 depth={restoring}
                 group={collection => {
                   const path = () => inView(`/${collection().slug}`, params());

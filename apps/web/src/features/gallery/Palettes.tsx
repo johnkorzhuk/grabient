@@ -43,7 +43,7 @@ import { onAccountChange } from "../account/state.ts";
 import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
-import { AppearanceContext, inView } from "../list/appearance.ts";
+import { AppearanceContext, createGlassWake, inView } from "../list/appearance.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -97,6 +97,7 @@ export function Palettes(props: { place: ListPlace }) {
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
   const navigating = useNavigating();
   const params = () => props.place.params;
+  const glassWake = createGlassWake(params);
   const words = () => params().words;
   /* a route's list is one kind for as long as its page stands */
   const saved = untrack(() => props.place.kind === "saved");
@@ -555,7 +556,7 @@ export function Palettes(props: { place: ListPlace }) {
                     items={items()}
                     key={item => item.kseed}
                     live={FIRST_SCREEN}
-                    still={!account() && !selection().length}
+                    still={!account() && !selection().length && !glassWake()}
                     depth={restoring}
                     card={item => (
                       <GalleryCard

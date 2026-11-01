@@ -15,7 +15,7 @@ import {
   sizeParam
 } from "@grabient/engine/view.ts";
 import { isServer } from "@solidjs/web";
-import { type Accessor, createContext, createSignal } from "solid-js";
+import { type Accessor, createContext, createSignal, onSettled } from "solid-js";
 import type { Drawn } from "../../lib/palette.ts";
 import { seedAddress } from "../editor/address.ts";
 
@@ -177,6 +177,26 @@ export const effectsReady = (view: ListView): Promise<void> =>
   isServer || !view.effect
     ? Promise.resolve()
     : import("./card-effect.tsx").then(m => m.readyCardEffects(view.effect!.kind)).catch(() => {});
+
+/** How long a page waits for an idle moment before its glass cards are drawn live, at most. */
+const WAKE_MS = 1000;
+
+/** Whether a page whose feed drew cards the server left still, until the reader moves, draws them live once it idles:
+    the glass's still is drawn in the browser, which a still card cannot do. Never while the page hydrates, so the
+    server's cards are claimed as it drew them. */
+export function createGlassWake(view: () => ListView): () => boolean {
+  const [idle, setIdle] = createSignal(false);
+  onSettled(() => {
+    const wake = () => setIdle(true);
+    if (typeof requestIdleCallback !== "function") {
+      const timer = setTimeout(wake, WAKE_MS);
+      return () => clearTimeout(timer);
+    }
+    const id = requestIdleCallback(wake, { timeout: WAKE_MS });
+    return () => cancelIdleCallback(id);
+  });
+  return () => idle() && view().effect?.kind === "glass";
+}
 
 /** The effect a list's cards show: the view's, a draft's over it, and none while a gradient's style is previewed. */
 export const shownEffect = (
