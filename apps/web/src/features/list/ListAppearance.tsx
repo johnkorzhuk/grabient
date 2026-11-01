@@ -1,34 +1,77 @@
+import { decodePalette } from "@grabient/engine/codec.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
+import {
+  EFFECT_LOOK,
+  EFFECT_PLAY,
+  EFFECTS,
+  type Effect,
+  type EffectKind
+} from "@grabient/engine/effect.ts";
 import { STEPS_MIN, type Style } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
-import { APPEARANCE_OPTIONS, Appearance, styleLabel } from "@grabient/ui/Appearance.tsx";
+import {
+  APPEARANCE_OPTIONS,
+  Appearance,
+  type ExtraTile,
+  styleLabel
+} from "@grabient/ui/Appearance.tsx";
 import { useLocation, useRouter, useSearch } from "@tanstack/solid-router";
-import { createEffect, createSignal, onCleanup, untrack, useContext } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  Loading,
+  lazy,
+  onCleanup,
+  Show,
+  untrack,
+  useContext
+} from "solid-js";
 import { rewriteInPlace, rewriteQuietly } from "../../app/navigation.ts";
 import { RESTING } from "../../app/water.ts";
 import { hexesOf } from "../../lib/palette.ts";
+import { effectLabel, effectSummary } from "../editor/effect-page.ts";
 import {
   AppearanceContext,
+  cardEffect,
   drawnIn,
   inOrder,
   type ListView,
   readListView,
   rememberView,
   returnedView,
+  shownEffect,
   type ViewDraft,
   viewParams
 } from "./appearance.ts";
 
 /* The appearance control in the header's corner on every page that draws palettes as cards: style, steps and angle
-   for every card and every mosaic tile at once, through the address, in place. Its swatch and tiles are painted with
-   the page's first palette. Resting on a tile previews its style on every card; a press commits it. While Steps or
-   Angle is dragged or stepped, the cards draw each value at once from the draft, the address follows quietly, and the
-   route takes the value once the change rests or the menu closes: the route drives every link on the page, its
-   metadata, the bar and the water, too much to rebuild on every pointer move. */
+   for every card and every mosaic tile at once, or an effect every card plays (the fluted glass, the blob) with its
+   angle and how it plays, through the address, in place. Its swatch and tiles are painted with the page's first
+   palette. Resting on a style's tile previews it on every card; a press commits it. While a field is dragged or
+   stepped, the cards draw each value at once from the draft, the address follows quietly, and the route takes the
+   value once the change rests or the menu closes: the route drives every link on the page, its metadata, the bar and
+   the water, too much to rebuild on every pointer move. Each way of drawing keeps what it had while another shows:
+   the steps an effect took the place of, and each effect's pace and look, for this document. */
 
 /** The address follows a change at most this often, and the route takes it once it has rested this long. */
 const WRITE_MS = 350;
 const REST_MS = 500;
+
+/* the effects' pictures and fields come with the menu or an effect, never with a list's start: by their exports'
+   names, so a page the server drew hydrates them as it stands */
+const EffectSwatch = lazy(() => import("./ListEffects.tsx"), { export: "EffectSwatch" });
+const EffectFields = lazy(() => import("./ListEffects.tsx"), { export: "EffectFields" });
+const loadEffects = () => {
+  void EffectSwatch.preload().catch(() => {});
+  void import("../editor/glass-draw.ts").then(m => m.loadStill()).catch(() => {});
+  void import("../editor/blob-draw.ts").then(m => m.loadBlob()).catch(() => {});
+};
+
+/* what each way of drawing had as the reader turned to another */
+const kept: { steps: ListView["steps"]; effects: Partial<Record<EffectKind, Effect>> } = {
+  steps: "auto",
+  effects: {}
+};
 
 export function ListAppearance() {
   const look = useContext(AppearanceContext)!;
@@ -114,11 +157,33 @@ export function ListAppearance() {
 
   const chosen = () => {
     const v = shown();
-    return v.style !== "auto" || v.steps !== "auto" || v.angle !== "auto";
+    return v.style !== "auto" || v.steps !== "auto" || v.angle !== "auto" || v.effect !== null;
   };
   const reset = () => {
     look.setPeek(null);
-    go({ style: "auto", steps: "auto", angle: "auto" });
+    kept.steps = "auto";
+    kept.effects = {};
+    go({ style: "auto", steps: "auto", angle: "auto", effect: null });
+  };
+  /* a style chosen leaves the effect, and gives back the steps it took the place of */
+  const chooseStyle = (style: ListView["style"]) => {
+    look.setPeek(null);
+    const playing = view().effect;
+    if (!playing) return go({ style });
+    kept.effects[playing.kind] = playing;
+    go({ style, effect: null, steps: kept.steps });
+  };
+  /* an effect chosen takes the steps' place, as it had it; chosen again it lets go, as a style's tile does */
+  const chooseEffect = (kind: EffectKind) => {
+    const v = view();
+    if (v.effect?.kind === kind) return chooseStyle("auto");
+    if (v.effect) kept.effects[v.effect.kind] = v.effect;
+    else kept.steps = v.steps;
+    go({
+      style: "auto",
+      steps: "auto",
+      effect: kept.effects[kind] ?? { kind, ...EFFECT_PLAY, look: EFFECT_LOOK }
+    });
   };
   /* the page's first palette as the list draws it; until the page has one, the resting colors at the chosen angle */
   const paint = (): { hexes: readonly string[]; style: Style; angle: number } => {
@@ -135,8 +200,66 @@ export function ListAppearance() {
       angle: v.angle === "auto" ? 90 : v.angle
     };
   };
+  /* the effect the cards show, and the page's first palette playing it in its own shape: the header's swatch and
+     the effects' tiles, each made once and following what it shows */
+  const playing = () => shownEffect(view(), look.draft(), look.peek());
+  const still = (effect: () => Effect | null) => (
+    <Show
+      when={(() => {
+        const first = look.first();
+        const P = first && decodePalette(first.seed);
+        const fx = effect();
+        return first && P && fx ? { palette: P, effect: cardEffect(fx, first.seed) } : null;
+      })()}
+    >
+      {shown => (
+        <Loading>
+          <EffectSwatch effect={shown().effect} palette={shown().palette} angle={paint().angle} />
+        </Loading>
+      )}
+    </Show>
+  );
+  const swatchArt = still(playing);
+  /* the menu's own are made as it opens, which only the browser draws: made with the header they would be claimed
+     from the server's page, which holds none of them */
+  const extras: readonly ExtraTile[] = EFFECTS.map(kind => ({
+    key: kind,
+    label: effectLabel(kind),
+    get art() {
+      return still(() => {
+        const effect = view().effect;
+        return effect?.kind === kind
+          ? effect
+          : (kept.effects[kind] ?? { kind, ...EFFECT_PLAY, look: EFFECT_LOOK });
+      });
+    },
+    get chosen() {
+      return view().effect?.kind === kind;
+    },
+    onChoose: () => chooseEffect(kind),
+    /* resting on it lets a style's preview go, and makes the cards' pictures of it ready */
+    onPeek: () => {
+      look.setPeek(null);
+      void import("./card-effect.tsx").then(m => m.preloadCardEffects(kind));
+    }
+  }));
+  const fields = () => (
+    <Loading>
+      <Show when={shown().effect}>
+        {effect => (
+          <EffectFields
+            effect={effect()}
+            angle={shown().angle}
+            onAngle={angle => change({ angle })}
+            onEffect={next => change({ effect: next })}
+          />
+        )}
+      </Show>
+    </Loading>
+  );
   const summary = () => {
     const v = shown();
+    if (v.effect) return effectSummary(v.effect, v.angle === "auto" ? null : v.angle);
     const parts: string[] = [];
     if (v.steps !== "auto")
       parts.push(t("{count, plural, one {# step} other {# steps}}", { count: v.steps }));
@@ -150,14 +273,20 @@ export function ListAppearance() {
   };
   return (
     <Appearance
-      swatch={gradientCss(paint().hexes, look.peek() ?? paint().style, paint().angle)}
-      label={styleLabel(view().style)}
+      swatch={
+        playing()
+          ? "transparent"
+          : gradientCss(paint().hexes, look.peek() ?? paint().style, paint().angle)
+      }
+      swatchArt={swatchArt}
+      label={view().effect ? effectLabel(view().effect!.kind) : styleLabel(view().style)}
       summary={summary()}
       open={open()}
       onToggle={() => {
         if (open()) close();
         else {
           look.setPeek(null);
+          loadEffects();
           setOpen(true);
         }
       }}
@@ -169,14 +298,15 @@ export function ListAppearance() {
         angle: shown().angle,
         stepsMin: STEPS_MIN,
         bg: style => gradientCss(paint().hexes, style, paint().angle),
-        onStyle: style => {
-          look.setPeek(null);
-          go({ style });
-        },
+        onStyle: chooseStyle,
         onSteps: steps => change({ steps }),
         onAngle: angle => change({ angle }),
         onPeek: look.setPeek,
         onReset: chosen() ? reset : undefined,
+        extras,
+        get extraFields() {
+          return fields();
+        },
         onClose: close
       }}
     />
