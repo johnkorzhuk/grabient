@@ -84,6 +84,7 @@ export function GalleryCard(props: {
       const { effect, size } = page.params();
       return effect && { effect: cardEffect(effect, seed()), size };
     },
+    name,
     place: page.place,
     at: where,
     say: page.say
@@ -120,9 +121,9 @@ export function GalleryCard(props: {
       tools={() => (
         <FormatStrip
           size="sm"
-          copy={["url", "css", "svg", "png"]}
-          download={["md", "css", "svg", "png"]}
-          link={["md", "css", "svg", "png"]}
+          copy={take.chips().copy}
+          download={take.chips().download}
+          link={take.chips().link}
           swatches={SWATCH_CHIPS}
           onCopy={take.copy}
           onDownload={take.download}

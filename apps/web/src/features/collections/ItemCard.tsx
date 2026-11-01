@@ -82,6 +82,7 @@ export function ItemCard(props: {
       const { effect, size } = props.view;
       return effect && { effect: cardEffect(effect, seed()), size };
     },
+    name,
     place: () => props.place(),
     at: () => props.at(),
     say: (message, error) => props.note(message, error)
@@ -143,9 +144,9 @@ export function ItemCard(props: {
       tools={() => (
         <FormatStrip
           size="sm"
-          copy={["url", "css", "svg", "png"]}
-          download={["md", "css", "svg", "png"]}
-          link={["md", "css", "svg", "png"]}
+          copy={take.chips().copy}
+          download={take.chips().download}
+          link={take.chips().link}
           swatches={SWATCH_CHIPS}
           onCopy={take.copy}
           onDownload={take.download}
