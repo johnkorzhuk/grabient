@@ -49,8 +49,13 @@ async function site(page: Page, head: string, strict = false) {
   const path = `/${test.info().testId}`;
   pages.set(path, { app: new URL(test.info().project.use.baseURL ?? "").origin, head, strict });
   await page.addInitScript(() => {
-    const w = window as unknown as { refused: string[]; gl?: WebGL2RenderingContext };
+    const w = window as unknown as {
+      refused: string[];
+      gl?: WebGL2RenderingContext;
+      contexts: Set<WebGL2RenderingContext>;
+    };
     w.refused = [];
+    w.contexts = new Set();
     document.addEventListener("securitypolicyviolation", e => w.refused.push(e.effectiveDirective));
     const own = WebGL2RenderingContext.prototype.getParameter;
     WebGL2RenderingContext.prototype.getParameter = function (
@@ -62,12 +67,18 @@ async function site(page: Page, head: string, strict = false) {
     const get = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, ...a: unknown[]) {
       const made = (get as (...a: unknown[]) => RenderingContext | null).apply(this, a);
-      if (made instanceof WebGL2RenderingContext) w.gl = made;
+      if (made instanceof WebGL2RenderingContext) {
+        w.gl = made;
+        w.contexts.add(made);
+      }
       return made;
     } as typeof get;
   });
   await page.goto(`${origin}${path}`);
 }
+/** How many WebGL contexts the page has made. */
+const contexts = (page: Page) =>
+  page.evaluate(() => (window as unknown as { contexts: Set<unknown> }).contexts.size);
 /** What the page paints behind itself: html::before's image. */
 const still = (page: Page) =>
   page.evaluate(() => getComputedStyle(document.documentElement, "::before").backgroundImage);
@@ -92,9 +103,10 @@ test("the stylesheet paints the first frame behind another site's page, and the 
   expect(errors).toEqual([]);
 });
 
-test("without the stylesheet the script paints the still itself, and two scripts play one effect", async ({
+test("without the stylesheet the script paints the still itself, and three scripts play one effect", async ({
   page
 }) => {
+  /* whichever arrives first plays: the glass's two or the blob's */
   await site(
     page,
     `${tags("style=glass", false)}${tags("style=glass", false)}${tags("style=blob", false)}`,
@@ -104,7 +116,7 @@ test("without the stylesheet the script paints the still itself, and two scripts
   await expect(page.locator("canvas")).toHaveCSS("opacity", "1", { timeout: 15_000 });
   await page.waitForTimeout(500);
   await expect(page.locator("canvas")).toHaveCount(1);
-  await expect(page.locator("html")).not.toHaveAttribute("data-grabient-playing");
+  expect(await contexts(page)).toBe(1);
 });
 
 test("a lost context shows the still again, and the effect plays again once the browser restores it", async ({
@@ -142,3 +154,4 @@ test("a reader who asks for less motion keeps the still, and no context is made"
   await expect(page.locator("canvas")).toHaveCount(0);
   expect(await page.evaluate(() => "gl" in window)).toBe(false);
 });
+
