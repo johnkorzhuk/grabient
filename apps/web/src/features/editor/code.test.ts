@@ -73,6 +73,12 @@ const effectSource = (query: string, id: string) =>
     createRest(),
     played(query)
   ).find(s => s.id === id);
+/* an effect's tabs come with its code, which the pane asks for as an effect first shows (effect-sources.ts) */
+const tabsIn = () =>
+  vi.waitFor(() => {
+    flush();
+    expect(effectSource("style=glass", "css")).toBeDefined();
+  });
 const loaded = async (read: () => string) => {
   read();
   await vi.waitFor(() => {
@@ -83,6 +89,7 @@ const loaded = async (read: () => string) => {
 };
 
 test("while an effect plays, the pane holds its code in the gradient's place, and no shader", async () => {
+  await tabsIn();
   const ids = codeSources(
     decodePalette(SEED)!,
     { style: "radialGradient", steps: 6, angle: 45 },
@@ -144,6 +151,7 @@ test("while an effect plays, the Markdown is the file its address serves, whatev
 test("the effect's tags show its first frame inside the page or linked, and copy it whole", async () => {
   const P = decodePalette(SEED)!;
   const blob = parseEffect(new URLSearchParams("style=blob&shape=3"))!;
+  await tabsIn();
   const html = effectSource("style=blob&shape=3", "html")!;
   expect(html.spellings?.map(s => s.label)).toEqual(["<style>", "<link>"]);
   expect(await loaded(() => html.text("style"))).toBe(
