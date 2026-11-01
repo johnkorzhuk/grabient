@@ -6,7 +6,7 @@
    (history.ts): Safari refuses a page more than a hundred history calls in thirty seconds. Another address arriving
    (Back, Forward, a link) is taken in whole. What the page paints passes the flash guard, as the editor's picture
    does: a held key turns the palette faster than three times a second, and the examples repaint whole. */
-import { canonical, encodePalette } from "@grabient/engine";
+import { canonical, decodePalette, encodePalette } from "@grabient/engine";
 import { luminance } from "@grabient/engine/contrast.ts";
 import { createFlashGuard } from "@grabient/ui/flash.ts";
 import { keyRow } from "@grabient/ui/keymap.ts";
@@ -29,6 +29,29 @@ const LIMIT = 100;
 type Router = ReturnType<typeof useRouter>;
 
 const addressOf = (s: Shown) => examplesPath(s.seed);
+/** Where the page keeps its turns in its history entry. */
+const TURNS = "examplesTurns";
+const shownOf = (seed: string): Shown[] => {
+  const palette = decodePalette(seed);
+  return palette ? [plainOf(seed, palette)] : [];
+};
+/** The turns an entry keeps for the page, where the palette the entry's address names is the one they were kept at;
+    none where it keeps none, as an entry a link opens. */
+function turnsIn(
+  at: { state: unknown; pathname: string },
+  seed: string
+): { past: Shown[]; ahead: Shown[] } {
+  const kept = (
+    at.state as Record<string, { past?: unknown; ahead?: unknown } | undefined> | null
+  )?.[TURNS];
+  const seeds = (list: unknown) =>
+    Array.isArray(list) ? list.filter((s): s is string => typeof s === "string") : [];
+  if (!kept || at.pathname.split("/").at(-2) !== seed) return { past: [], ahead: [] };
+  return {
+    past: seeds(kept.past).flatMap(shownOf).slice(-LIMIT),
+    ahead: seeds(kept.ahead).flatMap(shownOf)
+  };
+}
 /** The palette an examples address names, or null where it names none. */
 function shownAt(location: ParsedLocation): Shown | null {
   const [id, rest] = location.pathname.slice(1).split("/");
@@ -47,11 +70,23 @@ export function createExamplesState(o: {
   let plain = o.initial;
   let past: Shown[] = [];
   let ahead: Shown[] = [];
+  /* the turns the entry keeps for the palette shown, read while the page holds none of its own: the router may draw
+     the page anew as its address names another palette, and the undo goes on from where the keys left it */
+  const adopt = () => {
+    if (past.length || ahead.length) return;
+    const kept = turnsIn(o.router.history.location, plain.seed);
+    past = kept.past;
+    ahead = kept.ahead;
+  };
+  adopt();
   /* what the page paints: the same, except that a turn which would complete a flash waits a moment */
   const painted = createFlashGuard(now, s => drawnColors(s).map(luminance));
 
   /* the address the entry shows: the last one written, or the one that arrived */
   let shown = addressOf(o.initial);
+  /* the addresses written that the router has yet to land on, oldest first: one landing after a later turn is the
+     page's own, not an address arriving from elsewhere, which would start the page and its undo again there */
+  let landing: string[] = [];
   let latest: Shown | null = null;
   let lastAt = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -69,12 +104,15 @@ export function createExamplesState(o: {
     latest = null;
     lastAt = Date.now();
     shown = addressOf(s);
+    landing.push(shown);
     void o.router.navigate({
       to: "/$id/examples",
       params: { id: s.seed },
       search: {},
       replace: true,
-      resetScroll: false
+      resetScroll: false,
+      /* the turns the undo walks, kept in the entry the page writes */
+      state: { [TURNS]: { past: past.map(t => t.seed), ahead: ahead.map(t => t.seed) } } as never
     });
   }
   const writeSoon = () => {
@@ -105,8 +143,14 @@ export function createExamplesState(o: {
       return;
     }
     const address = addressOf(next);
+    const own = landing.indexOf(address);
+    if (own >= 0) {
+      landing = landing.slice(own + 1);
+      return;
+    }
     if (address === shown || address === addressOf(untrack(now))) return;
     cancel();
+    landing = [];
     shown = address;
     past = [];
     ahead = [];
@@ -130,9 +174,16 @@ export function createExamplesState(o: {
     reverse() {
       put(withPalette(ops.reversed(plain.palette, [])));
     },
-    canUndo: () => past.length > 0,
-    canRedo: () => ahead.length > 0,
+    canUndo: () => {
+      adopt();
+      return past.length > 0;
+    },
+    canRedo: () => {
+      adopt();
+      return ahead.length > 0;
+    },
     undo() {
+      adopt();
       const back = past.at(-1);
       if (!back) return;
       past = past.slice(0, -1);
@@ -140,6 +191,7 @@ export function createExamplesState(o: {
       put(back, false);
     },
     redo() {
+      adopt();
       const next = ahead[0];
       if (!next) return;
       ahead = ahead.slice(1);

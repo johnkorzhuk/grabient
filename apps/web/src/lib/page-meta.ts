@@ -126,10 +126,11 @@ export type Page = Facts &
         collection?: CollectionFacts;
       }
     | {
-        /** a palette's examples, one page whatever its address names; its hero's view, which its share card wears */
+        /** a palette's examples, one page whatever its address names; its hero's look, which its share card wears */
         kind: "examples";
         seed: string;
         view: View;
+        effect: Effect | null;
       }
     | {
         kind: "palette";
@@ -244,8 +245,14 @@ function examplesPage(
     name
   });
   meta.robots = "noindex,follow";
-  /* its share card is the palette from edge to edge as the hero shows it, the wordmark at its top left and no chips */
-  meta.image = absolute(`${paletteCard(page.seed, page.view)}&chips=off`, origin);
+  /* its share card is the palette from edge to edge as the hero shows it, the wordmark at its top left and no chips: an
+     effect's first frame, or a gradient's view */
+  meta.image = absolute(
+    page.effect
+      ? effectCard(page.seed, page.effect, page.view.angle)
+      : `${paletteCard(page.seed, page.view)}&chips=off`,
+    origin
+  );
   meta.imageAlt = t("{name} color palette", { name });
   return examplesPath(page.seed);
 }

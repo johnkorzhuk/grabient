@@ -19,18 +19,26 @@ export const Route = createFileRoute("/$id/examples")({
     const page = readSeedPage(params.id, searchReader({}));
     if (!page) throw notFound();
     /* the hero's look, from a module of its own: the route's start carries none of the page */
-    const { heroView } = await import("../../features/examples/hero.ts");
-    const view = heroView(page.seed, page.palette);
+    const { heroOf } = await import("../../features/examples/hero.ts");
+    const { view, effect } = heroOf(page.seed, page.palette);
     return {
       seed: page.seed,
       view,
+      effect,
       /* the frame's bar wears the palette as the hero does */
       paint: [{ seed: page.seed, style: view.style, steps: view.steps, angle: view.angle }]
     };
   },
   headers: () => PAGE,
   head: ({ loaderData }) =>
-    loaderData ? pageHead({ kind: "examples", seed: loaderData.seed, view: loaderData.view }) : {},
+    loaderData
+      ? pageHead({
+          kind: "examples",
+          seed: loaderData.seed,
+          view: loaderData.view,
+          effect: loaderData.effect
+        })
+      : {},
   /* the hero is the page's light: no water flows from the wordmark behind it, and the header stands over it */
   staticData: { frame: "app", water: false, clear: true },
   component: function Examples() {

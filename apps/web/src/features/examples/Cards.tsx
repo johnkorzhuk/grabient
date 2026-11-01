@@ -419,19 +419,21 @@ function Ticket(props: TileProps) {
   );
 }
 
-/** A widget: the palette as its scene and a card of frosted glass on it, which holds an app's mark, what it counts
-    and its amount, in the ink that reads on every color the glass can show there, veiled with the palette's own tint
+/** A widget: the palette as its scene and a card of frosted glass on it, a tide app's, which holds its mark and the
+    day's high tide under the moon that turns it, in the ink that reads on every color the glass can show there, veiled with the palette's own tint
     where that is enough (frost.ts). The card stands on the widget's start side where Cards.module.css's .glass lays
     it: 6% in from the start, 46% wide and 15% in from the top and the foot. */
 const CARD: Part = { x0: 0.06, y0: 0.15, x1: 0.52, y1: 0.85 };
 /** How far the glass's blur reaches, as a share of the widget's width: three of its standard deviations, 2.5cqi each
     (Cards.module.css's .glass). */
 const FROST_REACH = 0.075;
+/** The high tide the widget tells, on the day every card names. */
+const TIDE = Date.UTC(2026, 10, 12, 16, 12);
 function Widget(props: TileProps) {
   const frost = createMemo(() =>
     frostOn(props.s, dir() === "rtl" ? mirrored(CARD) : CARD, PLACES.widget.aspect, FROST_REACH)
   );
-  const amount = () => formatNumber(0, { style: "currency", currency: "GBP" });
+  const time = () => formatDate(TIDE, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
   return (
     <div class={styles.widget}>
       <Picture s={props.s} lit={props.lit()} />
@@ -444,11 +446,11 @@ function Widget(props: TileProps) {
         }}
       >
         <span class={styles.appMark}>
-          <Icon name="anchor" size={24} />
+          <Icon name="moon" size={24} />
         </span>
-        <p class={styles.costName}>{t("Sunk cost")}</p>
-        <p class={styles.amount} style={{ "--chars": String(amount().length) }}>
-          {amount()}
+        <p class={styles.widgetLabel}>{t("High tide")}</p>
+        <p class={styles.widgetFigure} style={{ "--chars": String(time().length) }}>
+          {time()}
         </p>
       </div>
     </div>

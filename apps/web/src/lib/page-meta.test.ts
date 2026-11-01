@@ -1,4 +1,5 @@
 import { decodePalette } from "@grabient/engine";
+import { type Effect, parseEffect } from "@grabient/engine/effect.ts";
 import { parseView, type View } from "@grabient/engine/view.ts";
 import {
   addCatalog,
@@ -915,8 +916,8 @@ test("every kind of page, in every language, fits its description in 160 charact
 
 describe("a palette's examples", () => {
   const SEED = "kS7Q8Yy5S_SChv0";
-  const examples = (view: View) =>
-    pageMeta({ kind: "examples", seed: SEED, view }, PRODUCTION_ORIGIN);
+  const examples = (view: View, effect: Effect | null = null) =>
+    pageMeta({ kind: "examples", seed: SEED, view, effect }, PRODUCTION_ORIGIN);
   const bands: View = { ...parseView(new URLSearchParams("style=linearSwatches&steps=9")) };
 
   test("stand at the palette's address and /examples alone, and are not indexed", () => {
@@ -932,6 +933,10 @@ describe("a palette's examples", () => {
   test("share the palette from edge to edge under the wordmark, as the hero shows it", () => {
     expect(examples(bands).image).toBe(
       `https://grabient.com/api/og?seed=${SEED}&v=k4&style=linearSwatches&steps=9&chips=off`
+    );
+    const glass = parseEffect(new URLSearchParams("style=glass&angle=135"));
+    expect(examples({ ...bands, angle: 135 }, glass).image).toBe(
+      `https://grabient.com/api/og?seed=${SEED}&v=k4&style=glass&angle=135`
     );
   });
 

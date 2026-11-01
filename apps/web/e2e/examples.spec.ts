@@ -15,12 +15,16 @@ async function open(page: Page, address: string) {
 }
 
 /** Presses B until the palette turns: the shell listens for keys once the page has settled, a moment after it
-    hydrates, and a press before that does nothing. */
+    hydrates, and a press before that does nothing. The hero's way back to the editor names the palette as soon as it
+    turns, and the address follows a moment later: a turn that draws a new effect's shader takes a second or more where
+    a browser draws WebGL without a GPU, and a second press then would turn it twice. */
 async function random(page: Page, from: string) {
+  const editor = page.getByRole("link", { name: "Editor" });
   await expect(async () => {
     await page.keyboard.press("b");
-    await expect(page).not.toHaveURL(new RegExp(`/${from}/`), { timeout: 3000 });
-  }).toPass();
+    await expect(editor).not.toHaveAttribute("href", new RegExp(`/${from}$`), { timeout: 10000 });
+  }).toPass({ timeout: 60000 });
+  await expect(page).not.toHaveURL(new RegExp(`/${from}/`), { timeout: 10000 });
 }
 
 /** Each tile of the cards' grid by its name, which says its look. */
@@ -32,6 +36,8 @@ const tilesOf = (page: Page) =>
 test("a palette's examples are one page whatever view or effect a link names, which moves there for good", async ({
   page
 }) => {
+  /* five pages, each starting the hero's effect, which a browser with no GPU draws on its processor */
+  test.slow();
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(String(error)));
   await open(page, `/${SEED}/examples`);
@@ -85,7 +91,7 @@ test("the editor's keys turn the palette, the address follows in place, and the 
   await expect(page).toHaveURL(/\/k[\w-]+\/examples$/);
   const rolled = new URL(page.url()).pathname;
   await page.keyboard.press("i");
-  await expect(page).not.toHaveURL(new RegExp(`${rolled}$`));
+  await expect(page).not.toHaveURL(new RegExp(`${rolled}$`), { timeout: 10000 });
   await expect(page).toHaveURL(/\/k[\w-]+\/examples$/);
   /* the steps' and the angle's keys have nothing to turn on a page of the palette's own looks */
   const inverted = page.url();
@@ -94,8 +100,9 @@ test("the editor's keys turn the palette, the address follows in place, and the 
   await expect(page).toHaveURL(inverted);
   expect(await page.evaluate(() => history.length)).toBe(entries);
   await page.keyboard.press("ControlOrMeta+z");
+  await expect(page).toHaveURL(new RegExp(`${rolled}$`), { timeout: 10000 });
   await page.keyboard.press("ControlOrMeta+z");
-  await expect(page).toHaveURL(new RegExp(`/${SEED}/examples$`));
+  await expect(page).toHaveURL(new RegExp(`/${SEED}/examples$`), { timeout: 10000 });
   // the address as written is the one the server answers at, with no redirect
   expect((await page.request.get(page.url(), { maxRedirects: 0 })).status()).toBe(200);
 });

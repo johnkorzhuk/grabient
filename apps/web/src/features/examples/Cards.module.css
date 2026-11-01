@@ -613,13 +613,13 @@
       height: auto;
     }
   }
-  .costName {
+  .widgetLabel {
     margin: 0;
     font-size: clamp(11px, 3.4cqi, 18px);
     line-height: var(--font-lh-ui);
   }
-  /* the amount as large as the card holds it: its characters (--chars) at most 36cqi across */
-  .amount {
+  /* the figure as large as the card holds it: its characters (--chars) at most 36cqi across */
+  .widgetFigure {
     margin: 0;
     font-family: var(--font-system);
     font-weight: 400;
