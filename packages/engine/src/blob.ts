@@ -760,12 +760,15 @@ const near = (bits: number) => 0.5 + ((bits & 255) + ((bits >>> 8) & 255) - 255)
     or three on `backdrop` (0 to 255 a channel), the ground laid over it where it has one. It is the file's drawing by
     the same numbers, the design scaled to cover the box as the file scales it (blobFit), its blur in three boxes at a
     smaller scale and its frost noise of the same spread, which stays put from frame to frame as the file's does, so
-    it is read once: a frame then costs the balls, the small blur and one pass. */
+    it is read once: a frame then costs the balls, the small blur and one pass. A renderer drawing one frame alone
+    (`once`) reads each pixel's place as it draws it instead, the same numbers, holding no array of them: 48 MB at the
+    largest picture an address asks for. */
 export function blobRenderer(
   P: Palette,
   view: Pick<BlobView, "frost" | "shape" | "bg" | "angle">,
   size: Size,
-  backdrop?: readonly number[]
+  backdrop?: readonly number[],
+  once = false
 ) {
   const { width: W, height: H } = size;
   const scene = blobScene(P, BLOB_DESIGN, view);
@@ -803,26 +806,38 @@ export function blobRenderer(
   const { scatter, speckle } = frostOf(view.frost);
   const seed = Math.imul(scene.seed + 1, 0x9e3779b1);
   const N = W * H;
-  const corner = new Int32Array(N);
-  const across_ = new Float32Array(N);
-  const down = new Float32Array(N);
-  const grains = new Float32Array(N);
-  for (let y = 0, p = 0; y < H; y++) {
-    for (let x = 0; x < W; x++, p++) {
-      const a = noise((2 * p) ^ seed);
-      const b = noise((2 * p + 1) ^ seed);
-      const u = clamp((x + 0.5 + scatter * S * (near(a) - 0.5)) / q - 0.5 + pad, 0, w - 1.001);
-      const v = clamp(
-        (y + 0.5 + scatter * S * (near(a >>> 16) - 0.5)) / q - 0.5 + pad,
-        0,
-        h - 1.001
-      );
-      const x0 = Math.floor(u);
-      const y0 = Math.floor(v);
-      corner[p] = 4 * (y0 * w + x0);
-      across_[p] = u - x0;
-      down[p] = v - y0;
-      grains[p] = 1 - speckle + 2 * speckle * clamp01(0.5 + CONTRAST * (near(b) - 0.5));
+  /* pixel p's (at x, y) texel, its shares across and down and its speckle, into `place`, in single precision as the
+     arrays keep them */
+  const place = new Float64Array(4);
+  const placeOf = (p: number, x: number, y: number) => {
+    const a = noise((2 * p) ^ seed);
+    const b = noise((2 * p + 1) ^ seed);
+    const u = clamp((x + 0.5 + scatter * S * (near(a) - 0.5)) / q - 0.5 + pad, 0, w - 1.001);
+    const v = clamp((y + 0.5 + scatter * S * (near(a >>> 16) - 0.5)) / q - 0.5 + pad, 0, h - 1.001);
+    const x0 = Math.floor(u);
+    const y0 = Math.floor(v);
+    place[0] = 4 * (y0 * w + x0);
+    place[1] = Math.fround(u - x0);
+    place[2] = Math.fround(v - y0);
+    place[3] = Math.fround(1 - speckle + 2 * speckle * clamp01(0.5 + CONTRAST * (near(b) - 0.5)));
+  };
+  const kept = once
+    ? null
+    : {
+        corner: new Int32Array(N),
+        across: new Float32Array(N),
+        down: new Float32Array(N),
+        grains: new Float32Array(N)
+      };
+  if (kept) {
+    for (let y = 0, p = 0; y < H; y++) {
+      for (let x = 0; x < W; x++, p++) {
+        placeOf(p, x, y);
+        kept.corner[p] = place[0];
+        kept.across[p] = place[1];
+        kept.down[p] = place[2];
+        kept.grains[p] = place[3];
+      }
     }
   }
   const row = 4 * w;
@@ -859,11 +874,19 @@ export function blobRenderer(
       boxBlur(across, melt, w, h, 4, 4 * w, width);
     }
     const out = new Uint8Array(channels * N);
-    for (let p = 0; p < N; p++) {
+    for (let p = 0, x = 0, y = 0; p < N; p++) {
       /* the melt read through the scattered place, bilinear */
-      const at = corner[p];
-      const fx = across_[p];
-      const fy = down[p];
+      if (!kept) {
+        placeOf(p, x, y);
+        if (++x === W) {
+          x = 0;
+          y++;
+        }
+      }
+      const at = kept ? kept.corner[p] : place[0];
+      const fx = kept ? kept.across[p] : place[1];
+      const fy = kept ? kept.down[p] : place[2];
+      const grain = kept ? kept.grains[p] : place[3];
       const w00 = (1 - fx) * (1 - fy);
       const w10 = fx * (1 - fy);
       const w01 = (1 - fx) * fy;
@@ -890,7 +913,7 @@ export function blobRenderer(
         }
         continue;
       }
-      const scale = (lift * grains[p]) / a0;
+      const scale = (lift * grain) / a0;
       const red = Math.min(
         alpha,
         (melt[at] * w00 + melt[at + 4] * w10 + melt[at + row] * w01 + melt[at + row + 4] * w11) *
@@ -937,14 +960,14 @@ export function blobRenderer(
   return { width: W, height: H, channels, frame };
 }
 
-/** The first frame as pixels at a size (blobRenderer's): the frame a reader who asks for less motion sees, and the
-    one link previews and the PNG still show. */
+/** The first frame as pixels at a size (blobRenderer's, drawn once): the frame a reader who asks for less motion sees,
+    and the one link previews and the PNG still show. */
 export const blobStill = (
   P: Palette,
   view: Pick<BlobView, "frost" | "shape" | "bg" | "angle">,
   size: Size,
   backdrop?: readonly number[]
-): Uint8Array<ArrayBuffer> => blobRenderer(P, view, size, backdrop).frame(0);
+): Uint8Array<ArrayBuffer> => blobRenderer(P, view, size, backdrop, true).frame(0);
 
 const DARK = [14, 14, 16];
 const LIGHT = [243, 241, 238];

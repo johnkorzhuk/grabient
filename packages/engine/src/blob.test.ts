@@ -14,6 +14,7 @@ import {
   blobGifPlan,
   blobNoiseTables,
   blobPlaces,
+  blobRenderer,
   blobScene,
   blobSearch,
   blobStill,
@@ -343,6 +344,27 @@ test("the first frame as pixels: clear between the blobs, on their ground, or on
   expect(at(veiled, 4, solid!)[3]).toBe(255);
   expect(blobStill(P, read(`${query}&frost=0`), { width: W, height: H })).not.toEqual(alone);
   expect(blobStill(P, read("shape=7"), { width: W, height: H })).not.toEqual(alone);
+});
+
+test("a still drawn once is the first frame a renderer of many frames draws, byte for byte", () => {
+  const sizes = [
+    { width: 97, height: 61 },
+    { width: 1, height: 1 },
+    { width: 40, height: 230 }
+  ];
+  for (const [i, query] of [
+    "",
+    "shape=13&frost=0",
+    "shape=999&frost=2&bg=101014",
+    "shape=300&frost=0.5&bg=ff336680&angle=210"
+  ].entries()) {
+    const look = read(query);
+    const size = sizes[i % sizes.length];
+    for (const backdrop of [undefined, blobBackdrop(P)])
+      expect(blobStill(P, look, size, backdrop)).toEqual(
+        blobRenderer(P, look, size, backdrop).frame(0)
+      );
+  }
 });
 
 test("a dark palette's card sets the blob on light, any other on dark", () => {
