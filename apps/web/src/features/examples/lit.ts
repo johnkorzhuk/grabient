@@ -13,21 +13,28 @@ export function createLit() {
   let over = false;
   let focused = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let frame = 0;
   /* a scroll while the pointer rests starts the wait again; heard only while it waits, in the browser */
   let waiting = false;
   const wait = () => {
     clearTimeout(timer);
+    cancelAnimationFrame(frame);
     timer = setTimeout(rested, REST_MS);
   };
   const quiet = () => {
     clearTimeout(timer);
     if (!waiting) return;
+    cancelAnimationFrame(frame);
     waiting = false;
     removeEventListener("scroll", wait, true);
   };
+  /* lit in the next frame, whose scroll comes before it: a page whose GPU holds its frames tells of no scroll until
+     then, though it moves */
   const rested = () => {
-    quiet();
-    setOn(true);
+    frame = requestAnimationFrame(() => {
+      quiet();
+      setOn(true);
+    });
   };
   onCleanup(quiet);
   return {
