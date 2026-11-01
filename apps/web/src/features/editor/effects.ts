@@ -7,11 +7,8 @@
    has a shape number, so a drag that recolors the palette keeps the blob it is looking at. */
 import {
   blobShapeOf,
-  EFFECT_FPS,
   EFFECT_LOOK,
   EFFECT_PLAY,
-  EFFECT_SPEED,
-  EFFECTS,
   type Effect,
   type EffectKind,
   type EffectLook,
@@ -25,8 +22,6 @@ import {
 } from "@grabient/engine/effect.ts";
 import { createSignal, untrack } from "solid-js";
 import { EFFECT_KEY } from "./effect-page.ts";
-
-export { EFFECT_FPS as FPS, EFFECT_SPEED as SPEED };
 
 type Settings = Record<EffectKind, EffectSettings>;
 /** The reader's choice as this browser keeps it. */
@@ -194,6 +189,3 @@ export function createEffects(
     }
   };
 }
-
-/** Every effect, for the menu's tiles. */
-export const EFFECT_KINDS = EFFECTS;
