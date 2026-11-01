@@ -799,6 +799,36 @@ test("the sheet asks for the palettes like this one only once it is in view", as
   expect(asks[0]?.searchParams.get("query")).toBe(new URL(page.url()).pathname.slice(1));
 });
 
+test("while the glass plays, the code pane holds its code: its tags, its stylesheet and its SVG, never a gradient's", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?style=glass&angle=45`);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await expect(tabs.getByRole("tab")).toHaveText([
+    "Seed",
+    "HTML",
+    "CSS",
+    "Colors",
+    "JSON",
+    "SVG",
+    "MD"
+  ]);
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  await tabs.getByRole("tab", { name: "HTML" }).click();
+  await expect(code).toContainText(`${SEED}.js?style=glass&amp;angle=45" async></script>`);
+  await page.getByRole("tablist", { name: "Syntax" }).getByRole("tab", { name: "<link>" }).click();
+  await expect(code).toContainText(`<link rel="stylesheet" href=`);
+  await tabs.getByRole("tab", { name: "CSS" }).click();
+  await expect(code).toContainText(`/${SEED}?style=glass&angle=45 */`);
+  await expect(code).toContainText("html::before {");
+  await expect(code).not.toContainText("gradient(");
+  await tabs.getByRole("tab", { name: "SVG" }).click();
+  await expect(code).toContainText("@keyframes");
+  await tabs.getByRole("tab", { name: "MD" }).click();
+  await expect(code).toContainText("- Drawn as: fluted glass, its ribs at 45 degrees");
+});
+
 test("Text contrast sets a sample too low for text only in the cell its line says, under the pointer or the keyboard", async ({
   page
 }) => {
