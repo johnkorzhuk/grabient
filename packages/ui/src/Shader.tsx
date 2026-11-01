@@ -60,11 +60,13 @@ export function Shader(props: {
       if (key) live?.reseed();
     }
   );
+  /* told from the flow's callbacks, and from the effect below that takes the water away, where the page's word on its
+     motion is read once, untracked, as the water decides */
   const ready = (ok: boolean | null) => {
     if (!ok) barUnpainted();
     lit = !!ok;
     layer.toggleAttribute("data-lit", lit);
-    syncGlow(reducesNow() && !props.moves?.());
+    syncGlow(reducesNow() && !untrack(() => props.moves?.()));
     props.onReady(ok);
   };
   /* the page takes the water away or gives it back; the water answers once it has settled */
