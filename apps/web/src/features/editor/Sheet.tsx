@@ -415,6 +415,10 @@ export function Sheet(props: {
         ? { stops: glassColors(P), style: "linearGradient" as const, angle: palette().angle }
         : null;
     };
+    /* a blob with no ground of its own stands on the list with none. An accessor of its own, where a condition written
+       in the prop is compiled to a memo made as the prop is read: the card reads it as a focus leaves, which may be
+       inside Solid's commit, where a memo made has no owner (PRIMITIVE_IN_EFFECT_CALLBACK) */
+    const bare = () => playing() === "blob" && e.effects.settings("blob").look.bg === null;
     const pictureLabel = () => {
       const kind = playing();
       return kind
@@ -480,7 +484,7 @@ export function Sheet(props: {
         }
         pictureLabel={pictureLabel()}
         glow={glowOf()}
-        bare={playing() === "blob" && e.effects.settings("blob").look.bg === null}
+        bare={bare()}
         href={localHref(address())}
         rel={relTo(localHref(address()))}
         age={relativeAge(item().createdAt, now)}
