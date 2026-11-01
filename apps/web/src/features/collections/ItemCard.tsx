@@ -2,26 +2,36 @@ import { msg } from "@grabient/i18n";
 import { type CardCollect, CollectPress } from "@grabient/ui/CollectPress.tsx";
 import { FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
+import { useNavigate } from "@tanstack/solid-router";
 import { createMemo, type Element, onSettled, untrack, useContext } from "solid-js";
 import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
+import { openedFrom } from "../editor/address.ts";
 import { askFacts } from "../editor/page.ts";
 import { askCredit, creditName, creditOf } from "../gallery/credit.ts";
 import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
+import { inPlace } from "../gallery/feed.ts";
 import { similarHref } from "../gallery/similar.ts";
 import { cardTakings } from "../gallery/take.ts";
 import { cardWords, type Words } from "../gallery/words.ts";
-import { AppearanceContext, drawnIn, type ListView } from "../list/appearance.ts";
+import {
+  AppearanceContext,
+  cardEffect,
+  drawnIn,
+  type ListView,
+  shownEffect
+} from "../list/appearance.ts";
+import { createCardEffect } from "../list/card-effect.tsx";
 import { type UseAt, type UsePlace, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { rememberOpening } from "./navigation.ts";
 
 /** A palette of a collection as its card, on the collection's page and in a list's group: drawn in the page's view
-    over the one the collection saved it in, its picture following the header's control as it is set, and called by the
-    title the collection gives it; liked, selected, collected, copied and opened as on every list, each counted with
+    over the one the collection saved it in, or playing its effect, its picture following the header's control as it is
+    set, and called by the title the collection gives it; liked, selected, collected, copied and opened as on every list, each counted with
     where the card stands. The page adds what is its own: the thumbs, the presses beside Edit, and its owner's naming. */
 export function ItemCard(props: {
   /** the palette as the collection saved it */
@@ -49,15 +59,27 @@ export function ItemCard(props: {
   removed?: boolean;
 }) {
   const look = useContext(AppearanceContext)!;
+  const navigate = useNavigate();
   const shown = createMemo(() => drawnIn(props.own, props.view));
   const picture = createMemo(() => picturedAs(props.own, props.view, look.draft(), look.peek()));
   const seed = () => props.own.seed;
   const words = () => cardWords(shown(), props.words);
-  const href = () => paletteHref(shown(), props.view.size);
+  const href = () => paletteHref(shown(), props.view.size, props.view.effect);
   const similar = () => similarHref(seed());
   const collect = props.collect(shown);
+  const name = () => props.words?.title ?? nameOf(shown());
+  const effect = createCardEffect({
+    seed,
+    angle: () => picture().angle,
+    effect: () => shownEffect(props.view, look.draft(), look.peek()),
+    name
+  });
   const take = cardTakings({
     palette: shown,
+    played: () => {
+      const { effect, size } = props.view;
+      return effect && { effect: cardEffect(effect, seed()), size };
+    },
     place: () => props.place(),
     at: () => props.at(),
     say: (message, error) => props.note(message, error)
@@ -78,10 +100,14 @@ export function ItemCard(props: {
   return (
     <PaletteCard
       seed={seed()}
-      name={props.words?.title ?? nameOf(shown())}
+      name={name()}
       stops={hexesOf(picture())}
       style={picture().style}
       angle={picture().angle}
+      picture={effect.picture()}
+      pictureLabel={effect.label()}
+      glow={effect.glow()}
+      bare={effect.bare()}
       href={href()}
       rel={relTo(href())}
       age={props.age}
@@ -103,9 +129,12 @@ export function ItemCard(props: {
         askFacts(seed());
         askCredit(seed());
       }}
-      onOpen={() => {
+      onOpen={e => {
         rememberOpening(seed(), props.collection);
         useOpened(props.place(), shown(), props.at());
+        /* the palette's page is told its own view and which parts the page set over it */
+        const handed = openedFrom(props.own, props.view);
+        if (handed) inPlace(e, () => void navigate({ href: href(), state: handed }));
       }}
       collect={<CollectPress collect={collect} />}
       tools={() => (

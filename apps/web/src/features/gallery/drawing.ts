@@ -1,10 +1,12 @@
+import type { Effect } from "@grabient/engine/effect.ts";
 import { seedName } from "@grabient/engine/name.ts";
-import { type SizeChoice, type Style, viewSearch } from "@grabient/engine/view.ts";
+import type { SizeChoice, Style } from "@grabient/engine/view.ts";
 import { formatDate, locale, localHref, t } from "@grabient/i18n";
 import { madePalettes, madeView } from "@grabient/search/colors.ts";
 import type { Drawn } from "../../lib/palette.ts";
 import type { CollectionSummary } from "../collections/types.ts";
-import { drawnIn, type ListView, type ViewDraft } from "../list/appearance.ts";
+import { seedAddress } from "../editor/address.ts";
+import { cardEffect, drawnIn, type ListView, type ViewDraft } from "../list/appearance.ts";
 import type { PaletteItem } from "./schema.ts";
 
 /* What a list says of a palette beside its picture: its name by its colors in the reader's language, its age, and the
@@ -73,9 +75,16 @@ export function nameOf(p: Drawn): string {
   return name;
 }
 
-/** The palette's page in the view it is drawn in, at the size the reader set, in the reader's language. */
-export const paletteHref = (p: Drawn, size: SizeChoice | null): string =>
-  localHref(`/${p.seed}${viewSearch({ ...p, size })}`);
+/** The palette's page in the view it is drawn in, at the size the reader set, in the reader's language: playing the
+    list's effect where it plays one, in the palette's own shape, as the card does. */
+export const paletteHref = (p: Drawn, size: SizeChoice | null, effect?: Effect | null): string =>
+  localHref(
+    seedAddress({
+      seed: p.seed,
+      view: { ...p, size },
+      effect: effect && cardEffect(effect, p.seed)
+    })
+  );
 
 /* Past a year an age is the month and year in UTC, as grabient.com wrote it. */
 const MONTH_YEAR: Intl.DateTimeFormatOptions = { month: "short", year: "numeric", timeZone: "UTC" };

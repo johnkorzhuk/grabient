@@ -64,6 +64,6 @@ export function searchedTitle(
     style: drawn.style,
     angle: drawn.angle,
     name: nameOf(shown),
-    href: paletteHref(shown, params.size)
+    href: paletteHref(shown, params.size, params.effect)
   };
 }

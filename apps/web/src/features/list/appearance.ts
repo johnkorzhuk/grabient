@@ -171,6 +171,14 @@ export function drawnIn(own: Drawn, view: ListView, draft?: ViewDraft | null): D
   return { seed: own.seed, ...v, steps: Math.max(v.steps, keyframesOf(own.seed)) };
 }
 
+/** The effect a list's cards show: the view's, a draft's over it, and none while a gradient's style is previewed. */
+export const shownEffect = (
+  view: ListView,
+  draft: ViewDraft | null,
+  peek: Style | null
+): Effect | null =>
+  peek ? null : draft && "effect" in draft ? (draft.effect ?? null) : view.effect;
+
 /** The peek and the draft the frame holds for the page's cards, and the page's first palette for the control's
     swatch. */
 export function createAppearance(first: Accessor<Drawn | null>) {

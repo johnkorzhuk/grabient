@@ -10,8 +10,10 @@ import { hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, toggleLike } from "../account/likes.ts";
 import { rememberOpening } from "../collections/navigation.ts";
+import { openedFrom } from "../editor/address.ts";
 import { askFacts } from "../editor/page.ts";
-import { AppearanceContext, drawnIn } from "../list/appearance.ts";
+import { AppearanceContext, cardEffect, drawnIn, shownEffect } from "../list/appearance.ts";
+import { createCardEffect } from "../list/card-effect.tsx";
 import { type UseAt, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { askCredit, creditName, creditOf } from "./credit.ts";
@@ -23,9 +25,10 @@ import { similarHref } from "./similar.ts";
 import { cardTakings } from "./take.ts";
 import { cardWords, type Words } from "./words.ts";
 
-/** A palette of a gallery list as its card: drawn in the list's view, called by its title where it has one, liked,
-    selected, collected and taken as the account's, and opened in the editor in place. Its picture follows the header's control as it is set; its link,
-    name, selection and files follow once the address has the view. */
+/** A palette of a gallery list as its card: drawn in the list's view, or playing its effect, called by its title where
+    it has one, liked, selected, collected and taken as the account's, and opened in the editor in place. Its picture
+    follows the header's control as it is set; its link, name, selection and files follow once the address has the
+    view. */
 export function GalleryCard(props: {
   item: PaletteItem;
   /** the words the collection it stands under gives it */
@@ -49,10 +52,17 @@ export function GalleryCard(props: {
   const picture = createMemo(() =>
     picturedAs(ownOf(props.item), page.params(), look.draft(), look.peek())
   );
-  const path = () => paletteHref(shown(), page.params().size);
+  const path = () => paletteHref(shown(), page.params().size, page.params().effect);
   const similar = () => similarHref(seed());
   const where = () => props.at?.() ?? {};
   const words = () => cardWords(shown(), props.words);
+  const name = () => props.words?.title ?? nameOf(shown());
+  const effect = createCardEffect({
+    seed,
+    angle: () => picture().angle,
+    effect: () => shownEffect(page.params(), look.draft(), look.peek()),
+    name
+  });
   onSettled(() => {
     const at = untrack(() => props.readAt);
     if (at !== undefined)
@@ -67,15 +77,28 @@ export function GalleryCard(props: {
       view: { style: shown().style, steps: shown().steps, angle: shown().angle },
       query: page.words() || undefined
     }).catch((reason: unknown) => page.say(shownError(reason, msg("Couldn't save."))));
-  const take = cardTakings({ palette: shown, place: page.place, at: where, say: page.say });
+  const take = cardTakings({
+    palette: shown,
+    played: () => {
+      const { effect, size } = page.params();
+      return effect && { effect: cardEffect(effect, seed()), size };
+    },
+    place: page.place,
+    at: where,
+    say: page.say
+  });
 
   return (
     <PaletteCard
       seed={seed()}
-      name={props.words?.title ?? nameOf(shown())}
+      name={name()}
       stops={hexesOf(picture())}
       style={picture().style}
       angle={picture().angle}
+      picture={effect.picture()}
+      pictureLabel={effect.label()}
+      glow={effect.glow()}
+      bare={effect.bare()}
       href={path()}
       rel={relTo(path())}
       age={props.now ? relativeAge(props.item.createdAt, props.now) : ""}
@@ -113,7 +136,9 @@ export function GalleryCard(props: {
         const under = where().collection;
         if (under) rememberOpening(seed(), under);
         useOpened(page.place(), shown(), where());
-        inPlace(e, () => void navigate({ href: path() }));
+        /* the palette's page is told its own view and which parts the list set over it */
+        const handed = openedFrom(ownOf(props.item), page.params());
+        inPlace(e, () => void navigate({ href: path(), ...(handed ? { state: handed } : {}) }));
       }}
       fit={props.fit}
       lead={props.lead}
