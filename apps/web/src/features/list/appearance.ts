@@ -171,6 +171,13 @@ export function drawnIn(own: Drawn, view: ListView, draft?: ViewDraft | null): D
   return { seed: own.seed, ...v, steps: Math.max(v.steps, keyframesOf(own.seed)) };
 }
 
+/** Done once a list's cards can draw the effect its view plays, their pictures' code asked for with the page's data:
+    a list reached in the app shows no card empty while it comes. At once on the server and where none plays. */
+export const effectsReady = (view: ListView): Promise<void> =>
+  isServer || !view.effect
+    ? Promise.resolve()
+    : import("./card-effect.tsx").then(m => m.readyCardEffects(view.effect!.kind)).catch(() => {});
+
 /** The effect a list's cards show: the view's, a draft's over it, and none while a gradient's style is previewed. */
 export const shownEffect = (
   view: ListView,

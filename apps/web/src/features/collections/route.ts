@@ -10,7 +10,7 @@ import { type Failed, failed } from "../../lib/query.ts";
 import { searchOf } from "../../lib/route.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
-import { drawnIn, type ListView } from "../list/appearance.ts";
+import { drawnIn, effectsReady, type ListView } from "../list/appearance.ts";
 import { collectionHref, type PaletteOrder, sortCollectionItems } from "./address.ts";
 import { inputOf } from "./client.ts";
 import {
@@ -91,7 +91,8 @@ export async function loadList(
   }
   const [page] = await Promise.all([
     client.ensureQueryData(collectionsQuery(listKey(place))),
-    client.ensureQueryData(tagsQuery(place.query))
+    client.ensureQueryData(tagsQuery(place.query)),
+    effectsReady(place.view)
   ]);
   if (failed(page)) return {};
   const listed = {
@@ -175,6 +176,7 @@ export async function loadCollection(
       statusCode: 301
     });
   if (found.doc) {
+    await effectsReady(viewOf(params));
     const ordered = sortCollectionItems(found.doc.items, at.order);
     return {
       facts: factsOf(found.doc, found.languages),

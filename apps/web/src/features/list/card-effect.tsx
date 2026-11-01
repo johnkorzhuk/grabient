@@ -17,6 +17,17 @@ export function preloadCardEffects(kind: Effect["kind"]): void {
   void import("../editor/EffectArt.tsx").then(m => m.preloadEffectArt(kind)).catch(() => {});
 }
 
+/** Done once the cards can draw an effect's stills: their picture's code and their stills'. */
+export async function readyCardEffects(kind: Effect["kind"]): Promise<void> {
+  preloadCardEffects(kind);
+  await Promise.all([
+    EffectArt.preload(),
+    kind === "glass"
+      ? import("../editor/glass-draw.ts").then(m => m.loadStill())
+      : import("../editor/blob-draw.ts").then(m => m.loadBlob())
+  ]);
+}
+
 /** A card's picture while its list plays an effect, as the editor's sheet draws its cards: the effect's still in its
     palette's own shape, moving while the card is lit (EffectArt.tsx), its name for a screen reader, the light under
     it (the glass's colors along its ribs, none under a blob) and whether it stands bare (a blob with no ground).
