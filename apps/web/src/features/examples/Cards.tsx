@@ -151,6 +151,10 @@ function Tile(props: {
 }) {
   const [lit, setLit] = createSignal(false);
   const place = () => props.place ?? PLACES[props.kind];
+  const name = () => {
+    const kind = t(NAMES[props.kind]);
+    return props.other ? `${kind}, ${formWords(props.s)}` : kind;
+  };
   const content = untrack(() => props.children(lit));
   return (
     /* biome-ignore lint/a11y/useSemanticElements: a picture, named for a reader who listens; a fieldset is for a form's
@@ -159,9 +163,7 @@ function Tile(props: {
       class={styles.tile}
       data-kind={props.kind}
       role="group"
-      aria-label={
-        props.other ? `${t(NAMES[props.kind])}, ${formWords(props.s)}` : t(NAMES[props.kind])
-      }
+      aria-label={name()}
       style={{ "--col": place().col, "--row": place().row, "--aspect": String(place().aspect) }}
       onPointerEnter={() => setLit(true)}
       onPointerLeave={() => setLit(false)}
