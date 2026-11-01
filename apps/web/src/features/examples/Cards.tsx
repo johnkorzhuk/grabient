@@ -5,7 +5,7 @@ import { dir, formatDate, formatNumber, msg, rich, t } from "@grabient/i18n";
 import { createDone } from "@grabient/ui/done.ts";
 import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, type Element, onSettled, Show, untrack } from "solid-js";
+import { createSignal, type Element, For, onSettled, Show, untrack } from "solid-js";
 import { toast } from "../../app/toast.ts";
 import { paletteName } from "../../lib/page-meta.ts";
 import { EffectArt } from "../editor/EffectArt.tsx";
@@ -19,6 +19,7 @@ import {
 import styles from "./Cards.module.css";
 import { Chip, Example, type ExampleProps } from "./Example.tsx";
 import { inkThrough, MARK, type Press, pressPaper, standsOut, TEXT, TILE } from "./fit.ts";
+import { HeadlineTile, headlineShown, headlinesOf } from "./Headline.tsx";
 import {
   colorsUnder,
   drawnColors,
@@ -61,7 +62,9 @@ const SIZES = {
   member: { width: 1012, height: 638 },
   icon: { width: 1024, height: 1024 },
   business: { width: 1050, height: 600 },
-  buttons: { width: 600, height: 150 }
+  buttons: { width: 600, height: 150 },
+  letters: { width: 1500, height: 1000 },
+  mark: { width: 1500, height: 1000 }
 } as const satisfies Record<string, Size>;
 type Kind = keyof typeof SIZES;
 
@@ -77,8 +80,13 @@ const PLACES: Readonly<Record<Kind, { col: string; row: string; aspect: number }
   event: { col: "1 / span 2", row: "55 / span 31", aspect: 1.6 },
   ticket: { col: "3 / span 2", row: "55 / span 18", aspect: 2.75 },
   business: { col: "3 / span 1", row: "74 / span 12", aspect: 2 },
-  buttons: { col: "4 / span 1", row: "74 / span 12", aspect: 2 }
+  buttons: { col: "4 / span 1", row: "74 / span 12", aspect: 2 },
+  /* the headlines under the rest, side by side at 3:2 where both suit the palette (HEADLINE_ALONE where one does) */
+  letters: { col: "1 / span 2", row: "87 / span 33", aspect: 1.5 },
+  mark: { col: "3 / span 2", row: "87 / span 33", aspect: 1.5 }
 };
+/** A headline alone under the rest: the stage's width at 12:5, as Headline.tsx lays a wide tile's words. */
+const HEADLINE_ALONE = { col: "1 / span 4", row: "87 / span 42", aspect: 1.5 };
 
 const NAMES: Readonly<Record<Kind, string>> = {
   poster: msg("Poster"),
@@ -90,7 +98,9 @@ const NAMES: Readonly<Record<Kind, string>> = {
   member: msg("Membership card"),
   icon: msg("App icon"),
   business: msg("Business card"),
-  buttons: msg("Buttons")
+  buttons: msg("Buttons"),
+  letters: msg("Headline"),
+  mark: msg("Highlighted headline")
 };
 
 /** The day every card names, the same on the server and in the browser. */
@@ -168,6 +178,8 @@ function Tile(props: {
   other?: boolean;
   open: Kind | null;
   onOpen: (kind: Kind) => void;
+  /** where it stands, where not where its kind stands (PLACES) */
+  place?: { col: string; row: string; aspect: number };
   children: (lit: () => boolean) => Element;
 }) {
   const [lit, setLit] = createSignal(false);
@@ -186,7 +198,7 @@ function Tile(props: {
     toast(message);
     return false;
   };
-  const place = PLACES[props.kind];
+  const place = () => props.place ?? PLACES[props.kind];
   const content = untrack(() => props.children(lit));
   return (
     /* biome-ignore lint/a11y/useSemanticElements: a picture and its strip, named for a reader who listens; a fieldset
@@ -199,7 +211,7 @@ function Tile(props: {
       aria-label={
         props.other ? `${t(NAMES[props.kind])}, ${formWords(props.s)}` : t(NAMES[props.kind])
       }
-      style={{ "--col": place.col, "--row": place.row, "--aspect": String(place.aspect) }}
+      style={{ "--col": place().col, "--row": place().row, "--aspect": String(place().aspect) }}
       onPointerEnter={() => setLit(true)}
       onPointerLeave={() => setLit(false)}
       onFocusIn={() => setLit(true)}
@@ -590,7 +602,9 @@ const TILES: Readonly<Record<Kind, (props: TileProps) => Element>> = {
   member: Member,
   icon: AppIcon,
   business: Business,
-  buttons: Buttons
+  buttons: Buttons,
+  letters: p => <HeadlineTile kind="letters" s={p.s} lit={p.lit} />,
+  mark: p => <HeadlineTile kind="mark" s={p.s} lit={p.lit} />
 };
 const ORDER: readonly Kind[] = [
   "poster",
@@ -653,25 +667,37 @@ export function CardsExample(props: ExampleProps) {
     >
       <div class={styles.wrap}>
         <div class={styles.grid}>
-          {ORDER.map(kind => {
-            const Shape = TILES[kind];
-            /* the palette as this tile shows it: the address's form, or another the tile shows off */
-            const shown = () => {
-              const form = formsOf(props.s)[kind];
-              return form ? solidBlob(inForm(props.s, form)) : s();
-            };
-            return (
-              <Tile
-                kind={kind}
-                s={shown()}
-                other={formsOf(props.s)[kind] !== undefined}
-                open={open()}
-                onOpen={k => setOpen(open() === k ? null : k)}
-              >
-                {lit => <Shape s={shown()} lit={lit} theme={paper().theme} press={paper().press} />}
-              </Tile>
-            );
-          })}
+          <For each={[...ORDER, ...headlinesOf(props.s)]}>
+            {kind => {
+              const Shape = TILES[kind];
+              const headline = kind === "letters" || kind === "mark";
+              /* the palette as this tile shows it: the address's form, or another the tile shows off; a headline
+                 draws it as it works there, a blob's letters on a ground of their own */
+              const shown = () => {
+                if (headline) return props.s;
+                const form = formsOf(props.s)[kind];
+                return form ? solidBlob(inForm(props.s, form)) : s();
+              };
+              const other = () =>
+                headline
+                  ? headlineShown(kind, props.s) !== props.s
+                  : formsOf(props.s)[kind] !== undefined;
+              return (
+                <Tile
+                  kind={kind}
+                  s={headline ? headlineShown(kind, props.s) : shown()}
+                  other={other()}
+                  open={open()}
+                  onOpen={k => setOpen(open() === k ? null : k)}
+                  place={headline && headlinesOf(props.s).length === 1 ? HEADLINE_ALONE : undefined}
+                >
+                  {lit => (
+                    <Shape s={shown()} lit={lit} theme={paper().theme} press={paper().press} />
+                  )}
+                </Tile>
+              );
+            }}
+          </For>
         </div>
       </div>
     </Example>

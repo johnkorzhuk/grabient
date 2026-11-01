@@ -12,9 +12,8 @@ import { tooltip } from "./Tooltip.tsx";
     it, the surface comes up and the bar fills, at the same height, so nothing on the page moves. The app form (lists,
     editor) has a nearly opaque surface, the bar filled with the palette in view, and the dashed rule beneath. The
     surface is a layer behind the bar: a blur on the header itself would keep its menus' own blur inside it. Over a
-    page that opens on a picture of its own (`clear`), the app form has no surface and no rule until the page scrolls,
-    and the wordmark and the corner's presses stand bare on the picture, each in the theme whose ink reads best where
-    it stands (`tone`, and the presses' own), the presses as glyphs with no fill of their own. */
+    page that opens on a picture of its own (`clear`), the app form's surface is frosted and it has no rule until the
+    page scrolls, so the picture shows through it and the bar reads the same on every picture. */
 export function Header(props: {
   stops: readonly string[];
   /** the brand form */
@@ -29,8 +28,6 @@ export function Header(props: {
   rule?: boolean;
   /** the page's own picture is under the header, which the page has not scrolled from */
   clear?: boolean;
-  /** over that picture, the theme the wordmark's side stands in; the corner's presses take their own */
-  tone?: { start: "light" | "dark" } | null;
   barRef?: (el: SVGRectElement) => void;
   /** where the wordmark leads and what it says it leads to; the site's lists by default */
   home?: { href: string; label: string };
@@ -47,18 +44,13 @@ export function Header(props: {
     <header class={styles.header}>
       <span
         class={styles.surface}
-        data-on={(!props.brand && !props.clear) || props.scrolled ? "" : undefined}
+        data-on={!props.brand || props.scrolled ? "" : undefined}
+        data-frost={props.clear ? "" : undefined}
         aria-hidden="true"
       />
       <div class={styles.bar} data-brand={props.brand ? "" : undefined}>
         {/* data-home: the way home, which the app opens with the reader's view */}
-        <a
-          class={styles.home}
-          href={props.home?.href ?? "/"}
-          data-home=""
-          data-theme={props.clear ? props.tone?.start : undefined}
-          aria-label={home()}
-        >
+        <a class={styles.home} href={props.home?.href ?? "/"} data-home="" aria-label={home()}>
           <span class={styles.logo} data-motion-keep={props.moves ? "" : undefined}>
             <Logo
               stops={props.stops}
@@ -68,11 +60,7 @@ export function Header(props: {
           </span>
         </a>
         {/* read aloud as it changes, so it stands empty while there is nothing to say */}
-        <span
-          class={styles.status}
-          data-theme={props.clear ? props.tone?.start : undefined}
-          role="status"
-        >
+        <span class={styles.status} role="status">
           <Show when={props.status}>
             {words => (
               <span class={styles.mark} ref={tooltip(() => words())}>
@@ -86,9 +74,7 @@ export function Header(props: {
             )}
           </Show>
         </span>
-        <div class={styles.corner} data-clear={props.clear ? "" : undefined}>
-          {props.children}
-        </div>
+        <div class={styles.corner}>{props.children}</div>
       </div>
       <div
         class={styles.rule}

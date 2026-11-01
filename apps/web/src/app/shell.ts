@@ -1,5 +1,4 @@
 import type { Binding } from "@grabient/ui/keys.ts";
-import { color } from "@grabient/ui/tokens.ts";
 import type { StaticDataRouteOption } from "@tanstack/solid-router";
 import { type Component, createContext } from "solid-js";
 import type { Drawn } from "../lib/palette.ts";
@@ -39,23 +38,6 @@ declare module "@tanstack/solid-router" {
   }
 }
 
-/** The themes a clear page's header stands in over its picture: the wordmark's side and the corner's. */
-export interface HeaderTone {
-  /** the wordmark's side */
-  start: "light" | "dark";
-  /** the theme press's and the account press's, each where it stands, and each where it stands on a phone, whose
-      picture is tall and whose corner stands further in */
-  toggle: "light" | "dark";
-  toggleNarrow: "light" | "dark";
-  account: "light" | "dark";
-  accountNarrow: "light" | "dark";
-}
-
-/** A press's ink on a phone, where the header stands clear over a picture: its tone's theme ink (tokens.ts), as the
-    custom property the header's phone rule reads. */
-export const narrowInk = (tone: "light" | "dark" | undefined) =>
-  tone ? { "--narrow-ink": color[tone].ink } : undefined;
-
 /** What a route's loader returns for the frame, beside whatever else it returns. */
 export interface FramedData {
   /** the palettes the page opens on, at most eight read: the bar cycles through them and the water carries them */
@@ -63,9 +45,6 @@ export interface FramedData {
   /** the languages besides English a collection's page reads in, where its translation is of the English it has now:
       the language menu lets a crawler follow those */
   languages?: readonly string[];
-  /** a clear page's picture under the header: the theme each side of the header reads in there, or null where one side
-      reads in neither, and the header is frosted */
-  tone?: HeaderTone | null;
 }
 
 /** The page on screen as the frame reads it from the router's matches: its route's options and the palettes its
@@ -85,8 +64,7 @@ export function pageFrom(
     lost,
     options: leaf?.staticData ?? {},
     painted: data?.paint ?? [],
-    languages: data?.languages,
-    tone: data?.tone ?? null
+    languages: data?.languages
   };
 }
 
@@ -97,9 +75,6 @@ export interface Shell {
   /** The page's own keys while the calling component is mounted, listed by ? beside the shared ones. A binding with
       the id of a shared one (undo, copyUrl) stands in for it while it applies. */
   keys(bindings: () => readonly Binding[]): void;
-  /** A clear page's header tone while the calling component is mounted, over its loader's: the picture under the
-      header changed as the reader works. */
-  tone(tone: () => HeaderTone | null): void;
   /** This page's address without its language, as the language menu offers it in every language. */
   here(): string;
   /** The languages besides English a collection's page reads in, which its loader read: the menu follows those. */

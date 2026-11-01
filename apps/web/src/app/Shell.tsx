@@ -41,8 +41,8 @@ import { createSiteKeys } from "./keys.ts";
 import { pageInEveryLanguage } from "./language.ts";
 import { watchNavigation } from "./navigation.ts";
 import styles from "./Shell.module.css";
-import type { HeaderTone, Shell as ShellApi } from "./shell.ts";
-import { narrowInk, pageFrom, ShellContext } from "./shell.ts";
+import type { Shell as ShellApi } from "./shell.ts";
+import { pageFrom, ShellContext } from "./shell.ts";
 import { Toast } from "./Toast.tsx";
 import { walkSelection } from "./undo.ts";
 import { createWater } from "./water.ts";
@@ -75,7 +75,6 @@ export function Shell() {
   /* what the page hands in while it is mounted: its palettes over its loader's, and its keys */
   const [handed, setHanded] = createSignal<(() => readonly Drawn[] | null) | null>(null);
   const [own, setOwn] = createSignal<(() => readonly Binding[]) | null>(null);
-  const [toned, setToned] = createSignal<(() => HeaderTone | null) | null>(null);
   const drawn = createMemo((): readonly Drawn[] => handed()?.() ?? page().painted);
   const palettes = createMemo(() => drawn().slice(0, PAINTED).map(hexesOf));
   const water = createWater({ palettes, brand });
@@ -93,12 +92,6 @@ export function Shell() {
       onSettled(() => {
         setOwn(() => bindings);
         return () => setOwn(now => (now === bindings ? null : now));
-      });
-    },
-    tone(source) {
-      onSettled(() => {
-        setToned(() => source);
-        return () => setToned(now => (now === source ? null : now));
       });
     },
     here: () => pageInEveryLanguage(location().pathname + location().searchStr, !page().lost),
@@ -161,13 +154,8 @@ export function Shell() {
     };
   });
 
-  /* a clear page's header over its picture until the page scrolls, in the tone the page or its loader read there */
+  /* a clear page's header, frosted over its picture until the page scrolls */
   const clear = () => !!page().options.clear && !scrolled();
-  const tone = (): HeaderTone | null => {
-    const handedTone = toned();
-    return handedTone ? handedTone() : page().tone;
-  };
-  const sideTone = (part: keyof HeaderTone) => (clear() ? tone()?.[part] : undefined);
 
   /* where the wordmark leads: the home in the reader's view, or with no connection a signed-in reader's Saved palettes */
   const home = () =>
@@ -202,7 +190,6 @@ export function Shell() {
               brand={brand()}
               scrolled={scrolled()}
               clear={clear()}
-              tone={clear() ? tone() : null}
               lit={!!water.lit()}
               moves={!!page().options.moving}
               rule
@@ -221,13 +208,7 @@ export function Shell() {
                   {corner => <Dynamic component={corner()} />}
                 </Show>
                 {/* the theme button's place, where a key's change of theme arrives from */}
-                <span
-                  class={styles.spot}
-                  data-theme={sideTone("toggle")}
-                  data-narrow-ink={sideTone("toggleNarrow")}
-                  style={narrowInk(sideTone("toggleNarrow"))}
-                  ref={el => setThemeOrigin(() => el)}
-                >
+                <span class={styles.spot} ref={el => setThemeOrigin(() => el)}>
                   <Button
                     icon
                     size="lg"
@@ -239,11 +220,7 @@ export function Shell() {
                   </Button>
                 </span>
                 <Show when={frame() !== "sheet"}>
-                  <AccountMenu
-                    path={shell.here}
-                    tone={sideTone("account")}
-                    narrowTone={sideTone("accountNarrow")}
-                  />
+                  <AccountMenu path={shell.here} />
                 </Show>
               </div>
             </Header>

@@ -24,13 +24,12 @@ import { CardsExample, cardsFits } from "./Cards.tsx";
 import { ChartExample, chartFits } from "./Chart.tsx";
 import type { ExampleProps } from "./Example.tsx";
 import styles from "./ExamplesPage.module.css";
-import { HeadlineExample, headlineFits } from "./Headline.tsx";
 import { ProfileExample, profileFits } from "./Profile.tsx";
 import type { Shown } from "./paint.ts";
 import { SwatchesExample, swatchesFits } from "./Swatches.tsx";
 import { drawnWords, gradientOf, stopsOf, takenOf } from "./shared.ts";
 import { createExamplesState, examplesBindings } from "./state.ts";
-import { headerTone, wordsTone } from "./tone.ts";
+import { wordsTone } from "./tone.ts";
 import { WallpapersExample, wallpapersFits } from "./Wallpapers.tsx";
 
 /* A palette's examples (routes/$id/examples.tsx), the same page whatever style its address names, each example
@@ -44,7 +43,6 @@ import { WallpapersExample, wallpapersFits } from "./Wallpapers.tsx";
 /** The examples in their order, each with the check of whether the palette suits it (fit.ts): the page shows the ones
     it suits, numbered as they stand, and the keys that turn the palette may bring one in or take one out. */
 const SECTIONS: readonly { fits: (s: Shown) => boolean; example: Component<ExampleProps> }[] = [
-  { fits: headlineFits, example: HeadlineExample },
   { fits: cardsFits, example: CardsExample },
   { fits: profileFits, example: ProfileExample },
   { fits: chartFits, example: ChartExample },
@@ -78,7 +76,6 @@ export function ExamplesPage(props: { seed: string; view: View; effect: Effect |
   shell?.paint(() => [
     { seed: s().seed, style: s().view.style, steps: s().view.steps, angle: s().view.angle }
   ]);
-  shell?.tone(() => headerTone(s()));
   return (
     <AppPage>
       <main id="main" class={styles.page}>

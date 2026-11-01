@@ -12,8 +12,7 @@ import { drawnSearch } from "../../lib/route.ts";
    the blob's), each with the code that does it. Its address is the palette's own plus /examples, with the palette's
    view and effect in the query, as the palette's page takes them. The whole page is drawn on the server; an effect's
    first frame is in its first paint (server/glass-still.ts, blob-still.ts) and its players take over in the browser.
-   Its hero runs under the header to the window's top, and the header stands over it in the theme that reads on the
-   hero's colors there (features/examples/tone.ts, loaded with the page, so no other page carries it). */
+   Its hero runs under the header to the window's top, the header frosted over it until the page scrolls. */
 export const Route = createFileRoute("/$id/examples")({
   loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
   loader: async ({ params, deps }) => {
@@ -24,14 +23,12 @@ export const Route = createFileRoute("/$id/examples")({
       view: page.view,
       effect: page.effect ?? null
     };
-    const { headerTone } = await import("../../features/examples/tone.ts");
     return {
       ...examples,
       /* the frame's bar wears the palette */
       paint: [
         { seed: page.seed, style: page.view.style, steps: page.view.steps, angle: page.view.angle }
-      ],
-      tone: headerTone({ ...examples, palette: page.palette })
+      ]
     };
   },
   headers: () => PAGE,
