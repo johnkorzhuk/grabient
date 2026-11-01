@@ -136,10 +136,7 @@ export function EffectArt(props: {
   createEffect(
     () => props.kind,
     kind => {
-      let gone = false;
-      const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200));
-      idle(() => {
-        if (gone) return;
+      const ready = () => {
         void players[kind]().catch(() => {});
         /* one card of a list makes it, the others reading no layout for it; a card the layout hides has no size to
            make one at, and a reader who asks for less motion, whose cards never play, gets none */
@@ -152,10 +149,13 @@ export function EffectArt(props: {
             { ...untrack(view), speed: 0 },
             box
           ).catch(() => {});
-      });
-      return () => {
-        gone = true;
       };
+      if (typeof requestIdleCallback === "function") {
+        const id = requestIdleCallback(ready);
+        return () => cancelIdleCallback(id);
+      }
+      const timer = setTimeout(ready, 200);
+      return () => clearTimeout(timer);
     }
   );
   const moving = () => props.active && props.settings.speed > 0 && !holdsStill();
