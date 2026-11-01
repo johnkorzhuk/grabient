@@ -2,7 +2,7 @@ import { type Axis, canonical, decodePalette, encodePalette, type Palette } from
 import { hexToSrgb, lchToP3, lchToSrgb, toCssP3, toHex } from "@grabient/engine/color.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { addKeyframe, anchorHueWalls, type Lock, removeKeyframes } from "@grabient/engine/edits.ts";
-import type { EffectKind } from "@grabient/engine/effect.ts";
+import type { Effect, EffectKind } from "@grabient/engine/effect.ts";
 import { clamp } from "@grabient/engine/math.ts";
 import { hexAnchor } from "@grabient/engine/spec.ts";
 import {
@@ -28,7 +28,13 @@ import {
   undo as undoPage,
   walkEdits
 } from "../../app/undo.ts";
-import { type ListView, rememberedView, rememberView } from "../list/appearance.ts";
+import {
+  type ListView,
+  readListView,
+  rememberedNow,
+  rememberView,
+  viewParams
+} from "../list/appearance.ts";
 import { type Locks, type Opened, SEED_SHAPE, type SeedPage } from "./address.ts";
 import { createEdits, type EditsSnapshot } from "./edits.ts";
 import { createEffects } from "./effects.ts";
@@ -292,7 +298,7 @@ export function createPaletteEditor(
     setOpened(o => ({ ...o, set: { ...o.set, [part]: true } }));
   };
   const remember = (patch: Partial<ListView>) => {
-    if (!own) rememberView({ ...rememberedView(), ...patch });
+    if (!own) rememberView({ ...rememberedNow(), ...patch });
   };
   /* when a press last turned the palette into another at once (Random, Reverse, Invert, an undo or a redo), for the
      page to say what it became */
@@ -491,9 +497,11 @@ export function createPaletteEditor(
         ) as Opened["set"]
       }));
       if (was.chosen)
-        remember(
-          Object.fromEntries(all.map(part => [part, was.chosen?.[part]])) as Partial<ListView>
-        );
+        remember({
+          ...Object.fromEntries(all.map(part => [part, was.chosen?.[part]])),
+          /* and the effect the tab had: one picked here would otherwise stay the lists' after the page let it go */
+          ...(parts.length ? {} : { effect: was.chosen.effect ?? null })
+        } as Partial<ListView>);
     },
     /** The size is the reader's for the tab too: the palette opened next stands at it. */
     setSize(next: SizeChoice | null) {
@@ -560,6 +568,15 @@ const within =
     typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 const isSteps = within(STEPS_MIN, STEPS_MAX);
 const isAngle = within(0, 360);
+/* an effect as the tab remembers one, read back as a list's address reads it; none where it reads as no effect */
+const effectChoice = (value: unknown): Effect | null | undefined => {
+  if (value === null) return null;
+  try {
+    return readListView(viewParams({ effect: value as Effect })).effect ?? undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 /** What a page opened with: the record its entry kept or a card handed it, where it reads as one, else the address's
     own view. Stored browser data is untrusted: a view no address could carry is no record. */
@@ -591,11 +608,13 @@ function openedOf(page: SeedPage, kept: unknown): Opened {
       };
   /* What the tab remembered as the page opened. A part a card handed over as set came from the tab's own memory, so
      letting it go here leaves the tab with no choice of it. */
-  const tab = untrack(rememberedView);
+  const tab = rememberedNow();
+  const effect = effectChoice(k?.chosen?.effect);
   const chosen = {
     style: choice(k?.chosen?.style, isStyle) ?? (base.set.style ? "auto" : tab.style),
     steps: choice(k?.chosen?.steps, isSteps) ?? (base.set.steps ? "auto" : tab.steps),
-    angle: choice(k?.chosen?.angle, isAngle) ?? (base.set.angle ? "auto" : tab.angle)
+    angle: choice(k?.chosen?.angle, isAngle) ?? (base.set.angle ? "auto" : tab.angle),
+    effect: effect === undefined ? tab.effect : effect
   };
   /* a view that is no longer what the page opened with was chosen since, here or on a page since */
   return {

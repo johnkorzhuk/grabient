@@ -207,6 +207,8 @@ let opened: ListView | null = null;
 
 /** The reader's view, as this tab remembers it. */
 export const rememberedView = remembered;
+/** The same, plain: what a change to one part merges into, which a second change in the same task must see. */
+export const rememberedNow = (): ListView => kept;
 
 /** Reads the tab's memory once the page is live. A document that opened on a list takes that list's view over the
     one kept, As saved included: its address is what the reader sees. */

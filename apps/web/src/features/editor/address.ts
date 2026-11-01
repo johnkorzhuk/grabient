@@ -147,13 +147,18 @@ export function canonicalSeedAddress(address: string): string | null {
 
 /** What a page opened with, kept in its history entry: the palette's view then, which of its parts the reader has set
     since (As saved in the header's corner reads it, and a set part goes for every palette the page draws), and what
-    the tab remembered for each then, which a part let go gives back to it. */
+    the tab remembered for each then, which a part let go gives back to it, and the effect, which Reset gives back. */
 export interface Opened {
   style: Style;
   steps: number;
   angle: number;
   set: { style: boolean; steps: boolean; angle: boolean };
-  chosen?: { style: StyleChoice; steps: number | "auto"; angle: number | "auto" };
+  chosen?: {
+    style: StyleChoice;
+    steps: number | "auto";
+    angle: number | "auto";
+    effect?: Effect | null;
+  };
 }
 
 /** What a card hands the editor as it opens a palette in place, the new entry's state (`navigate({ href, state })`):
