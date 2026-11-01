@@ -43,6 +43,8 @@ export interface ButtonProps {
   /** the words that say what a press does now */
   "aria-describedby"?: string;
   "aria-expanded"?: boolean;
+  /** what a press shows or hides: a folded part's id */
+  "aria-controls"?: string;
   /** what a press opens: a menu button's list */
   "aria-haspopup"?: "menu" | "listbox" | "dialog";
   "aria-pressed"?: boolean;
@@ -112,6 +114,7 @@ export function Button(props: ButtonProps) {
         aria-describedby={props["aria-describedby"]}
         aria-disabled={props.disabled && props.keep ? "true" : undefined}
         aria-expanded={pseudo(props["aria-expanded"])}
+        aria-controls={props["aria-controls"]}
         aria-haspopup={props["aria-haspopup"]}
         aria-pressed={pseudo(props["aria-pressed"])}
         onClick={e => {

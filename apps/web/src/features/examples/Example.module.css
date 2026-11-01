@@ -56,6 +56,25 @@
     font-size: var(--font-fs2);
     line-height: var(--font-lh-ui);
   }
+  /* the code's place: no box of its own, so a folded code leaves no gap under the caption */
+  .code {
+    display: contents;
+  }
+  /* the press that unfolds the code, at the line's end; its chevron turns up while the code shows */
+  .codePress {
+    margin-inline-start: auto;
+    & svg:last-child {
+      transition: rotate var(--motion-fast) var(--motion-ease);
+    }
+    &[data-open] svg:last-child {
+      rotate: 180deg;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      & svg:last-child {
+        transition: none;
+      }
+    }
+  }
   /* the tag and the chips beside it: one shape, the facts' digits in the system face, each set apart */
   .drawn,
   .chip {

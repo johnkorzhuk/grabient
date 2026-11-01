@@ -1,7 +1,9 @@
 import { formatNumber, t } from "@grabient/i18n";
+import { Button } from "@grabient/ui/Button.tsx";
 import { type CodeTab, CodeTabs } from "@grabient/ui/CodeTabs.tsx";
+import { Icon } from "@grabient/ui/Icon.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
-import { children, createUniqueId, type Element, Show } from "solid-js";
+import { children, createSignal, createUniqueId, type Element, Show } from "solid-js";
 import styles from "./Example.module.css";
 import type { Shown } from "./paint.ts";
 import { levelWords } from "./shared.ts";
@@ -78,6 +80,9 @@ export function Example(props: {
   const heading = createUniqueId();
   /* resolved once: each read of an element prop would build it again, and the browser's copy would miss the server's */
   const notes = children(() => props.notes);
+  /* the code stays folded under its press until it is asked for, so the page shows the palette first */
+  const [open, setOpen] = createSignal(false);
+  const codeId = createUniqueId();
   return (
     <section id={props.id} class={styles.section} aria-labelledby={heading}>
       <div class={styles.head}>
@@ -95,11 +100,28 @@ export function Example(props: {
             {props.drawn}
           </span>
           {notes()}
+          <Show when={props.code?.length}>
+            <span class={styles.codePress} data-open={open() ? "" : undefined}>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-expanded={open()}
+                aria-controls={codeId}
+                onClick={() => setOpen(!open())}
+              >
+                <Icon name="codeXml" size={14} />
+                {t("Code", { $context: "examples" })}
+                <Icon name="chevron" size={14} />
+              </Button>
+            </span>
+          </Show>
         </figcaption>
       </figure>
-      <Show when={props.code?.length ? props.code : undefined}>
-        {code => <CodeTabs tabs={code()} aria-label={props.codeLabel ?? ""} />}
-      </Show>
+      <div id={codeId} class={styles.code}>
+        <Show when={open() && props.code?.length ? props.code : undefined}>
+          {code => <CodeTabs tabs={code()} aria-label={props.codeLabel ?? ""} />}
+        </Show>
+      </div>
     </section>
   );
 }
