@@ -31,10 +31,9 @@ interface Session {
 
 /* the players are the browser's alone: the server's build carries neither */
 /* Players let go, kept for the next card: a player's WebGL context and programs cost about a tenth of a second on the
-   page's thread, which every hover paid. One let go waits here, its loop stopped, its canvas left where it was or off
-   the page, and the next card of its size lit takes it: on to its own picture, back to the first frame, which is that
-   card's still, with that card's palette and view. Two of each kind at most, for a glass fading out as the next card
-   lights. */
+   page's thread, which every hover paid. One let go waits here, its loop stopped, its canvas off the page, and the next
+   card of its size lit takes it: on to its own picture, back to the first frame, which is that card's still, with that
+   card's palette and view. Two of each kind at most, for a glass fading out as the next card lights. */
 const POOL = 2;
 const pool: Record<EffectKind, Session[]> = { glass: [], blob: [] };
 /** A player kept for a box this size in device pixels, or one made ahead, taken out of the pool; none where none
@@ -51,14 +50,12 @@ function pooled(kind: EffectKind, width: number, height: number): Session | null
   if (s) s.fresh = false;
   return s;
 }
-/** A player let go: kept for the next card where there is room, its loop stopped; otherwise gone with its context. */
+/** A player let go, its canvas off the page so it never shows under another's frame: kept for the next card where
+    there is room, its loop stopped; otherwise gone with its context. */
 function release(s: Session): void {
-  if (pool[s.kind].length < POOL) {
-    pool[s.kind].push(s);
-    return;
-  }
-  s.player.destroy();
   s.canvas.remove();
+  if (pool[s.kind].length < POOL) pool[s.kind].push(s);
+  else s.player.destroy();
 }
 
 const players = {
@@ -200,20 +197,27 @@ export function EffectArt(props: {
     hold(s);
     release(s);
   };
-  const stop = () => {
+  /* the glass fading out, let go at once */
+  const drop = () => {
+    if (!leaving) return;
+    clearTimeout(leaving.timer);
+    end(leaving);
+    leaving = null;
+  };
+  /* `now`: the picture turned to the other kind, whose still stands in at once */
+  const stop = (now = false) => {
     wanted = false;
     setCovered(false);
     const going = session;
     session = null;
     if (!going) return;
-    if (going.kind === "blob") return end(going);
+    if (now || going.kind === "blob") return end(going);
     /* the glass holds its frame and fades out to its still: two pictures that stand still meet, never a moving one */
     hold(going);
     setFading(true);
     const timer = setTimeout(() => {
       if (leaving?.timer !== timer) return;
-      end(leaving);
-      leaving = null;
+      drop();
       setFading(false);
     }, FADE_MS);
     leaving = { ...going, timer };
@@ -236,6 +240,11 @@ export function EffectArt(props: {
       );
       setCovered(true);
       return;
+    }
+    /* one of the other kind goes at once */
+    if (leaving) {
+      drop();
+      setFading(false);
     }
     if (!sized()) return;
     /* a player kept from another card of this size: on to this one, from this card's first frame */
@@ -295,7 +304,8 @@ export function EffectArt(props: {
   createEffect(
     () => (moving() ? props.kind : null),
     kind => {
-      if (!kind || (session && session.kind !== kind)) stop();
+      if (!kind) stop();
+      else if (session && session.kind !== kind) stop(true);
       if (kind) void start();
     }
   );
@@ -308,12 +318,8 @@ export function EffectArt(props: {
   onCleanup(() => {
     wanted = false;
     if (session) end(session);
-    if (leaving) {
-      clearTimeout(leaving.timer);
-      end(leaving);
-    }
     session = null;
-    leaving = null;
+    drop();
   });
   return (
     <span
