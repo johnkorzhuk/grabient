@@ -43,7 +43,7 @@ import { onAccountChange } from "../account/state.ts";
 import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
-import { AppearanceContext, createGlassWake, inView } from "../list/appearance.ts";
+import { AppearanceContext, createGlassWake, effectsReady, inView } from "../list/appearance.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -147,11 +147,14 @@ export function Palettes(props: { place: ListPlace }) {
     const at = likes;
     if (!from || !of) return;
     reading = of;
-    void readPage(client, from, page, fresh).then(read => {
-      if (of !== ownKey()) return;
-      if (at !== likes) readOwn(asked, true);
-      else setOwn({ of, page: read });
-    });
+    /* the cards land with the code they play the list's effect with, so none stands empty */
+    void Promise.all([readPage(client, from, page, fresh), effectsReady(params())]).then(
+      ([read]) => {
+        if (of !== ownKey()) return;
+        if (at !== likes) readOwn(asked, true);
+        else setOwn({ of, page: read });
+      }
+    );
   };
   const asked = () => ({ of: ownKey(), from: source(), page: params().page });
   if (saved) {

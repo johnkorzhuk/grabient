@@ -47,7 +47,7 @@ import { minuteOf, relativeAge } from "../gallery/drawing.ts";
 import { createFeed, joinNext } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
-import { createGlassWake } from "../list/appearance.ts";
+import { createGlassWake, effectsReady } from "../list/appearance.ts";
 import { searchedHere } from "../search/count.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -127,8 +127,9 @@ export function CollectionsPage(props: {
     const id = JSON.stringify(asked);
     const query = ownQuery(asked.who, asked.key);
     const read = fresh ? client.fetchQuery({ ...query, staleTime: 0 }) : client.fetchQuery(query);
-    return read.then(
-      page => setOwn({ id, page }),
+    /* the cards land with the code they play the list's effect with, so none stands empty */
+    return Promise.all([read, effectsReady(untrack(place).view)]).then(
+      ([page]) => setOwn({ id, page }),
       () => {}
     );
   };

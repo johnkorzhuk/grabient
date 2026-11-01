@@ -57,7 +57,7 @@ import {
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { accountView, onAccountChange, syncStatus } from "../account/state.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
-import { drawnIn, type ListView } from "../list/appearance.ts";
+import { drawnIn, effectsReady, type ListView } from "../list/appearance.ts";
 import { useCollectionSeen } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import { selection } from "../selection/selection.ts";
@@ -209,12 +209,14 @@ export function CollectionPage(props: {
       const keep = (part: Viewer) => {
         if (live) setRead(now => ({ ...(now.by === by ? now : {}), by, ...part }));
       };
-      readState(who, slug).then(
-        state => keep({ state }),
+      /* what the account reads lands with the code its cards play the page's effect with, so none stands empty */
+      const ready = effectsReady(untrack(() => props.view));
+      Promise.all([readState(who, slug), ready]).then(
+        ([state]) => keep({ state }),
         () => keep({ state: null })
       );
-      void untrack(() => ownCollectionDoc(slug)).then(
-        copy => keep({ copy: copy ?? null }),
+      void Promise.all([untrack(() => ownCollectionDoc(slug)), ready]).then(
+        ([copy]) => keep({ copy: copy ?? null }),
         () => keep({ copy: null })
       );
       return () => {
