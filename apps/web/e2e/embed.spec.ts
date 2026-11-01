@@ -165,8 +165,8 @@ test("the glass's still goes once its canvas has faded in over it, and comes bac
   await expect(page.locator("canvas")).toHaveCSS("opacity", "1");
   expect(await still(page)).toBe("none");
   await page.evaluate(() =>
-    (window as unknown as { gl: WebGL2RenderingContext })
-      .gl.getExtension("WEBGL_lose_context")
+    (window as unknown as { gl: WebGL2RenderingContext }).gl
+      .getExtension("WEBGL_lose_context")
       ?.loseContext()
   );
   await expect(html).not.toHaveAttribute("data-grabient-playing");
