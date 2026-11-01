@@ -1,4 +1,4 @@
-import { createSignal, createUniqueId, For, Show, untrack } from "solid-js";
+import { createSignal, createUniqueId, For, flush, Show, untrack } from "solid-js";
 import block from "./CodeBlock.module.css";
 import { CodeLines, selectText } from "./CodeBlock.tsx";
 import { CopyButton } from "./CopyButton.tsx";
@@ -45,7 +45,14 @@ export function PaletteCode(props: {
     const { id, spellings: offered = [], initial } = source();
     return [spellings()[id], initial].find(s => offered.some(o => o.id === s)) ?? offered[0]?.id;
   };
-  const text = () => source().text(spelling());
+  /* a copy the browser refused leaves the code selected for a copy by hand; where Copy took more than is shown (an
+     effect's first frame written whole), the text it took is shown in its place first, until the shown text changes */
+  const [refused, setRefused] = createSignal<{ shown: string; taken: string } | null>(null);
+  const text = () => {
+    const shown = source().text(spelling());
+    const kept = refused();
+    return kept?.shown === shown ? kept.taken : shown;
+  };
   const take = () => {
     const { take } = source();
     const spelled = spelling();
@@ -113,7 +120,14 @@ export function PaletteCode(props: {
           aria-label={t("Copy code")}
           compact
           onCopy={value => props.onCopy?.(source().id, value, spelling())}
-          onRefused={() => selectText(code)}
+          onRefused={taken => {
+            const shown = source().text(spelling());
+            if (taken && taken !== shown) {
+              setRefused({ shown, taken });
+              flush();
+            }
+            selectText(code);
+          }}
         />
       </div>
       <Show when={(source().spellings?.length ?? 0) > 1}>

@@ -26,10 +26,11 @@ import { effectHtml, type Taken } from "./formats.ts";
 import type { Rest } from "./rest.ts";
 
 /* The palette as text, in the sheet's code pane: its seed, CSS, colors, shader, JSON, SVG and Markdown. While the
-   picture plays an effect, the pane holds the effect's code in the gradient's place: the tags that play it behind a page,
-   the stylesheet of its first frame, the colors it draws, its settings, its SVG and its Markdown, each the text its
-   address serves and the editor's strip copies (engine/effect-code.ts), and no shader, since the effect's is no one
-   program. Labels and notes are translated; spellings (oklch, hex, GLSL, the tags) are notation and stay as written.
+   picture plays an effect, the pane holds the effect's code in the gradient's place: the tags that play it behind a
+   page, the stylesheet of its first frame, the colors it draws, its settings, its SVG and its Markdown, each the text
+   its address serves and the editor's strip copies (engine/effect-code.ts), and no shader, since the effect's is no
+   one program. Labels and notes are translated; spellings (oklch, hex, GLSL, the tags) are notation and stay as
+   written.
 
    The Markdown is written here by the engine's function the Worker serves the file with, so the tab shows at once and
    an edit asks the server nothing. What only the database knows of a palette (its written words, the collections that
@@ -279,7 +280,12 @@ function effectSources(P: Palette, seed: string, effect: Effect, taken: Taken): 
       text: tags,
       take: spelling =>
         glass && spelling !== "link" ? effectHtml(taken, effect) : Promise.resolve(tags(spelling)),
-      note: () => t("In the page's head")
+      note: spelling => {
+        const note = t("The two tags that play it behind a page, for the page's head.");
+        return glass && spelling !== "link"
+          ? `${note} ${t("Copy includes the whole first frame.")}`
+          : note;
+      }
     },
     {
       id: "css",

@@ -19,8 +19,8 @@ export function CopyButton(props: {
   "aria-label"?: string;
   /** a press happened, before the browser answers */
   onCopy?: (text: string) => void;
-  /** the browser refused: select the text on the page, for a reader to copy by hand */
-  onRefused?: () => void;
+  /** the browser refused: select the text on the page, for a reader to copy by hand, given the text the press took */
+  onRefused?: (text: string) => void;
   /** on a phone the word gives way and the glyph stays */
   compact?: boolean;
   /** a specimen's state, held: Copied */
@@ -36,7 +36,7 @@ export function CopyButton(props: {
       mark(true);
       announce(t("Copied"));
     } else if (props.onRefused) {
-      props.onRefused();
+      props.onRefused(text);
       announce(t("Couldn't copy. The code is selected."));
     } else announce(t("Couldn't copy. Select the text and copy it."));
   };

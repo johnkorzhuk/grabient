@@ -829,6 +829,29 @@ test("while the glass plays, the code pane holds its code: its tags, its stylesh
   await expect(code).toContainText("- Drawn as: fluted glass, its ribs at 45 degrees");
 });
 
+test("a copy of the glass's tags the browser refuses selects them whole, its first frame written out", async ({
+  page
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: () => Promise.reject(new Error("refused")) }
+    });
+    document.execCommand = () => false;
+  });
+  await open(page, `/${SEED}?style=glass`);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await tabs.getByRole("tab", { name: "HTML" }).click();
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  await expect(code).toContainText("base64,…");
+  await page.getByRole("button", { name: "Copy code" }).click();
+  await expect(code).toContainText(/data:image\/webp;base64,[A-Za-z0-9+/]{1000}/);
+  await expect(code).not.toContainText("base64,…");
+  expect(await page.evaluate(() => getSelection()?.toString() ?? "")).toMatch(
+    /^<style>[\s\S]*data:image\/webp;base64,[A-Za-z0-9+/=]+"[\s\S]*<\/script>$/
+  );
+});
+
 test("Text contrast sets a sample too low for text only in the cell its line says, under the pointer or the keyboard", async ({
   page
 }) => {
