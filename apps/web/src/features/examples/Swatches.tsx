@@ -345,7 +345,7 @@ export function SwatchesExample(props: ExampleProps) {
                       fallback={
                         <>
                           <Show when={count() <= MANY}>
-                            <span class={styles.index}>{i + 1}</span>
+                            <span class={styles.index} data-drawn={i + 1} />
                           </Show>
                           <span class={styles.hex}>
                             {done() ? <Icon name="check" size={12} /> : k().stop.hex}
@@ -356,9 +356,9 @@ export function SwatchesExample(props: ExampleProps) {
                       <span class={styles.hex}>
                         {done() ? <Icon name="check" size={16} /> : k().stop.hex}
                       </span>
-                      <span class={styles.samples} aria-hidden="true">
-                        <span style={{ color: WHITE }}>{sample()}</span>
-                        <span style={{ color: BLACK }}>{sample()}</span>
+                      <span class={styles.samples}>
+                        <span data-drawn={sample()} style={{ color: WHITE }} />
+                        <span data-drawn={sample()} style={{ color: BLACK }} />
                       </span>
                     </Show>
                   </button>

@@ -196,6 +196,11 @@
     font-size: var(--font-fs0);
     line-height: var(--font-lh-none);
   }
+  /* the index and the samples are drawn by the stylesheet: the press is named by its hex, and one sample is meant not to
+     read, a picture of the contrast rather than words to check */
+  .color [data-drawn]::before {
+    content: attr(data-drawn);
+  }
   /* "Aa" in white and in black, at a heading's size: where a script's two letters are wider than a narrow chip, the
      black sample goes under the white */
   .samples {
