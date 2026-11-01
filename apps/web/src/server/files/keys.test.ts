@@ -197,3 +197,21 @@ test("an effect's moving SVG is kept under its pace and size as well as its look
     `/${seed}.svg?angle=45&shape=3&style=blob`
   );
 });
+
+test("a palette's Markdown and JSON are kept under the effect they name, how it plays among the rest", () => {
+  const seed = "kS7Q8Yy5S_SChv0";
+  for (const format of ["md", "json"]) {
+    expect(written(`/${seed}.${format}?style=glass&speed=2&shape=12&junk=1`)).toEqual({
+      key: `/${seed}.${format}?shape=12&speed=2&style=glass`,
+      acrossBuilds: false
+    });
+    expect(written(`/${seed}.${format}?style=blob&bg=%23101014`)?.key).toBe(
+      `/${seed}.${format}?bg=%23101014&style=blob`
+    );
+    expect(written(`/${seed}.${format}?style=glass`)?.key).not.toBe(
+      written(`/${seed}.${format}`)?.key
+    );
+  }
+  // the swatch files are the palette's colors at any address
+  expect(written(`/${seed}.gpl?style=glass`)?.key).toBe(written(`/${seed}.gpl`)?.key);
+});

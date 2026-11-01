@@ -146,9 +146,10 @@ async function paletteFile(
         colorNames(env),
         texts(env, [seed]).catch(() => [])
       ]);
-      return Response.json(paletteJson(seed, origin, view, names, writtenWords(text, palette)), {
-        headers: { ...TEXT, ...DATA }
-      });
+      return Response.json(
+        paletteJson(seed, origin, view, names, writtenWords(text, palette), parseEffect(params)),
+        { headers: { ...TEXT, ...DATA } }
+      );
     }
     default: {
       const names = await colorNames(env);

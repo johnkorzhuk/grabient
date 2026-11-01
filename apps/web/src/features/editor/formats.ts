@@ -34,8 +34,8 @@ export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
 /** While an effect plays, Copy also hands over the two tags that play it behind a page (HTML) and the effect as
     Figma's own layers (engine/figma-glass.ts, figma-blob.ts), and Copy link the addresses of its files: the
-    stylesheet of its first frame, its moving SVG, its first frame as PNG, and the script that plays it
-    (server/files/effect-files.ts, embed.ts). */
+    palette's Markdown naming it, the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the
+    script that plays it (server/files/effect-files.ts, embed.ts). */
 export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html", "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
 
@@ -226,7 +226,13 @@ export async function saveFormat(f: Format, p: Taken): Promise<void> {
       new Blob([await effectCss(p, p.effect)], { type: "text/css;charset=utf-8" })
     );
   if (f === "md" || f === "css" || isSwatchFormat(f))
-    return saveFile({ seed: p.seed, ...view(p) }, f);
+    return saveFile(
+      { seed: p.seed, ...view(p) },
+      f,
+      f === "md" && p.effect
+        ? effectFileAddress(origin(), p.seed, p.effect, p.angle, "md")
+        : undefined
+    );
   if (f === "svg")
     return downloadFile(
       `${name}.svg`,
@@ -236,10 +242,10 @@ export async function saveFormat(f: Format, p: Taken): Promise<void> {
 }
 
 /** The address of the palette's file onto the clipboard: while an effect plays, its file's, at the pixels the stage
-    shows once the reader set a size. */
+    shows once the reader set a size, and the Markdown that names it. */
 export const copyLink = async (f: Format, p: Taken) =>
   writeText(
-    p.effect && (f === "css" || f === "js" || f === "svg" || f === "png")
+    p.effect && (f === "md" || f === "css" || f === "js" || f === "svg" || f === "png")
       ? effectFileAddress(
           origin(),
           p.seed,

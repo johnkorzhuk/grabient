@@ -6,6 +6,7 @@ import { contrastOf, luminance } from "./color.ts";
 import { srgbName } from "./colorname.ts";
 import { cssLine, cssWide } from "./css.ts";
 import { sampleStops } from "./curve.ts";
+import { type Effect, effectEmbedHtml, effectLinks, effectSettings } from "./effect.ts";
 import { readingName, seedReading } from "./name.ts";
 import type { Palette } from "./palette.ts";
 import type { Namer } from "./precise-names.ts";
@@ -68,16 +69,26 @@ const BLACK = [0, 0, 0];
 /* a contrast to one place, never rounded up: 4.47 is 4.4, which does not pass at 4.5 */
 const tenths = (ratio: number) => Math.floor(ratio * 10) / 10;
 
+/** The effect an address plays in its palette's files: its settings as the address names them, the tags that play
+    it behind a page, and its own files' addresses. */
+export const effectDocument = (origin: string, seed: string, effect: Effect, angle: number) => ({
+  ...effectSettings(effect, angle),
+  html: effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle),
+  links: effectLinks(origin, seed, effect, angle)
+});
+
 /** A palette's JSON: its document, then its title where one is written for it that its colors bear out and it is
     drawn as it was saved, its name (what its colors call it) and each color's (its precise name where `names` holds
     them, precise-names.ts), its kinds, how its hues relate, the text color that reads on each color with its contrast,
-    and whether a wide-gamut screen shows more of it. English. Null for a seed that is no palette. */
+    and whether a wide-gamut screen shows more of it, and last the effect its address plays, where it plays one.
+    English. Null for a seed that is no palette. */
 export function paletteJson(
   seed: string,
   origin: string,
   input: Partial<View> = {},
   names?: Namer | null,
-  written?: { title: string; view: Partial<View> } | null
+  written?: { title: string; view: Partial<View> } | null,
+  effect?: Effect | null
 ) {
   const P = decodePalette(seed);
   if (!P) return null;
@@ -118,7 +129,8 @@ export function paletteJson(
     p3: cssWide(stops),
     css,
     url,
-    links
+    links,
+    ...(effect ? { effect: effectDocument(origin, seed, effect, angle) } : {})
   };
 }
 export type PaletteJson = NonNullable<ReturnType<typeof paletteJson>>;

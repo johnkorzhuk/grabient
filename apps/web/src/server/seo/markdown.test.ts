@@ -190,6 +190,40 @@ describe("a palette as Markdown", () => {
     expect(await written.text()).toBe(files.written.markdown);
   });
 
+  test("names the effect its address plays, how it plays and the tags that play it, in the CSS's place", async () => {
+    const at = async (query: string) =>
+      (
+        await markdownFile(files.seed, get(`/${files.seed}.md?${query}`), files.origin, reads())
+      ).text();
+    const glass = await at("style=glass&angle=45&shape=12&speed=2");
+    const base = `${files.origin}/${files.seed}`;
+    expect(glass).toMatch(/^# .+ fluted glass\n/);
+    expect(glass).toContain(`- Page: ${base}?style=glass&angle=45&speed=2&shape=12`);
+    expect(glass).toContain(
+      "- Drawn as: fluted glass, its ribs at 45 degrees, shape 12, speed 2, up to 60 frames a second"
+    );
+    expect(glass).toContain(
+      `<link rel="stylesheet" href="${base}.css?style=glass&amp;angle=45&amp;speed=2&amp;shape=12">`
+    );
+    expect(glass).toContain(
+      `<script src="${base}.js?style=glass&amp;angle=45&amp;speed=2&amp;shape=12" async></script>`
+    );
+    // no gradient's code while an effect plays
+    expect(glass).not.toContain("## CSS");
+    expect(glass).not.toContain("linear-gradient");
+    expect(glass).toContain(`- [JSON](${base}.json?style=glass&angle=45&speed=2&shape=12)`);
+    expect(glass).toContain(`- [PNG](${base}.png?style=glass&angle=45&speed=2&shape=12)`);
+    expect(glass).toContain(`- [Script](${base}.js?style=glass&angle=45&speed=2&shape=12)`);
+    expect(glass).toContain(
+      `- [Social card](${files.origin}/api/og?seed=${files.seed}&style=glass&angle=45&shape=12)`
+    );
+    const blob = await at("style=blob&speed=0&bg=%23101014&frost=0.5");
+    expect(blob).toMatch(/^# .+ blob\n/);
+    expect(blob).toContain(
+      "- Drawn as: a blob, the palette across it at 90 degrees, frost 0.5, on #101014, held on its first frame"
+    );
+  });
+
   test("reads its view as its cache key does: a key a crawler copied as amp;steps, and the last of a repeated one", async () => {
     const at = async (query: string) =>
       (

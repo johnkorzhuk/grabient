@@ -201,14 +201,23 @@ export const effectAddressParts = (effect: Effect, angle: number): string[] => [
   ...effectParts(effect)
 ];
 
+/** The parts of an effect's address its first frame depends on: its style, its angle off the default and its look,
+    never how it plays. */
+export const effectStillParts = (effect: Effect, angle: number): string[] => [
+  `style=${effect.kind}`,
+  ...(angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : []),
+  ...effectLookParts(effect)
+];
+
 /** The address of one of an effect's files: the stylesheet that paints its first frame behind a page, the script that
-    plays it from there, its moving SVG, or its first frame as PNG, these two at a size where one is asked. */
+    plays it from there, its moving SVG, or its first frame as PNG, these two at a size where one is asked, or the
+    palette's Markdown or JSON, which name the effect. */
 export function effectFileAddress(
   origin: string,
   seed: string,
   effect: Effect,
   angle: number,
-  extension: "css" | "js" | "svg" | "png",
+  extension: "css" | "js" | "svg" | "png" | "md" | "json",
   size?: Size
 ): string {
   const sized =
@@ -216,6 +225,32 @@ export function effectFileAddress(
       ? [`w=${size.width}`, `h=${size.height}`]
       : [];
   return `${origin}/${seed}.${extension}?${[...effectAddressParts(effect, angle), ...sized].join("&")}`;
+}
+
+/** The addresses an effect goes by, as a palette's document names its own files: its page, how it plays included, the
+    stylesheet of its first frame, the script that plays it, its moving SVG, its first frame as PNG and its share
+    card, which its look and angle draw. */
+export function effectLinks(origin: string, seed: string, effect: Effect, angle: number) {
+  const base = origin.replace(/\/$/, "");
+  const at = (extension: "css" | "js" | "svg" | "png") =>
+    effectFileAddress(base, seed, effect, angle, extension);
+  return {
+    page: `${base}/${seed}?${effectAddressParts(effect, angle).join("&")}`,
+    css: at("css"),
+    js: at("js"),
+    svg: at("svg"),
+    png: at("png"),
+    og: `${base}/api/og?seed=${encodeURIComponent(seed)}&${effectStillParts(effect, angle).join("&")}`
+  };
+}
+
+/** An effect's settings as its address names them, defaults written out: the glass's shape 0 is the glass as designed,
+    and a blob's null shape the one its palette's own numbers draw. */
+export function effectSettings(effect: Effect, angle: number) {
+  const { kind, speed, fps, look } = effect;
+  return kind === "glass"
+    ? { style: kind, angle, speed, fps, shape: look.shape ?? 0 }
+    : { style: kind, angle, speed, fps, shape: look.shape, frost: look.frost, bg: look.bg };
 }
 
 /** The mark the embed's script sets on a page's root once its canvas shows (apps/web/src/embed/mount.ts), which takes

@@ -3,31 +3,29 @@
    first frame behind a page, its SVG, the colors it draws and its settings beside the palette's keyframes. It holds
    both effects' drawings, so a page loads it with the first effect it hands over. */
 import { BLOB_DESIGN, BLOB_SIZE, blobScene, blobStillBackground, blobSvg } from "./blob.ts";
-import { type Effect, effectAddressParts, effectLayerCss, effectLookParts } from "./effect.ts";
+import {
+  type Effect,
+  effectAddressParts,
+  effectLayerCss,
+  effectSettings,
+  effectStillParts
+} from "./effect.ts";
 import { glassDesign, glassField, glassStillBackground, glassSvg } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import type { Palette } from "./palette.ts";
 import { toSpec } from "./spec.ts";
-import { DEFAULT_ANGLE, DEFAULT_SIZE, type Size } from "./view.ts";
+import { DEFAULT_SIZE, type Size } from "./view.ts";
 
 /** The effect's page, named by all its first frame depends on (its style, angle and look) or, `paced`, by how it plays
     too: what a file of it credits. */
-export function effectPage(
+export const effectPage = (
   origin: string,
   seed: string,
   effect: Effect,
   angle: number,
   paced = false
-): string {
-  const parts = paced
-    ? effectAddressParts(effect, angle)
-    : [
-        `style=${effect.kind}`,
-        ...(angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : []),
-        ...effectLookParts(effect)
-      ];
-  return `${origin.replace(/\/$/, "")}/${seed}?${parts.join("&")}`;
-}
+): string =>
+  `${origin.replace(/\/$/, "")}/${seed}?${(paced ? effectAddressParts(effect, angle) : effectStillParts(effect, angle)).join("&")}`;
 
 /** The effect's first frame as a background covering its box, all it depends on named: the glass's colors, angle and
     shape, the blob's look and angle. */
@@ -88,17 +86,4 @@ export function effectColors(P: Palette, effect: Effect, angle: number): string[
 /** The palette's keyframes and the effect's settings as JSON, each named as its address names it: the glass's shape 0
     is the glass as designed, and a blob with no shape is the one the palette's own numbers draw. */
 export const effectSpecJson = (P: Palette, effect: Effect, angle: number): string =>
-  JSON.stringify(
-    {
-      ...toSpec(P),
-      style: effect.kind,
-      angle,
-      speed: effect.speed,
-      fps: effect.fps,
-      ...(effect.kind === "glass"
-        ? { shape: effect.look.shape ?? 0 }
-        : { shape: effect.look.shape, frost: effect.look.frost, bg: effect.look.bg })
-    },
-    null,
-    2
-  );
+  JSON.stringify({ ...toSpec(P), ...effectSettings(effect, angle) }, null, 2);
