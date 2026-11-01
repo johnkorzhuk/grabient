@@ -83,7 +83,7 @@ export function GlassArt(props: {
   const [near, setNear] = createSignal(true);
   onSettled(() => {
     const sizes = new ResizeObserver(() => {
-      setSeen(el.clientWidth > 0);
+      setSeen(el.clientWidth > 0 && el.clientHeight > 0);
       setBox(`${el.clientWidth}x${el.clientHeight}`);
     });
     sizes.observe(el);

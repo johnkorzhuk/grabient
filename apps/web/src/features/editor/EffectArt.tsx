@@ -138,13 +138,16 @@ export function EffectArt(props: {
     idle(() => {
       const kind = untrack(() => props.kind);
       void players[kind]().catch(() => {});
-      /* one card of a list makes it; the others read no layout for it */
-      if (!readied[kind] && untrack(() => props.settings.speed) > 0)
+      /* one card of a list makes it, the others reading no layout for it; a card the layout hides has no size to make
+         one at */
+      if (readied[kind] || untrack(() => props.settings.speed) === 0) return;
+      const box = holder.getBoundingClientRect();
+      if (box.width && box.height)
         void makeAhead(
           kind,
           untrack(() => props.palette),
           { ...untrack(view), speed: 0 },
-          holder.getBoundingClientRect()
+          box
         ).catch(() => {});
     });
     return () => motion.removeEventListener("change", read);
