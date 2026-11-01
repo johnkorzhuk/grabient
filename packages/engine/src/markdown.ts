@@ -31,8 +31,9 @@ export const plain = (s: string) =>
     .replace(/([\\`*_{}[\]<>|])/g, "\\$1")
     .trim();
 
-/** The words an address that plays an effect gives its palette's Markdown in a gradient's place: its name, its lead, how
-    it is drawn, its code and its files, from the palette's name and document. */
+/** The words an address that plays an effect gives its palette's Markdown in a gradient's place: its name, its lead,
+    how it is drawn, its code and its files, the script that plays it among them, from the palette's name and
+    document. */
 export type MarkdownEffect = (
   P: Palette,
   name: string,
@@ -42,7 +43,7 @@ export type MarkdownEffect = (
   lead: string;
   drawn: string;
   code: string;
-  files: Record<"page" | "json" | "png" | "svg" | "css" | "og", string> & { script: string };
+  files: Record<"page" | "json" | "png" | "svg" | "css" | "og", string> & { script?: string };
 };
 
 export function paletteMarkdown(
@@ -67,7 +68,7 @@ export function paletteMarkdown(
   const called = plays?.called ?? paletteTitle(reading, doc.style);
   const title = own?.title ?? called;
   const lead = plays?.lead ?? (own?.lead || paletteDescription(reading, doc, doc.colors));
-  const files = plays?.files ?? { ...doc.links, page: doc.url, script: "" };
+  const files = plays?.files ?? { ...doc.links, page: doc.url };
   const colors = stops.map((stop, i) => {
     const ink = doc.contrast.text[i] === "#ffffff" ? "white" : "black";
     return `| ${i + 1} | \`${stop.hex}\` | \`${oklchOf(stop)}\` | ${doc.names[i]} | ${ink}, ${doc.contrast.ratios[i]} to 1 |`;
@@ -118,7 +119,7 @@ ${held}
 - [PNG](${files.png})
 - [SVG](${files.svg})
 - [CSS](${files.css})
-${files.script}- [ASE](${doc.links.ase})
+${files.script ? `- [Script](${files.script})\n` : ""}- [ASE](${doc.links.ase})
 - [GPL](${doc.links.gpl})
 - [GRD](${doc.links.grd})
 - [Design tokens](${doc.links.tokens})

@@ -1,5 +1,9 @@
+import { decodePalette } from "@grabient/engine/codec.ts";
+import { parseEffect } from "@grabient/engine/effect.ts";
+import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { colorNamesText, preciseNamer } from "@grabient/engine/precise-names.ts";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { effectCard } from "../../lib/page-meta.ts";
 import { collectionForFiles, writtenWords } from "../collections/files.ts";
 import { readyOldIds } from "../seo/legacy.ts";
 import golden from "./fixtures/file-bodies.json" with { type: "json" };
@@ -228,17 +232,29 @@ describe("a palette's file", () => {
     expect([none.status, await none.json()]).toEqual([404, { error: "Invalid palette seed." }]);
   });
 
-  test("JSON at an effect's address names the effect beside the palette, its tags and its files", async () => {
+  test("JSON at an effect's address names the effect beside the palette: the colors it draws, its tags and its files", async () => {
     const plain = (await (await file(`/${seed}.json`)).json()) as Record<string, unknown>;
     const glass = (await (await file(`/${seed}.json?style=glass&angle=45&shape=7`)).json()) as {
-      effect: { style: string; angle: number; shape: number; html: string; links: { js: string } };
+      effect: {
+        style: string;
+        angle: number;
+        shape: number;
+        colors: string[];
+        html: string;
+        links: { js: string; og: string };
+      };
     };
     expect(plain).not.toHaveProperty("effect");
     expect(glass.effect).toMatchObject({ style: "glass", angle: 45, shape: 7 });
+    expect(glass.effect.colors).toEqual(glassColors(decodePalette(seed)!));
     expect(glass.effect.html).toContain(
       `<script src="${golden.origin}/${seed}.js?style=glass&amp;angle=45&amp;shape=7" async>`
     );
     expect(glass.effect.links.js).toBe(`${golden.origin}/${seed}.js?style=glass&angle=45&shape=7`);
+    // its card is the one its page names as its picture
+    expect(glass.effect.links.og).toBe(
+      `${golden.origin}${effectCard(seed, parseEffect(new URLSearchParams("style=glass&shape=7"))!, 45)}`
+    );
   });
 
   test("JSON names a palette by the title written for it while drawn as it was saved, at any angle, and is kept as text", async () => {

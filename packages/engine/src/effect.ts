@@ -193,6 +193,14 @@ export const effectParts = (effect: Effect): string[] => [
   ...effectLookParts(effect)
 ];
 
+/** The parts of an effect's address its first frame depends on, which name a still or a card of it: its style, its
+    angle where it is not the view's default and its look, never how it plays. */
+export const effectStillParts = (effect: Effect, angle: number): string[] => [
+  `style=${effect.kind}`,
+  ...(angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : []),
+  ...effectLookParts(effect)
+];
+
 /** An effect's address after its palette's seed, which its page and its files are named by: its style, its angle where
     it is not the view's default, how it plays and its look. */
 export const effectAddressParts = (effect: Effect, angle: number): string[] => [

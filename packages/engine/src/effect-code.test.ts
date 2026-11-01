@@ -120,14 +120,16 @@ test("an effect's JSON holds the keyframes and how it plays, as its address name
   expect(blob).toMatchObject({ style: "blob", angle: 90, shape: 9, frost: 2, bg: "#101014" });
 });
 
-test("the palette's JSON at an effect's address names the effect: its settings, its tags and its files", () => {
+test("the palette's JSON at an effect's address names the effect: its settings, its colors, its tags and its files", () => {
   const glass = effect("style=glass&speed=0&shape=4");
-  expect(effectDocument(ORIGIN, SEED, glass, 30)).toEqual({
+  const card = `${ORIGIN}/api/og?seed=${SEED}&v=k4&style=glass&angle=30&shape=4`;
+  expect(effectDocument(P, ORIGIN, SEED, glass, 30, card)).toEqual({
     style: "glass",
     angle: 30,
     speed: 0,
     fps: 60,
     shape: 4,
+    colors: glassColors(P),
     html: effectEmbedHtml(ORIGIN, SEED, glass, 30),
     links: {
       page: `${ORIGIN}/${SEED}?style=glass&angle=30&speed=0&shape=4`,
@@ -135,14 +137,16 @@ test("the palette's JSON at an effect's address names the effect: its settings, 
       js: effectFileAddress(ORIGIN, SEED, glass, 30, "js"),
       svg: effectFileAddress(ORIGIN, SEED, glass, 30, "svg"),
       png: effectFileAddress(ORIGIN, SEED, glass, 30, "png"),
-      og: `${ORIGIN}/api/og?seed=${SEED}&style=glass&angle=30&shape=4`
+      og: card
     }
   });
-  expect(effectDocument(ORIGIN, SEED, effect("style=blob&frost=2"), 90)).toMatchObject({
+  const blob = effect("style=blob&frost=2");
+  expect(effectDocument(P, ORIGIN, SEED, blob, 90, card)).toMatchObject({
     style: "blob",
     shape: null,
     frost: 2,
-    bg: null
+    bg: null,
+    colors: effectColors(P, blob, 90)
   });
 });
 
@@ -154,7 +158,12 @@ test("the palette's Markdown at an effect's address says what plays and how, and
     null,
     [],
     null,
-    effectMarkdown(ORIGIN, SEED, effect("style=blob&speed=0&bg=%23101014"))
+    effectMarkdown(
+      ORIGIN,
+      SEED,
+      effect("style=blob&speed=0&bg=%23101014"),
+      `${ORIGIN}/api/og?seed=${SEED}&v=k4&style=blob&angle=45&bg=%23101014`
+    )
   )!;
   expect(text).toMatch(/^# .+ blob\n/);
   expect(text).toContain(
@@ -165,6 +174,11 @@ test("the palette's Markdown at an effect's address says what plays and how, and
   expect(text).toContain(
     `- [Script](${ORIGIN}/${SEED}.js?style=blob&angle=45&speed=0&bg=%23101014)`
   );
-  // the gradient's Markdown is as it was
-  expect(paletteMarkdown(SEED, ORIGIN, { angle: 45 }, null, [])).toContain("## CSS");
+  expect(text).toContain(
+    `- [Social card](${ORIGIN}/api/og?seed=${SEED}&v=k4&style=blob&angle=45&bg=%23101014)`
+  );
+  // the gradient's Markdown is as it was, with no script among its forms
+  const gradient = paletteMarkdown(SEED, ORIGIN, { angle: 45 }, null, [])!;
+  expect(gradient).toContain("## CSS");
+  expect(gradient).not.toContain("- [Script]");
 });

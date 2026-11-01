@@ -26,6 +26,7 @@ import {
 import { DEFAULT_SIZE, resolveSize, sizeParam } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { ANIMATION, FILE, TEXT } from "../../lib/cache.ts";
+import { effectCard } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { isCollectionSlug, texts, writtenWords } from "../collections/files.ts";
 import { isLinkPreview } from "../crawlers.ts";
@@ -151,10 +152,12 @@ async function paletteFile(
       const effect = parseEffect(params);
       const played = effect && {
         effect: (await import("@grabient/engine/effect-code.ts")).effectDocument(
+          palette,
           origin,
           seed,
           effect,
-          view.angle
+          view.angle,
+          `${origin}${effectCard(seed, effect, view.angle)}`
         )
       };
       return Response.json(played ? { ...doc, ...played } : doc, { headers: { ...TEXT, ...DATA } });

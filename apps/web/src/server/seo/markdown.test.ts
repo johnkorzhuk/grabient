@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
+import { parseEffect } from "@grabient/engine/effect.ts";
 import type { PaletteWords } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { parseView } from "@grabient/engine/view.ts";
 import { beforeAll, describe, expect, test } from "vitest";
+import { effectCard } from "../../lib/page-meta.ts";
 import files from "../files/fixtures/file-bodies.json" with { type: "json" };
 import { readyOldIds } from "./legacy.ts";
 import {
@@ -214,8 +216,19 @@ describe("a palette as Markdown", () => {
     expect(glass).toContain(`- [JSON](${base}.json?style=glass&angle=45&speed=2&shape=12)`);
     expect(glass).toContain(`- [PNG](${base}.png?style=glass&angle=45&speed=2&shape=12)`);
     expect(glass).toContain(`- [Script](${base}.js?style=glass&angle=45&speed=2&shape=12)`);
+    // its card is the one its page names as its picture
     expect(glass).toContain(
-      `- [Social card](${files.origin}/api/og?seed=${files.seed}&style=glass&angle=45&shape=12)`
+      `- [Social card](${files.origin}${effectCard(files.seed, parseEffect(new URLSearchParams("style=glass&shape=12"))!, 45)})`
+    );
+    // the page it is a form of is the effect's
+    const answer = await markdownFile(
+      files.seed,
+      get(`/${files.seed}.md?style=glass&angle=45&shape=12&speed=2`),
+      files.origin,
+      reads()
+    );
+    expect(answer.headers.get("Link")).toBe(
+      `<${base}?style=glass&angle=45&speed=2&shape=12>; rel="alternate"; type="text/html"`
     );
     const blob = await at("style=blob&speed=0&bg=%23101014&frost=0.5");
     expect(blob).toMatch(/^# .+ blob\n/);

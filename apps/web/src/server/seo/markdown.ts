@@ -9,6 +9,7 @@ import { PAGE, TEXT } from "../../lib/cache.ts";
 import {
   collectionCard,
   collectionSheet,
+  effectCard,
   type PaletteView,
   paletteAddress
 } from "../../lib/page-meta.ts";
@@ -130,14 +131,19 @@ export async function markdownFile(
       reads.paletteWords(seed).catch(() => ({ saved: undefined, written: null, heldBy: [] })),
       reads.colorNames?.() ?? null
     ]);
-    /* an effect's words load with the first Markdown of an effect's address */
+    /* at an effect's address, the effect's words, which load with the first such file, and its page as the one the
+       file is a form of */
     const effect = parseEffect(params);
+    const code = effect ? await import("@grabient/engine/effect-code.ts") : null;
     const words =
       effect &&
-      (await import("@grabient/engine/effect-code.ts")).effectMarkdown(base, seed, effect);
+      code?.effectMarkdown(base, seed, effect, base + effectCard(seed, effect, view.angle));
+    const page =
+      effect && code
+        ? code.effectPage(base, seed, effect, view.angle, true)
+        : base + paletteAddress(seed, saved);
     const text = paletteMarkdown(seed, base, view, written, heldBy, names, words);
-    if (text !== null)
-      return new Response(text, { headers: markdown(base + paletteAddress(seed, saved), TEXT) });
+    if (text !== null) return new Response(text, { headers: markdown(page, TEXT) });
   }
   if (!found && reads.isCollection(name)) {
     const doc = await reads.collection(name);

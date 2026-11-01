@@ -10,7 +10,7 @@ import {
   effectEmbedHtml,
   effectFileAddress,
   effectLayerCss,
-  effectLookParts
+  effectStillParts
 } from "./effect.ts";
 import { glassDesign, glassField, glassStillBackground, glassSvg } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
@@ -18,15 +18,7 @@ import type { MarkdownEffect } from "./markdown.ts";
 import type { Palette } from "./palette.ts";
 import { toSpec } from "./spec.ts";
 import { svgComment } from "./svg.ts";
-import { DEFAULT_ANGLE, DEFAULT_SIZE, type Size } from "./view.ts";
-
-/** The parts of an effect's address its first frame depends on: its style, its angle off the default and its look,
-    never how it plays. */
-const stillParts = (effect: Effect, angle: number): string[] => [
-  `style=${effect.kind}`,
-  ...(angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : []),
-  ...effectLookParts(effect)
-];
+import { DEFAULT_SIZE, type Size } from "./view.ts";
 
 /** The effect's page, named by all its first frame depends on (its style, angle and look) or, `paced`, by how it plays
     too: what a file of it credits. */
@@ -37,7 +29,7 @@ export const effectPage = (
   angle: number,
   paced = false
 ): string =>
-  `${origin.replace(/\/$/, "")}/${seed}?${(paced ? effectAddressParts(effect, angle) : stillParts(effect, angle)).join("&")}`;
+  `${origin.replace(/\/$/, "")}/${seed}?${(paced ? effectAddressParts(effect, angle) : effectStillParts(effect, angle)).join("&")}`;
 
 /** The effect's first frame as a background covering its box, all it depends on named: the glass's colors, angle and
     shape, the blob's look and angle. */
@@ -106,9 +98,15 @@ export const effectSpecJson = (P: Palette, effect: Effect, angle: number): strin
   JSON.stringify({ ...toSpec(P), ...effectSettings(effect, angle) }, null, 2);
 
 /** The addresses an effect goes by, as a palette's document names its own files: its page, how it plays included, the
-    stylesheet of its first frame, the script that plays it, its moving SVG, its first frame as PNG and its share
-    card, which its look and angle draw. */
-export function effectLinks(origin: string, seed: string, effect: Effect, angle: number) {
+    stylesheet of its first frame, the script that plays it, its moving SVG, its first frame as PNG, and its share
+    card, the address its page names (apps/web/src/lib/page-meta.ts effectCard). */
+export function effectLinks(
+  origin: string,
+  seed: string,
+  effect: Effect,
+  angle: number,
+  card: string
+) {
   const base = origin.replace(/\/$/, "");
   const at = (extension: "css" | "js" | "svg" | "png") =>
     effectFileAddress(base, seed, effect, angle, extension);
@@ -118,26 +116,34 @@ export function effectLinks(origin: string, seed: string, effect: Effect, angle:
     js: at("js"),
     svg: at("svg"),
     png: at("png"),
-    og: `${base}/api/og?seed=${encodeURIComponent(seed)}&${stillParts(effect, angle).join("&")}`
+    og: card
   };
 }
 
-/** The effect in its palette's JSON at the effect's address: its settings, the tags that play it behind a page, and its
-    own files. */
-export const effectDocument = (origin: string, seed: string, effect: Effect, angle: number) => ({
+/** The effect in its palette's JSON at the effect's address: its settings, the colors it draws, the tags that play it
+    behind a page, and its own files. */
+export const effectDocument = (
+  P: Palette,
+  origin: string,
+  seed: string,
+  effect: Effect,
+  angle: number,
+  card: string
+) => ({
   ...effectSettings(effect, angle),
+  colors: effectColors(P, effect, angle),
   html: effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle),
-  links: effectLinks(origin, seed, effect, angle)
+  links: effectLinks(origin, seed, effect, angle, card)
 });
 
 /** What the palette's Markdown says at the effect's address in a gradient's place: a title naming the effect, a lead,
     how it is drawn and plays, the tags that play it behind a page, and its own files. English, as the file is. */
 export const effectMarkdown =
-  (origin: string, seed: string, effect: Effect): MarkdownEffect =>
+  (origin: string, seed: string, effect: Effect, card: string): MarkdownEffect =>
   (P, name, doc) => {
     const angle = doc.angle;
     const { shape, frost, bg } = effect.look;
-    const links = effectLinks(origin, seed, effect, angle);
+    const { js, ...links } = effectLinks(origin, seed, effect, angle, card);
     const play =
       effect.speed === 0
         ? "held on its first frame"
@@ -161,7 +167,7 @@ ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle)}
       files: {
         ...links,
         json: effectFileAddress(origin.replace(/\/$/, ""), seed, effect, angle, "json"),
-        script: `- [Script](${links.js})\n`
+        script: js
       }
     };
   };

@@ -21,6 +21,7 @@ import type { CodeSource } from "@grabient/ui/PaletteCode.tsx";
 import { createSignal } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import { namesNow, preciseNames } from "../../lib/color-names.ts";
+import { effectCard } from "../../lib/page-meta.ts";
 import type { PaletteFacts } from "./facts.ts";
 import { effectHtml, type Taken } from "./formats.ts";
 import type { Rest } from "./rest.ts";
@@ -142,7 +143,14 @@ export function codeSources(
       view: facts.written.view
     };
     /* an effect's words come with its code */
-    const words = effect && effectCodeNow()?.effectMarkdown(origin(), seed, effect);
+    const words =
+      effect &&
+      effectCodeNow()?.effectMarkdown(
+        origin(),
+        seed,
+        effect,
+        `${origin()}${effectCard(seed, effect, v.angle)}`
+      );
     if (effect && !words) return "";
     return (
       inLocale(DEFAULT_LOCALE, () =>
