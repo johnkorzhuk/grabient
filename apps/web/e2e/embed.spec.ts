@@ -125,12 +125,14 @@ test("a lost context shows the still again, and the effect plays again once the 
   await site(page, tags("style=blob&shape=3"));
   const html = page.locator("html");
   await expect(html).toHaveAttribute("data-grabient-playing", "", { timeout: 15_000 });
-  /* the extension is kept from the loss: a lost context gives none */
+  /* the extension is kept from the loss: a lost context gives none. The canvas is kept too, for its late loss */
   await page.evaluate(() => {
     const w = window as unknown as {
       gl: WebGL2RenderingContext;
       lose: WEBGL_lose_context | null;
+      old: HTMLCanvasElement | null;
     };
+    w.old = document.querySelector("canvas");
     w.lose = w.gl.getExtension("WEBGL_lose_context");
     w.lose?.loseContext();
   });
@@ -142,6 +144,13 @@ test("a lost context shows the still again, and the effect plays again once the 
   );
   await expect(html).toHaveAttribute("data-grabient-playing", "", { timeout: 15_000 });
   await expect(page.locator("canvas")).toHaveCount(1);
+  /* the old canvas's context, lost again as its player goes, never brings the still back under the new player */
+  await page.evaluate(() =>
+    (window as unknown as { old: HTMLCanvasElement }).old.dispatchEvent(
+      new Event("webglcontextlost")
+    )
+  );
+  await expect(html).toHaveAttribute("data-grabient-playing", "");
 });
 
 test("a reader who asks for less motion keeps the still, and no context is made", async ({

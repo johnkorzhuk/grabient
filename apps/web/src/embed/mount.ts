@@ -7,10 +7,10 @@
    first paint (server/files/effect-files.ts), or the same rules in the page's own <style> (the editor's Copy HTML);
    where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows once its first frame,
    the still's own, is drawn: the glass fading in over a still the page painted, the blob (clear around itself) taking
-   the still's place in one frame. Where WebGL 2 is missing the still stays, and for a reader who asks for less motion the still is the
-   picture and no context is made. A lost context brings the still back until the browser restores the context. It
-   writes no markup and no style attribute, only CSSOM, so a page with a strict Content Security Policy and Trusted
-   Types runs it. A page plays one effect: a second script, the same or another, leaves it be. */
+   the still's place in one frame. Where WebGL 2 is missing the still stays, and for a reader who asks for less motion
+   the still is the picture and no context is made. A lost context brings the still back until the browser restores
+   the context. It writes no markup and no style attribute, only CSSOM, so a page with a strict Content Security Policy
+   and Trusted Types runs it. A page plays one effect: a second script, the same or another, leaves it be. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import {
   type Effect,
@@ -115,7 +115,7 @@ export function mount(embed: EmbedEffect): void {
 
   /* the still: the page's own, else the stylesheet's rules adopted, which need no body. One the page painted is in
      its first paint, and the glass fades in over it; one adopted late may still be on its way to the screen when the
-     player's first frame is drawn, which then shows at once rather than fade in from the page's own ground */
+     player's first frame is drawn, so the glass shows at once over it, where a fade would show the page's own ground */
   let fade = true;
   const still = pagePaints(address, name).then(paints => {
     if (paints) return;
@@ -153,20 +153,27 @@ export function mount(embed: EmbedEffect): void {
     document.body.prepend(layer);
     let player: { destroy(): void } | null = null;
     /* a lost context drew nothing: the still comes back at once, and the effect plays again once the browser restores
-       the context, on a canvas of its own */
-    canvas.addEventListener("webglcontextlost", () => {
-      look.transition = "none";
-      look.opacity = "0";
-      root.removeAttribute(EMBED_PLAYING);
-    });
+       the context, on a canvas of its own. The old canvas's listeners end first, since destroying its player loses
+       the restored context again, and that loss must not take the still's place from the new player */
+    const ended = new AbortController();
+    canvas.addEventListener(
+      "webglcontextlost",
+      () => {
+        look.transition = "none";
+        look.opacity = "0";
+        root.removeAttribute(EMBED_PLAYING);
+      },
+      { signal: ended.signal }
+    );
     canvas.addEventListener(
       "webglcontextrestored",
       () => {
+        ended.abort();
         player?.destroy();
         layer.remove();
         if (++again <= AGAIN_MAX) play();
       },
-      { once: true }
+      { signal: ended.signal }
     );
     player = embed.play(canvas, P, effect, angle, () =>
       /* a frame after its first was drawn: a canvas shown in the frame it was first drawn in may not fade in */
