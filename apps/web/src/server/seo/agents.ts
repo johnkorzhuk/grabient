@@ -62,7 +62,7 @@ Grabient's colors are for screens: it has no print inks, paint or thread, and ta
 - [Palette as GRD](${base}/${seed}.grd): the view's gradient as a Photoshop gradient. Pattern: \`${base}/{seed}.grd\`
 - [Palette as design tokens](${base}/${seed}.tokens.json): the view's colors as DTCG design tokens, which Figma imports as variables. Pattern: \`${base}/{seed}.tokens.json\`
 - [Palette social card](${base}/api/og?seed=${seed}): 1200 by 630 with the Grabient wordmark. Pattern: \`${base}/api/og?seed={seed}\`
-- [Palette in the editor](${base}/${seed}): the page to give a person. Pattern: \`${base}/{seed}\`
+- [Palette in the editor](${base}/${seed}): the page to give a person. At an effect's address (\`style=glass\` or \`style=blob\`) it plays the effect, and its code pane holds the effect's tags, stylesheet, colors, settings, SVG and Markdown, as its files serve them. Pattern: \`${base}/{seed}\`
 
 Every palette route takes \`style\`, \`steps\` and \`angle\`.
 
@@ -73,6 +73,8 @@ Every palette route takes \`style\`, \`steps\` and \`angle\`.
 - [Search as one image](${base}/palettes/sunset.png): its sheet, the first eight palettes its page shows as rows with their hex codes. Pattern: \`${base}/palettes/{query}.png\`, or \`.svg\` for the same sheet as SVG
 - [The home page as JSON](${base}/api/hot?page=1): the Hot feed, palettes and collections in one, by what was liked lately and what is new
 - [The gallery as JSON](${base}/api/palettes?sort=popular&page=1&limit=24): the most liked first, or \`sort\` rising or newest
+
+A list's page for a person (the home page, \`/palettes\`, a search, \`/collections\`, a collection's page) draws every card in the view its address names, \`style\`, \`steps\` and \`angle\`, or plays an effect on every card, each in its palette's own shape: \`style=glass\` or \`style=blob\`, with \`angle\`, \`speed\`, \`fps\`, and the blob's \`frost\` and \`bg\`. Pattern: \`${base}/palettes?q={query}&style=glass\`
 
 ## Collections
 

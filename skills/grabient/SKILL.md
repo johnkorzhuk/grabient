@@ -42,4 +42,4 @@ Colors are screen colors. Grabient has no print inks, paint or thread, and takes
 
 ## Without the tools
 
-The addresses above are public and need no account: a palette's page, its files, and the search page, `{origin}/palettes?q={query}`. Making, changing and saving need the tools, which `{origin}/mcp-server` says how to connect.
+The addresses above are public and need no account: a palette's page, its files, and the search page, `{origin}/palettes?q={query}`. A list's page draws every card in the view its address names, and `style=glass` or `style=blob` plays the effect on every card, each in its palette's own shape: `{origin}/palettes?q={query}&style=glass`. A palette's page at an effect's address plays the effect, and its code pane holds the effect's tags, stylesheet and SVG. Making, changing and saving need the tools, which `{origin}/mcp-server` says how to connect.

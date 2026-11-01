@@ -43,7 +43,7 @@ export function FormatStrips() {
             />
           </Cell>
           <Cell
-            caption="the editor's strip while an effect plays · Copy ends with Figma, the glass or the blob as Figma's own layers, moving on Figma's timeline"
+            caption="the editor's strip and a list card's while an effect plays · Copy adds HTML, the two tags that play it behind a page, and Figma, its own layers moving on Figma's timeline; Copy link adds its script"
             art={ART}
           >
             <FormatStrip
