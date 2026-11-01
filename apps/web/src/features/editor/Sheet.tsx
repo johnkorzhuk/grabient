@@ -420,7 +420,13 @@ export function Sheet(props: {
         : undefined;
     };
     const words = () => cardWords(palette());
-    const address = () => seedAddress({ seed: seed(), view: { ...palette(), size: e.size() } });
+    /* a card opens its palette playing what the card plays, so the editor shows the card's picture */
+    const address = () =>
+      seedAddress({
+        seed: seed(),
+        view: { ...palette(), size: e.size() },
+        effect: playing() ? e.effects.effect() : null
+      });
     const similar = () => similarHref(seed());
     /* a card's pictures are the stage's size once the reader set one, and its files' addresses name it */
     const taken = (): Taken => {
