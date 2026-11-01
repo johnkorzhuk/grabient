@@ -84,6 +84,9 @@ html::before {
   <p><a href="background-blob.html">The same with a blob</a> · <a href="/kWnCIwwC47igfOklkTlShq44?style=glass&amp;angle=135&amp;speed=2.45">Open the palette</a></p>
 </main>
 <script>
+  /* the addresses shown are the site's that serves this page */
+  for (const code of document.querySelectorAll("code"))
+    code.textContent = code.textContent.replaceAll("https://staging.grabient.com", location.origin);
   /* the two tags as this page's head holds them, its script at this site's address */
   const button = document.getElementById("copy");
   button.addEventListener("click", async () => {
