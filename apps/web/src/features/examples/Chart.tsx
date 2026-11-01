@@ -1,4 +1,3 @@
-import { hexToSrgb, toHex } from "@grabient/engine/color.ts";
 import { gradientCss, spell } from "@grabient/engine/css.ts";
 import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
 import { isSwatchStyle, STYLE_LABELS, type Style } from "@grabient/engine/view.ts";
@@ -10,7 +9,7 @@ import { colorFormat } from "../../lib/color-format.ts";
 import styles from "./Chart.module.css";
 import { ContrastChip, Example, type ExampleProps } from "./Example.tsx";
 import { orderedScale, seriesOf, standsOut, TILE } from "./fit.ts";
-import { drawnColors, inkOn, type Shown, type Theme, worstContrast } from "./paint.ts";
+import { colorAt, drawnColors, inkOn, type Shown, type Theme, worstContrast } from "./paint.ts";
 import { cssRule, effectColorsWords, stopsOf } from "./shared.ts";
 
 /* Charts in the palette's colors: a site's visits as a dashboard in the reader's language, holding only the charts the
@@ -268,20 +267,6 @@ const fixed = (n: number) => +n.toFixed(2);
 const placeIn = (values: readonly number[], value: number) =>
   (value - Math.min(...values)) / (Math.max(...values) - Math.min(...values));
 
-/** The color at a place on the scale, 0 to 1: blended between the colors as CSS blends a gradient's stops in sRGB (as
-    D3's piecewise interpolateRgb does), or its class's, the range cut into as many as there are colors (D3's
-    quantize). */
-function colorAt(colors: readonly string[], classes: boolean, at: number): string {
-  const n = colors.length;
-  const u = Math.min(1, Math.max(0, at));
-  if (classes || n < 2) return colors[Math.min(n - 1, Math.floor(u * n))];
-  const x = u * (n - 1);
-  const i = Math.min(n - 2, Math.floor(x));
-  const a = hexToSrgb(colors[i]) ?? [0, 0, 0];
-  const b = hexToSrgb(colors[i + 1]) ?? [0, 0, 0];
-  return toHex(a.map((v, k) => v + (b[k] - v) * (x - i)));
-}
-
 /** A month and its year, written the reader's way. */
 const monthWords = (date: number) =>
   formatDate(date, { month: "long", year: "numeric", timeZone: "UTC" });
@@ -301,7 +286,7 @@ export function ChartExample(props: ExampleProps) {
   const inside = () => {
     const { scale, series, bands } = plan();
     const ratios = [
-      ...(scale ? DAYS.map(day => inkOn([colorAt(scale, bands, placeIn(DAYS, day))]).ratio) : []),
+      ...(scale ? DAYS.map(day => inkOn([colorAt(scale, placeIn(DAYS, day), bands)]).ratio) : []),
       ...(series
         ? ofOctober(series)
             .filter(part => part.share >= WEDGE_LABEL)
@@ -634,7 +619,7 @@ function Line(props: { scale: string[]; classes: boolean; label: string }) {
           class={styles.dot}
           style={{
             top: `${y(latest)}%`,
-            background: colorAt(props.scale, props.classes, placeIn(WEEKS, latest))
+            background: colorAt(props.scale, placeIn(WEEKS, latest), props.classes)
           }}
         />
       </div>
@@ -660,7 +645,7 @@ function Columns(props: { scale: string[]; classes: boolean; label: string }) {
         y: fixed(100 - tall),
         /* past the foot, which cuts it square: only its top is rounded */
         tall: fixed(tall + 8),
-        color: colorAt(props.scale, props.classes, placeIn(HOURS, visits))
+        color: colorAt(props.scale, placeIn(HOURS, visits), props.classes)
       };
     });
   };
@@ -709,7 +694,7 @@ function Calendar(props: { scale: string[]; classes: boolean; label: string }) {
   const days = () =>
     DAYS.map((visits, i) => {
       const place = lead() + i;
-      const color = colorAt(props.scale, props.classes, placeIn(DAYS, visits));
+      const color = colorAt(props.scale, placeIn(DAYS, visits), props.classes);
       return {
         day: i + 1,
         color,

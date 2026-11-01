@@ -5,7 +5,7 @@ import { Icon } from "@grabient/ui/Icon.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { children, createSignal, createUniqueId, type Element, Show } from "solid-js";
 import styles from "./Example.module.css";
-import type { Shown } from "./paint.ts";
+import { type Shown, twoPlaces } from "./paint.ts";
 import { levelWords } from "./shared.ts";
 
 /* One way to use a palette, as the page shows it: its number and its use in a few words, a line on what it is for, then
@@ -39,7 +39,7 @@ export function Chip(props: { color?: string; children: Element }) {
 
 /** A contrast written the reader's way, never rounded up across a line: 4.496 is 4.49:1 (the contrast grid's). */
 export const contrastWords = (ratio: number): string =>
-  `${formatNumber(Math.floor(ratio * 100) / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}:1`;
+  `${formatNumber(twoPlaces(ratio), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}:1`;
 
 /** The least contrast an ink reaches on what it stands on, as a chip: the ink's coin where there is one ink, the
     ratio, the WCAG level. */

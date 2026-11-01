@@ -16,7 +16,7 @@ import { colorFormat } from "../../lib/color-format.ts";
 import { fileAddress, writeText } from "../../lib/files.ts";
 import { copyFormat, copyLink, saveFormat } from "../editor/formats.ts";
 import { Chip, ContrastChip, contrastWords, Example, type ExampleProps } from "./Example.tsx";
-import { drawnColors, type Shown, worstContrast } from "./paint.ts";
+import { drawnColors, type Shown, twoPlaces, worstContrast } from "./paint.ts";
 import styles from "./Swatches.module.css";
 import { drawnWords, effectColorsWords, gradientOf, takenOf } from "./shared.ts";
 
@@ -52,7 +52,7 @@ const said = (ink: string, ground: string, ratio: number) =>
   t("{text} on {ground}: {ratio}, enough for text", {
     text: ink,
     ground,
-    ratio: Math.floor(ratio * 100) / 100
+    ratio: twoPlaces(ratio)
   });
 
 interface Token {
