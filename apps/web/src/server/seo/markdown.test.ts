@@ -210,6 +210,8 @@ describe("a palette as Markdown", () => {
     expect(glass).toContain(
       `<script src="${base}.js?style=glass&amp;angle=45&amp;speed=2&amp;shape=12" async></script>`
     );
+    // the glass's still in the stylesheet is a filter Firefox is slow to draw, which its WebP inside the page is not
+    expect(glass).toContain("the editor's Copy HTML writes it into the page as a WebP instead");
     // no gradient's code while an effect plays
     expect(glass).not.toContain("## CSS");
     expect(glass).not.toContain("linear-gradient");
@@ -232,6 +234,7 @@ describe("a palette as Markdown", () => {
     );
     const blob = await at("style=blob&speed=0&bg=%23101014&frost=0.5");
     expect(blob).toMatch(/^# .+ blob\n/);
+    expect(blob).not.toContain("WebP");
     expect(blob).toContain(
       "- Drawn as: a blob, the palette across it at 90 degrees, frost 0.5, on #101014, held on its first frame"
     );

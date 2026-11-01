@@ -159,7 +159,7 @@ export const effectMarkdown =
         : `a blob, the palette across it at ${angle} degrees${shape === null ? "" : `, shape ${shape}`}, frost ${frost}, ${bg ? `on ${bg}` : "on no ground"}, ${play}`,
       code: `## Behind a page
 
-In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays.
+In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays.${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}
 
 \`\`\`html
 ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle)}
