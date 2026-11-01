@@ -30,9 +30,10 @@ import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { rememberOpening } from "./navigation.ts";
 
 /** A palette of a collection as its card, on the collection's page and in a list's group: drawn in the page's view
-    over the one the collection saved it in, or playing its effect, its picture following the header's control as it is
-    set, and called by the title the collection gives it; liked, selected, collected, copied and opened as on every list, each counted with
-    where the card stands. The page adds what is its own: the thumbs, the presses beside Edit, and its owner's naming. */
+    over the one the collection saved it in, or playing its effect, its picture following the header's control as it
+    is set, and called by the title the collection gives it; liked, selected, collected, copied and opened as on every
+    list, each counted with where the card stands. The page adds what is its own: the thumbs, the presses beside Edit,
+    and its owner's naming. */
 export function ItemCard(props: {
   /** the palette as the collection saved it */
   own: Drawn;

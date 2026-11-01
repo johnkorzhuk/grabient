@@ -255,7 +255,7 @@ export function PaletteCard(props: PaletteCardProps) {
             })
           }
         >
-          {/* made once while there is one: a new function for the same picture moves it, never makes it again */}
+          {/* called once, untracked: the picture follows its own props */}
           <Show when={props.picture}>{picture => untrack(() => picture()(active))}</Show>
         </div>
         <Show
