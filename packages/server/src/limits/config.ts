@@ -61,7 +61,7 @@ export const LIMITS = {
   searchModel: { requests: 20, window: 60, local: true },
   searchModelDaily: { requests: 300, window: 86400, lease: 4 },
   searchModelBudget: { requests: 20000, window: 86400, site: true, lease: 20 },
-  searchModelApps: { requests: 5000, window: 86400, site: true, lease: 20 },
+  searchModelApps: { requests: 10000, window: 86400, site: true, lease: 20 },
   // A picture no cache held, per address and for the site's day; a large one costs several times as much.
   imageRender: { requests: 60, window: 60, local: true },
   imageRenderDaily: { requests: 20000, window: 86400, site: true, lease: 20 },
@@ -119,7 +119,7 @@ export const LIMITS = {
   collectionWrite: { requests: 30, window: 3600, work: true },
   collectionWriteDaily: { requests: 100, window: 86400, work: true },
   collectionWritesSite: { requests: 2000, window: 86400, site: true, work: true, lease: 5 },
-  mcpCollectionWritesSite: { requests: 500, window: 86400, site: true, work: true, lease: 5 },
+  mcpCollectionWritesSite: { requests: 5000, window: 86400, site: true, work: true, lease: 5 },
   fitVote: { requests: 120, window: 3600, work: true },
   fitVoteDaily: { requests: 500, window: 86400, work: true },
   // A vote on whether a palette fits a search: the account's by the fit votes above, then the site's day.
