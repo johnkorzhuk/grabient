@@ -1,48 +1,46 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { EMBED_PLAYING, parseEffect } from "@grabient/engine/effect.ts";
-import { glassStillBackground } from "@grabient/engine/glass.ts";
-import { glassColors } from "@grabient/engine/glass-colors.ts";
+import { parseEffect } from "@grabient/engine/effect.ts";
+import { effectStylesheet, effectSvg } from "@grabient/engine/effect-code.ts";
 import { expect, test } from "vitest";
-import { effectCss, effectStill } from "./effect-files.ts";
+import { effectCssAnswer, effectSvgAnswer } from "./effect-files.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
-const P = decodePalette(SEED);
+const P = decodePalette(SEED)!;
+const ORIGIN = "https://grabient.test";
 const effect = (query: string) => {
   const found = parseEffect(new URLSearchParams(query));
   if (!found) throw new Error(`no effect in ${query}`);
   return found;
 };
 
-test("the glass's stylesheet paints the still the palette's page paints, on a layer fixed behind the page", () => {
-  if (!P) throw new Error("no palette");
-  const css = effectCss(P, effect("style=glass"), 135, "https://grabient.test/x");
-  expect(css.startsWith("/* https://grabient.test/x */\nhtml::before {")).toBe(true);
-  expect(css).toContain(`background: ${glassStillBackground(glassColors(P), 135)};`);
-  expect(css).toContain("pointer-events: none;");
-  expect(css).not.toContain(EMBED_PLAYING);
+test("an effect's stylesheet is the engine's, any page may load it, and no search engine lists it", async () => {
+  const blob = effect("style=blob&shape=3");
+  const answer = effectCssAnswer(ORIGIN, SEED, P, blob, 45);
+  expect(await answer.text()).toBe(effectStylesheet(P, SEED, blob, 45, ORIGIN));
+  expect(answer.headers.get("Content-Type")).toBe("text/css; charset=utf-8");
+  expect(answer.headers.get("Access-Control-Allow-Origin")).toBe("*");
+  expect(answer.headers.get("Cross-Origin-Resource-Policy")).toBe("cross-origin");
+  expect(answer.headers.get("X-Robots-Tag")).toBe("noindex");
+  expect(answer.headers.has("Set-Cookie")).toBe(false);
 });
 
-test("the blob's stylesheet draws its look, and gives the still and its ground up once the script's canvas shows", () => {
-  if (!P) throw new Error("no palette");
-  const css = effectCss(P, effect("style=blob&bg=%2310101480"), 90, "c");
-  expect(css).toContain(`background: ${effectStill(P, effect("style=blob&bg=%2310101480"), 90)};`);
-  // the canvas draws the ground itself: a ground that lets the page through is painted once
-  expect(css).toContain(`html[${EMBED_PLAYING}]::before {\n  background: none;\n}`);
-  expect(effectStill(P, effect("style=blob&shape=3"), 90)).not.toBe(
-    effectStill(P, effect("style=blob&shape=4"), 90)
+test("an effect's SVG is the engine's at the size asked, and a link preview reads a page whose card is its first frame", async () => {
+  const glass = effect("style=glass&speed=2");
+  const request = new Request(`${ORIGIN}/${SEED}.svg?style=glass&speed=2`);
+  const answer = effectSvgAnswer(request, ORIGIN, SEED, P, glass, 90, null);
+  expect(await answer.text()).toBe(effectSvg(P, SEED, glass, 90, null, ORIGIN));
+  expect(answer.headers.get("Access-Control-Allow-Origin")).toBe("*");
+  const preview = effectSvgAnswer(
+    new Request(request.url, { headers: { "User-Agent": "Slackbot-LinkExpanding 1.0" } }),
+    ORIGIN,
+    SEED,
+    P,
+    glass,
+    90,
+    null
   );
-  // the angle lays the palette across the blobs
-  expect(effectStill(P, effect("style=blob&shape=3"), 90)).not.toBe(
-    effectStill(P, effect("style=blob&shape=3"), 180)
-  );
-});
-
-test("the glass's shape draws a still of its own", () => {
-  if (!P) throw new Error("no palette");
-  expect(effectStill(P, effect("style=glass&shape=12"), 90)).toBe(
-    glassStillBackground(glassColors(P), 90, 12)
-  );
-  expect(effectStill(P, effect("style=glass&shape=12"), 90)).not.toBe(
-    effectStill(P, effect("style=glass"), 90)
-  );
+  const html = await preview.text();
+  expect(preview.headers.get("Content-Type")).toContain("text/html");
+  expect(html).toContain(`<meta property="og:image" content="${ORIGIN}/api/og?seed=${SEED}`);
+  expect(html).toContain("style=glass");
 });
