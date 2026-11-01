@@ -7,7 +7,7 @@
    the GPU in one pass (glass-bake.ts) for each size, angle and shape, in the frame it changes, and a recolor changes
    the discs' colors alone. Nothing is allocated per frame. It stops while the canvas is out of view or the page hidden, holds the first frame for a
    reader who asks for less motion, keeps to a frame rate where one is asked, and returns null where WebGL 2 is
-   missing. */
+   missing. Its GLSL is engine/glass-gl.ts's, which the glass's shader exports run too. */
 import {
   GLASS_ANGLE,
   type GlassField,
@@ -17,6 +17,13 @@ import {
   glassDiscAt,
   glassField
 } from "@grabient/engine/glass.ts";
+import {
+  GLASS_BLUR_FS,
+  GLASS_DISC_FS,
+  GLASS_DISC_VS,
+  GLASS_FINAL_FS,
+  GLASS_FULL_VS
+} from "@grabient/engine/glass-gl.ts";
 import {
   type GlassPlan,
   type GlassWindow,
@@ -47,64 +54,6 @@ const SETTLE_MS = 150;
     rather than jumps. */
 const EASE_S = 1.6;
 
-const DISC_VS = `#version 300 es
-layout(location=0) in vec2 corner;
-layout(location=1) in vec4 disc;   // middle x, y and radius in field texels (y down), core
-layout(location=2) in vec3 color;
-uniform vec2 uField;
-out vec2 vLocal; out vec3 vColor; flat out float vCore;
-void main() {
-  vec2 pos = disc.xy + corner * disc.z;
-  vLocal = corner; vColor = color; vCore = disc.w;
-  gl_Position = vec4(pos.x / uField.x * 2.0 - 1.0, 1.0 - pos.y / uField.y * 2.0, 0.0, 1.0);
-}`;
-const DISC_FS = `#version 300 es
-precision highp float;
-in vec2 vLocal; in vec3 vColor; flat in float vCore;
-out vec4 o;
-void main() {
-  float r = length(vLocal);
-  if (r >= 1.0) discard;
-  float a = r <= vCore ? 1.0 : (1.0 - r) / (1.0 - vCore);
-  o = vec4(vColor * a, a);
-}`;
-const FULL_VS = `#version 300 es
-layout(location=0) in vec2 corner;
-void main() { gl_Position = vec4(corner, 0.0, 1.0); }`;
-const BLUR_FS = `#version 300 es
-precision highp float;
-uniform sampler2D uSrc;
-uniform vec2 uStep;
-uniform vec2 uTaps[6];
-out vec4 o;
-void main() {
-  vec2 uv = gl_FragCoord.xy / vec2(textureSize(uSrc, 0));
-  vec3 c = texture(uSrc, uv).rgb * uTaps[0].y;
-  for (int i = 1; i < 6; i++) {
-    vec2 off = uStep * uTaps[i].x;
-    c += (texture(uSrc, uv + off).rgb + texture(uSrc, uv - off).rgb) * uTaps[i].y;
-  }
-  o = vec4(c, 1.0);
-}`;
-const FINAL_FS = `#version 300 es
-precision highp float;
-uniform sampler2D uMap;
-uniform sampler2D uFieldT;
-uniform float uH;
-uniform vec2 uOrigin;
-uniform vec2 uOffset;
-uniform vec2 uInv;
-uniform float uScale;
-out vec4 o;
-void main() {
-  ivec2 p = ivec2(gl_FragCoord.x, uH - gl_FragCoord.y);
-  vec3 m = texelFetch(uMap, p, 0).rgb;
-  vec2 s = vec2(p) + uOffset + floor(uScale * (m.rg - 0.5) + 0.5);
-  vec2 f = (s + 0.5 - uOrigin) * uInv;
-  vec3 c = texture(uFieldT, vec2(f.x, 1.0 - f.y)).rgb;
-  o = vec4(min(vec3(1.0), floor(c * 255.0 + 0.5) / 255.0 * (2.0 * m.b)), 1.0);
-}`;
-
 const hexRgb = (hex: string) => {
   const n = Number.parseInt(hex.slice(1), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
@@ -130,9 +79,9 @@ export interface GlassDrawing {
 
 export function createGlassDrawing(gl: WebGL2RenderingContext): GlassDrawing {
   const programs = buildPrograms(gl, [
-    [DISC_VS, DISC_FS],
-    [FULL_VS, BLUR_FS],
-    [FULL_VS, FINAL_FS]
+    [GLASS_DISC_VS, GLASS_DISC_FS],
+    [GLASS_FULL_VS, GLASS_BLUR_FS],
+    [GLASS_FULL_VS, GLASS_FINAL_FS]
   ]);
   const [pDisc, pBlur, pFinal] = programs.list as [WebGLProgram, WebGLProgram, WebGLProgram];
   const loc = (p: WebGLProgram, n: string) => gl.getUniformLocation(p, n);

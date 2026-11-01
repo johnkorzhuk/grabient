@@ -5,80 +5,9 @@
    angle, shape or size; this bakes it in the frame it is asked for. The ribs and their stops go in a float texture,
    a row each; the normal's stops and the light's table in uniforms. */
 import type { GlassGeometry } from "@grabient/engine/glass.ts";
+import { GLASS_BAKE_FS, GLASS_FULL_VS } from "@grabient/engine/glass-gl.ts";
 import type { GlassWindow } from "@grabient/engine/glass-render.ts";
 import { buildPrograms } from "./gl-build.ts";
-
-const VS = `#version 300 es
-layout(location=0) in vec2 corner;
-void main() { gl_Position = vec4(corner, 0.0, 1.0); }`;
-const FS = `#version 300 es
-precision highp float;
-precision highp int;
-uniform highp sampler2D uRibs;   // a row a rib: [cx, cy, r², 0], then each stop [offset, gray, 0, 0]
-uniform int uCount;              // ribs
-uniform int uStops;              // stops a rib
-uniform vec2 uOrigin;            // the window's corner in the geometry's pixels
-uniform vec4 uLine;              // the normal's line: x1, y1, x2 − x1, y2 − y1
-uniform vec3 uNormals[17];       // the normal's stops: offset, red, green
-uniform float uShade[17];        // the ribs' light, half the factor, at 16ths of the lens gray
-out vec4 o;
-vec2 stopAt(int rib, int k) { return texelFetch(uRibs, ivec2(1 + k, rib), 0).xy; }
-void main() {
-  /* the pixel's center in the geometry's pixels: a texel row is the CPU's row */
-  vec2 p = gl_FragCoord.xy + uOrigin;
-  /* the smallest disc holding it, painted last, so on top: the first in the ribs' order */
-  int rib = -1;
-  for (int k = 0; k < 256; k++) {
-    if (k >= uCount) break;
-    vec4 r = texelFetch(uRibs, ivec2(0, k), 0);
-    vec2 d = p - r.xy;
-    if (dot(d, d) <= r.z) { rib = k; break; }
-  }
-  float A = 128.0;
-  if (rib >= 0) {
-    vec4 r = texelFetch(uRibs, ivec2(0, rib), 0);
-    vec2 d = p - r.xy;
-    float t = sqrt(dot(d, d) / r.z);
-    vec2 first = stopAt(rib, 0);
-    vec2 last = stopAt(rib, uStops - 1);
-    if (t <= first.x) A = first.y;
-    else if (t > last.x) A = last.y;
-    else {
-      int lo = 0;
-      int hi = uStops - 1;
-      for (int i = 0; i < 12; i++) {
-        if (hi - lo <= 1) break;
-        int mid = (lo + hi) / 2;
-        if (t <= stopAt(rib, mid).x) hi = mid; else lo = mid;
-      }
-      vec2 s0 = stopAt(rib, lo);
-      vec2 s1 = stopAt(rib, lo + 1);
-      float f = s1.x > s0.x ? (t - s0.x) / (s1.x - s0.x) : 1.0;
-      A = s0.y + f * (s1.y - s0.y);
-    }
-    A = floor(A + 0.5);
-  }
-  float tn = clamp(dot(p - uLine.xy, uLine.zw) / dot(uLine.zw, uLine.zw), 0.0, 1.0);
-  vec2 n;
-  if (tn <= uNormals[0].x) n = uNormals[0].yz;
-  else if (tn > uNormals[16].x) n = uNormals[16].yz;
-  else {
-    int k = 0;
-    for (int i = 0; i < 16; i++) { if (tn > uNormals[i + 1].x) k = i + 1; }
-    vec3 n0 = uNormals[k];
-    vec3 n1 = uNormals[k + 1];
-    float f = n1.x > n0.x ? (tn - n0.x) / (n1.x - n0.x) : 1.0;
-    n = n0.yz + f * (n1.yz - n0.yz);
-  }
-  n = floor(n + 0.5);
-  float a = A / 255.0;
-  vec2 an = n / 255.0;
-  vec2 v = clamp(2.0 * a * an - a - an + 1.0, 0.0, 1.0);
-  float c = a * 16.0;
-  int kk = min(15, int(floor(c)));
-  float light = uShade[kk] + (c - float(kk)) * (uShade[kk + 1] - uShade[kk]);
-  o = vec4(floor(255.0 * v + 0.5) / 255.0, floor(255.0 * light + 0.5) / 255.0, 1.0);
-}`;
 
 export interface GlassBake {
   /** its program: true once built, false while the GPU is still at it, null where it failed (gl-build.ts) */
@@ -91,7 +20,7 @@ export interface GlassBake {
 /** The baker for a context, its program built as the GPU gets to it. `quad` is a buffer of the two triangles over the
     whole target, as the player's own passes draw. */
 export function glassBake(gl: WebGL2RenderingContext, quad: WebGLBuffer): GlassBake {
-  const programs = buildPrograms(gl, [[VS, FS]]);
+  const programs = buildPrograms(gl, [[GLASS_FULL_VS, GLASS_BAKE_FS]]);
   const program = programs.list[0] as WebGLProgram;
   const at = (name: string) => gl.getUniformLocation(program, name);
   /* read once the program is built: reading them before waits for it */
