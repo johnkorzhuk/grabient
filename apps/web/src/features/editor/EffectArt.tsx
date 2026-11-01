@@ -133,25 +133,31 @@ export function EffectArt(props: {
     const read = () => setReduced(motion.matches);
     read();
     motion.addEventListener("change", read);
-    /* the players' code while the page idles, and a player made ahead for the first card lit */
-    const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200));
-    idle(() => {
-      const kind = untrack(() => props.kind);
-      void players[kind]().catch(() => {});
-      /* one card of a list makes it, the others reading no layout for it; a card the layout hides has no size to make
-         one at */
-      if (readied[kind] || untrack(() => props.settings.speed) === 0) return;
-      const box = holder.getBoundingClientRect();
-      if (box.width && box.height)
-        void makeAhead(
-          kind,
-          untrack(() => props.palette),
-          { ...untrack(view), speed: 0 },
-          box
-        ).catch(() => {});
-    });
     return () => motion.removeEventListener("change", read);
   });
+  /* the players' code while the page idles, and a player made ahead for the first card lit, of each kind the card
+     plays: a list turned from the glass to the blob makes one of the blob */
+  createEffect(
+    () => props.kind,
+    kind => {
+      const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200));
+      idle(() => {
+        if (untrack(() => props.kind) !== kind) return;
+        void players[kind]().catch(() => {});
+        /* one card of a list makes it, the others reading no layout for it; a card the layout hides has no size to
+           make one at */
+        if (readied[kind] || untrack(() => props.settings.speed) === 0) return;
+        const box = holder.getBoundingClientRect();
+        if (box.width && box.height)
+          void makeAhead(
+            kind,
+            untrack(() => props.palette),
+            { ...untrack(view), speed: 0 },
+            box
+          ).catch(() => {});
+      });
+    }
+  );
   const moving = () => props.active && props.settings.speed > 0 && !reduced();
   const view = () =>
     props.kind === "glass"
@@ -166,6 +172,8 @@ export function EffectArt(props: {
   let leaving: (Session & { timer: ReturnType<typeof setTimeout> }) | null = null;
   /* a start whose code is still on its way when the card goes dark again makes no player */
   let wanted = false;
+  /* a card the layout hides has no box to play in */
+  const sized = () => holder.clientWidth > 0 && holder.clientHeight > 0;
   /* a player let go is kept for the next card, held at its frame (no loop runs at speed 0) */
   const end = (s: Session) => {
     s.player.set(
@@ -214,6 +222,7 @@ export function EffectArt(props: {
       setCovered(true);
       return;
     }
+    if (!sized()) return;
     const kind = untrack(() => props.kind);
     /* a player kept from another card of this size: on to this one, from this card's first frame */
     const kept = pooled(kind, holder.clientWidth, holder.clientHeight);
@@ -235,7 +244,7 @@ export function EffectArt(props: {
       return;
     }
     const code = await players[kind]();
-    if (!wanted || session || leaving) return;
+    if (!wanted || session || leaving || !sized()) return;
     const canvas = document.createElement("canvas");
     canvas.className = styles.canvas;
     holder.append(canvas);
