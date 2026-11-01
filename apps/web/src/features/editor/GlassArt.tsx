@@ -18,13 +18,42 @@ const REST_MS = 120;
 /** How long a picture shown waits for its first paint before the GPU's still is made ready. */
 const TILE_WAIT_MS = 1000;
 
+/* A GPU still costs a few milliseconds, more where its ribs are laid out for another angle or box: a frame draws those
+   it has time for and the rest wait for the next, so a page of cards never draws them all in one task. */
+const FRAME_MS = 6;
+const waiting = new Set<() => void>();
+let frameEnd = Number.NEGATIVE_INFINITY;
+let ticking = false;
+const drawWaiting = () => {
+  frameEnd = performance.now() + FRAME_MS;
+  for (const draw of waiting) {
+    if (performance.now() >= frameEnd) break;
+    waiting.delete(draw);
+    draw();
+  }
+  ticking = waiting.size > 0;
+  if (ticking) requestAnimationFrame(drawWaiting);
+};
+/** Draws now where this frame has time left, else in the next that has; the way out takes its turn back. */
+function inTime(draw: () => void): () => void {
+  if (!ticking) {
+    ticking = true;
+    frameEnd = performance.now() + FRAME_MS;
+    requestAnimationFrame(drawWaiting);
+  }
+  if (!waiting.size && performance.now() < frameEnd) draw();
+  else waiting.add(draw);
+  return () => waiting.delete(draw);
+}
+
 /** The fluted glass's still as a small picture filling its box: the Appearance menu's tile, the header's swatch and a
     card's picture. The server's still where it is this one (the head's style paints any holder that names it),
     otherwise drawn here: on the GPU where the browser has WebGL 2 (ui/glass-still.ts), the first frame a player of
     this size starts from, in a few milliseconds, else as the still's SVG, whose filter the browser takes about a
     tenth of a second to paint at a tile's size. Until the GPU's first still is drawn the box shows the still's field,
     its colors where they lie without the ribs, which the server painted where it drew the page, and the still fades
-    in over it. At once as the box comes into sight, and after that as the palette, the angle or the shape changes. A
+    in over it; one drawn at once takes the box's place in a frame. A page of them draws a few a frame. At once as the
+    box comes into sight, and after that as the palette, the angle or the shape changes. A
     tile made before its menu opens draws nothing until the menu shows it. */
 export function GlassArt(props: {
   colors: readonly string[];
@@ -38,8 +67,10 @@ export function GlassArt(props: {
   let canvas!: HTMLCanvasElement;
   const key = () => glassStillKey(props.colors, props.angle, props.shape ?? null);
   const [uri, setUri] = createSignal<string | null>(null);
-  /* the still's field, while the GPU's still is on its way and no style of the server's paints it */
+  /* the still's field, while the GPU's still is on its way and no style of the server's paints it, and whether the
+     box showed one, which the still then fades in over */
   const [field, setField] = createSignal<string | null>(null);
+  const [fades, setFades] = createSignal(false);
   /* the still the box shows: until one is drawn, the one it names, which the server's may paint */
   const [showing, setShowing] = createSignal<string | null>(null);
   /* the GPU's bitmap is on the canvas, over the box */
@@ -67,21 +98,55 @@ export function GlassArt(props: {
   let drawnBox = "";
   /* the GPU's still asked for, ahead of a change */
   let warming = false;
+  /* the still's field while the box waits for its first still: the server's, or made here */
+  const showField = (
+    colors: readonly string[],
+    angle: number,
+    shape: number | null,
+    named: string
+  ) => {
+    if (untrack(painted)) return;
+    if (serverField(named)) return setFades(true);
+    const shown = () => {
+      const made = untrack(key) === named && !untrack(painted) && stillField(colors, angle, shape);
+      if (made) {
+        setField(made);
+        setFades(true);
+      }
+      return made;
+    };
+    if (!shown()) void loadStill().then(shown);
+  };
+  /* a still asked for, drawn in a frame with time for it, its field shown meanwhile */
+  let cancel: (() => void) | undefined;
+  const request = (
+    colors: readonly string[],
+    angle: number,
+    shape: number | null,
+    named: string
+  ) => {
+    cancel?.();
+    let drawn = false;
+    cancel = inTime(() => {
+      drawn = true;
+      draw(colors, angle, shape, named);
+    });
+    if (!drawn && !noGpu) showField(colors, angle, shape, named);
+  };
   const draw = (colors: readonly string[], angle: number, shape: number | null, named: string) => {
     if (untrack(key) !== named) return;
     if (!noGpu) {
       const dpr = devicePixelRatio || 1;
+      /* the server's field stands under the box's first still */
+      if (!untrack(painted) && serverField(named)) setFades(true);
       const bitmap = gpuStill(colors, angle, shape, el.clientWidth * dpr, el.clientHeight * dpr);
       if (bitmap === undefined) {
-        if (!untrack(painted) && !serverField(named)) {
-          const shown = () => untrack(key) === named && setField(stillField(colors, angle, shape));
-          if (!shown()) void loadStill().then(shown);
-        }
+        showField(colors, angle, shape, named);
         void loadGpuStill().then(
-          () => draw(colors, angle, shape, named),
+          () => request(colors, angle, shape, named),
           () => {
             noGpu = true;
-            draw(colors, angle, shape, named);
+            request(colors, angle, shape, named);
           }
         );
         return;
@@ -103,7 +168,7 @@ export function GlassArt(props: {
       setPainted(false);
       setUri(made);
       setShowing(named);
-    } else void loadStill().then(() => draw(colors, angle, shape, named));
+    } else void loadStill().then(() => request(colors, angle, shape, named));
   };
   createEffect(
     () =>
@@ -144,11 +209,14 @@ export function GlassArt(props: {
         return;
       }
       const wait = drawnAt + REST_MS - performance.now();
-      if (was || wait <= 0) draw(colors, angle, shape, named);
-      else timer = setTimeout(() => draw(colors, angle, shape, named), wait);
+      if (was || wait <= 0) request(colors, angle, shape, named);
+      else timer = setTimeout(() => request(colors, angle, shape, named), wait);
     }
   );
-  onCleanup(() => clearTimeout(timer));
+  onCleanup(() => {
+    clearTimeout(timer);
+    cancel?.();
+  });
   return (
     <span
       ref={el}
@@ -164,6 +232,7 @@ export function GlassArt(props: {
         ref={canvas}
         class={styles.glassArtCanvas}
         data-painted={painted() ? "" : undefined}
+        data-fades={fades() ? "" : undefined}
       />
     </span>
   );

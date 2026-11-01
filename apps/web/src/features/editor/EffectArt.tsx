@@ -138,7 +138,8 @@ export function EffectArt(props: {
     idle(() => {
       const kind = untrack(() => props.kind);
       void players[kind]().catch(() => {});
-      if (untrack(() => props.settings.speed) > 0)
+      /* one card of a list makes it; the others read no layout for it */
+      if (!readied[kind] && untrack(() => props.settings.speed) > 0)
         void makeAhead(
           kind,
           untrack(() => props.palette),
