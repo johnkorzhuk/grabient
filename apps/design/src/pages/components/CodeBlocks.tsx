@@ -69,7 +69,7 @@ export function CodeBlocks() {
             "One code block everywhere: a line to copy is its paper, its bar and its Copy.",
             "The code stands on the page's ground and scrolls past 480px; the line under it is on the paper, never read as code.",
             "Code is 13px, 12px under 520px wide, its comments in ink3. Copy and Copied share one cell, so nothing moves.",
-            "Tabs walked by the arrows, Home and End; a copy the browser refuses selects the code instead."
+            "Tabs walked by the arrows, Home and End; a copy the browser refuses selects the code instead, shown whole first where the press took more than is shown (an effect's first frame inside its tags)."
           ]}
         />
       </Block>
