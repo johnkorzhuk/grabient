@@ -415,3 +415,58 @@ test("a list playing the blob is drawn with its stills, and its lists' links kee
       .getByRole("img", { name: /, Blob$/ })
   ).toBeVisible();
 });
+
+test("a glass list draws the glass on every card in view once it idles, with no move of the reader's", async ({
+  page
+}) => {
+  for (const path of ["/palettes?style=glass", "/collections?style=glass"]) {
+    await page.goto(path);
+    await hydrated(page);
+    // the still each card draws itself, on the GPU or as its SVG, where the server's ribless field stood
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const shown = [...document.querySelectorAll("main article [role=img]")].filter(card => {
+              const box = card.getBoundingClientRect();
+              return box.width > 0 && box.bottom > 0 && box.top < innerHeight;
+            });
+            const drawn = shown.filter(card =>
+              card.querySelector('canvas[data-painted], [data-glass-still][style*="url("]')
+            );
+            return shown.length > 1 && drawn.length === shown.length;
+          }),
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+  }
+});
+
+test("the editor's Reset gives the lists back the effect the tab had as the palette opened", async ({
+  page
+}) => {
+  await page.goto("/palettes");
+  await hydrated(page);
+  const first = page.locator("main article").first();
+  await first.hover();
+  await first.getByRole("link", { name: /^Edit/ }).click();
+  await expect(page).toHaveURL(/\/k[\w-]+/);
+  const appearance = page.getByRole("button", { name: /^Appearance/ });
+  await appearance.click();
+  await page.getByRole("button", { name: "Blob", exact: true }).click();
+  await expect(appearance).toHaveAccessibleName(/^Appearance: Blob/);
+  await expect
+    .poll(async () => JSON.parse((await remembered(page)) ?? "{}").effect?.kind)
+    .toBe("blob");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Reset appearance" }).click();
+  await expect
+    .poll(async () => JSON.parse((await remembered(page)) ?? "{}").effect ?? null)
+    .toBeNull();
+  // the list stands as the reader left it, with no effect the editor let go
+  await page.goBack();
+  await expect(page).toHaveURL(/\/palettes$/);
+  await expect(page.getByRole("button", { name: /^Appearance/ })).toHaveAccessibleName(
+    /^Appearance: As saved/
+  );
+});
