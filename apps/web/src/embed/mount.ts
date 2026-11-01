@@ -7,10 +7,11 @@
    first paint (server/files/effect-files.ts), or the same rules in the page's own <style> (the editor's Copy HTML);
    where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows once its first frame,
    the still's own, is drawn: the glass fading in over a still the page painted, the blob (clear around itself) taking
-   the still's place in one frame. Where WebGL 2 is missing the still stays, and for a reader who asks for less motion
-   the still is the picture and no context is made. A lost context brings the still back until the browser restores
-   the context. It writes no markup and no style attribute, only CSSOM, so a page with a strict Content Security Policy
-   and Trusted Types runs it. A page plays one effect: a second script, the same or another, leaves it be. */
+   the still's place in one frame. Where WebGL 2 is missing the still stays. No context is made for a reader who asks
+   for less motion, nor for a blob held at speed 0, whose still is its whole picture. A lost context brings the still
+   back until the browser restores the context. It writes no markup and no style attribute, only CSSOM, so a page with
+   a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second script, the same or
+   another, leaves it be. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import {
   type Effect,
@@ -185,6 +186,9 @@ export function mount(embed: EmbedEffect): void {
     );
     if (!player) layer.remove();
   };
+  /* a blob held at speed 0 is its still exactly, so it takes no context; the glass held keeps its canvas, which draws
+     the frame at the screen's pixels where the still Copy HTML writes inside a page is a 1000-pixel picture */
+  if (embed.kind === "blob" && effect.speed === 0) return;
   /* for a reader who asks for less motion the still is the first frame held: no context until motion is welcome */
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   void Promise.all([still, body, firstPaint()]).then(function start() {

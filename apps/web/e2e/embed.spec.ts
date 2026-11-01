@@ -3,8 +3,9 @@ import { expect, type Page, test } from "@playwright/test";
 
 /* A palette's effect behind another site's page (src/embed): the stylesheet of its address paints the first frame, the
    script plays the effect from there under a strict policy, a page plays one effect however many scripts it holds, a
-   lost context brings the still back, and a reader who asks for less motion keeps the still. The tests' browser draws
-   WebGL on the CPU, where the players play nothing; here its renderer is said to be a GPU's, so they play. */
+   lost context brings the still back, and a reader who asks for less motion, like a blob held still, keeps the still.
+   The tests' browser draws WebGL on the CPU, where the players play nothing; here its renderer is said to be a GPU's,
+   so they play. */
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 
@@ -164,3 +165,12 @@ test("a reader who asks for less motion keeps the still, and no context is made"
   expect(await page.evaluate(() => "gl" in window)).toBe(false);
 });
 
+test("a blob held at speed 0 keeps its still, which is its whole picture, and no context is made", async ({
+  page
+}) => {
+  await site(page, tags("style=blob&shape=3&speed=0"));
+  expect(await still(page)).toContain("data:image/svg+xml");
+  await page.waitForTimeout(2000);
+  await expect(page.locator("canvas")).toHaveCount(0);
+  expect(await contexts(page)).toBe(0);
+});
