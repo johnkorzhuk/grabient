@@ -71,7 +71,7 @@ export function solidBlob(s: Shown): Shown {
 }
 
 /** The forms a palette takes: a gradient (linear, angular or radial), bands, the fluted glass and the blob. The page is
-    every palette's whole range: the address's form leads, and parts show the others. */
+    every palette's whole range, each part in a look of its own (looks.ts). */
 export type Form = "gradient" | "bands" | EffectKind;
 export const formOf = (s: Shown): Form =>
   s.effect?.kind ?? (isSwatchStyle(s.view.style) ? "bands" : "gradient");

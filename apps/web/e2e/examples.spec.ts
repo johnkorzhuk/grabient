@@ -1,7 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 
-/* A palette's examples (features/examples): the same examples whatever style the address names, its hero under the
-   header to the window's top, the editor's keys turning the palette here too, and the way back to the editor. */
+/* A palette's examples (features/examples): one page for each palette, whatever view or effect a link names, its parts
+   in the looks its seed picks; its hero under the header to the window's top, the editor's keys turning the palette here
+   too, and the way back to the editor. */
 
 const SEED = "kWPgBjqiK5UIirpZorp5IA6Y";
 /* the examples every palette fits; the rest stand where their checks pass (features/examples/fit.ts) */
@@ -22,22 +23,37 @@ async function random(page: Page, from: string) {
   }).toPass();
 }
 
-test("every style shows the examples its palette suits, numbered as they stand, and the page says nothing is wrong", async ({
+/** Each tile of the cards' grid by its name, which says its look. */
+const tilesOf = (page: Page) =>
+  page
+    .locator("#cards [role=group]")
+    .evaluateAll(tiles => tiles.map(t => t.getAttribute("aria-label")));
+
+test("a palette's examples are one page whatever view or effect a link names, which moves there for good", async ({
   page
 }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(String(error)));
+  await open(page, `/${SEED}/examples`);
+  const tiles = await tilesOf(page);
+  /* the tiles take the palette's range of looks, which their names say */
+  expect(new Set(tiles.map(name => name?.split(", ")[1])).size).toBeGreaterThan(3);
   for (const query of [
-    "",
     "?style=linearSwatches&steps=5&angle=45",
-    "?style=angularGradient&steps=32&angle=0",
     "?style=radialSwatches&steps=6",
     "?style=glass",
     "?style=blob&angle=45&speed=0.3&frost=0.6&shape=5894"
   ]) {
+    const answer = await page.request.get(`/${SEED}/examples${query}`, { maxRedirects: 0 });
+    expect(answer.status()).toBe(301);
+    expect(new URL(answer.headers().location, page.url()).href).toBe(
+      new URL(`/${SEED}/examples`, page.url()).href
+    );
     await open(page, `/${SEED}/examples${query}`);
+    await expect(page).toHaveURL(new RegExp(`/${SEED}/examples$`));
+    expect(await tilesOf(page)).toEqual(tiles);
     for (const id of ALWAYS) await expect(page.locator(`section#${id}`)).toHaveCount(1);
-    /* the palette's own name as drawn, which names the colors its steps show */
+    /* the palette's own name */
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^[A-Z][\w ,-]+$/);
     const numbers = await page
       .locator("main section[id] h2")
@@ -67,12 +83,16 @@ test("the editor's keys turn the palette, the address follows in place, and the 
   const entries = await page.evaluate(() => history.length);
   await random(page, SEED);
   await expect(page).toHaveURL(/\/k[\w-]+\/examples$/);
+  const rolled = new URL(page.url()).pathname;
+  await page.keyboard.press("i");
+  await expect(page).not.toHaveURL(new RegExp(`${rolled}$`));
+  await expect(page).toHaveURL(/\/k[\w-]+\/examples$/);
+  /* the steps' and the angle's keys have nothing to turn on a page of the palette's own looks */
+  const inverted = page.url();
   await page.keyboard.press("]");
-  await expect(page).toHaveURL(/\/examples\?steps=8$/);
   await page.keyboard.press(".");
-  await expect(page).toHaveURL(/\/examples\?steps=8&angle=105$/);
+  await expect(page).toHaveURL(inverted);
   expect(await page.evaluate(() => history.length)).toBe(entries);
-  await page.keyboard.press("ControlOrMeta+z");
   await page.keyboard.press("ControlOrMeta+z");
   await page.keyboard.press("ControlOrMeta+z");
   await expect(page).toHaveURL(new RegExp(`/${SEED}/examples$`));
@@ -81,11 +101,11 @@ test("the editor's keys turn the palette, the address follows in place, and the 
 });
 
 test("the way back opens the editor at the palette the keys left", async ({ page }) => {
-  await open(page, `/${SEED}/examples?style=glass`);
+  await open(page, `/${SEED}/examples`);
   await random(page, SEED);
   const turned = new URL(page.url()).pathname.split("/")[1];
   await page.getByRole("link", { name: "Editor" }).click();
-  await expect(page).toHaveURL(new RegExp(`/${turned}\\?style=glass$`));
+  await expect(page).toHaveURL(new RegExp(`/${turned}$`));
 });
 
 test("a press on a tile turns it to the palette's next look", async ({ page }) => {
@@ -102,16 +122,22 @@ test("a tile turns with Enter and Space as with a press, says its new look, and 
 }) => {
   await open(page, `/${SEED}/examples`);
   const poster = page.locator('#cards [data-kind="poster"]');
-  await expect(poster).toHaveAttribute("aria-label", "Poster");
+  const first = await poster.getAttribute("aria-label");
+  expect(first).toMatch(/^Poster, /);
   await poster.focus();
   const scrolled = await page.evaluate(() => scrollY);
   await page.keyboard.press("Enter");
-  await expect(poster).toHaveAttribute("aria-label", /^Poster, Linear bands · \d+ steps$/);
-  await expect(page.locator("[data-announce]")).toHaveText(/^Linear bands · \d+ steps$/);
+  await expect(poster).not.toHaveAttribute("aria-label", first ?? "");
+  const turned = ((await poster.getAttribute("aria-label")) ?? "").replace(/^Poster, /, "");
+  await expect(page.locator("[data-announce]")).toHaveText(turned);
   await page.keyboard.press(" ");
-  await expect(poster).toHaveAttribute("aria-label", "Poster, Fluted glass");
+  await expect(poster).not.toHaveAttribute("aria-label", `Poster, ${turned}`);
   // Space turns the tile and leaves the page where it stands
   expect(await page.evaluate(() => scrollY)).toBe(scrolled);
+  /* another palette's poster shows that palette's own look, as its page opened afresh does */
   await random(page, SEED);
-  await expect(poster).toHaveAttribute("aria-label", "Poster");
+  const fresh = await page.context().newPage();
+  await open(fresh, new URL(page.url()).pathname);
+  const own = await fresh.locator('#cards [data-kind="poster"]').getAttribute("aria-label");
+  await expect(poster).toHaveAttribute("aria-label", own ?? "");
 });

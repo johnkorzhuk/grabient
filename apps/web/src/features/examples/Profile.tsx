@@ -13,7 +13,7 @@ import { drawnColors, THEME_INK } from "./paint.ts";
 import { cssRule, drawnWords, pictureAddress, solidBlob } from "./shared.ts";
 
 /* Avatars and banners: the palette as a social profile's header and picture, each the palette's own file at the size a
-   profile takes, in the address's style (the gradient's PNG, or the effect's first frame, whose still the card shows and
+   profile takes, in the look the page gives it (the gradient's PNG, or the effect's first frame, whose still the card shows and
    plays under the pointer), which always suits it. The card stands on the paper whose theme the palette gives its
    Follow press on (fit.ts's pressPaper: a fill that stands out from the paper as a control must, under a label that
    reads), so the server's page is the browser's; were no color to stand out on either, the press would be an outline.
@@ -43,13 +43,9 @@ const MONO = {
   )
 };
 
-/** Whether the palette suits this example (fit.ts): the banner and the avatar are its own picture, so the profile is
-    shown for every palette. */
-export const profileFits = (_s: ExampleProps["s"]): boolean => true;
-
 export function ProfileExample(props: ExampleProps) {
   const s = createMemo(() => solidBlob(props.s));
-  /* the blob is shown on a ground its address doesn't name */
+  /* the blob is shown on a ground its look doesn't name */
   const added = () => s() !== props.s;
   /* the card is lit while the pointer rests on it or the keyboard's focus is in it: its effect plays */
   const lit = createLit();

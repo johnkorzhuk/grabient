@@ -6,16 +6,18 @@ import { paletteName } from "../../lib/page-meta.ts";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import { inkThrough, LARGE, lettersTheme, TILE, tileFor } from "./fit.ts";
 import styles from "./Headline.module.css";
+import { LOOKS, pickFitting, type Taken } from "./looks.ts";
 import { drawnColors, groundOn, type Shown, type Theme } from "./paint.ts";
 import { gradientOf, inForm, PLAIN_ANGLES, plainAt } from "./shared.ts";
 
 /* Headlines in the palette, as tiles of the cards' grid (Cards.tsx), each shown only where the palette works for it
    (fit.ts):
    - its name inside the letters (background-clip: text), on a page of the theme in which every one of its colors reads
-     as large words (lettersTheme), whatever theme the reader's page is in; in the address's form where that works, else
-     as its gradient at the address's angle or the first plain angle where it does;
+     as large words (lettersTheme), whatever theme the reader's page is in; in a look the seed picks of those that work
+     (looks.ts), else as its gradient at the first plain angle where one does;
    - words marked with the palette, which those words read on in white or black as large words (inkThrough at 3:1), on
-     the paper the marker stands out from more, the palette running along the words.
+     the paper the marker stands out from more, the palette running along the words as a gradient or bands, whichever
+     the seed picks of those that read.
    The name's rows are balanced here for the tile's width, one set for a wide tile and one for a narrow one, at the size
    that fits them in the room they have, so the server's page shows the very rows the browser does. An effect shows its
    still at rest (EffectArt) and plays while the tile is lit, blended through the letters: the heading in white on black
@@ -126,7 +128,7 @@ function rowsOf(pieces: readonly string[], most: number): Rows {
 const ACROSS = 100 - 2 * PAD;
 const upDown = (aspect: number) => 100 / aspect - 2 * PAD;
 
-/** The palette with a blob's ground set: the one its address names, else `ground`. */
+/** The palette with a blob's ground set: the one its look names, else `ground`. */
 function withGround(s: Shown, ground: string | null): Shown {
   const effect = s.effect;
   if (effect?.kind !== "blob" || effect.look.bg || !ground) return s;
@@ -149,15 +151,15 @@ function lettersOf(s: Shown): Letters | null {
   const bare = effect?.kind === "blob" && !own;
   return { theme, ground: bare ? groundOn(TILE[theme], colors) : null };
 }
-/** The palette as the letters draw it: in the address's form where they work there, else as its gradient at the
-    address's angle, else at the first plain angle where they do; none where they work in none. */
+/** The palette as the letters draw it: in the look given where they work there, else as its gradient at its angle,
+    else at the first plain angle where they do; none where they work in none. */
 const lettersShown = (s: Shown): Shown | undefined =>
   [s, inForm(s, "gradient"), ...PLAIN_ANGLES.map(angle => plainAt(s, angle))].find(
     form => lettersOf(form) !== null
   );
 
-/** The palette along words, as a marker and a rule draw it: a gradient, or bands where the address names bands, from
-    left to right (the address's own where it runs so); an effect's palette as its gradient. */
+/** The palette along words, as a marker and a rule draw it: a gradient, or bands where the look is bands, from left to
+    right (the look's own where it runs so); an effect's palette as its gradient. */
 function alongWords(s: Shown): Shown {
   if (!s.effect && s.view.style.startsWith("linear") && s.view.angle === 90) return s;
   const bands = !s.effect && isSwatchStyle(s.view.style);
@@ -189,15 +191,29 @@ function markOf(s: Shown): Mark | null {
   return read && { theme: paperUnder(colors), ...read };
 }
 
-/** The headlines a palette's tiles show: the ones it works for. */
+/** The headlines a palette's tiles show, each with the palette as it draws it: the letters in a look the seed picks of
+    those they work in, else as the palette's gradient at the first plain angle where they do; the words marked along a
+    gradient or bands, whichever the seed picks of those the words read on; none where it works in none. The looks they
+    take count in `taken`. */
 export type HeadlineKind = "letters" | "mark";
-export const headlinesOf = (s: Shown): HeadlineKind[] => [
-  ...(lettersShown(s) ? (["letters"] as const) : []),
-  ...(markOf(alongWords(s)) ? (["mark"] as const) : [])
-];
-/** The palette as a headline's tile draws it, which the tile's name says where it is not the address's form. */
-export const headlineShown = (kind: HeadlineKind, s: Shown): Shown =>
-  kind === "letters" ? (lettersShown(s) ?? s) : alongWords(s);
+export function headlinesOf(base: Shown, taken: Taken): { kind: HeadlineKind; shown: Shown }[] {
+  const { seed, palette } = base;
+  const letters =
+    pickFitting(seed, palette, "letters", LOOKS, s => lettersOf(s) !== null, taken) ??
+    PLAIN_ANGLES.map(angle => plainAt(base, angle)).find(s => lettersOf(s) !== null);
+  const mark = pickFitting(
+    seed,
+    palette,
+    "mark",
+    ["gradient", "bands"],
+    s => markOf(alongWords(s)) !== null,
+    taken
+  );
+  return [
+    ...(letters ? [{ kind: "letters" as const, shown: letters }] : []),
+    ...(mark ? [{ kind: "mark" as const, shown: alongWords(mark) }] : [])
+  ];
+}
 
 /** The name's rows: its pieces, each marked where a row of the wide layout or the narrow one starts (the other
     layout's breaks hidden, Headline.module.css), and the custom properties its size is told by: its room across and up
@@ -247,7 +263,8 @@ function Rows(props: { pieces: { text: string; wide: boolean; narrow: boolean }[
 /** A headline as a tile of the cards' grid, filling it: the palette's name inside its letters, or words marked with
     the palette. An effect plays in the letters while the tile is lit. */
 export function HeadlineTile(props: { kind: HeadlineKind; s: Shown; lit: () => boolean }) {
-  const name = () => paletteName(props.s.palette, props.s.view);
+  /* the palette's own name, as the page's title and its hero say it, whatever look the letters show */
+  const name = () => paletteName(props.s.palette);
   return (
     <Switch>
       <Match when={props.kind === "letters" && lettersShown(props.s)}>

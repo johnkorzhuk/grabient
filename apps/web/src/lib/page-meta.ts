@@ -1,5 +1,5 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
-import { type Effect, effectAddressParts, effectStillParts } from "@grabient/engine/effect.ts";
+import { type Effect, effectStillParts } from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
@@ -126,11 +126,10 @@ export type Page = Facts &
         collection?: CollectionFacts;
       }
     | {
-        /** a palette's examples, in the style its address names */
+        /** a palette's examples, one page whatever its address names; its hero's view, which its share card wears */
         kind: "examples";
         seed: string;
         view: View;
-        effect: Effect | null;
       }
     | {
         kind: "palette";
@@ -225,44 +224,30 @@ export const paletteCard = (seed: string, view: PaletteView) =>
     moves (server/images/cards.ts), named by all it depends on: its angle and its look, but not its pace. */
 export const effectCard = (seed: string, effect: Effect, angle: number): string =>
   `/api/og?seed=${seed}&v=${CARD_VERSION}&${effectStillParts(effect, angle).join("&")}`;
-/** A palette's examples page (routes/$id/examples.tsx): its address and /examples, then the style it shows, a
-    gradient's view or an effect's address, as the palette's own page names them, with no size. */
-export function examplesPath(
-  seed: string,
-  view: Pick<View, "style" | "steps" | "angle">,
-  effect: Effect | null
-): string {
-  const query = effect
-    ? `?${effectAddressParts(effect, view.angle).join("&")}`
-    : viewSearch({ style: view.style, steps: view.steps, angle: view.angle });
-  return `/${seed}/examples${query}`;
-}
+/** A palette's examples page (routes/$id/examples.tsx): its address and /examples, the same page whatever view or
+    effect a link names, which the page answers with a move to this one. */
+export const examplesPath = (seed: string): string => `/${seed}/examples`;
 
 /** A palette's examples (routes/$id/examples.tsx): kept out of the index, since what it says is the palette's own page's
-    and the code any palette takes; its share card is the palette in the style it shows. Its address is the palette's plus
-    /examples, with the view's query or the effect's. */
+    and the code any palette takes; its share card is the palette as its hero shows it. Its address is the palette's
+    plus /examples. */
 function examplesPage(
   page: Extract<Page, { kind: "examples" }>,
   meta: PageMeta,
   origin: string
 ): string {
   const P = decodePalette(page.seed);
-  const name = P ? paletteName(P, page.view) : page.seed;
+  /* the palette's own name, as the page's hero says it, whatever look the hero shows */
+  const name = P ? paletteName(P) : page.seed;
   meta.title = titled(t("{name} examples", { name }));
   meta.description = t("Ways to use the {name} palette, each with the code that does it.", {
     name
   });
   meta.robots = "noindex,follow";
-  /* its share card is the palette from edge to edge in the form its address names, the wordmark at its top left and no
-     chips: a gradient's view, or an effect's first frame */
-  meta.image = absolute(
-    page.effect
-      ? effectCard(page.seed, page.effect, page.view.angle)
-      : `${paletteCard(page.seed, page.view)}&chips=off`,
-    origin
-  );
+  /* its share card is the palette from edge to edge as the hero shows it, the wordmark at its top left and no chips */
+  meta.image = absolute(`${paletteCard(page.seed, page.view)}&chips=off`, origin);
   meta.imageAlt = t("{name} color palette", { name });
-  return examplesPath(page.seed, page.view, page.effect);
+  return examplesPath(page.seed);
 }
 
 /** A palette's own picture beside its page, in a view: a fixed size is the file's `w` and `h`. The PNG is the one its

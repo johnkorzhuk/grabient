@@ -24,7 +24,7 @@ import { cssRule, effectColorsWords, stopsOf } from "./shared.ts";
      apart (seriesOf).
    The board takes the tile theme on which more of these charts fit, and where as many fit on both, the one every color
    stands out from better, as tileFor chooses: the palette decides it, never the page's theme, so the server's board is
-   the browser's. The address's style leads: bands put their series first, a gradient or an effect its scale. A chart
+   the browser's. Their look (looks.ts) leads: bands put their series first, a gradient or an effect its scale. A chart
    that wants the width spans the board and the others stand two to a row, so no width leaves a hole. A number inside a
    color is in white or black, whichever reads on it, and the chip under the stage gives the least contrast one has. The
    code gives the same colors to a chart library, from the palette's JSON address too, for the charts shown. Nothing
@@ -142,12 +142,15 @@ function alongOf(s: Shown): Stop[] {
   return isSwatchStyle(s.view.style) ? stopsOf(s) : sampleStops(s.palette, FINE);
 }
 
-/** The palette's own gradient as the charts take it, whatever the address names: FINE even steps of its curve. */
+/** The palette's own gradient as the charts take it, whatever their look: FINE even steps of its curve. */
 const plainStops = (s: Shown): Stop[] => sampleStops(s.palette, FINE);
 /** Whether the palette suits this example (fit.ts), decided on its own gradient, so its page holds the charts in every
     style; where it does not, the page leaves the example out. */
 export const chartFits = (s: ExampleProps["s"]): boolean =>
   fitOf(plainStops(s).map(stop => stop.hex)).count > 0;
+/** Whether a look of the palette is a good fit for the charts: its own colors fit one, so the board shows the palette as
+    the look draws it, not as its own gradient. */
+export const chartGood = (s: Shown): boolean => fitOf(alongOf(s).map(stop => stop.hex)).count > 0;
 
 /** What the charts make of the palette as the page shows it. */
 interface Plan extends Fit {
@@ -157,7 +160,7 @@ interface Plan extends Fit {
   bands: boolean;
   /** how the palette is drawn there, as the tag says it */
   drawn: string;
-  /** shown otherwise than the address names it */
+  /** shown otherwise than its look draws it */
   differs: boolean;
   /** the palette's JSON address, whose colors are these */
   json: string;
@@ -167,14 +170,14 @@ interface Plan extends Fit {
 const stepWords = (style: Style, steps: number) =>
   `${t(STYLE_LABELS[style])} · ${t("{count, plural, one {# step} other {# steps}}", { count: steps })}`;
 
-function planOf(address: Shown, origin: string): Plan {
-  /* the address's colors where a chart fits them, else the palette's own gradient's, which the tag says */
-  const own = alongOf(address);
+function planOf(look: Shown, origin: string): Plan {
+  /* the look's colors where a chart fits them, else the palette's own gradient's, which the tag says */
+  const own = alongOf(look);
   const owned = fitOf(own.map(stop => stop.hex)).count > 0;
   const s: Shown = owned
-    ? address
-    : { ...address, effect: null, view: { ...address.view, style: "linearGradient" } };
-  const stops = owned ? own : plainStops(address);
+    ? look
+    : { ...look, effect: null, view: { ...look.view, style: "linearGradient" } };
+  const stops = owned ? own : plainStops(look);
   const colors = stops.map(stop => stop.hex);
   const fit = fitOf(colors);
   const bands = !s.effect && isSwatchStyle(s.view.style);
@@ -188,7 +191,7 @@ function planOf(address: Shown, origin: string): Plan {
     colors,
     bands,
     drawn: effectColorsWords(s) ?? stepWords(linear, n),
-    differs: !!address.effect || address.view.style !== linear || address.view.steps !== n,
+    differs: !!look.effect || look.view.style !== linear || look.view.steps !== n,
     json: `${origin}/${s.seed}.json?steps=${n}`
   };
 }
@@ -208,7 +211,7 @@ const TITLES: Readonly<Record<Kind, string>> = {
 /** The charts of October alone; the others run from May. */
 const OCTOBER: readonly Kind[] = ["calendar", "hours", "donut"];
 
-/** The charts the palette fits, the address's style leading. */
+/** The charts the palette fits, its look leading. */
 function chartsOf(plan: Plan): Kind[] {
   const scale: Kind[] = plan.scale
     ? ["calendar", ...(plan.marks ? (["hours", "weeks"] as const) : [])]
@@ -822,7 +825,7 @@ function codeOf(plan: Plan): CodeTab[] {
   const json: string[] = [];
   if (series) {
     const names = quoted(partsOf(series, SHARES[0]).map(part => part.name));
-    /* where the series stand among the address's colors: all of them, a run of them, or the ones taken */
+    /* where the series stand among the look's colors: all of them, a run of them, or the ones taken */
     const taken = series.map(hex => plan.colors.indexOf(hex));
     const run = taken.every((place, i) => place === taken[0] + i);
     const from = (list: string) =>

@@ -616,7 +616,7 @@ export function Sheet(props: {
       }
       inks={inks()}
       onInks={setInks}
-      examples={<ExamplesLink href={examplesPath(e.seed(), view(), e.effect())} />}
+      examples={<ExamplesLink href={examplesPath(e.seed())} />}
       solid={
         figured() && (
           <SolidPane

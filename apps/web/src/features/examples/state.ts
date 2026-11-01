@@ -1,7 +1,7 @@
 /* The palette a palette's examples page shows, which the editor's keys turn here as they do there: B for a random
-   palette of as many keyframes, I to invert it, E to reverse it, [ and ] for fewer or more steps (a gradient's alone:
-   an effect draws none), comma and period to turn the angle, and the undo, which walks these turns on this page and
-   never leaves it. The address follows, written in the page's own history entry, never a new one, so Back leaves the
+   palette of as many keyframes, I to invert it, E to reverse it, and the undo, which walks these turns on this page and
+   never leaves it. The page is one for each palette, its parts in the looks its seed picks (looks.ts), so the steps'
+   and the angle's keys have nothing to turn here. The address follows, written in the page's own history entry, never a new one, so Back leaves the
    page in one press; at most once each WRITE_MS, the first of a burst at once and the last always, as the editor's
    (history.ts): Safari refuses a page more than a hundred history calls in thirty seconds. Another address arriving
    (Back, Forward, a link) is taken in whole. What the page paints passes the flash guard, as the editor's picture
@@ -15,10 +15,11 @@ import type { ParsedLocation, useRouter } from "@tanstack/solid-router";
 import { createEffect, createSignal, onCleanup, untrack } from "solid-js";
 import { copyAddress } from "../../app/keys.ts";
 import { examplesPath } from "../../lib/page-meta.ts";
-import { NO_LOCKS, NUMBERS, readSeedPage } from "../editor/address.ts";
+import { NO_LOCKS, readSeedPage } from "../editor/address.ts";
 import { onceAFrame } from "../editor/keys.ts";
 import * as ops from "../editor/ops.ts";
 import { searchReader } from "../editor/page.ts";
+import { plainOf } from "./looks.ts";
 import { drawnColors, type Shown } from "./paint.ts";
 
 const WRITE_MS = 350;
@@ -27,22 +28,13 @@ const LIMIT = 100;
 
 type Router = ReturnType<typeof useRouter>;
 
-const addressOf = (s: Shown) => examplesPath(s.seed, s.view, s.effect);
-/** The page an examples address names, or null where it names none. */
+const addressOf = (s: Shown) => examplesPath(s.seed);
+/** The palette an examples address names, or null where it names none. */
 function shownAt(location: ParsedLocation): Shown | null {
   const [id, rest] = location.pathname.slice(1).split("/");
   if (rest !== "examples" || !id) return null;
-  const page = readSeedPage(id, searchReader(location.search as Record<string, unknown>));
-  return page
-    ? { seed: page.seed, palette: page.palette, view: page.view, effect: page.effect ?? null }
-    : null;
-}
-/** The address as the router's search object: a number-like value stays a number, or the router writes it quoted. */
-function searchOf(s: Shown): Record<string, string | number> {
-  const out: Record<string, string | number> = {};
-  for (const [key, value] of new URLSearchParams(addressOf(s).split("?")[1] ?? ""))
-    out[key] = NUMBERS.has(key) ? Number(value) : value;
-  return out;
+  const page = readSeedPage(id, searchReader({}));
+  return page ? plainOf(page.seed, page.palette) : null;
 }
 
 export function createExamplesState(o: {
@@ -80,7 +72,7 @@ export function createExamplesState(o: {
     void o.router.navigate({
       to: "/$id/examples",
       params: { id: s.seed },
-      search: searchOf(s),
+      search: {},
       replace: true,
       resetScroll: false
     });
@@ -88,7 +80,7 @@ export function createExamplesState(o: {
   const writeSoon = () => {
     if (!timer) timer = setTimeout(settle, Math.max(0, WRITE_MS - (Date.now() - lastAt)));
   };
-  /** The page turned to another palette or view: a step the undo walks back. */
+  /** The page turned to another palette: a step the undo walks back. */
   function put(next: Shown, step = true) {
     if (addressOf(next) === addressOf(plain)) return;
     if (step) {
@@ -102,10 +94,10 @@ export function createExamplesState(o: {
   }
   const withPalette = (palette: Shown["palette"]): Shown => {
     const P = canonical(palette);
-    return { ...plain, seed: encodePalette(P), palette: P };
+    return plainOf(encodePalette(P), P);
   };
 
-  /* an address arriving from elsewhere is the page's whole: its palette and view, and an undo that starts again */
+  /* an address arriving from elsewhere is the page's whole: its palette, and an undo that starts again */
   createEffect(o.location, at => {
     const next = shownAt(at);
     if (!next) {
@@ -137,16 +129,6 @@ export function createExamplesState(o: {
     },
     reverse() {
       put(withPalette(ops.reversed(plain.palette, [])));
-    },
-    /** A gradient's steps, one more or one fewer, never under its keyframes. */
-    steps(by: 1 | -1) {
-      if (plain.effect) return;
-      const steps = ops.clampSteps(plain.view.steps + by, plain.palette.anchors.length);
-      put({ ...plain, view: { ...plain.view, steps } });
-    },
-    /** The angle turned by 15° either way. */
-    rotate(by: 15 | -15) {
-      put({ ...plain, view: { ...plain.view, angle: (plain.view.angle + 360 + by) % 360 } });
     },
     canUndo: () => past.length > 0,
     canRedo: () => ahead.length > 0,
@@ -198,15 +180,6 @@ export function examplesBindings(st: ExamplesState): Binding[] {
     bind(
       "reverse",
       onceAFrame(() => st.reverse())
-    ),
-    bind(
-      "stops",
-      onceAFrame(i => st.steps(i ? 1 : -1)),
-      () => !st.now().effect
-    ),
-    bind(
-      "rotate",
-      onceAFrame(i => st.rotate(i ? 15 : -15))
     ),
     /* the page's own undo while it has turns to walk; the site's otherwise */
     bind(

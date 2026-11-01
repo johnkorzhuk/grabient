@@ -10,8 +10,8 @@ import { type Shown, twoPlaces } from "./paint.ts";
 import { gradientOf, levelWords } from "./shared.ts";
 
 /* One way to use a palette, as the page shows it: its number and its use in a few words, a line on what it is for, then
-   the example itself on a stage of its own, and under it a tag naming how the palette is drawn there (the address's
-   style, or the other way it is shown here, which the tag's dashed edge marks) with the facts the example measures as
+   the example itself on a stage of its own, and under it a tag naming how the palette is drawn there (the look
+   the page gives it, or the other way it is shown here, which the tag's dashed edge marks) with the facts the example measures as
    chips beside it, and its code in tabs, each one Copy takes whole. Every example of the page stands in this frame, so
    they read as one page, with few words. */
 
@@ -85,7 +85,7 @@ export function Example(props: {
   about: Element;
   /** how the palette is drawn on the stage, in the reader's language */
   drawn: string;
-  /** the stage shows the palette otherwise than its address names it: the tag says so */
+  /** the stage shows the palette otherwise than its look draws it: the tag says so */
   differs?: boolean;
   /** the stage's own ground: the page's, for an example that stands on a page; paper by default */
   ground?: "page" | "paper";

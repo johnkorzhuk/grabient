@@ -119,9 +119,6 @@ function gradientDeclaration(
   ].join("\n");
 }
 
-/** Whether the palette suits this example (fit.ts): where it does not, the page leaves the example out. */
-export const swatchesFits = (_s: ExampleProps["s"]): boolean => true;
-
 export function SwatchesExample(props: ExampleProps) {
   const s = () => props.s;
   /* the chips' colors: the stops at the page's steps, or the ones the effect is drawn from, which are its palette at

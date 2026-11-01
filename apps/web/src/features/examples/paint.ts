@@ -1,5 +1,5 @@
-/* What a palette shows on its examples page, and what reads on it. Each example draws the palette as the page's address
-   names it, or says how it draws it otherwise. Where words stand on a picture, the colors under them say which ink
+/* What a palette shows on its examples page, and what reads on it. Each part draws the palette in the look the page
+   gives it (looks.ts), or says how it draws it otherwise. Where words stand on a picture, the colors under them say which ink
    reads there, by WCAG 2's contrast: a gradient's are read off its geometry (the line, the cone or the circle the CSS
    draws, for a box of a given shape), the fluted glass's as the line of its six colors its ribs run across, a blob's as
    all its colors over its ground, which the page's own is where it has none. */
@@ -11,8 +11,8 @@ import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { isSwatchStyle, type Style, type View } from "@grabient/engine/view.ts";
 
-/** The palette as the page shows it: its seed, its colors, the view its address names, and the effect it plays where
-    it names one. */
+/** The palette as a part of the page shows it: its seed, its colors, the view of its look, and the effect it plays
+    where the look is one. */
 export interface Shown {
   seed: string;
   palette: Palette;
@@ -33,13 +33,22 @@ const BLOB_PLACES = 9;
 /** The colors a picture of the palette is drawn with, in order: a gradient's stops or its bands at the view's steps,
     the glass's six, the blob's palette at nine places. */
 export function drawnColors(s: Shown): string[] {
-  if (s.effect?.kind === "glass") return glassColors(s.palette);
-  if (s.effect?.kind === "blob")
-    return Array.from({ length: BLOB_PLACES }, (_, i) =>
-      sampleHex(s.palette, i / (BLOB_PLACES - 1))
-    );
-  return sampleStops(s.palette, s.view.steps).map(stop => stop.hex);
+  let colors = drawn.get(s);
+  if (!colors) {
+    colors =
+      s.effect?.kind === "glass"
+        ? glassColors(s.palette)
+        : s.effect?.kind === "blob"
+          ? Array.from({ length: BLOB_PLACES }, (_, i) =>
+              sampleHex(s.palette, i / (BLOB_PLACES - 1))
+            )
+          : sampleStops(s.palette, s.view.steps).map(stop => stop.hex);
+    drawn.set(s, colors);
+  }
+  return colors;
 }
+/* each picture's colors, worked out once: a page's checks read them for each part of the picture they try */
+const drawn = new WeakMap<Shown, string[]>();
 
 /** A part of a box, as fractions of its width and height from its top left corner. */
 export interface Part {
@@ -81,8 +90,6 @@ function placeOf(style: Style, angle: number, aspect: number, x: number, y: numb
   return 0.5 + (dx * Math.sin(turn) - dy * Math.cos(turn)) / length;
 }
 
-/* a part is read at this many points a side, its corners among them: enough for the narrowest band a contrast turns on */
-const GRID = 9;
 /* the glass bends its colors across its ribs: a point may show the line's colors this far either way */
 const GLASS_BEND = 0.15;
 
@@ -94,25 +101,9 @@ function blobColors(effect: Effect, colors: readonly string[]): string[] {
 }
 
 /** The colors under a part of a box `aspect` times as wide as tall where the palette is its picture, as the page shows
-    it. A blob's are all of its colors and its ground: the page's own in both themes where it has none, since a server
-    draws the page before it knows the reader's theme. */
-export function colorsUnder(s: Shown, part: Part, aspect: number): string[] {
-  const colors = drawnColors(s);
-  if (s.effect?.kind === "blob") return blobColors(s.effect, colors);
-  const glass = s.effect?.kind === "glass";
-  const style: Style = glass ? "linearGradient" : s.view.style;
-  const bands = !glass && isSwatchStyle(style);
-  const found = new Set<string>();
-  for (let i = 0; i < GRID; i++)
-    for (let j = 0; j < GRID; j++) {
-      const x = part.x0 + ((part.x1 - part.x0) * i) / (GRID - 1);
-      const y = part.y0 + ((part.y1 - part.y0) * j) / (GRID - 1);
-      const t = placeOf(style, s.view.angle, aspect, x, y);
-      for (const at of glass ? [t - GLASS_BEND, t, t + GLASS_BEND] : [t])
-        found.add(colorAt(colors, at, bands));
-    }
-  return [...found];
-}
+    it: those every color there is a blend of (colorsOfParts). */
+export const colorsUnder = (s: Shown, part: Part, aspect: number): string[] =>
+  colorsOfParts(s, aspect)(part);
 
 /** The least contrast an ink has on any of the colors. */
 export const worstContrast = (ink: string, colors: readonly string[]): number =>
@@ -199,10 +190,10 @@ function colorsOver(colors: readonly string[], a: number, b: number, bands: bool
   return [colorAt(colors, from, false), ...stops, colorAt(colors, to, false)];
 }
 
-/** The colors under any part of a box `aspect` times as wide as tall where the palette is its picture, exactly where
-    colorsUnder reads points: those every color there is a blend of, from the stretches of the line the part covers
-    (the glass's widened by its ribs' bend), and a blob's all of its colors and its ground. The palette's colors are
-    worked out once, for every part asked of it. */
+/** The colors under any part of a box `aspect` times as wide as tall where the palette is its picture: those every
+    color there is a blend of, the colors at the ends of each stretch of the line the part covers and each stop between
+    (the glass's stretch widened by its ribs' bend), and a blob's all of its colors and its ground. A part's corners and
+    the point nearest the middle say which stretch it covers, so no stop between two points read goes unseen. */
 export function colorsOfParts(s: Shown, aspect: number): (part: Part) => string[] {
   const colors = drawnColors(s);
   const effect = s.effect;

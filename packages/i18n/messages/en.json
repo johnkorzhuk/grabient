@@ -2579,12 +2579,6 @@
       "packages/engine/src/view.ts:24"
     ]
   },
-  "Linked": {
-    "note": "Tab name of a code block on the examples page, beside 'HTML': the same tags, linking Grabient's stylesheet instead of holding the picture inline. One short word.",
-    "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:127"
-    ]
-  },
   "Links and JSON can be up to 2,048 characters.": {
     "note": "Search error: the text is too long.",
     "refs": [
@@ -6607,6 +6601,12 @@
     "note": "A count of keyframes.",
     "refs": [
       "packages/ui/src/figure.ts:190"
+    ]
+  },
+  "{count, plural, one {# look} other {# looks}}": {
+    "note": "Examples page: the tag under the cards grid, how many looks its tiles show the palette in (a gradient, bands across, bands swept round, rings, the fluted glass, the blob).",
+    "refs": [
+      "apps/web/src/features/examples/Cards.tsx:690"
     ]
   },
   "{count, plural, one {# minute} other {# minutes}}": {

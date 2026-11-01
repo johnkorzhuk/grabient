@@ -191,7 +191,7 @@ describe("colorsOfParts", () => {
     expect(across).toContain(stops[4]);
     expect(colorsOfParts(s, 1)({ x0: 0.45, y0: 0.45, x1: 0.55, y1: 0.55 })).toEqual(stops);
   });
-  test("every color colorsUnder reads lies within the part's colors: no lighter in any channel than their most, nor darker than their least", () => {
+  test("every point of a part shows a blend of the part's colors: no channel lighter than their most, nor darker than their least", () => {
     const styles: Style[] = [
       "linearGradient",
       "linearSwatches",
@@ -206,7 +206,7 @@ describe("colorsOfParts", () => {
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
       return seed / 2 ** 32;
     };
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 200; i++) {
       const s = shown(
         styles[i % styles.length],
         Math.floor(next() * 360),
@@ -219,12 +219,18 @@ describe("colorsOfParts", () => {
         x1: x * 0.8 + next() * 0.2,
         y1: y * 0.8 + next() * 0.2
       };
-      const aspect = 0.5 + next() * 2;
-      const within = colorsOfParts(s, aspect)(part).map(bytes);
-      for (const c of colorsUnder(s, part, aspect).map(bytes))
-        for (let k = 0; k < 3; k++) {
-          expect(c[k]).toBeGreaterThanOrEqual(Math.min(...within.map(w => w[k])) - 1);
-          expect(c[k]).toBeLessThanOrEqual(Math.max(...within.map(w => w[k])) + 1);
+      const colorsOf = colorsOfParts(s, 0.5 + next() * 2);
+      const within = colorsOf(part).map(bytes);
+      /* a point is a part of no size: the one color there */
+      for (let a = 0; a <= 12; a++)
+        for (let b = 0; b <= 12; b++) {
+          const px = part.x0 + ((part.x1 - part.x0) * a) / 12;
+          const py = part.y0 + ((part.y1 - part.y0) * b) / 12;
+          const [c] = colorsOf({ x0: px, y0: py, x1: px, y1: py }).map(bytes);
+          for (let k = 0; k < 3; k++) {
+            expect(c[k]).toBeGreaterThanOrEqual(Math.min(...within.map(w => w[k])) - 1);
+            expect(c[k]).toBeLessThanOrEqual(Math.max(...within.map(w => w[k])) + 1);
+          }
         }
     }
   });

@@ -19,7 +19,7 @@ import styles from "./Wallpapers.module.css";
 const HEX = { c: (words: (string | Element)[]) => <span dir="ltr">{words}</span> };
 
 /* The palette as a phone's lock screen and a desktop's wallpaper, each the palette's own file at the screen's size in
-   the address's style: the gradient's PNG, or the effect's first frame, whose still the screen shows and plays under
+   the look the page gives them (looks.ts): the gradient's PNG, or the effect's first frame, whose still the screen shows and plays under
    the pointer, and its moving SVG for any size. Each screen has its clock in white or black, standing where that ink
    reads on every color under it: of the places a clock stands on such a screen, the first that reaches the best level
    the palette allows, which a chip under the stage gives for each. A screen where no place lets an ink read as a lock
@@ -117,27 +117,25 @@ const MOMENT = Date.UTC(2026, 10, 12, 10, 24);
 /** Each device's name on its chip. */
 const NAMES: Readonly<Record<Device, string>> = { phone: msg("Phone"), desktop: msg("Desktop") };
 
-/** Whether the palette suits this example (fit.ts): where it does not, the page leaves the example out. */
-export const wallpapersFits = (_s: ExampleProps["s"]): boolean => true;
+/** Where a screen's clock stands on a wall and in what ink. */
+function clockOn(wall: Shown, d: Device) {
+  const rtl = dir() === "rtl";
+  if (d === "desktop") return standing(wall, DESKTOP_PLACES, aspectOf("desktop"), rtl);
+  const rings = !wall.effect && wall.view.style.startsWith("radial");
+  return standing(wall, rings ? PHONE_RINGS : PHONE_PLACES, aspectOf("phone"), rtl);
+}
+/** Whether a look of the palette is a good fit for the wallpapers: each screen has a place where its clock reads. */
+export const wallpapersGood = (s: Shown): boolean =>
+  DEVICES.every(d => clockOn(wallOf(s), d).ratio >= LARGE);
 
 export function WallpapersExample(props: ExampleProps) {
   const wall = createMemo(() => wallOf(props.s));
-  /* the blob is shown on a ground its address doesn't name */
+  /* the blob is shown on a ground its look doesn't name */
   const filled = () => wall() !== props.s;
   /* where each screen's clock stands and in what ink, which its screen and its chip read: once for each palette */
   const reads: Readonly<Record<Device, () => ReturnType<typeof standing>>> = {
-    phone: createMemo(() => {
-      const rings = !wall().effect && wall().view.style.startsWith("radial");
-      return standing(
-        wall(),
-        rings ? PHONE_RINGS : PHONE_PLACES,
-        aspectOf("phone"),
-        dir() === "rtl"
-      );
-    }),
-    desktop: createMemo(() =>
-      standing(wall(), DESKTOP_PLACES, aspectOf("desktop"), dir() === "rtl")
-    )
+    phone: createMemo(() => clockOn(wall(), "phone")),
+    desktop: createMemo(() => clockOn(wall(), "desktop"))
   };
   const read = (d: Device) => reads[d]();
   /* a screen shows its clock where an ink reads there as large figures must */
