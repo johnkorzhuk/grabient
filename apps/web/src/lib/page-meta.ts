@@ -1,11 +1,5 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
-import {
-  EFFECT_FPS,
-  type Effect,
-  effectAddressParts,
-  effectFileAddress,
-  effectLookParts
-} from "@grabient/engine/effect.ts";
+import { type Effect, effectAddressParts, effectLookParts } from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
@@ -249,7 +243,7 @@ export function examplesPath(
 }
 
 /** A palette's examples (routes/$id/examples.tsx): kept out of the index, since what it says is the palette's own page's
-    and the code any palette takes; its share image is the palette in the style it shows. Its address is the palette's plus
+    and the code any palette takes; its share card is the palette in the style it shows. Its address is the palette's plus
     /examples, with the view's query or the effect's. */
 function examplesPage(
   page: Extract<Page, { kind: "examples" }>,
@@ -263,19 +257,12 @@ function examplesPage(
     name
   });
   meta.robots = "noindex,follow";
-  /* its share image is the palette alone from edge to edge at a card's size, in the form its address names: a
-     gradient's view, or an effect's first frame (a picture's address leaves the effect's pace out) */
+  /* its share card is the palette from edge to edge in the form its address names, the wordmark at its top left and no
+     chips: a gradient's view, or an effect's first frame */
   meta.image = absolute(
     page.effect
-      ? effectFileAddress(
-          "",
-          page.seed,
-          { ...page.effect, speed: 1, fps: EFFECT_FPS.default },
-          page.view.angle,
-          "png",
-          CARD_SIZE
-        )
-      : paletteFile(page.seed, { ...page.view, size: CARD_SIZE }, "png"),
+      ? effectCard(page.seed, page.effect, page.view.angle)
+      : `${paletteCard(page.seed, page.view)}&chips=off`,
     origin
   );
   meta.imageAlt = t("{name} color palette", { name });
