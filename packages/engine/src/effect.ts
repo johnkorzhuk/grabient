@@ -19,7 +19,6 @@ export const isEffect = (value: unknown): value is EffectKind =>
 export const EFFECT_SPEED = { min: 0, slowest: 0.1, max: 10 } as const;
 /** Frames a second: `default` unless an address says, up to `max` where the screen shows that many. */
 export const EFFECT_FPS = { min: 1, default: 60, max: 120 } as const;
-export const EFFECT_FPS_MAX = EFFECT_FPS.max;
 
 /** How an effect plays: the same settings for each. */
 export interface EffectPlay {
@@ -29,9 +28,6 @@ export interface EffectPlay {
   fps: number;
 }
 export const EFFECT_PLAY: EffectPlay = { speed: 1, fps: EFFECT_FPS.default };
-
-/** Whether an effect holds its first frame: no motion, nothing to play. */
-export const isStill = (play: EffectPlay): boolean => play.speed === 0;
 
 /** An effect's look: its shape, and the blob's frost and ground, which the glass leaves as they are. */
 export interface EffectLook {

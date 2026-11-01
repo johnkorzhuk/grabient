@@ -25,9 +25,6 @@ export const GLASS_LOOP = 56;
 /** The one design every size shows, scaled to cover the box as a background image is: the server draws it before it
     knows the screen, and the player draws the same, so the two agree at any size. */
 export const GLASS_DESIGN: Size = { width: 1000, height: 1000 };
-export const GLASS_SPEED_MIN = 0.1;
-export const GLASS_SPEED_MAX = 10;
-export const GLASS_FPS_MAX = 120;
 /** The angle the ribs run at as the hill climb drew them: the view's default (view.ts). Another angle turns them, and
     the discs' orbits along them, about the middle; the colors stay where they are. */
 export const GLASS_ANGLE = 90;
