@@ -1,6 +1,6 @@
-import { createSignal, createUniqueId, For, flush, Show, untrack } from "solid-js";
+import { createSignal, createUniqueId, For, Show, untrack } from "solid-js";
 import block from "./CodeBlock.module.css";
-import { CodeLines, selectText } from "./CodeBlock.tsx";
+import { CodeLines, refusedCopy } from "./CodeBlock.tsx";
 import { CopyButton } from "./CopyButton.tsx";
 import { t } from "./i18n.ts";
 import styles from "./PaletteCode.module.css";
@@ -45,20 +45,14 @@ export function PaletteCode(props: {
     const { id, spellings: offered = [], initial } = source();
     return [spellings()[id], initial].find(s => offered.some(o => o.id === s)) ?? offered[0]?.id;
   };
-  /* a copy the browser refused leaves the code selected for a copy by hand; where Copy took more than is shown (an
-     effect's first frame written whole), the text it took is shown in its place first, until the shown text changes */
-  const [refused, setRefused] = createSignal<{ shown: string; taken: string } | null>(null);
-  const text = () => {
-    const shown = source().text(spelling());
-    const kept = refused();
-    return kept?.shown === shown ? kept.taken : shown;
-  };
+  let code: HTMLElement | undefined;
+  const copy = refusedCopy(() => code);
+  const text = () => copy.shown(source().text(spelling()));
   const take = () => {
     const { take } = source();
     const spelled = spelling();
     return take && (() => take(spelled));
   };
-  let code: HTMLElement | undefined;
   let scroller!: HTMLDivElement;
   const pick = (id: string) => {
     setKind(id);
@@ -120,14 +114,7 @@ export function PaletteCode(props: {
           aria-label={t("Copy code")}
           compact
           onCopy={value => props.onCopy?.(source().id, value, spelling())}
-          onRefused={taken => {
-            const shown = source().text(spelling());
-            if (taken && taken !== shown) {
-              setRefused({ shown, taken });
-              flush();
-            }
-            selectText(code);
-          }}
+          onRefused={taken => copy.refuse(source().text(spelling()), taken)}
         />
       </div>
       <Show when={(source().spellings?.length ?? 0) > 1}>

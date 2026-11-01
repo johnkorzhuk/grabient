@@ -1,4 +1,4 @@
-import { createMemo, For } from "solid-js";
+import { createMemo, createSignal, For, flush } from "solid-js";
 import styles from "./CodeBlock.module.css";
 import { matches } from "./keys.ts";
 
@@ -22,13 +22,33 @@ export const addressParts = (address: string): string[] =>
   address.match(/^[^/]*\/\/|\/?[^/]+|\//g) ?? [address];
 
 /** Selects an element's text, for a copy by hand. */
-export function selectText(el: Element | undefined): void {
+function selectText(el: Element | undefined): void {
   if (!el) return;
   const range = document.createRange();
   range.selectNodeContents(el);
   const picked = getSelection();
   picked?.removeAllRanges();
   picked?.addRange(range);
+}
+
+/** A block's copy the browser refused: the code is selected for a copy by hand, and where Copy took more than is shown
+    (an effect's first frame written whole in its tags), the code it took is shown in its place first, until the code
+    shown changes. `shown` is the code the block shows for the code it would show. */
+export function refusedCopy(code: () => Element | undefined) {
+  const [refused, setRefused] = createSignal<{ shown: string; taken: string } | null>(null);
+  return {
+    shown: (text: string) => {
+      const kept = refused();
+      return kept?.shown === text ? kept.taken : text;
+    },
+    refuse: (text: string, taken: string) => {
+      if (taken && taken !== text) {
+        setRefused({ shown: text, taken });
+        flush();
+      }
+      selectText(code());
+    }
+  };
 }
 
 interface Line {
