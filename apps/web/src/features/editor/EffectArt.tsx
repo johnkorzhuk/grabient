@@ -17,10 +17,14 @@ interface Player {
   destroy(): void;
 }
 /* a player and the canvas it draws in: each player has a canvas of its own, since one it lets go takes its WebGL
-   context with it, and a canvas never has another */
+   context with it, and a canvas never has another. It keeps what it plays: a player let go is held at that and kept
+   for its kind, read from here, since the picture that named them may be gone with its holder */
 interface Session {
   canvas: HTMLCanvasElement;
   player: Player;
+  kind: EffectKind;
+  palette: Palette;
+  view: object;
   /** made ahead and never laid out: it takes the size of the card it goes to */
   fresh?: boolean;
 }
@@ -48,9 +52,9 @@ function pooled(kind: EffectKind, width: number, height: number): Session | null
   return s;
 }
 /** A player let go: kept for the next card where there is room, its loop stopped; otherwise gone with its context. */
-function release(kind: EffectKind, s: Session): void {
-  if (pool[kind].length < POOL) {
-    pool[kind].push(s);
+function release(s: Session): void {
+  if (pool[s.kind].length < POOL) {
+    pool[s.kind].push(s);
     return;
   }
   s.player.destroy();
@@ -73,7 +77,7 @@ const readied: Partial<Record<EffectKind, true>> = {};
 async function makeAhead(
   kind: EffectKind,
   palette: Palette,
-  view: unknown,
+  view: object,
   size: { width: number; height: number }
 ): Promise<void> {
   if (readied[kind] || pool[kind].length || !matchMedia("(hover: hover)").matches) return;
@@ -96,7 +100,7 @@ async function makeAhead(
       : code.playBlob(canvas, palette, view as Parameters<typeof code.playBlob>[2], undefined, {
           ease: false
         });
-  if (player) release(kind, { canvas, player, fresh: true });
+  if (player) release({ canvas, player, kind, palette, view, fresh: true });
 }
 
 /** Everything a card's picture of an effect needs, fetched before a card asks: its players' code and its still's. */
@@ -136,13 +140,15 @@ export function EffectArt(props: {
     return () => motion.removeEventListener("change", read);
   });
   /* the players' code while the page idles, and a player made ahead for the first card lit, of each kind the card
-     plays: a list turned from the glass to the blob makes one of the blob */
+     plays: a list turned from the glass to the blob makes one of the blob. None for a picture gone or turned
+     meanwhile, whose props are gone with it */
   createEffect(
     () => props.kind,
     kind => {
+      let gone = false;
       const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200));
       idle(() => {
-        if (untrack(() => props.kind) !== kind) return;
+        if (gone) return;
         void players[kind]().catch(() => {});
         /* one card of a list makes it, the others reading no layout for it; a card the layout hides has no size to
            make one at */
@@ -156,6 +162,9 @@ export function EffectArt(props: {
             box
           ).catch(() => {});
       });
+      return () => {
+        gone = true;
+      };
     }
   );
   const moving = () => props.active && props.settings.speed > 0 && !reduced();
@@ -174,16 +183,17 @@ export function EffectArt(props: {
   let wanted = false;
   /* a card the layout hides has no box to play in */
   const sized = () => holder.clientWidth > 0 && holder.clientHeight > 0;
-  /* a player let go is kept for the next card, held at its frame (no loop runs at speed 0) */
+  const play = (s: Session, palette: Palette, v: object) => {
+    s.palette = palette;
+    s.view = v;
+    s.player.set(palette, v);
+  };
+  /* held at its frame: no loop runs at speed 0 */
+  const hold = (s: Session) => s.player.set(s.palette, { ...s.view, speed: 0 });
+  /* a player let go is kept for the next card, held at its frame */
   const end = (s: Session) => {
-    s.player.set(
-      untrack(() => props.palette),
-      { ...untrack(view), speed: 0 }
-    );
-    release(
-      untrack(() => props.kind),
-      s
-    );
+    hold(s);
+    release(s);
   };
   const stop = () => {
     wanted = false;
@@ -191,12 +201,9 @@ export function EffectArt(props: {
     const going = session;
     session = null;
     if (!going) return;
-    if (untrack(() => props.kind) === "blob") return end(going);
+    if (going.kind === "blob") return end(going);
     /* the glass holds its frame and fades out to its still: two pictures that stand still meet, never a moving one */
-    going.player.set(
-      untrack(() => props.palette),
-      { ...untrack(view), speed: 0 }
-    );
+    hold(going);
     setFading(true);
     const timer = setTimeout(() => {
       if (leaving?.timer !== timer) return;
@@ -209,13 +216,16 @@ export function EffectArt(props: {
   const start = async () => {
     wanted = true;
     if (session) return;
+    const kind = untrack(() => props.kind);
     /* lit again while the glass fades out: that player plays on */
-    if (leaving) {
+    if (leaving?.kind === kind) {
       clearTimeout(leaving.timer);
-      session = { canvas: leaving.canvas, player: leaving.player };
+      const back: Session = leaving;
+      session = back;
       leaving = null;
       setFading(false);
-      session.player.set(
+      play(
+        back,
         untrack(() => props.palette),
         untrack(view)
       );
@@ -223,13 +233,13 @@ export function EffectArt(props: {
       return;
     }
     if (!sized()) return;
-    const kind = untrack(() => props.kind);
     /* a player kept from another card of this size: on to this one, from this card's first frame */
     const kept = pooled(kind, holder.clientWidth, holder.clientHeight);
     if (kept) {
       holder.append(kept.canvas);
       kept.player.rewind();
-      kept.player.set(
+      play(
+        kept,
         untrack(() => props.palette),
         untrack(view)
       );
@@ -244,7 +254,15 @@ export function EffectArt(props: {
       return;
     }
     const code = await players[kind]();
-    if (!wanted || session || leaving || !sized()) return;
+    /* the card went dark, turned to the other kind or lost its box while the code came */
+    if (
+      !wanted ||
+      session ||
+      leaving?.kind === kind ||
+      untrack(() => props.kind) !== kind ||
+      !sized()
+    )
+      return;
     const canvas = document.createElement("canvas");
     canvas.className = styles.canvas;
     holder.append(canvas);
@@ -265,16 +283,22 @@ export function EffectArt(props: {
           });
     /* where WebGL is missing the still stays */
     if (!player) return canvas.remove();
-    made = { canvas, player };
+    made = { canvas, player, kind, palette: P, view: v };
     session = made;
   };
-  createEffect(moving, on => {
-    if (on) void start();
-    else stop();
-  });
+  /* the kind it plays, while it moves: a picture turned to the other kind lets its player go and plays the other */
   createEffect(
-    () => [props.palette, view()] as const,
-    ([palette, v]) => session?.player.set(palette, v)
+    () => (moving() ? props.kind : null),
+    kind => {
+      if (!kind || (session && session.kind !== kind)) stop();
+      if (kind) void start();
+    }
+  );
+  createEffect(
+    () => [props.kind, props.palette, view()] as const,
+    ([kind, palette, v]) => {
+      if (session?.kind === kind) play(session, palette, v);
+    }
   );
   onCleanup(() => {
     wanted = false;
