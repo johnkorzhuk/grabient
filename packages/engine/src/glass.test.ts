@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
 import { decodePalette } from "./codec.ts";
 import {
+  GLASS_DESIGNS_KEPT,
   GLASS_LOOP,
   glassColors,
+  glassDesign,
   glassDiscAt,
   glassField,
   glassGeometry,
@@ -115,4 +117,19 @@ test("a shape draws ribs and discs of its own, and 0 is the glass as designed", 
   expect(recolored.discs.map(d => [d.cx, d.cy, d.R])).toEqual(
     other.field.discs.map(d => [d.cx, d.cy, d.R])
   );
+});
+
+test("the designs an isolate keeps are bounded, the one used most lately kept", () => {
+  const kept = glassDesign(90, 0);
+  expect(glassDesign(90, null)).toBe(kept);
+  // an address may name any angle and shape: past the bound, the least lately used is laid out again when asked
+  const first = glassDesign(1, 1);
+  for (let shape = 2; shape < GLASS_DESIGNS_KEPT + 8; shape++) {
+    glassDesign(90, 0);
+    glassDesign(1, shape);
+  }
+  expect(glassDesign(90, 0)).toBe(kept);
+  const again = glassDesign(1, 1);
+  expect(again).not.toBe(first);
+  expect(again).toEqual(first);
 });

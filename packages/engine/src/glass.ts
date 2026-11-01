@@ -552,15 +552,21 @@ export function glassFieldBackground(
   return `url("${glassDataUri(svg)}") 50% 50%/cover no-repeat`;
 }
 
+/** The designs kept, the least lately used out first: an address may name any of 361 angles and 1,000 shapes, and a
+    design holds about 44 KB, which an isolate kept for every one asked for: 2,000 of them held 87 MB in Node, against
+    a Worker's 128. Laying one out again takes about 2 ms. */
+export const GLASS_DESIGNS_KEPT = 64;
 const designs = new Map<string, GlassGeometry>();
-/** The one design at an angle and a shape, its ribs worked out once for each. */
+/** The one design at an angle and a shape, its ribs worked out once for each while it is kept. */
 export function glassDesign(angle: number, shape: number | null = null): GlassGeometry {
   const key = `${angle}|${shape ?? 0}`;
   let design = designs.get(key);
-  if (!design) {
+  if (design) designs.delete(key);
+  else {
     design = glassGeometry(GLASS_DESIGN, angle, shape);
-    designs.set(key, design);
+    if (designs.size >= GLASS_DESIGNS_KEPT) designs.delete(designs.keys().next().value as string);
   }
+  designs.set(key, design);
   return design;
 }
 
