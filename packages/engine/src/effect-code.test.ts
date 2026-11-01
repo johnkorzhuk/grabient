@@ -33,7 +33,8 @@ test("the glass's stylesheet paints the still the palette's page paints, on a la
   expect(css).toContain(`background: ${glassStillBackground(glassColors(P), 135)};`);
   expect(css).toContain("position: fixed;");
   expect(css).toContain("pointer-events: none;");
-  expect(css).not.toContain(EMBED_PLAYING);
+  // the still goes once the glass's canvas, opaque, has faded in over it
+  expect(css).toContain(`html[${EMBED_PLAYING}]::before {\n  background: none;\n}`);
 });
 
 test("the blob's stylesheet draws its look, and gives the still up once the script's canvas shows", () => {

@@ -7,11 +7,12 @@
    first paint (server/files/effect-files.ts), or the same rules in the page's own <style> (the editor's Copy HTML);
    where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows once its first frame,
    the still's own, is drawn: the glass fading in over a still the page painted, the blob (clear around itself) taking
-   the still's place in one frame. Where WebGL 2 is missing the still stays. No context is made for a reader who asks
-   for less motion, nor for a blob held at speed 0, whose still is its whole picture. A lost context brings the still
-   back until the browser restores the context. It writes no markup and no style attribute, only CSSOM, so a page with
-   a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second script, the same or
-   another, leaves it be. */
+   the still's place in one frame. The still goes once the canvas covers it, so a resize never draws it again under the
+   canvas, and comes back if the canvas loses its context. Where WebGL 2 is missing the still stays. No context is made
+   for a reader who asks for less motion, nor for a blob held at speed 0, whose still is its whole picture. The browser
+   restoring a lost context plays the effect again. It writes no markup and no style attribute, only CSSOM, so a page
+   with a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second script, the same
+   or another, leaves it be. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import {
   type Effect,
@@ -123,7 +124,7 @@ export function mount(embed: EmbedEffect): void {
     fade = false;
     if (!("adoptedStyleSheets" in document)) return;
     const sheet = new CSSStyleSheet();
-    sheet.replaceSync(effectLayerCss(embed.kind, embed.still(P, effect, angle)));
+    sheet.replaceSync(effectLayerCss(embed.still(P, effect, angle)));
     document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
   });
   const body = new Promise<void>(resolve =>
@@ -176,11 +177,15 @@ export function mount(embed: EmbedEffect): void {
       },
       { signal: ended.signal }
     );
+    /* the still goes once the canvas covers it: the blob's at once, the glass's once it has faded in, opaque */
+    const covered = () => root.setAttribute(EMBED_PLAYING, "");
     player = embed.play(canvas, P, effect, angle, () =>
       /* a frame after its first was drawn: a canvas shown in the frame it was first drawn in may not fade in */
       requestAnimationFrame(() => {
-        if (embed.kind === "blob") root.setAttribute(EMBED_PLAYING, "");
-        else if (fade) look.transition = `opacity ${FADE_MS}ms ease-in-out`;
+        if (embed.kind === "glass" && fade) {
+          look.transition = `opacity ${FADE_MS}ms ease-in-out`;
+          canvas.addEventListener("transitionend", covered, { once: true, signal: ended.signal });
+        } else covered();
         look.opacity = "1";
       })
     );

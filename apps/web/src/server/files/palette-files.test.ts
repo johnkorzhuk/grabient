@@ -78,8 +78,8 @@ describe("a palette's file", () => {
     expect(text).toContain("position: fixed;");
     expect(text).toContain("z-index: -1;");
     expect(text).toContain('url("data:image/svg+xml,');
-    // the glass's canvas is opaque: its still stays under it
-    expect(text).not.toContain("data-grabient-playing");
+    // the still goes once the script's canvas covers it: the glass's once faded in, opaque
+    expect(text).toContain("html[data-grabient-playing]::before {\n  background: none;\n}");
     expect(glass.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(glass.headers.get("Cross-Origin-Resource-Policy")).toBe("cross-origin");
     expect(glass.headers.get("Cache-Control")).toBe("public, max-age=3600");
@@ -89,7 +89,7 @@ describe("a palette's file", () => {
     const still = (css: string) => css.slice(css.indexOf("background:"));
     expect(still(turned)).not.toBe(still(text));
     expect(paced).toBe(text);
-    // the blob, clear around itself, gives its still up when the script's canvas shows
+    // the blob, clear around itself, gives its still up as soon as the script's canvas shows
     const blob = await (await file(`/${seed}.css?style=blob&shape=12&angle=45`)).text();
     expect(blob).toContain("html[data-grabient-playing]::before {\n  background: none;\n}");
     // the angle lays the palette across the blobs, so the blob's credit names it too

@@ -47,7 +47,7 @@ export const effectStylesheet = (
   angle: number,
   origin: string
 ): string =>
-  `/* ${effectPage(origin, seed, effect, angle)} */\n${effectLayerCss(effect.kind, effectStill(P, effect, angle))}`;
+  `/* ${effectPage(origin, seed, effect, angle)} */\n${effectLayerCss(effectStill(P, effect, angle))}`;
 
 /** The size an effect's SVG is drawn at where none is asked. */
 export const effectSize = (effect: Effect): Size =>

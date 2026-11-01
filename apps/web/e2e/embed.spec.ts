@@ -154,6 +154,25 @@ test("a lost context shows the still again, and the effect plays again once the 
   await expect(html).toHaveAttribute("data-grabient-playing", "");
 });
 
+test("the glass's still goes once its canvas has faded in over it, and comes back when its context is lost", async ({
+  page
+}) => {
+  await site(page, tags("style=glass&angle=45"));
+  const html = page.locator("html");
+  expect(await still(page)).toContain("data:image/svg+xml");
+  /* the mark comes once the fade has ended, with the canvas opaque over the still */
+  await expect(html).toHaveAttribute("data-grabient-playing", "", { timeout: 15_000 });
+  await expect(page.locator("canvas")).toHaveCSS("opacity", "1");
+  expect(await still(page)).toBe("none");
+  await page.evaluate(() =>
+    (window as unknown as { gl: WebGL2RenderingContext })
+      .gl.getExtension("WEBGL_lose_context")
+      ?.loseContext()
+  );
+  await expect(html).not.toHaveAttribute("data-grabient-playing");
+  expect(await still(page)).toContain("data:image/svg+xml");
+});
+
 test("a reader who asks for less motion keeps the still, and no context is made", async ({
   page
 }) => {
