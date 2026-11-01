@@ -13,8 +13,8 @@ import { tooltip } from "./Tooltip.tsx";
     editor) has a nearly opaque surface, the bar filled with the palette in view, and the dashed rule beneath. The
     surface is a layer behind the bar: a blur on the header itself would keep its menus' own blur inside it. Over a
     page that opens on a picture of its own (`clear`), the app form has no surface and no rule until the page scrolls,
-    and each side stands in the theme whose ink reads on the picture there (`tone`); where one side reads in neither,
-    the surface is frosted, so the picture shows through it and the bar still reads. */
+    and the wordmark and the corner's presses stand bare on the picture, each in the theme whose ink reads best where
+    it stands (`tone`, and the presses' own), the presses as glyphs with no fill of their own. */
 export function Header(props: {
   stops: readonly string[];
   /** the brand form */
@@ -29,8 +29,8 @@ export function Header(props: {
   rule?: boolean;
   /** the page's own picture is under the header, which the page has not scrolled from */
   clear?: boolean;
-  /** over that picture, the theme the wordmark's side and the corner's stand in; null frosts the surface */
-  tone?: { start: "light" | "dark"; end: "light" | "dark" } | null;
+  /** over that picture, the theme the wordmark's side stands in; the corner's presses take their own */
+  tone?: { start: "light" | "dark" } | null;
   barRef?: (el: SVGRectElement) => void;
   /** where the wordmark leads and what it says it leads to; the site's lists by default */
   home?: { href: string; label: string };
@@ -47,12 +47,7 @@ export function Header(props: {
     <header class={styles.header}>
       <span
         class={styles.surface}
-        data-on={
-          (!props.brand && !props.clear) || props.scrolled || (props.clear && !props.tone)
-            ? ""
-            : undefined
-        }
-        data-frost={props.clear && !props.tone ? "" : undefined}
+        data-on={(!props.brand && !props.clear) || props.scrolled ? "" : undefined}
         aria-hidden="true"
       />
       <div class={styles.bar} data-brand={props.brand ? "" : undefined}>
@@ -91,7 +86,9 @@ export function Header(props: {
             )}
           </Show>
         </span>
-        <div class={styles.corner}>{props.children}</div>
+        <div class={styles.corner} data-clear={props.clear ? "" : undefined}>
+          {props.children}
+        </div>
       </div>
       <div
         class={styles.rule}

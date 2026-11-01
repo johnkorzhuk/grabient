@@ -1,4 +1,5 @@
 import type { Binding } from "@grabient/ui/keys.ts";
+import { color } from "@grabient/ui/tokens.ts";
 import type { StaticDataRouteOption } from "@tanstack/solid-router";
 import { type Component, createContext } from "solid-js";
 import type { Drawn } from "../lib/palette.ts";
@@ -40,9 +41,20 @@ declare module "@tanstack/solid-router" {
 
 /** The themes a clear page's header stands in over its picture: the wordmark's side and the corner's. */
 export interface HeaderTone {
+  /** the wordmark's side */
   start: "light" | "dark";
-  end: "light" | "dark";
+  /** the theme press's and the account press's, each where it stands, and each where it stands on a phone, whose
+      picture is tall and whose corner stands further in */
+  toggle: "light" | "dark";
+  toggleNarrow: "light" | "dark";
+  account: "light" | "dark";
+  accountNarrow: "light" | "dark";
 }
+
+/** A press's ink on a phone, where the header stands clear over a picture: its tone's theme ink (tokens.ts), as the
+    custom property the header's phone rule reads. */
+export const narrowInk = (tone: "light" | "dark" | undefined) =>
+  tone ? { "--narrow-ink": color[tone].ink } : undefined;
 
 /** What a route's loader returns for the frame, beside whatever else it returns. */
 export interface FramedData {

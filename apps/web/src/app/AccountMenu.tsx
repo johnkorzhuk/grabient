@@ -30,6 +30,7 @@ import { shownError } from "../lib/query.ts";
 import styles from "./AccountMenu.module.css";
 import { offline, opensOffline } from "./connection.ts";
 import { chooseLanguage } from "./language.ts";
+import { narrowInk } from "./shell.ts";
 import { toast } from "./toast.ts";
 
 /* The account's corner of the header: signed out it is the way in, signed in the account's picture, and either way it
@@ -41,8 +42,9 @@ import { toast } from "./toast.ts";
 export function AccountMenu(props: {
   /** this page's address without its language, as the language menu offers it */
   path: () => string;
-  /** the theme its press stands in over a clear page's picture; the menu it opens keeps the page's */
+  /** the theme its press stands in over a clear page's picture, and on a phone; the menu it opens keeps the page's */
   tone?: "light" | "dark";
+  narrowTone?: "light" | "dark";
 }) {
   const router = useRouter();
   const [open, setOpen] = createSignal(false);
@@ -246,6 +248,8 @@ export function AccountMenu(props: {
         type="button"
         class={styles.trigger}
         data-theme={props.tone}
+        data-narrow-ink={props.narrowTone}
+        style={narrowInk(props.narrowTone)}
         aria-haspopup="menu"
         aria-expanded={open() ? "true" : "false"}
         aria-label={t(account() ? msg("Your account") : msg("Sign in"))}
@@ -254,7 +258,7 @@ export function AccountMenu(props: {
           setOpen(!open());
         }}
       >
-        <Avatar name={name()} src={account()?.image ?? undefined} />
+        <Avatar name={name()} src={account()?.image ?? undefined} bare={!!props.tone} />
       </button>
       <Show when={open()}>
         <MenuList

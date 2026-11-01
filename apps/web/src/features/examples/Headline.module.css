@@ -1,21 +1,38 @@
 @layer components {
-  /* The headline (Headline.tsx): the palette's name set on a panel two ways, side by side where both fit across the
-     stage, else one under the other: inside the letters on a page of the theme its colors read in, and on the palette
-     as a banner, the words where their ink reads. Each panel is 12:5 from 600 px across and 3:2 under (Headline.tsx's
-     ASPECT), padded by 6% of its width (PAD). */
-  .stage {
+  /* The headlines (Headline.tsx): a carousel, one slide in view, a swipe or a scroll moving along them as the arrows
+     and the dots under it do. Each panel is 12:5 from 600 px across and 3:2 under (Headline.tsx's ASPECT), padded by
+     6% of its width (PAD), so every slide is as tall as the others and nothing under them moves. */
+  .carousel {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-    gap: var(--space-s6);
+    gap: var(--space-s3);
     width: 100%;
-    @container page (max-width: 600px) {
-      gap: var(--space-s4);
+    min-width: 0;
+  }
+  .track {
+    display: grid;
+    grid-auto-columns: 100%;
+    grid-auto-flow: column;
+    gap: var(--space-s4);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    border-radius: var(--radius-surface);
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    &:focus-visible {
+      outline-width: 1px;
     }
   }
   /* what a panel's shape, its rows and its words' size are told by */
   .slot {
     container-type: inline-size;
     min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
   .panel {
     display: grid;
@@ -32,6 +49,7 @@
   }
   .page {
     background-color: var(--color-paper-solid);
+    color: var(--color-ink);
   }
   /* the palette: a gradient as its background, an effect as a picture under its words (.art) */
   .banner {
@@ -109,6 +127,177 @@
   .letters {
     background: var(--paint, none);
     color: transparent;
+  }
+  /* a picture of the palette filling its holder: a gradient or bands */
+  .fill {
+    position: absolute;
+    inset: 0;
+  }
+  /* a landing page's hero: its words on the paper, the palette's picture at the end (Headline.tsx's SPLIT) */
+  .split {
+    grid-template-columns: 1fr 30%;
+    place-items: stretch;
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--color-paper-solid);
+    color: var(--color-ink);
+    text-align: start;
+    @container (width >= 600px) {
+      grid-template-columns: 1fr 42%;
+    }
+  }
+  .picture {
+    position: relative;
+    isolation: isolate;
+  }
+  /* a slide's words, from its start: a kicker, a heading and a press or a rule */
+  .words {
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: 2.2cqi;
+    min-width: 0;
+    padding: 6cqi;
+  }
+  .kicker {
+    margin: 0;
+    color: color-mix(in srgb, currentColor 72%, transparent);
+    font-weight: var(--font-medium);
+    font-size: clamp(11px, 1.8cqi, 15px);
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .title {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: clamp(22px, 7.6cqi, 72px);
+    line-height: 1.04;
+    letter-spacing: var(--font-ls-title);
+    text-wrap: balance;
+    hyphens: auto;
+    hyphenate-limit-chars: 10 4 4;
+    overflow-wrap: break-word;
+    @container (width >= 600px) {
+      font-size: clamp(22px, 5.6cqi, 72px);
+    }
+  }
+  /* a press: its fill and label (--fill, --label), its next color under the pointer (--hover), or an outline where
+     the palette gives no fill */
+  .press {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    min-height: clamp(30px, 4.4cqi, 44px);
+    margin-block-start: 0.6cqi;
+    padding-inline: clamp(12px, 2.4cqi, 22px);
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    background-color: var(--fill);
+    color: var(--label);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: clamp(12px, 1.6cqi, 16px);
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      background-color: var(--hover);
+    }
+    &[data-outline] {
+      border-color: currentColor;
+      background-color: transparent;
+      color: inherit;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--color-ring);
+      outline-offset: 2px;
+    }
+  }
+  /* words in the page's ink, some marked with the palette, which carries on across a row's break */
+  .marked {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: clamp(24px, 11cqi, 96px);
+    line-height: 1.16;
+    letter-spacing: var(--font-ls-title);
+    text-wrap: balance;
+    @container (width >= 600px) {
+      font-size: clamp(24px, 8.4cqi, 96px);
+    }
+  }
+  .marker {
+    padding-inline: 0.12em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  /* a heading over its rule, from the panel's start */
+  .ruled {
+    place-items: center stretch;
+    padding: 0;
+    text-align: start;
+    & .title {
+      font-size: clamp(24px, 11cqi, 96px);
+      @container (width >= 600px) {
+        font-size: clamp(24px, 8.4cqi, 96px);
+      }
+    }
+  }
+  .rule {
+    display: block;
+    justify-self: stretch;
+    height: max(6px, 1.6cqi);
+    margin-block-start: 1cqi;
+  }
+  /* the arrows and the dots under the slides: a dot is a press as large as a finger needs, the one in view a bar */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-s2);
+  }
+  .dots {
+    display: flex;
+    align-items: center;
+  }
+  .dot {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: none;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    &::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 4px;
+      background-color: color-mix(in srgb, var(--color-ink) 50%, transparent);
+      transition:
+        width var(--motion-fast) var(--motion-ease),
+        background-color var(--motion-fast) var(--motion-ease);
+    }
+    &:hover::before {
+      background-color: var(--color-ink);
+    }
+    &[aria-current]::before {
+      width: 18px;
+      background-color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      &::before {
+        transition: none;
+      }
+    }
   }
   .mono {
     font-family: var(--font-mono);

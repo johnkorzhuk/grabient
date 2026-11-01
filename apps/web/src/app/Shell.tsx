@@ -42,7 +42,7 @@ import { pageInEveryLanguage } from "./language.ts";
 import { watchNavigation } from "./navigation.ts";
 import styles from "./Shell.module.css";
 import type { HeaderTone, Shell as ShellApi } from "./shell.ts";
-import { pageFrom, ShellContext } from "./shell.ts";
+import { narrowInk, pageFrom, ShellContext } from "./shell.ts";
 import { Toast } from "./Toast.tsx";
 import { walkSelection } from "./undo.ts";
 import { createWater } from "./water.ts";
@@ -167,7 +167,7 @@ export function Shell() {
     const handedTone = toned();
     return handedTone ? handedTone() : page().tone;
   };
-  const sideTone = (side: keyof HeaderTone) => (clear() ? tone()?.[side] : undefined);
+  const sideTone = (part: keyof HeaderTone) => (clear() ? tone()?.[part] : undefined);
 
   /* where the wordmark leads: the home in the reader's view, or with no connection a signed-in reader's Saved palettes */
   const home = () =>
@@ -223,7 +223,9 @@ export function Shell() {
                 {/* the theme button's place, where a key's change of theme arrives from */}
                 <span
                   class={styles.spot}
-                  data-theme={sideTone("end")}
+                  data-theme={sideTone("toggle")}
+                  data-narrow-ink={sideTone("toggleNarrow")}
+                  style={narrowInk(sideTone("toggleNarrow"))}
                   ref={el => setThemeOrigin(() => el)}
                 >
                   <Button
@@ -237,7 +239,11 @@ export function Shell() {
                   </Button>
                 </span>
                 <Show when={frame() !== "sheet"}>
-                  <AccountMenu path={shell.here} tone={sideTone("end")} />
+                  <AccountMenu
+                    path={shell.here}
+                    tone={sideTone("account")}
+                    narrowTone={sideTone("accountNarrow")}
+                  />
                 </Show>
               </div>
             </Header>

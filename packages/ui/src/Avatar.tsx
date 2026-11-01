@@ -4,12 +4,14 @@ import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 
 /** Who is signed in: the picture, else the name's first letter, else a person's outline, which says Signed out. In
-    the header it stands as tall as the presses beside it; `lg` is the settings page's. */
-export function Avatar(props: { size?: "sm" | "lg"; src?: string; name?: string }) {
+    the header it stands as tall as the presses beside it; `lg` is the settings page's. `bare`: over a page's own
+    picture, no disc of its own, a ring in the ink it stands in. */
+export function Avatar(props: { size?: "sm" | "lg"; src?: string; name?: string; bare?: boolean }) {
   return (
     <span
       class={styles.avatar}
       data-size={props.size}
+      data-bare={props.bare ? "" : undefined}
       role="img"
       aria-label={props.name ?? t("Signed out")}
     >

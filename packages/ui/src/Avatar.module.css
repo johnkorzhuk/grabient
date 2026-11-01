@@ -21,6 +21,12 @@
       height: var(--size-avatar-lg);
       font-size: var(--font-fs6);
     }
+    &[data-bare] {
+      border-width: 1.5px;
+      border-color: currentColor;
+      background-color: transparent;
+      color: inherit;
+    }
   }
   .picture {
     width: 100%;
@@ -30,5 +36,8 @@
   .anon {
     display: inline-flex;
     color: var(--color-ink2);
+    [data-bare] > & {
+      color: inherit;
+    }
   }
 }

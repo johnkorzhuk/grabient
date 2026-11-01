@@ -20,10 +20,6 @@
       -webkit-backdrop-filter: blur(var(--size-blur-top));
       backdrop-filter: blur(var(--size-blur-top));
     }
-    /* over a page's own picture that neither theme's ink reads on: the picture shows through, the bar still reads */
-    &[data-frost] {
-      background-color: color-mix(in srgb, var(--color-bg) 72%, transparent);
-    }
   }
   .bar {
     position: relative;
@@ -80,6 +76,26 @@
     min-width: 0;
     margin-inline-start: auto;
   }
+
+  /* over a page's own picture the corner's presses stand bare, as the wordmark does: their glyphs in the ink of the
+     theme that reads best where each stands (its data-theme), no fill and no edge, a wash of that ink under the
+     pointer */
+  .corner[data-clear] :is(button, a) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--color-ink);
+    &:hover {
+      background-color: color-mix(in srgb, currentColor 12%, transparent);
+    }
+  }
+  /* on a phone the presses stand further in on a taller picture, each in the ink that reads there (--narrow-ink, set
+     from tokens.ts's inks where a press is given one) */
+  @media (max-width: 600px) {
+    .corner[data-clear] :is(button, a):is([data-narrow-ink], [data-narrow-ink] *) {
+      color: var(--narrow-ink);
+    }
+  }
+
   /* the page's connection after the wordmark: a quiet glyph and its word, where it moves nothing */
   .status {
     position: relative;

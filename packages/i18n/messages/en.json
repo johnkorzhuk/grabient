@@ -133,8 +133,8 @@
   "About": {
     "note": "The About page and links to it.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:123",
-      "apps/web/src/app/AccountMenu.tsx:134",
+      "apps/web/src/app/AccountMenu.tsx:124",
+      "apps/web/src/app/AccountMenu.tsx:135",
       "apps/web/src/app/site.ts:37"
     ]
   },
@@ -160,8 +160,8 @@
   "Account": {
     "note": "Settings section and account menu name.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:238",
-      "apps/web/src/app/AccountMenu.tsx:265",
+      "apps/web/src/app/AccountMenu.tsx:239",
+      "apps/web/src/app/AccountMenu.tsx:267",
       "apps/web/src/features/account/settings/Account.tsx:31"
     ]
   },
@@ -298,13 +298,13 @@
   "Admit one": {
     "note": "Demo content: the words printed on a ticket's stub, meaning the ticket lets one person in. Small capitals, set vertically; keep it short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:451"
+      "apps/web/src/features/examples/Cards.tsx:459"
     ]
   },
   "Album cover": {
     "note": "Read by screen readers: the name of one tile, a music album's cover (its sleeve with a vinyl record) made with the palette.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:83"
+      "apps/web/src/features/examples/Cards.tsx:85"
     ]
   },
   "All features": {
@@ -397,7 +397,7 @@
   "App icon": {
     "note": "Read by screen readers: the name of one tile, a phone app's icon.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:89"
+      "apps/web/src/features/examples/Cards.tsx:91"
     ]
   },
   "Appearance": {
@@ -478,7 +478,7 @@
   "Back": {
     "note": "Press: back to the previous menu or page.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:268",
+      "apps/web/src/app/AccountMenu.tsx:270",
       "packages/ui/src/FormatStrip.tsx:178",
       "packages/ui/src/Menu.tsx:431",
       "packages/ui/src/SizeControl.tsx:247"
@@ -499,8 +499,8 @@
   "Background <c>{color}</c>": {
     "note": "A chip under an example: the background color the example gives a blob that has none of its own. <c>…</c> marks the hex code (like #101828), which stays as written; keep the tags.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:640",
-      "apps/web/src/features/examples/Headline.tsx:418",
+      "apps/web/src/features/examples/Cards.tsx:648",
+      "apps/web/src/features/examples/Headline.tsx:745",
       "apps/web/src/features/examples/Profile.tsx:143",
       "apps/web/src/features/examples/Wallpapers.tsx:277"
     ]
@@ -579,13 +579,13 @@
   "Business card": {
     "note": "Read by screen readers: the name of one tile, a small printed card with a person's name and job.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:90"
+      "apps/web/src/features/examples/Cards.tsx:92"
     ]
   },
   "Buttons": {
     "note": "Read by screen readers: the name of one tile holding two example buttons. A plural noun.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:91"
+      "apps/web/src/features/examples/Cards.tsx:93"
     ]
   },
   "By continuing you agree to the <terms>Terms of Service</terms>. The <privacy>Privacy Policy</privacy> says how your information is used.": {
@@ -785,7 +785,7 @@
   "Collections": {
     "note": "The collections list, its tab and links to it.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:120",
+      "apps/web/src/app/AccountMenu.tsx:121",
       "apps/web/src/features/collections/CollectionPage.tsx:691",
       "apps/web/src/features/editor/StaticPalette.tsx:142",
       "apps/web/src/lib/page-meta.ts:906",
@@ -846,6 +846,14 @@
       "apps/web/src/lib/page-meta.ts:1104"
     ]
   },
+  "Color for every screen": {
+    "refs": [
+      "apps/web/src/features/examples/Headline.tsx:630",
+      "apps/web/src/features/examples/Headline.tsx:640",
+      "apps/web/src/features/examples/Headline.tsx:849"
+    ],
+    "note": "Demo content: the heading of an example landing page hero beside a picture of the palette. A short, confident line about color that works on any device screen."
+  },
   "Color format": {
     "note": "Settings heading: how the colors in CSS a reader takes are written: OKLCH, Hex, RGB or HSL.",
     "refs": [
@@ -861,7 +869,7 @@
   "Color in interfaces": {
     "note": "Demo content: the title of the example event card, a workshop about using color in app and web interfaces. Short title.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:403"
+      "apps/web/src/features/examples/Cards.tsx:411"
     ]
   },
   "Color palettes and CSS gradients like {name}. Edit any of them, then copy CSS or export SVG and PNG.": {
@@ -1123,8 +1131,8 @@
       "apps/web/src/features/editor/Editor.tsx:663",
       "apps/web/src/features/editor/Editor.tsx:674",
       "apps/web/src/features/editor/Sheet.tsx:147",
-      "apps/web/src/features/examples/Cards.tsx:213",
-      "apps/web/src/features/examples/Cards.tsx:219",
+      "apps/web/src/features/examples/Cards.tsx:221",
+      "apps/web/src/features/examples/Cards.tsx:227",
       "apps/web/src/features/examples/Swatches.tsx:204",
       "apps/web/src/features/examples/Swatches.tsx:214",
       "apps/web/src/features/gallery/take.ts:102",
@@ -1188,7 +1196,7 @@
       "apps/web/src/features/editor/Editor.tsx:681",
       "apps/web/src/features/editor/Sheet.tsx:531",
       "apps/web/src/features/editor/Sheet.tsx:608",
-      "apps/web/src/features/examples/Cards.tsx:216",
+      "apps/web/src/features/examples/Cards.tsx:224",
       "apps/web/src/features/examples/Swatches.tsx:211",
       "apps/web/src/lib/files.ts:65"
     ]
@@ -1379,7 +1387,7 @@
   "Couldn't sign out.": {
     "note": "Error after a failed sign-out.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:233",
+      "apps/web/src/app/AccountMenu.tsx:234",
       "apps/web/src/features/account/session.ts:292",
       "apps/web/src/features/account/settings/Account.tsx:37"
     ]
@@ -1412,7 +1420,7 @@
   "Covers and cards": {
     "note": "Examples page: title of a section, shown after its number as '2 · Covers and cards'. A masonry of media made with the palette: a poster, an album cover, a video thumbnail, a social post, an event card, a ticket, a membership card, an app icon, a business card, buttons. Short title.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:632"
+      "apps/web/src/features/examples/Cards.tsx:640"
     ]
   },
   "Custom": {
@@ -1430,7 +1438,7 @@
   "Dark theme": {
     "note": "Screen reader name of the theme press when it switches to dark.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:232"
+      "apps/web/src/app/Shell.tsx:233"
     ]
   },
   "Delete": {
@@ -1685,7 +1693,7 @@
   "Event card": {
     "note": "Read by screen readers: the name of one tile, a card announcing an event, with a button to sign up.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:86"
+      "apps/web/src/features/examples/Cards.tsx:88"
     ]
   },
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": {
@@ -1896,7 +1904,7 @@
   "For landing pages, slides and posters.": {
     "note": "Examples page: the one short line under the 'Headlines' title, saying what big headings in the palette's colors are for. Plain, no marketing words.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:519"
+      "apps/web/src/features/examples/Headline.tsx:758"
     ]
   },
   "For phones and desktops, sized to each screen.": {
@@ -1908,7 +1916,7 @@
   "For posters, covers, posts and tickets.": {
     "note": "Examples page: the one short line under the 'Covers and cards' title, naming what the palette dresses there. Plain list, no marketing words.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:633"
+      "apps/web/src/features/examples/Cards.tsx:641"
     ]
   },
   "For profiles and default avatars.": {
@@ -1973,14 +1981,17 @@
   "Gate {gate} · Seat {seat}": {
     "note": "Demo content on an example ticket: the entrance and the seat number ('Gate B · Seat 14'). Keep both placeholders and the middle dot.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:458"
+      "apps/web/src/features/examples/Cards.tsx:466"
     ]
   },
   "Get started": {
     "note": "Demo content: the label of an example call-to-action button. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:538",
-      "apps/web/src/features/examples/Cards.tsx:548"
+      "apps/web/src/features/examples/Cards.tsx:546",
+      "apps/web/src/features/examples/Cards.tsx:556",
+      "apps/web/src/features/examples/Headline.tsx:631",
+      "apps/web/src/features/examples/Headline.tsx:641",
+      "apps/web/src/features/examples/Headline.tsx:850"
     ]
   },
   "Glaring, clipped or too neon": {
@@ -1992,7 +2003,7 @@
   "Glass Harbor": {
     "note": "Demo content: the name of a fictional band, under the album title 'Low Tide'. Translate as a natural band name, or keep it if band names stay in English in your language.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:300"
+      "apps/web/src/features/examples/Cards.tsx:308"
     ]
   },
   "Good fit": {
@@ -2101,7 +2112,7 @@
   "Harbor Hall": {
     "note": "Demo content: the name of a fictional venue by a harbor, under an example poster's title. Translate as a natural venue name; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:283"
+      "apps/web/src/features/examples/Cards.tsx:291"
     ]
   },
   "Hard steps where a blend was meant": {
@@ -2119,7 +2130,8 @@
   "Headlines": {
     "note": "Examples page: title of a section, shown after its number as '1 · Headlines'. Big headings in the palette's colors. Short title, a noun or two.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:518"
+      "apps/web/src/features/examples/Headline.tsx:757",
+      "apps/web/src/features/examples/Headline.tsx:773"
     ]
   },
   "Height": {
@@ -2209,7 +2221,7 @@
   "Illustrator and type designer": {
     "note": "Demo content: what the fictional person Mira does, on her demo social profile and business card. Short, as a profile bio reads.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:518",
+      "apps/web/src/features/examples/Cards.tsx:526",
       "apps/web/src/features/examples/Profile.tsx:194"
     ]
   },
@@ -2378,6 +2390,14 @@
       "apps/web/src/features/account/settings/Account.tsx:62"
     ]
   },
+  "Journal": {
+    "refs": [
+      "apps/web/src/features/examples/Headline.tsx:677",
+      "apps/web/src/features/examples/Headline.tsx:681",
+      "apps/web/src/features/examples/Headline.tsx:882"
+    ],
+    "note": "Demo content: the small label above an example magazine or blog heading. One short word for a publication of articles, set in small capitals."
+  },
   "Keep current avatar": {
     "note": "Press after picking a new avatar: drops the new one before it is saved.",
     "refs": [
@@ -2427,8 +2447,8 @@
   "Language": {
     "note": "The language menu and its heading.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:265",
-      "apps/web/src/app/AccountMenu.tsx:83",
+      "apps/web/src/app/AccountMenu.tsx:267",
+      "apps/web/src/app/AccountMenu.tsx:84",
       "apps/web/src/app/LanguageMenu.tsx:100"
     ]
   },
@@ -2472,7 +2492,7 @@
   "Learn more": {
     "note": "Demo content: the label of an example secondary button. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:569"
+      "apps/web/src/features/examples/Cards.tsx:577"
     ]
   },
   "Left out: {unsubscribed} opted out or waiting for a yes, {personas} personas, {undeliverable} test addresses, {already} already sent it.": {
@@ -2514,7 +2534,7 @@
   "Light theme": {
     "note": "Screen reader name of the theme press when it switches to light.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:232"
+      "apps/web/src/app/Shell.tsx:233"
     ]
   },
   "Lightness": {
@@ -2604,7 +2624,7 @@
   "Live": {
     "note": "Demo content on an example poster, before its date ('Live · Nov 12'): a live performance or event. Small capitals; one short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:281"
+      "apps/web/src/features/examples/Cards.tsx:289"
     ]
   },
   "Loading more…": {
@@ -2644,7 +2664,7 @@
   "Low Tide": {
     "note": "Demo content: the title of a fictional song or album, shown beside an example album cover. Translate as a natural song title; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:299"
+      "apps/web/src/features/examples/Cards.tsx:307"
     ]
   },
   "MCP server": {
@@ -2687,7 +2707,7 @@
   "Make room for color.": {
     "note": "Demo content: the quote set large on an example social media post. A short, friendly invitation to use more color. Keep it short (a few words) and end it as a sentence.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:351"
+      "apps/web/src/features/examples/Cards.tsx:359"
     ]
   },
   "Make, edit and delete your collections.": {
@@ -2724,13 +2744,13 @@
   "Member": {
     "note": "Demo content: the small label at the top of an example membership card. One short word, in capitals.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:475"
+      "apps/web/src/features/examples/Cards.tsx:483"
     ]
   },
   "Membership card": {
     "note": "Read by screen readers: the name of one tile, a club or store membership card the size of a bank card.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:88"
+      "apps/web/src/features/examples/Cards.tsx:90"
     ]
   },
   "Message": {
@@ -2742,8 +2762,8 @@
   "Mira": {
     "note": "A fictional person's first name: the name on a demo social profile, a membership card and a business card. Write it in your language's script; keep it a short, ordinary woman's name.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:482",
-      "apps/web/src/features/examples/Cards.tsx:517",
+      "apps/web/src/features/examples/Cards.tsx:490",
+      "apps/web/src/features/examples/Cards.tsx:525",
       "apps/web/src/features/examples/Profile.tsx:32"
     ]
   },
@@ -2809,6 +2829,14 @@
       "apps/web/src/features/connect/McpServer.tsx:161"
     ]
   },
+  "New season": {
+    "refs": [
+      "apps/web/src/features/examples/Headline.tsx:629",
+      "apps/web/src/features/examples/Headline.tsx:639",
+      "apps/web/src/features/examples/Headline.tsx:848"
+    ],
+    "note": "Demo content: the small label above the heading of an example landing page hero, announcing a new season of products. Two or three words, set in small capitals."
+  },
   "New shape": {
     "note": "Editor, the Appearance menu's blob fields: a press (a die) that picks another shape number at random. Its tooltip and its name.",
     "refs": [
@@ -2831,6 +2859,12 @@
       "apps/web/src/features/account/settings/Admin.tsx:75"
     ]
   },
+  "Next headline": {
+    "refs": [
+      "apps/web/src/features/examples/Headline.tsx:923"
+    ],
+    "note": "Examples page: the press that shows the next example headline in the Headlines carousel, said to a screen reader."
+  },
   "Next lead": {
     "note": "Newsletter, admins only: the arrow press to the next palette the issue may lead with.",
     "refs": [
@@ -2846,8 +2880,8 @@
   "Night Market": {
     "note": "Demo content: the name of a fictional evening market event, the title of an example poster and ticket. Translate as a natural event name; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:282",
-      "apps/web/src/features/examples/Cards.tsx:455"
+      "apps/web/src/features/examples/Cards.tsx:290",
+      "apps/web/src/features/examples/Cards.tsx:463"
     ]
   },
   "No app is waiting. Connect again from your app.": {
@@ -2975,6 +3009,14 @@
       "apps/web/src/features/collections/Notes.tsx:72"
     ]
   },
+  "Notes on color": {
+    "refs": [
+      "apps/web/src/features/examples/Headline.tsx:678",
+      "apps/web/src/features/examples/Headline.tsx:682",
+      "apps/web/src/features/examples/Headline.tsx:883"
+    ],
+    "note": "Demo content: the heading of an example magazine or blog article, set over a bar of the palette. Short, like an article title."
+  },
   "Nothing changed.": {
     "note": "Error: the save would change nothing.",
     "refs": [
@@ -3041,8 +3083,8 @@
   "Offline": {
     "note": "There is no connection.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:109",
-      "apps/web/src/app/AccountMenu.tsx:158",
+      "apps/web/src/app/AccountMenu.tsx:110",
+      "apps/web/src/app/AccountMenu.tsx:159",
       "apps/web/src/app/Shell.tsx:59"
     ]
   },
@@ -3056,7 +3098,7 @@
   "Online": {
     "note": "Demo content: where the example event takes place (online, not in a room). One short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:407"
+      "apps/web/src/features/examples/Cards.tsx:415"
     ]
   },
   "Only Grabient links can be opened here.": {
@@ -3515,7 +3557,7 @@
   "Poster": {
     "note": "Read by screen readers: the name of one tile in the 'Covers and cards' section, a poster made with the palette. A noun.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:82"
+      "apps/web/src/features/examples/Cards.tsx:84"
     ]
   },
   "Prepare": {
@@ -3616,6 +3658,12 @@
     "refs": [
       "packages/ui/src/SizeControl.tsx:215"
     ]
+  },
+  "Previous headline": {
+    "refs": [
+      "apps/web/src/features/examples/Headline.tsx:899"
+    ],
+    "note": "Examples page: the press that shows the previous example headline in the Headlines carousel, said to a screen reader."
   },
   "Previous lead": {
     "note": "Newsletter, admins only: the arrow press to the previous palette the issue may lead with.",
@@ -4056,7 +4104,7 @@
   "Save a seat": {
     "note": "Demo content: the button of the example event card, to sign up for the workshop. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:421"
+      "apps/web/src/features/examples/Cards.tsx:429"
     ]
   },
   "Save likes, collections and votes from accounts and their apps. When off, pages keep likes and changes to an account's collections until saving is back, other saves are refused, and reading still works.": {
@@ -4105,7 +4153,7 @@
   "Saved palettes": {
     "note": "The reader's saved (liked) palettes, and links to them.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:130",
+      "apps/web/src/app/AccountMenu.tsx:131",
       "apps/web/src/app/Frames.tsx:77",
       "apps/web/src/app/OfflineList.tsx:11",
       "apps/web/src/app/Shell.tsx:175",
@@ -4161,6 +4209,12 @@
       "apps/web/src/features/editor/Controls.tsx:459",
       "packages/ui/src/Curation.tsx:45"
     ]
+  },
+  "Say it in <m>color</m>": {
+    "refs": [
+      "apps/web/src/features/examples/Headline.tsx:100"
+    ],
+    "note": "Demo content: an example headline where some words are marked with the palette like a highlighter. Keep <m></m> around the word for color (or the words that carry the point)."
   },
   "Scroll down": {
     "note": "Press: scrolls down to the content. Also its tooltip.",
@@ -4237,7 +4291,7 @@
   "Seat saved": {
     "note": "The event card's button after it was pressed: a seat is now saved for you. Short button label, about as long as 'Save a seat'.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:424"
+      "apps/web/src/features/examples/Cards.tsx:432"
     ]
   },
   "Seed": {
@@ -4360,8 +4414,8 @@
   "Settings": {
     "note": "The Settings page, its title and links to it.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:121",
-      "apps/web/src/app/AccountMenu.tsx:132",
+      "apps/web/src/app/AccountMenu.tsx:122",
+      "apps/web/src/app/AccountMenu.tsx:133",
       "apps/web/src/app/site.ts:33",
       "apps/web/src/features/account/SettingsPage.tsx:45",
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:80",
@@ -4471,9 +4525,9 @@
   "Sign in": {
     "note": "Press or link: opens the sign-in page.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:119",
-      "apps/web/src/app/AccountMenu.tsx:238",
-      "apps/web/src/app/AccountMenu.tsx:251",
+      "apps/web/src/app/AccountMenu.tsx:120",
+      "apps/web/src/app/AccountMenu.tsx:239",
+      "apps/web/src/app/AccountMenu.tsx:253",
       "apps/web/src/features/account/LoginPage.tsx:299",
       "apps/web/src/features/account/LoginPage.tsx:361",
       "apps/web/src/features/account/PasswordPage.tsx:59",
@@ -4573,7 +4627,7 @@
   "Sign in to sync your changes": {
     "note": "Account menu: changes made signed out wait for sign-in.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:102"
+      "apps/web/src/app/AccountMenu.tsx:103"
     ]
   },
   "Sign in with Google": {
@@ -4585,7 +4639,7 @@
   "Sign out": {
     "note": "Press: signs out.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:136",
+      "apps/web/src/app/AccountMenu.tsx:137",
       "apps/web/src/features/account/settings/Account.tsx:41"
     ]
   },
@@ -4598,7 +4652,7 @@
   "Signed out": {
     "note": "Screen reader name of the avatar when no one is signed in.",
     "refs": [
-      "packages/ui/src/Avatar.tsx:14"
+      "packages/ui/src/Avatar.tsx:16"
     ]
   },
   "Similar palettes": {
@@ -4657,7 +4711,7 @@
   "Social post": {
     "note": "Read by screen readers: the name of one tile, an image post for a social network, with a quote on it.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:85"
+      "apps/web/src/features/examples/Cards.tsx:87"
     ]
   },
   "Some features are limited here.": {
@@ -4817,7 +4871,7 @@
   "Sunrise": {
     "note": "Demo content: the name of a fictional app, under its example app icon (a sun). One short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:506"
+      "apps/web/src/features/examples/Cards.tsx:514"
     ]
   },
   "Sunset: lightness falls from 0.86 to 0.32, chroma peaks at 0.19, and hue turns from yellow to crimson.": {
@@ -5026,7 +5080,7 @@
   "The headline's code": {
     "note": "Read by screen readers only: the name of the Headlines section's code tabs.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:524"
+      "apps/web/src/features/examples/Headline.tsx:763"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5044,7 +5098,7 @@
   "The letters' least contrast with their page: {ratio}, {level}.": {
     "note": "Read by screen readers only, for a chip under the headlines: the lowest contrast any of the palette's colors inside the heading's letters has with the page behind it. {ratio} is like '4.52:1', {level} a WCAG level such as 'WCAG AA'.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:396"
+      "apps/web/src/features/examples/Headline.tsx:717"
     ]
   },
   "The most liked CSS gradients and color palettes on Grabient. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
@@ -5128,7 +5182,7 @@
   "The words' least contrast with the banner: {ratio}, {level}.": {
     "note": "Read by screen readers only, for a chip under the headlines: the lowest contrast the heading's white or black words have on the palette behind them. {ratio} is like '4.52:1', {level} a WCAG level such as 'WCAG AA'.",
     "refs": [
-      "apps/web/src/features/examples/Headline.tsx:408"
+      "apps/web/src/features/examples/Headline.tsx:729"
     ]
   },
   "Theme": {
@@ -5142,7 +5196,7 @@
   "Theme · {key}": {
     "note": "Tooltip on the theme press, with its key.",
     "refs": [
-      "apps/web/src/app/Shell.tsx:233"
+      "apps/web/src/app/Shell.tsx:234"
     ]
   },
   "Theme: {state}": {
@@ -5298,7 +5352,7 @@
   "Ticket": {
     "note": "Read by screen readers: the name of one tile, an admission ticket with a tear-off stub.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:87"
+      "apps/web/src/features/examples/Cards.tsx:89"
     ]
   },
   "Title": {
@@ -5588,7 +5642,7 @@
   "Video thumbnail": {
     "note": "Read by screen readers: the name of one tile, the small preview picture of an online video, with a play button.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:84"
+      "apps/web/src/features/examples/Cards.tsx:86"
     ]
   },
   "View saved.": {
@@ -5725,7 +5779,7 @@
   "Workshop": {
     "note": "Demo content: the small label at the top of an example event card: a workshop people sign up for. One short word, shown in capitals.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:402"
+      "apps/web/src/features/examples/Cards.tsx:410"
     ]
   },
   "Write 5 to 5,000 characters, and a valid email for a reply.": {
@@ -5836,7 +5890,7 @@
   "Your account": {
     "note": "Screen reader name of the account menu press.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:251"
+      "apps/web/src/app/AccountMenu.tsx:253"
     ]
   },
   "Your app asks you to sign in when you add Grabient. Choose Allow. It stays connected until you disconnect it or don't use it for a year.": {
@@ -5854,7 +5908,7 @@
   "Your collections": {
     "note": "The reader's own collections, and links to them.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:131",
+      "apps/web/src/app/AccountMenu.tsx:132",
       "apps/web/src/app/OfflineList.tsx:12",
       "apps/web/src/lib/page-meta.ts:1109",
       "apps/web/src/lib/page-meta.ts:614"
@@ -6541,8 +6595,10 @@
     ]
   },
   "{at} of {count}": {
-    "note": "Newsletter, admins only: which of the issue's lead palettes is shown, as \"3 of 13\".",
+    "note": "Newsletter, admins only: which of the issue's lead palettes is shown, as \"3 of 13\". Also the Headlines carousel on the examples page: which slide a dot shows, as \"2 of 5\".",
     "refs": [
+      "apps/web/src/features/examples/Headline.tsx:782",
+      "apps/web/src/features/examples/Headline.tsx:911",
       "apps/web/src/features/newsletter/Picker.tsx:237"
     ]
   },
@@ -6555,13 +6611,13 @@
   "{count, plural, one {# change not saved} other {# changes not saved}}": {
     "note": "Account menu: changes the server refused.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:95"
+      "apps/web/src/app/AccountMenu.tsx:96"
     ]
   },
   "{count, plural, one {# change to sync} other {# changes to sync}}": {
     "note": "Account menu: changes not synced yet.",
     "refs": [
-      "apps/web/src/app/AccountMenu.tsx:106"
+      "apps/web/src/app/AccountMenu.tsx:107"
     ]
   },
   "{count, plural, one {# character} other {# characters}}. The whole palette.": {
