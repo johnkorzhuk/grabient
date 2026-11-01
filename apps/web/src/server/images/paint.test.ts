@@ -269,3 +269,23 @@ describe("the pictures the site serves as files", () => {
     }
   });
 });
+
+describe("a palette's examples card", () => {
+  test("lays its uses on the paper under the wordmark, its keyframes as chips across the foot", async () => {
+    const { drawExamples, keyframeColors, lookOf } = await import("./paint.ts");
+    const P = decodePalette("kS7Q8Yy5S_SChv0");
+    if (!P) throw new Error("palette");
+    const keyframes = keyframeColors(P);
+    const picture = await decodePng(
+      await drawExamples({
+        look: lookOf(P, { style: "linearGradient", steps: 7, angle: 90 }),
+        still: null,
+        keyframes
+      })
+    );
+    expect([picture.width, picture.height]).toEqual([1200, 630]);
+    // the paper between the tiles, and the first chip's color at the foot's start
+    expect(at(picture, 568, 600)).toEqual([250, 249, 247]);
+    expect(at(picture, 40, 590)).toEqual(keyframes[0].map(Math.round));
+  });
+});
