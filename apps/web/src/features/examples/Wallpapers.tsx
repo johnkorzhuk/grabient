@@ -125,7 +125,7 @@ export function WallpapersExample(props: ExampleProps) {
   const wall = createMemo(() => wallOf(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const filled = () => wall() !== props.s;
-  /* where each screen's clock stands, read by its screen, its chip and its code: once for each palette */
+  /* where each screen's clock stands and in what ink, which its screen and its chip read: once for each palette */
   const reads: Readonly<Record<Device, () => ReturnType<typeof standing>>> = {
     phone: createMemo(() => {
       const rings = !wall().effect && wall().view.style.startsWith("radial");
