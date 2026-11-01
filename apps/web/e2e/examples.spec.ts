@@ -47,15 +47,16 @@ test("every style shows the examples its palette suits, numbered as they stand, 
   expect(errors).toEqual([]);
 });
 
-test("the hero runs under the header to the window's top, and the header stands clear over it until the page scrolls", async ({
+test("the hero runs under the header to the window's top, and the header is frosted over it until the page scrolls", async ({
   page
 }) => {
   await open(page, `/${SEED}/examples`);
   const hero = page.locator("main > section").first();
   expect((await hero.boundingBox())?.y).toBe(0);
   const surface = page.locator("header > span").first();
-  await expect(surface).not.toHaveAttribute("data-on", /.*/);
+  await expect(surface).toHaveAttribute("data-frost", "");
   await page.mouse.wheel(0, 400);
+  await expect(surface).not.toHaveAttribute("data-frost", /.*/);
   await expect(surface).toHaveAttribute("data-on", "");
 });
 
