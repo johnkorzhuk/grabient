@@ -15,6 +15,7 @@ import {
   type ExtraTile,
   styleLabel
 } from "@grabient/ui/Appearance.tsx";
+import { BRAND_SUPPLY } from "@grabient/ui/supply.ts";
 import { useLocation, useRouter, useSearch } from "@tanstack/solid-router";
 import {
   createEffect,
@@ -57,10 +58,10 @@ import {
 const WRITE_MS = 350;
 const REST_MS = 500;
 
-/* the effects' pictures and fields come with the menu or an effect, never with a list's start: by their exports'
-   names, so a page the server drew hydrates them as it stands */
+/* the effects' pictures come with the menu or an effect, and their fields as they show, never with a list's start: by
+   their exports' names, so a page the server drew hydrates them as it stands */
 const EffectSwatch = lazy(() => import("./ListEffects.tsx"), { export: "EffectSwatch" });
-const EffectFields = lazy(() => import("./ListEffects.tsx"), { export: "EffectFields" });
+const EffectFields = lazy(() => import("./ListFields.tsx"), { export: "EffectFields" });
 
 /* what each way of drawing had as the reader turned to another */
 const kept: { steps: ListView["steps"]; effects: Partial<Record<EffectKind, Effect>> } = {
@@ -195,21 +196,26 @@ export function ListAppearance() {
       angle: v.angle === "auto" ? 90 : v.angle
     };
   };
-  /* the effect the cards show, and the page's first palette playing it in its own shape: the header's swatch and
-     the effects' tiles, each made once and following what it shows */
+  /* the effect the cards show, and the page's first palette playing it in its own shape, or until the page has one
+     the resting colors': the header's swatch and the effects' tiles, each made once and following what it shows */
   const playing = () => shownEffect(view(), look.draft(), look.peek());
-  const still = (effect: () => Effect | null) => (
+  const still = (effect: () => Effect | null, gpu?: boolean) => (
     <Show
       when={(() => {
-        const first = look.first();
-        const P = first && decodePalette(first.seed);
+        const seed = look.first()?.seed ?? BRAND_SUPPLY[0]!;
+        const P = decodePalette(seed);
         const fx = effect();
-        return first && P && fx ? { palette: P, effect: cardEffect(fx, first.seed) } : null;
+        return P && fx ? { palette: P, effect: cardEffect(fx, seed) } : null;
       })()}
     >
       {shown => (
         <Loading>
-          <EffectSwatch effect={shown().effect} palette={shown().palette} angle={paint().angle} />
+          <EffectSwatch
+            effect={shown().effect}
+            palette={shown().palette}
+            angle={paint().angle}
+            gpu={gpu}
+          />
         </Loading>
       )}
     </Show>
@@ -221,12 +227,16 @@ export function ListAppearance() {
     key: kind,
     label: effectLabel(kind),
     get art() {
-      return still(() => {
-        const effect = view().effect;
-        return effect?.kind === kind
-          ? effect
-          : (kept.effects[kind] ?? { kind, ...EFFECT_PLAY, look: EFFECT_LOOK });
-      });
+      return still(
+        () => {
+          const effect = view().effect;
+          return effect?.kind === kind
+            ? effect
+            : (kept.effects[kind] ?? { kind, ...EFFECT_PLAY, look: EFFECT_LOOK });
+        },
+        /* the GPU's still only where the page plays the glass, whose context its cards made already */
+        untrack(view).effect?.kind === "glass"
+      );
     },
     get chosen() {
       return view().effect?.kind === kind;
@@ -269,7 +279,7 @@ export function ListAppearance() {
   return (
     <Appearance
       swatch={
-        playing() && look.first()
+        playing()
           ? "transparent"
           : gradientCss(paint().hexes, look.peek() ?? paint().style, paint().angle)
       }
@@ -281,7 +291,11 @@ export function ListAppearance() {
         if (open()) close();
         else {
           look.setPeek(null);
-          void EffectSwatch.preload().catch(() => {});
+          /* the effects' tiles and both stills' code, so the tiles are painted as the menu shows */
+          void import("./ListEffects.tsx").then(
+            m => m.preloadStills(),
+            () => {}
+          );
           setOpen(true);
         }
       }}

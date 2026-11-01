@@ -62,6 +62,9 @@ export function GlassArt(props: {
   shape?: number | null;
   /** drawn as it mounts, where a tile waits to be in sight: a card's picture, which a list shows as it comes */
   eager?: boolean;
+  /** false draws the SVG and never the GPU's still: a tile on a page that plays no glass, where making the WebGL
+      context would cost more than the tile's picture */
+  gpu?: boolean;
 }) {
   let el!: HTMLSpanElement;
   let canvas!: HTMLCanvasElement;
@@ -102,8 +105,8 @@ export function GlassArt(props: {
   let away = true;
   /* when the last still was drawn */
   let drawnAt = Number.NEGATIVE_INFINITY;
-  /* the GPU drew nothing here once: the SVG from then on */
-  let noGpu = false;
+  /* the GPU drew nothing here once, or is not asked to: the SVG from then on */
+  let noGpu = untrack(() => props.gpu === false);
   /* the box the GPU's last still was drawn for */
   let drawnBox = "";
   /* the GPU's still asked for, ahead of a change */
@@ -209,7 +212,7 @@ export function GlassArt(props: {
       /* the GPU's still code, and its canvas as the page idles, once a page shows the glass and before a change asks
          for a still: a tile in a menu still closed asks for nothing, and an open menu's tile waits for its first paint,
          which a context made meanwhile would wait on (painted.ts) */
-      if (!warming && !import.meta.env.SSR) {
+      if (!warming && !noGpu && !import.meta.env.SSR) {
         warming = true;
         void import("./painted.ts")
           .then(p => p.elementPainted(el, TILE_WAIT_MS))
