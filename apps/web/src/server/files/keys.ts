@@ -188,6 +188,13 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   }
   const svg = file.format === "svg" || file.format === "css" ? { size: svgSize(params) } : {};
   const query = new URLSearchParams(viewSearch({ ...view, ...svg }));
+  /* the palette's text files name the effect its address plays, how it plays among the rest */
+  if (effect && (file.format === "md" || file.format === "json")) {
+    for (const part of [`style=${effect.kind}`, ...effectParts(effect)]) {
+      const [key, value] = part.split("=");
+      query.set(key, decodeURIComponent(value));
+    }
+  }
   if (file.format === "og") {
     const card = cardSize(params);
     query.set("seed", seed);

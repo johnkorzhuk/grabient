@@ -1,59 +1,34 @@
-/* A palette's fluted glass or blob behind any page, by two files whose address is the whole setting:
+/* A palette's fluted glass or blob as files, which load with the first one asked for. The page background is two
+   files whose address is the whole setting:
      <link rel="stylesheet" href="https://grabient.com/{seed}.css?style=glass">
      <script src="https://grabient.com/{seed}.js?style=glass" async></script>
    The stylesheet paints the effect's first frame behind the page, as its palette's page paints it (glass-still.ts,
    blob-still.ts), and being a stylesheet it is in the page's first paint; the script (src/embed) plays the effect from
    that very frame. The still is a layer fixed behind the page, where the script's canvas comes: the glass's canvas is
    opaque and fades in over it, and the blob's is clear around the blob, so its still goes in the frame the canvas
-   comes (the script marks the root). This module loads with the first stylesheet asked for. */
-import { BLOB_SIZE, blobStillBackground, blobSvg } from "@grabient/engine/blob.ts";
-import { type Effect, effectAddressParts, effectLayerCss } from "@grabient/engine/effect.ts";
-import { glassDesign, glassField, glassStillBackground, glassSvg } from "@grabient/engine/glass.ts";
-import { glassColors } from "@grabient/engine/glass-colors.ts";
+   comes (the script marks the root). Both and the moving SVG are the engine's writing (engine/effect-code.ts), which
+   the editor's copies are too. */
+import { type Effect, effectAddressParts } from "@grabient/engine/effect.ts";
+import { effectSize, effectStylesheet, effectSvg } from "@grabient/engine/effect-code.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { DEFAULT_SIZE, resolveSize, type Size, type SizeChoice } from "@grabient/engine/view.ts";
+import { resolveSize, type SizeChoice } from "@grabient/engine/view.ts";
 import { ANIMATION, EMBEDDED } from "../../lib/cache.ts";
 import { effectCard } from "../../lib/page-meta.ts";
 import { isLinkPreview } from "../crawlers.ts";
 import { svgPreview } from "./preview.ts";
 
-/** The effect's first frame as a background, all it depends on named: the glass's colors, angle and shape, the blob's
-    look and angle. */
-export const effectStill = (P: Palette, effect: Effect, angle: number): string =>
-  effect.kind === "glass"
-    ? glassStillBackground(glassColors(P), angle, effect.look.shape)
-    : blobStillBackground(P, { speed: 1, fps: null, still: true, angle, ...effect.look });
-
-/** The stylesheet: the still on a layer fixed behind the page, under the page's own content and over its ground
-    (engine/effect.ts's effectLayerCss, which the editor's copied tags hold too). */
-export const effectCss = (P: Palette, effect: Effect, angle: number, credit: string): string =>
-  `/* ${credit} */\n${effectLayerCss(effect.kind, effectStill(P, effect, angle))}`;
-
-/** The effect as a moving SVG, moved by CSS alone: the glass or the blobs covering its box; at speed 0 its first
-    frame. */
-export function effectSvg(
+/** /{seed}.css?style=glass or blob: the effect's first frame behind the page. */
+export const effectCssAnswer = (
+  origin: string,
+  seed: string,
   P: Palette,
   effect: Effect,
-  angle: number,
-  size: Size,
-  credit: string
-): string {
-  const still = effect.speed === 0;
-  if (effect.kind === "blob")
-    return blobSvg(
-      P,
-      { ...effect.look, speed: effect.speed || 1, fps: effect.fps, still, angle },
-      size,
-      credit
-    );
-  const design = glassDesign(angle, effect.look.shape);
-  return glassSvg(design, glassField(design, glassColors(P)), {
-    still,
-    speed: effect.speed || 1,
-    cover: true
-  }).replace('width="100%" height="100%"', `width="${size.width}" height="${size.height}"`);
-}
+  angle: number
+): Response =>
+  new Response(effectStylesheet(P, seed, effect, angle, origin), {
+    headers: { ...ANIMATION, ...EMBEDDED, "Content-Type": "text/css; charset=utf-8" }
+  });
 
 /** /{seed}.svg?style=glass or blob: the moving SVG, 800 by 400 for the glass and 500 by 500 for the blob unless the
     address asks; an app previewing a posted link gets a page whose card is the effect's first frame (preview.ts). */
@@ -66,7 +41,7 @@ export function effectSvgAnswer(
   angle: number,
   asked: SizeChoice | null | undefined
 ): Response {
-  const size = resolveSize(asked, effect.kind === "blob" ? BLOB_SIZE : DEFAULT_SIZE);
+  const size = resolveSize(asked, effectSize(effect));
   if (isLinkPreview(request)) {
     const sized = asked ? [`w=${size.width}`, `h=${size.height}`] : [];
     return svgPreview({
@@ -79,7 +54,7 @@ export function effectSvgAnswer(
           : "An animated SVG of a Grabient palette: a frosted blob of its colors, drifting, moved by CSS alone."
     });
   }
-  return new Response(effectSvg(P, effect, angle, size, `${origin}/${seed}`), {
+  return new Response(effectSvg(P, seed, effect, angle, size, origin), {
     headers: { ...ANIMATION, ...EMBEDDED, "Content-Type": "image/svg+xml; charset=utf-8" }
   });
 }

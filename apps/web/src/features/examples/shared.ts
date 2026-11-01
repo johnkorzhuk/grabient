@@ -1,8 +1,8 @@
-/* What the examples share: the forms a palette takes and how one is drawn in words, the code that paints a box with
-   it, and the palette as the editor's copies take it. */
+/* What the examples share: the forms a palette takes and how one is drawn in words, its files' addresses and a CSS
+   rule as the code shows them, and the palette as the editor's copies take it. */
 import { contrastOf } from "@grabient/engine/color.ts";
 import { luminance } from "@grabient/engine/contrast.ts";
-import { cssLine, gradientCss } from "@grabient/engine/css.ts";
+import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import {
   blobShapeOf,
@@ -20,7 +20,6 @@ import {
   STYLE_LABELS
 } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
-import { colorFormat } from "../../lib/color-format.ts";
 import { effectLabel, effectSummary } from "../editor/effect-page.ts";
 import type { Taken } from "../editor/formats.ts";
 import { contrastLevel, drawnColors, type Shown } from "./paint.ts";
@@ -141,14 +140,6 @@ export const gradientOf = (s: Shown): string =>
     s.view.style,
     s.view.angle
   );
-
-/** The background declaration as the code shows it: a gradient in the reader's spelling of colors (Settings), or an
-    effect's moving SVG covering the box, over `ground` where the code gives it one. */
-export function backgroundCode(s: Shown, origin: string, ground?: string): string {
-  if (!s.effect) return cssLine(stopsOf(s), s.view.style, s.view.angle, colorFormat());
-  const svg = effectFileAddress(origin, s.seed, s.effect, s.view.angle, "svg");
-  return `background: url("${svg}") 50% 50% / cover no-repeat${ground ? ` ${ground}` : ""};`;
-}
 
 /** The address of the palette's picture as a file, in the page's style: a gradient's PNG or SVG at a size, or an
     effect's first frame as PNG or its moving SVG. */

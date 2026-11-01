@@ -26,17 +26,18 @@
    backdrop). */
 import { encodePalette } from "./codec.ts";
 import { contrastOf, hexBytes, luminance, toHex } from "./color.ts";
-import { pageBox, svgUrl } from "./css.ts";
+import { svgUrl } from "./css.ts";
 import { sampleSrgb } from "./curve.ts";
 import { groundHex, groundParts } from "./effect.ts";
 import { clamp, clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
+import { svgComment } from "./svg-comment.ts";
 import { type ParamReader, parseView, type Size } from "./view.ts";
 
 /** The `style` that asks a palette's SVG for this animation. */
 export const BLOB_STYLE = "blob";
-/** A loop's seconds at speed 1. */
-export const BLOB_LOOP = 16;
+/** A loop's seconds at speed 1: the balls drift about 0.04 of the box a second, as calm as the glass's colors. */
+export const BLOB_LOOP = 48;
 export const BLOB_SPEED_MIN = 0.1;
 export const BLOB_SPEED_MAX = 10;
 export const BLOB_FROST_MAX = 2;
@@ -646,24 +647,13 @@ export function blobSvg(P: Palette, view: BlobView, size: Size | null, credit: s
   const keyframes = [...frames]
     .map(([name, between]) => `@keyframes ${id}${name}{${between}}`)
     .join("");
-  const comment = `<!-- ${credit.replace(/--/g, "-%2D")} -->`;
   /* the still frame carries no motion at all: what it draws is where every motion starts */
   const style = view.still
     ? ""
     : `<style>${keyframes}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n`;
   /* the design scaled to cover the box */
   const box = W === undefined ? 'width="100%" height="100%"' : `width="${W}" height="${H}"`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${box} viewBox="0 0 ${DW} ${DH}" preserveAspectRatio="xMidYMid slice" class="${id}">\n${comment}\n${style}<defs>${defs}</defs>\n${body}\n</svg>`;
-}
-
-/** The animated SVG as CSS that works alone: the page's background plays it, the SVG carried inside as a data URI,
-    covering the page's box, on its ground's color where it has one. The box is the size asked for, else at least the
-    window's height. */
-export function blobCss(P: Palette, view: BlobView, size: Size | null, credit: string): string {
-  const box = size ?? BLOB_SIZE;
-  /* the file's own ground covers the box: no color under it, which would show through a ground that lets it */
-  const svg = blobSvg(P, view, box, credit);
-  return `/* ${credit} */\nhtml {\n  ${pageBox(size)}\n  background: ${svgUrl(svg)} center / cover no-repeat;\n}\n`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${box} viewBox="0 0 ${DW} ${DH}" preserveAspectRatio="xMidYMid slice" class="${id}">\n${svgComment(credit)}\n${style}<defs>${defs}</defs>\n${body}\n</svg>`;
 }
 
 /** feTurbulence's tables for a seed as Chromium's Skia builds them (SkPerlinNoiseShaderImpl.h): the SVG 1.1 reference

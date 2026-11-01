@@ -1,8 +1,18 @@
 import { decodePalette } from "@grabient/engine";
+import { sampleStops } from "@grabient/engine/curve.ts";
+import { effectEmbedHtml, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  effectColors,
+  effectStill,
+  effectStylesheet,
+  effectSvg
+} from "@grabient/engine/effect-code.ts";
 import { flush } from "solid-js";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { setColorFormat } from "../../lib/color-format.ts";
+import { markdownFile } from "../../server/seo/markdown.ts";
 import { codeSources } from "./code.ts";
+import type { Taken } from "./formats.ts";
 import { createRest } from "./rest.ts";
 
 /* The palette as text, in the sheet's code pane. */
@@ -37,4 +47,122 @@ test("CSS and Colors open in the spelling the reader chose in Settings", () => {
 test("the seed is the whole palette, and the Markdown is written here for a palette an edit made", () => {
   expect(source("seed").text()).toBe(SEED);
   expect(source("md").text()).toContain(SEED);
+});
+
+/* the code of an effect the picture plays, read once its writers are in */
+const ORIGIN = "https://grabient.com";
+const played = (query: string): Taken => {
+  const P = decodePalette(SEED)!;
+  return {
+    seed: SEED,
+    style: "radialGradient",
+    steps: 6,
+    angle: 45,
+    size: null,
+    pixels: { width: 1000, height: 600 },
+    stops: sampleStops(P, 6),
+    effect: parseEffect(new URLSearchParams(query))
+  };
+};
+const effectSource = (query: string, id: string) =>
+  codeSources(
+    decodePalette(SEED)!,
+    { style: "radialGradient", steps: 6, angle: 45 },
+    SEED,
+    () => ({ facts: null, opened: false }),
+    createRest(),
+    played(query)
+  ).find(s => s.id === id);
+/* an effect's tabs come with its code, which the pane asks for as an effect first shows (effect-sources.ts) */
+const tabsIn = () =>
+  vi.waitFor(() => {
+    flush();
+    expect(effectSource("style=glass", "css")).toBeDefined();
+  });
+const loaded = async (read: () => string) => {
+  read();
+  await vi.waitFor(() => {
+    flush();
+    expect(read()).not.toBe("");
+  });
+  return read();
+};
+
+test("while an effect plays, the pane holds its code in the gradient's place, and no shader", async () => {
+  await tabsIn();
+  const ids = codeSources(
+    decodePalette(SEED)!,
+    { style: "radialGradient", steps: 6, angle: 45 },
+    SEED,
+    () => ({ facts: null, opened: false }),
+    createRest(),
+    played("style=glass")
+  ).map(s => s.id);
+  expect(ids).toEqual(["seed", "html", "css", "colors", "json", "svg", "md"]);
+  const P = decodePalette(SEED)!;
+  const glass = parseEffect(new URLSearchParams("style=glass&shape=12&speed=2"))!;
+  const css = await loaded(() => effectSource("style=glass&shape=12&speed=2", "css")!.text());
+  expect(css).toBe(effectStylesheet(P, SEED, glass, 45, ORIGIN));
+  expect(css).not.toContain("radial-gradient");
+  expect(effectSource("style=glass&shape=12&speed=2", "svg")!.text()).toBe(
+    effectSvg(P, SEED, glass, 45, { width: 1000, height: 600 }, ORIGIN)
+  );
+  expect(JSON.parse(effectSource("style=glass&shape=12&speed=2", "json")!.text())).toMatchObject({
+    style: "glass",
+    angle: 45,
+    shape: 12,
+    speed: 2
+  });
+  expect(effectSource("style=glass", "colors")!.text("hex").split("\n")).toEqual(
+    effectColors(P, parseEffect(new URLSearchParams("style=glass"))!, 45)
+  );
+  const md = effectSource("style=glass&shape=12&speed=2", "md")!.text();
+  expect(md).toContain("- Drawn as: fluted glass, its ribs at 45 degrees, shape 12, speed 2");
+  expect(md).not.toContain("gradient(");
+});
+
+test("while an effect plays, the Markdown is the file its address serves, whatever gradient the editor keeps", async () => {
+  const served = async (query: string) =>
+    (
+      await (
+        await markdownFile(SEED, new Request(`${ORIGIN}/${SEED}.md?${query}`), ORIGIN, {
+          paletteWords: async () => ({ written: null, heldBy: [] }),
+          collection: async () => null,
+          isCollection: () => false
+        })
+      ).text()
+    ).trimEnd();
+  // the gradient kept is 5 radial bands, which an effect's address does not name
+  const pane = (query: string) =>
+    codeSources(
+      decodePalette(SEED)!,
+      { style: "radialSwatches", steps: 5, angle: 45 },
+      SEED,
+      () => ({ facts: null, opened: false }),
+      createRest(),
+      played(query)
+    ).find(s => s.id === "md")!;
+  for (const query of ["style=glass&angle=45&speed=2&shape=12", "style=blob&angle=45&shape=3"]) {
+    const md = pane(query);
+    expect(await loaded(() => md.text())).toBe(await served(query));
+  }
+});
+
+test("the effect's tags show its first frame inside the page or linked, and copy it whole", async () => {
+  const P = decodePalette(SEED)!;
+  const blob = parseEffect(new URLSearchParams("style=blob&shape=3"))!;
+  await tabsIn();
+  const html = effectSource("style=blob&shape=3", "html")!;
+  expect(html.spellings?.map(s => s.label)).toEqual(["<style>", "<link>"]);
+  expect(await loaded(() => html.text("style"))).toBe(
+    effectEmbedHtml(ORIGIN, SEED, blob, 45, effectStill(P, blob, 45))
+  );
+  expect(html.text("link")).toBe(effectEmbedHtml(ORIGIN, SEED, blob, 45));
+  expect(await html.take?.("link")).toBe(html.text("link"));
+  // the glass's first frame is a WebP the browser makes on the press, shown elided
+  const glass = effectSource("style=glass", "html")!;
+  expect(glass.text("style")).toContain('url("data:image/webp;base64,…")');
+  expect(glass.text("style")).toContain(
+    `<script src="${ORIGIN}/${SEED}.js?style=glass&amp;angle=45" async>`
+  );
 });

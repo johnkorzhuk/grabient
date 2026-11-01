@@ -7,11 +7,8 @@
    has a shape number, so a drag that recolors the palette keeps the blob it is looking at. */
 import {
   blobShapeOf,
-  EFFECT_FPS,
   EFFECT_LOOK,
   EFFECT_PLAY,
-  EFFECT_SPEED,
-  EFFECTS,
   type Effect,
   type EffectKind,
   type EffectLook,
@@ -25,8 +22,6 @@ import {
 } from "@grabient/engine/effect.ts";
 import { createSignal, untrack } from "solid-js";
 import { EFFECT_KEY } from "./effect-page.ts";
-
-export { EFFECT_FPS as FPS, EFFECT_SPEED as SPEED };
 
 type Settings = Record<EffectKind, EffectSettings>;
 /** The reader's choice as this browser keeps it. */
@@ -93,12 +88,14 @@ export interface Effects {
 }
 
 /** The effects as an address opened the page, for the palette `seed` names; `own` is a figure's palette, which plays
-    none and keeps nothing. */
+    none and keeps nothing. `chosen` hears what the reader chooses, an effect or the gradient, which the tab keeps
+    for the lists. */
 export function createEffects(
   start: Effect | null,
   styled: boolean,
   seed: () => string,
-  own = false
+  own = false,
+  chosen?: (effect: Effect | null) => void
 ): Effects {
   const kept = own ? { ...DEFAULT_KEPT, kind: null } : readKept();
   /* the blob always has a shape here */
@@ -129,7 +126,7 @@ export function createEffects(
   const [openedAt, setOpenedAt] = createSignal(opened);
   /** a new state: the signals, the mark on <html> (the server's glass still answers to it, effectScript) and, where
       the reader made it, this browser's copy follow; a figure's palette plays none and touches neither */
-  const commit = (next: Kept, keep = true) => {
+  const commit = (next: Kept, keep = true, told = keep) => {
     now = settled(next);
     setKind(now.kind);
     setSettings(now.settings);
@@ -143,6 +140,7 @@ export function createEffects(
     try {
       localStorage.setItem(EFFECT_KEY, JSON.stringify(now));
     } catch {}
+    if (told) chosen?.(effectOf(now));
   };
   const withSettings = (k: EffectKind, s: EffectSettings): Kept => ({
     ...now,
@@ -185,15 +183,15 @@ export function createEffects(
       setOpenedAt(opened);
     },
     changed: () => !sameEffect(effect(), openedAt()),
+    /* the page as it opened, which is no choice of the reader's for the lists */
     reset() {
       commit(
         opened
           ? { ...withSettings(opened.kind, settingsOf(opened)), kind: opened.kind }
-          : { ...now, kind: null }
+          : { ...now, kind: null },
+        true,
+        false
       );
     }
   };
 }
-
-/** Every effect, for the menu's tiles. */
-export const EFFECT_KINDS = EFFECTS;

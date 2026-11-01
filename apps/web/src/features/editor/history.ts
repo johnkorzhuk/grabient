@@ -63,6 +63,8 @@ export function followAddress(
   let latest: string | null = null;
   let lastAt = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  /* the path of the write on its way to the router: an edit's new seed is a new path, and the page stays */
+  let writing: string | null = null;
   const cancel = () => {
     latest = null;
     clearTimeout(timer);
@@ -81,6 +83,7 @@ export function followAddress(
       new URLSearchParams(to.split("?")[1] ?? "")
     );
     if (!page) return;
+    writing = `/${page.seed}`;
     void router.navigate({
       to: "/$id",
       params: { id: page.seed },
@@ -161,9 +164,13 @@ export function followAddress(
      land on the entry gone to. And a write still loading leaves the router told to keep the scroll (resetScroll:
      false), which only a navigation it makes resets: Back, a history move, makes none, so the list Back returns to
      was left at the editor's scroll rather than its own (a palette opened from a list writes the effect the reader's
-     choice plays at once, which a quick Back overtook). The router scrolls that page as it would any. */
+     choice plays at once, which a quick Back overtook). The router scrolls that page as it would any. The editor's own
+     write is no leaving, though an edit's seed is a new path: the page keeps its scroll. */
   const leave = router.subscribe("onBeforeNavigate", event => {
-    if (event.toLocation.pathname === event.fromLocation?.pathname) return;
+    const own = writing;
+    writing = null;
+    const to = event.toLocation.pathname;
+    if (to === event.fromLocation?.pathname || to === own) return;
     cancel();
     router._scroll.next = true;
   });

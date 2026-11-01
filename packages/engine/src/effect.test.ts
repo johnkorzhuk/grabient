@@ -136,7 +136,8 @@ test("with its still, the tags hold the first frame in the page itself, and the 
     'background: url("data:image/webp;base64,AAAA") 50% 50%/cover no-repeat;'
   );
   expect(glass).not.toContain("<link");
-  expect(glass).not.toContain(EMBED_PLAYING);
+  // the glass's canvas, opaque once faded in, takes the still's place too
+  expect(glass).toContain(`html[${EMBED_PLAYING}]::before {\n  background: none;\n}\n</style>`);
   expect(
     glass.endsWith(
       `</style>\n<script src="https://grabient.test/${SEED}.js?style=glass" async></script>`
@@ -144,7 +145,7 @@ test("with its still, the tags hold the first frame in the page itself, and the 
   ).toBe(true);
   const blob = effectEmbedHtml("https://grabient.test", SEED, effect("style=blob"), 90, "url(x)");
   expect(blob).toContain(`html[${EMBED_PLAYING}]::before {\n  background: none;\n}\n</style>`);
-  expect(effectLayerCss("glass", "red")).toBe(
-    'html::before {\n  content: "";\n  position: fixed;\n  inset: 0;\n  z-index: -1;\n  pointer-events: none;\n  background: red;\n}\n'
+  expect(effectLayerCss("red")).toBe(
+    `html::before {\n  content: "";\n  position: fixed;\n  inset: 0;\n  z-index: -1;\n  pointer-events: none;\n  background: red;\n}\nhtml[${EMBED_PLAYING}]::before {\n  background: none;\n}\n`
   );
 });

@@ -24,7 +24,8 @@ import { seedAddress } from "./address.ts";
 /* What the editor's strips hand over: a palette copied, saved as a file, or as the address of the file the site serves
    for it. A copy and a download of one format hold the same palette; CSS alone differs, since a copy is the
    declaration to paste into a rule and a download is the file the site serves, which works on its own. Every CSS spells
-   its colors as the reader chose in Settings. */
+   its colors as the reader chose in Settings. An effect's CSS is the file its address serves either way, its first
+   frame on a layer behind the page, which a declaration alone cannot place, and its SVG the file too. */
 
 /* A strip's formats over a picture: Copy hands over the address, the CSS and the pictures, Download saves the files the
    site serves (the Markdown in the address's place), and Copy link copies those files' addresses. A format keeps its
@@ -33,8 +34,8 @@ export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
 /** While an effect plays, Copy also hands over the two tags that play it behind a page (HTML) and the effect as
     Figma's own layers (engine/figma-glass.ts, figma-blob.ts), and Copy link the addresses of its files: the
-    stylesheet of its first frame, its moving SVG, its first frame as PNG, and the script that plays it
-    (server/files/effect-files.ts, embed.ts). */
+    palette's Markdown naming it, the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the
+    script that plays it (server/files/effect-files.ts, embed.ts). */
 export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html", "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
 
@@ -59,86 +60,53 @@ export const NO_IMAGE_CLIPBOARD = "no image clipboard";
 
 const origin = () => location.origin;
 const view = (p: Taken) => ({ style: p.style, steps: p.steps, angle: p.angle });
-/* the palette's address as people share it: no language, no locks, no selection */
+/* the palette's address as people share it, with the effect it plays: no language, no locks, no selection */
 const pageUrl = (p: Taken) =>
-  origin() + seedAddress({ seed: p.seed, view: { ...view(p), size: p.size } });
+  origin() +
+  seedAddress({
+    seed: p.seed,
+    view: { ...view(p), size: p.size },
+    ...(p.effect ? { effect: p.effect } : {})
+  });
 /* the glass's model and its CPU drawing, loaded with its first file: the editor's first load carries neither */
 const model = () => import("@grabient/engine/glass.ts");
 const render = () => import("@grabient/engine/glass-render.ts");
-const colorsOf = (p: Taken) => glassColors(decodePalette(p.seed)!);
+/* an effect's files as the Worker writes them (engine/effect-code.ts), loaded with the first effect taken */
+const effectCode = () => import("@grabient/engine/effect-code.ts");
+const paletteOf = (p: Taken) => decodePalette(p.seed)!;
+const colorsOf = (p: Taken) => glassColors(paletteOf(p));
 /* the glass's shape where the picture plays it: 0, as designed, otherwise */
 const shapeOf = (p: Taken) => (p.effect?.kind === "glass" ? p.effect.look.shape : null);
-/* the glass at the pixels taken: the one design covering the box, its ribs at the view's angle and in its shape, as
-   the picture shows it. Moving as the picture moves (`moving`: its speed, its discs on their CSS orbits), otherwise its
-   first frame */
-const glassText = async (p: Taken, moving: boolean) => {
-  const g = await model();
-  const design = g.glassGeometry(g.GLASS_DESIGN, p.angle, shapeOf(p));
-  const speed = p.effect?.speed ?? 0;
-  return g
-    .glassSvg(design, g.glassField(design, colorsOf(p)), {
-      still: !moving || speed === 0,
-      speed: speed || 1,
-      cover: true
-    })
-    .replace('width="100%" height="100%"', `width="${p.pixels.width}" height="${p.pixels.height}"`);
-};
-/* its PNG, its first frame drawn as the player draws it */
-const glassPng = async (p: Taken): Promise<Blob> => {
+/* the glass's first frame at a size, drawn as its player draws it */
+const glassPixels = async (p: Taken, size: Size) => {
   const [g, r] = await Promise.all([model(), render()]);
-  const { geometry, window } = r.glassCover(p.pixels, 1, p.angle, shapeOf(p));
+  const { geometry, window } = r.glassCover(size, 1, p.angle, shapeOf(p));
   const pixels = r.glassRenderer(geometry, window).frame(g.glassField(geometry, colorsOf(p)), 0);
   const canvas = document.createElement("canvas");
   canvas.width = window.w;
   canvas.height = window.h;
   canvas.getContext("2d")?.putImageData(new ImageData(pixels, window.w, window.h), 0, 0);
-  return new Promise((done, fail) =>
-    canvas.toBlob(blob => (blob ? done(blob) : fail(new Error("no PNG"))), "image/png")
-  );
+  return canvas;
 };
-/* an SVG as a CSS url(), its markup escaped as a data URI */
-const svgUrl = (svg: string) => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-/* the blob's view of an effect's settings at the view's angle: moving, or its first frame alone */
-const blobViewOf = (effect: Effect, angle: number, still: boolean) => ({
-  speed: effect.speed || 1,
-  fps: effect.fps,
-  still,
-  angle,
-  ...effect.look
-});
-/* the blob at the pixels taken, credited to the palette's page: moving as the picture moves, otherwise its first
+const encoded = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
+  new Promise<Blob | null>(done => canvas.toBlob(done, type, quality));
+/* an effect's SVG at the pixels taken, as /{seed}.svg?style= serves it: moving as the picture moves, or its first
    frame */
-const blobCode = () => import("@grabient/engine/blob.ts");
-const blobText = async (p: Taken, moving: boolean) => {
-  const effect = p.effect;
-  if (!effect) return "";
-  const b = await blobCode();
-  const still = !moving || effect.speed === 0;
-  return b.blobSvg(
-    decodePalette(p.seed)!,
-    blobViewOf(effect, p.angle, still),
+const effectSvgOf = async (p: Taken, effect: Effect, moving: boolean) =>
+  (await effectCode()).effectSvg(
+    paletteOf(p),
+    p.seed,
+    moving ? effect : { ...effect, speed: 0 },
+    p.angle,
     p.pixels,
-    `${origin()}/${p.seed}`
+    origin()
   );
-};
-const blobCssText = async (p: Taken) => {
-  const effect = p.effect;
-  if (!effect) return "";
-  const b = await blobCode();
-  return b.blobCss(
-    decodePalette(p.seed)!,
-    blobViewOf(effect, p.angle, true),
-    p.size && sizeParam(p.size) ? p.pixels : null,
-    `${origin()}/${p.seed}`
-  );
-};
 /* The first frame the copied tags carry inside the page, a CSS background covering it as the player covers its canvas:
    the glass as a WebP of its design square, drawn by its CPU renderer (a JPEG where the browser makes no WebP), which a
-   browser paints at no cost where the glass's SVG held a page's first paint ~80 ms; the blob as its SVG still, whose
-   grain its player matches exactly, since the blob's canvas takes the still's place in one frame. */
+   browser paints at no cost where the glass's SVG held a page's first paint ~80 ms; the blob as its SVG still, the
+   stylesheet's own, whose grain its player matches exactly, since the blob's canvas takes the still's place in one
+   frame. */
 const STILL_SIDE = 1000;
-const encoded = (canvas: HTMLCanvasElement, type: string, quality: number) =>
-  new Promise<Blob | null>(done => canvas.toBlob(done, type, quality));
 const dataUrl = (blob: Blob) =>
   new Promise<string>((done, fail) => {
     const reader = new FileReader();
@@ -146,43 +114,46 @@ const dataUrl = (blob: Blob) =>
     reader.onerror = () => fail(reader.error);
     reader.readAsDataURL(blob);
   });
-const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
-  if (effect.kind === "blob") {
-    const b = await blobCode();
-    return b.blobStillBackground(decodePalette(p.seed)!, blobViewOf(effect, p.angle, true));
-  }
-  const [g, r] = await Promise.all([model(), render()]);
-  const side = { width: STILL_SIDE, height: STILL_SIDE };
-  const { geometry, window } = r.glassCover(side, 1, p.angle, shapeOf(p));
-  const pixels = r.glassRenderer(geometry, window).frame(g.glassField(geometry, colorsOf(p)), 0);
-  const canvas = document.createElement("canvas");
-  canvas.width = window.w;
-  canvas.height = window.h;
-  canvas.getContext("2d")?.putImageData(new ImageData(pixels, window.w, window.h), 0, 0);
+const glassStill = async (p: Taken): Promise<string> => {
+  const canvas = await glassPixels(p, { width: STILL_SIDE, height: STILL_SIDE });
   const webp = await encoded(canvas, "image/webp", 0.8);
   const picture = webp?.type === "image/webp" ? webp : await encoded(canvas, "image/jpeg", 0.85);
   if (!picture) throw new Error("no still");
   return `url("${await dataUrl(picture)}") 50% 50%/cover no-repeat`;
 };
-/* a page's background: the first frame, since a background that moved would repaint the glass's whole filter under
-   everything on the page every frame */
-const glassCss = async (p: Taken) =>
-  `/* ${origin()}/${p.seed} */\nhtml {\n  min-height: 100%;\n  background: ${svgUrl(await glassText(p, false))} center / cover no-repeat;\n}\n`;
+/* the glass's stills made, by all they depend on, the latest few: drawing one holds the page about a quarter of a
+   second, so a copy of the same glass again, from the strip or the code pane, takes the one made */
+const STILLS_KEPT = 4;
+const glassStills = new Map<string, Promise<string>>();
+const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
+  if (effect.kind === "blob")
+    return (await effectCode()).effectStill(paletteOf(p), effect, p.angle);
+  const key = `${p.seed}|${p.angle}|${shapeOf(p) ?? 0}`;
+  let made = glassStills.get(key);
+  if (!made) {
+    made = glassStill(p);
+    glassStills.set(key, made);
+    made.catch(() => glassStills.delete(key));
+    if (glassStills.size > STILLS_KEPT) glassStills.delete(glassStills.keys().next().value!);
+  }
+  return made;
+};
+/* the stylesheet that paints an effect's first frame behind a page, as /{seed}.css?style= serves it */
+const effectCss = async (p: Taken, effect: Effect) =>
+  (await effectCode()).effectStylesheet(paletteOf(p), p.seed, effect, p.angle, origin());
 /* an effect's SVG moves as the picture does: speed 0 is its first frame */
-const svgText = async (p: Taken) =>
-  p.effect?.kind === "blob"
-    ? blobText(p, true)
-    : p.effect
-      ? glassText(p, true)
-      : artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels);
+const svgText = (p: Taken) =>
+  p.effect
+    ? effectSvgOf(p, p.effect, true)
+    : Promise.resolve(artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels));
 /* a PNG is the first frame: the glass as its player draws it, the blob as its still SVG paints */
-const pngOf = async (p: Taken) =>
-  p.effect?.kind === "blob"
-    ? svgToPngBlob(await blobText(p, false), 1)
-    : p.effect
-      ? glassPng(p)
-      : svgToPngBlob(artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels), 1);
-const effectCss = (p: Taken) => (p.effect?.kind === "blob" ? blobCssText(p) : glassCss(p));
+const pngOf = async (p: Taken): Promise<Blob> => {
+  if (p.effect?.kind === "blob") return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
+  if (!p.effect) return svgToPngBlob(artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels), 1);
+  const picture = await encoded(await glassPixels(p, p.pixels), "image/png");
+  if (!picture) throw new Error("no PNG");
+  return picture;
+};
 /* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
 const fileUrl = (p: Taken, f: Format) =>
   fileAddress({ seed: p.seed, ...view(p) }, f, sizeParam(p.size) ? p.pixels : undefined);
@@ -237,12 +208,28 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
   return writeText(
     f === "css"
       ? p.effect
-        ? await effectCss(p)
+        ? await effectCss(p, p.effect)
         : cssBlock(p.stops, p.style, p.angle, colorFormat())
       : f === "svg"
         ? await svgText(p)
         : pageUrl(p)
   );
+}
+
+/** The format onto the clipboard, or where no picture can go there its PNG saved instead: why a copy failed, where
+    the file could not be saved either. */
+export async function copyOrSave(f: Format, p: Taken): Promise<"copied" | "downloaded"> {
+  try {
+    await copyFormat(f, p);
+    return "copied";
+  } catch (reason) {
+    if (f !== "png" || !(reason instanceof Error) || reason.message !== NO_IMAGE_CLIPBOARD)
+      throw reason;
+    await saveFormat(f, p).catch(() => {
+      throw reason;
+    });
+    return "downloaded";
+  }
 }
 
 /** The format to a file. */
@@ -251,10 +238,16 @@ export async function saveFormat(f: Format, p: Taken): Promise<void> {
   if (p.effect && f === "css")
     return downloadFile(
       `${name}.css`,
-      new Blob([await effectCss(p)], { type: "text/css;charset=utf-8" })
+      new Blob([await effectCss(p, p.effect)], { type: "text/css;charset=utf-8" })
     );
   if (f === "md" || f === "css" || isSwatchFormat(f))
-    return saveFile({ seed: p.seed, ...view(p) }, f);
+    return saveFile(
+      { seed: p.seed, ...view(p) },
+      f,
+      f === "md" && p.effect
+        ? effectFileAddress(origin(), p.seed, p.effect, p.angle, "md")
+        : undefined
+    );
   if (f === "svg")
     return downloadFile(
       `${name}.svg`,
@@ -264,10 +257,10 @@ export async function saveFormat(f: Format, p: Taken): Promise<void> {
 }
 
 /** The address of the palette's file onto the clipboard: while an effect plays, its file's, at the pixels the stage
-    shows once the reader set a size. */
+    shows once the reader set a size, and the Markdown that names it. */
 export const copyLink = async (f: Format, p: Taken) =>
   writeText(
-    p.effect && (f === "css" || f === "js" || f === "svg" || f === "png")
+    p.effect && (f === "md" || f === "css" || f === "js" || f === "svg" || f === "png")
       ? effectFileAddress(
           origin(),
           p.seed,

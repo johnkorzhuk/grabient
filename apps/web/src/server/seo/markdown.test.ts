@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
+import { parseEffect } from "@grabient/engine/effect.ts";
 import type { PaletteWords } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { parseView } from "@grabient/engine/view.ts";
 import { beforeAll, describe, expect, test } from "vitest";
+import { effectCard } from "../../lib/page-meta.ts";
 import files from "../files/fixtures/file-bodies.json" with { type: "json" };
 import { readyOldIds } from "./legacy.ts";
 import {
@@ -188,6 +190,54 @@ describe("a palette as Markdown", () => {
       })
     );
     expect(await written.text()).toBe(files.written.markdown);
+  });
+
+  test("names the effect its address plays, how it plays and the tags that play it, in the CSS's place", async () => {
+    const at = async (query: string) =>
+      (
+        await markdownFile(files.seed, get(`/${files.seed}.md?${query}`), files.origin, reads())
+      ).text();
+    const glass = await at("style=glass&angle=45&shape=12&speed=2");
+    const base = `${files.origin}/${files.seed}`;
+    expect(glass).toMatch(/^# .+ fluted glass\n/);
+    expect(glass).toContain(`- Page: ${base}?style=glass&angle=45&speed=2&shape=12`);
+    expect(glass).toContain(
+      "- Drawn as: fluted glass, its ribs at 45 degrees, shape 12, speed 2, up to 60 frames a second"
+    );
+    expect(glass).toContain(
+      `<link rel="stylesheet" href="${base}.css?style=glass&amp;angle=45&amp;speed=2&amp;shape=12">`
+    );
+    expect(glass).toContain(
+      `<script src="${base}.js?style=glass&amp;angle=45&amp;speed=2&amp;shape=12" async></script>`
+    );
+    // the glass's still in the stylesheet is a filter Firefox is slow to draw, which its WebP inside the page is not
+    expect(glass).toContain("the editor's Copy HTML writes it into the page as a WebP instead");
+    // no gradient's code while an effect plays
+    expect(glass).not.toContain("## CSS");
+    expect(glass).not.toContain("linear-gradient");
+    expect(glass).toContain(`- [JSON](${base}.json?style=glass&angle=45&speed=2&shape=12)`);
+    expect(glass).toContain(`- [PNG](${base}.png?style=glass&angle=45&speed=2&shape=12)`);
+    expect(glass).toContain(`- [Script](${base}.js?style=glass&angle=45&speed=2&shape=12)`);
+    // its card is the one its page names as its picture
+    expect(glass).toContain(
+      `- [Social card](${files.origin}${effectCard(files.seed, parseEffect(new URLSearchParams("style=glass&shape=12"))!, 45)})`
+    );
+    // the page it is a form of is the effect's
+    const answer = await markdownFile(
+      files.seed,
+      get(`/${files.seed}.md?style=glass&angle=45&shape=12&speed=2`),
+      files.origin,
+      reads()
+    );
+    expect(answer.headers.get("Link")).toBe(
+      `<${base}?style=glass&angle=45&speed=2&shape=12>; rel="alternate"; type="text/html"`
+    );
+    const blob = await at("style=blob&speed=0&bg=%23101014&frost=0.5");
+    expect(blob).toMatch(/^# .+ blob\n/);
+    expect(blob).not.toContain("WebP");
+    expect(blob).toContain(
+      "- Drawn as: a blob, the palette across it at 90 degrees, frost 0.5, on #101014, held on its first frame"
+    );
   });
 
   test("reads its view as its cache key does: a key a crawler copied as amp;steps, and the last of a repeated one", async () => {

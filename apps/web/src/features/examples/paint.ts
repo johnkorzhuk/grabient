@@ -51,20 +51,18 @@ export interface Part {
 /** The part as a right-to-left page lays it: the same distance from the other side. */
 export const mirrored = (p: Part): Part => ({ x0: 1 - p.x1, y0: p.y0, x1: 1 - p.x0, y1: p.y1 });
 
-const mix = (a: string, b: string, f: number) => {
-  const A = hexToSrgb(a) ?? [0, 0, 0];
-  const B = hexToSrgb(b) ?? [0, 0, 0];
-  return toHex(A.map((v, i) => v + (B[i] - v) * f));
-};
-/** The color at `t` of colors laid along a gradient's line as the CSS lays them: blended between stops spread from end to
-    end, or a band of each, all as wide. */
-function colorAt(colors: readonly string[], t: number, bands: boolean): string {
+/** The color at `t`, 0 to 1, of colors laid along a gradient's line as CSS lays them: blended in sRGB between stops
+    spread from end to end (as D3's piecewise interpolateRgb blends a scale), or a band of each, all as wide (D3's
+    quantize). */
+export function colorAt(colors: readonly string[], t: number, bands: boolean): string {
   const n = colors.length;
   const u = Math.min(1, Math.max(0, t));
-  if (bands) return colors[Math.min(n - 1, Math.floor(u * n))];
+  if (bands || n < 2) return colors[Math.min(n - 1, Math.floor(u * n))];
   const x = u * (n - 1);
   const i = Math.min(n - 2, Math.floor(x));
-  return mix(colors[i], colors[i + 1], x - i);
+  const A = hexToSrgb(colors[i]) ?? [0, 0, 0];
+  const B = hexToSrgb(colors[i + 1]) ?? [0, 0, 0];
+  return toHex(A.map((v, k) => v + (B[k] - v) * (x - i)));
 }
 
 /** Where along a gradient's line a point of a box `aspect` times as wide as tall stands, 0 to 1, as CSS draws the
@@ -141,8 +139,7 @@ export const contrastLevel = (ratio: number): "AAA" | "AA" | "AA Large" | null =
   ratio >= 7 ? "AAA" : ratio >= CONTRAST_TEXT ? "AA" : ratio >= CONTRAST_LARGE ? "AA Large" : null;
 
 /** A contrast as the page writes it: two places, never rounded up, so 4.496 is 4.49 and does not pass at 4.5. */
-export const ratioText = (ratio: number): string =>
-  `${(Math.floor(ratio * 100) / 100).toFixed(2)}:1`;
+export const twoPlaces = (ratio: number): number => Math.floor(ratio * 100) / 100;
 
 /** The palette's own color that stands out most from a page's ground: what a blob with no ground of its own is given
     where its clear parts must show, such as inside a headline's letters, so every letter reads on the page. */

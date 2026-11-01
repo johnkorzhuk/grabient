@@ -1,4 +1,5 @@
 import { decodePalette, sampleStops } from "@grabient/engine";
+import { parseEffect } from "@grabient/engine/effect.ts";
 import { type PaletteWords, paletteMarkdown, plain } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
@@ -8,6 +9,7 @@ import { PAGE, TEXT } from "../../lib/cache.ts";
 import {
   collectionCard,
   collectionSheet,
+  effectCard,
   type PaletteView,
   paletteAddress
 } from "../../lib/page-meta.ts";
@@ -122,15 +124,26 @@ export async function markdownFile(
   const found = resolvePalette(name);
   if (found) {
     const { seed, palette } = found;
-    // the view as the file's cache key reads it (files/keys.ts), so one key never holds two files
-    const view = viewAt(addressParams(new URL(request.url).searchParams), palette.anchors.length);
+    // the view and the effect as the file's cache key reads them (files/keys.ts), so one key never holds two files
+    const params = addressParams(new URL(request.url).searchParams);
+    const view = viewAt(params, palette.anchors.length);
     const [{ saved, written, heldBy }, names] = await Promise.all([
       reads.paletteWords(seed).catch(() => ({ saved: undefined, written: null, heldBy: [] })),
       reads.colorNames?.() ?? null
     ]);
-    const text = paletteMarkdown(seed, base, view, written, heldBy, names);
-    if (text !== null)
-      return new Response(text, { headers: markdown(base + paletteAddress(seed, saved), TEXT) });
+    /* at an effect's address, the effect's words, which load with the first such file, and its page as the one the
+       file is a form of */
+    const effect = parseEffect(params);
+    const code = effect ? await import("@grabient/engine/effect-code.ts") : null;
+    const words =
+      effect &&
+      code?.effectMarkdown(base, seed, effect, base + effectCard(seed, effect, view.angle));
+    const page =
+      effect && code
+        ? code.effectPage(base, seed, effect, view.angle, true)
+        : base + paletteAddress(seed, saved);
+    const text = paletteMarkdown(seed, base, view, written, heldBy, names, words);
+    if (text !== null) return new Response(text, { headers: markdown(page, TEXT) });
   }
   if (!found && reads.isCollection(name)) {
     const doc = await reads.collection(name);

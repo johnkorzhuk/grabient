@@ -1,9 +1,10 @@
 import { decodePalette } from "@grabient/engine";
 import { cssLine } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
+import type { Effect } from "@grabient/engine/effect.ts";
 import { paletteSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
-import { viewSearch } from "@grabient/engine/view.ts";
+import { DEFAULT_SIZE, resolveSize, type SizeChoice, viewSearch } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { downloadFile } from "@grabient/ui/copy.ts";
 import { exportGridImage } from "@grabient/ui/exportgrid.ts";
@@ -76,10 +77,36 @@ export async function downloadPalette(p: Drawn, format: Format): Promise<void> {
 export const linkPalette = (p: Drawn, format: Format): Promise<void> =>
   writeText(fileAddress(p, format));
 
+/* A card playing its list's effect hands the effect over as the editor's strips do, at the size the list sets (its
+   code loads with the first press), and offers what they offer (editor/formats.ts STRIP_*): Copy adds the tags that
+   play it and its Figma layers, Copy link its script. */
+const formats = () => import("../editor/formats.ts");
+const playedTaken = (p: Drawn, effect: Effect, size: SizeChoice | null, name?: string) => ({
+  ...p,
+  size,
+  pixels: resolveSize(size, DEFAULT_SIZE),
+  stops: stops(p),
+  effect,
+  name
+});
+const COPY: readonly Format[] = ["url", "css", "svg", "png"];
+const FILES: readonly Format[] = ["md", "css", "svg", "png"];
+const CHIPS = { copy: COPY, download: FILES, link: FILES };
+const EFFECT_CHIPS: typeof CHIPS = {
+  copy: [...COPY, "html", "figma"],
+  download: FILES,
+  link: [...FILES, "js"]
+};
+
 /** What a card's strip does: its palette as the card draws it copied, saved as a file or linked, each counted with the
-    page and where the card stands. What could not be done is said on the page's line. */
+    page and where the card stands, or the effect it plays as the editor's strips hand one over. What could not be done
+    is said on the page's line. */
 export function cardTakings(card: {
   palette: () => Drawn;
+  /** the effect the card plays, in its palette's own shape, and the size its list sets */
+  played?: () => { effect: Effect; size: SizeChoice | null } | null;
+  /** what the card calls the palette, which a copy for Figma names its frame */
+  name?: () => string;
   place: () => UsePlace;
   at: () => UseAt;
   say: (message: string, error?: boolean) => void;
@@ -90,9 +117,19 @@ export function cardTakings(card: {
     card.say(shownError(reason, fallback), true);
     return false;
   };
+  const played = () => card.played?.() ?? null;
+  const taken = (fx: { effect: Effect; size: SizeChoice | null }) =>
+    playedTaken(card.palette(), fx.effect, fx.size, card.name?.());
   return {
-    copy: (format: Format) =>
-      copyPalette(card.palette(), format).then(
+    /** the formats the card's strip offers in each mode */
+    chips: () => (played() ? EFFECT_CHIPS : CHIPS),
+    copy: (format: Format) => {
+      const fx = played();
+      return (
+        fx
+          ? formats().then(m => m.copyOrSave(format, taken(fx)))
+          : copyPalette(card.palette(), format)
+      ).then(
         done => {
           if (done === "downloaded")
             card.say(t("Images can't be copied here, so the file was downloaded."));
@@ -100,19 +137,32 @@ export function cardTakings(card: {
           return done === "copied";
         },
         refused(msg("Couldn't copy the palette."))
-      ),
-    download: (format: Format) =>
-      void downloadPalette(card.palette(), format).then(
+      );
+    },
+    download: (format: Format) => {
+      const fx = played();
+      void (
+        fx
+          ? formats().then(m => m.saveFormat(format, taken(fx)))
+          : downloadPalette(card.palette(), format)
+      ).then(
         () => used(format === "url" ? "copy" : "download", format),
         refused(msg("Couldn't download the palette."))
-      ),
-    link: (format: Format) =>
-      linkPalette(card.palette(), format).then(
+      );
+    },
+    link: (format: Format) => {
+      const fx = played();
+      return (
+        fx
+          ? formats().then(m => m.copyLink(format, taken(fx)))
+          : linkPalette(card.palette(), format)
+      ).then(
         () => {
           used("copy", `link:${format}`);
           return true;
         },
         refused(msg("Couldn't copy the palette."))
-      )
+      );
+    }
   };
 }

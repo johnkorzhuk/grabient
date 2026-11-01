@@ -1,5 +1,9 @@
+import { decodePalette } from "@grabient/engine/codec.ts";
+import { parseEffect } from "@grabient/engine/effect.ts";
+import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { colorNamesText, preciseNamer } from "@grabient/engine/precise-names.ts";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { effectCard } from "../../lib/page-meta.ts";
 import { collectionForFiles, writtenWords } from "../collections/files.ts";
 import { readyOldIds } from "../seo/legacy.ts";
 import golden from "./fixtures/file-bodies.json" with { type: "json" };
@@ -68,13 +72,14 @@ describe("a palette's file", () => {
       200,
       "text/css; charset=utf-8"
     ]);
-    expect(text).toContain(`/* ${golden.origin}/${seed}?style=glass&angle=45&speed=2 */`);
+    // credited by all its still depends on, which its cache key names: never its pace
+    expect(text).toContain(`/* ${golden.origin}/${seed}?style=glass&angle=45 */`);
     expect(text).toContain("html::before {");
     expect(text).toContain("position: fixed;");
     expect(text).toContain("z-index: -1;");
     expect(text).toContain('url("data:image/svg+xml,');
-    // the glass's canvas is opaque: its still stays under it
-    expect(text).not.toContain("data-grabient-playing");
+    // the still goes once the script's canvas covers it: the glass's once faded in, opaque
+    expect(text).toContain("html[data-grabient-playing]::before {\n  background: none;\n}");
     expect(glass.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(glass.headers.get("Cross-Origin-Resource-Policy")).toBe("cross-origin");
     expect(glass.headers.get("Cache-Control")).toBe("public, max-age=3600");
@@ -83,10 +88,12 @@ describe("a palette's file", () => {
     const paced = await (await file(`/${seed}.css?style=glass&angle=45&speed=5`)).text();
     const still = (css: string) => css.slice(css.indexOf("background:"));
     expect(still(turned)).not.toBe(still(text));
-    expect(still(paced)).toBe(still(text));
-    // the blob, clear around itself, gives its still up when the script's canvas shows
-    const blob = await (await file(`/${seed}.css?style=blob&shape=12`)).text();
+    expect(paced).toBe(text);
+    // the blob, clear around itself, gives its still up as soon as the script's canvas shows
+    const blob = await (await file(`/${seed}.css?style=blob&shape=12&angle=45`)).text();
     expect(blob).toContain("html[data-grabient-playing]::before {\n  background: none;\n}");
+    // the angle lays the palette across the blobs, so the blob's credit names it too
+    expect(blob).toContain(`/* ${golden.origin}/${seed}?style=blob&angle=45&shape=12 */`);
   });
 
   test("CSS takes w and h for the page's box, and style=bands plays the animated SVG inside it", async () => {
@@ -223,6 +230,31 @@ describe("a palette's file", () => {
     }
     const none = await apiJsonAnswer(at("/api/palette"), env);
     expect([none.status, await none.json()]).toEqual([404, { error: "Invalid palette seed." }]);
+  });
+
+  test("JSON at an effect's address names the effect beside the palette: the colors it draws, its tags and its files", async () => {
+    const plain = (await (await file(`/${seed}.json`)).json()) as Record<string, unknown>;
+    const glass = (await (await file(`/${seed}.json?style=glass&angle=45&shape=7`)).json()) as {
+      effect: {
+        style: string;
+        angle: number;
+        shape: number;
+        colors: string[];
+        html: string;
+        links: { js: string; og: string };
+      };
+    };
+    expect(plain).not.toHaveProperty("effect");
+    expect(glass.effect).toMatchObject({ style: "glass", angle: 45, shape: 7 });
+    expect(glass.effect.colors).toEqual(glassColors(decodePalette(seed)!));
+    expect(glass.effect.html).toContain(
+      `<script src="${golden.origin}/${seed}.js?style=glass&amp;angle=45&amp;shape=7" async>`
+    );
+    expect(glass.effect.links.js).toBe(`${golden.origin}/${seed}.js?style=glass&angle=45&shape=7`);
+    // its card is the one its page names as its picture
+    expect(glass.effect.links.og).toBe(
+      `${golden.origin}${effectCard(seed, parseEffect(new URLSearchParams("style=glass&shape=7"))!, 45)}`
+    );
   });
 
   test("JSON names a palette by the title written for it while drawn as it was saved, at any angle, and is kept as text", async () => {

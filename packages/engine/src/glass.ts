@@ -168,6 +168,19 @@ function ribs(W: number, H: number, turn: number, geo: Geo = T.geo) {
   return { g, D, levelAt, kOf, sOf };
 }
 
+/** The ribs' tangent at the middle in degrees, which the discs' orbits lie along: the shape's, turned by the view's
+    angle about the middle. */
+function alphaOf(angle: number, shape: number | null | undefined): number {
+  const turn = ((angle - GLASS_ANGLE) * Math.PI) / 180;
+  const c = Math.cos(turn);
+  const sn = Math.sin(turn);
+  const [x, y] = geoOf(shape).arcC;
+  const cxA = -(x * c - y * sn);
+  const cyA = -(x * sn + y * c);
+  const nA = Math.hypot(cxA, cyA);
+  return r3((Math.atan2(-cxA / nA, cyA / nA) * 180) / Math.PI);
+}
+
 /** The lens across a rib, in pitches, v from −1 (its inner edge) to 1 (its outer). */
 const lensF = (v: number) =>
   -(
@@ -310,10 +323,7 @@ export function glassGeometry(
     stops: nStops
   };
   /* the discs' orbits lie along the ribs' tangent at the middle */
-  const cxA = -g.arcC[0];
-  const cyA = -g.arcC[1];
-  const nA = Math.hypot(cxA, cyA);
-  const alpha = r3((Math.atan2(-cxA / nA, cyA / nA) * 180) / Math.PI);
+  const alpha = alphaOf(angle, shape);
   const sigma = r2(T.blur * u);
   const dBox = Math.floor((sigma * 3 * Math.sqrt(2 * Math.PI)) / 4 + 0.5);
   const sigmaEff = Math.sqrt(
@@ -375,7 +385,10 @@ export interface GlassField {
 
 /** The field of a palette's colors (glassColors) at speed 1: a player scales its clock by the speed, and an animated
     SVG writes its durations over it. Its discs are drawn from the hill climb's seed, or the geometry's shape's. */
-export function glassField(geometry: GlassGeometry, colors: readonly string[]): GlassField {
+export function glassField(
+  geometry: Pick<GlassGeometry, "width" | "height" | "D" | "shape">,
+  colors: readonly string[]
+): GlassField {
   const { width: W, height: H, D } = geometry;
   const rand = dice(geometry.shape ? seedOf(geometry.shape) : T.seed);
   const rows = Math.ceil(T.nPts / T.gridX);
@@ -410,7 +423,7 @@ export function glassField(geometry: GlassGeometry, colors: readonly string[]): 
 
 /** A disc's middle at time t (seconds at speed 1), where its two CSS rotations put it, into out[k] and out[k + 1]. */
 export function glassDiscAt(
-  geometry: GlassGeometry,
+  geometry: Pick<GlassGeometry, "alpha">,
   d: GlassDisc,
   t: number,
   out: Float32Array,
@@ -422,6 +435,13 @@ export function glassDiscAt(
   const ey = d.b * Math.sin(ang);
   out[k] = d.cx + ex * Math.cos(al) - ey * Math.sin(al);
   out[k + 1] = d.cy + ex * Math.sin(al) + ey * Math.cos(al);
+}
+
+/** A disc where it starts, filled with the gradient `fill` names. */
+function firstDisc(geometry: Pick<GlassGeometry, "alpha">, d: GlassDisc, fill: string): string {
+  const at = new Float32Array(2);
+  glassDiscAt(geometry, d, 0, at, 0);
+  return `<circle cx="${fmt(r2(at[0]))}" cy="${fmt(r2(at[1]))}" r="${fmt(d.R)}" fill="url(#${fill})"/>`;
 }
 
 /* an image as a data URI, its markup as written (single quotes, and %, #, < and > escaped): it compresses far better
@@ -469,13 +489,9 @@ export function glassSvg(
         `<radialGradient id="${id}d${i}"><stop offset="0" stop-color="${d.color}"/><stop offset="${fmt(field.core)}" stop-color="${d.color}"/><stop offset="1" stop-color="${d.color}" stop-opacity="0"/></radialGradient>`
     )
     .join("");
-  const at = new Float32Array(2);
   const body = field.discs
     .map((d, i) => {
-      if (still) {
-        glassDiscAt(geometry, d, 0, at, 0);
-        return `<circle cx="${fmt(r2(at[0]))}" cy="${fmt(r2(at[1]))}" r="${fmt(d.R)}" fill="url(#${id}d${i})"/>`;
-      }
+      if (still) return firstDisc(geometry, d, `${id}d${i}`);
       const dur = r3(d.dur / speed);
       const delay = r3(d.delay / speed);
       const th0 = r3((d.dir * 360 * -d.delay) / d.dur);
@@ -512,6 +528,31 @@ export function glassSvg(
     `<svg xmlns="http://www.w3.org/2000/svg" ${cover ? 'width="100%" height="100%" preserveAspectRatio="xMidYMid slice"' : `width="${W}" height="${H}"`} viewBox="0 0 ${W} ${H}" class="${id}">${css}<defs>${grads}${filter}</defs>` +
     `<g filter="url(#${id}f)"><rect x="${region.x}" y="${region.y}" width="${region.w}" height="${region.h}" fill="${field.base}"/>${body}</g></svg>`
   );
+}
+
+/** The first frame's colors before the glass: the base and the discs where they start, as soft as the blur leaves
+    them, with no ribs. The one design covers the box as the still does, its discs where the still's colors lie, in a
+    few hundred bytes and no filter to paint: what a page shows where the still is not drawn yet. */
+export function glassFieldBackground(
+  colors: readonly string[],
+  angle: number,
+  shape: number | null = null
+): string {
+  const { width: W, height: H } = GLASS_DESIGN;
+  const frame = { width: W, height: H, D: Math.hypot(W, H), shape: shape ?? 0 };
+  const field = glassField(frame, colors);
+  const placed = { alpha: alphaOf(angle, shape) };
+  /* a disc's color repeats down the field: one gradient for each color */
+  const used = [...new Set(field.discs.map(d => d.color))];
+  const grads = used
+    .map(
+      (c, i) =>
+        `<radialGradient id="c${i}"><stop offset="0" stop-color="${c}"/><stop offset="${fmt(field.core)}" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`
+    )
+    .join("");
+  const discs = field.discs.map(d => firstDisc(placed, d, `c${used.indexOf(d.color)}`)).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" viewBox="0 0 ${W} ${H}"><defs>${grads}</defs><rect width="${W}" height="${H}" fill="${field.base}"/>${discs}</svg>`;
+  return `url("${glassDataUri(svg)}") 50% 50%/cover no-repeat`;
 }
 
 const designs = new Map<string, GlassGeometry>();

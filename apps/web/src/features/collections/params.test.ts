@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { canonicalRedirect } from "../../server/canonical.ts";
 import { AS_SAVED, type ListView } from "../list/appearance.ts";
 import { listBack } from "./navigation.ts";
 import {
@@ -22,7 +23,8 @@ const BANDS: ListView = {
   style: "linearSwatches",
   steps: 5,
   angle: 45,
-  size: { width: 1200, height: 630 }
+  size: { width: 1200, height: 630 },
+  effect: null
 };
 
 describe("the view an address names", () => {
@@ -43,7 +45,8 @@ describe("the view an address names", () => {
       style: "radialGradient",
       steps: 9,
       angle: 10,
-      size: { width: 800, height: 600 }
+      size: { width: 800, height: 600 },
+      effect: null
     });
     expect(viewWith({ ...AS_SAVED, angle: 45 }, link)).toMatchObject({ steps: 9, angle: 45 });
     expect(viewWith(BANDS)).toBe(BANDS);
@@ -66,6 +69,21 @@ describe("a list's address", () => {
       "?q=warm+sunset+%26+sea&style=linearSwatches&steps=5&angle=45&size=1200x630&page=3&limit=12&selection"
     );
     expect(listSearch({ view: { ...AS_SAVED, angle: 0 } })).toBe("?angle=0");
+    expect(
+      pageSearch(
+        {
+          ...AS_SAVED,
+          steps: 9,
+          effect: {
+            kind: "blob",
+            speed: 0.5,
+            fps: 60,
+            look: { shape: null, frost: 1, bg: "#112233" }
+          }
+        },
+        true
+      )
+    ).toBe("?style=blob&speed=0.5&bg=%23112233&selection");
     expect(listSearch({}, true)).toBe("?selection");
   });
   test("names the public read its page draws: Saved's is the popular one", () => {
@@ -127,6 +145,25 @@ describe("a collection page's address", () => {
     expect(pageSearch(AS_SAVED)).toBe("");
     expect(pageSearch(BANDS)).toBe("?style=linearSwatches&steps=5&angle=45&size=1200x630");
     expect(pageSearch({ ...AS_SAVED, steps: 7 }, true)).toBe("?steps=7&selection");
+  });
+  test("playing an effect, as a list does, has one address, which the Worker leads every other to", () => {
+    for (const [address, to] of [
+      ["/collections?steps=4&speed=1&style=glass&shape=7", "/collections?style=glass"],
+      [
+        "/collections/rising?bg=112233&q=sea&style=blob",
+        "/collections/rising?q=sea&style=blob&bg=%23112233"
+      ],
+      [
+        "/ocean-depths?fps=30&angle=45&style=glass&selection",
+        "/ocean-depths?style=glass&angle=45&fps=30&selection"
+      ],
+      [
+        "/ocean-depths/rising?style=blob&frost=0.50&steps=9",
+        "/ocean-depths/rising?style=blob&frost=0.5"
+      ]
+    ])
+      expect(canonicalRedirect(address), address).toBe(to);
+    expect(canonicalRedirect("/ocean-depths?style=blob&frost=0.5")).toBeNull();
   });
   test("leads back to the list in the page's own order and view until a list was seen", () => {
     expect(listBack("popular", AS_SAVED)).toBe("/collections");

@@ -57,11 +57,16 @@ export async function copySwatches(
   return writeText(text(namesNow()));
 }
 
-/** A palette's file as the site serves it, saved: its Markdown, its CSS or a swatch file. */
-export async function saveFile(p: Shown, format: "md" | "css" | SwatchFormat): Promise<void> {
+/** A palette's file as the site serves it, saved: its Markdown (at `address` where it is not the view's, an effect's),
+    its CSS or a swatch file. */
+export async function saveFile(
+  p: Shown,
+  format: "md" | "css" | SwatchFormat,
+  address?: string
+): Promise<void> {
   const name = `grabient-${p.seed}`;
   if (format === "md") {
-    const answer = await fetch(fileAddress(p, "md"));
+    const answer = await fetch(address ?? fileAddress(p, "md"));
     if (!answer.ok) throw new Error(t("Couldn't download the file."));
     const text = await answer.text();
     return downloadFile(`${name}.md`, new Blob([text], { type: "text/markdown;charset=utf-8" }));

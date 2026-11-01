@@ -1,6 +1,6 @@
 import { createSignal, createUniqueId, For, Show, untrack } from "solid-js";
 import block from "./CodeBlock.module.css";
-import { CodeLines, selectText } from "./CodeBlock.tsx";
+import { CodeLines, refusedCopy } from "./CodeBlock.tsx";
 import { CopyButton } from "./CopyButton.tsx";
 import { t } from "./i18n.ts";
 import styles from "./PaletteCode.module.css";
@@ -17,6 +17,9 @@ export interface CodeSource {
   /** the spelling shown until the reader picks one; the first where left out */
   initial?: string;
   text: (spelling?: string) => string;
+  /** what Copy takes where it is not the text as shown: the text with what it elides written in whole (an effect's
+      first frame inside its tags), made on the press */
+  take?: (spelling?: string) => Promise<string>;
   /** the line under the code, in the reader's language */
   note?: (spelling?: string) => string;
 }
@@ -36,10 +39,20 @@ export function PaletteCode(props: {
   const [kind, setKind] = createSignal(untrack(() => props.initial));
   const [spellings, setSpellings] = createSignal<Readonly<Record<string, string>>>({});
   const source = () => props.sources.find(s => s.id === kind()) ?? props.sources[0];
-  const spelling = () =>
-    spellings()[source().id] ?? source().initial ?? source().spellings?.[0]?.id;
-  const text = () => source().text(spelling());
+  /* a spelling kept for a kind is passed over where the kind no longer offers it: the gradient's GPL, once an effect's
+     Colors, which offer none, take the tab's place */
+  const spelling = () => {
+    const { id, spellings: offered = [], initial } = source();
+    return [spellings()[id], initial].find(s => offered.some(o => o.id === s)) ?? offered[0]?.id;
+  };
   let code: HTMLElement | undefined;
+  const copy = refusedCopy(() => code);
+  const text = () => copy.shown(source().text(spelling()));
+  const take = () => {
+    const { take } = source();
+    const spelled = spelling();
+    return take && (() => take(spelled));
+  };
   let scroller!: HTMLDivElement;
   const pick = (id: string) => {
     setKind(id);
@@ -97,10 +110,11 @@ export function PaletteCode(props: {
         </div>
         <CopyButton
           text={text()}
+          take={take()}
           aria-label={t("Copy code")}
           compact
           onCopy={value => props.onCopy?.(source().id, value, spelling())}
-          onRefused={() => selectText(code)}
+          onRefused={taken => copy.refuse(source().text(spelling()), taken)}
         />
       </div>
       <Show when={(source().spellings?.length ?? 0) > 1}>

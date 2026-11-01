@@ -755,6 +755,31 @@ test("Back with an edit's address still waiting lands on the page it leaves for"
   expect(await entries(page)).toBe(before);
 });
 
+test("an edit keeps the page where the reader scrolled it", async ({ page }) => {
+  await open(page);
+  const scrolled = () => page.evaluate(() => Math.round(scrollY));
+  // the sheet under the picture makes the page taller than the window
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
+    .toBeGreaterThan(300);
+  await page.evaluate(() => scrollTo({ top: 300, behavior: "instant" }));
+  await expect.poll(scrolled).toBe(300);
+  // a key's edit: a new seed, a new path, written in place
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).not.toBe(`/${SEED}`);
+  const inverted = here(page);
+  await page.waitForTimeout(600);
+  expect(await scrolled()).toBe(300);
+  // a color set in the editor's side, as a reader sets one
+  const start = page.getByRole("spinbutton", { name: /^(Lightness start|Start)$/ });
+  await start.evaluate(field => (field as HTMLElement).focus({ preventScroll: true }));
+  await page.keyboard.type("0.8");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => here(page)).not.toBe(inverted);
+  await page.waitForTimeout(600);
+  expect(await scrolled()).toBe(300);
+});
+
 test("the sheet asks for the palettes like this one only once it is in view", async ({ page }) => {
   const asks: URL[] = [];
   page.on("request", r => {
@@ -772,6 +797,59 @@ test("the sheet asks for the palettes like this one only once it is in view", as
   // the sheet's own code comes with the scroll, which a dev server transforms as it is asked for
   await expect.poll(() => asks.length, { timeout: 30_000 }).toBe(1);
   expect(asks[0]?.searchParams.get("query")).toBe(new URL(page.url()).pathname.slice(1));
+});
+
+test("while the glass plays, the code pane holds its code: its tags, its stylesheet and its SVG, never a gradient's", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?style=glass&angle=45`);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await expect(tabs.getByRole("tab")).toHaveText([
+    "Seed",
+    "HTML",
+    "CSS",
+    "Colors",
+    "JSON",
+    "SVG",
+    "MD"
+  ]);
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  await tabs.getByRole("tab", { name: "HTML" }).click();
+  await expect(code).toContainText(`${SEED}.js?style=glass&amp;angle=45" async></script>`);
+  await page.getByRole("tablist", { name: "Syntax" }).getByRole("tab", { name: "<link>" }).click();
+  await expect(code).toContainText(`<link rel="stylesheet" href=`);
+  await tabs.getByRole("tab", { name: "CSS" }).click();
+  await expect(code).toContainText(`/${SEED}?style=glass&angle=45 */`);
+  await expect(code).toContainText("html::before {");
+  await expect(code).not.toContainText("gradient(");
+  await tabs.getByRole("tab", { name: "SVG" }).click();
+  await expect(code).toContainText("@keyframes");
+  await tabs.getByRole("tab", { name: "MD" }).click();
+  await expect(code).toContainText("- Drawn as: fluted glass, its ribs at 45 degrees");
+});
+
+test("a copy of the glass's tags the browser refuses selects them whole, its first frame written out", async ({
+  page
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: () => Promise.reject(new Error("refused")) }
+    });
+    document.execCommand = () => false;
+  });
+  await open(page, `/${SEED}?style=glass`);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await tabs.getByRole("tab", { name: "HTML" }).click();
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  await expect(code).toContainText("base64,…");
+  await page.getByRole("button", { name: "Copy code" }).click();
+  await expect(code).toContainText(/data:image\/webp;base64,[A-Za-z0-9+/]{1000}/);
+  await expect(code).not.toContainText("base64,…");
+  expect(await page.evaluate(() => getSelection()?.toString() ?? "")).toMatch(
+    /^<style>[\s\S]*data:image\/webp;base64,[A-Za-z0-9+/=]+"[\s\S]*<\/script>$/
+  );
 });
 
 test("Text contrast sets a sample too low for text only in the cell its line says, under the pointer or the keyboard", async ({

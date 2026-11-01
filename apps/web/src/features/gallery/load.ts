@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/solid-query";
 import type { FramedData } from "../../app/shell.ts";
 import { paletteAddress } from "../../lib/page-meta.ts";
+import { effectsReady } from "../list/appearance.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
 import { homePaint, paintOf } from "./drawing.ts";
 import {
@@ -51,7 +52,8 @@ export async function loadPalettes(
   const { options } = pageQuery(source, place.params.page);
   const [data] = await Promise.all([
     client.ensureQueryData(options as Parameters<QueryClient["ensureQueryData"]>[0]),
-    client.ensureQueryData(framesQuery())
+    client.ensureQueryData(framesQuery()),
+    effectsReady(place.params)
   ]);
   const page = keptPage(client, source, place.params.page);
   if (failed(data as object) || !page) return { edge: 0, status: (data as Failed).status };
@@ -79,7 +81,7 @@ export async function loadHome(client: QueryClient, params: ListParams): Promise
   ] as const;
   /* searched, the palettes are read before the collections, so words only the model reads are read by it once */
   const head = params.words ? await reads[0]() : reads[0]();
-  const [answered, collections] = await Promise.all([head, reads[1]()]);
+  const [answered, collections] = await Promise.all([head, reads[1](), effectsReady(params)]);
   if (failed(answered) || failed(collections)) return { edge: 0 };
   const paint = homePaint(answered.palettes, collections.items, params);
   if (answered.limited || answered.tier === "unavailable") {

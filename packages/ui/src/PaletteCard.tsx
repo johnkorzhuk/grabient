@@ -128,6 +128,8 @@ export interface PaletteCardProps {
   bare?: boolean;
   /** what lights under the card where its picture is not its gradient: the colors the picture shows, or none */
   glow?: { stops: readonly string[]; style: Style; angle: number } | null;
+  /** a style previewed on every card: the gradient shows over the picture, which stays as it is under it */
+  peek?: boolean;
 }
 
 /** One palette in a list: its picture, then its age and its like. Hover or focus inside the picture lights a blurred
@@ -246,7 +248,8 @@ export function PaletteCard(props: PaletteCardProps) {
         {/* a picture in the gradient's place stands alone: no gradient shows under it as it comes */}
         <div
           class={styles.paint}
-          style={{ background: props.picture ? undefined : art() }}
+          style={{ background: props.picture && !props.peek ? undefined : art() }}
+          data-peek={props.picture && props.peek ? "" : undefined}
           role="img"
           aria-label={
             props.pictureLabel ??
@@ -255,7 +258,8 @@ export function PaletteCard(props: PaletteCardProps) {
             })
           }
         >
-          <Show when={props.picture}>{picture => picture()(active)}</Show>
+          {/* called once, untracked: the picture follows its own props */}
+          <Show when={props.picture}>{picture => untrack(() => picture()(active))}</Show>
         </div>
         <Show
           when={!props.removed}

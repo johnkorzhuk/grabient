@@ -13,7 +13,7 @@ import {
 import { colorKind, paletteCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { paletteDocument, paletteJson } from "@grabient/engine/document.ts";
-import { effectParts, parseEffect } from "@grabient/engine/effect.ts";
+import { parseEffect } from "@grabient/engine/effect.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
@@ -23,12 +23,15 @@ import {
   swatchFile,
   swatchPalette
 } from "@grabient/engine/swatches.ts";
-import { DEFAULT_ANGLE, DEFAULT_SIZE, resolveSize, sizeParam } from "@grabient/engine/view.ts";
+import { DEFAULT_SIZE, resolveSize, sizeParam } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { ANIMATION, EMBEDDED, FILE, TEXT } from "../../lib/cache.ts";
+import { ANIMATION, FILE, TEXT } from "../../lib/cache.ts";
+import { effectCard } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { isCollectionSlug, texts, writtenWords } from "../collections/files.ts";
 import { isLinkPreview } from "../crawlers.ts";
+/* the sheet's drawing: the routes of the pictures import it too, so it loads with the router either way */
+import { collectionSheetSvg } from "../images/answers.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { addressParams, fileName, svgSize, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
@@ -74,8 +77,7 @@ async function paletteFile(
       format !== "svg"
         ? await collectionFile(env, name, origin, format, asked)
         : isCollectionSlug(name)
-          ? // the drawing's modules load with the first sheet asked for, never with the files' writers
-            await (await import("../images/answers.ts")).collectionSheetSvg(request, env, name)
+          ? await collectionSheetSvg(request, env, name)
           : null;
     return file ?? json({ error: "Invalid palette seed." }, { status: 404 });
   }
@@ -88,15 +90,14 @@ async function paletteFile(
       /* style=glass or blob: the effect's first frame behind the page, which /{seed}.js plays from (effect-files.ts),
          loaded with the first one asked for */
       const effect = parseEffect(params);
-      if (effect) {
-        const { effectCss } = await import("./effect-files.ts");
-        const turned = effect.kind === "glass" && view.angle !== DEFAULT_ANGLE;
-        const parts = [`style=${effect.kind}`, ...(turned ? [`angle=${view.angle}`] : [])];
-        const credit = `${origin}/${seed}?${[...parts, ...effectParts(effect)].join("&")}`;
-        return new Response(effectCss(palette, effect, view.angle, credit), {
-          headers: { ...ANIMATION, ...EMBEDDED, "Content-Type": "text/css; charset=utf-8" }
-        });
-      }
+      if (effect)
+        return (await import("./effect-files.ts")).effectCssAnswer(
+          origin,
+          seed,
+          palette,
+          effect,
+          view.angle
+        );
       // w and h (or size) set the page's box; style=bands plays the animated SVG, carried inside
       const asked = svgSize(params);
       if (isBands(params)) {
@@ -147,9 +148,20 @@ async function paletteFile(
         colorNames(env),
         texts(env, [seed]).catch(() => [])
       ]);
-      return Response.json(paletteJson(seed, origin, view, names, writtenWords(text, palette)), {
-        headers: { ...TEXT, ...DATA }
-      });
+      const doc = paletteJson(seed, origin, view, names, writtenWords(text, palette));
+      /* at an effect's address the effect too, its code loaded with the first such file */
+      const effect = parseEffect(params);
+      const played = effect && {
+        effect: (await import("@grabient/engine/effect-code.ts")).effectDocument(
+          palette,
+          origin,
+          seed,
+          effect,
+          view.angle,
+          `${origin}${effectCard(seed, effect, view.angle)}`
+        )
+      };
+      return Response.json(played ? { ...doc, ...played } : doc, { headers: { ...TEXT, ...DATA } });
     }
     default: {
       const names = await colorNames(env);

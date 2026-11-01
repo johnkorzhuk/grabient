@@ -7,7 +7,7 @@ import {
   type RisingFrame
 } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
-import { AS_SAVED, type ListView, readListView, viewParams } from "../list/appearance.ts";
+import { AS_SAVED, type ListView, listViewOf, viewOver, viewParams } from "../list/appearance.ts";
 import { type PaletteOrder, slugWords } from "./address.ts";
 import type { CollectionSort } from "./types.ts";
 
@@ -38,25 +38,11 @@ export const frameOf = (raw: string | null | undefined): RisingFrame =>
   isFrame(raw) ? raw : DEFAULT_FRAME;
 
 /** The view a query names, each parameter as it stands first. */
-export const viewOf = (params: URLSearchParams): ListView =>
-  readListView({
-    style: params.get("style"),
-    steps: params.get("steps"),
-    angle: params.get("angle"),
-    size: params.get("size")
-  });
+export const viewOf = listViewOf;
 
 /** The page's view, with a pasted link's wherever the page says none of its own. */
-export function viewWith(view: ListView, link?: URLSearchParams): ListView {
-  if (!link) return view;
-  const said = viewOf(link);
-  return {
-    style: view.style === "auto" ? said.style : view.style,
-    steps: view.steps === "auto" ? said.steps : view.steps,
-    angle: view.angle === "auto" ? said.angle : view.angle,
-    size: view.size ?? said.size
-  };
-}
+export const viewWith = (view: ListView, link?: URLSearchParams): ListView =>
+  link ? viewOver(view, viewOf(link)) : view;
 
 /** A query in its one order: each part given, empty ones left out, and the selection last as a bare word. */
 function query(parts: readonly (string | false | undefined)[], selection?: boolean): string {
@@ -65,7 +51,7 @@ function query(parts: readonly (string | false | undefined)[], selection?: boole
 }
 const viewParts = (view: ListView) =>
   Object.entries(viewParams(view)).map(
-    ([name, value]) => value !== undefined && `${name}=${value}`
+    ([name, value]) => value !== undefined && `${name}=${encodeURIComponent(value)}`
   );
 
 /** A collections list's query: the words, the view, the page and the limit, then the selection. The order is the

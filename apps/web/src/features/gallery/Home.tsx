@@ -34,7 +34,7 @@ import {
   signInUnavailable
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
-import { useNavigating } from "../../app/navigation.ts";
+import { inPlace, useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { heading, relTo } from "../../lib/page-meta.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
@@ -43,6 +43,7 @@ import { createFit } from "../collections/fit.ts";
 import { collectionGone, paletteGone } from "../collections/overlay.ts";
 import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
 import { AppearanceContext, inView } from "../list/appearance.ts";
+import { createGlassWake } from "../list/wake.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { createPicture } from "../search/picture.ts";
 import { selection } from "../selection/selection.ts";
@@ -51,7 +52,7 @@ import { type ListParams, listHref, listSearch, withView } from "./address.ts";
 import { createCuration } from "./curate.tsx";
 import { homePaint, madeItems, minuteOf, relativeAge } from "./drawing.ts";
 import { Find } from "./Find.tsx";
-import { createFeed, FIRST_SCREEN, inPlace, joinNext, preloadHref } from "./feed.ts";
+import { createFeed, FIRST_SCREEN, joinNext, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
@@ -97,6 +98,7 @@ export function Home(props: { params: ListParams }) {
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
   const navigating = useNavigating();
   const params = () => props.params;
+  const glassWake = createGlassWake(params);
   const words = () => params().words;
   const head = useQuery(() => homeHeadQuery(words()));
   /* What stood last, the head and the first collections: a read that fails leaves it on screen beside its reason. A
@@ -363,7 +365,7 @@ export function Home(props: { params: ListParams }) {
                     items={palettes()}
                     key={item => item.kseed}
                     live={FIRST_SCREEN}
-                    still={!account() && !selection().length}
+                    still={!account() && !selection().length && !glassWake()}
                     depth={restoring}
                     card={item => (
                       <GalleryCard
@@ -396,7 +398,7 @@ export function Home(props: { params: ListParams }) {
                 key={collection => collection.slug}
                 estimate={estimate}
                 initial={FIRST_GROUPS}
-                live={account() || selection().length ? FIRST_GROUPS : 0}
+                live={account() || selection().length || glassWake() ? FIRST_GROUPS : 0}
                 depth={restoring}
                 group={collection => {
                   const path = () => inView(`/${collection().slug}`, params());

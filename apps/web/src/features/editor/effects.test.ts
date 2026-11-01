@@ -104,3 +104,20 @@ test("frames a second are 60 unless set, and keep within 1 to 120", () => {
   fx.set("glass", { fps: 24 });
   expect(kept().settings.glass.fps).toBe(24);
 });
+
+test("the reader's choices are told for the lists, an address landing and Reset are not", () => {
+  const told: unknown[] = [];
+  const fx = createEffects(
+    null,
+    true,
+    () => SEED,
+    false,
+    effect => told.push(effect?.kind ?? null)
+  );
+  fx.choose("glass");
+  fx.set("glass", { speed: 0.5 });
+  fx.arrive({ kind: "blob", speed: 1, fps: 60, look: { shape: 3, frost: 1, bg: null } }, true);
+  fx.reset();
+  fx.choose(null);
+  expect(told).toEqual(["glass", "glass", null]);
+});

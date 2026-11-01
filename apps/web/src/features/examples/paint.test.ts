@@ -11,10 +11,10 @@ import {
   groundOn,
   inkOn,
   mirrored,
-  ratioText,
   type Shown,
   THEME_GROUND,
   themeOn,
+  twoPlaces,
   worstContrast
 } from "./paint.ts";
 
@@ -138,7 +138,7 @@ describe("inks", () => {
     expect(groundOn(THEME_GROUND.light, colors)).toBe("#000000");
   });
   test("a contrast as the page writes it, never rounded up, and the level it reaches", () => {
-    expect(ratioText(4.496)).toBe("4.49:1");
+    expect(twoPlaces(4.496)).toBe(4.49);
     expect(contrastLevel(4.49)).toBe("AA Large");
     expect(contrastLevel(4.5)).toBe("AA");
     expect(contrastLevel(7)).toBe("AAA");

@@ -16,6 +16,7 @@ import { pageBox } from "./css.ts";
 import { sampleLCH, sampleSrgb } from "./curve.ts";
 import { clamp, clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
+import { svgComment } from "./svg-comment.ts";
 import type { ParamReader, Size } from "./view.ts";
 
 /** The `style` that asks a palette's SVG for this animation. */
@@ -330,8 +331,7 @@ export function bandsSvg(P: Palette, view: BandsView, size: Size, credit: string
     ...delays
   ].join("");
   const frames = sets.map(s => `@keyframes ${id}${s.name}{${s.frames}}`).join("");
-  const comment = `<!-- ${credit.replace(/--/g, "-%2D")} -->`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="${id}">\n${comment}\n<style>${frames}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n<defs>${gradients.join("")}</defs>\n<g id="${id}h"><g id="${id}q">${paths.join("")}</g><use href="#${id}q" transform="matrix(-1 0 0 1 ${W} 0)"/></g><use href="#${id}h" transform="matrix(1 0 0 -1 0 ${H})"/>\n</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="${id}">\n${svgComment(credit)}\n<style>${frames}@media (prefers-reduced-motion:no-preference){${motion}}</style>\n<defs>${gradients.join("")}</defs>\n<g id="${id}h"><g id="${id}q">${paths.join("")}</g><use href="#${id}q" transform="matrix(-1 0 0 1 ${W} 0)"/></g><use href="#${id}h" transform="matrix(1 0 0 -1 0 ${H})"/>\n</svg>`;
 }
 
 /** The frame the file's stops hold, as pixels at a size, three bytes each and row after row, with every band's stops in

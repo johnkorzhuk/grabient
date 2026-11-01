@@ -3,15 +3,16 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import type { EffectKind } from "@grabient/engine/effect.ts";
 import { isSwatchStyle } from "@grabient/engine/view.ts";
 import { dir, formatDate, formatNumber, msg, rich, t } from "@grabient/i18n";
+import { announce } from "@grabient/ui/announce.ts";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createMemo, createSignal, type Element, For, Show, untrack } from "solid-js";
-import { EffectArt } from "../editor/EffectArt.tsx";
 import styles from "./Cards.module.css";
-import { Chip, Example, type ExampleProps } from "./Example.tsx";
+import { Chip, Example, type ExampleProps, Painted } from "./Example.tsx";
 import { inkThrough, MARK, type Press, pressPaper, standsOut, TEXT, TILE } from "./fit.ts";
 import { frostOn } from "./frost.ts";
 import { HeadlineTile, headlineShown, headlinesOf } from "./Headline.tsx";
+import { createLit } from "./lit.ts";
 import {
   colorsUnder,
   drawnColors,
@@ -26,12 +27,12 @@ import { drawnWords, formWords, gradientOf, inForm, solidBlob } from "./shared.t
 /* Covers and cards: the palette as the media and the small things a designer makes with it, laid as a masonry of real
    shapes and sizes: a poster, an album's sleeve, a video's thumbnail, a frosted widget, a social post, an event's
    card, a ticket, a membership card, an app's icon, a business card and a pair of buttons. Each wears the palette as
-   the address draws it (an effect's still, playing while the pointer is on its tile), and a press on a tile turns it
-   to its next look. Words stand on the palette only where the checks let them (fit.ts): in the
-   ink that reads on every color under them, else on a band of paper, which takes the theme on whose paper the
-   palette gives a press. A blob with no ground of its own stands on its darkest or lightest color, as a picture can't
-   be clear. Three tiles show what else the palette can do, in the forms the address doesn't name, which their names
-   say to a reader who listens. */
+   the address draws it (an effect's still, playing once the pointer rests on its tile or the keyboard's focus is in
+   it), and a press on a tile turns it to its next look. Words stand on the palette only where the checks let them
+   (fit.ts): in the ink that reads on every color under them, else on a band of paper, which takes the theme on whose
+   paper the palette gives a press. A blob with no ground of its own stands on its darkest or lightest color, as a
+   picture can't be clear. Three tiles show what else the palette can do, in the forms the address doesn't name, which
+   their names say to a reader who listens. */
 
 /** The tiles of the masonry. */
 type Kind =
@@ -121,29 +122,16 @@ function placeWords(s: Shown, aspect: number, high: number, spots: readonly Spot
 const spotsFrom = (rows: readonly Spot["row"][]): Spot[] =>
   (["across", "start", "end"] as const).flatMap(side => rows.map(row => ({ row, side })));
 
-/** The palette as a picture filling its holder: the gradient, or the effect's still, playing while lit. */
+/** The palette as a picture filling its holder, which the tile's name says to a reader who listens. */
 function Picture(props: { s: Shown; lit: boolean; class?: string }) {
   return (
     <span class={`${styles.picture} ${props.class ?? ""}`} aria-hidden="true">
-      <Show
-        when={props.s.effect}
-        fallback={<span class={styles.fill} style={{ background: gradientOf(props.s) }} />}
-      >
-        {effect => (
-          <EffectArt
-            kind={effect().kind}
-            palette={props.s.palette}
-            settings={effect()}
-            angle={props.s.view.angle}
-            active={props.lit}
-          />
-        )}
-      </Show>
+      <Painted s={props.s} lit={props.lit} />
     </span>
   );
 }
 
-/** A tile of the masonry: what it shows, lit while the pointer or the focus is on it. */
+/** A tile of the masonry: what it shows, lit once the pointer rests on it or while the keyboard's focus is in it. */
 function Tile(props: {
   kind: Kind;
   s: Shown;
@@ -155,9 +143,13 @@ function Tile(props: {
   onTurn?: () => void;
   children: (lit: () => boolean) => Element;
 }) {
-  const [lit, setLit] = createSignal(false);
+  const lit = createLit();
   const place = () => props.place ?? PLACES[props.kind];
-  const content = untrack(() => props.children(lit));
+  const name = () => {
+    const kind = t(NAMES[props.kind]);
+    return props.other ? `${kind}, ${formWords(props.s)}` : kind;
+  };
+  const content = untrack(() => props.children(lit.on));
   return (
     /* biome-ignore lint/a11y/useSemanticElements: a picture, named for a reader who listens; a fieldset is for a form's
        controls */
@@ -165,14 +157,12 @@ function Tile(props: {
       class={styles.tile}
       data-kind={props.kind}
       role="group"
-      aria-label={
-        props.other ? `${t(NAMES[props.kind])}, ${formWords(props.s)}` : t(NAMES[props.kind])
-      }
+      aria-label={name()}
       style={{ "--col": place().col, "--row": place().row, "--aspect": String(place().aspect) }}
-      onPointerEnter={() => setLit(true)}
-      onPointerLeave={() => setLit(false)}
-      onFocusIn={() => setLit(true)}
-      onFocusOut={() => setLit(false)}
+      onPointerEnter={lit.enter}
+      onPointerLeave={lit.leave}
+      onFocusIn={lit.focus}
+      onFocusOut={lit.blur}
       data-turns={props.onTurn ? "" : undefined}
       tabindex={props.onTurn ? 0 : undefined}
       onClick={e => {
@@ -232,7 +222,7 @@ function PressOf(props: { press: Press | null; label: string; class?: string }) 
     there; else on a band of paper under the picture. */
 const POSTER_SPOTS = spotsFrom(["foot", "top"]);
 function Poster(props: TileProps) {
-  const read = () => placeWords(props.s, PLACES.poster.aspect, 0.44, POSTER_SPOTS);
+  const read = createMemo(() => placeWords(props.s, PLACES.poster.aspect, 0.44, POSTER_SPOTS));
   const day = () => formatDate(DAY, { month: "short", day: "numeric", timeZone: "UTC" });
   return (
     <div
@@ -273,12 +263,12 @@ function Album(props: TileProps) {
     a control must (else the press's color), and the video's length on a chip of its own. */
 const PLAY: Part = { x0: 0.4, y0: 0.32, x1: 0.6, y1: 0.68 };
 function Thumbnail(props: TileProps) {
-  const button = () => {
+  const button = createMemo(() => {
     const read = inkOn(colorsUnder(props.s, PLAY, PLACES.thumbnail.aspect));
     if (read.ratio >= MARK)
       return { fill: read.ink, glyph: read.ink === "#ffffff" ? "#000000" : "#ffffff" };
     return props.press ? { fill: props.press.fill, glyph: props.press.label } : null;
-  };
+  });
   const length = () => `${formatNumber(12)}:${formatNumber(4, { minimumIntegerDigits: 2 })}`;
   return (
     <div class={styles.thumbnail}>
@@ -303,7 +293,7 @@ function Thumbnail(props: TileProps) {
     on a side; else on a band of paper under it. */
 const POST_SPOTS = spotsFrom(["top", "foot"]);
 function Post(props: TileProps) {
-  const read = () => placeWords(props.s, PLACES.post.aspect, 0.6, POST_SPOTS);
+  const read = createMemo(() => placeWords(props.s, PLACES.post.aspect, 0.6, POST_SPOTS));
   return (
     <div
       class={styles.post}
@@ -328,19 +318,20 @@ function Post(props: TileProps) {
 const EVENT_COLUMNS = [0.74, 0.52];
 function Event(props: TileProps) {
   const [saved, setSaved] = createSignal(false);
-  const column = () =>
-    EVENT_COLUMNS.map(x1 => {
-      const part = { x0: 0, y0: 0, x1, y1: 1 };
-      const read = inkThrough(
-        colorsUnder(props.s, dir() === "rtl" ? mirrored(part) : part, PLACES.event.aspect),
-        TEXT
-      );
-      return read && { ...read, narrow: x1 < EVENT_COLUMNS[0] };
-    }).find(Boolean) ?? null;
-  const read = () => column();
+  const read = createMemo(
+    () =>
+      EVENT_COLUMNS.map(x1 => {
+        const part = { x0: 0, y0: 0, x1, y1: 1 };
+        const read = inkThrough(
+          colorsUnder(props.s, dir() === "rtl" ? mirrored(part) : part, PLACES.event.aspect),
+          TEXT
+        );
+        return read && { ...read, narrow: x1 < EVENT_COLUMNS[0] };
+      }).find(Boolean) ?? null
+  );
   /* on the palette the press takes the words' ink and, as its label, the palette's color that reads best on it where
      one reads as words must, else the other ink; under the cover, the press the palette gives on the paper */
-  const press = (): Press | null => {
+  const press = createMemo((): Press | null => {
     const on = read();
     if (!on) return props.press;
     const best = drawnColors(props.s).reduce((a, b) =>
@@ -349,7 +340,7 @@ function Event(props: TileProps) {
     const label =
       contrast(on.ink, best) >= TEXT ? best : on.ink === "#ffffff" ? "#000000" : "#ffffff";
     return { fill: on.ink, label, hover: on.ink };
-  };
+  });
   const date = () =>
     formatDate(DAY, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
   const time = () => formatDate(DAY, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
@@ -399,7 +390,7 @@ function Event(props: TileProps) {
     an ink reads there. */
 const STUB: Part = { x0: 0.1, y0: 0.1, x1: 0.9, y1: 0.9 };
 function Ticket(props: TileProps) {
-  const stub = () => inkThrough(colorsUnder(props.s, STUB, 1), TEXT);
+  const stub = createMemo(() => inkThrough(colorsUnder(props.s, STUB, 1), TEXT));
   const when = () =>
     formatDate(DAY, {
       weekday: "short",
@@ -469,7 +460,9 @@ function Widget(props: TileProps) {
     strip of paper at its foot. */
 const MEMBER: Part = { x0: 0.06, y0: 0.06, x1: 0.94, y1: 0.94 };
 function Member(props: TileProps) {
-  const read = () => inkThrough(colorsUnder(props.s, MEMBER, PLACES.member.aspect), TEXT);
+  const read = createMemo(() =>
+    inkThrough(colorsUnder(props.s, MEMBER, PLACES.member.aspect), TEXT)
+  );
   return (
     <div class={styles.member} data-layout={read() ? "on" : "under"} style={{ color: read()?.ink }}>
       <Picture s={props.s} lit={props.lit()} />
@@ -491,10 +484,10 @@ function Member(props: TileProps) {
     control's part must, else none; its name under it on the page. */
 const GLYPH: Part = { x0: 0.3, y0: 0.3, x1: 0.7, y1: 0.7 };
 function AppIcon(props: TileProps) {
-  const glyph = () => {
+  const glyph = createMemo(() => {
     const read = inkOn(colorsUnder(props.s, GLYPH, 1));
     return read.ratio >= MARK ? read.ink : null;
-  };
+  });
   return (
     <div class={styles.app}>
       <span class={styles.icon} style={{ color: glyph() ?? undefined }}>
@@ -673,10 +666,13 @@ const TURNING: ReadonlySet<Kind> = new Set([
 export const cardsFits = (_s: ExampleProps["s"]): boolean => true;
 
 export function CardsExample(props: ExampleProps) {
-  const s = () => solidBlob(props.s);
+  /* what every tile reads, worked out once for each palette */
+  const s = createMemo(() => solidBlob(props.s));
+  const paper = createMemo(() => pressPaper(drawnColors(props.s)));
+  const looks = createMemo(() => looksOf(props.s));
+  const headlines = createMemo(() => headlinesOf(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const added = () => s() !== props.s;
-  const paper = () => pressPaper(drawnColors(props.s));
   /* the looks pressed onto tiles, for the palette they were pressed on */
   const [picked, setPicked] = createSignal<{ seed: string; looks: Partial<Record<Kind, Look>> }>({
     seed: "",
@@ -684,7 +680,7 @@ export function CardsExample(props: ExampleProps) {
   });
   const lookFor = (kind: Kind): Look =>
     (picked().seed === props.s.seed ? picked().looks[kind] : undefined) ??
-    looksOf(props.s)[kind] ??
+    looks()[kind] ??
     lookOf(props.s);
   const turn = (kind: Kind) => {
     const order = TURNS[kind] ?? TURN;
@@ -693,6 +689,8 @@ export function CardsExample(props: ExampleProps) {
       seed: props.s.seed,
       looks: { ...(p.seed === props.s.seed ? p.looks : {}), [kind]: next }
     }));
+    /* a reader who listens hears the look it turned to, which its name says from now on */
+    announce(formWords(inLook(props.s, next)));
   };
   return (
     <Example
@@ -714,27 +712,27 @@ export function CardsExample(props: ExampleProps) {
     >
       <div class={styles.wrap}>
         <div class={styles.grid}>
-          <For each={[...ORDER, ...headlinesOf(props.s)]}>
+          <For each={[...ORDER, ...headlines()]}>
             {kind => {
               const Shape = TILES[kind];
               const headline = kind === "letters" || kind === "mark";
               /* the palette as this tile shows it: the address's form, or another the tile shows off; a headline
                  draws it as it works there, a blob's letters on a ground of their own */
-              const shown = () => {
+              const shown = createMemo(() => {
                 if (headline) return props.s;
                 const look = lookFor(kind);
                 return look === lookOf(props.s) ? s() : solidBlob(inLook(props.s, look));
-              };
+              });
+              /* the form the tile's name says, where it is not the address's */
+              const named = createMemo(() => (headline ? headlineShown(kind, props.s) : shown()));
               const other = () =>
-                headline
-                  ? headlineShown(kind, props.s) !== props.s
-                  : lookFor(kind) !== lookOf(props.s);
+                headline ? named() !== props.s : lookFor(kind) !== lookOf(props.s);
               return (
                 <Tile
                   kind={kind}
-                  s={headline ? headlineShown(kind, props.s) : shown()}
+                  s={named()}
                   other={other()}
-                  place={headline && headlinesOf(props.s).length === 1 ? HEADLINE_ALONE : undefined}
+                  place={headline && headlines().length === 1 ? HEADLINE_ALONE : undefined}
                   onTurn={TURNING.has(kind) ? () => turn(kind) : undefined}
                 >
                   {lit => (

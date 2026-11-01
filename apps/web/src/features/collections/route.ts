@@ -10,7 +10,7 @@ import { type Failed, failed } from "../../lib/query.ts";
 import { searchOf } from "../../lib/route.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
-import { drawnIn, type ListView } from "../list/appearance.ts";
+import { drawnIn, effectsReady, type ListView } from "../list/appearance.ts";
 import { collectionHref, type PaletteOrder, sortCollectionItems } from "./address.ts";
 import { inputOf } from "./client.ts";
 import {
@@ -91,7 +91,8 @@ export async function loadList(
   }
   const [page] = await Promise.all([
     client.ensureQueryData(collectionsQuery(listKey(place))),
-    client.ensureQueryData(tagsQuery(place.query))
+    client.ensureQueryData(tagsQuery(place.query)),
+    effectsReady(place.view)
   ]);
   if (failed(page)) return {};
   const listed = {
@@ -162,9 +163,11 @@ export async function loadCollection(
     const shown = summaryOf(client, at.slug);
     if (shown) client.setQueryData(query.queryKey, shown);
   }
+  const params = new URLSearchParams(at.searchStr);
+  /* the code its cards play an effect with comes with the collection, not after it */
+  const ready = effectsReady(viewOf(params));
   const found = await client.ensureQueryData(query);
   if (failed(found)) return {};
-  const params = new URLSearchParams(at.searchStr);
   const here = found.doc || found.private || found.own || at.slug.startsWith("@");
   /* a collection lives here: an old link's order is none of its page's */
   if (here && params.has("sort"))
@@ -175,6 +178,7 @@ export async function loadCollection(
       statusCode: 301
     });
   if (found.doc) {
+    await ready;
     const ordered = sortCollectionItems(found.doc.items, at.order);
     return {
       facts: factsOf(found.doc, found.languages),

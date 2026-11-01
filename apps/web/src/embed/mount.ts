@@ -4,16 +4,21 @@
      <script src="https://grabient.com/{seed}.js?style=glass" async></script>
    The script is the same for every palette. It reads the palette and the effect from its address and plays the effect
    on a canvas fixed behind the page, from the first frame the stylesheet of the same address painted in the page's
-   first paint (server/files/effect-files.ts), or from one it paints itself where the page has no such stylesheet. The
-   canvas shows once its first frame, the still's own, is drawn: the glass fading in over the still, the blob (clear
-   around itself) taking the still's place in one frame. Where WebGL 2 is missing the still stays, and a reader who asks
-   for less motion sees the first frame held. It writes no markup and no style attribute, only CSSOM properties, so a
-   page with a strict Content Security Policy runs it. */
+   first paint (server/files/effect-files.ts), or the same rules in the page's own <style> (the editor's Copy HTML);
+   where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows once its first frame,
+   the still's own, is drawn: the glass fading in over a still the page painted, the blob (clear around itself) taking
+   the still's place in one frame. The still goes once the canvas covers it, so a resize never draws it again under the
+   canvas, and comes back if the canvas loses its context. Where WebGL 2 is missing the still stays. No context is made
+   for a reader who asks for less motion, nor for a blob held at speed 0, whose still is its whole picture. The browser
+   restoring a lost context plays the effect again. It writes no markup and no style attribute, only CSSOM, so a page
+   with a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second script, the same
+   or another, leaves it be. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import {
   type Effect,
   type EffectKind,
   EMBED_PLAYING,
+  effectLayerCss,
   parseEffect
 } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
@@ -21,6 +26,15 @@ import { parseView } from "@grabient/engine/view.ts";
 
 /** How long the glass's canvas takes to fade in over its still, as the editor's does (GlassStage.tsx). */
 const FADE_MS = 700;
+/** How far into the page's life its context waits for the page's first paint: one made while the GPU paints the still
+    waits on that painting, and the page's thread with it. */
+const PAINT_WAIT_MS = 2000;
+/** How long a stylesheet of the still on its way is waited for before the script paints the still itself. */
+const SHEET_WAIT_MS = 3000;
+/** How many times the effect plays again on a context the browser restores before the still stays. */
+const AGAIN_MAX = 3;
+/* the mark of the page's one effect, in the registry every script of the page shares */
+const MOUNTED = Symbol.for("grabient-effect");
 
 export interface EmbedEffect {
   kind: EffectKind;
@@ -33,22 +47,59 @@ export interface EmbedEffect {
     effect: Effect,
     angle: number,
     drawn: () => void
-  ): unknown;
+  ): { destroy(): void } | null;
 }
 
-/** Whether the page paints the still already: it links the stylesheet of this script's palette, or holds its rule. */
-function painted(address: URL, name: string): boolean {
-  const links = document.querySelectorAll<HTMLLinkElement>('link[rel~="stylesheet"][href]');
-  for (const link of links) {
+const waited = (ms: number, work: (done: () => void) => void): Promise<void> =>
+  new Promise(resolve => {
+    const done = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    work(done);
+  });
+
+/** Whether the page paints the still already: its own CSS paints html::before, from the stylesheet of this script's
+    palette or its rules in a <style>. What a stylesheet paints is read once it has come: one of this palette still on
+    its way is waited for, while the page loads. A link is no proof, since a stylesheet a policy refused or that never
+    came still has a sheet in some browsers. */
+async function pagePaints(address: URL, name: string): Promise<boolean> {
+  const painted = () =>
+    getComputedStyle(document.documentElement, "::before").backgroundImage !== "none";
+  const coming = [
+    ...document.querySelectorAll<HTMLLinkElement>('link[rel~="stylesheet"][href]')
+  ].filter(link => {
     const href = new URL(link.href, location.href);
-    if (href.origin === address.origin && href.pathname === `/${name}.css`) return true;
-  }
-  return getComputedStyle(document.documentElement, "::before").backgroundImage !== "none";
+    return href.origin === address.origin && href.pathname === `/${name}.css` && !link.sheet;
+  });
+  if (!painted() && coming.length && document.readyState !== "complete")
+    await waited(SHEET_WAIT_MS, done => {
+      for (const link of coming) {
+        link.addEventListener("load", done, { once: true });
+        link.addEventListener("error", done, { once: true });
+      }
+      addEventListener("load", done, { once: true });
+    });
+  return painted();
 }
+
+/** Done once the page has painted, a frame later, or once its first seconds have gone. */
+const firstPaint = (): Promise<void> =>
+  waited(Math.max(0, PAINT_WAIT_MS - performance.now()), done => {
+    if (!PerformanceObserver.supportedEntryTypes?.includes("paint")) return done();
+    const observer = new PerformanceObserver(list => {
+      if (!list.getEntries().length) return;
+      observer.disconnect();
+      requestAnimationFrame(() => requestAnimationFrame(done));
+    });
+    observer.observe({ type: "paint", buffered: true });
+  });
 
 export function mount(embed: EmbedEffect): void {
   const script = document.currentScript;
-  if (!(script instanceof HTMLScriptElement) || !script.src) return;
+  const page = document as Document & { [MOUNTED]?: true };
+  if (!(script instanceof HTMLScriptElement) || !script.src || page[MOUNTED]) return;
   const address = new URL(script.src, location.href);
   const file = address.pathname.slice(address.pathname.lastIndexOf("/") + 1);
   let name: string;
@@ -60,10 +111,30 @@ export function mount(embed: EmbedEffect): void {
   const P = decodePalette(name);
   const effect = parseEffect(address.searchParams);
   if (!P || !effect || effect.kind !== embed.kind) return;
+  page[MOUNTED] = true;
   const angle = parseView(address.searchParams).angle;
+  const root = document.documentElement;
 
-  const start = () => {
-    const root = document.documentElement;
+  /* the still: the page's own, else the stylesheet's rules adopted, which need no body. One the page painted is in
+     its first paint, and the glass fades in over it; one adopted late may still be on its way to the screen when the
+     player's first frame is drawn, so the glass shows at once over it, where a fade would show the page's own ground */
+  let fade = true;
+  const still = pagePaints(address, name).then(paints => {
+    if (paints) return;
+    fade = false;
+    if (!("adoptedStyleSheets" in document)) return;
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(effectLayerCss(embed.still(P, effect, angle)));
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+  });
+  const body = new Promise<void>(resolve =>
+    document.body
+      ? resolve()
+      : document.addEventListener("DOMContentLoaded", () => resolve(), { once: true })
+  );
+
+  let again = 0;
+  const play = () => {
     const layer = document.createElement("div");
     layer.setAttribute("aria-hidden", "true");
     const box = layer.style;
@@ -72,8 +143,6 @@ export function mount(embed: EmbedEffect): void {
     box.zIndex = "-1";
     box.pointerEvents = "none";
     box.overflow = "hidden";
-    const own = !painted(address, name);
-    if (own) box.background = embed.still(P, effect, angle);
     const canvas = document.createElement("canvas");
     const look = canvas.style;
     look.position = "absolute";
@@ -84,20 +153,51 @@ export function mount(embed: EmbedEffect): void {
     look.opacity = "0";
     layer.append(canvas);
     document.body.prepend(layer);
-    embed.play(canvas, P, effect, angle, () =>
+    let player: { destroy(): void } | null = null;
+    /* a lost context drew nothing: the still comes back at once, and the effect plays again once the browser restores
+       the context, on a canvas of its own. The old canvas's listeners end first, since destroying its player loses
+       the restored context again, and that loss must not take the still's place from the new player */
+    const ended = new AbortController();
+    canvas.addEventListener(
+      "webglcontextlost",
+      () => {
+        look.transition = "none";
+        look.opacity = "0";
+        root.removeAttribute(EMBED_PLAYING);
+      },
+      { signal: ended.signal }
+    );
+    canvas.addEventListener(
+      "webglcontextrestored",
+      () => {
+        ended.abort();
+        player?.destroy();
+        layer.remove();
+        if (++again <= AGAIN_MAX) play();
+      },
+      { signal: ended.signal }
+    );
+    /* the still goes once the canvas covers it: the blob's at once, the glass's once it has faded in, opaque */
+    const covered = () => root.setAttribute(EMBED_PLAYING, "");
+    player = embed.play(canvas, P, effect, angle, () =>
       /* a frame after its first was drawn: a canvas shown in the frame it was first drawn in may not fade in */
       requestAnimationFrame(() => {
-        if (embed.kind === "glass") {
+        if (embed.kind === "glass" && fade) {
           look.transition = `opacity ${FADE_MS}ms ease-in-out`;
-          look.opacity = "1";
-          return;
-        }
-        root.setAttribute(EMBED_PLAYING, "");
-        if (own) box.backgroundImage = "none";
+          canvas.addEventListener("transitionend", covered, { once: true, signal: ended.signal });
+        } else covered();
         look.opacity = "1";
       })
     );
+    if (!player) layer.remove();
   };
-  if (document.body) start();
-  else document.addEventListener("DOMContentLoaded", start, { once: true });
+  /* a blob held at speed 0 is its still exactly, so it takes no context; the glass held keeps its canvas, which draws
+     the frame at the screen's pixels where the still Copy HTML writes inside a page is a 1000-pixel picture */
+  if (embed.kind === "blob" && effect.speed === 0) return;
+  /* for a reader who asks for less motion the still is the first frame held: no context until motion is welcome */
+  const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  void Promise.all([still, body, firstPaint()]).then(function start() {
+    if (motion.matches) motion.addEventListener("change", start, { once: true });
+    else play();
+  });
 }

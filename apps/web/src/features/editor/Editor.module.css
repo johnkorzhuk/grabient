@@ -167,7 +167,8 @@
     inset: 0;
     border-radius: inherit;
   }
-  /* the still the GPU drew (GlassArt.tsx), over the box once it is there */
+  /* the still the GPU drew (GlassArt.tsx), over the box once it is there: faded in over the still's field where the
+     box showed one, at once over nothing */
   .glassArtCanvas {
     position: absolute;
     inset: 0;
@@ -176,6 +177,9 @@
     height: 100%;
     border-radius: inherit;
     opacity: 0;
+    &[data-fades] {
+      transition: opacity var(--motion-slow) var(--motion-ease);
+    }
     &[data-painted] {
       opacity: 1;
     }

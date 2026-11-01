@@ -4,13 +4,13 @@
     forced-color-adjust: none;
     display: inline-block;
     vertical-align: top;
+    position: relative;
     width: var(--size-tile);
     height: 1lh;
     border-radius: var(--radius-control);
     --thumb-ring: var(--color-rim);
     box-shadow: var(--thumb-ring);
     &[data-link] {
-      position: relative;
       outline: 0 solid var(--color-ring);
       outline-offset: 2px;
       transition: box-shadow var(--motion-fast) var(--motion-ease);
@@ -28,5 +28,12 @@
         inset-block: calc((100% - var(--size-touch)) / 2);
       }
     }
+  }
+  /* a picture in the gradient's place, filling the thumbnail and clipped to its corners */
+  .art {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
   }
 }

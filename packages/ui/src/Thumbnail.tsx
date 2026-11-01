@@ -1,6 +1,6 @@
 import { gradientCss } from "@grabient/engine/css.ts";
 import type { Style } from "@grabient/engine/view.ts";
-import { Show } from "solid-js";
+import { type Element, Show, untrack } from "solid-js";
 import hidden from "./hidden.module.css";
 import { t } from "./i18n.ts";
 import styles from "./Thumbnail.module.css";
@@ -18,17 +18,29 @@ export function Thumbnail(props: {
   name: string;
   /** the palette's page, in the reader's language */
   href?: string;
+  /** a picture in the gradient's place, made once while there is one: the effect a list plays, as its still */
+  art?: () => Element;
 }) {
-  const paint = () => ({ background: gradientCss(props.stops, props.style, props.angle) });
+  const paint = () => ({
+    background: props.art ? undefined : gradientCss(props.stops, props.style, props.angle)
+  });
   const label = () => t("{name} palette", { name: props.name });
+  const picture = () => (
+    <Show when={props.art}>{art => <span class={styles.art}>{untrack(() => art()())}</span>}</Show>
+  );
   const tip = tooltip(() => props.name);
   return (
     <Show
       when={props.href}
-      fallback={<span class={styles.thumb} style={paint()} role="img" aria-label={label()} />}
+      fallback={
+        <span class={styles.thumb} style={paint()} role="img" aria-label={label()}>
+          {picture()}
+        </span>
+      }
     >
       {href => (
         <a ref={tip} class={styles.thumb} data-link="" href={href()} style={paint()}>
+          {picture()}
           <span class={hidden.text}>{label()}</span>
         </a>
       )}

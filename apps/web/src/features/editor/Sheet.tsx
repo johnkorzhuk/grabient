@@ -26,6 +26,7 @@ import {
 import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { engaged } from "../../app/engaged.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
+import { inPlace } from "../../app/navigation.ts";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { examplesPath, heading, relTo } from "../../lib/page-meta.ts";
@@ -38,7 +39,6 @@ import { collectionHref } from "../collections/address.ts";
 import { ExamplesLink } from "../examples/ExamplesLink.tsx";
 import { askCredit, creditName, creditOf, creditWords } from "../gallery/credit.ts";
 import { relativeAge } from "../gallery/drawing.ts";
-import { inPlace } from "../gallery/feed.ts";
 import { readerOrder, recallOrder, rememberOrder } from "../gallery/order.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { similarHref } from "../gallery/similar.ts";
@@ -53,10 +53,12 @@ import type { PaletteEditor } from "./editor.ts";
 import { effectLabel } from "./effect-page.ts";
 import {
   copyContrast,
-  copyFormat,
   copyLink,
+  copyOrSave,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
+  STRIP_EFFECT_COPY,
+  STRIP_EFFECT_LINKS,
   STRIP_FILES,
   saveContrast,
   saveFormat,
@@ -340,11 +342,14 @@ export function Sheet(props: {
      choice goes for its cards; otherwise each is drawn as it was saved. The stage's size goes with every link. */
   const listed = (): ListView => {
     const set = e.opened().set;
+    const effect = e.effects.effect();
     return {
       style: set.style ? e.style() : "auto",
       steps: set.steps ? e.steps() : "auto",
       angle: set.angle ? e.angle() : "auto",
-      size: e.size()
+      size: e.size(),
+      /* the list these lead to plays the effect too, each card in its own palette's shape */
+      effect: effect && { ...effect, look: { ...effect.look, shape: null } }
     };
   };
   const likeHref = () => {
@@ -417,7 +422,13 @@ export function Sheet(props: {
         : undefined;
     };
     const words = () => cardWords(palette());
-    const address = () => seedAddress({ seed: seed(), view: { ...palette(), size: e.size() } });
+    /* a card opens its palette playing what the card plays, so the editor shows the card's picture */
+    const address = () =>
+      seedAddress({
+        seed: seed(),
+        view: { ...palette(), size: e.size() },
+        effect: playing() ? e.effects.effect() : null
+      });
     const similar = () => similarHref(seed());
     /* a card's pictures are the stage's size once the reader set one, and its files' addresses name it */
     const taken = (): Taken => {
@@ -427,31 +438,23 @@ export function Sheet(props: {
         size: e.size(),
         pixels: e.size() ? props.taken().pixels : DEFAULT_SIZE,
         stops: decoded ? sampleStops(decoded, palette().steps) : [],
-        /* a card's copies follow its picture */
-        effect: e.effects.effect()
+        /* a card's copies follow its picture, and a copy for Figma names its frame as the card names the palette */
+        effect: e.effects.effect(),
+        name: sheetName(seed(), palette())
       };
     };
     const count = (action: "copy" | "download", format: string) =>
       useTaken(action, format, PLACE, [palette()], { position });
     /* where no picture can go on the clipboard, the file is saved instead */
     const copy = (f: Format) =>
-      copyFormat(f, taken()).then(
-        () => {
-          count("copy", f);
-          return true;
+      copyOrSave(f, taken()).then(
+        done => {
+          if (done === "downloaded")
+            toast(t("Images can't be copied here, so the file was downloaded."));
+          count(done === "copied" ? "copy" : "download", f);
+          return done === "copied";
         },
-        (reason: unknown) => {
-          if (f !== "png" || !(reason instanceof Error) || reason.message !== NO_IMAGE_CLIPBOARD)
-            return copied(Promise.reject(reason));
-          return saveFormat(f, taken()).then(
-            () => {
-              toast(t("Images can't be copied here, so the file was downloaded."));
-              count("download", f);
-              return false;
-            },
-            () => copied(Promise.reject(reason))
-          );
-        }
+        (reason: unknown) => copied(Promise.reject(reason))
       );
     return (
       <PaletteCard
@@ -520,10 +523,10 @@ export function Sheet(props: {
           <FormatStrip
             size="sm"
             variant="art"
-            copy={STRIP_COPY}
+            copy={playing() ? STRIP_EFFECT_COPY : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={STRIP_FILES}
+            link={playing() ? STRIP_EFFECT_LINKS : STRIP_FILES}
             onCopy={copy}
             onDownload={f =>
               void saveFormat(f, taken()).then(
@@ -584,7 +587,8 @@ export function Sheet(props: {
         view(),
         e.seed(),
         () => ({ facts: props.facts(), opened: props.opened() === e.seed() }),
-        rest
+        rest,
+        props.taken()
       )}
       onCopy={(id, _text, spelling) =>
         props.used("copy", spelling ? `code:${id}:${spelling}` : `code:${id}`)

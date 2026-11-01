@@ -33,7 +33,7 @@ import {
   signInUnavailable
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
-import { useNavigating } from "../../app/navigation.ts";
+import { inPlace, useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading, relTo } from "../../lib/page-meta.ts";
@@ -43,7 +43,8 @@ import { onAccountChange } from "../account/state.ts";
 import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
-import { AppearanceContext, inView } from "../list/appearance.ts";
+import { AppearanceContext, effectsReady, inView } from "../list/appearance.ts";
+import { createGlassWake } from "../list/wake.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -53,7 +54,7 @@ import { type GalleryPlace, listHref, listIdentity, listSearch, withView } from 
 import { createCuration } from "./curate.tsx";
 import { madeItems, minuteOf, paintOf, picturedAs, relativeAge } from "./drawing.ts";
 import { Find } from "./Find.tsx";
-import { createFeed, FIRST_SCREEN, inPlace, joinNext, preloadHref } from "./feed.ts";
+import { createFeed, FIRST_SCREEN, joinNext, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
@@ -97,6 +98,7 @@ export function Palettes(props: { place: ListPlace }) {
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
   const navigating = useNavigating();
   const params = () => props.place.params;
+  const glassWake = createGlassWake(params);
   const words = () => params().words;
   /* a route's list is one kind for as long as its page stands */
   const saved = untrack(() => props.place.kind === "saved");
@@ -146,11 +148,14 @@ export function Palettes(props: { place: ListPlace }) {
     const at = likes;
     if (!from || !of) return;
     reading = of;
-    void readPage(client, from, page, fresh).then(read => {
-      if (of !== ownKey()) return;
-      if (at !== likes) readOwn(asked, true);
-      else setOwn({ of, page: read });
-    });
+    /* the cards land with the code they play the list's effect with, so none stands empty */
+    void Promise.all([readPage(client, from, page, fresh), effectsReady(params())]).then(
+      ([read]) => {
+        if (of !== ownKey()) return;
+        if (at !== likes) readOwn(asked, true);
+        else setOwn({ of, page: read });
+      }
+    );
   };
   const asked = () => ({ of: ownKey(), from: source(), page: params().page });
   if (saved) {
@@ -515,6 +520,8 @@ export function Palettes(props: { place: ListPlace }) {
                                 title={collection().title}
                                 description={collection().description}
                                 palettes={collection().preview.map(preview => {
+                                  /* the list's style, and while it plays an effect the palettes' gradients: an
+                                     effect would take a still of every tile, up to 96 on this offer */
                                   const drawn = picturedAs(
                                     preview,
                                     params(),
@@ -555,7 +562,7 @@ export function Palettes(props: { place: ListPlace }) {
                     items={items()}
                     key={item => item.kseed}
                     live={FIRST_SCREEN}
-                    still={!account() && !selection().length}
+                    still={!account() && !selection().length && !glassWake()}
                     depth={restoring}
                     card={item => (
                       <GalleryCard

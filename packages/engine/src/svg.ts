@@ -6,6 +6,7 @@
 import { hexBytes } from "./color.ts";
 import type { Stop } from "./curve.ts";
 import { onWheel } from "./math.ts";
+import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, resolveSize, type Size, type Style, type View, viewSearch } from "./view.ts";
 
 export interface Credit {
@@ -165,8 +166,9 @@ export function paletteSvg(
   const { width: w = 800, height: h = 400, gridItemIndex, borderRadius = 0 } = options;
   const radius = (borderRadius / 100) * (Math.min(w, h) / 2);
   const rx = radius > 0 ? ` rx="${radius}" ry="${radius}"` : "";
-  const address = `${credit.seed}${credit.search}`.replace(/--/g, "-%2D");
-  const comment = `<!-- ${credit.baseUrl ?? "https://grabient.com"}/${address} -->`;
+  const comment = svgComment(
+    `${credit.baseUrl ?? "https://grabient.com"}/${credit.seed}${credit.search}`
+  );
   const id = (base: string) =>
     typeof gridItemIndex === "number" ? `${base}_${gridItemIndex}` : base;
   const box = `<rect x="0" y="0" width="${w}" height="${h}"${rx}`;

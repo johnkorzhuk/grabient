@@ -35,7 +35,7 @@ import {
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
 import list from "../../app/list.module.css";
-import { useNavigating } from "../../app/navigation.ts";
+import { inPlace, useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
@@ -44,9 +44,11 @@ import { hexesOf } from "../../lib/palette.ts";
 import { type Failed, failed } from "../../lib/query.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
-import { createFeed, inPlace, joinNext } from "../gallery/feed.ts";
+import { createFeed, joinNext } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
+import { effectsReady } from "../list/appearance.ts";
+import { createGlassWake } from "../list/wake.ts";
 import { searchedHere } from "../search/count.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -107,6 +109,7 @@ export function CollectionsPage(props: {
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
   const navigating = useNavigating();
   const place = () => props.place;
+  const glassWake = createGlassWake(() => place().view);
   const mine = () => place().order === "saved";
   const signedOut = () => mine() && (sessionReady() ? !account() : !!props.signedOut);
   const frames = useQuery(() => framesQuery());
@@ -125,8 +128,9 @@ export function CollectionsPage(props: {
     const id = JSON.stringify(asked);
     const query = ownQuery(asked.who, asked.key);
     const read = fresh ? client.fetchQuery({ ...query, staleTime: 0 }) : client.fetchQuery(query);
-    return read.then(
-      page => setOwn({ id, page }),
+    /* the cards land with the code they play the list's effect with, so none stands empty */
+    return Promise.all([read, effectsReady(untrack(place).view)]).then(
+      ([page]) => setOwn({ id, page }),
       () => {}
     );
   };
@@ -486,7 +490,7 @@ export function CollectionsPage(props: {
                   key={c => c.slug}
                   estimate={estimate}
                   initial={INITIAL}
-                  live={account() || selection().length ? INITIAL : 0}
+                  live={account() || selection().length || glassWake() ? INITIAL : 0}
                   depth={restoring}
                   group={collection => (
                     <CollectionGroup

@@ -147,7 +147,9 @@ export function Shader(props: {
       resized = new ResizeObserver(() => flow?.refresh());
       resized.observe(header);
     };
-    const wanted = () => !props.off?.();
+    /* the page's word as the water decides, read once: the effect above follows it and turns the water, and calls
+       start from its own callback */
+    const wanted = () => !untrack(() => props.off?.());
     let starting = false;
     const start = async () => {
       if (disposed || flow || starting || !wanted()) return;

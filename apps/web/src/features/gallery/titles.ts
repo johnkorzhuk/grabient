@@ -2,7 +2,7 @@ import { decodePalette } from "@grabient/engine";
 import { DEFAULT_STEPS, DEFAULT_STYLE, type Style } from "@grabient/engine/view.ts";
 import type { Page } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
-import { drawnIn, type ViewDraft } from "../list/appearance.ts";
+import { cardEffect, drawnIn, shownEffect, type ViewDraft } from "../list/appearance.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
 import { nameOf, ownOf, paletteHref, picturedAs } from "./drawing.ts";
 import type { SearchedPalette } from "./ListHeading.tsx";
@@ -59,11 +59,14 @@ export function searchedTitle(
   if (!item) return null;
   const shown = drawnIn(ownOf(item), params);
   const drawn = picturedAs(ownOf(item), params, draft, peek);
+  const effect = shownEffect(params, draft, peek);
   return {
+    seed: item.kseed,
     stops: hexesOf(drawn),
     style: drawn.style,
     angle: drawn.angle,
+    effect: effect && cardEffect(effect, item.kseed),
     name: nameOf(shown),
-    href: paletteHref(shown, params.size)
+    href: paletteHref(shown, params.size, params.effect)
   };
 }

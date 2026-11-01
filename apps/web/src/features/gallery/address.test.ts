@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
+import { EFFECT_LOOK } from "@grabient/engine/effect.ts";
 import { parseSize } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
 import { framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
+import { AS_SAVED, inOrder, type ListView, viewParams } from "../list/appearance.ts";
 import {
   canonicalGallery,
   galleryPlace,
@@ -47,7 +49,8 @@ const paramsOf = (p: GoldenParams): ListParams => ({
   size: parseSize(p.size),
   page: p.page,
   limit: p.limit,
-  selection: !!p.selection
+  selection: !!p.selection,
+  effect: null
 });
 const split = (address: string) => {
   const at = address.indexOf("?");
@@ -115,6 +118,59 @@ describe("gallery addresses", () => {
       identity("/palettes/saved", "ada")
     );
     expect(identity("/palettes/saved", "ada")).not.toBe(identity("/palettes/saved", "grace"));
+  });
+
+  test("a list playing an effect has one address: its style, angle and size, then how it plays and looks", () => {
+    for (const [address, to] of [
+      [
+        "/palettes?bg=112233&frost=1.50&style=blob&steps=9&shape=3",
+        "/palettes?style=blob&frost=1.5&bg=%23112233"
+      ],
+      [
+        "/palettes/rising?q=sea&speed=1&fps=60&angle=45&style=glass&frost=2",
+        "/palettes/rising?q=sea&style=glass&angle=45"
+      ],
+      ["/?page=2&speed=0&size=1200x630&style=glass", "/?style=glass&size=1200x630&speed=0&page=2"],
+      ["/palettes/saved?style=blob&fps=120&bg=%23ffffff00", "/palettes/saved?style=blob&fps=120"],
+      // a gradient's list reads none of an effect's parameters
+      ["/palettes?style=radialGradient&speed=2&frost=1.5", "/palettes?style=radialGradient"]
+    ])
+      expect(canonicalGallery(address), address).toBe(to);
+    expect(canonicalGallery("/palettes?style=blob&frost=1.5&bg=%23112233")).toBe(
+      "/palettes?style=blob&frost=1.5&bg=%23112233"
+    );
+  });
+
+  test("the app writes a list's view as the Worker does, so a reload is never redirected", () => {
+    /* as the router writes a search: each value there in its order, a number as its digits, a word as it is */
+    const written = (search: Record<string, unknown>) => {
+      const query = new URLSearchParams();
+      for (const [name, value] of Object.entries(search))
+        if (value !== undefined) query.set(name, String(value));
+      return `?${query}`;
+    };
+    const views: ListView[] = [
+      { ...AS_SAVED, style: "linearSwatches", steps: 9, angle: 45 },
+      {
+        ...AS_SAVED,
+        angle: 10,
+        size: { width: 1200, height: 630 },
+        effect: { kind: "glass", speed: 0.25, fps: 120, look: EFFECT_LOOK }
+      },
+      {
+        ...AS_SAVED,
+        effect: {
+          kind: "blob",
+          speed: 0,
+          fps: 60,
+          look: { shape: null, frost: 0.35, bg: "#10101480" }
+        }
+      }
+    ];
+    for (const view of views) {
+      const address = `/palettes${written(inOrder({ q: "warm sea", page: 2 }, viewParams(view)))}`;
+      expect(canonicalGallery(address)).toBe(address);
+    }
   });
 
   test("Rising's frames in turn, and their addresses", () => {

@@ -17,9 +17,11 @@ export const loadBlob = (): Promise<void> =>
     blob = m;
   }));
 
-/** Whether the server drew the still `key` names into the page's head, which paints every holder naming it. */
+/** Whether the server drew the still `key` names into the page's head, which paints every holder naming it: its
+    data-key names each still it holds. */
 export const serverBlobStill = (key: string): boolean =>
-  typeof document !== "undefined" && document.getElementById(BLOB_STILL_STYLE)?.dataset.key === key;
+  typeof document !== "undefined" &&
+  !!document.getElementById(BLOB_STILL_STYLE)?.dataset.key?.split(" ").includes(key);
 
 /** The blob's view of an effect's settings at the view's angle: moving at its speed (0 holds the first frame), or its
     first frame alone. */

@@ -1,6 +1,6 @@
 import { createSignal, createUniqueId, For, onSettled, Show } from "solid-js";
 import block from "./CodeBlock.module.css";
-import { CodeLines, selectText } from "./CodeBlock.tsx";
+import { CodeLines, refusedCopy } from "./CodeBlock.tsx";
 import styles from "./CodeTabs.module.css";
 import { CopyButton } from "./CopyButton.tsx";
 import hidden from "./hidden.module.css";
@@ -36,6 +36,8 @@ export function CodeTabs(props: {
   let row!: HTMLDivElement;
   let scroller!: HTMLDivElement;
   let code: HTMLElement | undefined;
+  const copy = refusedCopy(() => code);
+  const shown = () => copy.shown(tab()?.code ?? "");
   /* whether the row has tabs past its start and past its end; none until the row is measured, as the server drew it */
   const [edges, setEdges] = createSignal({ less: 0, more: 0 });
   const measure = () => {
@@ -95,18 +97,18 @@ export function CodeTabs(props: {
         </div>
         {/* a copy the browser refuses selects the code for the reader to copy */}
         <CopyButton
-          text={tab()?.code ?? ""}
+          text={shown()}
           take={tab()?.take}
           aria-label={t("Copy code")}
           compact
           state={props.state}
-          onRefused={() => selectText(code)}
+          onRefused={taken => copy.refuse(tab()?.code ?? "", taken)}
         />
       </div>
       <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${on()}`} class={block.body}>
         <div ref={scroller} class={block.panel}>
           <CodeLines
-            code={tab()?.code ?? ""}
+            code={shown()}
             ref={el => {
               code = el;
             }}

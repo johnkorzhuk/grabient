@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
   APART,
-  huesApart,
   inkThrough,
   LARGE,
   lettersTheme,
@@ -89,14 +88,6 @@ describe("series colors", () => {
   test("black and a near black a screen shows alike are not two series, though OKLab holds them 0.17 apart", () => {
     expect(seriesOf(["#000000", "#130f0e"], 2, TILE.light).fits).toBe(false);
     expect(seriesOf(["#000000", "#2a2a2a"], 2, TILE.light).fits).toBe(true);
-  });
-  test("series told apart by hue and chroma stand farther apart there than ones told apart by lightness alone", () => {
-    /* the sinking palette's avatars: orange, mauve and pink on the dark paper; brown, black, a near black and mauve on
-       the light one */
-    expect(huesApart(["#e8833a", "#907078", "#f0c0e0"])).toBeGreaterThan(
-      huesApart(["#854814", "#000000", "#1b1514", "#907078"])
-    );
-    expect(huesApart(["#000000"])).toBe(Number.POSITIVE_INFINITY);
   });
 });
 

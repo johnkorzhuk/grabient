@@ -324,3 +324,149 @@ test("with no connection the page in view, refreshed after a new build's worker 
   await expect(page.getByRole("heading", { name: "Popular", level: 2 })).toBeVisible();
   await expect(page.locator("main").getByText("You're offline.")).toHaveCount(0);
 });
+
+test("a list plays the effect chosen in its menu, paints its stills from the first paint, and opens it", async ({
+  page,
+  request
+}) => {
+  const reports = reported(page);
+  await page.goto("/palettes?style=radialSwatches&steps=9");
+  await hydrated(page);
+  const appearance = page.getByRole("button", { name: /^Appearance/ });
+  await appearance.click();
+  await page.getByRole("button", { name: "Fluted glass", exact: true }).click();
+  // the steps leave the address with the gradient, and every card plays the glass
+  await expect(page).toHaveURL(/\/palettes\?style=glass$/);
+  await expect(appearance).toHaveAccessibleName("Appearance: Fluted glass, 1×");
+  const first = page.locator("main article").first();
+  await expect(first.getByRole("img", { name: /, Fluted glass$/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // the server answers the address as it stands, its first cards' stills in its head
+  const sent = await request.get("/palettes?style=glass", { maxRedirects: 0 });
+  expect(sent.status()).toBe(200);
+  const html = await sent.text();
+  const fields = /<style id="glass-fields" data-key="([^"]*)">/.exec(html)?.[1].split(" ") ?? [];
+  expect(fields.length).toBeGreaterThan(3);
+  for (const key of [...html.matchAll(/<span[^>]*data-glass-still="([^"]*)"/g)].slice(0, 4))
+    expect(fields).toContain(key[1]);
+
+  // a card opens the palette playing the glass, at the canonical address the editor keeps
+  const edit = first.getByRole("link", { name: /^Edit/ });
+  const href = (await edit.getAttribute("href")) ?? "";
+  expect(href).toMatch(/^\/k[\w-]+\?style=glass(&angle=\d+)?$/);
+  await first.hover();
+  await edit.click();
+  await expect.poll(() => new URL(page.url()).pathname + new URL(page.url()).search).toBe(href);
+  await expect(page.getByRole("button", { name: /^Appearance/ })).toHaveAccessibleName(
+    /^Appearance: Fluted glass/
+  );
+
+  // Back keeps the list's glass, and a style chosen gives back the steps the glass took the place of
+  await page.goBack();
+  await expect(page).toHaveURL(/\/palettes\?style=glass$/);
+  await expect(first.getByRole("img", { name: /, Fluted glass$/ })).toBeVisible();
+  await appearance.click();
+  await page.getByRole("button", { name: "Radial bands", exact: true }).click();
+  await expect(page).toHaveURL(/\/palettes\?style=radialSwatches&steps=9$/);
+  await expect(first.getByRole("img", { name: /swatches$/ })).toBeVisible();
+  expect(reports).toEqual([]);
+});
+
+test("a list playing the blob is drawn with its stills, and its lists' links keep it", async ({
+  page,
+  request
+}) => {
+  const sent = await request.get("/collections?style=blob&frost=0.5", { maxRedirects: 0 });
+  expect(sent.status()).toBe(200);
+  const html = await sent.text();
+  const stills = /<style id="blob-still" data-key="([^"]*)">/.exec(html)?.[1].split(" ") ?? [];
+  const first = /<span[^>]*data-blob-still="([^"]*)"/.exec(html)?.[1];
+  expect(stills).toContain(first);
+  // every blob a card shows is its palette's own, at the list's frost
+  expect(stills.every(key => key.split("|")[1] === "0.5")).toBe(true);
+  // another spelling of the address is redirected to this one
+  const other = await request.get("/collections?frost=0.50&style=blob&steps=9", {
+    maxRedirects: 0
+  });
+  const to = new URL(other.headers().location ?? "", "http://localhost");
+  expect([other.status(), to.pathname + to.search]).toEqual([
+    301,
+    "/collections?style=blob&frost=0.5"
+  ]);
+
+  await page.goto("/collections?style=blob&frost=0.5");
+  await hydrated(page);
+  await expect(
+    page
+      .locator("main article")
+      .first()
+      .getByRole("img", { name: /, Blob$/ })
+  ).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Lists" })
+    .getByRole("link", { name: "Palettes" })
+    .click();
+  await expect(page).toHaveURL(/\/palettes\?style=blob&frost=0\.5$/);
+  await expect(
+    page
+      .locator("main article")
+      .first()
+      .getByRole("img", { name: /, Blob$/ })
+  ).toBeVisible();
+});
+
+test("a glass list draws the glass on every card in view once it idles, with no move of the reader's", async ({
+  page
+}) => {
+  for (const path of ["/palettes?style=glass", "/collections?style=glass"]) {
+    await page.goto(path);
+    await hydrated(page);
+    // the still each card draws itself, on the GPU or as its SVG, where the server's ribless field stood
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const shown = [...document.querySelectorAll("main article [role=img]")].filter(card => {
+              const box = card.getBoundingClientRect();
+              return box.width > 0 && box.bottom > 0 && box.top < innerHeight;
+            });
+            const drawn = shown.filter(card =>
+              card.querySelector('canvas[data-painted], [data-glass-still][style*="url("]')
+            );
+            return shown.length > 1 && drawn.length === shown.length;
+          }),
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+  }
+});
+
+test("the editor's Reset gives the lists back the effect the tab had as the palette opened", async ({
+  page
+}) => {
+  await page.goto("/palettes");
+  await hydrated(page);
+  const first = page.locator("main article").first();
+  await first.hover();
+  await first.getByRole("link", { name: /^Edit/ }).click();
+  await expect(page).toHaveURL(/\/k[\w-]+/);
+  const appearance = page.getByRole("button", { name: /^Appearance/ });
+  await appearance.click();
+  await page.getByRole("button", { name: "Blob", exact: true }).click();
+  await expect(appearance).toHaveAccessibleName(/^Appearance: Blob/);
+  await expect
+    .poll(async () => JSON.parse((await remembered(page)) ?? "{}").effect?.kind)
+    .toBe("blob");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Reset appearance" }).click();
+  await expect
+    .poll(async () => JSON.parse((await remembered(page)) ?? "{}").effect ?? null)
+    .toBeNull();
+  // the list stands as the reader left it, with no effect the editor let go
+  await page.goBack();
+  await expect(page).toHaveURL(/\/palettes$/);
+  await expect(page.getByRole("button", { name: /^Appearance/ })).toHaveAccessibleName(
+    /^Appearance: As saved/
+  );
+});

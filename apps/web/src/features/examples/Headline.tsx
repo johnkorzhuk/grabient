@@ -1,7 +1,7 @@
 import { gradientCss } from "@grabient/engine/css.ts";
 import { DEFAULT_STEPS, isSwatchStyle } from "@grabient/engine/view.ts";
 import { locale, msg, rich } from "@grabient/i18n";
-import { For, Match, Show, Switch } from "solid-js";
+import { createMemo, For, Match, Show, Switch } from "solid-js";
 import { paletteName } from "../../lib/page-meta.ts";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import { inkThrough, LARGE, lettersTheme, TILE, tileFor } from "./fit.ts";
@@ -254,7 +254,7 @@ export function HeadlineTile(props: { kind: HeadlineKind; s: Shown; lit: () => b
         {shown => (
           <Show when={lettersOf(shown())}>
             {l => {
-              const heading = () => headingOf(name());
+              const heading = createMemo(() => headingOf(name()));
               /* a line of the effect's colors, standing in while its still is drawn */
               const rest = () =>
                 gradientCss(drawnColors(shown()), "linearGradient", shown().view.angle);

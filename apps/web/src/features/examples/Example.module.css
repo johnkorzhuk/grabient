@@ -109,4 +109,9 @@
   .ratio {
     color: var(--color-ink);
   }
+  /* a gradient filling its holder (Painted) */
+  .fill {
+    position: absolute;
+    inset: 0;
+  }
 }

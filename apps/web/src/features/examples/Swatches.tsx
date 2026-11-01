@@ -10,13 +10,13 @@ import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip
 import hidden from "@grabient/ui/hidden.module.css";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
-import { createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { toast } from "../../app/toast.ts";
 import { colorFormat } from "../../lib/color-format.ts";
 import { fileAddress, writeText } from "../../lib/files.ts";
 import { copyFormat, copyLink, saveFormat } from "../editor/formats.ts";
 import { Chip, ContrastChip, contrastWords, Example, type ExampleProps } from "./Example.tsx";
-import { drawnColors, type Shown, worstContrast } from "./paint.ts";
+import { drawnColors, type Shown, twoPlaces, worstContrast } from "./paint.ts";
 import styles from "./Swatches.module.css";
 import { drawnWords, effectColorsWords, gradientOf, takenOf } from "./shared.ts";
 
@@ -52,7 +52,7 @@ const said = (ink: string, ground: string, ratio: number) =>
   t("{text} on {ground}: {ratio}, enough for text", {
     text: ink,
     ground,
-    ratio: Math.floor(ratio * 100) / 100
+    ratio: twoPlaces(ratio)
   });
 
 interface Token {
@@ -127,12 +127,13 @@ export function SwatchesExample(props: ExampleProps) {
   /* the chips' colors: the stops at the page's steps, or the ones the effect is drawn from, which are its palette at
      as many even places */
   const count = () => (s().effect ? drawnColors(s()).length : s().view.steps);
-  const tokens = (): Token[] =>
+  const tokens = createMemo((): Token[] =>
     sampleStops(s().palette, count()).map(stop => ({
       stop,
       white: worstContrast(WHITE, [stop.hex]),
       black: worstContrast(BLACK, [stop.hex])
-    }));
+    }))
+  );
   const roomy = () => count() <= ROOMY;
   const files = () => filesView(s(), count());
   const search = () => viewSearch(files().view);
@@ -344,7 +345,7 @@ export function SwatchesExample(props: ExampleProps) {
                       fallback={
                         <>
                           <Show when={count() <= MANY}>
-                            <span class={styles.index}>{i + 1}</span>
+                            <span class={styles.index} data-drawn={i + 1} />
                           </Show>
                           <span class={styles.hex}>
                             {done() ? <Icon name="check" size={12} /> : k().stop.hex}
@@ -355,9 +356,9 @@ export function SwatchesExample(props: ExampleProps) {
                       <span class={styles.hex}>
                         {done() ? <Icon name="check" size={16} /> : k().stop.hex}
                       </span>
-                      <span class={styles.samples} aria-hidden="true">
-                        <span style={{ color: WHITE }}>{sample()}</span>
-                        <span style={{ color: BLACK }}>{sample()}</span>
+                      <span class={styles.samples}>
+                        <span data-drawn={sample()} style={{ color: WHITE }} />
+                        <span data-drawn={sample()} style={{ color: BLACK }} />
                       </span>
                     </Show>
                   </button>

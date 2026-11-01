@@ -3,6 +3,7 @@
    its colors, then each of the reader's own text colors whether it reads or not. An ink is set on a ground at the size
    its contrast is enough for: text from 4.5 to 1, large text from 3, nothing under that. */
 import { contrastOf, hexToSrgb, luminance as luminanceOf, srgbToLab } from "./color.ts";
+import { svgComment } from "./svg-comment.ts";
 
 /** The relative luminance of a hex color; 0 for a string that is no color. */
 export const luminance = (hex: string) => {
@@ -160,7 +161,7 @@ export function contrastSvg(
   const p = contrastPicture(colors, mine, m);
   return `${[
     `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}">`,
-    ...(address ? [`<!-- ${address.replace(/--/g, "-%2D")} -->`] : []),
+    ...(address ? [svgComment(address)] : []),
     `<clipPath id="grounds"><rect x="${m.ink}" width="${p.width - m.ink}" height="${p.height}" rx="${m.radius}"/></clipPath>`,
     `<g clip-path="url(#grounds)">`,
     ...p.grounds.map(

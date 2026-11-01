@@ -7,12 +7,12 @@ import { dir, formatDate, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, createUniqueId, type Element, Show } from "solid-js";
-import { EffectArt } from "../editor/EffectArt.tsx";
-import { Chip, contrastWords, Example, type ExampleProps } from "./Example.tsx";
+import { createMemo, createUniqueId, type Element, Show } from "solid-js";
+import { Chip, contrastWords, Example, type ExampleProps, Painted } from "./Example.tsx";
 import { LARGE } from "./fit.ts";
+import { createLit } from "./lit.ts";
 import { colorsUnder, contrastLevel, inkOn, mirrored, type Part, type Shown } from "./paint.ts";
-import { drawnWords, gradientOf, levelWords, pictureAddress } from "./shared.ts";
+import { drawnWords, levelWords, pictureAddress } from "./shared.ts";
 import styles from "./Wallpapers.module.css";
 
 /** The tag a message marks a hex with: `rich("… <c>{color}</c>", HEX)`. */
@@ -121,15 +121,25 @@ const NAMES: Readonly<Record<Device, string>> = { phone: msg("Phone"), desktop: 
 export const wallpapersFits = (_s: ExampleProps["s"]): boolean => true;
 
 export function WallpapersExample(props: ExampleProps) {
-  const wall = () => wallOf(props.s);
+  const wall = createMemo(() => wallOf(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const filled = () => wall() !== props.s;
-  const rtl = () => dir() === "rtl";
-  const rings = () => !wall().effect && wall().view.style.startsWith("radial");
-  const read = (d: Device) =>
-    d === "phone"
-      ? standing(wall(), rings() ? PHONE_RINGS : PHONE_PLACES, aspectOf("phone"), rtl())
-      : standing(wall(), DESKTOP_PLACES, aspectOf("desktop"), rtl());
+  /* where each screen's clock stands and in what ink, which its screen and its chip read: once for each palette */
+  const reads: Readonly<Record<Device, () => ReturnType<typeof standing>>> = {
+    phone: createMemo(() => {
+      const rings = !wall().effect && wall().view.style.startsWith("radial");
+      return standing(
+        wall(),
+        rings ? PHONE_RINGS : PHONE_PLACES,
+        aspectOf("phone"),
+        dir() === "rtl"
+      );
+    }),
+    desktop: createMemo(() =>
+      standing(wall(), DESKTOP_PLACES, aspectOf("desktop"), dir() === "rtl")
+    )
+  };
+  const read = (d: Device) => reads[d]();
   /* a screen shows its clock where an ink reads there as large figures must */
   const clocked = (d: Device) => read(d).ratio >= LARGE;
   const time = () =>
@@ -140,18 +150,10 @@ export function WallpapersExample(props: ExampleProps) {
     formatDate(MOMENT, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   const longDay = () =>
     formatDate(MOMENT, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
-  /* a screen is lit while the pointer or the focus is on it, and its effect plays; a plain copy, since a signal read
-     right after a write in the same task gives the old value */
-  const [lit, setLit] = createSignal<Device | null>(null);
-  let litNow: Device | null = null;
-  const light = (d: Device) => {
-    litNow = d;
-    setLit(d);
-  };
-  const dim = (d: Device) => {
-    if (litNow !== d) return;
-    litNow = null;
-    setLit(null);
+  /* a screen is lit while the pointer rests on it or the keyboard's focus is in it, and its effect plays */
+  const lit: Readonly<Record<Device, ReturnType<typeof createLit>>> = {
+    phone: createLit(),
+    desktop: createLit()
   };
   const png = (d: Device) => pictureAddress(wall(), props.origin, "png", SCREENS[d]);
   const svg = (d: Device) => pictureAddress(wall(), props.origin, "svg", SCREENS[d]);
@@ -177,22 +179,6 @@ export function WallpapersExample(props: ExampleProps) {
       where: { text: t(props.s.effect ? msg("Moving, at any size") : msg("Sharp at any size")) }
     }
   ];
-  const wallpaper = (d: Device) => (
-    <Show
-      when={wall().effect}
-      fallback={<span class={styles.paint} style={{ background: gradientOf(wall()) }} />}
-    >
-      {effect => (
-        <EffectArt
-          kind={effect().kind}
-          palette={wall().palette}
-          settings={effect()}
-          angle={wall().view.angle}
-          active={lit() === d}
-        />
-      )}
-    </Show>
-  );
   /* a device and its download: the picture of its screen names what it shows, and the press names the picture and its
      size as what it saves */
   const device = (d: Device) => {
@@ -213,7 +199,7 @@ export function WallpapersExample(props: ExampleProps) {
           class={styles.screen}
           style={{ "background-color": wall().effect?.look.bg ?? undefined }}
         >
-          {wallpaper(d)}
+          <Painted s={wall()} lit={lit[d].on()} />
           <Show when={clocked(d)}>
             <div class={styles.clock} data-at={read(d).at} style={{ color: read(d).ink }}>
               {d === "phone" ? (
@@ -242,10 +228,10 @@ export function WallpapersExample(props: ExampleProps) {
       <div
         class={styles.device}
         data-device={d}
-        onPointerEnter={() => light(d)}
-        onPointerLeave={() => dim(d)}
-        onFocusIn={() => light(d)}
-        onFocusOut={() => dim(d)}
+        onPointerEnter={lit[d].enter}
+        onPointerLeave={lit[d].leave}
+        onFocusIn={lit[d].focus}
+        onFocusOut={lit[d].blur}
       >
         {d === "desktop" ? <div class={styles.monitor}>{screen}</div> : screen}
         <div class={styles.take}>

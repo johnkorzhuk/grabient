@@ -4,13 +4,13 @@ import { msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, type Element, For, Show } from "solid-js";
-import { EffectArt } from "../editor/EffectArt.tsx";
-import { Chip, ContrastChip, Example, type ExampleProps } from "./Example.tsx";
+import { createMemo, createSignal, type Element, For, Show } from "solid-js";
+import { Chip, ContrastChip, Example, type ExampleProps, Painted } from "./Example.tsx";
 import { type Press, pressPaper, TILE } from "./fit.ts";
+import { createLit } from "./lit.ts";
 import styles from "./Profile.module.css";
 import { drawnColors, THEME_INK } from "./paint.ts";
-import { cssRule, drawnWords, gradientOf, pictureAddress, solidBlob } from "./shared.ts";
+import { cssRule, drawnWords, pictureAddress, solidBlob } from "./shared.ts";
 
 /* Avatars and banners: the palette as a social profile's header and picture, each the palette's own file at the size a
    profile takes, in the address's style (the gradient's PNG, or the effect's first frame, whose still the card shows and
@@ -48,34 +48,18 @@ const MONO = {
 export const profileFits = (_s: ExampleProps["s"]): boolean => true;
 
 export function ProfileExample(props: ExampleProps) {
-  const s = () => solidBlob(props.s);
+  const s = createMemo(() => solidBlob(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const added = () => s() !== props.s;
-  /* the card is lit while the pointer is on it: its effect plays */
-  const [lit, setLit] = createSignal(false);
+  /* the card is lit while the pointer rests on it or the keyboard's focus is in it: its effect plays */
+  const lit = createLit();
   const [following, setFollowing] = createSignal(false);
   const owner = () => t(OWNER);
-  const paper = () => pressPaper(drawnColors(props.s));
+  const paper = createMemo(() => pressPaper(drawnColors(props.s)));
   const press = () => paper().press;
   const png = (size: Size) => pictureAddress(s(), props.origin, "png", size);
   const fileName = (size: Size) =>
     `grabient-${props.s.seed}${props.s.effect ? `-${props.s.effect.kind}` : ""}-${size.width}x${size.height}.png`;
-  const picture = () => (
-    <Show
-      when={s().effect}
-      fallback={<span class={styles.paint} style={{ background: gradientOf(s()) }} />}
-    >
-      {effect => (
-        <EffectArt
-          kind={effect().kind}
-          palette={s().palette}
-          settings={effect()}
-          angle={s().view.angle}
-          active={lit()}
-        />
-      )}
-    </Show>
-  );
 
   const amp = (address: string) => address.replaceAll("&", "&amp;");
   const html = () =>
@@ -153,16 +137,18 @@ export function ProfileExample(props: ExampleProps) {
         <article
           class={styles.card}
           data-theme={paper().theme}
-          onPointerEnter={() => setLit(true)}
-          onPointerLeave={() => setLit(false)}
+          onPointerEnter={lit.enter}
+          onPointerLeave={lit.leave}
+          onFocusIn={lit.focus}
+          onFocusOut={lit.blur}
         >
           <div class={styles.banner} aria-hidden="true">
-            {picture()}
+            <Painted s={s()} lit={lit.on()} />
           </div>
           <div class={styles.body}>
             <div class={styles.top}>
               <span class={styles.avatar} role="img" aria-label={owner()}>
-                {picture()}
+                <Painted s={s()} lit={lit.on()} />
               </span>
               {/* a press that works: it follows, and the card says so. Both its words stand in it, the other one
                   hidden, so it keeps one width pressed or not */}

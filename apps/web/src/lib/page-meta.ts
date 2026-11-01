@@ -1,11 +1,10 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
-import { type Effect, effectAddressParts, effectLookParts } from "@grabient/engine/effect.ts";
+import { type Effect, effectAddressParts, effectStillParts } from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
 import {
   asSaved,
-  DEFAULT_ANGLE,
   drawnView,
   isFixedSize,
   type Style,
@@ -224,11 +223,8 @@ export const paletteCard = (seed: string, view: PaletteView) =>
   `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`;
 /** A palette's share card where its address plays an effect: the effect's first frame, as the page shows it before it
     moves (server/images/cards.ts), named by all it depends on: its angle and its look, but not its pace. */
-export function effectCard(seed: string, effect: Effect, angle: number): string {
-  const turned = angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
-  const parts = [`style=${effect.kind}`, ...turned, ...effectLookParts(effect)];
-  return `/api/og?seed=${seed}&v=${CARD_VERSION}&${parts.join("&")}`;
-}
+export const effectCard = (seed: string, effect: Effect, angle: number): string =>
+  `/api/og?seed=${seed}&v=${CARD_VERSION}&${effectStillParts(effect, angle).join("&")}`;
 /** A palette's examples page (routes/$id/examples.tsx): its address and /examples, then the style it shows, a
     gradient's view or an effect's address, as the palette's own page names them, with no size. */
 export function examplesPath(

@@ -8,7 +8,7 @@ import {
 } from "../../lib/orders.ts";
 import { listWords, looksLikeLink, paletteId, readLink } from "../../lib/words.ts";
 import { COLLECTION_LIMIT } from "../collections/params.ts";
-import { type ListView, readListView, viewParams } from "../list/appearance.ts";
+import { type ListView, listViewOf, viewOver, viewParams } from "../list/appearance.ts";
 
 /* The gallery's addresses: the home (`/`), the palette lists (/palettes, /palettes/rising in its frames,
    /palettes/saved), what each says in its query, and the one canonical form of each. A list's query is its words (`q`),
@@ -46,20 +46,11 @@ const int = (raw: string | null, min: number, max: number): number | null => {
   return n >= min && n <= max ? n : null;
 };
 
-/** The view a query names, each parameter as it stands first. */
-const viewOf = (sp: URLSearchParams): ListView =>
-  readListView({
-    style: sp.get("style"),
-    steps: sp.get("steps"),
-    angle: sp.get("angle"),
-    size: sp.get("size")
-  });
-
 /** A query as a list reads it: each part out of bounds is its default. */
 function readParams(sp: URLSearchParams, home = false): ListParams {
   return {
     words: listWords(sp.get("q") ?? sp.get("query")),
-    ...viewOf(sp),
+    ...listViewOf(sp),
     page: int(sp.get("page"), 1, PAGE_MAX) ?? 1,
     limit: home ? DEFAULT_LIMIT : (int(sp.get("limit"), LIMIT_MIN, LIMIT_MAX) ?? DEFAULT_LIMIT),
     selection: sp.has("selection")
@@ -85,15 +76,7 @@ export function listSearch(p: ListParams, change: Partial<ListParams> = {}): str
 
 /** A list's params with the view a pasted link draws in, wherever the list sets none of its own. */
 export function withView(params: ListParams, view?: URLSearchParams): ListParams {
-  if (!view) return params;
-  const said = viewOf(view);
-  return {
-    ...params,
-    style: params.style === "auto" ? said.style : params.style,
-    steps: params.steps === "auto" ? said.steps : params.steps,
-    angle: params.angle === "auto" ? said.angle : params.angle,
-    size: params.size ?? said.size
-  };
+  return view ? { ...params, ...viewOver(params, listViewOf(view)) } : params;
 }
 
 /** A query whose words are a Grabient link, read as what the link means: its palette or words as `q`, and its view
