@@ -114,14 +114,29 @@ const dataUrl = (blob: Blob) =>
     reader.onerror = () => fail(reader.error);
     reader.readAsDataURL(blob);
   });
-const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
-  if (effect.kind === "blob")
-    return (await effectCode()).effectStill(paletteOf(p), effect, p.angle);
+const glassStill = async (p: Taken): Promise<string> => {
   const canvas = await glassPixels(p, { width: STILL_SIDE, height: STILL_SIDE });
   const webp = await encoded(canvas, "image/webp", 0.8);
   const picture = webp?.type === "image/webp" ? webp : await encoded(canvas, "image/jpeg", 0.85);
   if (!picture) throw new Error("no still");
   return `url("${await dataUrl(picture)}") 50% 50%/cover no-repeat`;
+};
+/* the glass's stills made, by all they depend on, the latest few: drawing one holds the page about a third of a
+   second, so a copy of the same glass again, from the strip or the code pane, takes the one made */
+const STILLS_KEPT = 4;
+const glassStills = new Map<string, Promise<string>>();
+const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
+  if (effect.kind === "blob")
+    return (await effectCode()).effectStill(paletteOf(p), effect, p.angle);
+  const key = `${p.seed}|${p.angle}|${shapeOf(p) ?? 0}`;
+  let made = glassStills.get(key);
+  if (!made) {
+    made = glassStill(p);
+    glassStills.set(key, made);
+    made.catch(() => glassStills.delete(key));
+    if (glassStills.size > STILLS_KEPT) glassStills.delete(glassStills.keys().next().value!);
+  }
+  return made;
 };
 /* the stylesheet that paints an effect's first frame behind a page, as /{seed}.css?style= serves it */
 const effectCss = async (p: Taken, effect: Effect) =>
