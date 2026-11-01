@@ -33,6 +33,8 @@ export interface GlassPlayer {
   set(palette: Palette, view: GlassView): void;
   /** back to the first frame, the still's own, from which the motion eases in again */
   rewind(): void;
+  /** reads `reduced` again: the first frame held, or the motion going on */
+  motion(): void;
   destroy(): void;
 }
 
@@ -360,8 +362,9 @@ export function playGlass(
   view: GlassView,
   onFirstFrame?: () => void,
   /** `ease: false` starts the motion at its pace, as a card's picture under the pointer does, where a page's picture
-      eases in from rest */
-  options: { ease?: boolean } = {}
+      eases in from rest. `reduced` is whether the reader asks for less motion, which holds the first frame: the
+      caller's decision (the site's Settings, an embed's media query), read as it starts and on motion() */
+  options: { ease?: boolean; reduced?: () => boolean } = {}
 ): GlassPlayer | null {
   const easing = options.ease === false ? 0 : EASE_S;
   /* a renderer the page has found on the CPU plays nothing, no context made: the still stays (gl-build.ts) */
@@ -414,7 +417,7 @@ export function playGlass(
 
   /* the clock: seconds of the loop at speed 1, advanced by the speed, so a change of speed never jumps. It starts once
      the first frame, the still's own, is drawn, and eases in from rest (warm) whenever the motion starts again */
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  let reduced = !!options.reduced?.();
   let t = 0;
   let warm = 0;
   let last = performance.now();
@@ -424,7 +427,7 @@ export function playGlass(
   let raf = 0;
   let first = true;
   let settle = 0;
-  const playing = () => shown && !document.hidden && !reduced.matches;
+  const playing = () => shown && !document.hidden && !reduced;
   const pace = createPace();
   const tick = (now: number) => {
     raf = 0;
@@ -442,7 +445,7 @@ export function playGlass(
       t += dt * view_.speed * e * e * (3 - 2 * e);
     }
     if (ready) {
-      const at = reduced.matches ? 0 : t;
+      const at = reduced ? 0 : t;
       /* a frame where the picture changed and the frame rate has one due (pace.ts) */
       if (changed || (at !== lastDrawn && pace.due(now, view_.fps))) {
         draw(at);
@@ -491,11 +494,6 @@ export function playGlass(
     if (!document.hidden) wake();
   };
   document.addEventListener("visibilitychange", visible);
-  const motion = () => {
-    changed = true;
-    wake();
-  };
-  reduced.addEventListener("change", motion);
   const lost = (event: Event) => {
     event.preventDefault();
     cancelAnimationFrame(raf);
@@ -522,6 +520,11 @@ export function playGlass(
       changed = true;
       wake();
     },
+    motion() {
+      reduced = !!options.reduced?.();
+      changed = true;
+      wake();
+    },
     destroy() {
       cancelAnimationFrame(raf);
       raf = 0;
@@ -529,7 +532,6 @@ export function playGlass(
       sizes.disconnect();
       sight.disconnect();
       document.removeEventListener("visibilitychange", visible);
-      reduced.removeEventListener("change", motion);
       canvas.removeEventListener("webglcontextlost", lost);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     }

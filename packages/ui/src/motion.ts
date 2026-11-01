@@ -4,8 +4,9 @@ import { createSignal } from "solid-js";
 /* How much the site moves. The reader chooses per browser in Settings (`grabient-motion`): System follows the device's
    prefers-reduced-motion, On always reduces and Off never does. The answer is `data-motion` on <html>, reduce or full:
    base.css stops every transition and animation under reduce, and code that animates on its own (the water, the bar,
-   the theme's change, a smooth scroll) asks reducedMotion() or reducesNow(). Only this module reads the media query,
-   so the reader's choice overrides the device either way, and no component's CSS asks it.
+   the theme's change, a smooth scroll, the effects) asks reducedMotion(), reducesNow() or holdsStill(). Only this
+   module reads the media query, so the reader's choice overrides the device either way, and no component's CSS asks
+   it; the effects' script on other sites (src/embed), where there are no Settings, asks the device.
    The head stamps the attribute before the first paint (motionScript). The signals start at the server's answer
    (System, motion allowed) on both sides, so hydration matches, and syncMotion() reads the browser's once the page is
    live. They are written only in the browser. */
@@ -31,6 +32,10 @@ export const reducedMotion = (): boolean =>
 /** The page's own stamp, right from the first paint. */
 export const reducesNow = (): boolean =>
   !isServer && document.documentElement.dataset.motion === "reduce";
+/** Whether motion holds still, for code in the browser that starts it and draws nothing the server draws (the
+    effects' players): reactive as reducedMotion() is, and right from the first paint as reducesNow() is, where a page
+    that starts an effect as it hydrates would otherwise read the server's answer. */
+export const holdsStill = (): boolean => reducedMotion() || reducesNow();
 
 function stored(): MotionChoice {
   try {

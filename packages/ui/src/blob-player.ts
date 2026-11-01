@@ -40,6 +40,8 @@ export interface BlobPlayer {
   set(palette: Palette, view: BlobView): void;
   /** back to the first frame, the still's own, from which the motion eases in again */
   rewind(): void;
+  /** reads `reduced` again: the first frame held, or the motion going on */
+  motion(): void;
   /** stop and let the context go */
   destroy(): void;
 }
@@ -211,8 +213,9 @@ export function playBlob(
   view: BlobView,
   onFirstFrame?: () => void,
   /** `ease: false` starts the motion at its pace, as a card's picture under the pointer does, where a page's picture
-      eases in from rest */
-  options: { ease?: boolean } = {}
+      eases in from rest. `reduced` is whether the reader asks for less motion, which holds the first frame: the
+      caller's decision (the site's Settings, an embed's media query), read as it starts and on motion() */
+  options: { ease?: boolean; reduced?: () => boolean } = {}
 ): BlobPlayer | null {
   const easing = options.ease === false ? 0 : EASE_S;
   /* a renderer the page has found on the CPU plays nothing, no context made: the still stays (gl-build.ts) */
@@ -560,7 +563,7 @@ export function playBlob(
   /* the clock: seconds of the loop at speed 1, advanced by the speed, so a change of speed never jumps. It starts once
      the first frame, the still's own, is drawn, eases in from rest (warm) whenever the motion starts again, and holds
      at speed 0. A frame is drawn when it changes and the frame rate has one due (pace.ts) */
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  let reduced = !!options.reduced?.();
   let t = 0;
   let warm = 0;
   let last = performance.now();
@@ -572,9 +575,9 @@ export function playBlob(
   let settle = 0;
   /* whether the canvas has its size: the observer's first word, which the browser gives before the next paint */
   let sized = false;
-  const moving = () => shown && !document.hidden && !reduced.matches && view_.speed > 0;
+  const moving = () => shown && !document.hidden && !reduced && view_.speed > 0;
   const pace = createPace();
-  const share = () => (reduced.matches ? 0 : (t / BLOB_LOOP) % 1);
+  const share = () => (reduced ? 0 : (t / BLOB_LOOP) % 1);
   const tick = (now: number) => {
     raf = 0;
     if (!sized) return;
@@ -643,7 +646,6 @@ export function playBlob(
     if (!document.hidden) wake();
   };
   document.addEventListener("visibilitychange", visible);
-  reduced.addEventListener("change", wake);
   const lost = (event: Event) => {
     event.preventDefault();
     cancelAnimationFrame(raf);
@@ -666,6 +668,12 @@ export function playBlob(
       changed = true;
       wake();
     },
+    /* the first frame is drawn at once, whatever frame rate is asked: a frame the pace held back would stay */
+    motion() {
+      reduced = !!options.reduced?.();
+      changed = true;
+      wake();
+    },
     destroy() {
       cancelAnimationFrame(raf);
       raf = 0;
@@ -673,7 +681,6 @@ export function playBlob(
       sizes.disconnect();
       sight.disconnect();
       document.removeEventListener("visibilitychange", visible);
-      reduced.removeEventListener("change", wake);
       canvas.removeEventListener("webglcontextlost", lost);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     }

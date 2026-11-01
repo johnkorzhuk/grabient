@@ -14,12 +14,15 @@ const FADE_MS = 700;
    0) fades it out to the still, the first frame, and once it has faded the player goes back to that frame, so the
    motion picks up from the still again as it did at first. `held` (the palette changing) shows the canvas over a still
    glass too, at once, since its frame is the still's own: a recolor is a frame of the player, where the still is its
-   whole filter drawn again. `onLive` hears whether the canvas covers the still. */
+   whole filter drawn again. `reduced` holds it at its first frame, the still's. `onLive` hears whether the canvas
+   covers the still. */
 export function GlassStage(props: {
   palette: Palette;
   view: GlassView;
   still: boolean;
   held: boolean;
+  /** the reader asks for less motion: the player holds its first frame, which a held canvas shows */
+  reduced: boolean;
   onLive: (live: boolean) => void;
 }) {
   let canvas!: HTMLCanvasElement;
@@ -27,6 +30,8 @@ export function GlassStage(props: {
   const shown = () => drawn() && (!props.still || props.held);
   let player: GlassPlayer | null = null;
   let rewinding: ReturnType<typeof setTimeout> | undefined;
+  /* what the player reads for the reader's motion, told of each change */
+  let reduced = untrack(() => props.reduced);
   onSettled(() => {
     let gone = false;
     /* its context once the still is painted, which it would otherwise wait on (painted.ts) */
@@ -36,7 +41,8 @@ export function GlassStage(props: {
         canvas,
         untrack(() => props.palette),
         untrack(() => props.view),
-        () => setDrawn(true)
+        () => setDrawn(true),
+        { reduced: () => reduced }
       );
     });
     return () => {
@@ -53,6 +59,13 @@ export function GlassStage(props: {
     if (!on) rewinding = setTimeout(() => player?.rewind(), FADE_MS);
   });
   onCleanup(() => clearTimeout(rewinding));
+  createEffect(
+    () => props.reduced,
+    on => {
+      reduced = on;
+      player?.motion();
+    }
+  );
   createEffect(
     () => [props.palette, props.view] as const,
     ([palette, view]) => {

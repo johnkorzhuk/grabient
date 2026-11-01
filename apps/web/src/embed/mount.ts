@@ -40,14 +40,16 @@ export interface EmbedEffect {
   kind: EffectKind;
   /** the effect's first frame as a background, as the stylesheet paints it */
   still(P: Palette, effect: Effect, angle: number): string;
-  /** the player on the canvas, telling `drawn` once its first frame is; null where WebGL 2 is missing */
+  /** the player on the canvas, telling `drawn` once its first frame is and holding its first frame while `reduced`
+      says so, read again on motion(); null where WebGL 2 is missing */
   play(
     canvas: HTMLCanvasElement,
     P: Palette,
     effect: Effect,
     angle: number,
-    drawn: () => void
-  ): { destroy(): void } | null;
+    drawn: () => void,
+    reduced: () => boolean
+  ): { motion(): void; destroy(): void } | null;
 }
 
 const waited = (ms: number, work: (done: () => void) => void): Promise<void> =>
@@ -133,6 +135,9 @@ export function mount(embed: EmbedEffect): void {
       : document.addEventListener("DOMContentLoaded", () => resolve(), { once: true })
   );
 
+  /* the device's word on motion, the only one a page of another site has: the player holds its first frame while it
+     asks for less */
+  const motion = matchMedia("(prefers-reduced-motion: reduce)");
   let again = 0;
   const play = () => {
     const layer = document.createElement("div");
@@ -153,7 +158,7 @@ export function mount(embed: EmbedEffect): void {
     look.opacity = "0";
     layer.append(canvas);
     document.body.prepend(layer);
-    let player: { destroy(): void } | null = null;
+    let player: { motion(): void; destroy(): void } | null = null;
     /* a lost context drew nothing: the still comes back at once, and the effect plays again once the browser restores
        the context, on a canvas of its own. The old canvas's listeners end first, since destroying its player loses
        the restored context again, and that loss must not take the still's place from the new player */
@@ -179,23 +184,29 @@ export function mount(embed: EmbedEffect): void {
     );
     /* the still goes once the canvas covers it: the blob's at once, the glass's once it has faded in, opaque */
     const covered = () => root.setAttribute(EMBED_PLAYING, "");
-    player = embed.play(canvas, P, effect, angle, () =>
-      /* a frame after its first was drawn: a canvas shown in the frame it was first drawn in may not fade in */
-      requestAnimationFrame(() => {
-        if (embed.kind === "glass" && fade) {
-          look.transition = `opacity ${FADE_MS}ms ease-in-out`;
-          canvas.addEventListener("transitionend", covered, { once: true, signal: ended.signal });
-        } else covered();
-        look.opacity = "1";
-      })
+    player = embed.play(
+      canvas,
+      P,
+      effect,
+      angle,
+      () =>
+        /* a frame after its first was drawn: a canvas shown in the frame it was first drawn in may not fade in */
+        requestAnimationFrame(() => {
+          if (embed.kind === "glass" && fade) {
+            look.transition = `opacity ${FADE_MS}ms ease-in-out`;
+            canvas.addEventListener("transitionend", covered, { once: true, signal: ended.signal });
+          } else covered();
+          look.opacity = "1";
+        }),
+      () => motion.matches
     );
-    if (!player) layer.remove();
+    if (!player) return layer.remove();
+    motion.addEventListener("change", () => player?.motion(), { signal: ended.signal });
   };
   /* a blob held at speed 0 is its still exactly, so it takes no context; the glass held keeps its canvas, which draws
      the frame at the screen's pixels where the still Copy HTML writes inside a page is a 1000-pixel picture */
   if (embed.kind === "blob" && effect.speed === 0) return;
   /* for a reader who asks for less motion the still is the first frame held: no context until motion is welcome */
-  const motion = matchMedia("(prefers-reduced-motion: reduce)");
   void Promise.all([still, body, firstPaint()]).then(function start() {
     if (motion.matches) motion.addEventListener("change", start, { once: true });
     else play();

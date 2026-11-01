@@ -11,13 +11,15 @@ const FADE_MS = 700;
 /* The picture's blob playing: the WebGL player over the blob's still (BlobLayer.tsx), loaded once the page is live. It
    fades its canvas in once its first frame, the still's own, is drawn; at speed 0 it fades out to the still, and then
    goes back to that frame, so the motion picks up from the still again as it did at first. `held` (the palette or the
-   look changing) shows the canvas over a still blob too, at once, since its frame is the still's own. `onLive` hears
-   whether the canvas covers the still. */
+   look changing) shows the canvas over a still blob too, at once, since its frame is the still's own. `reduced` holds
+   it at its first frame, the still's. `onLive` hears whether the canvas covers the still. */
 export function BlobStage(props: {
   palette: Palette;
   view: BlobView;
   still: boolean;
   held: boolean;
+  /** the reader asks for less motion: the player holds its first frame, which a held canvas shows */
+  reduced: boolean;
   onLive: (live: boolean) => void;
 }) {
   let canvas!: HTMLCanvasElement;
@@ -25,6 +27,8 @@ export function BlobStage(props: {
   const shown = () => drawn() && (!props.still || props.held);
   let player: BlobPlayer | null = null;
   let rewinding: ReturnType<typeof setTimeout> | undefined;
+  /* what the player reads for the reader's motion, told of each change */
+  let reduced = untrack(() => props.reduced);
   onSettled(() => {
     let gone = false;
     /* its context once the still is painted, which it would otherwise wait on (painted.ts) */
@@ -36,7 +40,8 @@ export function BlobStage(props: {
         untrack(() => props.view),
         /* a frame after the canvas came: its first frame can be drawn in the frame it comes in, and a canvas shown
            before it was ever drawn hidden would not fade in */
-        () => requestAnimationFrame(() => setDrawn(true))
+        () => requestAnimationFrame(() => setDrawn(true)),
+        { reduced: () => reduced }
       );
     });
     return () => {
@@ -53,6 +58,13 @@ export function BlobStage(props: {
     if (!on) rewinding = setTimeout(() => player?.rewind(), FADE_MS);
   });
   onCleanup(() => clearTimeout(rewinding));
+  createEffect(
+    () => props.reduced,
+    on => {
+      reduced = on;
+      player?.motion();
+    }
+  );
   createEffect(
     () => [props.palette, props.view] as const,
     ([palette, view]) => {

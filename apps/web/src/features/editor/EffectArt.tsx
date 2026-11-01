@@ -1,7 +1,8 @@
 import type { EffectKind, EffectSettings } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid-js";
+import { holdsStill, reducesNow } from "@grabient/ui/motion.ts";
+import { createEffect, createSignal, onCleanup, untrack } from "solid-js";
 import { BlobArt } from "./BlobArt.tsx";
 import { blobViewOf, loadBlob } from "./blob-draw.ts";
 import styles from "./EffectArt.module.css";
@@ -113,7 +114,8 @@ export function preloadEffectArt(kind: EffectKind): void {
    takes the still's place in one frame. Leaving, the blob's still is back in one frame; the glass holds its frame and
    fades out to its still, and a card lit again meanwhile takes that player back. A blob with no ground of its own
    stands on the list with none (`bare`). Nothing in the picture takes the pointer, so the swap never reads as the
-   pointer leaving. A reader who asks for less motion keeps the still. */
+   pointer leaving. A reader who asks for less motion (Settings, else the device: ui/motion.ts) keeps the still, and one
+   who asks for it while a card plays stops it there. */
 export function EffectArt(props: {
   kind: EffectKind;
   palette: Palette;
@@ -123,19 +125,11 @@ export function EffectArt(props: {
   active: boolean;
 }) {
   let holder!: HTMLSpanElement;
-  const [reduced, setReduced] = createSignal(false);
   /* the player's frame covers the still */
   const [covered, setCovered] = createSignal(false);
   /* the glass's canvas is fading out to the still */
   const [fading, setFading] = createSignal(false);
   const bare = () => props.kind === "blob" && props.settings.look.bg === null;
-  onSettled(() => {
-    const motion = matchMedia("(prefers-reduced-motion: reduce)");
-    const read = () => setReduced(motion.matches);
-    read();
-    motion.addEventListener("change", read);
-    return () => motion.removeEventListener("change", read);
-  });
   /* the players' code while the page idles, and a player made ahead for the first card lit, of each kind the card
      plays: a list turned from the glass to the blob makes one of the blob. None for a picture gone or turned
      meanwhile, whose props are gone with it */
@@ -149,12 +143,7 @@ export function EffectArt(props: {
         void players[kind]().catch(() => {});
         /* one card of a list makes it, the others reading no layout for it; a card the layout hides has no size to
            make one at, and a reader who asks for less motion, whose cards never play, gets none */
-        if (
-          readied[kind] ||
-          untrack(() => props.settings.speed) === 0 ||
-          matchMedia("(prefers-reduced-motion: reduce)").matches
-        )
-          return;
+        if (readied[kind] || untrack(() => props.settings.speed) === 0 || reducesNow()) return;
         const box = holder.getBoundingClientRect();
         if (box.width && box.height)
           void makeAhead(
@@ -169,7 +158,7 @@ export function EffectArt(props: {
       };
     }
   );
-  const moving = () => props.active && props.settings.speed > 0 && !reduced();
+  const moving = () => props.active && props.settings.speed > 0 && !holdsStill();
   const view = () =>
     props.kind === "glass"
       ? {

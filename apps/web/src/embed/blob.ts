@@ -8,11 +8,12 @@ mount({
   kind: "blob",
   still: (P, effect, angle) =>
     blobStillBackground(P, { speed: 1, fps: null, still: true, angle, ...effect.look }),
-  play: (canvas, P, effect, angle, drawn) =>
+  play: (canvas, P, effect, angle, drawn, reduced) =>
     playBlob(
       canvas,
       P,
       { speed: effect.speed, fps: effect.fps, still: false, angle, ...effect.look },
-      drawn
+      drawn,
+      { reduced }
     )
 });

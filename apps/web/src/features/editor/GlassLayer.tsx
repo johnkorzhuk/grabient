@@ -2,6 +2,7 @@ import type { GlassView } from "@grabient/engine/glass.ts";
 import { glassColors, glassStillKey } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { DEFAULT_ANGLE } from "@grabient/engine/view.ts";
+import { holdsStill } from "@grabient/ui/motion.ts";
 import {
   createEffect,
   createSignal,
@@ -21,7 +22,8 @@ import { loadStill, recolorStill, serverStill, stillSvg } from "./glass-draw.ts"
    (server/glass-still.ts), so the editor arriving changes no pixel. Otherwise it is drawn here as SVG markup
    (glass-draw.ts), from the one design every size shows. The player's first frame is the still's own, to about a
    level, and its canvas fades in over the still once that frame is drawn; at speed 0 it fades out again to the still,
-   the first frame, which a copy takes too. A reader who asks for less motion keeps the still.
+   the first frame, which a copy takes too. A reader who asks for less motion (Settings, else the device: ui/motion.ts)
+   keeps the still, the player held at its first frame.
    A drag changes the palette every frame, and the still is a filter over the whole picture, drawn again whole for each
    change: while the palette changes the player shows it instead, at its first frame where the glass stands still, and
    the still catches up once the palette rests, under the canvas, which then fades back to it. Where the still is the
@@ -42,24 +44,17 @@ export function GlassLayer(props: { palette: Palette; view: GlassView }) {
   const [live, setLive] = createSignal(false);
   /* the player's canvas is drawn over the still, which nobody sees from then on */
   const [covered, setCovered] = createSignal(false);
-  /* a reader who asks for less motion keeps the still */
-  const [reduced, setReduced] = createSignal(false);
   /* once the glass has moved, or its palette changed, its player stays, so speed 0 fades it out rather than cutting
      to the still, and the next change finds it ready */
   const [kept, setKept] = createSignal(false);
   /* the palette is changing: the player shows it, over a still glass too */
   const [held, setHeld] = createSignal(false);
-  const moving = () => props.view.speed > 0 && !reduced();
+  const moving = () => props.view.speed > 0 && !holdsStill();
   createEffect(moving, on => {
     if (on) setKept(true);
   });
   onSettled(() => {
-    const motion = matchMedia("(prefers-reduced-motion: reduce)");
-    const read = () => setReduced(motion.matches);
-    read();
-    motion.addEventListener("change", read);
     setLive(true);
-    return () => motion.removeEventListener("change", read);
   });
   /* the glass's ribs run at the view's default angle as designed (engine/glass.ts's GLASS_ANGLE): no value of that
      module is read here, so the editor's first load carries none of it */
@@ -174,6 +169,7 @@ export function GlassLayer(props: { palette: Palette; view: GlassView }) {
             view={props.view}
             still={!moving()}
             held={held()}
+            reduced={holdsStill()}
             onLive={setCovered}
           />
         </Loading>

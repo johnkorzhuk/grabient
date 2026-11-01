@@ -8,11 +8,12 @@ import { mount } from "./mount.ts";
 mount({
   kind: "glass",
   still: (P, effect, angle) => glassStillBackground(glassColors(P), angle, effect.look.shape),
-  play: (canvas, P, effect, angle, drawn) =>
+  play: (canvas, P, effect, angle, drawn, reduced) =>
     playGlass(
       canvas,
       P,
       { speed: effect.speed, fps: effect.fps, angle, shape: effect.look.shape },
-      drawn
+      drawn,
+      { reduced }
     )
 });
