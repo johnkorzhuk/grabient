@@ -3,6 +3,7 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import type { EffectKind } from "@grabient/engine/effect.ts";
 import { isSwatchStyle } from "@grabient/engine/view.ts";
 import { dir, formatDate, formatNumber, msg, rich, t } from "@grabient/i18n";
+import { announce } from "@grabient/ui/announce.ts";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createMemo, createSignal, type Element, For, Show, untrack } from "solid-js";
@@ -657,6 +658,8 @@ export function CardsExample(props: ExampleProps) {
       seed: props.s.seed,
       looks: { ...(p.seed === props.s.seed ? p.looks : {}), [kind]: next }
     }));
+    /* a reader who listens hears the look it turned to, which its name says from now on */
+    announce(formWords(inLook(props.s, next)));
   };
   return (
     <Example

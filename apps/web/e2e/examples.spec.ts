@@ -96,3 +96,22 @@ test("a press on a tile turns it to the palette's next look", async ({ page }) =
   await album.click({ position: { x: 12, y: 12 } });
   await expect(album).not.toHaveAttribute("aria-label", before ?? "");
 });
+
+test("a tile turns with Enter and Space as with a press, says its new look, and starts from its own on another palette", async ({
+  page
+}) => {
+  await open(page, `/${SEED}/examples`);
+  const poster = page.locator('#cards [data-kind="poster"]');
+  await expect(poster).toHaveAttribute("aria-label", "Poster");
+  await poster.focus();
+  const scrolled = await page.evaluate(() => scrollY);
+  await page.keyboard.press("Enter");
+  await expect(poster).toHaveAttribute("aria-label", /^Poster, Linear bands · \d+ steps$/);
+  await expect(page.locator("[data-announce]")).toHaveText(/^Linear bands · \d+ steps$/);
+  await page.keyboard.press(" ");
+  await expect(poster).toHaveAttribute("aria-label", "Poster, Fluted glass");
+  // Space turns the tile and leaves the page where it stands
+  expect(await page.evaluate(() => scrollY)).toBe(scrolled);
+  await random(page, SEED);
+  await expect(poster).toHaveAttribute("aria-label", "Poster");
+});
