@@ -15,6 +15,10 @@ function windowEvents(): EventTarget {
   return page;
 }
 
+/** A focus the keyboard gave, which the browser shows (:focus-visible), and one a press or a tap gave, which it doesn't. */
+const KEYBOARD = { target: { matches: (selector: string) => selector === ":focus-visible" } };
+const PRESS = { target: { matches: () => false } };
+
 afterEach(() => {
   vi.useRealTimers();
   Reflect.deleteProperty(globalThis, "addEventListener");
@@ -54,7 +58,7 @@ test("a pointer that passes over lights nothing, and the keyboard's focus lights
     vi.advanceTimersByTime(500);
     flush();
     expect(lit.on()).toBe(false);
-    lit.focus();
+    lit.focus(KEYBOARD);
     flush();
     expect(lit.on()).toBe(true);
     // the pointer leaving a picture the focus is in leaves it lit
@@ -63,6 +67,30 @@ test("a pointer that passes over lights nothing, and the keyboard's focus lights
     flush();
     expect(lit.on()).toBe(true);
     lit.blur();
+    flush();
+    expect(lit.on()).toBe(false);
+    dispose();
+  });
+});
+
+test("a press or a tap that focuses a picture lights nothing, so it goes dark as the pointer leaves", () => {
+  vi.useFakeTimers();
+  windowEvents();
+  createRoot(dispose => {
+    const lit = createLit();
+    lit.enter();
+    vi.advanceTimersByTime(200);
+    lit.focus(PRESS);
+    flush();
+    expect(lit.on()).toBe(true);
+    lit.leave();
+    flush();
+    expect(lit.on()).toBe(false);
+    // a tap: the pointer comes and goes at once, and the focus stays
+    lit.enter();
+    lit.focus(PRESS);
+    lit.leave();
+    vi.advanceTimersByTime(500);
     flush();
     expect(lit.on()).toBe(false);
     dispose();

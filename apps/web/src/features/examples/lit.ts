@@ -43,7 +43,9 @@ export function createLit() {
       quiet();
       if (!focused) setOn(false);
     },
-    focus() {
+    /* a press or a tap focuses a tile too, and the focus stays after the pointer goes: the keyboard's alone lights */
+    focus(e: { target: { matches(selector: string): boolean } }) {
+      if (!e.target.matches(":focus-visible")) return;
       focused = true;
       setOn(true);
     },

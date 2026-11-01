@@ -151,7 +151,7 @@ export function WallpapersExample(props: ExampleProps) {
     formatDate(MOMENT, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   const longDay = () =>
     formatDate(MOMENT, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
-  /* a screen is lit while the pointer rests on it or the focus is in it, and its effect plays */
+  /* a screen is lit while the pointer rests on it or the keyboard's focus is in it, and its effect plays */
   const lit: Readonly<Record<Device, ReturnType<typeof createLit>>> = {
     phone: createLit(),
     desktop: createLit()

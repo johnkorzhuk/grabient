@@ -52,7 +52,7 @@ export function ProfileExample(props: ExampleProps) {
   const s = createMemo(() => solidBlob(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const added = () => s() !== props.s;
-  /* the card is lit while the pointer rests on it or the focus is in it: its effect plays */
+  /* the card is lit while the pointer rests on it or the keyboard's focus is in it: its effect plays */
   const lit = createLit();
   const [following, setFollowing] = createSignal(false);
   const owner = () => t(OWNER);

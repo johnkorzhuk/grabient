@@ -27,12 +27,12 @@ import { drawnWords, formWords, gradientOf, inForm, solidBlob } from "./shared.t
 /* Covers and cards: the palette as the media and the small things a designer makes with it, laid as a masonry of
    real shapes and sizes: a poster, an album's sleeve with its record, a video's thumbnail, a social post, an event's
    card, a ticket, a membership card, an app's icon, a business card and a pair of buttons. Each wears the palette as
-   the address draws it (an effect's still, playing while the pointer is on its tile), and a press on a tile turns it
-   to its next look. Words stand on the palette only where the checks let them (fit.ts): in the
-   ink that reads on every color under them, else on a band of paper, which takes the theme on whose paper the
-   palette gives a press. A blob with no ground of its own stands on its darkest or lightest color, as a picture can't
-   be clear. Three tiles show what else the palette can do, in the forms the address doesn't name, which their names
-   say to a reader who listens. */
+   the address draws it (an effect's still, playing once the pointer rests on its tile or the keyboard's focus is in
+   it), and a press on a tile turns it to its next look. Words stand on the palette only where the checks let them
+   (fit.ts): in the ink that reads on every color under them, else on a band of paper, which takes the theme on whose
+   paper the palette gives a press. A blob with no ground of its own stands on its darkest or lightest color, as a
+   picture can't be clear. Three tiles show what else the palette can do, in the forms the address doesn't name, which
+   their names say to a reader who listens. */
 
 /** The tiles of the masonry. */
 type Kind =
@@ -139,7 +139,7 @@ function Picture(props: { s: Shown; lit: boolean; class?: string }) {
   );
 }
 
-/** A tile of the masonry: what it shows, lit while the pointer or the focus is on it. */
+/** A tile of the masonry: what it shows, lit once the pointer rests on it or while the keyboard's focus is in it. */
 function Tile(props: {
   kind: Kind;
   s: Shown;
