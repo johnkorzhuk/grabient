@@ -1,6 +1,6 @@
 import { asSaved } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
-import { heading } from "../../lib/page-meta.ts";
+import { paletteName as colorsName, heading } from "../../lib/page-meta.ts";
 import type { PaletteEditor } from "./editor.ts";
 import type { PaletteData } from "./page.ts";
 
@@ -27,4 +27,13 @@ export function paletteName(
     }) ||
     t("Palette editor")
   );
+}
+
+/** The palette's name for an effect's copy, which Figma's frame takes: its written title while it is drawn as it was
+    saved, else what its colors are called, with no style's words, since the effect draws no gradient. */
+export function effectName(e: PaletteEditor, facts: PaletteData["facts"]): string {
+  const view = { style: e.style(), steps: e.steps(), angle: e.angle() };
+  const written = facts?.written;
+  if (written && asSaved(e.palette(), view, written.view)) return written.title;
+  return colorsName(e.palette(), view) || t("Palette editor");
 }

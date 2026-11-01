@@ -92,7 +92,8 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       onChoose: () => {
         e.clearPeek();
         fx.choose("glass");
-      }
+      },
+      onPeek: () => e.peekEffect("glass")
     },
     {
       key: "blob",
@@ -108,7 +109,8 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       onChoose: () => {
         e.clearPeek();
         fx.choose("blob");
-      }
+      },
+      onPeek: () => e.peekEffect("blob")
     }
   ];
   const fields = (

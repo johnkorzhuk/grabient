@@ -2,6 +2,7 @@ import { type Axis, canonical, decodePalette, encodePalette, type Palette } from
 import { hexToSrgb, lchToP3, lchToSrgb, toCssP3, toHex } from "@grabient/engine/color.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { addKeyframe, anchorHueWalls, type Lock, removeKeyframes } from "@grabient/engine/edits.ts";
+import type { EffectKind } from "@grabient/engine/effect.ts";
 import { clamp } from "@grabient/engine/math.ts";
 import { hexAnchor } from "@grabient/engine/spec.ts";
 import {
@@ -45,10 +46,12 @@ export interface Paint {
   hex: string;
   paint?: string;
 }
-/** What a press under the pointer would write, painted before it is: a palette, a style, or both. */
+/** What a press under the pointer would write, painted before it is: a palette, a style, or both, or an effect the
+    picture plays in place of the one chosen (null: the gradient, as a style's tile gives it). */
 interface Peek {
   palette?: Palette;
   style?: Style;
+  effect?: EffectKind | null;
 }
 
 const stopsOf = (P: Palette, steps: number, wide: boolean): Paint[] =>
@@ -135,6 +138,10 @@ export function createPaletteEditor(
   const keyframes = createMemo(() => keyframesOf(palette(), wide()));
   const shownPalette = () => peek()?.palette ?? palette();
   const shownStyle = () => peek()?.style ?? style();
+  const shownEffect = (): EffectKind | null => {
+    const p = peek();
+    return p?.effect !== undefined ? p.effect : effects.kind();
+  };
   const shownStops = createMemo(() => {
     const P = peek()?.palette;
     return P ? stopsOf(P, steps(), wide()) : stops();
@@ -334,10 +341,14 @@ export function createPaletteEditor(
     keyframes,
     shownPalette,
     shownStyle,
+    /** the effect the picture plays: the one chosen, or the one a tile under the pointer shows */
+    shownEffect,
     shownStops,
     shownKeyframes,
     setPeek: (P: Palette | null) => setPeek(P ? { palette: P } : null),
-    peekStyle: (s: Style | null) => setPeek(s ? { style: s } : null),
+    /* a style's tile shows the gradient, as its press would, over an effect playing */
+    peekStyle: (s: Style | null) => setPeek(s ? { style: s, effect: null } : null),
+    peekEffect: (k: EffectKind) => setPeek({ effect: k }),
     clearPeek: () => setPeek(null),
 
     /* the hold */

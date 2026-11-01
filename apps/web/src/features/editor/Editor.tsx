@@ -2,7 +2,7 @@ import { K_MAX, K_MIN } from "@grabient/engine";
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { hexToSrgb, luminance } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
-import { blobStillKey } from "@grabient/engine/effect.ts";
+import { blobShapeOf, blobStillKey } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
@@ -84,7 +84,7 @@ import {
 import { GlassLayer } from "./GlassLayer.tsx";
 import { followAddress, pageAt } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
-import { paletteName } from "./name.ts";
+import { effectName, paletteName } from "./name.ts";
 import { factsOf, keepFacts, NARROW, type PaletteData, paletteTitle, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
@@ -284,7 +284,8 @@ export default function Editor(props: { data: PaletteData }) {
     pixels: resolveSize(e.size(), stage),
     stops: e.stopsTaken(),
     effect: e.effect(),
-    name: name()
+    /* an effect draws no gradient, so its copy's name says no style */
+    name: e.effect() ? effectName(e, facts()) : name()
   });
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
@@ -685,7 +686,7 @@ function Stage(
      held key turns the palette faster than three times a second, and the glass repaints the whole picture */
   const calmPalette = createFlashGuard(e.shownPalette, P => lights(stopsOf6(P)));
   const glassLayer = () => (
-    <Show when={e.effects.kind() === "glass"}>
+    <Show when={e.shownEffect() === "glass"}>
       <GlassLayer
         palette={calmPalette()}
         view={{
@@ -697,9 +698,14 @@ function Stage(
       />
     </Show>
   );
-  /* the blob over the gradient while it plays, its colors held by the flash guard too */
+  /* the blob over the gradient while it plays, its colors held by the flash guard too; its shape the palette's own
+     suggestion until one is set, as choosing it gives, for a tile under the pointer that shows it before it is chosen */
+  const blobSettings = () => {
+    const s = e.effects.settings("blob");
+    return s.look.shape === null ? { ...s, look: { ...s.look, shape: blobShapeOf(e.seed()) } } : s;
+  };
   const blobLayer = () => (
-    <Show when={e.effects.kind() === "blob"}>
+    <Show when={e.shownEffect() === "blob"}>
       {/* while its code comes, the still the first screen showed stands in its place (server/blob-still.ts) */}
       <Loading
         fallback={
@@ -708,18 +714,14 @@ function Stage(
               class={styles.glassStill}
               data-blob-still={blobStillKey(
                 encodePalette(calmPalette()),
-                e.effects.settings("blob").look,
+                blobSettings().look,
                 e.angle()
               )}
             />
           </div>
         }
       >
-        <BlobLayer
-          palette={calmPalette()}
-          settings={e.effects.settings("blob")}
-          angle={e.angle()}
-        />
+        <BlobLayer palette={calmPalette()} settings={blobSettings()} angle={e.angle()} />
       </Loading>
     </Show>
   );

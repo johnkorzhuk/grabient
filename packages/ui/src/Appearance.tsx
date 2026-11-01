@@ -152,6 +152,8 @@ export interface ExtraTile {
   art: Element;
   chosen: boolean;
   onChoose: () => void;
+  /** a preview while the pointer or the keyboard rests on the tile, which the menu's onPeek(null) ends */
+  onPeek?: () => void;
 }
 
 export function AppearanceMenu(props: AppearanceProps) {
@@ -305,8 +307,12 @@ export function AppearanceMenu(props: AppearanceProps) {
               class={styles.tile}
               aria-label={extra.label}
               aria-pressed={extra.chosen ? "true" : "false"}
-              onPointerEnter={off}
-              onFocus={off}
+              onPointerEnter={e => {
+                if (e.pointerType !== "touch" && extra.onPeek) extra.onPeek();
+                else off();
+              }}
+              onFocus={() => (extra.onPeek ? extra.onPeek() : off())}
+              onBlur={off}
               onClick={() => {
                 off();
                 extra.onChoose();
