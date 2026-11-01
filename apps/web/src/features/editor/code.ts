@@ -137,9 +137,12 @@ export function codeSources(
       ...(facts.written.description ? { lead: facts.written.description } : {}),
       view: facts.written.view
     };
+    /* an effect's words come with its code */
+    const words = effect && effectCodeNow()?.effectMarkdown(origin(), seed, effect);
+    if (effect && !words) return "";
     return (
       inLocale(DEFAULT_LOCALE, () =>
-        paletteMarkdown(seed, origin(), v, written ?? null, heldBy, names(), effect)
+        paletteMarkdown(seed, origin(), v, written ?? null, heldBy, names(), words)
       )?.trimEnd() ?? ""
     );
   };

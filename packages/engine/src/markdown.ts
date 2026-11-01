@@ -1,16 +1,15 @@
 /* A palette as Markdown: what it is, its colors, the CSS that draws it, its keyframes, where it is held and every other
    form. The Worker serves it at the palette's address plus .md and the editor's MD tab shows the same text, so the
    two never part. What only the database knows is handed in: the words written for the palette that its colors bear
-   out with the view it was saved in, and the public collections that hold it. Where the address plays an effect, the
-   file says so: what plays and how, and the tags that play it behind a page in the CSS's place. A file for programs,
-   always in English. */
+   out with the view it was saved in, and the public collections that hold it. Where the address plays an effect, its
+   words are handed in too (engine/effect-code.ts), which say what plays and how in the gradient's place. A file for
+   programs, always in English. */
 import { decodePalette } from "./codec.ts";
 import { oklchOf } from "./css.ts";
 import { sampleStops } from "./curve.ts";
-import { paletteJson } from "./document.ts";
-import { type Effect, effectFileAddress } from "./effect.ts";
-import { glassColors } from "./glass-colors.ts";
+import { type PaletteJson, paletteJson } from "./document.ts";
 import { paletteDescription, paletteTitle, readingName, seedReading } from "./name.ts";
+import type { Palette } from "./palette.ts";
 import type { Namer } from "./precise-names.ts";
 import { toSpec } from "./spec.ts";
 import { asSaved, styleWords, type View } from "./view.ts";
@@ -32,17 +31,19 @@ export const plain = (s: string) =>
     .replace(/([\\`*_{}[\]<>|])/g, "\\$1")
     .trim();
 
-/** How an effect is drawn and plays, as its address sets it. */
-function effectDrawn(effect: Effect, angle: number): string {
-  const { shape, frost, bg } = effect.look;
-  const play =
-    effect.speed === 0
-      ? "held on its first frame"
-      : `speed ${effect.speed}, up to ${effect.fps} frames a second`;
-  return effect.kind === "glass"
-    ? `fluted glass, its ribs at ${angle} degrees, shape ${shape ?? 0}, ${play}`
-    : `a blob, the palette across it at ${angle} degrees${shape === null ? "" : `, shape ${shape}`}, frost ${frost}, ${bg ? `on ${bg}` : "on no ground"}, ${play}`;
-}
+/** The words an address that plays an effect gives its palette's Markdown in a gradient's place: its name, its lead, how
+    it is drawn, its code and its files, from the palette's name and document. */
+export type MarkdownEffect = (
+  P: Palette,
+  name: string,
+  doc: PaletteJson
+) => {
+  called: string;
+  lead: string;
+  drawn: string;
+  code: string;
+  files: Record<"page" | "json" | "png" | "svg" | "css" | "og", string> & { script: string };
+};
 
 export function paletteMarkdown(
   seed: string,
@@ -51,54 +52,22 @@ export function paletteMarkdown(
   written: PaletteWords | null,
   heldBy: readonly { slug: string; title: string }[],
   names?: Namer | null,
-  effect?: Effect | null
+  effect?: MarkdownEffect | null
 ): string | null {
   const P = decodePalette(seed);
-  const doc = P && paletteJson(seed, origin, view, names, null, effect);
+  const doc = P && paletteJson(seed, origin, view, names);
   const reading = doc && seedReading(seed, doc.style, doc.steps);
   if (!P || !doc || !reading) return null;
   const base = origin.replace(/\/$/, "");
   const stops = sampleStops(P, doc.steps);
-  const plays = effect && doc.effect ? { ...doc.effect, effect } : null;
+  const plays = effect?.(P, readingName(reading), doc);
   /* drawn as it was saved, its written words name and describe it, and what its colors call it stays beside them for a
      reader or a program that looks for the colors; in any other view, an effect among them, its colors name it alone */
   const own = !plays && written && asSaved(P, doc, written.view) ? written : null;
-  const name = readingName(reading);
-  const called = plays
-    ? `${name} ${plays.effect.kind === "glass" ? "fluted glass" : "blob"}`
-    : paletteTitle(reading, doc.style);
+  const called = plays?.called ?? paletteTitle(reading, doc.style);
   const title = own?.title ?? called;
-  const lead = plays
-    ? plays.effect.kind === "glass"
-      ? `${name} played as fluted glass: its colors ${glassColors(P).join(", ")} drift behind ribbed glass. Two tags play it behind any page.`
-      : `${name} played as a frosted blob: the palette's colors ${doc.colors.join(", ")} melt into one another as it drifts. Two tags play it behind any page.`
-    : own?.lead || paletteDescription(reading, doc, doc.colors);
-  const drawn = plays
-    ? effectDrawn(plays.effect, doc.angle)
-    : `${styleWords(doc.style)}, ${doc.steps} steps, ${doc.angle} degrees`;
-  const code = plays
-    ? `## Behind a page
-
-In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays.
-
-\`\`\`html
-${plays.html}
-\`\`\``
-    : `## CSS
-
-\`\`\`css
-${doc.css.hex}
-${doc.css.oklch}
-\`\`\``;
-  /* an effect's own files where it has them: the palette's JSON naming it, its first frame, its moving SVG, its
-     stylesheet and script, and its card */
-  const files = plays
-    ? {
-        ...plays.links,
-        json: effectFileAddress(base, seed, plays.effect, doc.angle, "json"),
-        script: `- [Script](${plays.links.js})\n`
-      }
-    : { ...doc.links, page: doc.url, script: "" };
+  const lead = plays?.lead ?? (own?.lead || paletteDescription(reading, doc, doc.colors));
+  const files = plays?.files ?? { ...doc.links, page: doc.url, script: "" };
   const colors = stops.map((stop, i) => {
     const ink = doc.contrast.text[i] === "#ffffff" ? "white" : "black";
     return `| ${i + 1} | \`${stop.hex}\` | \`${oklchOf(stop)}\` | ${doc.names[i]} | ${ink}, ${doc.contrast.ratios[i]} to 1 |`;
@@ -113,7 +82,7 @@ ${plain(lead)}
 
 ${own ? `- Also called: ${plain(called)}\n` : ""}- Seed: \`${doc.seed}\`
 - Page: ${files.page}
-- Drawn as: ${drawn}
+- Drawn as: ${plays?.drawn ?? `${styleWords(doc.style)}, ${doc.steps} steps, ${doc.angle} degrees`}
 ${doc.kinds.length ? `- Kinds: ${doc.kinds.join(", ")}\n` : ""}- Hues: ${doc.harmony}
 - Contrast of its darkest and lightest colors: ${doc.contrast.ends} to 1
 
@@ -125,7 +94,15 @@ The name most people give each color, and the text color that reads on it with i
 | --- | --- | --- | --- | --- |
 ${colors.join("\n")}
 
-${code}
+${
+  plays?.code ??
+  `## CSS
+
+\`\`\`css
+${doc.css.hex}
+${doc.css.oklch}
+\`\`\``
+}
 
 ## Keyframes
 

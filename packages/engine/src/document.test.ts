@@ -2,7 +2,6 @@ import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
 import { decodePalette } from "./codec.ts";
 import { paletteClasses, paletteDocument, paletteJson } from "./document.ts";
-import { effectEmbedHtml, effectLinks, parseEffect } from "./effect.ts";
 import { MARKDOWN_LEAD, type PaletteWords, paletteMarkdown, plain } from "./markdown.ts";
 import type { Palette } from "./palette.ts";
 import type { View } from "./view.ts";
@@ -78,23 +77,4 @@ test("a palette's classes are read from its colors in the view", () => {
   const views = new Map(markdown.entries.map(e => [e.id, e.view]));
   for (const e of names.entries)
     expect(paletteClasses(e.seed, views.get(e.id) as View)).toEqual(e.paletteClasses);
-});
-
-test("a palette's JSON names the effect its address plays, as the address names it, with its tags and files", () => {
-  const glass = parseEffect(new URLSearchParams("style=glass&speed=0&shape=4"))!;
-  const seed = "kWTATrcQ7MeMxv1MwbbLKq84";
-  const doc = paletteJson(seed, ORIGIN, { angle: 30 }, null, null, glass)!;
-  expect(doc.effect).toEqual({
-    style: "glass",
-    angle: 30,
-    speed: 0,
-    fps: 60,
-    shape: 4,
-    html: effectEmbedHtml(ORIGIN, seed, glass, 30),
-    links: effectLinks(ORIGIN, seed, glass, 30)
-  });
-  expect(doc.effect?.links.og).toBe(`${ORIGIN}/api/og?seed=${seed}&style=glass&angle=30&shape=4`);
-  // the palette's own document stands beside it
-  expect(paletteJson(seed, ORIGIN, { angle: 30 })).toEqual({ ...doc, effect: undefined });
-  expect(paletteJson(seed, ORIGIN, { angle: 30 })).not.toHaveProperty("effect");
 });

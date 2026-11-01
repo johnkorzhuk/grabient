@@ -146,10 +146,18 @@ async function paletteFile(
         colorNames(env),
         texts(env, [seed]).catch(() => [])
       ]);
-      return Response.json(
-        paletteJson(seed, origin, view, names, writtenWords(text, palette), parseEffect(params)),
-        { headers: { ...TEXT, ...DATA } }
-      );
+      const doc = paletteJson(seed, origin, view, names, writtenWords(text, palette));
+      /* at an effect's address the effect too, its code loaded with the first such file */
+      const effect = parseEffect(params);
+      const played = effect && {
+        effect: (await import("@grabient/engine/effect-code.ts")).effectDocument(
+          origin,
+          seed,
+          effect,
+          view.angle
+        )
+      };
+      return Response.json(played ? { ...doc, ...played } : doc, { headers: { ...TEXT, ...DATA } });
     }
     default: {
       const names = await colorNames(env);

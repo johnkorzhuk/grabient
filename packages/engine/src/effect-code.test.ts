@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
 import { decodePalette } from "./codec.ts";
-import { EMBED_PLAYING, parseEffect } from "./effect.ts";
+import { EMBED_PLAYING, effectEmbedHtml, effectFileAddress, parseEffect } from "./effect.ts";
 import {
   effectColors,
+  effectDocument,
+  effectMarkdown,
   effectPage,
   effectSpecJson,
   effectStill,
@@ -11,6 +13,7 @@ import {
 } from "./effect-code.ts";
 import { glassStillBackground } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
+import { paletteMarkdown } from "./markdown.ts";
 import { fromSpec } from "./spec.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
@@ -115,4 +118,53 @@ test("an effect's JSON holds the keyframes and how it plays, as its address name
   expect(glass).not.toHaveProperty("frost");
   const blob = JSON.parse(effectSpecJson(P, effect("style=blob&frost=2&bg=%23101014&shape=9"), 90));
   expect(blob).toMatchObject({ style: "blob", angle: 90, shape: 9, frost: 2, bg: "#101014" });
+});
+
+test("the palette's JSON at an effect's address names the effect: its settings, its tags and its files", () => {
+  const glass = effect("style=glass&speed=0&shape=4");
+  expect(effectDocument(ORIGIN, SEED, glass, 30)).toEqual({
+    style: "glass",
+    angle: 30,
+    speed: 0,
+    fps: 60,
+    shape: 4,
+    html: effectEmbedHtml(ORIGIN, SEED, glass, 30),
+    links: {
+      page: `${ORIGIN}/${SEED}?style=glass&angle=30&speed=0&shape=4`,
+      css: effectFileAddress(ORIGIN, SEED, glass, 30, "css"),
+      js: effectFileAddress(ORIGIN, SEED, glass, 30, "js"),
+      svg: effectFileAddress(ORIGIN, SEED, glass, 30, "svg"),
+      png: effectFileAddress(ORIGIN, SEED, glass, 30, "png"),
+      og: `${ORIGIN}/api/og?seed=${SEED}&style=glass&angle=30&shape=4`
+    }
+  });
+  expect(effectDocument(ORIGIN, SEED, effect("style=blob&frost=2"), 90)).toMatchObject({
+    style: "blob",
+    shape: null,
+    frost: 2,
+    bg: null
+  });
+});
+
+test("the palette's Markdown at an effect's address says what plays and how, and the tags in the CSS's place", () => {
+  const text = paletteMarkdown(
+    SEED,
+    ORIGIN,
+    { angle: 45 },
+    null,
+    [],
+    null,
+    effectMarkdown(ORIGIN, SEED, effect("style=blob&speed=0&bg=%23101014"))
+  )!;
+  expect(text).toMatch(/^# .+ blob\n/);
+  expect(text).toContain(
+    "- Drawn as: a blob, the palette across it at 45 degrees, frost 1, on #101014, held on its first frame"
+  );
+  expect(text).toContain("## Behind a page");
+  expect(text).not.toContain("## CSS");
+  expect(text).toContain(
+    `- [Script](${ORIGIN}/${SEED}.js?style=blob&angle=45&speed=0&bg=%23101014)`
+  );
+  // the gradient's Markdown is as it was
+  expect(paletteMarkdown(SEED, ORIGIN, { angle: 45 }, null, [])).toContain("## CSS");
 });

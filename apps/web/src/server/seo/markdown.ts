@@ -130,7 +130,12 @@ export async function markdownFile(
       reads.paletteWords(seed).catch(() => ({ saved: undefined, written: null, heldBy: [] })),
       reads.colorNames?.() ?? null
     ]);
-    const text = paletteMarkdown(seed, base, view, written, heldBy, names, parseEffect(params));
+    /* an effect's words load with the first Markdown of an effect's address */
+    const effect = parseEffect(params);
+    const words =
+      effect &&
+      (await import("@grabient/engine/effect-code.ts")).effectMarkdown(base, seed, effect);
+    const text = paletteMarkdown(seed, base, view, written, heldBy, names, words);
     if (text !== null)
       return new Response(text, { headers: markdown(base + paletteAddress(seed, saved), TEXT) });
   }
