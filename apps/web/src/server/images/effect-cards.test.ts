@@ -1,7 +1,7 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { parseEffect } from "@grabient/engine/effect.ts";
 import { describe, expect, test } from "vitest";
-import { decodePng } from "../../../test/png.ts";
+import { at, decodePng } from "../../../test/png.ts";
 import { effectCard, pageMeta } from "../../lib/page-meta.ts";
 import { cardAnswer, seedPngAnswer } from "./answers.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
@@ -55,7 +55,7 @@ async function middle(response: Response) {
   let n = 0;
   for (let y = Math.floor(png.height * 0.45); y < Math.floor(png.height * 0.55); y++)
     for (let x = 0; x < png.width; x++) {
-      const i = (y * png.width + x) * 3;
+      const i = (y * png.width + x) * png.channels;
       for (let c = 0; c < 3; c++) sum[c] += png.pixels[i + c];
       n++;
     }
@@ -78,11 +78,24 @@ describe("an effect's card", () => {
     const { env, keep } = world();
     const card = await cardAnswer(get(`/api/og?seed=${SEED}&style=blob&shape=7`), env, keep);
     expect(card.status).toBe(200);
-    expect((await middle(card)).width).toBe(1200);
+    expect((await middle(card.clone())).width).toBe(1200);
     const png = await seedPngAnswer(get(`/${SEED}.png?style=blob&shape=7&w=400&h=300`), env, keep);
     expect(png.status).toBe(200);
-    const picture = await middle(png);
+    const picture = await middle(png.clone());
     expect([picture.width, picture.height]).toEqual([400, 300]);
+    // with no ground the blob stands clear around itself, as the editor's copy of it does; a card is never clear
+    const clear = await decodePng(new Uint8Array(await png.arrayBuffer()));
+    expect(clear.channels).toBe(4);
+    expect(at(clear, 0, 0)[3]).toBe(0);
+    expect((await decodePng(new Uint8Array(await card.arrayBuffer()))).channels).toBe(3);
+    const grounded = await seedPngAnswer(
+      get(`/${SEED}.png?style=blob&shape=7&bg=%23101014&w=400&h=300`),
+      env,
+      keep
+    );
+    const solid = await decodePng(new Uint8Array(await grounded.arrayBuffer()));
+    expect(solid.channels).toBe(3);
+    expect(at(solid, 0, 0)).toEqual([16, 16, 20]);
   });
 
   test("its key is the look it draws: another shape is another card, another pace the same one", async () => {

@@ -18,8 +18,8 @@ import { cardSize, pictureSize } from "./size.ts";
     drawn before is kept for it. */
 const BANDS_DRAWING = "bands-1";
 /** The effects' drawings, counted up as the bands' is by a change that moves their pixels (engine/glass.ts and
-    glass-render.ts, engine/blob.ts). */
-const EFFECT_DRAWING = { glass: "glass-2", blob: "blob-3" } as const;
+    glass-render.ts, engine/blob.ts, and the blob's picture alone, clear where its ground lets the page through). */
+const EFFECT_DRAWING = { glass: "glass-2", blob: "blob-4" } as const;
 
 /** Everything an effect's first frame depends on: the glass's colors are its palette's, its ribs turn with the angle
     and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and the angle lays its
@@ -29,15 +29,17 @@ const effectParts = (effect: Effect, angle: number) =>
     ? [EFFECT_DRAWING.glass, angle, effect.look.shape ?? 0]
     : [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg, angle];
 
-/** An effect's first frame at a size, as the editor shows it before it moves, in three bytes a pixel: the glass
-    covering the box (its CPU renderer, engine/glass-render.ts), the blobs covering it on their own ground, laid over
-    the near-black or near-white a picture that cannot be clear takes where the ground lets it through or there is none
-    (engine/blob.ts). Their code comes with the first picture that needs it. */
+/** An effect's first frame at a size, as the editor shows it before it moves: the glass covering the box (its CPU
+    renderer, engine/glass-render.ts) in three bytes a pixel, and the blobs covering it on their own ground
+    (engine/blob.ts), in four where the ground lets what is behind them through or there is none, as the editor's
+    copy of it is, or, for a card, which cannot be clear, laid over its near-black or near-white. Their code comes
+    with the first picture that needs it. */
 async function effectStill(
   found: Resolved,
   effect: Effect,
   angle: number,
-  size: Size
+  size: Size,
+  card = false
 ): Promise<Uint8Array<ArrayBuffer>> {
   if (effect.kind === "blob") {
     const blob = await import("@grabient/engine/blob.ts");
@@ -45,7 +47,7 @@ async function effectStill(
       found.palette,
       { ...effect.look, angle },
       size,
-      blob.blobBackdrop(found.palette)
+      card ? blob.blobBackdrop(found.palette) : undefined
     );
   }
   const [model, render, colors] = await Promise.all([
@@ -90,7 +92,7 @@ export function paletteCard(
         height,
         draw: async () =>
           drawCardOver(
-            await effectStill(found, effect, angle, { width, height }),
+            await effectStill(found, effect, angle, { width, height }, true),
             keyframeColors(found.palette),
             width,
             height

@@ -1,10 +1,12 @@
 /* A PNG read back for the tests, by a reader of its own: every chunk's CRC checked, the rows inflated and unfiltered
-   (all five filters), 8-bit RGB alone. Runs in Node and in workerd. */
+   (all five filters), 8-bit RGB or RGBA. Runs in Node and in workerd. */
 
 export interface Decoded {
   width: number;
   height: number;
   chunks: string[];
+  /** 3 for RGB, 4 for RGBA */
+  channels: number;
   pixels: Uint8Array<ArrayBuffer>;
 }
 
@@ -33,6 +35,7 @@ export async function decodePng(png: Uint8Array | ArrayBuffer): Promise<Decoded>
   const idat: Uint8Array[] = [];
   let width = 0;
   let height = 0;
+  let channels = 3;
   for (let at = 8; at < bytes.length; ) {
     const length = view.getUint32(at);
     const type = String.fromCharCode(...bytes.subarray(at + 4, at + 8));
@@ -43,7 +46,9 @@ export async function decodePng(png: Uint8Array | ArrayBuffer): Promise<Decoded>
     if (type === "IHDR") {
       width = view.getUint32(at + 8);
       height = view.getUint32(at + 12);
-      if (bytes[at + 16] !== 8 || bytes[at + 17] !== 2) throw new Error("Not 8-bit RGB");
+      if (bytes[at + 16] !== 8 || (bytes[at + 17] !== 2 && bytes[at + 17] !== 6))
+        throw new Error("Not 8-bit RGB or RGBA");
+      channels = bytes[at + 17] === 6 ? 4 : 3;
     }
     if (type === "IDAT") idat.push(bytes.slice(at + 8, at + 8 + length));
     at += length + 12;
@@ -55,21 +60,21 @@ export async function decodePng(png: Uint8Array | ArrayBuffer): Promise<Decoded>
     offset += part.length;
   }
   const rows = await inflate(joined);
-  const stride = width * 3;
+  const stride = width * channels;
   const pixels = new Uint8Array(stride * height);
   for (let y = 0; y < height; y++) {
     const filter = rows[y * (stride + 1)];
     for (let x = 0; x < stride; x++) {
       const raw = rows[y * (stride + 1) + 1 + x];
-      const left = x < 3 ? 0 : pixels[y * stride + x - 3];
+      const left = x < channels ? 0 : pixels[y * stride + x - channels];
       const up = y ? pixels[(y - 1) * stride + x] : 0;
-      const corner = x < 3 || !y ? 0 : pixels[(y - 1) * stride + x - 3];
+      const corner = x < channels || !y ? 0 : pixels[(y - 1) * stride + x - channels];
       const predicted = [0, left, up, (left + up) >> 1, paeth(left, up, corner)][filter];
       if (predicted === undefined) throw new Error(`Filter ${filter}`);
       pixels[y * stride + x] = raw + predicted;
     }
   }
-  return { width, height, chunks, pixels };
+  return { width, height, chunks, channels, pixels };
 }
 
 /** The pixels' SHA-256 in hex, as the golden fixtures name a picture. */
@@ -78,7 +83,12 @@ export async function pixelHash(pixels: Uint8Array<ArrayBuffer>): Promise<string
   return Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** The color at a pixel. */
-export const at = (picture: Pick<Decoded, "width" | "pixels">, x: number, y: number) => [
-  ...picture.pixels.subarray((y * picture.width + x) * 3, (y * picture.width + x) * 3 + 3)
-];
+/** The color at a pixel, its alpha too in an RGBA picture. */
+export const at = (
+  picture: Pick<Decoded, "width" | "pixels"> & { channels?: number },
+  x: number,
+  y: number
+) => {
+  const n = picture.channels ?? 3;
+  return [...picture.pixels.subarray((y * picture.width + x) * n, (y * picture.width + x) * n + n)];
+};
