@@ -41,9 +41,10 @@ export interface GlassView {
 }
 
 /* The hill climb's numbers (W/blob-ref/proto/v4/final.json). Lengths are in the box's diagonal, or in pixels at the
-   reference's 720 by 900 (diagonal REF_D), scaled to the box. */
-const REF_D = 1152.56;
-const T = {
+   reference's 720 by 900 (diagonal REF_D), scaled to the box. The shader exports (glass-shader.ts) write them out. */
+export const GLASS_REF_D = 1152.56;
+const REF_D = GLASS_REF_D;
+export const GLASS_TUNING = {
   seed: 7,
   geo: {
     arcC: [-0.6939, -0.6395],
@@ -78,6 +79,7 @@ const T = {
   shade: 0.058023170773981086,
   shadeSkew: 0.3
 } as const;
+const T = GLASS_TUNING;
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const r3 = (v: number) => Math.round(v * 1000) / 1000;
 const r4 = (v: number) => Math.round(v * 10000) / 10000;
