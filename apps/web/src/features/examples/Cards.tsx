@@ -1,6 +1,7 @@
 import { contrast } from "@grabient/engine/contrast.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
-import type { Size } from "@grabient/engine/view.ts";
+import type { EffectKind } from "@grabient/engine/effect.ts";
+import { isSwatchStyle, type Size } from "@grabient/engine/view.ts";
 import { dir, formatDate, formatNumber, msg, rich, t } from "@grabient/i18n";
 import { createDone } from "@grabient/ui/done.ts";
 import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
@@ -29,16 +30,7 @@ import {
   type Shown,
   type Theme
 } from "./paint.ts";
-import {
-  drawnWords,
-  type Form,
-  formOf,
-  formWords,
-  gradientOf,
-  inForm,
-  solidBlob,
-  takenOf
-} from "./shared.ts";
+import { drawnWords, formWords, gradientOf, inForm, solidBlob, takenOf } from "./shared.ts";
 
 /* Covers and cards: the palette as the media and the small things a designer makes with it, laid as a masonry of
    real shapes and sizes: a poster, an album's sleeve with its record, a video's thumbnail, a social post, an event's
@@ -180,6 +172,8 @@ function Tile(props: {
   onOpen: (kind: Kind) => void;
   /** where it stands, where not where its kind stands (PLACES) */
   place?: { col: string; row: string; aspect: number };
+  /** a press on the tile, anywhere but its own presses and links, shows the palette in its next look */
+  onTurn?: () => void;
   children: (lit: () => boolean) => Element;
 }) {
   const [lit, setLit] = createSignal(false);
@@ -218,6 +212,18 @@ function Tile(props: {
       onFocusOut={() => setLit(false)}
       onPointerDown={e => {
         if (e.pointerType !== "mouse" && MEDIA.has(props.kind)) props.onOpen(props.kind);
+      }}
+      data-turns={props.onTurn ? "" : undefined}
+      tabindex={props.onTurn ? 0 : undefined}
+      onClick={e => {
+        if (!props.onTurn || (e.target as HTMLElement).closest("button, a, input, label")) return;
+        props.onTurn();
+      }}
+      onKeyDown={e => {
+        if (!props.onTurn || e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " "))
+          return;
+        e.preventDefault();
+        props.onTurn();
       }}
     >
       {content}
@@ -619,24 +625,70 @@ const ORDER: readonly Kind[] = [
   "buttons"
 ];
 
-/** The tiles that show what else the palette can do, each in its first form the address doesn't name and no tile
-    before it took: the album's sleeve as glass, the icon as the blob, the ticket's stub as a few bands, where the
-    address names none of those. */
-const OTHERS: readonly (readonly [Kind, readonly Form[]])[] = [
-  ["album", ["glass", "blob", "gradient", "bands"]],
-  ["icon", ["blob", "glass", "gradient", "bands"]],
-  ["ticket", ["bands", "gradient", "glass", "blob"]]
-];
-function formsOf(s: Shown): Partial<Record<Kind, Form>> {
-  const taken = new Set<Form>([formOf(s)]);
-  const forms: Partial<Record<Kind, Form>> = {};
-  for (const [kind, prefer] of OTHERS) {
-    const form = prefer.find(f => !taken.has(f)) ?? formOf(s);
-    taken.add(form);
-    forms[kind] = form;
-  }
-  return forms;
+/** What a tile shows the palette as: a gradient, bands across, bands swept round the middle (angular), rings out from
+    it (radial), the fluted glass or the blob. */
+type Look = "gradient" | "bands" | "sweep" | "rings" | EffectKind;
+const SWATCH_STYLES = {
+  bands: "linearSwatches",
+  sweep: "angularSwatches",
+  rings: "radialSwatches"
+} as const;
+const lookOf = (s: Shown): Look => {
+  if (s.effect) return s.effect.kind;
+  if (s.view.style === "linearSwatches") return "bands";
+  if (s.view.style === "angularSwatches") return "sweep";
+  if (s.view.style === "radialSwatches") return "rings";
+  return "gradient";
+};
+/** The palette as a look: the address's own where it is that look; bands at the address's steps where it names bands,
+    else a few; a gradient or an effect as the page's other forms are (shared.ts's inForm). */
+function inLook(s: Shown, look: Look): Shown {
+  if (lookOf(s) === look) return s;
+  if (look === "gradient" || look === "glass" || look === "blob") return inForm(s, look);
+  const bands = !s.effect && isSwatchStyle(s.view.style) ? s : inForm(s, "bands");
+  return { ...bands, view: { ...bands.view, style: SWATCH_STYLES[look] } };
 }
+/* Now and then a palette's bands sweep round the middle or ring out from it rather than run across: by its seed, so its
+   page shows the same each time. */
+const BAND_LOOKS: readonly Look[] = ["bands", "sweep", "bands", "rings", "bands", "sweep"];
+const bandsFor = (seed: string): Look => {
+  let h = 2166136261;
+  for (const c of seed) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  return BAND_LOOKS[h % BAND_LOOKS.length];
+};
+/** The tiles that show what else the palette can do, each in its first look the address doesn't name and no tile
+    before it took: the album's sleeve as glass, the icon as the blob, the ticket's stub as a few bands (now and then
+    swept or in rings), where the address names none of those. */
+function looksOf(s: Shown): Partial<Record<Kind, Look>> {
+  const taken = new Set<Look>([lookOf(s)]);
+  const prefer: readonly (readonly [Kind, readonly Look[]])[] = [
+    ["album", ["glass", "blob", "gradient", "bands"]],
+    ["icon", ["blob", "glass", "gradient", "bands"]],
+    ["ticket", [bandsFor(s.seed), "bands", "gradient", "glass", "blob"]]
+  ];
+  const looks: Partial<Record<Kind, Look>> = {};
+  for (const [kind, order] of prefer) {
+    const look = order.find(l => !taken.has(l)) ?? lookOf(s);
+    taken.add(look);
+    looks[kind] = look;
+  }
+  return looks;
+}
+/** The looks a press on a tile turns through, from the one it shows: the album's sleeve between the two effects, the
+    rest through all six. The buttons and the headlines keep theirs. */
+const TURN: readonly Look[] = ["gradient", "bands", "glass", "sweep", "blob", "rings"];
+const TURNS: Partial<Record<Kind, readonly Look[]>> = { album: ["glass", "blob"] };
+const TURNING: ReadonlySet<Kind> = new Set([
+  "poster",
+  "album",
+  "thumbnail",
+  "post",
+  "event",
+  "ticket",
+  "member",
+  "icon",
+  "business"
+]);
 
 /** Whether the palette suits this example: every tile wears it, its words and presses as the checks let them. */
 export const cardsFits = (_s: ExampleProps["s"]): boolean => true;
@@ -647,6 +699,23 @@ export function CardsExample(props: ExampleProps) {
   const added = () => s() !== props.s;
   const paper = () => pressPaper(drawnColors(props.s));
   const [open, setOpen] = createSignal<Kind | null>(null);
+  /* the looks pressed onto tiles, for the palette they were pressed on */
+  const [picked, setPicked] = createSignal<{ seed: string; looks: Partial<Record<Kind, Look>> }>({
+    seed: "",
+    looks: {}
+  });
+  const lookFor = (kind: Kind): Look =>
+    (picked().seed === props.s.seed ? picked().looks[kind] : undefined) ??
+    looksOf(props.s)[kind] ??
+    lookOf(props.s);
+  const turn = (kind: Kind) => {
+    const order = TURNS[kind] ?? TURN;
+    const next = order[(order.indexOf(lookFor(kind)) + 1) % order.length];
+    setPicked(p => ({
+      seed: props.s.seed,
+      looks: { ...(p.seed === props.s.seed ? p.looks : {}), [kind]: next }
+    }));
+  };
   return (
     <Example
       id="cards"
@@ -675,13 +744,13 @@ export function CardsExample(props: ExampleProps) {
                  draws it as it works there, a blob's letters on a ground of their own */
               const shown = () => {
                 if (headline) return props.s;
-                const form = formsOf(props.s)[kind];
-                return form ? solidBlob(inForm(props.s, form)) : s();
+                const look = lookFor(kind);
+                return look === lookOf(props.s) ? s() : solidBlob(inLook(props.s, look));
               };
               const other = () =>
                 headline
                   ? headlineShown(kind, props.s) !== props.s
-                  : formsOf(props.s)[kind] !== undefined;
+                  : lookFor(kind) !== lookOf(props.s);
               return (
                 <Tile
                   kind={kind}
@@ -690,6 +759,7 @@ export function CardsExample(props: ExampleProps) {
                   open={open()}
                   onOpen={k => setOpen(open() === k ? null : k)}
                   place={headline && headlinesOf(props.s).length === 1 ? HEADLINE_ALONE : undefined}
+                  onTurn={TURNING.has(kind) ? () => turn(kind) : undefined}
                 >
                   {lit => (
                     <Shape s={shown()} lit={lit} theme={paper().theme} press={paper().press} />

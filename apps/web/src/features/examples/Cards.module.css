@@ -25,6 +25,10 @@
   .tile {
     position: relative;
     container-type: inline-size;
+    /* a press on it shows the palette in its next look */
+    &[data-turns] {
+      cursor: pointer;
+    }
     grid-column: var(--col);
     grid-row: var(--row);
     min-width: 0;

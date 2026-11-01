@@ -168,7 +168,10 @@ export function EffectArt(props: {
       untrack(() => props.palette),
       { ...untrack(view), speed: 0 }
     );
-    release(props.kind, s);
+    release(
+      untrack(() => props.kind),
+      s
+    );
   };
   const stop = () => {
     wanted = false;
@@ -176,7 +179,7 @@ export function EffectArt(props: {
     const going = session;
     session = null;
     if (!going) return;
-    if (props.kind === "blob") return end(going);
+    if (untrack(() => props.kind) === "blob") return end(going);
     /* the glass holds its frame and fades out to its still: two pictures that stand still meet, never a moving one */
     going.player.set(
       untrack(() => props.palette),
@@ -207,7 +210,7 @@ export function EffectArt(props: {
       setCovered(true);
       return;
     }
-    const kind = props.kind;
+    const kind = untrack(() => props.kind);
     /* a player kept from another card of this size: on to this one, from this card's first frame */
     const kept = pooled(kind, holder.clientWidth, holder.clientHeight);
     if (kept) {
