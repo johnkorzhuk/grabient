@@ -196,7 +196,13 @@ async function answerPicker(
   const chose: { body: unknown } = { body: null };
   const field = part === "lead" ? "seed" : "tip";
   await page.route(`**/api/me/newsletter/${part}*`, async route => {
-    const published = await (await page.request.get("/api/newsletter")).json();
+    /* read by the page's own fetch: Playwright's request client looks localhost up for IPv6 too, which this machine's
+       resolver can hold 10 s, past the picker's wait */
+    const published = await page.evaluate(() =>
+      fetch("/api/newsletter").then(
+        answer => answer.json() as Promise<{ issues: { html: string }[] }>
+      )
+    );
     const html = published.issues[0].html;
     if (route.request().method() === "POST") {
       chose.body = route.request().postDataJSON();

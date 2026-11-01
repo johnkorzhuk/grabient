@@ -1415,6 +1415,8 @@ test.describe("on a phone", () => {
     page
   }) => {
     await page.goto("/about");
+    // the Steps field takes typing once the page is the app's
+    await live(page);
     const strips = page.getByRole("group", { name: "Palette colors" });
     await expect(strips).toHaveCount(3);
     for (const strip of await strips.all()) {
