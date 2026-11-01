@@ -79,13 +79,23 @@ export function GlassArt(props: {
      it would be stretched to the box (the window made narrower), and a card's player would not take it over */
   const [seen, setSeen] = createSignal(untrack(() => props.eager === true));
   const [box, setBox] = createSignal("");
+  /* within a screen of the window: a card far down a long page draws nothing, and gives its still back once far */
+  const [near, setNear] = createSignal(true);
   onSettled(() => {
     const sizes = new ResizeObserver(() => {
       setSeen(el.clientWidth > 0);
       setBox(`${el.clientWidth}x${el.clientHeight}`);
     });
     sizes.observe(el);
-    return () => sizes.disconnect();
+    const sight = new IntersectionObserver(
+      entries => setNear(entries[entries.length - 1].isIntersecting),
+      { rootMargin: "100% 0px" }
+    );
+    sight.observe(el);
+    return () => {
+      sizes.disconnect();
+      sight.disconnect();
+    };
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
   /* out of sight since the last still: the next one is drawn at once */
@@ -126,6 +136,7 @@ export function GlassArt(props: {
     named: string
   ) => {
     cancel?.();
+    if (!untrack(seen) || !untrack(near)) return;
     let drawn = false;
     cancel = inTime(() => {
       drawn = true;
@@ -172,7 +183,7 @@ export function GlassArt(props: {
   };
   createEffect(
     () =>
-      seen()
+      seen() && near()
         ? {
             named: key(),
             colors: props.colors,
@@ -185,6 +196,14 @@ export function GlassArt(props: {
       clearTimeout(timer);
       if (next === null) {
         away = true;
+        cancel?.();
+        /* the GPU's bitmap goes with the box out of reach, and is drawn again as it comes back */
+        if (untrack(painted)) {
+          canvas.getContext("bitmaprenderer")?.transferFromImageBitmap(null);
+          drawnBox = "";
+          setPainted(false);
+          setShowing(null);
+        }
         return;
       }
       /* the GPU's still code, and its canvas as the page idles, once a page shows the glass and before a change asks
