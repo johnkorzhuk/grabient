@@ -8,12 +8,11 @@ import { Button } from "@grabient/ui/Button.tsx";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createMemo, createUniqueId, type Element, Show } from "solid-js";
-import { EffectArt } from "../editor/EffectArt.tsx";
-import { Chip, contrastWords, Example, type ExampleProps } from "./Example.tsx";
+import { Chip, contrastWords, Example, type ExampleProps, Painted } from "./Example.tsx";
 import { LARGE } from "./fit.ts";
 import { createLit } from "./lit.ts";
 import { colorsUnder, contrastLevel, inkOn, mirrored, type Part, type Shown } from "./paint.ts";
-import { drawnWords, gradientOf, levelWords, pictureAddress } from "./shared.ts";
+import { drawnWords, levelWords, pictureAddress } from "./shared.ts";
 import styles from "./Wallpapers.module.css";
 
 /** The tag a message marks a hex with: `rich("… <c>{color}</c>", HEX)`. */
@@ -180,22 +179,6 @@ export function WallpapersExample(props: ExampleProps) {
       where: { text: t(props.s.effect ? msg("Moving, at any size") : msg("Sharp at any size")) }
     }
   ];
-  const wallpaper = (d: Device) => (
-    <Show
-      when={wall().effect}
-      fallback={<span class={styles.paint} style={{ background: gradientOf(wall()) }} />}
-    >
-      {effect => (
-        <EffectArt
-          kind={effect().kind}
-          palette={wall().palette}
-          settings={effect()}
-          angle={wall().view.angle}
-          active={lit[d].on()}
-        />
-      )}
-    </Show>
-  );
   /* a device and its download: the picture of its screen names what it shows, and the press names the picture and its
      size as what it saves */
   const device = (d: Device) => {
@@ -216,7 +199,7 @@ export function WallpapersExample(props: ExampleProps) {
           class={styles.screen}
           style={{ "background-color": wall().effect?.look.bg ?? undefined }}
         >
-          {wallpaper(d)}
+          <Painted s={wall()} lit={lit[d].on()} />
           <Show when={clocked(d)}>
             <div class={styles.clock} data-at={read(d).at} style={{ color: read(d).ink }}>
               {d === "phone" ? (

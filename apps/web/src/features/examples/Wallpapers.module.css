@@ -84,10 +84,6 @@
       --widest: 44cqi;
     }
   }
-  .paint {
-    position: absolute;
-    inset: 0;
-  }
   .clock {
     position: absolute;
     display: flex;

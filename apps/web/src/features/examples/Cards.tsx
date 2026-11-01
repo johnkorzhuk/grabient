@@ -7,9 +7,8 @@ import { announce } from "@grabient/ui/announce.ts";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createMemo, createSignal, type Element, For, Show, untrack } from "solid-js";
-import { EffectArt } from "../editor/EffectArt.tsx";
 import styles from "./Cards.module.css";
-import { Chip, Example, type ExampleProps } from "./Example.tsx";
+import { Chip, Example, type ExampleProps, Painted } from "./Example.tsx";
 import { inkThrough, MARK, type Press, pressPaper, standsOut, TEXT, TILE } from "./fit.ts";
 import { HeadlineTile, headlineShown, headlinesOf } from "./Headline.tsx";
 import { createLit } from "./lit.ts";
@@ -117,24 +116,11 @@ function placeWords(s: Shown, aspect: number, high: number, spots: readonly Spot
 const spotsFrom = (rows: readonly Spot["row"][]): Spot[] =>
   (["across", "start", "end"] as const).flatMap(side => rows.map(row => ({ row, side })));
 
-/** The palette as a picture filling its holder: the gradient, or the effect's still, playing while lit. */
+/** The palette as a picture filling its holder, which the tile's name says to a reader who listens. */
 function Picture(props: { s: Shown; lit: boolean; class?: string }) {
   return (
     <span class={`${styles.picture} ${props.class ?? ""}`} aria-hidden="true">
-      <Show
-        when={props.s.effect}
-        fallback={<span class={styles.fill} style={{ background: gradientOf(props.s) }} />}
-      >
-        {effect => (
-          <EffectArt
-            kind={effect().kind}
-            palette={props.s.palette}
-            settings={effect()}
-            angle={props.s.view.angle}
-            active={props.lit}
-          />
-        )}
-      </Show>
+      <Painted s={props.s} lit={props.lit} />
     </span>
   );
 }

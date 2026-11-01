@@ -28,10 +28,6 @@
   .banner {
     aspect-ratio: 3;
   }
-  .paint {
-    position: absolute;
-    inset: 0;
-  }
   .body {
     display: flex;
     flex-direction: column;

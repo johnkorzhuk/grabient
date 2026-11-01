@@ -46,10 +46,6 @@
     border-radius: inherit;
     forced-color-adjust: none;
   }
-  .fill {
-    position: absolute;
-    inset: 0;
-  }
   /* a medium standing on the stage: its shape, its corners and its lift */
   .poster,
   .thumbnail,

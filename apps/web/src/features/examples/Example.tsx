@@ -4,9 +4,10 @@ import { type CodeTab, CodeTabs } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { children, createSignal, createUniqueId, type Element, Show } from "solid-js";
+import { EffectArt } from "../editor/EffectArt.tsx";
 import styles from "./Example.module.css";
 import { type Shown, twoPlaces } from "./paint.ts";
-import { levelWords } from "./shared.ts";
+import { gradientOf, levelWords } from "./shared.ts";
 
 /* One way to use a palette, as the page shows it: its number and its use in a few words, a line on what it is for, then
    the example itself on a stage of its own, and under it a tag naming how the palette is drawn there (the address's
@@ -34,6 +35,26 @@ export function Chip(props: { color?: string; children: Element }) {
       </Show>
       {props.children}
     </span>
+  );
+}
+
+/** The palette filling its holder: the gradient, or the effect's still, playing while `lit`. */
+export function Painted(props: { s: Shown; lit: boolean }) {
+  return (
+    <Show
+      when={props.s.effect}
+      fallback={<span class={styles.fill} style={{ background: gradientOf(props.s) }} />}
+    >
+      {effect => (
+        <EffectArt
+          kind={effect().kind}
+          palette={props.s.palette}
+          settings={effect()}
+          angle={props.s.view.angle}
+          active={props.lit}
+        />
+      )}
+    </Show>
   );
 }
 

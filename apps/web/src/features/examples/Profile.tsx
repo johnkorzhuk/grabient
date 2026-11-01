@@ -5,13 +5,12 @@ import { Button } from "@grabient/ui/Button.tsx";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createMemo, createSignal, type Element, For, Show } from "solid-js";
-import { EffectArt } from "../editor/EffectArt.tsx";
-import { Chip, ContrastChip, Example, type ExampleProps } from "./Example.tsx";
+import { Chip, ContrastChip, Example, type ExampleProps, Painted } from "./Example.tsx";
 import { type Press, pressPaper, TILE } from "./fit.ts";
 import { createLit } from "./lit.ts";
 import styles from "./Profile.module.css";
 import { drawnColors, THEME_INK } from "./paint.ts";
-import { cssRule, drawnWords, gradientOf, pictureAddress, solidBlob } from "./shared.ts";
+import { cssRule, drawnWords, pictureAddress, solidBlob } from "./shared.ts";
 
 /* Avatars and banners: the palette as a social profile's header and picture, each the palette's own file at the size a
    profile takes, in the address's style (the gradient's PNG, or the effect's first frame, whose still the card shows and
@@ -61,22 +60,6 @@ export function ProfileExample(props: ExampleProps) {
   const png = (size: Size) => pictureAddress(s(), props.origin, "png", size);
   const fileName = (size: Size) =>
     `grabient-${props.s.seed}${props.s.effect ? `-${props.s.effect.kind}` : ""}-${size.width}x${size.height}.png`;
-  const picture = () => (
-    <Show
-      when={s().effect}
-      fallback={<span class={styles.paint} style={{ background: gradientOf(s()) }} />}
-    >
-      {effect => (
-        <EffectArt
-          kind={effect().kind}
-          palette={s().palette}
-          settings={effect()}
-          angle={s().view.angle}
-          active={lit.on()}
-        />
-      )}
-    </Show>
-  );
 
   const amp = (address: string) => address.replaceAll("&", "&amp;");
   const html = () =>
@@ -160,12 +143,12 @@ export function ProfileExample(props: ExampleProps) {
           onFocusOut={lit.blur}
         >
           <div class={styles.banner} aria-hidden="true">
-            {picture()}
+            <Painted s={s()} lit={lit.on()} />
           </div>
           <div class={styles.body}>
             <div class={styles.top}>
               <span class={styles.avatar} role="img" aria-label={owner()}>
-                {picture()}
+                <Painted s={s()} lit={lit.on()} />
               </span>
               {/* a press that works: it follows, and the card says so. Both its words stand in it, the other one
                   hidden, so it keeps one width pressed or not */}
