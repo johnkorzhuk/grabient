@@ -72,7 +72,8 @@ export function ItemCard(props: {
   const effect = createCardEffect({
     seed,
     angle: () => picture().angle,
-    effect: () => shownEffect(props.view, look.draft(), look.peek()),
+    effect: () => shownEffect(props.view, look.draft(), null),
+    peek: () => look.peek() !== null,
     name
   });
   const take = cardTakings({
@@ -109,6 +110,7 @@ export function ItemCard(props: {
       pictureLabel={effect.label()}
       glow={effect.glow()}
       bare={effect.bare()}
+      peek={effect.peek()}
       href={href()}
       rel={relTo(href())}
       age={props.age}

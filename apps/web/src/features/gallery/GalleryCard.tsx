@@ -60,7 +60,8 @@ export function GalleryCard(props: {
   const effect = createCardEffect({
     seed,
     angle: () => picture().angle,
-    effect: () => shownEffect(page.params(), look.draft(), look.peek()),
+    effect: () => shownEffect(page.params(), look.draft(), null),
+    peek: () => look.peek() !== null,
     name
   });
   onSettled(() => {
@@ -99,6 +100,7 @@ export function GalleryCard(props: {
       pictureLabel={effect.label()}
       glow={effect.glow()}
       bare={effect.bare()}
+      peek={effect.peek()}
       href={path()}
       rel={relTo(path())}
       age={props.now ? relativeAge(props.item.createdAt, props.now) : ""}

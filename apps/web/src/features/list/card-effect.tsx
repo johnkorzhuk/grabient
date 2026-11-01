@@ -31,13 +31,16 @@ export async function readyCardEffects(kind: Effect["kind"]): Promise<void> {
 /** A card's picture while its list plays an effect, as the editor's sheet draws its cards: the effect's still in its
     palette's own shape, moving while the card is lit (EffectArt.tsx), its name for a screen reader, the light under
     it (the glass's colors along its ribs, none under a blob) and whether it stands bare (a blob with no ground).
-    Nothing while the list draws gradients. */
+    Nothing while the list draws gradients. A style previewed on every card shows over the picture, which stays, so
+    letting the preview go shows it again as it was drawn. */
 export function createCardEffect(o: {
   seed: () => string;
   /** the angle the list draws the card at */
   angle: () => number;
-  /** the list's effect as the cards show it now */
+  /** the list's effect as the cards play it now */
   effect: () => Effect | null;
+  /** a gradient's style is previewed on every card */
+  peek: () => boolean;
   name: () => string;
 }) {
   const palette = createMemo(() => decodePalette(o.seed()));
@@ -47,6 +50,8 @@ export function createCardEffect(o: {
   });
   /* the picture keeps the last effect it played while the list lets it go, until the card takes it away */
   const played = createMemo<Effect | null>(last => effect() ?? last ?? null);
+  /* the effect the card shows: none while a style is previewed over it */
+  const shown = () => (o.peek() ? null : effect());
   return {
     picture: () =>
       effect()
@@ -62,17 +67,19 @@ export function createCardEffect(o: {
             </Loading>
           )
         : undefined,
+    /** the previewed style shows in the picture's place */
+    peek: () => !!effect() && o.peek(),
     label: () => {
-      const fx = effect();
+      const fx = shown();
       return fx ? t("{name}, {style}", { name: o.name(), style: effectLabel(fx.kind) }) : undefined;
     },
     glow: () => {
-      const fx = effect();
+      const fx = shown();
       if (!fx) return undefined;
       return fx.kind === "glass"
         ? { stops: glassColors(palette()!), style: "linearGradient" as const, angle: o.angle() }
         : null;
     },
-    bare: () => effect()?.kind === "blob" && effect()?.look.bg === null
+    bare: () => shown()?.kind === "blob" && shown()?.look.bg === null
   };
 }
