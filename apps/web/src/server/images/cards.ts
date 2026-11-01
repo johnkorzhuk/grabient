@@ -18,8 +18,11 @@ import { cardSize, pictureSize } from "./size.ts";
     drawn before is kept for it. */
 const BANDS_DRAWING = "bands-1";
 /** The effects' drawings, counted up as the bands' is by a change that moves their pixels (engine/glass.ts and
-    glass-render.ts, engine/blob.ts, and the blob's picture alone, clear where its ground lets the page through). */
-const EFFECT_DRAWING = { glass: "glass-2", blob: "blob-4" } as const;
+    glass-render.ts, engine/blob.ts). */
+const EFFECT_DRAWING = { glass: "glass-2", blob: "blob-3" } as const;
+/** The blob's picture alone, counted apart from its cards, which stay solid: it is clear where its ground lets the
+    page through. */
+const BLOB_PICTURE = "clear-1";
 
 /** Everything an effect's first frame depends on: the glass's colors are its palette's, its ribs turn with the angle
     and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and the angle lays its
@@ -176,7 +179,14 @@ export function palettePicture(
       {
         kind: "png",
         branded: false,
-        parts: [...effectParts(effect, angle), found.seed, width, height, false],
+        parts: [
+          ...effectParts(effect, angle),
+          ...(effect.kind === "blob" ? [BLOB_PICTURE] : []),
+          found.seed,
+          width,
+          height,
+          false
+        ],
         width,
         height,
         draw: async () =>
