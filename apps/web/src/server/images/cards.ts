@@ -59,8 +59,9 @@ async function effectStill(
     import("@grabient/engine/glass-colors.ts")
   ]);
   const { geometry, window } = render.glassCover(size, 1, angle, effect.look.shape);
+  // one frame, drawn without holding the rib map and each pixel's read for frames to come
   const rgba = render
-    .glassRenderer(geometry, window)
+    .glassRenderer(geometry, window, undefined, true)
     .frame(model.glassField(geometry, colors.glassColors(found.palette)), 0);
   const rgb = new Uint8Array(window.w * window.h * 3);
   for (let i = 0, j = 0; j < rgb.length; i += 4, j += 3) {

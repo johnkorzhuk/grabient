@@ -10,7 +10,7 @@ import {
   glassGeometry,
   glassSvg
 } from "./glass.ts";
-import { glassMap, glassMapRows, glassRenderer } from "./glass-render.ts";
+import { glassCover, glassMap, glassMapRows, glassRenderer } from "./glass-render.ts";
 
 const P = decodePalette("kS4mdDYzY8lhFPW")!;
 const size = { width: 120, height: 150 };
@@ -57,6 +57,32 @@ test("the rib map baked a slice at a time is the map baked at once", () => {
   for (let y = 0; y < size.height; y += 7)
     glassMapRows(geometry, sliced, y, Math.min(size.height, y + 7));
   expect(sliced).toEqual(whole);
+});
+
+test("the rib map's rows baked into a buffer of their own are the map's rows", () => {
+  const { geometry } = scene();
+  const whole = glassMap(geometry);
+  const W = size.width;
+  const band = new Uint8Array(4 * W * 5);
+  for (let y = 0; y < size.height; y += 5) {
+    const to = Math.min(size.height, y + 5);
+    glassMapRows(geometry, band, y, to, undefined, y);
+    expect(band.subarray(0, 4 * W * (to - y))).toEqual(whole.subarray(4 * W * y, 4 * W * to));
+  }
+});
+
+test("a frame drawn once is the frame a renderer of many frames draws, byte for byte", () => {
+  for (const [box, angle, shape, t] of [
+    [{ width: 120, height: 150 }, 90, null, 0],
+    [{ width: 37, height: 211 }, 45, 12, 3.5],
+    [{ width: 1, height: 1 }, 300, 999, 0]
+  ] as const) {
+    const { geometry, window } = glassCover(box, 1, angle, shape);
+    const field = glassField(geometry, glassColors(P));
+    expect(glassRenderer(geometry, window, undefined, true).frame(field, t)).toEqual(
+      glassRenderer(geometry, window).frame(field, t)
+    );
+  }
 });
 
 test("a disc rides its ellipse along the ribs: at its start half an axis along them, and back after a lap", () => {

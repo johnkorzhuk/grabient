@@ -66,13 +66,15 @@ export function glassMap(
   return out;
 }
 
-/** The window's rows `from` to `to` of glassMap into `out`, so a page can bake the map a slice at a time. */
+/** The window's rows `from` to `to` of glassMap into `out`, so a page can bake the map a slice at a time; `out` holds
+    them from its row `base` on, the window's first by default. */
 export function glassMapRows(
   geometry: GlassGeometry,
   out: Uint8Array,
   from: number,
   to: number,
-  window = whole(geometry)
+  window = whole(geometry),
+  base = 0
 ): void {
   const { ribs: ribList, normal, shadeTable: st } = geometry;
   const W = window.w;
@@ -182,7 +184,7 @@ export function glassMapRows(
       const a = A / 255;
       const ar = NR / 255;
       const ag = NG / 255;
-      const o = 4 * (y * W + x);
+      const o = 4 * ((y - base) * W + x);
       let v = 2 * a * ar - a - ar + 1;
       out[o] = Math.round(255 * (v < 0 ? 0 : v > 1 ? 1 : v));
       v = 2 * a * ag - a - ag + 1;
@@ -217,54 +219,77 @@ export function glassPlan(geometry: GlassGeometry) {
 export type GlassPlan = ReturnType<typeof glassPlan>;
 
 /** The CPU's frames of a geometry's window, for a PNG or a GIF: the player's arithmetic in JavaScript. Each pixel's
-    read is worked out once, since the glass does not move; a frame then costs the discs, the blur and one pass. */
+    read is worked out once, since the glass does not move; a frame then costs the discs, the blur and one pass. A
+    renderer drawing one frame alone (`once`) works out each pixel's read as it draws it instead, from the map a band
+    of rows at a time, the same numbers, holding neither the map nor the reads: 20 bytes a pixel, 60 MB at the
+    largest picture an address asks for. */
 export function glassRenderer(
   geometry: GlassGeometry,
   window = whole(geometry),
-  map = glassMap(geometry, window)
+  map?: Uint8Array,
+  once = false
 ) {
   const { region, scale } = geometry;
   const W = window.w;
   const H = window.h;
   const plan = glassPlan(geometry);
   const { q, fw, fh, taps } = plan;
-  const idx = new Int32Array(W * H);
-  const wx = new Float32Array(W * H);
-  const wy = new Float32Array(W * H);
-  const shf = new Float32Array(W * H);
-  for (let y = 0, i = 0; y < H; y++) {
-    for (let x = 0; x < W; x++, i++) {
-      const p = 4 * i;
-      const sx = x + window.x + Math.floor(scale * (map[p] / 255 - 0.5) + 0.5);
-      const sy = y + window.y + Math.floor(scale * (map[p + 1] / 255 - 0.5) + 0.5);
-      const fxp = (sx + 0.5 - region.x) / q - 0.5;
-      const fyp = (sy + 0.5 - region.y) / q - 0.5;
-      let x0 = Math.floor(fxp);
-      let y0 = Math.floor(fyp);
-      let ax = fxp - x0;
-      let ay = fyp - y0;
-      if (x0 < 0) {
-        x0 = 0;
-        ax = 0;
+  /* the read of the pixel at x, y from its texel of the map at p, into `read`, in single precision as the arrays keep
+     it: the field's texel, its shares across and down, and the light's factor */
+  const read = new Float64Array(4);
+  const readOf = (map: Uint8Array, p: number, x: number, y: number) => {
+    const sx = x + window.x + Math.floor(scale * (map[p] / 255 - 0.5) + 0.5);
+    const sy = y + window.y + Math.floor(scale * (map[p + 1] / 255 - 0.5) + 0.5);
+    const fxp = (sx + 0.5 - region.x) / q - 0.5;
+    const fyp = (sy + 0.5 - region.y) / q - 0.5;
+    let x0 = Math.floor(fxp);
+    let y0 = Math.floor(fyp);
+    let ax = fxp - x0;
+    let ay = fyp - y0;
+    if (x0 < 0) {
+      x0 = 0;
+      ax = 0;
+    }
+    if (x0 > fw - 2) {
+      x0 = fw - 2;
+      ax = 1;
+    }
+    if (y0 < 0) {
+      y0 = 0;
+      ay = 0;
+    }
+    if (y0 > fh - 2) {
+      y0 = fh - 2;
+      ay = 1;
+    }
+    read[0] = y0 * fw + x0;
+    read[1] = Math.fround(ax);
+    read[2] = Math.fround(ay);
+    read[3] = Math.fround((2 * map[p + 2]) / 255);
+  };
+  let reads: { idx: Int32Array; wx: Float32Array; wy: Float32Array; shf: Float32Array } | null =
+    null;
+  if (!once) {
+    const baked = map ?? glassMap(geometry, window);
+    reads = {
+      idx: new Int32Array(W * H),
+      wx: new Float32Array(W * H),
+      wy: new Float32Array(W * H),
+      shf: new Float32Array(W * H)
+    };
+    for (let y = 0, i = 0; y < H; y++) {
+      for (let x = 0; x < W; x++, i++) {
+        readOf(baked, 4 * i, x, y);
+        reads.idx[i] = read[0];
+        reads.wx[i] = read[1];
+        reads.wy[i] = read[2];
+        reads.shf[i] = read[3];
       }
-      if (x0 > fw - 2) {
-        x0 = fw - 2;
-        ax = 1;
-      }
-      if (y0 < 0) {
-        y0 = 0;
-        ay = 0;
-      }
-      if (y0 > fh - 2) {
-        y0 = fh - 2;
-        ay = 1;
-      }
-      idx[i] = y0 * fw + x0;
-      wx[i] = ax;
-      wy[i] = ay;
-      shf[i] = (2 * map[p + 2]) / 255;
     }
   }
+  /* a renderer drawing once bakes the map a band of rows at a time */
+  const BAND = 16;
+  const band = once ? new Uint8Array(4 * W * Math.min(BAND, H)) : null;
   const nT = taps.length;
   const tOff = Float64Array.from(taps, t => t[0]);
   const tW = Float64Array.from(taps, t => t[1]);
@@ -336,14 +361,23 @@ export function glassRenderer(
     blur(f, tmp, true);
     blur(tmp, f, false);
     const out = new Uint8ClampedArray(W * H * 4);
-    for (let i = 0; i < W * H; i++) {
-      const o00 = 3 * idx[i];
+    for (let i = 0, x = 0, y = 0; i < W * H; i++) {
+      if (band) {
+        if (x === 0 && y % BAND === 0)
+          glassMapRows(geometry, band, y, Math.min(H, y + BAND), window, y);
+        readOf(band, 4 * ((y % BAND) * W + x), x, y);
+        if (++x === W) {
+          x = 0;
+          y++;
+        }
+      }
+      const o00 = 3 * (reads ? reads.idx[i] : read[0]);
       const o10 = o00 + 3;
       const o01 = o00 + 3 * fw;
       const o11 = o01 + 3;
-      const ax = wx[i];
-      const ay = wy[i];
-      const sh = shf[i];
+      const ax = reads ? reads.wx[i] : read[1];
+      const ay = reads ? reads.wy[i] : read[2];
+      const sh = reads ? reads.shf[i] : read[3];
       const o = 4 * i;
       for (let c = 0; c < 3; c++) {
         const v = Math.round(
