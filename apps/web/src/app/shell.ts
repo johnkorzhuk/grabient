@@ -32,8 +32,7 @@ declare module "@tanstack/solid-router" {
     /** false where the page takes the water away, nothing in its place: the editor, whose picture is its own light */
     water?: boolean;
     /** the page opens on a picture of its own that runs under the header to the window's top (a palette's examples):
-        the header stands over it with no surface and no rule until the page scrolls, each side in the theme whose ink
-        reads on the picture there (the loader's `tone`, or what the page hands in), or frosted where none reads */
+        the header stands over it frosted, with no rule, until the page scrolls */
     clear?: boolean;
   }
 }

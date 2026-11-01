@@ -72,7 +72,7 @@ export function Example(props: {
   children: Element;
   /** chips under the stage, after the tag */
   notes?: Element;
-  /** its code in tabs; none where the stage hands over its own files, as the cards' strips do */
+  /** its code in tabs; none where the stage shows things made with the palette, as the cards do */
   code?: readonly CodeTab[];
   /** what the code's tabs hold, for a screen reader */
   codeLabel?: string;
