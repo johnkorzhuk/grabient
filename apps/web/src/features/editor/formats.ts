@@ -121,7 +121,7 @@ const glassStill = async (p: Taken): Promise<string> => {
   if (!picture) throw new Error("no still");
   return `url("${await dataUrl(picture)}") 50% 50%/cover no-repeat`;
 };
-/* the glass's stills made, by all they depend on, the latest few: drawing one holds the page about a third of a
+/* the glass's stills made, by all they depend on, the latest few: drawing one holds the page about a quarter of a
    second, so a copy of the same glass again, from the strip or the code pane, takes the one made */
 const STILLS_KEPT = 4;
 const glassStills = new Map<string, Promise<string>>();
