@@ -31,7 +31,7 @@ import { sampleSrgb } from "./curve.ts";
 import { groundHex, groundParts } from "./effect.ts";
 import { clamp, clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
-import { svgComment } from "./svg.ts";
+import { svgComment } from "./svg-comment.ts";
 import { type ParamReader, parseView, type Size } from "./view.ts";
 
 /** The `style` that asks a palette's SVG for this animation. */

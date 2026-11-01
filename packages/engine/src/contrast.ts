@@ -3,7 +3,7 @@
    its colors, then each of the reader's own text colors whether it reads or not. An ink is set on a ground at the size
    its contrast is enough for: text from 4.5 to 1, large text from 3, nothing under that. */
 import { contrastOf, hexToSrgb, luminance as luminanceOf, srgbToLab } from "./color.ts";
-import { svgComment } from "./svg.ts";
+import { svgComment } from "./svg-comment.ts";
 
 /** The relative luminance of a hex color; 0 for a string that is no color. */
 export const luminance = (hex: string) => {

@@ -6,10 +6,8 @@
 import { hexBytes } from "./color.ts";
 import type { Stop } from "./curve.ts";
 import { onWheel } from "./math.ts";
+import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, resolveSize, type Size, type Style, type View, viewSearch } from "./view.ts";
-
-/** A credit in an SVG's comment, which can hold no `--` (a seed may): each is written `-%2D`. */
-export const svgComment = (credit: string): string => `<!-- ${credit.replace(/--/g, "-%2D")} -->`;
 
 export interface Credit {
   seed: string;

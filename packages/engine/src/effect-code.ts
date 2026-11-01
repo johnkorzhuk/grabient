@@ -17,7 +17,7 @@ import { glassColors } from "./glass-colors.ts";
 import type { MarkdownEffect } from "./markdown.ts";
 import type { Palette } from "./palette.ts";
 import { toSpec } from "./spec.ts";
-import { svgComment } from "./svg.ts";
+import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, type Size } from "./view.ts";
 
 /** The effect's page, named by all its first frame depends on (its style, angle and look) or, `paced`, by how it plays
