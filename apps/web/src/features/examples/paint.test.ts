@@ -4,6 +4,7 @@ import type { Palette } from "@grabient/engine/palette.ts";
 import type { Style } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
 import {
+  colorsOfParts,
   colorsUnder,
   contrastLevel,
   drawnColors,
@@ -152,5 +153,79 @@ describe("inks", () => {
       effect: null
     };
     expect(inkOn(colorsUnder(s, { x0: 0, y0: 0, x1: 0.15, y1: 1 }, 1.6)).ink).toBe("#ffffff");
+  });
+});
+
+describe("colorsOfParts", () => {
+  const RISE = shown("linearGradient", 90, 5);
+  test("a gradient's part holds the colors at the ends of its stretch and each stop between", () => {
+    const stops = drawnColors(RISE);
+    const part = colorsOfParts(RISE, 2)({ x0: 0.2, y0: 0, x1: 0.6, y1: 1 });
+    expect(part).toHaveLength(4);
+    expect(part.slice(1, 3)).toEqual([stops[1], stops[2]]);
+    expect(light(part[0])).toBeLessThan(light(stops[1]));
+    expect(light(part[3])).toBeGreaterThan(light(stops[2]));
+  });
+  test("a stop between the points colorsUnder reads is held all the same", () => {
+    const s = shown("linearGradient", 0, 3);
+    const middle = drawnColors(s)[1];
+    expect(colorsOfParts(s, 2)({ x0: 0, y0: 0.4, x1: 1, y1: 0.6 })).toContain(middle);
+  });
+  test("bands give each band the part crosses", () => {
+    const s = shown("linearSwatches", 90, 5);
+    expect(colorsOfParts(s, 1)({ x0: 0.1, y0: 0, x1: 0.5, y1: 1 })).toEqual(
+      drawnColors(s).slice(0, 3)
+    );
+  });
+  test("a circle's part runs from its point nearest the center, the center's own color where it holds it", () => {
+    const s = shown("radialGradient", 90, 5);
+    const [first] = drawnColors(s);
+    expect(colorsOfParts(s, 1)({ x0: 0.3, y0: 0.3, x1: 0.7, y1: 0.7 })[0]).toBe(first);
+    expect(colorsOfParts(s, 1)({ x0: 0.9, y0: 0.9, x1: 1, y1: 1 })).not.toContain(first);
+  });
+  test("a cone's part across the turn's start holds both ends of the line, and one holding the center the whole of it", () => {
+    const s = shown("angularGradient", 0, 5);
+    const stops = drawnColors(s);
+    const across = colorsOfParts(s, 1)({ x0: 0.4, y0: 0, x1: 0.6, y1: 0.2 });
+    expect(across).toContain(stops[0]);
+    expect(across).toContain(stops[4]);
+    expect(colorsOfParts(s, 1)({ x0: 0.45, y0: 0.45, x1: 0.55, y1: 0.55 })).toEqual(stops);
+  });
+  test("every color colorsUnder reads lies within the part's colors: no lighter in any channel than their most, nor darker than their least", () => {
+    const styles: Style[] = [
+      "linearGradient",
+      "linearSwatches",
+      "angularGradient",
+      "angularSwatches",
+      "radialGradient",
+      "radialSwatches"
+    ];
+    const bytes = (hex: string) => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16));
+    let seed = 3;
+    const next = () => {
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+      return seed / 2 ** 32;
+    };
+    for (let i = 0; i < 300; i++) {
+      const s = shown(
+        styles[i % styles.length],
+        Math.floor(next() * 360),
+        2 + Math.floor(next() * 9)
+      );
+      const [x, y] = [next(), next()];
+      const part = {
+        x0: x * 0.8,
+        y0: y * 0.8,
+        x1: x * 0.8 + next() * 0.2,
+        y1: y * 0.8 + next() * 0.2
+      };
+      const aspect = 0.5 + next() * 2;
+      const within = colorsOfParts(s, aspect)(part).map(bytes);
+      for (const c of colorsUnder(s, part, aspect).map(bytes))
+        for (let k = 0; k < 3; k++) {
+          expect(c[k]).toBeGreaterThanOrEqual(Math.min(...within.map(w => w[k])) - 1);
+          expect(c[k]).toBeLessThanOrEqual(Math.max(...within.map(w => w[k])) + 1);
+        }
+    }
   });
 });

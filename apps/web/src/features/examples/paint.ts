@@ -88,15 +88,19 @@ const GRID = 9;
 /* the glass bends its colors across its ribs: a point may show the line's colors this far either way */
 const GLASS_BEND = 0.15;
 
+/** A blob's colors as they may stand anywhere: all of them, and its ground, the page's own in both themes where it has
+    none, since a server draws the page before it knows the reader's theme. */
+function blobColors(effect: Effect, colors: readonly string[]): string[] {
+  const ground = effect.look.bg?.slice(0, 7);
+  return [...colors, ...(ground ? [ground] : [THEME_GROUND.dark, THEME_GROUND.light])];
+}
+
 /** The colors under a part of a box `aspect` times as wide as tall where the palette is its picture, as the page shows
     it. A blob's are all of its colors and its ground: the page's own in both themes where it has none, since a server
     draws the page before it knows the reader's theme. */
 export function colorsUnder(s: Shown, part: Part, aspect: number): string[] {
   const colors = drawnColors(s);
-  if (s.effect?.kind === "blob") {
-    const ground = s.effect.look.bg?.slice(0, 7);
-    return [...colors, ...(ground ? [ground] : [THEME_GROUND.dark, THEME_GROUND.light])];
-  }
+  if (s.effect?.kind === "blob") return blobColors(s.effect, colors);
   const glass = s.effect?.kind === "glass";
   const style: Style = glass ? "linearGradient" : s.view.style;
   const bands = !glass && isSwatchStyle(style);
@@ -147,4 +151,77 @@ export function groundOn(page: string, colors: readonly string[]): string {
     (best, color) => (contrast(color, page) > contrast(best, page) ? color : best),
     colors[0] ?? "#808080"
   );
+}
+
+/** The stretches of the line a part of a box `aspect` times as wide as tall covers, each from `a` to `b` in 0 to 1, as
+    CSS draws the style: a linear gradient's between its corners' places; a circle's from the part's point nearest the
+    center (the center where the part holds it) to its farthest corner; a cone's the least turn holding its corners,
+    the whole turn where the part holds the center, and two stretches where it crosses the turn's start. */
+function stretchesOf(style: Style, angle: number, aspect: number, part: Part): [number, number][] {
+  const places = [
+    [part.x0, part.y0],
+    [part.x1, part.y0],
+    [part.x0, part.y1],
+    [part.x1, part.y1]
+  ].map(([x, y]) => placeOf(style, angle, aspect, x, y));
+  if (style.startsWith("radial")) {
+    const nearX = Math.min(Math.max(0.5, part.x0), part.x1);
+    const nearY = Math.min(Math.max(0.5, part.y0), part.y1);
+    return [[placeOf(style, angle, aspect, nearX, nearY), Math.max(...places)]];
+  }
+  if (style.startsWith("angular")) {
+    if (part.x0 <= 0.5 && part.x1 >= 0.5 && part.y0 <= 0.5 && part.y1 >= 0.5) return [[0, 1]];
+    /* the turn less the widest gap between neighboring corners, the one across the start first */
+    const turns = places.sort((a, b) => a - b);
+    let [from, to, gap] = [turns[0], turns[3], 1 - turns[3] + turns[0]];
+    for (let i = 0; i < 3; i++)
+      if (turns[i + 1] - turns[i] > gap)
+        [from, to, gap] = [turns[i + 1], turns[i] + 1, turns[i + 1] - turns[i]];
+    return to <= 1
+      ? [[from, to]]
+      : [
+          [from, 1],
+          [0, to - 1]
+        ];
+  }
+  return [[Math.min(...places), Math.max(...places)]];
+}
+
+/** The colors laid along a gradient's line from `a` to `b` of which every color between is a blend: those at its ends
+    and each stop between; of bands, each band it crosses. */
+function colorsOver(colors: readonly string[], a: number, b: number, bands: boolean): string[] {
+  const n = colors.length;
+  const from = Math.min(1, Math.max(0, a));
+  const to = Math.min(1, Math.max(0, b));
+  if (bands || n < 2)
+    return colors.slice(
+      Math.min(n - 1, Math.floor(from * n)),
+      Math.min(n - 1, Math.floor(to * n)) + 1
+    );
+  const stops = colors.filter((_, k) => from < k / (n - 1) && k / (n - 1) < to);
+  return [colorAt(colors, from, false), ...stops, colorAt(colors, to, false)];
+}
+
+/** The colors under any part of a box `aspect` times as wide as tall where the palette is its picture, exactly where
+    colorsUnder reads points: those every color there is a blend of, from the stretches of the line the part covers
+    (the glass's widened by its ribs' bend), and a blob's all of its colors and its ground. The palette's colors are
+    worked out once, for every part asked of it. */
+export function colorsOfParts(s: Shown, aspect: number): (part: Part) => string[] {
+  const colors = drawnColors(s);
+  const effect = s.effect;
+  if (effect?.kind === "blob") {
+    const all = blobColors(effect, colors);
+    return () => all;
+  }
+  const glass = effect?.kind === "glass";
+  const style: Style = glass ? "linearGradient" : s.view.style;
+  const bands = !glass && isSwatchStyle(style);
+  const bend = glass ? GLASS_BEND : 0;
+  return part => [
+    ...new Set(
+      stretchesOf(style, s.view.angle, aspect, part).flatMap(([a, b]) =>
+        colorsOver(colors, a - bend, b + bend, bands)
+      )
+    )
+  ];
 }

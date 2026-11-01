@@ -5,11 +5,12 @@ import { isSwatchStyle } from "@grabient/engine/view.ts";
 import { dir, formatDate, formatNumber, msg, rich, t } from "@grabient/i18n";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, type Element, For, Show, untrack } from "solid-js";
+import { createMemo, createSignal, type Element, For, Show, untrack } from "solid-js";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import styles from "./Cards.module.css";
 import { Chip, Example, type ExampleProps } from "./Example.tsx";
 import { inkThrough, MARK, type Press, pressPaper, standsOut, TEXT, TILE } from "./fit.ts";
+import { frostOn } from "./frost.ts";
 import { HeadlineTile, headlineShown, headlinesOf } from "./Headline.tsx";
 import {
   colorsUnder,
@@ -22,8 +23,8 @@ import {
 } from "./paint.ts";
 import { drawnWords, formWords, gradientOf, inForm, solidBlob } from "./shared.ts";
 
-/* Covers and cards: the palette as the media and the small things a designer makes with it, laid as a masonry of
-   real shapes and sizes: a poster, an album's sleeve with its record, a video's thumbnail, a social post, an event's
+/* Covers and cards: the palette as the media and the small things a designer makes with it, laid as a masonry of real
+   shapes and sizes: a poster, an album's sleeve, a video's thumbnail, a frosted widget, a social post, an event's
    card, a ticket, a membership card, an app's icon, a business card and a pair of buttons. Each wears the palette as
    the address draws it (an effect's still, playing while the pointer is on its tile), and a press on a tile turns it
    to its next look. Words stand on the palette only where the checks let them (fit.ts): in the
@@ -40,6 +41,7 @@ type Kind =
   | "post"
   | "event"
   | "ticket"
+  | "widget"
   | "member"
   | "icon"
   | "business"
@@ -58,14 +60,17 @@ const PLACES: Readonly<Record<Kind, { col: string; row: string; aspect: number }
   icon: { col: "4 / span 1", row: "32 / span 22", aspect: 1.1 },
   event: { col: "1 / span 2", row: "55 / span 31", aspect: 1.6 },
   ticket: { col: "3 / span 2", row: "55 / span 18", aspect: 2.75 },
-  business: { col: "3 / span 1", row: "74 / span 12", aspect: 2 },
-  buttons: { col: "4 / span 1", row: "74 / span 12", aspect: 2 },
+  /* the widget under the ticket, as wide as a home screen's middle widget; the business card and the buttons under
+     the event */
+  widget: { col: "3 / span 2", row: "74 / span 25", aspect: 1.98 },
+  business: { col: "1 / span 1", row: "87 / span 12", aspect: 2 },
+  buttons: { col: "2 / span 1", row: "87 / span 12", aspect: 2 },
   /* the headlines under the rest, side by side at 3:2 where both suit the palette (HEADLINE_ALONE where one does) */
-  letters: { col: "1 / span 2", row: "87 / span 33", aspect: 1.5 },
-  mark: { col: "3 / span 2", row: "87 / span 33", aspect: 1.5 }
+  letters: { col: "1 / span 2", row: "100 / span 33", aspect: 1.5 },
+  mark: { col: "3 / span 2", row: "100 / span 33", aspect: 1.5 }
 };
 /** A headline alone under the rest: the stage's width at 12:5, as Headline.tsx lays a wide tile's words. */
-const HEADLINE_ALONE = { col: "1 / span 4", row: "87 / span 42", aspect: 1.5 };
+const HEADLINE_ALONE = { col: "1 / span 4", row: "100 / span 42", aspect: 1.5 };
 
 const NAMES: Readonly<Record<Kind, string>> = {
   poster: msg("Poster"),
@@ -74,6 +79,7 @@ const NAMES: Readonly<Record<Kind, string>> = {
   post: msg("Social post"),
   event: msg("Event card"),
   ticket: msg("Ticket"),
+  widget: msg("Widget"),
   member: msg("Membership card"),
   icon: msg("App icon"),
   business: msg("Business card"),
@@ -423,6 +429,42 @@ function Ticket(props: TileProps) {
   );
 }
 
+/** A widget: the palette as its scene and a card of frosted glass on it, which holds an app's mark, what it counts
+    and its amount, in the ink that reads on every color the glass can show there, veiled with the palette's own tint
+    where that is enough (frost.ts). The card stands on the widget's start side where Cards.module.css's .glass lays
+    it: 6% in from the start, 46% wide and 15% in from the top and the foot. */
+const CARD: Part = { x0: 0.06, y0: 0.15, x1: 0.52, y1: 0.85 };
+/** How far the glass's blur reaches, as a share of the widget's width: three of its standard deviations, 2.5cqi each
+    (Cards.module.css's .glass). */
+const FROST_REACH = 0.075;
+function Widget(props: TileProps) {
+  const frost = createMemo(() =>
+    frostOn(props.s, dir() === "rtl" ? mirrored(CARD) : CARD, PLACES.widget.aspect, FROST_REACH)
+  );
+  const amount = () => formatNumber(0, { style: "currency", currency: "GBP" });
+  return (
+    <div class={styles.widget}>
+      <Picture s={props.s} lit={props.lit()} />
+      <div
+        class={styles.glass}
+        style={{
+          "--ink": frost().ink,
+          "--back": frost().ink === "#ffffff" ? "#000000" : "#ffffff",
+          "--veil": frost().veil
+        }}
+      >
+        <span class={styles.appMark}>
+          <Icon name="anchor" size={24} />
+        </span>
+        <p class={styles.costName}>{t("Sunk cost")}</p>
+        <p class={styles.amount} style={{ "--chars": String(amount().length) }}>
+          {amount()}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /** A membership card: the palette as its face, its words in the ink that reads on every color under them, else on a
     strip of paper at its foot. */
 const MEMBER: Part = { x0: 0.06, y0: 0.06, x1: 0.94, y1: 0.94 };
@@ -539,6 +581,7 @@ const TILES: Readonly<Record<Kind, (props: TileProps) => Element>> = {
   post: Post,
   event: Event,
   ticket: Ticket,
+  widget: Widget,
   member: Member,
   icon: AppIcon,
   business: Business,
@@ -555,6 +598,7 @@ const ORDER: readonly Kind[] = [
   "icon",
   "event",
   "ticket",
+  "widget",
   "business",
   "buttons"
 ];
@@ -619,6 +663,7 @@ const TURNING: ReadonlySet<Kind> = new Set([
   "post",
   "event",
   "ticket",
+  "widget",
   "member",
   "icon",
   "business"

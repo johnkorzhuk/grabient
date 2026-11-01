@@ -89,7 +89,7 @@ test("the way back opens the editor at the palette the keys left", async ({ page
 
 test("a press on a tile turns it to the palette's next look", async ({ page }) => {
   await open(page, `/${SEED}/examples`);
-  await expect(page.locator("#cards [role=group]")).toHaveCount(10);
+  await expect(page.locator("#cards [role=group]")).toHaveCount(11);
   const album = page.locator('#cards [data-kind="album"]');
   const before = await album.getAttribute("aria-label");
   await album.click({ position: { x: 12, y: 12 } });

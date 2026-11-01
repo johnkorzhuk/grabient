@@ -298,13 +298,13 @@
   "Admit one": {
     "note": "Demo content: the words printed on a ticket's stub, meaning the ticket lets one person in. Small capitals, set vertically; keep it short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:411"
+      "apps/web/src/features/examples/Cards.tsx:417"
     ]
   },
   "Album cover": {
     "note": "Read by screen readers: the name of one tile, a music album's cover (its sleeve with a vinyl record) made with the palette.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:72"
+      "apps/web/src/features/examples/Cards.tsx:77"
     ]
   },
   "All features": {
@@ -397,7 +397,7 @@
   "App icon": {
     "note": "Read by screen readers: the name of one tile, a phone app's icon.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:78"
+      "apps/web/src/features/examples/Cards.tsx:84"
     ]
   },
   "Appearance": {
@@ -499,7 +499,7 @@
   "Background <c>{color}</c>": {
     "note": "A chip under an example: the background color the example gives a blob that has none of its own. <c>…</c> marks the hex code (like #101828), which stays as written; keep the tags.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:664",
+      "apps/web/src/features/examples/Cards.tsx:709",
       "apps/web/src/features/examples/Profile.tsx:143",
       "apps/web/src/features/examples/Wallpapers.tsx:277"
     ]
@@ -578,13 +578,13 @@
   "Business card": {
     "note": "Read by screen readers: the name of one tile, a small printed card with a person's name and job.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:79"
+      "apps/web/src/features/examples/Cards.tsx:85"
     ]
   },
   "Buttons": {
     "note": "Read by screen readers: the name of one tile holding two example buttons. A plural noun.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:80"
+      "apps/web/src/features/examples/Cards.tsx:86"
     ]
   },
   "By continuing you agree to the <terms>Terms of Service</terms>. The <privacy>Privacy Policy</privacy> says how your information is used.": {
@@ -860,7 +860,7 @@
   "Color in interfaces": {
     "note": "Demo content: the title of the example event card, a workshop about using color in app and web interfaces. Short title.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:363"
+      "apps/web/src/features/examples/Cards.tsx:369"
     ]
   },
   "Color palettes and CSS gradients like {name}. Edit any of them, then copy CSS or export SVG and PNG.": {
@@ -1408,7 +1408,7 @@
   "Covers and cards": {
     "note": "Examples page: title of a section, shown after its number as '2 · Covers and cards'. A masonry of media made with the palette: a poster, an album cover, a video thumbnail, a social post, an event card, a ticket, a membership card, an app icon, a business card, buttons. Short title.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:656"
+      "apps/web/src/features/examples/Cards.tsx:701"
     ]
   },
   "Custom": {
@@ -1681,7 +1681,7 @@
   "Event card": {
     "note": "Read by screen readers: the name of one tile, a card announcing an event, with a button to sign up.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:75"
+      "apps/web/src/features/examples/Cards.tsx:80"
     ]
   },
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": {
@@ -1898,7 +1898,7 @@
   "For posters, covers, posts and tickets.": {
     "note": "Examples page: the one short line under the 'Covers and cards' title, naming what the palette dresses there. Plain list, no marketing words.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:657"
+      "apps/web/src/features/examples/Cards.tsx:702"
     ]
   },
   "For profiles and default avatars.": {
@@ -1963,14 +1963,14 @@
   "Gate {gate} · Seat {seat}": {
     "note": "Demo content on an example ticket: the entrance and the seat number ('Gate B · Seat 14'). Keep both placeholders and the middle dot.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:418"
+      "apps/web/src/features/examples/Cards.tsx:424"
     ]
   },
   "Get started": {
     "note": "Demo content: the label of an example call-to-action button. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:498",
-      "apps/web/src/features/examples/Cards.tsx:508"
+      "apps/web/src/features/examples/Cards.tsx:540",
+      "apps/web/src/features/examples/Cards.tsx:550"
     ]
   },
   "Glaring, clipped or too neon": {
@@ -1982,7 +1982,7 @@
   "Glass Harbor": {
     "note": "Demo content: the name of a fictional band, under the album title 'Low Tide'. Translate as a natural band name, or keep it if band names stay in English in your language.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:260"
+      "apps/web/src/features/examples/Cards.tsx:266"
     ]
   },
   "Good fit": {
@@ -2091,7 +2091,7 @@
   "Harbor Hall": {
     "note": "Demo content: the name of a fictional venue by a harbor, under an example poster's title. Translate as a natural venue name; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:243"
+      "apps/web/src/features/examples/Cards.tsx:249"
     ]
   },
   "Hard steps where a blend was meant": {
@@ -2109,7 +2109,7 @@
   "Headline": {
     "note": "Examples page, said to a screen reader: the name of a tile in the cards grid showing the palette name set as a big heading in the palette colors.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:81"
+      "apps/web/src/features/examples/Cards.tsx:87"
     ]
   },
   "Height": {
@@ -2143,7 +2143,7 @@
   "Highlighted headline": {
     "note": "Examples page, said to a screen reader: the name of a tile in the cards grid showing a heading with some words highlighted by the palette, like a marker.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:82"
+      "apps/web/src/features/examples/Cards.tsx:88"
     ]
   },
   "Hold all keyframes": {
@@ -2205,7 +2205,7 @@
   "Illustrator and type designer": {
     "note": "Demo content: what the fictional person Mira does, on her demo social profile and business card. Short, as a profile bio reads.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:478",
+      "apps/web/src/features/examples/Cards.tsx:520",
       "apps/web/src/features/examples/Profile.tsx:194"
     ]
   },
@@ -2468,7 +2468,7 @@
   "Learn more": {
     "note": "Demo content: the label of an example secondary button. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:529"
+      "apps/web/src/features/examples/Cards.tsx:571"
     ]
   },
   "Left out: {unsubscribed} opted out or waiting for a yes, {personas} personas, {undeliverable} test addresses, {already} already sent it.": {
@@ -2600,7 +2600,7 @@
   "Live": {
     "note": "Demo content on an example poster, before its date ('Live · Nov 12'): a live performance or event. Small capitals; one short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:241"
+      "apps/web/src/features/examples/Cards.tsx:247"
     ]
   },
   "Loading more…": {
@@ -2640,7 +2640,7 @@
   "Low Tide": {
     "note": "Demo content: the title of a fictional song or album, shown beside an example album cover. Translate as a natural song title; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:259"
+      "apps/web/src/features/examples/Cards.tsx:265"
     ]
   },
   "MCP server": {
@@ -2683,7 +2683,7 @@
   "Make room for color.": {
     "note": "Demo content: the quote set large on an example social media post. A short, friendly invitation to use more color. Keep it short (a few words) and end it as a sentence.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:311"
+      "apps/web/src/features/examples/Cards.tsx:317"
     ]
   },
   "Make, edit and delete your collections.": {
@@ -2720,13 +2720,13 @@
   "Member": {
     "note": "Demo content: the small label at the top of an example membership card. One short word, in capitals.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:435"
+      "apps/web/src/features/examples/Cards.tsx:477"
     ]
   },
   "Membership card": {
     "note": "Read by screen readers: the name of one tile, a club or store membership card the size of a bank card.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:77"
+      "apps/web/src/features/examples/Cards.tsx:83"
     ]
   },
   "Message": {
@@ -2738,8 +2738,8 @@
   "Mira": {
     "note": "A fictional person's first name: the name on a demo social profile, a membership card and a business card. Write it in your language's script; keep it a short, ordinary woman's name.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:442",
-      "apps/web/src/features/examples/Cards.tsx:477",
+      "apps/web/src/features/examples/Cards.tsx:484",
+      "apps/web/src/features/examples/Cards.tsx:519",
       "apps/web/src/features/examples/Profile.tsx:32"
     ]
   },
@@ -2842,8 +2842,8 @@
   "Night Market": {
     "note": "Demo content: the name of a fictional evening market event, the title of an example poster and ticket. Translate as a natural event name; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:242",
-      "apps/web/src/features/examples/Cards.tsx:415"
+      "apps/web/src/features/examples/Cards.tsx:248",
+      "apps/web/src/features/examples/Cards.tsx:421"
     ]
   },
   "No app is waiting. Connect again from your app.": {
@@ -3052,7 +3052,7 @@
   "Online": {
     "note": "Demo content: where the example event takes place (online, not in a room). One short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:367"
+      "apps/web/src/features/examples/Cards.tsx:373"
     ]
   },
   "Only Grabient links can be opened here.": {
@@ -3512,7 +3512,7 @@
   "Poster": {
     "note": "Read by screen readers: the name of one tile in the 'Covers and cards' section, a poster made with the palette. A noun.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:71"
+      "apps/web/src/features/examples/Cards.tsx:76"
     ]
   },
   "Prepare": {
@@ -4053,7 +4053,7 @@
   "Save a seat": {
     "note": "Demo content: the button of the example event card, to sign up for the workshop. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:381"
+      "apps/web/src/features/examples/Cards.tsx:387"
     ]
   },
   "Save likes, collections and votes from accounts and their apps. When off, pages keep likes and changes to an account's collections until saving is back, other saves are refused, and reading still works.": {
@@ -4240,7 +4240,7 @@
   "Seat saved": {
     "note": "The event card's button after it was pressed: a seat is now saved for you. Short button label, about as long as 'Save a seat'.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:384"
+      "apps/web/src/features/examples/Cards.tsx:390"
     ]
   },
   "Seed": {
@@ -4660,7 +4660,7 @@
   "Social post": {
     "note": "Read by screen readers: the name of one tile, an image post for a social network, with a quote on it.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:74"
+      "apps/web/src/features/examples/Cards.tsx:79"
     ]
   },
   "Some features are limited here.": {
@@ -4817,10 +4817,16 @@
       "apps/web/src/features/newsletter/UnsubscribePage.tsx:121"
     ]
   },
+  "Sunk cost": {
+    "note": "Examples page: a playful label on the widget tile of the cards grid, a frosted card counting money already spent that can't be got back; it shows an amount of zero under it. A pun on the anchor drawn beside it.",
+    "refs": [
+      "apps/web/src/features/examples/Cards.tsx:459"
+    ]
+  },
   "Sunrise": {
     "note": "Demo content: the name of a fictional app, under its example app icon (a sun). One short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:466"
+      "apps/web/src/features/examples/Cards.tsx:508"
     ]
   },
   "Sunset: lightness falls from 0.86 to 0.32, chroma peaks at 0.19, and hue turns from yellow to crimson.": {
@@ -5283,7 +5289,7 @@
   "Ticket": {
     "note": "Read by screen readers: the name of one tile, an admission ticket with a tear-off stub.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:76"
+      "apps/web/src/features/examples/Cards.tsx:81"
     ]
   },
   "Title": {
@@ -5573,7 +5579,7 @@
   "Video thumbnail": {
     "note": "Read by screen readers: the name of one tile, the small preview picture of an online video, with a play button.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:73"
+      "apps/web/src/features/examples/Cards.tsx:78"
     ]
   },
   "View saved.": {
@@ -5694,6 +5700,12 @@
       "packages/ui/src/Curation.tsx:294"
     ]
   },
+  "Widget": {
+    "note": "Examples page, said to a screen reader: the name of a tile in the cards grid showing a home-screen widget, a frosted glass card with an amount laid on the palette.",
+    "refs": [
+      "apps/web/src/features/examples/Cards.tsx:82"
+    ]
+  },
   "Width": {
     "note": "Field: width in pixels.",
     "refs": [
@@ -5710,7 +5722,7 @@
   "Workshop": {
     "note": "Demo content: the small label at the top of an example event card: a workshop people sign up for. One short word, shown in capitals.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:362"
+      "apps/web/src/features/examples/Cards.tsx:368"
     ]
   },
   "Write 5 to 5,000 characters, and a valid email for a reply.": {
