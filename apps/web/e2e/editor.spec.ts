@@ -829,6 +829,42 @@ test("while the glass plays, the code pane holds its code: its tags, its stylesh
   await expect(code).toContainText("- Drawn as: fluted glass, its ribs at 45 degrees");
 });
 
+test("the Shader tab writes the shader for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that run it, its code coming with the tab", async ({
+  page
+}) => {
+  const asked = new Set<string>();
+  page.on("request", request => {
+    const name = /\/engine\/src\/(shader(?:-page)?\.ts)$/.exec(
+      new URL(request.url()).pathname
+    )?.[1];
+    if (name) asked.add(name);
+  });
+  await open(page);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await expect(tabs.getByRole("tab", { name: "Shader" })).toBeVisible();
+  expect([...asked]).toEqual([]);
+  await tabs.getByRole("tab", { name: "Shader" }).click();
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  await expect(code).toContainText("void mainImage(out vec4 fragColor, in vec2 fragCoord) {");
+  expect([...asked].sort()).toEqual(["shader-page.ts", "shader.ts"]);
+  const spellings = page.getByRole("tablist", { name: "Syntax" });
+  await expect(spellings.getByRole("tab")).toHaveText([
+    "Shadertoy",
+    "GLSL",
+    "WGSL",
+    "WebGL",
+    "WebGPU"
+  ]);
+  await spellings.getByRole("tab", { name: "WebGL" }).click();
+  await expect(code).toContainText(
+    '<script type="x-shader/x-fragment" id="shader">#version 300 es'
+  );
+  await spellings.getByRole("tab", { name: "WebGPU" }).click();
+  await expect(code).toContainText(`<script type="text/wgsl" id="shader">// grabient ${SEED}`);
+  await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
+});
+
 test("a copy of the glass's tags the browser refuses selects them whole, its first frame written out", async ({
   page
 }) => {

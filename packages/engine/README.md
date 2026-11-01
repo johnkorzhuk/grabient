@@ -92,7 +92,8 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
 - Color and curve: `color.ts` (sRGB, OKLab, OKLCH, Display-P3, CIELAB, WCAG luminance), `okhsv.ts`, `curve.ts`,
   `math.ts`.
 - The palette: `palette.ts` (types and bounds), `codec.ts`, `spec.ts`, `edits.ts`, `random.ts`, `fit.ts`.
-- Views and files: `view.ts`, `css.ts`, `svg.ts`, `shader.ts`, `swatches.ts`, `document.ts`, `markdown.ts`, `zip.ts`.
+- Views and files: `view.ts`, `css.ts`, `svg.ts`, `shader.ts` (its kinds in `shader-kinds.ts`, its WebGL and WebGPU
+  pages in `shader-page.ts`), `swatches.ts`, `document.ts`, `markdown.ts`, `zip.ts`.
 - What a palette is: `name.ts`, `colorname.ts` over `colornames.data.ts`, `shape.ts`, `dominant.ts`, `contrast.ts`,
   `plot.ts`, `strip.ts`.
 - Old links: `legacy.ts`, `legacy-import.ts`.

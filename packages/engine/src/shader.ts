@@ -2,17 +2,19 @@
    keyframes itself: the engine's Catmull-Rom curve, its 24-step chroma fit to sRGB, and the style's CSS geometry, so
    editing ANCHORS, STEPS or ANGLE still draws the edited palette. A palette with a near gray that keeps its own tint
    adds the tints as a curve of their own in OKLab, as the engine's sampleLCH does. The OKLab matrices are Björn
-   Ottosson's (see NOTICE). */
+   Ottosson's (see NOTICE). The WebGL and WebGPU kinds are pages that run the GLSL and the WGSL as written here
+   (shader-page.ts); the kinds themselves are in shader-kinds.ts. */
 import { DEG } from "./math.ts";
 import type { Palette } from "./palette.ts";
+import type { ShaderKind, ShaderPageKind } from "./shader-kinds.ts";
 import { isSwatchStyle, type View, viewSearch } from "./view.ts";
 
-export type ShaderKind = "shadertoy" | "glsl" | "wgsl";
-export const SHADER_KINDS: readonly (readonly [ShaderKind, string])[] = [
-  ["shadertoy", "Shadertoy"],
-  ["glsl", "GLSL"],
-  ["wgsl", "WGSL"]
-];
+export {
+  isShaderPage,
+  SHADER_KINDS,
+  type ShaderKind,
+  type ShaderPageKind
+} from "./shader-kinds.ts";
 
 /** A number as shader source: 7 decimals, trailing zeros trimmed, always a float literal. */
 const num = (n: number) => {
@@ -35,14 +37,25 @@ const tintsOf = (P: Palette): [number, number][] | null =>
 const TINT_NOTE =
   "// The faint tint each near-gray keyframe keeps beside the hue it carries, as an offset in OKLab.";
 
-type ShaderView = Pick<View, "style" | "angle">;
-/* The credit every dialect carries, so a shader found later says where it came from. */
-function header(seed: string, view: ShaderView, steps: number, origin?: string) {
-  const lines = [`// grabient ${seed}`];
-  if (origin) lines.push(`// ${origin}/${seed}${viewSearch({ ...view, steps })}`);
-  lines.push(`// ${steps} ${isSwatchStyle(view.style) ? "hard bands" : "stops along the curve"}`);
-  return lines.join("\n");
+export type ShaderView = Pick<View, "style" | "angle">;
+/** The credit every dialect carries, so a shader found later says where it came from: the seed, the palette's address
+    where an origin is given, and what the shader draws. Lines without their comment marks, which a page writes its
+    own way. */
+export function shaderCredit(
+  seed: string,
+  view: ShaderView,
+  steps: number,
+  origin?: string
+): string[] {
+  const lines = [`grabient ${seed}`];
+  if (origin) lines.push(`${origin}/${seed}${viewSearch({ ...view, steps })}`);
+  lines.push(`${steps} ${isSwatchStyle(view.style) ? "hard bands" : "stops along the curve"}`);
+  return lines;
 }
+const header = (seed: string, view: ShaderView, steps: number, origin?: string) =>
+  shaderCredit(seed, view, steps, origin)
+    .map(line => `// ${line}`)
+    .join("\n");
 const gradTComment = (view: ShaderView) =>
   view.style.startsWith("radial")
     ? "// radial-gradient(circle at 50% 50%): the default reach is the farthest corner"
@@ -278,7 +291,7 @@ fn fs_main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 /** The palette's shader in a dialect, `steps` stops in the view's style. `origin` adds the palette's address to the
     credit. */
 export function shaderText(
-  kind: ShaderKind,
+  kind: Exclude<ShaderKind, ShaderPageKind>,
   P: Palette,
   view: ShaderView,
   steps: number,

@@ -10,7 +10,7 @@ import {
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { effectAddressParts } from "@grabient/engine/effect.ts";
 import { paletteMarkdown } from "@grabient/engine/markdown.ts";
-import { SHADER_KINDS, type ShaderKind, shaderText } from "@grabient/engine/shader.ts";
+import { isShaderPage, SHADER_KINDS, type ShaderKind } from "@grabient/engine/shader-kinds.ts";
 import { specJson } from "@grabient/engine/spec.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { gplText, swatchPalette, tokensJson } from "@grabient/engine/swatches.ts";
@@ -85,6 +85,29 @@ const effectTabsNow = () => {
     });
   }
   return effectTabs();
+};
+/* the shader's texts and its WebGL and WebGPU pages (engine/shader.ts, shader-page.ts), asked for once the Shader tab
+   shows: a page's start carries only the tab's spellings */
+interface ShaderCode {
+  text: typeof import("@grabient/engine/shader.ts");
+  page: typeof import("@grabient/engine/shader-page.ts");
+}
+const [shaderCode, setShaderCode] = createSignal<ShaderCode | null>(null);
+let shaderAsked = false;
+const shaderCodeNow = () => {
+  if (!shaderAsked) {
+    shaderAsked = true;
+    void Promise.all([
+      import("@grabient/engine/shader.ts"),
+      import("@grabient/engine/shader-page.ts")
+    ]).then(
+      ([text, page]) => setShaderCode({ text, page }),
+      () => {
+        shaderAsked = false;
+      }
+    );
+  }
+  return shaderCode();
 };
 
 /** What the page knows of the palette beyond its colors. */
@@ -224,7 +247,14 @@ export function codeSources(
       id: "shader",
       label: msg("Shader"),
       spellings: SHADER_KINDS.map(([id, label]) => ({ id, label })),
-      text: s => shaderText((s ?? "shadertoy") as ShaderKind, P, v, n, seed, origin()),
+      text: s => {
+        const kind = (s ?? "shadertoy") as ShaderKind;
+        const code = shaderCodeNow();
+        if (!code) return "";
+        return isShaderPage(kind)
+          ? code.page.shaderPage(kind, P, v, n, seed, origin())
+          : code.text.shaderText(kind, P, v, n, seed, origin());
+      },
       note: () => t("Keyframes, spline and OKLCH to sRGB conversion.")
     },
     {

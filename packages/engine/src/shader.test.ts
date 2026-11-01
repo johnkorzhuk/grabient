@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
 import { decodePalette } from "./codec.ts";
 import type { Palette } from "./palette.ts";
-import { SHADER_KINDS, type ShaderKind, shaderText } from "./shader.ts";
+import { isShaderPage, SHADER_KINDS, type ShaderKind, shaderText } from "./shader.ts";
 import type { Style } from "./view.ts";
 
 const { entries } = golden<{
@@ -25,6 +25,7 @@ test("Shadertoy, GLSL and WGSL text is as before, tinted near grays included", (
       Record<ShaderKind, string>
     ][]) {
       for (const [kind] of SHADER_KINDS) {
+        if (isShaderPage(kind)) continue;
         expect(
           shaderText(kind, P, { style, angle: e.angle }, e.steps, e.seed, "https://grabient.com"),
           `${e.id} ${style} ${kind}`
