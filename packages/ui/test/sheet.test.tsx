@@ -100,6 +100,24 @@ describe("the sheet's panes", () => {
     expect(css).toContain(">oklch;<");
   });
 
+  test("a spelling the kind does not offer is never the one shown: the first it offers is, chosen", () => {
+    const sources: CodeSource[] = [
+      {
+        id: "colors",
+        label: "Colors",
+        spellings: [
+          { id: "hex", label: "Hex" },
+          { id: "rgb", label: "RGB" }
+        ],
+        initial: "gpl",
+        text: s => `colors in ${s}`
+      }
+    ];
+    const html = renderToString(() => <PaletteCode sources={sources} />);
+    expect(html.replace(/<[^>]+>/g, "")).toContain("colors in hex");
+    expect(html).toMatch(/aria-selected="true"[^>]*tabindex="0"[^>]*>Hex</);
+  });
+
   test("the contrast grid has a row to each ink and a named cell to each ground, the key at rest", () => {
     const html = renderToString(() => (
       <ContrastGrid colors={hexes.map(hex => ({ hex }))} aria-label="Text contrast" />

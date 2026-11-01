@@ -39,8 +39,12 @@ export function PaletteCode(props: {
   const [kind, setKind] = createSignal(untrack(() => props.initial));
   const [spellings, setSpellings] = createSignal<Readonly<Record<string, string>>>({});
   const source = () => props.sources.find(s => s.id === kind()) ?? props.sources[0];
-  const spelling = () =>
-    spellings()[source().id] ?? source().initial ?? source().spellings?.[0]?.id;
+  /* a spelling kept for a kind is passed over where the kind no longer offers it: the gradient's GPL, once an effect's
+     Colors, which offer none, take the tab's place */
+  const spelling = () => {
+    const { id, spellings: offered = [], initial } = source();
+    return [spellings()[id], initial].find(s => offered.some(o => o.id === s)) ?? offered[0]?.id;
+  };
   const text = () => source().text(spelling());
   const take = () => {
     const { take } = source();
