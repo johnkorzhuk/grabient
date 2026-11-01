@@ -13,6 +13,7 @@ import {
   type Element,
   For,
   Match,
+  onCleanup,
   Show,
   Switch,
   untrack
@@ -94,6 +95,8 @@ const STILL = {
   mark: { width: 1200, height: 200 },
   rule: { width: 1600, height: 80 }
 };
+/** How long the track goes without a scroll before it counts as at rest, where the browser sends no scrollend. */
+const REST = 140;
 /** The hero's picture, in hundredths of its width. */
 const SPLIT = 42;
 /** The marked heading: the tag around the words the palette marks. */
@@ -473,10 +476,13 @@ export function HeadlineExample(props: ExampleProps) {
     ...(mark() ? (["mark"] as const) : []),
     "rule"
   ]);
-  /* the slide in view, which the tag, the chips, the code and the dots follow */
+  /* the slide in view, which the tag, the chips, the code and the dots follow: it changes once, where a scroll comes to
+     rest, or at once for a press, whose glide names no slide on its way */
   const [at, setAt] = createSignal(0);
   const atNow = () => Math.min(at(), slides().length - 1);
   const current = () => slides()[atNow()];
+  /* the track is moving: a swipe, the keyboard or a press's glide; no effect plays meanwhile */
+  const [moving, setMoving] = createSignal(false);
   let track: HTMLElement | undefined;
   /* from one slide to the next: a slide's width and the gap between two */
   const step = () => {
@@ -486,6 +492,23 @@ export function HeadlineExample(props: ExampleProps) {
       ? Math.abs(second.offsetLeft - first.offsetLeft)
       : (track?.clientWidth ?? 1);
   };
+  const nearest = () =>
+    track ? Math.round(Math.abs(track.scrollLeft) / Math.max(1, step())) : untrack(at);
+  let resting: ReturnType<typeof setTimeout> | undefined;
+  /* the scroll has come to rest: the slide nearest the track's start is the one in view */
+  const settle = () => {
+    clearTimeout(resting);
+    setMoving(false);
+    const k = nearest();
+    if (k !== untrack(at)) setAt(k);
+  };
+  /* every scroll waits for its rest: scrollend where the browser sends it, else a moment without a scroll */
+  const scrolled = () => {
+    if (!untrack(moving)) setMoving(true);
+    clearTimeout(resting);
+    resting = setTimeout(settle, REST);
+  };
+  onCleanup(() => clearTimeout(resting));
   const go = (to: number) => {
     const k = Math.max(0, Math.min(slides().length - 1, to));
     setAt(k);
@@ -497,14 +520,9 @@ export function HeadlineExample(props: ExampleProps) {
       behavior: still ? "auto" : "smooth"
     });
   };
-  /* a swipe, a scroll by the keyboard or a press's glide: the slide nearest the track's start is the one in view */
-  const settle = () => {
-    if (!track) return;
-    const k = Math.round(Math.abs(track.scrollLeft) / Math.max(1, step()));
-    if (k !== untrack(at)) setAt(k);
-  };
-  /* the slide the pointer is on plays its effect */
-  const [lit, setLit] = createSignal<Slide | null>(null);
+  /* the pointer is on the slides: the one in view plays its effect while the track rests */
+  const [over, setOver] = createSignal(false);
+  const lit = (slide: Slide) => over() && !moving() && current() === slide;
 
   /* how the slide in view draws the palette, and the ground a blob with none is given there */
   const shownOf = (slide: Slide): Shown =>
@@ -529,7 +547,7 @@ export function HeadlineExample(props: ExampleProps) {
             palette={shown.palette}
             settings={effect()}
             angle={shown.view.angle}
-            active={lit() === slide}
+            active={lit(slide)}
           />
         </span>
       )}
@@ -768,10 +786,13 @@ export function HeadlineExample(props: ExampleProps) {
           class={styles.track}
           ref={el => {
             track = el;
+            el.addEventListener("scrollend", settle);
           }}
           tabindex="0"
           aria-label={t("Headlines")}
-          onScroll={settle}
+          onScroll={scrolled}
+          onPointerEnter={() => setOver(true)}
+          onPointerLeave={() => setOver(false)}
         >
           <For each={slides()}>
             {(slide, i) => (
@@ -780,8 +801,6 @@ export function HeadlineExample(props: ExampleProps) {
                 class={styles.slot}
                 role="group"
                 aria-label={t("{at} of {count}", { at: formatNumber(i() + 1), count: count() })}
-                onPointerEnter={() => setLit(slide)}
-                onPointerLeave={() => setLit(now => (now === slide ? null : now))}
               >
                 <Switch>
                   <Match when={slide === "letters" && letters()}>
