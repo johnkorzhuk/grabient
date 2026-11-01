@@ -142,6 +142,8 @@ export function GlassLayer(props: { palette: Palette; view: GlassView }) {
     cancelAnimationFrame(pending);
     cancelAnimationFrame(letting);
     clearTimeout(resting);
+    /* a still's code arriving after the layer is gone draws nothing into its holder */
+    wanted = "";
   });
   return (
     <div class={styles.glass} aria-hidden="true">
