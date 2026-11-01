@@ -11,6 +11,7 @@ import styles from "./Cards.module.css";
 import { Chip, Example, type ExampleProps } from "./Example.tsx";
 import { inkThrough, MARK, type Press, pressPaper, standsOut, TEXT, TILE } from "./fit.ts";
 import { HeadlineTile, headlineShown, headlinesOf } from "./Headline.tsx";
+import { createLit } from "./lit.ts";
 import {
   colorsUnder,
   drawnColors,
@@ -149,13 +150,13 @@ function Tile(props: {
   onTurn?: () => void;
   children: (lit: () => boolean) => Element;
 }) {
-  const [lit, setLit] = createSignal(false);
+  const lit = createLit();
   const place = () => props.place ?? PLACES[props.kind];
   const name = () => {
     const kind = t(NAMES[props.kind]);
     return props.other ? `${kind}, ${formWords(props.s)}` : kind;
   };
-  const content = untrack(() => props.children(lit));
+  const content = untrack(() => props.children(lit.on));
   return (
     /* biome-ignore lint/a11y/useSemanticElements: a picture, named for a reader who listens; a fieldset is for a form's
        controls */
@@ -165,10 +166,10 @@ function Tile(props: {
       role="group"
       aria-label={name()}
       style={{ "--col": place().col, "--row": place().row, "--aspect": String(place().aspect) }}
-      onPointerEnter={() => setLit(true)}
-      onPointerLeave={() => setLit(false)}
-      onFocusIn={() => setLit(true)}
-      onFocusOut={() => setLit(false)}
+      onPointerEnter={lit.enter}
+      onPointerLeave={lit.leave}
+      onFocusIn={lit.focus}
+      onFocusOut={lit.blur}
       data-turns={props.onTurn ? "" : undefined}
       tabindex={props.onTurn ? 0 : undefined}
       onClick={e => {

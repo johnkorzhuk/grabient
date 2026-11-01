@@ -7,10 +7,11 @@ import { dir, formatDate, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import type { CodeTab } from "@grabient/ui/CodeTabs.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createMemo, createSignal, createUniqueId, type Element, Show } from "solid-js";
+import { createMemo, createUniqueId, type Element, Show } from "solid-js";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import { Chip, contrastWords, Example, type ExampleProps } from "./Example.tsx";
 import { LARGE } from "./fit.ts";
+import { createLit } from "./lit.ts";
 import { colorsUnder, contrastLevel, inkOn, mirrored, type Part, type Shown } from "./paint.ts";
 import { drawnWords, gradientOf, levelWords, pictureAddress } from "./shared.ts";
 import styles from "./Wallpapers.module.css";
@@ -150,18 +151,10 @@ export function WallpapersExample(props: ExampleProps) {
     formatDate(MOMENT, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   const longDay = () =>
     formatDate(MOMENT, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
-  /* a screen is lit while the pointer or the focus is on it, and its effect plays; a plain copy, since a signal read
-     right after a write in the same task gives the old value */
-  const [lit, setLit] = createSignal<Device | null>(null);
-  let litNow: Device | null = null;
-  const light = (d: Device) => {
-    litNow = d;
-    setLit(d);
-  };
-  const dim = (d: Device) => {
-    if (litNow !== d) return;
-    litNow = null;
-    setLit(null);
+  /* a screen is lit while the pointer rests on it or the focus is in it, and its effect plays */
+  const lit: Readonly<Record<Device, ReturnType<typeof createLit>>> = {
+    phone: createLit(),
+    desktop: createLit()
   };
   const png = (d: Device) => pictureAddress(wall(), props.origin, "png", SCREENS[d]);
   const svg = (d: Device) => pictureAddress(wall(), props.origin, "svg", SCREENS[d]);
@@ -198,7 +191,7 @@ export function WallpapersExample(props: ExampleProps) {
           palette={wall().palette}
           settings={effect()}
           angle={wall().view.angle}
-          active={lit() === d}
+          active={lit[d].on()}
         />
       )}
     </Show>
@@ -252,10 +245,10 @@ export function WallpapersExample(props: ExampleProps) {
       <div
         class={styles.device}
         data-device={d}
-        onPointerEnter={() => light(d)}
-        onPointerLeave={() => dim(d)}
-        onFocusIn={() => light(d)}
-        onFocusOut={() => dim(d)}
+        onPointerEnter={lit[d].enter}
+        onPointerLeave={lit[d].leave}
+        onFocusIn={lit[d].focus}
+        onFocusOut={lit[d].blur}
       >
         {d === "desktop" ? <div class={styles.monitor}>{screen}</div> : screen}
         <div class={styles.take}>

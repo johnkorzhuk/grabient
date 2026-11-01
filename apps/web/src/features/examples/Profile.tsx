@@ -8,6 +8,7 @@ import { createMemo, createSignal, type Element, For, Show } from "solid-js";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import { Chip, ContrastChip, Example, type ExampleProps } from "./Example.tsx";
 import { type Press, pressPaper, TILE } from "./fit.ts";
+import { createLit } from "./lit.ts";
 import styles from "./Profile.module.css";
 import { drawnColors, THEME_INK } from "./paint.ts";
 import { cssRule, drawnWords, gradientOf, pictureAddress, solidBlob } from "./shared.ts";
@@ -51,8 +52,8 @@ export function ProfileExample(props: ExampleProps) {
   const s = createMemo(() => solidBlob(props.s));
   /* the blob is shown on a ground its address doesn't name */
   const added = () => s() !== props.s;
-  /* the card is lit while the pointer is on it: its effect plays */
-  const [lit, setLit] = createSignal(false);
+  /* the card is lit while the pointer rests on it or the focus is in it: its effect plays */
+  const lit = createLit();
   const [following, setFollowing] = createSignal(false);
   const owner = () => t(OWNER);
   const paper = createMemo(() => pressPaper(drawnColors(props.s)));
@@ -71,7 +72,7 @@ export function ProfileExample(props: ExampleProps) {
           palette={s().palette}
           settings={effect()}
           angle={s().view.angle}
-          active={lit()}
+          active={lit.on()}
         />
       )}
     </Show>
@@ -153,8 +154,10 @@ export function ProfileExample(props: ExampleProps) {
         <article
           class={styles.card}
           data-theme={paper().theme}
-          onPointerEnter={() => setLit(true)}
-          onPointerLeave={() => setLit(false)}
+          onPointerEnter={lit.enter}
+          onPointerLeave={lit.leave}
+          onFocusIn={lit.focus}
+          onFocusOut={lit.blur}
         >
           <div class={styles.banner} aria-hidden="true">
             {picture()}
