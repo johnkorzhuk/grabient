@@ -8,7 +8,6 @@ import {
   type BlobView,
   ballPlace,
   blobBackdrop,
-  blobCss,
   blobFilter,
   blobFit,
   blobFrame,
@@ -18,6 +17,7 @@ import {
   blobScene,
   blobSearch,
   blobStill,
+  blobStillBackground,
   blobSvg,
   parseBlob
 } from "./blob.ts";
@@ -350,21 +350,16 @@ test("a dark palette's card sets the blob on light, any other on dark", () => {
   expect(blobBackdrop(decodePalette("kYAABnAAA_wAAQEAAD8kpHAR6VwS")!)).toEqual([243, 241, 238]);
 });
 
-test("the CSS carries the file inside it, covering the box, its ground the file's own", () => {
-  const css = blobCss(P, read(""), { width: 1080, height: 1350 }, "https://grabient.com/k");
-  expect(css).toMatch(
-    /^\/\* https:\/\/grabient\.com\/k \*\/\nhtml \{\n {2}width: 1080px;\n {2}height: 1350px;\n {2}background: url\("data:image\/svg\+xml,/
-  );
-  expect(css).toContain('") center / cover no-repeat;\n}\n');
+test("the still as CSS carries the fluid file inside it, escaped, on its ground where it has one", () => {
+  const still = read("still=1");
+  const css = blobStillBackground(P, still);
+  expect(css).toMatch(/^url\("data:image\/svg\+xml,[^"]*"\) 50% 50% \/ 100% 100% no-repeat$/);
   const data = /url\("data:image\/svg\+xml,([^"]*)"\)/.exec(css)![1];
   expect(data).not.toMatch(/[#<>"]/);
-  const svg = blobSvg(P, read(""), { width: 1080, height: 1350 }, "https://grabient.com/k");
-  expect(decodeURIComponent(data)).toBe(svg.replace(/\n/g, "").replace(/"/g, "'"));
-  expect(blobCss(P, read(""), null, "x")).toContain("html {\n  min-height: 100%;\n  background:");
-  // no color under the file, whose own ground covers the box
-  expect(blobCss(P, read("bg=10101480"), null, "x")).toContain(
-    'background: url("data:image/svg+xml,'
+  expect(decodeURIComponent(data)).toBe(
+    blobSvg(P, still, null, "").replace(/\n/g, "").replace(/"/g, "'")
   );
+  expect(blobStillBackground(P, read("still=1&bg=10101480"))).toMatch(/no-repeat #10101480$/);
 });
 
 test("a GIF is one whole loop at its frame rate, fewer frames past its budget, smaller where too few would be left", () => {
