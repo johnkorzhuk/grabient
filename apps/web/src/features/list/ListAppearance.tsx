@@ -61,11 +61,6 @@ const REST_MS = 500;
    names, so a page the server drew hydrates them as it stands */
 const EffectSwatch = lazy(() => import("./ListEffects.tsx"), { export: "EffectSwatch" });
 const EffectFields = lazy(() => import("./ListEffects.tsx"), { export: "EffectFields" });
-const loadEffects = () => {
-  void EffectSwatch.preload().catch(() => {});
-  void import("../editor/glass-draw.ts").then(m => m.loadStill()).catch(() => {});
-  void import("../editor/blob-draw.ts").then(m => m.loadBlob()).catch(() => {});
-};
 
 /* what each way of drawing had as the reader turned to another */
 const kept: { steps: ListView["steps"]; effects: Partial<Record<EffectKind, Effect>> } = {
@@ -274,7 +269,7 @@ export function ListAppearance() {
   return (
     <Appearance
       swatch={
-        playing()
+        playing() && look.first()
           ? "transparent"
           : gradientCss(paint().hexes, look.peek() ?? paint().style, paint().angle)
       }
@@ -286,7 +281,7 @@ export function ListAppearance() {
         if (open()) close();
         else {
           look.setPeek(null);
-          loadEffects();
+          void EffectSwatch.preload().catch(() => {});
           setOpen(true);
         }
       }}

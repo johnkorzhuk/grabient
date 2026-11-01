@@ -52,9 +52,9 @@ function inTime(draw: () => void): () => void {
     this size starts from, in a few milliseconds, else as the still's SVG, whose filter the browser takes about a
     tenth of a second to paint at a tile's size. Until the GPU's first still is drawn the box shows the still's field,
     its colors where they lie without the ribs, which the server painted where it drew the page, and the still fades
-    in over it; one drawn at once takes the box's place in a frame. A page of them draws a few a frame. At once as the
-    box comes into sight, and after that as the palette, the angle or the shape changes. A
-    tile made before its menu opens draws nothing until the menu shows it. */
+    in over it; one drawn at once takes the box's place in a frame. A page of them draws a few a frame, and only those
+    within a screen of the window. At once as the box comes into sight, and after that as the palette, the angle or
+    the shape changes. A tile made before its menu opens draws nothing until the menu shows it. */
 export function GlassArt(props: {
   colors: readonly string[];
   angle: number;

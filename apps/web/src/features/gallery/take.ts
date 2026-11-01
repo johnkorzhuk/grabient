@@ -85,15 +85,19 @@ async function copyPlayed(
   size: SizeChoice | null,
   format: Format
 ): Promise<"copied" | "downloaded"> {
-  const fx = await import("../editor/formats.ts");
+  const formats = await import("../editor/formats.ts");
   const taken = playedTaken(p, effect, size);
   try {
-    await fx.copyFormat(format, taken);
+    await formats.copyFormat(format, taken);
     return "copied";
   } catch (reason) {
-    if (format !== "png" || !(reason instanceof Error) || reason.message !== fx.NO_IMAGE_CLIPBOARD)
+    if (
+      format !== "png" ||
+      !(reason instanceof Error) ||
+      reason.message !== formats.NO_IMAGE_CLIPBOARD
+    )
       throw reason;
-    await fx.saveFormat(format, taken);
+    await formats.saveFormat(format, taken);
     return "downloaded";
   }
 }

@@ -57,8 +57,8 @@ const whole = (value: unknown, min: number, max: number): number | null => {
   return typeof n === "number" && Number.isInteger(n) && n >= min && n <= max ? n : null;
 };
 
-/** The parameters a list's view is read from, in the order its address writes them. */
-export const VIEW_PARAMS = ["style", "steps", "angle", "size", "speed", "fps", "frost", "bg"];
+/* the parameters a list's view is read from, in the order its address writes them */
+const VIEW_PARAMS = ["style", "steps", "angle", "size", "speed", "fps", "frost", "bg"];
 
 /** The view a list's address names; what it leaves out or cannot read is auto. Steps under three are three. An
     effect's style names it, read as a palette's address reads it (engine/effect.ts), less its shape. */
