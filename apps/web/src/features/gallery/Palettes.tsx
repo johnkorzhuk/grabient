@@ -520,6 +520,8 @@ export function Palettes(props: { place: ListPlace }) {
                                 title={collection().title}
                                 description={collection().description}
                                 palettes={collection().preview.map(preview => {
+                                  /* the list's style, and while it plays an effect the palettes' gradients: an
+                                     effect would take a still of every tile, up to 96 on this offer */
                                   const drawn = picturedAs(
                                     preview,
                                     params(),
