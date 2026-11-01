@@ -6,9 +6,10 @@
    - favicon.svg and favicon-dark.svg, the mark in the brand's gradient (also the design document's);
    - the icons a browser takes as raster files, drawn from the mark by Chromium. Wherever an icon may be transparent it
      is the bar alone in the light scheme's colors: favicon.ico and its PNGs, for Safari, Google Search and tabs of a
-     file that names no icon, and the manifest's icons, which an installed app shows on Windows and Linux and the MCP
-     server names. Where a platform cuts its own shape from the square, the bar stands on the dark ground: the
-     maskable icon (Android, macOS, ChromeOS) and apple-touch-icon.png, as iOS fills a transparent pixel with black.
+     file that names no icon, the manifest's icons, which an installed app shows on Windows and Linux and the MCP
+     server names, and apple-touch-icon.png, which favicon services hand to apps that show the site's icon on a tile
+     of their own (Claude's directory) and whose transparent pixels iOS fills with black itself. Where a platform cuts
+     its own shape from the square, the bar stands on the dark ground: the maskable icon (Android, macOS, ChromeOS).
      favicon-tile.ico is the bar on a rounded tile of the dark ground (the design document shows it);
    - public/about-1.png on, About's cards, one a day: a palette Random draws, in a view drawn at random, beside the
      Color space pane's scene of it (about-card.ts), by Chromium, from fixed seeds, and each logged;
@@ -95,7 +96,7 @@ try {
     ["android-chrome-192x192.png", alone, 192],
     ["android-chrome-512x512.png", alone, 512],
     ["icon-maskable-512.png", square, 512],
-    ["apple-touch-icon.png", square, 180]
+    ["apple-touch-icon.png", alone, 180]
   ] as const) {
     await write(await draw(svg, size), name, web);
   }

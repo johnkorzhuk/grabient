@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         // the bar on no ground for Safari and Google Search (its sizes keeps Chrome on the SVG), then light and dark marks
         { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
         ...tabIcons(matches, leaf.pathname, String((leaf.search as { q?: unknown }).q ?? "")),
-        { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
+        { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png?v=2" },
         // browsers keep the manifest and its icons a week, so its v and its icons' change when they are drawn anew
         { rel: "manifest", href: "/site.webmanifest?v=2" },
         ...FONTS.map(href => ({
