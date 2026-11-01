@@ -1,12 +1,16 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
+import { blobShapeOf, EFFECT_LOOK, type Effect } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import {
   AS_SAVED,
+  cardEffect,
   drawnIn,
   inOrder,
   inView,
   type ListView,
+  listViewOf,
   readListView,
+  viewOver,
   viewParams,
   viewSince
 } from "./appearance.ts";
@@ -21,7 +25,8 @@ test("a list's address sets each part of the view, or leaves it to every palette
     style: "radialSwatches",
     steps: 3,
     angle: 45,
-    size: { width: 1200, height: 630 }
+    size: { width: 1200, height: 630 },
+    effect: null
   });
   expect(readListView({ style: "auto", steps: "12", angle: 361, size: "39x39" })).toEqual({
     ...AS_SAVED,
@@ -38,9 +43,9 @@ test("a view as search params leaves out what each palette keeps", () => {
     size: undefined
   });
   expect(viewParams({ size: { width: "auto", height: 630 } })).toEqual({ size: "autox630" });
-  expect(
-    inView("/palettes", { style: "linearSwatches", steps: 7, angle: "auto", size: null })
-  ).toBe("/palettes?style=linearSwatches&steps=7");
+  expect(inView("/palettes", { ...AS_SAVED, style: "linearSwatches", steps: 7 })).toBe(
+    "/palettes?style=linearSwatches&steps=7"
+  );
   expect(inView("/", AS_SAVED)).toBe("/");
 });
 
@@ -92,4 +97,91 @@ test("a list returned to takes each choice made since it was left, a cleared one
   expect(viewSince(own, own, sized)).toEqual(sized);
   // no record of the leaving, as after a reload: the list takes the tab's view whole
   expect(viewSince(own, undefined, radial)).toEqual(radial);
+});
+
+const GLASS: Effect = { kind: "glass", speed: 0.5, fps: 30, look: EFFECT_LOOK };
+const BLOB: Effect = {
+  kind: "blob",
+  speed: 1,
+  fps: 60,
+  look: { shape: null, frost: 1.5, bg: "#112233" }
+};
+
+test("an effect's style names it, with how it plays and looks, and the steps leave", () => {
+  // as the router reads an address: numbers as numbers, the ground's # decoded
+  expect(readListView({ style: "glass", steps: 9, angle: 45, speed: 0.5, fps: 30 })).toEqual({
+    ...AS_SAVED,
+    angle: 45,
+    effect: GLASS
+  });
+  // a list plays each card's own shape, whatever the address says
+  expect(
+    readListView({ style: "blob", frost: 1.5, bg: "#112233", shape: 12, size: "1200x630" })
+  ).toEqual({ ...AS_SAVED, size: { width: 1200, height: 630 }, effect: BLOB });
+  // as the Worker reads one, each parameter as it stands first, out of bounds at its default
+  expect(
+    listViewOf(new URLSearchParams("style=blob&speed=99&fps=0&frost=7&bg=zz&style=glass"))
+  ).toEqual({
+    ...AS_SAVED,
+    effect: { kind: "blob", speed: 10, fps: 60, look: { shape: null, frost: 2, bg: null } }
+  });
+});
+
+test("an effect is written in the style's place, then the angle and size, how it plays, its frost and ground", () => {
+  expect(inView("/palettes", { ...AS_SAVED, steps: 9, angle: 45, effect: GLASS })).toBe(
+    "/palettes?style=glass&angle=45&speed=0.5&fps=30"
+  );
+  expect(inView("/", { ...AS_SAVED, size: { width: 1200, height: 630 }, effect: BLOB })).toBe(
+    "/?style=blob&size=1200x630&frost=1.5&bg=%23112233"
+  );
+  // a gradient chosen takes the effect's parameters away with it, and an effect the steps
+  expect(viewParams({ style: "radialGradient", effect: null })).toEqual({
+    style: "radialGradient",
+    speed: undefined,
+    fps: undefined,
+    frost: undefined,
+    bg: undefined
+  });
+  expect(viewParams({ style: "auto", effect: GLASS })).toMatchObject({
+    style: "glass",
+    steps: undefined
+  });
+  const order = Object.entries(
+    inOrder(
+      { q: "sea", steps: 9, page: 2, selection: "" },
+      viewParams({ style: "auto", effect: BLOB })
+    )
+  )
+    .filter(([, value]) => value !== undefined)
+    .map(([name]) => name);
+  expect(order).toEqual(["q", "style", "frost", "bg", "page", "selection"]);
+});
+
+test("a card plays the list's effect in its own palette's shape, the one its link opens", () => {
+  expect(cardEffect(GLASS, SEED)).toBe(GLASS);
+  expect(cardEffect(BLOB, SEED).look).toEqual({ ...BLOB.look, shape: blobShapeOf(SEED) });
+});
+
+test("an effect chosen since a list was left is taken as one with the style, the list's steps kept", () => {
+  const own: ListView = { ...AS_SAVED, style: "linearSwatches", steps: 5 };
+  const glass: ListView = { ...AS_SAVED, effect: GLASS };
+  expect(viewSince(own, AS_SAVED, glass)).toEqual({ ...own, style: "auto", effect: GLASS });
+  // the glass's pace changed since: the effect is taken whole
+  const slower: ListView = { ...glass, effect: { ...GLASS, speed: 0.2 } };
+  expect(viewSince({ ...AS_SAVED, effect: GLASS }, glass, slower)).toEqual(slower);
+  // nothing chosen since: the list's own look stands
+  expect(viewSince(own, glass, glass)).toEqual(own);
+});
+
+test("a pasted link's look is taken where a list sets neither a style nor an effect", () => {
+  const link: ListView = { ...AS_SAVED, steps: 9, effect: GLASS };
+  expect(viewOver(AS_SAVED, link)).toEqual(link);
+  const bands: ListView = { ...AS_SAVED, style: "linearSwatches" };
+  expect(viewOver(bands, link)).toEqual({ ...bands, steps: 9 });
+  expect(
+    viewOver({ ...AS_SAVED, effect: BLOB }, { ...AS_SAVED, style: "radialGradient", steps: 9 })
+  ).toEqual({
+    ...AS_SAVED,
+    effect: BLOB
+  });
 });

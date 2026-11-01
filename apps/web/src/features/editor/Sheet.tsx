@@ -340,11 +340,14 @@ export function Sheet(props: {
      choice goes for its cards; otherwise each is drawn as it was saved. The stage's size goes with every link. */
   const listed = (): ListView => {
     const set = e.opened().set;
+    const effect = e.effects.effect();
     return {
       style: set.style ? e.style() : "auto",
       steps: set.steps ? e.steps() : "auto",
       angle: set.angle ? e.angle() : "auto",
-      size: e.size()
+      size: e.size(),
+      /* the list these lead to plays the effect too, each card in its own palette's shape */
+      effect: effect && { ...effect, look: { ...effect.look, shape: null } }
     };
   };
   const likeHref = () => {
