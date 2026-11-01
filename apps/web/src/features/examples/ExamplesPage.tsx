@@ -1,6 +1,11 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { cssBlock } from "@grabient/engine/css.ts";
-import { type EffectKind, effectEmbedHtml } from "@grabient/engine/effect.ts";
+import {
+  EFFECT_LOOK,
+  EFFECT_PLAY,
+  type EffectKind,
+  effectEmbedHtml
+} from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
 import { localHref, t } from "@grabient/i18n";
@@ -190,24 +195,27 @@ function Hero(props: { s: Shown; origin: string; onLeave: () => void; onRandom: 
   return (
     <section class={styles.hero} aria-labelledby={heading}>
       <div class={styles.backdrop} aria-hidden="true">
+        {/* each layer reads the hero's look itself, never the value its Match narrowed: a turn to the other effect lets
+            the layer go, and a narrowed value read as it goes is gone, which Solid throws on and the page's error
+            showed between palettes */}
         <Switch fallback={<div class={styles.fill} style={{ background: gradientOf(s()) }} />}>
-          <Match when={s().effect?.kind === "glass" && s().effect}>
-            {effect => (
-              <GlassLayer
-                palette={s().palette}
-                view={{
-                  speed: effect().speed,
-                  fps: effect().fps,
-                  angle: s().view.angle,
-                  shape: effect().look.shape
-                }}
-              />
-            )}
+          <Match when={s().effect?.kind === "glass"}>
+            <GlassLayer
+              palette={s().palette}
+              view={{
+                speed: s().effect?.speed ?? EFFECT_PLAY.speed,
+                fps: s().effect?.fps ?? EFFECT_PLAY.fps,
+                angle: s().view.angle,
+                shape: s().effect?.look.shape ?? null
+              }}
+            />
           </Match>
-          <Match when={s().effect?.kind === "blob" && s().effect}>
-            {effect => (
-              <BlobLayer palette={s().palette} settings={effect()} angle={s().view.angle} />
-            )}
+          <Match when={s().effect?.kind === "blob"}>
+            <BlobLayer
+              palette={s().palette}
+              settings={s().effect ?? { ...EFFECT_PLAY, look: EFFECT_LOOK }}
+              angle={s().view.angle}
+            />
           </Match>
         </Switch>
       </div>
