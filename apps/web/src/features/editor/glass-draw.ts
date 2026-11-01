@@ -7,6 +7,9 @@ import { BOOT_MARK } from "./boot.ts";
 
 /** The id of the style in the head that holds the server's still; its data-key names the still it shows. */
 export const GLASS_STILL_STYLE = "glass-still";
+/** The id of the style in the head that holds the fields the server painted in other stills' places, its data-key
+    their names (server/glass-still.ts). */
+export const GLASS_FIELD_STYLE = "glass-fields";
 
 let glass: typeof import("@grabient/engine/glass.ts") | null = null;
 let recolor: typeof import("./glass-recolor.ts").recolor | null = null;
@@ -34,6 +37,9 @@ export const stillWanted = (): boolean =>
 /** Whether the server's still is the one this key names. */
 export const serverStill = (key: string): boolean =>
   document.getElementById(GLASS_STILL_STYLE)?.dataset.key === key;
+/** Whether the server painted this key's field. */
+export const serverField = (key: string): boolean =>
+  !!document.getElementById(GLASS_FIELD_STYLE)?.dataset.key?.split(" ").includes(key);
 
 const designOf = (
   code: typeof import("@grabient/engine/glass.ts"),
@@ -116,6 +122,14 @@ export function gpuStill(
 ): ImageBitmap | null | undefined {
   return gpu ? gpu.glassStillBitmap(colors, angle, shape, width, height) : undefined;
 }
+
+/** The still's field (engine/glass.ts's glassFieldBackground), a background shown while the still is on its way,
+    or null while its code loads. */
+export const stillField = (
+  colors: readonly string[],
+  angle: number,
+  shape: number | null = null
+): string | null => glass?.glassFieldBackground(colors, angle, shape) ?? null;
 
 /** The same still as a data URI, for a picture's background, or null while its code loads. */
 export function stillUri(

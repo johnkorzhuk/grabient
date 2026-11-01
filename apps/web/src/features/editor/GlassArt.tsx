@@ -1,7 +1,15 @@
 import { glassStillKey } from "@grabient/engine/glass-colors.ts";
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./Editor.module.css";
-import { gpuStill, loadGpuStill, loadStill, serverStill, stillUri } from "./glass-draw.ts";
+import {
+  gpuStill,
+  loadGpuStill,
+  loadStill,
+  serverField,
+  serverStill,
+  stillField,
+  stillUri
+} from "./glass-draw.ts";
 
 /** How often the small picture is drawn while its palette, angle or shape keeps changing: a drag changes them every
     frame. A change after a rest is drawn at once; while the hand moves, at most once in this, and the last change once
@@ -14,8 +22,10 @@ const TILE_WAIT_MS = 1000;
     card's picture. The server's still where it is this one (the head's style paints any holder that names it),
     otherwise drawn here: on the GPU where the browser has WebGL 2 (ui/glass-still.ts), the first frame a player of
     this size starts from, in a few milliseconds, else as the still's SVG, whose filter the browser takes about a
-    tenth of a second to paint at a tile's size. At once as the box comes into sight, and after that as the palette,
-    the angle or the shape changes. A tile made before its menu opens draws nothing until the menu shows it. */
+    tenth of a second to paint at a tile's size. Until the GPU's first still is drawn the box shows the still's field,
+    its colors where they lie without the ribs, which the server painted where it drew the page, and the still fades
+    in over it. At once as the box comes into sight, and after that as the palette, the angle or the shape changes. A
+    tile made before its menu opens draws nothing until the menu shows it. */
 export function GlassArt(props: {
   colors: readonly string[];
   angle: number;
@@ -28,6 +38,8 @@ export function GlassArt(props: {
   let canvas!: HTMLCanvasElement;
   const key = () => glassStillKey(props.colors, props.angle, props.shape ?? null);
   const [uri, setUri] = createSignal<string | null>(null);
+  /* the still's field, while the GPU's still is on its way and no style of the server's paints it */
+  const [field, setField] = createSignal<string | null>(null);
   /* the still the box shows: until one is drawn, the one it names, which the server's may paint */
   const [showing, setShowing] = createSignal<string | null>(null);
   /* the GPU's bitmap is on the canvas, over the box */
@@ -61,6 +73,10 @@ export function GlassArt(props: {
       const dpr = devicePixelRatio || 1;
       const bitmap = gpuStill(colors, angle, shape, el.clientWidth * dpr, el.clientHeight * dpr);
       if (bitmap === undefined) {
+        if (!untrack(painted) && !serverField(named)) {
+          const shown = () => untrack(key) === named && setField(stillField(colors, angle, shape));
+          if (!shown()) void loadStill().then(shown);
+        }
         void loadGpuStill().then(
           () => draw(colors, angle, shape, named),
           () => {
@@ -140,7 +156,9 @@ export function GlassArt(props: {
       /* painted.ts's TILE_TIMING: the GPU's still is made ready once the browser has painted this */
       elementtiming="effect-tile"
       data-glass-still={showing() ?? key()}
-      style={{ background: uri() ? `url("${uri()}") 50% 50% / cover no-repeat` : undefined }}
+      style={{
+        background: uri() ? `url("${uri()}") 50% 50% / cover no-repeat` : (field() ?? undefined)
+      }}
     >
       <canvas
         ref={canvas}
