@@ -8,7 +8,7 @@
   "mcpAdminItemsDay": "The admins' shared limit of 100,000 palettes and items written a day is reached. Try again in 60 minutes.",
   "mcpLikesDaily": "Grabient's limit for every connected app together, 5,000 saves a day, is reached. Try again in 60 minutes.",
   "mcpPublishDaily": "This account's limit of 50 saves of palettes new to Grabient a day is reached. Try again in 60 minutes.",
-  "mcpCollectionWritesSite": "Grabient's limit for every connected app together, 500 collection changes a day, is reached. Try again in 60 minutes.",
+  "mcpCollectionWritesSite": "Grabient's limit for every connected app together, 5,000 collection changes a day, is reached. Try again in 60 minutes.",
   "collectionWrite": "This account's limit of 30 collection changes an hour is reached. Try again in 60 minutes.",
   "curation": "This account's limit of 600 curation changes an hour is reached. Try again in 60 minutes.",
   "toggleLike": "This account's limit of 20 saves a minute is reached. Try again in 60 minutes.",
