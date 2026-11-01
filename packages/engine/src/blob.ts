@@ -35,8 +35,8 @@ import { type ParamReader, parseView, type Size } from "./view.ts";
 
 /** The `style` that asks a palette's SVG for this animation. */
 export const BLOB_STYLE = "blob";
-/** A loop's seconds at speed 1. */
-export const BLOB_LOOP = 16;
+/** A loop's seconds at speed 1: the balls drift about 0.04 of the box a second, as calm as the glass's colors. */
+export const BLOB_LOOP = 48;
 export const BLOB_SPEED_MIN = 0.1;
 export const BLOB_SPEED_MAX = 10;
 export const BLOB_FROST_MAX = 2;
