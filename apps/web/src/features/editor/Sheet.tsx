@@ -438,8 +438,9 @@ export function Sheet(props: {
         size: e.size(),
         pixels: e.size() ? props.taken().pixels : DEFAULT_SIZE,
         stops: decoded ? sampleStops(decoded, palette().steps) : [],
-        /* a card's copies follow its picture */
-        effect: e.effects.effect()
+        /* a card's copies follow its picture, and a copy for Figma names its frame as the card names the palette */
+        effect: e.effects.effect(),
+        name: sheetName(seed(), palette())
       };
     };
     const count = (action: "copy" | "download", format: string) =>
