@@ -45,15 +45,15 @@ const svg = (p: Drawn) =>
     { seed: p.seed, search: viewSearch(p), baseUrl: location.origin },
     PICTURE
   );
-const picture = (p: Drawn, kind: "png" | "jpeg") =>
-  exportGridImage([p], { ...PICTURE, columns: 1, gap: 0, padding: 0, radius: 0 }, `image/${kind}`);
+const picture = (p: Drawn) =>
+  exportGridImage([p], { ...PICTURE, columns: 1, gap: 0, padding: 0, radius: 0 }, "image/png");
 
-/** The palette onto the clipboard. A PNG saves instead where no picture can be copied. */
+/** The palette onto the clipboard. Its PNG saves instead where no picture can be copied. */
 export async function copyPalette(p: Drawn, format: Format): Promise<"copied" | "downloaded"> {
-  if (format === "png" || format === "jpeg") {
-    const image = picture(p, format);
-    if (format === "png" && (await copyImage(image))) return "copied";
-    downloadFile(`${name(p)}.${format}`, await image);
+  if (format === "png") {
+    const image = picture(p);
+    if (await copyImage(image)) return "copied";
+    downloadFile(`${name(p)}.png`, await image);
     return "downloaded";
   }
   if (isSwatchFormat(format))
@@ -63,14 +63,12 @@ export async function copyPalette(p: Drawn, format: Format): Promise<"copied" | 
   return "copied";
 }
 
-/** The palette as a file. */
+/** The palette as a file, in a format a card's strip saves: its Markdown, CSS, SVG, PNG or a swatch file. */
 export async function downloadPalette(p: Drawn, format: Format): Promise<void> {
   if (format === "md" || format === "css" || isSwatchFormat(format)) return saveFile(p, format);
-  if (format === "url") return writeText(address(p));
   if (format === "svg")
     return downloadFile(`${name(p)}.svg`, new Blob([svg(p)], { type: "image/svg+xml" }));
-  const kind = format === "jpeg" ? "jpeg" : "png";
-  downloadFile(`${name(p)}.${kind}`, await picture(p, kind));
+  downloadFile(`${name(p)}.png`, await picture(p));
 }
 
 /** The address of the palette's file onto the clipboard. */
@@ -146,10 +144,7 @@ export function cardTakings(card: {
         fx
           ? formats().then(m => m.saveFormat(format, taken(fx)))
           : downloadPalette(card.palette(), format)
-      ).then(
-        () => used(format === "url" ? "copy" : "download", format),
-        refused(msg("Couldn't download the palette."))
-      );
+      ).then(() => used("download", format), refused(msg("Couldn't download the palette.")));
     },
     link: (format: Format) => {
       const fx = played();
