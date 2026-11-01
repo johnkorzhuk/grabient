@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { live } from "./live.ts";
 
 /* The reader's motion setting over the effects (ui/motion.ts): what she chose in Settings, Off or On, holds over the
    device's own setting either way for the fluted glass and the blob, on a list's cards and the editor's picture, and
@@ -8,7 +9,6 @@ import { expect, type Page, test } from "@playwright/test";
    (renderer.ts). */
 
 const SEED = "kS7CQ31Do6asvY-";
-const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 
 /** The players play here, and the reader's choice in Settings is `choice` where one is given. */
 async function playing(page: Page, choice?: "full" | "reduce") {
@@ -36,7 +36,7 @@ async function litCard(page: Page) {
 async function reduceElsewhere(page: Page) {
   const settings = await page.context().newPage();
   await settings.goto("/settings");
-  await hydrated(settings);
+  await live(settings);
   const motion = settings.getByRole("button", { name: /^Reduce motion:/ });
   await expect(async () => {
     await motion.click();
@@ -93,12 +93,12 @@ test("a reader who chose Off sees a list's cards and the editor's picture move o
   await page.emulateMedia({ reducedMotion: "reduce" });
   await playing(page, "full");
   await page.goto("/palettes?style=glass");
-  await hydrated(page);
+  await live(page);
   const art = await litCard(page);
   await expect(art).toHaveAttribute("data-covered", "", { timeout: 15_000 });
 
   await page.goto(`/${SEED}?style=glass`);
-  await hydrated(page);
+  await live(page);
   await expect(page.locator("canvas[data-live]")).toHaveCount(1, { timeout: 15_000 });
 });
 
@@ -107,7 +107,7 @@ test("a card playing the blob stops at once when the reader chooses On in anothe
 }) => {
   await playing(page);
   await page.goto("/palettes?style=blob");
-  await hydrated(page);
+  await live(page);
   const art = await litCard(page);
   await expect(art).toHaveAttribute("data-covered", "", { timeout: 15_000 });
   await reduceElsewhere(page);
@@ -126,7 +126,7 @@ test("the editor's fluted glass fades to its still when the reader chooses On in
 }) => {
   await playing(page);
   await page.goto(`/${SEED}?style=glass`);
-  await hydrated(page);
+  await live(page);
   const canvas = page.locator("canvas[data-live]");
   await expect(canvas).toHaveCount(1, { timeout: 15_000 });
   await reduceElsewhere(page);
@@ -148,7 +148,7 @@ test("the editor's fluted glass fades to its still when the reader chooses On in
     } as typeof get;
   });
   await contexts.goto(`/${SEED}?style=glass`);
-  await hydrated(contexts);
+  await live(contexts);
   await contexts.waitForTimeout(3000);
   expect(await contexts.evaluate(() => (window as unknown as { made: string[] }).made)).toEqual([]);
 });
