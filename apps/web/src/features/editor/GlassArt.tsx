@@ -111,6 +111,8 @@ export function GlassArt(props: {
   let drawnBox = "";
   /* the GPU's still asked for, ahead of a change */
   let warming = false;
+  /* the picture let go: a still's code that arrives after it draws nothing, and reads no props of a holder gone */
+  let gone = false;
   /* the still's field while the box waits for its first still: the server's, or made here */
   const showField = (
     colors: readonly string[],
@@ -121,7 +123,8 @@ export function GlassArt(props: {
     if (untrack(painted)) return;
     if (serverField(named)) return setFades(true);
     const shown = () => {
-      const made = untrack(key) === named && !untrack(painted) && stillField(colors, angle, shape);
+      const made =
+        !gone && untrack(key) === named && !untrack(painted) && stillField(colors, angle, shape);
       if (made) {
         setField(made);
         setFades(true);
@@ -139,7 +142,7 @@ export function GlassArt(props: {
     named: string
   ) => {
     cancel?.();
-    if (!untrack(seen) || !untrack(near)) return;
+    if (gone || !untrack(seen) || !untrack(near)) return;
     let drawn = false;
     cancel = inTime(() => {
       drawn = true;
@@ -148,7 +151,7 @@ export function GlassArt(props: {
     if (!drawn && !noGpu) showField(colors, angle, shape, named);
   };
   const draw = (colors: readonly string[], angle: number, shape: number | null, named: string) => {
-    if (untrack(key) !== named) return;
+    if (gone || untrack(key) !== named) return;
     if (!noGpu) {
       const dpr = devicePixelRatio || 1;
       /* the server's field stands under the box's first still */
@@ -236,6 +239,7 @@ export function GlassArt(props: {
     }
   );
   onCleanup(() => {
+    gone = true;
     clearTimeout(timer);
     cancel?.();
   });
