@@ -54,9 +54,18 @@ async function site(page: Page, head: string, strict = false) {
       refused: string[];
       gl?: WebGL2RenderingContext;
       contexts: Set<WebGL2RenderingContext>;
+      painted?: string;
     };
     w.refused = [];
     w.contexts = new Set();
+    /* the first still the page paints behind itself, read before each frame from the first: the canvas may take its
+       place before a test looks */
+    const look = () => {
+      const image = getComputedStyle(document.documentElement, "::before").backgroundImage;
+      if (image !== "none") w.painted = image;
+      else requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
     document.addEventListener("securitypolicyviolation", e => w.refused.push(e.effectiveDirective));
     const own = WebGL2RenderingContext.prototype.getParameter;
     WebGL2RenderingContext.prototype.getParameter = function (
@@ -80,9 +89,12 @@ async function site(page: Page, head: string, strict = false) {
 /** How many WebGL contexts the page has made. */
 const contexts = (page: Page) =>
   page.evaluate(() => (window as unknown as { contexts: Set<unknown> }).contexts.size);
-/** What the page paints behind itself: html::before's image. */
+/** What the page paints behind itself now: html::before's image. */
 const still = (page: Page) =>
   page.evaluate(() => getComputedStyle(document.documentElement, "::before").backgroundImage);
+/** The first still the page painted behind itself, "" while none has been. */
+const painted = (page: Page) =>
+  page.evaluate(() => (window as unknown as { painted?: string }).painted ?? "");
 const tags = (query: string, still = true) =>
   `${still ? `<link rel="stylesheet" href="APP/${SEED}.css?${query}">` : ""}<script src="APP/${SEED}.js?${query.replaceAll("&", "&amp;")}" async></script>`;
 
@@ -92,7 +104,7 @@ test("the stylesheet paints the first frame behind another site's page, and the 
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(String(error)));
   await site(page, tags("style=blob&shape=3"), true);
-  expect(await still(page)).toContain("data:image/svg+xml");
+  expect(await painted(page)).toContain("data:image/svg+xml");
   /* the blob's canvas takes the still's place in one frame */
   await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
     timeout: 15_000
@@ -113,7 +125,7 @@ test("without the stylesheet the script paints the still itself, and three scrip
     `${tags("style=glass", false)}${tags("style=glass", false)}${tags("style=blob", false)}`,
     true
   );
-  await expect.poll(() => still(page)).toContain("data:image/svg+xml");
+  await expect.poll(() => painted(page)).toContain("data:image/svg+xml");
   await expect(page.locator("canvas")).toHaveCSS("opacity", "1", { timeout: 15_000 });
   await page.waitForTimeout(500);
   await expect(page.locator("canvas")).toHaveCount(1);
@@ -159,7 +171,7 @@ test("the glass's still goes once its canvas has faded in over it, and comes bac
 }) => {
   await site(page, tags("style=glass&angle=45"));
   const html = page.locator("html");
-  expect(await still(page)).toContain("data:image/svg+xml");
+  expect(await painted(page)).toContain("data:image/svg+xml");
   /* the mark comes once the fade has ended, with the canvas opaque over the still */
   await expect(html).toHaveAttribute("data-grabient-playing", "", { timeout: 15_000 });
   await expect(page.locator("canvas")).toHaveCSS("opacity", "1");
