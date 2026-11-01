@@ -2,7 +2,8 @@
    the tests, of values under a schema given as definitions (figma-schema.ts), byte for byte as kiwi's own encoder
    writes them. A message writes each field it holds as its id and its value, in the definition's order, then 0; a
    struct writes every field in order, untagged; an enum writes its value's number; an array its length, then its
-   items. Integers are varints (int zigzagged), a float is its IEEE bits turned so the exponent leads, one 0 byte for
+   items. Integers are varints (int zigzagged), 64-bit ones too (int64 zigzagged), written here from numbers within
+   JavaScript's safe range, a bigint or a string; a float is its IEEE bits turned so the exponent leads, one 0 byte for
    zero, and a string is UTF-8 ended by 0. No code is generated, so no eval. */
 
 /** A definition: its name, its kind (0 enum, 1 struct, 2 message) and its fields, an enum's as [name, value] and the
@@ -48,6 +49,22 @@ export function encodeKiwi(defs: readonly KiwiDef[], root: string, value: Value)
       byte(v ? b | 128 : b);
     } while (v);
   };
+  /* a 64-bit integer as a number, from a number, a bigint or a string, within `least` and 2^52 */
+  const safe = (v: Value, least: number) => {
+    const x = Number(v as number | bigint | string);
+    if (!Number.isSafeInteger(x) || x < least || x > 2 ** 52)
+      throw new Error(`kiwi: ${String(v)} is out of range`);
+    return x;
+  };
+  /* a varint past 32 bits, by division */
+  const varint = (v: number) => {
+    let x = v;
+    do {
+      const b = x % 128;
+      x = Math.floor(x / 128);
+      byte(x ? b | 128 : b);
+    } while (x);
+  };
   /* a native type's bytes; false for a definition's name */
   const native = (type: string, v: Value): boolean => {
     switch (type) {
@@ -63,6 +80,14 @@ export function encodeKiwi(defs: readonly KiwiDef[], root: string, value: Value)
       case "uint":
         uint(v as number);
         break;
+      case "uint64":
+        varint(safe(v, 0));
+        break;
+      case "int64": {
+        const x = safe(v, -(2 ** 52));
+        varint(x < 0 ? -2 * x - 1 : 2 * x);
+        break;
+      }
       case "float": {
         f32[0] = v as number;
         const bits = (i32[0] >>> 23) | (i32[0] << 9);
@@ -154,7 +179,12 @@ export function decodeKiwi(defs: readonly KiwiDef[], root: string, bytes: Uint8A
         return v & 1 ? ~(v >>> 1) : v >>> 1;
       }
       case "uint":
+      case "uint64":
         return uint();
+      case "int64": {
+        const v = uint();
+        return v % 2 ? -(v + 1) / 2 : v / 2;
+      }
       case "float": {
         const first = byte();
         if (first === 0) return 0;

@@ -19,13 +19,33 @@
    2, an angle, a shape, two grounds and boxes from 600 to 1920 by 1080, where the balls under a plain layer blur
    scored 7 to 25. At 1:1 the grain's spread is within 2% of the site's and clumps alike: the noise and the texture
    are 1.25 design units, the grain of the site's feTurbulence at 0.75. Every length is the site's at the box's scale
-   (blobFit), so the design covers the box as the still covers it. */
-import { BLOB_DESIGN, type BlobView, blobFilter, blobFit, blobFrame, blobScene } from "./blob.ts";
+   (blobFit), so the design covers the box as the still covers it.
+   While the blob plays, the paste moves as the site's SVG does, on Figma's own timeline (its Motion keyframes): each
+   ball turns about its resting point, its blob's ring of balls turns about the blob's middle, and each blob breathes
+   and wanders to and fro on the site's ease, starting midway, every motion whole laps of the loop (BLOB_LOOP over the
+   speed) so it closes on itself. Figma turns and scales a layer about its own centre, so a ball's group holds a clear
+   twin mirrored through its resting point and the ring's and the breath's groups a clear square about the middle. A
+   keyframe's easing is that of the stretch arriving at it. Built in the lab and copied out of Figma, the motion
+   scored 1.0 to 1.5 against the site's SVG frame by frame over its loop. */
+import {
+  BLOB_DEPTH,
+  BLOB_DESIGN,
+  BLOB_EASE,
+  BLOB_LOOP,
+  type BlobView,
+  blobFilter,
+  blobFit,
+  blobFrame,
+  blobScene
+} from "./blob.ts";
 import { groundParts } from "./effect.ts";
 import {
   FIGMA_PAGE,
+  type FigmaField,
+  type FigmaMotion,
   type FigmaNode,
   figmaBlur,
+  figmaCurveBetween,
   figmaLayers,
   figmaPasteHtml,
   figmaScene,
@@ -47,6 +67,8 @@ export const FIGMA_BLOB = {
 
 export interface FigmaBlobView extends Pick<BlobView, "angle" | "shape" | "frost" | "bg"> {
   palette: Palette;
+  /** how fast it moves, the loop BLOB_LOOP seconds over this; 0 or none, the first frame alone */
+  speed?: number;
   width: number;
   height: number;
   /** the frame's name in Figma */
@@ -60,6 +82,8 @@ type Effect =
   | { k: "noise"; s: number; a: number };
 type Layer =
   | { t: "balls"; c?: string }
+  | { t: "ball"; n: string; x: number; y: number; r: number; c: string | null }
+  | { t: "pivot"; x: number; y: number; side: number }
   | {
       t: "rect";
       n: string;
@@ -71,7 +95,15 @@ type Layer =
       b?: Blend;
       op?: number;
     }
-  | { t: "group"; n: string; kids: Layer[]; fx?: Effect[]; mask?: "LUMINANCE" };
+  | {
+      t: "group";
+      n: string;
+      kids: Layer[];
+      fx?: Effect[];
+      mask?: "LUMINANCE";
+      motion?: FigmaMotion;
+    };
+type Group = Extract<Layer, { t: "group" }>;
 interface Ball {
   x: number;
   y: number;
@@ -85,6 +117,10 @@ const gray = (v: number) =>
     .toString(16)
     .padStart(2, "0")
     .repeat(3)}`;
+
+/* the to-and-fro's ease from an end to its middle and from its middle to an end, for a swing that starts midway */
+const toMiddle = figmaCurveBetween(BLOB_EASE, 0, 0.5);
+const fromMiddle = figmaCurveBetween(BLOB_EASE, 0.5, 1);
 
 /* Figma's effects as its file writes them: the plugin API's TEXTURE is GRAIN */
 const effectOf = (e: Effect) => {
@@ -157,10 +193,93 @@ export function figmaBlobNodes(view: FigmaBlobView): FigmaNode[] {
     ...more
   });
   const blur = round(FIGMA_BLOB.blur * (filter.melt * k), 2);
+
+  /* the motion, while the blob plays: a turn of whole laps a loop, clockwise on the screen for laps above 0 (Figma's
+     file keeps an angle in radians, clockwise as CSS's, though its plugin API counts degrees the other way), and a
+     to-and-fro from `from` to `to`, `laps` a loop, starting midway toward `to` (toward `from` for laps below 0), as the
+     SVG's alternate animations do */
+  const loop = view.speed ? BLOB_LOOP / view.speed : 0;
+  const turn = (laps: number): FigmaMotion => ({
+    field: "MOTION_ROTATION",
+    base: 0,
+    keys: [
+      { t: 0, v: 0, e: null },
+      { t: loop, v: 2 * Math.PI * laps, e: null }
+    ]
+  });
+  const sweep = (field: FigmaField, from: number, to: number, laps: number): FigmaMotion => {
+    const half = loop / (2 * Math.abs(laps));
+    const middle = (from + to) / 2;
+    const [first, second] = laps > 0 ? [to, from] : [from, to];
+    const keys: FigmaMotion["keys"][number][] = [{ t: 0, v: middle, e: null }];
+    for (let j = 0; j < 2 * Math.abs(laps); j++)
+      keys.push({
+        t: half / 2 + j * half,
+        v: j % 2 === 0 ? first : second,
+        e: j === 0 ? fromMiddle : BLOB_EASE
+      });
+    keys.push({ t: loop, v: middle, e: toMiddle });
+    return { field, base: middle, keys };
+  };
+  /* each blob's balls as the SVG moves them, in the color `c` or each its own: a ball in its turn's group, the ring's
+     turns in the ring's, the ring and the core in the breath's, which wanders down and across */
+  const moving = (c?: string): Layer[] =>
+    scene.blobs.map((b, bi) => {
+      const X = (x: number) => fit.x + x * k;
+      const Y = (y: number) => fit.y + y * k;
+      let reach = 0;
+      const turns = b.balls.map((ball, i) => {
+        const hx = b.x + ball.x * b.R;
+        const hy = b.y + ball.y * b.R;
+        const fx = hx + ball.swing * b.R * Math.cos(2 * Math.PI * ball.phase);
+        const fy = hy + ball.swing * b.R * Math.sin(2 * Math.PI * ball.phase);
+        reach = Math.max(
+          reach,
+          Math.max(Math.abs(hx - b.x), Math.abs(hy - b.y)) + (ball.swing + ball.r) * b.R
+        );
+        const r = ball.r * b.R * k;
+        const layer: Group = {
+          t: "group",
+          n: `turn ${i + 1}`,
+          kids: [
+            { t: "ball", n: `ball ${i + 1}`, x: X(fx), y: Y(fy), r, c: c ?? scene.color(ball.at) },
+            { t: "ball", n: "pivot", x: X(2 * hx - fx), y: Y(2 * hy - fy), r, c: null }
+          ],
+          motion: turn(ball.laps)
+        };
+        return { ring: ball.ring, layer };
+      });
+      const side = 2 * (reach + 4) * k;
+      const pivot: Layer = { t: "pivot", x: X(b.x) - side / 2, y: Y(b.y) - side / 2, side };
+      const ring: Group = {
+        t: "group",
+        n: "ring",
+        kids: [...turns.filter(q => q.ring).map(q => q.layer), pivot],
+        motion: turn(b.spin)
+      };
+      let layer: Group = {
+        t: "group",
+        n: "breath",
+        kids: [ring, ...turns.filter(q => !q.ring).map(q => q.layer), pivot],
+        motion: sweep("MOTION_SCALE_XY", BLOB_DEPTH.far, BLOB_DEPTH.near, b.depth)
+      };
+      for (const [field, s, n] of [
+        ["MOTION_TRANSLATION_Y", b.wander[1], "wander down"],
+        ["MOTION_TRANSLATION_X", b.wander[0], "wander across"]
+      ] as const)
+        if (s.reach >= 0.5)
+          layer = {
+            t: "group",
+            n,
+            kids: [layer],
+            motion: sweep(field, -s.reach * k, s.reach * k, s.laps)
+          };
+      return { ...layer, n: `blob ${bi + 1}` };
+    });
   const melt = (n: string, c?: string): Layer => ({
     t: "group",
     n,
-    kids: [{ t: "balls", ...(c ? { c } : {}) }],
+    kids: loop ? moving(c) : [{ t: "balls", ...(c ? { c } : {}) }],
     fx: [{ k: "blur", r: blur }]
   });
   const frost: Effect[] =
@@ -239,6 +358,8 @@ export function figmaBlobNodes(view: FigmaBlobView): FigmaNode[] {
         Math.max(...balls.map(d => d.y + d.r))
       ];
     if (l.t === "rect") return [l.x, l.y, l.x + l.w, l.y + l.h];
+    if (l.t === "ball") return [l.x - l.r, l.y - l.r, l.x + l.r, l.y + l.r];
+    if (l.t === "pivot") return [l.x, l.y, l.x + l.side, l.y + l.side];
     const all = l.kids.map(bounds);
     return [
       Math.min(...all.map(b => b[0])),
@@ -247,7 +368,7 @@ export function figmaBlobNodes(view: FigmaBlobView): FigmaNode[] {
       Math.max(...all.map(b => b[3]))
     ];
   };
-  const { nodes, add, group } = figmaLayers();
+  const { nodes, internal, add, group, animate } = figmaLayers();
   /* a layer under `parent`, whose corner stands at (ox, oy) in the frame; how many children it made there */
   const emit = (l: Layer, parent: FigmaNode, index: number, ox: number, oy: number): number => {
     if (l.t === "balls") {
@@ -267,6 +388,18 @@ export function figmaBlobNodes(view: FigmaBlobView): FigmaNode[] {
         );
       return balls.length;
     }
+    if (l.t === "ball") {
+      add("ELLIPSE", l.n, parent, index, 2 * l.r, 2 * l.r, l.x - l.r - ox, l.y - l.r - oy, {
+        fillPaints: [l.c ? figmaSolid(l.c) : figmaSolid("#000000", 0)]
+      });
+      return 1;
+    }
+    if (l.t === "pivot") {
+      add("RECTANGLE", "pivot", parent, index, l.side, l.side, l.x - ox, l.y - oy, {
+        fillPaints: [figmaSolid("#000000", 0)]
+      });
+      return 1;
+    }
     if (l.t === "rect") {
       add("RECTANGLE", l.n, parent, index, l.w, l.h, l.x - ox, l.y - oy, {
         fillPaints: [figmaSolid(l.c)],
@@ -280,7 +413,8 @@ export function figmaBlobNodes(view: FigmaBlobView): FigmaNode[] {
     const g = group(l.n, parent, index, x0 - ox, y0 - oy, x1 - x0, y1 - y0, {
       blendMode: "NORMAL",
       ...(l.fx?.length ? { effects: l.fx.map(effectOf) } : {}),
-      ...(l.mask ? { mask: true, maskType: l.mask } : {})
+      ...(l.mask ? { mask: true, maskType: l.mask } : {}),
+      ...(l.motion ? { parameterConsumptionMap: animate(l.motion) } : {})
     });
     let i = 0;
     for (const kid of l.kids) i += emit(kid, g, i, x0, y0);
@@ -289,10 +423,11 @@ export function figmaBlobNodes(view: FigmaBlobView): FigmaNode[] {
   const ground = view.bg ? groundParts(view.bg) : null;
   const top = add("FRAME", view.name, FIGMA_PAGE, 0, W, H, 0, 0, {
     fillPaints: ground ? [figmaSolid(ground.hex, ground.alpha)] : [],
-    frameMaskDisabled: false
+    frameMaskDisabled: false,
+    ...(loop ? { timelineDuration: Math.round(loop * 1e6) } : {})
   });
   emit({ t: "group", n: "blob", kids }, top, 0, 0, 0);
-  return figmaScene(nodes);
+  return figmaScene(nodes, internal);
 }
 
 /** The clipboard's text/html for the blob, which a paste into Figma reads as its layers. */

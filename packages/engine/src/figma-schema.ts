@@ -18,7 +18,9 @@ export const FIGMA_DEFS: readonly KiwiDef[] = [
       ["FRAME", 4],
       ["BOOLEAN_OPERATION", 5],
       ["ELLIPSE", 9],
-      ["RECTANGLE", 10]
+      ["RECTANGLE", 10],
+      ["KEYFRAME", 56],
+      ["KEYFRAME_TRACK", 57]
     ]
   ],
   [
@@ -56,6 +58,14 @@ export const FIGMA_DEFS: readonly KiwiDef[] = [
     [
       ["INTERSECT", 1],
       ["SUBTRACT", 2]
+    ]
+  ],
+  [
+    "EasingType",
+    0,
+    [
+      ["LINEAR", 3],
+      ["CUSTOM_CUBIC", 7]
     ]
   ],
   [
@@ -187,7 +197,31 @@ export const FIGMA_DEFS: readonly KiwiDef[] = [
       ["frameMaskDisabled", "bool", 0, 115],
       ["resizeToFit", "bool", 0, 117],
       ["booleanOperation", "BooleanOperation", 0, 36],
-      ["internalOnly", "bool", 0, 142]
+      ["internalOnly", "bool", 0, 142],
+      ["parameterConsumptionMap", "VariableDataMap", 0, 445],
+      ["timelinePosition", "int64", 0, 506],
+      ["keyframeValue", "KeyframeValueData", 0, 507],
+      ["easingData", "EasingData", 0, 535],
+      ["timelineDuration", "uint64", 0, 512]
+    ]
+  ],
+  ["VariableDataMap", 2, [["entries", "VariableDataMapEntry", 1, 1]]],
+  [
+    "VariableDataMapEntry",
+    2,
+    [
+      ["variableData", "VariableData", 0, 2],
+      ["variableField", "VariableField", 0, 3]
+    ]
+  ],
+  [
+    "VariableField",
+    0,
+    [
+      ["MOTION_TRANSLATION_X", 46],
+      ["MOTION_TRANSLATION_Y", 47],
+      ["MOTION_ROTATION", 48],
+      ["MOTION_SCALE_XY", 70]
     ]
   ],
   ["PasteAssetType", 0, [["UNKNOWN", 0]]],
@@ -212,6 +246,99 @@ export const FIGMA_DEFS: readonly KiwiDef[] = [
       ["nodeChangeOrder", "NodeChangeOrder", 0, 48]
     ]
   ],
+  [
+    "VariableDataType",
+    0,
+    [
+      ["FLOAT", 1],
+      ["EXPRESSION", 5],
+      ["KEYFRAME_TRACK_PARAMETER_DATA", 21],
+      ["VECTOR", 24]
+    ]
+  ],
+  [
+    "VariableResolvedDataType",
+    0,
+    [
+      ["FLOAT", 1],
+      ["KEYFRAME_TRACK_PARAMETER_DATA", 14],
+      ["VECTOR", 17]
+    ]
+  ],
+  [
+    "VariableAnyValue",
+    2,
+    [
+      ["floatValue", "float", 0, 3],
+      ["expressionValue", "Expression", 0, 6],
+      ["keyframeTrackParameterValue", "KeyframeTrackParameterValue", 0, 20],
+      ["vectorValue", "Vector", 0, 22]
+    ]
+  ],
+  ["ExpressionFunction", 0, [["KEYFRAME", 19]]],
+  [
+    "Expression",
+    2,
+    [
+      ["expressionFunction", "ExpressionFunction", 0, 1],
+      ["expressionArguments", "VariableData", 1, 2]
+    ]
+  ],
+  ["KeyframeTrackId", 2, [["guid", "GUID", 0, 1]]],
+  [
+    "VariableData",
+    2,
+    [
+      ["value", "VariableAnyValue", 0, 1],
+      ["dataType", "VariableDataType", 0, 2],
+      ["resolvedDataType", "VariableResolvedDataType", 0, 3]
+    ]
+  ],
+  [
+    "KeyframeAnyValue",
+    2,
+    [
+      ["floatValue", "float", 0, 1],
+      ["vectorValue", "Vector", 0, 4]
+    ]
+  ],
+  [
+    "KeyframeValueType",
+    0,
+    [
+      ["FLOAT", 0],
+      ["VECTOR", 4]
+    ]
+  ],
+  [
+    "KeyframeValueData",
+    2,
+    [
+      ["value", "KeyframeAnyValue", 0, 1],
+      ["valueType", "KeyframeValueType", 0, 2]
+    ]
+  ],
+  ["KeyframeTrackParameterType", 0, [["MANUAL", 1]]],
+  ["ManualKeyframeTrackParameter", 2, [["keyframeTrackId", "KeyframeTrackId", 0, 1]]],
+  ["KeyframeTrackAnyParameter", 2, [["manual", "ManualKeyframeTrackParameter", 0, 1]]],
+  [
+    "KeyframeTrackParameter",
+    2,
+    [
+      ["value", "KeyframeTrackAnyParameter", 0, 1],
+      ["type", "KeyframeTrackParameterType", 0, 2]
+    ]
+  ],
+  ["KeyframeTrackParameterValue", 2, [["parameters", "KeyframeTrackParameter", 1, 1]]],
+  ["TransitionEasingAnyValue", 2, [["bezierEasing", "BezierHandles", 0, 2]]],
+  [
+    "EasingData",
+    2,
+    [
+      ["easingType", "EasingType", 0, 1],
+      ["easingValue", "TransitionEasingAnyValue", 0, 2]
+    ]
+  ],
   ["SelectionRegionFocusType", 0, [["NONE", 0]]],
   [
     "ClipboardSelectionRegion",
@@ -223,7 +350,17 @@ export const FIGMA_DEFS: readonly KiwiDef[] = [
       ["pasteIsPartiallyOutsideEnclosingFrame", "bool", 0, 4],
       ["focusType", "SelectionRegionFocusType", 0, 5]
     ]
+  ],
+  [
+    "BezierHandles",
+    2,
+    [
+      ["p1x", "float", 0, 1],
+      ["p1y", "float", 0, 2],
+      ["p2x", "float", 0, 3],
+      ["p2y", "float", 0, 4]
+    ]
   ]
 ];
 export const FIGMA_SCHEMA =
-  "jVXrbts2FP5IXxI3WVa0WdplW28Lit1+OH0D2VJcrbZkSHb7M6Al2iYikwIpt/EeYm+0dxtIXxtgwH6JPDznO9+56nLAjWEzPlqVHCBR7Ae33fde1AtS2LvK+XDOjH3rJoE3CnwAsOK1RdOPu+NBEI2sdteLPnrWjt4k3iAAUO/EcT/wott4GCTeKIwjAI2g3w+HqX1vJUF35EW9vr086hRc5gOVc6AWxcnA6zvUuB8nt51x4mzXNz/2e85+yISs1lRoGvdDR6+XeH4YRKNb+3UgNJhOebZRrN/ESdBL4nHk33b648S+9xIvtPjNKA4ds6Ne30ttLMdppdUd9woxkwAJozT0rQJZy/9UwooH4SiwQOgoVXAm45JrVgklARpGoyBJg67LUTrujBLPnWlvHPog1HBjhJKhjyOQQmWscEfaVYXSIHWNFsgMLdAJWqgxtFD/yLPKPtJ7+7iyj049rVQJQjNneg5SKiMcjRbogFVa3IM0F+22tVq0r6140X5nYRfXVlhfXFthY3Fthc0h01xWocz5PQidLUWOJwegJ6CuAKBHlU3tMcjWM1Uly0RlmdU+CyMmBQdBfbIrcRMNU6nS4DlpVppJM1V6gUscRUqYbT8O4igexZHL97qEoOfO1SMQNZ0aXuECNc1ysTSW/t5V49BV05SasxwtHJm5+pLOWa6+dPhcyNz2MgiOd8QNz5TMmV51N5Ln0jJKxV8cF7jIClGOVDpnpTV7lnNp1mF+L3fEX+FS86lmmc1SsiX3wpQ8WxZMe3JWcLTwcisIZbWDeTXhn3nhvLXwOptrtWCVyLwJ15uOauGN5tOCO3RfmIrJzCr/vPd5CHgV5KJSepNRP0jDnu10DJi520yO1x++96ysPx6EkRd1bcKpzUx3zuSMgz7b1d5tAwpaHrTGj6i5otRRl2zBcYLGvhDNfSccH9akZdYZPTms/umCmTsQPF5s2b3FP3TCsruZVkuZxzusp8bN3ycuZvMKLVyagzk9xU9mP55neDkVReFa1eAFectdKxm8Ib/voQPJJgXPQfDtVLMFt/nxhdkKjeaW8EjdiAoEy8nDQX+MKyErriUrYlmsQPA3GTJTcc8Yvlk9ZBx9iOJP0XaJrtMb65xrgLh9YCuz3smgZy6rADlcEZRld+5QkzsEg19IvbTOQh8NnLpjvJ2Pb9z1RhT8A1/hBGdrTTNkuhKsKFbxsjIi54HMCmWEnN3Y+EHw1CkO2YyHtvjnwnSXNvjvnPygr67wg52LiWI6T/mmNRM+E0oavCOvy6/z8Bt+lQ+i/wPtB4Y3Klua3X/J7QB0/8MJaGPdj7ZFLbTBE0L5V/Hs0lH7v+HXpzsKbTT+BQ==";
+  "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";

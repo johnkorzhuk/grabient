@@ -1,11 +1,19 @@
 import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
-import { BLOB_DESIGN, blobFilter, blobFit, blobScene } from "./blob.ts";
+import { BLOB_DEPTH, BLOB_DESIGN, BLOB_LOOP, blobFilter, blobFit, blobScene } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
 import { FIGMA_BLOB, type FigmaBlobView, figmaBlobHtml, figmaBlobNodes } from "./figma-blob.ts";
 import { FIGMA_GLASS, figmaGlassHtml, figmaGlassNodes } from "./figma-glass.ts";
+import { FIGMA_INTERNAL } from "./figma-paste.ts";
 import { FIGMA_DEFS, FIGMA_SCHEMA, FIGMA_VERSION } from "./figma-schema.ts";
-import { glassColors, glassGeometry } from "./glass.ts";
+import {
+  GLASS_DESIGN,
+  GLASS_LOOP,
+  glassColors,
+  glassDiscAt,
+  glassField,
+  glassGeometry
+} from "./glass.ts";
 import { decodeKiwi, encodeKiwi } from "./kiwi.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: a decoded paste, read by the paths each test expects it to hold
@@ -79,6 +87,31 @@ test("kiwi's bytes, written as kiwi's own encoder writes them, and read back", (
     density: 1
   });
   expect(back.nodeChanges[3].blendMode).toBe("COLOR_BURN");
+  /* the moving blob's: a timeline, a group taking its turn from a track, and a keyframe late in the loop */
+  expect(back.nodeChanges[4].timelineDuration).toBe(16_000_000);
+  expect(back.nodeChanges[4].parameterConsumptionMap.entries[0].variableField).toBe(
+    "MOTION_ROTATION"
+  );
+  expect(back.nodeChanges[5].type).toBe("KEYFRAME_TRACK");
+  expect(back.nodeChanges[7]).toMatchObject({
+    timelinePosition: 16_000_000,
+    keyframeValue: { valueType: "VECTOR" },
+    easingData: { easingType: "CUSTOM_CUBIC" }
+  });
+});
+
+test("kiwi writes 64-bit integers past 32 bits and below 0", () => {
+  for (const at of [0, 1, -1, 2 ** 31 + 5, -(2 ** 40), 2 ** 52]) {
+    const node = { guid: { sessionID: 1, localID: 1 }, type: "KEYFRAME", timelinePosition: at };
+    const bytes = encodeKiwi(FIGMA_DEFS, "NodeChange", node);
+    expect((decodeKiwi(FIGMA_DEFS, "NodeChange", bytes) as Node).timelinePosition).toBe(at);
+  }
+  expect(() =>
+    encodeKiwi(FIGMA_DEFS, "NodeChange", {
+      guid: { sessionID: 1, localID: 1 },
+      timelinePosition: 0.5
+    })
+  ).toThrow(/out of range/);
 });
 
 test("kiwi refuses what Figma's schema lacks", () => {
@@ -288,4 +321,181 @@ test("the blob covers a box of another shape, every length scaled with it, on it
   /* the cover rects reach a tenth of the box past it, so the clip leaves no edge bare */
   expect(nodes.find(n => n.name === "black")!).toMatchObject({ size: { x: 2304, y: 1464 } });
   parentsFirst(nodes);
+});
+
+test("the playing blob moves on Figma's timeline: each ball turns about its rest, the ring about the middle, the blob breathes and wanders", () => {
+  const nodes = figmaBlobNodes({ ...blobView, speed: 1 }) as Node[];
+  const scene = blobScene(palette, BLOB_DESIGN, blobView);
+  const fit = blobFit(blobView);
+  const byId = new Map(nodes.map(n => [`${n.guid.sessionID}:${n.guid.localID}`, n]));
+  const key = (g: Node) => `${g.sessionID}:${g.localID}`;
+  expect(nodes.find(n => n.name === "Navy and teal")!.timelineDuration).toBe(BLOB_LOOP * 1e6);
+  /* every animated group takes its value from a track under the internal canvas, whose keyframes it holds */
+  const moving = nodes.filter(n => n.parameterConsumptionMap);
+  const tracks = nodes.filter(n => n.type === "KEYFRAME_TRACK");
+  expect(tracks).toHaveLength(moving.length);
+  const motion = (n: Node) => {
+    const entry = n.parameterConsumptionMap.entries[0];
+    const [rest, from] = entry.variableData.value.expressionValue.expressionArguments;
+    const track = byId.get(
+      key(from.value.keyframeTrackParameterValue.parameters[0].value.manual.keyframeTrackId.guid)
+    )!;
+    expect(track.parentIndex.guid).toEqual(FIGMA_INTERNAL);
+    const keys = nodes.filter(
+      k => k.type === "KEYFRAME" && key(k.parentIndex.guid) === key(track.guid)
+    );
+    return { field: entry.variableField, rest: rest.value, keys };
+  };
+  /* per copy of the balls: a turn for each ball and one for each ring, and a breath for each blob */
+  const per = scene.blobs.length * (scene.blobs[0].balls.length + 2);
+  expect(
+    moving.filter(n => n.name.startsWith("turn ") || n.name === "ring").length %
+      (per - scene.blobs.length)
+  ).toBe(0);
+  /* the first blob's first ball: its laps a loop, clockwise for laps above 0, about its resting point */
+  const ball = scene.blobs[0].balls[0];
+  const first = nodes.find(n => n.name === "turn 1")!;
+  const turn = motion(first);
+  expect(turn.field).toBe("MOTION_ROTATION");
+  expect(turn.keys.map(k => k.timelinePosition ?? 0)).toEqual([0, BLOB_LOOP * 1e6]);
+  expect(turn.keys[1].keyframeValue.value.floatValue).toBeCloseTo(2 * Math.PI * ball.laps, 6);
+  expect(turn.keys.every(k => k.easingData.easingType === "LINEAR")).toBe(true);
+  /* the turn's group is centred on the ball's resting point, about which Figma turns it: its ball and the clear twin
+     mirrored through that point */
+  const [b0] = scene.blobs;
+  const rest = {
+    x: fit.x + (b0.x + ball.x * b0.R) * fit.scale,
+    y: fit.y + (b0.y + ball.y * b0.R) * fit.scale
+  };
+  let x = first.transform.m02 + first.size.x / 2;
+  let y = first.transform.m12 + first.size.y / 2;
+  for (
+    let up = byId.get(key(first.parentIndex.guid));
+    up && up.name !== "Navy and teal";
+    up = byId.get(key(up.parentIndex.guid))
+  ) {
+    x += up.transform.m02;
+    y += up.transform.m12;
+  }
+  expect(x).toBeCloseTo(rest.x, 3);
+  expect(y).toBeCloseTo(rest.y, 3);
+  /* the breath: from its middle to near or far and back, whole laps, on the site's ease and its halves */
+  const breath = motion(nodes.find(n => n.name === "breath")!);
+  expect(breath.field).toBe("MOTION_SCALE_XY");
+  expect(breath.rest.vectorValue).toEqual({ x: 1, y: 1 });
+  const values = breath.keys.map(k => k.keyframeValue.value.vectorValue.x);
+  expect(values[0]).toBeCloseTo(1, 6);
+  expect(values.at(-1)).toBeCloseTo(1, 6);
+  for (const v of values.slice(1, -1)) expect([BLOB_DEPTH.far, BLOB_DEPTH.near]).toContain(v);
+  expect(breath.keys.length).toBe(2 * Math.abs(b0.depth) + 2);
+  expect(breath.keys[1].easingData.easingValue.bezierEasing).toEqual({
+    p1x: 0.315,
+    p1y: 0.5,
+    p2x: 0.63,
+    p2y: 1
+  });
+  expect(breath.keys[breath.keys.length - 1].easingData.easingValue.bezierEasing).toEqual({
+    p1x: 0.37,
+    p1y: 0,
+    p2x: 0.685,
+    p2y: 0.5
+  });
+  parentsFirst(nodes);
+});
+
+test("the blob moves at its speed, and holds still at speed 0 with no timeline", () => {
+  const twice = figmaBlobNodes({ ...blobView, speed: 2 }) as Node[];
+  expect(twice.find(n => n.name === "Navy and teal")!.timelineDuration).toBe((BLOB_LOOP / 2) * 1e6);
+  const still = figmaBlobNodes({ ...blobView, speed: 0 }) as Node[];
+  expect(
+    still.some(n => n.type === "KEYFRAME_TRACK" || n.parameterConsumptionMap || n.timelineDuration)
+  ).toBe(false);
+  expect(JSON.stringify(still)).toBe(JSON.stringify(figmaBlobNodes(blobView)));
+  /* the moving paste writes and reads back whole */
+  const paste = read(figmaBlobHtml({ ...blobView, speed: 1 }, 9));
+  const kinds = paste.message.nodeChanges.map((n: Node) => n.type);
+  expect(kinds.filter((t: string) => t === "KEYFRAME_TRACK").length).toBeGreaterThan(100);
+  expect(kinds.filter((t: string) => t === "KEYFRAME").length).toBeGreaterThan(300);
+});
+
+/* a track as Figma plays it: each stretch from one keyframe to the next on the easing its arriving keyframe gives */
+function trackOf(nodes: Node[], layer: Node) {
+  const key = (g: Node) => `${g.sessionID}:${g.localID}`;
+  const [, from] =
+    layer.parameterConsumptionMap.entries[0].variableData.value.expressionValue.expressionArguments;
+  const id = key(
+    from.value.keyframeTrackParameterValue.parameters[0].value.manual.keyframeTrackId.guid
+  );
+  return nodes
+    .filter(k => k.type === "KEYFRAME" && key(k.parentIndex.guid) === id)
+    .map(k => {
+      const b = k.easingData.easingValue.bezierEasing;
+      return {
+        t: (k.timelinePosition ?? 0) / 1e6,
+        v: k.keyframeValue.value.floatValue as number,
+        e: k.easingData.easingType === "LINEAR" ? null : [b.p1x, b.p1y, b.p2x, b.p2y]
+      };
+    });
+}
+function played(keys: ReturnType<typeof trackOf>, t: number) {
+  const curve = (u: number, a: number, b: number) =>
+    3 * (1 - u) ** 2 * u * a + 3 * (1 - u) * u ** 2 * b + u ** 3;
+  for (let k = 1; k < keys.length; k++) {
+    if (t > keys[k].t) continue;
+    const [a, b] = [keys[k - 1], keys[k]];
+    const x = (t - a.t) / (b.t - a.t);
+    let lo = 0;
+    let hi = 1;
+    if (b.e)
+      for (let i = 0; i < 60; i++) {
+        const mid = (lo + hi) / 2;
+        if (curve(mid, b.e[0], b.e[2]) < x) lo = mid;
+        else hi = mid;
+      }
+    return a.v + (b.v - a.v) * (b.e ? curve((lo + hi) / 2, b.e[1], b.e[3]) : x);
+  }
+  return keys[keys.length - 1].v;
+}
+
+test("the playing glass's colors drift on Figma's timeline along the site's orbits, within a percent of them", () => {
+  for (const [angle, shape, width, height, speed] of [
+    [90, null, 1000, 1000, 1],
+    [45, 7, 1186, 851, 2]
+  ] as const) {
+    const v = { ...view, angle, shape, width, height, speed };
+    const nodes = figmaGlassNodes(v) as Node[];
+    const loop = GLASS_LOOP / speed;
+    expect(nodes.find(n => n.name === "Navy and teal")!.timelineDuration).toBe(loop * 1e6);
+    expect(nodes.filter(n => n.type === "KEYFRAME_TRACK")).toHaveLength(24);
+    const design = glassGeometry(GLASS_DESIGN, angle, shape);
+    const field = glassField(design, colors);
+    const s = Math.max(width, height) / GLASS_DESIGN.width;
+    const at = new Float32Array(2);
+    const at0 = new Float32Array(2);
+    for (const [i, d] of field.discs.entries()) {
+      const across = nodes.find(n => n.name === `drift ${i + 1}`)!;
+      const down = nodes.find(
+        n => n.name === "drift down" && n.parentIndex.guid.localID === across.guid.localID
+      )!;
+      const [kx, ky] = [trackOf(nodes, across), trackOf(nodes, down)];
+      glassDiscAt(design, d, 0, at0, 0);
+      for (let t = 0; t <= loop; t += loop / 120) {
+        glassDiscAt(design, d, t * speed, at, 0);
+        const miss = Math.hypot(
+          (at[0] - at0[0]) * s - played(kx, t),
+          (at[1] - at0[1]) * s - played(ky, t)
+        );
+        expect(miss).toBeLessThan(0.01 * Math.max(d.a, d.b) * s);
+      }
+    }
+    parentsFirst(nodes);
+  }
+});
+
+test("the glass held at speed 0 is its still paste, with no timeline", () => {
+  const still = figmaGlassNodes({ ...view, speed: 0 }) as Node[];
+  expect(
+    still.some(n => n.type === "KEYFRAME_TRACK" || n.parameterConsumptionMap || n.timelineDuration)
+  ).toBe(false);
+  expect(JSON.stringify(still)).toBe(JSON.stringify(figmaGlassNodes(view)));
 });

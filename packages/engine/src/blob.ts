@@ -162,7 +162,10 @@ const DROP = { at: 0.8, r: 0.34, swing: 0.32 };
 const CORE = { r: 0.6, swing: 0.1 };
 const VARY = 0.2;
 /** Each blob's breath: its size from far to near as it drifts, about its size in the first frame, which is midway. */
-const DEPTH = { far: 0.88, near: 1.12 };
+export const BLOB_DEPTH = { far: 0.88, near: 1.12 } as const;
+const DEPTH = BLOB_DEPTH;
+/** The ease of every to-and-fro (a blob's wander and breath), a CSS cubic-bezier's four numbers: slow at either end. */
+export const BLOB_EASE = [0.37, 0, 0.63, 1] as const;
 /** Three blobs this large, out from the design's middle by a share of its side, each wandering `wander` of it. A
     scale sizes them all and REACH spreads them: a palette's own blob, with no shape asked, by SCALE, leaning to its
     top, so it fills its box; a shape number by SHAPE_SCALE, as often small blobs with the ground between them as
@@ -516,7 +519,7 @@ export function blobSvg(P: Palette, view: BlobView, size: Size | null, credit: s
   const scene = blobScene(P, BLOB_DESIGN, view);
   const id = mark(JSON.stringify([encodePalette(P), view, W ?? "fluid", H ?? "fluid"]));
   const D = BLOB_LOOP / view.speed;
-  const ease = "cubic-bezier(.37,0,.63,1)";
+  const ease = `cubic-bezier(${BLOB_EASE.map(v => num(v)).join(",")})`;
 
   /* one class to each count of laps a turn makes, which sets its duration and way round */
   const turns = new Map<number, string>();

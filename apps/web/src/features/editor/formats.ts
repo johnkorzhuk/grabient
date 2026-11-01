@@ -191,8 +191,9 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
   if (!(await copyImage(png))) throw new Error(NO_IMAGE_CLIPBOARD);
 }
 
-/* The effect as Figma's own layers at the pixels taken, its first frame, the frame named for the palette: each
-   effect's code comes on the press, and the Worker's build carries none of it */
+/* The effect as Figma's own layers at the pixels taken, the frame named for the palette, moving on Figma's timeline
+   as the picture moves (its speed), its first frame when held. Each effect's code comes on the press, and the
+   Worker's build carries none of it */
 const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
   const frame = { width: p.pixels.width, height: p.pixels.height, name: p.name || "Grabient" };
   if (effect.kind === "blob") {
@@ -203,13 +204,20 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
       palette: decodePalette(p.seed)!,
       angle: p.angle,
       ...effect.look,
-      ...frame
+      ...frame,
+      speed: effect.speed
     });
   }
   const { figmaGlassHtml } = await (import.meta.env.SSR
     ? (new Promise(() => {}) as never)
     : import("@grabient/engine/figma-glass.ts"));
-  return figmaGlassHtml({ colors: colorsOf(p), angle: p.angle, shape: shapeOf(p), ...frame });
+  return figmaGlassHtml({
+    colors: colorsOf(p),
+    angle: p.angle,
+    shape: shapeOf(p),
+    ...frame,
+    speed: effect.speed
+  });
 };
 
 /** The tags that play an effect behind a page, its first frame inside them, as Copy HTML gives them. */

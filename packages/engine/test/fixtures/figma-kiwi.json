@@ -306,8 +306,179 @@
             "blendMode": "NORMAL"
           }
         ]
+      },
+      {
+        "guid": {
+          "sessionID": 1,
+          "localID": 4
+        },
+        "phase": "CREATED",
+        "parentIndex": {
+          "guid": {
+            "sessionID": 0,
+            "localID": 1
+          },
+          "position": "#"
+        },
+        "type": "FRAME",
+        "name": "turn 1",
+        "visible": true,
+        "opacity": 1,
+        "size": {
+          "x": 200,
+          "y": 200
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 10,
+          "m10": 0,
+          "m11": 1,
+          "m12": 20
+        },
+        "fillPaints": [],
+        "frameMaskDisabled": false,
+        "resizeToFit": true,
+        "timelineDuration": 16000000,
+        "parameterConsumptionMap": {
+          "entries": [
+            {
+              "variableData": {
+                "value": {
+                  "expressionValue": {
+                    "expressionFunction": "KEYFRAME",
+                    "expressionArguments": [
+                      {
+                        "value": {
+                          "floatValue": 0
+                        },
+                        "dataType": "FLOAT",
+                        "resolvedDataType": "FLOAT"
+                      },
+                      {
+                        "value": {
+                          "keyframeTrackParameterValue": {
+                            "parameters": [
+                              {
+                                "value": {
+                                  "manual": {
+                                    "keyframeTrackId": {
+                                      "guid": {
+                                        "sessionID": 1,
+                                        "localID": 5
+                                      }
+                                    }
+                                  }
+                                },
+                                "type": "MANUAL"
+                              }
+                            ]
+                          }
+                        },
+                        "dataType": "KEYFRAME_TRACK_PARAMETER_DATA",
+                        "resolvedDataType": "KEYFRAME_TRACK_PARAMETER_DATA"
+                      }
+                    ]
+                  }
+                },
+                "dataType": "EXPRESSION",
+                "resolvedDataType": "FLOAT"
+              },
+              "variableField": "MOTION_ROTATION"
+            }
+          ]
+        }
+      },
+      {
+        "guid": {
+          "sessionID": 1,
+          "localID": 5
+        },
+        "phase": "CREATED",
+        "parentIndex": {
+          "guid": {
+            "sessionID": 20006994,
+            "localID": 2
+          },
+          "position": "~!"
+        },
+        "type": "KEYFRAME_TRACK",
+        "name": "Keyframe Track",
+        "visible": true
+      },
+      {
+        "guid": {
+          "sessionID": 1,
+          "localID": 6
+        },
+        "phase": "CREATED",
+        "parentIndex": {
+          "guid": {
+            "sessionID": 1,
+            "localID": 5
+          },
+          "position": "!"
+        },
+        "type": "KEYFRAME",
+        "name": "Keyframe",
+        "visible": true,
+        "keyframeValue": {
+          "value": {
+            "floatValue": 0
+          },
+          "valueType": "FLOAT"
+        },
+        "easingData": {
+          "easingType": "LINEAR",
+          "easingValue": {
+            "bezierEasing": {
+              "p1x": 0,
+              "p1y": 0,
+              "p2x": 1,
+              "p2y": 1
+            }
+          }
+        }
+      },
+      {
+        "guid": {
+          "sessionID": 1,
+          "localID": 7
+        },
+        "phase": "CREATED",
+        "parentIndex": {
+          "guid": {
+            "sessionID": 1,
+            "localID": 5
+          },
+          "position": "\""
+        },
+        "type": "KEYFRAME",
+        "name": "Keyframe",
+        "visible": true,
+        "timelinePosition": 16000000,
+        "keyframeValue": {
+          "value": {
+            "vectorValue": {
+              "x": 1.12,
+              "y": 1.12
+            }
+          },
+          "valueType": "VECTOR"
+        },
+        "easingData": {
+          "easingType": "CUSTOM_CUBIC",
+          "easingValue": {
+            "bezierEasing": {
+              "p1x": 0.37,
+              "p1y": 0,
+              "p2x": 0.685,
+              "p2y": 0.5
+            }
+          }
+        }
       }
     ]
   },
-  "bytes": "AQECAAMABAQBAAACAAQBBURvY3VtZW50AAYBCH8AAAAMfwAAAAAAAH8AAAAAAAEBAQIAAwABIQAEBQVyaWIgMSDCtyDDvG7Dr2NvZGUABgEIfgAAAAuIACCWiAAA9Ax/AAAAAIcBACwAfwAAAIIAAJAQAL0CACYBAQIDfwAAAAQBBQEGAnyamZl9mpmZfjQzM38AAAAAfJqZmX2amZl+NDMzAH8AAAAHfwAAAAAAAH8AAAAAACsCAQgDAIEAAAAEAAUBBgEHAAgAAgAAAH0AAAAYfwAAAH8AAAB/AAAAAB6FAACQH4QBAGggACF/AAAAIgAjACR/AACAAAECAwAABIXC9RoFAQYBBwAIAQIAAAB/AAAAACQBAAEBAgIAAwABIgAEBAVzaGFwZQAGAQh/AAAACQELiQAALIkAACwMfwAAAACFAQCQAH8AAACFAQCQEAG9AgImACsCAQYDAAAEhAAARAUBBgEHAAgAAgAAAH8AAAAWgAAAQIAAAEAXAAABBwMAAAUBBgEHAAgAAgAAAHwmMQgWgAAAQIAAAEAZfwAAABoBAHMAdQEAAQEDAgADAQIhAAQKBWxpZnQABgEIe2q8dAkFC4kAACyJAAAsDH8AAAAAAAB/AAAAACYBAQACfnRzc350c3N+dHNzfwAAAAN/AAAABAEFAQAADICJDw0AAA5ncmFiaWVudFBhc3RlR2xhc3MwMDAwMAATABQAARUAGwAhAQEAAQIBAQEDAAAEAAUAACkAMAAA"
+  "bytes": "AQECAAMABAgBAAACAAQBBURvY3VtZW50AAYBCH8AAAAMfwAAAAAAAH8AAAAAAAEBAQIAAwABIQAEBQVyaWIgMSDCtyDDvG7Dr2NvZGUABgEIfgAAAAuIACCWiAAA9Ax/AAAAAIcBACwAfwAAAIIAAJAQAL0CACYBAQIDfwAAAAQBBQEGAnyamZl9mpmZfjQzM38AAAAAfJqZmX2amZl+NDMzAH8AAAAHfwAAAAAAAH8AAAAAACsCAQgDAIEAAAAEAAUBBgEHAAgAAgAAAH0AAAAYfwAAAH8AAAB/AAAAAB6FAACQH4QBAGggACF/AAAAIgAjACR/AACAAAECAwAABIXC9RoFAQYBBwAIAQIAAAB/AAAAACQBAAEBAgIAAwABIgAEBAVzaGFwZQAGAQh/AAAACQELiQAALIkAACwMfwAAAACFAQCQAH8AAACFAQCQEAG9AgImACsCAQYDAAAEhAAARAUBBgEHAAgAAgAAAH8AAAAWgAAAQIAAAEAXAAABBwMAAAUBBgEHAAgAAgAAAHwmMQgWgAAAQIAAAEAZfwAAABoBAHMAdQEAAQEDAgADAQIhAAQKBWxpZnQABgEIe2q8dAkFC4kAACyJAAAsDH8AAAAAAAB/AAAAACYBAQACfnRzc350c3N+dHNzfwAAAAN/AAAABAEFAQAAAQEEAgADAAEjAAQEBXR1cm4gMQAGAQh/AAAAC4YAAJCGAACQDH8AAAAAggAAQAB/AAAAgwAAQCYAcwB1Ab0DAQECAQYBEwICAQMAAAIBAwEAARQBAQEBAQEBBQAAAAIBAAAAAhUDDgAAAAIFAwEAAzAAAIAEgMjQBwABAQUCAAPSkMUJAn4hAAQ5BUtleWZyYW1lIFRyYWNrAAYBAAEBBgIAAwEFIQAEOAVLZXlmcmFtZQAGAfsDAQEAAAIAAJcEAQMCAgEAAgADfwAAAAR/AAAAAAAAAAEBBwIAAwEFIgAEOAVLZXlmcmFtZQAGAfoDgJChD/sDAQR/Urgef1K4HgACBACXBAEHAgIBfUjhegIAA35SuF4EfgAAAAAAAAAMgIkPDQAADmdyYWJpZW50UGFzdGVHbGFzczAwMDAwABMAFAABFQAbACEBAQABAgEBAQMAAAQABQAAKQAwAAA="
 }

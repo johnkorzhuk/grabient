@@ -9,19 +9,28 @@
    Glass is added by hand softens the ribs) and refraction 1.5, which only a paste reaches (the plugin API stops at 1)
    and which matched the site best on every palette tried; a 4 px blur over the ribs. Figma's blur radius is twice the
    SVG's standard deviation. Every length is the 1000 px design's, scaled to cover the box as the site's still covers
-   it. */
+   it.
+   While the glass plays, its colors drift on Figma's own timeline as the site's do: each disc travels its ellipse
+   along the ribs, one or two laps a loop (GLASS_LOOP over the speed). An ellipse is no turn Figma can key, but each of
+   its screen axes is a plain wave, so a disc's group moves across and its inner group down, each keyed at the wave's
+   turning points on the ease a sine's swing follows, a stretch that starts or ends partway on that part of it. The
+   ribs stay still, as on the site. */
 import {
   FIGMA_PAGE,
+  type FigmaCurve,
+  type FigmaField,
+  type FigmaMotion,
   type FigmaNode,
   figmaAt,
   figmaBlur,
   figmaColor,
+  figmaCurveBetween,
   figmaLayers,
   figmaPasteHtml,
   figmaScene,
   figmaSolid
 } from "./figma-paste.ts";
-import { GLASS_DESIGN, glassDiscAt, glassField, glassGeometry } from "./glass.ts";
+import { GLASS_DESIGN, GLASS_LOOP, glassDiscAt, glassField, glassGeometry } from "./glass.ts";
 
 /** The Glass a rib carries, in the clipboard's names: refractionIntensity is Figma's Refraction, refractionRadius its
     Depth, specularIntensity and specularAngle its Light, chromaticAberration its Dispersion, reflectionDistance its
@@ -42,6 +51,46 @@ export interface FigmaGlassView {
   height: number;
   /** the frame's name in Figma */
   name: string;
+  /** how fast the colors drift, the loop GLASS_LOOP seconds over this; 0 or none, the first frame alone */
+  speed?: number;
+}
+
+/** The ease of a cosine's swing from one end to the other (CSS's easeInOutSine), within half a percent of it. */
+const SINE: FigmaCurve = [0.37, 0, 0.63, 1];
+
+/* A plain wave, A cos(rate t + phase), as keyframes of its change from t = 0 over a loop of whole periods: its turning
+   points, and its start and end where they fall between two (cos is even, so a falling rate is a rising one with the
+   phase turned back) */
+function wave(
+  field: FigmaField,
+  A: number,
+  rate: number,
+  phase: number,
+  loop: number
+): FigmaMotion {
+  const w = Math.abs(rate);
+  const start = rate < 0 ? -phase : phase;
+  const at0 = A * Math.cos(start);
+  const half = Math.PI / w;
+  const h0 = start / Math.PI;
+  const into = h0 - Math.floor(h0);
+  const turns = Math.round((loop * w) / Math.PI);
+  const keys: FigmaMotion["keys"][number][] = [{ t: 0, v: 0, e: null }];
+  const end = (k: number) => A * (k % 2 === 0 ? 1 : -1) - at0;
+  if (into < 1e-9 || into > 1 - 1e-9) {
+    const k0 = Math.round(h0);
+    for (let j = 1; j <= turns; j++) keys.push({ t: j * half, v: end(k0 + j), e: SINE });
+    return { field, base: 0, keys };
+  }
+  const k0 = Math.floor(h0) + 1;
+  for (let j = 0; j < turns; j++)
+    keys.push({
+      t: (1 - into) * half + j * half,
+      v: end(k0 + j),
+      e: j === 0 ? figmaCurveBetween(SINE, into, 1) : SINE
+    });
+  keys.push({ t: loop, v: 0, e: figmaCurveBetween(SINE, 0, into) });
+  return { field, base: 0, keys };
 }
 
 const glassEffect = (depth: number) => ({
@@ -80,10 +129,12 @@ export function figmaGlassNodes(view: FigmaGlassView): FigmaNode[] {
   const X = (x: number) => ox + x * s;
   const Y = (y: number) => oy + y * s;
 
-  const { nodes, add, group } = figmaLayers();
+  const { nodes, internal, add, group, animate } = figmaLayers();
+  const loop = view.speed ? GLASS_LOOP / view.speed : 0;
   const top = add("FRAME", view.name, FIGMA_PAGE, 0, W, H, 0, 0, {
     fillPaints: [],
-    frameMaskDisabled: true
+    frameMaskDisabled: true,
+    ...(loop ? { timelineDuration: Math.round(loop * 1e6) } : {})
   });
   const glass = group("glass", top, 0, 0, 0, W, H);
   add("RECTANGLE", "mask", glass, 0, W, H, 0, 0, {
@@ -104,35 +155,65 @@ export function figmaGlassNodes(view: FigmaGlassView): FigmaNode[] {
   const colors = group("colors", glass, 2, X(gx), Y(gy), gw * s, gh * s, {
     effects: [figmaBlur(2 * design.sigma * s)]
   });
-  discs.forEach((d, i) => {
+  /* each disc's orbit as two waves on the screen: an ellipse of half-axes a (along the ribs) and b, turned to the
+     ribs' angle, swept at the disc's own pace from where it starts */
+  const al = (design.alpha * Math.PI) / 180;
+  for (const [i, d] of discs.entries()) {
     const c = figmaColor(d.color);
-    add(
-      "ELLIPSE",
-      `color ${i + 1}`,
-      colors,
-      i,
-      2 * d.R * s,
-      2 * d.R * s,
-      (d.x - d.R - gx) * s,
-      (d.y - d.R - gy) * s,
-      {
-        fillPaints: [
-          {
-            type: "GRADIENT_RADIAL",
-            opacity: 1,
-            visible: true,
-            blendMode: "NORMAL",
-            transform: figmaAt(),
-            stops: [
-              { color: c, position: 0 },
-              { color: c, position: field.core },
-              { color: { ...c, a: 0 }, position: 1 }
-            ]
-          }
-        ]
-      }
-    );
-  });
+    const x = (d.x - d.R - gx) * s;
+    const y = (d.y - d.R - gy) * s;
+    const side = 2 * d.R * s;
+    let parent = colors;
+    let index = i;
+    let ox = x;
+    let oy = y;
+    if (loop) {
+      const orbit = field.discs[i];
+      const rate = (orbit.dir * 2 * Math.PI * (view.speed ?? 1)) / orbit.dur;
+      const ang0 = (orbit.dir * 2 * Math.PI * -orbit.delay) / orbit.dur;
+      const ca = Math.cos(al);
+      const sa = Math.sin(al);
+      const across = wave(
+        "MOTION_TRANSLATION_X",
+        Math.hypot(orbit.a * ca, orbit.b * sa) * s,
+        rate,
+        ang0 + Math.atan2(orbit.b * sa, orbit.a * ca),
+        loop
+      );
+      const down = wave(
+        "MOTION_TRANSLATION_Y",
+        Math.hypot(orbit.a * sa, orbit.b * ca) * s,
+        rate,
+        ang0 + Math.atan2(-orbit.b * ca, orbit.a * sa),
+        loop
+      );
+      const outer = group(`drift ${i + 1}`, colors, i, x, y, side, side, {
+        parameterConsumptionMap: animate(across)
+      });
+      parent = group("drift down", outer, 0, 0, 0, side, side, {
+        parameterConsumptionMap: animate(down)
+      });
+      index = 0;
+      ox = 0;
+      oy = 0;
+    }
+    add("ELLIPSE", `color ${i + 1}`, parent, index, side, side, ox, oy, {
+      fillPaints: [
+        {
+          type: "GRADIENT_RADIAL",
+          opacity: 1,
+          visible: true,
+          blendMode: "NORMAL",
+          transform: figmaAt(),
+          stops: [
+            { color: c, position: 0 },
+            { color: c, position: field.core },
+            { color: { ...c, a: 0 }, position: 1 }
+          ]
+        }
+      ]
+    });
+  }
 
   /* rib k: circle k + 1 minus circle k, cut to the square the bleed reaches */
   const lo = -FIGMA_GLASS.bleed;
@@ -198,7 +279,7 @@ export function figmaGlassNodes(view: FigmaGlassView): FigmaNode[] {
       fillPaints: [figmaSolid("#ffffff")]
     });
   }
-  return figmaScene(nodes);
+  return figmaScene(nodes, internal);
 }
 
 /** The clipboard's text/html for the glass, which a paste into Figma reads as its layers. */
