@@ -35,10 +35,15 @@ interface Line {
   indent: string;
   words: { parts: string[]; comment: boolean }[];
 }
+/* A line longer than this (a picture inside a data URI) is one run of text the browser wraps, as no one reads its
+   words: a span to each of its thousands of words held a press on its tab a tenth of a second. */
+const LONG = 2000;
 function lines(code: string): Line[] {
   let close: string | null = null;
   return code.split("\n").map(line => {
     const indent = /^ */.exec(line)?.[0] ?? "";
+    if (line.length > LONG)
+      return { indent, words: [{ parts: [line.slice(indent.length)], comment: false }] };
     let rest = false;
     const words = line.length > indent.length ? line.slice(indent.length).split(" ") : [];
     return {

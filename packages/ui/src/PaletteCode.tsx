@@ -17,6 +17,9 @@ export interface CodeSource {
   /** the spelling shown until the reader picks one; the first where left out */
   initial?: string;
   text: (spelling?: string) => string;
+  /** what Copy takes where it is not the text as shown: the text with what it elides written in whole (an effect's
+      first frame inside its tags), made on the press */
+  take?: (spelling?: string) => Promise<string>;
   /** the line under the code, in the reader's language */
   note?: (spelling?: string) => string;
 }
@@ -39,6 +42,11 @@ export function PaletteCode(props: {
   const spelling = () =>
     spellings()[source().id] ?? source().initial ?? source().spellings?.[0]?.id;
   const text = () => source().text(spelling());
+  const take = () => {
+    const { take } = source();
+    const spelled = spelling();
+    return take && (() => take(spelled));
+  };
   let code: HTMLElement | undefined;
   let scroller!: HTMLDivElement;
   const pick = (id: string) => {
@@ -97,6 +105,7 @@ export function PaletteCode(props: {
         </div>
         <CopyButton
           text={text()}
+          take={take()}
           aria-label={t("Copy code")}
           compact
           onCopy={value => props.onCopy?.(source().id, value, spelling())}

@@ -57,6 +57,8 @@ import {
   copyOrSave,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
+  STRIP_EFFECT_COPY,
+  STRIP_EFFECT_LINKS,
   STRIP_FILES,
   saveContrast,
   saveFormat,
@@ -520,10 +522,10 @@ export function Sheet(props: {
           <FormatStrip
             size="sm"
             variant="art"
-            copy={STRIP_COPY}
+            copy={playing() ? STRIP_EFFECT_COPY : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={STRIP_FILES}
+            link={playing() ? STRIP_EFFECT_LINKS : STRIP_FILES}
             onCopy={copy}
             onDownload={f =>
               void saveFormat(f, taken()).then(
@@ -584,7 +586,8 @@ export function Sheet(props: {
         view(),
         e.seed(),
         () => ({ facts: props.facts(), opened: props.opened() === e.seed() }),
-        rest
+        rest,
+        props.taken()
       )}
       onCopy={(id, _text, spelling) =>
         props.used("copy", spelling ? `code:${id}:${spelling}` : `code:${id}`)

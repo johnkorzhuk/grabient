@@ -1,4 +1,5 @@
 import type { Palette } from "@grabient/engine";
+import { hexBytes, srgbToLch, type Triple } from "@grabient/engine/color.ts";
 import {
   COLOR_KINDS,
   type ColorKind,
@@ -7,7 +8,8 @@ import {
   cssBlock,
   cssWide
 } from "@grabient/engine/css.ts";
-import { sampleStops } from "@grabient/engine/curve.ts";
+import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
+import { type Effect, effectAddressParts, effectEmbedHtml } from "@grabient/engine/effect.ts";
 import { paletteMarkdown } from "@grabient/engine/markdown.ts";
 import { SHADER_KINDS, type ShaderKind, shaderText } from "@grabient/engine/shader.ts";
 import { specJson } from "@grabient/engine/spec.ts";
@@ -20,10 +22,14 @@ import { createSignal } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import { namesNow, preciseNames } from "../../lib/color-names.ts";
 import type { PaletteFacts } from "./facts.ts";
+import { effectHtml, type Taken } from "./formats.ts";
 import type { Rest } from "./rest.ts";
 
-/* The palette as text, in the sheet's code pane: its seed, CSS, colors, shader, JSON, SVG and Markdown. Labels and notes
-   are translated; spellings (oklch, hex, GLSL) are notation and stay as written.
+/* The palette as text, in the sheet's code pane: its seed, CSS, colors, shader, JSON, SVG and Markdown. While the
+   picture plays an effect, the pane holds the effect's code in the gradient's place: the tags that play it behind a page,
+   the stylesheet of its first frame, the colors it draws, its settings, its SVG and its Markdown, each the text its
+   address serves and the editor's strip copies (engine/effect-code.ts), and no shader, since the effect's is no one
+   program. Labels and notes are translated; spellings (oklch, hex, GLSL, the tags) are notation and stay as written.
 
    The Markdown is written here by the engine's function the Worker serves the file with, so the tab shows at once and
    an edit asks the server nothing. What only the database knows of a palette (its written words, the collections that
@@ -66,6 +72,26 @@ function served(address: string, rest: Rest, seed: string) {
   }, rest.left());
 }
 
+/* the effects' code, which the player of an effect playing has loaded: the pane reads it once it is in */
+type EffectCode = typeof import("@grabient/engine/effect-code.ts");
+const [effectCode, setEffectCode] = createSignal<EffectCode | null>(null);
+let effectAsked = false;
+const effectCodeNow = () => {
+  if (!effectAsked) {
+    effectAsked = true;
+    void import("@grabient/engine/effect-code.ts").then(setEffectCode, () => {
+      effectAsked = false;
+    });
+  }
+  return effectCode();
+};
+/* the glass's first frame as the tags show it inside the page: its data elided, which Copy writes in full */
+const GLASS_STILL_SHOWN = 'url("data:image/webp;base64,…") 50% 50%/cover no-repeat';
+const stopOf = (hex: string): Stop => {
+  const rgb = hexBytes(hex).map(v => v / 255) as Triple;
+  return { t: 0, hex, rgb, lch: srgbToLch(rgb) };
+};
+
 /** What the page knows of the palette beyond its colors. */
 export interface Known {
   /** the server rendered the page for this palette: nothing it knows of it is missing */
@@ -74,12 +100,15 @@ export interface Known {
   opened: boolean;
 }
 
+/** The palette's sources, for its view, or for the effect the picture plays where `taken` names one: the taken
+    picture is the strip's, whose pixels the SVG is drawn at, as a copy of it is. */
 export function codeSources(
   P: Palette,
   v: View,
   seed: string,
   known: () => Known,
-  rest: Rest
+  rest: Rest,
+  taken?: Taken
 ): CodeSource[] {
   const stops = sampleStops(P, v.steps);
   const n = stops.length;
@@ -90,13 +119,14 @@ export function codeSources(
     return namesNow();
   };
   const swatch = () => swatchPalette(seed, v, origin(), { names: names() });
+  const effect = taken?.effect ?? null;
   const markdown = () => {
-    const address = `/${seed}.md${viewSearch(v)}`;
+    const address = `/${seed}.md${effect ? `?${effectAddressParts(effect, v.angle).join("&")}` : viewSearch(v)}`;
     const had = files().get(address);
     if (had !== undefined) return had;
     const { facts, opened } = known();
     if (!facts && opened && typeof window !== "undefined") {
-      rest.is(seed, `${v.style} ${v.steps} ${v.angle}`);
+      rest.is(seed, address);
       served(address, rest, seed);
     }
     /* the file is English, as the one served at its address is: a translated collection keeps its English title */
@@ -109,10 +139,31 @@ export function codeSources(
     };
     return (
       inLocale(DEFAULT_LOCALE, () =>
-        paletteMarkdown(seed, origin(), v, written ?? null, heldBy, names())
+        paletteMarkdown(seed, origin(), v, written ?? null, heldBy, names(), effect)
       )?.trimEnd() ?? ""
     );
   };
+  const seedSource: CodeSource = {
+    id: "seed",
+    label: msg("Seed"),
+    text: () => seed,
+    note: () =>
+      t("{count, plural, one {# character} other {# characters}}. The whole palette.", {
+        count: seed.length
+      })
+  };
+  const markdownSource = (note: () => string): CodeSource => ({
+    id: "md",
+    label: "MD",
+    text: markdown,
+    note
+  });
+  if (taken && effect)
+    return [
+      seedSource,
+      ...effectSources(P, seed, effect, taken),
+      markdownSource(() => t("The palette as Markdown: colors, names and the tags that play it."))
+    ];
   /* the second sentence where the CSS carries a Display-P3 line under its media query */
   const p3 = (note: string) => (cssWide(stops) ? `${note} ${t("Plus a Display P3 line.")}` : note);
   const cssNote = (kind: ColorKind) =>
@@ -141,15 +192,7 @@ export function codeSources(
   /* CSS and Colors open in the spelling the reader chose in Settings */
   const initial = colorFormat();
   return [
-    {
-      id: "seed",
-      label: msg("Seed"),
-      text: () => seed,
-      note: () =>
-        t("{count, plural, one {# character} other {# characters}}. The whole palette.", {
-          count: seed.length
-        })
-    },
+    seedSource,
     {
       id: "css",
       label: "CSS",
@@ -200,14 +243,69 @@ export function codeSources(
     {
       id: "svg",
       label: "SVG",
-      text: () => artworkSvg(stops, v, seed, origin(), DEFAULT_SIZE),
+      text: () => artworkSvg(stops, v, seed, origin(), taken?.pixels ?? DEFAULT_SIZE),
       note: () => t("The picture as an SVG file.")
     },
+    markdownSource(() => t("The palette as Markdown: colors, names and CSS."))
+  ];
+}
+
+/* The effect's own code between the seed and the Markdown: the tags, the stylesheet, its colors, its settings and its
+   SVG. The tags' first spelling holds the first frame inside the page as Copy HTML does, which for the glass is a WebP
+   the browser makes on the press: shown elided, copied whole. */
+function effectSources(P: Palette, seed: string, effect: Effect, taken: Taken): CodeSource[] {
+  const angle = taken.angle;
+  const glass = effect.kind === "glass";
+  const tags = (spelling?: string) => {
+    if (spelling === "link") return effectEmbedHtml(origin(), seed, effect, angle);
+    const still = glass ? GLASS_STILL_SHOWN : effectCodeNow()?.effectStill(P, effect, angle);
+    return still ? effectEmbedHtml(origin(), seed, effect, angle, still) : "";
+  };
+  const colors = () => effectCodeNow()?.effectColors(P, effect, angle).map(stopOf) ?? [];
+  return [
     {
-      id: "md",
-      label: "MD",
-      text: markdown,
-      note: () => t("The palette as Markdown: colors, names and CSS.")
+      id: "html",
+      label: "HTML",
+      spellings: [
+        { id: "style", label: "<style>" },
+        { id: "link", label: "<link>" }
+      ],
+      text: tags,
+      take: spelling =>
+        glass && spelling !== "link" ? effectHtml(taken, effect) : Promise.resolve(tags(spelling)),
+      note: () => t("In the page's head")
+    },
+    {
+      id: "css",
+      label: "CSS",
+      text: () => effectCodeNow()?.effectStylesheet(P, seed, effect, angle, origin()) ?? "",
+      note: () => t("The stylesheet that paints its first frame behind the page.")
+    },
+    {
+      id: "colors",
+      label: msg("Colors"),
+      spellings: COLOR_KINDS.map(([id, label]) => ({ id, label })),
+      initial: colorFormat(),
+      text: s => colorsText(colorKind(s ?? "hex"), colors()),
+      note: () =>
+        t("{count, plural, one {# color} other {# colors}}, one per line.", {
+          count: colors().length
+        })
+    },
+    {
+      id: "json",
+      label: "JSON",
+      text: () => effectCodeNow()?.effectSpecJson(P, effect, angle) ?? "",
+      note: () => t("The keyframes and the effect's settings as JSON.")
+    },
+    {
+      id: "svg",
+      label: "SVG",
+      text: () => effectCodeNow()?.effectSvg(P, seed, effect, angle, taken.pixels, origin()) ?? "",
+      note: () =>
+        effect.speed === 0
+          ? t("The picture as an SVG file.")
+          : t("The picture as an SVG file, moving by CSS alone.")
     }
   ];
 }
