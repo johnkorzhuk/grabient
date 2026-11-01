@@ -755,6 +755,31 @@ test("Back with an edit's address still waiting lands on the page it leaves for"
   expect(await entries(page)).toBe(before);
 });
 
+test("an edit keeps the page where the reader scrolled it", async ({ page }) => {
+  await open(page);
+  const scrolled = () => page.evaluate(() => Math.round(scrollY));
+  // the sheet under the picture makes the page taller than the window
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
+    .toBeGreaterThan(300);
+  await page.evaluate(() => scrollTo({ top: 300, behavior: "instant" }));
+  await expect.poll(scrolled).toBe(300);
+  // a key's edit: a new seed, a new path, written in place
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).not.toBe(`/${SEED}`);
+  const inverted = here(page);
+  await page.waitForTimeout(600);
+  expect(await scrolled()).toBe(300);
+  // a color set in the editor's side, as a reader sets one
+  const start = page.getByRole("spinbutton", { name: /^(Lightness start|Start)$/ });
+  await start.evaluate(field => (field as HTMLElement).focus({ preventScroll: true }));
+  await page.keyboard.type("0.8");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => here(page)).not.toBe(inverted);
+  await page.waitForTimeout(600);
+  expect(await scrolled()).toBe(300);
+});
+
 test("the sheet asks for the palettes like this one only once it is in view", async ({ page }) => {
   const asks: URL[] = [];
   page.on("request", r => {
