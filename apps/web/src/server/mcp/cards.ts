@@ -20,9 +20,11 @@ export interface ViewGiven {
   steps?: number;
   angle?: number;
 }
-/** A palette a call named: its canonical seed, and the view the call or its address gave. */
+/** A palette a call named: its canonical seed, the view the call or its address gave, and the look an address played or
+    a call gave, as sent: a save keeps it as keptLook reads it. */
 export interface PaletteGiven extends ViewGiven {
   seed: string;
+  look?: string;
 }
 /** A palette in the view an answer draws it in. */
 export interface Shown {

@@ -498,7 +498,7 @@
   {
     "name": "save_palette",
     "title": "Save a palette",
-    "description": "Save a color palette or gradient to the Grabient account in the view given, else the one Grabient shows it in, or take it out with `saved` false. The first save of a palette new to Grabient adds it to the public gallery, where anyone can find it, without the account's name unless it opted in: `published` says so. A palette saved before keeps its first view. `title` is the account's own name for it, shown to nobody else.",
+    "description": "Save a color palette or gradient to the Grabient account in the view given, else the one Grabient shows it in, or take it out with `saved` false. The first save of a palette new to Grabient adds it to the public gallery, where anyone can find it, without the account's name unless it opted in: `published` says so. A palette saved before keeps its first view and look. `title` is the account's own name for it, shown to nobody else.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -529,6 +529,10 @@
           "description": "Degrees, 90 running left to right.",
           "minimum": 0,
           "maximum": 360
+        },
+        "look": {
+          "type": "string",
+          "description": "The look it plays, as its address writes it after the seed: style=glass&speed=2."
         },
         "title": {
           "type": "string",
@@ -657,6 +661,10 @@
                 "type": "string",
                 "description": "What is said of it here. \"\" takes it away.",
                 "maxLength": 300
+              },
+              "look": {
+                "type": "string",
+                "description": "The look it plays here, as its address writes it after the seed: style=glass&speed=2. \"\" takes it away."
               }
             },
             "required": [
@@ -710,6 +718,10 @@
                 "type": "string",
                 "description": "What is said of it here. \"\" takes it away.",
                 "maxLength": 300
+              },
+              "look": {
+                "type": "string",
+                "description": "The look it plays here, as its address writes it after the seed: style=glass&speed=2. \"\" takes it away."
               }
             },
             "required": [

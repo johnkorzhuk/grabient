@@ -20,6 +20,7 @@ import {
   validateCollection
 } from "../../../features/collections/schema.ts";
 import type { CollectionSummary } from "../../../features/collections/types.ts";
+import { keptLook } from "../../../features/editor/address.ts";
 import type { Credit } from "../../../features/gallery/credit.ts";
 import { SHEET_MAX } from "../../../mcp-view/tiles.ts";
 import { heldWords, texts as paletteTexts } from "../../collections/files.ts";
@@ -109,12 +110,19 @@ const titleOf = (s: Shown, written?: PaletteText) =>
 const drawn = (given: PaletteGiven, held?: ViewGiven): Shown =>
   shown(given.seed, decodePalette(given.seed)!, given, held);
 
-/** Rows a list read, as its cards: each in the view it is kept in, under its title on Grabient. */
-async function cardsOf<Row extends { kseed: string; style: string; steps: number; angle: number }>(
-  c: ToolContext,
-  rows: readonly Row[],
-  more: (row: Row) => Record<string, unknown>
-) {
+/** A look a save kept, on its palette's card: its address plays it, and `look` says it. */
+const keptOn = (c: ToolContext, seed: string, look: string | null | undefined) =>
+  look ? { url: `${c.origin}/${seed}?${look}`, look } : {};
+/** What an answer says of looks a call gave that keep nothing, being no look or saying no more than the view. */
+const unreadLooks = (looks: readonly string[]) =>
+  looks.length
+    ? `${looks.map(quoted).join(", ")} ${looks.length > 1 ? "say" : "says"} no more than the palette's view, so no look is kept. A look is its address after the seed, such as style=glass&speed=2.`
+    : "";
+
+/** Rows a list read, as its cards: each in the view it is kept in and any look it keeps, under its title on Grabient. */
+async function cardsOf<
+  Row extends { kseed: string; style: string; steps: number; angle: number; look?: string | null }
+>(c: ToolContext, rows: readonly Row[], more: (row: Row) => Record<string, unknown>) {
   const written = new Map(
     (
       await paletteTexts(
@@ -131,7 +139,12 @@ async function cardsOf<Row extends { kseed: string; style: string; steps: number
       steps: Number(row.steps),
       angle: Number(row.angle)
     });
-    return [card(c.origin, s, titleOf(s, written.get(row.kseed)), more(row))];
+    return [
+      card(c.origin, s, titleOf(s, written.get(row.kseed)), {
+        ...more(row),
+        ...keptOn(c, s.seed, row.look)
+      })
+    ];
   });
 }
 
@@ -254,12 +267,16 @@ const ORDERS = ["popular", "rising", "newest", "hot"] as const;
 /** A palette and its view, as a tool's list holds one: `more` is what else the tool reads of it. */
 const paletteItem = (more: Record<string, Record<string, unknown>> = {}) =>
   shape({ seed: PALETTE_SEED, ...VIEW_FIELDS, ...more }, ["seed"]);
-/** A palette's own words in a collection, as save_collection takes them: left out, they stay as they are. */
+/** A palette's own words in a collection, and the look it keeps there, as save_collection takes them: left out, they
+    stay as they are. */
 const ENTRY_WORDS = {
   title: text('Its title here. "" takes it away.', { maxLength: ITEM_TITLE_MAX }),
   description: text('What is said of it here. "" takes it away.', {
     maxLength: ITEM_DESCRIPTION_MAX
-  })
+  }),
+  look: text(
+    'The look it plays here, as its address writes it after the seed: style=glass&speed=2. "" takes it away.'
+  )
 };
 type Worded = { title?: string; description?: string };
 /** The words a call gave a palette, and only those. */
@@ -476,8 +493,11 @@ export const accountTools: readonly Tool[] = [
         limit: page.limit,
         collections: page.items.map(s => ({
           ...summaryOf(c, s),
-          first: s.preview.flatMap(p =>
-            decodePalette(p.seed) ? [addressOf(c.origin, drawn(p))] : []
+          // each in its view there, playing the look it keeps there where it keeps one
+          first: s.preview.flatMap(({ look, ...p }) =>
+            decodePalette(p.seed)
+              ? [look ? `${c.origin}/${p.seed}?${look}` : addressOf(c.origin, drawn(p))]
+              : []
           )
         })),
         ...(page.guessed && page.total ? { note: guessed(page.guessed, "collections") } : {})
@@ -781,11 +801,14 @@ export const accountTools: readonly Tool[] = [
     // public gallery; the same call again finds it done
     hints: { readOnly: false, destructive: true, idempotent: true, openWorld: true },
     description:
-      "Save a color palette or gradient to the Grabient account in the view given, else the one Grabient shows it in, or take it out with `saved` false. The first save of a palette new to Grabient adds it to the public gallery, where anyone can find it, without the account's name unless it opted in: `published` says so. A palette saved before keeps its first view. `title` is the account's own name for it, shown to nobody else.",
+      "Save a color palette or gradient to the Grabient account in the view given, else the one Grabient shows it in, or take it out with `saved` false. The first save of a palette new to Grabient adds it to the public gallery, where anyone can find it, without the account's name unless it opted in: `published` says so. A palette saved before keeps its first view and look. `title` is the account's own name for it, shown to nobody else.",
     inputSchema: shape(
       {
         seed: PALETTE_SEED,
         ...VIEW_FIELDS,
+        look: text(
+          "The look it plays, as its address writes it after the seed: style=glass&speed=2."
+        ),
         title: text("The account's name for it. A new one renames it; left out, its name stays.", {
           maxLength: PALETTE_TITLE_MAX
         }),
@@ -825,6 +848,7 @@ export const accountTools: readonly Tool[] = [
           liked: saving,
           via: "mcp",
           shown: held,
+          ...(saving && given.look !== undefined ? { look: given.look } : {}),
           ...named
         }
       );
@@ -837,10 +861,17 @@ export const accountTools: readonly Tool[] = [
       const moved = (["style", "steps", "angle"] as const).some(
         key => given[key] !== undefined && asked[key] !== s[key]
       );
+      // the look the like keeps, which for a palette saved before is its first; a look asked that keeps none is none
+      const look = saving ? (done.look ?? null) : null;
+      const relooked =
+        saving && given.look !== undefined && keptLook(s.seed, given.look, s) !== look;
+      const unread = saving && given.look && !keptLook(s.seed, given.look, s) ? [given.look] : [];
       const note = [
         read === null && "title had no words, so the palette keeps its name.",
+        unreadLooks(unread),
         saving
-          ? moved && "It was saved before and keeps the view it was first saved in."
+          ? (moved || relooked) &&
+            `It was saved before and keeps the ${moved ? "view" : "look"}${moved && relooked ? " and look" : ""} it was first saved in.`
           : done.change === "removed" &&
             done.inGallery &&
             "It is out of the saved palettes and stays in the public gallery."
@@ -853,6 +884,7 @@ export const accountTools: readonly Tool[] = [
         style: s.style,
         steps: s.steps,
         angle: s.angle,
+        ...keptOn(c, s.seed, look),
         saved: done.liked,
         ...named,
         ...(done.likesCount === null ? {} : { likes: done.likesCount }),
@@ -948,7 +980,9 @@ export const accountTools: readonly Tool[] = [
             steps: s.steps,
             angle: s.angle,
             ...(one.title === undefined ? {} : { title: one.title }),
-            ...(one.description === undefined ? {} : { description: one.description })
+            ...(one.description === undefined ? {} : { description: one.description }),
+            // read as keptLook reads it once the list is checked: one that keeps none takes the look away
+            ...(one.look === undefined ? {} : { look: one.look })
           };
         });
       const listed = itemsOf(args.palettes);
@@ -958,10 +992,15 @@ export const accountTools: readonly Tool[] = [
         named,
         one: paletteNamed(named)
       }));
+      /* an address that plays a look names the palette kept in it, at its angle where it names one */
       const takes = (one: PaletteGiven | null, item: EntrySent) =>
         !!one &&
         one.seed === item.seed &&
-        (one.style === undefined || itemKey(drawn(one, item)) === itemKey(item));
+        (one.style === undefined
+          ? one.look === undefined ||
+            ((one.angle === undefined || one.angle === item.angle) &&
+              keptLook(item.seed, one.look, item) === keptLook(item.seed, item.look, item))
+          : itemKey(drawn(one, item)) === itemKey(item));
       const from = listed ?? before;
       const notIn = remove.filter(({ one }) => !from.some(item => takes(one, item)));
       /* the list as given, or as it stands, less what is taken out, then what is added; a palette joins once in each
@@ -1007,6 +1046,12 @@ export const accountTools: readonly Tool[] = [
         }
       }
       if (!valid.ok) return undone(`${valid.error} Nothing was changed.`);
+      const unread = [...(listed ?? []), ...added].flatMap(item =>
+        typeof item.look === "string" && item.look && !keptLook(item.seed, item.look, item)
+          ? [item.look]
+          : []
+      );
+      if (unread.length) said.push(unreadLooks([...new Set(unread)]));
       // a full account is told so before its allowance is spent on a collection it cannot make
       if (!record && (await ownCollectionsFull(c.env, owner.id)))
         return undone(

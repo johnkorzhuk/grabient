@@ -29,6 +29,25 @@ describe("an account tool's arguments", () => {
     expect(named.map(paletteNamed)).toEqual(namedGolden.map(golden => golden.read));
   });
 
+  it("name a palette by an address that plays a look: the look, the angle it names, and no gradient it names none of", () => {
+    expect(paletteNamed(`https://x.test/${SEED}?speed=2&style=glass&angle=30`)).toEqual({
+      seed: SEED,
+      angle: 30,
+      look: "style=glass&angle=30&speed=2"
+    });
+    expect(paletteNamed(`/${SEED}?style=blob&shape=12`)).toEqual({
+      seed: SEED,
+      look: "style=blob&shape=12"
+    });
+    // a gradient's address names its view, which is all it says
+    expect(paletteNamed(`/${SEED}?style=radialGradient&angle=30`)).toEqual({
+      seed: SEED,
+      style: "radialGradient",
+      steps: 7,
+      angle: 30
+    });
+  });
+
   it("name a palette by its old grabient.com id, alone or in its old address", () => {
     const old = "_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu";
     const seed = "kY4mpDazO-mUuu_fuLqXU49dvVP6";

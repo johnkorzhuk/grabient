@@ -443,8 +443,9 @@ describe("the tools", () => {
     expect(JSON.stringify(tools)).toBe(JSON.stringify(accountGolden));
     for (const tool of tools as { description: string }[])
       expect(tool.description.length).toBeLessThan(450);
-    // what an app puts before the model on every turn, kept lean
-    expect(JSON.stringify({ tools }).length).toBeLessThan(17_500);
+    /* what an app puts before the model on every turn, kept lean: 17,914 characters since a save keeps a palette's
+       look (save_palette's and save_collection's `look`, 425 of them) */
+    expect(JSON.stringify({ tools }).length).toBeLessThan(18_000);
   });
 
   it("are the admins' thirty more for an admin who chose them, every hint stated", async () => {
@@ -2191,6 +2192,174 @@ describe("a palette's own words in an account's collection", () => {
       ["Momiji", true, undefined],
       ["Hallowe'en Night", true, undefined]
     ]);
+  });
+});
+
+describe("a palette's look in an account's saves", () => {
+  it("is saved with a palette as its address writes it, read back on its card, and kept as first saved", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const [glass, blob, plain] = [fresh(), fresh(), fresh()];
+    const saved = (
+      await call(env, token, "save_palette", {
+        seed: glass,
+        style: "radialGradient",
+        angle: 30,
+        look: "speed=2&style=glass&angle=200&size=1200x630"
+      })
+    ).value;
+    // written in the address's order, at the angle the save keeps, and its address plays it
+    expect(saved).toMatchObject({
+      seed: glass,
+      style: "radialGradient",
+      angle: 30,
+      look: "style=glass&angle=30&speed=2",
+      url: `${ORIGIN}/${glass}?style=glass&angle=30&speed=2`,
+      saved: true
+    });
+    expect(saved.note).toBeUndefined();
+    // an effect's address names the look, and the view the palette has: no gradient of its own
+    const fromAddress = (
+      await call(env, token, "save_palette", {
+        seed: `${ORIGIN}/${blob}?style=blob&bg=%23101014&frost=0.5&shape=12`
+      })
+    ).value;
+    expect(fromAddress).toMatchObject({
+      look: "style=blob&frost=0.5&shape=12&bg=%23101014",
+      url: `${ORIGIN}/${blob}?style=blob&frost=0.5&shape=12&bg=%23101014`
+    });
+    // a gradient's look says no more than its view, and a slip no look at all: none is kept, and said so
+    const gradient = (
+      await call(env, token, "save_palette", {
+        seed: plain,
+        style: "linearSwatches",
+        look: "style=linearSwatches"
+      })
+    ).value;
+    expect(gradient.look).toBeUndefined();
+    expect(gradient.url).toBe(addressAt(plain, { style: "linearSwatches" }));
+    expect(gradient.note).toMatch(/^"style=linearSwatches" says no more than the palette's view/);
+    // saved again in another look, it keeps the one it was first saved in
+    const again = (await call(env, token, "save_palette", { seed: glass, look: "style=blob" }))
+      .value;
+    expect(again).toMatchObject({
+      look: "style=glass&angle=30&speed=2",
+      note: "It was saved before and keeps the look it was first saved in."
+    });
+    const listed = (await call(env, token, "list_saved_palettes")).value.palettes as {
+      seed: string;
+      url: string;
+      look?: string;
+    }[];
+    // saved within a millisecond, two likes are listed by seed: compared as a set
+    const bySeed = (a: { seed: string }, b: { seed: string }) => (a.seed < b.seed ? -1 : 1);
+    expect(listed.map(({ seed, url, look }) => ({ seed, url, look })).sort(bySeed)).toEqual(
+      [
+        { seed: plain, url: addressAt(plain, { style: "linearSwatches" }), look: undefined },
+        {
+          seed: blob,
+          url: `${ORIGIN}/${blob}?style=blob&frost=0.5&shape=12&bg=%23101014`,
+          look: "style=blob&frost=0.5&shape=12&bg=%23101014"
+        },
+        {
+          seed: glass,
+          url: `${ORIGIN}/${glass}?style=glass&angle=30&speed=2`,
+          look: "style=glass&angle=30&speed=2"
+        }
+      ].sort(bySeed)
+    );
+    // taken out and saved again, it is saved anew in the look it is given
+    await call(env, token, "save_palette", { seed: glass, saved: false });
+    expect(
+      (await call(env, token, "save_palette", { seed: glass, look: "style=blob&shape=4" })).value
+    ).toMatchObject({ look: "style=blob&shape=4" });
+  });
+
+  it("is kept with a palette in a collection, kept while a call leaves it out, and taken away by one that brings none", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const [a, b] = [fresh(), fresh()];
+    const made = (
+      await call(env, token, "save_collection", {
+        title: "Glass and blobs",
+        palettes: [
+          { seed: a, angle: 45, look: "style=glass&angle=45&shape=7" },
+          { seed: b, style: "radialGradient", look: "style=blob&frost=0.5&shape=12" }
+        ]
+      })
+    ).value;
+    const read = async () =>
+      (
+        (await call(env, token, "get_collection", { slug: made.slug })).value.palettes as {
+          seed: string;
+          style: string;
+          url: string;
+          look?: string;
+        }[]
+      ).map(({ seed, style, url, look }) => ({ seed, style, url, look }));
+    const kept = [
+      {
+        seed: a,
+        style: "linearGradient",
+        url: `${ORIGIN}/${a}?style=glass&angle=45&shape=7`,
+        look: "style=glass&angle=45&shape=7"
+      },
+      {
+        seed: b,
+        style: "radialGradient",
+        url: `${ORIGIN}/${b}?style=blob&frost=0.5&shape=12`,
+        look: "style=blob&frost=0.5&shape=12"
+      }
+    ];
+    expect(await read()).toEqual(kept);
+    // the list again, in another order, with no looks: each keeps its own
+    await call(env, token, "save_collection", {
+      slug: made.slug,
+      palettes: [{ seed: b }, { seed: a }]
+    });
+    expect(await read()).toEqual([kept[1], kept[0]]);
+    // a palette's address read back from its card brings its look and keeps its view
+    await call(env, token, "save_collection", {
+      slug: made.slug,
+      palettes: [{ seed: kept[0]!.url }, { seed: kept[1]!.url }]
+    });
+    expect(await read()).toEqual(kept);
+    // added again in another look, a palette keeps the one it has; "" takes a look away
+    await call(env, token, "save_collection", {
+      slug: made.slug,
+      add: [{ seed: a, angle: 45, look: "style=blob" }]
+    });
+    expect((await read())[0]).toEqual(kept[0]);
+    await call(env, token, "save_collection", {
+      slug: made.slug,
+      palettes: [
+        { seed: a, angle: 45, look: "" },
+        { seed: b, style: "radialGradient" }
+      ]
+    });
+    expect(await read()).toEqual([
+      { seed: a, style: "linearGradient", url: addressAt(a, { angle: 45 }), look: undefined },
+      kept[1]
+    ]);
+    // the address a card gives takes that palette out, as kept in its look
+    const out = (
+      await call(env, token, "save_collection", { slug: made.slug, remove: [kept[1]!.url] })
+    ).value;
+    expect(out).toMatchObject({
+      palettes: 1,
+      removed: [addressAt(b, { style: "radialGradient" })]
+    });
+    // a look that is none is said so, and the rest of the change is made
+    const slip = (
+      await call(env, token, "save_collection", {
+        slug: made.slug,
+        add: [{ seed: b, look: "style=wobble" }]
+      })
+    ).value;
+    expect(slip).toMatchObject({
+      palettes: 2,
+      note: expect.stringMatching(/^"style=wobble" says/)
+    });
   });
 });
 
