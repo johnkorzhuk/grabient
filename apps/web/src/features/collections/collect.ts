@@ -65,7 +65,8 @@ async function putIn(
     seed: i.kseed,
     style: i.style,
     steps: i.steps,
-    angle: i.angle
+    angle: i.angle,
+    ...(i.look ? { look: i.look } : {})
   }));
   const seen = new Set(held.map(itemKey));
   const added = items.filter(item => !seen.has(itemKey(item)) && seen.add(itemKey(item)));

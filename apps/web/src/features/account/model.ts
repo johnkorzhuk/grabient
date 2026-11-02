@@ -73,7 +73,8 @@ export function previewOf(items: readonly CollectionItem[]): CollectionPreview[]
       createdAt: item.createdAt,
       likes: item.likes,
       position: item.position,
-      ...wordsOf(item)
+      ...wordsOf(item),
+      ...(item.look ? { look: item.look } : {})
     }));
 }
 const withItems = (doc: SyncCollection, items: CollectionItem[], at: number): SyncCollection => ({
@@ -126,14 +127,15 @@ function applyOne(
     angle: input.angle,
     ...known(input.seed),
     position,
-    ...wordsOf(input)
+    ...wordsOf(input),
+    ...(input.look ? { look: input.look } : {})
   });
   const lastPosition = (doc: SyncCollection) =>
     doc.items.reduce((most, item) => Math.max(most, item.position), -1);
   switch (op.op) {
     case "like": {
       if (!op.liked) likes.delete(op.seed);
-      // a like the server holds keeps its time, its view and its title
+      // a like the server holds keeps its time, its view, its look and its title
       else if (!likes.has(op.seed)) {
         likes.set(op.seed, {
           seed: op.seed,
@@ -142,7 +144,8 @@ function applyOne(
           angle: op.angle,
           at: op.at ?? at,
           likes: known(op.seed).likes,
-          ...(op.title ? { title: op.title } : {})
+          ...(op.title ? { title: op.title } : {}),
+          ...(op.look ? { look: op.look } : {})
         });
       }
       return;
@@ -337,11 +340,12 @@ export function settled(snapshot: Snapshot, answer: SyncResponse): Snapshot {
   return { cursor: answer.cursor, admin: answer.admin, likes, collections };
 }
 
-/** A palette of Saved, as the server's list answers one. */
+/** A palette of Saved, as the server's list answers one: with the look it was saved in, where it keeps one. */
 export interface SavedItem extends ItemView {
   kseed: string;
   likes: number;
   createdAt: number;
+  look?: string;
 }
 // a view stands until the copy changes, and every visit to Saved reads it: an account can hold thousands of likes
 const savedOf = new WeakMap<View, readonly SavedItem[]>();
@@ -357,7 +361,8 @@ export function savedItems(view: View): readonly SavedItem[] {
         steps: like.steps,
         angle: like.angle,
         likes: like.likes,
-        createdAt: like.at
+        createdAt: like.at,
+        ...(like.look ? { look: like.look } : {})
       }));
     savedOf.set(view, items);
   }

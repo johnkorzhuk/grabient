@@ -47,7 +47,7 @@ import { cardWords } from "../gallery/words.ts";
 import { drawnIn, type ListView, viewParams } from "../list/appearance.ts";
 import { useOpened, useTaken } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
-import { openedFrom, seedAddress } from "./address.ts";
+import { openedFrom, savedLook, seedAddress } from "./address.ts";
 import { codeSources } from "./code.ts";
 import type { PaletteEditor } from "./editor.ts";
 import { effectLabel } from "./effect-page.ts";
@@ -433,13 +433,15 @@ export function Sheet(props: {
         : undefined;
     };
     const words = () => cardWords(palette());
-    /* a card opens its palette playing what the card plays, so the editor shows the card's picture */
+    /* a card opens its palette playing what the card plays, so the editor shows the card's picture, and a save keeps
+       it so */
+    const played = () => (playing() ? e.effects.effect() : null);
     const address = () =>
-      seedAddress({
-        seed: seed(),
-        view: { ...palette(), size: e.size() },
-        effect: playing() ? e.effects.effect() : null
-      });
+      seedAddress({ seed: seed(), view: { ...palette(), size: e.size() }, effect: played() });
+    const saved = () => {
+      const look = savedLook(seed(), palette(), played());
+      return look ? { ...palette(), look } : palette();
+    };
     const similar = () => similarHref(seed());
     /* a card's pictures are the stage's size once the reader set one, and its files' addresses name it */
     const taken = (): Taken => {
@@ -504,9 +506,10 @@ export function Sheet(props: {
         likeDisabled={signInUnavailable()}
         onLike={() => {
           const { seed: _, ...shown } = palette();
-          toggleLike(seed(), !liked(seed()), { view: shown }).catch((reason: unknown) =>
-            toast(shownError(reason, msg("Couldn't save.")))
-          );
+          toggleLike(seed(), !liked(seed()), {
+            view: shown,
+            look: savedLook(seed(), shown, played())
+          }).catch((reason: unknown) => toast(shownError(reason, msg("Couldn't save."))));
         }}
         selected={selected(palette())}
         onSelect={() => {
@@ -514,7 +517,7 @@ export function Sheet(props: {
         }}
         collect={
           <Loading>
-            <AddToCollection palette={palette} />
+            <AddToCollection palette={saved} />
           </Loading>
         }
         similar={{ href: similar(), rel: relTo(similar()), disabled: unreachable(similar()) }}

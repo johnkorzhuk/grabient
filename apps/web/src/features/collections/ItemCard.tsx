@@ -10,7 +10,7 @@ import { relTo } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
-import { openedFrom } from "../editor/address.ts";
+import { openedFrom, savedLook } from "../editor/address.ts";
 import { askFacts } from "../editor/page.ts";
 import { askCredit, creditName, creditOf } from "../gallery/credit.ts";
 import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
@@ -56,8 +56,8 @@ export function ItemCard(props: {
   /** the page, and where on it the card stands, read at a press */
   place: () => UsePlace;
   at: () => UseAt;
-  /** the account's collections as a checklist for the palette the card draws */
-  collect: (palette: () => Drawn) => CardCollect;
+  /** the account's collections as a checklist for the palette the card draws, as a save keeps it */
+  collect: (palette: () => Drawn & { look?: string }) => CardCollect;
   /** the page's line: what a press could not do */
   note: (message: string, error?: boolean) => void;
   fit?: Element;
@@ -81,7 +81,11 @@ export function ItemCard(props: {
   const plays = () => cardPlays(props.view, sight.inSight() ? look.draft() : null, seed(), kept());
   const href = () => paletteHref(shown(), props.view.size, plays(), true);
   const similar = () => similarHref(seed());
-  const collect = props.collect(shown);
+  /* the palette as a save keeps it: in the view the card shows, with the look it plays where that says more */
+  const collect = props.collect(() => {
+    const look = savedLook(seed(), shown(), plays());
+    return look ? { ...shown(), look } : shown();
+  });
   const name = () => props.words?.title ?? nameOf(shown());
   const effect = createCardEffect({
     seed,
@@ -112,6 +116,7 @@ export function ItemCard(props: {
     const { style, steps, angle } = shown();
     toggleLike(seed(), !liked(seed()), {
       view: { style, steps, angle },
+      look: savedLook(seed(), shown(), plays()),
       collectionId: props.collection
     }).catch((reason: unknown) => props.note(shownError(reason, msg("Couldn't save.")), true));
   };

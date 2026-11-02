@@ -366,3 +366,35 @@ it("names a palette in one view of it, and folds titles not yet sent into the la
   expect(step([first], cleared)).toEqual([]);
   expect(step([first], second, first.id)).toEqual([first.key, second.key]);
 });
+
+it("keeps the look a like or a palette in a collection was saved in, and draws Saved with it", () => {
+  const glass = "style=glass&speed=2";
+  const blob = "style=blob&frost=0.5&shape=12";
+  const liked = change({ op: "like", seed: seeds[7]!, liked: true, ...view, look: glass });
+  const made = change({
+    op: "collection.create",
+    slug: "@ada/glass",
+    title: "Glass",
+    visibility: "private",
+    items: [{ seed: seeds[8]!, ...view, look: blob }]
+  });
+  const added = change({
+    op: "collection.add",
+    slug: "blue",
+    items: [
+      { seed: seeds[9]!, ...view, look: glass },
+      // a palette the collection holds in this view keeps the look it has
+      { seed: seeds[0]!, ...view, look: blob }
+    ]
+  });
+  const now = rebase(snapshot, [liked, made, added], maker);
+  expect(now.likes.get(seeds[7]!)).toMatchObject({ seed: seeds[7], look: glass });
+  expect(savedItems(now).find(item => item.kseed === seeds[7])).toMatchObject({ look: glass });
+  // a like with none has none
+  expect(savedItems(now).find(item => item.kseed === seeds[0])).not.toHaveProperty("look");
+  const own = now.collections.get("@ada/glass")!;
+  expect(own.items[0]).toMatchObject({ kseed: seeds[8], look: blob });
+  expect(own.preview[0]).toMatchObject({ seed: seeds[8], look: blob });
+  const blue = now.collections.get("blue")!;
+  expect(blue.items.map(item => item.look)).toEqual([undefined, undefined, undefined, glass]);
+});

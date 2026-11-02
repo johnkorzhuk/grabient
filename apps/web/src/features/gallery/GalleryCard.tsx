@@ -11,7 +11,7 @@ import { hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, toggleLike } from "../account/likes.ts";
 import { rememberOpening } from "../collections/navigation.ts";
-import { openedFrom } from "../editor/address.ts";
+import { openedFrom, savedLook } from "../editor/address.ts";
 import { askFacts } from "../editor/page.ts";
 import {
   AppearanceContext,
@@ -70,6 +70,11 @@ export function GalleryCard(props: {
   const plays = () =>
     cardPlays(page.params(), sight.inSight() ? look.draft() : null, seed(), kept());
   const path = () => paletteHref(shown(), page.params().size, plays(), true);
+  /* the palette as a save keeps it: in the view the card shows, with the look it plays where that says more */
+  const saved = () => {
+    const look = savedLook(seed(), shown(), plays());
+    return look ? { ...shown(), look } : shown();
+  };
   const similar = () => similarHref(seed());
   const where = () => props.at?.() ?? {};
   const words = () => cardWords(shown(), props.words);
@@ -94,6 +99,7 @@ export function GalleryCard(props: {
   const like = () =>
     void toggleLike(seed(), !liked(seed()), {
       view: { style: shown().style, steps: shown().steps, angle: shown().angle },
+      look: savedLook(seed(), shown(), plays()),
       query: page.words() || undefined
     }).catch((reason: unknown) => page.say(shownError(reason, msg("Couldn't save."))));
   const take = cardTakings({
@@ -136,7 +142,7 @@ export function GalleryCard(props: {
       onSelect={() => {
         if (toggle(shown()) === "made room") page.say(roomNote(1));
       }}
-      collect={<CollectPress collect={page.checklists.card(shown)} />}
+      collect={<CollectPress collect={page.checklists.card(saved)} />}
       tools={() => (
         <FormatStrip
           size="sm"

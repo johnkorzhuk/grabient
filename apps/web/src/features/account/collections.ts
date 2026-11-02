@@ -114,11 +114,18 @@ export const canMakeOwn = (): boolean => !!reader();
     tool): the copy asks for it. */
 export const serverWrote = () => void copyEngine().then(sync => sync.schedule(0, true));
 
-const inputOf = ({ seed, style, steps, angle }: CollectionItemInput): CollectionItemInput => ({
+const inputOf = ({
   seed,
   style,
   steps,
-  angle
+  angle,
+  look
+}: CollectionItemInput): CollectionItemInput => ({
+  seed,
+  style,
+  steps,
+  angle,
+  ...(look ? { look } : {})
 });
 /* a write the copy shows at once and the server follows; its refusal reaches the account menu */
 const settle = (done: Promise<void>) => void done.catch(() => {});
@@ -233,7 +240,8 @@ export function restoreOwnPalette(
       steps: item.steps,
       angle: item.angle,
       ...(item.title ? { title: item.title } : {}),
-      ...(item.description ? { description: item.description } : {})
+      ...(item.description ? { description: item.description } : {}),
+      ...(item.look ? { look: item.look } : {})
     };
     settle(
       sync.changeAccount(

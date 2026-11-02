@@ -247,6 +247,70 @@ test("Saved plays each palette as it was saved, effect and settings included, an
   expect(reports).toEqual([]);
 });
 
+test("a palette liked from a card keeps the look the card plays, and one liked from a gradient's card keeps none", async ({
+  page
+}) => {
+  const reports = reported(page);
+  const reader = {
+    id: "e2e-reader",
+    name: "Reader",
+    email: "reader@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "reader",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: reader.id }, user: reader } })
+  );
+  /* the account's copy as the server would answer it, each like it sends taken */
+  const likes: { seed?: string; liked?: boolean; look?: string }[] = [];
+  await page.route("**/api/me/sync", route => {
+    const { mutations = [] } = (route.request().postDataJSON() ?? {}) as {
+      mutations?: {
+        id: number;
+        op: { op: string; seed?: string; liked?: boolean; look?: string };
+      }[];
+    };
+    for (const { op } of mutations) if (op.op === "like") likes.push(op);
+    return route.fulfill({
+      json: {
+        ...{ cursor: 1, reset: true, likes: [], unliked: [], collections: [], removed: [] },
+        lastMutation: mutations.at(-1)?.id ?? 0,
+        results: mutations.map(({ id }) => ({ id, ok: true, likesCount: 1 })),
+        ...{ admin: false, account: reader }
+      }
+    });
+  });
+  /* the heart of the list's first card whose palette this test has not liked yet */
+  const likeFirst = async () => {
+    for (let at = 0; ; at++) {
+      const card = page.locator("main article").nth(at);
+      const edit = card.locator('a[aria-label^="Edit "]');
+      await expect(edit).toHaveAttribute("href", /^\/k/);
+      const href = new URL((await edit.getAttribute("href"))!, "https://grabient.test");
+      const seed = href.pathname.slice(1);
+      if (likes.some(like => like.seed === seed)) continue;
+      await card.hover();
+      await card.locator('button[aria-label^="Like"]').click();
+      await expect.poll(() => likes.find(like => like.seed === seed)).toBeTruthy();
+      return { sent: likes.find(like => like.seed === seed)!, query: href.search.slice(1) };
+    }
+  };
+  // the glass as the card plays it, in the card's own angle: what its link opens
+  await open(page, "/palettes?style=glass&speed=0");
+  const glass = await likeFirst();
+  expect(glass.query).toMatch(/^style=glass&(angle=\d+&)?speed=0$/);
+  expect(glass.sent).toMatchObject({ liked: true, look: glass.query });
+  // a list of gradients as saved: the like keeps its view alone
+  await open(page, "/palettes/rising");
+  const plain = await likeFirst();
+  expect(plain.sent.liked).toBe(true);
+  expect(plain.sent).not.toHaveProperty("look");
+  expect(reports).toEqual([]);
+});
+
 test("a collection opened from a list by its title, and a palette from the collection, each land styled and Back returns to each", async ({
   page
 }) => {

@@ -6,6 +6,7 @@ import * as v from "valibot";
 import { openedOutside } from "../../app/framed.ts";
 import { goTo } from "../../app/go.ts";
 import { record } from "../../app/undo.ts";
+import { keptLook } from "../editor/address.ts";
 import {
   account,
   accountKnown,
@@ -240,8 +241,9 @@ if (!isServer) {
 }
 
 /* The like each palette had when it was unsaved, as the copy held it: what an undo or a redo that saves it again puts
-   back, at its own time, in its own view and with any title an app gave it, so it stands where it stood in Saved. */
-type Was = ItemView & { at: number; title?: string };
+   back, at its own time, in its own view and look and with any title an app gave it, so it stands where it stood in
+   Saved. */
+type Was = ItemView & { at: number; title?: string; look?: string };
 const likeWas = new Map<string, Was>();
 const LIKES_REMEMBERED = 512;
 function keepWas(seed: string, was: Was) {
@@ -251,9 +253,11 @@ function keepWas(seed: string, was: Was) {
 }
 
 /** Where a heart was pressed, for an admin's like alone: the words of the search its page answers, or the collection
-    its page shows (by its id or address). And the view the palette is saved in, as the page shows it. */
+    its page shows (by its id or address). And the view the palette is saved in, as the page shows it, with the whole
+    look it plays there where that says more (editor/address.ts's savedLook). */
 export interface LikeContext {
   view?: ItemView;
+  look?: string;
   query?: string;
   collectionId?: string;
 }
@@ -292,7 +296,8 @@ async function setLiked(
       style: held.style,
       steps: held.steps,
       angle: held.angle,
-      ...(held.title ? { title: held.title } : {})
+      ...(held.title ? { title: held.title } : {}),
+      ...(held.look ? { look: held.look } : {})
     });
   }
   /* a press is a step of the page's undo, read from what the page shows: taken back, the heart turns over the other
@@ -306,6 +311,8 @@ async function setLiked(
   const view = was ??
     context.view ?? { style: DEFAULT_STYLE, steps: DEFAULT_STEPS, angle: DEFAULT_ANGLE };
   const from = on && adminAccount() ? pressedAt(context) : undefined;
+  /* the look as the server keeps it, so the copy shows the like as Saved will; an undo's is the one its unsave took */
+  const look = on ? keptLook(seed, was ? was.look : context.look, view) : null;
   const op: SyncOp = {
     op: "like",
     seed,
@@ -314,6 +321,7 @@ async function setLiked(
     steps: view.steps,
     angle: view.angle,
     ...(was ? { at: was.at, ...(was.title ? { title: was.title } : {}) } : {}),
+    ...(look ? { look } : {}),
     ...(from ? { from } : {})
   };
   return sync.changeAccount(op);

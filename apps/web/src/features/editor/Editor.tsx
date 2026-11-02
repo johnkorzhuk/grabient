@@ -69,6 +69,7 @@ import {
   selection,
   toggle as toggleSelected
 } from "../selection/selection.ts";
+import { savedLook } from "./address.ts";
 import { endBoot } from "./boot.ts";
 import { Actions, AxisRow } from "./Controls.tsx";
 import { Corner, type Panel } from "./Corner.tsx";
@@ -297,16 +298,16 @@ export default function Editor(props: { data: PaletteData }) {
   });
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
-  /* the heart: the count for everyone, the press for an account, saved in the view on screen; signed out it leads to
-     sign in, and a refusal says why. The page's own palette shows the count the server read with it from its first
-     frame, before the page notes it */
+  /* the heart: the count for everyone, the press for an account, saved in the view on screen and the look it plays
+     there; signed out it leads to sign in, and a refusal says why. The page's own palette shows the count the server
+     read with it from its first frame, before the page notes it */
   const heart: Heart = {
     liked: () => liked(e.seed()),
     count: () => likeCount(e.seed(), e.seed() === first.page.seed ? (first.facts?.likes ?? 0) : 0),
     toggle() {
       const { seed, ...view } = drawn();
-      toggleLike(seed, !liked(seed), { view }).catch((reason: unknown) =>
-        toast(shownError(reason, msg("Couldn't save the palette.")))
+      toggleLike(seed, !liked(seed), { view, look: savedLook(seed, view, e.effect()) }).catch(
+        (reason: unknown) => toast(shownError(reason, msg("Couldn't save the palette.")))
       );
     }
   };
@@ -564,6 +565,12 @@ function Tools(props: {
   const e = props.editor;
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   const chosen = () => selected(drawn());
+  /* the palette as a save keeps it: with the look it plays where that says more than its view */
+  const saved = () => {
+    const at = drawn();
+    const look = savedLook(at.seed, at, e.effect());
+    return look ? { ...at, look } : at;
+  };
   return (
     <>
       <span class={props.paper ? styles.hung : styles.waits}>
@@ -596,7 +603,7 @@ function Tools(props: {
         </Button>
         <Show when={chosen()}>
           <Loading>
-            <AddToCollection palette={drawn} size="lg" />
+            <AddToCollection palette={saved} size="lg" />
           </Loading>
         </Show>
       </span>

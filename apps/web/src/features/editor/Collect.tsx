@@ -17,8 +17,12 @@ import { selection } from "../selection/selection.ts";
    One checklist serves every press of the page; each pick is said on the page's line and is a step of its undo. */
 const checklists = createChecklists(toast);
 
-/** Add to collection for a palette as it is drawn. With no connection and no account the press leads nowhere. */
-export function AddToCollection(props: { palette: () => Drawn; size?: "sm" | "lg" }) {
+/** Add to collection for a palette as it is drawn, with the look it plays where a save keeps one. With no connection
+    and no account the press leads nowhere. */
+export function AddToCollection(props: {
+  palette: () => Drawn & { look?: string };
+  size?: "sm" | "lg";
+}) {
   const collect = merge(checklists.card(untrack(() => props.palette)), {
     get disabled() {
       return signInUnavailable();
