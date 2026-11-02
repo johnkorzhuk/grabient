@@ -15,6 +15,7 @@ import {
   EFFECT_LOOK,
   EFFECT_PLAY,
   type EffectKind,
+  isEffect,
   SHAPE_MAX
 } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
@@ -136,7 +137,7 @@ export function inLook(
   const keyframes = palette.anchors.length;
   const angleFor = (of: string, on = 0) =>
     ANGLES[(Math.floor(seeded(seed, `${of}:angle`) * ANGLES.length) + on) % ANGLES.length];
-  if (look === "glass" || look === "blob") {
+  if (isEffect(look)) {
     const shape = own
       ? Math.floor(seeded(seed, `${own}:shape`) * (SHAPE_MAX + 1))
       : look === "blob"

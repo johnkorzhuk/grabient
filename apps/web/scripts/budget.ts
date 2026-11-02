@@ -25,11 +25,16 @@ const KIB = 1024;
     as it starts with no input, each with every chunk its static imports reach. Modules are named as the manifest keys
     them. */
 const PAGES: Record<string, { route: string; also?: string[]; budget: number }> = {
-  "/": { route: "src/routes/index.tsx", budget: 285 },
+  /* the silk and the rosette as effects (2 Nov 2026), which every page's start carries as names and settings alone
+     (engine/effect.ts's kinds, the menu's tiles and labels; their drawing, stills and players load as one shows), took
+     it from 284.6 to 285.0 */
+  "/": { route: "src/routes/index.tsx", budget: 286 },
   "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 290 },
   /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
      to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 286 },
+  /* the silk and the rosette as effects (their names and settings, as every page) took it from 285.4 to 286.0 on
+     2 Nov 2026 */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 287 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look
      each palette was saved in, an effect and its settings (features/list/appearance.ts's lookEffect and cardPlays,
@@ -59,9 +64,13 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.
      Each section turned by swipe, press or key (5e406210) took it to 286.7 on 1 Nov 2026, and the lists' Appearance
      fields made smooth (the water reading its boxes only as they can move, the menu's settings one object), which
-     every page's start carries, to 287.1 */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 288 },
-  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 225 },
+     every page's start carries, to 287.1; the silk and the rosette as effects took it from 287.8 to 290.0 on 2 Nov
+     2026: their names and settings, and the cards' picture (editor/EffectArt.tsx, which this page's cards and headline
+     draw with) holding their still's holder (FxArt.tsx), which a list's server-drawn cards need at hydration, their
+     drawing and players loading as a card shows one */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 291 },
+  /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page */
+  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 226 },
   "/about": { route: "src/routes/about.tsx", budget: 250 }
 };
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */

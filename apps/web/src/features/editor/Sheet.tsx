@@ -55,10 +55,10 @@ import {
   copyContrast,
   copyLink,
   copyOrSave,
+  effectCopies,
+  effectLinkFormats,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
-  STRIP_EFFECT_COPY,
-  STRIP_EFFECT_LINKS,
   STRIP_FILES,
   saveContrast,
   saveFormat,
@@ -411,9 +411,16 @@ export function Sheet(props: {
       const kind = playing();
       const P = decoded();
       if (!kind || !P) return undefined;
-      return kind === "glass"
-        ? { stops: glassColors(P), style: "linearGradient" as const, angle: palette().angle }
-        : null;
+      if (kind === "glass")
+        return { stops: glassColors(P), style: "linearGradient" as const, angle: palette().angle };
+      /* the silk's dye along its angle, the rosette's rings out from its heart: the palette end to end */
+      if (kind === "silk" || kind === "rosette")
+        return {
+          stops: sampleStops(P, 6).map(s => s.hex),
+          style: kind === "silk" ? ("linearGradient" as const) : ("radialGradient" as const),
+          angle: palette().angle
+        };
+      return null;
     };
     /* a blob with no ground of its own stands on the list with none. An accessor of its own, where a condition written
        in the prop is compiled to a memo made as the prop is read: the card reads it as a focus leaves, which may be
@@ -527,10 +534,10 @@ export function Sheet(props: {
           <FormatStrip
             size="sm"
             variant="art"
-            copy={playing() ? STRIP_EFFECT_COPY : STRIP_COPY}
+            copy={playing() ? effectCopies(playing()!) : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={playing() ? STRIP_EFFECT_LINKS : STRIP_FILES}
+            link={playing() ? effectLinkFormats(playing()!) : STRIP_FILES}
             onCopy={copy}
             onDownload={f =>
               void saveFormat(f, taken()).then(

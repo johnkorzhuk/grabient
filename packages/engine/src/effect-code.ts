@@ -4,14 +4,18 @@
    palette's Markdown and JSON say of it. It holds both effects' drawings, so a page or an isolate loads it with the
    first effect it hands over, never at its start. */
 import { BLOB_DESIGN, BLOB_SIZE, blobScene, blobStillBackground, blobSvg } from "./blob.ts";
+import { sampleStops } from "./curve.ts";
 import {
   type Effect,
   effectAddressParts,
   effectEmbedHtml,
   effectFileAddress,
   effectLayerCss,
-  effectStillParts
+  effectStillParts,
+  hasEmbedScript,
+  isVectorKind
 } from "./effect.ts";
+import { fxMovingSvg, fxStillBackground } from "./fx-still.ts";
 import { glassDesign, glassField, glassStillBackground, glassSvg } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import type { MarkdownEffect } from "./markdown.ts";
@@ -36,7 +40,9 @@ export const effectPage = (
 export const effectStill = (P: Palette, effect: Effect, angle: number): string =>
   effect.kind === "glass"
     ? glassStillBackground(glassColors(P), angle, effect.look.shape)
-    : blobStillBackground(P, { speed: 1, fps: null, still: true, ...effect.look });
+    : isVectorKind(effect.kind)
+      ? fxStillBackground(effect.kind, P, { angle, shape: effect.look.shape })
+      : blobStillBackground(P, { speed: 1, fps: null, still: true, ...effect.look });
 
 /** The stylesheet at /{seed}.css?style=glass or blob: the still on a layer fixed behind the page (effectLayerCss),
     credited to the effect's page as its still is drawn, which is all the file depends on. */
@@ -69,6 +75,14 @@ export function effectSvg(
   const speed = effect.speed || 1;
   if (effect.kind === "blob")
     return blobSvg(P, { ...effect.look, speed, fps: effect.fps, still }, box, credit);
+  if (isVectorKind(effect.kind))
+    return fxMovingSvg(
+      effect.kind,
+      P,
+      { angle, shape: effect.look.shape },
+      box,
+      still ? 0 : speed
+    ).replace(/^<svg[^>]*>/, open => `${open}${svgComment(credit)}`);
   const design = glassDesign(angle, effect.look.shape);
   return glassSvg(design, glassField(design, glassColors(P)), { still, speed, cover: true })
     .replace('width="100%" height="100%"', `width="${box.width}" height="${box.height}"`)
@@ -79,6 +93,8 @@ export function effectSvg(
     the blob's balls are painted in, each once. */
 export function effectColors(P: Palette, effect: Effect): string[] {
   if (effect.kind === "glass") return glassColors(P);
+  /* the silk's dye and the rosette's rings read the palette's curve end to end */
+  if (isVectorKind(effect.kind)) return sampleStops(P, 6).map(s => s.hex);
   const scene = blobScene(P, BLOB_DESIGN, effect.look);
   const along = [...new Set(scene.blobs.flatMap(blob => blob.balls.map(ball => ball.at)))];
   return [...new Set(along.sort((a, b) => a - b).map(scene.color))];
@@ -88,7 +104,7 @@ export function effectColors(P: Palette, effect: Effect): string[] {
     and a blob's null shape the one its palette's own numbers draw. The blob has no angle. */
 function effectSettings(effect: Effect, angle: number) {
   const { kind, speed, fps, look } = effect;
-  return kind === "glass"
+  return kind !== "blob"
     ? { style: kind, angle, speed, fps, shape: look.shape ?? 0 }
     : { style: kind, speed, fps, shape: look.shape, frost: look.frost, bg: look.bg };
 }
@@ -113,7 +129,8 @@ export function effectLinks(
   return {
     page: effectPage(base, seed, effect, angle, true),
     css: at("css"),
-    js: at("js"),
+    /* the silk's and the rosette's scripts are not built yet: their stylesheet paints their still */
+    js: hasEmbedScript(effect.kind) ? at("js") : null,
     svg: at("svg"),
     png: at("png"),
     og: card
@@ -149,17 +166,30 @@ export const effectMarkdown =
         ? "held on its first frame"
         : `speed ${effect.speed}, up to ${effect.fps} frames a second`;
     const glass = effect.kind === "glass";
+    const kind = effect.kind;
+    const colors = doc.colors.join(", ");
+    const scripted = hasEmbedScript(kind);
     return {
-      called: `${name} ${glass ? "fluted glass" : "blob"}`,
-      lead: glass
-        ? `${name} played as fluted glass: its colors ${glassColors(P).join(", ")} drift behind ribbed glass. Two tags play it behind any page.`
-        : `${name} played as a frosted blob: the palette's colors ${doc.colors.join(", ")} melt into one another as it drifts. Two tags play it behind any page.`,
-      drawn: glass
-        ? `fluted glass, its ribs at ${angle} degrees, shape ${shape ?? 0}, ${play}`
-        : `a blob, the palette across it from left to right${shape === null ? "" : `, shape ${shape}`}, frost ${frost}, ${bg ? `on ${bg}` : "on no ground"}, ${play}`,
+      called: `${name} ${kind === "glass" ? "fluted glass" : kind}`,
+      lead:
+        kind === "glass"
+          ? `${name} played as fluted glass: its colors ${glassColors(P).join(", ")} drift behind ribbed glass. Two tags play it behind any page.`
+          : kind === "silk"
+            ? `${name} played as silk: the palette ${colors} dyed into satin that drapes in soft folds, each swaying slowly about the gather. A stylesheet paints it behind any page.`
+            : kind === "rosette"
+              ? `${name} played as a rosette: petals on a golden spiral, each one color of the palette ${colors} by its ring, the rings rippling out from the heart as the petals grow. A stylesheet paints it behind any page.`
+              : `${name} played as a frosted blob: the palette's colors ${colors} melt into one another as it drifts. Two tags play it behind any page.`,
+      drawn:
+        kind === "glass"
+          ? `fluted glass, its ribs at ${angle} degrees, shape ${shape ?? 0}, ${play}`
+          : kind === "silk"
+            ? `silk, its drape turned to ${angle} degrees, shape ${shape ?? 0}, ${play}`
+            : kind === "rosette"
+              ? `a rosette, turned to ${angle} degrees, shape ${shape ?? 0}, ${play}`
+              : `a blob, the palette across it from left to right${shape === null ? "" : `, shape ${shape}`}, frost ${frost}, ${bg ? `on ${bg}` : "on no ground"}, ${play}`,
       code: `## Behind a page
 
-In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays.${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}
+${scripted ? "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays." : "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}
 
 \`\`\`html
 ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle)}
@@ -167,7 +197,7 @@ ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle)}
       files: {
         ...links,
         json: effectFileAddress(origin.replace(/\/$/, ""), seed, effect, angle, "json"),
-        script: js
+        ...(js ? { script: js } : {})
       }
     };
   };

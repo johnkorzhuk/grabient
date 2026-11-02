@@ -199,8 +199,8 @@
   "Add a title": {
     "note": "Press, and the empty field's placeholder, in the place of a palette's age on its card in the account's own collection: gives the palette a title in that collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:365",
-      "packages/ui/src/PaletteCard.tsx:384"
+      "packages/ui/src/PaletteCard.tsx:368",
+      "packages/ui/src/PaletteCard.tsx:387"
     ]
   },
   "Add all to selection": {
@@ -244,11 +244,11 @@
   "Add to selection": {
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Boot.tsx:138",
-      "apps/web/src/features/editor/Editor.tsx:580",
-      "apps/web/src/features/editor/Editor.tsx:581",
-      "packages/ui/src/PaletteCard.tsx:423",
-      "packages/ui/src/PaletteCard.tsx:424"
+      "apps/web/src/features/editor/Boot.tsx:165",
+      "apps/web/src/features/editor/Editor.tsx:588",
+      "apps/web/src/features/editor/Editor.tsx:589",
+      "packages/ui/src/PaletteCard.tsx:426",
+      "packages/ui/src/PaletteCard.tsx:427"
     ]
   },
   "Add to {app}": {
@@ -292,7 +292,7 @@
   "Admins only": {
     "note": "Admin Settings, the newsletter's send: the group that gets a send, the admins alone, as a rehearsal.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:50"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:56"
     ]
   },
   "Admit one": {
@@ -447,13 +447,13 @@
   "Arm": {
     "note": "Admin Settings, the newsletter's send: button that sets a prepared send to go out at its start time.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:281"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:285"
     ]
   },
   "Armed. Starts {when}.": {
     "note": "Admin Settings, the newsletter's send: {when} is a date and time in the reader's zone, then in UTC.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:300"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:304"
     ]
   },
   "As saved": {
@@ -544,9 +544,9 @@
   "Blob": {
     "note": "Editor, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as an animated blob, a soft amorphous shape of its colors.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:100",
-      "apps/web/src/features/editor/EditorCorner.tsx:77",
-      "apps/web/src/features/editor/effect-page.ts:25"
+      "apps/web/src/features/editor/Corner.tsx:142",
+      "apps/web/src/features/editor/EditorCorner.tsx:84",
+      "apps/web/src/features/editor/effect-page.ts:29"
     ]
   },
   "Both strips end on the same color. Top: hue 210° to 330°. Bottom: 210° to 690°, one more lap.": {
@@ -571,8 +571,8 @@
     "note": "Press or link: opens the palettes list.",
     "refs": [
       "apps/web/src/app/NotFound.tsx:37",
-      "apps/web/src/features/collections/CollectionPage.tsx:1011",
-      "apps/web/src/features/collections/CollectionsPage.tsx:551",
+      "apps/web/src/features/collections/CollectionPage.tsx:1012",
+      "apps/web/src/features/collections/CollectionsPage.tsx:553",
       "apps/web/src/features/connect/Connect.tsx:125"
     ]
   },
@@ -628,9 +628,9 @@
   "Cancel": {
     "note": "Press: stops without saving.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:295",
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:313",
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:330",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:299",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:317",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:334",
       "apps/web/src/features/collections/Heading.tsx:248",
       "apps/web/src/features/connect/Connect.tsx:331",
       "packages/ui/src/CollectList.tsx:164",
@@ -695,7 +695,7 @@
   "Checked {links} links and pictures. The email is {size} KB.": {
     "note": "Admin Settings, the newsletter's send: what the prepared send checked. {links} and {size} are numbers.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:256"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:260"
     ]
   },
   "Checking…": {
@@ -764,7 +764,7 @@
     "note": "Press and key list entry: closes the selection view.",
     "refs": [
       "apps/web/src/app/navigation.ts:189",
-      "apps/web/src/features/editor/Editor.tsx:212",
+      "apps/web/src/features/editor/Editor.tsx:220",
       "apps/web/src/features/selection/SelectionScreen.tsx:245",
       "apps/web/src/features/selection/SelectionScreen.tsx:304",
       "packages/ui/src/ExportPanel.tsx:154"
@@ -785,7 +785,7 @@
   "Collection not found. It may have been deleted.": {
     "note": "Error line: the collection is gone.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:998"
+      "apps/web/src/features/collections/CollectionPage.tsx:999"
     ]
   },
   "Collections": {
@@ -793,7 +793,7 @@
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:118",
       "apps/web/src/features/collections/CollectionPage.tsx:693",
-      "apps/web/src/features/editor/StaticPalette.tsx:142",
+      "apps/web/src/features/editor/StaticPalette.tsx:150",
       "apps/web/src/lib/page-meta.ts:896",
       "apps/web/src/lib/page-meta.ts:959",
       "packages/ui/src/ListNav.tsx:12"
@@ -908,7 +908,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:230",
-      "apps/web/src/features/editor/effect-sources.ts:171"
+      "apps/web/src/features/editor/effect-sources.ts:174"
     ]
   },
   "Columns": {
@@ -1064,7 +1064,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:159"
+      "apps/web/src/features/editor/effect-sources.ts:162"
     ]
   },
   "Copy link": {
@@ -1133,8 +1133,8 @@
   "Couldn't copy the palette.": {
     "note": "Error line after a failed copy of a palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:664",
-      "apps/web/src/features/editor/Editor.tsx:675",
+      "apps/web/src/features/editor/Editor.tsx:672",
+      "apps/web/src/features/editor/Editor.tsx:683",
       "apps/web/src/features/editor/Sheet.tsx:149",
       "apps/web/src/features/examples/Swatches.tsx:202",
       "apps/web/src/features/examples/Swatches.tsx:212",
@@ -1196,9 +1196,9 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
-      "apps/web/src/features/editor/Editor.tsx:682",
-      "apps/web/src/features/editor/Sheet.tsx:538",
-      "apps/web/src/features/editor/Sheet.tsx:616",
+      "apps/web/src/features/editor/Editor.tsx:690",
+      "apps/web/src/features/editor/Sheet.tsx:545",
+      "apps/web/src/features/editor/Sheet.tsx:623",
       "apps/web/src/features/examples/Swatches.tsx:209",
       "apps/web/src/lib/files.ts:70"
     ]
@@ -1272,9 +1272,9 @@
       "apps/web/src/features/account/settings/Profile.tsx:188",
       "apps/web/src/features/account/settings/Profile.tsx:60",
       "apps/web/src/features/account/settings/Profile.tsx:75",
-      "apps/web/src/features/collections/CollectionsPage.tsx:332",
+      "apps/web/src/features/collections/CollectionsPage.tsx:333",
       "apps/web/src/features/gallery/Home.tsx:221",
-      "apps/web/src/features/gallery/Palettes.tsx:301"
+      "apps/web/src/features/gallery/Palettes.tsx:304"
     ]
   },
   "Couldn't read this palette JSON.": {
@@ -1318,7 +1318,7 @@
   "Couldn't save the palette.": {
     "note": "Error line after a failed like.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:301"
+      "apps/web/src/features/editor/Editor.tsx:309"
     ]
   },
   "Couldn't save your vote.": {
@@ -1342,11 +1342,11 @@
       "apps/web/src/features/account/sync.ts:148",
       "apps/web/src/features/collections/CollectionPage.tsx:476",
       "apps/web/src/features/collections/CollectionPage.tsx:482",
-      "apps/web/src/features/collections/ItemCard.tsx:101",
+      "apps/web/src/features/collections/ItemCard.tsx:116",
       "apps/web/src/features/collections/collect.ts:456",
-      "apps/web/src/features/editor/Sheet.tsx:501",
+      "apps/web/src/features/editor/Sheet.tsx:508",
       "apps/web/src/features/editor/save.ts:186",
-      "apps/web/src/features/gallery/GalleryCard.tsx:80",
+      "apps/web/src/features/gallery/GalleryCard.tsx:98",
       "apps/web/src/server/account/sync.ts:126",
       "packages/ui/src/CollectList.tsx:88",
       "packages/ui/src/Curation.tsx:184"
@@ -1546,7 +1546,7 @@
   "Download PNG": {
     "note": "Link: downloads the palette as a PNG.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:144",
+      "apps/web/src/features/editor/StaticPalette.tsx:152",
       "apps/web/src/features/examples/Wallpapers.tsx:243"
     ]
   },
@@ -1621,23 +1621,23 @@
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:540",
       "apps/web/src/features/collections/Heading.tsx:131",
-      "packages/ui/src/PaletteCard.tsx:288"
+      "packages/ui/src/PaletteCard.tsx:291"
     ]
   },
   "Edit {name}": {
     "note": "Read by screen readers: a palette card's Edit press, and the edit press on a collection's title. {name} is the palette's or the collection's name.",
     "refs": [
       "apps/web/src/features/collections/Heading.tsx:130",
-      "packages/ui/src/PaletteCard.tsx:287",
-      "packages/ui/src/PaletteCard.tsx:293"
+      "packages/ui/src/PaletteCard.tsx:290",
+      "packages/ui/src/PaletteCard.tsx:296"
     ]
   },
   "Editor": {
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1095",
-      "apps/web/src/features/examples/ExamplesPage.tsx:302",
+      "apps/web/src/features/editor/Editor.tsx:1133",
+      "apps/web/src/features/examples/ExamplesPage.tsx:304",
       "packages/ui/src/KeyList.tsx:10"
     ]
   },
@@ -1737,7 +1737,7 @@
   "Everyone it hasn't reached": {
     "note": "Admin Settings, the newsletter's send: the group of every subscribed reader the issue was not sent to yet. It is the issue.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:52"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:58"
     ]
   },
   "Everywhere": {
@@ -1753,7 +1753,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:31",
       "apps/web/src/features/examples/ExamplesLink.tsx:14",
-      "apps/web/src/features/examples/ExamplesPage.tsx:315",
+      "apps/web/src/features/examples/ExamplesPage.tsx:317",
       "packages/ui/src/KeyList.tsx:11"
     ]
   },
@@ -1773,7 +1773,7 @@
   "Export": {
     "note": "Heading and tab of the export panel; also its screen reader name, and the heading of a collection's section of files under its cards.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:939",
+      "apps/web/src/features/collections/CollectionPage.tsx:940",
       "packages/ui/src/ExportPanel.tsx:141",
       "packages/ui/src/ExportPanel.tsx:143",
       "packages/ui/src/ExportPanel.tsx:149"
@@ -1837,9 +1837,9 @@
   "First page": {
     "note": "Press: back to the first page of the list.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:545",
-      "apps/web/src/features/gallery/Home.tsx:510",
-      "apps/web/src/features/gallery/Palettes.tsx:613"
+      "apps/web/src/features/collections/CollectionsPage.tsx:547",
+      "apps/web/src/features/gallery/Home.tsx:511",
+      "apps/web/src/features/gallery/Palettes.tsx:616"
     ]
   },
   "Fit": {
@@ -1857,9 +1857,9 @@
   "Fluted glass": {
     "note": "Editor side: the switch that plays the palette behind fluted (reeded) glass in the picture, colors drifting behind a pane of curved ribs. Name it as the language's interior designers name ribbed decorative glass; also the picture's label for screen readers.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:87",
-      "apps/web/src/features/editor/EditorCorner.tsx:64",
-      "apps/web/src/features/editor/effect-page.ts:25"
+      "apps/web/src/features/editor/Corner.tsx:129",
+      "apps/web/src/features/editor/EditorCorner.tsx:71",
+      "apps/web/src/features/editor/effect-page.ts:27"
     ]
   },
   "Follow": {
@@ -1959,13 +1959,13 @@
     "note": "Heading over the palettes made from the hex colors the reader typed into the search field.",
     "refs": [
       "apps/web/src/features/gallery/Home.tsx:335",
-      "apps/web/src/features/gallery/Palettes.tsx:445"
+      "apps/web/src/features/gallery/Palettes.tsx:448"
     ]
   },
   "From your image": {
     "note": "Heading over the palettes made from the colors picked out of the reader's image, shown beside the image.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:445"
+      "apps/web/src/features/gallery/Palettes.tsx:448"
     ]
   },
   "Frost": {
@@ -2058,7 +2058,7 @@
   "Grabient palettes": {
     "note": "Link to the home page on a palette page without scripts.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:76"
+      "apps/web/src/features/editor/StaticPalette.tsx:84"
     ]
   },
   "Grabient user": {
@@ -2118,7 +2118,7 @@
   "Guide for AI agents": {
     "note": "Title of the link in the page's head to llms.txt.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:968",
+      "apps/web/src/features/collections/CollectionPage.tsx:969",
       "apps/web/src/routes/__root.tsx:98"
     ]
   },
@@ -2170,8 +2170,8 @@
   "Hide panel": {
     "note": "Press: hides the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:123",
-      "apps/web/src/features/editor/EditorCorner.tsx:102"
+      "apps/web/src/features/editor/Corner.tsx:172",
+      "apps/web/src/features/editor/EditorCorner.tsx:130"
     ]
   },
   "High tide": {
@@ -2213,7 +2213,7 @@
   "How it works": {
     "note": "Link to the About page.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:152"
+      "apps/web/src/features/editor/StaticPalette.tsx:160"
     ]
   },
   "How to connect": {
@@ -2253,7 +2253,7 @@
     "note": "Status line: the image could not go to the clipboard, so it was downloaded instead.",
     "refs": [
       "apps/web/src/features/collections/take.ts:74",
-      "apps/web/src/features/editor/Sheet.tsx:457",
+      "apps/web/src/features/editor/Sheet.tsx:464",
       "apps/web/src/features/gallery/take.ts:138",
       "apps/web/src/features/selection/ExportScreen.tsx:92",
       "apps/web/src/mcp-view/PaletteView.tsx:243"
@@ -2262,7 +2262,7 @@
   "Images can't be copied here.": {
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:663",
+      "apps/web/src/features/editor/Editor.tsx:671",
       "apps/web/src/features/editor/Sheet.tsx:148",
       "apps/web/src/mcp-view/PaletteView.tsx:247",
       "apps/web/src/mcp-view/PaletteView.tsx:255",
@@ -2272,7 +2272,7 @@
   "In any CSS rule": {
     "note": "Short note under a code tab holding one CSS declaration: it can be pasted into any CSS rule. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:257"
+      "apps/web/src/features/examples/ExamplesPage.tsx:259"
     ]
   },
   "In the formula, <c>t</c> runs from 0 at the start of the gradient to 1 at the end. With <c>K</c> keyframes, keyframe <c>i</c> sits at <c>t = i / (K − 1)</c>, counting from 0. Each curve is a Catmull–Rom spline, and <c>gamut()</c> fits the color to the screen (section 6):": {
@@ -2284,15 +2284,15 @@
   "In the page's head": {
     "note": "Short note under a code tab holding tags for a web page's <head> element. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:245",
-      "apps/web/src/features/examples/ExamplesPage.tsx:250",
-      "apps/web/src/features/examples/ExamplesPage.tsx:262"
+      "apps/web/src/features/examples/ExamplesPage.tsx:247",
+      "apps/web/src/features/examples/ExamplesPage.tsx:252",
+      "apps/web/src/features/examples/ExamplesPage.tsx:264"
     ]
   },
   "In these collections": {
     "note": "Heading and screen reader name of the links to collections that hold the palette.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:121",
+      "apps/web/src/features/editor/StaticPalette.tsx:129",
       "packages/ui/src/PaletteSheet.tsx:138"
     ]
   },
@@ -2374,8 +2374,8 @@
   "Issue {number}: {title}": {
     "note": "Admin Settings, the newsletter's send: the newsletter issue's number and title.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:199",
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:239"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:203",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:243"
     ]
   },
   "It can see your name and display name, and see and change your saved palettes and collections.": {
@@ -2435,21 +2435,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:914",
+      "apps/web/src/features/editor/Editor.tsx:952",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:910",
+      "apps/web/src/features/editor/Editor.tsx:948",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:899",
+      "apps/web/src/features/editor/Editor.tsx:937",
       "apps/web/src/features/editor/code.ts:264",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -2477,13 +2477,13 @@
   "Last send finished {when}.": {
     "note": "Admin Settings, the newsletter's send: {when} is a date and time.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:221"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:225"
     ]
   },
   "Last send was cancelled {when}.": {
     "note": "Admin Settings, the newsletter's send: {when} is a date and time.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:224"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:228"
     ]
   },
   "Layout": {
@@ -2514,7 +2514,7 @@
   "Left out: {unsubscribed} opted out or waiting for a yes, {personas} personas, {undeliverable} test addresses, {already} already sent it.": {
     "note": "Admin Settings, the newsletter's send: counts of accounts the send leaves out. A yes is consent to the newsletter; personas are the site's own agent accounts.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:245"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:249"
     ]
   },
   "Let AI apps connect to accounts and use Grabient's tools over MCP.": {
@@ -2622,7 +2622,7 @@
   "Linked": {
     "note": "Tab name of a code block on the examples page, beside 'HTML': the same tags, linking Grabient's stylesheet instead of holding the picture inline. One short word.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:248"
+      "apps/web/src/features/examples/ExamplesPage.tsx:250"
     ]
   },
   "Links and JSON can be up to 2,048 characters.": {
@@ -2646,9 +2646,9 @@
   "Loading more…": {
     "note": "Status while more of a list loads.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:404",
+      "apps/web/src/features/collections/CollectionsPage.tsx:405",
       "apps/web/src/features/gallery/Home.tsx:259",
-      "apps/web/src/features/gallery/Palettes.tsx:355",
+      "apps/web/src/features/gallery/Palettes.tsx:358",
       "apps/web/src/features/newsletter/NewsletterPage.tsx:75"
     ]
   },
@@ -2687,7 +2687,7 @@
     "note": "Admin feature switch.",
     "refs": [
       "apps/web/src/features/account/settings/flags.ts:34",
-      "apps/web/src/features/collections/CollectionPage.tsx:971"
+      "apps/web/src/features/collections/CollectionPage.tsx:972"
     ]
   },
   "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
@@ -2747,14 +2747,14 @@
   "Markdown": {
     "note": "Link: the palette as a Markdown file.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:150"
+      "apps/web/src/features/editor/StaticPalette.tsx:158"
     ]
   },
   "Matching collections": {
     "note": "Heading over collections that match a search.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:484",
-      "apps/web/src/features/gallery/Palettes.tsx:487"
+      "apps/web/src/features/gallery/Palettes.tsx:487",
+      "apps/web/src/features/gallery/Palettes.tsx:490"
     ]
   },
   "Member": {
@@ -2786,14 +2786,14 @@
   "More collections": {
     "note": "Press at the end of a list: loads more collections.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:563",
-      "apps/web/src/features/gallery/Home.tsx:523"
+      "apps/web/src/features/collections/CollectionsPage.tsx:565",
+      "apps/web/src/features/gallery/Home.tsx:524"
     ]
   },
   "More palettes": {
     "note": "Press at the end of a list: loads more palettes. Also a press that shows the next palettes.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:625",
+      "apps/web/src/features/gallery/Palettes.tsx:628",
       "apps/web/src/mcp-view/PaletteView.tsx:689"
     ]
   },
@@ -2901,7 +2901,7 @@
   "No collections yet.": {
     "note": "Empty state: there are no collections to show.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:397",
+      "apps/web/src/features/collections/CollectionsPage.tsx:398",
       "apps/web/src/features/gallery/Home.tsx:267"
     ]
   },
@@ -2926,27 +2926,27 @@
   "No public collections yet.": {
     "note": "Empty state: no collection is public yet.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:398"
+      "apps/web/src/features/collections/CollectionsPage.tsx:399"
     ]
   },
   "No results.": {
     "note": "Empty state, also a heading: a search found nothing.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:395",
+      "apps/web/src/features/collections/CollectionsPage.tsx:396",
       "apps/web/src/features/gallery/Home.tsx:252",
       "apps/web/src/features/gallery/Home.tsx:269",
       "apps/web/src/features/gallery/Home.tsx:346",
-      "apps/web/src/features/gallery/Palettes.tsx:336",
-      "apps/web/src/features/gallery/Palettes.tsx:341",
-      "apps/web/src/features/gallery/Palettes.tsx:348",
-      "apps/web/src/features/gallery/Palettes.tsx:475",
+      "apps/web/src/features/gallery/Palettes.tsx:339",
+      "apps/web/src/features/gallery/Palettes.tsx:344",
+      "apps/web/src/features/gallery/Palettes.tsx:351",
+      "apps/web/src/features/gallery/Palettes.tsx:478",
       "packages/ui/src/CollectList.tsx:343"
     ]
   },
   "No results. Try a color, mood or theme.": {
     "note": "Empty state of a search in Saved, with words to try.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:340"
+      "apps/web/src/features/gallery/Palettes.tsx:343"
     ]
   },
   "Not found": {
@@ -3225,7 +3225,7 @@
     "note": "Screen reader name of the tabs for a list's order (Popular, Rising, Saved).",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:639",
-      "apps/web/src/features/editor/Sheet.tsx:569",
+      "apps/web/src/features/editor/Sheet.tsx:576",
       "packages/ui/src/ListNav.tsx:102"
     ]
   },
@@ -3251,9 +3251,9 @@
   "Page {page} doesn't exist.": {
     "note": "Line on a list page whose number is past the last page.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:393",
+      "apps/web/src/features/collections/CollectionsPage.tsx:394",
       "apps/web/src/features/gallery/Home.tsx:265",
-      "apps/web/src/features/gallery/Palettes.tsx:334"
+      "apps/web/src/features/gallery/Palettes.tsx:337"
     ]
   },
   "Pages past the ceiling": {
@@ -3272,13 +3272,13 @@
   "Palette JSON": {
     "note": "Link: the palette as JSON.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:147"
+      "apps/web/src/features/editor/StaticPalette.tsx:155"
     ]
   },
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:813",
+      "apps/web/src/features/editor/Editor.tsx:851",
       "packages/ui/src/PaletteSheet.tsx:131"
     ]
   },
@@ -3339,7 +3339,7 @@
   "Palette title": {
     "note": "Field on a palette's card in the account's own collection: the palette's title there.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:385"
+      "packages/ui/src/PaletteCard.tsx:388"
     ]
   },
   "Palette titles are up to {max} characters.": {
@@ -3377,16 +3377,16 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:799",
+      "apps/web/src/features/editor/Editor.tsx:837",
       "apps/web/src/lib/page-meta.ts:582",
       "apps/web/src/lib/page-meta.ts:593",
-      "packages/ui/src/PaletteCard.tsx:304"
+      "packages/ui/src/PaletteCard.tsx:307"
     ]
   },
   "Palettes you like appear here.": {
     "note": "Empty state of the Saved list.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:338"
+      "apps/web/src/features/gallery/Palettes.tsx:341"
     ]
   },
   "Passes through a color that spoils it": {
@@ -3423,80 +3423,80 @@
   "Pause": {
     "note": "Admin Settings, the newsletter's send: button that holds a send.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:308",
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:320"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:312",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:324"
     ]
   },
   "Paused by an admin.": {
     "note": "Admin Settings, the newsletter's send: why a send is paused.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:55"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:61"
     ]
   },
   "Paused itself: 5,000 emails went out in the last day.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own. The last day is the last 24 hours.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:60"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:66"
     ]
   },
   "Paused itself: Resend failed three times in a row.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own. Resend is the email service, a name.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:57"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:63"
     ]
   },
   "Paused itself: Resend refused the key.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own. The key is the email service's API key.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:58"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:64"
     ]
   },
   "Paused itself: Resend saw a different email under the same key.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own. The key is the duplicate-protection key each email carries.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:59"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:65"
     ]
   },
   "Paused itself: Resend's sending quota ran out.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own. Resend is the email service, a name; its quota is how many emails the plan allows.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:63"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:69"
     ]
   },
   "Paused itself: a link or picture in the email stopped loading.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own: a file the email links to no longer loads.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:64"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:70"
     ]
   },
   "Paused itself: it hadn't started an hour after its start time. Resume to send it now.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own: an hour after its start it had not begun, for example because the newsletter was off.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:65"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:71"
     ]
   },
   "Paused itself: more than 2% of the emails failed.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:56"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:62"
     ]
   },
   "Paused itself: the newsletter has no sender.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own: no email service is set up.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:61"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:67"
     ]
   },
   "Paused itself: this deploy may not send to that address.": {
     "note": "Admin Settings, the newsletter's send: why a send stopped on its own. A deploy is a copy of the site, such as the staging site.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:62"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:68"
     ]
   },
   "People who liked a palette": {
     "note": "Admin Settings, the newsletter's send: the group of accounts that liked at least one palette.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:51"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:57"
     ]
   },
   "Permanently delete your account and saved palettes.": {
@@ -3558,13 +3558,13 @@
   "Prepare": {
     "note": "Admin Settings, the newsletter's send: button that finds the readers and checks the issue, sending nothing.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:212"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:216"
     ]
   },
   "Prepare a send, read its proof, then arm it. Nothing goes out before its start.": {
     "note": "Admin Settings, the newsletter's send: the section's line. A proof is a copy of the issue sent to the admin.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:184"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:188"
     ]
   },
   "Press a key": {
@@ -3583,7 +3583,7 @@
   "Press again to cancel the send.": {
     "note": "Admin Settings, the newsletter's send: the second press confirms.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:337"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:341"
     ]
   },
   "Press again to delete": {
@@ -3607,7 +3607,7 @@
   "Press again to resume the send.": {
     "note": "Admin Settings, the newsletter's send: the second press confirms.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:338"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:342"
     ]
   },
   "Press again to turn off for everyone.": {
@@ -3695,7 +3695,7 @@
     "refs": [
       "apps/web/src/features/collections/Heading.tsx:146",
       "packages/ui/src/CollectionCard.tsx:102",
-      "packages/ui/src/CollectionGroup.tsx:85"
+      "packages/ui/src/CollectionGroup.tsx:93"
     ]
   },
   "Profile": {
@@ -3764,7 +3764,7 @@
     "refs": [
       "apps/web/src/features/editor/Controls.tsx:347",
       "apps/web/src/features/editor/Controls.tsx:349",
-      "apps/web/src/features/examples/ExamplesPage.tsx:306"
+      "apps/web/src/features/examples/ExamplesPage.tsx:308"
     ]
   },
   "Random palette": {
@@ -3831,11 +3831,11 @@
   "Remove from selection": {
     "note": "Press (a check) on a palette in the selection: takes it out. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:580",
-      "apps/web/src/features/editor/Editor.tsx:581",
+      "apps/web/src/features/editor/Editor.tsx:588",
+      "apps/web/src/features/editor/Editor.tsx:589",
       "packages/ui/src/ExportPreview.tsx:83",
-      "packages/ui/src/PaletteCard.tsx:423",
-      "packages/ui/src/PaletteCard.tsx:424"
+      "packages/ui/src/PaletteCard.tsx:426",
+      "packages/ui/src/PaletteCard.tsx:427"
     ]
   },
   "Remove held keyframes": {
@@ -3848,7 +3848,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1112",
+      "apps/web/src/features/editor/Editor.tsx:1150",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3856,7 +3856,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1112"
+      "apps/web/src/features/editor/Editor.tsx:1150"
     ]
   },
   "Remove {hex}": {
@@ -3888,7 +3888,7 @@
   "Rename {title}": {
     "note": "Screen reader name of a palette's title on its card in the account's own collection: a press that opens a field to change the title. {title} is the palette's title.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:186"
+      "packages/ui/src/PaletteCard.tsx:188"
     ]
   },
   "Replaces it in the gallery": {
@@ -3949,7 +3949,7 @@
   "Resume": {
     "note": "Admin Settings, the newsletter's send: button that lets a paused send go on.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:329"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:333"
     ]
   },
   "Retry": {
@@ -3957,14 +3957,14 @@
     "refs": [
       "apps/web/src/app/ErrorPage.tsx:40",
       "apps/web/src/features/account/settings/Admin.tsx:230",
-      "apps/web/src/features/collections/CollectionPage.tsx:1005",
-      "apps/web/src/features/collections/CollectionsPage.tsx:525",
-      "apps/web/src/features/collections/CollectionsPage.tsx:530",
+      "apps/web/src/features/collections/CollectionPage.tsx:1006",
+      "apps/web/src/features/collections/CollectionsPage.tsx:527",
+      "apps/web/src/features/collections/CollectionsPage.tsx:532",
       "apps/web/src/features/connect/ConnectedApps.tsx:94",
-      "apps/web/src/features/gallery/Home.tsx:493",
-      "apps/web/src/features/gallery/Home.tsx:501",
-      "apps/web/src/features/gallery/Palettes.tsx:598",
-      "apps/web/src/features/gallery/Palettes.tsx:603",
+      "apps/web/src/features/gallery/Home.tsx:494",
+      "apps/web/src/features/gallery/Home.tsx:502",
+      "apps/web/src/features/gallery/Palettes.tsx:601",
+      "apps/web/src/features/gallery/Palettes.tsx:606",
       "apps/web/src/features/newsletter/NewsletterPage.tsx:79"
     ]
   },
@@ -4055,6 +4055,13 @@
     "refs": [
       "apps/web/src/features/editor/Sheet.tsx:82",
       "packages/ui/src/ListNav.tsx:21"
+    ]
+  },
+  "Rosette": {
+    "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as a rosette: petals on a golden spiral, like a dahlia seen from above, its rings of color rippling out from the heart. Name the flower-shaped ornament, as a designer would.",
+    "refs": [
+      "apps/web/src/features/editor/Corner.tsx:158",
+      "apps/web/src/features/editor/effect-page.ts:32"
     ]
   },
   "Rotate 15°": {
@@ -4249,7 +4256,7 @@
   "Search palettes": {
     "note": "Search field and its placeholder.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:413",
+      "apps/web/src/features/gallery/Palettes.tsx:416",
       "apps/web/src/features/search/SearchField.tsx:78"
     ]
   },
@@ -4331,7 +4338,7 @@
   "Send an issue": {
     "note": "Admin Settings: heading of the newsletter's send.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:181"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:185"
     ]
   },
   "Send code": {
@@ -4349,8 +4356,8 @@
   "Send me the proof": {
     "note": "Admin Settings, the newsletter's send: button that emails the prepared issue to the admin alone.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:292",
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:310"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:296",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:314"
     ]
   },
   "Send sign-in links and codes and contact messages. When off, sign-in offers Google, and deletion emails and owner alerts still go.": {
@@ -4368,7 +4375,7 @@
   "Sending now, at most fifty a minute.": {
     "note": "Admin Settings, the newsletter's send: status while emails go out.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:317"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:321"
     ]
   },
   "Sending…": {
@@ -4385,8 +4392,8 @@
     "note": "Admin Settings: status after a test newsletter was sent.",
     "refs": [
       "apps/web/src/features/account/settings/Admin.tsx:42",
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:293",
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:311"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:297",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:315"
     ]
   },
   "Sent. Thanks.": {
@@ -4416,7 +4423,7 @@
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
       "apps/web/src/features/editor/code.ts:248",
-      "apps/web/src/features/editor/effect-sources.ts:182"
+      "apps/web/src/features/editor/effect-sources.ts:185"
     ]
   },
   "Shape": {
@@ -4484,8 +4491,8 @@
   "Show panel": {
     "note": "Press: shows the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:123",
-      "apps/web/src/features/editor/Editor.tsx:201"
+      "apps/web/src/features/editor/Corner.tsx:172",
+      "apps/web/src/features/editor/Editor.tsx:209"
     ]
   },
   "Show shortcuts": {
@@ -4524,11 +4531,11 @@
       "apps/web/src/features/account/PasswordPage.tsx:59",
       "apps/web/src/features/account/PasswordPage.tsx:70",
       "apps/web/src/features/account/settings/Profile.tsx:298",
-      "apps/web/src/features/collections/CollectionsPage.tsx:478",
+      "apps/web/src/features/collections/CollectionsPage.tsx:479",
       "apps/web/src/features/connect/McpServer.tsx:133",
       "apps/web/src/features/gallery/Home.tsx:298",
-      "apps/web/src/features/gallery/Palettes.tsx:402",
-      "apps/web/src/features/gallery/Palettes.tsx:608",
+      "apps/web/src/features/gallery/Palettes.tsx:405",
+      "apps/web/src/features/gallery/Palettes.tsx:611",
       "apps/web/src/lib/page-meta.ts:437",
       "packages/email/src/letters.ts:44",
       "packages/email/src/letters.ts:58",
@@ -4599,19 +4606,19 @@
     "note": "Line beside a Sign in press: signed out, a search matched only some of the words.",
     "refs": [
       "apps/web/src/features/gallery/Home.tsx:261",
-      "apps/web/src/features/gallery/Palettes.tsx:357"
+      "apps/web/src/features/gallery/Palettes.tsx:360"
     ]
   },
   "Sign in to see your collections.": {
     "note": "Heading on Your collections when signed out, over a Sign in press; also an error line.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:470"
+      "apps/web/src/features/collections/CollectionsPage.tsx:471"
     ]
   },
   "Sign in to see your saved palettes.": {
     "note": "Heading on Saved when signed out, over a Sign in press; also an error line.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:467",
+      "apps/web/src/features/gallery/Palettes.tsx:470",
       "apps/web/src/features/gallery/queries.ts:224"
     ]
   },
@@ -4646,13 +4653,20 @@
       "packages/ui/src/Avatar.tsx:14"
     ]
   },
+  "Silk": {
+    "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as silk: its colors dyed into satin that drapes in soft folds, each fold swaying slowly. Name the fabric, as a dressmaker would.",
+    "refs": [
+      "apps/web/src/features/editor/Corner.tsx:157",
+      "apps/web/src/features/editor/effect-page.ts:31"
+    ]
+  },
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:802",
-      "apps/web/src/features/editor/Sheet.tsx:656",
-      "apps/web/src/features/editor/StaticPalette.tsx:140",
-      "packages/ui/src/PaletteCard.tsx:305"
+      "apps/web/src/features/editor/Editor.tsx:840",
+      "apps/web/src/features/editor/Sheet.tsx:663",
+      "apps/web/src/features/editor/StaticPalette.tsx:148",
+      "packages/ui/src/PaletteCard.tsx:308"
     ]
   },
   "Since lightness, chroma and hue are separate, changing a keyframe's hue keeps its lightness.": {
@@ -4735,7 +4749,7 @@
       "apps/web/src/features/account/settings/Admin.tsx:45",
       "apps/web/src/features/account/settings/Credit.tsx:47",
       "apps/web/src/features/account/settings/Newsletter.tsx:48",
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:156",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:160",
       "apps/web/src/features/collections/client.ts:54",
       "apps/web/src/features/connect/ConnectedApps.tsx:24",
       "apps/web/src/features/newsletter/Picker.tsx:124",
@@ -4792,14 +4806,14 @@
   "Start at least 15 minutes from now.": {
     "note": "Admin Settings, the newsletter's send: the start time is too soon.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:142",
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:146",
       "apps/web/src/server/newsletter/sends.ts:365"
     ]
   },
   "Start time": {
     "note": "Admin Settings, the newsletter's send: label of the date and time a send starts.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:263"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:267"
     ]
   },
   "Start within the next 7 days.": {
@@ -5022,7 +5036,7 @@
   "The balls, their melt and the frost, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the blob plays: what its shader code draws, a pass at a time: the palette's balls, their melt (a blur that runs them together into blobs) and the frost over them, a grain that scatters the edges. The code is GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:191"
+      "apps/web/src/features/editor/effect-sources.ts:194"
     ]
   },
   "The browser uses that key.": {
@@ -5040,7 +5054,7 @@
   "The code that paints it": {
     "note": "Read by screen readers only: the name of the code tabs at the top of a palette's examples page, the code that paints the palette as a page's background.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:323"
+      "apps/web/src/features/examples/ExamplesPage.tsx:325"
     ]
   },
   "The colors as design tokens.": {
@@ -5058,13 +5072,13 @@
   "The email has no unsubscribe link.": {
     "note": "Admin Settings, the newsletter's send: a check that failed.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:96"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:102"
     ]
   },
   "The email is {size} KB, and Gmail cuts off an email past 102 KB.": {
     "note": "Admin Settings, the newsletter's send: a check that failed. {size} is a number.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:92"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:98"
     ]
   },
   "The first frame": {
@@ -5076,20 +5090,20 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:760",
-      "apps/web/src/features/editor/Editor.tsx:773"
+      "apps/web/src/features/editor/Editor.tsx:796",
+      "apps/web/src/features/editor/Editor.tsx:810"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
     "note": "Admin Settings, the newsletter's send: heads the list of failed checks after preparing or arming a send.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:346"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:350"
     ]
   },
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:197"
+      "apps/web/src/features/editor/effect-sources.ts:200"
     ]
   },
   "The keyframes as JSON.": {
@@ -5113,7 +5127,7 @@
   "The newsletter is off in Site features. Nothing goes out until it's on.": {
     "note": "Admin Settings, the newsletter's send: warning on an armed send. Site features is the name of a Settings section.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:304"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:308"
     ]
   },
   "The original collection is gone.": {
@@ -5143,14 +5157,14 @@
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:206"
+      "apps/web/src/features/editor/effect-sources.ts:209"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:278",
-      "apps/web/src/features/editor/effect-sources.ts:205"
+      "apps/web/src/features/editor/effect-sources.ts:208"
     ]
   },
   "The profile's code": {
@@ -5162,7 +5176,7 @@
   "The ribs, the colors' blur and the light, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the fluted glass plays: what its shader code draws, a pass at a time: the glass's ribs, its colors blurred behind them, and the light on the ribs. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:190"
+      "apps/web/src/features/editor/effect-sources.ts:193"
     ]
   },
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": {
@@ -5180,7 +5194,7 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:167"
+      "apps/web/src/features/editor/effect-sources.ts:170"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5198,7 +5212,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:157"
+      "apps/web/src/features/editor/effect-sources.ts:160"
     ]
   },
   "The wallpapers' code": {
@@ -5260,7 +5274,7 @@
   "This collection is empty.": {
     "note": "Empty state of a collection.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1000"
+      "apps/web/src/features/collections/CollectionPage.tsx:1001"
     ]
   },
   "This collection is private.": {
@@ -5278,7 +5292,7 @@
   "This deploy sends only to admins and Resend's test addresses.": {
     "note": "Admin Settings, the newsletter's send: shown on the staging site. Resend is the email service, a name.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:188"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:192"
     ]
   },
   "This display name can't be shown on palettes. Choose another to turn this on.": {
@@ -5314,7 +5328,7 @@
   "This page as Markdown": {
     "note": "Title of the link in the page's head to its Markdown version.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:965",
+      "apps/web/src/features/collections/CollectionPage.tsx:966",
       "apps/web/src/lib/page-meta.ts:1243"
     ]
   },
@@ -5459,7 +5473,7 @@
     "note": "Line under No results, signed out: the words to try, or sign in to search in any language.",
     "refs": [
       "apps/web/src/features/gallery/Home.tsx:348",
-      "apps/web/src/features/gallery/Palettes.tsx:477"
+      "apps/web/src/features/gallery/Palettes.tsx:480"
     ]
   },
   "Try asking": {
@@ -5510,7 +5524,7 @@
   "Type {count} to arm": {
     "note": "Admin Settings, the newsletter's send: label of the field where the admin types the number of people. {count} is that number.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:272"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:276"
     ]
   },
   "Ugly turn": {
@@ -5613,9 +5627,9 @@
     "note": "Status while something updates: a list refreshing, or the Update press while it works.",
     "refs": [
       "apps/web/src/features/collections/Actions.tsx:278",
-      "apps/web/src/features/collections/CollectionsPage.tsx:404",
+      "apps/web/src/features/collections/CollectionsPage.tsx:405",
       "apps/web/src/features/gallery/Home.tsx:254",
-      "apps/web/src/features/gallery/Palettes.tsx:351"
+      "apps/web/src/features/gallery/Palettes.tsx:354"
     ]
   },
   "Use a valid email, or leave it empty.": {
@@ -5782,7 +5796,7 @@
   "Who gets it": {
     "note": "Admin Settings, the newsletter's send: label of the choice of group. It is the issue.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:205"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:209"
     ]
   },
   "Why, optional": {
@@ -5981,8 +5995,8 @@
   "Your image": {
     "note": "Heading over the reader's own image after a search by image, with points on it that pick its colors. Also the image's accessible name.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:457",
       "apps/web/src/features/collections/CollectionsPage.tsx:458",
+      "apps/web/src/features/collections/CollectionsPage.tsx:459",
       "apps/web/src/features/search/PictureSampler.tsx:27"
     ]
   },
@@ -6424,8 +6438,8 @@
     "note": "List order and its tab: the most liked first.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:108",
-      "apps/web/src/features/editor/Sheet.tsx:572",
-      "apps/web/src/features/gallery/Palettes.tsx:329",
+      "apps/web/src/features/editor/Sheet.tsx:579",
+      "apps/web/src/features/gallery/Palettes.tsx:332",
       "packages/ui/src/ListNav.tsx:15"
     ]
   },
@@ -6434,14 +6448,14 @@
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:109",
       "apps/web/src/features/editor/Sheet.tsx:268",
-      "apps/web/src/features/gallery/Palettes.tsx:328",
+      "apps/web/src/features/gallery/Palettes.tsx:331",
       "packages/ui/src/ListNav.tsx:16"
     ]
   },
   "order\u0004Saved": {
     "note": "List order and its tab: the reader's own saved (liked) palettes.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:326",
+      "apps/web/src/features/gallery/Palettes.tsx:329",
       "packages/ui/src/ListNav.tsx:17"
     ]
   },
@@ -6674,13 +6688,13 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:244",
-      "apps/web/src/features/editor/effect-sources.ts:176"
+      "apps/web/src/features/editor/effect-sources.ts:179"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
     "note": "An age in days.",
     "refs": [
-      "apps/web/src/features/gallery/drawing.ts:104"
+      "apps/web/src/features/gallery/drawing.ts:111"
     ]
   },
   "{count, plural, one {# hard band} other {# hard bands}} as oklch().": {
@@ -6692,7 +6706,7 @@
   "{count, plural, one {# hour} other {# hours}}": {
     "note": "An age in hours.",
     "refs": [
-      "apps/web/src/features/gallery/drawing.ts:102"
+      "apps/web/src/features/gallery/drawing.ts:109"
     ]
   },
   "{count, plural, one {# keyframe} other {# keyframes}}": {
@@ -6710,13 +6724,13 @@
   "{count, plural, one {# minute} other {# minutes}}": {
     "note": "An age in minutes.",
     "refs": [
-      "apps/web/src/features/gallery/drawing.ts:97"
+      "apps/web/src/features/gallery/drawing.ts:104"
     ]
   },
   "{count, plural, one {# month} other {# months}}": {
     "note": "An age in months.",
     "refs": [
-      "apps/web/src/features/gallery/drawing.ts:107"
+      "apps/web/src/features/gallery/drawing.ts:114"
     ]
   },
   "{count, plural, one {# palette} other {# palettes}}": {
@@ -6728,7 +6742,7 @@
   "{count, plural, one {# person} other {# people}}": {
     "note": "Admin Settings, the newsletter's send: how many people a send reaches.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:241"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:245"
     ]
   },
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.": {
@@ -6770,7 +6784,7 @@
   "{count, plural, one {# step} other {# steps}}": {
     "note": "A count of steps: the evenly spaced colors a palette is drawn with.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:50",
+      "apps/web/src/features/editor/Corner.tsx:57",
       "apps/web/src/features/examples/Chart.tsx:171",
       "apps/web/src/features/examples/shared.ts:123",
       "apps/web/src/features/examples/shared.ts:40",
@@ -6800,7 +6814,7 @@
   "{count, plural, one {All #} other {All #}}": {
     "note": "Press: shows all of them, with the count.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:499"
+      "apps/web/src/features/gallery/Palettes.tsx:502"
     ]
   },
   "{count, plural, one {Like, #} other {Like, #}}": {
@@ -6831,7 +6845,7 @@
   "{count} unconfirmed: Resend may have taken them, so they won't be sent again.": {
     "note": "Admin Settings, the newsletter's send: emails whose fate is unknown. {count} is a number.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:109"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:115"
     ]
   },
   "{description} Page {page}.": {
@@ -6873,7 +6887,7 @@
   "{keyframes, plural, one {# editable OKLCH keyframe} other {# editable OKLCH keyframes}}.": {
     "note": "Line on a palette page without scripts, after the line that says how it is drawn: how many keyframes the palette has, each editable in OKLCH.",
     "refs": [
-      "apps/web/src/features/editor/StaticPalette.tsx:101"
+      "apps/web/src/features/editor/StaticPalette.tsx:109"
     ]
   },
   "{key} is already on this row.": {
@@ -6930,7 +6944,7 @@
   "{name} gradient": {
     "note": "Screen reader name of a card's picture drawn as a gradient.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:256"
+      "packages/ui/src/PaletteCard.tsx:259"
     ]
   },
   "{name} is disconnected": {
@@ -6950,7 +6964,7 @@
   "{name} palette": {
     "note": "Screen reader name of a palette card, with the palette's name.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:201",
+      "packages/ui/src/PaletteCard.tsx:204",
       "packages/ui/src/Thumbnail.tsx:27"
     ]
   },
@@ -6963,13 +6977,13 @@
   "{name} palette, removed": {
     "note": "Screen reader name of a palette card just taken out of a collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:201"
+      "packages/ui/src/PaletteCard.tsx:204"
     ]
   },
   "{name} swatches": {
     "note": "Screen reader name of a card's picture drawn as bands of flat color.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:256"
+      "packages/ui/src/PaletteCard.tsx:259"
     ]
   },
   "{name} {style}": {
@@ -6990,8 +7004,8 @@
   "{name}, {style}": {
     "note": "A palette card's picture while the editor plays an effect: what a screen reader calls it. {name} is the palette's name, {style} the effect's (Fluted glass, Blob).",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:425",
-      "apps/web/src/features/list/card-effect.tsx:74"
+      "apps/web/src/features/editor/Sheet.tsx:432",
+      "apps/web/src/features/list/card-effect.tsx:81"
     ]
   },
   "{number} · {title}": {
@@ -7015,7 +7029,7 @@
   "{sent} sent, {skipped} skipped, {failed} failed, {left} to go.": {
     "note": "Admin Settings, the newsletter's send: a send's progress. Each is a number of emails.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:102"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:108"
     ]
   },
   "{space} color space. Click to hide.": {
@@ -7120,7 +7134,7 @@
   "{title}: a collection of color palettes": {
     "note": "Alt text of a collection's share image.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:944",
+      "apps/web/src/features/collections/CollectionPage.tsx:945",
       "apps/web/src/lib/page-meta.ts:953"
     ]
   },
@@ -7139,25 +7153,25 @@
   "{url} answered {status}.": {
     "note": "Admin Settings, the newsletter's send: a check that failed. {url} is a web address; {status} is an HTTP status code such as 404.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:87"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:93"
     ]
   },
   "{url} didn't answer.": {
     "note": "Admin Settings, the newsletter's send: a check that failed. {url} is a web address.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:88"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:94"
     ]
   },
   "{url} leaves the site.": {
     "note": "Admin Settings, the newsletter's send: a check that failed: a link in the email points off the site.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:90"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:96"
     ]
   },
   "{when}, {utc} UTC": {
     "note": "Admin Settings, the newsletter's send: a time in the reader's zone and in UTC. {utc} is a 24-hour time.",
     "refs": [
-      "apps/web/src/features/account/settings/NewsletterSends.tsx:82"
+      "apps/web/src/features/account/settings/NewsletterSends.tsx:88"
     ]
   },
   "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients.": {

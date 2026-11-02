@@ -19,7 +19,12 @@ import { cardSize, pictureSize } from "./size.ts";
 const BANDS_DRAWING = "bands-1";
 /** The effects' drawings, counted up as the bands' is by a change that moves their pixels (engine/glass.ts and
     glass-render.ts, engine/blob.ts). */
-const EFFECT_DRAWING = { glass: "glass-2", blob: "blob-3" } as const;
+const EFFECT_DRAWING = {
+  glass: "glass-2",
+  blob: "blob-3",
+  silk: "silk-1",
+  rosette: "rosette-1"
+} as const;
 /** The blob's picture alone, counted apart from its cards, which stay solid: it is clear where its ground lets the
     page through. */
 const BLOB_PICTURE = "clear-1";
@@ -27,9 +32,9 @@ const BLOB_PICTURE = "clear-1";
 /** Everything an effect's first frame depends on: the glass's colors are its palette's, its ribs turn with the angle
     and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and it has no angle. */
 const effectParts = (effect: Effect, angle: number) =>
-  effect.kind === "glass"
-    ? [EFFECT_DRAWING.glass, angle, effect.look.shape ?? 0]
-    : [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg];
+  effect.kind === "blob"
+    ? [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg]
+    : [EFFECT_DRAWING[effect.kind], angle, effect.look.shape ?? 0];
 
 /** An effect's first frame at a size, as the editor shows it before it moves: the glass covering the box (its CPU
     renderer, engine/glass-render.ts) in three bytes a pixel, and the blobs covering it on their own ground
@@ -43,6 +48,32 @@ async function effectStill(
   size: Size,
   card = false
 ): Promise<Uint8Array<ArrayBuffer>> {
+  /* the silk and the rosette by their CPU drawings (engine/silk-render.ts, rosette-render.ts), opaque: about 0.1 s for
+     a card, 0.35 s for the largest picture */
+  if (effect.kind === "silk" || effect.kind === "rosette") {
+    const look = { angle, shape: effect.look.shape };
+    let rgba: Uint8ClampedArray;
+    if (effect.kind === "rosette") {
+      const [model, render] = await Promise.all([
+        import("@grabient/engine/rosette.ts"),
+        import("@grabient/engine/rosette-render.ts")
+      ]);
+      rgba = render.renderRosette(model.rosetteScene(found.palette, look, size), 0, true);
+    } else {
+      const [model, render] = await Promise.all([
+        import("@grabient/engine/silk.ts"),
+        import("@grabient/engine/silk-render.ts")
+      ]);
+      rgba = render.renderSilk(model.silkScene(found.palette, look, size), 0);
+    }
+    const rgb = new Uint8Array(size.width * size.height * 3);
+    for (let i = 0, j = 0; j < rgb.length; i += 4, j += 3) {
+      rgb[j] = rgba[i];
+      rgb[j + 1] = rgba[i + 1];
+      rgb[j + 2] = rgba[i + 2];
+    }
+    return rgb;
+  }
   if (effect.kind === "blob") {
     const blob = await import("@grabient/engine/blob.ts");
     return blob.blobStill(

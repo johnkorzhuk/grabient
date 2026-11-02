@@ -1,7 +1,12 @@
 import { lchToP3, toCssP3 } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { blobStillKey } from "@grabient/engine/effect.ts";
+import {
+  blobStillKey,
+  fxStillKey,
+  isVectorKind,
+  type VectorKind
+} from "@grabient/engine/effect.ts";
 import { glassColors, glassStillKey } from "@grabient/engine/glass-colors.ts";
 import { isFixedSize } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
@@ -66,6 +71,24 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
       )}
     </Show>
   );
+  /* a vector effect's still (silk, rosette), where the address names one: the holder names it (its kind, palette, angle
+     and shape), which the server's style in the head paints (server/fx-still.ts), as the editor's holder does
+     (FxLayer.tsx) */
+  const fx = () => (
+    <Show when={isVectorKind(props.page.effect?.kind) ? props.page.effect : null}>
+      {effect => (
+        <div class={styles.fx}>
+          <div
+            class={styles.glassStill}
+            data-fx-still={fxStillKey(effect().kind as VectorKind, props.page.seed, {
+              angle: props.page.view.angle,
+              shape: effect().look.shape
+            })}
+          />
+        </div>
+      )}
+    </Show>
+  );
   /* a size with an auto side is the stage's own shape, which only the editor measures: its stage stands empty */
   const fixed = () => {
     const size = view().size;
@@ -95,6 +118,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
               <div class={styles.paint}>
                 {glass()}
                 {blob()}
+                {fx()}
               </div>
             </Show>
             <Show when={fixed()}>
@@ -108,6 +132,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
                 >
                   {glass()}
                   {blob()}
+                  {fx()}
                 </div>
               )}
             </Show>

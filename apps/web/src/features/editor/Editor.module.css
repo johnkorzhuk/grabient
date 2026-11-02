@@ -143,6 +143,15 @@
   :global(html[data-glass="off"]) .glass {
     display: none;
   }
+  /* a vector effect over the gradient (FxLayer.tsx): its still, the server's style in the head painting the holder
+     that names it (server/fx-still.ts) or the editor's own background in it, and the player over that once the page
+     is live */
+  .fx {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+  }
   /* the blob over the gradient, on the page's own ground where it has none of its own (BlobLayer.tsx) */
   .blob {
     position: absolute;

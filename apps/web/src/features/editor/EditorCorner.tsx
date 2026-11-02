@@ -1,6 +1,13 @@
 import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { blobStillKey, EFFECT_PLAY } from "@grabient/engine/effect.ts";
+import {
+  blobStillKey,
+  EFFECT_PLAY,
+  type EffectLook,
+  fxStillKey,
+  isVectorKind,
+  type VectorKind
+} from "@grabient/engine/effect.ts";
 import { glassColors, glassStillKey } from "@grabient/engine/glass-colors.ts";
 import { t } from "@grabient/i18n";
 import { AppearanceButton, styleLabel } from "@grabient/ui/Appearance.tsx";
@@ -10,7 +17,7 @@ import { Dynamic } from "@solidjs/web";
 import { type Component, createSignal, onSettled, Show } from "solid-js";
 import type { SeedPage } from "./address.ts";
 import styles from "./Corner.module.css";
-import { effectSummary } from "./effect-page.ts";
+import { effectLabel, effectSummary } from "./effect-page.ts";
 
 /* The header's corner on a palette's page, which the frame draws outside the page: the editor open now hands in its
    own corner while it is mounted, so the corner's code comes with the editor's. Written only in the browser. */
@@ -80,13 +87,34 @@ function Still(props: { page: SeedPage }) {
       onToggle={() => {}}
     />
   );
+  /* a vector effect's swatch is the server's still too (server/fx-still.ts), as the editor's is (FxArt.tsx) */
+  const fxButton = (kind: VectorKind, look: EffectLook) => (
+    <AppearanceButton
+      swatch="transparent"
+      swatchArt={
+        <span
+          class={styles.swatchStill}
+          data-fx-still={fxStillKey(kind, props.page.seed, {
+            angle: props.page.view.angle,
+            shape: look.shape
+          })}
+        />
+      }
+      label={effectLabel(kind)}
+      summary={effectSummary(props.page.effect ?? EFFECT_PLAY, null)}
+      open={false}
+      onToggle={() => {}}
+    />
+  );
   const named = () => {
     const effect = props.page.effect;
     return effect?.kind === "glass"
       ? glassButton()
       : effect?.kind === "blob"
         ? blobButton(effect.look)
-        : savedButton();
+        : effect && isVectorKind(effect.kind)
+          ? fxButton(effect.kind, effect.look)
+          : savedButton();
   };
   const savedButton = () => (
     <AppearanceButton

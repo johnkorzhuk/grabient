@@ -1,9 +1,11 @@
-import type { Effect } from "@grabient/engine/effect.ts";
+import { type Effect, isVectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { Show } from "solid-js";
 import { BlobArt } from "../editor/BlobArt.tsx";
 import { loadBlob } from "../editor/blob-draw.ts";
+import { FxArt } from "../editor/FxArt.tsx";
+import { loadFx } from "../editor/fx-draw.ts";
 import { GlassArt } from "../editor/GlassArt.tsx";
 import { loadStill } from "../editor/glass-draw.ts";
 
@@ -19,11 +21,29 @@ export function EffectSwatch(props: {
   /** false draws the glass's still as its SVG: no WebGL context where the page plays no glass */
   gpu?: boolean;
 }) {
+  const vector = () => {
+    const kind = props.effect.kind;
+    return isVectorKind(kind) ? kind : null;
+  };
   return (
     <Show
       when={props.effect.kind === "blob"}
       fallback={
-        <GlassArt colors={glassColors(props.palette)} angle={props.angle} gpu={props.gpu} />
+        <Show
+          when={vector()}
+          fallback={
+            <GlassArt colors={glassColors(props.palette)} angle={props.angle} gpu={props.gpu} />
+          }
+        >
+          {kind => (
+            <FxArt
+              kind={kind()}
+              palette={props.palette}
+              angle={props.angle}
+              shape={props.effect.look.shape}
+            />
+          )}
+        </Show>
       }
     >
       <BlobArt palette={props.palette} settings={props.effect} />
@@ -31,8 +51,9 @@ export function EffectSwatch(props: {
   );
 }
 
-/** Both effects' still code, asked for as the Appearance menu opens, so its tiles are painted as it shows. */
+/** Every effect's still code, asked for as the Appearance menu opens, so its tiles are painted as it shows. */
 export function preloadStills(): void {
   void loadStill().catch(() => {});
   void loadBlob().catch(() => {});
+  void loadFx().catch(() => {});
 }

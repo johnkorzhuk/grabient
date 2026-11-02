@@ -1,4 +1,5 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
+import { sampleStops } from "@grabient/engine/curve.ts";
 import type { Effect } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { t } from "@grabient/i18n";
@@ -24,7 +25,9 @@ export async function readyCardEffects(kind: Effect["kind"]): Promise<void> {
     EffectArt.preload(),
     kind === "glass"
       ? import("../editor/glass-draw.ts").then(m => m.loadStill())
-      : import("../editor/blob-draw.ts").then(m => m.loadBlob())
+      : kind === "blob"
+        ? import("../editor/blob-draw.ts").then(m => m.loadBlob())
+        : import("../editor/fx-draw.ts").then(m => m.loadFx())
   ]);
 }
 
@@ -80,9 +83,20 @@ export function createCardEffect(o: {
     glow: () => {
       const fx = shown();
       if (!fx) return undefined;
-      return fx.kind === "glass"
-        ? { stops: glassColors(palette()!), style: "linearGradient" as const, angle: o.angle() }
-        : null;
+      if (fx.kind === "glass")
+        return {
+          stops: glassColors(palette()!),
+          style: "linearGradient" as const,
+          angle: o.angle()
+        };
+      /* the silk's dye along its angle, the rosette's rings out from its heart: the palette end to end */
+      if (fx.kind === "silk" || fx.kind === "rosette")
+        return {
+          stops: sampleStops(palette()!, 6).map(s => s.hex),
+          style: fx.kind === "silk" ? ("linearGradient" as const) : ("radialGradient" as const),
+          angle: o.angle()
+        };
+      return null;
     },
     bare: () => shown()?.kind === "blob" && shown()?.look.bg === null
   };

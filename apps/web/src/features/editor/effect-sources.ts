@@ -85,7 +85,10 @@ const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<
           (kind, P, effect, _angle, seed, origin) =>
             m.blobWebgpu(kind as "wgsl" | "webgpu", P, effect, seed, origin)
       )
-  }
+  },
+  /* the silk's and the rosette's shader spellings come later: their Shader tab offers none yet */
+  silk: {},
+  rosette: {}
 };
 const partOf = (kind: ShaderKind): ShaderPart =>
   kind === "shadertoy" ? "shadertoy" : kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";

@@ -1,5 +1,11 @@
 import { gradientCss } from "@grabient/engine/css.ts";
-import { blobStillKey } from "@grabient/engine/effect.ts";
+import {
+  blobStillKey,
+  type EffectKind,
+  fxStillKey,
+  isVectorKind,
+  type VectorKind
+} from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { msg, t } from "@grabient/i18n";
 import {
@@ -33,6 +39,7 @@ export interface Panel {
     opened. */
 /* the effects' fields and the blob's picture come with the menu or the blob, never with the editor's first load */
 const BlobArt = lazy(() => import("./BlobArt.tsx").then(m => ({ default: m.BlobArt })));
+const FxArt = lazy(() => import("./FxArt.tsx").then(m => ({ default: m.FxArt })));
 const BlobFields = lazy(() => import("./BlobControls.tsx").then(m => ({ default: m.BlobFields })));
 const EffectFields = lazy(() =>
   import("./GlassControls.tsx").then(m => ({ default: m.EffectFields }))
@@ -81,6 +88,41 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       <BlobArt palette={e.palette()} settings={blob()} />
     </Loading>
   );
+  /* a vector effect's picture (silk, rosette): its still, the server's where the head holds it, as the first screen's
+     swatch was (EditorCorner.tsx) */
+  const fxArt = (kind: VectorKind) => (
+    <Loading
+      fallback={
+        <span
+          class={styles.swatchStill}
+          data-fx-still={fxStillKey(kind, e.seed(), {
+            angle: e.angle(),
+            shape: fx.settings(kind).look.shape
+          })}
+        />
+      }
+    >
+      <FxArt
+        kind={kind}
+        palette={e.palette()}
+        angle={e.angle()}
+        shape={fx.settings(kind).look.shape}
+      />
+    </Loading>
+  );
+  const fxTile = (kind: VectorKind, label: string): ExtraTile => ({
+    key: kind,
+    label,
+    art: fxArt(kind),
+    get chosen() {
+      return fx.kind() === kind;
+    },
+    onChoose: () => {
+      e.clearPeek();
+      fx.choose(kind);
+    },
+    onPeek: () => e.peekEffect(kind)
+  });
   const extras: readonly ExtraTile[] = [
     {
       key: "glass",
@@ -111,11 +153,18 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
         fx.choose("blob");
       },
       onPeek: () => e.peekEffect("blob")
-    }
+    },
+    fxTile("silk", t("Silk")),
+    fxTile("rosette", t("Rosette"))
   ];
+  /* the fields of the effect playing: the glass's where none plays (the menu opens on the glass's) */
+  const fieldsKind = (): EffectKind => fx.kind() ?? "glass";
   const fields = (
     <Loading>
-      <Show when={fx.kind() === "blob"} fallback={<EffectFields editor={e} kind="glass" />}>
+      <Show
+        when={fieldsKind() === "blob"}
+        fallback={<EffectFields editor={e} kind={fieldsKind()} />}
+      >
         <BlobFields editor={e} />
       </Show>
     </Loading>
@@ -138,7 +187,13 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       <Appearance
         swatch={fx.kind() ? "transparent" : gradientCss(paint(), e.style(), e.angle())}
         swatchArt={
-          fx.kind() === "glass" ? glassSwatch : fx.kind() === "blob" ? blobSwatch : undefined
+          fx.kind() === "glass"
+            ? glassSwatch
+            : fx.kind() === "blob"
+              ? blobSwatch
+              : isVectorKind(fx.kind())
+                ? fxArt(fx.kind() as VectorKind)
+                : undefined
         }
         label={label()}
         summary={said()}
@@ -148,6 +203,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
           /* an effect's tile may be pressed: its still's code comes first, and the effects' fields */
           void loadStill();
           void import("./blob-draw.ts").then(m => m.loadBlob());
+          void import("./fx-draw.ts").then(m => m.loadFx());
           void EffectFields.preload();
           setOpen(!open());
         }}

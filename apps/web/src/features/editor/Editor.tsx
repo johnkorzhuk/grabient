@@ -2,7 +2,13 @@ import { K_MAX, K_MIN } from "@grabient/engine";
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { hexToSrgb, luminance } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
-import { blobShapeOf, blobStillKey } from "@grabient/engine/effect.ts";
+import {
+  blobShapeOf,
+  blobStillKey,
+  fxStillKey,
+  isVectorKind,
+  type VectorKind
+} from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
@@ -73,10 +79,10 @@ import { FilePicture } from "./FilePicture.tsx";
 import {
   copyFormat,
   copyLink,
+  effectCopies,
+  effectLinkFormats,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
-  STRIP_EFFECT_COPY,
-  STRIP_EFFECT_LINKS,
   STRIP_FILES,
   saveFormat,
   type Taken
@@ -104,6 +110,8 @@ const LOW = 560;
 /* The account's collections come with the first palette selected: no page needs them before. */
 /* The blob comes when the reader chooses it, never with the editor's first load. */
 const BlobLayer = lazy(() => import("./BlobLayer.tsx").then(m => ({ default: m.BlobLayer })));
+/* the vector effects' layer comes with one of them, never with the editor's first load */
+const FxLayer = lazy(() => import("./FxLayer.tsx").then(m => ({ default: m.FxLayer })));
 const AddToCollection = lazy(() =>
   import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
 );
@@ -721,6 +729,34 @@ function Stage(
       </Loading>
     </Show>
   );
+  /* a vector effect over the gradient while it plays (silk, rosette), its colors held by the flash guard as well; while
+     its code comes, the still the first screen showed stands in its place (server/fx-still.ts) */
+  const fxLayer = () => (
+    <Show when={isVectorKind(e.shownEffect()) ? (e.shownEffect() as VectorKind) : null}>
+      {kind => (
+        <Loading
+          fallback={
+            <div class={styles.fx}>
+              <div
+                class={styles.glassStill}
+                data-fx-still={fxStillKey(kind(), encodePalette(calmPalette()), {
+                  angle: e.angle(),
+                  shape: e.effects.settings(kind()).look.shape
+                })}
+              />
+            </div>
+          }
+        >
+          <FxLayer
+            kind={kind()}
+            palette={calmPalette()}
+            settings={e.effects.settings(kind())}
+            angle={e.angle()}
+          />
+        </Loading>
+      )}
+    </Show>
+  );
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: a tap on the artwork shows its presses to a finger; a mouse and the keyboard have them anyway */
     <div
@@ -762,6 +798,7 @@ function Stage(
             >
               {glassLayer()}
               {blobLayer()}
+              {fxLayer()}
             </div>
           </>
         }
@@ -779,6 +816,7 @@ function Stage(
           >
             {glassLayer()}
             {blobLayer()}
+            {fxLayer()}
           </div>
         )}
       </Show>
@@ -832,10 +870,10 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={e.effect() ? STRIP_EFFECT_COPY : STRIP_COPY}
+            copy={e.effect() ? effectCopies(e.effect()!.kind) : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={e.effect() ? STRIP_EFFECT_LINKS : STRIP_FILES}
+            link={e.effect() ? effectLinkFormats(e.effect()!.kind) : STRIP_FILES}
             onCopy={copy}
             onDownload={f => void download(f)}
             onLink={link}

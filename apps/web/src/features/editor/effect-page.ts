@@ -22,4 +22,12 @@ export const effectSummary = (play: EffectPlay, angle: number | null) =>
 
 /** An effect's name in the reader's language. */
 export const effectLabel = (kind: EffectKind) =>
-  t(kind === "glass" ? msg("Fluted glass") : msg("Blob"));
+  t(
+    kind === "glass"
+      ? msg("Fluted glass")
+      : kind === "blob"
+        ? msg("Blob")
+        : kind === "silk"
+          ? msg("Silk")
+          : msg("Rosette")
+  );

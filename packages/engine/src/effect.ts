@@ -10,10 +10,33 @@
 import { clamp } from "./math.ts";
 import { DEFAULT_ANGLE, type ParamReader, type Size } from "./view.ts";
 
-export const EFFECTS = ["glass", "blob"] as const;
+export const EFFECTS = ["glass", "blob", "silk", "rosette"] as const;
 export type EffectKind = (typeof EFFECTS)[number];
 export const isEffect = (value: unknown): value is EffectKind =>
   typeof value === "string" && (EFFECTS as readonly string[]).includes(value);
+
+/** What each effect is, for the code that treats them alike: whether the view's angle turns it (the blob's palette
+    always lies left to right), and whether its picture is drawn by one pass of its loop's time over a plain vector
+    still (silk, rosette: ui/effect-loop.ts plays them, and their still is an SVG with no filter), where the glass and
+    the blob have players and stills of their own. */
+export interface EffectKindFacts {
+  angle: boolean;
+  /** drawn by ui/effect-loop.ts over a vector still */
+  vector: boolean;
+}
+export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
+  glass: { angle: true, vector: false },
+  blob: { angle: false, vector: false },
+  silk: { angle: true, vector: true },
+  rosette: { angle: true, vector: true }
+};
+/** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed): the
+    glass's and the blob's; the silk's and the rosette's are not built yet, and their stylesheet paints their still. */
+export const hasEmbedScript = (kind: EffectKind): boolean => kind === "glass" || kind === "blob";
+/** The effects drawn by one pass of their loop's time over a vector still. */
+export type VectorKind = "silk" | "rosette";
+export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>
+  !!kind && EFFECT_KINDS[kind].vector;
 
 /** Speeds: 0 holds the first frame (the animation off), then from `slowest` to `max`. */
 export const EFFECT_SPEED = { min: 0, slowest: 0.1, max: 10 } as const;
@@ -92,6 +115,17 @@ export function readBlobStillKey(key: string): { seed: string; look: EffectLook 
   });
   return blobStillKey(seed, look) === key ? { seed, look } : null;
 }
+
+/** What a vector effect's first frame depends on besides its palette: its turn and its shape. */
+export interface FxLook {
+  angle: number;
+  /** 0 or none: as designed */
+  shape: number | null;
+}
+
+/** The name a still goes by on a page: its kind, its palette's seed, its angle and its shape. */
+export const fxStillKey = (kind: VectorKind, seed: string, look: FxLook): string =>
+  [kind, seed, look.angle, look.shape ?? ""].join("|");
 
 /** The shape number a palette suggests for its blob: the same for the same palette, so a blob whose address names no
     shape is drawn alike by the server, the editor and every reload. */
@@ -194,7 +228,7 @@ export const effectParts = (effect: Effect): string[] => [
 
 /** The angle part of an effect's address, where it is not the view's default: the blob has none. */
 export const effectAngleParts = (kind: EffectKind, angle: number): string[] =>
-  kind !== "blob" && angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
+  EFFECT_KINDS[kind].angle && angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
 
 /** The parts of an effect's address its first frame depends on, which name a still or a card of it: its style, the
     glass's angle where it is not the view's default and its look, never how it plays. */
@@ -255,7 +289,9 @@ export function effectEmbedHtml(
   const first = still
     ? `<style>\n${effectLayerCss(still)}</style>`
     : `<link rel="stylesheet" href="${at("css")}">`;
-  return `${first}\n<script src="${at("js")}" async></script>`;
+  return hasEmbedScript(effect.kind)
+    ? `${first}\n<script src="${at("js")}" async></script>`
+    : first;
 }
 
 /** Whether two settings are the same. */

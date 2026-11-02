@@ -9,6 +9,7 @@ import {
   blobShapeOf,
   EFFECT_LOOK,
   EFFECT_PLAY,
+  EFFECTS,
   type Effect,
   type EffectKind,
   type EffectLook,
@@ -30,9 +31,12 @@ interface Kept {
   settings: Settings;
 }
 const DEFAULT_SETTINGS: EffectSettings = { ...EFFECT_PLAY, look: EFFECT_LOOK };
+/** Each effect's settings, made by `of`. */
+const eachKind = (of: (kind: EffectKind) => EffectSettings): Settings =>
+  Object.fromEntries(EFFECTS.map(kind => [kind, of(kind)])) as Settings;
 const DEFAULT_KEPT: Kept = {
   kind: "glass",
-  settings: { glass: DEFAULT_SETTINGS, blob: DEFAULT_SETTINGS }
+  settings: eachKind(() => DEFAULT_SETTINGS)
 };
 
 /** Settings as stored or set: each part in its bounds. Stored browser data is untrusted. */
@@ -48,7 +52,7 @@ function readKept(): Kept {
     if (!k) return DEFAULT_KEPT;
     return {
       kind: k.kind === null ? null : isEffect(k.kind) ? k.kind : "glass",
-      settings: { glass: sane(k.settings?.glass), blob: sane(k.settings?.blob) }
+      settings: eachKind(kind => sane(k.settings?.[kind]))
     };
   } catch {
     return DEFAULT_KEPT;
@@ -164,8 +168,8 @@ export function createEffects(
       const s = now.settings[k];
       const was = s.look.shape ?? 0;
       let next = was;
-      /* the glass's 0 is its design, which a shuffle leaves for another */
-      while (next === was || (k === "glass" && next === 0))
+      /* 0 is the glass's, the silk's and the rosette's design, which a shuffle leaves for another */
+      while (next === was || (k !== "blob" && next === 0))
         next = Math.floor(Math.random() * (SHAPE_MAX + 1));
       commit(withSettings(k, { ...s, look: { ...s.look, shape: next } }));
     },

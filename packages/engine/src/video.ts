@@ -6,6 +6,13 @@
 import { BLOB_DESIGN, BLOB_LOOP, blobBackdrop, blobFit, blobFrame, blobScene } from "./blob.ts";
 import { hexBytes } from "./color.ts";
 import { type EffectKind, type EffectLook, groundParts } from "./effect.ts";
+
+/** The effects a clip can be drawn of: the glass and the blob, whose frames video/video.wasm draws. The others play in
+    the browser and as files, and their clips are not drawn yet. */
+export type VideoKind = "glass" | "blob";
+export const isVideoKind = (kind: EffectKind): kind is VideoKind =>
+  kind === "glass" || kind === "blob";
+
 import { GLASS_LOOP, type GlassGeometry, glassDiscAt, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { type GlassWindow, glassCover, glassMap, glassPlan } from "./glass-render.ts";
@@ -25,7 +32,7 @@ declare namespace WebAssembly {
 
 /** A clip of an effect, as an address asks for it. */
 export interface VideoAsk {
-  kind: EffectKind;
+  kind: VideoKind;
   palette: Palette;
   look: EffectLook;
   angle: number;
@@ -58,20 +65,20 @@ export const VIDEO_LIMITS = {
 } as const;
 
 /** What a pixel of a frame costs to draw and code, the glass's 1: the blob's melt and frost cost half again. */
-export const VIDEO_WEIGHT: Record<EffectKind, number> = { glass: 1, blob: 1.5 };
+export const VIDEO_WEIGHT: Record<VideoKind, number> = { glass: 1, blob: 1.5 };
 
 /** A clip's work: its pixels across its frames, weighed by its effect. */
-export const videoWork = (kind: EffectKind, size: Size, frames: number): number =>
+export const videoWork = (kind: VideoKind, size: Size, frames: number): number =>
   size.width * size.height * frames * VIDEO_WEIGHT[kind];
 
 /** A loop's seconds at speed 1. */
-export const videoLoop = (kind: EffectKind): number => (kind === "glass" ? GLASS_LOOP : BLOB_LOOP);
+export const videoLoop = (kind: VideoKind): number => (kind === "glass" ? GLASS_LOOP : BLOB_LOOP);
 
 /** The clip a speed, a rate and a duration make: one loop where no duration is asked, else as many whole loops as come
     nearest to the speed in that time (one at least), the speed nudged to fit them. A speed of 0, the effect held, is
     its first frame for the duration, or for a second. */
 export function videoPlan(
-  kind: EffectKind,
+  kind: VideoKind,
   speed: number,
   fps: number,
   duration: number | null
@@ -97,7 +104,7 @@ export function videoDuration(raw: string | null | undefined): number | null {
     its sides even (H.264's colors are a quarter of its pixels), at least 16, scaled down together where the sides, the
     pixels or the work ask. */
 export function videoFit(
-  kind: EffectKind,
+  kind: VideoKind,
   speed: number,
   fps: number,
   duration: number | null,
@@ -123,7 +130,7 @@ export function videoFit(
     its own, each going on from where the one before stopped (videoFrames). A held effect is one run: it is drawn
     once. */
 export function videoParts(
-  kind: EffectKind,
+  kind: VideoKind,
   plan: VideoPlan,
   size: Size,
   work: number
@@ -151,7 +158,7 @@ export interface VideoQuality {
   ramp: number;
   effort: number;
 }
-export const VIDEO_QUALITY: Record<EffectKind, VideoQuality> = {
+export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   glass: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
   blob: { qp: 28, keyQp: 18, ramp: 20, effort: 9 }
 };

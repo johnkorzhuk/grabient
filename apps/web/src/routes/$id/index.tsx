@@ -69,6 +69,14 @@ export const Route = createFileRoute("/$id/")({
                   import("../../features/editor/BlobArt.tsx")
                 ])
               : null,
+            /* and the silk's or the rosette's, where the address names one (features/editor/fx-draw.ts, FxLayer.tsx) */
+            /^(silk|rosette)$/.test(new URLSearchParams(location.searchStr).get("style") ?? "")
+              ? Promise.all([
+                  import("../../features/editor/fx-draw.ts").then(m => m.loadFx()),
+                  import("../../features/editor/FxLayer.tsx"),
+                  import("../../features/editor/FxArt.tsx")
+                ])
+              : null,
             document.documentElement.dataset.glass !== "off"
               ? import("../../features/editor/glass-draw.ts").then(m =>
                   m.stillWanted() ? m.loadStill() : null

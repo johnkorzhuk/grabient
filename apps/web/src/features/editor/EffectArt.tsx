@@ -1,4 +1,9 @@
-import type { EffectKind, EffectSettings } from "@grabient/engine/effect.ts";
+import {
+  EFFECTS,
+  type EffectKind,
+  type EffectSettings,
+  isVectorKind
+} from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { holdsStill, reducesNow } from "@grabient/ui/motion.ts";
@@ -6,6 +11,9 @@ import { createEffect, createMemo, createSignal, onCleanup, untrack } from "soli
 import { BlobArt } from "./BlobArt.tsx";
 import { blobViewOf, loadBlob } from "./blob-draw.ts";
 import styles from "./EffectArt.module.css";
+
+import { FxArt } from "./FxArt.tsx";
+
 import { GlassArt } from "./GlassArt.tsx";
 import { loadStill } from "./glass-draw.ts";
 
@@ -43,7 +51,10 @@ const firstFrame = (first: Session["first"]) => () => first.drawn?.();
    card of its size lit takes it: on to its own picture, back to the first frame, which is that card's still, with that
    card's palette and view. Two of each kind at most, for a glass fading out as the next card lights. */
 const POOL = 2;
-const pool: Record<EffectKind, Session[]> = { glass: [], blob: [] };
+const pool = Object.fromEntries(EFFECTS.map(kind => [kind, []])) as unknown as Record<
+  EffectKind,
+  Session[]
+>;
 /** A player kept for a box this size in device pixels, or one made ahead, taken out of the pool; none where none
     fits. */
 function pooled(kind: EffectKind, width: number, height: number): Session | null {
@@ -71,8 +82,56 @@ const players = {
   glass: () =>
     import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/glass-player.ts"),
   blob: () =>
-    import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/blob-player.ts")
+    import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/blob-player.ts"),
+  silk: () =>
+    import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/silk-player.ts"),
+  rosette: () =>
+    import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/ui/rosette-player.ts")
 };
+type Code = Awaited<ReturnType<(typeof players)[EffectKind]>>;
+/** A kind's player made from its code: each module names its own. */
+function playWith(
+  code: Code,
+  canvas: HTMLCanvasElement,
+  palette: Palette,
+  view: object,
+  first: (() => void) | undefined
+): Player | null {
+  const options = { ease: false };
+  if ("playGlass" in code)
+    return code.playGlass(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playGlass>[2],
+      first,
+      options
+    );
+  if ("playBlob" in code)
+    return code.playBlob(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playBlob>[2],
+      first,
+      options
+    );
+  if ("playSilk" in code)
+    return code.playSilk(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playSilk>[2],
+      first,
+      options
+    );
+  return code.playRosette(
+    canvas,
+    palette,
+    view as Parameters<typeof code.playRosette>[2],
+    first,
+    options
+  );
+}
 
 /* One player of the kind the cards play, made ahead as the page idles once its still is painted (painted.ts), where a
    pointer can light a card: the first card lit takes it from the pool, so no hover waits on making a WebGL context,
@@ -98,21 +157,20 @@ async function makeAhead(
   const dpr = devicePixelRatio || 1;
   canvas.width = Math.max(1, Math.round(size.width * dpr));
   canvas.height = Math.max(1, Math.round(size.height * dpr));
-  const player =
-    "playGlass" in code
-      ? code.playGlass(canvas, palette, view as Parameters<typeof code.playGlass>[2], undefined, {
-          ease: false
-        })
-      : code.playBlob(canvas, palette, view as Parameters<typeof code.playBlob>[2], undefined, {
-          ease: false
-        });
+  const player = playWith(code, canvas, palette, view, undefined);
   if (player) release({ canvas, player, kind, palette, view, fresh: true, first: {} });
 }
 
 /** Everything a card's picture of an effect needs, fetched before a card asks: its players' code and its still's. */
 export function preloadEffectArt(kind: EffectKind): void {
   void players[kind]().catch(() => {});
-  void (kind === "glass" ? loadStill() : loadBlob()).catch(() => {});
+  void (
+    kind === "glass"
+      ? loadStill()
+      : kind === "blob"
+        ? loadBlob()
+        : import("./fx-draw.ts").then(m => m.loadFx())
+  ).catch(() => {});
 }
 
 /* An effect's picture in a palette's card or a tile of the sheet: its still, the one the Appearance menu's tile shows
@@ -170,14 +228,14 @@ export function EffectArt(props: {
   const colors = createMemo(() => glassColors(props.palette));
   const moving = () => props.active && props.settings.speed > 0 && !holdsStill();
   const view = () =>
-    props.kind === "glass"
-      ? {
+    props.kind === "blob"
+      ? blobViewOf(props.settings)
+      : {
           speed: props.settings.speed,
           fps: props.settings.fps,
           angle: props.angle,
           shape: props.settings.look.shape
-        }
-      : blobViewOf(props.settings);
+        };
   let session: Session | null = null;
   let leaving: (Session & { timer: ReturnType<typeof setTimeout> }) | null = null;
   /* a start whose code is still on its way when the card goes dark again makes no player */
@@ -288,14 +346,7 @@ export function EffectArt(props: {
           if (wanted && made && session === made) setCovered(true);
         })
     };
-    const player =
-      "playGlass" in code
-        ? code.playGlass(canvas, P, v as Parameters<typeof code.playGlass>[2], firstFrame(first), {
-            ease: false
-          })
-        : code.playBlob(canvas, P, v as Parameters<typeof code.playBlob>[2], firstFrame(first), {
-            ease: false
-          });
+    const player = playWith(code, canvas, P, v, firstFrame(first));
     /* where WebGL is missing the still stays */
     if (!player) return canvas.remove();
     made = { canvas, player, kind, palette: P, view: v, first };
@@ -333,6 +384,13 @@ export function EffectArt(props: {
     >
       {props.kind === "glass" ? (
         <GlassArt colors={colors()} angle={props.angle} shape={props.settings.look.shape} eager />
+      ) : isVectorKind(props.kind) ? (
+        <FxArt
+          kind={props.kind}
+          palette={props.palette}
+          angle={props.angle}
+          shape={props.settings.look.shape}
+        />
       ) : (
         <BlobArt palette={props.palette} settings={props.settings} bare={bare()} />
       )}

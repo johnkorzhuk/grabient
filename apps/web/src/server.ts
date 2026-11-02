@@ -78,6 +78,8 @@ const start = createStartHandler(
       html = (await import("./server/glass-still.ts")).glassStills(html);
     if (html.includes("data-blob-still="))
       html = (await import("./server/blob-still.ts")).blobStills(html);
+    if (html.includes("data-fx-still="))
+      html = (await import("./server/fx-still.ts")).fxStills(html);
     const headers = new Headers(response.headers);
     const locals = getRequestEvent()?.locals;
     const failed = locals?.renderFailed === true;

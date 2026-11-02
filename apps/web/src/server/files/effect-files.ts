@@ -51,7 +51,11 @@ export function effectSvgAnswer(
       about:
         effect.kind === "glass"
           ? "An animated SVG of a Grabient palette: fluted glass with its colors drifting behind the ribs, moved by CSS alone."
-          : "An animated SVG of a Grabient palette: a frosted blob of its colors, drifting, moved by CSS alone."
+          : effect.kind === "silk"
+            ? "An animated SVG of a Grabient palette: its colors dyed into silk that drapes in soft folds, swaying, moved by SMIL alone."
+            : effect.kind === "rosette"
+              ? "An animated SVG of a Grabient palette: a rosette of petals in its colors, the rings rippling out from the heart, moved by CSS alone."
+              : "An animated SVG of a Grabient palette: a frosted blob of its colors, drifting, moved by CSS alone."
     });
   }
   return new Response(effectSvg(P, seed, effect, angle, size, origin), {

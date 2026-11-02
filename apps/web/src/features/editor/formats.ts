@@ -2,7 +2,13 @@ import { decodePalette } from "@grabient/engine";
 import { type ContrastMeasures, contrastPicture, contrastSvg } from "@grabient/engine/contrast.ts";
 import { cssBlock } from "@grabient/engine/css.ts";
 import type { Stop } from "@grabient/engine/curve.ts";
-import { type Effect, effectEmbedHtml, effectFileAddress } from "@grabient/engine/effect.ts";
+import {
+  type Effect,
+  type EffectKind,
+  effectEmbedHtml,
+  effectFileAddress,
+  hasEmbedScript
+} from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
@@ -38,6 +44,15 @@ export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
     script that plays it (server/files/effect-files.ts, embed.ts). */
 export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html", "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
+/** An effect's copies: Copy for Figma where its layers are built (the glass, the blob; the silk's and the rosette's come
+    later). */
+export const effectCopies = (kind: EffectKind): readonly Format[] =>
+  kind === "glass" || kind === "blob"
+    ? STRIP_EFFECT_COPY
+    : STRIP_EFFECT_COPY.filter(f => f !== "figma");
+/** An effect's links: its script where one plays it behind a page (engine/effect.ts's hasEmbedScript). */
+export const effectLinkFormats = (kind: EffectKind): readonly Format[] =>
+  hasEmbedScript(kind) ? STRIP_EFFECT_LINKS : STRIP_EFFECT_LINKS.filter(f => f !== "js");
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {
@@ -126,7 +141,8 @@ const glassStill = async (p: Taken): Promise<string> => {
 const STILLS_KEPT = 4;
 const glassStills = new Map<string, Promise<string>>();
 const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
-  if (effect.kind === "blob")
+  /* the blob's, the silk's and the rosette's stills are their own SVGs, painted at once */
+  if (effect.kind !== "glass")
     return (await effectCode()).effectStill(paletteOf(p), effect, p.angle);
   const key = `${p.seed}|${p.angle}|${shapeOf(p) ?? 0}`;
   let made = glassStills.get(key);
@@ -148,7 +164,8 @@ const svgText = (p: Taken) =>
     : Promise.resolve(artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels));
 /* a PNG is the first frame: the glass as its player draws it, the blob as its still SVG paints */
 const pngOf = async (p: Taken): Promise<Blob> => {
-  if (p.effect?.kind === "blob") return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
+  if (p.effect && p.effect.kind !== "glass")
+    return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
   if (!p.effect) return svgToPngBlob(artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels), 1);
   const picture = await encoded(await glassPixels(p, p.pixels), "image/png");
   if (!picture) throw new Error("no PNG");

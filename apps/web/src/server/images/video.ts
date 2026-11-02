@@ -133,29 +133,30 @@ export async function seedMp4Answer(
   const params = addressParams(url.searchParams);
   if (!params.has("style")) params.set("style", "glass");
   const effect = parseEffect(params);
-  if (!effect) {
+  /* the silk's and the rosette's clips are not drawn yet (engine/video.ts's VideoKind) */
+  if (!effect || (effect.kind !== "glass" && effect.kind !== "blob")) {
     return failure(404, "An MP4 plays the fluted glass or the blob: style=glass or style=blob.");
   }
+  const kind = effect.kind;
   /* the blob has no angle: one clip for every angle its address names */
   const angle =
-    effect.kind === "blob" ? DEFAULT_ANGLE : viewAt(params, found.palette.anchors.length).angle;
+    kind === "blob" ? DEFAULT_ANGLE : viewAt(params, found.palette.anchors.length).angle;
   const { VIDEO_QUALITY, videoDuration, videoFit, videoParts } = await import(
     "@grabient/engine/video.ts"
   );
   const { size, fps, plan } = videoFit(
-    effect.kind,
+    kind,
     effect.speed,
     effect.fps,
     videoDuration(params.get("duration")),
     pictureSize(params)
   );
-  const look =
-    effect.kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
+  const look = kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
   const hash = await hashOf([
     VIDEO_DRAWING,
-    VIDEO_QUALITY[effect.kind],
+    VIDEO_QUALITY[kind],
     found.seed,
-    effect.kind,
+    kind,
     angle,
     look,
     size,
@@ -171,7 +172,7 @@ export async function seedMp4Answer(
     name,
     job: {
       palette: found.palette,
-      kind: effect.kind,
+      kind: kind,
       look: effect.look,
       angle,
       width: size.width,
@@ -179,7 +180,7 @@ export async function seedMp4Answer(
       fps,
       plan
     },
-    runs: videoParts(effect.kind, plan, size, options.partWork ?? PART_WORK),
+    runs: videoParts(kind, plan, size, options.partWork ?? PART_WORK),
     size,
     fps,
     plan
