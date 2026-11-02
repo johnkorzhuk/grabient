@@ -1,10 +1,9 @@
 @layer components {
-  /* as tall as the number fields beside it in the Appearance menu (Scrub) */
+  /* as tall as the number fields beside it in the Appearance menu (Scrub): the hex field's box takes the height as a
+     variable, since its own rule (HexField.module.css) may be written after this one, which then lost to it and left
+     the field 32px among fields of 40; a finger's is 44, as theirs are */
   .box {
-    height: var(--size-control-big);
-    @media (pointer: coarse) {
-      height: var(--size-touch);
-    }
+    --hex-height: var(--size-control-big);
   }
   /* the color over a checkerboard, so a color that lets what is behind it through shows it does; none, a slash */
   .chip {
