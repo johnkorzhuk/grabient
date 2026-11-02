@@ -1,4 +1,5 @@
-import { type Element, For, NoHydration, Show, untrack } from "solid-js";
+import { isServer } from "@solidjs/web";
+import { type Element, For, isHydrating, NoHydration, Show, untrack } from "solid-js";
 import styles from "./GroupFeed.module.css";
 import { createHeights, createWindow, type WindowRoom } from "./window.ts";
 
@@ -10,11 +11,14 @@ const GAP = 64;
 
 /** A feed of groups of their own heights (a collection and its first palettes): only the groups near the viewport are
     drawn (window.ts), measured once drawn and estimated before. The server draws the first `initial`, the first
-    `live` of them hydrated and the rest still until the reader moves; padding stands in for the others. */
+    `live` of them hydrated and the rest still until the reader moves; padding stands in for the others. A group the
+    browser draws on its own is given the feed's width, so it can leave out what that width would hide. */
 export function GroupFeed<T>(props: {
   items: readonly T[];
   key: (item: T) => string;
-  group: (item: () => T) => Element;
+  /** a group; with the feed's width where the browser draws it on its own, none where it stands as the server drew
+      it (on the server, and hydrated) */
+  group: (item: () => T, width?: () => number) => Element;
   /** a group's height before it is measured, at the feed's width */
   estimate: (item: T, width: number) => number;
   initial: number;
@@ -49,9 +53,10 @@ export function GroupFeed<T>(props: {
         {item => {
           /* the feed keeps a group by its key, so a group's key is its own for good */
           const key = untrack(() => props.key(item()));
+          const alone = !isServer && !isHydrating();
           return (
             <div ref={measured.measure(key)} data-group={key}>
-              {props.group(item)}
+              {props.group(item, alone ? win.width : undefined)}
             </div>
           );
         }}

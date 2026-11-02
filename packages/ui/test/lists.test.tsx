@@ -11,6 +11,7 @@ import { PaletteFeed } from "../src/PaletteFeed.tsx";
 import { columnsAt } from "../src/PaletteGrid.tsx";
 import { PaletteGridPlaceholder } from "../src/PalettePlaceholder.tsx";
 import { Thumbnail } from "../src/Thumbnail.tsx";
+import { padding, reach } from "../src/window.ts";
 
 /* The components lists draw, as the server renders them: what a reader, a crawler and an agent are sent. */
 
@@ -243,6 +244,20 @@ describe("the feeds on the server", () => {
     expect(tag(markup, "div").style).toBe(`--before:0px;--after:${8 * (500 + 64)}px`);
   });
 
+  test("a group feed hands the server's groups no width, so each stands whole, as hydration finds it", () => {
+    const markup = html(() => (
+      <GroupFeed
+        items={["g0", "g1", "g2"]}
+        key={i => i}
+        group={(i, width) => <i data-g={i()} data-width={width ? "given" : "none"} />}
+        estimate={() => 500}
+        initial={2}
+        live={1}
+      />
+    ));
+    expect(tags(markup, "i").map(i => i["data-width"])).toEqual(["none", "none"]);
+  });
+
   test("a group shows its title as the way to it, its count and its cards", () => {
     const markup = html(() => (
       <CollectionGroup
@@ -259,5 +274,47 @@ describe("the feeds on the server", () => {
     expect(text(markup)).toContain("1 palette");
     expect(markup).toContain("Private");
     expect(tags(markup, "i")).toHaveLength(2);
+  });
+});
+
+describe("the window's reach", () => {
+  /* three blocks 100 high, 10 apart: they start at 0, 110 and 220, the column is 320 high, and `at` ends a gap past it */
+  const at = Float64Array.from([0, 110, 220, 330]);
+  const gap = 10;
+  /** The column's height as a window stands it: the padding, the blocks drawn and the gaps between them. */
+  const height = (range: readonly [number, number]) => {
+    const [above, below] = padding(at, gap, range);
+    const drawn = range[1] - range[0];
+    return above + drawn * 100 + Math.max(0, drawn - 1) * gap + below;
+  };
+
+  test("draws the blocks it meets: from the first that ends inside it to the last that starts inside it", () => {
+    expect(reach(at, gap, -500, 50)).toEqual([0, 1]);
+    expect(reach(at, gap, 100, 115)).toEqual([1, 2]);
+    expect(reach(at, gap, 50, 1000)).toEqual([0, 3]);
+  });
+
+  test("draws no block of a column wholly below or above it, nor one it meets only in a gap", () => {
+    expect(reach(at, gap, -2000, -100)).toEqual([0, 0]);
+    expect(reach(at, gap, -2000, 0)).toEqual([0, 0]);
+    expect(reach(at, gap, 320, 2000)).toEqual([3, 3]);
+    expect(reach(at, gap, 100, 105)).toEqual([1, 1]);
+    expect(reach(Float64Array.from([0]), gap, 0, 100)).toEqual([0, 0]);
+  });
+
+  test("its padding keeps the column's height whatever it draws, nothing drawn included", () => {
+    for (const range of [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [0, 3],
+      [0, 0],
+      [1, 1],
+      [3, 3]
+    ] as const)
+      expect(height(range), range.join("-")).toBe(320);
+    expect(padding(at, gap, [0, 0])).toEqual([0, 320]);
+    expect(padding(at, gap, [3, 3])).toEqual([320, 0]);
+    expect(padding(Float64Array.from([0]), gap, [0, 0])).toEqual([0, 0]);
   });
 });

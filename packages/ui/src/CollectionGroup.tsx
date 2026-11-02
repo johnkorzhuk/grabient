@@ -3,7 +3,7 @@ import { type Element, For, Show } from "solid-js";
 import styles from "./CollectionGroup.module.css";
 import { t } from "./i18n.ts";
 import { Label } from "./Label.tsx";
-import { PaletteGrid } from "./PaletteGrid.tsx";
+import { columnsAt, PaletteGrid } from "./PaletteGrid.tsx";
 import { PaletteCardPlaceholder } from "./PalettePlaceholder.tsx";
 import { Placeholder } from "./Placeholder.tsx";
 import { Text } from "./Text.tsx";
@@ -34,7 +34,8 @@ export function PaletteCount(props: { count: number }) {
 /** One collection in a feed: its title line, then its first palettes as the list's own cards. The title links to the
     collection, and its tooltip holds the description, the owner and the age; the count and Private stand at the right.
     The grid shows two rows of its columns, three cards on a phone; cards past that stay in the document, hidden by
-    width, so the server and the browser draw the same page. */
+    width, so the server and the browser draw the same page. A group the browser draws on its own, given its width,
+    draws only the cards that show at it: on a phone, three of twelve. */
 export function CollectionGroup<T>(props: {
   title: string;
   /** where the collection lives, in the reader's language; without it the title is plain words */
@@ -55,9 +56,16 @@ export function CollectionGroup<T>(props: {
   card: (palette: () => T, index: number) => Element;
   /** the palettes are the whole list, not a collection's first: every one shows at every width */
   whole?: boolean;
+  /** the room the group stands in, where the browser draws it on its own: the cards past what shows at this width
+      are left out. Without it every card is drawn and the width hides the rest, as on the server */
+  width?: number;
   /** the pointer or the keyboard reached the title: the page may read the collection now */
   onIntent?: () => void;
 }) {
+  const drawn = () =>
+    props.width === undefined || props.whole
+      ? props.palettes
+      : props.palettes.slice(0, shownAt(columnsAt(props.width), props.palettes.length));
   const words = () =>
     [props.description, [props.owner, props.age].filter(Boolean).join(" · ")]
       .filter(Boolean)
@@ -90,7 +98,7 @@ export function CollectionGroup<T>(props: {
         </span>
       </div>
       <PaletteGrid>
-        <For each={props.palettes} keyed={false}>
+        <For each={drawn()} keyed={false}>
           {(palette, i) => (
             <div class={styles.cell} data-whole={props.whole ? "" : undefined}>
               {props.card(palette, i)}
