@@ -3,22 +3,32 @@
    keeps in its own texels what the player keeps in a script.
      Common    the settings a reader edits, the colors, and the texels Buffer A keeps its state in
      Buffer A  the frost's noise, baked once a size as 8-bit bytes two to a channel (red and green); and in its first
-               row (blue and alpha) the player's numbers: its layout, the blur's weights and the balls' colors as
-               JavaScript's doubles make them, by a program of double arithmetic (blob-program.ts, glsl-double.ts) run
-               as the canvas takes a size, since the melt's size and the blur's taps are whole numbers the player's
-               doubles round to; and each frame its clock and each ball's place in the melt in fixed point
-               (blob-fixed.ts), which lands on the player's floats. Only the first row's texels run either, in a
-               loop the others never enter
+               row (blue and alpha) the player's numbers: its layout, the blur's weights, the balls' colors and its
+               clock as JavaScript's doubles make them, by a program of double arithmetic (blob-program.ts,
+               glsl-double.ts), the layout as the canvas or the settings change and the clock every frame; and each
+               frame that draws, each ball's place in the melt in fixed point (blob-fixed.ts), which lands on the
+               player's floats. Only the first row's texels run either, in a loop the others never enter
      Buffer B  the balls into the melt, blended and kept as half floats as the player's RGBA16F texture keeps them
      Buffer C  the blur across, Buffer D the blur down, D holding the frame drawn last between frames the pace draws
      Image     every pixel: the player's last pass, the melt read bilinearly by hand as a GPU reads half floats
    Buffers write only what is read: past the melt, and the noise once both of a buffer's copies hold it, a texel is
-   discarded. Its time is Shadertoy's iTimeDelta, a float, where the player's is a double: a frame of motion lands a
-   hair from the player's (the first frame and a still are the player's own). The options' "frames" is the lab's
-   check of all but the clock: every number by the double program, the frames' times exact. */
-import { BLOB_DESIGN, BLOB_LOOP, blobFilter, blobNoiseTables, blobScene } from "./blob.ts";
-import { fixedLit, GLSL_FIXED, glslFixedFrame } from "./blob-fixed.ts";
-import { BLOB_WEIGHTS, blobProgram } from "./blob-program.ts";
+   discarded. The state is the text's own only while its first texel holds the text's mark (a version and the scene),
+   so a buffer that held something else when the text was pasted in starts it afresh, as a rewind does; and an edit to
+   the settings, which the state keeps a signature of, makes the layout again at once, as the player's set() does.
+   Its time is Shadertoy's iTime, a float: where it is the float of a whole number of 240ths of a second, the time a
+   frame has on a 30, 60, 120 or 240 Hz screen counted from the first, the clock reads that many 240ths in double
+   precision, which is the time the player's requestAnimationFrame gives the frame, so every frame is the player's own
+   (the shader lab's frames are so timed); any other time is read as the float it is. */
+import {
+  BLOB_DESIGN,
+  BLOB_LOOP,
+  type BlobScene,
+  blobFilter,
+  blobNoiseTables,
+  blobScene
+} from "./blob.ts";
+import { fixedLit, GLSL_FIXED, glslFixedPlace } from "./blob-fixed.ts";
+import { BLOB_GRID_HZ, BLOB_WEIGHTS, blobClock, blobProgram } from "./blob-program.ts";
 import { hexBytes } from "./color.ts";
 import { compile, doubleRun } from "./double-program.ts";
 import type { Effect } from "./effect.ts";
@@ -38,6 +48,12 @@ export function glslFloat(x: number): string {
   }
   return /[.e]/.test(s) ? s : `${s}.0`;
 }
+/** Lines of GLSL indented by `by`, blank lines left empty. */
+const pad = (text: string, by: string) =>
+  text
+    .split("\n")
+    .map(line => (line ? `${by}${line}` : line))
+    .join("\n");
 const hex = (n: number, digits = 8) => `0x${(n >>> 0).toString(16).padStart(digits, "0")}u`;
 const rows = (items: string[], per: number, indent = "  ") => {
   const out: string[] = [];
@@ -46,60 +62,87 @@ const rows = (items: string[], per: number, indent = "  ") => {
   return out.join(",\n");
 };
 
-/* Buffer A's first row, blue and alpha: two floats a texel. A double is four 16-bit pieces in two texels. */
-const T = {
-  stamp: 0,
-  flags: 1,
-  t: 2,
-  warm: 4,
-  last: 6,
-  drawn: 8,
-  layout: 10,
-  melt: 26,
-  taps: 27,
-  region: 28,
-  origin: 30,
-  texel: 31,
-  scatter: 32,
-  k: 33,
-  ground: 34,
-  weights: 36,
-  balls: 46,
-  seen: 46 + 3 * 24
-};
 const BALLS = 24;
-const STATE = T.seen + 1;
-/* the layout's doubles the frame reads back, in their texels' order */
-const LAYOUT_DOUBLES = ["sx", "sy", "tx", "ty", "meltX", "meltY", "texel", "invTexel"] as const;
+/* the layout's doubles the clock and the places read, kept in their texels in this order */
+const LAYOUT_DOUBLES = [
+  "sx",
+  "sy",
+  "tx",
+  "ty",
+  "meltX",
+  "meltY",
+  "invTexel",
+  "speed",
+  "ease",
+  "every",
+  "early"
+] as const;
+/* the clock's doubles, kept in their texels in this order, each by the program's name for it as it comes out */
+const CLOCK_DOUBLES = [
+  ["t", "tOut"],
+  ["warm", "warmOut"],
+  ["before", "beforeOut"],
+  ["paceLast", "paceLastOut"],
+  ["drawn", "drawnOut"]
+] as const;
+/* Buffer A's first row, blue and alpha: two floats a texel. A double is four 16-bit pieces in two texels. */
+const T = (() => {
+  const t = { mark: 0, stamp: 1, sign: 2, seen: 3, flags: 4, clock: 5 };
+  const layout = t.clock + 2 * CLOCK_DOUBLES.length;
+  const melt = layout + 2 * LAYOUT_DOUBLES.length;
+  const weights = melt + 10;
+  return {
+    ...t,
+    layout,
+    melt,
+    taps: melt + 1,
+    region: melt + 2,
+    origin: melt + 4,
+    texel: melt + 5,
+    scatter: melt + 6,
+    k: melt + 7,
+    ground: melt + 8,
+    weights,
+    balls: weights + BLOB_WEIGHTS / 2
+  };
+})();
+const STATE = T.balls + 3 * BALLS;
+/** The state's mark: a number no half float holds, so a buffer of half floats never passes for the state, and which
+    a later form of the state would change. */
+const MAGIC = 4097.5;
 
-export interface BlobShadertoyOptions {
-  /** "fixed", as shipped: the clock and the places each frame in fixed point (blob-fixed.ts) on Shadertoy's frame
-      time; "frames", the lab's check of all but the clock: every number by the double program, the frames' times
-      exact at 60 a second as the lab's clock gives the player its time */
-  clock?: "fixed" | "frames";
+/** A scene's number: its noise's seed and its blobs, so one text's state is never taken for another's. A float
+    holds it exactly. */
+function sceneMark(scene: BlobScene, seed: number): number {
+  let h = 0x811c9dc5;
+  for (const ch of JSON.stringify([seed, scene.blobs]))
+    h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193) >>> 0;
+  return h & 0xffffff;
 }
 
 /** The blob's Shadertoy tabs as one text, a section a tab under a header naming its channels. */
-export function blobShadertoy(
-  P: Palette,
-  effect: Effect,
-  angle: number,
-  credit: string[],
-  options: BlobShadertoyOptions = {}
-): string {
+export function blobShadertoy(P: Palette, effect: Effect, angle: number, credit: string[]): string {
   const view = { ...effect.look, angle };
   const scene = blobScene(P, BLOB_DESIGN, view);
   const look = blobFilter(view, BLOB_DESIGN, scene);
   const blobs = scene.blobs;
   const balls = blobs.flatMap(blob => blob.balls);
   if (balls.length !== BALLS) throw new Error(`the blob has ${balls.length} balls`);
-  const fixed = options.clock !== "frames";
-  const c = compile(blobProgram(fixed ? { frame: false } : { clock: "frames" }));
+  const c = compile(blobProgram());
   const run = doubleRun(c, dlit);
-  const at = (name: string) => {
-    const r = c.inputs.get(name) ?? c.pinned.get(name);
+  const ticks = compile(blobClock());
+  const tick = doubleRun(ticks, dlit, "C");
+  const register = (p: typeof c) => (name: string) => {
+    const r = p.inputs.get(name) ?? p.pinned.get(name);
     if (r === undefined) throw new Error(`no register ${name}`);
     return r;
+  };
+  const at = register(c);
+  const atClock = register(ticks);
+  const range = (name: string) => {
+    const s = c.sections.get(name);
+    if (!s) throw new Error(`no section ${name}`);
+    return s;
   };
   const { lattice, gradients } = blobNoiseTables(look.seed);
   const words = (bytes: Uint8Array) =>
@@ -110,45 +153,39 @@ export function blobShadertoy(
     );
   const colors = balls.map(b => {
     const [r, g, bl] = hexBytes(scene.color(b.at));
-    return { word: hex((r << 16) | (g << 8) | bl, 6), css: scene.color(b.at) };
+    return hex((r << 16) | (g << 8) | bl, 6);
   });
   const bg = effect.look.bg;
   const bgWord = bg
     ? (parseInt(bg.slice(1, 7), 16) * 256 + (bg.length === 9 ? parseInt(bg.slice(7), 16) : 255)) >>>
       0
     : 0;
-  const sections = c.sections;
-  const range = (name: string) => {
-    const s = sections.get(name);
-    if (!s) throw new Error(`no section ${name}`);
-    return s;
-  };
   const head = credit.map(line => `// ${line}`).join("\n");
+  const shape = effect.look.shape === null ? "the palette's own" : `shape ${effect.look.shape}`;
 
   const common = `// ==== Common ====
-// The blob's settings, as its address writes them: edit them here.
-const float SPEED = ${glslFloat(effect.speed)};   // the loop's pace, two decimals: it lasts ${BLOB_LOOP} s over this; 0 holds the first frame
-const float FPS = ${glslFloat(effect.fps)};    // frames a second at most
+// The blob's settings, as its address writes them: edit them here. An edit shows at once.
+const float SPEED = ${glslFloat(effect.speed)};   // the loop's pace, two decimals: it lasts ${BLOB_LOOP} s over this; 0 holds the frame it is on
+const float FPS = ${glslFloat(effect.fps)};    // frames a second at most, 1 to 120
 const float FROST = ${glslFloat(effect.look.frost)};   // the frost, two decimals: 1 as designed, 0 none, 2 twice
 const uint BG = ${hex(bgWord)};   // the ground as 0xRRGGBBAA, its alpha last; 0u for none, which shows black here
 const float EASE = 1.6;    // seconds from rest to its pace, two decimals
-// The colors the balls are painted in, 0xRRGGBB, one a ball, far blob to near: the palette across each blob at ${angle}
-// degrees. The blobs' shape${effect.look.shape === null ? ", the palette's own," : ` (${effect.look.shape})`} is drawn into Buffer A's BLOBS and BALLS.
+// The colors the balls are painted in, 0xRRGGBB, one a ball, far blob to near: the palette across each blob at
+// ${angle} degrees. The blobs' forms and wanderings (${shape}) are Buffer A's BLOBS and BALLS. Both are worked out
+// from the palette's curve and the shape's numbers by the site's own code: another angle or shape is another text.
 const uint COLORS[${BALLS}] = uint[](
-${rows(
-  colors.map(x => x.word),
-  8
-)}
+${rows(colors, 8)}
 );
 
 // Buffer A's first row keeps the player's numbers in its blue and alpha, two to a texel; a double in two texels.
+const float MAGIC = ${glslFloat(MAGIC)};   // the state's mark, which no half float holds
+const int T_MARK = ${T.mark};     // the mark and the scene: the state is this text's
 const int T_STAMP = ${T.stamp};    // the canvas the layout was made for
+const int T_SIGN = ${T.sign};     // the settings the layout was made for, as one number in two halves
+const int T_SEEN = ${T.seen};     // the canvas a frame before T_STAMP's, or -1 where that frame began afresh
 const int T_FLAGS = ${T.flags};    // whether this frame draws, whether the pace has begun
-const int T_T = ${T.t};        // the loop's seconds at speed 1
-const int T_WARM = ${T.warm};     // seconds since the motion began, up to EASE
-const int T_LAST = ${T.last};     // the pace's last frame, ms
-const int T_DRAWN = ${T.drawn};    // the share of the loop drawn last
-const int T_LAYOUT = ${T.layout};  // the design's map (sx, sy, tx, ty) and the melt's corner and texel, as doubles
+const int T_CLOCK = ${T.clock};    // the clock: the loop's seconds, the ease's, the frame's time and the pace's in ms, the share drawn
+const int T_LAYOUT = ${T.layout};  // the design's map (sx, sy, tx, ty), the melt's corner, a texel's inverse, the clock's settings
 const int T_MELT = ${T.melt};    // the melt's texels across and down
 const int T_TAPS = ${T.taps};    // the blur's taps, and whether the frost is drawn
 const int T_REGION = ${T.region};  // the filter region in whole pixels, x0, y0, x1, y1
@@ -159,7 +196,6 @@ const int T_K = ${T.k};       // the speckle's k2
 const int T_GROUND = ${T.ground};  // the ground, premultiplied
 const int T_WEIGHTS = ${T.weights}; // the blur's ${BLOB_WEIGHTS} weights
 const int T_BALLS = ${T.balls};   // each ball: its middle in the melt's texels, its radius and its color
-const int T_SEEN = ${T.seen};   // the canvas a frame before T_STAMP's
 const int STATE = ${STATE};
 vec2 state(sampler2D a, int i) { return texelFetch(a, ivec2(i, 0), 0).ba; }
 // as the player's half-float texture keeps it
@@ -199,16 +235,13 @@ const float BYTE = ${glslFloat(1 / 255)};
     Math.cos(2 * Math.PI * b.phase),
     Math.sin(2 * Math.PI * b.phase)
   ]);
-  const literal = fixed ? (x: number) => fixedLit(x) : dlit;
-  const kind = fixed ? "fixed point, 52 bits of fraction" : "doubles (each its two 32-bit words)";
-  const input = (name: string, value: string) => `  R[${at(name)}] = ${value};`;
-  const readDouble = (texel: number | string) => `readDouble(${texel})`;
-  /* the program's inputs every texel that runs it writes: the canvas, the settings, the look, its ball's color */
-  const commonInputs = [
+  const input = (name: string, value: string) => `R[${at(name)}] = ${value};`;
+  /* the layout's inputs: the canvas, the settings, the look and its ball's color */
+  const inputs = [
     input("W", "dFromFloat(iResolution.x)"),
     input("H", "dFromFloat(iResolution.y)"),
     input("speed100", "hundredths(SPEED)"),
-    input("fps", "dFromInt(int(FPS))"),
+    input("fps", "dFromInt(clamp(int(floor(FPS + 0.5)), 1, 120))"),
     input("frost100", "hundredths(FROST)"),
     input("ease100", "hundredths(EASE)"),
     input("bgR", "dFromInt(int(BG >> 24))"),
@@ -222,13 +255,30 @@ const float BYTE = ${glslFloat(1 / 255)};
     input("green", "dFromInt(int((COLORS[which] >> 8) & 255u))"),
     input("blue", "dFromInt(int(COLORS[which] & 255u))")
   ].join("\n");
+  const clockInput = (name: string, value: string) => `CR[${atClock(name)}] = ${value};`;
+  /* the clock's inputs: the frame's time, the clock as the frame before left it, and the layout's settings for it */
+  const clockInputs = [
+    clockInput("grid", "dFromInt(int(grid))"),
+    clockInput("time", "dFromFloat(iTime)"),
+    clockInput("onGrid", `abs(x - grid) <= max(1e-4, grid * 2.4e-7) ? D_ONE : D_ZERO`),
+    clockInput("first", "fresh ? D_ONE : D_ZERO"),
+    clockInput("changed", "kept ? D_ZERO : D_ONE"),
+    ...CLOCK_DOUBLES.map(([name], k) =>
+      clockInput(
+        name,
+        `fresh ? ${name === "drawn" ? "dNeg(D_ONE)" : "D_ZERO"} : readDouble(T_CLOCK + ${2 * k})`
+      )
+    ),
+    clockInput("paceSet", "!fresh && state(iChannel0, T_FLAGS).y != 0.0 ? D_ONE : D_ZERO"),
+    ...LAYOUT_DOUBLES.slice(7).map((name, k) => clockInput(name, `settings[${k}]`))
+  ].join("\n");
   /* the layout's and the weights' texels, from the registers */
-  const layoutOut = `  if (i < T_MELT) {
-    int k = (i - T_LAYOUT) / 2;
-    return pieces(R[${LAYOUT_DOUBLES.map((name, k) => (k < LAYOUT_DOUBLES.length - 1 ? `k == ${k} ? ${at(name)} : ` : `${at(name)}`)).join("")}], (i - T_LAYOUT) % 2);
-  }
-  // the two registers this texel shows, as floats: picked first, so each conversion is written once
-  int a = ${at("meltW")}, b = -1;
+  const layoutOut = `if (i < T_MELT) {
+  int k = (i - T_LAYOUT) / 2;
+  return pieces(R[${LAYOUT_DOUBLES.map((name, k) => (k < LAYOUT_DOUBLES.length - 1 ? `k == ${k} ? ${at(name)} : ` : `${at(name)}`)).join("")}], (i - T_LAYOUT) % 2);
+}
+// the two registers this texel shows, as floats: picked first, so each conversion is written once
+int a = ${at("meltW")}, b = -1;
 ${[
   ["T_MELT", "meltW", "meltH"],
   ["T_TAPS", "taps", "noise"],
@@ -241,119 +291,73 @@ ${[
   ["T_GROUND", "groundRF", "groundGF"],
   ["T_GROUND + 1", "groundBF", "groundAF"]
 ]
-  .map(([texel, x, y]) => `  if (i == ${texel}) { a = ${at(x as string)}; b = ${y ? at(y) : -1}; }`)
+  .map(([texel, x, y]) => `if (i == ${texel}) { a = ${at(x as string)}; b = ${y ? at(y) : -1}; }`)
   .join("\n")}
-  int w = i - T_WEIGHTS;
-${Array.from({ length: BLOB_WEIGHTS / 2 }, (_, k) => `  if (w == ${k}) { a = ${at(`weight${2 * k}`)}; b = ${at(`weight${2 * k + 1}`)}; }`).join("\n")}
-  return vec2(dToFloat(R[a]), b < 0 ? 0.0 : dToFloat(R[b]));`;
-  const head0 = `bool fresh = iFrame == 0;
-  bool kept = !fresh && state(iChannel0, T_STAMP) == iResolution.xy;
+int w = i - T_WEIGHTS;
+${Array.from({ length: BLOB_WEIGHTS / 2 }, (_, k) => `if (w == ${k}) { a = ${at(`weight${2 * k}`)}; b = ${at(`weight${2 * k + 1}`)}; }`).join("\n")}
+return vec2(dToFloat(R[a]), b < 0 ? 0.0 : dToFloat(R[b]));`;
+  const stateTexel = `// the player's numbers for texel i of the first row
+vec2 stateTexel(int i) {
+  // the state is this text's, from an earlier frame of this run, for this canvas and these settings
+  bool fresh = iFrame == 0 || state(iChannel0, T_MARK) != vec2(MAGIC, SCENE);
+  vec2 sign = signature();
+  bool kept = !fresh && state(iChannel0, T_STAMP) == iResolution.xy && state(iChannel0, T_SIGN) == sign;
+  if (i == T_MARK) return vec2(MAGIC, SCENE);
   if (i == T_STAMP) return iResolution.xy;
-  if (i == T_SEEN) return state(iChannel0, T_STAMP);
+  if (i == T_SIGN) return sign;
+  if (i == T_SEEN) return fresh ? vec2(-1.0) : state(iChannel0, T_STAMP);
+  // a ball's texels: its middle, its radius and red, its green and blue
   bool ball = i >= T_BALLS, clock = i < T_LAYOUT;
-  // the layout and the weights are kept while the canvas keeps its size
-  if (kept && !ball && !clock) return state(iChannel0, i);
-  int which = clamp((i - T_BALLS) / 3, 0, ${BALLS - 1});`;
-  /* as shipped: the double program only as the canvas takes a size; the clock and the places in fixed point */
-  const fixedState = () => `// the player's numbers for texel i of the first row
-vec2 stateTexel(int i) {
-  ${head0}
-  // a ball keeps its color while the canvas keeps its size
-  if (kept && ball && (i - T_BALLS) % 3 == 2) return state(iChannel0, i);
-  uvec2 made[${LAYOUT_DOUBLES.length}];
-  vec3 tint = vec3(0.0);
+  int which = ball ? (i - T_BALLS) / 3 : 0, part = ball ? (i - T_BALLS) % 3 : 0;
+  // the layout, the weights and the balls' colors are kept while the canvas and the settings are
+  if (kept && (ball ? part == 2 : !clock)) return state(iChannel0, i);
+  // the layout's doubles the places and the clock read: kept, or made again as JavaScript's doubles make them where
+  // the canvas or the settings are new
+  uvec2 made[7], settings[4];
+  float tint = 0.0;
   if (kept) {
-    for (int k = 0; k < ${LAYOUT_DOUBLES.length}; k++) made[k] = readDouble(T_LAYOUT + 2 * k);
-    tint.r = state(iChannel0, i).y;
-  } else if (!clock) {
-    // the layout as JavaScript's doubles make it, where the canvas is new or has a new size
-    ${run.registers}
-${commonInputs}
-    int to = !ball && i >= T_WEIGHTS ? ${range("weights").to} : ${range("layout").to};
-    ${run.loop(`${range("layout").from}`, "to")}
-    if (!ball) {
-    ${layoutOut.split("\n").join("\n  ")}
+    for (int k = 0; k < 7; k++) made[k] = readDouble(T_LAYOUT + 2 * k);
+    for (int k = 0; k < 4; k++) settings[k] = readDouble(T_LAYOUT + 14 + 2 * k);
+  } else {
+${pad(run.registers, "    ")}
+${pad(inputs, "    ")}
+    int to = !ball && !clock && i >= T_WEIGHTS ? ${range("weights").to} : ${range("layout").to};
+${pad(run.loop(`${range("layout").from}`, "to"), "    ")}
+    if (!ball && !clock) {
+${pad(layoutOut, "      ")}
     }
-${LAYOUT_DOUBLES.map((name, k) => `    made[${k}] = R[${at(name)}];`).join("\n")}
-    tint = vec3(dToFloat(R[${at("tintR")}]), dToFloat(R[${at("tintG")}]), dToFloat(R[${at("tintB")}]));
+    if (ball && part == 2) return vec2(dToFloat(R[${at("tintG")}]), dToFloat(R[${at("tintB")}]));
+${LAYOUT_DOUBLES.slice(0, 7)
+  .map((name, k) => `    made[${k}] = R[${at(name)}];`)
+  .join("\n")}
+${LAYOUT_DOUBLES.slice(7)
+  .map((name, k) => `    settings[${k}] = R[${at(name)}];`)
+  .join("\n")}
+    tint = dToFloat(R[${at("tintR")}]);
   }
-  // the clock, every frame, from the frame before's
-  Clock c = clockFrame(
-    fresh ? uvec2(0u) : readDouble(T_T),
-    fresh ? uvec2(0u) : readDouble(T_WARM),
-    fresh ? uvec2(0u) : readDouble(T_LAST),
-    fresh ? Q_MINUS_ONE : readDouble(T_DRAWN),
-    !fresh && state(iChannel0, T_FLAGS).y != 0.0,
-    fresh,
-    !kept
-  );
-  if (i == T_FLAGS) return vec2(c.draw ? 1.0 : 0.0, c.paceSet ? 1.0 : 0.0);
+  // the player's tick, every frame, on Shadertoy's time read as the nearest whole 240th where it is one
+  float x = iTime * ${glslFloat(BLOB_GRID_HZ)}, grid = floor(x + 0.5);
+${pad(tick.registers, "  ")}
+${pad(clockInputs, "  ")}
+${pad(tick.loop("0", `${ticks.code.length}`), "  ")}
+  if (i == T_FLAGS) return vec2(dToFloat(CR[${atClock("draw")}]), dToFloat(CR[${atClock("paceSetOut")}]));
   if (clock) {
-    int k = (i - T_T) / 2;
-    return pieces(k == 0 ? c.t : k == 1 ? c.warm : k == 2 ? c.last : c.drawn, (i - T_T) % 2);
+    int k = (i - T_CLOCK) / 2;
+    uvec2 d = CR[${CLOCK_DOUBLES.map(([, out], j) => (j < CLOCK_DOUBLES.length - 1 ? `k == ${j} ? ${atClock(out)} : ` : `${atClock(out)}`)).join("")}];
+    return pieces(d, (i - T_CLOCK) % 2);
   }
-  // a ball's place in the melt's texels
-  vec3 p = placeFrame(c.at, which, made);
-  int part = (i - T_BALLS) % 3;
-  return part == 0 ? p.xy : part == 1 ? vec2(p.z, tint.r) : tint.gb;
-}`;
-  /* the lab's check: every number by the double program, the frames' times exact */
-  const programState = () => `// the player's numbers for texel i of the first row
-vec2 stateTexel(int i) {
-  ${head0}
-  ${run.registers}
-${commonInputs}
-${[
-  input("dtIn", "fresh ? D_ZERO : dFromFloat(iTimeDelta)"),
-  input("timeIn", "dFromFloat(iTime)"),
-  input("frameIn", "dFromInt(iFrame)"),
-  input("t", `fresh ? D_ZERO : ${readDouble("T_T")}`),
-  input("warm", `fresh ? D_ZERO : ${readDouble("T_WARM")}`),
-  input("last", `fresh ? D_ZERO : ${readDouble("T_LAST")}`),
-  input("drawn", `fresh ? dNeg(D_ONE) : ${readDouble("T_DRAWN")}`),
-  input("paceSet", "!fresh && state(iChannel0, T_FLAGS).y != 0.0 ? D_ONE : D_ZERO"),
-  input("first", "fresh ? D_ONE : D_ZERO"),
-  input("changed", "kept ? D_ZERO : D_ONE"),
-  "  int blob = which / 8;",
-  ...["blobX", "blobY", "blobR", "reachX", "reachY"].map((name, k) =>
-    input(name, `BLOBS[blob * 5 + ${k}]`)
-  ),
-  ...["lapsX", "lapsY", "depth", "spin"].map((name, k) =>
-    input(name, `dFromInt(BLOB_LAPS[blob][${k}])`)
-  ),
-  ...["ballX", "ballY", "ballR", "swing", "phaseCos", "phaseSin"].map((name, k) =>
-    input(name, `BALLS[which * 6 + ${k}]`)
-  ),
-  input("laps", "dFromInt(BALL_LAPS[which].x)"),
-  input("ring", "dFromInt(BALL_LAPS[which].y)")
-].join("\n")}
-  // where the canvas has kept its size, the layout made for it
-  if (kept) {
-${LAYOUT_DOUBLES.map((name, k) => `    R[${at(name)}] = ${readDouble(`T_LAYOUT + ${2 * k}`)};`).join("\n")}
-  }
-  int from = clock ? ${range("clock").from} : ball && kept ? ${range("clock").from} : ${range("layout").from};
-  int to = clock ? ${range("clock").to} : ball ? ${range("place").to} : i >= T_WEIGHTS ? ${range("weights").to} : ${range("layout").to};
-  ${run.loop("from", "to")}
-  if (i == T_FLAGS) return vec2(dToFloat(R[${at("draw")}]), dToFloat(R[${at("paceSetOut")}]));
-  if (clock) {
-    int k = (i - T_T) / 2;
-    uvec2 d = R[k == 0 ? ${at("tOut")} : k == 1 ? ${at("warmOut")} : k == 2 ? ${at("lastOut")} : ${at("drawnOut")}];
-    return pieces(d, (i - T_T) % 2);
-  }
-  if (ball) {
-    int part = (i - T_BALLS) % 3;
-    if (kept && part == 2) return state(iChannel0, i);
-    float tintR = kept ? state(iChannel0, i).y : dToFloat(R[${at("tintR")}]);
-    vec2 xy = vec2(dToFloat(R[${at("x")}]), dToFloat(R[${at("y")}]));
-    return part == 0 ? xy : part == 1 ? vec2(dToFloat(R[${at("r")}]), tintR) : vec2(dToFloat(R[${at("tintG")}]), dToFloat(R[${at("tintB")}]));
-  }
-${layoutOut}
+  // a ball's place, made only in a frame that draws
+  if (kept && dZero(CR[${atClock("draw")}])) return state(iChannel0, i);
+  vec3 p = placeFrame(fdouble(CR[${atClock("at")}], Q), which, made);
+  return part == 0 ? p.xy : vec2(p.z, kept ? state(iChannel0, i).y : tint);
 }`;
 
   const bufferA = `// ==== Buffer A ==== iChannel0: Buffer A (filter: nearest, wrap: clamp)
 // The frost's noise, feTurbulence as Chromium's Skia computes it, baked once a size into red and green as its four
 // bytes; and in the first row's blue and alpha, the player's numbers: Skia's tables for the noise's seed ${look.seed}, the
-// blobs and balls of the shape in ${kind}, JavaScript's double arithmetic for the layout and its program.
+// blobs and balls of the shape in fixed point, 52 bits of fraction, and JavaScript's double arithmetic for the layout
+// and the clock.
+const float SCENE = ${glslFloat(sceneMark(scene, look.seed))};   // this text's scene, beside the mark
 const uint LATTICE[64] = uint[](
 ${rows(words(lattice), 8)}
 );
@@ -362,13 +366,19 @@ ${rows(words(gradients), 8)}
 );
 // each blob: its middle, its radius midway, its wander's reach across and down
 const uvec2 BLOBS[${blobData.length}] = uvec2[](
-${rows(blobData.map(literal), 2)}
+${rows(
+  blobData.map(x => fixedLit(x)),
+  2
+)}
 );
 // each blob's wander laps across and down, its depth's laps, its spin
 const ivec4 BLOB_LAPS[${blobs.length}] = ivec4[](${blobs.map(b => `ivec4(${b.wander[0].laps}, ${b.wander[1].laps}, ${b.depth}, ${b.spin})`).join(", ")});
 // each ball: its place at rest and its radius in its blob's radii, its swing, the cosine and sine of its phase's turn
 const uvec2 BALLS[${ballData.length}] = uvec2[](
-${rows(ballData.map(literal), 2)}
+${rows(
+  ballData.map(x => fixedLit(x)),
+  2
+)}
 );
 // each ball's laps a loop and whether it rides the ring
 const ivec2 BALL_LAPS[${BALLS}] = ivec2[](${balls.map(b => `ivec2(${b.laps}, ${b.ring ? 1 : 0})`).join(", ")});
@@ -376,8 +386,13 @@ const uvec2 MELT = ${dlit(look.melt)};   // the melt's deviation, in the design'
 const uvec2 PAD = ${dlit(look.pad)};    // how far past the design the filter reads
 
 ${GLSL_DOUBLE}
-${fixed ? `\n${GLSL_FIXED}\n\n${glslFixedFrame()}\n` : ""}
+
+${GLSL_FIXED}
+
+${glslFixedPlace()}
+
 ${run.globals}
+${tick.globals.replace("// The program's constants and its instructions", "// The clock's program: its constants and its instructions")}
 
 uvec2 readDouble(int i) {
   vec2 a = state(iChannel0, i), b = state(iChannel0, i + 1);
@@ -388,9 +403,18 @@ vec2 pieces(uvec2 d, int part) {
   uint w = part == 0 ? d.x : d.y;
   return vec2(w >> 16, w & 0xffffu);
 }
-uvec2 hundredths(float x) { return dFromInt(int(floor(x * 100.0 + 0.5))); }
+uvec2 hundredths(float x) { return dFromInt(int(floor(max(x, 0.0) * 100.0 + 0.5))); }
+// Common's settings as one number, in two 16-bit halves
+vec2 signature() {
+  uint h = 2166136261u;
+  for (int k = 0; k < ${BALLS + 5}; k++) {
+    uint w = k < ${BALLS} ? COLORS[k] : k == ${BALLS} ? BG : floatBitsToUint(k == ${BALLS + 1} ? SPEED : k == ${BALLS + 2} ? FPS : k == ${BALLS + 3} ? FROST : EASE);
+    h = (h ^ w) * 16777619u;
+  }
+  return vec2(h >> 16, h & 0xffffu);
+}
 
-${fixed ? fixedState() : programState()}
+${stateTexel}
 
 // feTurbulence fractalNoise, two octaves, as Ganesh computes it (the player's bake), at a pixel's middle
 vec2 gradient(int index, int channel) {
@@ -441,13 +465,13 @@ vec4 turbulence(vec2 fragCoord) {
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   ivec2 p = ivec2(fragCoord);
   bool keeps = p.y == 0 && p.x < STATE;
-  bool bake = iFrame == 0 || state(iChannel0, T_STAMP) != iResolution.xy;
-  // a texel of the noise alone keeps what its buffer held two frames before, the same noise, once both of the
-  // buffer's two copies hold it: nothing to write
-  if (!keeps && !bake && iFrame >= 2 && state(iChannel0, T_SEEN) == iResolution.xy) discard;
-  // the noise: baked where the canvas is new or has a new size, kept from the frame before elsewhere
+  // the noise is baked where the state begins afresh or the canvas has a new size, and kept from the frame before
+  // elsewhere; a texel of the noise alone keeps what its buffer held two frames before, the same noise, once both of
+  // the buffer's two copies hold it: nothing to write
+  bool bake = iFrame == 0 || state(iChannel0, T_MARK) != vec2(MAGIC, SCENE) || state(iChannel0, T_STAMP) != iResolution.xy;
+  if (!keeps && !bake && state(iChannel0, T_SEEN) == iResolution.xy) discard;
   vec2 noise = texelFetch(iChannel0, p, 0).rg;
-  if (FROST > 0.0 && bake) {
+  if (bake) {
     // as an 8-bit texture keeps it: each channel to the nearest of 255 levels, ties to even
     vec4 k = roundEven(turbulence(fragCoord) * 255.0);
     noise = vec2(k.r + 256.0 * k.g, k.b + 256.0 * k.a);
@@ -519,6 +543,12 @@ vec4 meltAt(vec2 uv, ivec2 size) {
   return x0 + f.y * (x1 - x0);
 }
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  // without 32-bit float buffers the state cannot hold its numbers, nor a canvas narrower than its first row:
+  // magenta says so
+  if (iResolution.x < float(STATE) || state(iChannel1, T_MARK).x != MAGIC) {
+    fragColor = vec4(1.0, 0.0, 1.0, 1.0);
+    return;
+  }
   vec2 size = state(iChannel1, T_MELT);
   vec4 region = vec4(state(iChannel1, T_REGION), state(iChannel1, T_REGION + 1));
   vec2 origin = state(iChannel1, T_ORIGIN);
@@ -553,8 +583,15 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   return `${head}
 //
 // Buffers A to D each in Shadertoy's tab of the name, the Image in Image, each tab's channels as its header says.
-// Its frames' time is Shadertoy's iTimeDelta, a float, where the site's player keeps a double: the first frame is
-// the site's own, and frames of motion land within a hair of it.
+// It needs Shadertoy's 32-bit float buffers (its fallback, half floats, cannot hold its numbers) and a canvas at least
+// ${STATE} pixels wide: without either it shows magenta. An edit to Common's settings shows at once; rewind plays it
+// again from its first frame.
+// Its time is Shadertoy's iTime. Where iTime is the float of a whole number of 240ths of a second, a frame's time on a
+// 30, 60, 120 or 240 Hz screen whose clock counts from the first frame, it reads that many 240ths exactly, the time the
+// site's player has for the frame; any other time it reads as the float it is. So timed, its frames are the player's
+// own, pixel for pixel, where the GPU rounds the player's 8-bit noise and half-float melt as Shadertoy's float buffers
+// do here (SwiftShader does). A GPU that rounds them its own way draws the player otherwise there, by a level or a few
+// at the frost's grain and the melt's edge, and this text cannot know it.
 
 ${common}
 ${bufferA}

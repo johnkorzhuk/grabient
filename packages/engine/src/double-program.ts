@@ -25,8 +25,6 @@ export const OP = {
   scale2: 12,
   /** the float square root of a, a start for Newton's */
   sqrt0: 13,
-  /** the register a places past register b's, b a whole number */
-  pick: 14,
   /** a times 10 to the b, rounded half up as toFixed rounds it */
   decimal: 15
 } as const;
@@ -116,7 +114,6 @@ export class DoubleProgram {
   f32 = (a: Value) => this.step("f32", a);
   scale2 = (a: Value, k: Value) => this.step("scale2", a, k);
   sqrt0 = (a: Value) => this.step("sqrt0", a);
-  pick = (base: Value, index: Value) => this.step("pick", base, index);
   decimal = (a: Value, digits: number) => this.step("decimal", a, this.constant(digits));
   /** `yes` where `condition` is not 0, else `no` */
   choose(condition: Value, yes: Value, no: Value): Value {
@@ -271,9 +268,6 @@ export function evaluate(c: Compiled, registers: number[], from = 0, to = c.code
       case OP.sqrt0:
         r = Math.fround(Math.sqrt(Math.fround(a)));
         break;
-      case OP.pick:
-        r = R[((ins >>> 14) & 511) + Math.trunc(b)];
-        break;
       case OP.decimal:
         r = decimalOf(a, b);
         break;
@@ -297,49 +291,81 @@ export function registersOf(c: Compiled, inputs: Record<string, number>): number
 
 /** The GLSL that runs a compiled program: its constant pool and its instructions as globals, the registers to declare
     where it runs (a local array, so a GPU makes it only for the fragments that run it), and the loop over the
-    instructions from `from` to `to`, each operation called from one place. */
-export function doubleRun(c: Compiled, dlit: (x: number) => string) {
+    instructions from `from` to `to`, each operation the program uses called from one place; the last two unindented. `name` prefixes the
+    globals and the registers, so a shader may run two programs, each over a register file of its own size. */
+export function doubleRun(c: Compiled, dlit: (x: number) => string, name = "") {
   const rows = (items: string[], per: number) => {
     const out: string[] = [];
     for (let i = 0; i < items.length; i += per) out.push(`  ${items.slice(i, i + per).join(", ")}`);
     return out.join(",\n");
   };
+  const [R, POOL, CODE] = ["R", "POOL", "CODE"].map(n => `${name}${n}`);
   const globals = `// The program's constants and its instructions: an operation, a target, a and b, five and nine bits each.
-const uvec2 POOL[${c.pool.length}] = uvec2[](
+const uvec2 ${POOL}[${c.pool.length}] = uvec2[](
 ${rows(c.pool.map(dlit), 3)}
 );
-const uint CODE[${c.code.length}] = uint[](
+const uint ${CODE}[${c.code.length}] = uint[](
 ${rows(
   c.code.map(i => `0x${i.toString(16).padStart(8, "0")}u`),
   8
 )}
 );`;
-  const registers = `uvec2 R[${c.registers}];
-  for (int i = 0; i < ${c.pool.length}; i++) R[i] = POOL[i];`;
+  const registers = `uvec2 ${R}[${c.registers}];
+for (int n = 0; n < ${c.pool.length}; n++) ${R}[n] = ${POOL}[n];`;
+  /* the operations the program uses, each tested for in turn: a range test takes what the tests before it leave */
+  const used = new Set(c.code.map(i => i & 31));
+  const whole = [OP.trunc, OP.floor, OP.ceil].some(op => used.has(op));
+  const cases = (
+    [
+      [
+        "op <= 4u",
+        [OP.add, OP.sub, OP.trunc, OP.floor, OP.ceil],
+        whole
+          ? `{
+    // add, sub, trunc, floor, ceil: one addition, of the integer toward zero and a step where one is due
+    uvec2 t = dTrunc(a);
+    bool whole = op >= 2u;
+    bool step = t != a && ((op == 3u && dSign(a) == 1u) || (op == 4u && dSign(a) == 0u));
+    uvec2 y = whole ? (step ? (op == 3u ? dNeg(D_ONE) : D_ONE) : uvec2(0x80000000u, 0u)) : op == 1u ? dNeg(b) : b;
+    r = dAdd(whole ? t : a, y);
+  }`
+          : "r = dAdd(a, op == 1u ? dNeg(b) : b);"
+      ],
+      ["op == 5u", [OP.mul], "r = dMul(a, b);"],
+      ["op == 6u", [OP.div], "r = dDiv(a, b);"],
+      [
+        "op <= 9u",
+        [OP.min, OP.max, OP.lt],
+        `{
+    bool less = dLt(a, b);
+    r = op == 7u ? (dLt(b, a) ? b : a) : op == 8u ? (less ? b : a) : (less ? D_ONE : D_ZERO);
+  }`
+      ],
+      ["op == 10u", [OP.choose], `r = dZero(${R}[d]) ? b : a;`],
+      ["op == 11u", [OP.f32], "r = dFromFloat(dToFloat(a));"],
+      ["op == 12u", [OP.scale2], "r = uvec2(a.x + (uint(dToInt(b)) << 20), a.y);"],
+      ["op == 13u", [OP.sqrt0], "r = dFromFloat(sqrt(dToFloat(a)));"],
+      ["op == 15u", [OP.decimal], "r = dDecimal(a, dToInt(b));"]
+    ] as const
+  ).filter(([, ops]) => ops.some(op => used.has(op)));
+  const dispatch = cases
+    .map(([test, , body], k) =>
+      cases.length === 1
+        ? body
+        : k === 0
+          ? `if (${test}) ${body}`
+          : k < cases.length - 1
+            ? `else if (${test}) ${body}`
+            : `else ${body}`
+    )
+    .join("\n  ");
   const loop = (from: string, to: string) => `for (int pc = ${from}; pc < ${to}; pc++) {
-    uint ins = CODE[pc];
-    uint op = ins & 31u;
-    int d = int((ins >> 5) & 511u), ia = int((ins >> 14) & 511u);
-    uvec2 a = R[ia], b = R[int(ins >> 23)], r;
-    if (op <= 4u) {
-      // add, sub, trunc, floor, ceil: one addition, of the integer toward zero and a step where one is due
-      uvec2 t = dTrunc(a);
-      bool whole = op >= 2u;
-      bool step = t != a && ((op == 3u && dSign(a) == 1u) || (op == 4u && dSign(a) == 0u));
-      uvec2 y = whole ? (step ? (op == 3u ? dNeg(D_ONE) : D_ONE) : uvec2(0x80000000u, 0u)) : op == 1u ? dNeg(b) : b;
-      r = dAdd(whole ? t : a, y);
-    } else if (op == 5u) r = dMul(a, b);
-    else if (op == 6u) r = dDiv(a, b);
-    else if (op <= 9u) {
-      bool less = dLt(a, b);
-      r = op == 7u ? (dLt(b, a) ? b : a) : op == 8u ? (less ? b : a) : (less ? D_ONE : D_ZERO);
-    } else if (op == 10u) r = dZero(R[d]) ? b : a;
-    else if (op == 11u) r = dFromFloat(dToFloat(a));
-    else if (op == 12u) r = uvec2(a.x + (uint(dToInt(b)) << 20), a.y);
-    else if (op == 13u) r = dFromFloat(sqrt(dToFloat(a)));
-    else if (op == 14u) r = R[ia + dToInt(b)];
-    else r = dDecimal(a, dToInt(b));
-    R[d] = r;
-  }`;
+  uint ins = ${CODE}[pc];
+  uint op = ins & 31u;
+  int d = int((ins >> 5) & 511u);
+  uvec2 a = ${R}[int((ins >> 14) & 511u)], b = ${R}[int(ins >> 23)], r;
+  ${dispatch}
+  ${R}[d] = r;
+}`;
   return { globals, registers, loop };
 }

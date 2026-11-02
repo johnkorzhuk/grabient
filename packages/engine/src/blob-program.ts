@@ -1,29 +1,22 @@
-/* The blob's double arithmetic as a program (double-program.ts), for its Shadertoy text, whose shader has no script to
-   compute what the player's script computes (ui/blob-player.ts, blob-gl.ts, blob.ts's blobPlaces): the same
-   operations on the same doubles in the same order, so a shader running it lands on the player's numbers. Three
-   sections, each a range a texel runs:
-     layout   the canvas's map, the filter region, the melt's box and the blur's taps, from its size; and the look's
-              numbers that hang on the frost (the scatter, k1, k2, whether the noise is drawn) and the ground's
-     clock    the player's tick: the frame's time, the ease from rest, the speed, the frame rate's pace
-     place    one ball's place in the melt's texels at the frame's share of the loop, and its color
-     weights  the blur's weights: a Gaussian truncated at three deviations, each kept as a float, over their sum
-   The program is the same for every palette: the scene's numbers, the settings and the canvas are its inputs.
-   Sines and cosines come from one of 2 pi f, the loop's share, turned through whole laps by the angle sum formulas,
-   where the player takes each of its own argument: within an ulp or two, which a float32 place never shows. */
+/* The blob's double arithmetic as programs (double-program.ts), for its Shadertoy text, whose shader has no script to
+   compute what the player's script computes (ui/blob-player.ts, blob-gl.ts): the same operations on the same doubles
+   in the same order, so a shader running them lands on the player's numbers.
+     blobProgram  run as the canvas or the settings change, in two sections, each a range a texel runs:
+       layout   the canvas's map, the filter region, the melt's box and the blur's taps, from its size; the look's
+                numbers that hang on the frost (the scatter, k1, k2, whether the noise is drawn), the ground's and a
+                ball's color; and the clock's settings: the speed, the ease and the frame rate's pace
+       weights  the blur's weights: a Gaussian truncated at three deviations, each kept as a float, over their sum
+     blobClock    run every frame: the player's tick, the frame's time, the ease from rest, the speed, the share of the
+                  loop and the frame rate's pace, which decides whether the frame draws. A program of its own, so the
+                  shader runs it each frame over a register file a sixth the size of the layout's, which a GPU indexes
+                  far faster (an RTX 2080 Ti took 3 ms a frame over the layout's)
+   The programs are the same for every palette: the scene's numbers, the settings and the canvas are their inputs. A
+   ball's place each frame is blob-fixed.ts's, in fixed point, from the clock's share. */
 
-import { BLOB_DEPTH, BLOB_DESIGN, BLOB_LOOP } from "./blob.ts";
+import { BLOB_DESIGN, BLOB_LOOP } from "./blob.ts";
 import { BLOB_GANESH_WIDTH, BLOB_RADIUS, BLOB_TEXELS } from "./blob-gl.ts";
 import { DoubleProgram, type Value } from "./double-program.ts";
 
-/** fdlibm's kernel polynomials for sin and cos on [-pi/4, pi/4]. */
-const S = [
-  -0.16666666666666632, 0.00833333333332249, -0.0001984126982985795, 0.0000027557313707070068,
-  -2.5050760253406863e-8, 1.58969099521155e-10
-];
-const C = [
-  0.0416666666666666, -0.001388888888887411, 0.00002480158728947673, -2.7557314351390663e-7,
-  2.087572321298175e-9, -1.1359647557788195e-11
-];
 /** fdlibm's exp: ln 2 in two parts, 1 / ln 2, and its polynomial. */
 const LN2HI = 0.6931471803691238;
 const LN2LO = 1.9082149292705877e-10;
@@ -33,40 +26,44 @@ const P = [
   4.1381367970572385e-8
 ];
 export const BLOB_WEIGHTS = BLOB_RADIUS + 1;
+/** The time grid Shadertoy's float time is read on: a frame on a 30, 60, 120 or 240 Hz screen counted from its first
+    falls on a whole number of 240ths of a second. */
+export const BLOB_GRID_HZ = 240;
 
-/** The inputs a texel writes before it runs the program, by name. */
+/** The inputs a texel writes before it runs the layout, by name. */
 export const BLOB_INPUTS = {
   /* the canvas, device pixels */
   size: ["W", "H"],
   /* the settings, as whole numbers: hundredths of the speed, the frost and the ease; frames a second; the ground's
      bytes and whether there is one */
   settings: ["speed100", "fps", "frost100", "ease100", "bgR", "bgG", "bgB", "bgA", "bgOn"],
-  /* the scene's numbers the layout needs */
-  look: ["melt", "pad"],
-  /* the frame: its gap and its time in seconds (or its count, for a clock of exact frames), and the clock's state
-     from the frame before */
-  frame: ["dtIn", "timeIn", "frameIn", "t", "warm", "last", "paceSet", "drawn", "first", "changed"],
-  /* the blob of the ball this texel places: its middle, its radius midway, the reach of its wander across and down,
-     its wander's laps across and down, its depth's laps, its spin */
-  blob: ["blobX", "blobY", "blobR", "reachX", "reachY", "lapsX", "lapsY", "depth", "spin"],
-  /* the ball: its place at rest and radius, in its blob's radii, its swing, the cosine and sine of its phase's turn,
-     its laps, whether it rides the ring, and its color's bytes */
-  ball: [
-    "ballX",
-    "ballY",
-    "ballR",
-    "swing",
-    "phaseCos",
-    "phaseSin",
-    "laps",
-    "ring",
-    "red",
-    "green",
-    "blue"
-  ]
+  /* the scene's numbers the layout needs, and the bytes of the ball's color this texel keeps */
+  look: ["melt", "pad", "red", "green", "blue"]
 } as const;
+/** The inputs a texel writes before it runs the clock, by name: Shadertoy's time as the nearest whole number of 240ths
+    of a second, as it is (seconds) and whether it is that whole number's float; whether this is the first frame and
+    whether the canvas or the settings changed; the clock as the frame before left it (the loop's seconds, the ease's,
+    the frame before's time in ms, the pace's last frame in ms and whether it has one, the share of the loop drawn
+    last); and the layout's settings for it. */
+export const BLOB_CLOCK_INPUTS = [
+  "grid",
+  "time",
+  "onGrid",
+  "first",
+  "changed",
+  "t",
+  "warm",
+  "before",
+  "paceLast",
+  "paceSet",
+  "drawn",
+  "speed",
+  "ease",
+  "every",
+  "early"
+] as const;
 
-/** Values the layout leaves for the frame and for the other passes, by name. */
+/** Values the layout leaves for the clock and the frame, and for the other passes, by name. */
 export const BLOB_LAYOUT_OUT = [
   "sx",
   "sy",
@@ -75,6 +72,11 @@ export const BLOB_LAYOUT_OUT = [
   "meltX",
   "meltY",
   "texel",
+  "invTexel",
+  "speed",
+  "ease",
+  "every",
+  "early",
   "meltW",
   "meltH",
   "taps",
@@ -101,32 +103,10 @@ export const BLOB_LAYOUT_OUT = [
   "groundRF",
   "groundGF",
   "groundBF",
-  "groundAF",
-  "invTexel",
-  "at"
-] as const;
-export const BLOB_FRAME_OUT = [
-  "tOut",
-  "warmOut",
-  "lastOut",
-  "paceSetOut",
-  "drawnOut",
-  "draw",
-  "x",
-  "y",
-  "r"
+  "groundAF"
 ] as const;
 
-export interface BlobProgramOptions {
-  /** false leaves out the clock and the places, which the shipped Shadertoy text computes in fixed point
-      (blob-fixed.ts): the program then runs only as the canvas takes a size */
-  frame?: boolean;
-  /** "uniforms": the frame's time from Shadertoy's iTimeDelta and iTime, floats; "frames": from the frame's count at
-      60 a second, as the lab's clock gives the player its time exactly (a check of everything but the clock) */
-  clock?: "uniforms" | "frames";
-}
-
-export function blobProgram(options: BlobProgramOptions = {}): DoubleProgram {
+export function blobProgram(): DoubleProgram {
   const p = new DoubleProgram();
   const { c } = p;
   const I = Object.fromEntries(
@@ -134,7 +114,7 @@ export function blobProgram(options: BlobProgramOptions = {}): DoubleProgram {
       .flat()
       .map(name => [name, p.input(name)])
   ) as Record<(typeof BLOB_INPUTS)[keyof typeof BLOB_INPUTS][number], Value>;
-  /* layout values the frame reads, filled from the cache where the layout does not run */
+  /* layout values a later section reads, filled from the kept state where the layout does not run */
   const slot = Object.fromEntries(BLOB_LAYOUT_OUT.map(name => [name, p.slot(name)])) as Record<
     (typeof BLOB_LAYOUT_OUT)[number],
     Value
@@ -225,6 +205,13 @@ export function blobProgram(options: BlobProgramOptions = {}): DoubleProgram {
     p.pin("tintR", p.f32(p.div(I.red, c(255))));
     p.pin("tintG", p.f32(p.div(I.green, c(255))));
     p.pin("tintB", p.f32(p.div(I.blue, c(255))));
+    /* the clock's settings: the address's two decimals as the double they read as, and the pace's frame time and
+       how early a frame may come (pace.ts), as each frame's due() computes them */
+    p.pin("speed", p.div(I.speed100, c(100)));
+    p.pin("ease", p.div(I.ease100, c(100)));
+    const every = p.div(c(1000), I.fps);
+    p.pin("every", every);
+    p.pin("early", p.sub(every, p.min(c(4), p.mul(every, c(0.2)))));
   });
 
   p.section("weights", () => {
@@ -254,115 +241,50 @@ export function blobProgram(options: BlobProgramOptions = {}): DoubleProgram {
     });
   });
 
-  if (options.frame === false) return p;
+  return p;
+}
 
-  p.section("clock", () => {
-    /* the player's tick */
-    let dtRaw: Value;
-    let now: Value;
-    if (options.clock === "frames") {
-      /* the lab's clock: frame k at k * (1000 / 60) ms */
-      const interval = c(1000 / 60);
-      now = p.mul(I.frameIn, interval);
-      dtRaw = p.choose(
-        I.first,
-        c(0),
-        p.div(p.sub(now, p.mul(p.sub(I.frameIn, c(1)), interval)), c(1000))
-      );
-    } else {
-      now = p.mul(I.timeIn, c(1000));
-      dtRaw = I.dtIn;
-    }
-    const dt = p.min(c(0.1), dtRaw);
-    const speed = p.div(I.speed100, c(100));
-    const ease = p.div(I.ease100, c(100));
-    const moving = p.lt(c(0), speed);
-    const warm1 = p.min(ease, p.add(I.warm, dt));
-    const e = p.choose(p.lt(c(0), ease), p.div(warm1, ease), c(1));
-    const step = p.mul(p.mul(p.mul(p.mul(dt, speed), e), e), p.sub(c(3), p.mul(c(2), e)));
-    const advance = p.choose(moving, p.sub(c(1), I.first), c(0));
-    const t = p.choose(advance, p.add(I.t, step), I.t);
-    p.pin("tOut", t);
-    p.pin("warmOut", p.choose(moving, p.choose(I.first, I.warm, warm1), c(0)));
-    const loops = p.div(t, c(BLOB_LOOP));
-    const at = p.sub(loops, p.trunc(loops));
-    /* changed || (at !== drawn && pace.due(now, fps)): the pace consulted only where the frame has not changed */
-    const differs = p.max(p.lt(at, I.drawn), p.lt(I.drawn, at));
-    const every = p.div(c(1000), I.fps);
-    const early = p.lt(p.sub(now, I.last), p.sub(every, p.min(c(4), p.mul(every, c(0.2)))));
-    const due = p.choose(I.paceSet, p.sub(c(1), early), c(1));
-    const far = p.lt(p.mul(c(2), every), p.sub(now, I.last));
-    const next = p.choose(I.paceSet, p.choose(far, now, p.add(I.last, every)), now);
-    const consult = p.choose(I.changed, c(0), differs);
-    const draw = p.choose(I.changed, c(1), p.choose(differs, due, c(0)));
-    p.pin("lastOut", p.choose(consult, p.choose(due, next, I.last), I.last));
-    p.pin("paceSetOut", p.choose(consult, c(1), I.paceSet));
-    p.pin("drawnOut", p.choose(draw, at, I.drawn));
-    p.pin("draw", draw);
-    p.pin("at", at);
-  });
-
-  p.section("place", () => {
-    const at = slot.at;
-    /* sin and cos of 2 pi at, at reduced to its nearest quarter turn, by fdlibm's kernels */
-    const quarter = p.floor(p.add(p.mul(at, c(4)), c(0.5)));
-    const theta = p.mul(c(2 * Math.PI), p.sub(at, p.mul(quarter, c(0.25))));
-    const z = p.mul(theta, theta);
-    const v = p.mul(z, theta);
-    let ps = c(S[5]);
-    for (let i = 4; i >= 1; i--) ps = p.add(c(S[i]), p.mul(z, ps));
-    const ks = p.add(theta, p.mul(v, p.add(c(S[0]), p.mul(z, ps))));
-    let pc = c(C[5]);
-    for (let i = 4; i >= 0; i--) pc = p.add(c(C[i]), p.mul(z, pc));
-    const hz = p.mul(c(0.5), z);
-    const w = p.sub(c(1), hz);
-    const kc = p.add(w, p.add(p.sub(p.sub(c(1), w), hz), p.mul(z, p.mul(z, pc))));
-    const turn = p.choose(p.lt(quarter, c(3.5)), quarter, c(0));
-    const is = (k: number) => p.lt(turn, c(k + 0.5));
-    const s1 = p.choose(is(0), ks, p.choose(is(1), kc, p.choose(is(2), neg(ks), neg(kc))));
-    const c1 = p.choose(is(0), kc, p.choose(is(1), neg(ks), p.choose(is(2), neg(kc), ks)));
-    /* two and three laps by the angle sum formulas */
-    const c2 = p.mul(p.sub(c1, s1), p.add(c1, s1));
-    const s2 = p.mul(p.mul(c(2), s1), c1);
-    const c3 = p.sub(p.mul(c2, c1), p.mul(s2, s1));
-    const s3 = p.add(p.mul(s2, c1), p.mul(c2, s1));
-    /* sin and cos of 2 pi laps at, for laps of -3 to 3 */
-    const sinOf = (laps: Value) => {
-      const k = p.choose(p.lt(laps, c(0)), neg(laps), laps);
-      const s = p.choose(p.lt(k, c(1.5)), s1, p.choose(p.lt(k, c(2.5)), s2, s3));
-      return p.choose(p.lt(laps, c(0)), neg(s), s);
-    };
-    const cosOf = (laps: Value) => {
-      const k = p.choose(p.lt(laps, c(0)), neg(laps), laps);
-      return p.choose(p.lt(k, c(1.5)), c1, p.choose(p.lt(k, c(2.5)), c2, c3));
-    };
-
-    /* blobPlaces for one ball: its blob's wander and breath, its ring's turn, its own swing */
-    const depthScale = p.mul(
-      p.add(c(1), p.mul(c((BLOB_DEPTH.near - BLOB_DEPTH.far) / 2), sinOf(I.depth))),
-      I.blobR
-    );
-    const x0 = p.add(I.blobX, p.mul(I.reachX, sinOf(I.lapsX)));
-    const y0 = p.add(I.blobY, p.mul(I.reachY, sinOf(I.lapsY)));
-    const turnCos = c1;
-    const turnSin = p.mul(I.spin, s1);
-    const lapCos = cosOf(I.laps);
-    const lapSin = sinOf(I.laps);
-    const swingCos = p.sub(p.mul(I.phaseCos, lapCos), p.mul(I.phaseSin, lapSin));
-    const swingSin = p.add(p.mul(I.phaseSin, lapCos), p.mul(I.phaseCos, lapSin));
-    const x = p.add(I.ballX, p.mul(I.swing, swingCos));
-    const y = p.add(I.ballY, p.mul(I.swing, swingSin));
-    const X = p.choose(I.ring, p.sub(p.mul(x, turnCos), p.mul(y, turnSin)), x);
-    const Y = p.choose(I.ring, p.add(p.mul(x, turnSin), p.mul(y, turnCos)), y);
-    const px = p.f32(p.add(x0, p.mul(X, depthScale)));
-    const py = p.f32(p.add(y0, p.mul(Y, depthScale)));
-    const pr = p.f32(p.mul(I.ballR, depthScale));
-    /* the player's draw: into the melt's texels */
-    const { sx: msx, sy: msy, tx: mtx, ty: mty, meltX, meltY, texel } = slot;
-    p.pin("x", p.f32(p.div(p.sub(p.add(p.mul(px, msx), mtx), meltX), texel)));
-    p.pin("y", p.f32(p.div(p.sub(p.add(p.mul(py, msy), mty), meltY), texel)));
-    p.pin("r", p.f32(p.div(p.mul(pr, msx), texel)));
-  });
-
+/** The player's tick as a program of its own: from the frame's time and the state the frame before left, the clock's
+    state this frame, the share of the loop and whether the frame draws. */
+export function blobClock(): DoubleProgram {
+  const p = new DoubleProgram();
+  const { c } = p;
+  const I = Object.fromEntries(BLOB_CLOCK_INPUTS.map(name => [name, p.input(name)])) as Record<
+    (typeof BLOB_CLOCK_INPUTS)[number],
+    Value
+  >;
+  /* the frame's time in ms: where Shadertoy's float time is the float of a whole number of 240ths of a second, that
+     many 240ths as a double (requestAnimationFrame's time for a frame on a 30, 60, 120 or 240 Hz screen counted from
+     its first), elsewhere the float as it is */
+  const now = p.mul(
+    p.choose(I.onGrid, I.grid, I.time),
+    p.choose(I.onGrid, c(1000 / BLOB_GRID_HZ), c(1000))
+  );
+  /* the player's tick (ui/blob-player.ts), its operations in its order */
+  const dt = p.min(c(0.1), p.choose(I.first, c(0), p.div(p.sub(now, I.before), c(1000))));
+  const { speed, ease } = I;
+  const moving = p.lt(c(0), speed);
+  const warm1 = p.min(ease, p.add(I.warm, dt));
+  const e = p.choose(p.lt(c(0), ease), p.div(warm1, ease), c(1));
+  const step = p.mul(p.mul(p.mul(p.mul(dt, speed), e), e), p.sub(c(3), p.mul(c(2), e)));
+  const t = p.choose(p.choose(moving, p.sub(c(1), I.first), c(0)), p.add(I.t, step), I.t);
+  p.pin("tOut", t);
+  p.pin("warmOut", p.choose(moving, p.choose(I.first, I.warm, warm1), c(0)));
+  p.pin("beforeOut", now);
+  const loops = p.div(t, c(BLOB_LOOP));
+  const at = p.sub(loops, p.trunc(loops));
+  /* changed || (at !== drawn && pace.due(now, fps)): the pace consulted only where the frame has not changed */
+  const differs = p.max(p.lt(at, I.drawn), p.lt(I.drawn, at));
+  const gap = p.sub(now, I.paceLast);
+  const due = p.choose(I.paceSet, p.sub(c(1), p.lt(gap, I.early)), c(1));
+  const far = p.lt(p.mul(c(2), I.every), gap);
+  const next = p.choose(I.paceSet, p.choose(far, now, p.add(I.paceLast, I.every)), now);
+  const consult = p.choose(I.changed, c(0), differs);
+  const draw = p.choose(I.changed, c(1), p.choose(differs, due, c(0)));
+  p.pin("paceLastOut", p.choose(consult, p.choose(due, next, I.paceLast), I.paceLast));
+  p.pin("paceSetOut", p.choose(consult, c(1), I.paceSet));
+  p.pin("drawnOut", p.choose(draw, at, I.drawn));
+  p.pin("draw", draw);
+  p.pin("at", at);
   return p;
 }

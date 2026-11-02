@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
-import { BLOB_DESIGN, BLOB_LOOP, blobFilter, blobPlaces, blobScene } from "./blob.ts";
+import { BLOB_DESIGN, BLOB_LOOP, blobFilter, blobScene } from "./blob.ts";
 import { BLOB_RADIUS, blobMap, blobMelt } from "./blob-gl.ts";
-import { type BLOB_LAYOUT_OUT, blobProgram } from "./blob-program.ts";
+import { type BLOB_LAYOUT_OUT, blobClock, blobProgram } from "./blob-program.ts";
 import { decodePalette } from "./codec.ts";
 import { compile, DoubleProgram, evaluate, registersOf } from "./double-program.ts";
 import type { Palette } from "./palette.ts";
@@ -118,140 +118,127 @@ test("the Shadertoy program lands on the player's layout and weights, double for
     }
 });
 
-test("the Shadertoy program places every ball where the player's Float32Array holds it", () => {
-  for (const seed of SEEDS) {
-    const P = decodePalette(seed) as Palette;
-    const view = { shape: null, frost: 1, bg: null, angle: 45 };
-    const scene = blobScene(P, BLOB_DESIGN, view);
-    const look = blobFilter(view, BLOB_DESIGN, scene);
-    for (const [W, H] of SIZES.slice(0, 4)) {
-      const map = blobMap(W, H, 1, 1);
-      const melt = blobMelt(look, map, W, H, new Float32Array(BLOB_RADIUS + 1));
-      const layout = {
-        sx: map.sx,
-        sy: map.sy,
-        tx: map.tx,
-        ty: map.ty,
-        meltX: melt.box.x,
-        meltY: melt.box.y,
-        texel: melt.box.texel
-      };
-      const data = new Float32Array(8 * 24);
-      for (const f of [0, 0.0001, 0.123456789, 0.5, 0.75, 0.999999]) {
-        blobPlaces(scene, f, data, 8);
-        let i = 0;
-        for (const blob of scene.blobs)
-          for (const b of blob.balls) {
-            const R = registersOf(program, {
-              ...layout,
-              blobX: blob.x,
-              blobY: blob.y,
-              blobR: blob.R,
-              reachX: blob.wander[0].reach,
-              reachY: blob.wander[1].reach,
-              lapsX: blob.wander[0].laps,
-              lapsY: blob.wander[1].laps,
-              depth: blob.depth,
-              spin: blob.spin,
-              ballX: b.x,
-              ballY: b.y,
-              ballR: b.r,
-              swing: b.swing,
-              phaseCos: Math.cos(2 * Math.PI * b.phase),
-              phaseSin: Math.sin(2 * Math.PI * b.phase),
-              laps: b.laps,
-              ring: b.ring ? 1 : 0,
-              /* a clock held at f of the loop */
-              speed100: 0,
-              ease100: 160,
-              fps: 60,
-              t: f * BLOB_LOOP,
-              drawn: -1,
-              first: 1,
-              changed: 1
-            });
-            evaluate(program, R, section("clock").from, section("place").to);
-            const t = melt.box.texel;
-            expect(pinned(R, "x")).toBe(
-              Math.fround((data[8 * i] * map.sx + map.tx - melt.box.x) / t)
-            );
-            expect(pinned(R, "y")).toBe(
-              Math.fround((data[8 * i + 1] * map.sy + map.ty - melt.box.y) / t)
-            );
-            expect(pinned(R, "r")).toBe(Math.fround((data[8 * i + 2] * map.sx) / t));
-            i++;
-          }
+/* the player's tick (ui/blob-player.ts) and its pace (ui/pace.ts), as it runs in a page */
+function playerClock(speed: number, fps: number, ease: number) {
+  let t = 0;
+  let warm = 0;
+  let last = 0;
+  let first = true;
+  let drawn = -1;
+  let changed = true;
+  let paceLast = Number.NEGATIVE_INFINITY;
+  return (now: number) => {
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    if (speed <= 0) warm = 0;
+    else if (!first) {
+      warm = Math.min(ease, warm + dt);
+      const e = ease ? warm / ease : 1;
+      t += dt * speed * e * e * (3 - 2 * e);
+    }
+    first = false;
+    const at = (t / BLOB_LOOP) % 1;
+    let draw = changed;
+    if (!changed && at !== drawn) {
+      const every = 1000 / fps;
+      if (!(now - paceLast < every - Math.min(4, every * 0.2))) {
+        paceLast = now - paceLast > 2 * every ? now : paceLast + every;
+        draw = true;
       }
     }
-  }
-});
+    if (draw) {
+      drawn = at;
+      changed = false;
+    }
+    return { t, warm, at, draw };
+  };
+}
 
-test("the Shadertoy program's clock is the player's tick, given the frames' times exactly", () => {
-  const frames = compile(blobProgram({ clock: "frames" }));
-  const { from, to } = frames.sections.get("clock") as { from: number; to: number };
-  for (const [speed, fps, ease] of [
-    [1, 60, 1.6],
-    [3, 24, 1.6],
-    [0.5, 120, 1.6],
-    [1, 60, 0],
-    [0.37, 30, 1.6],
-    [0, 60, 1.6]
-  ]) {
-    /* the player's tick (ui/blob-player.ts) at the lab's frames, k * (1000 / 60) ms */
-    let t = 0;
-    let warm = 0;
-    let last = 0;
-    let first = true;
-    let drawn = -1;
-    let changed = true;
-    let paceLast = Number.NEGATIVE_INFINITY;
-    let state = { t: 0, warm: 0, last: 0, paceSet: 0, drawn: -1 };
-    for (let k = 0; k <= 1200; k++) {
-      const now = k * (1000 / 60);
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      if (speed <= 0) warm = 0;
-      else if (!first) {
-        warm = Math.min(ease, warm + dt);
-        const e = ease ? warm / ease : 1;
-        t += dt * speed * e * e * (3 - 2 * e);
-      }
-      const at = (t / BLOB_LOOP) % 1;
-      let draw = changed;
-      if (!changed && at !== drawn) {
-        const every = 1000 / fps;
-        if (!(now - paceLast < every - Math.min(4, every * 0.2))) {
-          paceLast = now - paceLast > 2 * every ? now : paceLast + every;
-          draw = true;
-        }
-      }
-      if (draw) {
-        drawn = at;
-        changed = false;
-      }
-      const R = registersOf(frames, {
-        speed100: Math.round(speed * 100),
-        fps,
-        ease100: Math.round(ease * 100),
-        ...state,
-        first: first ? 1 : 0,
-        changed: k === 0 ? 1 : 0,
-        frameIn: k
-      });
-      first = false;
-      evaluate(frames, R, from, to);
-      const out = (name: string) => R[frames.pinned.get(name) as number];
-      state = {
-        t: out("tOut"),
-        warm: out("warmOut"),
-        last: out("lastOut"),
-        paceSet: out("paceSetOut"),
-        drawn: out("drawnOut")
-      };
-      expect(
-        [state.t, state.warm, state.drawn, out("draw")],
-        `${speed} ${fps} ${ease} frame ${k}`
-      ).toEqual([t, warm, drawn, draw ? 1 : 0]);
+/* the clock's program as the text runs it each frame, on Shadertoy's iTime (a float), from the state the frame before
+   left: the layout's settings first, as the texels keep them */
+const clock = compile(blobClock());
+function textClock(speed: number, fps: number, ease: number) {
+  const R0 = registersOf(program, {
+    W: 800,
+    H: 400,
+    speed100: Math.round(speed * 100),
+    fps,
+    ease100: Math.round(ease * 100),
+    frost100: 100,
+    melt: 30,
+    pad: 40
+  });
+  evaluate(program, R0, section("layout").from, section("layout").to);
+  const settings = Object.fromEntries(
+    ["speed", "ease", "every", "early"].map(name => [name, pinned(R0, name)])
+  );
+  let state = { t: 0, warm: 0, before: 0, paceLast: 0, paceSet: 0, drawn: -1 };
+  let first = true;
+  const f = Math.fround;
+  return (iTime: number) => {
+    /* the shader's float arithmetic: the time in 240ths, its nearest whole number, and whether it is that number's */
+    const x = f(iTime * 240);
+    const grid = Math.floor(f(x + 0.5));
+    const R = registersOf(clock, {
+      ...settings,
+      ...state,
+      grid,
+      time: iTime,
+      onGrid: f(Math.abs(f(x - grid))) <= Math.max(f(1e-4), f(grid * f(2.4e-7))) ? 1 : 0,
+      first: first ? 1 : 0,
+      changed: first ? 1 : 0
+    });
+    first = false;
+    evaluate(clock, R);
+    const out = (name: string) => R[clock.pinned.get(name) as number];
+    state = {
+      t: out("tOut"),
+      warm: out("warmOut"),
+      before: out("beforeOut"),
+      paceLast: out("paceLastOut"),
+      paceSet: out("paceSetOut"),
+      drawn: out("drawnOut")
+    };
+    return { t: state.t, warm: state.warm, at: out("at"), draw: out("draw") === 1 };
+  };
+}
+
+test("the Shadertoy program's clock is the player's tick, double for double, at every frame rate", () => {
+  /* the shader lab's frames: frame k at k * (1000 / hz) ms, Shadertoy's iTime that over 1000 as a float. Every frame
+     rate from 1 to 120 a second, on screens of 60 and 120 Hz, through the ease and past a loop's end at speed 3 */
+  const runs: [speed: number, fps: number, ease: number, hz: number, frames: number][] = [];
+  for (let fps = 1; fps <= 120; fps++) runs.push([3, fps, 1.6, 60, 1000], [1, fps, 1.6, 120, 400]);
+  runs.push(
+    [1, 60, 1.6, 30, 1600],
+    [1.37, 54, 1.6, 240, 1200],
+    [0.29, 24, 0, 60, 3200],
+    [10, 60, 1.6, 60, 400],
+    [0, 60, 1.6, 60, 50]
+  );
+  for (const [speed, fps, ease, hz, frames] of runs) {
+    const player = playerClock(speed, fps, ease);
+    const text = textClock(speed, fps, ease);
+    const interval = 1000 / hz;
+    for (let k = 0; k <= frames; k++) {
+      const now = k * interval;
+      expect(text(Math.fround(now / 1000)), `${speed} ${fps} ${ease} ${hz} Hz frame ${k}`).toEqual(
+        player(now)
+      );
     }
   }
+}, 120_000);
+
+test("the Shadertoy program's clock reads a time off the grid as the float it is", () => {
+  /* a screen's own times, as shadertoy.com's performance.now() gives them: never on a 240th, so read as floats, which
+     moves the motion on as the player's does, within a float's precision */
+  const player = playerClock(1, 60, 1.6);
+  const text = textClock(1, 60, 1.6);
+  let worst = 0;
+  for (let k = 0; k <= 2000; k++) {
+    const now = k ? k * 16.68 + 0.37 : 0;
+    const a = player(now);
+    const b = text(Math.fround(now / 1000));
+    worst = Math.max(worst, Math.abs(a.at - b.at));
+  }
+  expect(worst).toBeLessThan(1e-6);
 });

@@ -1,14 +1,12 @@
-/* The blob's clock and its balls' places each frame in 64-bit fixed point, for its Shadertoy text (blob-shadertoy.ts):
-   integers, which every GPU computes exactly and none reorders or fuses, where the player's script computes in doubles
-   (ui/blob-player.ts, blob.ts's blobPlaces). The places are within about 2^-52 of the player's doubles, so each lands
-   on the float the player's Float32Array holds but at odds of about one in a hundred million. Run every frame by a few
-   texels, it costs a GPU a few thousand integer operations, where the double program (blob-program.ts) runs only as
-   the canvas takes a size.
-     t, the clock's seconds (kept modulo the loop, which is all its share depends on), the ease, the speed, the share,
-     sines and cosines and places in the design: 52 bits of fraction (Q52)
-     the frame rate's milliseconds: 32 (Q32); places in the melt's texels: 48 (Q48)
+/* The blob's balls' places each frame in 64-bit fixed point, for its Shadertoy text (blob-shadertoy.ts): integers,
+   which every GPU computes exactly and none reorders or fuses, where the player's script computes in doubles
+   (blob.ts's blobPlaces). From the share of the loop the player's clock gives (blob-program.ts's, in soft doubles),
+   the places are within about 2^-52 of the player's doubles, so each lands on the float the player's Float32Array
+   holds but at odds of about one in a hundred million. Run by the balls' texels on the frames that draw, it costs a
+   GPU a few thousand integer operations a ball, where soft doubles cost several times that.
+     the share, sines and cosines and places in the design: 52 bits of fraction (Q52); places in the melt's texels: 48
    blobFixedMirror computes the same bits in JavaScript, with BigInt, for the tests. */
-import { BLOB_DEPTH, BLOB_LOOP } from "./blob.ts";
+import { BLOB_DEPTH } from "./blob.ts";
 
 /** A number as a Q52 (or Qf) fixed-point literal: its two's complement words, high first, rounded to nearest. */
 export function fixedLit(x: number, f = 52): string {
@@ -32,12 +30,9 @@ export function fixedOf(x: number, f = 52): bigint {
 
 export const GLSL_FIXED = `// Fixed point: signed 64-bit integers as two words, high first, with F bits of fraction. No branch: a compiler that
 // inlines every call (SwiftShader's and D3D's do) gets straight code it compiles quickly.
-uvec2 fneg(uvec2 a) { return sub64(uvec2(0u), a); }
 // a, or its negative where s is 1
 uvec2 fsign(uvec2 a, uint s) { return add64(a ^ uvec2(0u - s), uvec2(0u, s)); }
 uvec2 fabs(uvec2 a) { return fsign(a, a.x >> 31); }
-uint flt(uvec2 a, uvec2 b) { return uint(int(a.x) < int(b.x)) | (uint(a.x == b.x) & uint(a.y < b.y)); }
-uvec2 fmin(uvec2 a, uvec2 b) { return sel(flt(b, a), b, a); }
 // a times b, F bits of fraction, rounded to nearest with ties away from zero
 uvec2 fmul(uvec2 a, uvec2 b, int F) {
   uvec2 x = fabs(a), y = fabs(b);
@@ -90,16 +85,6 @@ float ftofloat(uvec2 a, int F) {
   return uintBitsToFloat(bits * uint(m != uvec2(0u)));
 }`;
 
-/** The constants the frame's fixed point reads, by the names it reads them under. */
-export const FIXED_CONSTANTS = {
-  ONE: 1,
-  THREE: 3,
-  LOOP: BLOB_LOOP,
-  INV_LOOP: 1 / BLOB_LOOP,
-  TWO_PI: 2 * Math.PI,
-  DEPTH: (BLOB_DEPTH.near - BLOB_DEPTH.far) / 2,
-  TENTH: 0.1
-};
 /** sin and cos of x on [-pi/4, pi/4] by Taylor's series: x^(2k+1) / (2k+1)! and x^2k / (2k)!, eight terms each. */
 export const SIN_TERMS = Array.from({ length: 8 }, (_, k) => (-1) ** k / factorial(2 * k + 1));
 export const COS_TERMS = Array.from({ length: 9 }, (_, k) => (-1) ** k / factorial(2 * k));
@@ -118,11 +103,6 @@ export function fmulMirror(a: bigint, b: bigint, f: number): bigint {
   const p = (a < 0n ? -a : a) * (b < 0n ? -b : b);
   const r = ((p + (1n << BigInt(f - 1))) >> BigInt(f)) & M64;
   return wrap(negative ? -r : r);
-}
-export function fdivMirror(a: bigint, b: bigint, f: number): bigint {
-  const negative = a < 0n !== b < 0n;
-  const q = ((a < 0n ? -a : a) << BigInt(f)) / (b < 0n ? -b : b);
-  return wrap(negative ? -q : q);
 }
 /** the float a fixed number rounds to, ties to even */
 export function ftofloatMirror(a: bigint, f: number): number {
@@ -205,8 +185,8 @@ export const PLACE_ALIASES: Record<string, string[]> = {
 export const PLACE_CONSTANTS: [string, number][] = [
   ["zero", 0],
   ["one", 1],
-  ["twoPi", FIXED_CONSTANTS.TWO_PI],
-  ["depth", FIXED_CONSTANTS.DEPTH],
+  ["twoPi", 2 * Math.PI],
+  ["depth", (BLOB_DEPTH.near - BLOB_DEPTH.far) / 2],
   ...SIN_TERMS.map((x, k): [string, number] => [`sin${k}`, x]),
   ...COS_TERMS.map((x, k): [string, number] => [`cos${k}`, x])
 ];
@@ -312,66 +292,18 @@ export const PLACE = (() => {
   return { code, registers, reg, constants: PLACE_CONSTANTS.map(([, x]) => x) };
 })();
 
-/** The clock and a ball's place in fixed point, as GLSL: the player's tick (ui/blob-player.ts) on Shadertoy's frame
-    time, and blobPlaces with the player's draw into the melt's texels. Reads the scene's numbers from BLOBS, BLOB_LAPS,
-    BALLS and BALL_LAPS (Q52), and the settings SPEED, FPS and EASE. */
-export function glslFixedFrame(lit: (x: number, f?: number) => string = fixedLit): string {
-  const C = FIXED_CONSTANTS;
+/** A ball's place in fixed point, as GLSL: blobPlaces with the player's draw into the melt's texels, from the share of
+    the loop as a Q52 number. Reads the scene's numbers from BLOBS, BLOB_LAPS, BALLS and BALL_LAPS (Q52). */
+export function glslFixedPlace(lit: (x: number, f?: number) => string = fixedLit): string {
   const R = PLACE.reg;
   const rows = (items: string[], per: number) =>
     Array.from(
       { length: Math.ceil(items.length / per) },
       (_, k) => `  ${items.slice(k * per, k * per + per).join(", ")}`
     ).join(",\n");
-  return `// The clock and a ball's place each frame, in fixed point: 52 bits of fraction (Q), the pace's milliseconds 32.
+  return `// A ball's place each frame, in fixed point: 52 bits of fraction (Q).
 const int Q = 52;
-const uvec2 Q_ONE = ${lit(C.ONE)}, Q_MINUS_ONE = ${lit(-C.ONE)}, Q_THREE = ${lit(C.THREE)}, Q_LOOP = ${lit(C.LOOP)};
-const uvec2 Q_PER_LOOP = ${lit(C.INV_LOOP)};
-struct Clock {
-  uvec2 t, warm, last, drawn, at;
-  bool draw, paceSet;
-};
-// the player's tick: from the frame before's clock, with Shadertoy's frame time
-Clock clockFrame(uvec2 t, uvec2 warm, uvec2 last, uvec2 drawn, bool paceSet, bool first, bool changed) {
-  // the frame's time, the speed, the ease and the pace from their floats: within a float's 2^-24 of the player's
-  // doubles, as close as Shadertoy's float time lets the clock be anyway
-  uvec2 dt = ffloat(first ? 0.0 : min(${C.TENTH.toFixed(1)}, iTimeDelta), Q);
-  uvec2 speed = ffloat(SPEED, Q), ease = ffloat(EASE, Q);
-  bool moving = SPEED > 0.0;
-  uvec2 warm1 = fmin(ease, add64(warm, dt));
-  uvec2 e = sel(uint(EASE > 0.0), fmul(warm1, ffloat(1.0 / max(EASE, 1e-6), Q), Q), Q_ONE);
-  // the step: the frame's time by the speed, by e twice and by 3 - 2e, in that order
-  uvec2 step = dt;
-  for (int k = 0; k < 4; k++) step = fmul(step, k == 0 ? speed : k == 3 ? sub64(Q_THREE, add64(e, e)) : e, Q);
-  // the loop's seconds, kept within the loop, which is all its share depends on
-  uvec2 t1 = add64(t, step);
-  t1 = sel(flt(t1, Q_LOOP), t1, sub64(t1, Q_LOOP));
-  Clock c;
-  c.t = moving && !first ? t1 : t;
-  c.warm = moving ? (first ? warm : warm1) : uvec2(0u);
-  c.at = fmul(c.t, Q_PER_LOOP, Q);
-  // the frame rate's pace: a frame due once each 1 / FPS, a little early rather than a frame late. The time now
-  // and a fifth of a frame's time by one multiplication
-  uvec2 every = ffloat(1000.0 / FPS, 32), time = ffloat(iTime, 32), now = uvec2(0u), fifth = uvec2(0u);
-  for (int k = 0; k < 2; k++) {
-    uvec2 p = fmul(k == 0 ? time : every, k == 0 ? ${lit(1000, 32)} : ${lit(0.2, 32)}, 32);
-    now = k == 0 ? p : now;
-    fifth = k == 1 ? p : fifth;
-  }
-  uvec2 early = sub64(every, fmin(${lit(4, 32)}, fifth));
-  uvec2 gap = sub64(now, last);
-  bool ready = flt(gap, early) == 0u;
-  bool due = !paceSet || ready;
-  uvec2 twice = add64(every, every), after = add64(last, every);
-  uvec2 next = paceSet && flt(twice, gap) == 0u ? after : now;
-  bool differs = c.at != drawn;
-  bool consult = !changed && differs;
-  c.draw = changed || (differs && due);
-  c.last = consult && due ? next : last;
-  c.paceSet = consult || paceSet;
-  c.drawn = c.draw ? c.at : drawn;
-  return c;
-}
+const uvec2 Q_ONE = ${lit(1)}, Q_MINUS_ONE = ${lit(-1)};
 
 // A ball's place as a program, which one loop runs: blobPlaces at the share, sin and cos by their series, and the
 // player's draw into the melt's texels, each operation written once (a compiler inlines every call, and written out
@@ -398,8 +330,8 @@ int sineOf(int laps) {
   return laps > 0 ? PLACE_SINES[k] : PLACE_NEGATIVES[k];
 }
 // blobPlaces for ball \`which\` at the share \`at\`, then the player's draw into the melt's texels, as floats; made
-// holds the layout's doubles
-vec3 placeFrame(uvec2 at, int which, uvec2 made[8]) {
+// holds the layout's doubles: the map (sx, sy, tx, ty), the melt's corner and the texel's inverse
+vec3 placeFrame(uvec2 at, int which, uvec2 made[7]) {
   uvec2 V[${PLACE.registers}];
   // the share's nearest quarter turn, the share less it, and the turn's cosine and sine
   int quarter = int(shr64(add64(shl64(at, 2), shl64(uvec2(0u, 1u), Q - 1)), Q).y);
@@ -410,8 +342,8 @@ vec3 placeFrame(uvec2 at, int which, uvec2 made[8]) {
   int blob = which / 8;
   for (int k = 0; k < 5; k++) V[3 + k] = BLOBS[blob * 5 + k];
   for (int k = 0; k < 6; k++) V[8 + k] = BALLS[which * 6 + k];
-  // the map, the melt's corner and the texel's inverse at 48 bits (the texel itself, made[6], it does not read)
-  for (int k = 0; k < 7; k++) V[14 + k] = fdouble(made[k == 6 ? 7 : k], 48);
+  // the map, the melt's corner and the texel's inverse at 48 bits
+  for (int k = 0; k < 7; k++) V[14 + k] = fdouble(made[k], 48);
   // what the ball's laps choose: sines by its blob's laps in depth, across and down, the cosine and sine of its own
   // laps, the ring's turn, and its place turned with the ring where it rides one
   ivec4 laps = BLOB_LAPS[blob];
@@ -459,69 +391,10 @@ export interface FixedScene {
     ring: boolean;
   }[];
 }
-export interface FixedClock {
-  t: bigint;
-  warm: bigint;
-  last: bigint;
-  drawn: bigint;
-  at: bigint;
-  draw: boolean;
-  paceSet: boolean;
-}
-
-/** clockFrame and placeFrame in JavaScript, bit for bit, for the tests. */
-export function blobFixedMirror(settings: { speed: number; fps: number; ease: number }) {
+/** placeFrame in JavaScript, bit for bit, for the tests. */
+export function blobFixedMirror() {
   const Q = 52;
   const q = (x: number, f = Q) => fixedOf(x, f);
-  const int = (i: number, f = Q) => BigInt(i) << BigInt(f);
-  const C = FIXED_CONSTANTS;
-  const min = (a: bigint, b: bigint) => (b < a ? b : a);
-  const clock = (
-    s: { t: bigint; warm: bigint; last: bigint; drawn: bigint; paceSet: boolean },
-    first: boolean,
-    changed: boolean,
-    iTimeDelta: number,
-    iTime: number
-  ): FixedClock => {
-    const f32 = Math.fround;
-    const dt = first ? 0n : ffloatMirror(Math.min(f32(0.1), f32(iTimeDelta)), Q);
-    const speed = ffloatMirror(f32(settings.speed), Q);
-    const ease = ffloatMirror(f32(settings.ease), Q);
-    const moving = f32(settings.speed) > 0;
-    const warm1 = min(ease, s.warm + dt);
-    const e =
-      f32(settings.ease) > 0
-        ? fmulMirror(warm1, ffloatMirror(f32(1 / Math.max(f32(settings.ease), f32(1e-6))), Q), Q)
-        : q(C.ONE);
-    const step = fmulMirror(
-      fmulMirror(fmulMirror(fmulMirror(dt, speed, Q), e, Q), e, Q),
-      q(C.THREE) - (e + e),
-      Q
-    );
-    let t1 = s.t + step;
-    if (!(t1 < q(C.LOOP))) t1 -= q(C.LOOP);
-    const t = moving && !first ? t1 : s.t;
-    const warm = moving ? (first ? s.warm : warm1) : 0n;
-    const at = fmulMirror(t, q(C.INV_LOOP), Q);
-    const now = fmulMirror(ffloatMirror(Math.fround(iTime), 32), int(1000, 32), 32);
-    const every = ffloatMirror(f32(1000 / f32(settings.fps)), 32);
-    const early = every - min(int(4, 32), fmulMirror(every, q(0.2, 32), 32));
-    const gap = now - s.last;
-    const due = !s.paceSet || !(gap < early);
-    const next = s.paceSet ? (every + every < gap ? now : s.last + every) : now;
-    const differs = at !== s.drawn;
-    const consult = !changed && differs;
-    const draw = changed || (differs && due);
-    return {
-      t,
-      warm,
-      at,
-      draw,
-      last: consult && due ? next : s.last,
-      paceSet: consult || s.paceSet,
-      drawn: draw ? at : s.drawn
-    };
-  };
   const place = (
     at: bigint,
     scene: FixedScene,
@@ -595,5 +468,5 @@ export function blobFixedMirror(settings: { speed: number; fps: number; ease: nu
     }
     return [floats[R.outX], floats[R.outY], floats[R.outR]];
   };
-  return { clock, place };
+  return { place };
 }
