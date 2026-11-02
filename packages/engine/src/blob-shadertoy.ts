@@ -19,7 +19,8 @@
    Its time is Shadertoy's iTime, a float: where it is the float of a whole number of 240ths of a second, the time a
    frame has on a 30, 60, 120 or 240 Hz screen counted from the first, the clock reads that many 240ths in double
    precision, which is the time the player's requestAnimationFrame gives the frame, so every frame is the player's own
-   (the shader lab's frames are so timed); any other time is read as the float it is. */
+   (the shader lab's frames are so timed) where the GPU rounds the player's 8-bit noise and half-float melt as the
+   float buffers do (SwiftShader does; the RTX 2080 Ti does not); any other time is read as the float it is. */
 import {
   BLOB_DESIGN,
   BLOB_LOOP,
