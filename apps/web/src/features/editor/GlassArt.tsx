@@ -88,12 +88,17 @@ export function GlassArt(props: {
   const [box, setBox] = createSignal("");
   /* within a screen of the window: a card far down a long page draws nothing, and gives its still back once far */
   const [near, setNear] = createSignal(true);
+  /* the box's size as its observer last read it, which a still is drawn at: read as a frame draws its stills, it laid
+     the page out again after each still the frame drew before it. Read from the box until the observer has */
+  let size: { width: number; height: number } | null = null;
+  const sizeOf = () => size ?? { width: el.clientWidth, height: el.clientHeight };
   /* in the window itself: one near it keeps its still while a change goes on, and takes the last once it rests */
   const [inView, setInView] = createSignal(true);
   onSettled(() => {
     const sizes = new ResizeObserver(() => {
-      setSeen(el.clientWidth > 0 && el.clientHeight > 0);
-      setBox(`${el.clientWidth}x${el.clientHeight}`);
+      size = { width: el.clientWidth, height: el.clientHeight };
+      setSeen(size.width > 0 && size.height > 0);
+      setBox(`${size.width}x${size.height}`);
     });
     sizes.observe(el);
     const sight = new IntersectionObserver(
@@ -176,7 +181,8 @@ export function GlassArt(props: {
       const dpr = devicePixelRatio || 1;
       /* the server's field stands under the box's first still */
       if (fade && !untrack(painted) && serverField(named)) setFades(true);
-      const bitmap = gpuStill(colors, angle, shape, el.clientWidth * dpr, el.clientHeight * dpr);
+      const { width, height } = sizeOf();
+      const bitmap = gpuStill(colors, angle, shape, width * dpr, height * dpr);
       if (bitmap === undefined) {
         showField(colors, angle, shape, named);
         /* the picture waits for its still: the GPU's canvas is made now, not as the page next idles */
@@ -191,7 +197,7 @@ export function GlassArt(props: {
       }
       if (bitmap) {
         canvas.getContext("bitmaprenderer")?.transferFromImageBitmap(bitmap);
-        drawnBox = `${el.clientWidth}x${el.clientHeight}`;
+        drawnBox = `${width}x${height}`;
         drawnAt = performance.now();
         setPainted(true);
         setUri(null);
