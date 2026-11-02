@@ -27,7 +27,9 @@ const KIB = 1024;
 const PAGES: Record<string, { route: string; also?: string[]; budget: number }> = {
   "/": { route: "src/routes/index.tsx", budget: 285 },
   "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 290 },
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 285 },
+  /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
+     to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 286 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026) */
   "a collection": {
