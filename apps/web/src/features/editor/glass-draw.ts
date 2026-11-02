@@ -2,7 +2,6 @@
    angle, or the glass chosen. Its code (engine/glass.ts) is no part of a palette page's start, whose first screen has
    the server's still (server/glass-still.ts): it loads on demand, and is asked for with a navigation's editor code and
    as the Appearance menu opens, so the still is there for the editor's first frame. */
-import type { GlassGeometry } from "@grabient/engine/glass.ts";
 import { readStillKey } from "@grabient/engine/glass-colors.ts";
 import { BOOT_MARK } from "./boot.ts";
 
@@ -15,8 +14,6 @@ export const GLASS_FIELD_STYLE = "glass-fields";
 let glass: typeof import("@grabient/engine/glass.ts") | null = null;
 let recolor: typeof import("./glass-recolor.ts").recolor | null = null;
 let loading: Promise<void> | null = null;
-/* the one design every size shows, laid out once for each angle and shape */
-const designs = new Map<string, GlassGeometry>();
 
 /** The still's code, asked for once. */
 export const loadStill = (): Promise<void> =>
@@ -42,20 +39,6 @@ export const serverStill = (key: string): boolean =>
 export const serverField = (key: string): boolean =>
   !!document.getElementById(GLASS_FIELD_STYLE)?.dataset.key?.split(" ").includes(key);
 
-const designOf = (
-  code: typeof import("@grabient/engine/glass.ts"),
-  angle: number,
-  shape: number | null
-) => {
-  const key = `${angle}|${shape ?? 0}`;
-  let design = designs.get(key);
-  if (!design) {
-    design = code.glassGeometry(code.GLASS_DESIGN, angle, shape);
-    designs.set(key, design);
-  }
-  return design;
-};
-
 /** The still of these colors at this angle and shape as SVG markup, or null while its code loads. */
 export function stillSvg(
   colors: readonly string[],
@@ -63,7 +46,7 @@ export function stillSvg(
   shape: number | null = null
 ): string | null {
   if (!glass) return null;
-  const design = designOf(glass, angle, shape);
+  const design = glass.glassDesign(angle, shape);
   return glass.glassSvg(design, glass.glassField(design, colors), { still: true, cover: true });
 }
 
@@ -77,7 +60,7 @@ export function recolorStill(
   shape: number | null = null
 ): boolean {
   if (!glass || !recolor) return false;
-  const design = designOf(glass, angle, shape);
+  const design = glass.glassDesign(angle, shape);
   return recolor(svg, glass.glassField(design, from), glass.glassField(design, colors));
 }
 
