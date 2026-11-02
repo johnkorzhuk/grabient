@@ -156,12 +156,26 @@ export function createWindow(o: WindowOptions) {
   const before = () => spaced()[0];
   const after = () => spaced()[1];
 
-  /** Reads where the column stands and the viewport; a hidden column keeps the last it read. */
-  const read = (y = scrollY) => {
+  /* Where the column stands and the viewport, read for the next frame to lay the window out by. A scroll or resize
+     event and a ResizeObserver's delivery come while the page stands as last laid out, so reading there lays nothing
+     out; read in the frame's own callbacks, after another had changed the page (the other window on the home, the
+     heights a feed measured), it laid the whole page out at once, up to a tenth of a second on a phone. A hidden
+     column keeps the last it read. */
+  let taken: { y: number; h: number; top: number; width: number } | null = null;
+  const take = (y = scrollY) => {
     if (!host?.getClientRects().length) return;
     o.room.top = host.getBoundingClientRect().top + scrollY;
     o.room.width = host.clientWidth;
-    setView({ y, h: innerHeight, top: o.room.top, width: o.room.width });
+    taken = { y, h: innerHeight, top: o.room.top, width: o.room.width };
+  };
+  const apply = () => {
+    if (taken) setView(taken);
+    taken = null;
+  };
+  /** Reads where the column stands and the viewport, and lays the window out by it now. */
+  const read = (y = scrollY) => {
+    take(y);
+    apply();
   };
   /* what lets go of a start the reader's first move has set waiting */
   let waiting: (() => void) | undefined;
@@ -199,10 +213,11 @@ export function createWindow(o: WindowOptions) {
   onSettled(() => {
     let frame = 0;
     const soon = () => {
+      take();
       if (!frame) {
         frame = requestAnimationFrame(() => {
           frame = 0;
-          read();
+          apply();
         });
       }
     };
