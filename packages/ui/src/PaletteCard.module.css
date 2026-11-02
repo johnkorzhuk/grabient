@@ -104,10 +104,12 @@
     flex-direction: column;
     align-items: flex-end;
   }
-  /* the strip is a pointer's: on touch the format chips stay in the selection's panel */
+  /* the strip is a pointer's: on touch the format chips stay in the selection's panel. It keeps the corner's inset at
+     both ends, and scrolls what a narrow card has no room for */
   .tools {
     bottom: var(--space-s3);
     inset-inline-end: var(--space-s3);
+    max-width: calc(100% - 2 * var(--space-s3));
     @media (pointer: coarse) {
       display: none;
     }

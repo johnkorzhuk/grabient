@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show, untrack } from "solid-js";
 import { announce } from "./announce.ts";
 import { createDone } from "./done.ts";
 import styles from "./FormatStrip.module.css";
@@ -9,11 +9,13 @@ import { tooltip } from "./Tooltip.tsx";
 
 /* The copies, the downloads and the links as one strip: first the mode, its glyph alone, which a press turns from
    copying to downloading to links and back, with a dot for each mode over it while the pointer or the keyboard is on
-   it; then a chip per format, an icon and its name; and at the end the swatch book, which opens the swatch files the
-   mode takes in the formats' place and turns to Back. A format keeps its place in every mode (placesOf) and each chip
-   holds the names its place can take, so as the mode turns nothing moves but what changes; it is named for what it does
-   (Copy CSS, Download PNG). A chip confirms on itself: its icon is a check for a moment. The formats' names are their
-   own, never translated. The strip runs the way of the place it stands in. */
+   it; then a chip per format, an icon and its name, on a card's strip its name alone; and at the end the swatch book,
+   which opens the swatch files the mode takes in the formats' place and turns to Back. A format keeps its place in
+   every mode (placesOf) and each chip holds the names its place can take, so as the mode turns nothing moves but what
+   changes; it is named for what it does (Copy CSS, Download PNG). A chip confirms on itself: its icon, or a name alone,
+   is a check for a moment. The formats' names are their own, never translated. A strip with less room than its chips
+   take gives up their padding evenly, then scrolls the formats sideways between the mode and the book, so no chip ever
+   runs over another. The strip runs the way of the place it stands in. */
 export type Format =
   | "css"
   | "svg"
@@ -145,7 +147,8 @@ export interface FormatStripProps {
   onDownload?: (format: Format) => void;
   /** answers as onCopy does */
   onLink?: (format: Format) => unknown;
-  /** sm 28px over a card, md 32px among controls, lg 40px on the stage and in the export */
+  /** sm 28px over a card (with the art variant, each format's chip its name alone), md 32px among controls, lg 40px on
+      the stage and in the export */
   size?: "sm" | "md" | "lg";
   variant?: "art" | "paper";
   /** stretched to the row, the chips sharing it */
@@ -197,14 +200,20 @@ export function FormatStrip(props: FormatStripProps) {
     announce(t("Copied"));
   };
   const glyph = () => (props.size === "lg" ? 14 : 13);
+  /* over a card each format's chip is its name alone, where an icon before every name made the row too dense to read;
+     the mode and the swatch book, which have no name, keep their glyphs */
+  const named = untrack(() => (props.size ?? "sm") === "sm" && (props.variant ?? "art") === "art");
+  /* the icon before a format's name, on every strip but a card's */
+  const icon = (f: Format) => (named ? null : <Icon name={ICON[f]} size={glyph()} />);
   const tipMode = tooltip(turn, { turns: true });
   const tipBook = tooltip(book, { turns: true });
-  /* a chip's name, holding the names of the other formats its place takes so its width never changes */
+  /* a chip's name, holding the names of the other formats its place takes so its width never changes; after an icon,
+     with the space before it */
   const name = (f: Format, place: readonly Format[]) => {
     const others = place.filter(g => g !== f).map(g => LABEL[g]);
     return (
       <span class={styles.name} data-a={others[0] ?? LABEL[f]} data-b={others[1] ?? LABEL[f]}>
-        <span class={styles.word}> {LABEL[f]}</span>
+        <span class={styles.word}>{named ? LABEL[f] : ` ${LABEL[f]}`}</span>
       </span>
     );
   };
@@ -215,6 +224,7 @@ export function FormatStrip(props: FormatStripProps) {
       data-size={props.size ?? "sm"}
       data-variant={props.variant ?? "art"}
       data-full={props.full ? "" : undefined}
+      data-named={named ? "" : undefined}
       role="group"
       aria-label={t(GROUP[mode()])}
     >
@@ -229,7 +239,7 @@ export function FormatStrip(props: FormatStripProps) {
             <For each={layer()} keyed={false}>
               {place => (
                 <span class={styles.chip}>
-                  <Icon name={ICON[place()[0]]} size={glyph()} />
+                  {icon(place()[0])}
                   {name(place()[0], place())}
                 </span>
               )}
@@ -264,39 +274,51 @@ export function FormatStrip(props: FormatStripProps) {
             </span>
           </button>
         </Show>
-        <For each={places()} keyed={false}>
-          {place => {
-            const shown = () => place().find(f => formats().includes(f));
-            const tip = tooltip(() => {
-              const f = shown();
-              return f ? t(chipOf(f, mode()), { format: LABEL[f] }) : null;
-            });
-            return (
-              <Show
-                when={shown()}
-                fallback={
-                  <span class={styles.chip} data-hole="" aria-hidden="true">
-                    <Icon name={ICON[place()[0]]} size={glyph()} />
-                    {name(place()[0], place())}
-                  </span>
-                }
-              >
-                {f => (
-                  <button
-                    ref={tip}
-                    type="button"
-                    class={styles.chip}
-                    aria-label={t(chipOf(f(), mode()), { format: LABEL[f()] })}
-                    onClick={() => void act(f())}
-                  >
-                    <Icon name={done() === f() ? "check" : ICON[f()]} size={glyph()} />
-                    {name(f(), place())}
-                  </button>
-                )}
-              </Show>
-            );
-          }}
-        </For>
+        {/* the formats, between the mode and the book: where the strip has less room than their names, they scroll */}
+        <span class={styles.formats}>
+          <For each={places()} keyed={false}>
+            {place => {
+              const shown = () => place().find(f => formats().includes(f));
+              const tip = tooltip(() => {
+                const f = shown();
+                return f ? t(chipOf(f, mode()), { format: LABEL[f] }) : null;
+              });
+              return (
+                <Show
+                  when={shown()}
+                  fallback={
+                    <span class={styles.chip} data-hole="" aria-hidden="true">
+                      {icon(place()[0])}
+                      {name(place()[0], place())}
+                    </span>
+                  }
+                >
+                  {f => (
+                    <button
+                      ref={tip}
+                      type="button"
+                      class={styles.chip}
+                      data-done={named && done() === f() ? "" : undefined}
+                      aria-label={t(chipOf(f(), mode()), { format: LABEL[f()] })}
+                      onClick={() => void act(f())}
+                    >
+                      {named ? null : (
+                        <Icon name={done() === f() ? "check" : ICON[f()]} size={glyph()} />
+                      )}
+                      {name(f(), place())}
+                      {/* a name alone confirms with a check in its place, the name keeping the chip's width */}
+                      <Show when={named && done() === f()}>
+                        <span class={styles.check}>
+                          <Icon name="check" size={glyph()} />
+                        </span>
+                      </Show>
+                    </button>
+                  )}
+                </Show>
+              );
+            }}
+          </For>
+        </span>
         <Show when={swatched()}>
           <Show
             when={swatchesOf(mode()).length > 0}

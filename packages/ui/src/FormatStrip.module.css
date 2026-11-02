@@ -28,15 +28,69 @@
       width: 100%;
     }
   }
-  /* the chips in a row, and the widest row of each layer drawn unseen in the same cell, which sets the width */
+  /* the chips in a row, and the widest row of each layer drawn unseen in the same cell, which sets the width up to the
+     room the strip has, past which they are cut off unseen */
   .row {
     display: flex;
     grid-area: 1 / 1;
     align-items: center;
     min-width: 0;
     &[data-unseen] {
+      overflow: hidden;
       visibility: hidden;
       pointer-events: none;
+    }
+  }
+  /* the formats between the mode and the swatch book. A strip with less room than its chips take (a card narrower than
+     a strip's names) scrolls them sideways in one row under no scrollbar, an edge with more beyond it fading out, so a
+     chip never runs over another or out of the strip; the fade follows the scroll where the browser can say it */
+  .formats {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    --fade: linear-gradient(
+      to right,
+      transparent 0,
+      black calc(var(--less, 0) * var(--space-s4)),
+      black calc(100% - var(--more, 0) * var(--space-s4)),
+      transparent 100%
+    );
+    -webkit-mask-image: var(--fade);
+    mask-image: var(--fade);
+    animation: edges linear both;
+    animation-timeline: scroll(self inline);
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    &:dir(rtl) {
+      --fade: linear-gradient(
+        to left,
+        transparent 0,
+        black calc(var(--less, 0) * var(--space-s4)),
+        black calc(100% - var(--more, 0) * var(--space-s4)),
+        transparent 100%
+      );
+    }
+  }
+  /* an edge fades while chips wait past it: none while the row has nothing to scroll, where the timeline is inactive */
+  @keyframes edges {
+    from {
+      --less: 0;
+      --more: 1;
+    }
+    2% {
+      --less: 1;
+    }
+    98% {
+      --more: 1;
+    }
+    to {
+      --less: 1;
+      --more: 0;
     }
   }
   /* a dot for each mode over the mode's glyph, outside the strip, the mode it is in marked; over a picture each is two
@@ -76,8 +130,10 @@
     }
   }
   .chip {
+    position: relative;
     display: inline-flex;
     flex-grow: 1;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     gap: var(--space-s1);
@@ -143,6 +199,12 @@
     .strip[data-full] &:not([data-square], [data-mode]) {
       flex-basis: 0;
     }
+    /* elsewhere the formats shown take no padding of their own: the unseen layers measure the strip with theirs, and
+       the room is shared among the formats as they grow, so each stands as wide as a padded one. A strip with less
+       room gives it up evenly, down to the names and icons alone, before its formats scroll */
+    .strip:not([data-full]) .formats > & {
+      padding-inline: 0;
+    }
     /* a place this mode leaves empty keeps its chip's room */
     &[data-hole] {
       visibility: hidden;
@@ -171,7 +233,6 @@
     /* the mode leads, a line apart from the formats, its inner corners square so the line runs straight; while the
        pointer or the keyboard is on it, its dots show */
     &[data-mode] {
-      position: relative;
       border-inline-end: var(--size-hairline) solid var(--color-art-edge);
       border-start-end-radius: 0;
       border-end-end-radius: 0;
@@ -207,10 +268,29 @@
     grid-area: 1 / 1;
     white-space: pre;
   }
+  /* a name alone holds the others with no space before them, and its check stands in its place for a moment */
+  [data-named] .name {
+    &::before {
+      content: attr(data-a);
+    }
+    &::after {
+      content: attr(data-b);
+    }
+  }
+  [data-named] .chip[data-done] .word {
+    visibility: hidden;
+  }
+  .check {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
   /* names give way, clipped to a pixel and never removed, so a chip of an icon alone still says CSS to a reader who
-     listens: a small strip's below 300px of its container, a picture's at a finger's size on a phone too */
+     listens: a small strip's below 300px of its container, a picture's at a finger's size on a phone too. A card's
+     names, which have no icon, stay and scroll */
   @container (max-width: 300px) {
-    .strip:is([data-size="sm"], [data-variant="art"]) .name {
+    .strip:is([data-size="sm"], [data-variant="art"]):not([data-named]) .name {
       position: absolute;
       width: 1px;
       height: 1px;
