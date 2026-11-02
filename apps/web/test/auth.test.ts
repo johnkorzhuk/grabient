@@ -2,8 +2,10 @@ import { deleteAccount } from "@grabient/server/auth/deletion.ts";
 import { handleAuth } from "@grabient/server/auth/gate.ts";
 import { authFor } from "@grabient/server/auth/library.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
+import { keepWhereMade } from "@grabient/server/auth/signup.ts";
 import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { describe, expect, it } from "vitest";
+import { connect } from "./connect.ts";
 import {
   address,
   bodyOf,
@@ -752,5 +754,103 @@ describe("deleting an account", () => {
     const env = testEnv();
     const asked = await handleAuth(post("/api/auth/delete-user", {}), env);
     expect([asked.status, await asked.json()]).toEqual([401, { error: "Sign in to continue." }]);
+  });
+});
+
+/* How an account was made (signup.ts): the page of the site its sign-in returned to, or the app it was made to connect,
+   each read from the request that made it, never from the browser; the first word stands. */
+describe("how an account was made", () => {
+  const madeOf = (env: TestEnv, where: "email" | "id", value: string) =>
+    env.DB.prepare(
+      `SELECT attribution_source AS source, attribution_medium AS medium, attribution_landing AS landing FROM auth_user WHERE ${where} = ?`
+    )
+      .bind(value)
+      .first();
+  const openLink = async (env: TestEnv, email: string, callbackURL: string) => {
+    const sent = await handleAuth(post(LINK, { email, callbackURL }), env);
+    expect(sent.status, await sent.clone().text()).toBe(200);
+    const opened = await handleAuth(get(env.EMAIL.link("/api/auth/magic-link/verify").href), env);
+    expect(opened.status).toBe(302);
+  };
+
+  it("keeps the page an account signed up from, never one it signs in from later", async () => {
+    const env = testEnv();
+    const email = `${unique("made")}@example.test`;
+    await signInByLink(env, email);
+    const first = { source: null, medium: "page", landing: "/palettes/saved" };
+    expect(await madeOf(env, "email", email)).toEqual(first);
+    await openLink(env, email, "/ja/collections?q=sea");
+    expect(await madeOf(env, "email", email)).toEqual(first);
+    // the page's path in its language, without its query
+    const other = `${unique("made")}@example.test`;
+    await openLink(env, other, "/ja/collections?q=sea");
+    expect(await madeOf(env, "email", other)).toEqual({
+      source: null,
+      medium: "page",
+      landing: "/ja/collections"
+    });
+  });
+
+  it("reads a Google sign-in's page from the state on its callback, and no other site's address", async () => {
+    const env = testEnv();
+    const callback = () => get("/api/auth/callback/google?code=x&state=y");
+    const account = await makeAccount(env);
+    await keepWhereMade(env, account.id, { request: callback() }, { callbackURL: "/es/palettes" });
+    expect(await madeOf(env, "id", account.id)).toEqual({
+      source: null,
+      medium: "page",
+      landing: "/es/palettes"
+    });
+    const elsewhere = await makeAccount(env);
+    await keepWhereMade(
+      env,
+      elsewhere.id,
+      { request: callback() },
+      { callbackURL: "https://example.com/palettes" }
+    );
+    expect(await madeOf(env, "id", elsewhere.id)).toEqual({
+      source: null,
+      medium: null,
+      landing: null
+    });
+  });
+
+  it("leaves an account made to connect an app to the app's authorization, which names it", async () => {
+    const env = testEnv();
+    const email = `${unique("app")}@example.test`;
+    await openLink(env, email, "/oauth/authorize?r=abc");
+    expect(await madeOf(env, "email", email)).toEqual({
+      source: null,
+      medium: null,
+      landing: null
+    });
+  });
+
+  it("names the app an account was made to connect, and never one an older account connects", async () => {
+    const env = testEnv();
+    const fresh = await makeAccount(env);
+    await connect(env, fresh);
+    expect(await madeOf(env, "id", fresh.id)).toEqual({
+      source: "Claude",
+      medium: "app",
+      landing: null
+    });
+    const registered = await makeAccount(env);
+    await connect(env, registered, { registered: true });
+    expect(await madeOf(env, "id", registered.id)).toEqual({
+      source: "a registered app",
+      medium: "app",
+      landing: null
+    });
+    const older = await makeAccount(env);
+    await env.DB.prepare("UPDATE auth_user SET created_at = ? WHERE id = ?")
+      .bind(Date.now() - 31 * 60_000, older.id)
+      .run();
+    await connect(env, older);
+    expect(await madeOf(env, "id", older.id)).toEqual({
+      source: null,
+      medium: null,
+      landing: null
+    });
   });
 });

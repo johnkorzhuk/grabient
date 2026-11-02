@@ -1,5 +1,5 @@
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware, getOAuthState } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { captcha, emailOTP, magicLink } from "better-auth/plugins";
 import { drizzle } from "drizzle-orm/d1";
@@ -10,6 +10,7 @@ import type { Env } from "../env.ts";
 import { accountDeletion, deleteAvatars } from "./account-data.ts";
 import { reviewerAddress } from "./roles.ts";
 import * as schema from "./schema.ts";
+import { keepWhereMade } from "./signup.ts";
 
 /* Better Auth for one environment: Google, a link by email, a code by email while an app connects, and a password for
    the app reviewers' account alone. Its routes are reached only through the gate (gate.ts), which opens the ones the
@@ -108,7 +109,11 @@ function createAuth(env: Env) {
                 ? {}
                 : { newsletterOptIn: true })
             }
-          })
+          }),
+          /* the page of the site its sign-in returns to, from Google's state or an email link's address, is kept as
+             where the account was made (signup.ts); an app's authorization names the app itself */
+          after: async (user, context) =>
+            keepWhereMade(env, user.id, context, await getOAuthState().catch(() => null))
         }
       },
       account: {
