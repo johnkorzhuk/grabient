@@ -71,7 +71,7 @@ const COMMON = `// ---- Doubles. The site works the glass out in doubles; a pair
 // float, so every pass draws from the site's numbers. Each sum and product keeps its rounding error, which a compiler
 // that rearranges the steps would drop ((a + b) - a is b only in exact numbers): keep() passes a float through an
 // integer XOR with a 0 the compiler cannot see (ONE is iResolution.z, 1.0), so no step is moved, fused or cancelled
-// across it. The RTX's driver rearranged them otherwise, the lab measured.
+// across it, as an NVIDIA RTX's compiler did without it.
 #define ONE iResolution.z
 float keep(float x) { return uintBitsToFloat(floatBitsToUint(x) ^ (uint(ONE) - 1u)); }
 vec2 twoSum(float a, float b) {
