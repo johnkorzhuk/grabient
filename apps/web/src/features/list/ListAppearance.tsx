@@ -113,9 +113,16 @@ export function ListAppearance() {
     pending = null;
     const to = href({ ...held, ...patch });
     if (held) rewriteQuietly(to);
-    if (to !== location().publicHref)
-      void router.navigate({ href: to, replace: true, resetScroll: false });
-    if (held) look.setDraft(null);
+    const taken =
+      to === location().publicHref
+        ? Promise.resolve()
+        : router.navigate({ href: to, replace: true, resetScroll: false });
+    /* the draft stands until the route has taken it: let go at once, the menu and the cards showed the route's old
+       view for as long as the new one loaded. A change made meanwhile drafts its own, which stands */
+    if (held)
+      void taken.finally(() => {
+        if (!pending) look.setDraft(null);
+      });
   };
   const settle = () => {
     if (pending) go({});
