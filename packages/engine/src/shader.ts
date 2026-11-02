@@ -7,6 +7,7 @@
 import { DEG } from "./math.ts";
 import type { Palette } from "./palette.ts";
 import type { ShaderKind, ShaderPageKind } from "./shader-kinds.ts";
+import { shaderCreditLines } from "./shader-shell.ts";
 import { isSwatchStyle, type View, viewSearch } from "./view.ts";
 
 export {
@@ -47,10 +48,11 @@ export function shaderCredit(
   steps: number,
   origin?: string
 ): string[] {
-  const lines = [`grabient ${seed}`];
-  if (origin) lines.push(`${origin}/${seed}${viewSearch({ ...view, steps })}`);
-  lines.push(`${steps} ${isSwatchStyle(view.style) ? "hard bands" : "stops along the curve"}`);
-  return lines;
+  return shaderCreditLines(
+    seed,
+    origin ? `${origin}/${seed}${viewSearch({ ...view, steps })}` : null,
+    `${steps} ${isSwatchStyle(view.style) ? "hard bands" : "stops along the curve"}`
+  );
 }
 const header = (seed: string, view: ShaderView, steps: number, origin?: string) =>
   shaderCredit(seed, view, steps, origin)

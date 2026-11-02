@@ -7,6 +7,7 @@
 import type { Palette } from "./palette.ts";
 import { type ShaderView, shaderCredit, shaderText } from "./shader.ts";
 import type { ShaderPageKind } from "./shader-kinds.ts";
+import { shaderPageHtml } from "./shader-shell.ts";
 
 /* the canvas's size in device pixels, as the browser lays it out, where it says (devicePixelContentBoxSize) */
 const SIZES = `// The canvas's size in device pixels, as the browser lays it out.
@@ -114,14 +115,14 @@ const PAGE = {
     api: "WebGL 2",
     shader: "glsl",
     type: "x-shader/x-fragment",
-    script: "<script>",
+    script: undefined,
     code: WEBGL
   },
   webgpu: {
     api: "WebGPU",
     shader: "wgsl",
     type: "text/wgsl",
-    script: '<script type="module">',
+    script: "module",
     code: WEBGPU
   }
 } as const;
@@ -141,27 +142,8 @@ export function shaderPage(
   credit[credit.length - 1] += `, drawn by ${page.api}`;
   /* the shader's text as the tab writes it, from the element's first character, so its #version leads the GLSL */
   const shader = shaderText(page.shader, P, view, steps, seed, origin);
-  return `<!doctype html>
-<!--
-${credit.map(line => `  ${line}`).join("\n")}
--->
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>grabient ${seed}</title>
-<style>
-  html, body { margin: 0; height: 100%; }
-  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
-</style>
-</head>
-<body>
-<canvas></canvas>
-<script type="${page.type}" id="shader">${shader}</script>
-${page.script}
-${page.code}
-</script>
-</body>
-</html>
-`;
+  return shaderPageHtml(credit, seed, [
+    { type: page.type, id: "shader", code: shader },
+    { type: page.script, code: page.code }
+  ]);
 }
