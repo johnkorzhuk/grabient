@@ -398,7 +398,7 @@ export function Home(props: { params: ListParams }) {
                 initial={FIRST_GROUPS}
                 live={account() || selection().length ? FIRST_GROUPS : 0}
                 depth={restoring}
-                group={collection => {
+                group={(collection, width) => {
                   const path = () => inView(`/${collection().slug}`, params());
                   const agents = () => collection().owner.kind === "agent";
                   return (
@@ -416,6 +416,7 @@ export function Home(props: { params: ListParams }) {
                       }
                       private={collection().visibility === "private"}
                       palettes={kept(collection())}
+                      width={width?.()}
                       card={preview => {
                         const item = createMemo(() => ({
                           kseed: preview().seed,

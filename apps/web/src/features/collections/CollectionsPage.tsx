@@ -488,7 +488,7 @@ export function CollectionsPage(props: {
                   initial={INITIAL}
                   live={account() || selection().length ? INITIAL : 0}
                   depth={restoring}
-                  group={collection => (
+                  group={(collection, width) => (
                     <CollectionGroup
                       title={collection().title}
                       href={groupHref(collection().slug)}
@@ -502,6 +502,7 @@ export function CollectionsPage(props: {
                       }
                       private={collection().visibility === "private"}
                       palettes={kept(collection())}
+                      width={width?.()}
                       card={preview => card(preview, collection)}
                       onIntent={() => {
                         if (!offline())

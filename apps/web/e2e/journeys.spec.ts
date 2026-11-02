@@ -190,6 +190,18 @@ async function linkAt(page: Page, selector: string, at: number): Promise<string>
     [selector, String(at)]
   );
 }
+/** A list draws only what stands near the reader: scrolls on a screen at a time until something `selector` finds is
+    drawn, as a reader brings the home's collections up under its palettes. */
+async function drawnOn(page: Page, selector: string) {
+  for (let screen = 0; screen < 40 && !(await page.locator(selector).count()); screen++)
+    await page.evaluate(
+      () =>
+        new Promise(done => {
+          scrollBy(0, innerHeight);
+          requestAnimationFrame(() => requestAnimationFrame(done));
+        })
+    );
+}
 /** The card whose Edit leads there, held by its address: a list draws only the rows near the screen, so a place among
     them is no handle. */
 const cardOf = (page: Page, href: string) =>
@@ -356,6 +368,7 @@ const OPENERS = {
     return { href, depth };
   },
   async title(page: Page, width: Width): Promise<Opened> {
+    await drawnOn(page, "main section h2 a[href]");
     const href = await linkAt(page, "main section h2 a[href]", 2);
     const title = page.locator(`main section h2 a[href="${href}"]`).first();
     const depth = await reach(page, title);

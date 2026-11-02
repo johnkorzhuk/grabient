@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToString } from "@solidjs/web";
 import type { Element } from "solid-js";
 import { describe, expect, test } from "vitest";
@@ -76,6 +77,43 @@ describe("CollectionGroup", () => {
     expect(text(markup)).toContain("14 palettes");
     expect(text(markup)).toContain("Private");
     expect(tags(markup, "h2")[0]).toMatchObject({ dir: "auto" });
+  });
+  test("drawn by the browser on its own at a width, leaves out the cards that width hides", () => {
+    const palettes = Array.from({ length: 12 }, (_, i) => `p${i}`);
+    const cards = (width?: number, whole?: boolean) =>
+      tags(
+        html(() => (
+          <CollectionGroup
+            title="Ocean gradients"
+            palettes={palettes}
+            width={width}
+            whole={whole}
+            card={palette => <span data-card={palette()} />}
+          />
+        )),
+        "span"
+      ).filter(s => "data-card" in s).length;
+    expect([380, 800, 1200, 1500, 2000, 3000].map(width => cards(width))).toEqual([
+      3, 4, 6, 8, 10, 12
+    ]);
+    expect(cards()).toBe(12);
+    expect(cards(380, true)).toBe(12);
+  });
+  test("leaves out only what its styles would hide: each container width's cap is shownAt's", () => {
+    const css = readFileSync(new URL("../src/CollectionGroup.module.css", import.meta.url), "utf8");
+    const caps = [...css.matchAll(/@container list ([^{]*)\{\s*&:nth-child\(n \+ (\d+)\)/g)].map(
+      m => ({
+        min: Number(/min-width: (\d+)px/.exec(m[1]!)?.[1] ?? 0),
+        max: Number(/max-width: (\d+)px/.exec(m[1]!)?.[1] ?? Infinity),
+        shown: Number(m[2]) - 1
+      })
+    );
+    expect(caps).toHaveLength(5);
+    for (const { min, max, shown } of caps)
+      for (const width of [min, max])
+        expect(shownAt(columnsAt(width), 12), `${width}px`).toBe(shown);
+    const widest = Math.max(...caps.map(c => c.max)) + 1;
+    expect(shownAt(columnsAt(widest), 12)).toBe(12);
   });
   test("stands as its shape while it is on its way", () => {
     expect(
