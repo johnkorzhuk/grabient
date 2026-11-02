@@ -69,28 +69,29 @@ const list = (values: readonly string[], per = 3) =>
     filter. */
 const COMMON = `// ---- Doubles. The site works the glass out in doubles; a pair of floats, hi + lo (about 48 bits), rounds to the same
 // float, so every pass draws from the site's numbers. Each sum and product keeps its rounding error, which a compiler
-// that simplifies would drop: ONE is 1.0 where the compiler cannot see it, so (a + b) - a stays as written, and keep()
-// passes a float through an integer XOR with a 0 it cannot see either, so no compiler reassociates, fuses or cancels
-// across an exact sum, product or quotient (the RTX's driver does otherwise, the lab measured).
+// that rearranges the steps would drop ((a + b) - a is b only in exact numbers): keep() passes a float through an
+// integer XOR with a 0 the compiler cannot see (ONE is iResolution.z, 1.0), so no step is moved, fused or cancelled
+// across it. The RTX's driver rearranged them otherwise, the lab measured.
 #define ONE iResolution.z
 float keep(float x) { return uintBitsToFloat(floatBitsToUint(x) ^ (uint(ONE) - 1u)); }
-vec2 keep2(vec2 x) { return vec2(keep(x.x), keep(x.y)); }
 vec2 twoSum(float a, float b) {
-  float s = (a + b) * ONE;
-  float v = (s - a) * ONE;
-  return keep2(vec2(s, (a - (s - v)) + (b - v)));
+  float s = keep(a + b);
+  float v = keep(s - a);
+  return vec2(s, keep(keep(a - keep(s - v)) + keep(b - v)));
 }
 vec2 quickSum(float a, float b) {
-  float s = (a + b) * ONE;
-  return keep2(vec2(s, b - (s - a)));
+  float s = keep(a + b);
+  return vec2(s, keep(b - keep(s - a)));
 }
 vec2 twoProd(float a, float b) {
-  float p = a * b;
-  float ta = 4097.0 * a * ONE;
-  float ah = ta - (ta - a) * ONE;
-  float tb = 4097.0 * b * ONE;
-  float bh = tb - (tb - b) * ONE;
-  return keep2(vec2(p, ((ah * bh - p) + ah * (b - bh) + (a - ah) * bh) + (a - ah) * (b - bh)));
+  float p = keep(a * b);
+  float ta = keep(4097.0 * a);
+  float ah = keep(ta - keep(ta - a));
+  float al = keep(a - ah);
+  float tb = keep(4097.0 * b);
+  float bh = keep(tb - keep(tb - b));
+  float bl = keep(b - bh);
+  return vec2(p, keep(keep(keep(keep(ah * bh - p) + keep(ah * bl)) + keep(al * bh)) + keep(al * bl)));
 }
 vec2 dd(float a) { return vec2(a, 0.0); }
 vec2 dAdd(vec2 a, vec2 b) {

@@ -241,11 +241,17 @@ test("the Shadertoy tabs keep no tab's frames for another's, and remake the layo
   expect(tab("Buffer A")).toContain(
     "bool fresh = !made || built.xyz != vec3(iResolution.xy, KEY);"
   );
-  /* every exact sum, product and quotient behind the integer guard */
+  /* every step of the exact sums and products, and each quotient, behind the integer guard */
   expect(text).toContain(
     "float keep(float x) { return uintBitsToFloat(floatBitsToUint(x) ^ (uint(ONE) - 1u)); }"
   );
-  expect(text.match(/return keep2\(vec2\(/g)?.length).toBe(3);
+  for (const step of [
+    "float s = keep(a + b);\n  float v = keep(s - a);\n  return vec2(s, keep(keep(a - keep(s - v)) + keep(b - v)));",
+    "return vec2(s, keep(b - keep(s - a)));",
+    "float ah = keep(ta - keep(ta - a));\n  float al = keep(a - ah);",
+    "float q1 = keep(a.x / b.x);"
+  ])
+    expect(text).toContain(step);
 });
 
 test("a float and a double are written so GLSL reads back the same numbers", () => {
