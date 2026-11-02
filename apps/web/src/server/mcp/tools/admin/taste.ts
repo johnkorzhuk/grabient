@@ -3,6 +3,7 @@ import { all, first } from "@grabient/server/db/d1.ts";
 import { CURATION_REASONS } from "@grabient/ui/curation.ts";
 import { isCollectionSlug } from "../../../../features/collections/address.ts";
 import { collectionItem } from "../../../../features/collections/schema.ts";
+import { keptLook } from "../../../../features/editor/look.ts";
 import { listWords } from "../../../../lib/words.ts";
 import { texts as paletteTexts } from "../../../collections/files.ts";
 import type { AdminActionKind } from "../../../collections/record.ts";
@@ -28,6 +29,15 @@ import {
 import { ADMINS, hexes, PAGE, SEED, seedList } from "./common.ts";
 
 /* The standard the admins keep: what they liked, what they took out and why, and where palettes stand. */
+
+/** The look a like or a membership keeps beside its view, where it keeps one (keptLook). */
+const lookOf = (
+  seed: string,
+  row: { style: string; steps: number; angle: number; look: string | null }
+) => {
+  const look = keptLook(seed, row.look, row);
+  return look ? { look } : {};
+};
 
 export const tasteTools: readonly Tool[] = [
   {
@@ -79,9 +89,10 @@ export const tasteTools: readonly Tool[] = [
           query: string | null;
           via: string | null;
           slug: string | null;
+          look: string | null;
         }>(
           c.env.DB,
-          `SELECT l.palette_id AS seed, l.style, l.steps, l.angle, MAX(l.created_at) AS at, l.query, l.via, c.slug ${from}
+          `SELECT l.palette_id AS seed, l.style, l.steps, l.angle, MAX(l.created_at) AS at, l.query, l.via, c.slug, l.look ${from}
            GROUP BY l.palette_id ORDER BY at DESC, l.palette_id LIMIT ? OFFSET ?`,
           ...bind,
           limit,
@@ -113,6 +124,7 @@ export const tasteTools: readonly Tool[] = [
             style: row.style,
             steps: Number(row.steps),
             angle: Number(row.angle),
+            ...lookOf(row.seed, row),
             likedAt: moment(row.at),
             ...(Object.keys(from).length ? { from } : {}),
             in: held.get(row.seed) ?? []
@@ -217,9 +229,10 @@ export const tasteTools: readonly Tool[] = [
           style: string;
           steps: number;
           angle: number;
+          look: string | null;
         }>(
           c.env.DB,
-          `SELECT i.seed, m.slug, i.position, i.style, i.steps, i.angle FROM k_collection_items i
+          `SELECT i.seed, m.slug, i.position, i.style, i.steps, i.angle, i.look FROM k_collection_items i
            JOIN k_collections m ON m.id = i.collection_id WHERE m.owner_kind = 'agent' AND i.seed ${IN} ORDER BY m.slug`,
           asked
         ),
@@ -266,7 +279,8 @@ export const tasteTools: readonly Tool[] = [
                 position: Number(row.position),
                 style: row.style,
                 steps: Number(row.steps),
-                angle: Number(row.angle)
+                angle: Number(row.angle),
+                ...lookOf(row.seed, row)
               })),
             ...(about
               ? {

@@ -2275,6 +2275,28 @@ describe("a palette's look in an account's saves", () => {
     ).toMatchObject({ look: "style=blob&shape=4" });
   });
 
+  it("is read back with the admins' likes and where Grabient's collections hold a palette", async () => {
+    const env = testEnv();
+    const { token } = await connected(env, { admin: true });
+    const seed = fresh();
+    const slug = unique("glasshouse");
+    await call(env, token, "collection_publish", { slug, title: "Glasshouse", palettes: [seed] });
+    await call(env, token, "save_palette", { seed, look: "style=glass&shape=3" });
+    const liked = (await call(env, token, "liked_palettes", { collection: slug })).value;
+    expect(liked).toMatchObject({ palettes: [{ seed, look: "style=glass&shape=3", in: [slug] }] });
+    // a membership's look is read beside its view, and one stored that is no look reads as none
+    const held = async (look: string | null) => {
+      await env.DB.prepare("UPDATE k_collection_items SET look = ? WHERE seed = ?")
+        .bind(look, seed)
+        .run();
+      return (await call(env, token, "palette_standing", { seeds: [seed] })).value.palettes[0]
+        .collections[0].look;
+    };
+    expect(await held(null)).toBeUndefined();
+    expect(await held("shape=3&style=glass")).toBe("style=glass&shape=3");
+    expect(await held("style=wobble")).toBeUndefined();
+  });
+
   it("is kept with a palette in a collection, kept while a call leaves it out, and taken away by one that brings none", async () => {
     const env = testEnv();
     const { token } = await connected(env);
