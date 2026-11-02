@@ -78,6 +78,42 @@ describe("a saved copy's update", () => {
   test.each(merges.map(m => [m.label, m] as const))("%s", (_, m) => {
     expect(short(mergeCopy(long(m.base), long(m.source), long(m.copy)))).toEqual(m.merged);
   });
+
+  test("brings in a look the source changed, keeps one the copy changed, and the copy's where both did", () => {
+    const at = (looks: (string | undefined)[], titles: (string | undefined)[] = []) => ({
+      title: "Looks",
+      description: "",
+      tags: [],
+      items: looks.map(
+        (look, i): CollectionItemInput => ({
+          seed: Object.values(SEEDS)[i]!,
+          style: "linearGradient",
+          steps: 7,
+          angle: 90,
+          ...(look ? { look } : {}),
+          ...(titles[i] ? { title: titles[i] } : {})
+        })
+      )
+    });
+    const looks = (content: CollectionContent) => content.items.map(item => item.look);
+    const base = at(["style=glass", undefined, "style=blob&shape=1", "style=glass"]);
+    const source = at(["style=glass", "style=glass", "style=blob&shape=3", "style=blob"]);
+    const copy = at(
+      [undefined, undefined, "style=blob&shape=4", "style=glass"],
+      [undefined, undefined, undefined, "Mine"]
+    );
+    expect(looks(mergeCopy(base, source, copy))).toEqual([
+      // the copy took its look away: its change stands, as a word taken away does
+      undefined,
+      // the source gave one the copy left as it was: it comes in
+      "style=glass",
+      // both changed it: the copy's stands
+      "style=blob&shape=4",
+      // the copy changed the words and the source the look: each change comes through
+      "style=blob"
+    ]);
+    expect(mergeCopy(base, source, copy).items[3]).toMatchObject({ title: "Mine" });
+  });
 });
 
 describe("addresses", () => {

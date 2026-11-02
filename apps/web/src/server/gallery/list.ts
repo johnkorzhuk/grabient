@@ -2,6 +2,7 @@ import { decodePalette, encodePalette } from "@grabient/engine";
 import { parseView } from "@grabient/engine/view.ts";
 import { all, type Db, first, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { keptLook } from "../../features/editor/address.ts";
 import type { PaletteItem } from "../../features/gallery/schema.ts";
 import {
   bounded,
@@ -45,11 +46,13 @@ export interface PaletteRow {
   angle: number;
   likes_count?: number | null;
   created_at: number;
+  /** a like's whole look, where it keeps one (Saved's rows) */
+  look?: string | null;
 }
 export const ROW = "seed, style, steps, angle, likes_count, created_at";
 
 /** A row as a list shows it, or null for a seed the codec would write otherwise: only canonical seeds enter lists. Its
-    steps are never fewer than its keyframes. */
+    steps are never fewer than its keyframes, and a look it keeps is read again beside its view (keptLook). */
 export function itemOf(row: PaletteRow): PaletteItem | null {
   const palette = decodePalette(row.seed);
   if (!palette || encodePalette(palette) !== row.seed) return null;
@@ -57,13 +60,18 @@ export function itemOf(row: PaletteRow): PaletteItem | null {
     get: name =>
       name === "style" ? row.style : name === "steps" || name === "angle" ? String(row[name]) : null
   });
-  return {
-    kseed: row.seed,
+  const shown = {
     style: view.style,
     steps: Math.max(view.steps, palette.anchors.length),
-    angle: view.angle,
+    angle: view.angle
+  };
+  const look = row.look ? keptLook(row.seed, row.look, shown) : null;
+  return {
+    kseed: row.seed,
+    ...shown,
     likes: Math.max(0, Number(row.likes_count) || 0),
-    createdAt: Number(row.created_at)
+    createdAt: Number(row.created_at),
+    ...(look ? { look } : {})
   };
 }
 export const itemsOf = (rows: readonly PaletteRow[]): PaletteItem[] =>

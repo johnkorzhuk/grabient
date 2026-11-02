@@ -10,6 +10,7 @@ import {
 } from "@grabient/engine/view.ts";
 import { formatMessage, msg, type Params } from "@grabient/i18n";
 import * as v from "valibot";
+import { keptLook } from "../editor/address.ts";
 import { itemKey } from "./address.ts";
 
 /* A collection's words and palettes as every writer sends them: the site's pages, the account's copy, the sync and the
@@ -31,7 +32,9 @@ export const RESTORE_TOKEN_MAX = 4096;
 export const MAX_OWN_COLLECTIONS = 200;
 
 export type Visibility = "public" | "private";
-/** A palette in a collection: its canonical seed in one view, and the words the collection gives it, if any. */
+/** A palette in a collection: its canonical seed in one view, the words the collection gives it, if any, and the whole
+    look it keeps it in where that says more than its view (an effect and its settings, as the palette's address writes
+    them: editor/address.ts's keptLook), which is no part of its key. */
 export interface CollectionItemInput {
   seed: string;
   style: Style;
@@ -39,12 +42,14 @@ export interface CollectionItemInput {
   angle: number;
   title?: string;
   description?: string;
+  look?: string;
 }
-/** An entry as a writer sends it: words given replace the ones the collection has, null takes them away, and words
-    left out stay as they are. */
-export type EntrySent = Omit<CollectionItemInput, "title" | "description"> & {
+/** An entry as a writer sends it: words or a look given replace the ones the collection has, null takes them away, and
+    any left out stay as they are. */
+export type EntrySent = Omit<CollectionItemInput, "title" | "description" | "look"> & {
   title?: string | null;
   description?: string | null;
+  look?: string | null;
 };
 export interface CollectionInput {
   title: string;
@@ -106,24 +111,29 @@ const VIEW_ENTRIES = {
   seed: v.pipe(v.string(), v.maxLength(64)),
   style: v.optional(v.picklist(STYLES), DEFAULT_STYLE),
   steps: v.optional(whole(1, STEPS_MAX), DEFAULT_STEPS),
-  angle: v.optional(whole(0, 360), DEFAULT_ANGLE)
+  angle: v.optional(whole(0, 360), DEFAULT_ANGLE),
+  /* read by keptLook, which keeps none of anything that is no look */
+  look: v.optional(v.unknown())
 };
-/* the seed written canonically and the steps raised to the palette's keyframes, or null for a seed that does not
-   decode */
-function canonical(sent: CollectionItemInput): CollectionItemInput | null {
+type ViewSent = Omit<CollectionItemInput, "title" | "description" | "look"> & { look?: unknown };
+/* the seed written canonically, the steps raised to the palette's keyframes and the look as the palette's address
+   writes it, where it says more than the view; null for a seed that does not decode */
+function canonical(sent: ViewSent): CollectionItemInput | null {
   const palette = decodePalette(sent.seed);
-  return (
-    palette && {
-      seed: encodePalette(palette),
-      style: sent.style,
-      steps: Math.max(STEPS_MIN, palette.anchors.length, sent.steps),
-      angle: sent.angle
-    }
-  );
+  if (!palette) return null;
+  const item = {
+    seed: encodePalette(palette),
+    style: sent.style,
+    steps: Math.max(STEPS_MIN, palette.anchors.length, sent.steps),
+    angle: sent.angle
+  };
+  const look = keptLook(item.seed, sent.look, item);
+  return look ? { ...item, look } : item;
 }
 
 /** A member palette as sent: a seed that decodes, one of the six styles, and steps and angle in their bounds, each
-    defaulted when left out. It comes out canonical, its steps raised to the palette's keyframes, without words. */
+    defaulted when left out, and any look it keeps. It comes out canonical, its steps raised to the palette's keyframes,
+    without words. */
 export const CollectionItem = v.message(
   v.pipe(
     v.object(VIEW_ENTRIES),
@@ -160,6 +170,8 @@ export const CollectionEntry = v.message(
       }
       return {
         ...item,
+        // a look sent that keeps none (a gradient's, or none to read) takes the one the collection has away
+        ...(view.look === undefined || item.look ? {} : { look: null }),
         ...(title === undefined ? {} : { title }),
         ...(description === undefined ? {} : { description })
       };
@@ -175,18 +187,24 @@ export function itemTitle(value: unknown): string | null | undefined {
   return read.success ? read.output : undefined;
 }
 
-/** Entries as sent, each with the words its collection gives it now: the ones sent, else the ones `held` gives the
-    same palette in the same view. */
+/** Entries as sent, each with the words and the look its collection gives it now: the ones sent, else the ones `held`
+    gives the same palette in the same view. */
 export function withWords(
   sent: readonly EntrySent[],
   held: readonly CollectionItemInput[] = []
 ): CollectionItemInput[] {
   const had = new Map(held.map(item => [itemKey(item), item]));
-  return sent.map(({ title, description, ...item }) => {
+  return sent.map(({ title, description, look, ...item }) => {
     const was = had.get(itemKey(item));
     const named = title === undefined ? was?.title : (title ?? undefined);
     const said = description === undefined ? was?.description : (description ?? undefined);
-    return { ...item, ...(named ? { title: named } : {}), ...(said ? { description: said } : {}) };
+    const kept = look === undefined ? was?.look : (look ?? undefined);
+    return {
+      ...item,
+      ...(named ? { title: named } : {}),
+      ...(said ? { description: said } : {}),
+      ...(kept ? { look: kept } : {})
+    };
   });
 }
 

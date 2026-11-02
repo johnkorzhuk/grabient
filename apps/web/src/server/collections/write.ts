@@ -189,8 +189,8 @@ const itemStatements = (
 ): Statement[] =>
   items.map(
     (item, position): Statement => [
-      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description)
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?${withRow ? " WHERE EXISTS (SELECT 1 FROM k_collections WHERE id = ?)" : ""}`,
+      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description,
+       look) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${withRow ? " WHERE EXISTS (SELECT 1 FROM k_collections WHERE id = ?)" : ""}`,
       id,
       position,
       item.seed,
@@ -200,6 +200,7 @@ const itemStatements = (
       now,
       item.title ?? null,
       item.description ?? null,
+      item.look ?? null,
       ...(withRow ? [id] : [])
     ]
   );
@@ -290,8 +291,8 @@ export const LIKES_SUM = `SELECT COALESCE(SUM(p.likes_count), 0) FROM
 export const ITEM_KEY = "seed || ' ' || style || ' ' || steps || ' ' || angle";
 
 /** Replaces every field and writes the palettes as a difference: an item the collection holds keeps its row and the time
-    it joined (its place and its words follow the input), a new item joins with this write's time, and an item no longer
-    in the input goes. A saved copy's Update and Reset also write its source as it stands (`forkedBase`), and a collection that moves
+    it joined (its place, its words and its look follow the input), a new item joins with this write's time, and an item
+    no longer in the input goes. A saved copy's Update and Reset also write its source as it stands (`forkedBase`), and a collection that moves
     takes its new address (`slug`). With `owner`, every statement writes only while the collection is theirs. False when
     nothing was written: no such collection, or not theirs. */
 export async function updateCollection(
@@ -344,12 +345,13 @@ export async function updateCollection(
     ],
     ...input.items.map(
       (item, position): Statement => [
-        `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE 1${ofOwner}
+        `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description,
+           look)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE 1${ofOwner}
          ON CONFLICT(collection_id, seed, style, steps, angle) DO UPDATE SET position = excluded.position,
-           title = excluded.title, description = excluded.description
+           title = excluded.title, description = excluded.description, look = excluded.look
            WHERE position IS NOT excluded.position OR title IS NOT excluded.title
-             OR description IS NOT excluded.description`,
+             OR description IS NOT excluded.description OR look IS NOT excluded.look`,
         id,
         position,
         item.seed,
@@ -359,6 +361,7 @@ export async function updateCollection(
         now,
         item.title ?? null,
         item.description ?? null,
+        item.look ?? null,
         ...through
       ]
     )
@@ -385,9 +388,9 @@ export async function updateCollection(
   return (results[arriving ? 1 : 0]?.meta.changes ?? 0) > 0;
 }
 
-/** Palettes into a collection the site holds, after the ones it holds, with the time they joined: nothing held moves or
-    leaves, the words stand, and another view of a palette it holds is no addition (that is a person's choice). What
-    Grabient's own publishing does. */
+/** Palettes into a collection the site holds, after the ones it holds, with the time they joined and any look they keep:
+    nothing held moves or leaves, the words and looks stand, and another view of a palette it holds is no addition (that
+    is a person's choice). What Grabient's own publishing does. */
 export async function appendCollectionItems(
   env: Writer,
   id: string,
@@ -411,7 +414,7 @@ export async function appendCollectionItems(
   await batch(env.DB, [
     ...additions.map(
       (item): Statement => [
-        "INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description, look) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         id,
         ++position,
         item.seed,
@@ -420,7 +423,8 @@ export async function appendCollectionItems(
         item.angle,
         now,
         item.title ?? null,
-        item.description ?? null
+        item.description ?? null,
+        item.look ?? null
       ]
     ),
     [

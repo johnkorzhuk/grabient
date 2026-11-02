@@ -1,10 +1,11 @@
 import { decodePalette } from "@grabient/engine";
-import { STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
+import { isStyle, STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { all, batch, first, replica, type Statement } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import type { LimitCheck } from "@grabient/server/limits/check.ts";
 import * as v from "valibot";
+import { keptLook } from "../../features/editor/address.ts";
 import type { PaletteItem, SavedPage } from "../../features/gallery/schema.ts";
 import { LIMIT_MAX } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
@@ -45,7 +46,8 @@ export function likeTitle(value: unknown): string | null {
   return clean && clean.length <= TITLE_MAX ? clean : null;
 }
 
-/** What a like's request says: a palette, yes or no, and the view it is saved in. */
+/** What a like's request says: a palette, yes or no, and the view it is saved in, with the whole look where it says more
+    than the view. */
 const LikeBody = v.object({
   seed: v.string(),
   liked: v.boolean(),
@@ -55,6 +57,8 @@ const LikeBody = v.object({
   /** an undo's: when the like it puts back was made */
   at: v.optional(v.unknown()),
   title: v.optional(v.unknown()),
+  /** read as keptLook reads it when the like is written: anything that is no look keeps none, and never refuses the like */
+  look: v.optional(v.unknown()),
   /** where an admin pressed: the search it answered, or the collection whose page showed it */
   from: v.optional(v.object({ q: v.optional(v.string()), collection: v.optional(v.string()) }))
 });
@@ -69,6 +73,8 @@ export interface LikeInput {
   at?: number;
   /** the account's own label: an app's save gives it, and an undo puts back the one an unsave took */
   title?: string;
+  /** the whole look it is saved in, as sent: the write keeps it as keptLook writes it, where it says more than the view */
+  look?: string;
   /** an admin's press: the words of the search it answered (as lists write them) and the collection's slug */
   from?: { q?: string; collection?: string };
   via?: LikeVia;
@@ -80,7 +86,7 @@ export interface LikeInput {
 export function likeInput(body: unknown): LikeInput | null {
   const parsed = v.safeParse(LikeBody, body);
   if (!parsed.success) return null;
-  const { at, title, ...like } = parsed.output;
+  const { at, title, look, ...like } = parsed.output;
   const seed = canonicalSeed(like.seed);
   if (!seed) return null;
   const restored = Number.isInteger(at) ? (at as number) : undefined;
@@ -89,7 +95,8 @@ export function likeInput(body: unknown): LikeInput | null {
     ...like,
     seed,
     ...(restored !== undefined ? { at: restored } : {}),
-    ...(named ? { title: named } : {})
+    ...(named ? { title: named } : {}),
+    ...(like.liked && typeof look === "string" ? { look } : {})
   };
 }
 
@@ -112,6 +119,7 @@ interface KeptLike {
   steps: number;
   angle: number;
   title?: string;
+  look?: string;
 }
 export interface LikeOutcome {
   liked: boolean;
@@ -123,10 +131,12 @@ export interface LikeOutcome {
   /** whether the gallery holds the palette afterwards; null when that could not be read */
   inGallery: boolean | null;
   change: LikeChange;
-  /** the view the like is kept in: a palette saved before keeps the one it was first saved in */
+  /** the view the like is kept in, and its look where it keeps one: a palette saved before keeps the ones it was first
+      saved in */
   style?: string;
   steps?: number;
   angle?: number;
+  look?: string | null;
   /** when the like was made, for an undo to send back */
   at?: number;
   /** the like an unsave took, for an undo to put back */
@@ -174,8 +184,10 @@ async function save(
   const madeAt =
     input.at !== undefined && input.at >= LIKES_BEGAN && input.at <= now ? input.at : now;
   const shown = input.shown ?? { style: input.style, steps, angle: input.angle };
-  /* a like saved again keeps its time and view; a title sent with it renames it, so the sync's log hears a rename and
-     no other repeated save. An undo's title comes back only with the like it makes again */
+  /* the look as the palette's address writes it, beside the view the like keeps, where it says more than that view */
+  const look = keptLook(seed, input.look, { style: input.style, steps, angle: input.angle });
+  /* a like saved again keeps its time, its view and its look; a title sent with it renames it, so the sync's log hears a
+     rename and no other repeated save. An undo's title comes back only with the like it makes again */
   const onHeld =
     input.at === undefined
       ? "UPDATE SET title = excluded.title WHERE excluded.title IS NOT NULL AND k_likes.title IS NOT excluded.title"
@@ -216,8 +228,8 @@ async function save(
     ],
     [`${collectionsRisingLiked(madeAt)} AND NOT ${LIKED}`, seed, user, seed],
     [
-      `INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at, query, collection_id, via, title)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (user_id, palette_id) DO ${onHeld}`,
+      `INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at, query, collection_id, via, title, look)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (user_id, palette_id) DO ${onHeld}`,
       user,
       seed,
       steps,
@@ -227,10 +239,11 @@ async function save(
       context.query,
       context.collectionId,
       admin ? (input.via ?? null) : null,
-      input.title ?? null
+      input.title ?? null,
+      look
     ],
     [
-      "SELECT created_at AS at, style, steps, angle FROM k_likes WHERE user_id = ? AND palette_id = ?",
+      "SELECT created_at AS at, style, steps, angle, look FROM k_likes WHERE user_id = ? AND palette_id = ?",
       user,
       seed
     ]
@@ -239,21 +252,40 @@ async function save(
   const held = results.at(-1)?.results?.[0] as Partial<KeptLike> | undefined;
   const joined = publish && Number(results[0]?.meta?.changes) > 0;
   const change: LikeChange = known?.saved ? "already saved" : "new";
-  return {
-    joined,
-    change,
-    at: Number(held?.at) || madeAt,
+  const kept = {
     style: held?.style ?? input.style,
     steps: Number(held?.steps ?? steps),
     angle: Number(held?.angle ?? input.angle)
   };
+  return {
+    joined,
+    change,
+    at: Number(held?.at) || madeAt,
+    ...kept,
+    look: held ? lookOf(seed, held.look, kept) : look
+  };
 }
+
+/** A kept look as a reader is given it: read again beside the view it is kept with (keptLook), so it always agrees with
+    it; null where none is kept. */
+const lookOf = (
+  seed: string,
+  look: unknown,
+  view: { style: string; steps: number; angle: number }
+): string | null =>
+  typeof look === "string" && look && isStyle(view.style)
+    ? keptLook(seed, look, {
+        style: view.style,
+        steps: Number(view.steps),
+        angle: Number(view.angle)
+      })
+    : null;
 
 async function unsave(env: Pick<Env, "DB">, user: string, seed: string): Promise<KeptLike | null> {
   /* read first: its weight comes off the rising scores as a like of the time it was made */
-  const row = await first<KeptLike & { title: string | null }>(
+  const row = await first<KeptLike & { title: string | null; look: string | null }>(
     env.DB,
-    "SELECT created_at AS at, style, steps, angle, title FROM k_likes WHERE user_id = ? AND palette_id = ?",
+    "SELECT created_at AS at, style, steps, angle, title, look FROM k_likes WHERE user_id = ? AND palette_id = ?",
     user,
     seed
   );
@@ -269,13 +301,15 @@ async function unsave(env: Pick<Env, "DB">, user: string, seed: string): Promise
     [`${collectionsRisingUnliked(at)} AND ${LIKED}`, seed, user, seed],
     ["DELETE FROM k_likes WHERE user_id = ? AND palette_id = ?", user, seed]
   ]);
-  const { title, ...like } = row;
+  const { title, look, ...like } = row;
+  const kept = lookOf(seed, look, like);
   return {
     ...like,
     at,
     steps: Number(like.steps),
     angle: Number(like.angle),
-    ...(title ? { title } : {})
+    ...(title ? { title } : {}),
+    ...(kept ? { look: kept } : {})
   };
 }
 
@@ -336,7 +370,7 @@ export async function likeCounts(
    row whatever the account holds, and an app reads on from the last like it was shown, so its pages read no more deep
    in the list than at its head. */
 const SAVED = `SELECT own.palette_id AS seed, own.style, own.steps, own.angle, own.created_at,
-  COALESCE(palette.likes_count, 0) AS likes_count
+  COALESCE(palette.likes_count, 0) AS likes_count, own.look
   FROM k_likes own LEFT JOIN k_palettes palette ON palette.seed = own.palette_id`;
 const NEWEST = "ORDER BY own.created_at DESC, own.palette_id";
 
@@ -383,14 +417,15 @@ export function readMark(text: unknown): SavedMark | null {
 }
 
 /** An app's page of an account's likes: at most `limit` of them after `mark`, newest first, each with the account's own
-    title for it. The likes are read from the mark on, so a page deep in the list costs what the first does. */
+    title for it and the look it was saved in. The likes are read from the mark on, so a page deep in the list costs
+    what the first does. */
 export async function savedAfter(
   env: Pick<Env, "DB">,
   user: string,
   limit: number,
   mark?: SavedMark
 ) {
-  return all<{
+  const rows = await all<{
     kseed: string;
     style: string;
     steps: number;
@@ -398,10 +433,11 @@ export async function savedAfter(
     at: number;
     title: string | null;
     likes: number;
+    look: string | null;
   }>(
     env.DB,
     `SELECT own.palette_id AS kseed, own.style, own.steps, own.angle, own.created_at AS at, own.title,
-       COALESCE(palette.likes_count, 0) AS likes
+       COALESCE(palette.likes_count, 0) AS likes, own.look
      FROM k_likes own LEFT JOIN k_palettes palette ON palette.seed = own.palette_id
      WHERE own.user_id = ?${mark ? " AND own.created_at <= ? AND (own.created_at < ? OR own.palette_id > ?)" : ""}
      ${NEWEST} LIMIT ?`,
@@ -409,6 +445,7 @@ export async function savedAfter(
     ...(mark ? [mark.at, mark.at, mark.seed] : []),
     limit
   );
+  return rows.map(row => ({ ...row, look: lookOf(row.kseed, row.look, row) }));
 }
 
 /** A page of an account's Saved list: its latest likes, or searched, the ones that answer the words, best first. */

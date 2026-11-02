@@ -1,6 +1,7 @@
 import { isStyle } from "@grabient/engine/view.ts";
 import { all, batch, first } from "@grabient/server/db/d1.ts";
 import type { SyncCollection, SyncLike, SyncResponse } from "../../features/account/wire.ts";
+import { keptLook } from "../../features/editor/address.ts";
 import { ownDocuments } from "./collections.ts";
 
 /* What changed for an account since a browser's copy last heard, read from the log the triggers of migration 0044
@@ -26,19 +27,28 @@ interface LikeRow {
   at: number;
   likes: number | null;
   title: string | null;
+  look: string | null;
 }
 const LIKES = `SELECT own.palette_id AS seed, own.style, own.steps, own.angle, own.created_at AS at,
-  COALESCE(p.likes_count, 0) AS likes, own.title
+  COALESCE(p.likes_count, 0) AS likes, own.title, own.look
   FROM k_likes own LEFT JOIN k_palettes p ON p.seed = own.palette_id WHERE own.user_id = ?`;
-const likeOf = (row: LikeRow): SyncLike => ({
-  seed: row.seed,
-  style: isStyle(row.style) ? row.style : "linearGradient",
-  steps: Number(row.steps),
-  angle: Number(row.angle),
-  at: Number(row.at),
-  likes: Math.max(0, Number(row.likes) || 0),
-  ...(row.title ? { title: row.title } : {})
-});
+function likeOf(row: LikeRow): SyncLike {
+  const view = {
+    style: isStyle(row.style) ? row.style : "linearGradient",
+    steps: Number(row.steps),
+    angle: Number(row.angle)
+  } as const;
+  // the look it was saved in, read again beside its view
+  const look = row.look ? keptLook(row.seed, row.look, view) : null;
+  return {
+    seed: row.seed,
+    ...view,
+    at: Number(row.at),
+    likes: Math.max(0, Number(row.likes) || 0),
+    ...(row.title ? { title: row.title } : {}),
+    ...(look ? { look } : {})
+  };
+}
 
 /** The account's likes: of these palettes, or with none named its latest. */
 async function likesOf(

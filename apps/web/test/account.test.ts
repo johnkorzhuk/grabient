@@ -11,6 +11,7 @@ import { confirmDeletion } from "../src/server/account/deletion.ts";
 import { handleFlags } from "../src/server/account/flags.ts";
 import { checkUsername, saveUsername, uploadAvatar } from "../src/server/account/profile.ts";
 import { handleSync } from "../src/server/account/sync.ts";
+import { savedPage } from "../src/server/gallery/likes.ts";
 import { connect } from "./connect.ts";
 import {
   bodyOf,
@@ -536,6 +537,77 @@ describe("the sync", () => {
       mutations: []
     });
     expect(ahead.body.reset).toBe(true);
+  });
+});
+
+describe("a like's look", () => {
+  it("is kept as the address writes it, beside the like's view, and read back by Saved and the account's copy; a gradient's or a slip keeps none", async () => {
+    const env = testEnv();
+    const ada = await makeAccount(env);
+    const id = client();
+    const [glass, blob, plain, slip] = [palette(), palette(), palette(), palette()];
+    const looked = (seed: string, look: string): SyncOp => ({ ...like(seed), look });
+    const made = await sync(env, ada.cookie, {
+      client: id,
+      cursor: null,
+      mutations: [
+        { id: 1, op: looked(glass, "speed=2&style=glass&angle=200&shape=7&size=1200x630") },
+        { id: 2, op: looked(blob, "style=blob&bg=%23101014&frost=0.5&shape=12") },
+        { id: 3, op: looked(plain, "style=linearGradient") },
+        { id: 4, op: looked(slip, "style=wobble&speed=2") }
+      ]
+    });
+    expect(made.body.results.map(result => result.ok)).toEqual([true, true, true, true]);
+    // the glass at the like's own angle, the size and the order as the address writes them
+    const kept: Record<string, string | undefined> = {
+      [glass]: "style=glass&speed=2&shape=7",
+      [blob]: "style=blob&frost=0.5&shape=12&bg=%23101014",
+      [plain]: undefined,
+      [slip]: undefined
+    };
+    // the account's copy hears each like's look, and Saved lists it
+    expect(Object.fromEntries(made.body.likes.map(entry => [entry.seed, entry.look]))).toEqual(
+      kept
+    );
+    const saved = await savedPage(env, new Request(`${ORIGIN}/api/saved`), ada.id, {
+      page: 1,
+      limit: 24,
+      words: ""
+    });
+    expect(
+      Object.fromEntries(saved.items.map(item => [item.kseed, item.look ?? undefined]))
+    ).toEqual(kept);
+    const stored = async () =>
+      Object.fromEntries(
+        (
+          await env.DB.prepare("SELECT palette_id AS seed, look FROM k_likes WHERE user_id = ?")
+            .bind(ada.id)
+            .all<{ seed: string; look: string | null }>()
+        ).results.map(row => [row.seed, row.look])
+      );
+    // only the look as written, and nothing at all for a gradient's look or a slip
+    expect(await stored()).toEqual({ ...kept, [plain]: null, [slip]: null });
+    // liked again in another look, a palette keeps the one it was first saved in
+    await sync(env, ada.cookie, {
+      client: id,
+      cursor: null,
+      mutations: [{ id: 5, op: looked(glass, "style=blob&shape=3") }]
+    });
+    expect((await stored())[glass]).toBe(kept[glass]);
+    // an unsave's undo puts the like back in its look
+    const unsaved = await sync(env, ada.cookie, {
+      client: id,
+      cursor: null,
+      mutations: [{ id: 6, op: like(glass, false) }]
+    });
+    const was = unsaved.body.results[0]?.was;
+    expect(was).toMatchObject({ ...view, look: kept[glass] });
+    await sync(env, ada.cookie, {
+      client: id,
+      cursor: null,
+      mutations: [{ id: 7, op: { ...like(glass), at: was!.at, look: was!.look } }]
+    });
+    expect((await stored())[glass]).toBe(kept[glass]);
   });
 });
 

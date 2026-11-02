@@ -44,10 +44,12 @@ const sameView = (a: CollectionItemInput, b: CollectionItemInput) =>
   a.style === b.style && a.steps === b.steps && a.angle === b.angle;
 const sameWords = (a: CollectionItemInput, b: CollectionItemInput) =>
   (a.title ?? "") === (b.title ?? "") && (a.description ?? "") === (b.description ?? "");
+const sameLook = (a: CollectionItemInput, b: CollectionItemInput) =>
+  (a.look ?? "") === (b.look ?? "");
 const sameTags = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((tag, i) => tag === b[i]);
 /** Whether two collections hold the same words and the same palettes, drawn alike in the same order with the same
-    words. */
+    words and looks. */
 export const sameContent = (a: CollectionContent, b: CollectionContent): boolean =>
   a.title === b.title &&
   a.description === b.description &&
@@ -55,20 +57,28 @@ export const sameContent = (a: CollectionContent, b: CollectionContent): boolean
   a.items.length === b.items.length &&
   a.items.every(
     (item, i) =>
-      item.seed === b.items[i]!.seed && sameView(item, b.items[i]!) && sameWords(item, b.items[i]!)
+      item.seed === b.items[i]!.seed &&
+      sameView(item, b.items[i]!) &&
+      sameWords(item, b.items[i]!) &&
+      sameLook(item, b.items[i]!)
   );
-/** An item with the words of another. */
-const wordedAs = (item: CollectionItemInput, words: CollectionItemInput): CollectionItemInput => ({
+/** An item with the words of one and the look of another. */
+const keptAs = (
+  item: CollectionItemInput,
+  words: CollectionItemInput,
+  look: CollectionItemInput
+): CollectionItemInput => ({
   seed: item.seed,
   style: item.style,
   steps: item.steps,
   angle: item.angle,
   ...(words.title ? { title: words.title } : {}),
-  ...(words.description ? { description: words.description } : {})
+  ...(words.description ? { description: words.description } : {}),
+  ...(look.look ? { look: look.look } : {})
 });
 const wordOf = (value: unknown) => (typeof value === "string" && value ? value : undefined);
 
-/** The source as its copy keeps it: each palette its seed and view, then its words where it has any. */
+/** The source as its copy keeps it: each palette its seed and view, then its words and its look where it has any. */
 export const baseText = (content: CollectionContent) =>
   JSON.stringify({
     title: content.title,
@@ -79,7 +89,10 @@ export const baseText = (content: CollectionContent) =>
       item.style,
       item.steps,
       item.angle,
-      ...(item.title || item.description ? [item.title ?? null, item.description ?? null] : [])
+      ...(item.title || item.description || item.look
+        ? [item.title ?? null, item.description ?? null]
+        : []),
+      ...(item.look ? [item.look] : [])
     ])
   });
 function baseOf(raw: string | null | undefined): CollectionContent | null {
@@ -95,7 +108,13 @@ function baseOf(raw: string | null | undefined): CollectionContent | null {
       return null;
     const items = value.items.map((entry: unknown) => {
       const item = Array.isArray(entry)
-        ? collectionItem({ seed: entry[0], style: entry[1], steps: entry[2], angle: entry[3] })
+        ? collectionItem({
+            seed: entry[0],
+            style: entry[1],
+            steps: entry[2],
+            angle: entry[3],
+            look: entry[6]
+          })
         : null;
       if (!item || !Array.isArray(entry)) return null;
       const [title, description] = [wordOf(entry[4]), wordOf(entry[5])];
@@ -144,7 +163,7 @@ function interleave(order: readonly string[], others: readonly string[]): string
     changes. An item is a palette in one view: one the source added joins and one it took out leaves; one the copy took
     out stays out and one it added stays. A palette the source redrew (its one view gone, one new view come) is the same
     item redrawn, which takes the place the copy gave the old view where the copy still holds that. Where both changed
-    the same words, a collection's or a palette's, the copy's win. The order is the source's unless the copy moved its items; the other side's items
+    the same words, a collection's or a palette's, or a palette's look, the copy's win. The order is the source's unless the copy moved its items; the other side's items
     follow the item they followed there. A copy nobody changed comes out as the source. */
 export function mergeCopy(
   base: CollectionContent,
@@ -166,13 +185,14 @@ export function mergeCopy(
   const redraws = new Set([...redrawn.values()].map(itemKey));
   const before = new Map(base.items.map(item => [itemKey(item), item]));
   const after = new Map(source.items.map(item => [itemKey(item), item]));
-  /* a palette's words the source changed and the copy kept as they were come in */
+  /* a palette's words, and its look, the source changed and the copy kept as they were come in */
   const worded = (key: string, item: CollectionItemInput) => {
     const old = before.get(key);
     const fresh = after.get(key);
-    return old && fresh && !sameWords(fresh, old) && sameWords(item, old)
-      ? wordedAs(item, fresh)
-      : item;
+    if (!old || !fresh) return item;
+    const words = !sameWords(fresh, old) && sameWords(item, old) ? fresh : item;
+    const look = !sameLook(fresh, old) && sameLook(item, old) ? fresh : item;
+    return words === item && look === item ? item : keptAs(item, words, look);
   };
   const kept = new Map<string, CollectionItemInput>();
   for (const item of copy.items) {

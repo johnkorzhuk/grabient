@@ -46,9 +46,9 @@ export async function removeMembership(
   const allowed = ALLOWED[who];
   const results = await batch(env.DB, [
     [
-      `SELECT seed, style, steps, angle, position, created_at AS createdAt, title, description FROM k_collection_items
-       WHERE collection_id = ? AND seed = ?${viewWhere(view)} AND EXISTS (SELECT 1 FROM k_collections WHERE ${allowed})
-       ORDER BY position`,
+      `SELECT seed, style, steps, angle, position, created_at AS createdAt, title, description, look
+       FROM k_collection_items WHERE collection_id = ? AND seed = ?${viewWhere(view)}
+       AND EXISTS (SELECT 1 FROM k_collections WHERE ${allowed}) ORDER BY position`,
       id,
       seed,
       ...viewBinds(view),
@@ -81,14 +81,15 @@ export async function removeMembership(
           position: Number(row.position),
           createdAt: row.createdAt == null ? null : Number(row.createdAt),
           ...(row.title ? { title: row.title } : {}),
-          ...(row.description ? { description: row.description } : {})
+          ...(row.description ? { description: row.description } : {}),
+          ...(row.look ? { look: row.look } : {})
         }
       : null
   };
 }
 
-/** Puts a membership back as it stood: its place, its view, the time it joined and its words. A collection that holds it
-    again stays as it is (`present`), and one that is full refuses it (`full`). */
+/** Puts a membership back as it stood: its place, its view, the time it joined, its words and its look. A collection that
+    holds it again stays as it is (`present`), and one that is full refuses it (`full`). */
 export async function restoreMembership(
   env: Writer,
   who: Allowed,
@@ -99,8 +100,9 @@ export async function restoreMembership(
   const allowed = ALLOWED[who];
   const results = await batch(env.DB, [
     [
-      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM k_collections WHERE ${allowed})
+      `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, title, description,
+         look)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM k_collections WHERE ${allowed})
          AND (SELECT COUNT(*) FROM k_collection_items WHERE collection_id = ?) < ?
        ON CONFLICT (collection_id, seed, style, steps, angle) DO NOTHING`,
       id,
@@ -112,6 +114,7 @@ export async function restoreMembership(
       row.createdAt,
       row.title ?? null,
       row.description ?? null,
+      typeof row.look === "string" ? row.look : null,
       id,
       accountId,
       id,
@@ -143,8 +146,8 @@ export async function restoreMembership(
 }
 
 /** An admin puts palettes into one of Grabient's collections by hand, as a person adds to their own: each view of a
-    palette once, after the ones it holds; past the collection's size the whole add is refused. Answers the memberships
-    it made, which an undo takes out again. */
+    palette once, in any look it keeps, after the ones it holds; past the collection's size the whole add is refused.
+    Answers the memberships it made, which an undo takes out again. */
 export async function addSitePalettes(
   env: Writer,
   id: string,
@@ -174,13 +177,14 @@ export async function addSitePalettes(
     steps: item.steps,
     angle: item.angle,
     position: ++position,
-    createdAt: now
+    createdAt: now,
+    ...(item.look ? { look: item.look } : {})
   }));
   const results = await batch(env.DB, [
     ...made.map(
       (row): Statement => [
-        `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
-         SELECT ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM k_collections WHERE ${ALLOWED.curator})
+        `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at, look)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM k_collections WHERE ${ALLOWED.curator})
          ON CONFLICT (collection_id, seed, style, steps, angle) DO NOTHING`,
         id,
         row.position,
@@ -189,6 +193,7 @@ export async function addSitePalettes(
         row.steps,
         row.angle,
         now,
+        row.look ?? null,
         id,
         adminId
       ]
@@ -235,9 +240,10 @@ export async function unaddSitePalette(
   return (results[2]?.results.length ?? 0) > 0;
 }
 
-/** Draws one palette of one of Grabient's collections another way, keeping its place and the time it joined. `from`
-    names the item where the collection holds the palette in several views. False when the collection does not hold it,
-    holds it in that view already, or the admin may not. */
+/** Draws one palette of one of Grabient's collections another way, keeping its place, the time it joined and any look
+    it keeps, which its reads give back beside the new view. `from` names the item where the collection holds the
+    palette in several views. False when the collection does not hold it, holds it in that view already, or the admin
+    may not. */
 export async function setSitePaletteView(
   env: Writer,
   id: string,

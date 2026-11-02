@@ -23,12 +23,14 @@ export interface ItemView {
 }
 
 /** How one of the account's likes stands: the palette, the view it was saved in, when, and the palette's likes as the
-    server counted them. `title` is the account's own name for it, which only a connected app gives. */
+    server counted them. `title` is the account's own name for it, which only a connected app gives, and `look` the
+    whole look it was saved in where that says more than its view (editor/address.ts's keptLook). */
 export interface SyncLike extends ItemView {
   seed: string;
   at: number;
   likes: number;
   title?: string;
+  look?: string;
 }
 
 /** One of the account's collections, whole, as its page reads it, with the id the log names it by, its address, and
@@ -56,6 +58,9 @@ export type SyncOp =
       /** an undo puts a like back at its own time, with the title an unsave took */
       at?: number;
       title?: string;
+      /** the whole look the palette is saved in, where it says more than the view: the server keeps it as keptLook
+          writes it */
+      look?: string;
       from?: LikeFrom;
     })
   | {
@@ -88,7 +93,7 @@ export interface SyncResult {
   i18n?: { message: string; params?: Record<string, string> };
   /** a like's: the palette's likes now, and the like an unsave took (an undo puts it back) */
   likesCount?: number | null;
-  was?: (ItemView & { at: number; title?: string }) | null;
+  was?: (ItemView & { at: number; title?: string; look?: string }) | null;
   /** a removal's token, which an undo sends back */
   restore?: string;
   /** where the server made a new collection */
@@ -207,18 +212,21 @@ const Like = v.pipe(
     angle: integer,
     at: v.optional(v.unknown()),
     title: v.optional(v.unknown()),
+    look: v.optional(v.unknown()),
     from: v.optional(v.unknown())
   }),
-  v.transform(({ at, title, from, ...like }): SyncOp => {
+  v.transform(({ at, title, look, from, ...like }): SyncOp => {
     const time = Number.isInteger(at) ? (at as number) : undefined;
     // the site never names a palette: a title rides only with an undo's like, the one its unsave took
     const name = like.liked && time !== undefined ? titleInput(title) : undefined;
     const pressed = from && typeof from === "object" ? (from as Record<string, unknown>) : null;
     const place = pressed && strip({ q: words(pressed.q), collection: words(pressed.collection) });
+    // a look is the server's to read (keptLook): anything else rides with the like as none
     return {
       ...like,
       ...(time === undefined ? {} : { at: time }),
       ...(name ? { title: name } : {}),
+      ...(like.liked && typeof look === "string" && look ? { look } : {}),
       ...(place && Object.keys(place).length ? { from: place } : {})
     };
   })

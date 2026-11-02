@@ -2,7 +2,7 @@ import type { Env } from "@grabient/server/env.ts";
 import { RESTORE_TOKEN_MAX } from "../../features/collections/schema.ts";
 
 /* The token a removal answers with, so its undo puts the membership back as it stood: its place, its view, the time it
-   joined and its words. A membership's time is a palette's public date, so a restore never takes one from the client:
+   joined, its words and its look. A membership's time is a palette's public date, so a restore never takes one from the client:
    the server restores what a token it signed says, for this account and this collection, for a day. An admin's add to
    one of Grabient's collections answers with one too, which its undo sends to take that membership out again. */
 
@@ -44,9 +44,10 @@ export interface Membership {
   angle: number;
   position: number;
   createdAt: number | null;
-  /** the words the collection gave it */
+  /** the words the collection gave it, and the look it kept it in */
   title?: string;
   description?: string;
+  look?: string;
   /** made by an admin's add: its undo takes it out, and nothing else does with this token */
   added?: boolean;
   /** the admin's record of the removal, which the undo takes back */

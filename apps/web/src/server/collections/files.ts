@@ -12,7 +12,8 @@ export { isCollectionSlug } from "../../features/collections/address.ts";
    the files area writes them. Agents read them, so they stay in English. */
 
 /** A public collection as its files write it: each palette in the collection's own order, with the title written for
-    it where its colors bear the title out and the collection holds it in the view it was saved in. */
+    it where its colors bear the title out and the collection holds it in the view it was saved in, and the whole look
+    the collection keeps it in where it keeps one. */
 export interface CollectionForFiles {
   slug: string;
   title: string;
@@ -29,6 +30,8 @@ export interface CollectionForFiles {
     angle: number;
     title?: string;
     description?: string;
+    /** the look as the palette's address writes it after its seed (editor/address.ts's keptLook) */
+    look?: string;
   }[];
 }
 
@@ -138,7 +141,8 @@ export async function collectionForFiles(
         steps: item.steps,
         angle: item.angle,
         ...(title ? { title } : {}),
-        ...(item.description ? { description: item.description } : {})
+        ...(item.description ? { description: item.description } : {}),
+        ...(item.look ? { look: item.look } : {})
       };
     })
   };

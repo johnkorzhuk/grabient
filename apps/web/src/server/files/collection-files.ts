@@ -65,7 +65,8 @@ function classOf(slug: string): string {
 }
 
 /** A collection as CSS: a class to each palette in its order, its gradient as its page draws it, and the P3 colors
-    where a wide screen shows them more vividly, as a palette's own CSS does. */
+    where a wide screen shows them more vividly, as a palette's own CSS does. A palette the collection keeps in a look of
+    its own (an effect) has its gradient here, and its address in the comment plays the look. */
 export function collectionCss(doc: CollectionForFiles, origin: string, kind: ColorKind): string {
   const base = origin.replace(/\/$/, "");
   const prefix = classOf(doc.slug);
@@ -78,14 +79,15 @@ export function collectionCss(doc: CollectionForFiles, origin: string, kind: Col
     const selector = `.${prefix}-${i + 1}`;
     const wide = cssP3(stops, view.style, view.angle, kind);
     return [
-      `${selector} {\n  /* ${said(name)}: ${base}/${item.seed}${viewSearch(item)} */\n  ${cssLine(stops, view.style, view.angle, kind)}\n}\n` +
+      `${selector} {\n  /* ${said(name)}: ${base}/${item.seed}${item.look ? `?${item.look}` : viewSearch(item)} */\n  ${cssLine(stops, view.style, view.angle, kind)}\n}\n` +
         (wide ? `@media (color-gamut: p3) {\n  ${selector} {\n    ${wide}\n  }\n}\n` : "")
     ];
   });
   return `/* ${said(doc.title)}: ${base}/${doc.slug}\n   A class to each palette, in the collection's order: <div class="${prefix}-1"></div> */\n${rules.join("")}`;
 }
 
-/** A collection as JSON: its words, its files' addresses, and each palette as its own JSON writes it, in its order. */
+/** A collection as JSON: its words, its files' addresses, and each palette as its own JSON writes it, in its order, with
+    the whole look the collection keeps it in where it keeps one (`look`, as its address writes it after its seed). */
 export function collectionJson(
   doc: CollectionForFiles,
   origin: string,
@@ -115,7 +117,8 @@ export function collectionJson(
     palettes: doc.items.flatMap(item => {
       const view = { style: item.style, steps: item.steps, angle: item.angle };
       const written = item.title ? { title: item.title, view } : null;
-      return paletteJson(item.seed, origin, view, names, written) ?? [];
+      const doc = paletteJson(item.seed, origin, view, names, written);
+      return doc ? [item.look ? { ...doc, look: item.look } : doc] : [];
     })
   };
 }

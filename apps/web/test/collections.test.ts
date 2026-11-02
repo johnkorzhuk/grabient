@@ -19,8 +19,11 @@ import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections
 import { collectionBySlug, collectionsHolding } from "../src/server/collections/read.ts";
 import { publicCollections } from "../src/server/collections/search.ts";
 import { createCollection, moveAccountAddresses } from "../src/server/collections/write.ts";
+import { collectionFile } from "../src/server/files/collection-files.ts";
 import { keepTranslations } from "../src/server/mcp/admin/translations.ts";
 import { suggestionsFor } from "../src/server/search/tags.ts";
+import { markdownFile } from "../src/server/seo/markdown.ts";
+import { markdownReads } from "../src/server/seo/markdown-reads.ts";
 import {
   type Account,
   bodyOf,
@@ -663,6 +666,155 @@ describe("saved copies of a palette's words", () => {
     ).toEqual([
       { title: "Embers", description: undefined },
       { title: undefined, description: "Night." }
+    ]);
+    expect(update.copy).toMatchObject({ behind: false, differs: false });
+  });
+});
+
+describe("a palette's look in a collection", () => {
+  it("is kept as the address writes it, through a change that leaves it out, every read and a removal's undo; a gradient's or a slip keeps none", async () => {
+    const [glass, blob, plain, slip] = items(4);
+    const mine = await make(ada, {
+      title: unique("Looks"),
+      items: [
+        { ...glass, look: "speed=2&style=glass&shape=7&size=1200x630" },
+        { ...blob, look: "style=blob&bg=%23101014&frost=0.5&shape=12" },
+        { ...plain, look: "style=linearGradient" },
+        { ...slip, look: "style=wobble" }
+      ]
+    });
+    expect(mine.status).toBe(201);
+    const slug = mine.body.collection.slug;
+    const looks = (doc: Pick<CollectionDocument, "items">) =>
+      doc.items.map(({ kseed, look }) => ({ kseed, look: look ?? undefined }));
+    const kept = [
+      { kseed: SEEDS[0], look: "style=glass&speed=2&shape=7" },
+      { kseed: SEEDS[1], look: "style=blob&frost=0.5&shape=12&bg=%23101014" },
+      { kseed: SEEDS[2], look: undefined },
+      { kseed: SEEDS[3], look: undefined }
+    ];
+    expect(looks(mine.body.collection as unknown as CollectionDocument)).toEqual(kept);
+    // only the look as written is stored, and nothing for a gradient's look or a slip
+    const stored = await env.DB.prepare(
+      "SELECT i.look FROM k_collection_items i JOIN k_collections c ON c.id = i.collection_id WHERE c.slug = ? ORDER BY i.position"
+    )
+      .bind(slug)
+      .all<{ look: string | null }>();
+    expect(stored.results.map(row => row.look)).toEqual([kept[0]!.look, kept[1]!.look, null, null]);
+    // a change that leaves the looks out keeps each palette's
+    const change = async (body: Record<string, unknown>) =>
+      (
+        await bodyOf<{ collection: CollectionDocument }>(
+          await collectionAnswer(
+            send("PATCH", `/api/collections/${at(slug)}`, body, { cookie: ada.cookie }),
+            env
+          )
+        )
+      ).collection;
+    expect(looks(await change({ items: [blob, glass] }))).toEqual([kept[1], kept[0]]);
+    // the owner's list shows them on its cards
+    const own = await bodyOf<CollectionPage>(
+      await mineAnswer(get("/api/me/collections", { cookie: ada.cookie }), env)
+    );
+    expect(
+      own.items
+        .find(c => c.slug === slug)
+        ?.preview.map(p => p.look)
+        .sort()
+    ).toEqual([kept[0]!.look, kept[1]!.look].sort());
+    // taken out and put back by its token, a palette keeps its look
+    const path = `/api/me/collections/${at(slug)}/items/${SEEDS[1]}`;
+    const out = await bodyOf<{ restore?: string }>(
+      await mineAt(send("DELETE", path, {}, { cookie: ada.cookie }), env)
+    );
+    expect(looks((await collectionBySlug(env, slug, true))!)).toEqual([kept[0]]);
+    await mineAt(send("PUT", path, { restore: out.restore }, { cookie: ada.cookie }), env);
+    expect(looks((await collectionBySlug(env, slug, true))!)).toEqual([kept[1], kept[0]]);
+    // a look sent that keeps none takes the palette's away
+    expect(looks(await change({ items: [{ ...blob, look: "" }, glass] }))).toEqual([
+      { kseed: SEEDS[1], look: undefined },
+      kept[0]
+    ]);
+  });
+});
+
+describe("a public collection's files", () => {
+  it("write a palette's look where they write its view: its Markdown's link and its CSS's comment play it, and its JSON says it", async () => {
+    const [one, two] = items(2, 2);
+    const slug = (
+      await make(admin, {
+        title: unique("Looked files"),
+        visibility: "public",
+        items: [{ ...one, look: "style=glass&shape=3" }, two]
+      })
+    ).body.collection.slug;
+    const text = async (format: "css" | "json") =>
+      (await collectionFile(env, slug, ORIGIN, format))!.text();
+    const json = JSON.parse(await text("json")) as { palettes: { kseed: string; look?: string }[] };
+    expect(json.palettes.map(p => [p.kseed, p.look])).toEqual([
+      [SEEDS[2], "style=glass&shape=3"],
+      [SEEDS[3], undefined]
+    ]);
+    const css = await text("css");
+    expect(css).toContain(`${ORIGIN}/${SEEDS[2]}?style=glass&shape=3 */`);
+    expect(css).toContain(`${ORIGIN}/${SEEDS[3]} */`);
+    const md = await (
+      await markdownFile(slug, new Request(`${ORIGIN}/${slug}.md`), ORIGIN, markdownReads(env))
+    ).text();
+    expect(md).toContain(`](${ORIGIN}/${SEEDS[2]}?style=glass&shape=3): linear gradient`);
+    expect(md).toContain(`](${ORIGIN}/${SEEDS[3]}): linear gradient`);
+  });
+});
+
+describe("saved copies of a palette's look", () => {
+  it("carry it, and Update brings in a look the source changed", async () => {
+    const [one, two] = items(2, 4);
+    const source = (
+      await make(admin, {
+        title: unique("Looked sources"),
+        visibility: "public",
+        items: [{ ...one, look: "style=glass&shape=3" }, two]
+      })
+    ).body.collection;
+    const reader = await makeAccount(env);
+    const copy = await bodyOf<{ collection: CollectionDocument }>(
+      await collectionAnswer(
+        send("POST", `/api/collections/${at(source.slug)}/copies`, {}, { cookie: reader.cookie }),
+        env
+      )
+    );
+    expect(copy.collection.items.map(item => item.look ?? undefined)).toEqual([
+      "style=glass&shape=3",
+      undefined
+    ]);
+    await collectionAnswer(
+      send(
+        "PATCH",
+        `/api/collections/${at(source.slug)}`,
+        {
+          items: [
+            { ...one, look: "style=blob&shape=5" },
+            { ...two, look: "style=glass" }
+          ]
+        },
+        { cookie: admin.cookie }
+      ),
+      env
+    );
+    const update = await bodyOf<{ collection: CollectionDocument; copy: CopyStanding }>(
+      await mineAt(
+        send(
+          "POST",
+          `/api/me/collections/${at(copy.collection.slug)}/update`,
+          {},
+          { cookie: reader.cookie }
+        ),
+        env
+      )
+    );
+    expect(update.collection.items.map(item => item.look)).toEqual([
+      "style=blob&shape=5",
+      "style=glass"
     ]);
     expect(update.copy).toMatchObject({ behind: false, differs: false });
   });

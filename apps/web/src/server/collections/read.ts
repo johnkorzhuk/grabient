@@ -21,6 +21,7 @@ import type {
   CollectionSort,
   CollectionSummary
 } from "../../features/collections/types.ts";
+import { keptLook } from "../../features/editor/address.ts";
 import type { RisingFrame } from "../../lib/orders.ts";
 import { digest, sharedRead } from "../shared-reads.ts";
 
@@ -155,6 +156,7 @@ interface ItemRow {
   first_public?: number | null;
   title?: string | null;
   description?: string | null;
+  look?: string | null;
 }
 const styleOf = (raw: string): Style => (isStyle(raw) ? raw : DEFAULT_STYLE);
 /** The words a collection gives one of its palettes, where it gives any. */
@@ -162,6 +164,16 @@ const wordsOf = (row: { title?: string | null; description?: string | null }) =>
   ...(row.title ? { title: row.title } : {}),
   ...(row.description ? { description: row.description } : {})
 });
+/** The look a collection keeps one of its palettes in, where it keeps one: read again beside the view it is kept in
+    (keptLook), so it always agrees with it. Anyone who may see the collection may see it, as its view. */
+function lookOf(
+  seed: string,
+  look: string | null | undefined,
+  view: { style: Style; steps: number; angle: number }
+) {
+  const kept = look ? keptLook(seed, look, view) : null;
+  return kept ? { look: kept } : {};
+}
 
 /** A collection's palettes in its own order, each with its likes, its week's rising score, when it was made and, for a
     reader who may read them (`words`), the words the collection gives it. */
@@ -172,8 +184,8 @@ export async function itemsOf(
 ): Promise<CollectionItem[]> {
   const rows = await all<ItemRow>(
     env.DB,
-    `SELECT i.position, i.seed, i.style, i.steps, i.angle, i.created_at, i.title, i.description, p.likes_count, p.rising,
-       p.created_at AS gallery_at, ${FIRST_PUBLIC("i.seed")} AS first_public
+    `SELECT i.position, i.seed, i.style, i.steps, i.angle, i.created_at, i.title, i.description, i.look, p.likes_count,
+       p.rising, p.created_at AS gallery_at, ${FIRST_PUBLIC("i.seed")} AS first_public
      FROM k_collection_items i LEFT JOIN k_palettes p ON p.seed = i.seed
      WHERE i.collection_id = ? ORDER BY i.position LIMIT ?`,
     row.id,
@@ -182,19 +194,23 @@ export async function itemsOf(
   return rows.flatMap(item => {
     const palette = decodePalette(item.seed);
     if (!palette) return [];
+    const view = {
+      style: styleOf(item.style),
+      steps: Math.max(STEPS_MIN, palette.anchors.length, Number(item.steps) || 0),
+      angle: Number(item.angle) || 0
+    };
     return [
       {
         kseed: item.seed,
-        style: styleOf(item.style),
-        steps: Math.max(STEPS_MIN, palette.anchors.length, Number(item.steps) || 0),
-        angle: Number(item.angle) || 0,
+        ...view,
         likes: Math.max(0, Number(item.likes_count) || 0),
         createdAt:
           madeAt(item.gallery_at, item.first_public, item.created_at ?? row.created_at) ??
           Number(row.created_at),
         position: Number(item.position),
         ...risingOf(item.rising),
-        ...(words ? wordsOf(item) : {})
+        ...(words ? wordsOf(item) : {}),
+        ...lookOf(item.seed, item.look, view)
       }
     ];
   });
@@ -205,16 +221,19 @@ export async function itemsOf(
 export const previewOf = (items: readonly CollectionItem[]): CollectionPreview[] =>
   sortCollectionItems(items)
     .slice(0, PREVIEW_ITEMS)
-    .map(({ kseed, style, steps, angle, createdAt, likes, position, title, description }) => ({
-      seed: kseed,
-      style,
-      steps,
-      angle,
-      createdAt,
-      likes,
-      position,
-      ...wordsOf({ title, description })
-    }));
+    .map(
+      ({ kseed, style, steps, angle, createdAt, likes, position, title, description, look }) => ({
+        seed: kseed,
+        style,
+        steps,
+        angle,
+        createdAt,
+        likes,
+        position,
+        ...wordsOf({ title, description }),
+        ...(look ? { look } : {})
+      })
+    );
 
 /** Each collection's preview palettes, by its id: read, or for a public list (`shared`) as this data center keeps them
     for every language and isolate, a minute where the list is Rising's and five otherwise. They are kept by each
@@ -256,22 +275,27 @@ async function readPreviews(
   if (first) {
     const held = await all<ItemRow>(
       env.DB,
-      `SELECT collection_id, position, seed, style, steps, angle FROM (
-         SELECT i.collection_id, i.position, i.seed, i.style, i.steps, i.angle,
+      `SELECT collection_id, position, seed, style, steps, angle, look FROM (
+         SELECT i.collection_id, i.position, i.seed, i.style, i.steps, i.angle, i.look,
            ROW_NUMBER() OVER (PARTITION BY i.collection_id ORDER BY i.position) AS n
          FROM k_collection_items i WHERE i.collection_id IN (SELECT value FROM json_each(?)))
        WHERE n <= ? ORDER BY collection_id, n`,
       ids,
       FIRST_ITEMS
     );
-    for (const row of held)
-      map.get(row.collection_id)?.push({
-        seed: row.seed,
+    for (const row of held) {
+      const view = {
         style: styleOf(row.style),
         steps: Number(row.steps),
-        angle: Number(row.angle),
-        position: Number(row.position)
+        angle: Number(row.angle)
+      };
+      map.get(row.collection_id)?.push({
+        seed: row.seed,
+        ...view,
+        position: Number(row.position),
+        ...lookOf(row.seed, row.look, view)
       });
+    }
     return map;
   }
   const created = new Map(rows.map(row => [row.id, Number(row.created_at)]));
@@ -285,9 +309,9 @@ async function readPreviews(
   const held = await all<ItemRow>(
     env.DB,
     `SELECT t.collection_id, t.position, t.seed, t.style, t.steps, t.angle, t.created_at, t.title, t.description,
-       t.likes_count, t.rising, t.gallery_at, ${FIRST_PUBLIC("t.seed")} AS first_public
+       t.look, t.likes_count, t.rising, t.gallery_at, ${FIRST_PUBLIC("t.seed")} AS first_public
      FROM (SELECT i.collection_id, i.position, i.seed, i.style, i.steps, i.angle, i.created_at, i.title, i.description,
-         p.likes_count, p.rising, p.created_at AS gallery_at,
+         i.look, p.likes_count, p.rising, p.created_at AS gallery_at,
          ROW_NUMBER() OVER (PARTITION BY i.collection_id ORDER BY ${rank}) AS n
        FROM k_collection_items i ${rising ? "JOIN k_collections c ON c.id = i.collection_id " : ""}LEFT JOIN k_palettes p ON p.seed = i.seed
        WHERE i.collection_id IN (SELECT value FROM json_each(?))) t
@@ -295,12 +319,15 @@ async function readPreviews(
     ids,
     PREVIEW_ITEMS
   );
-  for (const row of held)
-    map.get(row.collection_id)?.push({
-      seed: row.seed,
+  for (const row of held) {
+    const view = {
       style: styleOf(row.style),
       steps: Number(row.steps),
-      angle: Number(row.angle),
+      angle: Number(row.angle)
+    };
+    map.get(row.collection_id)?.push({
+      seed: row.seed,
+      ...view,
       createdAt:
         madeAt(
           row.gallery_at,
@@ -310,8 +337,10 @@ async function readPreviews(
       likes: Math.max(0, Number(row.likes_count) || 0),
       position: Number(row.position),
       ...risingOf(row.rising),
-      ...(worded.has(row.collection_id) ? wordsOf(row) : {})
+      ...(worded.has(row.collection_id) ? wordsOf(row) : {}),
+      ...lookOf(row.seed, row.look, view)
     });
+  }
   return map;
 }
 
@@ -401,9 +430,10 @@ async function recordBy(
     angle: number;
     title: string | null;
     description: string | null;
+    look: string | null;
   }>(
     env.DB,
-    "SELECT seed, style, steps, angle, title, description FROM k_collection_items WHERE collection_id = ? ORDER BY position LIMIT ?",
+    "SELECT seed, style, steps, angle, title, description, look FROM k_collection_items WHERE collection_id = ? ORDER BY position LIMIT ?",
     row.id,
     MAX_COLLECTION_ITEMS
   );
@@ -418,13 +448,19 @@ async function recordBy(
       description: row.description,
       tags: tagsOf(row.tags),
       visibility: row.visibility,
-      items: items.map(item => ({
-        seed: item.seed,
-        style: styleOf(item.style),
-        steps: Number(item.steps),
-        angle: Number(item.angle),
-        ...wordsOf(item)
-      }))
+      items: items.map(item => {
+        const view = {
+          style: styleOf(item.style),
+          steps: Number(item.steps),
+          angle: Number(item.angle)
+        };
+        return {
+          seed: item.seed,
+          ...view,
+          ...wordsOf(item),
+          ...lookOf(item.seed, item.look, view)
+        };
+      })
     }
   };
 }

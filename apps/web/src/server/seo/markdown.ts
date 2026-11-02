@@ -42,6 +42,8 @@ export interface CollectionWords {
     title?: string;
     /** what its collection says of it */
     description?: string;
+    /** the whole look its collection keeps it in, as its address writes it after its seed */
+    look?: string;
   }[];
 }
 /** What the files read from the database. A failed read of a palette's words leaves them out. */
@@ -69,7 +71,7 @@ const markdown = (page: string, cache: Record<string, string>) => ({
 });
 
 /** A collection as Markdown: its words, then every palette in its order and the view it was saved in, with what the
-    collection says of it. */
+    collection says of it. A palette the collection keeps in a look of its own (an effect) is linked playing it. */
 export function collectionMarkdown(doc: CollectionWords, origin: string): string {
   const base = origin.replace(/\/$/, "");
   /* a collection of one color, by its address, gives the color's codes as its page does */
@@ -78,7 +80,7 @@ export function collectionMarkdown(doc: CollectionWords, origin: string): string
     const P = decodePalette(item.seed);
     const colors = P ? sampleStops(P, drawnView(P, item).steps).map(stop => `\`${stop.hex}\``) : [];
     const name = item.title ?? (seedName(item.seed, item.style, item.steps) || item.seed);
-    const address = `${base}/${item.seed}${viewSearch(item)}`;
+    const address = `${base}/${item.seed}${item.look ? `?${item.look}` : viewSearch(item)}`;
     const said = item.description ? `\n   ${plain(item.description)}` : "";
     return `${i + 1}. [${plain(name)}](${address}): ${styleWords(item.style)}, ${colors.join(" ")}${said}`;
   });
