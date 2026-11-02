@@ -245,9 +245,9 @@ export function GlassArt(props: {
         return;
       }
       const wait = drawnAt + REST_MS - performance.now();
-      if (was) request(colors, angle, shape, named);
       /* a picture near the window but out of it draws no still nobody sees while the hand moves: the last change once
          it rests, or at once as the picture comes into the window */
+      if (was) request(colors, angle, shape, named);
       else if (!next.shown) timer = setTimeout(() => request(colors, angle, shape, named), AWAY_MS);
       else if (wait <= 0) request(colors, angle, shape, named);
       else timer = setTimeout(() => request(colors, angle, shape, named), wait);

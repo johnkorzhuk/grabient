@@ -52,8 +52,11 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     budget: 323
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
-     the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 287 },
+     the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.
+     Each section turned by swipe, press or key (5e406210) took it to 286.7 on 1 Nov 2026, and the lists' Appearance
+     fields made smooth (the water reading its boxes only as they can move, the menu's settings one object), which
+     every page's start carries, to 287.1 */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 288 },
   "/newsletter": { route: "src/routes/newsletter.tsx", budget: 225 },
   "/about": { route: "src/routes/about.tsx", budget: 250 }
 };
