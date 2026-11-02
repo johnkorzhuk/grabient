@@ -32,6 +32,29 @@ test("a rosette's page paints its still from the head, and its menu chooses the 
   await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=silk&angle=120$`));
 });
 
+test("the editor stands while the menu's tiles under the pointer turn its picture to other styles and back, and a kind chosen plays that kind", async ({
+  page
+}) => {
+  const reports: string[] = [];
+  await page.route("**/api/client-error", route => {
+    reports.push(route.request().postData() ?? "");
+    return route.fulfill({ status: 204 });
+  });
+  await open(page, `/${SEED}?style=silk&angle=45`);
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  for (const tile of ["Fluted glass", "Linear", "Blob", "Rosette", "Silk", "Radial bands", "Silk"])
+    await page.getByRole("button", { name: tile, exact: true }).hover();
+  await page.mouse.move(10, 700);
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  await expect(page.locator('[data-fx-still^="silk|"]').first()).toBeAttached();
+  /* another vector kind is another layer, which plays that kind (the menu is still open) */
+  await page.getByRole("button", { name: "Rosette", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=rosette&angle=45$`));
+  await expect(page.locator('main [data-fx-still^="rosette|"]').first()).toBeAttached();
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  expect(reports).toEqual([]);
+});
+
 test("a list playing the silk draws its cards' stills, each named for the silk", async ({
   page,
   request

@@ -1,13 +1,16 @@
-import {
-  EFFECTS,
-  type EffectKind,
-  type EffectSettings,
-  isVectorKind
-} from "@grabient/engine/effect.ts";
+import { EFFECTS, type EffectKind, type EffectSettings } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { holdsStill, reducesNow } from "@grabient/ui/motion.ts";
-import { createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  Match,
+  onCleanup,
+  Switch,
+  untrack
+} from "solid-js";
 import { BlobArt } from "./BlobArt.tsx";
 import { blobViewOf, loadBlob } from "./blob-draw.ts";
 import styles from "./EffectArt.module.css";
@@ -382,18 +385,29 @@ export function EffectArt(props: {
       data-covered={covered() ? "" : undefined}
       data-fading={fading() ? "" : undefined}
     >
-      {props.kind === "glass" ? (
-        <GlassArt colors={colors()} angle={props.angle} shape={props.settings.look.shape} eager />
-      ) : isVectorKind(props.kind) ? (
-        <FxArt
-          kind={props.kind}
-          palette={props.palette}
-          angle={props.angle}
-          shape={props.settings.look.shape}
-        />
-      ) : (
-        <BlobArt palette={props.palette} settings={props.settings} bare={bare()} />
-      )}
+      <Switch
+        fallback={<BlobArt palette={props.palette} settings={props.settings} bare={bare()} />}
+      >
+        <Match when={props.kind === "glass"}>
+          <GlassArt colors={colors()} angle={props.angle} shape={props.settings.look.shape} eager />
+        </Match>
+        <Match when={props.kind === "silk"}>
+          <FxArt
+            kind="silk"
+            palette={props.palette}
+            angle={props.angle}
+            shape={props.settings.look.shape}
+          />
+        </Match>
+        <Match when={props.kind === "rosette"}>
+          <FxArt
+            kind="rosette"
+            palette={props.palette}
+            angle={props.angle}
+            shape={props.settings.look.shape}
+          />
+        </Match>
+      </Switch>
     </span>
   );
 }

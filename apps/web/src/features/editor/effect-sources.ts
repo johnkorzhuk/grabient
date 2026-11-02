@@ -2,7 +2,12 @@ import type { Palette } from "@grabient/engine";
 import { hexBytes, srgbToLch, type Triple } from "@grabient/engine/color.ts";
 import { COLOR_KINDS, colorKind, colorsText } from "@grabient/engine/css.ts";
 import type { Stop } from "@grabient/engine/curve.ts";
-import { type Effect, type EffectKind, effectEmbedHtml } from "@grabient/engine/effect.ts";
+import {
+  type Effect,
+  type EffectKind,
+  effectEmbedHtml,
+  hasEmbedScript
+} from "@grabient/engine/effect.ts";
 import {
   effectColors,
   effectMarkdown,
@@ -144,6 +149,19 @@ export function effectSources(
           angle,
           glass ? GLASS_STILL_SHOWN : effectStill(P, effect, angle)
         );
+  const shaderSource = (): CodeSource => ({
+    id: "shader",
+    label: msg("Shader"),
+    spellings: shaderKinds(effect.kind).map(([id, label]) => ({ id, label })),
+    text: (spelling?: string) => {
+      const kind = (spelling ?? shaderKinds(effect.kind)[0]?.[0]) as ShaderKind;
+      return writerNow(effect.kind, kind)?.(kind, P, effect, angle, seed, origin) ?? "";
+    },
+    note: () =>
+      glass
+        ? t("The ribs, the colors' blur and the light, pass by pass.")
+        : t("The balls, their melt and the frost, pass by pass.")
+  });
   const colors = () => effectColors(P, effect).map(stopOf);
   return [
     {
@@ -157,7 +175,10 @@ export function effectSources(
       take: spelling =>
         glass && spelling !== "link" ? effectHtml(taken, effect) : Promise.resolve(tags(spelling)),
       note: spelling => {
-        const note = t("The two tags that play it behind a page, for the page's head.");
+        /* the silk's and the rosette's script is not built yet: their stylesheet alone paints them */
+        const note = hasEmbedScript(effect.kind)
+          ? t("The two tags that play it behind a page, for the page's head.")
+          : t("The tag that paints its first frame behind a page, for the page's head.");
         return glass && spelling !== "link"
           ? `${note} ${t("Copy includes the whole first frame.")}`
           : note;
@@ -180,19 +201,8 @@ export function effectSources(
           count: colors().length
         })
     },
-    {
-      id: "shader",
-      label: msg("Shader"),
-      spellings: shaderKinds(effect.kind).map(([id, label]) => ({ id, label })),
-      text: (spelling?: string) => {
-        const kind = (spelling ?? shaderKinds(effect.kind)[0]?.[0]) as ShaderKind;
-        return writerNow(effect.kind, kind)?.(kind, P, effect, angle, seed, origin) ?? "";
-      },
-      note: () =>
-        glass
-          ? t("The ribs, the colors' blur and the light, pass by pass.")
-          : t("The balls, their melt and the frost, pass by pass.")
-    },
+    /* the Shader tab for an effect with a spelling of it: the silk's and the rosette's come later */
+    ...(shaderKinds(effect.kind).length ? [shaderSource()] : []),
     {
       id: "json",
       label: "JSON",

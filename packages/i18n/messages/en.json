@@ -180,7 +180,7 @@
   "Add 1 to {max} palettes.": {
     "note": "Error: a collection needs palettes.",
     "refs": [
-      "apps/web/src/features/collections/schema.ts:210"
+      "apps/web/src/features/collections/schema.ts:229"
     ]
   },
   "Add Grabient to your app": {
@@ -245,8 +245,8 @@
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
       "apps/web/src/features/editor/Boot.tsx:165",
-      "apps/web/src/features/editor/Editor.tsx:588",
-      "apps/web/src/features/editor/Editor.tsx:589",
+      "apps/web/src/features/editor/Editor.tsx:590",
+      "apps/web/src/features/editor/Editor.tsx:591",
       "packages/ui/src/PaletteCard.tsx:426",
       "packages/ui/src/PaletteCard.tsx:427"
     ]
@@ -260,7 +260,7 @@
   "Added to {title}.": {
     "note": "Status: the palette joined that collection.",
     "refs": [
-      "apps/web/src/features/collections/collect.ts:260"
+      "apps/web/src/features/collections/collect.ts:261"
     ]
   },
   "Adding…": {
@@ -764,7 +764,7 @@
     "note": "Press and key list entry: closes the selection view.",
     "refs": [
       "apps/web/src/app/navigation.ts:189",
-      "apps/web/src/features/editor/Editor.tsx:220",
+      "apps/web/src/features/editor/Editor.tsx:216",
       "apps/web/src/features/selection/SelectionScreen.tsx:245",
       "apps/web/src/features/selection/SelectionScreen.tsx:304",
       "packages/ui/src/ExportPanel.tsx:154"
@@ -808,8 +808,8 @@
   "Collections hold up to {max} palettes.": {
     "note": "Error: the collection is full.",
     "refs": [
-      "apps/web/src/features/account/collections.ts:167",
-      "apps/web/src/features/collections/collect.ts:74",
+      "apps/web/src/features/account/collections.ts:174",
+      "apps/web/src/features/collections/collect.ts:75",
       "apps/web/src/server/account/collections.ts:60",
       "apps/web/src/server/collections/me.ts:327",
       "apps/web/src/server/collections/me.ts:357",
@@ -908,7 +908,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:230",
-      "apps/web/src/features/editor/effect-sources.ts:174"
+      "apps/web/src/features/editor/effect-sources.ts:195"
     ]
   },
   "Columns": {
@@ -1064,7 +1064,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:162"
+      "apps/web/src/features/editor/effect-sources.ts:183"
     ]
   },
   "Copy link": {
@@ -1133,9 +1133,9 @@
   "Couldn't copy the palette.": {
     "note": "Error line after a failed copy of a palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:672",
-      "apps/web/src/features/editor/Editor.tsx:683",
-      "apps/web/src/features/editor/Sheet.tsx:149",
+      "apps/web/src/features/editor/Editor.tsx:674",
+      "apps/web/src/features/editor/Editor.tsx:685",
+      "apps/web/src/features/editor/Sheet.tsx:150",
       "apps/web/src/features/examples/Swatches.tsx:202",
       "apps/web/src/features/examples/Swatches.tsx:212",
       "apps/web/src/features/gallery/take.ts:142",
@@ -1196,9 +1196,9 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
-      "apps/web/src/features/editor/Editor.tsx:690",
-      "apps/web/src/features/editor/Sheet.tsx:545",
-      "apps/web/src/features/editor/Sheet.tsx:623",
+      "apps/web/src/features/editor/Editor.tsx:692",
+      "apps/web/src/features/editor/Sheet.tsx:549",
+      "apps/web/src/features/editor/Sheet.tsx:627",
       "apps/web/src/features/examples/Swatches.tsx:209",
       "apps/web/src/lib/files.ts:70"
     ]
@@ -1318,7 +1318,7 @@
   "Couldn't save the palette.": {
     "note": "Error line after a failed like.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:309"
+      "apps/web/src/features/editor/Editor.tsx:305"
     ]
   },
   "Couldn't save your vote.": {
@@ -1342,11 +1342,11 @@
       "apps/web/src/features/account/sync.ts:148",
       "apps/web/src/features/collections/CollectionPage.tsx:476",
       "apps/web/src/features/collections/CollectionPage.tsx:482",
-      "apps/web/src/features/collections/ItemCard.tsx:116",
-      "apps/web/src/features/collections/collect.ts:456",
-      "apps/web/src/features/editor/Sheet.tsx:508",
+      "apps/web/src/features/collections/ItemCard.tsx:122",
+      "apps/web/src/features/collections/collect.ts:457",
+      "apps/web/src/features/editor/Sheet.tsx:513",
       "apps/web/src/features/editor/save.ts:186",
-      "apps/web/src/features/gallery/GalleryCard.tsx:98",
+      "apps/web/src/features/gallery/GalleryCard.tsx:105",
       "apps/web/src/server/account/sync.ts:126",
       "packages/ui/src/CollectList.tsx:88",
       "packages/ui/src/Curation.tsx:184"
@@ -1485,7 +1485,7 @@
   "Descriptions are up to {max} characters.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/features/collections/schema.ts:207"
+      "apps/web/src/features/collections/schema.ts:226"
     ]
   },
   "Desktop": {
@@ -1636,7 +1636,7 @@
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1133",
+      "apps/web/src/features/editor/Editor.tsx:1142",
       "apps/web/src/features/examples/ExamplesPage.tsx:304",
       "packages/ui/src/KeyList.tsx:10"
     ]
@@ -2253,7 +2253,7 @@
     "note": "Status line: the image could not go to the clipboard, so it was downloaded instead.",
     "refs": [
       "apps/web/src/features/collections/take.ts:74",
-      "apps/web/src/features/editor/Sheet.tsx:464",
+      "apps/web/src/features/editor/Sheet.tsx:467",
       "apps/web/src/features/gallery/take.ts:138",
       "apps/web/src/features/selection/ExportScreen.tsx:92",
       "apps/web/src/mcp-view/PaletteView.tsx:243"
@@ -2262,8 +2262,8 @@
   "Images can't be copied here.": {
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:671",
-      "apps/web/src/features/editor/Sheet.tsx:148",
+      "apps/web/src/features/editor/Editor.tsx:673",
+      "apps/web/src/features/editor/Sheet.tsx:149",
       "apps/web/src/mcp-view/PaletteView.tsx:247",
       "apps/web/src/mcp-view/PaletteView.tsx:255",
       "packages/ui/src/SolidPane.tsx:80"
@@ -2311,8 +2311,8 @@
   "Invalid palette.": {
     "note": "Error: the palette code is not valid.",
     "refs": [
-      "apps/web/src/features/collections/schema.ts:137",
-      "apps/web/src/features/collections/schema.ts:168",
+      "apps/web/src/features/collections/schema.ts:148",
+      "apps/web/src/features/collections/schema.ts:181",
       "apps/web/src/server/account/sync.ts:69",
       "apps/web/src/server/collections/me.ts:285",
       "apps/web/src/server/collections/palettes.ts:64",
@@ -2435,21 +2435,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:952",
+      "apps/web/src/features/editor/Editor.tsx:961",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:948",
+      "apps/web/src/features/editor/Editor.tsx:957",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:937",
+      "apps/web/src/features/editor/Editor.tsx:946",
       "apps/web/src/features/editor/code.ts:264",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -3225,7 +3225,7 @@
     "note": "Screen reader name of the tabs for a list's order (Popular, Rising, Saved).",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:639",
-      "apps/web/src/features/editor/Sheet.tsx:576",
+      "apps/web/src/features/editor/Sheet.tsx:580",
       "packages/ui/src/ListNav.tsx:102"
     ]
   },
@@ -3265,7 +3265,7 @@
   "Palette": {
     "note": "A palette with no name.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:157",
+      "apps/web/src/features/editor/Sheet.tsx:158",
       "apps/web/src/features/gallery/drawing.ts:71"
     ]
   },
@@ -3278,7 +3278,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:851",
+      "apps/web/src/features/editor/Editor.tsx:860",
       "packages/ui/src/PaletteSheet.tsx:131"
     ]
   },
@@ -3306,7 +3306,7 @@
   "Palette descriptions are up to {max} characters.": {
     "note": "Error: what a collection says of one of its palettes is too long.",
     "refs": [
-      "apps/web/src/features/collections/schema.ts:92"
+      "apps/web/src/features/collections/schema.ts:98"
     ]
   },
   "Palette editor": {
@@ -3345,7 +3345,7 @@
   "Palette titles are up to {max} characters.": {
     "note": "Error: a palette's title in a collection is too long.",
     "refs": [
-      "apps/web/src/features/collections/schema.ts:91"
+      "apps/web/src/features/collections/schema.ts:97"
     ]
   },
   "Palette use counts": {
@@ -3377,7 +3377,7 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:837",
+      "apps/web/src/features/editor/Editor.tsx:846",
       "apps/web/src/lib/page-meta.ts:582",
       "apps/web/src/lib/page-meta.ts:593",
       "packages/ui/src/PaletteCard.tsx:307"
@@ -3831,8 +3831,8 @@
   "Remove from selection": {
     "note": "Press (a check) on a palette in the selection: takes it out. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:588",
-      "apps/web/src/features/editor/Editor.tsx:589",
+      "apps/web/src/features/editor/Editor.tsx:590",
+      "apps/web/src/features/editor/Editor.tsx:591",
       "packages/ui/src/ExportPreview.tsx:83",
       "packages/ui/src/PaletteCard.tsx:426",
       "packages/ui/src/PaletteCard.tsx:427"
@@ -3848,7 +3848,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1150",
+      "apps/web/src/features/editor/Editor.tsx:1159",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3856,7 +3856,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1150"
+      "apps/web/src/features/editor/Editor.tsx:1159"
     ]
   },
   "Remove {hex}": {
@@ -3874,7 +3874,7 @@
   "Removed from {title}.": {
     "note": "Status: the palette left that collection.",
     "refs": [
-      "apps/web/src/features/collections/collect.ts:261"
+      "apps/web/src/features/collections/collect.ts:262"
     ]
   },
   "Removing…": {
@@ -4039,21 +4039,21 @@
   "Rising, 1 week": {
     "note": "Screen reader name of the Rising frame chip: one week.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:81",
+      "apps/web/src/features/editor/Sheet.tsx:82",
       "packages/ui/src/ListNav.tsx:20"
     ]
   },
   "Rising, 1 year": {
     "note": "Screen reader name of the Rising frame chip: one year.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:83",
+      "apps/web/src/features/editor/Sheet.tsx:84",
       "packages/ui/src/ListNav.tsx:22"
     ]
   },
   "Rising, 3 months": {
     "note": "Screen reader name of the Rising frame chip: three months.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:82",
+      "apps/web/src/features/editor/Sheet.tsx:83",
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
@@ -4423,7 +4423,7 @@
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
       "apps/web/src/features/editor/code.ts:248",
-      "apps/web/src/features/editor/effect-sources.ts:185"
+      "apps/web/src/features/editor/effect-sources.ts:154"
     ]
   },
   "Shape": {
@@ -4492,7 +4492,7 @@
     "note": "Press: shows the editor's side panel. Also its tooltip, before its key.",
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:172",
-      "apps/web/src/features/editor/Editor.tsx:209"
+      "apps/web/src/features/editor/Editor.tsx:205"
     ]
   },
   "Show shortcuts": {
@@ -4585,14 +4585,14 @@
   "Sign in to save collections.": {
     "note": "Line over the Sign in press where the selection would be saved.",
     "refs": [
-      "apps/web/src/features/account/collections.ts:135",
+      "apps/web/src/features/account/collections.ts:142",
       "packages/ui/src/SaveToCollection.tsx:36"
     ]
   },
   "Sign in to save palettes.": {
     "note": "Error: a like needs an account.",
     "refs": [
-      "apps/web/src/features/account/likes.ts:285",
+      "apps/web/src/features/account/likes.ts:288",
       "apps/web/src/features/account/sync.ts:440"
     ]
   },
@@ -4663,8 +4663,8 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:840",
-      "apps/web/src/features/editor/Sheet.tsx:663",
+      "apps/web/src/features/editor/Editor.tsx:849",
+      "apps/web/src/features/editor/Sheet.tsx:667",
       "apps/web/src/features/editor/StaticPalette.tsx:148",
       "packages/ui/src/PaletteCard.tsx:308"
     ]
@@ -4920,7 +4920,7 @@
   "Tags are 2 to {max} letters, numbers, spaces or hyphens.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/features/collections/schema.ts:209"
+      "apps/web/src/features/collections/schema.ts:228"
     ]
   },
   "Tell Grabient what's broken or what you need. Send a message with the contact form, and leave your email only if you want a reply.": {
@@ -4963,12 +4963,12 @@
   "That collection isn't yours anymore.": {
     "note": "Error: the collection moved to another account or was deleted.",
     "refs": [
-      "apps/web/src/features/account/collections.ts:157",
-      "apps/web/src/features/account/collections.ts:189",
-      "apps/web/src/features/account/collections.ts:223",
-      "apps/web/src/features/account/collections.ts:263",
-      "apps/web/src/features/account/collections.ts:315",
-      "apps/web/src/features/account/collections.ts:325",
+      "apps/web/src/features/account/collections.ts:164",
+      "apps/web/src/features/account/collections.ts:196",
+      "apps/web/src/features/account/collections.ts:230",
+      "apps/web/src/features/account/collections.ts:271",
+      "apps/web/src/features/account/collections.ts:323",
+      "apps/web/src/features/account/collections.ts:333",
       "apps/web/src/features/collections/collect.ts:63",
       "apps/web/src/server/account/collections.ts:58",
       "apps/web/src/server/account/sync.ts:254"
@@ -5036,7 +5036,7 @@
   "The balls, their melt and the frost, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the blob plays: what its shader code draws, a pass at a time: the palette's balls, their melt (a blur that runs them together into blobs) and the frost over them, a grain that scatters the edges. The code is GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:194"
+      "apps/web/src/features/editor/effect-sources.ts:163"
     ]
   },
   "The browser uses that key.": {
@@ -5090,8 +5090,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:796",
-      "apps/web/src/features/editor/Editor.tsx:810"
+      "apps/web/src/features/editor/Editor.tsx:805",
+      "apps/web/src/features/editor/Editor.tsx:819"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5103,7 +5103,7 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:200"
+      "apps/web/src/features/editor/effect-sources.ts:210"
     ]
   },
   "The keyframes as JSON.": {
@@ -5157,14 +5157,14 @@
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:209"
+      "apps/web/src/features/editor/effect-sources.ts:219"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:278",
-      "apps/web/src/features/editor/effect-sources.ts:208"
+      "apps/web/src/features/editor/effect-sources.ts:218"
     ]
   },
   "The profile's code": {
@@ -5176,7 +5176,7 @@
   "The ribs, the colors' blur and the light, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the fluted glass plays: what its shader code draws, a pass at a time: the glass's ribs, its colors blurred behind them, and the light on the ribs. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:193"
+      "apps/web/src/features/editor/effect-sources.ts:162"
     ]
   },
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": {
@@ -5194,7 +5194,13 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:170"
+      "apps/web/src/features/editor/effect-sources.ts:191"
+    ]
+  },
+  "The tag that paints its first frame behind a page, for the page's head.": {
+    "note": "Editor, the code pane's HTML tab while the silk or the rosette plays: the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page; these effects have no script yet.",
+    "refs": [
+      "apps/web/src/features/editor/effect-sources.ts:181"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5212,7 +5218,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:160"
+      "apps/web/src/features/editor/effect-sources.ts:180"
     ]
   },
   "The wallpapers' code": {
@@ -5402,7 +5408,7 @@
   "Titles are 1 to {max} characters.": {
     "note": "Error: a collection's title is empty or too long.",
     "refs": [
-      "apps/web/src/features/collections/schema.ts:206"
+      "apps/web/src/features/collections/schema.ts:225"
     ]
   },
   "To draw the gradient, Grabient takes colors at evenly spaced points, called steps. The first and last steps are the first and last keyframes. Gradient styles use the steps as color stops. Band styles show each step as a band of flat color. There are never fewer steps than keyframes:": {
@@ -5660,7 +5666,7 @@
   "Use up to {max} tags.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/features/collections/schema.ts:208"
+      "apps/web/src/features/collections/schema.ts:227"
     ]
   },
   "Uses Workers AI for words the search doesn't know.": {
@@ -5977,7 +5983,7 @@
   "Your copy would hold more than {max} palettes. Remove some first.": {
     "note": "Error: Update would make a saved copy too big.",
     "refs": [
-      "apps/web/src/server/collections/copies.ts:339"
+      "apps/web/src/server/collections/copies.ts:359"
     ]
   },
   "Your display name now shows on the palettes you liked first.": {
@@ -6180,21 +6186,21 @@
   "frame\u00041w": {
     "note": "Rising frame chip: one week, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:81",
+      "apps/web/src/features/editor/Sheet.tsx:82",
       "packages/ui/src/ListNav.tsx:20"
     ]
   },
   "frame\u00041y": {
     "note": "Rising frame chip: one year, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:83",
+      "apps/web/src/features/editor/Sheet.tsx:84",
       "packages/ui/src/ListNav.tsx:22"
     ]
   },
   "frame\u00043m": {
     "note": "Rising frame chip: three months, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:82",
+      "apps/web/src/features/editor/Sheet.tsx:83",
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
@@ -6438,7 +6444,7 @@
     "note": "List order and its tab: the most liked first.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:108",
-      "apps/web/src/features/editor/Sheet.tsx:579",
+      "apps/web/src/features/editor/Sheet.tsx:583",
       "apps/web/src/features/gallery/Palettes.tsx:332",
       "packages/ui/src/ListNav.tsx:15"
     ]
@@ -6447,7 +6453,7 @@
     "note": "List order and its tab: palettes gaining likes now.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:109",
-      "apps/web/src/features/editor/Sheet.tsx:268",
+      "apps/web/src/features/editor/Sheet.tsx:269",
       "apps/web/src/features/gallery/Palettes.tsx:331",
       "packages/ui/src/ListNav.tsx:16"
     ]
@@ -6688,7 +6694,7 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:244",
-      "apps/web/src/features/editor/effect-sources.ts:179"
+      "apps/web/src/features/editor/effect-sources.ts:200"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
@@ -7004,7 +7010,7 @@
   "{name}, {style}": {
     "note": "A palette card's picture while the editor plays an effect: what a screen reader calls it. {name} is the palette's name, {style} the effect's (Fluted glass, Blob).",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:432",
+      "apps/web/src/features/editor/Sheet.tsx:433",
       "apps/web/src/features/list/card-effect.tsx:81"
     ]
   },
@@ -7109,14 +7115,14 @@
   "{title} deleted.": {
     "note": "Status: the collection was deleted.",
     "refs": [
-      "apps/web/src/features/collections/collect.ts:373"
+      "apps/web/src/features/collections/collect.ts:374"
     ]
   },
   "{title} has changed, so it stays.": {
     "note": "Error: an undo would delete a collection that changed since.",
     "refs": [
       "apps/web/src/features/collections/Actions.tsx:114",
-      "apps/web/src/features/collections/collect.ts:128"
+      "apps/web/src/features/collections/collect.ts:129"
     ]
   },
   "{title}, page {page}": {

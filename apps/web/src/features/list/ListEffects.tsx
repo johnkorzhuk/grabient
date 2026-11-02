@@ -1,7 +1,7 @@
-import { type Effect, isVectorKind } from "@grabient/engine/effect.ts";
+import type { Effect, VectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { Show } from "solid-js";
+import { Match, Switch } from "solid-js";
 import { BlobArt } from "../editor/BlobArt.tsx";
 import { loadBlob } from "../editor/blob-draw.ts";
 import { FxArt } from "../editor/FxArt.tsx";
@@ -21,33 +21,28 @@ export function EffectSwatch(props: {
   /** false draws the glass's still as its SVG: no WebGL context where the page plays no glass */
   gpu?: boolean;
 }) {
-  const vector = () => {
-    const kind = props.effect.kind;
-    return isVectorKind(kind) ? kind : null;
-  };
+  /* a picture a kind: each shown by a plain test, so none reads a kind its condition no longer holds as the list's
+     effect turns */
+  const fx = (kind: VectorKind) => (
+    <FxArt
+      kind={kind}
+      palette={props.palette}
+      angle={props.angle}
+      shape={props.effect.look.shape}
+    />
+  );
   return (
-    <Show
-      when={props.effect.kind === "blob"}
+    <Switch
       fallback={
-        <Show
-          when={vector()}
-          fallback={
-            <GlassArt colors={glassColors(props.palette)} angle={props.angle} gpu={props.gpu} />
-          }
-        >
-          {kind => (
-            <FxArt
-              kind={kind()}
-              palette={props.palette}
-              angle={props.angle}
-              shape={props.effect.look.shape}
-            />
-          )}
-        </Show>
+        <GlassArt colors={glassColors(props.palette)} angle={props.angle} gpu={props.gpu} />
       }
     >
-      <BlobArt palette={props.palette} settings={props.effect} />
-    </Show>
+      <Match when={props.effect.kind === "blob"}>
+        <BlobArt palette={props.palette} settings={props.effect} />
+      </Match>
+      <Match when={props.effect.kind === "silk"}>{fx("silk")}</Match>
+      <Match when={props.effect.kind === "rosette"}>{fx("rosette")}</Match>
+    </Switch>
   );
 }
 

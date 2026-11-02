@@ -55,10 +55,13 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      (features/collections/CollectionRoute.tsx and all only it reaches: Add to collection's lists, curation, tags):
      325.5; then the selection's export screen, asked for as the selection is about to open (selection/ExportScreen.tsx:
      the column and the preview, their grid, the copies and the zip): 320.0, the budget 3 KB over it */
+  /* it stood at 323.0 on 2 Nov 2026 once the saved look was in it, and the silk's and the rosette's layers made one a
+     kind, so none reads a kind its condition no longer holds (the editor fell to its static page as a tile under the
+     pointer turned the picture), took it a few hundredths past */
   "a palette": {
     route: "src/routes/$id/index.tsx",
     also: ["src/features/editor/Editor.tsx", "src/features/editor/Sheet.tsx"],
-    budget: 323
+    budget: 324
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
      the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.

@@ -2,13 +2,7 @@ import { K_MAX, K_MIN } from "@grabient/engine";
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { hexToSrgb, luminance } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
-import {
-  blobShapeOf,
-  blobStillKey,
-  fxStillKey,
-  isVectorKind,
-  type VectorKind
-} from "@grabient/engine/effect.ts";
+import { blobShapeOf, blobStillKey, fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
@@ -738,32 +732,39 @@ function Stage(
     </Show>
   );
   /* a vector effect over the gradient while it plays (silk, rosette), its colors held by the flash guard as well; while
-     its code comes, the still the first screen showed stands in its place (server/fx-still.ts) */
-  const fxLayer = () => (
-    <Show when={isVectorKind(e.shownEffect()) ? (e.shownEffect() as VectorKind) : null}>
-      {kind => (
-        <Loading
-          fallback={
-            <div class={styles.fx}>
-              <div
-                class={styles.glassStill}
-                data-fx-still={fxStillKey(kind(), encodePalette(calmPalette()), {
-                  angle: e.angle(),
-                  shape: e.effects.settings(kind()).look.shape
-                })}
-              />
-            </div>
-          }
-        >
-          <FxLayer
-            kind={kind()}
-            palette={calmPalette()}
-            settings={e.effects.settings(kind())}
-            angle={e.angle()}
-          />
-        </Loading>
-      )}
+     its code comes, the still the first screen showed stands in its place (server/fx-still.ts). One layer a kind, each
+     shown by a plain test as the glass's and the blob's are: a layer keeps the kind it was made for (its player plays
+     that kind), so another kind is another layer, and nothing reads a kind its condition no longer holds while a tile
+     under the pointer turns the picture to another style and back */
+  const fxLayerOf = (kind: VectorKind) => (
+    <Show when={e.shownEffect() === kind}>
+      <Loading
+        fallback={
+          <div class={styles.fx}>
+            <div
+              class={styles.glassStill}
+              data-fx-still={fxStillKey(kind, encodePalette(calmPalette()), {
+                angle: e.angle(),
+                shape: e.effects.settings(kind).look.shape
+              })}
+            />
+          </div>
+        }
+      >
+        <FxLayer
+          kind={kind}
+          palette={calmPalette()}
+          settings={e.effects.settings(kind)}
+          angle={e.angle()}
+        />
+      </Loading>
     </Show>
+  );
+  const fxLayer = () => (
+    <>
+      {fxLayerOf("silk")}
+      {fxLayerOf("rosette")}
+    </>
   );
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: a tap on the artwork shows its presses to a finger; a mouse and the keyboard have them anyway */
