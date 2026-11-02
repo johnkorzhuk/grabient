@@ -70,16 +70,20 @@ let gpuLoading: Promise<void> | null = null;
 let hurried = false;
 /* makes the canvas, once its code has come */
 let begin: (() => void) | null = null;
+/* ends the canvas's wait for the players' first frames, where a picture comes to wait for its still meanwhile */
+let hurry: (() => void) | null = null;
 
 /** The GPU's still code (ui/glass-still.ts, which shares the player's chunk), asked for once as a page shows the glass,
     and its canvas made as the page next idles, or at once where a picture waits for its still (`now`): a page as
     busy as a list starting is idle only after the second the wait allows, and its cards showed their fields alone
-    for as long. Its programs are built as the GPU gets to them: done once they are, or once they cannot be. The
-    browser's alone. */
+    for as long. Unless a picture waits for it, the canvas also waits for the players' first frames, which its context
+    would wait on (painted.ts). Its programs are built as the GPU gets to them: done once they are, or once they
+    cannot be. The browser's alone. */
 export const loadGpuStill = (now = false): Promise<void> => {
   if (now) {
     hurried = true;
     begin?.();
+    hurry?.();
   }
   gpuLoading ??= (
     import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/glass-still.ts")
@@ -91,12 +95,20 @@ export const loadGpuStill = (now = false): Promise<void> => {
           if (begun) return;
           begun = true;
           begin = null;
-          /* once the page's still is painted, which a context would otherwise wait on (painted.ts) */
-          void (
-            import.meta.env.SSR
-              ? Promise.resolve()
-              : import("./painted.ts").then(p => p.stillPainted())
-          )
+          /* once the page's still is painted, which a context would otherwise wait on, and, unless a picture waits
+             for its still, once the players' first frames are shown, which it would wait on too (painted.ts) */
+          const painted = async () => {
+            if (import.meta.env.SSR) return;
+            const p = await import("./painted.ts");
+            await p.stillPainted();
+            if (hurried) return;
+            const hurries = new Promise<void>(resolve => {
+              hurry = resolve;
+            });
+            await Promise.race([p.gpuQuiet(), hurries]);
+            hurry = null;
+          };
+          void painted()
             .then(() => m.warmGlassStill())
             .then(() => {
               gpu = m;

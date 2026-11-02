@@ -30,6 +30,14 @@ function nameHere(): string {
 }
 const software = (name: string) => name === "none" || SOFTWARE.test(name);
 
+/* what the probe's worker waits for before it goes: nothing, until a page's players say (probeWaitsFor) */
+let waitFor = (): Promise<unknown> => Promise.resolve();
+/** Has the probe's worker, whose context goes with it, wait for `wait` before it goes: the players' first frames on
+    the GPU, behind which letting a context go holds the page's thread (apps/web's features/editor/painted.ts). */
+export const probeWaitsFor = (wait: () => Promise<unknown>): void => {
+  waitFor = wait;
+};
+
 /** Whether a renderer's name is a software rasterizer's. */
 export const softwareNamed = (name: string): boolean => SOFTWARE.test(name);
 
@@ -50,9 +58,11 @@ function softwareRenderer(): Promise<boolean> {
       const url = URL.createObjectURL(new Blob([PROBE], { type: "text/javascript" }));
       const worker = new Worker(url);
       const done = (name: string) => {
-        worker.terminate();
         URL.revokeObjectURL(url);
         settle(name);
+        /* the worker's context goes with it, and the page's thread waits for the GPU to let it go: behind a player's
+           first frame, a sixth of a second, so it waits for what the page says (probeWaitsFor) */
+        void waitFor().then(() => worker.terminate());
       };
       worker.onmessage = e => done(String(e.data));
       worker.onerror = () => done(nameHere());

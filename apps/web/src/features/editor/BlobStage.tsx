@@ -3,7 +3,7 @@ import type { Palette } from "@grabient/engine/palette.ts";
 import { type BlobPlayer, playBlob } from "@grabient/ui/blob-player.ts";
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./BlobStage.module.css";
-import { stillPainted } from "./painted.ts";
+import { holdGpu, stillPainted } from "./painted.ts";
 
 /** How long the canvas takes to fade in or out over the still (GlassStage.module.css). */
 const FADE_MS = 700;
@@ -31,6 +31,9 @@ export function BlobStage(props: {
   let reduced = untrack(() => props.reduced);
   onSettled(() => {
     let gone = false;
+    /* the GPU is the player's until its first frame is drawn and its canvas has faded in: what can wait for it does
+       (painted.ts) */
+    const release = holdGpu();
     /* its context once the still is painted, which it would otherwise wait on (painted.ts) */
     void stillPainted().then(() => {
       if (gone) return;
@@ -40,12 +43,18 @@ export function BlobStage(props: {
         untrack(() => props.view),
         /* a frame after the canvas came: its first frame can be drawn in the frame it comes in, and a canvas shown
            before it was ever drawn hidden would not fade in */
-        () => requestAnimationFrame(() => setDrawn(true)),
+        () => {
+          requestAnimationFrame(() => setDrawn(true));
+          /* the frame's work on the GPU is done well before its canvas has faded in */
+          setTimeout(release, FADE_MS);
+        },
         { reduced: () => reduced }
       );
+      if (!player) release();
     });
     return () => {
       gone = true;
+      release();
       clearTimeout(rewinding);
       player?.destroy();
       player = null;
