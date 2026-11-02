@@ -840,6 +840,16 @@ export function blobRenderer(
       }
     }
   }
+  /* a renderer drawing once works out its places a band of rows at a time */
+  const ROWS = 16;
+  const band = once
+    ? {
+        corner: new Int32Array(W * Math.min(ROWS, H)),
+        across: new Float32Array(W * Math.min(ROWS, H)),
+        down: new Float32Array(W * Math.min(ROWS, H)),
+        grains: new Float32Array(W * Math.min(ROWS, H))
+      }
+    : null;
   const row = 4 * w;
   const lift0 = 0.5 - SLOPE / 2;
 
@@ -874,85 +884,109 @@ export function blobRenderer(
       boxBlur(across, melt, w, h, 4, 4 * w, width);
     }
     const out = new Uint8Array(channels * N);
-    for (let p = 0, x = 0, y = 0; p < N; p++) {
-      /* the melt read through the scattered place, bilinear */
-      if (!kept) {
-        placeOf(p, x, y);
-        if (++x === W) {
-          x = 0;
-          y++;
-        }
-      }
-      const at = kept ? kept.corner[p] : place[0];
-      const fx = kept ? kept.across[p] : place[1];
-      const fy = kept ? kept.down[p] : place[2];
-      const grain = kept ? kept.grains[p] : place[3];
-      const w00 = (1 - fx) * (1 - fy);
-      const w10 = fx * (1 - fy);
-      const w01 = (1 - fx) * fy;
-      const w11 = fx * fy;
-      const a0 =
-        melt[at + 3] * w00 +
-        melt[at + 7] * w10 +
-        melt[at + row + 3] * w01 +
-        melt[at + row + 7] * w11;
-      /* lifted, speckled */
-      const lift = a0 > 0 ? Math.min(1, Math.max(0, SLOPE * a0 + lift0)) : 0;
-      const alpha = Math.min(1, lift * (1 + speckle));
-      const o = channels * p;
-      if (!alpha) {
-        if (under) {
-          out[o] = under[0];
-          out[o + 1] = under[1];
-          out[o + 2] = under[2];
-        } else if (veil) {
-          out[o] = veil.rgb[0];
-          out[o + 1] = veil.rgb[1];
-          out[o + 2] = veil.rgb[2];
-          out[o + 3] = 255 * veil.alpha + 0.5;
-        }
-        continue;
-      }
-      const scale = (lift * grain) / a0;
-      const red = Math.min(
-        alpha,
-        (melt[at] * w00 + melt[at + 4] * w10 + melt[at + row] * w01 + melt[at + row + 4] * w11) *
-          scale
-      );
-      const green = Math.min(
-        alpha,
-        (melt[at + 1] * w00 +
-          melt[at + 5] * w10 +
-          melt[at + row + 1] * w01 +
-          melt[at + row + 5] * w11) *
-          scale
-      );
-      const blue = Math.min(
-        alpha,
-        (melt[at + 2] * w00 +
-          melt[at + 6] * w10 +
-          melt[at + row + 2] * w01 +
-          melt[at + row + 6] * w11) *
-          scale
-      );
-      if (under) {
-        const rest = 1 - alpha;
-        out[o] = 255 * red + under[0] * rest + 0.5;
-        out[o + 1] = 255 * green + under[1] * rest + 0.5;
-        out[o + 2] = 255 * blue + under[2] * rest + 0.5;
-      } else if (veil) {
-        /* the blobs over a ground that lets something through: premultiplied, then unpremultiplied */
-        const rest = veil.alpha * (1 - alpha);
-        const all = alpha + rest;
-        out[o] = (255 * red + veil.rgb[0] * rest) / all + 0.5;
-        out[o + 1] = (255 * green + veil.rgb[1] * rest) / all + 0.5;
-        out[o + 2] = (255 * blue + veil.rgb[2] * rest) / all + 0.5;
-        out[o + 3] = 255 * all + 0.5;
+    for (let y0 = 0; y0 < H; y0 += ROWS) {
+      const y1 = Math.min(H, y0 + ROWS);
+      let cornerA: Int32Array;
+      let acrossA: Float32Array;
+      let downA: Float32Array;
+      let grainsA: Float32Array;
+      let off: number;
+      if (kept) {
+        cornerA = kept.corner;
+        acrossA = kept.across;
+        downA = kept.down;
+        grainsA = kept.grains;
+        off = 0;
       } else {
-        out[o] = (255 * red) / alpha + 0.5;
-        out[o + 1] = (255 * green) / alpha + 0.5;
-        out[o + 2] = (255 * blue) / alpha + 0.5;
-        out[o + 3] = 255 * alpha + 0.5;
+        /* this band's places, as the kept arrays hold them */
+        const b = band as NonNullable<typeof band>;
+        for (let y = y0, i = 0; y < y1; y++)
+          for (let x = 0; x < W; x++, i++) {
+            placeOf(y * W + x, x, y);
+            b.corner[i] = place[0];
+            b.across[i] = place[1];
+            b.down[i] = place[2];
+            b.grains[i] = place[3];
+          }
+        cornerA = b.corner;
+        acrossA = b.across;
+        downA = b.down;
+        grainsA = b.grains;
+        off = y0 * W;
+      }
+      for (let p = y0 * W; p < y1 * W; p++) {
+        /* the melt read through the scattered place, bilinear */
+        const at = cornerA[p - off];
+        const fx = acrossA[p - off];
+        const fy = downA[p - off];
+        const grain = grainsA[p - off];
+        const w00 = (1 - fx) * (1 - fy);
+        const w10 = fx * (1 - fy);
+        const w01 = (1 - fx) * fy;
+        const w11 = fx * fy;
+        const a0 =
+          melt[at + 3] * w00 +
+          melt[at + 7] * w10 +
+          melt[at + row + 3] * w01 +
+          melt[at + row + 7] * w11;
+        /* lifted, speckled */
+        const lift = a0 > 0 ? Math.min(1, Math.max(0, SLOPE * a0 + lift0)) : 0;
+        const alpha = Math.min(1, lift * (1 + speckle));
+        const o = channels * p;
+        if (!alpha) {
+          if (under) {
+            out[o] = under[0];
+            out[o + 1] = under[1];
+            out[o + 2] = under[2];
+          } else if (veil) {
+            out[o] = veil.rgb[0];
+            out[o + 1] = veil.rgb[1];
+            out[o + 2] = veil.rgb[2];
+            out[o + 3] = 255 * veil.alpha + 0.5;
+          }
+          continue;
+        }
+        const scale = (lift * grain) / a0;
+        const red = Math.min(
+          alpha,
+          (melt[at] * w00 + melt[at + 4] * w10 + melt[at + row] * w01 + melt[at + row + 4] * w11) *
+            scale
+        );
+        const green = Math.min(
+          alpha,
+          (melt[at + 1] * w00 +
+            melt[at + 5] * w10 +
+            melt[at + row + 1] * w01 +
+            melt[at + row + 5] * w11) *
+            scale
+        );
+        const blue = Math.min(
+          alpha,
+          (melt[at + 2] * w00 +
+            melt[at + 6] * w10 +
+            melt[at + row + 2] * w01 +
+            melt[at + row + 6] * w11) *
+            scale
+        );
+        if (under) {
+          const rest = 1 - alpha;
+          out[o] = 255 * red + under[0] * rest + 0.5;
+          out[o + 1] = 255 * green + under[1] * rest + 0.5;
+          out[o + 2] = 255 * blue + under[2] * rest + 0.5;
+        } else if (veil) {
+          /* the blobs over a ground that lets something through: premultiplied, then unpremultiplied */
+          const rest = veil.alpha * (1 - alpha);
+          const all = alpha + rest;
+          out[o] = (255 * red + veil.rgb[0] * rest) / all + 0.5;
+          out[o + 1] = (255 * green + veil.rgb[1] * rest) / all + 0.5;
+          out[o + 2] = (255 * blue + veil.rgb[2] * rest) / all + 0.5;
+          out[o + 3] = 255 * all + 0.5;
+        } else {
+          out[o] = (255 * red) / alpha + 0.5;
+          out[o + 1] = (255 * green) / alpha + 0.5;
+          out[o + 2] = (255 * blue) / alpha + 0.5;
+          out[o + 3] = 255 * alpha + 0.5;
+        }
       }
     }
     return out;
