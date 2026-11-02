@@ -27,10 +27,10 @@ import type { Rest } from "./rest.ts";
 /* The palette as text, in the sheet's code pane: its seed, CSS, colors, shader, JSON, SVG and Markdown. While the
    picture plays an effect, the pane holds the effect's code in the gradient's place: the tags that play it behind a
    page, the stylesheet of its first frame, the colors it draws, its settings, its SVG and its Markdown, each the text
-   its address serves and the editor's strip copies (engine/effect-code.ts), and no shader, since the effect's is no
-   one program. Those tabs load with the effect's code as an effect first shows here (effect-sources.ts), never with
-   a palette's start. Labels and notes are translated; spellings (oklch, hex, GLSL, the tags) are notation and stay as
-   written.
+   its address serves and the editor's strip copies (engine/effect-code.ts), and its shader, pass by pass in each
+   spelling, whose writers load as the spelling shows. Those tabs load with the effect's code as an effect first shows
+   here (effect-sources.ts), never with a palette's start. Labels and notes are translated; spellings (oklch, hex,
+   GLSL, the tags) are notation and stay as written.
 
    The Markdown is written here by the engine's function the Worker serves the file with, so the tab shows at once and
    an edit asks the server nothing. What only the database knows of a palette (its written words, the collections that

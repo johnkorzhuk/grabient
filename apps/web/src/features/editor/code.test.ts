@@ -1,4 +1,6 @@
 import { decodePalette } from "@grabient/engine";
+import { blobWebgl } from "@grabient/engine/blob-webgl.ts";
+import { blobWebgpu } from "@grabient/engine/blob-webgpu.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { effectEmbedHtml, parseEffect } from "@grabient/engine/effect.ts";
 import {
@@ -92,19 +94,19 @@ const loaded = async (read: () => string) => {
   return read();
 };
 
-test("while an effect plays, the pane holds its code in the gradient's place, the glass's shader its own", async () => {
+test("while an effect plays, the pane holds its code in the gradient's place, its shader its own", async () => {
   await tabsIn();
-  const ids = codeSources(
-    decodePalette(SEED)!,
-    { style: "radialGradient", steps: 6, angle: 45 },
-    SEED,
-    () => ({ facts: null, opened: false }),
-    createRest(),
-    played("style=glass")
-  ).map(s => s.id);
-  expect(ids).toEqual(["seed", "html", "css", "colors", "shader", "json", "svg", "md"]);
-  /* the blob's shader is its own, written elsewhere */
-  expect(effectSource("style=blob", "shader")).toBeUndefined();
+  for (const query of ["style=glass", "style=blob"]) {
+    const ids = codeSources(
+      decodePalette(SEED)!,
+      { style: "radialGradient", steps: 6, angle: 45 },
+      SEED,
+      () => ({ facts: null, opened: false }),
+      createRest(),
+      played(query)
+    ).map(s => s.id);
+    expect(ids, query).toEqual(["seed", "html", "css", "colors", "shader", "json", "svg", "md"]);
+  }
   const P = decodePalette(SEED)!;
   const glass = parseEffect(new URLSearchParams("style=glass&shape=12&speed=2"))!;
   const css = await loaded(() => effectSource("style=glass&shape=12&speed=2", "css")!.text());
@@ -150,6 +152,27 @@ test("the glass's Shader tab writes each spelling with the engine's own writer, 
     expect(await loaded(() => shader().text(kind))).toBe(
       glassWebgpu(kind, P, glass, 45, SEED, ORIGIN)
     );
+});
+
+test("the blob's Shader tab writes each spelling with the engine's own writer, each loaded as it shows, and no angle", async () => {
+  /* the browser's: a server's build never loads a shader's writers */
+  vi.stubEnv("SSR", false);
+  await tabsIn();
+  const P = decodePalette(SEED)!;
+  const blob = parseEffect(new URLSearchParams("style=blob&shape=3&speed=2&frost=0.5"))!;
+  const shader = () => effectSource("style=blob&shape=3&speed=2&frost=0.5", "shader")!;
+  expect(shader().spellings?.map(s => s.id)).toEqual(["glsl", "wgsl", "webgl", "webgpu"]);
+  expect(await loaded(() => shader().text())).toBe(blobWebgl("glsl", P, blob, SEED, ORIGIN));
+  for (const kind of ["glsl", "webgl"] as const)
+    expect(await loaded(() => shader().text(kind))).toBe(blobWebgl(kind, P, blob, SEED, ORIGIN));
+  for (const kind of ["wgsl", "webgpu"] as const)
+    expect(await loaded(() => shader().text(kind))).toBe(blobWebgpu(kind, P, blob, SEED, ORIGIN));
+  /* the editor's angle, 45 here, is the glass's and the gradients': the blob's address names none */
+  expect(shader().text("webgl")).toContain(
+    `${ORIGIN}/${SEED}?style=blob&speed=2&frost=0.5&shape=3`
+  );
+  expect(shader().text("webgl")).not.toMatch(/angle=|\bANGLE\b/);
+  expect(shader().note?.()).toBe("The balls, their melt and the frost, pass by pass.");
 });
 
 test("while an effect plays, the Markdown is the file its address serves, whatever gradient the editor keeps", async () => {

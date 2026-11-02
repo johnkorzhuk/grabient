@@ -2,7 +2,7 @@ import type { Palette } from "@grabient/engine";
 import { hexBytes, srgbToLch, type Triple } from "@grabient/engine/color.ts";
 import { COLOR_KINDS, colorKind, colorsText } from "@grabient/engine/css.ts";
 import type { Stop } from "@grabient/engine/curve.ts";
-import { type Effect, effectEmbedHtml } from "@grabient/engine/effect.ts";
+import { type Effect, type EffectKind, effectEmbedHtml } from "@grabient/engine/effect.ts";
 import {
   effectColors,
   effectMarkdown,
@@ -22,11 +22,11 @@ import { effectHtml, type Taken } from "./formats.ts";
 /* The code pane's tabs for an effect, which load with the effect's code as an effect first shows in the pane
    (code.ts), never with a palette's start. */
 
-/* the glass as shader code, each kind's module asked for once its spelling shows in the Shader tab: Shadertoy's tabs
-   (engine/glass-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts), the WGSL or its WebGPU page
-   (glass-webgpu.ts). The effect's code carries only the tab's spellings, and the Worker's build none of them: a server
-   never writes a shader, and its ask waits for ever. */
-type GlassWriter = (
+/* an effect as shader code, each kind's module asked for once its spelling shows in the Shader tab: Shadertoy's tabs
+   (engine/glass-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts, blob-webgl.ts), the WGSL or its WebGPU
+   page (glass-webgpu.ts, blob-webgpu.ts). The effect's code carries only the tab's spellings, and the Worker's build
+   none of them: a server never writes a shader, and its ask waits for ever. */
+type ShaderWriter = (
   kind: ShaderKind,
   P: Palette,
   effect: Effect,
@@ -34,50 +34,78 @@ type GlassWriter = (
   seed: string,
   origin: string
 ) => string;
-const GLASS_SHADER_PARTS = {
-  shadertoy: () =>
-    (import.meta.env.SSR
-      ? (new Promise(() => {}) as never)
-      : import("@grabient/engine/glass-shadertoy.ts")
-    ).then(
-      (m): GlassWriter =>
-        (_, ...rest) =>
-          m.glassShadertoyText(...rest)
-    ),
-  webgl: () =>
-    (import.meta.env.SSR
-      ? (new Promise(() => {}) as never)
-      : import("@grabient/engine/glass-webgl.ts")
-    ).then(
-      (m): GlassWriter =>
-        (kind, ...rest) =>
-          m.glassWebgl(kind as "glsl" | "webgl", ...rest)
-    ),
-  webgpu: () =>
-    (import.meta.env.SSR
-      ? (new Promise(() => {}) as never)
-      : import("@grabient/engine/glass-webgpu.ts")
-    ).then(
-      (m): GlassWriter =>
-        (kind, ...rest) =>
-          m.glassWebgpu(kind as "wgsl" | "webgpu", ...rest)
-    )
+type ShaderPart = "shadertoy" | "webgl" | "webgpu";
+const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<ShaderWriter>>>> = {
+  glass: {
+    shadertoy: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/glass-shadertoy.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (_, ...rest) =>
+            m.glassShadertoyText(...rest)
+      ),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/glass-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.glassWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/glass-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.glassWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  },
+  /* the blob has no angle */
+  blob: {
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/blob-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, P, effect, _angle, seed, origin) =>
+            m.blobWebgl(kind as "glsl" | "webgl", P, effect, seed, origin)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/blob-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, P, effect, _angle, seed, origin) =>
+            m.blobWebgpu(kind as "wgsl" | "webgpu", P, effect, seed, origin)
+      )
+  }
 };
-type GlassPart = keyof typeof GLASS_SHADER_PARTS;
-const partOf = (kind: ShaderKind): GlassPart =>
+const partOf = (kind: ShaderKind): ShaderPart =>
   kind === "shadertoy" ? "shadertoy" : kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";
-const [glassWriters, setGlassWriters] = createSignal<Partial<Record<GlassPart, GlassWriter>>>({});
-const glassAsked = new Set<GlassPart>();
-const glassWriterNow = (kind: ShaderKind) => {
+/* the Shader tab's spellings for an effect: the kinds it has a writer for */
+const shaderKinds = (effect: EffectKind) =>
+  SHADER_KINDS.filter(([kind]) => SHADER_PARTS[effect][partOf(kind)]);
+const [writers, setWriters] = createSignal<Partial<Record<string, ShaderWriter>>>({});
+const asked = new Set<string>();
+const writerNow = (effect: EffectKind, kind: ShaderKind) => {
   const part = partOf(kind);
-  if (!glassAsked.has(part)) {
-    glassAsked.add(part);
-    void GLASS_SHADER_PARTS[part]().then(
-      write => setGlassWriters(had => ({ ...had, [part]: write })),
-      () => glassAsked.delete(part)
+  const load = SHADER_PARTS[effect][part];
+  const key = `${effect} ${part}`;
+  if (load && !asked.has(key)) {
+    asked.add(key);
+    void load().then(
+      write => setWriters(had => ({ ...had, [key]: write })),
+      () => asked.delete(key)
     );
   }
-  return glassWriters()[part];
+  return writers()[key];
 };
 
 /* the glass's first frame as the tags show it inside the page: its data elided, which Copy writes in full */
@@ -149,20 +177,19 @@ export function effectSources(
           count: colors().length
         })
     },
-    ...(glass
-      ? [
-          {
-            id: "shader",
-            label: msg("Shader"),
-            spellings: SHADER_KINDS.map(([id, label]) => ({ id, label })),
-            text: (spelling?: string) => {
-              const kind = (spelling ?? "shadertoy") as ShaderKind;
-              return glassWriterNow(kind)?.(kind, P, effect, angle, seed, origin) ?? "";
-            },
-            note: () => t("The ribs, the colors' blur and the light, pass by pass.")
-          }
-        ]
-      : []),
+    {
+      id: "shader",
+      label: msg("Shader"),
+      spellings: shaderKinds(effect.kind).map(([id, label]) => ({ id, label })),
+      text: (spelling?: string) => {
+        const kind = (spelling ?? shaderKinds(effect.kind)[0]?.[0]) as ShaderKind;
+        return writerNow(effect.kind, kind)?.(kind, P, effect, angle, seed, origin) ?? "";
+      },
+      note: () =>
+        glass
+          ? t("The ribs, the colors' blur and the light, pass by pass.")
+          : t("The balls, their melt and the frost, pass by pass.")
+    },
     {
       id: "json",
       label: "JSON",

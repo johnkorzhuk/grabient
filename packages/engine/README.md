@@ -98,6 +98,11 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
 - The fluted glass's shader code, every kind named in `glass-shader.ts`: Shadertoy's tabs (`glass-shadertoy.ts`), the
   GLSL and its WebGL page (`glass-webgl.ts`, the player's own GLSL in `glass-gl.ts`), the WGSL and its WebGPU page
   (`glass-webgpu.ts` over `glass-wgsl.ts`), the pages' design in `glass-page.ts` and their clock in `effect-page.ts`.
+- The blob's, every kind named in `blob-shader.ts`: Shadertoy's tabs (`blob-shadertoy.ts`, which keeps the player's
+  numbers in a buffer: its layout and clock as JavaScript's doubles by `blob-program.ts` over `double-program.ts` and
+  `glsl-double.ts`, the balls' places in fixed point by `blob-fixed.ts`), the GLSL and its WebGL page (`blob-webgl.ts`,
+  the player's own GLSL in `blob-gl.ts`), the WGSL and its WebGPU page (`blob-webgpu.ts` over `blob-wgsl.ts`), the
+  pages' script in `blob-page.ts`, played by the same clock.
 - What a palette is: `name.ts`, `colorname.ts` over `colornames.data.ts`, `shape.ts`, `dominant.ts`, `contrast.ts`,
   `plot.ts`, `strip.ts`.
 - Old links: `legacy.ts`, `legacy-import.ts`.

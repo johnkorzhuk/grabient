@@ -914,6 +914,44 @@ test("while the glass plays, its Shader tab writes it for Shadertoy, GLSL and WG
   expect(asked).toEqual(["glass-shadertoy.ts", "glass-webgl.ts", "glass-webgpu.ts"]);
 });
 
+test("while the blob plays, its Shader tab writes it in GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling", async ({
+  page
+}) => {
+  const asked: string[] = [];
+  page.on("request", request => {
+    const name = /\/engine\/src\/(blob-(?:shader|shadertoy|webgl|webgpu)\.ts)$/.exec(
+      new URL(request.url()).pathname
+    )?.[1];
+    if (name) asked.push(name);
+  });
+  await open(page, `/${SEED}?style=blob&shape=3`);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await expect(tabs.getByRole("tab", { name: "Shader" })).toBeVisible();
+  expect(asked).toEqual([]);
+  await tabs.getByRole("tab", { name: "Shader" }).click();
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  await expect(code).toContainText(`// grabient ${SEED}`);
+  await expect(code).toContainText(`/${SEED}?style=blob&shape=3`);
+  await expect(code).toContainText("// ==== Pass 4: canvas ====");
+  expect(asked).toEqual(["blob-webgl.ts"]);
+  const spellings = page.getByRole("tablist", { name: "Syntax" });
+  await expect(spellings.getByRole("tab")).toHaveText(["GLSL", "WGSL", "WebGL", "WebGPU"]);
+  await spellings.getByRole("tab", { name: "WebGL" }).click();
+  await expect(code).toContainText(
+    '<script type="x-shader/x-fragment" id="final-fs">#version 300 es'
+  );
+  await expect(code).toContainText("const SHAPE = 3;");
+  expect(asked).toEqual(["blob-webgl.ts"]);
+  await spellings.getByRole("tab", { name: "WGSL" }).click();
+  await expect(code).toContainText("@fragment");
+  expect(asked).toEqual(["blob-webgl.ts", "blob-webgpu.ts"]);
+  await spellings.getByRole("tab", { name: "WebGPU" }).click();
+  await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
+  await expect(page.getByText("The balls, their melt and the frost, pass by pass.")).toBeVisible();
+  expect(asked).toEqual(["blob-webgl.ts", "blob-webgpu.ts"]);
+});
+
 test("a copy of the glass's tags the browser refuses selects them whole, its first frame written out", async ({
   page
 }) => {
