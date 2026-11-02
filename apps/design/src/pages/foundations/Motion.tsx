@@ -160,6 +160,7 @@ export function Motion() {
             "Pages paint at rest, and routes change without animation.",
             "Hover reveals fade in and travel a few pixels. Nothing springs or scales.",
             "Code that animates asks reducedMotion(), never the media query.",
+            "Where reduced motion holds an effect still, the Appearance menu says so above its speed, with the setting's switch.",
             "A control's fill fades as --fill, which base.css registers, never as background-color, which Chrome can flash."
           ]}
         />

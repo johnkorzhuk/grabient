@@ -1,4 +1,33 @@
 @layer components {
+  /* the site's Reduce motion above the effect's fields, a row of their height: its name and what it does to the
+     effects, then its switch (GlassControls.tsx's MotionRow) */
+  .motion {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: var(--space-s3);
+    min-width: 0;
+    padding-inline-start: var(--space-s3);
+  }
+  .motionLabel {
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+  }
+  .motionLine {
+    flex-grow: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
   /* The effects' last fields in the Appearance menu (GlassControls.tsx, BlobControls.tsx): the glass's frames a
      second and its shape, the blob's frost, its shape and its ground, two to a row where both show whole, and each
      takes the row where they would not, by the width of the menu's fields (Appearance.module.css): 452px under a

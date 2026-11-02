@@ -86,7 +86,8 @@ export function Fields() {
             "The help line is the one place for validation; never add a second line.",
             "Labels are nouns: Email, Display name. Inputs are 16px on a coarse pointer.",
             "The rim takes the wordmark bar's colors, so a field and the bar agree.",
-            "The label names the input; the help line describes it, read aloud as it changes."
+            "The label names the input; the help line describes it, read aloud as it changes.",
+            "Fields that stand together are one height: 40px under a mouse, 44px under a finger."
           ]}
         />
       </Block>

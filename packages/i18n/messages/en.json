@@ -244,7 +244,7 @@
   "Add to selection": {
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Boot.tsx:141",
+      "apps/web/src/features/editor/Boot.tsx:138",
       "apps/web/src/features/editor/Editor.tsx:580",
       "apps/web/src/features/editor/Editor.tsx:581",
       "packages/ui/src/PaletteCard.tsx:423",
@@ -358,7 +358,7 @@
   "Angle": {
     "note": "Field: the gradient's angle in degrees.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:40",
+      "apps/web/src/features/editor/GlassControls.tsx:77",
       "packages/ui/src/Appearance.tsx:230",
       "packages/ui/src/Curation.tsx:271"
     ]
@@ -384,7 +384,7 @@
   "Another look": {
     "note": "Examples page: turns one example to another of the palette's looks (another style, steps, angle or shape that suits it). The shortcut list's entry for ← and →, and the hint after those keys under each example. Short.",
     "refs": [
-      "apps/web/src/features/examples/Example.tsx:211",
+      "apps/web/src/features/examples/Example.tsx:228",
       "packages/ui/src/keymap.ts:46"
     ]
   },
@@ -466,7 +466,7 @@
   "Auto": {
     "note": "A value chosen by the app: size, steps, angle or columns follow the content.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:46",
+      "apps/web/src/features/editor/GlassControls.tsx:83",
       "packages/ui/src/Appearance.tsx:224",
       "packages/ui/src/Appearance.tsx:236",
       "packages/ui/src/ExportPanel.tsx:129",
@@ -486,7 +486,7 @@
     "note": "Press: back to the previous menu or page.",
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:265",
-      "packages/ui/src/FormatStrip.tsx:178",
+      "packages/ui/src/FormatStrip.tsx:188",
       "packages/ui/src/Menu.tsx:431",
       "packages/ui/src/SizeControl.tsx:247"
     ]
@@ -500,7 +500,7 @@
   "Background": {
     "note": "Editor, the Appearance menu's blob fields: what is drawn behind the blob. The name of a choice of None, Deep or Color, and of the color field under it.",
     "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:52"
+      "apps/web/src/features/editor/BlobControls.tsx:54"
     ]
   },
   "Background <c>{color}</c>": {
@@ -545,7 +545,7 @@
     "note": "Editor, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as an animated blob, a soft amorphous shape of its colors.",
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:100",
-      "apps/web/src/features/editor/EditorCorner.tsx:80",
+      "apps/web/src/features/editor/EditorCorner.tsx:77",
       "apps/web/src/features/editor/effect-page.ts:25"
     ]
   },
@@ -1017,7 +1017,7 @@
       "packages/ui/src/CopyButton.tsx:31",
       "packages/ui/src/CopyButton.tsx:37",
       "packages/ui/src/CopyButton.tsx:51",
-      "packages/ui/src/FormatStrip.tsx:190",
+      "packages/ui/src/FormatStrip.tsx:200",
       "packages/ui/src/StopStrip.tsx:101",
       "packages/ui/src/StopStrip.tsx:182"
     ]
@@ -1030,7 +1030,7 @@
       "packages/ui/src/CopyButton.tsx:31",
       "packages/ui/src/CopyButton.tsx:48",
       "packages/ui/src/ExportPanel.tsx:257",
-      "packages/ui/src/FormatStrip.tsx:79",
+      "packages/ui/src/FormatStrip.tsx:81",
       "packages/ui/src/StopStrip.tsx:156"
     ]
   },
@@ -1058,7 +1058,7 @@
   "Copy for {format}": {
     "note": "Tooltip on the Figma press of the format row ({format} is Figma): copies the effect as layers to paste into Figma.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:89"
+      "packages/ui/src/FormatStrip.tsx:91"
     ]
   },
   "Copy includes the whole first frame.": {
@@ -1070,19 +1070,19 @@
   "Copy link": {
     "note": "Label of the format row while its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:81"
+      "packages/ui/src/FormatStrip.tsx:83"
     ]
   },
   "Copy {format}": {
     "note": "Tooltip on a format press (CSS, SVG, PNG...): copies it.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:84"
+      "packages/ui/src/FormatStrip.tsx:86"
     ]
   },
   "Copy {format} link": {
     "note": "Tooltip on a format press: copies the address of that file.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:86"
+      "packages/ui/src/FormatStrip.tsx:88"
     ]
   },
   "Copy {hex}": {
@@ -1096,19 +1096,19 @@
   "Copying links. Switch to copy": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy file links: what the row is doing, then the mode a press turns it to, after which its presses copy.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:96"
+      "packages/ui/src/FormatStrip.tsx:98"
     ]
   },
   "Copying. Switch to download": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy: what the row is doing, then the mode a press turns it to, after which its presses download.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:94"
+      "packages/ui/src/FormatStrip.tsx:96"
     ]
   },
   "Copying. Switch to links": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy, on a row with no downloads: what the row is doing, then the mode a press turns it to, after which its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:94"
+      "packages/ui/src/FormatStrip.tsx:96"
     ]
   },
   "Corners": {
@@ -1138,7 +1138,7 @@
       "apps/web/src/features/editor/Sheet.tsx:149",
       "apps/web/src/features/examples/Swatches.tsx:202",
       "apps/web/src/features/examples/Swatches.tsx:212",
-      "apps/web/src/features/gallery/take.ts:139",
+      "apps/web/src/features/gallery/take.ts:142",
       "apps/web/src/features/gallery/take.ts:164"
     ]
   },
@@ -1197,8 +1197,8 @@
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
       "apps/web/src/features/editor/Editor.tsx:682",
-      "apps/web/src/features/editor/Sheet.tsx:534",
-      "apps/web/src/features/editor/Sheet.tsx:612",
+      "apps/web/src/features/editor/Sheet.tsx:538",
+      "apps/web/src/features/editor/Sheet.tsx:616",
       "apps/web/src/features/examples/Swatches.tsx:209",
       "apps/web/src/lib/files.ts:70"
     ]
@@ -1206,7 +1206,7 @@
   "Couldn't download the palette.": {
     "note": "Error line after a failed download of a palette.",
     "refs": [
-      "apps/web/src/features/gallery/take.ts:150"
+      "apps/web/src/features/gallery/take.ts:151"
     ]
   },
   "Couldn't download the selection.": {
@@ -1344,7 +1344,7 @@
       "apps/web/src/features/collections/CollectionPage.tsx:482",
       "apps/web/src/features/collections/ItemCard.tsx:101",
       "apps/web/src/features/collections/collect.ts:456",
-      "apps/web/src/features/editor/Sheet.tsx:497",
+      "apps/web/src/features/editor/Sheet.tsx:501",
       "apps/web/src/features/editor/save.ts:186",
       "apps/web/src/features/gallery/GalleryCard.tsx:80",
       "apps/web/src/server/account/sync.ts:126",
@@ -1540,7 +1540,7 @@
     "note": "Press or label: downloads a file.",
     "refs": [
       "packages/ui/src/ExportPanel.tsx:257",
-      "packages/ui/src/FormatStrip.tsx:80"
+      "packages/ui/src/FormatStrip.tsx:82"
     ]
   },
   "Download PNG": {
@@ -1559,19 +1559,19 @@
   "Download {format}": {
     "note": "Tooltip on a format press (CSS, SVG, PNG...): downloads it.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:85"
+      "packages/ui/src/FormatStrip.tsx:87"
     ]
   },
   "Downloading. Switch to copy": {
     "note": "Press at the end of the format row, and its tooltip, while its presses download, on a row with no file links: what the row is doing, then the mode a press turns it to, after which its presses copy.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:95"
+      "packages/ui/src/FormatStrip.tsx:97"
     ]
   },
   "Downloading. Switch to links": {
     "note": "Press at the end of the format row, and its tooltip, while its presses download: what the row is doing, then the mode a press turns it to, after which its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:95"
+      "packages/ui/src/FormatStrip.tsx:97"
     ]
   },
   "Drafts": {
@@ -1636,9 +1636,21 @@
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1099",
-      "apps/web/src/features/examples/ExamplesPage.tsx:322",
+      "apps/web/src/features/editor/Editor.tsx:1095",
+      "apps/web/src/features/examples/ExamplesPage.tsx:302",
       "packages/ui/src/KeyList.tsx:10"
+    ]
+  },
+  "Effects hold still.": {
+    "note": "Appearance menu, beside the Reduce motion switch while it is on: the fluted glass and the blob are held on their first frame, so their speed moves nothing.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:46"
+    ]
+  },
+  "Effects play.": {
+    "note": "Appearance menu, beside the Reduce motion switch once the reader turned it off there: the fluted glass and the blob move again.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:46"
     ]
   },
   "Email": {
@@ -1741,7 +1753,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:31",
       "apps/web/src/features/examples/ExamplesLink.tsx:14",
-      "apps/web/src/features/examples/ExamplesPage.tsx:335",
+      "apps/web/src/features/examples/ExamplesPage.tsx:315",
       "packages/ui/src/KeyList.tsx:11"
     ]
   },
@@ -1800,7 +1812,7 @@
   "FPS": {
     "note": "Editor side, the blob: a short number field, frames a second the blob plays at (and its GIF is made at); it reads Auto, the screen's own pace, under 1. Keep it as short as FPS: it shares a row with Speed.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:64"
+      "apps/web/src/features/editor/GlassControls.tsx:102"
     ]
   },
   "Fewer or more steps": {
@@ -1959,7 +1971,7 @@
   "Frost": {
     "note": "Editor, the Appearance menu's blob fields: a number field, how much grain and sprayed edge the blob has, as of frosted glass; 0 is none.",
     "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:39"
+      "apps/web/src/features/editor/BlobControls.tsx:40"
     ]
   },
   "Full screen": {
@@ -2159,7 +2171,7 @@
     "note": "Press: hides the editor's side panel. Also its tooltip, before its key.",
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:123",
-      "apps/web/src/features/editor/EditorCorner.tsx:105"
+      "apps/web/src/features/editor/EditorCorner.tsx:102"
     ]
   },
   "High tide": {
@@ -2241,8 +2253,8 @@
     "note": "Status line: the image could not go to the clipboard, so it was downloaded instead.",
     "refs": [
       "apps/web/src/features/collections/take.ts:74",
-      "apps/web/src/features/editor/Sheet.tsx:453",
-      "apps/web/src/features/gallery/take.ts:135",
+      "apps/web/src/features/editor/Sheet.tsx:457",
+      "apps/web/src/features/gallery/take.ts:138",
       "apps/web/src/features/selection/ExportScreen.tsx:92",
       "apps/web/src/mcp-view/PaletteView.tsx:243"
     ]
@@ -2260,7 +2272,7 @@
   "In any CSS rule": {
     "note": "Short note under a code tab holding one CSS declaration: it can be pasted into any CSS rule. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:276"
+      "apps/web/src/features/examples/ExamplesPage.tsx:257"
     ]
   },
   "In the formula, <c>t</c> runs from 0 at the start of the gradient to 1 at the end. With <c>K</c> keyframes, keyframe <c>i</c> sits at <c>t = i / (K − 1)</c>, counting from 0. Each curve is a Catmull–Rom spline, and <c>gamut()</c> fits the color to the screen (section 6):": {
@@ -2272,9 +2284,9 @@
   "In the page's head": {
     "note": "Short note under a code tab holding tags for a web page's <head> element. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:264",
-      "apps/web/src/features/examples/ExamplesPage.tsx:269",
-      "apps/web/src/features/examples/ExamplesPage.tsx:281"
+      "apps/web/src/features/examples/ExamplesPage.tsx:245",
+      "apps/web/src/features/examples/ExamplesPage.tsx:250",
+      "apps/web/src/features/examples/ExamplesPage.tsx:262"
     ]
   },
   "In these collections": {
@@ -2423,21 +2435,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:918",
+      "apps/web/src/features/editor/Editor.tsx:914",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:914",
+      "apps/web/src/features/editor/Editor.tsx:910",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:903",
+      "apps/web/src/features/editor/Editor.tsx:899",
       "apps/web/src/features/editor/code.ts:264",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -2610,7 +2622,7 @@
   "Linked": {
     "note": "Tab name of a code block on the examples page, beside 'HTML': the same tags, linking Grabient's stylesheet instead of holding the picture inline. One short word.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:267"
+      "apps/web/src/features/examples/ExamplesPage.tsx:248"
     ]
   },
   "Links and JSON can be up to 2,048 characters.": {
@@ -2836,7 +2848,7 @@
   "New shape": {
     "note": "Editor, the Appearance menu's blob fields: a press (a die) that picks another shape number at random. Its tooltip and its name.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:108"
+      "apps/web/src/features/editor/GlassControls.tsx:150"
     ]
   },
   "Newsletter": {
@@ -3033,7 +3045,7 @@
     "note": "A switch that is off.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:43",
-      "apps/web/src/features/editor/GlassControls.tsx:25",
+      "apps/web/src/features/editor/GlassControls.tsx:29",
       "apps/web/src/features/editor/effect-page.ts:18",
       "packages/ui/src/Switch.tsx:34"
     ]
@@ -3213,7 +3225,7 @@
     "note": "Screen reader name of the tabs for a list's order (Popular, Rising, Saved).",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:639",
-      "apps/web/src/features/editor/Sheet.tsx:565",
+      "apps/web/src/features/editor/Sheet.tsx:569",
       "packages/ui/src/ListNav.tsx:102"
     ]
   },
@@ -3266,7 +3278,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:817",
+      "apps/web/src/features/editor/Editor.tsx:813",
       "packages/ui/src/PaletteSheet.tsx:131"
     ]
   },
@@ -3365,7 +3377,7 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:803",
+      "apps/web/src/features/editor/Editor.tsx:799",
       "apps/web/src/lib/page-meta.ts:582",
       "apps/web/src/lib/page-meta.ts:593",
       "packages/ui/src/PaletteCard.tsx:304"
@@ -3752,7 +3764,7 @@
     "refs": [
       "apps/web/src/features/editor/Controls.tsx:347",
       "apps/web/src/features/editor/Controls.tsx:349",
-      "apps/web/src/features/examples/ExamplesPage.tsx:326"
+      "apps/web/src/features/examples/ExamplesPage.tsx:306"
     ]
   },
   "Random palette": {
@@ -3774,9 +3786,10 @@
     ]
   },
   "Reduce motion": {
-    "note": "Settings: the reduce motion setting.",
+    "note": "The reduce motion setting: its name in Settings, and above an effect's fields in the Appearance menu, beside its switch.",
     "refs": [
-      "apps/web/src/features/account/settings/Appearance.tsx:169"
+      "apps/web/src/features/account/settings/Appearance.tsx:169",
+      "apps/web/src/features/editor/GlassControls.tsx:43"
     ]
   },
   "Reduce motion: {state}": {
@@ -3835,7 +3848,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1116",
+      "apps/web/src/features/editor/Editor.tsx:1112",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3843,7 +3856,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1116"
+      "apps/web/src/features/editor/Editor.tsx:1112"
     ]
   },
   "Remove {hex}": {
@@ -4408,7 +4421,7 @@
   "Shape": {
     "note": "Editor, the Appearance menu's blob fields: a number field, which of many shapes the blob takes; each number is another shape.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:97"
+      "apps/web/src/features/editor/GlassControls.tsx:139"
     ]
   },
   "Share images": {
@@ -4635,8 +4648,8 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:806",
-      "apps/web/src/features/editor/Sheet.tsx:652",
+      "apps/web/src/features/editor/Editor.tsx:802",
+      "apps/web/src/features/editor/Sheet.tsx:656",
       "apps/web/src/features/editor/StaticPalette.tsx:140",
       "packages/ui/src/PaletteCard.tsx:305"
     ]
@@ -4754,7 +4767,7 @@
   "Speed": {
     "note": "Editor side, the blob: a number field, how fast the blob moves, written like 1×.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:51"
+      "apps/web/src/features/editor/GlassControls.tsx:89"
     ]
   },
   "Square": {
@@ -4861,13 +4874,13 @@
     "note": "Name of the format strip's swatch files mode, read aloud and shown over the selection's strip: its chips download files design apps import (Tokens, ASE, GPL, GRD). Swatches as in a design app's Swatches panel, not the hard-band style.",
     "refs": [
       "apps/web/src/features/examples/Swatches.tsx:269",
-      "packages/ui/src/FormatStrip.tsx:178"
+      "packages/ui/src/FormatStrip.tsx:188"
     ]
   },
   "Swipe for another look": {
     "note": "Examples page: the hint under each example on a touch screen: a finger drawn sideways across the example turns it to another of the palette's looks (another style, steps, angle or shape that suits it).",
     "refs": [
-      "apps/web/src/features/examples/Example.tsx:213"
+      "apps/web/src/features/examples/Example.tsx:230"
     ]
   },
   "Syntax": {
@@ -5020,7 +5033,7 @@
   "The code that paints it": {
     "note": "Read by screen readers only: the name of the code tabs at the top of a palette's examples page, the code that paints the palette as a page's background.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:343"
+      "apps/web/src/features/examples/ExamplesPage.tsx:323"
     ]
   },
   "The colors as design tokens.": {
@@ -5056,8 +5069,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:764",
-      "apps/web/src/features/editor/Editor.tsx:777"
+      "apps/web/src/features/editor/Editor.tsx:760",
+      "apps/web/src/features/editor/Editor.tsx:773"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5313,7 +5326,7 @@
   "This palette can't be exported.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/features/gallery/take.ts:32",
+      "apps/web/src/features/gallery/take.ts:33",
       "apps/web/src/lib/files.ts:25"
     ]
   },
@@ -5414,7 +5427,7 @@
   "Transparent": {
     "note": "Placeholder of the blob's Background field in the Appearance menu while it has no color: the ground behind the blobs is clear, showing the page behind it.",
     "refs": [
-      "apps/web/src/features/editor/BlobControls.tsx:54"
+      "apps/web/src/features/editor/BlobControls.tsx:56"
     ]
   },
   "Travel": {
@@ -6122,7 +6135,7 @@
   "examples\u0004Code": {
     "note": "Examples page: the press under each example that shows or hides its code (CSS, HTML, Tailwind). Source code, not a sign-in code. One short word.",
     "refs": [
-      "apps/web/src/features/examples/Example.tsx:185"
+      "apps/web/src/features/examples/Example.tsx:173"
     ]
   },
   "feature\u0004Email": {
@@ -6398,7 +6411,7 @@
     "note": "List order and its tab: the most liked first.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:108",
-      "apps/web/src/features/editor/Sheet.tsx:568",
+      "apps/web/src/features/editor/Sheet.tsx:572",
       "apps/web/src/features/gallery/Palettes.tsx:329",
       "packages/ui/src/ListNav.tsx:15"
     ]
@@ -6641,7 +6654,7 @@
   "{count, plural, one {# color} other {# colors}}": {
     "note": "A tag under a section of the examples page, after an effect's name ('Fluted glass · 6 colors'): how many of the effect's colors the section takes as single colors. Give each plural form your language needs.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:49"
+      "apps/web/src/features/examples/shared.ts:50"
     ]
   },
   "{count, plural, one {# color} other {# colors}}, one per line.": {
@@ -6746,9 +6759,9 @@
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:50",
       "apps/web/src/features/examples/Chart.tsx:171",
-      "apps/web/src/features/examples/shared.ts:122",
-      "apps/web/src/features/examples/shared.ts:39",
-      "apps/web/src/features/list/ListAppearance.tsx:271",
+      "apps/web/src/features/examples/shared.ts:123",
+      "apps/web/src/features/examples/shared.ts:40",
+      "apps/web/src/features/list/ListAppearance.tsx:284",
       "apps/web/src/mcp-view/PaletteView.tsx:95",
       "packages/ui/src/figure.ts:121"
     ]
@@ -6964,14 +6977,14 @@
   "{name}, {style}": {
     "note": "A palette card's picture while the editor plays an effect: what a screen reader calls it. {name} is the palette's name, {style} the effect's (Fluted glass, Blob).",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:421",
+      "apps/web/src/features/editor/Sheet.tsx:425",
       "apps/web/src/features/list/card-effect.tsx:74"
     ]
   },
   "{number} · {title}": {
     "note": "Heading of each section of a palette's examples page: its number, a middle dot, its title ('2 · Covers and cards'). Keep both placeholders and the middle dot; change the order only if your language needs it.",
     "refs": [
-      "apps/web/src/features/examples/Example.tsx:149"
+      "apps/web/src/features/examples/Example.tsx:137"
     ]
   },
   "{percent}% gamut-mapped": {

@@ -8,8 +8,10 @@ import {
 } from "@grabient/engine/effect.ts";
 import { t } from "@grabient/i18n";
 import press from "@grabient/ui/ColorField.module.css";
+import { deviceReducesMotion, reducedMotion, setMotionChoice } from "@grabient/ui/motion.ts";
 import { Scrub } from "@grabient/ui/Scrub.tsx";
-import { type Element, Show } from "solid-js";
+import { Switch } from "@grabient/ui/Switch.tsx";
+import { createSignal, createUniqueId, type Element, Show } from "solid-js";
 import fields from "./EffectFields.module.css";
 import type { PaletteEditor } from "./editor.ts";
 import { screenFps } from "./refresh.ts";
@@ -21,9 +23,41 @@ import { screenFps } from "./refresh.ts";
    angle beside its pace, its frames a second beside its shape; the blob's pace beside its frames a second, then its
    frost (BlobControls.tsx) beside its shape, and its ground, each pair sharing a row where both show whole
    (EffectFields.module.css). A list's menu sets the same fields for every card (features/list), so they read and
-   write whatever holds them. */
+   write whatever holds them. Above them, while the site moves less, the reader's Reduce motion says why no pace
+   moves anything, and turns it off. */
 
 const times = (v: number) => (v === 0 ? t("Off") : `${Number(v.toFixed(2))}×`);
+
+/** The site's Reduce motion beside the pace it holds still (ui/motion.ts, the same setting as Settings'): shown while
+    it holds the effects still, while the device asks for less motion, and once the reader turns it here, so the row
+    a press changed stays to change back. Off lets the whole site move, as Settings' Off does; on gives the device's
+    choice back where the device asks for less motion, else turns it on. The pace and the frames a second stay
+    editable under it: they go into the address and the code for readers who move. */
+function MotionRow() {
+  const id = createUniqueId();
+  const [turned, setTurned] = createSignal(false);
+  return (
+    <Show when={reducedMotion() || deviceReducesMotion() || turned()}>
+      <div class={fields.motion}>
+        <span id={`${id}-label`} class={fields.motionLabel}>
+          {t("Reduce motion")}
+        </span>
+        <span id={`${id}-line`} class={fields.motionLine}>
+          {reducedMotion() ? t("Effects hold still.") : t("Effects play.")}
+        </span>
+        <Switch
+          checked={reducedMotion()}
+          aria-labelledby={`${id}-label`}
+          aria-describedby={`${id}-line`}
+          onChange={on => {
+            setTurned(true);
+            setMotionChoice(on ? (deviceReducesMotion() ? "system" : "reduce") : "full");
+          }}
+        />
+      </div>
+    </Show>
+  );
+}
 
 /** The fields every effect has: the glass's angle (none without `onAngle`: the blob has none), its pace and its
     frames a second, then `extra`, and the editor's `shape`. */
@@ -37,6 +71,7 @@ export function PlayFields(props: {
 }) {
   return (
     <>
+      <MotionRow />
       <Show when={props.onAngle}>
         <Scrub
           label={t("Angle")}

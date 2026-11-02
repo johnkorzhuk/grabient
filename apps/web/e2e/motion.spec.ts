@@ -102,6 +102,49 @@ test("a reader who chose Off sees a list's cards and the editor's picture move o
   await expect(page.locator("canvas[data-live]")).toHaveCount(1, { timeout: 15_000 });
 });
 
+test("on a device that asks for less motion a list's Appearance menu says the effects hold still, and its switch lets them move", async ({
+  page
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await playing(page);
+  await page.goto("/palettes?style=glass");
+  await live(page);
+  const appearance = page.getByRole("button", { name: /^Appearance/ });
+  await appearance.click();
+  const reduce = page.getByRole("switch", { name: "Reduce motion" });
+  await expect(reduce).toHaveAttribute("aria-checked", "true");
+  await expect(reduce).toHaveAccessibleDescription("Effects hold still.");
+  // the pace stays to set, for the address and the code
+  await expect(page.getByRole("spinbutton", { name: /^Speed/ })).toBeVisible();
+  const motion = () =>
+    page.evaluate(() => [
+      localStorage.getItem("grabient-motion"),
+      document.documentElement.dataset.motion
+    ]);
+  await reduce.click();
+  await expect(reduce).toHaveAttribute("aria-checked", "false");
+  await expect(reduce).toHaveAccessibleDescription("Effects play.");
+  // Settings' own Off: the whole site moves
+  expect(await motion()).toEqual(["full", "full"]);
+  await page.keyboard.press("Escape");
+  const art = await litCard(page);
+  await expect(art).toHaveAttribute("data-covered", "", { timeout: 15_000 });
+  // on again, the device's choice is given back
+  await appearance.click();
+  await reduce.click();
+  await expect(reduce).toHaveAttribute("aria-checked", "true");
+  expect(await motion()).toEqual([null, "reduce"]);
+});
+
+test("where the site moves, the Appearance menu has no Reduce motion", async ({ page }) => {
+  await playing(page);
+  await page.goto("/palettes?style=glass");
+  await live(page);
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await expect(page.getByRole("spinbutton", { name: /^Speed/ })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Reduce motion" })).toHaveCount(0);
+});
+
 test("a card playing the blob stops at once when the reader chooses On in another tab, and plays no more", async ({
   page
 }) => {
