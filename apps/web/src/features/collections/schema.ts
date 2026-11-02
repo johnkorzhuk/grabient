@@ -10,7 +10,7 @@ import {
 } from "@grabient/engine/view.ts";
 import { formatMessage, msg, type Params } from "@grabient/i18n";
 import * as v from "valibot";
-import { keptLook } from "../editor/address.ts";
+import { LOOK_MAX } from "../editor/address.ts";
 import { itemKey } from "./address.ts";
 
 /* A collection's words and palettes as every writer sends them: the site's pages, the account's copy, the sync and the
@@ -33,8 +33,9 @@ export const MAX_OWN_COLLECTIONS = 200;
 
 export type Visibility = "public" | "private";
 /** A palette in a collection: its canonical seed in one view, the words the collection gives it, if any, and the whole
-    look it keeps it in where that says more than its view (an effect and its settings, as the palette's address writes
-    them: editor/address.ts's keptLook), which is no part of its key. */
+    look it keeps it in where it keeps one (an effect and its settings, as the palette's address writes them), which is
+    no part of its key. A look sent is carried as sent: the server writes it as editor/look.ts's keptLook reads it,
+    and only where it says more than the view. */
 export interface CollectionItemInput {
   seed: string;
   style: Style;
@@ -112,12 +113,12 @@ const VIEW_ENTRIES = {
   style: v.optional(v.picklist(STYLES), DEFAULT_STYLE),
   steps: v.optional(whole(1, STEPS_MAX), DEFAULT_STEPS),
   angle: v.optional(whole(0, 360), DEFAULT_ANGLE),
-  /* read by keptLook, which keeps none of anything that is no look */
+  /* words up to LOOK_MAX, which the server reads as a look when it writes one; anything else is none */
   look: v.optional(v.unknown())
 };
 type ViewSent = Omit<CollectionItemInput, "title" | "description" | "look"> & { look?: unknown };
-/* the seed written canonically, the steps raised to the palette's keyframes and the look as the palette's address
-   writes it, where it says more than the view; null for a seed that does not decode */
+/* the seed written canonically, the steps raised to the palette's keyframes and any look sent; null for a seed that
+   does not decode */
 function canonical(sent: ViewSent): CollectionItemInput | null {
   const palette = decodePalette(sent.seed);
   if (!palette) return null;
@@ -127,8 +128,8 @@ function canonical(sent: ViewSent): CollectionItemInput | null {
     steps: Math.max(STEPS_MIN, palette.anchors.length, sent.steps),
     angle: sent.angle
   };
-  const look = keptLook(item.seed, sent.look, item);
-  return look ? { ...item, look } : item;
+  const { look } = sent;
+  return typeof look === "string" && look && look.length <= LOOK_MAX ? { ...item, look } : item;
 }
 
 /** A member palette as sent: a seed that decodes, one of the six styles, and steps and angle in their bounds, each
@@ -170,7 +171,7 @@ export const CollectionEntry = v.message(
       }
       return {
         ...item,
-        // a look sent that keeps none (a gradient's, or none to read) takes the one the collection has away
+        // a look sent that is no look's words takes the one the collection has away, as one that says nothing more does
         ...(view.look === undefined || item.look ? {} : { look: null }),
         ...(title === undefined ? {} : { title }),
         ...(description === undefined ? {} : { description })

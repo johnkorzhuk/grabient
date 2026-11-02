@@ -26,7 +26,7 @@ export const CollectionPreviewSchema = v.object({
   title: v.optional(v.string()),
   description: v.optional(v.string()),
   /** the whole look the collection saved it in, where it saved more than its view: an effect and its settings, as the
-      palette's address writes them (features/editor/address.ts's lookQuery) */
+      palette's address writes them (features/editor/look.ts's lookQuery) */
   look: v.optional(v.nullable(v.string()))
 });
 export type CollectionPreview = v.InferOutput<typeof CollectionPreviewSchema>;

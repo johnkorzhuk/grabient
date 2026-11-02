@@ -1,11 +1,11 @@
 import { decodePalette } from "@grabient/engine";
-import { isStyle, STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
+import { STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { all, batch, first, replica, type Statement } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import type { LimitCheck } from "@grabient/server/limits/check.ts";
 import * as v from "valibot";
-import { keptLook } from "../../features/editor/address.ts";
+import { keptLook } from "../../features/editor/look.ts";
 import type { PaletteItem, SavedPage } from "../../features/gallery/schema.ts";
 import { LIMIT_MAX } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
@@ -262,24 +262,10 @@ async function save(
     change,
     at: Number(held?.at) || madeAt,
     ...kept,
-    look: held ? lookOf(seed, held.look, kept) : look
+    // the look the like keeps, read again beside its view, as every read gives one back
+    look: held ? keptLook(seed, held.look, kept) : look
   };
 }
-
-/** A kept look as a reader is given it: read again beside the view it is kept with (keptLook), so it always agrees with
-    it; null where none is kept. */
-const lookOf = (
-  seed: string,
-  look: unknown,
-  view: { style: string; steps: number; angle: number }
-): string | null =>
-  typeof look === "string" && look && isStyle(view.style)
-    ? keptLook(seed, look, {
-        style: view.style,
-        steps: Number(view.steps),
-        angle: Number(view.angle)
-      })
-    : null;
 
 async function unsave(env: Pick<Env, "DB">, user: string, seed: string): Promise<KeptLike | null> {
   /* read first: its weight comes off the rising scores as a like of the time it was made */
@@ -302,7 +288,7 @@ async function unsave(env: Pick<Env, "DB">, user: string, seed: string): Promise
     ["DELETE FROM k_likes WHERE user_id = ? AND palette_id = ?", user, seed]
   ]);
   const { title, look, ...like } = row;
-  const kept = lookOf(seed, look, like);
+  const kept = keptLook(seed, look, like);
   return {
     ...like,
     at,
@@ -445,7 +431,7 @@ export async function savedAfter(
     ...(mark ? [mark.at, mark.at, mark.seed] : []),
     limit
   );
-  return rows.map(row => ({ ...row, look: lookOf(row.kseed, row.look, row) }));
+  return rows.map(row => ({ ...row, look: keptLook(row.kseed, row.look, row) }));
 }
 
 /** A page of an account's Saved list: its latest likes, or searched, the ones that answer the words, best first. */

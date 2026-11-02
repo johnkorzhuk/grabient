@@ -2,7 +2,7 @@ import { decodePalette, encodePalette } from "@grabient/engine";
 import { parseView } from "@grabient/engine/view.ts";
 import { all, type Db, first, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { keptLook } from "../../features/editor/address.ts";
+import { keptLook } from "../../features/editor/look.ts";
 import type { PaletteItem } from "../../features/gallery/schema.ts";
 import {
   bounded,
@@ -65,7 +65,7 @@ export function itemOf(row: PaletteRow): PaletteItem | null {
     steps: Math.max(view.steps, palette.anchors.length),
     angle: view.angle
   };
-  const look = row.look ? keptLook(row.seed, row.look, shown) : null;
+  const look = keptLook(row.seed, row.look, shown);
   return {
     kseed: row.seed,
     ...shown,

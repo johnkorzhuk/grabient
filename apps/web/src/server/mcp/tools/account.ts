@@ -20,7 +20,7 @@ import {
   validateCollection
 } from "../../../features/collections/schema.ts";
 import type { CollectionSummary } from "../../../features/collections/types.ts";
-import { keptLook } from "../../../features/editor/address.ts";
+import { keptLook } from "../../../features/editor/look.ts";
 import type { Credit } from "../../../features/gallery/credit.ts";
 import { SHEET_MAX } from "../../../mcp-view/tiles.ts";
 import { heldWords, texts as paletteTexts } from "../../collections/files.ts";

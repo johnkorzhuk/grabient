@@ -11,6 +11,7 @@ import {
   withWords
 } from "../collections/schema.ts";
 import type { CollectionDocument, CollectionPreview } from "../collections/types.ts";
+import { LOOK_MAX } from "../editor/address.ts";
 
 /* The wire of POST /api/me/sync: the changes a browser's copy sends and what it hears back. Browsers keep the
    changes they could not send yet in this shape, in IndexedDB, so no field ever changes its meaning in place. */
@@ -24,7 +25,7 @@ export interface ItemView {
 
 /** How one of the account's likes stands: the palette, the view it was saved in, when, and the palette's likes as the
     server counted them. `title` is the account's own name for it, which only a connected app gives, and `look` the
-    whole look it was saved in where that says more than its view (editor/address.ts's keptLook). */
+    whole look it was saved in where that says more than its view (editor/look.ts's keptLook). */
 export interface SyncLike extends ItemView {
   seed: string;
   at: number;
@@ -221,12 +222,14 @@ const Like = v.pipe(
     const name = like.liked && time !== undefined ? titleInput(title) : undefined;
     const pressed = from && typeof from === "object" ? (from as Record<string, unknown>) : null;
     const place = pressed && strip({ q: words(pressed.q), collection: words(pressed.collection) });
-    // a look is the server's to read (keptLook): anything else rides with the like as none
+    // a look is the server's to read (keptLook): anything but words of a look's length rides with the like as none
+    const looked =
+      like.liked && typeof look === "string" && look.length <= LOOK_MAX ? look : undefined;
     return {
       ...like,
       ...(time === undefined ? {} : { at: time }),
       ...(name ? { title: name } : {}),
-      ...(like.liked && typeof look === "string" && look ? { look } : {}),
+      ...(looked ? { look: looked } : {}),
       ...(place && Object.keys(place).length ? { from: place } : {})
     };
   })

@@ -30,7 +30,7 @@ export interface CollectionForFiles {
     angle: number;
     title?: string;
     description?: string;
-    /** the look as the palette's address writes it after its seed (editor/address.ts's keptLook) */
+    /** the look as the palette's address writes it after its seed (editor/look.ts's keptLook) */
     look?: string;
   }[];
 }

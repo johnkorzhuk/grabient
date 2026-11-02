@@ -145,7 +145,7 @@ export function inOrder(
   return { q, style, steps, angle, size, speed, fps, frost, bg, ...rest, selection };
 }
 
-/** The effect a save kept in a palette's look (editor/address.ts's lookQuery), as the palette's address reads it: a
+/** The effect a save kept in a palette's look (editor/look.ts's lookQuery), as the palette's address reads it: a
     blob in the palette's own shape where the look names none; null for a look with no effect. What a card reads of a
     look, with the list's own readers. */
 export function lookEffect(seed: string, look: string): Effect | null {

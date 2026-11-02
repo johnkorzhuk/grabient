@@ -111,54 +111,8 @@ export function seedAddress(page: Addressed): string {
   return `/${page.seed}?${parts.join("&")}`;
 }
 
-/** A palette's look as its address writes it after its seed: its view and its effect in the canonical address's order,
-    their defaults left out, and nothing else (no size, no locks, no selection). What a save keeps of how the palette
-    was drawn (a like, a collection's item): any style, effect or view setting the address writes, with no store of
-    its own for each. */
-export function lookQuery(view: View, effect: Effect | null): string {
-  const address = seedAddress({ seed: "k", view: { ...view, size: null }, effect });
-  const at = address.indexOf("?");
-  return at < 0 ? "" : address.slice(at + 1);
-}
-
-/** A look a save kept, read for its palette as the palette's own address reads it: its view and its effect, a blob's
-    shape the palette's own suggestion where the look names none; null for a seed that is no palette. */
-export function readLook(
-  seed: string,
-  query: string
-): { view: View; effect: Effect | null } | null {
-  const page = readSeedPage(seed, new URLSearchParams(query));
-  return page ? { view: page.view, effect: page.effect ?? null } : null;
-}
-
 /** The longest look a save reads: far past any that lookQuery writes. */
 export const LOOK_MAX = 400;
-
-/** What a save keeps of a look sent with it: the look read for its palette as the palette's address reads it (a leading
-    `?`, or a whole address, taken too), in the view the save keeps (its style, steps and angle, which a look never
-    overrides), and written again as lookQuery writes it; null where that says no more than the view does, as a
-    gradient's look does, and for anything that is no look, longer than LOOK_MAX or for a seed that is no palette. The
-    writes keep only this, never what was sent, and the reads give a kept look back through it too, so a look always
-    agrees with the view it is kept beside. It names no style or setting of its own: whatever the address reads, it
-    keeps. */
-export function keptLook(
-  seed: string,
-  sent: unknown,
-  view: Pick<View, "style" | "steps" | "angle">
-): string | null {
-  if (typeof sent !== "string" || sent.length > LOOK_MAX) return null;
-  const read = readLook(seed, sent.slice(sent.indexOf("?") + 1));
-  const plain = read && readLook(seed, "");
-  if (!read || !plain) return null;
-  const own = { style: view.style, steps: view.steps, angle: view.angle };
-  const look = lookQuery({ ...read.view, ...own }, read.effect);
-  return look === lookQuery({ ...plain.view, ...own }, null) ? null : look;
-}
-
-/** The look a save of a palette drawn in `view` keeps while it plays `effect`, or none (keptLook): what a heart or an
-    Add to collection sends with the palette it saves. */
-export const savedLook = (seed: string, view: View, effect: Effect | null): string | undefined =>
-  keptLook(seed, lookQuery(view, effect), view) ?? undefined;
 
 /** The parameters the router keeps as numbers: a number-like string would be written quoted. */
 export const NUMBERS = new Set(["steps", "angle", "speed", "fps", "frost", "shape"]);

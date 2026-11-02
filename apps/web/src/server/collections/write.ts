@@ -15,6 +15,7 @@ import {
   MAX_OWN_COLLECTIONS
 } from "../../features/collections/schema.ts";
 import type { CollectionDocument } from "../../features/collections/types.ts";
+import { keptLook } from "../../features/editor/look.ts";
 import { scoreCollection } from "../gallery/rescore.ts";
 import { folded } from "./letters.ts";
 import {
@@ -181,6 +182,12 @@ export const collectionWriteLimits = (userId: string, via?: "mcp"): LimitCheck[]
     : ["collections-site", "collectionWritesSite"]
 ];
 
+/** The look an item is written with: as keptLook reads what was sent, beside the item's view, and none where it says
+    no more than the view. What a writer sent is never written as sent. */
+export const lookWritten = (
+  item: Pick<CollectionItemInput, "seed" | "style" | "steps" | "angle" | "look">
+) => keptLook(item.seed, item.look, item);
+
 const itemStatements = (
   id: string,
   items: readonly CollectionItemInput[],
@@ -200,7 +207,7 @@ const itemStatements = (
       now,
       item.title ?? null,
       item.description ?? null,
-      item.look ?? null,
+      lookWritten(item),
       ...(withRow ? [id] : [])
     ]
   );
@@ -361,7 +368,7 @@ export async function updateCollection(
         now,
         item.title ?? null,
         item.description ?? null,
-        item.look ?? null,
+        lookWritten(item),
         ...through
       ]
     )
@@ -424,7 +431,7 @@ export async function appendCollectionItems(
         now,
         item.title ?? null,
         item.description ?? null,
-        item.look ?? null
+        lookWritten(item)
       ]
     ),
     [

@@ -5,8 +5,8 @@ import * as v from "valibot";
    answers it is sent against them. */
 
 /** A palette as a list shows it: its own view, its likes and when the site first held it, and the whole look a save
-    kept where it kept one (an effect and its settings, as the palette's address writes them: features/editor
-    address.ts's lookQuery), which a list drawing every palette as saved plays. */
+    kept where it kept one (an effect and its settings, as the palette's address writes them: features/editor/look.ts's
+    lookQuery), which a list drawing every palette as saved plays. */
 export const PaletteItem = v.object({
   kseed: v.string(),
   style: v.picklist(STYLES),

@@ -1,7 +1,7 @@
 import { isStyle } from "@grabient/engine/view.ts";
 import { all, batch, first } from "@grabient/server/db/d1.ts";
 import type { SyncCollection, SyncLike, SyncResponse } from "../../features/account/wire.ts";
-import { keptLook } from "../../features/editor/address.ts";
+import { keptLook } from "../../features/editor/look.ts";
 import { ownDocuments } from "./collections.ts";
 
 /* What changed for an account since a browser's copy last heard, read from the log the triggers of migration 0044
@@ -39,7 +39,7 @@ function likeOf(row: LikeRow): SyncLike {
     angle: Number(row.angle)
   } as const;
   // the look it was saved in, read again beside its view
-  const look = row.look ? keptLook(row.seed, row.look, view) : null;
+  const look = keptLook(row.seed, row.look, view);
   return {
     seed: row.seed,
     ...view,

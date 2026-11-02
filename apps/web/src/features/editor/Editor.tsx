@@ -69,7 +69,7 @@ import {
   selection,
   toggle as toggleSelected
 } from "../selection/selection.ts";
-import { savedLook } from "./address.ts";
+
 import { endBoot } from "./boot.ts";
 import { Actions, AxisRow } from "./Controls.tsx";
 import { Corner, type Panel } from "./Corner.tsx";
@@ -91,6 +91,7 @@ import {
 import { GlassLayer } from "./GlassLayer.tsx";
 import { followAddress, pageAt } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
+import { savedLook } from "./look.ts";
 import { effectName, paletteName } from "./name.ts";
 import { factsOf, keepFacts, NARROW, type PaletteData, paletteTitle, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";

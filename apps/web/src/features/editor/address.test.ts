@@ -3,17 +3,13 @@ import { expect, test } from "vitest";
 import {
   canonicalSeedAddress,
   isSeed,
-  keptLook,
-  LOOK_MAX,
-  lookQuery,
   openedFrom,
-  readLook,
   readSeedPage,
   sameAddress,
-  savedLook,
   seedAddress,
   seedSearch
 } from "./address.ts";
+import { lookQuery, readLook } from "./look.ts";
 
 const SEED = "kS7Q8Yy5S_SChv0";
 const EIGHT = "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ";
@@ -176,37 +172,4 @@ test("a save keeps a palette's whole look as its address writes it, and reads it
   // a blob kept with no shape plays the palette's own, as its address does
   expect(readLook(SEED, "style=blob")?.effect?.look.shape).toBe(blobShapeOf(SEED));
   expect(readLook("nothing", "style=glass")).toBeNull();
-});
-
-test("a save keeps a look written canonically, beside its view, and only where it says more than the view", () => {
-  const view = { style: "linearGradient", steps: 7, angle: 30 } as const;
-  // an effect, read as the address reads it and written again in its order, the size and anything unread left out
-  expect(keptLook(SEED, "speed=2&shape=7&style=glass&size=1200x630&junk=1&angle=30", view)).toBe(
-    "style=glass&angle=30&speed=2&shape=7"
-  );
-  expect(keptLook(SEED, "style=blob&bg=%23101014&frost=0.5&shape=12", view)).toBe(
-    "style=blob&frost=0.5&shape=12&bg=%23101014"
-  );
-  // a blob with no shape keeps the palette's own, which its address names
-  expect(keptLook(SEED, "style=blob", view)).toBe(`style=blob&shape=${blobShapeOf(SEED)}`);
-  // a leading ? and a whole address read as the query after the seed
-  expect(keptLook(SEED, "?style=glass&angle=30", view)).toBe("style=glass&angle=30");
-  expect(keptLook(SEED, `https://grabient.com/${SEED}?style=glass&angle=30`, view)).toBe(
-    "style=glass&angle=30"
-  );
-  // the view kept beside the look is the save's own: the glass turns at its angle, whatever the look said
-  expect(keptLook(SEED, "style=glass&angle=200", view)).toBe("style=glass&angle=30");
-  expect(keptLook(SEED, "style=glass", { ...view, angle: 90 })).toBe("style=glass");
-  // a gradient's look says no more than the view: none is kept, in its own view or another
-  for (const plain of ["", "?", "style=linearGradient&angle=30", "style=radialSwatches&steps=9"])
-    expect(keptLook(SEED, plain, view)).toBeNull();
-  // anything that is no look keeps none
-  for (const junk of [undefined, null, 7, {}, "style=wobble", "speed=2", "x".repeat(LOOK_MAX + 1)])
-    expect(keptLook(SEED, junk, view)).toBeNull();
-  expect(keptLook(SEED, `style=glass&angle=30&${"x".repeat(LOOK_MAX)}`, view)).toBeNull();
-  expect(keptLook("nothing", "style=glass", view)).toBeNull();
-  // what a save of a palette drawn so sends: its look while an effect plays, and none for its gradient
-  const glass = readLook(SEED, "style=glass&speed=0&shape=3")!.effect;
-  expect(savedLook(SEED, view, glass)).toBe("style=glass&angle=30&speed=0&shape=3");
-  expect(savedLook(SEED, view, null)).toBeUndefined();
 });

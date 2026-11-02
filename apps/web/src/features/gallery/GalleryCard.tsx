@@ -11,7 +11,8 @@ import { hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, toggleLike } from "../account/likes.ts";
 import { rememberOpening } from "../collections/navigation.ts";
-import { openedFrom, savedLook } from "../editor/address.ts";
+import { openedFrom } from "../editor/address.ts";
+import { savedLook } from "../editor/look.ts";
 import { askFacts } from "../editor/page.ts";
 import {
   AppearanceContext,

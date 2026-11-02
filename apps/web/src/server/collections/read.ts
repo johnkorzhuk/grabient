@@ -21,7 +21,7 @@ import type {
   CollectionSort,
   CollectionSummary
 } from "../../features/collections/types.ts";
-import { keptLook } from "../../features/editor/address.ts";
+import { keptLook } from "../../features/editor/look.ts";
 import type { RisingFrame } from "../../lib/orders.ts";
 import { digest, sharedRead } from "../shared-reads.ts";
 
@@ -169,9 +169,9 @@ const wordsOf = (row: { title?: string | null; description?: string | null }) =>
 function lookOf(
   seed: string,
   look: string | null | undefined,
-  view: { style: Style; steps: number; angle: number }
+  view: Parameters<typeof keptLook>[2]
 ) {
-  const kept = look ? keptLook(seed, look, view) : null;
+  const kept = keptLook(seed, look, view);
   return kept ? { look: kept } : {};
 }
 

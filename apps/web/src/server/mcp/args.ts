@@ -1,6 +1,6 @@
 import { parseEffect } from "@grabient/engine/effect.ts";
 import { parseView } from "@grabient/engine/view.ts";
-import { keptLook } from "../../features/editor/address.ts";
+import { keptLook } from "../../features/editor/look.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import type { PaletteGiven } from "./cards.ts";
 
@@ -15,7 +15,7 @@ import type { PaletteGiven } from "./cards.ts";
 /** A palette as a call names it: its seed or an old grabient.com id, or its address on any origin, in any language,
     with or without a file's ending, or its card's address. A seed names no view; an address names a whole one, as its
     page draws it: what its query leaves out is the default. An address that says more than its view brings its look
-    (editor/address.ts's keptLook), and one that plays an effect names no gradient: the palette keeps the view it has,
+    (editor/look.ts's keptLook), and one that plays an effect names no gradient: the palette keeps the view it has,
     turned to the address's angle where it names one. Null when the text names no palette. */
 export function paletteNamed(named: string): PaletteGiven | null {
   if (named.length > 400) return null;

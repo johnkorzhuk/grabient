@@ -1,6 +1,6 @@
 -- A save keeps the palette's whole look as it played: a like, and a palette in a collection, may keep more than its
 -- view (style, steps, angle), such as an effect and its settings, written as the palette's address writes them after its
--- seed (apps/web/src/features/editor/address.ts's keptLook: `style=glass&angle=30&speed=2`). A look is a query, so a
+-- seed (apps/web/src/features/editor/look.ts's keptLook: `style=glass&angle=30&speed=2`). A look is a query, so a
 -- style or a setting the address learns needs no column of its own. The server reads what is sent and writes it again
 -- in that form, and keeps one only where it says more than the view does: a save drawn as a gradient keeps none. The
 -- look is no part of an item's key: a collection holds a palette in a view once, whatever look it keeps. Additive.

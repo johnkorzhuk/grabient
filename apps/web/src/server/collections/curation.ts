@@ -4,6 +4,7 @@ import {
   type CollectionItemInput,
   MAX_COLLECTION_ITEMS
 } from "../../features/collections/schema.ts";
+import { keptLook } from "../../features/editor/look.ts";
 import { forgetTitles } from "./search.ts";
 import type { Membership } from "./tokens.ts";
 
@@ -114,7 +115,7 @@ export async function restoreMembership(
       row.createdAt,
       row.title ?? null,
       row.description ?? null,
-      typeof row.look === "string" ? row.look : null,
+      keptLook(row.seed, row.look, row),
       id,
       accountId,
       id,
@@ -171,15 +172,18 @@ export async function addSitePalettes(
     return { allowed: true, full: true, added: [] };
   let position = rows.reduce((last, row) => Math.max(last, Number(row.position)), -1);
   const now = Date.now();
-  const made: Membership[] = additions.map(item => ({
-    seed: item.seed,
-    style: item.style,
-    steps: item.steps,
-    angle: item.angle,
-    position: ++position,
-    createdAt: now,
-    ...(item.look ? { look: item.look } : {})
-  }));
+  const made: Membership[] = additions.map(item => {
+    const look = keptLook(item.seed, item.look, item);
+    return {
+      seed: item.seed,
+      style: item.style,
+      steps: item.steps,
+      angle: item.angle,
+      position: ++position,
+      createdAt: now,
+      ...(look ? { look } : {})
+    };
+  });
   const results = await batch(env.DB, [
     ...made.map(
       (row): Statement => [

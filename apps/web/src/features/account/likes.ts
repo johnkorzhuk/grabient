@@ -6,7 +6,6 @@ import * as v from "valibot";
 import { openedOutside } from "../../app/framed.ts";
 import { goTo } from "../../app/go.ts";
 import { record } from "../../app/undo.ts";
-import { keptLook } from "../editor/address.ts";
 import {
   account,
   accountKnown,
@@ -254,7 +253,7 @@ function keepWas(seed: string, was: Was) {
 
 /** Where a heart was pressed, for an admin's like alone: the words of the search its page answers, or the collection
     its page shows (by its id or address). And the view the palette is saved in, as the page shows it, with the whole
-    look it plays there where that says more (editor/address.ts's savedLook). */
+    look it plays there where that says more (editor/look.ts's savedLook). */
 export interface LikeContext {
   view?: ItemView;
   look?: string;
@@ -311,8 +310,9 @@ async function setLiked(
   const view = was ??
     context.view ?? { style: DEFAULT_STYLE, steps: DEFAULT_STEPS, angle: DEFAULT_ANGLE };
   const from = on && adminAccount() ? pressedAt(context) : undefined;
-  /* the look as the server keeps it, so the copy shows the like as Saved will; an undo's is the one its unsave took */
-  const look = on ? keptLook(seed, was ? was.look : context.look, view) : null;
+  /* the look as the page sends it (editor/look.ts's savedLook), which the server keeps; an undo's is the one its
+     unsave took */
+  const look = on ? (was ? was.look : context.look) : undefined;
   const op: SyncOp = {
     op: "like",
     seed,

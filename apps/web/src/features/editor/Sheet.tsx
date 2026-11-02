@@ -47,7 +47,7 @@ import { cardWords } from "../gallery/words.ts";
 import { drawnIn, type ListView, viewParams } from "../list/appearance.ts";
 import { useOpened, useTaken } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
-import { openedFrom, savedLook, seedAddress } from "./address.ts";
+import { openedFrom, seedAddress } from "./address.ts";
 import { codeSources } from "./code.ts";
 import type { PaletteEditor } from "./editor.ts";
 import { effectLabel } from "./effect-page.ts";
@@ -64,6 +64,7 @@ import {
   saveFormat,
   type Taken
 } from "./formats.ts";
+import { savedLook } from "./look.ts";
 import { askFacts, type PaletteData } from "./page.ts";
 import type { Rest } from "./rest.ts";
 import { type Similar, similarQuery } from "./similar.ts";
