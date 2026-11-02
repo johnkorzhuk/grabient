@@ -1,8 +1,15 @@
 import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
 import { decodePalette } from "./codec.ts";
-import { type Effect, parseEffect } from "./effect.ts";
-import { glassColors, glassGeometry } from "./glass.ts";
+import { EFFECT_EASE_S, type Effect, parseEffect } from "./effect.ts";
+import {
+  GLASS_ANGLE,
+  GLASS_LOOP,
+  GLASS_REF_D,
+  GLASS_TUNING,
+  glassColors,
+  glassGeometry
+} from "./glass.ts";
 import {
   GLASS_BAKE_FS,
   GLASS_BLUR_FS,
@@ -146,7 +153,7 @@ test("the Shadertoy text is Shadertoy's tabs in order, its settings at the top o
     .map(c => `0x${c.slice(1)}`)
     .join(", ");
   expect(text).toContain(
-    `const int COLORS[6] = int[](${colors});\nconst int ANGLE = 137;\nconst int SHAPE = 7;\nconst float SPEED = 3.0;\nconst int FPS = 24;\nconst float EASE = 1.6;`
+    `const int COLORS[] = int[](${colors});\nconst int ANGLE = 137;\nconst int SHAPE = 7;\nconst float SPEED = 3.0;\nconst int FPS = 24;\nconst float EASE = ${glslFloat(EFFECT_EASE_S)};`
   );
   /* every channel reads a buffer as it is: no tab filters a buffer, every read by hand */
   expect(text).not.toMatch(/filter: (linear|mipmap)/);
@@ -157,6 +164,48 @@ test("the Shadertoy text holds the design's light and core as the engine draws t
   const table = glassGeometry({ width: 1000, height: 1000 }).shadeTable.map(glslFloat).join(",");
   expect(text.replace(/\s+/g, "")).toContain(`constfloatSHADE[17]=float[](${table});`);
   expect(text).toContain("const float CORE = 0.3626;");
+});
+
+test("the Shadertoy text takes the design's numbers from the engine, none written in by hand", () => {
+  const text = glassShadertoy(glassColors(P), 90, 0, 1, 60);
+  const T = GLASS_TUNING;
+  for (const line of [
+    `const vec2 REF_D = ${glslDouble(GLASS_REF_D)};`,
+    `const int NPTS = ${T.nPts};`,
+    `const int GRID_X = ${T.gridX};`,
+    `const int ROWS = ${Math.ceil(T.nPts / T.gridX)};`,
+    `const int BASE = ${T.base};`,
+    `const uint DESIGN_SEED = ${T.seed}u;`,
+    `const float LOOP = ${glslFloat(GLASS_LOOP)};`,
+    `const int DESIGN_ANGLE = ${GLASS_ANGLE};`
+  ])
+    expect(text).toContain(line);
+  /* the counts and the loop only by name past their definitions */
+  const body = text.slice(text.indexOf("const int DESIGN_ANGLE"));
+  expect(body).not.toMatch(/\b56\.0\b|: 7u\b|1152\.56|k % 4\b|k < 12;|\/ 3\.0\)|ANGLE - 90\b/);
+  /* every color by the array's length: a reader may write any number of them */
+  expect(body).not.toMatch(/COLORS\[(\d|i % \d)/);
+});
+
+test("the Shadertoy tabs keep no tab's frames for another's, and remake the layout for a new ANGLE or SHAPE", () => {
+  const text = glassShadertoy(glassColors(P), 90, 0, 1, 60);
+  const tab = (name: string) => {
+    const from = text.indexOf(`// ==== ${name} ====`);
+    const to = text.indexOf("// ==== ", from + 10);
+    return text.slice(from, to < 0 ? undefined : to);
+  };
+  /* only Buffer A reads iFrame, its own */
+  for (const name of ["Buffer B", "Buffer C", "Buffer D", "Image"])
+    expect(tab(name)).not.toContain("iFrame");
+  expect(tab("Buffer A")).toContain("const float KEY = float(ANGLE * 1000 + SHAPE);");
+  expect(tab("Buffer A")).toContain(
+    "bool fresh = !made || built.xyz != vec3(iResolution.xy, KEY);"
+  );
+  /* every exact sum, product and quotient behind the integer guard */
+  expect(text).toContain(
+    "float keep(float x) { return uintBitsToFloat(floatBitsToUint(x) ^ (uint(ONE) - 1u)); }"
+  );
+  expect(text.match(/return keep2\(vec2\(/g)?.length).toBe(3);
 });
 
 test("a float and a double are written so GLSL reads back the same numbers", () => {

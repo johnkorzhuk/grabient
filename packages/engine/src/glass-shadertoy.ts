@@ -1,12 +1,18 @@
 /* The fluted glass as Shadertoy tabs (glass-shader.ts writes them out): Common, Buffer A to D and Image, which draw what
    the site's WebGL player draws (ui/glass-player.ts) with no JavaScript. The player works its numbers out in doubles:
    Buffer A works the same ones out with pairs of floats (about 48 bits, so each rounds to the player's float), once
-   for each canvas size, and the clock and the discs' places each frame. Shadertoy has no blending, no instancing and
-   no 8-bit textures, so Buffer B draws the discs over the field as WebGL's rasterizer sets up the player's quads (on
-   SwiftShader: corners snapped to 16ths of a pixel, each varying from its triangle's plane), blends them in floats and
-   keeps 8 bits, and every bilinear read is the 8-bit filter worked out by hand. Buffer B also keeps the rib map, baked
-   when the size changes. */
-import { GLASS_TUNING } from "./glass.ts";
+   for each canvas size, angle and shape, and the clock and the discs' places each frame. Shadertoy has no blending, no
+   instancing and no 8-bit textures, so Buffer B draws the discs over the field as WebGL's rasterizer sets up the
+   player's quads (on SwiftShader: corners snapped to 16ths of a pixel, each varying from its triangle's plane), blends
+   them in floats and keeps 8 bits, and every bilinear read is the 8-bit filter worked out by hand. Buffer B also keeps
+   the rib map, baked whenever Buffer A makes a layout.
+   shadertoy.com counts each tab's frames apart (a tab counts from when it was made; only rewind starts them all at
+   0, and clears every buffer) and keeps its buffers through a compile, so no tab reads another's iFrame: Buffer A
+   knows a layout of its own by a serial it keeps beside it, and makes another for a new size, ANGLE or SHAPE, and
+   Buffer B bakes the map for each serial it has not baked. A resize hands each buffer its frame before last half the
+   time (ResizeBuffer starts each ping-pong over), which Buffer A sees by its own frame count and makes up. */
+import { EFFECT_EASE_S } from "./effect.ts";
+import { GLASS_ANGLE, GLASS_LOOP, GLASS_REF_D, GLASS_TUNING } from "./glass.ts";
 
 const F = Math.fround;
 
@@ -59,17 +65,21 @@ const list = (values: readonly string[], per = 3) =>
 /** The Common tab after the settings: the doubles, the design and its arithmetic, Buffer A's texels, the 8-bit
     filter. */
 const COMMON = `// ---- Doubles. The site works the glass out in doubles; a pair of floats, hi + lo (about 48 bits), rounds to the same
-// float, so every pass draws from the site's numbers. ONE is 1.0 where the compiler cannot see it: a compiler that
-// simplifies (a + b) - a to b would lose each sum's rounding error, which these keep.
+// float, so every pass draws from the site's numbers. Each sum and product keeps its rounding error, which a compiler
+// that simplifies would drop: ONE is 1.0 where the compiler cannot see it, so (a + b) - a stays as written, and keep()
+// passes a float through an integer XOR with a 0 it cannot see either, so no compiler reassociates, fuses or cancels
+// across an exact sum, product or quotient (the RTX's driver does otherwise, the lab measured).
 #define ONE iResolution.z
+float keep(float x) { return uintBitsToFloat(floatBitsToUint(x) ^ (uint(ONE) - 1u)); }
+vec2 keep2(vec2 x) { return vec2(keep(x.x), keep(x.y)); }
 vec2 twoSum(float a, float b) {
   float s = (a + b) * ONE;
   float v = (s - a) * ONE;
-  return vec2(s, (a - (s - v)) + (b - v));
+  return keep2(vec2(s, (a - (s - v)) + (b - v)));
 }
 vec2 quickSum(float a, float b) {
   float s = (a + b) * ONE;
-  return vec2(s, b - (s - a));
+  return keep2(vec2(s, b - (s - a)));
 }
 vec2 twoProd(float a, float b) {
   float p = a * b;
@@ -77,7 +87,7 @@ vec2 twoProd(float a, float b) {
   float ah = ta - (ta - a) * ONE;
   float tb = 4097.0 * b * ONE;
   float bh = tb - (tb - b) * ONE;
-  return vec2(p, ((ah * bh - p) + ah * (b - bh) + (a - ah) * bh) + (a - ah) * (b - bh));
+  return keep2(vec2(p, ((ah * bh - p) + ah * (b - bh) + (a - ah) * bh) + (a - ah) * (b - bh)));
 }
 vec2 dd(float a) { return vec2(a, 0.0); }
 vec2 dAdd(vec2 a, vec2 b) {
@@ -92,15 +102,15 @@ vec2 dMul(vec2 a, vec2 b) {
   return quickSum(p.x, p.y + (a.x * b.y + a.y * b.x));
 }
 vec2 dDiv(vec2 a, vec2 b) {
-  float q1 = a.x / b.x;
+  float q1 = keep(a.x / b.x);
   vec2 r = dSub(a, dMul(b, dd(q1)));
-  float q2 = r.x / b.x;
+  float q2 = keep(r.x / b.x);
   r = dSub(r, dMul(b, dd(q2)));
-  return dAdd(quickSum(q1, q2), dd(r.x / b.x));
+  return dAdd(quickSum(q1, q2), dd(keep(r.x / b.x)));
 }
 vec2 dSqrt(vec2 a) {
   if (a.x <= 0.0) return vec2(0.0);
-  float x = sqrt(a.x);
+  float x = keep(sqrt(a.x));
   vec2 r = dSub(a, twoProd(x, x));
   return quickSum(x, r.x / (2.0 * x));
 }
@@ -137,7 +147,7 @@ vec2 dExp(vec2 a) {
 }
 // Newton's steps on e^y = a from the float's own log
 vec2 dLog(vec2 a) {
-  vec2 y = dd(log(a.x));
+  vec2 y = dd(keep(log(a.x)));
   y = dAdd(y, dSub(dMul(a, dExp(-y)), dd(1.0)));
   return dAdd(y, dSub(dMul(a, dExp(-y)), dd(1.0)));
 }
@@ -200,10 +210,19 @@ const vec2 ORBIT_ALONG = ${glslDouble(T.orbitAlong)};
 const vec2 ORBIT_ACROSS = ${glslDouble(T.orbitAcross)};
 const vec2 DISC_SCALE = ${glslDouble(T.discScale)};
 const vec2 BLUR = ${glslDouble(T.blur)};
-const vec2 REF_D = ${glslDouble(1152.56)};
+const vec2 REF_D = ${glslDouble(GLASS_REF_D)};
 const vec2 SQRT2 = ${glslDouble(Math.SQRT2)};
 const vec2 SQRT_2PI = ${glslDouble(Math.sqrt(2 * Math.PI))};
 const float CORE = ${glslFloat(Math.round(T.core * 10000) / 10000)};
+// the discs: how many, on a grid this many across and ROWS down, the base color among COLORS, the design's seed
+const int NPTS = ${T.nPts};
+const int GRID_X = ${T.gridX};
+const int ROWS = ${Math.ceil(T.nPts / T.gridX)};
+const int BASE = ${T.base};
+const uint DESIGN_SEED = ${T.seed}u;
+// a lap's seconds at speed 1, and the angle the ribs run at as designed
+const float LOOP = ${glslFloat(GLASS_LOOP)};
+const int DESIGN_ANGLE = ${GLASS_ANGLE};
 // the lens's stops across a rib, denser toward both edges
 const vec2 STOP_X[${STOPS.length}] = vec2[](${list(STOPS.map(glslDouble), 2)}
 );
@@ -308,7 +327,7 @@ Layout layoutOf(vec2 res) {
   Layout L;
   L.S = max(res.x, res.y);
   L.win = floor((vec2(L.S) - res) * 0.5 + 0.5);
-  vec2 turn = dDiv(dMul(dd(float(ANGLE - 90)), PI), dd(180.0));
+  vec2 turn = dDiv(dMul(dd(float(ANGLE - DESIGN_ANGLE)), PI), dd(180.0));
   L.g = geoOf(SHAPE, turn);
   L.D = dMul(dd(L.S), SQRT2);
   vec2 u = dDiv(L.D, REF_D);
@@ -362,7 +381,7 @@ Layout layoutOf(vec2 res) {
 // ---- Buffer A's texels, at the bottom left.
 const ivec2 A_CLOCK = ivec2(0, 0);    // t and warm, each hi and lo
 const ivec2 A_SHOWN = ivec2(1, 0);    // the time drawn, the pace's last frame in ms
-const ivec2 A_BUILT = ivec2(2, 0);    // the canvas's size the layout is for, the frame it was made in
+const ivec2 A_BUILT = ivec2(2, 0);    // the canvas's size, ANGLE and SHAPE the layout is for, and its serial
 const ivec2 A_LAYOUT = ivec2(3, 0);   // the design's side, the canvas's corner in it, the displacement's scale
 const ivec2 A_REGION = ivec2(4, 0);   // the filter region's corner and side, q (hi, lo)
 const ivec2 A_FIELD = ivec2(5, 0);    // the field's side, ribs and stops a rib
@@ -370,9 +389,18 @@ const ivec2 A_GLASS = ivec2(6, 0);    // 1 / (q fw), 1 / (q fh), the orbits' ang
 const int A_TAPS = 7;                  // 7 to 12: the blur's offsets and weights
 const ivec2 A_LINE = ivec2(13, 0);    // the normal's line: x1, y1, x2 - x1, y2 - y1
 const int A_NORMALS = 14;              // 14 to 30: the normal's stops: offset, red, green
+const ivec2 A_STAMP = ivec2(31, 0);   // Buffer A's own iFrame as it wrote the clock
 const int A_DISC = 1;                  // row 1: each disc's middle, radius and core in field texels, this frame
 const int A_ORBIT = 2;                 // rows 2 and 3: each disc's orbit as the site rounds it
 const int A_RIBS = 4;                  // row 4 on: a rib (middle, radius squared), then its stops (offset, gray)
+// Whether the canvas holds the tabs' numbers, which they keep in their buffers: Buffer A's table (32 texels across,
+// four rows and a row a rib, 28 rows at most) and the field (\`side\` texels square, three to a texel of Buffer B and
+// one texel over for its record). 143 by 143 pixels holds any angle and shape; Shadertoy's canvas is far larger, and
+// a smaller one shows the base color.
+bool fits(float side, float ribs) {
+  return iResolution.x >= 32.0 && iResolution.y >= float(A_RIBS) + ribs &&
+    3.0 * (iResolution.x * iResolution.y - 1.0) >= side * side;
+}
 
 // ---- The field's 8-bit texels, packed: a texel's three bytes in one number, several to a buffer's texel (three in
 // Buffer B's y, z and w, four in Buffers C and D), in rows from the bottom left, so the field fits a small canvas.
@@ -441,33 +469,33 @@ function settings(
   speed: number,
   fps: number
 ): string {
-  return `// The glass's six colors, the angle its ribs run at (90 as designed), its shape (0 as designed, up to 999), how fast it
-// plays (1 as designed, 0 holds the first frame), frames a second at most, and the seconds it takes to ease in.
-const int COLORS[6] = int[](${colors.map(c => `0x${c.slice(1)}`).join(", ")});
+  return `// The glass's colors (the site takes six along the palette; any number will do), the angle its ribs run at
+// (${GLASS_ANGLE} as designed), its shape (0 as designed, up to 999), how fast it plays (1 as designed, 0 holds the first
+// frame), frames a second at most, and the seconds it takes to ease in. A new ANGLE or SHAPE lays the ribs out again
+// as it compiles; after editing the design's numbers further down, press rewind (|<< under the picture).
+const int COLORS[] = int[](${colors.map(c => `0x${c.slice(1)}`).join(", ")});
 const int ANGLE = ${angle};
 const int SHAPE = ${shape};
 const float SPEED = ${glslFloat(speed)};
 const int FPS = ${fps};
-const float EASE = 1.6;`;
+const float EASE = ${glslFloat(EFFECT_EASE_S)};`;
 }
 
 const BUFFER_A = `// ==== Buffer A ==== iChannel0: Buffer A (filter: nearest, wrap: clamp)
-// The layout for the canvas's size, made in the first frame and again whenever the size changes, and each frame the
-// clock and the discs' places, all as the site's player works them out.
+// The layout for the canvas's size, ANGLE and SHAPE, made in the first frame and again whenever one changes, and each
+// frame the clock and the discs' places, all as the site's player works them out.
 vec4 kept(ivec2 p) { return texelFetch(iChannel0, p, 0); }
+// what the layout is for, beside the canvas's size: a new one is made as either changes
+const float KEY = float(ANGLE * 1000 + SHAPE);
 
 // The clock, as the player keeps it: t, the loop's seconds at speed 1, advances by SPEED, easing in from rest over EASE
 // seconds after the first frame; a frame is drawn once each 1 / FPS at most, and the picture holds the last one drawn.
 struct Clock { vec2 t; vec2 warm; vec2 shown; vec2 paced; };
 // a two-decimal setting, as the site's address keeps it
 vec2 decimal(float v) { return dDiv(dd(floor(v * 100.0 + 0.5)), dd(100.0)); }
-Clock clockNow(bool fresh) {
-  Clock c = Clock(vec2(0.0), vec2(0.0), vec2(0.0), vec2(-1e30, 0.0));
-  if (iFrame == 0) return c;
-  vec4 a = kept(A_CLOCK);
-  vec4 b = kept(A_SHOWN);
-  c = Clock(a.xy, a.zw, b.xy, b.zw);
-  vec2 dt = dMin(${glslDouble(0.1)}, dd(iTimeDelta));
+// a frame dt seconds after the last, at \`now\` seconds; a new layout is drawn at once
+Clock tick(Clock c, float dt0, vec2 now, bool fresh) {
+  vec2 dt = dMin(${glslDouble(0.1)}, dd(dt0));
   vec2 ease = decimal(EASE);
   if (SPEED == 0.0) c.warm = vec2(0.0);
   else {
@@ -479,26 +507,36 @@ Clock clockNow(bool fresh) {
   if (fresh) c.shown = c.t;
   else if (c.t != c.shown) {
     // the pace: due once each 1 / FPS, a little early rather than a frame late, counted from the last due time
-    vec2 now = dMul(dd(iTime), dd(1000.0));
+    vec2 ms = dMul(now, dd(1000.0));
     vec2 every = dDiv(dd(1000.0), dd(float(max(FPS, 1))));
-    vec2 gap = dSub(now, c.paced);
+    vec2 gap = dSub(ms, c.paced);
     if (FPS <= 0 || !dLess(gap, dSub(every, dMin(dd(4.0), dMul(every, ${glslDouble(0.2)}))))) {
-      c.paced = dLess(dMul(dd(2.0), every), gap) ? now : dAdd(c.paced, every);
+      c.paced = dLess(dMul(dd(2.0), every), gap) ? ms : dAdd(c.paced, every);
       c.shown = c.t;
     }
   }
   return c;
+}
+Clock clockNow(bool fresh, bool restart) {
+  // the first frame, the still's moment
+  if (restart) return Clock(vec2(0.0), vec2(0.0), vec2(0.0), vec2(-1e30, 0.0));
+  vec4 a = kept(A_CLOCK);
+  vec4 b = kept(A_SHOWN);
+  Clock c = Clock(a.xy, a.zw, b.xy, b.zw);
+  // a resize may hand this buffer its frame before last: the frame lost is taken again, as long as this one
+  if (kept(A_STAMP).x == float(iFrame - 2)) c = tick(c, iTimeDelta, dSub(dd(iTime), dd(iTimeDelta)), false);
+  return tick(c, iTimeDelta, dd(iTime), fresh);
 }
 
 // A disc's orbit, as the site draws and rounds it: its middle, the ellipse's half axes along the ribs and across, its
 // radius, a lap's seconds, its start and its way round.
 struct Orbit { vec2 cx; vec2 cy; vec2 a; vec2 b; vec2 R; float dur; vec2 delay; float dir; };
 Orbit orbitOf(Layout L, int i) {
-  diceState = SHAPE != 0 ? seedOf(SHAPE) : 7u;
+  diceState = SHAPE != 0 ? seedOf(SHAPE) : DESIGN_SEED;
   Orbit d;
-  for (int k = 0; k < 12; k++) {
-    vec2 gx = dd((float(k % 4) + 0.5) / 4.0);
-    vec2 gy = dDiv(dd(float(k / 4) + 0.5), dd(3.0));
+  for (int k = 0; k < NPTS; k++) {
+    vec2 gx = dDiv(dd(float(k % GRID_X) + 0.5), dd(float(GRID_X)));
+    vec2 gy = dDiv(dd(float(k / GRID_X) + 0.5), dd(float(ROWS)));
     vec2 W = dd(L.S);
     vec2 bx = dAdd(dMul(dMul(dSub(gx, dd(0.5)), W), SPREAD), dMul(dMul(dSub(rand(), dd(0.5)), W), JITTER));
     vec2 by = dAdd(dMul(dMul(dSub(gy, dd(0.5)), W), SPREAD), dMul(dMul(dSub(rand(), dd(0.5)), W), JITTER));
@@ -510,7 +548,7 @@ Orbit orbitOf(Layout L, int i) {
     vec2 b = r2(dMax(dd(0.5), dMul(dMul(ORBIT_ACROSS, L.D), dAdd(${glslDouble(0.7)}, dMul(${glslDouble(0.6)}, rand())))));
     vec2 R = r2(dMul(dMul(dMul(DISC_SIGMA, L.D), dAdd(${glslDouble(0.85)}, dMul(${glslDouble(0.3)}, rand()))), DISC_SCALE));
     if (k == i) {
-      float dur = 56.0 / abs(laps);
+      float dur = LOOP / abs(laps);
       d = Orbit(r2(dAdd(dd(L.S * 0.5), bx)), r2(dAdd(dd(L.S * 0.5), by)), a, b, R, dur, r3(dMul(-th0, dd(dur))), sign(laps));
     }
   }
@@ -542,12 +580,19 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   fragColor = vec4(0.0);
   // nothing reads the rest
   if (p.x > 31 || p.y > A_RIBS + 63) discard;
-  bool fresh = iFrame == 0 || kept(A_BUILT).xy != iResolution.xy;
+  vec4 built = kept(A_BUILT);
+  // a layout of this tab's: its serial a half (0.5, 1.5, ...), which neither a cleared buffer nor a tab's first code
+  // leaves there, so a tab pasted into a running shader makes its own whatever its iFrame
+  bool made = fract(built.w) == 0.5;
+  bool fresh = !made || built.xyz != vec3(iResolution.xy, KEY);
+  // the clock starts again where no layout is kept: the first frame, and after rewind, which clears the buffers
+  bool restart = !made || iFrame == 0;
   // each frame: the clock, and the discs at the time drawn
-  if (p == A_CLOCK || p == A_SHOWN || (p.y == A_DISC && p.x < 12)) {
-    Clock c = clockNow(fresh);
+  if (p == A_CLOCK || p == A_SHOWN || p == A_STAMP || (p.y == A_DISC && p.x < NPTS)) {
+    Clock c = clockNow(fresh, restart);
     if (p == A_CLOCK) fragColor = vec4(c.t, c.warm);
     else if (p == A_SHOWN) fragColor = vec4(c.shown, c.paced);
+    else if (p == A_STAMP) fragColor = vec4(float(iFrame), 0.0, 0.0, 0.0);
     else {
       Orbit d;
       vec2 alpha;
@@ -570,15 +615,16 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }
     return;
   }
-  // the layout holds until the canvas's size changes
+  // the layout holds until the canvas's size, ANGLE or SHAPE changes
   if (!fresh) {
     fragColor = kept(p);
     return;
   }
   Layout L = layoutOf(iResolution.xy);
-  if (p == A_BUILT) fragColor = vec4(iResolution.xy, float(iFrame), 0.0);
+  if (p == A_BUILT) fragColor = vec4(iResolution.xy, KEY, made ? built.w + 1.0 : 0.5);
   else if (p == A_LAYOUT) fragColor = vec4(L.S, L.win, L.scale.x);
   else if (p == A_REGION) fragColor = vec4(L.regionX, L.regionW, L.q);
+  // the field is square, as the design is: glassCover lays out a square of the canvas's longer side
   else if (p == A_FIELD) fragColor = vec4(L.fw, L.fw, float(L.count), ${glslFloat(STOPS.length)});
   else if (p == A_GLASS) {
     vec2 inv = dDiv(dd(1.0), dMul(L.q, dd(L.fw)));
@@ -631,7 +677,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         dRound(dMul(dd(255.0), dAdd(dd(0.5), dDiv(dMul(dd(0.5), c0), l)))),
         dRound(dMul(dd(255.0), dAdd(dd(0.5), dDiv(dMul(dd(0.5), c1), l)))), 0.0);
     }
-  } else if ((p.y == A_ORBIT || p.y == A_ORBIT + 1) && p.x < 12) {
+  } else if ((p.y == A_ORBIT || p.y == A_ORBIT + 1) && p.x < NPTS) {
     fragColor = orbitKept(orbitOf(L, p.x), p.y - A_ORBIT);
   } else if (p.y >= A_RIBS && p.y < A_RIBS + L.count && p.x <= ${STOPS.length}) {
     // a rib: its circle, and the lens gray at each of its stops
@@ -656,8 +702,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 }`;
 
 const BUFFER_B = `// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)
-// x: the rib map, baked when the layout is made and kept, its three bytes in one number; y, z, w: the field, the
-// discs drawn over the base color as the player's WebGL draws them, kept as 8 bits, three field texels a texel.
+// x: the rib map, baked for each layout Buffer A makes and kept, its three bytes in one number; y, z, w: the field, the
+// discs drawn over the base color as the player's WebGL draws them, kept as 8 bits, three field texels a texel. The
+// top right texel keeps, beside its map, the serial of the layout baked and the frames written since (y, z).
 vec4 fromA(ivec2 p) { return texelFetch(iChannel0, p, 0); }
 vec2 stopAt(int rib, int k) { return fromA(ivec2(1 + k, A_RIBS + rib)).xy; }
 
@@ -753,10 +800,11 @@ void varyings(vec2 c0, vec2 c1, vec2 c2, vec3 lx, vec3 ly, vec3 color, ivec2 px,
 // the clip x or y the player's vertex shader gives a field coordinate, snapped to 16ths of a pixel
 float snap(float clip, float size) { return roundEven((0.5 * size * 16.0 - 8.0) + clip * (0.5 * size * 16.0)); }
 vec3 field(ivec2 px) {
+  // the field's side, across and down alike: the field is square
   float size = fromA(A_FIELD).x;
-  int base = COLORS[1];
+  int base = COLORS[BASE % COLORS.length()];
   vec3 dst = vec3(float((base >> 16) & 255), float((base >> 8) & 255), float(base & 255));
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < NPTS; i++) {
     vec4 d = fromA(ivec2(i, A_DISC));
     // the quad's corners: v0 (-1, -1) and v1 (1, -1) at yA, v2 (-1, 1) and v3 (1, 1) at yB, left at xL, right at xR
     float xL = snap((d.x - d.z) / size * 2.0 - 1.0, size);
@@ -766,7 +814,7 @@ vec3 field(ivec2 px) {
     float X = 16.0 * float(px.x);
     float Y = 16.0 * float(px.y);
     if (X < xL || X >= xR || Y < yB || Y >= yA) continue;
-    int c = COLORS[i % 6];
+    int c = COLORS[i % COLORS.length()];
     // a true division, as the player's JavaScript makes the color: a compiler would multiply by 1/255 for a constant
     vec3 color = vec3(float((c >> 16) & 255), float((c >> 8) & 255), float(c & 255)) / (255.0 * ONE);
     vec2 local;
@@ -791,16 +839,22 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   ivec2 p = ivec2(fragCoord);
   int side = int(fromA(A_FIELD).x);
   int k = p.y * int(iResolution.x) + p.x;
-  float built = fromA(A_BUILT).z;
+  ivec2 corner = ivec2(iResolution.xy) - 1;
+  vec4 record = texelFetch(iChannel1, corner, 0);
+  float serial = fromA(A_BUILT).w;
+  // frames written since this tab baked Buffer A's layout, 0 where it has not: a new layout, or this tab newly pasted
+  // (a serial is a half, which no field texel's number is)
+  float since = record.y == serial ? record.z : 0.0;
+  bool inField = 3 * k < side * side;
   // from the second frame after a bake both of the buffer's textures hold the map: a texel with no field keeps it
-  if (3 * k >= side * side && float(iFrame) - built >= 2.0) discard;
-  float map = built == float(iFrame) ? ribMap(fragCoord) : texelFetch(iChannel1, p, 0).x;
+  if (!inField && p != corner && since >= 2.0) discard;
+  float map = since == 0.0 ? ribMap(fragCoord) : texelFetch(iChannel1, p, 0).x;
   vec3 f = vec3(0.0);
   for (int c = 0; c < 3; c++) {
     int n = 3 * k + c;
     if (n < side * side) f[c] = pack(field(ivec2(n % side, n / side)));
   }
-  fragColor = vec4(map, f);
+  fragColor = p == corner ? vec4(map, serial, min(since + 1.0, 2.0), 0.0) : vec4(map, f);
 }`;
 
 const BUFFER_C = `// ==== Buffer C ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)
@@ -825,7 +879,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec4 place = texelFetch(iChannel0, A_LAYOUT, 0);
   float origin = texelFetch(iChannel0, A_REGION, 0).x;
   vec2 inv = texelFetch(iChannel0, A_GLASS, 0).xy;
-  float size = texelFetch(iChannel0, A_FIELD, 0).x;
+  vec4 sizes = texelFetch(iChannel0, A_FIELD, 0);
+  float size = sizes.x;
+  if (!fits(size, sizes.z)) {
+    int c = COLORS[BASE % COLORS.length()];
+    fragColor = vec4(vec3(float((c >> 16) & 255), float((c >> 8) & 255), float(c & 255)) / 255.0, 1.0);
+    return;
+  }
   float uH = iResolution.y;
   ivec2 p = ivec2(fragCoord.x, uH - fragCoord.y);
   int bytes = int(texelFetch(iChannel1, p, 0).x);
