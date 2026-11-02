@@ -11,8 +11,11 @@
    knows a layout of its own by a serial it keeps beside it, and makes another for a new size, ANGLE or SHAPE, and
    Buffer B bakes the map for each serial it has not baked. A resize hands each buffer its frame before last half the
    time (ResizeBuffer starts each ping-pong over), which Buffer A sees by its own frame count and makes up. */
-import { EFFECT_EASE_S } from "./effect.ts";
+import { EFFECT_EASE_S, type Effect } from "./effect.ts";
 import { GLASS_ANGLE, GLASS_LOOP, GLASS_REF_D, GLASS_TUNING } from "./glass.ts";
+import { glassColors } from "./glass-colors.ts";
+import type { Palette } from "./palette.ts";
+import { effectShaderCredit } from "./shader-shell.ts";
 
 const F = Math.fround;
 
@@ -919,4 +922,26 @@ ${BUFFER_D}
 
 ${IMAGE}
 `;
+}
+
+/** The glass as Shadertoy's tabs, for its palette, effect and angle: the credit, then the tabs, each under its header.
+    `origin` adds the effect's address to the credit. The editor loads this module with the Shader tab's Shadertoy
+    spelling. */
+export function glassShadertoyText(
+  P: Palette,
+  effect: Effect,
+  angle: number,
+  seed: string,
+  origin?: string
+): string {
+  const credit = effectShaderCredit(
+    seed,
+    effect,
+    angle,
+    "fluted glass in Shadertoy: paste each section into the tab it names and set its channels as its header says",
+    origin
+  );
+  return `${credit.map(line => `// ${line}`).join("\n")}
+
+${glassShadertoy(glassColors(P), angle, effect.look.shape ?? 0, effect.speed, effect.fps)}`;
 }

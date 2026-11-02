@@ -42,7 +42,8 @@ test("the pages work out the player's layout, field and blur to the last bit", (
         expect(model.plan(page.geometry)).toEqual(glassPlan(site.geometry));
         expect(model.field(page.geometry, COLORS)).toEqual(glassField(site.geometry, COLORS));
       }
-});
+  /* 330 layouts: a few seconds on a busy machine */
+}, 30_000);
 
 test("the pages place each disc where the player does, at any time", () => {
   const { geometry } = glassCover({ width: 1920, height: 1080 }, 1, 137, 999);

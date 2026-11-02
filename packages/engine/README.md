@@ -93,9 +93,11 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   `math.ts`.
 - The palette: `palette.ts` (types and bounds), `codec.ts`, `spec.ts`, `edits.ts`, `random.ts`, `fit.ts`.
 - Views and files: `view.ts`, `css.ts`, `svg.ts`, `shader.ts` (its kinds in `shader-kinds.ts`, its WebGL and WebGPU
-  pages in `shader-page.ts`), `swatches.ts`, `document.ts`, `markdown.ts`, `zip.ts`.
-- The fluted glass's shader code: `glass-shader.ts` (Shadertoy tabs, GLSL, WGSL, and WebGL and WebGPU pages) over
-  `glass-gl.ts` (the player's own GLSL), `glass-wgsl.ts`, `glass-page.ts` and `glass-shadertoy.ts`.
+  pages in `shader-page.ts`, the credit and page every shader shares in `shader-shell.ts`), `swatches.ts`,
+  `document.ts`, `markdown.ts`, `zip.ts`.
+- The fluted glass's shader code, every kind named in `glass-shader.ts`: Shadertoy's tabs (`glass-shadertoy.ts`), the
+  GLSL and its WebGL page (`glass-webgl.ts`, the player's own GLSL in `glass-gl.ts`), the WGSL and its WebGPU page
+  (`glass-webgpu.ts` over `glass-wgsl.ts`), the pages' design in `glass-page.ts` and their clock in `effect-page.ts`.
 - What a palette is: `name.ts`, `colorname.ts` over `colornames.data.ts`, `shape.ts`, `dominant.ts`, `contrast.ts`,
   `plot.ts`, `strip.ts`.
 - Old links: `legacy.ts`, `legacy-import.ts`.

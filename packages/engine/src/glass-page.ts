@@ -2,7 +2,10 @@
    site's player works it out (engine/glass.ts's ribs, discs and their orbits, glass-render.ts's cover and blur plan),
    so the page's GPU draws from the same numbers. The pages play it by the players' clock (effect-page.ts); the WebGL
    page runs the player's own GLSL (glass-gl.ts), the WebGPU page the same passes in WGSL (glass-wgsl.ts). */
+import { EFFECT_EASE_S, type Effect } from "./effect.ts";
 import { GLASS_ANGLE, GLASS_DESIGN, GLASS_LOOP, GLASS_REF_D, GLASS_TUNING } from "./glass.ts";
+import { glassColors } from "./glass-colors.ts";
+import type { Palette } from "./palette.ts";
 
 /** A value as JavaScript writes it back, numbers in the shortest spelling that reads as the same double: an object a
     key a line, nested ones on one. */
@@ -321,3 +324,26 @@ const hexRgb = hex => {
   const n = Number.parseInt(hex.slice(1), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 };`;
+
+/** The settings a reader edits, the page's first script, as its JavaScript names them. */
+export function glassSettingsJs(P: Palette, effect: Effect, angle: number): string {
+  return `// The glass's colors (the site takes six along the palette; any number will do), the angle its ribs run at
+// (${GLASS_ANGLE} as designed), its shape (0 as designed, up to 999), how fast it plays (1 as designed, 0 holds the first
+// frame), frames a second at most, and the seconds it takes to ease in.
+const COLORS = [${glassColors(P)
+    .map(c => `"${c}"`)
+    .join(", ")}];
+const ANGLE = ${angle};
+const SHAPE = ${effect.look.shape ?? 0};
+const SPEED = ${effect.speed};
+const FPS = ${effect.fps};
+const EASE = ${EFFECT_EASE_S};`;
+}
+
+/** Code a level in, as a page writes it inside a function. */
+export function indent(text: string): string {
+  return text
+    .split("\n")
+    .map(line => (line ? `  ${line}` : line))
+    .join("\n");
+}
