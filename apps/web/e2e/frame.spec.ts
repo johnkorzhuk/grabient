@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { live } from "./live.ts";
 
@@ -244,6 +246,96 @@ test("Saved plays each palette as it was saved, effect and settings included, an
   await expect(
     page.locator("main article [data-glass-still], main article [data-blob-still]")
   ).toHaveCount(0);
+  expect(reports).toEqual([]);
+});
+
+/** The Cookie the local copy of staging's data takes for its test admin, verify-admin: the session it keeps, signed with
+    the secret the dev server reads from .dev.vars, or in a clone with none the one the config binds (E2E_AUTH_SECRET).
+    No other spec signs in as this account, so what a test saves under it races nothing. */
+function adminSession() {
+  const token = "tokenadminverify0000000000000000";
+  let vars = "";
+  try {
+    vars = readFileSync(new URL("../.dev.vars", import.meta.url), "utf8");
+  } catch {
+    /* a clone with no .dev.vars */
+  }
+  const secret =
+    vars.match(/^BETTER_AUTH_SECRET=["']?(.*?)["']?$/m)?.[1] ?? process.env.E2E_AUTH_SECRET ?? "";
+  const signature = createHmac("sha256", secret).update(token).digest("base64");
+  return { name: "better-auth.session_token", value: encodeURIComponent(`${token}.${signature}`) };
+}
+
+test("a palette liked from a card playing the glass is in Saved playing it as it was saved, from the database, and opens so", async ({
+  page,
+  context,
+  baseURL
+}) => {
+  const reports = reported(page);
+  await context.addCookies([{ ...adminSession(), url: baseURL ?? "" }]);
+  /* the account's likes, as the server holds them, and every one taken back: before the test, and after it */
+  const saved = () =>
+    page.evaluate(async () => {
+      const answer = await fetch("/api/saved?page=1&limit=96");
+      return ((await answer.json()) as { items: { kseed: string; look?: string }[] }).items;
+    });
+  const unlikeAll = async () => {
+    const ops = (await saved()).map(item => ({
+      op: "like",
+      seed: item.kseed,
+      liked: false,
+      style: "linearGradient",
+      steps: 7,
+      angle: 90
+    }));
+    if (!ops.length) return;
+    const client = `frame-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const results = await page.evaluate(
+      async body =>
+        (
+          (await (
+            await fetch("/api/me/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body)
+            })
+          ).json()) as { results: { ok: boolean }[] }
+        ).results,
+      { client, cursor: null, mutations: ops.map((op, i) => ({ id: i + 1, op })) }
+    );
+    expect(results.every(result => result.ok)).toBe(true);
+  };
+  /* taken back before the list loads, so its copy of the account hears it so */
+  await open(page, "/about");
+  await unlikeAll();
+  await open(page, "/palettes?style=glass&speed=0");
+  try {
+    const card = page.locator("main article").first();
+    const edit = card.locator('a[aria-label^="Edit "]');
+    await expect(edit).toHaveAttribute("href", /^\/k[^?]+\?style=glass&/);
+    const href = (await edit.getAttribute("href"))!;
+    const seed = href.slice(1, href.indexOf("?"));
+    const synced = page.waitForResponse(
+      response =>
+        response.url().endsWith("/api/me/sync") &&
+        (response.request().postData() ?? "").includes(`"seed":"${seed}"`)
+    );
+    await card.hover();
+    await card.locator('button[aria-label^="Like"]').click();
+    await synced;
+    // the database keeps the look as the card's address writes it after its seed
+    expect((await saved())[0]).toMatchObject({
+      kseed: seed,
+      look: href.slice(href.indexOf("?") + 1)
+    });
+    // Saved, loaded whole, plays it as it was saved and opens it so
+    await open(page, "/palettes/saved");
+    const first = page.locator("main article").first();
+    await expect(first.locator('a[aria-label^="Edit "]')).toHaveAttribute("href", href);
+    await expect(first.locator("[data-glass-still]")).toHaveCount(1);
+  } finally {
+    await unlikeAll();
+  }
   expect(reports).toEqual([]);
 });
 
