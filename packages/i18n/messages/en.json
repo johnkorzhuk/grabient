@@ -747,7 +747,7 @@
   "Client documents": {
     "note": "Admin feature switch.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:46"
+      "apps/web/src/features/account/settings/flags.ts:52"
     ]
   },
   "Close": {
@@ -1416,7 +1416,7 @@
   "Count the palettes people open, copy and download, for the seeding agents. No address, account or cookie is kept.": {
     "note": "Admin: line under Palette use counts.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:41"
+      "apps/web/src/features/account/settings/flags.ts:47"
     ]
   },
   "Covers and cards": {
@@ -1583,13 +1583,19 @@
   "Draw every page and list for every reader past the site's ten-minute ceilings. When off, past them, readers who aren't signed in get the page drawn in their browser, and crawlers Cloudflare verifies are always drawn.": {
     "note": "Admin: line under Pages past the ceiling. When off, a reader who isn't signed in gets the app's empty frame, and their browser draws the page into it. Cloudflare is a company's name.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:80"
+      "apps/web/src/features/account/settings/flags.ts:86"
     ]
   },
   "Draw share cards and PNG files on the server. When off, links show the site's card.": {
     "note": "Admin: line under Share images.",
     "refs": [
       "apps/web/src/features/account/settings/flags.ts:25"
+    ]
+  },
+  "Draw the glass and the blob as MP4 videos on the server. When off, a video's link shows its first frame.": {
+    "note": "Admin: line under Videos. The glass (fluted glass) and the blob are the two animated effects a palette can play; MP4 is a file type, kept as is.",
+    "refs": [
+      "apps/web/src/features/account/settings/flags.ts:29"
     ]
   },
   "Dull": {
@@ -2502,7 +2508,7 @@
   "Let AI apps connect to accounts and use Grabient's tools over MCP.": {
     "note": "Admin: line under MCP server.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:29"
+      "apps/web/src/features/account/settings/flags.ts:35"
     ]
   },
   "Let go of keyframes": {
@@ -2514,7 +2520,7 @@
   "Let new apps sign in with the identity document their maker publishes. When off, new apps register themselves, and apps already connected keep working.": {
     "note": "Admin: line under Client documents.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:47"
+      "apps/web/src/features/account/settings/flags.ts:53"
     ]
   },
   "Letters, numbers, underscores and hyphens.": {
@@ -2668,7 +2674,7 @@
   "MCP server": {
     "note": "Admin feature switch.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:28",
+      "apps/web/src/features/account/settings/flags.ts:34",
       "apps/web/src/features/collections/CollectionPage.tsx:971"
     ]
   },
@@ -2838,7 +2844,7 @@
     "refs": [
       "apps/web/src/app/site.ts:36",
       "apps/web/src/features/account/settings/Newsletter.tsx:62",
-      "apps/web/src/features/account/settings/flags.ts:60",
+      "apps/web/src/features/account/settings/flags.ts:66",
       "apps/web/src/features/newsletter/NewsletterPage.tsx:142",
       "apps/web/src/lib/page-meta.ts:407"
     ]
@@ -3047,13 +3053,13 @@
   "Offer 1 year when a reader presses Rising again. When off, Rising skips it.": {
     "note": "Admin: line under Rising over 1 year.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:57"
+      "apps/web/src/features/account/settings/flags.ts:63"
     ]
   },
   "Offer 3 months when a reader presses Rising again. When off, Rising skips it.": {
     "note": "Admin: line under Rising over 3 months.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:53"
+      "apps/web/src/features/account/settings/flags.ts:59"
     ]
   },
   "Offline": {
@@ -3241,7 +3247,7 @@
   "Pages past the ceiling": {
     "note": "Admin feature switch: drawing every page on the server once the site has drawn as many as it allows in ten minutes. The ceiling is that allowance.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:79"
+      "apps/web/src/features/account/settings/flags.ts:85"
     ]
   },
   "Palette": {
@@ -3333,13 +3339,13 @@
   "Palette use counts": {
     "note": "Admin feature switch.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:40"
+      "apps/web/src/features/account/settings/flags.ts:46"
     ]
   },
   "Palette view in AI apps": {
     "note": "Admin feature switch.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:32"
+      "apps/web/src/features/account/settings/flags.ts:38"
     ]
   },
   "Palette {number}: {name}": {
@@ -3764,7 +3770,7 @@
   "Rebuild the search index as the site changes. When off, search keeps the last one.": {
     "note": "Admin: line under Search index updates.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:37"
+      "apps/web/src/features/account/settings/flags.ts:43"
     ]
   },
   "Reduce motion": {
@@ -3996,13 +4002,13 @@
   "Rising over 1 year": {
     "note": "Admin feature switch.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:56"
+      "apps/web/src/features/account/settings/flags.ts:62"
     ]
   },
   "Rising over 3 months": {
     "note": "Admin feature switch.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:52"
+      "apps/web/src/features/account/settings/flags.ts:58"
     ]
   },
   "Rising palettes and new features, about once a month, to {email}.": {
@@ -4081,7 +4087,7 @@
   "Save likes, collections and votes from accounts and their apps. When off, pages keep likes and changes to an account's collections until saving is back, other saves are refused, and reading still works.": {
     "note": "Settings, Site features (admins only): what the Saving switch does.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:67"
+      "apps/web/src/features/account/settings/flags.ts:73"
     ]
   },
   "Save or export": {
@@ -4165,7 +4171,7 @@
   "Saving": {
     "note": "Settings, Site features (admins only): the switch for every account's saves.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:66"
+      "apps/web/src/features/account/settings/flags.ts:72"
     ]
   },
   "Saving…": {
@@ -4217,7 +4223,7 @@
   "Search index updates": {
     "note": "Admin feature switch.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:36"
+      "apps/web/src/features/account/settings/flags.ts:42"
     ]
   },
   "Search is busy. Try again later.": {
@@ -4337,7 +4343,7 @@
   "Send sign-in links and codes and contact messages. When off, sign-in offers Google, and deletion emails and owner alerts still go.": {
     "note": "Settings, Site features (admins only): what the Email switch does.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:74"
+      "apps/web/src/features/account/settings/flags.ts:80"
     ]
   },
   "Send test": {
@@ -4458,7 +4464,7 @@
   "Show palettes as cards inside AI apps. When off, apps get a link to each picture.": {
     "note": "Admin: line under Palette view in AI apps.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:33"
+      "apps/web/src/features/account/settings/flags.ts:39"
     ]
   },
   "Show panel": {
@@ -4478,7 +4484,7 @@
   "Show the newsletter to readers and send them its issues. Until it's on, only admins see its page and send themselves a test. Unsubscribing always works.": {
     "note": "Site features (admins): the newsletter switch's description.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:61"
+      "apps/web/src/features/account/settings/flags.ts:67"
     ]
   },
   "Show your display name on the palettes you liked first?": {
@@ -5635,6 +5641,12 @@
       "apps/web/src/features/examples/Cards.tsx:79"
     ]
   },
+  "Videos": {
+    "note": "Admin feature switch: drawing palettes' animated effects as MP4 video files.",
+    "refs": [
+      "apps/web/src/features/account/settings/flags.ts:28"
+    ]
+  },
   "View saved.": {
     "note": "Status after an admin saves a palette's style, steps and angle.",
     "refs": [
@@ -6116,7 +6128,7 @@
   "feature\u0004Email": {
     "note": "Settings, Site features (admins only): the switch for sign-in and contact email.",
     "refs": [
-      "apps/web/src/features/account/settings/flags.ts:72"
+      "apps/web/src/features/account/settings/flags.ts:78"
     ]
   },
   "file\u0004Random": {

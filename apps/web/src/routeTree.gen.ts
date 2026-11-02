@@ -74,6 +74,7 @@ import { Route as Char123nameChar125DotjsonIndexRouteImport } from './routes/{$n
 import { Route as Char123nameChar125DotmdIndexRouteImport } from './routes/{$name}[.]md/index'
 import { Route as Char123seedChar125DotcssIndexRouteImport } from './routes/{$seed}[.]css/index'
 import { Route as Char123seedChar125DotjsIndexRouteImport } from './routes/{$seed}[.]js/index'
+import { Route as Char123seedChar125Dotmp4IndexRouteImport } from './routes/{$seed}[.]mp4/index'
 import { Route as Char123seedChar125DotpngIndexRouteImport } from './routes/{$seed}[.]png/index'
 import { Route as Char123seedChar125DotsvgIndexRouteImport } from './routes/{$seed}[.]svg/index'
 import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{$handle}/$slug/index'
@@ -470,6 +471,12 @@ const Char123seedChar125DotjsIndexRoute =
     path: '/{$seed}.js/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const Char123seedChar125Dotmp4IndexRoute =
+  Char123seedChar125Dotmp4IndexRouteImport.update({
+    id: '/{$seed}.mp4/',
+    path: '/{$seed}.mp4/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const Char123seedChar125DotpngIndexRoute =
   Char123seedChar125DotpngIndexRouteImport.update({
     id: '/{$seed}.png/',
@@ -818,6 +825,7 @@ export interface FileRoutesByFullPath {
   '/{$name}.md/': typeof Char123nameChar125DotmdIndexRoute
   '/{$seed}.css/': typeof Char123seedChar125DotcssIndexRoute
   '/{$seed}.js/': typeof Char123seedChar125DotjsIndexRoute
+  '/{$seed}.mp4/': typeof Char123seedChar125Dotmp4IndexRoute
   '/{$seed}.png/': typeof Char123seedChar125DotpngIndexRoute
   '/{$seed}.svg/': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
@@ -937,6 +945,7 @@ export interface FileRoutesByTo {
   '/{$name}.md': typeof Char123nameChar125DotmdIndexRoute
   '/{$seed}.css': typeof Char123seedChar125DotcssIndexRoute
   '/{$seed}.js': typeof Char123seedChar125DotjsIndexRoute
+  '/{$seed}.mp4': typeof Char123seedChar125Dotmp4IndexRoute
   '/{$seed}.png': typeof Char123seedChar125DotpngIndexRoute
   '/{$seed}.svg': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
@@ -1057,6 +1066,7 @@ export interface FileRoutesById {
   '/{$name}.md/': typeof Char123nameChar125DotmdIndexRoute
   '/{$seed}.css/': typeof Char123seedChar125DotcssIndexRoute
   '/{$seed}.js/': typeof Char123seedChar125DotjsIndexRoute
+  '/{$seed}.mp4/': typeof Char123seedChar125Dotmp4IndexRoute
   '/{$seed}.png/': typeof Char123seedChar125DotpngIndexRoute
   '/{$seed}.svg/': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
@@ -1178,6 +1188,7 @@ export interface FileRouteTypes {
     | '/{$name}.md/'
     | '/{$seed}.css/'
     | '/{$seed}.js/'
+    | '/{$seed}.mp4/'
     | '/{$seed}.png/'
     | '/{$seed}.svg/'
     | '/@{$handle}/$slug/rising'
@@ -1297,6 +1308,7 @@ export interface FileRouteTypes {
     | '/{$name}.md'
     | '/{$seed}.css'
     | '/{$seed}.js'
+    | '/{$seed}.mp4'
     | '/{$seed}.png'
     | '/{$seed}.svg'
     | '/@{$handle}/$slug/rising'
@@ -1416,6 +1428,7 @@ export interface FileRouteTypes {
     | '/{$name}.md/'
     | '/{$seed}.css/'
     | '/{$seed}.js/'
+    | '/{$seed}.mp4/'
     | '/{$seed}.png/'
     | '/{$seed}.svg/'
     | '/@{$handle}/$slug/rising'
@@ -1536,6 +1549,7 @@ export interface RootRouteChildren {
   Char123nameChar125DotmdIndexRoute: typeof Char123nameChar125DotmdIndexRoute
   Char123seedChar125DotcssIndexRoute: typeof Char123seedChar125DotcssIndexRoute
   Char123seedChar125DotjsIndexRoute: typeof Char123seedChar125DotjsIndexRoute
+  Char123seedChar125Dotmp4IndexRoute: typeof Char123seedChar125Dotmp4IndexRoute
   Char123seedChar125DotpngIndexRoute: typeof Char123seedChar125DotpngIndexRoute
   Char123seedChar125DotsvgIndexRoute: typeof Char123seedChar125DotsvgIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
@@ -2047,6 +2061,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof Char123seedChar125DotjsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/{$seed}.mp4/': {
+      id: '/{$seed}.mp4/'
+      path: '/{$seed}.mp4'
+      fullPath: '/{$seed}.mp4/'
+      preLoaderRoute: typeof Char123seedChar125Dotmp4IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/{$seed}.png/': {
       id: '/{$seed}.png/'
       path: '/{$seed}.png'
@@ -2484,6 +2505,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char123nameChar125DotmdIndexRoute: Char123nameChar125DotmdIndexRoute,
   Char123seedChar125DotcssIndexRoute: Char123seedChar125DotcssIndexRoute,
   Char123seedChar125DotjsIndexRoute: Char123seedChar125DotjsIndexRoute,
+  Char123seedChar125Dotmp4IndexRoute: Char123seedChar125Dotmp4IndexRoute,
   Char123seedChar125DotpngIndexRoute: Char123seedChar125DotpngIndexRoute,
   Char123seedChar125DotsvgIndexRoute: Char123seedChar125DotsvgIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,

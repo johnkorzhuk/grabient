@@ -22,3 +22,10 @@ declare module "virtual:i18n/assets" {
   const urls: Readonly<Partial<Record<import("@grabient/i18n").Locale, string>>>;
   export default urls;
 }
+
+declare module "*.wasm" {
+  /** A WebAssembly module the Worker is deployed with, compiled before the Worker runs (the Cloudflare plugin's rule
+      for .wasm). */
+  const module: WebAssembly.Module;
+  export default module;
+}

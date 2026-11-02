@@ -1,0 +1,475 @@
+import { readFileSync } from "node:fs";
+import { videoFrames } from "@grabient/engine/video.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import type { Keep } from "./serve.ts";
+import { seedMp4Answer, type VideoPartRunner } from "./video.ts";
+import { spanOf } from "./video-bytes.ts";
+import type { VideoPartJob } from "./video-draw.ts";
+
+const ORIGIN = "https://grabient.test";
+const SEED = "kWnCIwwC47igfOklkTlShq44";
+const wasm = new WebAssembly.Module(
+  readFileSync(new URL("../../../../../packages/engine/src/video/video.wasm", import.meta.url))
+);
+
+/** The Worker's own entrypoint, here: each part drawn as video-draw.ts draws it, the jobs it was handed kept; with
+    `failAfter`, every part past that many fails, as a drawing cut short does. */
+function runner(failAfter = Number.POSITIVE_INFINITY) {
+  const jobs: VideoPartJob[] = [];
+  const run: VideoPartRunner = async job => {
+    jobs.push(job);
+    if (jobs.length > failAfter) throw new Error("cut short");
+    const size = { width: job.width, height: job.height };
+    const ask = {
+      kind: job.kind,
+      palette: job.palette,
+      look: job.look,
+      angle: job.angle,
+      size,
+      fps: job.fps
+    };
+    return videoFrames(wasm, ask, job.plan, job.from, job.to, job.state);
+  };
+  return { jobs, run };
+}
+
+/** An R2 bucket in memory that reads a Range and keeps custom metadata as R2 does, saying what it was asked. */
+function bucket() {
+  const objects = new Map<string, { bytes: Uint8Array; meta?: Record<string, string> }>();
+  const asked: string[] = [];
+  const stream = (bytes: Uint8Array) => new Blob([bytes as Uint8Array<ArrayBuffer>]).stream();
+  const object = (
+    whole: Uint8Array,
+    part: Uint8Array,
+    meta?: Record<string, string>,
+    range?: object
+  ) => ({
+    size: whole.length,
+    range,
+    customMetadata: meta,
+    body: stream(part),
+    arrayBuffer: async () => part.slice().buffer
+  });
+  return {
+    objects,
+    asked,
+    async head(name: string) {
+      asked.push(`head ${name}`);
+      const kept = objects.get(name);
+      return kept ? { size: kept.bytes.length } : null;
+    },
+    async get(name: string, options?: { range?: Headers | { offset: number; length: number } }) {
+      asked.push(`get ${name}`);
+      const kept = objects.get(name);
+      if (!kept) return null;
+      const { bytes, meta } = kept;
+      const range = options?.range;
+      if (!range) return object(bytes, bytes, meta);
+      if (!(range instanceof Headers)) {
+        return object(bytes, bytes.slice(range.offset, range.offset + range.length), meta, range);
+      }
+      const [, first, last] = /^bytes=(\d*)-(\d*)$/.exec(range.get("Range") ?? "") ?? [];
+      if (first === "") {
+        const suffix = Number(last);
+        return object(bytes, bytes.slice(bytes.length - suffix), meta, { suffix });
+      }
+      if (Number(first) >= bytes.length) throw new Error("range not satisfiable");
+      const end = last === "" ? bytes.length : Math.min(Number(last) + 1, bytes.length);
+      const offset = Number(first);
+      return object(bytes, bytes.slice(offset, end), meta, { offset, length: end - offset });
+    },
+    async put(
+      name: string,
+      bytes: Uint8Array,
+      options?: { customMetadata?: Record<string, string> }
+    ) {
+      asked.push(`put ${name}`);
+      objects.set(name, { bytes: bytes.slice(), meta: options?.customMetadata });
+    },
+    async delete(names: string | string[]) {
+      for (const name of [names].flat()) {
+        asked.push(`delete ${name}`);
+        objects.delete(name);
+      }
+    }
+  };
+}
+
+/** A database whose k_flags holds these flags off. */
+const flagsOff = (...names: string[]) => ({
+  prepare: () => ({
+    bind: () => ({ all: async () => ({ results: names.map(name => ({ name, enabled: 0 })) }) })
+  })
+});
+
+/** The limiter's Durable Objects, each counting its limits through their windows as limits/config.ts sets them, or
+    through `windows` (seconds) in place of a limit's own; it refuses the limits in `refuse` outright. */
+function limiter(refuse: string[] = [], windows: Record<string, number> = {}) {
+  const counts = new Map<string, { count: number; until: number }>();
+  return {
+    idFromName: (name: string) => name,
+    get: (id: string) => ({
+      fetch: async (input: string | URL) => {
+        const url = new URL(input);
+        const n = Number(url.searchParams.get("n") ?? 1);
+        const now = Date.now();
+        const asked = url.searchParams.getAll("type").map(type => {
+          const limit = LIMITS[type as LimitName];
+          let count = counts.get(`${id}:${type}`);
+          if (!count || count.until <= now) {
+            count = { count: 0, until: now + 1000 * (windows[type] ?? limit.window) };
+            counts.set(`${id}:${type}`, count);
+          }
+          const success = !refuse.includes(type) && count.count + n <= limit.requests;
+          return { type, success, limit: limit.requests, count };
+        });
+        const success = asked.every(each => each.success);
+        if (success) for (const each of asked) each.count.count += n;
+        const results = asked.map(({ type, success, limit, count }) => ({
+          type,
+          success,
+          limit,
+          remaining: Math.max(0, limit - count.count),
+          reset: Math.floor(count.until / 1000)
+        }));
+        const { type: _, ...first } = results.find(result => !result.success) ?? results[0];
+        return Response.json({ ...first, success, results }, { status: success ? 200 : 429 });
+      }
+    })
+  } as unknown as DurableObjectNamespace;
+}
+
+function world(
+  options: {
+    off?: string[];
+    refuse?: string[];
+    windows?: Record<string, number>;
+    deployment?: Env["DEPLOYMENT"];
+  } = {}
+) {
+  const store = bucket();
+  const points: string[] = [];
+  const kept: Promise<unknown>[] = [];
+  const env = {
+    DEPLOYMENT: options.deployment ?? "staging",
+    DB: flagsOff(...(options.off ?? [])) as unknown as D1Database,
+    UPLOADS: store as unknown as R2Bucket,
+    RATE_LIMITER: limiter(options.refuse, options.windows),
+    USAGE: { writeDataPoint: (point: { blobs: string[] }) => points.push(point.blobs.join(" ")) }
+  } as unknown as Env;
+  const keep: Keep = work => kept.push(work);
+  return { env, keep, store, points, settled: () => Promise.all(kept) };
+}
+
+const get = (path: string, init: RequestInit = {}) =>
+  new Request(`${ORIGIN}${path}`, {
+    ...init,
+    headers: { "CF-Connecting-IP": "198.51.100.7", ...init.headers }
+  });
+const bytes = async (response: Response) => new Uint8Array(await response.arrayBuffer());
+const boxTypes = (file: Uint8Array) => {
+  const types: string[] = [];
+  for (let at = 0; at < file.length; ) {
+    types.push(String.fromCharCode(...file.subarray(at + 4, at + 8)));
+    at += new DataView(file.buffer, file.byteOffset).getUint32(at);
+  }
+  return types;
+};
+const CLIP = `/${SEED}.mp4?style=glass&angle=135&size=64x48&fps=10&duration=2`;
+/** As an app that previews a posted link asks. */
+const preview = (
+  path: string,
+  agent = "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)"
+) => get(path, { headers: { "User-Agent": agent } });
+const anAdmin = { admin: async () => true };
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("spanOf", () => {
+  test("reads one span of bytes, an open or a last one, and nothing past the end", () => {
+    expect(spanOf("bytes=0-1", 100)).toEqual([0, 1]);
+    expect(spanOf("bytes=90-", 100)).toEqual([90, 99]);
+    expect(spanOf("bytes=-10", 100)).toEqual([90, 99]);
+    expect(spanOf("bytes=50-500", 100)).toEqual([50, 99]);
+    expect(spanOf("bytes=100-", 100)).toBe("past");
+    expect(spanOf("bytes=-0", 100)).toBe("past");
+    expect([spanOf(null, 100), spanOf("bytes=0-1,4-5", 100), spanOf("items=0-1", 100)]).toEqual([
+      null,
+      null,
+      null
+    ]);
+  });
+});
+
+describe("a palette's MP4", () => {
+  test("is drawn once, kept in R2 under its key, and answered from there after", async () => {
+    const { env, keep, store, points, settled } = world();
+    const parts = runner();
+    const first = await seedMp4Answer(get(CLIP), env, keep, parts.run);
+    expect([first.status, first.headers.get("X-Cache"), first.headers.get("Content-Type")]).toEqual(
+      [200, "MISS", "video/mp4"]
+    );
+    expect(first.headers.get("Accept-Ranges")).toBe("bytes");
+    expect(first.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    const name = `videos/${first.headers.get("ETag")?.slice(7, -1)}.mp4`;
+    // kept before the answer went out, so the range a player asks for next finds it
+    expect(store.objects.has(name)).toBe(true);
+    const drawn = await bytes(first);
+    expect(boxTypes(drawn)).toEqual(["ftyp", "moov", "mdat"]);
+    await settled();
+    expect([...store.objects.keys()]).toEqual([name]);
+    const again = await seedMp4Answer(get(CLIP), env, keep, parts.run);
+    expect([again.status, again.headers.get("X-Cache")]).toEqual([200, "HIT"]);
+    expect(await bytes(again)).toEqual(drawn);
+    expect(parts.jobs.length).toBe(1);
+    expect(points).toEqual(["image video drawn", "image video cache"]);
+  });
+
+  test("answers a player's ranges, drawn or kept, and refuses one past the end", async () => {
+    const { env, keep, settled } = world();
+    const parts = runner();
+    const ranged = (range: string) => get(CLIP, { headers: { Range: range } });
+    const drawn = await seedMp4Answer(ranged("bytes=0-1"), env, keep, parts.run);
+    expect(drawn.status).toBe(206);
+    const size = Number(drawn.headers.get("Content-Range")?.split("/")[1]);
+    expect(drawn.headers.get("Content-Range")).toBe(`bytes 0-1/${size}`);
+    expect((await bytes(drawn)).length).toBe(2);
+    await settled();
+    const whole = await bytes(await seedMp4Answer(get(CLIP), env, keep, parts.run));
+    const tail = await seedMp4Answer(ranged("bytes=-10"), env, keep, parts.run);
+    expect([tail.status, tail.headers.get("Content-Range")]).toEqual([
+      206,
+      `bytes ${size - 10}-${size - 1}/${size}`
+    ]);
+    expect(await bytes(tail)).toEqual(whole.slice(size - 10));
+    const past = await seedMp4Answer(ranged(`bytes=${size}-`), env, keep, parts.run);
+    expect([past.status, past.headers.get("Content-Range")]).toEqual([416, `bytes */${size}`]);
+    expect(parts.jobs.length).toBe(1);
+  });
+
+  test("is drawn in parts, each going on from the state of the one before, as the same file", async () => {
+    const one = world();
+    const whole = await bytes(await seedMp4Answer(get(CLIP), one.env, one.keep, runner().run));
+    const many = world();
+    const parts = runner();
+    const parted = await bytes(
+      await seedMp4Answer(get(CLIP), many.env, many.keep, parts.run, { partWork: 64 * 48 * 6 })
+    );
+    expect(parts.jobs.length).toBe(4);
+    expect(parts.jobs[0].state).toBeNull();
+    expect(parts.jobs.slice(1).every(job => job.state instanceof Uint8Array)).toBe(true);
+    expect(parted).toEqual(whole);
+  });
+
+  test("plays the glass where the address names no style, and nothing for a gradient's style or no palette", async () => {
+    const { env, keep } = world();
+    const parts = runner();
+    const tag = async (path: string) =>
+      (await seedMp4Answer(get(path, { method: "HEAD" }), env, keep, parts.run)).headers.get(
+        "ETag"
+      );
+    expect(await tag(`/${SEED}.mp4?angle=135&size=64x48&fps=10&duration=2`)).toBe(await tag(CLIP));
+    const gradient = await seedMp4Answer(
+      get(`/${SEED}.mp4?style=linearGradient`),
+      env,
+      keep,
+      parts.run
+    );
+    expect(gradient.status).toBe(404);
+    expect((await seedMp4Answer(get("/nothing.mp4"), env, keep, parts.run)).status).toBe(404);
+    expect(parts.jobs.length).toBe(0);
+  });
+
+  test("goes to its first frame while drawing is off, and a kept clip is still answered", async () => {
+    const { env, keep } = world({ off: ["videos"] });
+    const parts = runner();
+    const off = await seedMp4Answer(get(CLIP), env, keep, parts.run);
+    expect(off.status).toBe(302);
+    const still = new URL(off.headers.get("Location") ?? "");
+    expect(still.pathname).toBe(`/${SEED}.png`);
+    expect([
+      still.searchParams.get("style"),
+      still.searchParams.get("w"),
+      still.searchParams.get("h")
+    ]).toEqual(["glass", "64", "48"]);
+    expect(off.headers.get("CDN-Cache-Control")).toBe("no-store");
+    expect(parts.jobs.length).toBe(0);
+  });
+
+  test("past its allowances answers 429 and draws nothing", async () => {
+    const { env, keep } = world({ refuse: ["videoRenderDaily"] });
+    const parts = runner();
+    const refused = await seedMp4Answer(get(CLIP), env, keep, parts.run);
+    expect(refused.status).toBe(429);
+    expect(refused.headers.get("Retry-After")).not.toBeNull();
+    expect(parts.jobs.length).toBe(0);
+  });
+
+  test("holds an address to five new clips an hour", async () => {
+    const { env, keep } = world();
+    const parts = runner();
+    const statuses = [];
+    for (const angle of [10, 20, 30, 40, 50, 60]) {
+      const asked = CLIP.replace("angle=135", `angle=${angle}`);
+      statuses.push((await seedMp4Answer(get(asked), env, keep, parts.run)).status);
+    }
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
+    const elsewhere = get(CLIP, { headers: { "CF-Connecting-IP": "203.0.113.9" } });
+    expect((await seedMp4Answer(elsewhere, env, keep, parts.run)).status).toBe(200);
+  });
+
+  test("holds an admin to none of its allowances", async () => {
+    const { env, keep } = world({ refuse: ["videoRender", "videoRenderDaily"] });
+    const parts = runner();
+    expect((await seedMp4Answer(get(CLIP), env, keep, parts.run)).status).toBe(429);
+    const admin = await seedMp4Answer(get(CLIP), env, keep, parts.run, anAdmin);
+    expect([admin.status, admin.headers.get("X-Cache")]).toEqual([200, "MISS"]);
+  });
+
+  test("draws a clip once for two askers at once, the second answered from R2 once the first has kept it", async () => {
+    const { env, keep } = world();
+    const parts = runner();
+    const other = get(CLIP, { headers: { "CF-Connecting-IP": "203.0.113.9" } });
+    const answers = await Promise.all([
+      seedMp4Answer(get(CLIP), env, keep, parts.run, { lookEvery: 5 }),
+      seedMp4Answer(other, env, keep, parts.run, { lookEvery: 5 })
+    ]);
+    expect(answers.map(answer => answer.headers.get("X-Cache")).sort()).toEqual(["HIT", "MISS"]);
+    const [one, two] = await Promise.all(answers.map(bytes));
+    expect(two).toEqual(one);
+    expect(parts.jobs.length).toBe(1);
+  });
+
+  test("on production is drawn for an admin alone, and once kept plays for anyone", async () => {
+    const { env, keep, settled } = world({ deployment: "production" });
+    const parts = runner();
+    const refused = await seedMp4Answer(get(CLIP), env, keep, parts.run);
+    expect(refused.status).toBe(302);
+    expect(new URL(refused.headers.get("Location") ?? "").pathname).toBe(`/${SEED}.png`);
+    expect(refused.headers.get("X-Grabient-Paused")).toBeNull();
+    const page = await (await seedMp4Answer(preview(CLIP), env, keep, parts.run)).text();
+    expect(page).not.toContain("og:video");
+    await settled();
+    expect(parts.jobs.length).toBe(0);
+    const admin = await seedMp4Answer(get(CLIP), env, keep, parts.run, anAdmin);
+    expect([admin.status, admin.headers.get("X-Cache")]).toEqual([200, "MISS"]);
+    await settled();
+    const anyone = await seedMp4Answer(get(CLIP), env, keep, parts.run);
+    expect([anyone.status, anyone.headers.get("X-Cache")]).toEqual([200, "HIT"]);
+    const kept = await (await seedMp4Answer(preview(CLIP), env, keep, parts.run)).text();
+    expect(kept).toContain('<meta property="og:video:type" content="video/mp4">');
+    expect(parts.jobs.length).toBe(1);
+  });
+
+  test("answers HEAD and a matching If-None-Match without drawing", async () => {
+    const { env, keep } = world();
+    const parts = runner();
+    const head = await seedMp4Answer(get(CLIP, { method: "HEAD" }), env, keep, parts.run);
+    expect([head.status, head.headers.get("Content-Type")]).toEqual([200, "video/mp4"]);
+    const tag = head.headers.get("ETag") ?? "";
+    const unchanged = await seedMp4Answer(
+      get(CLIP, { headers: { "If-None-Match": tag } }),
+      env,
+      keep,
+      parts.run
+    );
+    expect(unchanged.status).toBe(304);
+    expect(parts.jobs.length).toBe(0);
+  });
+
+  test("keeps nothing on a Preview", async () => {
+    const { env, keep, store, settled } = world({ deployment: "preview" });
+    await seedMp4Answer(get(CLIP), env, keep, runner().run);
+    await settled();
+    expect(store.asked).toEqual([]);
+  });
+});
+
+describe("a palette's MP4 drawn in parts", () => {
+  test("keeps each part, and the state every fourth, so a drawing cut short goes on from there", async () => {
+    // 20 frames in ten parts of two
+    const partWork = 64 * 48 * 2;
+    const clean = world();
+    const whole = await bytes(
+      await seedMp4Answer(get(CLIP), clean.env, clean.keep, runner().run, { partWork })
+    );
+    // the slot the cut drawing held has ended by the next asking
+    const { env, keep, store, settled } = world({ windows: { videoClip: 0 } });
+    const cut = runner(6);
+    expect((await seedMp4Answer(get(CLIP), env, keep, cut.run, { partWork })).status).toBe(503);
+    await settled();
+    const kept = [...store.objects.keys()].sort();
+    expect(kept.filter(name => name.endsWith(".mp4"))).toEqual([]);
+    expect(kept.filter(name => name.includes("/part-")).length).toBe(6);
+    expect(store.objects.get(kept.find(name => name.endsWith("/state")) ?? "")?.meta).toEqual({
+      part: "3"
+    });
+    const again = runner();
+    const answer = await seedMp4Answer(get(CLIP), env, keep, again.run, { partWork });
+    expect(await bytes(answer)).toEqual(whole);
+    // the state after the fourth part: the fifth and sixth, kept without one, are drawn again
+    expect(again.jobs.map(job => job.from)).toEqual([8, 10, 12, 14, 16, 18]);
+    expect(again.jobs[0].state).toBeInstanceOf(Uint8Array);
+    await settled();
+    expect([...store.objects.keys()].filter(name => !name.endsWith(".mp4"))).toEqual([]);
+  });
+});
+
+describe("a palette's MP4 posted as a link", () => {
+  test("is a page whose video is the clip and whose poster its first frame, the clip begun as it goes out", async () => {
+    const { env, keep, store, settled } = world();
+    const parts = runner();
+    const page = await seedMp4Answer(preview(CLIP), env, keep, parts.run);
+    expect(page.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(page.headers.get("Cache-Control")).toContain("no-store");
+    const html = await page.text();
+    const tag = (property: string) =>
+      new RegExp(`<meta property="${property}" content="([^"]*)">`)
+        .exec(html)?.[1]
+        ?.replaceAll("&amp;", "&");
+    expect(tag("og:video:secure_url")).toBe(`${ORIGIN}${CLIP}&raw`);
+    expect(tag("og:video:type")).toBe("video/mp4");
+    expect([tag("og:video:width"), tag("og:video:height")]).toEqual(["64", "48"]);
+    const poster = new URL(tag("og:image") ?? "");
+    expect(poster.pathname).toBe(`/${SEED}.png`);
+    expect([...poster.searchParams]).toEqual([
+      ["style", "glass"],
+      ["angle", "135"],
+      ["w", "64"],
+      ["h", "48"]
+    ]);
+    expect(html.lastIndexOf('property="og:type" content="video.other"')).toBeGreaterThan(
+      html.lastIndexOf("og:video:height")
+    );
+    await settled();
+    expect([...store.objects.keys()].filter(name => name.endsWith(".mp4")).length).toBe(1);
+    const file = await seedMp4Answer(preview(`${CLIP}&raw`), env, keep, parts.run);
+    expect([file.headers.get("Content-Type"), file.headers.get("X-Cache")]).toEqual([
+      "video/mp4",
+      "HIT"
+    ]);
+    expect(parts.jobs.length).toBe(1);
+  });
+
+  test("names no video while drawing is off, and begins none", async () => {
+    const { env, keep, store, settled } = world({ off: ["videos"] });
+    const parts = runner();
+    const html = await (await seedMp4Answer(preview(CLIP), env, keep, parts.run)).text();
+    expect(html).not.toContain("og:video");
+    expect(html).toContain('<meta property="og:type" content="website">');
+    await settled();
+    expect(parts.jobs.length).toBe(0);
+    expect(store.asked.filter(asked => asked.startsWith("put"))).toEqual([]);
+  });
+
+  test("names no video past the allowances, and begins none", async () => {
+    const { env, keep, settled } = world({ refuse: ["videoRenderDaily"] });
+    const parts = runner();
+    const html = await (await seedMp4Answer(preview(CLIP), env, keep, parts.run)).text();
+    expect(html).not.toContain("og:video");
+    await settled();
+    expect(parts.jobs.length).toBe(0);
+  });
+});

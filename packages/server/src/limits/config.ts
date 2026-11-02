@@ -75,6 +75,15 @@ export const LIMITS = {
   imageVerifiedDaily: { requests: 40000, window: 86400, site: true, lease: 20 },
   imagePreviewDaily: { requests: 10000, window: 86400, site: true, lease: 5 },
   largeImageDaily: { requests: 2000, window: 86400, site: true, lease: 5 },
+  // A palette's clip no cache holds, drawn in parts (apps/web/src/server/images/video.ts): up to about 25 seconds of
+  // CPU here, perhaps twice that on Cloudflare's machines. Clips are a preview: production draws them for admins
+  // alone, and staging for anyone, though only the few people its owner links to use it, so an address has five an
+  // hour and the site's day thirty, at most about 25 minutes of CPU (a few cents) however it is pressed. A clip has
+  // one drawing at a time, for a minute, about as long as the longest runs: an asker who finds it taken waits for the
+  // clip, an admin too, though no other allowance holds an admin.
+  videoRender: { requests: 5, window: 3600 },
+  videoClip: { requests: 1, window: 60 },
+  videoRenderDaily: { requests: 30, window: 86400, site: true, lease: 2 },
   avatarUpload: { requests: 10, window: 3600 },
   avatarUploadDaily: { requests: 500, window: 86400, site: true },
   usernameCheck: { requests: 120, window: 3600 },

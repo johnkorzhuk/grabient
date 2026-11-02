@@ -33,6 +33,8 @@ export const uncachedPath = (path: string) =>
   path === "/api/build" ||
   path === "/random" ||
   /^\/random\.(svg|png|css|json|tokens\.json|ase|gpl|grd)$/.test(path) ||
+  // a clip answers a player's ranges itself, from R2 (images/video.ts)
+  /^\/[^/]+\.mp4$/.test(path) ||
   path === "/api/search/status";
 
 /** The search's JSON, at each of its addresses. */
@@ -66,7 +68,7 @@ export const searchPicturePath = (path: string, params: URLSearchParams) =>
     documents' and the authorization server's addresses, which their splat routes answer as they answer what lies under
     them. Start renders its not-found page for any other address. */
 const SERVED =
-  /^\/(?:[^/]+\.(?:png|svg|css|json|md|ase|gpl|grd|txt|js)|@[^/]+\/[^/]+\.(?:png|svg|css|json|md|ase|gpl|grd)|og\/[^/]+\/[^/]+\.png|(?:search|palettes)\/[^/]+\.(?:png|svg|json)|sitemap(?:-[^/]+)?\.xml|favicon\/[^/]+\.svg|\.well-known(?:\/.*)?|oauth|mcp\/server-card)$/i;
+  /^\/(?:[^/]+\.(?:png|svg|css|json|md|ase|gpl|grd|txt|js|mp4)|@[^/]+\/[^/]+\.(?:png|svg|css|json|md|ase|gpl|grd)|og\/[^/]+\/[^/]+\.png|(?:search|palettes)\/[^/]+\.(?:png|svg|json)|sitemap(?:-[^/]+)?\.xml|favicon\/[^/]+\.svg|\.well-known(?:\/.*)?|oauth|mcp\/server-card)$/i;
 
 /** What the site's ceilings count where no cache holds it (ceiling.ts), or null: a page, and any address outside the API
     that no route serves, which Start answers with a page; but Random, which only leads elsewhere, and the pages where an

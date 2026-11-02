@@ -7,6 +7,7 @@
 
    - model-search: Workers AI reading unknown search words, vector search, index writes, the sync's collection texts
    - share-images: drawing share cards and PNG downloads
+   - videos: drawing a palette's glass or blob as an MP4 (/{seed}.mp4), seconds of CPU each
    - mcp: the MCP server and connecting new apps
    - mcp-view: the palette view AI apps draw, free, but drawn by other apps
    - search-rebuild: the ten-minute job's search snapshot
@@ -27,6 +28,7 @@ export const FLAG_NAMES = [
   "all",
   "model-search",
   "share-images",
+  "videos",
   "mcp",
   "mcp-view",
   "search-rebuild",

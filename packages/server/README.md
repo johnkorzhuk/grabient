@@ -17,6 +17,7 @@ counts no failure for it. "At switchover" is the state production starts in.
 | `all` | Every flag below | Every fallback below | On |
 | `model-search` | Workers AI for words the vocabulary lacks, account vector search, the sync's collection embeddings | Search answers from its vocabulary, names and colors; a collection keeps its last vector | On |
 | `share-images` | Drawing cards and PNGs | Kept pictures still answer; a share card goes to `/grabient.png`, a palette's PNG to its SVG in the same view and size; a PNG of several palettes answers 503 | On |
+| `videos` | Drawing a palette's MP4 (`/{seed}.mp4`) | Kept clips still answer; a clip not kept goes to its first frame's PNG (302) | On |
 | `mcp` | `/mcp`, app registration, new consents | 503 with `Retry-After: 300`; `/connect` says connecting apps is paused | On |
 | `mcp-view` | The palette view inside AI apps | Tiles come as words, each with its PNG's address | On |
 | `search-rebuild` | The ten-minute snapshot build | Search keeps the last snapshot | On |

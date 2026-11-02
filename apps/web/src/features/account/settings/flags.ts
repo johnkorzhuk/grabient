@@ -24,6 +24,12 @@ export const FLAGS: Readonly<Record<FlagName, Words>> = {
     label: msg("Share images"),
     line: msg("Draw share cards and PNG files on the server. When off, links show the site's card.")
   },
+  videos: {
+    label: msg("Videos"),
+    line: msg(
+      "Draw the glass and the blob as MP4 videos on the server. When off, a video's link shows its first frame."
+    )
+  },
   mcp: {
     label: msg("MCP server"),
     line: msg("Let AI apps connect to accounts and use Grabient's tools over MCP.")
