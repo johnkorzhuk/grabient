@@ -197,7 +197,6 @@ test("the design covers a box of another shape, every length scaled with it", ()
 const palette = decodePalette("kUMzO5Na871ukuyhHUJA")!;
 const blobView: FigmaBlobView = {
   palette,
-  angle: 90,
   shape: null,
   frost: 1,
   bg: null,

@@ -188,12 +188,7 @@ describe("the module's frames", () => {
     ]) {
       const size = { width: 120, height: 96 };
       const ask: VideoAsk = { kind: "blob", palette, look: blobLook, angle: 90, size, fps: 30 };
-      const renderer = blobRenderer(
-        palette,
-        { ...blobLook, angle: 90 },
-        size,
-        blobBackdrop(palette)
-      );
+      const renderer = blobRenderer(palette, blobLook, size, blobBackdrop(palette));
       const { worst, share } = compare(ask, (i, n) => renderer.frame(i / n), 3);
       expect(worst).toBeLessThanOrEqual(2);
       expect(share).toBeLessThan(0.01);

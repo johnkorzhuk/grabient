@@ -118,7 +118,7 @@ describe.each([
       playBlob(
         canvas,
         P,
-        { speed: 1, fps, frost: 1, shape: 3, bg: null, angle: 90, still: false },
+        { speed: 1, fps, frost: 1, shape: 3, bg: null, still: false },
         undefined,
         { reduced }
       )
