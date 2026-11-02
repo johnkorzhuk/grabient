@@ -4,8 +4,10 @@ import { BLOB_DEPTH, BLOB_DESIGN, BLOB_LOOP, blobFilter, blobFit, blobScene } fr
 import { decodePalette } from "./codec.ts";
 import { FIGMA_BLOB, type FigmaBlobView, figmaBlobHtml, figmaBlobNodes } from "./figma-blob.ts";
 import { FIGMA_GLASS, figmaGlassHtml, figmaGlassNodes } from "./figma-glass.ts";
-import { FIGMA_INTERNAL } from "./figma-paste.ts";
+import { FIGMA_INTERNAL, FIGMA_PAGE } from "./figma-paste.ts";
+import { figmaRosetteHtml, figmaRosetteNodes } from "./figma-rosette.ts";
 import { FIGMA_DEFS, FIGMA_SCHEMA, FIGMA_VERSION } from "./figma-schema.ts";
+import { type FigmaSilkView, figmaSilkHtml, figmaSilkNodes } from "./figma-silk.ts";
 import {
   GLASS_DESIGN,
   GLASS_LOOP,
@@ -15,6 +17,9 @@ import {
   glassGeometry
 } from "./glass.ts";
 import { decodeKiwi, encodeKiwi } from "./kiwi.ts";
+import { HEART_STOPS, rosettePetals, rosetteScene } from "./rosette.ts";
+import { zoomKeys } from "./rosette-svg.ts";
+import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: a decoded paste, read by the paths each test expects it to hold
 type Node = Record<string, any>;
@@ -497,4 +502,262 @@ test("the glass held at speed 0 is its still paste, with no timeline", () => {
     still.some(n => n.type === "KEYFRAME_TRACK" || n.parameterConsumptionMap || n.timelineDuration)
   ).toBe(false);
   expect(JSON.stringify(still)).toBe(JSON.stringify(figmaGlassNodes(view)));
+});
+
+/* where a point of a layer's own box falls on its frame: its own place and every group's above it, to the top frame */
+function onFrame(nodes: Node[], layer: Node, x: number, y: number): [number, number] {
+  const key = (g: Node) => `${g.sessionID}:${g.localID}`;
+  const byId = new Map(nodes.map(n => [key(n.guid), n]));
+  let p: [number, number] = [x, y];
+  for (let n: Node | undefined = layer; n; n = byId.get(key(n.parentIndex.guid))) {
+    if (key(n.parentIndex.guid) === key(FIGMA_PAGE)) break;
+    const t = n.transform;
+    p = [t.m00 * p[0] + t.m01 * p[1] + t.m02, t.m10 * p[0] + t.m11 * p[1] + t.m12];
+  }
+  return p;
+}
+const middleOf = (nodes: Node[], layer: Node) =>
+  onFrame(nodes, layer, layer.size.x / 2, layer.size.y / 2);
+const childrenOf = (nodes: Node[], layer: Node) =>
+  nodes.filter(
+    n => n.parentIndex?.guid.localID === layer.guid.localID && n.parentIndex.guid.sessionID === 1
+  );
+
+/* the silk */
+const silkView: FigmaSilkView = {
+  palette,
+  angle: 135,
+  shape: 7,
+  width: 1200,
+  height: 800,
+  name: "Navy and teal",
+  speed: 0
+};
+
+test("the silk's paste is fig-kiwi, its frame selected, still and moving", () => {
+  for (const speed of [0, 1]) {
+    const paste = read(figmaSilkHtml({ ...silkView, speed }, 5));
+    expect(paste.signature).toBe("fig-kiwi");
+    expect(paste.chunks[0]).toEqual(bytesOf(FIGMA_SCHEMA));
+    expect(paste.message.pasteID).toBe(5);
+    expect(paste.message.nodeChanges[2]).toMatchObject({ type: "FRAME", name: "Navy and teal" });
+    expect(paste.message.clipboardSelectionRegions[0].nodes).toEqual([
+      paste.message.nodeChanges[2].guid
+    ]);
+    const tracks = paste.message.nodeChanges.filter((n: Node) => n.type === "KEYFRAME_TRACK");
+    expect(tracks).toHaveLength(
+      speed ? 2 * silkScene(palette, silkView, { width: 1200, height: 800 }).folds.length : 0
+    );
+  }
+});
+
+test("the silk as Figma's layers: the dye along its line, the valleys and the crests as alpha masks of rings about the gather", () => {
+  const nodes = figmaSilkNodes(silkView) as Node[];
+  const scene = silkScene(palette, silkView, { width: 1200, height: 800 });
+  const named = (name: string) => nodes.filter(n => n.name === name);
+  expect(named("Navy and teal")[0]).toMatchObject({
+    type: "FRAME",
+    size: { x: 1200, y: 800 },
+    frameMaskDisabled: false
+  });
+  /* the dye: the palette's stops from the line's start to its end, whatever the box */
+  const [dye] = named("dye");
+  expect(dye).toMatchObject({ type: "RECTANGLE", size: { x: 1200, y: 800 } });
+  const paint = dye.fillPaints[0];
+  expect(paint.type).toBe("GRADIENT_LINEAR");
+  expect(paint.stops).toHaveLength(scene.dye.base.length);
+  const along = (x: number, y: number) =>
+    paint.transform.m00 * (x / 1200) + paint.transform.m01 * (y / 800) + paint.transform.m02;
+  expect(along(scene.x1, scene.y1)).toBeCloseTo(0, 9);
+  expect(along(scene.x2, scene.y2)).toBeCloseTo(1, 9);
+  expect(along((scene.x1 + scene.x2) / 2, (scene.y1 + scene.y2) / 2)).toBeCloseTo(0.5, 9);
+  /* the shade and the lift lie over it through their masks */
+  for (const [group, mask, over] of [
+    ["valleys", "valley folds", "shade"],
+    ["crests", "crest folds", "lift"]
+  ]) {
+    const [g] = named(group);
+    const kids = childrenOf(nodes, g);
+    expect(kids.map(k => k.name)).toEqual([mask, over]);
+    expect(kids[0]).toMatchObject({ type: "FRAME", mask: true, maskType: "ALPHA" });
+    expect(kids[1].fillPaints[0].type).toBe("GRADIENT_LINEAR");
+    const folds = childrenOf(nodes, kids[0]);
+    expect(folds).toHaveLength(scene.folds.length);
+    const at = new Float64Array(2 * scene.folds.length);
+    centresAt(scene, 0, at);
+    for (const [i, fold] of folds.entries()) {
+      /* Figma turns a group about its middle: the gather, its clear twin mirroring the ring through it */
+      const [mx, my] = middleOf(nodes, fold);
+      expect(mx).toBeCloseTo(scene.gx, 6);
+      expect(my).toBeCloseTo(scene.gy, 6);
+      /* the ring stands at its first frame's turn, its stops the profile from R - w to R + w */
+      const [ring] = childrenOf(nodes, fold);
+      const f = scene.folds[i];
+      expect(ring).toMatchObject({
+        type: "ELLIPSE",
+        size: { x: 2 * (f.R + f.w), y: 2 * (f.R + f.w) }
+      });
+      const [rx, ry] = middleOf(nodes, ring);
+      expect(rx).toBeCloseTo(at[2 * i], 6);
+      expect(ry).toBeCloseTo(at[2 * i + 1], 6);
+      const stops = ring.fillPaints[0].stops.map((s: Node) => s.position as number);
+      expect(stops[0]).toBeCloseTo((f.R - f.w) / (f.R + f.w), 9);
+      expect(stops.at(-1)).toBeCloseTo(1, 9);
+    }
+  }
+  parentsFirst(nodes);
+});
+
+test("the playing silk swings each fold on Figma's timeline as the site swings it", () => {
+  for (const speed of [1, 2]) {
+    const v = { ...silkView, speed };
+    const nodes = figmaSilkNodes(v) as Node[];
+    const scene = silkScene(palette, v, { width: 1200, height: 800 });
+    const loop = SILK_LOOP / speed;
+    expect(nodes.find(n => n.name === "Navy and teal")!.timelineDuration).toBe(loop * 1e6);
+    const at0 = new Float64Array(2 * scene.folds.length);
+    const at = new Float64Array(2 * scene.folds.length);
+    centresAt(scene, 0, at0);
+    for (const mask of ["valley folds", "crest folds"]) {
+      const folds = childrenOf(nodes, nodes.find(n => n.name === mask)!);
+      for (const [i, fold] of folds.entries()) {
+        const keys = trackOf(nodes, fold);
+        expect(keys[0]).toMatchObject({ t: 0, v: 0 });
+        expect(keys.at(-1)!.t).toBeCloseTo(loop, 6);
+        for (let t = 0; t <= loop; t += loop / 97) {
+          centresAt(scene, t * speed, at);
+          /* the ring's middle as Figma plays the turn: clockwise radians about the gather */
+          const a = played(keys, t);
+          const px = at0[2 * i] - scene.gx;
+          const py = at0[2 * i + 1] - scene.gy;
+          const x = scene.gx + Math.cos(a) * px - Math.sin(a) * py;
+          const y = scene.gy + Math.sin(a) * px + Math.cos(a) * py;
+          expect(Math.hypot(x - at[2 * i], y - at[2 * i + 1])).toBeLessThan(0.05);
+        }
+      }
+    }
+    parentsFirst(nodes);
+  }
+});
+
+/* the rosette */
+const rosetteView = { ...silkView, angle: 60, shape: 12 };
+const rosetteBox = { width: 1200, height: 800 };
+
+test("the rosette's paste is fig-kiwi, its frame selected, still and moving", () => {
+  for (const speed of [0, 1]) {
+    const paste = read(figmaRosetteHtml({ ...rosetteView, speed }, 3));
+    expect(paste.signature).toBe("fig-kiwi");
+    expect(paste.chunks[0]).toEqual(bytesOf(FIGMA_SCHEMA));
+    expect(paste.message.nodeChanges[2]).toMatchObject({ type: "FRAME", name: "Navy and teal" });
+    expect(paste.message.clipboardSelectionRegions[0].nodes).toEqual([
+      paste.message.nodeChanges[2].guid
+    ]);
+    const tracks = paste.message.nodeChanges.filter((n: Node) => n.type === "KEYFRAME_TRACK");
+    expect(tracks).toHaveLength(speed ? 2 : 0);
+  }
+});
+
+test("the rosette as Figma's layers: its ground, every petal a lens of two circles in its ring's gradient, the heart over them", () => {
+  for (const speed of [0, 1]) {
+    const nodes = figmaRosetteNodes({ ...rosetteView, speed }) as Node[];
+    const sc = rosetteScene(palette, rosetteView, rosetteBox);
+    const petals = rosettePetals(sc, speed > 0);
+    const L = sc.lens;
+    const named = (name: string) => nodes.filter(n => n.name === name);
+    expect(named("Navy and teal")[0]).toMatchObject({
+      type: "FRAME",
+      size: { x: 1200, y: 800 },
+      frameMaskDisabled: false
+    });
+    expect(named("ground")[0]).toMatchObject({ type: "RECTANGLE", size: { x: 1200, y: 800 } });
+    expect(named("ground")[0].fillPaints[0].color.r).toBeCloseTo(
+      Math.round(sc.colors.ground[0] * 255) / 255,
+      2
+    );
+    /* the petals' groups turn and zoom about the heart: their middles are the frame's */
+    const groups = named("petals");
+    expect(groups).toHaveLength(speed ? 2 : 1);
+    for (const g of groups) {
+      const [x, y] = middleOf(nodes, g);
+      expect(x).toBeCloseTo(600, 6);
+      expect(y).toBeCloseTo(400, 6);
+    }
+    const [pivot] = named("pivot");
+    const [px0, py0] = onFrame(nodes, pivot, 0, 0);
+    const lenses = nodes.filter(n => n.type === "BOOLEAN_OPERATION");
+    expect(lenses).toHaveLength(petals.length);
+    for (const [i, lens] of lenses.entries()) {
+      const p = petals[i];
+      expect(lens.booleanOperation).toBe("INTERSECT");
+      /* the lens's middle lies on its ray from the heart, at its middle's radius */
+      const [mx, my] = middleOf(nodes, lens);
+      expect(mx).toBeCloseTo(600 + Math.cos(p.th) * L.xm * p.r, 6);
+      expect(my).toBeCloseTo(400 + Math.sin(p.th) * L.xm * p.r, 6);
+      /* its circles meet at the box's ends and reach its sides */
+      const circles = childrenOf(nodes, lens);
+      expect(circles.map(c => c.type)).toEqual(["ELLIPSE", "ELLIPSE"]);
+      const R = circles[0].size.x / 2;
+      const [a, b] = circles.map(c => [c.transform.m02 + R, c.transform.m12 + R]);
+      const half = Math.abs(a[1] - b[1]) / 2;
+      expect(a[0]).toBeCloseTo(lens.size.x / 2, 6);
+      expect(a[0] - Math.sqrt(R * R - half * half)).toBeCloseTo(0, 6);
+      expect(R - half).toBeCloseTo(lens.size.y / 2, 6);
+      /* its box lies inside the pivot's square, so the groups fit the pivot */
+      for (const [x, y] of [
+        [0, 0],
+        [lens.size.x, 0],
+        [0, lens.size.y],
+        [lens.size.x, lens.size.y]
+      ]) {
+        const [fx, fy] = onFrame(nodes, lens, x, y);
+        expect(fx).toBeGreaterThan(px0);
+        expect(fy).toBeGreaterThan(py0);
+        expect(fx).toBeLessThan(px0 + pivot.size.x);
+        expect(fy).toBeLessThan(py0 + pivot.size.y);
+      }
+      expect(lens.fillPaints[0].stops).toHaveLength(sc.design.stops.length);
+    }
+    /* the heart's glow, out from the middle */
+    const [heart] = named("heart");
+    expect(heart.size.x).toBeCloseTo(2 * sc.design.heartOut * sc.S, 6);
+    expect(middleOf(nodes, heart)[0]).toBeCloseTo(600, 6);
+    expect(heart.fillPaints[0].stops.at(-1).color.a).toBe(HEART_STOPS.at(-1)![1]);
+    parentsFirst(nodes);
+  }
+});
+
+test("the playing rosette turns and zooms on Figma's timeline as its moving SVG does", () => {
+  for (const speed of [1, 2]) {
+    const nodes = figmaRosetteNodes({ ...rosetteView, speed }) as Node[];
+    const sc = rosetteScene(palette, rosetteView, rosetteBox);
+    const loop = sc.design.loop / speed;
+    expect(nodes.find(n => n.name === "Navy and teal")!.timelineDuration).toBe(
+      Math.round(loop * 1e6)
+    );
+    const [turn, zoom] = nodes.filter(n => n.name === "petals");
+    expect(turn.parameterConsumptionMap.entries[0].variableField).toBe("MOTION_ROTATION");
+    expect(zoom.parameterConsumptionMap.entries[0].variableField).toBe("MOTION_SCALE_XY");
+    /* an even turn, clockwise radians as CSS's rotate turns it */
+    const keys = trackOf(nodes, turn);
+    expect(keys.map(k => k.t)).toEqual([0, loop]);
+    expect(keys[1].v).toBeCloseTo(sc.lattice.beta, 9);
+    expect(keys[1].e).toBe(null);
+    /* the zoom's eased stretches, the SVG's keyframes */
+    const key = (g: Node) => `${g.sessionID}:${g.localID}`;
+    const [, from] =
+      zoom.parameterConsumptionMap.entries[0].variableData.value.expressionValue
+        .expressionArguments;
+    const id = key(
+      from.value.keyframeTrackParameterValue.parameters[0].value.manual.keyframeTrackId.guid
+    );
+    const scales = nodes.filter(k => k.type === "KEYFRAME" && key(k.parentIndex.guid) === id);
+    const svg = zoomKeys(sc);
+    expect(scales).toHaveLength(svg.length);
+    for (const [i, k] of scales.entries()) {
+      expect((k.timelinePosition ?? 0) / 1e6).toBeCloseTo(svg[i].at * loop, 5);
+      expect(k.keyframeValue.value.vectorValue.x).toBeCloseTo(svg[i].scale, 9);
+      expect(k.easingData.easingType).toBe(i ? "CUSTOM_CUBIC" : "LINEAR");
+    }
+  }
 });

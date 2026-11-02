@@ -1,6 +1,7 @@
 /* An effect as Figma's own layers, in the form Figma reads off the clipboard, so a paste into Figma gives real layers
-   that look like the site's still: what the glass's paste (figma-glass.ts) and the blob's (figma-blob.ts) share. Each
-   loads alone, on the press that copies it, with its own effect's code.
+   that look like the site's still: what the pastes of the glass (figma-glass.ts), the blob (figma-blob.ts), the silk
+   (figma-silk.ts) and the rosette (figma-rosette.ts) share. Each loads alone, on the press that copies it, with its own
+   effect's code.
 
    The clipboard's text/html carries two attributes: (figmeta), base64 JSON naming the paste, and (figma), base64 of
    "fig-kiwi", the format's version, then two chunks, each its length and its deflated bytes: the schema the message is

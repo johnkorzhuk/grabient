@@ -55,6 +55,37 @@ test("the editor stands while the menu's tiles under the pointer turn its pictur
   expect(reports).toEqual([]);
 });
 
+test("Copy for Figma puts the silk and the rosette on the clipboard as Figma's own layers", async ({
+  page,
+  context
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  for (const kind of ["silk", "rosette"]) {
+    await open(page, `/${SEED}?style=${kind}&angle=45`);
+    const asked: string[] = [];
+    page.on("request", r => {
+      if (/figma-/.test(r.url())) asked.push(r.url());
+    });
+    await page.evaluate(() => navigator.clipboard.writeText(""));
+    await page.getByRole("button", { name: "Copy for Figma" }).click();
+    /* the paste is Figma's clipboard format: its name, and fig-kiwi's bytes */
+    await expect
+      .poll(async () =>
+        page.evaluate(async () => {
+          const [item] = await navigator.clipboard.read();
+          return item.types.includes("text/html")
+            ? await (await item.getType("text/html")).text()
+            : "";
+        })
+      )
+      .toMatch(
+        /\(figmeta\)[A-Za-z0-9+/=]+\(\/figmeta\)[\s\S]*\(figma\)ZmlnLWtpd2[A-Za-z0-9+/=]+\(\/figma\)/
+      );
+    /* its own effect's layers load on the press */
+    expect(asked.some(url => url.includes(`figma-${kind}`))).toBe(true);
+  }
+});
+
 test("a list playing the silk draws its cards' stills, each named for the silk", async ({
   page,
   request

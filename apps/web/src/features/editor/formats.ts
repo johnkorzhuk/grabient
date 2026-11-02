@@ -39,17 +39,12 @@ import { seedAddress } from "./address.ts";
 export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
 /** While an effect plays, Copy also hands over the two tags that play it behind a page (HTML) and the effect as
-    Figma's own layers (engine/figma-glass.ts, figma-blob.ts), and Copy link the addresses of its files: the
+    Figma's own layers (engine/figma-glass.ts, figma-blob.ts, figma-silk.ts, figma-rosette.ts), and Copy link the
+    addresses of its files: the
     palette's Markdown naming it, the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the
     script that plays it (server/files/effect-files.ts, embed.ts). */
 export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html", "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
-/** An effect's copies: Copy for Figma where its layers are built (the glass, the blob; the silk's and the rosette's come
-    later). */
-export const effectCopies = (kind: EffectKind): readonly Format[] =>
-  kind === "glass" || kind === "blob"
-    ? STRIP_EFFECT_COPY
-    : STRIP_EFFECT_COPY.filter(f => f !== "figma");
 /** An effect's links: its script where one plays it behind a page (engine/effect.ts's hasEmbedScript). */
 export const effectLinkFormats = (kind: EffectKind): readonly Format[] =>
   hasEmbedScript(kind) ? STRIP_EFFECT_LINKS : STRIP_EFFECT_LINKS.filter(f => f !== "js");
@@ -184,6 +179,25 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
    Worker's build carries none of it */
 const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
   const frame = { width: p.pixels.width, height: p.pixels.height, name: p.name || "Grabient" };
+  if (effect.kind === "silk" || effect.kind === "rosette") {
+    const look = {
+      palette: decodePalette(p.seed)!,
+      angle: p.angle,
+      shape: effect.look.shape,
+      ...frame,
+      speed: effect.speed
+    };
+    if (effect.kind === "silk") {
+      const { figmaSilkHtml } = await (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/figma-silk.ts"));
+      return figmaSilkHtml(look);
+    }
+    const { figmaRosetteHtml } = await (import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/engine/figma-rosette.ts"));
+    return figmaRosetteHtml(look);
+  }
   if (effect.kind === "blob") {
     const { figmaBlobHtml } = await (import.meta.env.SSR
       ? (new Promise(() => {}) as never)

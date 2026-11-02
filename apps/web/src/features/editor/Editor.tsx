@@ -74,10 +74,10 @@ import { FilePicture } from "./FilePicture.tsx";
 import {
   copyFormat,
   copyLink,
-  effectCopies,
   effectLinkFormats,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
+  STRIP_EFFECT_COPY,
   STRIP_FILES,
   saveFormat,
   type Taken
@@ -879,7 +879,7 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={e.effect() ? effectCopies(e.effect()!.kind) : STRIP_COPY}
+            copy={e.effect() ? STRIP_EFFECT_COPY : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={e.effect() ? effectLinkFormats(e.effect()!.kind) : STRIP_FILES}
