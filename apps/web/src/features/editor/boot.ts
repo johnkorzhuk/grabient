@@ -19,10 +19,35 @@ export const BOOT_MARK = "data-seed-boot";
 /** The script, run as the document is read: on a navigation in the browser it is drawn and never run. */
 export const BOOT_SCRIPT = `(function(r){var t,v="";function end(){clearTimeout(t);removeEventListener("error",failed,true);r.removeAttribute("${BOOT_MARK}");delete window.__seedBoot}function failed(e){if(e instanceof ErrorEvent||e.target instanceof HTMLScriptElement&&e.target.type==="module")end()}try{if(localStorage.getItem("grabient-panel")==="0")v="away"}catch(e){}if(/[?&]selection(=|&|$)/.test(location.search))v="bare";r.setAttribute("${BOOT_MARK}",v);window.__seedBoot=end;addEventListener("error",failed,true);t=setTimeout(end,1e4)})(document.documentElement)`;
 
-/** An editor stands, or none will: the mark goes. */
-export const endBoot = (): void => window.__seedBoot?.();
+/* The static page's elements as the browser first drew them, for the page they show (its key), while the page boots. */
+let kept: { key: string; nodes: unknown } | undefined;
+
+/** An editor stands, or none will: the mark goes, and with it the static page's elements kept for it. */
+export const endBoot = (): void => {
+  kept = undefined;
+  window.__seedBoot?.();
+};
 
 /** Whether the page draws the editor's first screen while its code loads, its stops along the screen's foot as the
     editor's will be. False on the server. */
 export const booting = (): boolean =>
   typeof document !== "undefined" && document.documentElement.hasAttribute(BOOT_MARK);
+
+/** The static page drawn once while the page boots. The browser draws it up to three times before the editor takes its
+    place, the same each time: as it hydrates the server's (the router's pending page), again once hydrated (the
+    match's pending page, while its loader runs) and as the editor's code comes (the route's Loading). Each draw would
+    put new elements where the last stood, and the first screen's picture, the glass's still a filter over all of it,
+    would be drawn again whole: a second and more of the browser's raster work where it draws on its processor
+    (Lighthouse's), all of it before the editor can draw. While the mark stands, a later draw of the page `key` names
+    takes the elements the first one made, which the browser then never draws again. Outside the boot, and on the
+    server, each draw makes its own. */
+export function bootOnce<T>(key: string, make: () => T): T {
+  if (!booting()) {
+    kept = undefined;
+    return make();
+  }
+  if (kept?.key === key) return kept.nodes as T;
+  const nodes = make();
+  kept = { key, nodes };
+  return nodes;
+}

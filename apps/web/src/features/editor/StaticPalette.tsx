@@ -13,7 +13,7 @@ import {
 } from "../../lib/page-meta.ts";
 import type { SeedPage } from "./address.ts";
 import { Boot } from "./Boot.tsx";
-import { BOOT_MARK, BOOT_SCRIPT } from "./boot.ts";
+import { BOOT_MARK, BOOT_SCRIPT, bootOnce } from "./boot.ts";
 import type { PaletteFacts } from "./facts.ts";
 import type { PaletteData } from "./page.ts";
 
@@ -55,8 +55,14 @@ export const STATIC_CSS = [
 /** A palette's page as the server sends it, for crawlers and readers without JavaScript; the editor takes its place in
     the browser. It says what the palette is, shows it and the CSS that draws it, and leads on: to the collections that
     hold it, the palettes like it, and the same palette as data. The boot's script stands before it, so a browser that
-    runs scripts has the mark before it reads the page. */
+    runs scripts has the mark before it reads the page. While the page boots the browser draws it once, its later draws
+    of the same palette, view and effect taking the same elements, its words and facts as the first draw had them
+    (boot.ts). */
 export function StaticPalette(props: { data: PaletteData }) {
+  return bootOnce(JSON.stringify(props.data.page), () => staticPage(props));
+}
+
+function staticPage(props: { data: PaletteData }) {
   const page = () => props.data.page;
   /* the server's words, or the palette named here for one the browser opened */
   const title = () => props.data.heading ?? heading(metaPage(props.data.page, props.data.facts));
