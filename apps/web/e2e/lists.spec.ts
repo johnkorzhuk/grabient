@@ -442,6 +442,134 @@ test("a glass list draws the glass on every card in view once it idles, with no 
   }
 });
 
+test("a glass list's cards in the window never go back from the glass to their fields as the page wakes them", async ({
+  page
+}) => {
+  /* the stills drawn on the GPU here too, where the tests' browser draws on its processor: its renderer is said to be
+     a GPU's (motion.spec.ts). Each card in the window is followed from the first frame, by its palette, whichever
+     element holds it: the card the server drew still, then the live one the page wakes in its place */
+  await page.addInitScript(() => {
+    const own = WebGL2RenderingContext.prototype.getParameter;
+    WebGL2RenderingContext.prototype.getParameter = function (
+      this: WebGL2RenderingContext,
+      p: number
+    ) {
+      return p === 0x9246 ? "A GPU" : own.call(this, p);
+    };
+    localStorage.setItem("grabient-water", "software");
+    const states: Record<string, string[]> = {};
+    Object.assign(window, { glassStates: states });
+    const look = () => {
+      for (const art of document.querySelectorAll("main article span[data-glass-still]")) {
+        const box = art.getBoundingClientRect();
+        if (!(box.width > 0 && box.bottom > 0 && box.top < innerHeight)) continue;
+        const link = art.closest("article")?.querySelector("a[href^='/k']");
+        const seed = link?.getAttribute("href")?.split("?")[0] ?? "";
+        /* its ribs: the GPU's still on its canvas, or the still's SVG, whose filter the field has none of */
+        const svg = (art as HTMLElement).style.background.includes("feDisplacementMap");
+        const now = art.querySelector("canvas[data-painted]") || svg ? "glass" : "field";
+        states[seed] ??= [];
+        if (states[seed].at(-1) !== now) states[seed].push(now);
+      }
+      requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+  });
+  const states = () =>
+    page.evaluate(
+      () => (window as unknown as { glassStates: Record<string, string[]> }).glassStates
+    );
+  await page.goto("/palettes?style=glass");
+  await live(page);
+  await expect
+    .poll(
+      async () => {
+        const all = Object.values(await states());
+        return all.length > 1 && all.every(card => card.at(-1) === "glass");
+      },
+      { timeout: 20_000 }
+    )
+    .toBe(true);
+  // the cards the server drew still, woken as the page idles
+  await expect(page.locator("[data-still]")).toHaveCount(0, { timeout: 15_000 });
+  for (const [seed, seen] of Object.entries(await states()))
+    expect(seen.slice(seen.indexOf("glass")), seed).toEqual(["glass"]);
+});
+
+test("a glass list's Angle field keeps the keyboard through every press and follows a drag on", async ({
+  page
+}) => {
+  await page.goto("/palettes?style=glass");
+  await live(page);
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  const angle = page.getByRole("spinbutton", { name: /^Angle/ });
+  await angle.focus();
+  for (let press = 0; press < 5; press++) {
+    await page.keyboard.press("ArrowUp");
+    await expect(angle).toBeFocused();
+  }
+  // Auto stands under 0: five steps up from it are 4, which the address takes once the field rests
+  await expect(angle).toHaveAttribute("aria-valuenow", "4");
+  await expect(page).toHaveURL(/[?&]angle=4(&|$)/);
+  await expect(angle).toBeFocused();
+  // a drag across the field's box runs on with the hand, where the field drawn anew on every value let it go after a
+  // step or two; a press on the focused field would type into it, so the keyboard leaves it first
+  await angle.blur();
+  const at = await angle.evaluate(field => {
+    const box = (field.closest("[class*=scrub]") ?? field).getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  });
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 30; step++) {
+    await page.mouse.move(at.x + step * 6, at.y);
+    await page.waitForTimeout(16);
+  }
+  await page.mouse.up();
+  await expect
+    .poll(async () => Number(await angle.getAttribute("aria-valuenow")))
+    .toBeGreaterThan(60);
+});
+
+test("a card's format strip keeps its names apart and inside the card at four and five columns", async ({
+  page
+}) => {
+  for (const width of [1520, 1180]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/palettes?style=glass");
+    await live(page);
+    const card = page.locator("main article").first();
+    await card.hover();
+    const strip = card.getByRole("group", { name: "Copy" });
+    await expect(strip).toBeVisible();
+    const laid = await strip.evaluate(
+      (el, cardEl) => {
+        const presses = [...el.querySelectorAll("button, a")].filter(
+          press => !press.closest("[data-unseen]") && press.getClientRects().length > 0
+        );
+        const boxes = presses.map(press => press.getBoundingClientRect());
+        let overlaps = 0;
+        for (let i = 0; i < boxes.length; i++)
+          for (let j = i + 1; j < boxes.length; j++) {
+            const [a, b] = [boxes[i], boxes[j]];
+            if (a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5)
+              overlaps += b.top < a.bottom - 0.5 ? 1 : 0;
+          }
+        const own = el.getBoundingClientRect();
+        const card = (cardEl as Element).getBoundingClientRect();
+        return {
+          presses: boxes.length,
+          overlaps,
+          inside: own.left >= card.left && own.right <= card.right
+        };
+      },
+      await card.elementHandle()
+    );
+    expect(laid.presses, `${width}`).toBeGreaterThan(4);
+    expect(laid, `${width}`).toMatchObject({ overlaps: 0, inside: true });
+  }
+});
+
 test("the editor's Reset gives the lists back the effect the tab had as the palette opened", async ({
   page
 }) => {
