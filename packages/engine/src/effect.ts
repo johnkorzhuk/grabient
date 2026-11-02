@@ -28,6 +28,13 @@ export interface EffectPlay {
   fps: number;
 }
 export const EFFECT_PLAY: EffectPlay = { speed: 1, fps: EFFECT_FPS.default };
+/** Seconds a player's motion takes from rest to its pace, as it starts and as it resumes, so a still picture comes
+    alive rather than jumps; the effects' shader pages ease in the same. */
+export const EFFECT_EASE_S = 1.6;
+/** The device pixels a player draws a frame at most (a 4K screen's): the canvas at the screen's density up to this. */
+export const EFFECT_PIXELS_MAX = 8_300_000;
+/** Milliseconds a canvas's new size settles before a player lays its drawing out again. */
+export const EFFECT_SETTLE_MS = 150;
 
 /** An effect's look: its shape, and the blob's frost and ground, which the glass leaves as they are. */
 export interface EffectLook {

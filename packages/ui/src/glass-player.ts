@@ -8,6 +8,7 @@
    the discs' colors alone. Nothing is allocated per frame. It stops while the canvas is out of view or the page hidden, holds the first frame for a
    reader who asks for less motion, keeps to a frame rate where one is asked, and returns null where WebGL 2 is
    missing. Its GLSL is engine/glass-gl.ts's, which the glass's shader exports run too. */
+import { EFFECT_EASE_S, EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS } from "@grabient/engine/effect.ts";
 import {
   GLASS_ANGLE,
   type GlassField,
@@ -45,14 +46,12 @@ export interface GlassPlayer {
   destroy(): void;
 }
 
-/** The device pixels a frame, at most (a 4K screen's): the canvas is drawn at the screen's density, as the still is,
-    up to this. */
-const PIXELS_MAX = 8_300_000;
-/** A resize settles this long before the map is baked again. */
-const SETTLE_MS = 150;
-/** Seconds the motion takes from rest to its pace, as it starts and as it resumes, so a still picture comes alive
-    rather than jumps. */
-const EASE_S = 1.6;
+/* the device pixels a frame at most (a 4K screen's): the canvas is drawn at the screen's density, as the still is, up
+   to this; a resize settles before the map is baked again; the motion eases in from rest as it starts and resumes.
+   The glass's shader pages (engine/glass-shader.ts) play by the same three. */
+const PIXELS_MAX = EFFECT_PIXELS_MAX;
+const SETTLE_MS = EFFECT_SETTLE_MS;
+const EASE_S = EFFECT_EASE_S;
 
 const hexRgb = (hex: string) => {
   const n = Number.parseInt(hex.slice(1), 16);
