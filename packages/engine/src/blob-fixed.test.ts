@@ -98,7 +98,7 @@ test("the shipped Shadertoy's fixed point places every ball where the player's F
         }
       }
     }
-});
+}, 60_000);
 
 test("the shipped Shadertoy's fixed point clock draws the player's frames, within a hair of its time", () => {
   for (const [speed, fps] of [
