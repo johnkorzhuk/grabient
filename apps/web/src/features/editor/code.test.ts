@@ -7,6 +7,9 @@ import {
   effectStylesheet,
   effectSvg
 } from "@grabient/engine/effect-code.ts";
+import { glassShadertoyText } from "@grabient/engine/glass-shadertoy.ts";
+import { glassWebgl } from "@grabient/engine/glass-webgl.ts";
+import { glassWebgpu } from "@grabient/engine/glass-webgpu.ts";
 import { flush } from "solid-js";
 import { afterEach, expect, test, vi } from "vitest";
 import { setColorFormat } from "../../lib/color-format.ts";
@@ -88,7 +91,7 @@ const loaded = async (read: () => string) => {
   return read();
 };
 
-test("while an effect plays, the pane holds its code in the gradient's place, and no shader", async () => {
+test("while an effect plays, the pane holds its code in the gradient's place, the glass's shader its own", async () => {
   await tabsIn();
   const ids = codeSources(
     decodePalette(SEED)!,
@@ -98,7 +101,9 @@ test("while an effect plays, the pane holds its code in the gradient's place, an
     createRest(),
     played("style=glass")
   ).map(s => s.id);
-  expect(ids).toEqual(["seed", "html", "css", "colors", "json", "svg", "md"]);
+  expect(ids).toEqual(["seed", "html", "css", "colors", "shader", "json", "svg", "md"]);
+  /* the blob's shader is its own, written elsewhere */
+  expect(effectSource("style=blob", "shader")).toBeUndefined();
   const P = decodePalette(SEED)!;
   const glass = parseEffect(new URLSearchParams("style=glass&shape=12&speed=2"))!;
   const css = await loaded(() => effectSource("style=glass&shape=12&speed=2", "css")!.text());
@@ -119,6 +124,29 @@ test("while an effect plays, the pane holds its code in the gradient's place, an
   const md = effectSource("style=glass&shape=12&speed=2", "md")!.text();
   expect(md).toContain("- Drawn as: fluted glass, its ribs at 45 degrees, shape 12, speed 2");
   expect(md).not.toContain("gradient(");
+});
+
+test("the glass's Shader tab writes each spelling with the engine's own writer, each loaded as it shows", async () => {
+  await tabsIn();
+  const P = decodePalette(SEED)!;
+  const glass = parseEffect(new URLSearchParams("style=glass&shape=12&speed=2"))!;
+  const shader = () => effectSource("style=glass&shape=12&speed=2", "shader")!;
+  expect(shader().spellings?.map(s => s.id)).toEqual([
+    "shadertoy",
+    "glsl",
+    "wgsl",
+    "webgl",
+    "webgpu"
+  ]);
+  expect(await loaded(() => shader().text())).toBe(glassShadertoyText(P, glass, 45, SEED, ORIGIN));
+  for (const kind of ["glsl", "webgl"] as const)
+    expect(await loaded(() => shader().text(kind))).toBe(
+      glassWebgl(kind, P, glass, 45, SEED, ORIGIN)
+    );
+  for (const kind of ["wgsl", "webgpu"] as const)
+    expect(await loaded(() => shader().text(kind))).toBe(
+      glassWebgpu(kind, P, glass, 45, SEED, ORIGIN)
+    );
 });
 
 test("while an effect plays, the Markdown is the file its address serves, whatever gradient the editor keeps", async () => {

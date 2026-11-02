@@ -69,7 +69,10 @@ const BUDGETS = {
   // and its rebuild as six sections with a masonry of ten media (10.4 KB of its own, gzipped alone) from 31.0 to 35.4
   // the same day
   stylesheet: 37,
-  onDemand: 12,
+  // the glass's Shadertoy text (engine/glass-shadertoy.ts: its six tabs, 41 KB as written), which loads only as a reader
+  // picks the Shadertoy spelling of the glass's Shader tab, took the largest from 11.4 KB to 13.6 on 1 Nov 2026; its
+  // GLSL and WebGL page and its WGSL and WebGPU page load apart, 4.0 and 6.7 KB, beside the pages' design, 5.7
+  onDemand: 14,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,
   // mcp/admin/visits.ts: 5 KiB). It starts with no language's messages and no old address's map: it reads a language's

@@ -811,6 +811,7 @@ test("while the glass plays, the code pane holds its code: its tags, its stylesh
     "HTML",
     "CSS",
     "Colors",
+    "Shader",
     "JSON",
     "SVG",
     "MD"
@@ -864,6 +865,53 @@ test("the Shader tab writes the shader for Shadertoy, GLSL and WGSL, and as WebG
   await spellings.getByRole("tab", { name: "WebGPU" }).click();
   await expect(code).toContainText(`<script type="text/wgsl" id="shader">// grabient ${SEED}`);
   await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
+});
+
+test("while the glass plays, its Shader tab writes it for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling", async ({
+  page
+}) => {
+  const asked: string[] = [];
+  page.on("request", request => {
+    const name = /\/engine\/src\/(glass-(?:shader|shadertoy|webgl|webgpu)\.ts)$/.exec(
+      new URL(request.url()).pathname
+    )?.[1];
+    if (name) asked.push(name);
+  });
+  await open(page, `/${SEED}?style=glass&angle=45`);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await expect(tabs.getByRole("tab", { name: "Shader" })).toBeVisible();
+  expect(asked).toEqual([]);
+  await tabs.getByRole("tab", { name: "Shader" }).click();
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  await expect(code).toContainText(`// grabient ${SEED}`);
+  await expect(code).toContainText(`/${SEED}?style=glass&angle=45`);
+  await expect(code).toContainText(
+    "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)"
+  );
+  expect(asked).toEqual(["glass-shadertoy.ts"]);
+  const spellings = page.getByRole("tablist", { name: "Syntax" });
+  await expect(spellings.getByRole("tab")).toHaveText([
+    "Shadertoy",
+    "GLSL",
+    "WGSL",
+    "WebGL",
+    "WebGPU"
+  ]);
+  await spellings.getByRole("tab", { name: "GLSL" }).click();
+  await expect(code).toContainText("// ==== Pass 4: glass ====");
+  await spellings.getByRole("tab", { name: "WebGL" }).click();
+  await expect(code).toContainText(
+    '<script type="x-shader/x-fragment" id="disc-fs">#version 300 es'
+  );
+  await expect(code).toContainText("const ANGLE = 45;");
+  expect(asked).toEqual(["glass-shadertoy.ts", "glass-webgl.ts"]);
+  await spellings.getByRole("tab", { name: "WebGPU" }).click();
+  await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
+  await expect(
+    page.getByText("The ribs, the colors' blur and the light, pass by pass.")
+  ).toBeVisible();
+  expect(asked).toEqual(["glass-shadertoy.ts", "glass-webgl.ts", "glass-webgpu.ts"]);
 });
 
 test("a copy of the glass's tags the browser refuses selects them whole, its first frame written out", async ({

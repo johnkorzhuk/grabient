@@ -908,7 +908,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:230",
-      "apps/web/src/features/editor/effect-sources.ts:83"
+      "apps/web/src/features/editor/effect-sources.ts:100"
     ]
   },
   "Columns": {
@@ -1064,7 +1064,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:71"
+      "apps/web/src/features/editor/effect-sources.ts:88"
     ]
   },
   "Copy link": {
@@ -4415,7 +4415,8 @@
   "Shader": {
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:248"
+      "apps/web/src/features/editor/code.ts:248",
+      "apps/web/src/features/editor/effect-sources.ts:113"
     ]
   },
   "Shape": {
@@ -5082,7 +5083,7 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:96"
+      "apps/web/src/features/editor/effect-sources.ts:132"
     ]
   },
   "The keyframes as JSON.": {
@@ -5136,20 +5137,26 @@
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:105"
+      "apps/web/src/features/editor/effect-sources.ts:141"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:278",
-      "apps/web/src/features/editor/effect-sources.ts:104"
+      "apps/web/src/features/editor/effect-sources.ts:140"
     ]
   },
   "The profile's code": {
     "note": "Read by screen readers only: the name of the Avatars and banners section's code tabs (HTML, CSS, Random).",
     "refs": [
       "apps/web/src/features/examples/Profile.tsx:131"
+    ]
+  },
+  "The ribs, the colors' blur and the light, pass by pass.": {
+    "note": "Editor's code pane, Shader tab while the fluted glass plays: what its shader code draws, a pass at a time: the glass's ribs, its colors blurred behind them, and the light on the ribs. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
+    "refs": [
+      "apps/web/src/features/editor/effect-sources.ts:124"
     ]
   },
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": {
@@ -5167,7 +5174,7 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:79"
+      "apps/web/src/features/editor/effect-sources.ts:96"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5185,7 +5192,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:69"
+      "apps/web/src/features/editor/effect-sources.ts:86"
     ]
   },
   "The wallpapers' code": {
@@ -6661,7 +6668,7 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:244",
-      "apps/web/src/features/editor/effect-sources.ts:88"
+      "apps/web/src/features/editor/effect-sources.ts:105"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
