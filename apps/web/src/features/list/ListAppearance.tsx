@@ -12,6 +12,7 @@ import { t } from "@grabient/i18n";
 import {
   APPEARANCE_OPTIONS,
   Appearance,
+  type AppearanceProps,
   type ExtraTile,
   styleLabel
 } from "@grabient/ui/Appearance.tsx";
@@ -277,6 +278,36 @@ export function ListAppearance() {
     settle();
     setOpen(false);
   };
+  /* the menu's settings as one object whose parts are read as the menu reads them: one written in place is made anew
+     with every value the reader sets, and the menu then draws the effect's fields anew under the hand, the field that
+     had the keyboard or the pointer gone with them */
+  const menu: Omit<AppearanceProps, "floating"> = {
+    options: APPEARANCE_OPTIONS,
+    auto: true,
+    get style() {
+      return view().style;
+    },
+    get steps() {
+      return shown().steps;
+    },
+    get angle() {
+      return shown().angle;
+    },
+    stepsMin: STEPS_MIN,
+    bg: style => gradientCss(paint().hexes, style, paint().angle),
+    onStyle: chooseStyle,
+    onSteps: steps => change({ steps }),
+    onAngle: angle => change({ angle }),
+    onPeek: look.setPeek,
+    get onReset() {
+      return chosen() ? reset : undefined;
+    },
+    extras,
+    get extraFields() {
+      return fields();
+    },
+    onClose: close
+  };
   return (
     <Appearance
       swatch={
@@ -300,25 +331,7 @@ export function ListAppearance() {
           setOpen(true);
         }
       }}
-      menu={{
-        options: APPEARANCE_OPTIONS,
-        auto: true,
-        style: view().style,
-        steps: shown().steps,
-        angle: shown().angle,
-        stepsMin: STEPS_MIN,
-        bg: style => gradientCss(paint().hexes, style, paint().angle),
-        onStyle: chooseStyle,
-        onSteps: steps => change({ steps }),
-        onAngle: angle => change({ angle }),
-        onPeek: look.setPeek,
-        onReset: chosen() ? reset : undefined,
-        extras,
-        get extraFields() {
-          return fields();
-        },
-        onClose: close
-      }}
+      menu={menu}
     />
   );
 }
