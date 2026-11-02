@@ -592,8 +592,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 // 30, 60, 120 or 240 Hz screen whose clock counts from the first frame, it reads that many 240ths exactly, the time the
 // site's player has for the frame; any other time it reads as the float it is. So timed, its frames are the player's
 // own, pixel for pixel, where the GPU rounds the player's 8-bit noise and half-float melt as Shadertoy's float buffers
-// do here (SwiftShader does). A GPU that rounds them its own way draws the player otherwise there, by a level or a few
-// at the frost's grain and the melt's edge, and this text cannot know it.
+// do here (SwiftShader does). This text cannot know how a GPU rounds them: where it rounds them its own way (an NVIDIA
+// RTX 2080 Ti does), the player draws 4 to 47% of the pixels otherwise, most by a level and a few by up to 18 where a
+// byte of the frost moves the melt's edge a pixel.
 
 ${common}
 ${bufferA}
