@@ -28,6 +28,12 @@ import styles from "./Settings.module.css";
 
 const ARMED_MS = 4000;
 const POLL_MS = 10_000;
+/* The sends read again every ten seconds while one is armed or going out. Made here: the query cache keeps it with the
+   query for half an hour after the page has gone, and one made in the page held all of the page */
+const pollWhileLive = (query: { state: { data: SendsAnswer | undefined } }) =>
+  query.state.data?.sends.some(send => send.state === "armed" || send.state === "sending")
+    ? POLL_MS
+    : false;
 /* the server's own: a start sooner than this is refused */
 const LEAD_MS = 15 * 60_000;
 const ACTIVE: ReadonlySet<string> = new Set(["prepared", "armed", "sending", "paused"]);
@@ -114,13 +120,11 @@ function progress(send: SendView): string {
 export function NewsletterSends() {
   const queryClient = useQueryClient();
   const key = () => ["newsletter-sends", account()?.id ?? ""] as const;
-  const live = (answer: SendsAnswer | undefined) =>
-    !!answer?.sends.some(send => send.state === "armed" || send.state === "sending");
   const sends = useQuery(() => ({
     queryKey: key(),
     queryFn: readSends,
     enabled: isAdmin() && !offline(),
-    refetchInterval: query => (live(query.state.data) ? POLL_MS : false)
+    refetchInterval: pollWhileLive
   }));
   const [segment, setSegment] = createSignal<Segment>("admins");
   const [problems, setProblems] = createSignal<Problem[]>([]);

@@ -86,6 +86,9 @@ const TOOL = {
 /** The collections offered where the palettes cannot answer: twelve asked for, eight shown. */
 const OFFER_ASKED = 12;
 const OFFER_SHOWN = 8;
+/* what the offers read shows before it answers. A function the query cache keeps with the query, half an hour after the
+   page has gone: made here, it holds nothing of the page, where one made in the page held its whole list */
+const offersPending = (): Failed => ({ failed: "" });
 /* An order pressed between Saved and the public lists, which are pages of their own: the choice leaves with the page
    it was pressed on, and the page that replaces it gives the focus back to its own. A press in the browser alone. */
 let pressed: Order | null = null;
@@ -261,7 +264,7 @@ export function Palettes(props: { place: ListPlace }) {
   const matching = useQuery(() => ({
     ...collectionsQuery({ sort: "popular", query: words(), page: 1, limit: OFFER_ASKED }),
     enabled: signInToSearch(),
-    placeholderData: (): Failed => ({ failed: "" })
+    placeholderData: offersPending
   }));
   const offers = () => {
     const read = matching.data;
