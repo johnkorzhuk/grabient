@@ -33,7 +33,7 @@ import { fixedLit, GLSL_FIXED, glslFixedPlace } from "./blob-fixed.ts";
 import { BLOB_GRID_HZ, BLOB_WEIGHTS, blobClock, blobProgram } from "./blob-program.ts";
 import { hexBytes } from "./color.ts";
 import { compile, doubleRun } from "./double-program.ts";
-import type { Effect } from "./effect.ts";
+import { EFFECT_EASE_S, type Effect } from "./effect.ts";
 import { dlit, GLSL_DOUBLE } from "./glsl-double.ts";
 import type { Palette } from "./palette.ts";
 
@@ -171,7 +171,7 @@ const float SPEED = ${glslFloat(effect.speed)};   // the loop's pace, two decima
 const float FPS = ${glslFloat(effect.fps)};    // frames a second at most, 1 to 120
 const float FROST = ${glslFloat(effect.look.frost)};   // the frost, two decimals: 1 as designed, 0 none, 2 twice
 const uint BG = ${hex(bgWord)};   // the ground as 0xRRGGBBAA, its alpha last; 0u for none, which shows black here
-const float EASE = 1.6;    // seconds from rest to its pace, two decimals
+const float EASE = ${glslFloat(EFFECT_EASE_S)};    // seconds from rest to its pace, two decimals
 // The colors the balls are painted in, 0xRRGGBB, one a ball, far blob to near: the palette across each blob from
 // left to right. The blobs' forms and wanderings (${shape}) are Buffer A's BLOBS and BALLS.
 // Both are worked out from the palette's curve and the shape's numbers by the site's own code: another shape is

@@ -33,12 +33,10 @@ import {
   BLOB_BLUR_FS,
   BLOB_DOTS_FS,
   BLOB_DOTS_VS,
-  BLOB_EASE_S,
   BLOB_FINAL_FS,
   BLOB_FULL_VS,
   BLOB_NOISE_FS,
   BLOB_RADIUS,
-  BLOB_SETTLE_MS,
   type BlobMap,
   type BlobMeltBox,
   blobCanvas,
@@ -46,7 +44,7 @@ import {
   blobMelt
 } from "@grabient/engine/blob-gl.ts";
 import { hexBytes } from "@grabient/engine/color.ts";
-import { groundParts } from "@grabient/engine/effect.ts";
+import { EFFECT_EASE_S, EFFECT_SETTLE_MS, groundParts } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { buildPrograms, knownSoftwareRenderer, softwareContext } from "./gl-build.ts";
 import { createPace } from "./pace.ts";
@@ -76,7 +74,7 @@ export function playBlob(
       caller's decision (the site's Settings, an embed's media query), read as it starts and on motion() */
   options: { ease?: boolean; reduced?: () => boolean } = {}
 ): BlobPlayer | null {
-  const easing = options.ease === false ? 0 : BLOB_EASE_S;
+  const easing = options.ease === false ? 0 : EFFECT_EASE_S;
   /* a renderer the page has found on the CPU plays nothing, no context made: the still stays (gl-build.ts) */
   if (knownSoftwareRenderer()) return null;
   const gl = canvas.getContext("webgl2", {
@@ -447,7 +445,7 @@ export function playBlob(
       wake();
     };
     if (!sized) apply();
-    else settle = window.setTimeout(apply, BLOB_SETTLE_MS);
+    else settle = window.setTimeout(apply, EFFECT_SETTLE_MS);
   });
   try {
     sizes.observe(canvas, { box: "device-pixel-content-box" });

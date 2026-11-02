@@ -1,14 +1,10 @@
 /* The blob's WebGL: the shaders the site's player draws it with (ui/blob-player.ts) and the numbers it lays them out
    by, here so the player and the shader exports (blob-shader.ts) run one source, and an export draws what the player
-   draws. Nothing here touches a page: the player measures the canvas and hands these the sizes. */
+   draws. Nothing here touches a page: the player measures the canvas and hands these the sizes. Its ease, pixel cap
+   and settle are every effect's (effect.ts). */
 import { BLOB_DESIGN, type blobFilter, blobFit } from "./blob.ts";
+import { EFFECT_PIXELS_MAX } from "./effect.ts";
 
-/** Seconds the motion takes from rest to its pace, as it starts and as it resumes, so a still picture comes alive
-    rather than jumps. */
-export const BLOB_EASE_S = 1.6;
-/** The device pixels a frame, at most (a 4K screen's): the canvas is drawn at the screen's density, as the still is,
-    up to this; past it the browser scales a smaller drawing up. */
-export const BLOB_PIXELS_MAX = 8_300_000;
 /** The melt's deviation in texels of its small texture: its bilinear read then errs by under a tenth of a level. */
 export const BLOB_TEXELS = 6;
 /** How much wider Ganesh's blur is than the deviation it is given: its halvings and its bilinear upscale add a little
@@ -17,8 +13,6 @@ export const BLOB_TEXELS = 6;
 export const BLOB_GANESH_WIDTH = 1.004;
 /** The blur's taps either side, at most: three deviations. */
 export const BLOB_RADIUS = 3 * BLOB_TEXELS + 1;
-/** A resize settles this long before the noise is baked again; the last frame covers the box meanwhile. */
-export const BLOB_SETTLE_MS = 150;
 
 export const BLOB_DOTS_VS = `#version 300 es
 layout(location = 0) in vec2 corner;
@@ -161,8 +155,8 @@ void main() {
 }`;
 
 /** The canvas a box draws at: its size in device pixels, as the browser lays it out where it says (`device`, the
-    observer's devicePixelContentBoxSize) and the CSS box times the density else, held under BLOB_PIXELS_MAX, and the
-    device pixels a CSS pixel across and down. */
+    observer's devicePixelContentBoxSize) and the CSS box times the density else, held under EFFECT_PIXELS_MAX (past
+    it the browser scales a smaller drawing up), and the device pixels a CSS pixel across and down. */
 export function blobCanvas(
   W: number,
   H: number,
@@ -174,10 +168,10 @@ export function blobCanvas(
   const exact = device && Math.abs(device.w - ew) <= 2 && Math.abs(device.h - eh) <= 2;
   let cw = exact && device ? device.w : ew;
   let ch = exact && device ? device.h : eh;
-  const fit = Math.min(1, Math.sqrt(BLOB_PIXELS_MAX / Math.max(1, cw * ch)));
+  const fit = Math.min(1, Math.sqrt(EFFECT_PIXELS_MAX / Math.max(1, cw * ch)));
   cw = Math.max(1, Math.round(cw * fit));
   ch = Math.max(1, Math.round(ch * fit));
-  /* device pixels a CSS pixel: the density, or less where the canvas is held under BLOB_PIXELS_MAX */
+  /* device pixels a CSS pixel: the density, or less where the canvas is held under EFFECT_PIXELS_MAX */
   return { w: cw, h: ch, kx: fit < 1 ? cw / W : dpr, ky: fit < 1 ? ch / H : dpr };
 }
 

@@ -7,16 +7,9 @@
    blob-shader.test.ts holds the script's numbers to the engine's. Loaded with the Shader tab, never with a page. */
 
 import { BLOB_LOOP } from "./blob.ts";
-import {
-  BLOB_EASE_S,
-  BLOB_GANESH_WIDTH,
-  BLOB_PIXELS_MAX,
-  BLOB_RADIUS,
-  BLOB_SETTLE_MS,
-  BLOB_TEXELS
-} from "./blob-gl.ts";
+import { BLOB_GANESH_WIDTH, BLOB_RADIUS, BLOB_TEXELS } from "./blob-gl.ts";
 import { encodePalette } from "./codec.ts";
-import type { Effect } from "./effect.ts";
+import { EFFECT_EASE_S, EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS, type Effect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
 
 /** A number as JavaScript source that reads back as the same double, -0 kept. */
@@ -50,7 +43,7 @@ const FROST = ${jsNumber(frost)};
 // The ground: "#rrggbb", or "#rrggbbaa" where it lets the page through; null for none.
 const BG = ${bg === null ? "null" : JSON.stringify(bg)};
 // Seconds the motion takes from rest to its pace.
-const EASE = ${jsNumber(BLOB_EASE_S)};`;
+const EASE = ${jsNumber(EFFECT_EASE_S)};`;
 }
 
 /** The blob's numbers in plain JavaScript, the engine's own: everything a frame draws from the settings above it,
@@ -281,7 +274,7 @@ function noiseTables(seed) {
   return { lattice, gradients };
 }
 
-// The canvas: its device pixels as the browser lays it out, at most ${BLOB_PIXELS_MAX} of them, and the design's map
+// The canvas: its device pixels as the browser lays it out, at most ${EFFECT_PIXELS_MAX} of them, and the design's map
 // to them, scaled to cover the box and centered: a design unit is (sx, sy) device pixels, its corner at (tx, ty).
 function canvasOf(W, H, dpr, device) {
   const ew = Math.round(W * dpr);
@@ -289,7 +282,7 @@ function canvasOf(W, H, dpr, device) {
   const exact = device && Math.abs(device.w - ew) <= 2 && Math.abs(device.h - eh) <= 2;
   let cw = exact && device ? device.w : ew;
   let ch = exact && device ? device.h : eh;
-  const fit = Math.min(1, Math.sqrt(${BLOB_PIXELS_MAX} / Math.max(1, cw * ch)));
+  const fit = Math.min(1, Math.sqrt(${EFFECT_PIXELS_MAX} / Math.max(1, cw * ch)));
   cw = Math.max(1, Math.round(cw * fit));
   ch = Math.max(1, Math.round(ch * fit));
   return { w: cw, h: ch, kx: fit < 1 ? cw / W : dpr, ky: fit < 1 ? ch / H : dpr };
@@ -429,7 +422,7 @@ const wake = () => {
   }
 };
 
-// The canvas's size in device pixels, as the browser lays it out; a later size settles ${BLOB_SETTLE_MS} ms first.
+// The canvas's size in device pixels, as the browser lays it out; a later size settles ${EFFECT_SETTLE_MS} ms first.
 let device = null;
 const sizes = new ResizeObserver(entries => {
   const box = entries[entries.length - 1]?.devicePixelContentBoxSize?.[0];
@@ -442,7 +435,7 @@ const sizes = new ResizeObserver(entries => {
     wake();
   };
   if (!sized) apply();
-  else settle = setTimeout(apply, ${BLOB_SETTLE_MS});
+  else settle = setTimeout(apply, ${EFFECT_SETTLE_MS});
 });
 try {
   sizes.observe(canvas, { box: "device-pixel-content-box" });
