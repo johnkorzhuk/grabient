@@ -210,7 +210,7 @@ test.describe("while the editor's code loads", () => {
       if (away) await page.addInitScript(() => localStorage.setItem("grabient-panel", "0"));
       const release = await holdScripts(page);
       await page.goto(address, { waitUntil: "commit" });
-      const boot = '[aria-hidden="true"][data-beside-scrollbar]';
+      const boot = "[inert][data-beside-scrollbar]";
       await page.locator(boot).waitFor();
       await page.evaluate(() => document.fonts.ready);
       const before = await drawn(page, boot);

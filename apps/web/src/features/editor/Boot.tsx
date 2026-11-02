@@ -75,7 +75,9 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
     <div
       class={[styles.page, styles.boot]}
       style={{ "--art": art(false), "--art-p3": art(true) }}
-      aria-hidden="true"
+      /* inert: no key or pointer reaches it and no assistive technology reads it, the editor it stands for read once it
+         comes. Not aria-hidden too, which inert makes needless: Chrome leaves what aria-hidden covers out of the largest
+         contentful paint, and counted the editor drawing this same picture again, later, as the page's largest */
       inert
       data-beside-scrollbar=""
     >
