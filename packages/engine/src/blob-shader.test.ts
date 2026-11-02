@@ -25,7 +25,14 @@ import { BLOB_SHADER_KINDS, blobShader } from "./blob-shader.ts";
 import { BLOB_WGSL } from "./blob-wgsl.ts";
 import { decodePalette } from "./codec.ts";
 import { hexBytes } from "./color.ts";
-import { type Effect, parseEffect } from "./effect.ts";
+import {
+  EFFECT_EASE_S,
+  EFFECT_PIXELS_MAX,
+  EFFECT_SETTLE_MS,
+  type Effect,
+  parseEffect
+} from "./effect.ts";
+import { EFFECT_CLOCK } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
 import type { ShaderKind } from "./shader-kinds.ts";
 
@@ -128,6 +135,44 @@ test("the GLSL is the player's own shaders, and the pages run the texts' shaders
     expect(wgsl).toContain(`\n${module}\n`);
     expect(webgpu).toContain(`">${module}</script>`);
   }
+});
+
+test("nothing in a page's shaders or code could end its script element", () => {
+  const P = decodePalette(SEEDS[1]) as Palette;
+  const effect = read("style=blob&speed=3&fps=24&frost=2&bg=151315");
+  for (const kind of ["webgl", "webgpu"] as const) {
+    const page = blobShader(kind, P, effect, SEEDS[1], "https://grabient.com");
+    const scripts = [...page.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+    expect(scripts.length).toBe(kind === "webgl" ? 7 : 5);
+    for (const s of scripts) expect(s).not.toMatch(/<\/|<!--/);
+  }
+});
+
+test("a page plays by the players' clock and numbers, and goes on after its GPU is lost and found", () => {
+  const P = decodePalette(SEEDS[1]) as Palette;
+  const effect = read("style=blob&speed=3&fps=24&frost=2&bg=151315");
+  const webgl = blobShader("webgl", P, effect, SEEDS[1]);
+  const webgpu = blobShader("webgpu", P, effect, SEEDS[1]);
+  for (const page of [webgl, webgpu]) {
+    expect(page).toContain(
+      EFFECT_CLOCK.split("\n")
+        .map(line => (line ? `  ${line}` : line))
+        .join("\n")
+    );
+    expect(page).toContain(`const PIXELS_MAX = ${EFFECT_PIXELS_MAX};`);
+    expect(page).toContain(`laidOut ? ${EFFECT_SETTLE_MS} : 0`);
+    expect(page).toContain(`const EASE = ${EFFECT_EASE_S};`);
+    expect(page).toContain("const SPEED = 3;\n// Frames a second at most.\nconst FPS = 24;");
+    expect(page).toContain('matchMedia("(prefers-reduced-motion: reduce)")');
+  }
+  expect(webgl).toMatch(
+    /"webglcontextlost", event => \{\n\s+event\.preventDefault\(\);\n\s+lose\(\);/
+  );
+  expect(webgl).toMatch(/"webglcontextrestored", \(\) => \{\n\s+make\(\);\n\s+found\(\);/);
+  expect(webgpu).toContain("one.lost.then(async () => {");
+  expect(webgpu).toContain('"This page lost its GPU device, and the browser gave it no other."');
+  expect(webgl).toContain('"This page needs WebGL 2, which this browser does not have."');
+  expect(webgpu).toContain('"This page needs WebGPU, which this browser does not have."');
 });
 
 /* the pages' script, run in Node: the engine's numbers, as the player's script computes them */

@@ -1,15 +1,16 @@
 /* The blob as a page that plays it, as the site's player does (ui/blob-player.ts): the WebGL page runs the player's
    own shaders (blob-gl.ts), the WebGPU page their WGSL (blob-wgsl.ts), and both run the same script, which is the
    engine's and the player's arithmetic written out in plain JavaScript: the palette's colors from its keyframes, the
-   scene a shape draws (blob.ts's blobScene), the filter's numbers, Skia's noise tables, the layout, the balls' places
-   each frame, and the player's clock, which eases in from rest, keeps to a frame rate and holds the first frame for a
-   reader who asks for less motion. JavaScript's doubles are the player's, so each page draws the player's pixels.
-   blob-shader.test.ts holds the script's numbers to the engine's. Loaded with the Shader tab, never with a page. */
+   scene a shape draws (blob.ts's blobScene), the filter's numbers, Skia's noise tables, the layout and the balls'
+   places each frame. JavaScript's doubles are the player's, so each page draws the player's pixels; the players'
+   clock (effect-page.ts), which eases in from rest, keeps to a frame rate and holds the first frame for a reader who
+   asks for less motion, plays them. blob-shader.test.ts holds the script's numbers to the engine's. Loaded with the
+   Shader tab's WebGL and WebGPU spellings (blob-webgl.ts, blob-webgpu.ts), never with a page. */
 
 import { BLOB_LOOP } from "./blob.ts";
 import { BLOB_GANESH_WIDTH, BLOB_RADIUS, BLOB_TEXELS } from "./blob-gl.ts";
 import { encodePalette } from "./codec.ts";
-import { EFFECT_EASE_S, EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS, type Effect } from "./effect.ts";
+import { EFFECT_EASE_S, EFFECT_PIXELS_MAX, type Effect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
 
 /** What every text of the blob is, the start of its credit's last line. */
@@ -369,99 +370,9 @@ function places(scene, f, out, stride) {
   }
 }
 
-// A frame rate kept on any screen: a frame is due once each 1/fps, a little early rather than a refresh late.
-function createPace() {
-  let last = Number.NEGATIVE_INFINITY;
-  return {
-    due(now, fps) {
-      if (!fps) return true;
-      const every = 1000 / fps;
-      if (now - last < every - Math.min(4, every * 0.2)) return false;
-      last = now - last > 2 * every ? now : last + every;
-      return true;
-    }
-  };
-}
-
 // The ground, premultiplied: its color times its alpha, and its alpha; 0s for none.
 function groundOf(bg) {
   if (!bg) return [0, 0, 0, 0];
   const alpha = bg.length === 9 ? parseInt(bg.slice(7), 16) / 255 : 1;
   return [...[1, 3, 5].map(i => (parseInt(bg.slice(i, i + 2), 16) / 255) * alpha), alpha];
 }`;
-
-/** The clock and the canvas's size, the player's own: the first frame draws at once and holds still for a reader who
-    asks for less motion; after it the loop advances by each frame's time, easing in from rest, at SPEED, and a frame
-    is drawn when the frame rate has one due. A later size settles before the noise is baked again. `draw(at)` and
-    `resize()` are the page's. */
-export const BLOB_CLOCK = `// The clock: seconds of the loop at speed 1, advanced by SPEED, easing in from rest over EASE seconds. The first
-// frame draws at once; a reader who asks for less motion sees it held.
-const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-let t = 0;
-let warm = 0;
-let last = performance.now();
-let shown = true;
-let raf = 0;
-let first = true;
-let drawn = -1;
-let changed = true;
-let settle = 0;
-let sized = false;
-const moving = () => shown && !document.hidden && !reduced.matches && SPEED > 0;
-const pace = createPace();
-const share = () => (reduced.matches ? 0 : (t / LOOP) % 1);
-const tick = now => {
-  raf = 0;
-  if (!sized) return;
-  const dt = Math.min(0.1, (now - last) / 1000);
-  last = now;
-  if (!moving()) warm = 0;
-  else if (!first) {
-    warm = Math.min(EASE, warm + dt);
-    const e = EASE ? warm / EASE : 1;
-    t += dt * SPEED * e * e * (3 - 2 * e);
-  }
-  const at = share();
-  if (changed || (at !== drawn && pace.due(now, FPS))) {
-    draw(at);
-    drawn = at;
-    changed = false;
-  }
-  first = false;
-  if (moving()) raf = requestAnimationFrame(tick);
-};
-const wake = () => {
-  if (!raf) {
-    last = performance.now();
-    raf = requestAnimationFrame(tick);
-  }
-};
-
-// The canvas's size in device pixels, as the browser lays it out; a later size settles ${EFFECT_SETTLE_MS} ms first.
-let device = null;
-const sizes = new ResizeObserver(entries => {
-  const box = entries[entries.length - 1]?.devicePixelContentBoxSize?.[0];
-  device = box ? { w: box.inlineSize, h: box.blockSize } : null;
-  clearTimeout(settle);
-  const apply = () => {
-    if (!resize() && !sized) return;
-    sized = true;
-    changed = true;
-    wake();
-  };
-  if (!sized) apply();
-  else settle = setTimeout(apply, ${EFFECT_SETTLE_MS});
-});
-try {
-  sizes.observe(canvas, { box: "device-pixel-content-box" });
-} catch {
-  sizes.observe(canvas);
-}
-new IntersectionObserver(entries => {
-  shown = entries.some(e => e.isIntersecting);
-  if (shown) wake();
-}).observe(canvas);
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) wake();
-});
-reduced.addEventListener("change", wake);`;

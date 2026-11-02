@@ -1,6 +1,6 @@
 /* What every shader text and page the Shader tab writes shares, the palette's (shader.ts, shader-page.ts) and the
-   effects' (glass-shader.ts): the credit that says where it came from, and the page around a drawing. Loaded with
-   those, never with a page's start. */
+   effects' (glass-shader.ts, blob-shader.ts): the credit that says where it came from, and the page around a drawing.
+   Loaded with those, never with a page's start. */
 import { type Effect, effectAddressParts } from "./effect.ts";
 
 /** The credit a shader's text or page starts with, its lines without their comment marks: the seed, the address it

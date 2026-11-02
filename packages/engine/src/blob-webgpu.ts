@@ -1,9 +1,10 @@
 /* The blob in WGSL and as a WebGPU page that plays it (blob-shader.ts names every kind): the player's passes in WGSL
-   (blob-wgsl.ts) on the numbers the player works out (blob-page.ts), played by the player's clock. The editor loads
-   this module with the Shader tab's WGSL or WebGPU spelling. */
-import { BLOB_CLOCK, BLOB_MATH, BLOB_WHAT, blobSettings, blobTextHead } from "./blob-page.ts";
+   (blob-wgsl.ts) on the numbers the player works out (blob-page.ts), played by the players' clock (effect-page.ts).
+   The editor loads this module with the Shader tab's WGSL or WebGPU spelling. */
+import { BLOB_MATH, BLOB_WHAT, blobSettings, blobTextHead } from "./blob-page.ts";
 import { BLOB_WGSL } from "./blob-wgsl.ts";
 import type { Effect } from "./effect.ts";
+import { EFFECT_CLOCK } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 import { DEFAULT_ANGLE } from "./view.ts";
@@ -34,11 +35,15 @@ const WGSL_SECTIONS: readonly [header: string, module: string][] = [
   ]
 ];
 
-/* The WebGPU page's drawing: the same passes and the same numbers, in WebGPU's calls. */
-const WEBGPU_DRAWING = `// The drawing, WebGPU, as the site's player draws it with WebGL.
+/* The WebGPU page's drawing: the same passes and the same numbers, in WebGPU's calls, laid out and drawn by the
+   players' clock. */
+const WEBGPU_DRAWING = `// The drawing, WebGPU, as the site's player draws it with WebGL: the same passes and the same numbers.
 const canvas = document.querySelector("canvas");
-const adapter = await navigator.gpu?.requestAdapter().catch(() => null);
-let gpu = await adapter?.requestDevice().catch(() => null);
+const request = async () => {
+  const adapter = await navigator.gpu?.requestAdapter().catch(() => null);
+  return (await adapter?.requestDevice().catch(() => null)) ?? null;
+};
+let gpu = await request();
 if (gpu) play();
 else document.body.textContent = "This page needs WebGPU, which this browser does not have.";
 
@@ -133,7 +138,9 @@ function play() {
   };
   make();
 
-  // The canvas at its size: the design's map, the filter region, the melt's textures and the blur's weights.
+  // The canvas at its size, cw by ch device pixels: the design's map, as the player maps it from the canvas's CSS box
+  // and the device pixels a CSS pixel (the density, or fewer where the canvas is held under PIXELS_MAX), the filter
+  // region, the melt's textures and the blur's weights.
   let map = { sx: 1, sy: 1, tx: 0, ty: 0 };
   let canvasSize = { w: 1, h: 1 };
   let meltBox = { x: 0, y: 0, texel: 1, w: 1, h: 1 };
@@ -141,12 +148,11 @@ function play() {
   const weights = new Float32Array(RADIUS + 1);
   let taps = 0;
   const target = usage => GPUTextureUsage.RENDER_ATTACHMENT | usage;
-  const resize = () => {
-    const rect = canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) return false;
-    const W = Math.max(1, rect.width);
-    const H = Math.max(1, rect.height);
-    const { w: cw, h: ch, kx, ky } = canvasOf(W, H, devicePixelRatio || 1, device);
+  const layout = (cw, ch) => {
+    const css = canvas.getBoundingClientRect();
+    const W = Math.max(1, css.width);
+    const H = Math.max(1, css.height);
+    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);
     if (canvas.width !== cw || canvas.height !== ch) {
       canvas.width = cw;
       canvas.height = ch;
@@ -202,7 +208,6 @@ function play() {
       bake: group(bake, [bakeU, latticeTex.createView(), gradientTex.createView()]),
       final: group(final, [finalU, melt[0].createView(), linear, noise.createView()])
     };
-    return true;
   };
 
   const pass = (encoder, view, p, bindings, draw) => {
@@ -215,9 +220,11 @@ function play() {
     draw(at);
     at.end();
   };
-  // A frame at a share f of the loop, once the canvas has a size on this device.
-  const draw = f => {
+  // A frame at t seconds of the loop at speed 1, once the canvas has a size on this device: its share of the loop, as
+  // the player's.
+  const draw = t => {
     if (!groups) return;
+    const f = (t / LOOP) % 1;
     const encoder = gpu.createCommandEncoder();
     // the frost's noise at every device pixel, once a size
     if (look.noise && !baked) {
@@ -244,29 +251,25 @@ function play() {
     pass(encoder, context.getCurrentTexture().createView(), final, groups.final, at => at.draw(4));
     gpu.queue.submit([encoder.finish()]);
   };
-  // A device lost for any reason but the page's own stops the clock; a new one is asked for, everything the GPU held
-  // made again on it and the frame drawn at once.
-  const watch = () =>
-    gpu.lost.then(async info => {
-      if (info.reason === "destroyed") return;
-      cancelAnimationFrame(raf);
-      raf = 0;
-      const next = await (await navigator.gpu.requestAdapter().catch(() => null))?.requestDevice().catch(() => null);
+
+${indent(EFFECT_CLOCK)}
+  // A device lost draws nothing: the page asks for another, three times at most, makes everything the GPU held again
+  // on it and goes on, or says so.
+  let again = 0;
+  const watch = one =>
+    one.lost.then(async () => {
+      lose();
+      const next = ++again <= 3 ? await request() : null;
       if (!next) {
-        document.body.textContent = "This page lost its GPU and could not get it back.";
+        document.body.textContent = "This page lost its GPU device, and the browser gave it no other.";
         return;
       }
       gpu = next;
       make();
-      watch();
-      if (resize()) {
-        changed = true;
-        wake();
-      }
+      watch(next);
+      found();
     });
-  watch();
-
-${indent(BLOB_CLOCK)}
+  watch(gpu);
 }`;
 
 /** The blob as WGSL, its WebGPU page's modules, or as that page: the player's passes on the numbers the player works

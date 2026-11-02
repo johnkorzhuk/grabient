@@ -1,6 +1,6 @@
 /* The blob in GLSL and as a WebGL page that plays it (blob-shader.ts names every kind): the player's own shaders
-   (blob-gl.ts) on the numbers the player works out (blob-page.ts), played by the player's clock. The editor loads this
-   module with the Shader tab's GLSL or WebGL spelling. */
+   (blob-gl.ts) on the numbers the player works out (blob-page.ts), played by the players' clock (effect-page.ts). The
+   editor loads this module with the Shader tab's GLSL or WebGL spelling. */
 import {
   BLOB_BLUR_FS,
   BLOB_DOTS_FS,
@@ -9,8 +9,9 @@ import {
   BLOB_FULL_VS,
   BLOB_NOISE_FS
 } from "./blob-gl.ts";
-import { BLOB_CLOCK, BLOB_MATH, BLOB_WHAT, blobSettings, blobTextHead } from "./blob-page.ts";
+import { BLOB_MATH, BLOB_WHAT, blobSettings, blobTextHead } from "./blob-page.ts";
 import type { Effect } from "./effect.ts";
+import { EFFECT_CLOCK } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 import { DEFAULT_ANGLE } from "./view.ts";
@@ -49,8 +50,10 @@ const GLSL_SECTIONS: readonly [header: string, shaders: readonly string[]][] = [
   ]
 ];
 
-/* The WebGL page's drawing: the player's own (ui/blob-player.ts), its calls in its order. */
-const WEBGL_DRAWING = `// The drawing, WebGL 2, as the site's player draws it.
+/* The WebGL page's drawing: the player's own (ui/blob-player.ts), its calls in its order, laid out and drawn by the
+   players' clock. */
+const WEBGL_DRAWING = `// The drawing, WebGL 2, as the site's player draws it: the same textures, passes and uniforms, so each frame's GPU
+// work is the player's.
 const canvas = document.querySelector("canvas");
 const gl = canvas.getContext("webgl2", {
   alpha: true,
@@ -159,29 +162,30 @@ function play() {
   };
   make();
 
-  // The canvas at its size: the design's map, the filter region, the melt's texture and the blur's weights.
+  // The canvas at its size, w by h device pixels: the design's map, as the player maps it from the canvas's CSS box
+  // and the device pixels a CSS pixel (the density, or fewer where the canvas is held under PIXELS_MAX), the filter
+  // region, the melt's texture and the blur's weights.
   let map = { sx: 1, sy: 1, tx: 0, ty: 0 };
   let canvasSize = { w: 1, h: 1 };
   let meltBox = { x: 0, y: 0, texel: 1, w: 1, h: 1 };
   let regionPx = [0, 0, 1, 1];
   const weights = new Float32Array(RADIUS + 1);
   let taps = 0;
-  const resize = () => {
-    const rect = canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) return false;
-    const W = Math.max(1, rect.width);
-    const H = Math.max(1, rect.height);
-    const { w: cw, h: ch, kx, ky } = canvasOf(W, H, devicePixelRatio || 1, device);
-    if (canvas.width !== cw || canvas.height !== ch) {
-      canvas.width = cw;
-      canvas.height = ch;
+  const layout = (w, h) => {
+    const css = canvas.getBoundingClientRect();
+    const W = Math.max(1, css.width);
+    const H = Math.max(1, css.height);
+    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
     }
-    if (canvasSize.w !== cw || canvasSize.h !== ch) baked = false;
-    canvasSize = { w: cw, h: ch };
+    if (canvasSize.w !== w || canvasSize.h !== h) baked = false;
+    canvasSize = { w, h };
     const next = mapOf(W, H, kx, ky);
     if (next.sx !== map.sx || next.sy !== map.sy || next.tx !== map.tx || next.ty !== map.ty) baked = false;
     map = next;
-    const melted = meltOf(look, map, cw, ch, weights);
+    const melted = meltOf(look, map, w, h, weights);
     regionPx = melted.region;
     meltBox = melted.box;
     taps = melted.taps;
@@ -194,7 +198,6 @@ function play() {
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    return true;
   };
 
   // The frost's noise at every device pixel, once a size.
@@ -222,8 +225,9 @@ function play() {
     baked = true;
   };
 
-  // A frame at a share f of the loop.
-  const draw = f => {
+  // A frame at t seconds of the loop at speed 1: its share of the loop, as the player's.
+  const draw = t => {
+    const f = (t / LOOP) % 1;
     if (look.noise && !baked) bakeNoise();
     // the balls, small: each a quad its own color covers, painted in the scene's order
     const { texel } = meltBox;
@@ -285,22 +289,17 @@ function play() {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.activeTexture(gl.TEXTURE0);
   };
-  // A lost context stops the clock; where the browser gives it back, everything the GPU held is made again and the
-  // frame drawn at once.
+
+${indent(EFFECT_CLOCK)}
+  // A lost context draws nothing until the browser gives it back: everything the GPU held is then made again on it.
   canvas.addEventListener("webglcontextlost", event => {
     event.preventDefault();
-    cancelAnimationFrame(raf);
-    raf = 0;
+    lose();
   });
   canvas.addEventListener("webglcontextrestored", () => {
     make();
-    if (resize()) {
-      changed = true;
-      wake();
-    }
+    found();
   });
-
-${indent(BLOB_CLOCK)}
 }`;
 
 /** The blob as GLSL, its WebGL page's shaders, or as that page: the player's passes on the numbers the player works
