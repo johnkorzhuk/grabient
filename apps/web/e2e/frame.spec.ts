@@ -109,6 +109,10 @@ function reported(page: Page): string[] {
 /** Goes down the page to where `link` stands and presses it from there with the keyboard. Returns that depth. */
 async function pressFrom(page: Page, link: Locator): Promise<number> {
   await link.evaluate(a => scrollTo(0, Math.max(0, a.getBoundingClientRect().top + scrollY - 400)));
+  /* a scroll starts the list's window once the browser has answered it, which draws live cards in the place of the
+     still ones the server drew: a press on a still card's link waits for them, or the link it holds may be one the
+     window has taken away, which no focus reaches */
+  await expect.poll(() => link.evaluate(a => !a.closest("[data-still]"))).toBe(true);
   const depth = await page.evaluate(() => scrollY);
   await link.evaluate(a => (a as HTMLElement).focus({ preventScroll: true }));
   await page.keyboard.press("Enter");
