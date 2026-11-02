@@ -107,3 +107,22 @@ export function givenName(raw: unknown): string | null {
 
 /** The same where a record needs a name: the tools' records and the usage counts. */
 export const appName = (raw: unknown): string => givenName(raw) ?? "An app";
+
+/** The app an account was made to connect, as its record names it before any consent: a saved app by its own name
+    (Claude), an app whose document Grabient fetches by its client_id's host, and one that registered as such, its name
+    being its own claim. */
+export function signupApp(clientId: string): string {
+  const kind = clientKind(clientId);
+  if (kind === "saved") {
+    const saved = (CLIENT_DOCUMENTS as Record<string, { client_name?: unknown }>)[clientId];
+    return givenName(saved?.client_name) ?? "a saved app";
+  }
+  if (kind === "document") {
+    try {
+      return new URL(clientId).host;
+    } catch {
+      return "an app's document";
+    }
+  }
+  return "a registered app";
+}

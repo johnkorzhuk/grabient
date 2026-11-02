@@ -14,11 +14,12 @@ import {
 } from "@grabient/i18n";
 import { json, NO_STORE, overLimit } from "@grabient/server/auth/http.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
+import { keepSignupApp, MADE_FOR_MS } from "@grabient/server/auth/signup.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
-import { trustedRedirect } from "./clients.ts";
+import { signupApp, trustedRedirect } from "./clients.ts";
 import { clientIdAllowed, requester } from "./limits.ts";
 import { decodeResume, encodeResume, RESUME_MAX, tooLong } from "./resume.ts";
 import { OAUTH_PATHS } from "./server.ts";
@@ -136,6 +137,15 @@ export async function authorize(
   }
   const session = await signedIn(env, request);
   if (!session) return toSignIn();
+  // an account made moments ago, to connect this app, says so (signup.ts); an older one is never written to here
+  if (Date.now() - new Date(session.user.createdAt).getTime() < MADE_FOR_MS) {
+    await keepSignupApp(env, session.user.id, signupApp(parsed.clientId)).catch(error =>
+      console.error(
+        "sign-up: the app the account was made for was not kept",
+        error instanceof Error ? error.message : error
+      )
+    );
+  }
   /* a consent begun writes a transaction to KV, and its one answer writes a grant and a code: counting the begun
      ones against the account's day and the site's bounds both */
   const begun = await checkLimits(env, [
