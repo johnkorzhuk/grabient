@@ -12,6 +12,21 @@ import { encodePalette } from "./codec.ts";
 import { EFFECT_EASE_S, EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS, type Effect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
 
+/** What every text of the blob is, the start of its credit's last line. */
+export const BLOB_WHAT = "the blob, the palette's balls melted and frosted";
+
+/** The head of the GLSL and the WGSL texts: the credit, then how a frame draws, as comment lines. */
+export function blobTextHead(credit: readonly string[]): string {
+  return [
+    ...credit,
+    "",
+    "Each frame draws the balls into the melt, a small texture, blurs it across and then down, and draws every pixel",
+    "of the canvas from it through the frost's noise, which is baked once a size. The uniforms' values are the page's."
+  ]
+    .map(line => (line ? `// ${line}` : "//"))
+    .join("\n");
+}
+
 /** A number as JavaScript source that reads back as the same double, -0 kept. */
 export const jsNumber = (n: number): string => (Object.is(n, -0) ? "-0" : String(n));
 

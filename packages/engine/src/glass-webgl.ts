@@ -11,9 +11,9 @@ import {
   GLASS_FINAL_FS,
   GLASS_FULL_VS
 } from "./glass-gl.ts";
-import { GLASS_MODEL, glassSettingsJs, indent } from "./glass-page.ts";
+import { GLASS_MODEL, glassSettingsJs } from "./glass-page.ts";
 import type { Palette } from "./palette.ts";
-import { effectShaderCredit, shaderPageHtml } from "./shader-shell.ts";
+import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 
 const WEBGL_SHADERS = [
   ["disc-vs", "x-shader/x-vertex", GLASS_DISC_VS],

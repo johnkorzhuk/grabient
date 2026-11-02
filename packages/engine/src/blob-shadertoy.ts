@@ -36,6 +36,8 @@ import { compile, doubleRun } from "./double-program.ts";
 import { EFFECT_EASE_S, type Effect } from "./effect.ts";
 import { dlit, GLSL_DOUBLE } from "./glsl-double.ts";
 import type { Palette } from "./palette.ts";
+import { effectShaderCredit } from "./shader-shell.ts";
+import { DEFAULT_ANGLE } from "./view.ts";
 
 /** A float as GLSL: the fewest digits that read back as the same float. */
 export function glslFloat(x: number): string {
@@ -123,7 +125,22 @@ function sceneMark(scene: BlobScene, seed: number): number {
   return h & 0xffffff;
 }
 
-/** The blob's Shadertoy tabs as one text, a section a tab under a header naming its channels. */
+/** The blob for Shadertoy as a reader pastes it: the credit the effects' shaders carry (shader-shell.ts), the seed, the
+    effect's address, which names no angle (the blob has none), and what it is, then its tabs. `origin` adds the
+    address. The editor loads this module with the Shader tab's Shadertoy spelling. */
+export function blobShadertoyText(
+  P: Palette,
+  effect: Effect,
+  seed: string,
+  origin?: string
+): string {
+  const what =
+    "the blob, the palette's balls melted and frosted, for Shadertoy, a section a tab, each tab's channels as its header says";
+  return blobShadertoy(P, effect, effectShaderCredit(seed, effect, DEFAULT_ANGLE, what, origin));
+}
+
+/** The blob's Shadertoy tabs as one text under the credit's lines, a section a tab under a header naming its
+    channels. */
 export function blobShadertoy(P: Palette, effect: Effect, credit: string[]): string {
   const scene = blobScene(P, BLOB_DESIGN, effect.look);
   const look = blobFilter(effect.look, BLOB_DESIGN, scene);

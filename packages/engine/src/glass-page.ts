@@ -339,11 +339,3 @@ const SPEED = ${effect.speed};
 const FPS = ${effect.fps};
 const EASE = ${EFFECT_EASE_S};`;
 }
-
-/** Code a level in, as a page writes it inside a function. */
-export function indent(text: string): string {
-  return text
-    .split("\n")
-    .map(line => (line ? `  ${line}` : line))
-    .join("\n");
-}

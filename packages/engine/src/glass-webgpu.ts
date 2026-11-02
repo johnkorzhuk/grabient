@@ -3,7 +3,7 @@
    (effect-page.ts). The editor loads this module with the Shader tab's WGSL or WebGPU spelling. */
 import type { Effect } from "./effect.ts";
 import { EFFECT_CLOCK } from "./effect-page.ts";
-import { GLASS_MODEL, glassSettingsJs, indent } from "./glass-page.ts";
+import { GLASS_MODEL, glassSettingsJs } from "./glass-page.ts";
 import {
   GLASS_BAKE_WGSL,
   GLASS_BLUR_WGSL,
@@ -11,7 +11,7 @@ import {
   GLASS_FINAL_WGSL
 } from "./glass-wgsl.ts";
 import type { Palette } from "./palette.ts";
-import { effectShaderCredit, shaderPageHtml } from "./shader-shell.ts";
+import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 
 const WEBGPU_SHADERS = [
   ["disc", "text/wgsl", GLASS_DISC_WGSL],

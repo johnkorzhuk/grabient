@@ -32,6 +32,14 @@ export interface PageScript {
   type?: string;
 }
 
+/** Code a level in, as a page writes it inside a function. */
+export function indent(text: string): string {
+  return text
+    .split("\n")
+    .map(line => (line ? `  ${line}` : line))
+    .join("\n");
+}
+
 /** A complete page that runs as pasted: the credit in a comment right after the doctype, a canvas filling the window,
     and its scripts in order. */
 export const shaderPageHtml = (

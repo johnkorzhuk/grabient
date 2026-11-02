@@ -21,15 +21,15 @@ import {
   blobMelt
 } from "./blob-gl.ts";
 import { BLOB_MATH, blobSettings } from "./blob-page.ts";
-import { blobCredit, blobShader } from "./blob-shader.ts";
+import { BLOB_SHADER_KINDS, blobShader } from "./blob-shader.ts";
 import { BLOB_WGSL } from "./blob-wgsl.ts";
 import { decodePalette } from "./codec.ts";
 import { hexBytes } from "./color.ts";
 import { type Effect, parseEffect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
-import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
+import type { ShaderKind } from "./shader-kinds.ts";
 
-const KINDS = SHADER_KINDS.map(([kind]) => kind);
+const KINDS = BLOB_SHADER_KINDS;
 const { origin, entries } = golden<{
   origin: string;
   entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
@@ -69,21 +69,39 @@ test("the blob's five texts are as before, for six palettes and looks", () => {
 });
 
 test("each text credits the seed, the effect's address and what it is, and names no angle: the blob has none", () => {
+  const SEED = "kQ9hLj-wW4g";
+  const P = decodePalette(SEED) as Palette;
   const effect = read("style=blob&angle=45&speed=3&frost=2&bg=151315");
-  expect(blobCredit("webgpu", effect, "kQ9hLj-wW4g", "https://grabient.com/")).toEqual([
-    "grabient kQ9hLj-wW4g",
-    "https://grabient.com/kQ9hLj-wW4g?style=blob&speed=3&frost=2&bg=%23151315",
-    "the blob, the palette's balls melted and frosted, drawn by WebGPU"
+  const address = `https://grabient.com/${SEED}?style=blob&speed=3&frost=2&bg=%23151315`;
+  const credit = (kind: ShaderKind, lines = 3) =>
+    blobShader(kind, P, effect, SEED, "https://grabient.com/").split("\n").slice(0, lines);
+  const what = "the blob, the palette's balls melted and frosted";
+  expect(credit("shadertoy")).toEqual([
+    `// grabient ${SEED}`,
+    `// ${address}`,
+    `// ${what}, for Shadertoy, a section a tab, each tab's channels as its header says`
   ]);
-  const P = decodePalette("kQ9hLj-wW4g") as Palette;
+  expect(credit("glsl")[2]).toBe(
+    `// ${what}, as GLSL ES 3.00, the WebGL page's shaders, a section a pass`
+  );
+  expect(credit("wgsl")[2]).toBe(
+    `// ${what}, as WGSL, the WebGPU page's modules, a section a pass`
+  );
+  expect(credit("webgpu", 6)).toEqual([
+    "<!doctype html>",
+    "<!--",
+    `  grabient ${SEED}`,
+    `  ${address}`,
+    `  ${what}, drawn by WebGPU`,
+    "-->"
+  ]);
+  expect(credit("webgl", 5)[4]).toBe(`  ${what}, drawn by WebGL 2`);
   for (const kind of KINDS) {
-    const text = blobShader(kind, P, effect, "kQ9hLj-wW4g");
-    expect(text, kind).toContain("grabient kQ9hLj-wW4g");
+    const text = blobShader(kind, P, effect, SEED);
+    expect(text, kind).toContain(`grabient ${SEED}`);
     expect(text, kind).not.toContain("https://");
     expect(text, kind).not.toMatch(/angle=|\bANGLE\b|\d degrees/);
-    expect(blobShader(kind, P, read("style=blob&speed=3&frost=2&bg=151315"), "kQ9hLj-wW4g")).toBe(
-      text
-    );
+    expect(blobShader(kind, P, read("style=blob&speed=3&frost=2&bg=151315"), SEED)).toBe(text);
   }
 });
 
