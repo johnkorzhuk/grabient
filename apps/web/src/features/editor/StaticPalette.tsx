@@ -71,7 +71,9 @@ export function StaticPalette(props: { data: PaletteData }) {
   const alt = () => props.data.meta?.imageAlt ?? title();
   return (
     <>
-      <script innerHTML={BOOT_SCRIPT} />
+      {/* the script runs as the server's document is read: one the browser draws is never run, so the browser's build
+          carries none of it */}
+      <script innerHTML={import.meta.env.SSR ? BOOT_SCRIPT : ""} />
       <main id="main" class="palette-static">
         <a href={localHref("/")}>{t("Grabient palettes")}</a>
         <h1 dir="auto">{title()}</h1>
