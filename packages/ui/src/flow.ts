@@ -615,6 +615,13 @@ export function startFlow(canvas: HTMLCanvasElement, opts: FlowOpts): Flow | nul
 
     let reduced = !!opts.reduced?.();
     let motionTime = reduced ? HELD_AT : 0;
+    /* the canvas's own box, read again once it changes size: read for every frame, it laid the page out at once
+       wherever a change had just been made to it */
+    let box: { W: number; H: number } | null = null;
+    const boxed = new ResizeObserver(() => {
+      box = null;
+    });
+    boxed.observe(canvas);
     let raf = 0;
     let t0 = 0;
     let stopped = false;
@@ -672,8 +679,8 @@ export function startFlow(canvas: HTMLCanvasElement, opts: FlowOpts): Flow | nul
       const bar = source();
       const aim = aimOf(bar);
       /* the canvas's own box: the layer gives it its size, and a new size clears the paint */
-      const W = canvas.clientWidth || innerWidth;
-      const H = canvas.clientHeight || innerHeight;
+      box ??= { W: canvas.clientWidth || innerWidth, H: canvas.clientHeight || innerHeight };
+      const { W, H } = box;
       const dpr = Math.min(devicePixelRatio || 1, 2);
       const sc = Math.min(dpr, Math.sqrt(PIXEL_BUDGET / (W * H)));
       const cw = Math.max(1, Math.round(W * sc));
@@ -858,6 +865,7 @@ export function startFlow(canvas: HTMLCanvasElement, opts: FlowOpts): Flow | nul
       if (stopped) return;
       stopped = true;
       cancelAnimationFrame(raf);
+      boxed.disconnect();
       document.removeEventListener("visibilitychange", visible);
       removeEventListener("resize", refresh);
       removeEventListener("scroll", refresh);

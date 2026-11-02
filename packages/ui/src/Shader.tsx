@@ -22,6 +22,8 @@ const TWEEN = 4.5;
 const PERIOD = DWELL + TWEEN;
 /* what the water says it paints, at most this often, in seconds */
 const REPORT = 0.14;
+/* how long a box the water reads is kept at most, in milliseconds */
+const BOX_KEPT_MS = 1000;
 const samples = (P: Palette): LCH[] =>
   Array.from({ length: N }, (_, i) => sampleLCH(P, i / (N - 1)));
 
@@ -126,8 +128,31 @@ export function Shader(props: {
       if (u > 0 || phase < 0.2) tell(shown);
       return shown;
     };
-    /* the renderer works in the layer's own CSS pixels, which on a page are the viewport's */
-    const rect = (el: Element) => el.getBoundingClientRect();
+    /* the renderer works in the layer's own CSS pixels, which on a page are the viewport's. The boxes it reads for every
+       frame are kept until they can have moved: a scroll anywhere on the page, a resize, the layer, the header or the
+       wordmark changing size (their transitions too), and at the latest after a second, for a page laid out anew under
+       them. Read for every frame, each read laid the page out at once wherever a change had just been made to it (a
+       list's cards drawn in a view being set, frame after frame), and the frame laid it out again */
+    const boxes = new Map<Element, { rect: DOMRect; at: number }>();
+    const rect = (el: Element) => {
+      const now = performance.now();
+      const kept = boxes.get(el);
+      if (kept && now - kept.at < BOX_KEPT_MS) return kept.rect;
+      const read = el.getBoundingClientRect();
+      /* a few at a time: the bar, a pane's and the cards lit since the last move */
+      if (boxes.size >= 8) boxes.clear();
+      boxes.set(el, { rect: read, at: now });
+      return read;
+    };
+    let room: { width: number; height: number } | null = null;
+    const moved = () => {
+      boxes.clear();
+      room = null;
+    };
+    addEventListener("scroll", moved, { capture: true, passive: true });
+    addEventListener("resize", moved);
+    const sizes = new ResizeObserver(moved);
+    sizes.observe(layer);
     const dark = () => document.documentElement.dataset.theme !== "light";
     /* the card whose glow is lit, where the water sees it: its corners read once per card */
     let rounded: Element | null = null;
@@ -144,10 +169,14 @@ export function Shader(props: {
     /* a frame held under reduced motion is drawn where the bar was: a resize of the header redraws it */
     let resized: ResizeObserver | null = null;
     const watch = () => {
-      const header = resized ? null : props.bar()?.closest("header");
+      const bar = props.bar();
+      const header = resized ? null : bar?.closest("header");
       if (!header) return;
       resized = new ResizeObserver(() => flow?.refresh());
       resized.observe(header);
+      sizes.observe(header);
+      const mark = bar?.ownerSVGElement;
+      if (mark) sizes.observe(mark);
     };
     /* the page's word as the water decides, read once: the effect above follows it and turns the water, and calls
        start from its own callback */
@@ -170,7 +199,10 @@ export function Shader(props: {
             return el ? rect(el) : null;
           },
           /* a fixed destination keeps the water still while pages of other lengths replace one another */
-          aim: () => ({ x: layer.clientWidth / 2, y: layer.clientHeight / 2 }),
+          aim: () => {
+            room ??= { width: layer.clientWidth, height: layer.clientHeight };
+            return { x: room.width / 2, y: room.height / 2 };
+          },
           ramp,
           dark,
           /* read when the flow asks, which a change of setting does from inside the effect above */
@@ -249,6 +281,9 @@ export function Shader(props: {
       barUnpainted();
       theme.disconnect();
       resized?.disconnect();
+      sizes.disconnect();
+      removeEventListener("scroll", moved, { capture: true });
+      removeEventListener("resize", moved);
       canvas.removeEventListener("webglcontextlost", lost);
       canvas.removeEventListener("webglcontextrestored", restored);
     };
