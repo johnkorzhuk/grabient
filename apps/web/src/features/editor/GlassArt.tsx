@@ -257,13 +257,15 @@ export function GlassArt(props: {
       }
       const wait = drawnAt + REST_MS - performance.now();
       /* a picture near the window but out of it draws no still nobody sees while the hand moves: the last change once
-         it rests, or at once as the picture comes into the window. One in the window with nothing on it yet, as a
-         list wakes the cards the server drew still, which showed their stills (glass-draw.ts's paintStills), draws
-         its own in the same frame and shows it at once, so the card never shows its field between the two */
+         it rests, or at once as the picture comes into the window. One drawn as the SVG, whose filter the browser
+         takes about a tenth of a second to paint, takes the last change once it rests too (the menu's tile on a page
+         that plays no glass). One in the window with nothing on it yet, as a list wakes the cards the server drew
+         still, which showed their stills (glass-draw.ts's paintStills), draws its own in the same frame and shows it
+         at once, so the card never shows its field between the two */
       if (was) {
         const box = el.getBoundingClientRect();
         request(colors, angle, shape, named, box.bottom > 0 && box.top < innerHeight);
-      } else if (!next.shown)
+      } else if (!next.shown || noGpu)
         timer = setTimeout(() => request(colors, angle, shape, named), AWAY_MS);
       else if (wait <= 0) request(colors, angle, shape, named);
       else timer = setTimeout(() => request(colors, angle, shape, named), wait);
