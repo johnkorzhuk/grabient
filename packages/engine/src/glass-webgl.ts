@@ -319,6 +319,25 @@ ${indent(EFFECT_CLOCK)}
   });
 }`;
 
+const GLSL_SECTIONS = `// ==== Vertex: full target ==== the quad over a whole target, for passes 2 to 4 and the bake
+${GLASS_FULL_VS}
+
+// ==== Pass 1: discs ==== target: the field, fw x fh texels (1/q of the filter's region), RGBA8, cleared to the base color, blended ONE, ONE_MINUS_SRC_ALPHA | inputs: the twelve discs as instanced quads (a triangle strip of 4 vertices)
+${GLASS_DISC_VS}
+${GLASS_DISC_FS}
+
+// ==== Pass 2: blur across ==== target: a second field texture, fw x fh, RGBA8, uStep (1 / fw, 0) | inputs: Pass 1 (linear, clamp to edge)
+${GLASS_BLUR_FS}
+
+// ==== Pass 3: blur down ==== target: the first field texture, fw x fh, RGBA8, the shader of Pass 2 with uStep (0, 1 / fh) | inputs: Pass 2 (linear, clamp to edge)
+
+// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (nearest, clamp to edge), Pass 3 (linear, clamp to edge)
+${GLASS_FINAL_FS}
+
+// ==== Bake: rib map ==== target: W x H, RGBA8, once for each size, angle and shape, before the frame that needs it | inputs: the ribs, a row each (RGBA32F, nearest)
+${GLASS_BAKE_FS}
+`;
+
 /** The glass as GLSL, its WebGL page's passes, or as that page: the player's passes on the numbers the player works
     out. `origin` adds the effect's address to the credit. */
 export function glassWebgl(
@@ -352,22 +371,3 @@ export function glassWebgl(
 
 ${GLSL_SECTIONS}`;
 }
-
-const GLSL_SECTIONS = `// ==== Vertex: full target ==== the quad over a whole target, for passes 2 to 4 and the bake
-${GLASS_FULL_VS}
-
-// ==== Pass 1: discs ==== target: the field, fw x fh texels (1/q of the filter's region), RGBA8, cleared to the base color, blended ONE, ONE_MINUS_SRC_ALPHA | inputs: the twelve discs as instanced quads (a triangle strip of 4 vertices)
-${GLASS_DISC_VS}
-${GLASS_DISC_FS}
-
-// ==== Pass 2: blur across ==== target: a second field texture, fw x fh, RGBA8, uStep (1 / fw, 0) | inputs: Pass 1 (linear, clamp to edge)
-${GLASS_BLUR_FS}
-
-// ==== Pass 3: blur down ==== target: the first field texture, fw x fh, RGBA8, the shader of Pass 2 with uStep (0, 1 / fh) | inputs: Pass 2 (linear, clamp to edge)
-
-// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (nearest, clamp to edge), Pass 3 (linear, clamp to edge)
-${GLASS_FINAL_FS}
-
-// ==== Bake: rib map ==== target: W x H, RGBA8, once for each size, angle and shape, before the frame that needs it | inputs: the ribs, a row each (RGBA32F, nearest)
-${GLASS_BAKE_FS}
-`;

@@ -288,6 +288,15 @@ ${indent(EFFECT_CLOCK)}
   watch(device);
 }`;
 
+const WGSL_SECTIONS = `// ==== Pass 1: discs ==== target: the field, fw x fh texels (1/q of the filter's region), rgba8unorm, cleared to the base color, blended one, one-minus-src-alpha | inputs: the twelve discs as instanced quads (a triangle strip of 4 vertices)
+${GLASS_DISC_WGSL}
+// ==== Passes 2 and 3: blur ==== target: across into a second field texture, then down into the first, rgba8unorm, step (1 / fw, 0) then (0, 1 / fh) | inputs: the field before (linear, clamp to edge)
+${GLASS_BLUR_WGSL}
+// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (textureLoad), Pass 3 (linear, clamp to edge)
+${GLASS_FINAL_WGSL}
+// ==== Bake: rib map ==== target: W x H, rgba8unorm, once for each size, angle and shape, before the frame that needs it | inputs: the ribs, a row each (a storage buffer)
+${GLASS_BAKE_WGSL}`;
+
 /** The glass as WGSL, its WebGPU page's passes, or as that page: the player's passes on the numbers the player works
     out. `origin` adds the effect's address to the credit. */
 export function glassWebgpu(
@@ -321,12 +330,3 @@ export function glassWebgpu(
 
 ${WGSL_SECTIONS}`;
 }
-
-const WGSL_SECTIONS = `// ==== Pass 1: discs ==== target: the field, fw x fh texels (1/q of the filter's region), rgba8unorm, cleared to the base color, blended one, one-minus-src-alpha | inputs: the twelve discs as instanced quads (a triangle strip of 4 vertices)
-${GLASS_DISC_WGSL}
-// ==== Passes 2 and 3: blur ==== target: across into a second field texture, then down into the first, rgba8unorm, step (1 / fw, 0) then (0, 1 / fh) | inputs: the field before (linear, clamp to edge)
-${GLASS_BLUR_WGSL}
-// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (textureLoad), Pass 3 (linear, clamp to edge)
-${GLASS_FINAL_WGSL}
-// ==== Bake: rib map ==== target: W x H, rgba8unorm, once for each size, angle and shape, before the frame that needs it | inputs: the ribs, a row each (a storage buffer)
-${GLASS_BAKE_WGSL}`;
