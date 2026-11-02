@@ -61,8 +61,12 @@
     );
     -webkit-mask-image: var(--fade);
     mask-image: var(--fade);
-    animation: edges linear both;
-    animation-timeline: scroll(self inline);
+    /* only where the browser drives the fade by the row's scroll: one that cannot (Firefox) runs the keyframes as a
+       plain animation of no length, which ends on its last frame and faded the start of every row, scrolled or not */
+    @supports (animation-timeline: scroll()) {
+      animation: edges linear both;
+      animation-timeline: scroll(self inline);
+    }
     &::-webkit-scrollbar {
       display: none;
     }
