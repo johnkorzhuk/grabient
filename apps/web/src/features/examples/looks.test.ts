@@ -12,6 +12,7 @@ import {
   plainOf,
   seeded,
   shuffled,
+  smoothSteps,
   type Taken
 } from "./looks.ts";
 
@@ -119,5 +120,35 @@ test("the page's palette before any part takes a look is its own gradient across
     seed: SEED,
     effect: null,
     view: { style: "linearGradient", angle: 90 }
+  });
+});
+
+describe("smoothSteps", () => {
+  test("keeps a palette whose colors move slowly at the default steps", () => {
+    const pastel: Palette = {
+      anchors: [
+        { l: 0.85, c: 0.06, h: 240 },
+        { l: 0.82, c: 0.07, h: 290 }
+      ]
+    };
+    expect(smoothSteps(pastel)).toBe(7);
+  });
+  test("gives a palette whose hue turns fast more steps, up to a most, so its gradient shows no stripes", () => {
+    const twice: Palette = {
+      anchors: [
+        { l: 0.7, c: 0.15, h: 0 },
+        { l: 0.7, c: 0.15, h: 720 }
+      ]
+    };
+    const steps = smoothSteps(twice);
+    expect(steps).toBeGreaterThan(14);
+    expect(steps).toBeLessThanOrEqual(48);
+    expect(inLook(SEED, twice, "gradient", "part").view.steps).toBe(steps);
+  });
+  test("never gives fewer steps than the palette's keyframes", () => {
+    const eight: Palette = {
+      anchors: Array.from({ length: 8 }, (_, i) => ({ l: 0.5 + i * 0.01, c: 0.02, h: 200 }))
+    };
+    expect(smoothSteps(eight)).toBeGreaterThanOrEqual(8);
   });
 });

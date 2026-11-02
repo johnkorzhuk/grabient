@@ -87,8 +87,6 @@ export function Example(props: {
   drawn: string;
   /** the stage shows the palette otherwise than its look draws it: the tag says so */
   differs?: boolean;
-  /** the stage's own ground: the page's, for an example that stands on a page; paper by default */
-  ground?: "page" | "paper";
   /** the example */
   children: Element;
   /** chips under the stage, after the tag */
@@ -113,9 +111,7 @@ export function Example(props: {
         <Text variant="body">{props.about}</Text>
       </div>
       <figure class={styles.figure}>
-        <div class={styles.stage} data-ground={props.ground ?? "paper"}>
-          {props.children}
-        </div>
+        <div class={styles.stage}>{props.children}</div>
         <figcaption class={styles.caption}>
           <span class={styles.drawn} data-differs={props.differs ? "" : undefined}>
             {props.drawn}

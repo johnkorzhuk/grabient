@@ -12,16 +12,11 @@ import {
   type EffectKind,
   effectFileAddress
 } from "@grabient/engine/effect.ts";
-import {
-  DEFAULT_SIZE,
-  DEFAULT_STEPS,
-  isSwatchStyle,
-  type Size,
-  STYLE_LABELS
-} from "@grabient/engine/view.ts";
+import { DEFAULT_SIZE, isSwatchStyle, type Size, STYLE_LABELS } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { effectLabel, effectSummary } from "../editor/effect-page.ts";
 import type { Taken } from "../editor/formats.ts";
+import { smoothSteps } from "./looks.ts";
 import { contrastLevel, drawnColors, type Shown } from "./paint.ts";
 
 const LEVELS = {
@@ -78,7 +73,7 @@ export const formOf = (s: Shown): Form =>
 /** As few bands as read as swatches: five, or the palette's keyframes where it has more. */
 const FEW_BANDS = 5;
 /** The palette in a form: the address's own where it is that form; else its angle kept, a gradient at its steps
-    (a linear one after an effect, at the default steps), a few linear bands, or an effect playing as it does by
+    (a linear one after an effect, as smooth as it needs), a few linear bands, or an effect playing as it does by
     default (a blob at the shape its palette suggests). */
 export function inForm(s: Shown, form: Form): Shown {
   if (form === formOf(s)) return s;
@@ -105,7 +100,7 @@ export function inForm(s: Shown, form: Form): Shown {
         ? { style: "linearSwatches", steps: Math.max(FEW_BANDS, fewest), angle }
         : {
             style: "linearGradient",
-            steps: s.effect ? Math.max(DEFAULT_STEPS, fewest) : s.view.steps,
+            steps: s.effect ? smoothSteps(palette) : s.view.steps,
             angle
           }
   };
@@ -116,11 +111,7 @@ export const plainAt = (s: Shown, angle: number): Shown => ({
   seed: s.seed,
   palette: s.palette,
   effect: null,
-  view: {
-    style: "linearGradient",
-    steps: Math.max(DEFAULT_STEPS, s.palette.anchors.length),
-    angle
-  }
+  view: { style: "linearGradient", steps: smoothSteps(s.palette), angle }
 });
 /** The plain gradient's angles a part's checks try: along, across and both diagonals. */
 export const PLAIN_ANGLES = [90, 0, 45, 135] as const;

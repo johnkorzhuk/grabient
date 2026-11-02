@@ -8,6 +8,7 @@
    (radial), the fluted glass or the blob, at an angle and in as many bands as the seed picks for the part. The glass
    and the blob each lie at one angle a page, and the blob in its palette's shape (effect.ts's blobShapeOf), since each
    other angle or shape is another still for the server to write and the browser to draw. */
+import { sampleLCH } from "@grabient/engine/curve.ts";
 import { blobShapeOf, EFFECT_LOOK, EFFECT_PLAY, type EffectKind } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { DEFAULT_STEPS, type Style } from "@grabient/engine/view.ts";
@@ -55,16 +56,52 @@ export function shuffled<T>(items: readonly T[], seed: string, name: string): T[
   return out;
 }
 
-/** The palette as its page holds it before any part takes a look: its own gradient across, at the default steps. */
+/** The most a gradient's blends may stray from the palette's curve, in OKLab: about half of what an eye tells apart. */
+const SAG = 0.01;
+/** The most steps a gradient takes. */
+const MOST_STEPS = 48;
+/** A point of the curve in OKLab. */
+const labAt = (P: Palette, t: number) => {
+  const [L, C, H] = sampleLCH(P, t);
+  return [L, C * Math.cos((H * Math.PI) / 180), C * Math.sin((H * Math.PI) / 180)];
+};
+/** How far the palette's curve strays from the straight blends between `n` even stops of it, the most anywhere: a
+    curve that turns between two stops is drawn as a corner there, and a hue that turns fast as stripes. */
+function sagAt(P: Palette, n: number): number {
+  let most = 0;
+  for (let i = 0; i < n - 1; i++) {
+    const a = labAt(P, i / (n - 1));
+    const b = labAt(P, (i + 1) / (n - 1));
+    for (let k = 1; k < 4; k++) {
+      const u = k / 4;
+      const on = labAt(P, (i + u) / (n - 1));
+      most = Math.max(most, Math.hypot(...on.map((v, j) => v - (a[j] + (b[j] - a[j]) * u))));
+    }
+  }
+  return most;
+}
+/* the steps each palette's gradient takes, worked out once */
+const smooth = new WeakMap<Palette, number>();
+/** The steps a gradient of the palette takes: the fewest from the default up whose blends follow its curve within
+    SAG, so a palette whose hue turns fast takes more and shows no stripes, and its keyframes at least. */
+export function smoothSteps(P: Palette): number {
+  let steps = smooth.get(P);
+  if (steps === undefined) {
+    steps = DEFAULT_STEPS;
+    while (steps < MOST_STEPS && sagAt(P, steps) > SAG)
+      steps = Math.min(MOST_STEPS, Math.ceil(steps * 1.25));
+    steps = Math.max(steps, P.anchors.length);
+    smooth.set(P, steps);
+  }
+  return steps;
+}
+
+/** The palette as its page holds it before any part takes a look: its own gradient across, as smooth as it needs. */
 export const plainOf = (seed: string, palette: Palette): Shown => ({
   seed,
   palette,
   effect: null,
-  view: {
-    style: "linearGradient",
-    steps: Math.max(DEFAULT_STEPS, palette.anchors.length),
-    angle: 90
-  }
+  view: { style: "linearGradient", steps: smoothSteps(palette), angle: 90 }
 });
 
 /** The look a palette is shown in. */
@@ -76,7 +113,7 @@ export const lookOf = (s: Shown): Look => {
   return "gradient";
 };
 
-/** The palette in a look as a part named `name` shows it: a gradient at the default steps, bands as many as the seed
+/** The palette in a look as a part named `name` shows it: a gradient as smooth as it needs, bands as many as the seed
     picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings, which have none,
     at the default's; the glass and the blob at the page's one angle for each, the blob in its palette's shape. */
 export function inLook(seed: string, palette: Palette, look: Look, name: string, turn = 0): Shown {
@@ -106,7 +143,7 @@ export function inLook(seed: string, palette: Palette, look: Look, name: string,
     effect: null,
     view: {
       style: STYLES[look],
-      steps: Math.max(keyframes, look === "gradient" ? DEFAULT_STEPS : bands),
+      steps: look === "gradient" ? smoothSteps(palette) : Math.max(keyframes, bands),
       angle: look === "rings" ? 90 : angleFor(name, turn)
     }
   };
