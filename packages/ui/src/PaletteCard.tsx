@@ -130,6 +130,8 @@ export interface PaletteCardProps {
   glow?: { stops: readonly string[]; style: Style; angle: number } | null;
   /** a style previewed on every card: the gradient shows over the picture, which stays as it is under it */
   peek?: boolean;
+  /** the card's element, for a list that watches where it stands */
+  ref?: (el: HTMLElement) => void;
 }
 
 /** One palette in a list: its picture, then its age and its like. Hover or focus inside the picture lights a blurred
@@ -197,6 +199,7 @@ export function PaletteCard(props: PaletteCardProps) {
   };
   return (
     <article
+      ref={el => props.ref?.(el)}
       class={styles.card}
       aria-label={t(props.removed ? msg("{name} palette, removed") : msg("{name} palette"), {
         name: props.name

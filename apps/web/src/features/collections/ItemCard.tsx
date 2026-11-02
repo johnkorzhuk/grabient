@@ -25,6 +25,7 @@ import {
   shownEffect
 } from "../list/appearance.ts";
 import { createCardEffect } from "../list/card-effect.tsx";
+import { createSight } from "../list/sight.ts";
 import { type UseAt, type UsePlace, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { rememberOpening } from "./navigation.ts";
@@ -62,7 +63,13 @@ export function ItemCard(props: {
   const look = useContext(AppearanceContext)!;
   const navigate = useNavigate();
   const shown = createMemo(() => drawnIn(props.own, props.view));
-  const picture = createMemo(() => picturedAs(props.own, props.view, look.draft(), look.peek()));
+  /* out of sight, the card keeps the page's view while one is set and takes it with the address */
+  const sight = createSight();
+  const picture = createMemo(() =>
+    sight.inSight()
+      ? picturedAs(props.own, props.view, look.draft(), look.peek())
+      : picturedAs(props.own, props.view, null, null)
+  );
   const seed = () => props.own.seed;
   const words = () => cardWords(shown(), props.words);
   const href = () => paletteHref(shown(), props.view.size, props.view.effect);
@@ -72,8 +79,8 @@ export function ItemCard(props: {
   const effect = createCardEffect({
     seed,
     angle: () => picture().angle,
-    effect: () => shownEffect(props.view, look.draft(), null),
-    peek: () => look.peek() !== null,
+    effect: () => shownEffect(props.view, sight.inSight() ? look.draft() : null, null),
+    peek: () => sight.inSight() && look.peek() !== null,
     name
   });
   const take = cardTakings({
@@ -102,6 +109,7 @@ export function ItemCard(props: {
   };
   return (
     <PaletteCard
+      ref={sight.ref}
       seed={seed()}
       name={name()}
       stops={hexesOf(picture())}

@@ -15,6 +15,7 @@ import { openedFrom } from "../editor/address.ts";
 import { askFacts } from "../editor/page.ts";
 import { AppearanceContext, cardEffect, drawnIn, shownEffect } from "../list/appearance.ts";
 import { createCardEffect } from "../list/card-effect.tsx";
+import { createSight } from "../list/sight.ts";
 import { type UseAt, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { askCredit, creditName, creditOf } from "./credit.ts";
@@ -49,8 +50,12 @@ export function GalleryCard(props: {
   const look = useContext(AppearanceContext)!;
   const seed = () => props.item.kseed;
   const shown = createMemo(() => drawnIn(ownOf(props.item), page.params()));
+  /* out of sight, the card keeps the address's view while one is set and takes it with the address */
+  const sight = createSight();
   const picture = createMemo(() =>
-    picturedAs(ownOf(props.item), page.params(), look.draft(), look.peek())
+    sight.inSight()
+      ? picturedAs(ownOf(props.item), page.params(), look.draft(), look.peek())
+      : picturedAs(ownOf(props.item), page.params(), null, null)
   );
   const path = () => paletteHref(shown(), page.params().size, page.params().effect);
   const similar = () => similarHref(seed());
@@ -60,8 +65,8 @@ export function GalleryCard(props: {
   const effect = createCardEffect({
     seed,
     angle: () => picture().angle,
-    effect: () => shownEffect(page.params(), look.draft(), null),
-    peek: () => look.peek() !== null,
+    effect: () => shownEffect(page.params(), sight.inSight() ? look.draft() : null, null),
+    peek: () => sight.inSight() && look.peek() !== null,
     name
   });
   onSettled(() => {
@@ -92,6 +97,7 @@ export function GalleryCard(props: {
 
   return (
     <PaletteCard
+      ref={sight.ref}
       seed={seed()}
       name={name()}
       stops={hexesOf(picture())}
