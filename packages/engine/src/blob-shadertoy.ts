@@ -200,6 +200,9 @@ const int T_WEIGHTS = ${T.weights}; // the blur's ${BLOB_WEIGHTS} weights
 const int T_BALLS = ${T.balls};   // each ball: its middle in the melt's texels, and its radius
 const int STATE = ${STATE};
 vec2 state(sampler2D a, int i) { return texelFetch(a, ivec2(i, 0), 0).ba; }
+// n as a count no compiler can see (iResolution.z is 1), so it keeps a program's long loop a loop rather than
+// writing its body out step by step: D3D11's compiler took longer over Buffer A with the counts in sight
+int steps(int n) { return n * int(iResolution.z); }
 // as the player's half-float texture keeps it
 vec4 half4(vec4 v) { return vec4(unpackHalf2x16(packHalf2x16(v.xy)), unpackHalf2x16(packHalf2x16(v.zw))); }
 float weight(sampler2D a, int i) {
@@ -318,7 +321,7 @@ vec2 stateTexel(int i) {
   } else {
 ${pad(run.registers, "    ")}
 ${pad(inputs, "    ")}
-    int to = !ball && !clock && i >= T_WEIGHTS ? ${range("weights").to} : ${range("layout").to};
+    int to = steps(!ball && !clock && i >= T_WEIGHTS ? ${range("weights").to} : ${range("layout").to});
 ${pad(run.loop(`${range("layout").from}`, "to"), "    ")}
     if (!ball && !clock) {
 ${pad(layoutOut, "      ")}
@@ -329,7 +332,7 @@ ${LAYOUT_DOUBLES.map((name, k) => `    made[${k}] = R[${at(name)}];`).join("\n")
   float x = iTime * ${glslFloat(BLOB_GRID_HZ)}, grid = floor(x + 0.5);
 ${pad(tick.registers, "  ")}
 ${pad(clockInputs, "  ")}
-${pad(tick.loop("0", `${ticks.code.length}`), "  ")}
+${pad(tick.loop("0", `steps(${ticks.code.length})`), "  ")}
   if (i == T_FLAGS) return vec2(dToFloat(CR[${atClock("draw")}]), dToFloat(CR[${atClock("paceSetOut")}]));
   if (clock) {
     int k = (i - T_CLOCK) / 2;

@@ -293,7 +293,8 @@ export const PLACE = (() => {
 })();
 
 /** A ball's place in fixed point, as GLSL: blobPlaces with the player's draw into the melt's texels, from the share of
-    the loop as a Q52 number. Reads the scene's numbers from BLOBS, BLOB_LAPS, BALLS and BALL_LAPS (Q52). */
+    the loop as a Q52 number. Reads the scene's numbers from BLOBS, BLOB_LAPS, BALLS and BALL_LAPS (Q52), and runs its
+    steps by steps(n), a count the compiler cannot see (Common's in the Shadertoy text). */
 export function glslFixedPlace(lit: (x: number, f?: number) => string = fixedLit): string {
   const R = PLACE.reg;
   const rows = (items: string[], per: number) =>
@@ -350,7 +351,7 @@ vec3 placeFrame(uvec2 at, int which, uvec2 made[7]) {
   ivec2 own = BALL_LAPS[which];
   ivec4 to0 = ivec4(sineOf(laps.z), sineOf(laps.x), sineOf(laps.y), PLACE_COSINES[abs(own.x) - 1]);
   ivec4 to1 = ivec4(sineOf(own.x), laps.w < 0 ? ${R.n1} : ${R.s1}, own.y != 0 ? ${R.Xr} : ${R.x}, own.y != 0 ? ${R.Yr} : ${R.y});
-  for (int pc = 0; pc < ${PLACE.code.length}; pc++) {
+  for (int pc = 0; pc < steps(${PLACE.code.length}); pc++) {
     uint ins = PLACE_CODE[pc];
     uint op = ins & 7u;
     int a = int((ins >> 10) & 127u), b = int(ins >> 17);
