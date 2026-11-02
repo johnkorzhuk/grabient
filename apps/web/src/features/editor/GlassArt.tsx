@@ -17,6 +17,8 @@ import {
 const REST_MS = 120;
 /** How long a picture shown waits for its first paint before the GPU's still is made ready. */
 const TILE_WAIT_MS = 1000;
+/** How long a picture out of the window waits for its palette, angle or shape to rest before its still is drawn. */
+const AWAY_MS = 300;
 
 /* A GPU still costs a few milliseconds, more where its ribs are laid out for another angle or box: a frame draws those
    it has time for and the rest wait for the next, so a page of cards never draws them all in one task. */
@@ -54,7 +56,8 @@ function inTime(draw: () => void): () => void {
     its colors where they lie without the ribs, which the server painted where it drew the page, and the still fades
     in over it; one drawn at once takes the box's place in a frame. A page of them draws a few a frame, and only those
     within a screen of the window. At once as the box comes into sight, and after that as the palette, the angle or
-    the shape changes. A tile made before its menu opens draws nothing until the menu shows it. */
+    the shape changes, those out of the window once the change rests. A tile made before its menu opens draws nothing
+    until the menu shows it. */
 export function GlassArt(props: {
   colors: readonly string[];
   angle: number;
@@ -84,6 +87,8 @@ export function GlassArt(props: {
   const [box, setBox] = createSignal("");
   /* within a screen of the window: a card far down a long page draws nothing, and gives its still back once far */
   const [near, setNear] = createSignal(true);
+  /* in the window itself: one near it keeps its still while a change goes on, and takes the last once it rests */
+  const [inView, setInView] = createSignal(true);
   onSettled(() => {
     const sizes = new ResizeObserver(() => {
       setSeen(el.clientWidth > 0 && el.clientHeight > 0);
@@ -95,9 +100,14 @@ export function GlassArt(props: {
       { rootMargin: "100% 0px" }
     );
     sight.observe(el);
+    const view = new IntersectionObserver(entries =>
+      setInView(entries[entries.length - 1].isIntersecting)
+    );
+    view.observe(el);
     return () => {
       sizes.disconnect();
       sight.disconnect();
+      view.disconnect();
     };
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -195,7 +205,8 @@ export function GlassArt(props: {
             colors: props.colors,
             angle: props.angle,
             shape: props.shape ?? null,
-            at: box()
+            at: box(),
+            shown: inView()
           }
         : null,
     next => {
@@ -234,7 +245,11 @@ export function GlassArt(props: {
         return;
       }
       const wait = drawnAt + REST_MS - performance.now();
-      if (was || wait <= 0) request(colors, angle, shape, named);
+      if (was) request(colors, angle, shape, named);
+      /* a picture near the window but out of it draws no still nobody sees while the hand moves: the last change once
+         it rests, or at once as the picture comes into the window */
+      else if (!next.shown) timer = setTimeout(() => request(colors, angle, shape, named), AWAY_MS);
+      else if (wait <= 0) request(colors, angle, shape, named);
       else timer = setTimeout(() => request(colors, angle, shape, named), wait);
     }
   );
