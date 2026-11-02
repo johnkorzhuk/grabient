@@ -24,7 +24,8 @@ import { effectHtml, type Taken } from "./formats.ts";
 
 /* the glass as shader code, each kind's module asked for once its spelling shows in the Shader tab: Shadertoy's tabs
    (engine/glass-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts), the WGSL or its WebGPU page
-   (glass-webgpu.ts). The effect's code carries only the tab's spellings. */
+   (glass-webgpu.ts). The effect's code carries only the tab's spellings, and the Worker's build none of them: a server
+   never writes a shader, and its ask waits for ever. */
 type GlassWriter = (
   kind: ShaderKind,
   P: Palette,
@@ -35,19 +36,28 @@ type GlassWriter = (
 ) => string;
 const GLASS_SHADER_PARTS = {
   shadertoy: () =>
-    import("@grabient/engine/glass-shadertoy.ts").then(
+    (import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/engine/glass-shadertoy.ts")
+    ).then(
       (m): GlassWriter =>
         (_, ...rest) =>
           m.glassShadertoyText(...rest)
     ),
   webgl: () =>
-    import("@grabient/engine/glass-webgl.ts").then(
+    (import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/engine/glass-webgl.ts")
+    ).then(
       (m): GlassWriter =>
         (kind, ...rest) =>
           m.glassWebgl(kind as "glsl" | "webgl", ...rest)
     ),
   webgpu: () =>
-    import("@grabient/engine/glass-webgpu.ts").then(
+    (import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/engine/glass-webgpu.ts")
+    ).then(
       (m): GlassWriter =>
         (kind, ...rest) =>
           m.glassWebgpu(kind as "wgsl" | "webgpu", ...rest)

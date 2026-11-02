@@ -34,6 +34,7 @@ const source = (id: string) => sources().find(s => s.id === id)!;
 afterEach(() => {
   setColorFormat("oklch");
   flush();
+  vi.unstubAllEnvs();
 });
 
 test("CSS and Colors open in the spelling the reader chose in Settings", () => {
@@ -127,6 +128,8 @@ test("while an effect plays, the pane holds its code in the gradient's place, th
 });
 
 test("the glass's Shader tab writes each spelling with the engine's own writer, each loaded as it shows", async () => {
+  /* the browser's: a server's build never loads a shader's writers */
+  vi.stubEnv("SSR", false);
   await tabsIn();
   const P = decodePalette(SEED)!;
   const glass = parseEffect(new URLSearchParams("style=glass&shape=12&speed=2"))!;
