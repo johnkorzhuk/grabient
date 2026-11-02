@@ -20,7 +20,7 @@ import {
   RESOURCE_METADATA_PATH,
   resourceServer
 } from "../oauth/server.ts";
-import { readArgs } from "./args.ts";
+import { type ArgsRead, readArgs } from "./args.ts";
 import { instructions, serverInfo, type Tier } from "./info.ts";
 import {
   BAD_PARAMS,
@@ -37,6 +37,7 @@ import {
 } from "./protocol.ts";
 import { readSkill, SKILL_RESOURCE, SKILLS_EXTENSION, skillsGet, skillsList } from "./skill.ts";
 import {
+  answer as answerOf,
   type Grant,
   LIMITER_DOWN,
   limitWords,
@@ -282,7 +283,12 @@ async function answer(request: Request, env: Env, ctx: McpContext): Promise<Resp
       ]
     : mcpListLimits(env, who);
   const allowed = await timings.time("limiter", () => checkLimits(env, checks));
-  if (!allowed?.success) {
+  /* the limiter out of reach for a moment: a read goes on, as an app's connecting and listing do, since a refusal is
+     an error the app counts against the server and a read changes nothing; a write still waits for it, its allowances
+     being what keeps the site's day */
+  const goesOn = !allowed && (!calls || readsOnly(params.name, admin));
+  if (goesOn) console.warn("mcp: the limiter could not answer; a read went on");
+  if (!allowed?.success && !goesOn) {
     // the limit's own words, or that the limiter could not answer: never too many requests when it may not be so
     const words = allowed ? limitWords(allowed) : LIMITER_DOWN;
     if (calls) return toolResult(refuse(words));
@@ -355,7 +361,7 @@ async function answer(request: Request, env: Env, ctx: McpContext): Promise<Resp
         ? (params.arguments as Record<string, unknown>)
         : {};
     // an account's tool is handed its arguments read as its schema says; an admin's reads its own
-    const read = own ? readArgs(tool.inputSchema, args) : { args };
+    const read: ArgsRead = own ? readArgs(tool.inputSchema, args) : { args, notes: [] };
     const c: ToolContext = {
       env,
       ctx: ctx.worker,
@@ -371,15 +377,53 @@ async function answer(request: Request, env: Env, ctx: McpContext): Promise<Resp
           host: ctx.props.host
         })
     };
-    return toolResult(
-      "error" in read
-        ? counted(env, tier, name, grant, refuse(read.error))
-        : await run(tool, read.args, c, tier, timings)
-    );
+    if ("error" in read) return toolResult(counted(env, tier, name, grant, refuse(read.error)));
+    // a palette no seed or address reads is answered as one nothing has, never refused
+    if ("unknown" in read) {
+      countUsage(env, "mcp", tier, name, "unknown", MCP_PATH, grant.clientName);
+      const unchanged = tool.hints.readOnly ? "" : " Nothing was changed.";
+      return toolResult(answerOf({ found: false, note: `${read.unknown} ${FINDING}${unchanged}` }));
+    }
+    return toolResult(withNotes(await run(tool, read.args, c, tier, timings), read.notes));
   }
   return fail(
     failure(id, NO_METHOD, `Method not found: ${method.slice(0, 80)}`, modern ? 404 : 200)
   );
+}
+
+/** How long a failed read waits before it is run again, at least: up to twice this. */
+const AGAIN_MS = 250;
+
+/** What a call that named no palette is told it can do instead. */
+const FINDING =
+  "search_palettes finds palettes by words, colors or a palette's seed, and compose_palette makes one from hex colors.";
+
+/** Whether the tool a call names only reads: what goes on while the limiter cannot answer. */
+function readsOnly(name: unknown, admin: boolean): boolean {
+  const tool =
+    accountTools.find(candidate => candidate.name === name) ??
+    (admin ? adminTools.find(candidate => candidate.name === name) : undefined);
+  return !!tool?.hints.readOnly;
+}
+
+/** A tool's answer with what reading its arguments said of them, in the answer's own `note` where it is an object. */
+function withNotes(result: ToolResult, notes: readonly string[]): ToolResult {
+  if (!notes.length) return result;
+  const said = notes.join(" ");
+  const [first, ...rest] = result.content;
+  if (first?.type !== "text")
+    return { ...result, content: [...result.content, { type: "text", text: said }] };
+  let value: unknown = null;
+  try {
+    value = JSON.parse(first.text);
+  } catch {
+    // words, not an object
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return { ...result, content: [{ ...first, text: `${first.text}\n\n${said}` }, ...rest] };
+  const own = (value as { note?: unknown }).note;
+  const note = typeof own === "string" && own ? `${said} ${own}` : said;
+  return { ...result, content: [{ ...first, text: JSON.stringify({ ...value, note }) }, ...rest] };
 }
 
 const counted = (env: Env, tier: Tier, name: string, grant: Grant, result: ToolResult) => {
@@ -396,15 +440,23 @@ async function run(
   tier: Tier,
   timings: Timings
 ) {
+  const once = async () =>
+    counted(c.env, tier, tool.name, c.grant, await timings.time("tool", () => tool.run(args, c)));
   try {
-    return counted(
-      c.env,
-      tier,
-      tool.name,
-      c.grant,
-      await timings.time("tool", () => tool.run(args, c))
-    );
-  } catch (error) {
+    return await once();
+  } catch (first) {
+    /* a tool that only reads, or whose call again finds it done, is run once more a moment later: the database busy or
+       dropped for a moment (D1's "overloaded" and "internal error", which its own reads do not ask again) answers then,
+       and the app never sees the blip */
+    let error = first;
+    if (tool.hints.readOnly || tool.hints.idempotent) {
+      await new Promise(resolve => setTimeout(resolve, AGAIN_MS + Math.random() * AGAIN_MS));
+      try {
+        return await once();
+      } catch (again) {
+        error = again;
+      }
+    }
     countUsage(c.env, "mcp", tier, tool.name, "failed", MCP_PATH, c.grant.clientName);
     console.error(
       "mcp: a tool failed",

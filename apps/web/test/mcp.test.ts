@@ -287,7 +287,7 @@ describe("the MCP server's door", () => {
     expect((await rpc(env, token, "tools/list")).response.status).toBe(200);
   });
 
-  it("refuses a listing past its minute with the wait, and both kinds of request while the limiter cannot answer", async () => {
+  it("refuses a listing past its minute with the wait, and lets a listing and a read go on while the limiter cannot answer", async () => {
     const env = testEnv();
     const { account, token } = await connected(env);
     const who = `mcp:${account.id}`;
@@ -300,17 +300,16 @@ describe("the MCP server's door", () => {
       )
     ]);
     expect(Number(listing.response.headers.get("Retry-After"))).toBeGreaterThan(0);
-    /* a production deploy without its limiter refuses as one whose limiter fails, and a listing asks it once the
-       account's free listings of the day are spent */
+    /* a production deploy without its limiter answers as one whose limiter fails, and a listing asks it once the
+       account's free listings of the day are spent: a listing and a read go on, as a refusal would be an error the
+       app counts against the server, and a write waits for the limiter, whose allowances keep the site's day */
     const down = testEnv({ DEPLOYMENT: "production", RATE_LIMITER: undefined });
     await checkLimits(down, [[who, "mcpListFree", 200]]);
     const unanswered = await rpc(down, token, "tools/list");
-    expect([
-      unanswered.response.status,
-      unanswered.body,
-      unanswered.response.headers.get("Retry-After")
-    ]).toEqual([503, { error: "The limiter could not be reached. Try again shortly." }, "5"]);
-    expect((await call(down, token, "get_account")).error).toBe(
+    expect(unanswered.response.status).toBe(200);
+    expect(unanswered.body?.result.tools.length).toBeGreaterThan(0);
+    expect((await call(down, token, "get_account")).error).toBeNull();
+    expect((await call(down, token, "save_palette", { seed: SEED })).error).toBe(
       "The limiter could not be reached. Try again shortly."
     );
   });
@@ -404,9 +403,12 @@ describe("the protocol", () => {
     expect(
       (await rpc(env, token, "resources/read", { uri: "ui://grabient/v9/none.html" })).body?.error
     ).toEqual(golden.missingResource);
-    expect((await call(env, token, "search_palettes", { order: "trending" })).result).toEqual(
-      golden.argsRefusal
-    );
+    // only what a tool cannot do without is refused; a word an enum reads otherwise is read, and said so
+    expect((await call(env, token, "get_collection", {})).result).toEqual(golden.argsRefusal);
+    expect((await call(env, token, "search_palettes", { order: "trending" })).value).toMatchObject({
+      order: "rising",
+      note: 'order "trending" was read as rising.'
+    });
   });
 
   it("serves the skill with the digest and size of the bytes it reads", async () => {
@@ -520,12 +522,17 @@ describe("the tools", () => {
       await call(env, token, "adjust_palette", { seed: card.seed, variants: [{ reverse: true }] })
     ).value;
     expect(changed.palettes[0].colors).toEqual(["#4cc9f0", "#0052ff", "#050b2e"]);
-    expect(
-      (await call(env, token, "adjust_palette", { seed: card.seed, variants: [{ lighten: 70 }] }))
-        .error
-    ).toBe(
-      "variant 1: lighten is -1 to 1, the share of the way to white, or below 0 to black: 70 was sent, and 70% is 0.7."
-    );
+    const unmade = await call(env, token, "adjust_palette", {
+      seed: card.seed,
+      variants: [{ lighten: 70 }]
+    });
+    expect(unmade.error).toBeNull();
+    expect(unmade.value.palettes).toEqual([
+      {
+        error:
+          "variant 1: lighten is -1 to 1, the share of the way to white, or below 0 to black: 70 was sent, and 70% is 0.7."
+      }
+    ]);
     // a variant or a palette that cannot be made stands in its place with the reason, and the rest are made
     const some = (
       await call(env, token, "adjust_palette", {
@@ -549,15 +556,27 @@ describe("the tools", () => {
       error: 'palette 1: Color 2 is "nope", and a color is taken as hex: #rrggbb or #rgb.'
     });
     expect(mixed.palettes[1].colors).toEqual(["#000000", "#ffffff"]);
-    // a call none of whose can be made is refused with every reason
+    // a call none of whose can be made is answered with every reason, never refused
+    const none = await call(env, token, "adjust_palette", {
+      seed: card.seed,
+      variants: [{ lighten: 2 }, { warmth: 5 }]
+    });
+    expect(none.error).toBeNull();
+    expect(none.value.note).toMatch(
+      /^None of these could be made\. variant 1: lighten is -1 to 1.* variant 2: warmth is -1 to 1/
+    );
+    // a palette no seed or address reads is answered as one nothing has
     expect(
       (
         await call(env, token, "adjust_palette", {
-          seed: card.seed,
-          variants: [{ lighten: 2 }, { warmth: 5 }]
+          seed: "kNotASeed",
+          variants: [{ reverse: true }]
         })
-      ).error
-    ).toMatch(/^variant 1: lighten is -1 to 1.* variant 2: warmth is -1 to 1/);
+      ).value
+    ).toEqual({
+      found: false,
+      note: "seed \"kNotASeed\" is no palette's seed or address. search_palettes finds palettes by words, colors or a palette's seed, and compose_palette makes one from hex colors."
+    });
   });
 
   it("name what a collection change put in or took out by address, each view of a palette apart", async () => {
@@ -645,8 +664,11 @@ describe("the tools", () => {
       "name is needed: The set's name, 1 to 80 characters: the title of a collection saved from it."
     );
     expect(
-      (await call(env, plain.token, "show_palettes", { name: "   ", palettes: [SEED] })).error
-    ).toBe("name is 1 to 80 characters.");
+      (await call(env, plain.token, "show_palettes", { name: "   ", palettes: [SEED] })).value
+    ).toMatchObject({
+      name: "Palettes",
+      note: "name had no words, so the set is called Palettes."
+    });
   });
 
   it("show palettes as words with each picture's address to every app while the view is off, and still serve it", async () => {
@@ -699,8 +721,11 @@ describe("the tools", () => {
       style: "linearSwatches",
       note: "It was saved before and keeps the view it was first saved in."
     });
-    expect((await call(env, token, "save_palette", { seed: SEED, title: "" })).error).toBe(
-      "title is 1 to 80 characters."
+    expect((await call(env, token, "save_palette", { seed: SEED, title: "" })).value).toMatchObject(
+      {
+        saved: true,
+        note: "title had no words, so the palette keeps its name."
+      }
     );
   });
 
@@ -789,9 +814,11 @@ describe("the tools", () => {
       seeds[0]!
     );
     expect((await call(env, token, "get_account")).value).toMatchObject({ saved: 1200 });
-    expect((await call(env, token, "list_saved_palettes", { after: "page 2" })).error).toBe(
-      "after is the `next` of an earlier answer."
+    const anew = (await call(env, token, "list_saved_palettes", { after: "page 2" })).value;
+    expect(anew.note).toBe(
+      "after was not the `next` of an earlier answer, so this reads from the newest."
     );
+    expect(anew.palettes).toHaveLength(24);
   });
 
   it("say which words only the search model read, and that its answer to them is a guess", async () => {
@@ -857,9 +884,13 @@ describe("the tools", () => {
     const near = (await call(env, token, "search_palettes", { colors: ["#ff0000", "0000ff"] }))
       .value;
     expect(near.palettes).toHaveLength(12);
-    expect((await call(env, token, "search_palettes", { colors: ["red"] })).error).toBe(
-      'color 1 is "red", and a color is taken as hex: #rrggbb or #rgb.'
-    );
+    expect((await call(env, token, "search_palettes", { colors: ["red"] })).value).toEqual({
+      total: 0,
+      page: 1,
+      limit: 12,
+      palettes: [],
+      note: '"red" is no hex color (#rrggbb or #rgb), so the search left it out.'
+    });
     // one color asked for by its name or its hex answers its codes, as its page shows them
     expect(
       (await call(env, token, "search_palettes", { query: "burgundy", limit: 1 })).value.color
@@ -880,9 +911,9 @@ describe("the tools", () => {
       page: 1,
       limit: 12
     });
-    expect((await call(env, token, "search_palettes", { query: "w ".repeat(60) })).error).toBe(
-      "query is at most 100 characters of words or hex codes."
-    );
+    expect(
+      (await call(env, token, "search_palettes", { query: "w ".repeat(60) })).value.note
+    ).toMatch(/^query takes 100 characters at most: "(w ){49}w" was searched\./);
     // words nothing here reads, on a deploy with no model to ask
     expect(
       (await call(env, token, "search_palettes", { query: "zzqxv flurbish" })).value
@@ -1068,9 +1099,10 @@ describe("the tools", () => {
       expect.arrayContaining(["collectionWriteDaily", "mcpCollectionWritesSite"])
     );
     expect(watched.asked).not.toContain("collectionWritesSite");
-    expect((await call(env, token, "save_collection", { palettes: [{ seed: a }] })).error).toBe(
-      "Titles are 1 to 80 characters."
-    );
+    expect((await call(env, token, "save_collection", { palettes: [{ seed: a }] })).value).toEqual({
+      changed: false,
+      note: "Titles are 1 to 80 characters. Nothing was changed."
+    });
     expect((await call(env, token, "get_account")).value).toMatchObject({ collections: 1 });
     const changed = (
       await call(env, token, "save_collection", {
@@ -1126,8 +1158,11 @@ describe("the tools", () => {
       [c, "linearGradient"]
     ]);
     expect(
-      (await call(env, token, "save_collection", { slug: changed.slug, remove: [b, c] })).error
-    ).toBe("This would empty the collection, and a collection keeps at least one palette.");
+      (await call(env, token, "save_collection", { slug: changed.slug, remove: [b, c] })).value
+    ).toEqual({
+      changed: false,
+      note: "This would empty the collection, and a collection keeps at least one palette, so nothing was changed. delete_collection deletes it."
+    });
     const mine = (await call(env, token, "list_my_collections")).value;
     expect(mine).toMatchObject({ total: 1, collections: [{ slug: changed.slug, palettes: 2 }] });
     expect((await call(env, token, "get_collection", { slug: changed.slug })).value).toMatchObject({
@@ -1137,21 +1172,32 @@ describe("the tools", () => {
     });
     // a private collection is its owner's alone
     const other = await connected(env);
-    expect((await call(env, other.token, "get_collection", { slug: changed.slug })).error).toBe(
-      "No collection of yours and no public one has this address."
-    );
-    for (const [tool, args] of [
-      ["save_collection", { slug: changed.slug, title: "Theirs" }],
-      ["delete_collection", { slug: changed.slug }]
-    ] as const)
-      expect((await call(env, other.token, tool, args)).error).toBe(
-        "No collection of yours has this address."
-      );
+    expect(
+      (await call(env, other.token, "get_collection", { slug: changed.slug })).value
+    ).toMatchObject({
+      found: false,
+      slug: changed.slug,
+      note: "No collection of yours and no public one has this address. search_collections finds collections by words, and list_my_collections lists the account's own."
+    });
+    expect(
+      (await call(env, other.token, "save_collection", { slug: changed.slug, title: "Theirs" }))
+        .value
+    ).toEqual({
+      changed: false,
+      note: "No collection of yours has this address, so nothing was changed. list_my_collections lists the account's own, and save_collection without a slug makes a new one."
+    });
+    const nothing = {
+      deleted: null,
+      note: "No collection of yours has this address, so nothing was deleted. list_my_collections lists the account's own."
+    };
+    expect(
+      (await call(env, other.token, "delete_collection", { slug: changed.slug })).value
+    ).toEqual(nothing);
     expect(
       (await call(env, token, "delete_collection", { slug: `${ORIGIN}/${changed.slug}/` })).value
     ).toEqual({ deleted: changed.slug });
-    expect((await call(env, token, "delete_collection", { slug: changed.slug })).error).toBe(
-      "No collection of yours has this address."
+    expect((await call(env, token, "delete_collection", { slug: changed.slug })).value).toEqual(
+      nothing
     );
   });
 
@@ -2145,5 +2191,91 @@ describe("a palette's own words in an account's collection", () => {
       ["Momiji", true, undefined],
       ["Hallowe'en Night", true, undefined]
     ]);
+  });
+});
+
+/* What a connected app meets is an answer, never an error it would count against the server (Claude's directory weighs
+   both): a database busy for a moment, as D1's "overloaded" was for a quarter hour on 2 Nov 2026, and a model's slips. */
+describe("an app's call, through a busy moment and a model's slips", () => {
+  /** The database with the statements `fails` names failing their first `times` asks, as a busy D1 answers them. */
+  const busy = (env: TestEnv, fails: (sql: string) => boolean, times: number): TestEnv => {
+    let left = times;
+    const DB = new Proxy(env.DB, {
+      get(target, name) {
+        if (name === "prepare")
+          return (sql: string) => {
+            if (fails(sql) && left > 0) {
+              left--;
+              throw new Error("D1_ERROR: D1 DB is overloaded. Requests queued for too long.");
+            }
+            return target.prepare(sql);
+          };
+        const value = Reflect.get(target, name);
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+    });
+    return { ...env, DB };
+  };
+  const roles = (sql: string) => sql.includes("SELECT role FROM auth_user");
+
+  it("goes on when the role cannot be read: as the role last read, else as an account, never an admin", async () => {
+    const env = testEnv();
+    const { token } = await connected(env, { admin: true });
+    const down = busy(env, roles, 1000);
+    // an account no role was read for here goes on with the account's tools alone
+    const unread = await rpc(down, token, "tools/list");
+    expect(unread.response.status).toBe(200);
+    expect(unread.body?.result.tools).toHaveLength(13);
+    expect((await call(down, token, "get_account")).error).toBeNull();
+    // read once, the role stands while the database cannot answer
+    const read = (await rpc(env, token, "tools/list")).body?.result.tools;
+    expect(read.length).toBeGreaterThan(13);
+    expect((await rpc(down, token, "tools/list")).body?.result.tools).toHaveLength(read.length);
+  });
+
+  it("asks a read once more a moment later, so the app never sees the blip", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const once = busy(env, sql => sql.includes("FROM k_collections"), 1);
+    const listed = await call(once, token, "list_my_collections");
+    expect(listed.error).toBeNull();
+    expect(listed.value).toMatchObject({ total: 0, collections: [] });
+  });
+
+  it("answers a model's slips and says what it read: names a tool does not take, a style's plain name, a palette nothing has, a tag too short", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const inspected = (
+      await call(env, token, "inspect_palettes", {
+        palettes: [{ seed: SEED, style: "Radial", colour: "red" }, "k-nope"],
+        verbose: true
+      })
+    ).value;
+    expect(inspected.palettes).toHaveLength(1);
+    expect(inspected.palettes[0].style).toBe("radialGradient");
+    for (const said of [
+      'palette 1: style "Radial" was read as radialGradient.',
+      'palette 1: "colour" is not a name this takes, so it was left out',
+      `palette 2: seed "k-nope" is no palette's seed or address. It was left out.`,
+      '"verbose" is not a name this takes, so it was left out: it takes palettes.'
+    ])
+      expect(inspected.note).toContain(said);
+    // every palette left out leaves an empty answer, never a refusal
+    expect(
+      (await call(env, token, "inspect_palettes", { palettes: ["k-nope"] })).value
+    ).toMatchObject({ palettes: [] });
+    const made = await call(env, token, "save_collection", {
+      title: "Dusk",
+      tags: ["dusk", "x"],
+      palettes: [SEED]
+    });
+    expect(made.error).toBeNull();
+    expect(made.value.tags).toEqual(["dusk"]);
+    expect(made.value.note).toBe(
+      '"x" was left out: a collection takes up to 12 tags of 2 to 32 letters, digits, spaces or hyphens.'
+    );
+    expect(
+      (await call(env, token, "get_collection", { slug: made.value.slug })).value.tags
+    ).toEqual(["dusk"]);
   });
 });

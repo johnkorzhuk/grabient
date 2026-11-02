@@ -3,7 +3,7 @@ import {
   type OAuthResourceHandler,
   OAuthResourceServer
 } from "@cloudflare/workers-oauth-provider";
-import { accountRole } from "@grabient/server/auth/roles.ts";
+import { accountRole, type Role } from "@grabient/server/auth/roles.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { publicOrigin } from "../seo/site.ts";
@@ -97,10 +97,50 @@ export function authorizationServer(env: Env, origin: string): OAuthAuthorizatio
 
 const resourceServers = new Map<string, OAuthResourceServer<Env, McpProps>>();
 
+/* The role each account's calls were last read with in this isolate, and when, a few thousand accounts at most. A call
+   whose role the database cannot read, asked twice, stands on it: D1 busy for a moment ("overloaded", "internal error",
+   a dozen requests in a quarter hour on 2 Nov 2026) would turn a connected app's call into a 503, which Claude's directory counts
+   against the server. Read within ten minutes it stands as it was; else the call goes on as an account's, never an
+   admin's, whose tools wait for a role read fresh. A role read fresh decides whenever the database answers. */
+const lastRoles = new Map<string, { role: Role; at: number }>();
+const LAST_ROLES = 5000;
+const ROLE_STANDS_MS = 10 * 60_000;
+const ROLE_AGAIN_MS = 150;
+
+/** The account's role, read fresh, or what it stood as while the database cannot answer; null for no such account. */
+async function roleOf(env: Env, userId: string): Promise<Role | null> {
+  for (let tries = 1; ; tries++) {
+    try {
+      const role = await accountRole(env, userId);
+      lastRoles.delete(userId);
+      if (role) {
+        lastRoles.set(userId, { role, at: Date.now() });
+        if (lastRoles.size > LAST_ROLES) lastRoles.delete(lastRoles.keys().next().value!);
+      }
+      return role;
+    } catch (error) {
+      if (tries < 2) {
+        await new Promise(resolve =>
+          setTimeout(resolve, ROLE_AGAIN_MS + Math.random() * ROLE_AGAIN_MS)
+        );
+        continue;
+      }
+      const last = lastRoles.get(userId);
+      const role = last && Date.now() - last.at < ROLE_STANDS_MS ? last.role : "user";
+      console.warn(
+        "mcp: the role could not be read; the call goes on as",
+        role,
+        error instanceof Error ? error.message : error
+      );
+      return role;
+    }
+  }
+}
+
 /** The MCP server's resource server: its metadata, its challenge and the token check, then `handler`. The library
     checks the token, its audience and its expiry; the account must still exist, and its role is read with each call,
-    so a deleted account is refused at once and a role taken away ends the admin tools on the next call. A throw (the
-    database down) is the library's 503. */
+    so a deleted account is refused at once and a role taken away ends the admin tools on the next call. A database
+    that cannot answer leaves the call on the role it last stood as (roleOf), never the library's 503. */
 export function resourceServer(
   origin: string,
   handler: OAuthResourceHandler<Env, McpProps>
@@ -123,7 +163,7 @@ export function resourceServer(
             env
           );
           if (!valid?.userId) return null;
-          const role = await accountRole(env, valid.userId);
+          const role = await roleOf(env, valid.userId);
           if (!role) return null;
           return { ...valid, props: { ...valid.props, role } };
         },
