@@ -3,8 +3,8 @@
    in the same order, so a shader running them lands on the player's numbers.
      blobProgram  run as the canvas or the settings change, in two sections, each a range a texel runs:
        layout   the canvas's map, the filter region, the melt's box and the blur's taps, from its size; the look's
-                numbers that hang on the frost (the scatter, k1, k2, whether the noise is drawn), the ground's and a
-                ball's color; and the clock's settings: the speed, the ease and the frame rate's pace
+                numbers that hang on the frost (the scatter, k1, k2, whether the noise is drawn) and the ground's;
+                and the clock's settings: the speed, the ease and the frame rate's pace
        weights  the blur's weights: a Gaussian truncated at three deviations, each kept as a float, over their sum
      blobClock    run every frame: the player's tick, the frame's time, the ease from rest, the speed, the share of the
                   loop and the frame rate's pace, which decides whether the frame draws. A program of its own, so the
@@ -37,8 +37,8 @@ export const BLOB_INPUTS = {
   /* the settings, as whole numbers: hundredths of the speed, the frost and the ease; frames a second; the ground's
      bytes and whether there is one */
   settings: ["speed100", "fps", "frost100", "ease100", "bgR", "bgG", "bgB", "bgA", "bgOn"],
-  /* the scene's numbers the layout needs, and the bytes of the ball's color this texel keeps */
-  look: ["melt", "pad", "red", "green", "blue"]
+  /* the scene's numbers the layout needs */
+  look: ["melt", "pad"]
 } as const;
 /** The inputs a texel writes before it runs the clock, by name: Shadertoy's time as the nearest whole number of 240ths
     of a second, as it is (seconds) and whether it is that whole number's float; whether this is the first frame and
@@ -201,10 +201,6 @@ export function blobProgram(): DoubleProgram {
     for (const name of ["groundR", "groundG", "groundB", "groundA"] as const)
       p.pin(`${name}F`, p.f32(slot[name]));
     p.pin("invTexel", p.div(c(1), texel));
-    /* the ball's color as the player's Float32Array keeps it */
-    p.pin("tintR", p.f32(p.div(I.red, c(255))));
-    p.pin("tintG", p.f32(p.div(I.green, c(255))));
-    p.pin("tintB", p.f32(p.div(I.blue, c(255))));
     /* the clock's settings: the address's two decimals as the double they read as, and the pace's frame time and
        how early a frame may come (pace.ts), as each frame's due() computes them */
     p.pin("speed", p.div(I.speed100, c(100)));
