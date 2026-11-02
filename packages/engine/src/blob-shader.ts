@@ -15,12 +15,12 @@ import {
 import { BLOB_CLOCK, BLOB_MATH, blobSettings } from "./blob-page.ts";
 import { blobShadertoy } from "./blob-shadertoy.ts";
 import { BLOB_WGSL } from "./blob-wgsl.ts";
-import { type Effect, effectAddressParts } from "./effect.ts";
+import type { Effect } from "./effect.ts";
+import { effectPage } from "./effect-code.ts";
 import type { Palette } from "./palette.ts";
+import type { ShaderKind, ShaderPageKind } from "./shader-kinds.ts";
 
-export type BlobShaderKind = "shadertoy" | "glsl" | "wgsl" | "webgl" | "webgpu";
-
-const WHAT: Record<BlobShaderKind, string> = {
+const WHAT: Record<ShaderKind, string> = {
   shadertoy: "for Shadertoy, a section a tab, each tab's channels as its header says",
   glsl: "as GLSL ES 3.00, the WebGL page's shaders, a section a pass",
   wgsl: "as WGSL, the WebGPU page's modules, a section a pass",
@@ -28,22 +28,21 @@ const WHAT: Record<BlobShaderKind, string> = {
   webgpu: "drawn by WebGPU"
 };
 
-/** The credit each kind carries, so a text found later says where it came from: the seed, the effect's address where an
-    origin is given (its look and how it plays), and what the text is. Lines without their comment marks. */
+/** The credit each kind carries, as the gradient's shaders do (shader.ts shaderCredit), so a text found later says
+    where it came from: the seed, the effect's page where an origin is given (its address with how it plays), and what
+    the text is. Lines without their comment marks. */
 export function blobCredit(
-  kind: BlobShaderKind,
+  kind: ShaderKind,
   effect: Effect,
   angle: number,
   seed: string,
   origin?: string
 ): string[] {
-  const lines = [`grabient ${seed}`];
-  if (origin)
-    lines.push(
-      `${origin.replace(/\/$/, "")}/${seed}?${effectAddressParts(effect, angle).join("&")}`
-    );
-  lines.push(`the blob, the palette's balls melted and frosted, ${WHAT[kind]}`);
-  return lines;
+  return [
+    `grabient ${seed}`,
+    ...(origin ? [effectPage(origin, seed, effect, angle, true)] : []),
+    `the blob, the palette's balls melted and frosted, ${WHAT[kind]}`
+  ];
 }
 const comments = (lines: readonly string[]) =>
   lines.map(line => (line ? `// ${line}` : "//")).join("\n");
@@ -137,43 +136,6 @@ function play() {
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
     return p;
   };
-  const dots = program("dots-vs", "dots-fs");
-  const blur = program("cover-vs", "blur-fs");
-  const bake = program("cover-vs", "noise-fs");
-  const final = program("cover-vs", "final-fs");
-  // the melt in half floats where they can be drawn into, so its blur adds no rounding of its own
-  const half = !!(gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float"));
-  const at = (p, names) => Object.fromEntries(names.map(n => [n, gl.getUniformLocation(p, n)]));
-  const U = {
-    dots: at(dots, ["size"]),
-    blur: at(blur, ["source", "step_by", "taps", "weights"]),
-    bake: at(bake, ["lattice", "gradients", "scale", "offset", "frequency"]),
-    final: at(final, ["melt", "noise", "canvas_h", "melt_origin", "melt_texel", "region", "scatter", "frosted", "lift", "gray", "k", "ground"])
-  };
-
-  const quad = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
-  const instances = gl.createBuffer();
-  const dotsVao = gl.createVertexArray();
-  gl.bindVertexArray(dotsVao);
-  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, instances);
-  gl.enableVertexAttribArray(1);
-  gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 0);
-  gl.vertexAttribDivisor(1, 1);
-  gl.enableVertexAttribArray(2);
-  gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 32, 16);
-  gl.vertexAttribDivisor(2, 1);
-  const fullVao = gl.createVertexArray();
-  gl.bindVertexArray(fullVao);
-  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  gl.bindVertexArray(null);
-
   const texture = filter => {
     const t = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, t);
@@ -183,18 +145,12 @@ function play() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     return t;
   };
-  const melt = [0, 1].map(() => ({ texture: texture(gl.LINEAR), frame: gl.createFramebuffer() }));
-  const noise = { texture: texture(gl.NEAREST), frame: gl.createFramebuffer() };
-  const latticeTex = texture(gl.NEAREST);
-  const gradientTex = texture(gl.NEAREST);
 
   // The scene, its colors and its numbers, and the noise's tables.
   const scene = blobScene();
   const look = blobFilter(scene);
   const n = scene.blobs.reduce((sum, b) => sum + b.balls.length, 0);
   const data = new Float32Array(8 * n);
-  gl.bindBuffer(gl.ARRAY_BUFFER, instances);
-  gl.bufferData(gl.ARRAY_BUFFER, data.byteLength, gl.DYNAMIC_DRAW);
   let i = 0;
   for (const blob of scene.blobs)
     for (const b of blob.balls) {
@@ -207,11 +163,60 @@ function play() {
     }
   const ground = groundOf(BG);
   const { lattice, gradients } = noiseTables(look.seed);
-  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-  gl.bindTexture(gl.TEXTURE_2D, latticeTex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, 256, 1, 0, gl.RED_INTEGER, gl.UNSIGNED_BYTE, lattice);
-  gl.bindTexture(gl.TEXTURE_2D, gradientTex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, gradients);
+
+  // What the GPU holds, made at the start and again where a lost context comes back.
+  let dots, blur, bake, final, half, U, instances, dotsVao, fullVao, melt, noise, latticeTex, gradientTex;
+  let baked = false;
+  const make = () => {
+    dots = program("dots-vs", "dots-fs");
+    blur = program("cover-vs", "blur-fs");
+    bake = program("cover-vs", "noise-fs");
+    final = program("cover-vs", "final-fs");
+    // the melt in half floats where they can be drawn into, so its blur adds no rounding of its own
+    half = !!(gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float"));
+    const at = (p, names) => Object.fromEntries(names.map(n => [n, gl.getUniformLocation(p, n)]));
+    U = {
+      dots: at(dots, ["size"]),
+      blur: at(blur, ["source", "step_by", "taps", "weights"]),
+      bake: at(bake, ["lattice", "gradients", "scale", "offset", "frequency"]),
+      final: at(final, ["melt", "noise", "canvas_h", "melt_origin", "melt_texel", "region", "scatter", "frosted", "lift", "gray", "k", "ground"])
+    };
+    const quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+    instances = gl.createBuffer();
+    dotsVao = gl.createVertexArray();
+    gl.bindVertexArray(dotsVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, instances);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 0);
+    gl.vertexAttribDivisor(1, 1);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 32, 16);
+    gl.vertexAttribDivisor(2, 1);
+    fullVao = gl.createVertexArray();
+    gl.bindVertexArray(fullVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+    melt = [0, 1].map(() => ({ texture: texture(gl.LINEAR), frame: gl.createFramebuffer() }));
+    noise = { texture: texture(gl.NEAREST), frame: gl.createFramebuffer() };
+    latticeTex = texture(gl.NEAREST);
+    gradientTex = texture(gl.NEAREST);
+    gl.bindBuffer(gl.ARRAY_BUFFER, instances);
+    gl.bufferData(gl.ARRAY_BUFFER, data.byteLength, gl.DYNAMIC_DRAW);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.bindTexture(gl.TEXTURE_2D, latticeTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, 256, 1, 0, gl.RED_INTEGER, gl.UNSIGNED_BYTE, lattice);
+    gl.bindTexture(gl.TEXTURE_2D, gradientTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, gradients);
+    baked = false;
+  };
+  make();
 
   // The canvas at its size: the design's map, the filter region, the melt's texture and the blur's weights.
   let map = { sx: 1, sy: 1, tx: 0, ty: 0 };
@@ -220,7 +225,6 @@ function play() {
   let regionPx = [0, 0, 1, 1];
   const weights = new Float32Array(RADIUS + 1);
   let taps = 0;
-  let baked = false;
   const resize = () => {
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return false;
@@ -340,10 +344,19 @@ function play() {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.activeTexture(gl.TEXTURE0);
   };
+  // A lost context stops the clock; where the browser gives it back, everything the GPU held is made again and the
+  // frame drawn at once.
   canvas.addEventListener("webglcontextlost", event => {
     event.preventDefault();
     cancelAnimationFrame(raf);
     raf = 0;
+  });
+  canvas.addEventListener("webglcontextrestored", () => {
+    make();
+    if (resize()) {
+      changed = true;
+      wake();
+    }
   });
 
 ${indent(BLOB_CLOCK)}
@@ -353,14 +366,13 @@ ${indent(BLOB_CLOCK)}
 const WEBGPU = `// The drawing, WebGPU, as the site's player draws it with WebGL.
 const canvas = document.querySelector("canvas");
 const adapter = await navigator.gpu?.requestAdapter().catch(() => null);
-const gpu = await adapter?.requestDevice().catch(() => null);
+let gpu = await adapter?.requestDevice().catch(() => null);
 if (gpu) play();
 else document.body.textContent = "This page needs WebGPU, which this browser does not have.";
 
 function play() {
   const context = canvas.getContext("webgpu");
   const format = navigator.gpu.getPreferredCanvasFormat();
-  context.configure({ device: gpu, format, alphaMode: "premultiplied" });
   const module = id => gpu.createShaderModule({ code: document.getElementById(id).textContent });
   const quadLayout = { arrayStride: 8, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }] };
   const pipeline = (id, target, extra = {}) => {
@@ -373,36 +385,12 @@ function play() {
     });
   };
   const over = { operation: "add", srcFactor: "one", dstFactor: "one-minus-src-alpha" };
-  const dots = pipeline("dots", "rgba16float", {
-    blend: { color: over, alpha: over },
-    buffers: [
-      quadLayout,
-      {
-        arrayStride: 32,
-        stepMode: "instance",
-        attributes: [
-          { shaderLocation: 1, offset: 0, format: "float32x4" },
-          { shaderLocation: 2, offset: 16, format: "float32x4" }
-        ]
-      }
-    ]
-  });
-  const blur = pipeline("blur", "rgba16float");
-  const bake = pipeline("noise", "rgba8unorm");
-  const final = pipeline("final", format);
   const buffer = (usage, data) => {
     const b = gpu.createBuffer({ size: data.byteLength, usage: usage | GPUBufferUsage.COPY_DST });
     gpu.queue.writeBuffer(b, 0, data);
     return b;
   };
   const uniforms = size => gpu.createBuffer({ size, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-  const quad = buffer(GPUBufferUsage.VERTEX, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]));
-  const dotsU = uniforms(16);
-  const acrossU = uniforms(96);
-  const downU = uniforms(96);
-  const bakeU = uniforms(32);
-  const finalU = uniforms(96);
-  const linear = gpu.createSampler({ magFilter: "linear", minFilter: "linear" });
   const group = (p, entries) =>
     gpu.createBindGroup({
       layout: p.getBindGroupLayout(0),
@@ -426,13 +414,52 @@ function play() {
       data[8 * i + 7] = 1;
       i++;
     }
-  const instances = buffer(GPUBufferUsage.VERTEX, data);
   const ground = groundOf(BG);
   const { lattice, gradients } = noiseTables(look.seed);
-  const latticeTex = texture(256, 1, "r8uint", GPUTextureUsage.COPY_DST);
-  gpu.queue.writeTexture({ texture: latticeTex }, lattice, { bytesPerRow: 256 }, [256, 1]);
-  const gradientTex = texture(256, 4, "rgba8unorm", GPUTextureUsage.COPY_DST);
-  gpu.queue.writeTexture({ texture: gradientTex }, gradients, { bytesPerRow: 1024 }, [256, 4]);
+
+  // What the GPU holds, made at the start and again on a new device where the old one is lost.
+  let dots, blur, bake, final, quad, dotsU, acrossU, downU, bakeU, finalU, linear, instances, latticeTex, gradientTex;
+  let melt = [];
+  let noise = null;
+  let groups = null;
+  let baked = false;
+  const make = () => {
+    context.configure({ device: gpu, format, alphaMode: "premultiplied" });
+    dots = pipeline("dots", "rgba16float", {
+      blend: { color: over, alpha: over },
+      buffers: [
+        quadLayout,
+        {
+          arrayStride: 32,
+          stepMode: "instance",
+          attributes: [
+            { shaderLocation: 1, offset: 0, format: "float32x4" },
+            { shaderLocation: 2, offset: 16, format: "float32x4" }
+          ]
+        }
+      ]
+    });
+    blur = pipeline("blur", "rgba16float");
+    bake = pipeline("noise", "rgba8unorm");
+    final = pipeline("final", format);
+    quad = buffer(GPUBufferUsage.VERTEX, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]));
+    dotsU = uniforms(16);
+    acrossU = uniforms(96);
+    downU = uniforms(96);
+    bakeU = uniforms(32);
+    finalU = uniforms(96);
+    linear = gpu.createSampler({ magFilter: "linear", minFilter: "linear" });
+    instances = buffer(GPUBufferUsage.VERTEX, data);
+    latticeTex = texture(256, 1, "r8uint", GPUTextureUsage.COPY_DST);
+    gpu.queue.writeTexture({ texture: latticeTex }, lattice, { bytesPerRow: 256 }, [256, 1]);
+    gradientTex = texture(256, 4, "rgba8unorm", GPUTextureUsage.COPY_DST);
+    gpu.queue.writeTexture({ texture: gradientTex }, gradients, { bytesPerRow: 1024 }, [256, 4]);
+    melt = [];
+    noise = null;
+    groups = null;
+    baked = false;
+  };
+  make();
 
   // The canvas at its size: the design's map, the filter region, the melt's textures and the blur's weights.
   let map = { sx: 1, sy: 1, tx: 0, ty: 0 };
@@ -441,10 +468,6 @@ function play() {
   let regionPx = [0, 0, 1, 1];
   const weights = new Float32Array(RADIUS + 1);
   let taps = 0;
-  let baked = false;
-  let melt = [];
-  let noise = null;
-  let groups = null;
   const target = usage => GPUTextureUsage.RENDER_ATTACHMENT | usage;
   const resize = () => {
     const rect = canvas.getBoundingClientRect();
@@ -520,8 +543,9 @@ function play() {
     draw(at);
     at.end();
   };
-  // A frame at a share f of the loop.
+  // A frame at a share f of the loop, once the canvas has a size on this device.
   const draw = f => {
+    if (!groups) return;
     const encoder = gpu.createCommandEncoder();
     // the frost's noise at every device pixel, once a size
     if (look.noise && !baked) {
@@ -548,6 +572,27 @@ function play() {
     pass(encoder, context.getCurrentTexture().createView(), final, groups.final, at => at.draw(4));
     gpu.queue.submit([encoder.finish()]);
   };
+  // A device lost for any reason but the page's own stops the clock; a new one is asked for, everything the GPU held
+  // made again on it and the frame drawn at once.
+  const watch = () =>
+    gpu.lost.then(async info => {
+      if (info.reason === "destroyed") return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+      const next = await (await navigator.gpu.requestAdapter().catch(() => null))?.requestDevice().catch(() => null);
+      if (!next) {
+        document.body.textContent = "This page lost its GPU and could not get it back.";
+        return;
+      }
+      gpu = next;
+      make();
+      watch();
+      if (resize()) {
+        changed = true;
+        wake();
+      }
+    });
+  watch();
 
 ${indent(BLOB_CLOCK)}
 }`;
@@ -577,7 +622,7 @@ const SCRIPTS = {
 } as const;
 
 function page(
-  kind: "webgl" | "webgpu",
+  kind: ShaderPageKind,
   P: Palette,
   effect: Effect,
   angle: number,
@@ -621,7 +666,7 @@ ${kind === "webgl" ? WEBGL : WEBGPU}
 /** The blob's shader in a kind: Shadertoy's tabs, the GLSL or the WGSL its pages run, or one of the pages. `origin`
     adds the effect's address to the credit. */
 export function blobShader(
-  kind: BlobShaderKind,
+  kind: ShaderKind,
   P: Palette,
   effect: Effect,
   angle: number,

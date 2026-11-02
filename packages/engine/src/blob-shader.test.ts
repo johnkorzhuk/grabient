@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { golden } from "../test/support.ts";
+import { golden, lcg } from "../test/support.ts";
 import {
   BLOB_DESIGN,
   type BlobScene,
@@ -21,18 +21,19 @@ import {
   blobMelt
 } from "./blob-gl.ts";
 import { BLOB_MATH, blobSettings } from "./blob-page.ts";
-import { type BlobShaderKind, blobCredit, blobShader } from "./blob-shader.ts";
+import { blobCredit, blobShader } from "./blob-shader.ts";
 import { BLOB_WGSL } from "./blob-wgsl.ts";
 import { decodePalette } from "./codec.ts";
 import { hexBytes } from "./color.ts";
 import { type Effect, parseEffect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
+import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
 import { parseView } from "./view.ts";
 
-const KINDS: BlobShaderKind[] = ["shadertoy", "glsl", "wgsl", "webgl", "webgpu"];
+const KINDS = SHADER_KINDS.map(([kind]) => kind);
 const { origin, entries } = golden<{
   origin: string;
-  entries: { id: string; seed: string; address: string; texts: Record<BlobShaderKind, string> }[];
+  entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
 }>("blob-shaders");
 
 const read = (address: string) => {
@@ -191,4 +192,92 @@ test("the pages' script computes the engine's colors, scene, filter, tables, lay
           : [0, 0, 0, 0]
       );
     }
+});
+
+/* 24 palettes of the corpus (apps/web/public/corpus-k.json), drawn at random */
+const CORPUS = [
+  "kUZHu6xDW-diwPRks77g",
+  "kUvG4I36M8GqcNj3Jjfg",
+  "kaUTdhKBJLriiwLAqUGPT7Db_KwpMQsLg",
+  "kS52lw9jG9Hq1vM",
+  "kaKVO5HjRCa62Q1JkMM4hZPXO4wb3xsBg",
+  "kUSCGbPJe8lkbPr1lT_A",
+  "kaoXgRzLhBs4qw3WK8VX7HC2IrwfcoMHA",
+  "kUSETRuh0-diTvNxDL1A",
+  "kW7R35eom8vyFsz7Eb3eRm_w",
+  "kS4mdDYzY8lhFPW",
+  "kWxRz74wjQu0NuXyDTvbAlLw",
+  "kc0F0iyyc_jYSRU9nkfWKrAnMtQD8iz2_pE6g",
+  "kcyo3n4bG82Eru3jsTy5zE9Go2O7uy7279E_o",
+  "kavyyG3YfF9wQy3aJMG17RA1Q-QHPQcBA",
+  "kUQlTdsEHBUHOQFWQL9g",
+  "kU1BQsXQxKMuTwq8DL2g",
+  "kc_TJO-B692MsOHV0D5zFZAELMQE5wsAsTZAA",
+  "kYhieK0ZHCc8TRC8GEFKpFACyCPK",
+  "kWsYfU17099LMQXWU8G20O_Q",
+  "kYPCJnsZo_8OWPRSmThXS-8V2_Pe",
+  "kcO3a1oKVNrtFwjPU0BXz_BuwURVuoMy5LHAg",
+  "kaWRSqR5W5uMVOhrHre27O8z4wvqpEcCg",
+  "kanlt1QCC-KqJwQdEUsppvAzwXPfNoLtg",
+  "kU4RFM4wPUk2bRC3PMDA"
+];
+
+test("the pages' script computes the engine's numbers for random palettes, looks, boxes and densities", () => {
+  const rand = lcg(11);
+  const int = (n: number) => Math.floor(rand() * n);
+  const byte = () => int(256).toString(16).padStart(2, "0");
+  for (const seed of [...SEEDS, ...CORPUS]) {
+    const P = decodePalette(seed) as Palette;
+    const shape = rand() < 0.25 ? null : int(1000);
+    const frost = int(201) / 100;
+    const bg = [null, `${byte()}${byte()}${byte()}`, `${byte()}${byte()}${byte()}${byte()}`][
+      int(3)
+    ];
+    const address = `style=blob&angle=${int(360)}&frost=${frost}${shape === null ? "" : `&shape=${shape}`}${bg ? `&bg=${bg}` : ""}`;
+    const { effect, angle } = read(address);
+    const page = pageMath(P, effect, angle);
+    const view = { ...effect.look, angle };
+    const scene = blobScene(P, BLOB_DESIGN, view);
+    const ours = page.blobScene();
+    expect(ours.blobs, `${seed} ${address}`).toEqual(scene.blobs);
+    expect([ours.seed, ours.pad]).toEqual([scene.seed, scene.pad]);
+    for (const b of scene.blobs.flatMap(blob => blob.balls))
+      expect(page.colorAt(b.at), `${seed} ${address}`).toEqual(hexBytes(scene.color(b.at)));
+    const look = blobFilter(view, BLOB_DESIGN, scene);
+    const { speckle: _, octaves: __, ...rest } = look;
+    expect(page.blobFilter(ours)).toEqual(rest);
+    expect(page.noiseTables(look.seed)).toEqual(blobNoiseTables(look.seed));
+    const alpha = effect.look.bg?.length === 9 ? parseInt(effect.look.bg.slice(7), 16) / 255 : 1;
+    expect(page.groundOf(effect.look.bg)).toEqual(
+      effect.look.bg
+        ? [...hexBytes(effect.look.bg).map(v => (v / 255) * alpha), alpha]
+        : [0, 0, 0, 0]
+    );
+    for (let k = 0; k < 8; k++) {
+      /* a box as a page lays it out, in CSS pixels, at a screen's density, with the device box the browser reports */
+      const W = int(2400) + 1 + [0, 0.5, 1 / 3, 0.25][int(4)];
+      const H = int(1600) + 1 + [0, 0.5, 2 / 3, 0.75][int(4)];
+      const dpr = [1, 1.25, 1.5, 2, 2.625, 3][int(6)];
+      const device =
+        rand() < 0.3
+          ? null
+          : { w: Math.round(W * dpr) + int(3) - 1, h: Math.round(H * dpr) + int(3) - 1 };
+      const canvas = blobCanvas(W, H, dpr, device);
+      expect(page.canvasOf(W, H, dpr, device), `${W}x${H} at ${dpr}`).toEqual(canvas);
+      const map = blobMap(W, H, canvas.kx, canvas.ky);
+      expect(page.mapOf(W, H, canvas.kx, canvas.ky)).toEqual(map);
+      const a = new Float32Array(BLOB_RADIUS + 1);
+      const b = new Float32Array(BLOB_RADIUS + 1);
+      expect(page.meltOf(look, map, canvas.w, canvas.h, a)).toEqual(
+        blobMelt(look, map, canvas.w, canvas.h, b)
+      );
+      expect(a).toEqual(b);
+      const x = new Float32Array(8 * 24);
+      const y = new Float32Array(8 * 24);
+      const f = rand();
+      page.places(ours, f, x, 8);
+      blobPlaces(scene, f, y, 8);
+      expect(x, `${seed} ${address} at ${f}`).toEqual(y);
+    }
+  }
 });
