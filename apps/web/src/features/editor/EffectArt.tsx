@@ -28,7 +28,14 @@ interface Session {
   view: object;
   /** made ahead and never laid out: it takes the size of the card it goes to */
   fresh?: boolean;
+  /** what the card that made it does once its first frame is drawn, which the player reads through firstFrame: let go
+      with the player */
+  first: { drawn?: () => void };
 }
+
+/* The first-frame word a player is made with, made out here: a player keeps it for its life, and one made in the card
+   held the card's whole scope, its holder and through that its page, in every player the pool kept for the next */
+const firstFrame = (first: Session["first"]) => () => first.drawn?.();
 
 /* the players are the browser's alone: the server's build carries neither */
 /* Players let go, kept for the next card: a player's WebGL context and programs cost about a tenth of a second on the
@@ -55,6 +62,7 @@ function pooled(kind: EffectKind, width: number, height: number): Session | null
     there is room, its loop stopped; otherwise gone with its context. */
 function release(s: Session): void {
   s.canvas.remove();
+  s.first.drawn = undefined;
   if (pool[s.kind].length < POOL) pool[s.kind].push(s);
   else s.player.destroy();
 }
@@ -98,7 +106,7 @@ async function makeAhead(
       : code.playBlob(canvas, palette, view as Parameters<typeof code.playBlob>[2], undefined, {
           ease: false
         });
-  if (player) release({ canvas, player, kind, palette, view, fresh: true });
+  if (player) release({ canvas, player, kind, palette, view, fresh: true, first: {} });
 }
 
 /** Everything a card's picture of an effect needs, fetched before a card asks: its players' code and its still's. */
@@ -274,21 +282,23 @@ export function EffectArt(props: {
     const P = untrack(() => props.palette);
     const v = untrack(view);
     let made: Session | null = null;
-    const drawn = () =>
-      requestAnimationFrame(() => {
-        if (wanted && made && session === made) setCovered(true);
-      });
+    const first: Session["first"] = {
+      drawn: () =>
+        requestAnimationFrame(() => {
+          if (wanted && made && session === made) setCovered(true);
+        })
+    };
     const player =
       "playGlass" in code
-        ? code.playGlass(canvas, P, v as Parameters<typeof code.playGlass>[2], drawn, {
+        ? code.playGlass(canvas, P, v as Parameters<typeof code.playGlass>[2], firstFrame(first), {
             ease: false
           })
-        : code.playBlob(canvas, P, v as Parameters<typeof code.playBlob>[2], drawn, {
+        : code.playBlob(canvas, P, v as Parameters<typeof code.playBlob>[2], firstFrame(first), {
             ease: false
           });
     /* where WebGL is missing the still stays */
     if (!player) return canvas.remove();
-    made = { canvas, player, kind, palette: P, view: v };
+    made = { canvas, player, kind, palette: P, view: v, first };
     session = made;
   };
   /* the kind it plays, while it moves: a picture turned to the other kind lets its player go and plays the other */
