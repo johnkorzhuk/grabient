@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/solid-router";
+import { createMemo } from "solid-js";
 import { galleryPlace } from "../../features/gallery/address.ts";
 import { Palettes } from "../../features/gallery/Palettes.tsx";
 import { metaPage } from "../../features/gallery/titles.ts";
@@ -19,6 +20,8 @@ export const Route = createFileRoute("/palettes/saved")({
   staticData: { corner: ListAppearance },
   component: function SavedRoute() {
     const search = Route.useSearch();
-    return <Palettes place={place(searchOf(search()))} />;
+    /* read once an address: the page and every card on it read the place, which a prop would read the address for */
+    const at = createMemo(() => place(searchOf(search())));
+    return <Palettes place={at()} />;
   }
 });

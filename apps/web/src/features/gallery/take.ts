@@ -9,6 +9,7 @@ import { msg, t } from "@grabient/i18n";
 import { downloadFile } from "@grabient/ui/copy.ts";
 import { exportGridImage } from "@grabient/ui/exportgrid.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
+import { createMemo } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import {
   copyImage,
@@ -117,11 +118,14 @@ export function cardTakings(card: {
     return false;
   };
   const played = () => card.played?.() ?? null;
+  /* the chips follow whether the card plays an effect, never the view it plays it in: a list's view taken by the
+     address would otherwise lay out every card's strip again */
+  const playing = createMemo(() => played() !== null);
   const taken = (fx: { effect: Effect; size: SizeChoice | null }) =>
     playedTaken(card.palette(), fx.effect, fx.size, card.name?.());
   return {
     /** the formats the card's strip offers in each mode */
-    chips: () => (played() ? EFFECT_CHIPS : CHIPS),
+    chips: () => (playing() ? EFFECT_CHIPS : CHIPS),
     copy: (format: Format) => {
       const fx = played();
       return (

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/solid-router";
-import { untrack } from "solid-js";
+import { createMemo, untrack } from "solid-js";
 import { galleryPlace } from "../features/gallery/address.ts";
 import { Home } from "../features/gallery/Home.tsx";
 import { loadHome } from "../features/gallery/load.ts";
@@ -29,6 +29,8 @@ export const Route = createFileRoute("/")({
   component: function HomeRoute() {
     const search = Route.useSearch();
     answerWith(untrack(Route.useLoaderData())?.status);
-    return <Home params={place(searchOf(search())).params} />;
+    /* read once an address: the page and every card on it read its params, which a prop would read the address for */
+    const at = createMemo(() => place(searchOf(search())));
+    return <Home params={at().params} />;
   }
 });

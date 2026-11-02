@@ -2,7 +2,7 @@ import type { EffectKind, EffectSettings } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { holdsStill, reducesNow } from "@grabient/ui/motion.ts";
-import { createEffect, createSignal, onCleanup, untrack } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js";
 import { BlobArt } from "./BlobArt.tsx";
 import { blobViewOf, loadBlob } from "./blob-draw.ts";
 import styles from "./EffectArt.module.css";
@@ -158,6 +158,8 @@ export function EffectArt(props: {
       return () => clearTimeout(timer);
     }
   );
+  /* the glass's colors once a palette: the still reads them again with every change of the view */
+  const colors = createMemo(() => glassColors(props.palette));
   const moving = () => props.active && props.settings.speed > 0 && !holdsStill();
   const view = () =>
     props.kind === "glass"
@@ -320,12 +322,7 @@ export function EffectArt(props: {
       data-fading={fading() ? "" : undefined}
     >
       {props.kind === "glass" ? (
-        <GlassArt
-          colors={glassColors(props.palette)}
-          angle={props.angle}
-          shape={props.settings.look.shape}
-          eager
-        />
+        <GlassArt colors={colors()} angle={props.angle} shape={props.settings.look.shape} eager />
       ) : (
         <BlobArt
           palette={props.palette}

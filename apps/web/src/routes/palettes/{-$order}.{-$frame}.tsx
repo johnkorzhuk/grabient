@@ -1,6 +1,6 @@
 import { localHref } from "@grabient/i18n";
 import { createFileRoute, notFound, redirect } from "@tanstack/solid-router";
-import { untrack } from "solid-js";
+import { createMemo, untrack } from "solid-js";
 import { galleryPlace } from "../../features/gallery/address.ts";
 import { loadPalettes } from "../../features/gallery/load.ts";
 import { Palettes } from "../../features/gallery/Palettes.tsx";
@@ -51,6 +51,8 @@ export const Route = createFileRoute("/palettes/{-$order}/{-$frame}")({
     const search = Route.useSearch();
     const params = Route.useParams();
     answerWith(untrack(Route.useLoaderData())?.status);
-    return <Palettes place={place(params(), searchOf(search()))!} />;
+    /* read once an address: the page and every card on it read the place, which a prop would read the address for */
+    const at = createMemo(() => place(params(), searchOf(search())));
+    return <Palettes place={at()!} />;
   }
 });

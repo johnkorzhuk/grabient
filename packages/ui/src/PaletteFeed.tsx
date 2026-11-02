@@ -60,14 +60,19 @@ export function PaletteFeed<T>(props: {
     return props.items.slice(start * columns, end * columns);
   };
   let host: HTMLDivElement | undefined;
-  /* new palettes may be the first to give the feed its size (it was hidden or empty): the rows are measured again */
+  /* new palettes may be the first to give the feed its size (it was hidden or empty): the rows are measured again.
+     Only for a count it has not measured: the effect runs again as the page takes another view, the same palettes
+     drawn anew, where a read of the card's box would lay the whole page out at once */
+  let measured = -1;
   createEffect(
     () => props.items.length,
-    () => {
+    count => {
+      if (count === measured) return;
       const grid = host?.firstElementChild?.firstElementChild;
       const first = grid?.firstElementChild;
       const height = first?.getBoundingClientRect().height;
       if (!grid || !height) return;
+      measured = count;
       kept.card = height;
       kept.gap = Number.parseFloat(getComputedStyle(grid).rowGap) || kept.gap;
       setCard(kept.card);

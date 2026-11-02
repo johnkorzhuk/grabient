@@ -128,6 +128,10 @@ export function placesOf(lists: readonly (readonly Format[])[]): Format[][] {
   return places;
 }
 
+const samePlaces = (a: readonly (readonly Format[])[], b: readonly (readonly Format[])[]) =>
+  a.length === b.length &&
+  a.every((place, i) => place.length === b[i].length && place.every((f, j) => f === b[i][j]));
+
 export interface FormatStripProps {
   /** the formats that can be copied, in order */
   copy: readonly Format[];
@@ -165,9 +169,12 @@ export function FormatStrip(props: FormatStripProps) {
   /* the swatch files stay open as the mode turns; the formats come back with Back */
   const swatching = () => swatchesOpen() && swatchesOf(mode()).length > 0;
   const formats = () => (swatching() ? swatchesOf(mode()) : listOf(mode()));
-  const formatPlaces = createMemo(() => placesOf(modes().map(listOf)));
-  const swatchPlaces = createMemo(() =>
-    placesOf(modes().map(m => (swatchesOf(m).length > 0 ? swatchesOf(m) : listOf(m))))
+  /* the places as they stood while the formats are the same, so a page that hands the strip its lists anew draws
+     nothing anew */
+  const formatPlaces = createMemo(() => placesOf(modes().map(listOf)), { equals: samePlaces });
+  const swatchPlaces = createMemo(
+    () => placesOf(modes().map(m => (swatchesOf(m).length > 0 ? swatchesOf(m) : listOf(m)))),
+    { equals: samePlaces }
   );
   const places = () => (swatchesOpen() && swatched() ? swatchPlaces() : formatPlaces());
   /* each layer drawn unseen keeps the strip at the wider one's width; chips that share the row need none */
