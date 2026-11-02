@@ -95,7 +95,9 @@ export function PaletteFeed<T>(props: {
           {item => props.card(item)}
         </For>
         <Show when={!win.started() && live() < props.items.length}>
-          <div class={styles.still} ref={win.wake}>
+          {/* the cards the server drew that no component owns until the window starts: a page may paint into them
+              meanwhile (data-still), as a glass list draws their stills */}
+          <div class={styles.still} ref={win.wake} data-still="">
             <NoHydration>
               <For each={props.items.slice(live())}>{item => props.card(() => item)}</For>
             </NoHydration>

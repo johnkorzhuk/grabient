@@ -57,7 +57,8 @@ export function GroupFeed<T>(props: {
         }}
       </For>
       <Show when={!win.started() && live() < Math.min(props.initial, props.items.length)}>
-        <div class={styles.still} ref={win.wake}>
+        {/* the groups the server drew that no component owns until the window starts (data-still), as PaletteFeed's */}
+        <div class={styles.still} ref={win.wake} data-still="">
           <NoHydration>
             <For each={props.items.slice(live(), props.initial)}>
               {item => <div data-group={props.key(item)}>{props.group(() => item)}</div>}

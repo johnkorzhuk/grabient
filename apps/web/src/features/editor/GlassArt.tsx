@@ -2,6 +2,7 @@ import { glassStillKey } from "@grabient/engine/glass-colors.ts";
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./Editor.module.css";
 import {
+  gpuReady,
   gpuStill,
   loadGpuStill,
   loadStill,
@@ -143,16 +144,19 @@ export function GlassArt(props: {
     };
     if (!shown()) void loadStill().then(shown);
   };
-  /* a still asked for, drawn in a frame with time for it, its field shown meanwhile */
+  /* a still asked for, drawn in a frame with time for it, its field shown meanwhile; or at once (`now`), where the
+     GPU is ready, with no fade */
   let cancel: (() => void) | undefined;
   const request = (
     colors: readonly string[],
     angle: number,
     shape: number | null,
-    named: string
+    named: string,
+    now = false
   ) => {
     cancel?.();
     if (gone || !untrack(seen) || !untrack(near)) return;
+    if (now && !noGpu && gpuReady()) return draw(colors, angle, shape, named, false);
     let drawn = false;
     cancel = inTime(() => {
       drawn = true;
@@ -160,16 +164,23 @@ export function GlassArt(props: {
     });
     if (!drawn && !noGpu) showField(colors, angle, shape, named);
   };
-  const draw = (colors: readonly string[], angle: number, shape: number | null, named: string) => {
+  const draw = (
+    colors: readonly string[],
+    angle: number,
+    shape: number | null,
+    named: string,
+    fade = true
+  ) => {
     if (gone || untrack(key) !== named) return;
     if (!noGpu) {
       const dpr = devicePixelRatio || 1;
       /* the server's field stands under the box's first still */
-      if (!untrack(painted) && serverField(named)) setFades(true);
+      if (fade && !untrack(painted) && serverField(named)) setFades(true);
       const bitmap = gpuStill(colors, angle, shape, el.clientWidth * dpr, el.clientHeight * dpr);
       if (bitmap === undefined) {
         showField(colors, angle, shape, named);
-        void loadGpuStill().then(
+        /* the picture waits for its still: the GPU's canvas is made now, not as the page next idles */
+        void loadGpuStill(true).then(
           () => request(colors, angle, shape, named),
           () => {
             noGpu = true;
@@ -230,7 +241,7 @@ export function GlassArt(props: {
         warming = true;
         void import("./painted.ts")
           .then(p => p.elementPainted(el, TILE_WAIT_MS))
-          .then(loadGpuStill)
+          .then(() => loadGpuStill())
           .catch(() => {});
       }
       const { named, colors, angle, shape } = next;
@@ -246,9 +257,14 @@ export function GlassArt(props: {
       }
       const wait = drawnAt + REST_MS - performance.now();
       /* a picture near the window but out of it draws no still nobody sees while the hand moves: the last change once
-         it rests, or at once as the picture comes into the window */
-      if (was) request(colors, angle, shape, named);
-      else if (!next.shown) timer = setTimeout(() => request(colors, angle, shape, named), AWAY_MS);
+         it rests, or at once as the picture comes into the window. One in the window with nothing on it yet, as a
+         list wakes the cards the server drew still, which showed their stills (glass-draw.ts's paintStills), draws
+         its own in the same frame and shows it at once, so the card never shows its field between the two */
+      if (was) {
+        const box = el.getBoundingClientRect();
+        request(colors, angle, shape, named, box.bottom > 0 && box.top < innerHeight);
+      } else if (!next.shown)
+        timer = setTimeout(() => request(colors, angle, shape, named), AWAY_MS);
       else if (wait <= 0) request(colors, angle, shape, named);
       else timer = setTimeout(() => request(colors, angle, shape, named), wait);
     }
