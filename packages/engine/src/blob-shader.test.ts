@@ -28,7 +28,6 @@ import { hexBytes } from "./color.ts";
 import { type Effect, parseEffect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
 import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
-import { parseView } from "./view.ts";
 
 const KINDS = SHADER_KINDS.map(([kind]) => kind);
 const { origin, entries } = golden<{
@@ -36,10 +35,7 @@ const { origin, entries } = golden<{
   entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
 }>("blob-shaders");
 
-const read = (address: string) => {
-  const params = new URLSearchParams(address);
-  return { effect: parseEffect(params) as Effect, angle: parseView(params).angle };
-};
+const read = (address: string) => parseEffect(new URLSearchParams(address)) as Effect;
 /* the lab's palettes: a vivid six, a two-color isoluminant pastel near gray, an eight, an achromatic near gray, a near
    gray keeping its own tint, a pastel five */
 const SEEDS = [
@@ -65,35 +61,37 @@ const SIZES = [
 test("the blob's five texts are as before, for six palettes and looks", () => {
   expect(entries.length).toBe(6);
   for (const e of entries) {
-    const { effect, angle } = read(e.address);
+    const effect = read(e.address);
     const P = decodePalette(e.seed) as Palette;
     for (const kind of KINDS)
-      expect(blobShader(kind, P, effect, angle, e.seed, origin), `${e.id} ${kind}`).toBe(
-        e.texts[kind]
-      );
+      expect(blobShader(kind, P, effect, e.seed, origin), `${e.id} ${kind}`).toBe(e.texts[kind]);
   }
 });
 
-test("each text credits the seed, the effect's address and what it is", () => {
-  const { effect, angle } = read("style=blob&angle=45&speed=3&frost=2&bg=151315");
-  expect(blobCredit("webgpu", effect, angle, "kQ9hLj-wW4g", "https://grabient.com/")).toEqual([
+test("each text credits the seed, the effect's address and what it is, and names no angle: the blob has none", () => {
+  const effect = read("style=blob&angle=45&speed=3&frost=2&bg=151315");
+  expect(blobCredit("webgpu", effect, "kQ9hLj-wW4g", "https://grabient.com/")).toEqual([
     "grabient kQ9hLj-wW4g",
-    "https://grabient.com/kQ9hLj-wW4g?style=blob&angle=45&speed=3&frost=2&bg=%23151315",
+    "https://grabient.com/kQ9hLj-wW4g?style=blob&speed=3&frost=2&bg=%23151315",
     "the blob, the palette's balls melted and frosted, drawn by WebGPU"
   ]);
   const P = decodePalette("kQ9hLj-wW4g") as Palette;
   for (const kind of KINDS) {
-    const text = blobShader(kind, P, effect, angle, "kQ9hLj-wW4g");
+    const text = blobShader(kind, P, effect, "kQ9hLj-wW4g");
     expect(text, kind).toContain("grabient kQ9hLj-wW4g");
     expect(text, kind).not.toContain("https://");
+    expect(text, kind).not.toMatch(/angle=|\bANGLE\b|\d degrees/);
+    expect(blobShader(kind, P, read("style=blob&speed=3&frost=2&bg=151315"), "kQ9hLj-wW4g")).toBe(
+      text
+    );
   }
 });
 
 test("the GLSL is the player's own shaders, and the pages run the texts' shaders", () => {
   const P = decodePalette(SEEDS[0]) as Palette;
-  const { effect, angle } = read("style=blob");
-  const glsl = blobShader("glsl", P, effect, angle, SEEDS[0]);
-  const webgl = blobShader("webgl", P, effect, angle, SEEDS[0]);
+  const effect = read("style=blob");
+  const glsl = blobShader("glsl", P, effect, SEEDS[0]);
+  const webgl = blobShader("webgl", P, effect, SEEDS[0]);
   for (const shader of [
     BLOB_FULL_VS,
     BLOB_NOISE_FS,
@@ -106,8 +104,8 @@ test("the GLSL is the player's own shaders, and the pages run the texts' shaders
     /* from the script element's first character, so #version leads it */
     expect(webgl).toContain(`">${shader}</script>`);
   }
-  const wgsl = blobShader("wgsl", P, effect, angle, SEEDS[0]);
-  const webgpu = blobShader("webgpu", P, effect, angle, SEEDS[0]);
+  const wgsl = blobShader("wgsl", P, effect, SEEDS[0]);
+  const webgpu = blobShader("webgpu", P, effect, SEEDS[0]);
   for (const module of Object.values(BLOB_WGSL)) {
     expect(wgsl).toContain(`\n${module}\n`);
     expect(webgpu).toContain(`">${module}</script>`);
@@ -115,7 +113,7 @@ test("the GLSL is the player's own shaders, and the pages run the texts' shaders
 });
 
 /* the pages' script, run in Node: the engine's numbers, as the player's script computes them */
-function pageMath(P: Palette, effect: Effect, angle: number) {
+function pageMath(P: Palette, effect: Effect) {
   const names = [
     "colorAt",
     "blobScene",
@@ -128,7 +126,7 @@ function pageMath(P: Palette, effect: Effect, angle: number) {
     "groundOf"
   ];
   return new Function(
-    `${blobSettings(P, effect, angle)}\n${BLOB_MATH}\nreturn { ${names.join(", ")} };`
+    `${blobSettings(P, effect)}\n${BLOB_MATH}\nreturn { ${names.join(", ")} };`
   )() as {
     colorAt: (t: number) => number[];
     blobScene: () => BlobScene;
@@ -146,14 +144,14 @@ test("the pages' script computes the engine's colors, scene, filter, tables, lay
   for (const seed of SEEDS)
     for (const address of [
       "style=blob",
-      "style=blob&angle=137&shape=0&frost=2&bg=151315",
-      "style=blob&angle=300&shape=500&frost=0.37&bg=f4f1ea80",
-      "style=blob&angle=0&shape=999&frost=0"
+      "style=blob&shape=0&frost=2&bg=151315",
+      "style=blob&shape=500&frost=0.37&bg=f4f1ea80",
+      "style=blob&shape=999&frost=0"
     ]) {
       const P = decodePalette(seed) as Palette;
-      const { effect, angle } = read(address);
-      const page = pageMath(P, effect, angle);
-      const view = { ...effect.look, angle };
+      const effect = read(address);
+      const page = pageMath(P, effect);
+      const view = effect.look;
       const scene = blobScene(P, BLOB_DESIGN, view);
       const ours = page.blobScene();
       expect(ours.seed, `${seed} ${address}`).toBe(scene.seed);
@@ -233,10 +231,10 @@ test("the pages' script computes the engine's numbers for random palettes, looks
     const bg = [null, `${byte()}${byte()}${byte()}`, `${byte()}${byte()}${byte()}${byte()}`][
       int(3)
     ];
-    const address = `style=blob&angle=${int(360)}&frost=${frost}${shape === null ? "" : `&shape=${shape}`}${bg ? `&bg=${bg}` : ""}`;
-    const { effect, angle } = read(address);
-    const page = pageMath(P, effect, angle);
-    const view = { ...effect.look, angle };
+    const address = `style=blob&frost=${frost}${shape === null ? "" : `&shape=${shape}`}${bg ? `&bg=${bg}` : ""}`;
+    const effect = read(address);
+    const page = pageMath(P, effect);
+    const view = effect.look;
     const scene = blobScene(P, BLOB_DESIGN, view);
     const ours = page.blobScene();
     expect(ours.blobs, `${seed} ${address}`).toEqual(scene.blobs);

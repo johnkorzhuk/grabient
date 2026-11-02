@@ -58,7 +58,7 @@ test("the shipped Shadertoy's fixed point places every ball where the player's F
   for (const s of SEEDS)
     for (const shape of [null, 0, 999]) {
       const P = decodePalette(s) as Palette;
-      const view = { shape, frost: 1, bg: null, angle: 137 };
+      const view = { shape, frost: 1, bg: null };
       const scene = blobScene(P, BLOB_DESIGN, view);
       const look = blobFilter(view, BLOB_DESIGN, scene);
       const fixedScene = fixedSceneOf(scene);

@@ -124,10 +124,9 @@ function sceneMark(scene: BlobScene, seed: number): number {
 }
 
 /** The blob's Shadertoy tabs as one text, a section a tab under a header naming its channels. */
-export function blobShadertoy(P: Palette, effect: Effect, angle: number, credit: string[]): string {
-  const view = { ...effect.look, angle };
-  const scene = blobScene(P, BLOB_DESIGN, view);
-  const look = blobFilter(view, BLOB_DESIGN, scene);
+export function blobShadertoy(P: Palette, effect: Effect, credit: string[]): string {
+  const scene = blobScene(P, BLOB_DESIGN, effect.look);
+  const look = blobFilter(effect.look, BLOB_DESIGN, scene);
   const blobs = scene.blobs;
   const balls = blobs.flatMap(blob => blob.balls);
   if (balls.length !== BALLS) throw new Error(`the blob has ${balls.length} balls`);
@@ -173,9 +172,10 @@ const float FPS = ${glslFloat(effect.fps)};    // frames a second at most, 1 to 
 const float FROST = ${glslFloat(effect.look.frost)};   // the frost, two decimals: 1 as designed, 0 none, 2 twice
 const uint BG = ${hex(bgWord)};   // the ground as 0xRRGGBBAA, its alpha last; 0u for none, which shows black here
 const float EASE = 1.6;    // seconds from rest to its pace, two decimals
-// The colors the balls are painted in, 0xRRGGBB, one a ball, far blob to near: the palette across each blob at
-// ${angle} degrees. The blobs' forms and wanderings (${shape}) are Buffer A's BLOBS and BALLS. Both are worked out
-// from the palette's curve and the shape's numbers by the site's own code: another angle or shape is another text.
+// The colors the balls are painted in, 0xRRGGBB, one a ball, far blob to near: the palette across each blob from
+// left to right. The blobs' forms and wanderings (${shape}) are Buffer A's BLOBS and BALLS.
+// Both are worked out from the palette's curve and the shape's numbers by the site's own code: another shape is
+// another text.
 const uint COLORS[${BALLS}] = uint[](
 ${rows(colors, 8)}
 );

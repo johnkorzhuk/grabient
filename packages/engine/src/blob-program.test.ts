@@ -69,7 +69,7 @@ test("the Shadertoy program lands on the player's layout and weights, double for
       [999, 2]
     ] as const) {
       const P = decodePalette(seed) as Palette;
-      const view = { shape, frost, bg: "#f4f1ea80", angle: 137 };
+      const view = { shape, frost, bg: "#f4f1ea80" };
       const scene = blobScene(P, BLOB_DESIGN, view);
       const look = blobFilter(view, BLOB_DESIGN, scene);
       for (const [W, H] of SIZES) {

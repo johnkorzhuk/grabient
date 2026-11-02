@@ -19,6 +19,7 @@ import type { Effect } from "./effect.ts";
 import { effectPage } from "./effect-code.ts";
 import type { Palette } from "./palette.ts";
 import type { ShaderKind, ShaderPageKind } from "./shader-kinds.ts";
+import { DEFAULT_ANGLE } from "./view.ts";
 
 const WHAT: Record<ShaderKind, string> = {
   shadertoy: "for Shadertoy, a section a tab, each tab's channels as its header says",
@@ -29,18 +30,17 @@ const WHAT: Record<ShaderKind, string> = {
 };
 
 /** The credit each kind carries, as the gradient's shaders do (shader.ts shaderCredit), so a text found later says
-    where it came from: the seed, the effect's page where an origin is given (its address with how it plays), and what
-    the text is. Lines without their comment marks. */
+    where it came from: the seed, the effect's page where an origin is given (its address with how it plays, which
+    names no angle: the blob has none), and what the text is. Lines without their comment marks. */
 export function blobCredit(
   kind: ShaderKind,
   effect: Effect,
-  angle: number,
   seed: string,
   origin?: string
 ): string[] {
   return [
     `grabient ${seed}`,
-    ...(origin ? [effectPage(origin, seed, effect, angle, true)] : []),
+    ...(origin ? [effectPage(origin, seed, effect, DEFAULT_ANGLE, true)] : []),
     `the blob, the palette's balls melted and frosted, ${WHAT[kind]}`
   ];
 }
@@ -625,11 +625,10 @@ function page(
   kind: ShaderPageKind,
   P: Palette,
   effect: Effect,
-  angle: number,
   seed: string,
   origin?: string
 ): string {
-  const credit = blobCredit(kind, effect, angle, seed, origin);
+  const credit = blobCredit(kind, effect, seed, origin);
   /* each shader from its element's first character, so a GLSL one's #version leads it */
   const scripts = SCRIPTS[kind]
     .map(([type, id, code]) => `<script type="${type}" id="${id}">${code}</script>`)
@@ -652,7 +651,7 @@ ${credit.map(line => `  ${line}`).join("\n")}
 <canvas></canvas>
 ${scripts}
 ${kind === "webgl" ? "<script>" : '<script type="module">'}
-${blobSettings(P, effect, angle)}
+${blobSettings(P, effect)}
 
 ${BLOB_MATH}
 
@@ -664,18 +663,17 @@ ${kind === "webgl" ? WEBGL : WEBGPU}
 }
 
 /** The blob's shader in a kind: Shadertoy's tabs, the GLSL or the WGSL its pages run, or one of the pages. `origin`
-    adds the effect's address to the credit. */
+    adds the effect's address to the credit. It takes no angle: the blob has none. */
 export function blobShader(
   kind: ShaderKind,
   P: Palette,
   effect: Effect,
-  angle: number,
   seed: string,
   origin?: string
 ): string {
-  if (kind === "webgl" || kind === "webgpu") return page(kind, P, effect, angle, seed, origin);
-  const credit = blobCredit(kind, effect, angle, seed, origin);
+  if (kind === "webgl" || kind === "webgpu") return page(kind, P, effect, seed, origin);
+  const credit = blobCredit(kind, effect, seed, origin);
   if (kind === "glsl") return glslText(credit);
   if (kind === "wgsl") return wgslText(credit);
-  return blobShadertoy(P, effect, angle, credit);
+  return blobShadertoy(P, effect, credit);
 }

@@ -23,9 +23,9 @@ import type { Palette } from "./palette.ts";
 export const jsNumber = (n: number): string => (Object.is(n, -0) ? "-0" : String(n));
 
 /** The page's settings, each a constant at the top of its script that a reader may edit: the palette's keyframes, the
-    angle, the shape (null: the one the palette's own seed draws), the speed, the frame rate, the frost, the ground and
-    the ease. */
-export function blobSettings(P: Palette, effect: Effect, angle: number): string {
+    shape (null: the one the palette's own seed draws), the speed, the frame rate, the frost, the ground and the ease.
+    The blob has no angle: its palette lies across every blob from left to right. */
+export function blobSettings(P: Palette, effect: Effect): string {
   const anchors = P.anchors
     .map(
       a =>
@@ -39,8 +39,6 @@ const SEED = ${JSON.stringify(encodePalette(P))};
 const ANCHORS = [
 ${anchors}
 ];
-// The palette lies across every blob along this angle, its first color toward the angle's tail (0 up, 90 right).
-const ANGLE = ${jsNumber(angle)};
 // 0 to 999 picks the blobs' forms and wanderings; null draws the palette's own.
 const SHAPE = ${shape === null ? "null" : jsNumber(shape)};
 // The loop's pace: it lasts ${BLOB_LOOP} s over this; 0 holds the first frame.
@@ -141,11 +139,12 @@ function dice(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function ballsOf(rand, spin, toward) {
+// A blob's balls, the palette across them from left to right: its first color on the left, its last on the right.
+function ballsOf(rand, spin) {
   const vary = () => 1 - 0.2 / 2 + 0.2 * rand();
   rand();
   const start = 2 * Math.PI * rand();
-  const along = angle => 0.5 + 0.5 * Math.cos(angle - toward);
+  const along = angle => 0.5 + 0.5 * Math.cos(angle);
   const balls = [];
   for (let i = 0; i < 6; i++) {
     const angle = start + (2 * Math.PI * i) / 6;
@@ -169,7 +168,6 @@ function blobScene() {
   const own = SHAPE === null ? SEED : \`shape/\${SHAPE}\`;
   const rand = dice(hash(own));
   const sign = () => (rand() < 0.5 ? -1 : 1);
-  const toward = ((ANGLE - 90) * Math.PI) / 180;
   const turn = 2 * Math.PI * rand();
   const laps = [[1, 2], [2, 1], [1, 3]];
   const blobs = [0, 1, 2].map(k => {
@@ -180,7 +178,7 @@ function blobScene() {
       x: DESIGN / 2 + 0.27 * DESIGN * Math.cos(angle),
       y: DESIGN / 2 + 0.27 * DESIGN * Math.sin(angle),
       R: 0.33 * DESIGN * (0.9 + 0.2 * rand()),
-      balls: ballsOf(rand, spin, toward),
+      balls: ballsOf(rand, spin),
       spin,
       wander: [
         { reach: 0.13 * DESIGN, laps: across * sign() },
