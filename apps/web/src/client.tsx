@@ -8,6 +8,7 @@ import { forgetOldAnalytics } from "./app/forget-analytics.ts";
 import { framed } from "./app/framed.ts";
 import { guardNavigation } from "./app/navigation.ts";
 import { loadAccount } from "./features/account/session.ts";
+import { afterBoot } from "./features/editor/boot.ts";
 
 /* before anything can fail: an error while the page loads its language or hydrates is reported too */
 installErrorReports();
@@ -40,10 +41,25 @@ async function start() {
   /* the account loads after the page has drawn its public form: no page waits on it */
   void loadAccount();
   forgetOldAnalytics();
-  /* the service worker that opens the site with no connection, once the page has loaded: a production build's alone,
-     and never in another site's frame, where the browser keeps it apart from the site's own */
+  /* the service worker that opens the site with no connection, once the page has loaded and drawn its first screen,
+     the page idle: a production build's alone, and never in another site's frame, where the browser keeps it apart
+     from the site's own. A palette's page asks for it once its editor stands and is drawn (boot.ts). The files it
+     keeps at install, every chunk of the build, are fetched while nothing else waits for them, not while the browser
+     draws the first screen; and a worker that takes the page over has the browser fetch the picture's files again for
+     the editor's first screen, rather than take those the page loaded before it, and the picture they arrive under,
+     the glass's whole filter, drawn again */
   if (import.meta.env.PROD && "serviceWorker" in navigator && !framed()) {
-    const register = () => void navigator.serviceWorker.register("/sw.js").catch(() => {});
+    const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 300));
+    const register = () =>
+      afterBoot(() =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            idle(() => void navigator.serviceWorker.register("/sw.js").catch(() => {}), {
+              timeout: 3000
+            })
+          )
+        )
+      );
     if (document.readyState === "complete") register();
     else addEventListener("load", register, { once: true });
   }

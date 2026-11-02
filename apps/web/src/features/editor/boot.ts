@@ -33,6 +33,20 @@ export const endBoot = (): void => {
 export const booting = (): boolean =>
   typeof document !== "undefined" && document.documentElement.hasAttribute(BOOT_MARK);
 
+/** Runs `then` once the page no longer boots, however its boot ends: at once on a page that is not booting. */
+export function afterBoot(then: () => void): void {
+  if (!booting()) {
+    then();
+    return;
+  }
+  const watch = new MutationObserver(() => {
+    if (booting()) return;
+    watch.disconnect();
+    then();
+  });
+  watch.observe(document.documentElement, { attributes: true, attributeFilter: [BOOT_MARK] });
+}
+
 /** The static page drawn once while the page boots. The browser draws it up to three times before the editor takes its
     place, the same each time: as it hydrates the server's (the router's pending page), again once hydrated (the
     match's pending page, while its loader runs) and as the editor's code comes (the route's Loading). Each draw would
