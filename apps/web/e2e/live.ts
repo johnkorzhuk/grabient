@@ -6,8 +6,9 @@ import type { Page } from "@playwright/test";
    nothing. So a test waits for the handler itself, read from Chromium's own list of the document's listeners: of the
    listeners that hear a press as it bubbles, the one whose code navigates. The app marks nothing for the tests. */
 
-/** How long the handler may take to join once the app has hydrated: a cold `vite dev` compiles the frame's modules. */
-const SETTLE_MS = 30_000;
+/** How long the handler may take to join once the app has hydrated: a cold `vite dev` compiles the frame's modules.
+    Under a test's default 30 s, so a page that never goes live fails here, saying so, rather than at the timeout. */
+const SETTLE_MS = 20_000;
 
 /** Waits for the page to answer links and keys as the app does: hydrated, and the frame's link handler in place. */
 export async function live(page: Page): Promise<void> {
