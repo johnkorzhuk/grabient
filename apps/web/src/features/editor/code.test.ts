@@ -114,7 +114,7 @@ test("while an effect plays, the pane holds its code in the gradient's place, an
     speed: 2
   });
   expect(effectSource("style=glass", "colors")!.text("hex").split("\n")).toEqual(
-    effectColors(P, parseEffect(new URLSearchParams("style=glass"))!, 45)
+    effectColors(P, parseEffect(new URLSearchParams("style=glass"))!)
   );
   const md = effectSource("style=glass&shape=12&speed=2", "md")!.text();
   expect(md).toContain("- Drawn as: fluted glass, its ribs at 45 degrees, shape 12, speed 2");

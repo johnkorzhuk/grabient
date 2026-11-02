@@ -173,7 +173,6 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
       : import("@grabient/engine/figma-blob.ts"));
     return figmaBlobHtml({
       palette: decodePalette(p.seed)!,
-      angle: p.angle,
       ...effect.look,
       ...frame,
       speed: effect.speed

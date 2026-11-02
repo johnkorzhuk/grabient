@@ -22,7 +22,8 @@ import { seedAddress } from "../editor/address.ts";
 /* The view a list draws its palettes in: style, steps and angle for every palette at once, each set or left to every
    palette's own (auto, As saved), the size a palette takes into the editor and the selection's files, and an effect
    every card plays in its gradient's place. It is the list's address (?style=…&steps=…&angle=…&size=…, or with an
-   effect ?style=glass|blob&angle=…&size=… and how it plays and looks, as a palette's address writes them), so a change
+   effect ?style=glass&angle=…&size=… or ?style=blob&size=…, which has no angle, and how it plays and looks, as a
+   palette's address writes them), so a change
    replaces the entry and Back leaves the page, and the tab remembers it for the next page that draws palettes, the
    editor's new palettes and the wordmark's way home.
 
@@ -37,7 +38,8 @@ export interface ListView {
   size: SizeChoice | null;
   /** the effect every card plays over its gradient, which the names, the likes, the selection and the files keep: how
       it plays and the blob's frost and ground, one for the list. Its shape is none: each card plays its own palette's
-      (cardEffect). The style is auto and the steps leave the address while one plays. */
+      (cardEffect). The style is auto and the steps leave the address while one plays, the angle while the blob
+      does. */
   effect: Effect | null;
 }
 /** Steps, an angle or how the effect plays being set, which the pictures draw before the route takes them. */
@@ -74,7 +76,7 @@ export function readListView(search: Readonly<Record<string, unknown>>): ListVie
   return {
     style: isStyle(search.style) ? search.style : "auto",
     steps: effect || steps === null ? "auto" : Math.max(steps, STEPS_MIN),
-    angle: angle ?? "auto",
+    angle: effect?.kind === "blob" || angle === null ? "auto" : angle,
     size: typeof search.size === "string" ? parseSize(search.size) : null,
     effect: effect && { ...effect, look: { ...effect.look, shape: null } }
   };
@@ -88,11 +90,12 @@ export const listViewOf = (params: URLSearchParams): ListView =>
     link's, its style and its effect as one. */
 export const viewOver = (own: ListView, said: ListView): ListView => {
   const styled = own.style !== "auto" || own.effect !== null;
+  const effect = styled ? own.effect : said.effect;
   return {
     style: styled ? own.style : said.style,
-    effect: styled ? own.effect : said.effect,
+    effect,
     steps: own.steps === "auto" && !own.effect ? said.steps : own.steps,
-    angle: own.angle === "auto" ? said.angle : own.angle,
+    angle: effect?.kind === "blob" ? "auto" : own.angle === "auto" ? said.angle : own.angle,
     size: own.size ?? said.size
   };
 };
@@ -114,15 +117,17 @@ function effectParams(effect: Effect | null): Record<string, string | number | u
 }
 
 /** A view as a list's search params, ready to merge over the address's: auto is no param. The style and the effect
-    are written together, one `style` naming either, and the steps leave while an effect plays. */
+    are written together, one `style` naming either, the steps leave while an effect plays and the angle while the
+    blob does. */
 export function viewParams(view: Partial<ListView>): Record<string, string | number | undefined> {
   const out: Record<string, string | number | undefined> = {};
   const effect = view.effect ?? null;
+  const blob = effect?.kind === "blob";
   const styled = "style" in view || "effect" in view;
   if (styled) out.style = effect ? effect.kind : view.style === "auto" ? undefined : view.style;
   if ("steps" in view || effect)
     out.steps = effect || view.steps === "auto" ? undefined : view.steps;
-  if ("angle" in view) out.angle = view.angle === "auto" ? undefined : view.angle;
+  if ("angle" in view || blob) out.angle = blob || view.angle === "auto" ? undefined : view.angle;
   if ("size" in view) out.size = sizeParam(view.size) ?? undefined;
   return styled ? { ...out, ...effectParams(effect) } : out;
 }

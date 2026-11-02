@@ -61,10 +61,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
     <Show when={props.page.effect?.kind === "blob" ? props.page.effect.look : null}>
       {look => (
         <div class={styles.blob}>
-          <div
-            class={styles.glassStill}
-            data-blob-still={blobStillKey(props.page.seed, look(), props.page.view.angle)}
-          />
+          <div class={styles.glassStill} data-blob-still={blobStillKey(props.page.seed, look())} />
         </div>
       )}
     </Show>

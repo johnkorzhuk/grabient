@@ -1,8 +1,8 @@
 @layer components {
   /* The effects' last fields in the Appearance menu (GlassControls.tsx, BlobControls.tsx): the glass's frames a
-     second and its shape, the blob's shape and its ground, share a row where both show whole, and each takes the row
-     where they would not, by the width of the menu's fields (Appearance.module.css): 452px under a mouse, 612px under
-     a finger, whose words are larger */
+     second and its shape, the blob's frost, its shape and its ground, two to a row where both show whole, and each
+     takes the row where they would not, by the width of the menu's fields (Appearance.module.css): 452px under a
+     mouse, 612px under a finger, whose words are larger */
   .pairs {
     min-width: 0;
     grid-column: 1 / -1;

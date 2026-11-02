@@ -294,7 +294,7 @@ function blobDraw(
   ask: VideoAsk,
   plan: VideoPlan
 ): (i: number) => void {
-  const scene = blobScene(ask.palette, BLOB_DESIGN, { ...ask.look, angle: ask.angle });
+  const scene = blobScene(ask.palette, BLOB_DESIGN, ask.look);
   const fit = blobFit(ask.size);
   const k = fit.scale;
   const R = Math.max(...scene.blobs.map(b => b.R)) * k;

@@ -1,6 +1,6 @@
 /* The blob's stills on a page, drawn by the server, as the glass's are (glass-still.ts). A palette's first screen
    (Boot.tsx) and a list's cards (EffectArt.tsx) leave empty holders naming the still each shows (data-blob-still: the
-   palette, the blob's look and the angle, all its first frame depends on); this writes each name's first frame into
+   palette and the blob's look, all its first frame depends on); this writes each name's first frame into
    the head as a style, the one design covering whatever box holds it, over the blob's own ground where it has one.
    Rules rather than markup in the holders, since the browser draws the page's elements again as it starts, and the
    editor's own holder (BlobLayer.tsx) and a card's (BlobArt.tsx) take the same rule: the still stands through both,
@@ -21,7 +21,7 @@ export function blobStills(html: string): string {
     const named = readBlobStillKey(key);
     const P = named ? decodePalette(named.seed) : null;
     if (!named || !P) continue;
-    const view = { speed: 1, fps: 0, still: true, angle: named.angle, ...named.look };
+    const view = { speed: 1, fps: 0, still: true, ...named.look };
     rules.push(`[data-blob-still="${key}"]{background:${blobStillBackground(P, view)}}`);
     painted.push(key);
   }

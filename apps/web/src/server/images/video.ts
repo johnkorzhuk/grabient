@@ -1,7 +1,7 @@
 /* A palette's effect as an MP4, /{seed}.mp4?style=glass|blob: whole loops of the fluted glass or the blob, so a player
-   that repeats it shows no seam, with the effect's address (angle, speed, fps, shape, frost, bg), its size (`w` and `h`
-   or `size`, as its PNG reads them) and `duration` in seconds, the speed nudged so whole loops fill it (engine/video.ts).
-   An address that names no style plays the glass, as a page does.
+   that repeats it shows no seam, with the effect's address (the glass's angle, speed, fps, shape, frost, bg), its
+   size (`w` and `h` or `size`, as its PNG reads them) and `duration` in seconds, the speed nudged so whole loops fill
+   it (engine/video.ts). An address that names no style plays the glass, as a page does.
 
    A clip is drawn once and kept in R2 under videos/, its key every part of the address that moves its pixels, and
    answered from there to every player, a part of it to a player that asks for a range (Safari asks for nothing else).
@@ -19,7 +19,12 @@
    Clips are a preview: who a clip no one has kept is drawn for, its drawing and that page are video-make.ts's, which
    loads with the first of them an isolate is asked for. This answers a kept clip to a player without it. */
 
-import { type Effect, effectLookParts, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  type Effect,
+  effectAngleParts,
+  effectLookParts,
+  parseEffect
+} from "@grabient/engine/effect.ts";
 import type { VideoPlan } from "@grabient/engine/video.ts";
 import type { Size } from "@grabient/engine/view.ts";
 import { DEFAULT_ANGLE } from "@grabient/engine/view.ts";
@@ -73,7 +78,7 @@ const listed = (header: string | null, tag: string) =>
 const stillAddress = (origin: string, seed: string, effect: Effect, angle: number, size: Size) =>
   `${origin}/${seed}.png?${[
     `style=${effect.kind}`,
-    ...(angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : []),
+    ...effectAngleParts(effect.kind, angle),
     ...effectLookParts(effect),
     `w=${size.width}`,
     `h=${size.height}`
@@ -131,7 +136,9 @@ export async function seedMp4Answer(
   if (!effect) {
     return failure(404, "An MP4 plays the fluted glass or the blob: style=glass or style=blob.");
   }
-  const angle = viewAt(params, found.palette.anchors.length).angle;
+  /* the blob has no angle: one clip for every angle its address names */
+  const angle =
+    effect.kind === "blob" ? DEFAULT_ANGLE : viewAt(params, found.palette.anchors.length).angle;
   const { VIDEO_QUALITY, videoDuration, videoFit, videoParts } = await import(
     "@grabient/engine/video.ts"
   );

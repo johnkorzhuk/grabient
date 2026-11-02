@@ -31,9 +31,10 @@ export const levelWords = (ratio: number): string => {
 };
 
 /** How the palette is drawn in the page's style, as the hero and an example's tag say it: "Linear bands · 5 steps ·
-    45°", "Blob · 0.3× · 45°". A radial style has no angle to say. */
+    45°", "Fluted glass · 0.3× · 45°", "Blob · 0.3×". A radial style and the blob have no angle to say. */
 export function drawnWords(s: Shown): string {
-  if (s.effect) return `${effectLabel(s.effect.kind)} · ${effectSummary(s.effect, s.view.angle)}`;
+  if (s.effect)
+    return `${effectLabel(s.effect.kind)} · ${effectSummary(s.effect, s.effect.kind === "blob" ? null : s.view.angle)}`;
   return [
     t(STYLE_LABELS[s.view.style]),
     t("{count, plural, one {# step} other {# steps}}", { count: s.view.steps }),

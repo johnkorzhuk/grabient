@@ -39,13 +39,12 @@ const after = (svg: string) => svg.split("</defs>")[1];
 const LATTICE_9248 = [47, 42, 141, 88, 121, 157, 190, 96];
 const GRADIENTS_9248 = [3, 186, 231, 13, 27, 255, 18, 143];
 
-test("an address's animation: speed, frost, shape, ground, angle and frames a second, each brought into bounds", () => {
+test("an address's animation: speed, frost, shape, ground and frames a second, each brought into bounds", () => {
   expect(read("")).toEqual({
     speed: 1,
     frost: 1,
     shape: null,
     bg: null,
-    angle: 90,
     still: false,
     fps: null
   } satisfies BlobView);
@@ -57,14 +56,14 @@ test("an address's animation: speed, frost, shape, ground, angle and frames a se
   expect(read("speed=0.05&frost=3").speed).toBe(0.1);
   expect(read("speed=20&frost=3")).toMatchObject({ speed: 10, frost: 2 });
   expect(read("speed=0.755&frost=0.333")).toMatchObject({ speed: 0.76, frost: 0.33 });
-  expect(read("shape=7&angle=45")).toMatchObject({ shape: 7, angle: 45 });
+  // the angle is the view's: the blob has none
+  expect(read("shape=7&angle=45")).toEqual(read("shape=7"));
   // a shape is 0 to 999: a longer number is none, never folded into another shape
   expect(read("shape=0").shape).toBe(0);
   expect(read("shape=999").shape).toBe(999);
   expect(read("shape=1000").shape).toBeNull();
   expect(read("shape=12345").shape).toBeNull();
   expect(read("shape=x").shape).toBeNull();
-  expect(read("angle=400").angle).toBe(90);
   // a ground is hex: three, four, six or eight digits, with or without its #; any other color the Worker writes as hex
   expect(read("bg=FFF").bg).toBe("#ffffff");
   expect(read("bg=%23101014").bg).toBe("#101014");
@@ -76,7 +75,7 @@ test("an address's animation: speed, frost, shape, ground, angle and frames a se
   expect(read("speed=-1&frost=x&bg=none&duration=9&depth=0&fill=1")).toEqual(read(""));
   expect(blobSearch(read("speed=1.00&junk=1"))).toBe("?style=blob");
   expect(blobSearch(read("bg=10101480&shape=7&frost=0.5&speed=2&angle=30"), ["size=800x600"])).toBe(
-    "?style=blob&angle=30&speed=2&frost=0.5&shape=7&bg=10101480&size=800x600"
+    "?style=blob&speed=2&frost=0.5&shape=7&bg=10101480&size=800x600"
   );
   expect(blobSearch(read("still=1"))).toBe("?style=blob&still=1");
   // the first frame's query leaves the speed out, and whether it moves
@@ -104,7 +103,7 @@ test("the file: three blobs of balls melted and frosted by one filter, moved by 
 });
 
 test("no transform attribute anywhere, so an optimizer moving one onto a moving element cannot shift the drawing", () => {
-  for (const query of ["", "shape=7&angle=200", "bg=101014"]) {
+  for (const query of ["", "shape=7", "bg=101014"]) {
     const svg = draw(query, { width: 640, height: 360 });
     expect(svg).not.toMatch(/\stransform=/);
     // every element that turns or grows turns about an origin of its own
@@ -145,7 +144,7 @@ test("frost scales the scatter and the speckle, and none leaves the noise out", 
 
 test("depth: three blobs far to near, the nearer larger, wandering farther and painted later, each breathing", () => {
   for (const shape of [null, 3, 7, 41]) {
-    const { blobs } = blobScene(P, BLOB_SIZE, { shape, bg: null, angle: 90 });
+    const { blobs } = blobScene(P, BLOB_SIZE, { shape, bg: null });
     expect(blobs).toHaveLength(3);
     for (let k = 1; k < 3; k++) {
       expect(blobs[k].R).toBeGreaterThan(blobs[k - 1].R);
@@ -161,10 +160,7 @@ test("depth: three blobs far to near, the nearer larger, wandering farther and p
 
 test("a shape's blobs: small, with the ground about them, as often as middling or full; a palette's own fills its box", () => {
   const cover = (shape: number | null, palette = P) =>
-    blobScene(palette, BLOB_SIZE, { shape, bg: null, angle: 90 }).blobs.reduce(
-      (sum, b) => sum + b.R * b.R,
-      0
-    );
+    blobScene(palette, BLOB_SIZE, { shape, bg: null }).blobs.reduce((sum, b) => sum + b.R * b.R, 0);
   const sizes = Array.from({ length: 300 }, (_, shape) => cover(shape)).sort((a, b) => a - b);
   const most = sizes[299];
   // about a third of the shapes cover under a quarter of what the largest do, and about a third over half
@@ -184,9 +180,7 @@ test("the ground: a color drawn behind the blobs over the whole box, which may l
   expect(after(draw("bg=101014", { width: 1020, height: 671 }))).toContain(
     '<rect y="85.53" width="500" height="328.94" fill="#101014"/>'
   );
-  expect(blobScene(P, BLOB_SIZE, { shape: null, bg: "#10101480", angle: 90 }).backdrop).toBe(
-    "#10101480"
-  );
+  expect(blobScene(P, BLOB_SIZE, { shape: null, bg: "#10101480" }).backdrop).toBe("#10101480");
 });
 
 test("each file's names are its own; each palette, and each shape of it, has blobs of its own", () => {
@@ -194,10 +188,11 @@ test("each file's names are its own; each palette, and each shape of it, has blo
   const other = decodePalette("kKSAEDEVJVQQpMqxBWXeGPsNYdzUyx-eqwA")!;
   expect(mark(draw())).not.toBe(mark(draw("", BLOB_SIZE, other)));
   expect(mark(draw())).not.toBe(mark(draw("speed=2")));
-  expect(mark(draw())).not.toBe(mark(draw("angle=30")));
+  // the blob has no angle: an address that names one draws the same file
+  expect(draw("angle=30")).toBe(draw());
   expect(mark(draw())).not.toBe(mark(draw("", { width: 400, height: 400 })));
   const places = (palette: typeof P, shape: number | null = null) =>
-    blobScene(palette, BLOB_SIZE, { shape, bg: null, angle: 90 }).blobs.flatMap(blob =>
+    blobScene(palette, BLOB_SIZE, { shape, bg: null }).blobs.flatMap(blob =>
       blob.balls.map(b => blob.x + b.x)
     );
   expect(places(P)).not.toEqual(places(other));
@@ -256,7 +251,7 @@ test("the still frame is the first frame with no motion, which a player takes ov
 });
 
 test("a player's places, written without allocating, are ballPlace's", () => {
-  for (const query of ["", "shape=7&angle=10", "shape=41"]) {
+  for (const query of ["", "shape=7&bg=101014", "shape=41"]) {
     const view = read(query);
     const scene = blobScene(P, BLOB_SIZE, view);
     const balls = scene.blobs.flatMap(blob => blob.balls.map(b => [blob, b] as const));
@@ -273,24 +268,18 @@ test("a player's places, written without allocating, are ballPlace's", () => {
   }
 });
 
-test("the palette lies across every blob along the angle, its first color toward the angle's tail", () => {
-  const scene = (angle: number) => blobScene(P, BLOB_SIZE, { shape: 7, bg: null, angle });
-  expect([scene(90).color(0), scene(90).color(1)]).toEqual(["#f9d961", "#f86c1b"]);
-  /* where on the screen a blob's last color lies, from its middle: the ring ball nearest the palette's end */
-  const toward = (angle: number) =>
-    scene(angle).blobs.map(blob => {
-      const ring = blob.balls.filter(b => b.ring);
-      const last = ring.reduce((a, b) => (b.at > a.at ? b : a));
-      return [last.x, last.y];
-    });
-  for (const [x] of toward(90)) expect(x).toBeGreaterThan(0.2);
-  for (const [x] of toward(270)) expect(x).toBeLessThan(-0.2);
-  for (const [, y] of toward(0)) expect(y).toBeLessThan(-0.2);
-  for (const [, y] of toward(180)) expect(y).toBeGreaterThan(0.2);
-  // the angle moves no blob, only its colors
-  expect(scene(0).blobs.map(b => [b.x, b.y, b.R])).toEqual(
-    scene(90).blobs.map(b => [b.x, b.y, b.R])
-  );
+test("the palette lies across every blob from left to right, its first color on the left", () => {
+  const scene = blobScene(P, BLOB_SIZE, { shape: 7, bg: null });
+  expect([scene.color(0), scene.color(1)]).toEqual(["#f9d961", "#f86c1b"]);
+  /* where on the screen a blob's first and last colors lie, from its middle: the ring balls nearest the palette's
+     ends */
+  for (const blob of scene.blobs) {
+    const ring = blob.balls.filter(b => b.ring);
+    const first = ring.reduce((a, b) => (b.at < a.at ? b : a));
+    const last = ring.reduce((a, b) => (b.at > a.at ? b : a));
+    expect(first.x).toBeLessThan(-0.2);
+    expect(last.x).toBeGreaterThan(0.2);
+  }
 });
 
 test("one design for every box: the scene is the design square's, the box only scales it to cover", () => {
@@ -356,7 +345,7 @@ test("a still drawn once is the first frame a renderer of many frames draws, byt
     "",
     "shape=13&frost=0",
     "shape=999&frost=2&bg=101014",
-    "shape=300&frost=0.5&bg=ff336680&angle=210"
+    "shape=300&frost=0.5&bg=ff336680"
   ].entries()) {
     const look = read(query);
     const size = sizes[i % sizes.length];

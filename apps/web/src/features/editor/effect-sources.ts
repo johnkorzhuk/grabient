@@ -53,7 +53,7 @@ export function effectSources(
           angle,
           glass ? GLASS_STILL_SHOWN : effectStill(P, effect, angle)
         );
-  const colors = () => effectColors(P, effect, angle).map(stopOf);
+  const colors = () => effectColors(P, effect).map(stopOf);
   return [
     {
       id: "html",

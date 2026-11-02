@@ -72,10 +72,7 @@ function Still(props: { page: SeedPage }) {
     <AppearanceButton
       swatch="transparent"
       swatchArt={
-        <span
-          class={styles.swatchStill}
-          data-blob-still={blobStillKey(props.page.seed, look, props.page.view.angle)}
-        />
+        <span class={styles.swatchStill} data-blob-still={blobStillKey(props.page.seed, look)} />
       }
       label={t("Blob")}
       summary={effectSummary(props.page.effect ?? EFFECT_PLAY, null)}

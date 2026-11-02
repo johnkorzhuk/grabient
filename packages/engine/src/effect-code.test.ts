@@ -46,17 +46,18 @@ test("the blob's stylesheet draws its look, and gives the still up once the scri
   expect(effectStill(P, effect("style=blob&shape=3"), 90)).not.toBe(
     effectStill(P, effect("style=blob&shape=4"), 90)
   );
-  // the angle lays the palette across the blobs
-  expect(effectStill(P, effect("style=blob&shape=3"), 90)).not.toBe(
+  // the blob has no angle: its palette lies from left to right whatever the view's
+  expect(effectStill(P, effect("style=blob&shape=3"), 90)).toBe(
     effectStill(P, effect("style=blob&shape=3"), 180)
   );
 });
 
-test("a stylesheet credits the effect's page by all its still depends on, the angle for both effects, never its pace", () => {
+test("a stylesheet credits the effect's page by all its still depends on, the glass's angle, never its pace", () => {
   const credit = (query: string, angle: number) =>
     effectStylesheet(P, SEED, effect(query), angle, ORIGIN).split("\n")[0];
+  // the blob has no angle
   expect(credit("style=blob&shape=3&frost=0.5&speed=2&fps=30", 45)).toBe(
-    `/* ${ORIGIN}/${SEED}?style=blob&angle=45&frost=0.5&shape=3 */`
+    `/* ${ORIGIN}/${SEED}?style=blob&frost=0.5&shape=3 */`
   );
   expect(credit("style=glass&shape=12&speed=0", 160)).toBe(
     `/* ${ORIGIN}/${SEED}?style=glass&angle=160&shape=12 */`
@@ -83,7 +84,9 @@ test("an effect's SVG moves while it plays and holds its first frame at speed 0,
     const still = effectSvg(P, SEED, effect(`style=${kind}&speed=0`), 45, null, ORIGIN);
     expect(moving).toContain("@keyframes");
     expect(still).not.toContain("@keyframes");
-    expect(moving).toContain(`<!-- ${ORIGIN}/${SEED}?style=${kind}&angle=45&speed=2 -->`);
+    expect(moving).toContain(
+      `<!-- ${ORIGIN}/${SEED}?style=${kind}${kind === "glass" ? "&angle=45" : ""}&speed=2 -->`
+    );
     const sized = effectSvg(
       P,
       SEED,
@@ -103,13 +106,13 @@ test("an effect's SVG moves while it plays and holds its first frame at speed 0,
 });
 
 test("an effect's colors are the ones it draws, along the palette", () => {
-  expect(effectColors(P, effect("style=glass"), 90)).toEqual(glassColors(P));
-  const blob = effectColors(P, effect("style=blob&shape=3"), 90);
+  expect(effectColors(P, effect("style=glass"))).toEqual(glassColors(P));
+  const blob = effectColors(P, effect("style=blob&shape=3"));
   expect(blob.length).toBeGreaterThan(6);
   expect(new Set(blob).size).toBe(blob.length);
   for (const hex of blob) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
-  // the angle lays other colors on the balls
-  expect(effectColors(P, effect("style=blob&shape=3"), 180)).not.toEqual(blob);
+  // another shape lays other colors on the balls
+  expect(effectColors(P, effect("style=blob&shape=4"))).not.toEqual(blob);
 });
 
 test("an effect's JSON holds the keyframes and how it plays, as its address names them", () => {
@@ -117,8 +120,10 @@ test("an effect's JSON holds the keyframes and how it plays, as its address name
   expect(fromSpec(glass)).toEqual(P);
   expect(glass).toMatchObject({ style: "glass", angle: 45, speed: 0.5, fps: 60, shape: 0 });
   expect(glass).not.toHaveProperty("frost");
-  const blob = JSON.parse(effectSpecJson(P, effect("style=blob&frost=2&bg=%23101014&shape=9"), 90));
-  expect(blob).toMatchObject({ style: "blob", angle: 90, shape: 9, frost: 2, bg: "#101014" });
+  const blob = JSON.parse(effectSpecJson(P, effect("style=blob&frost=2&bg=%23101014&shape=9"), 45));
+  expect(blob).toMatchObject({ style: "blob", shape: 9, frost: 2, bg: "#101014" });
+  // the blob has no angle
+  expect(blob).not.toHaveProperty("angle");
 });
 
 test("the palette's JSON at an effect's address names the effect: its settings, its colors, its tags and its files", () => {
@@ -147,7 +152,7 @@ test("the palette's JSON at an effect's address names the effect: its settings, 
     shape: null,
     frost: 2,
     bg: null,
-    colors: effectColors(P, blob, 90)
+    colors: effectColors(P, blob)
   });
 });
 
@@ -163,20 +168,18 @@ test("the palette's Markdown at an effect's address says what plays and how, and
       ORIGIN,
       SEED,
       effect("style=blob&speed=0&bg=%23101014"),
-      `${ORIGIN}/api/og?seed=${SEED}&v=k4&style=blob&angle=45&bg=%23101014`
+      `${ORIGIN}/api/og?seed=${SEED}&v=k4&style=blob&bg=%23101014`
     )
   )!;
   expect(text).toMatch(/^# .+ blob\n/);
   expect(text).toContain(
-    "- Drawn as: a blob, the palette across it at 45 degrees, frost 1, on #101014, held on its first frame"
+    "- Drawn as: a blob, the palette across it from left to right, frost 1, on #101014, held on its first frame"
   );
   expect(text).toContain("## Behind a page");
   expect(text).not.toContain("## CSS");
+  expect(text).toContain(`- [Script](${ORIGIN}/${SEED}.js?style=blob&speed=0&bg=%23101014)`);
   expect(text).toContain(
-    `- [Script](${ORIGIN}/${SEED}.js?style=blob&angle=45&speed=0&bg=%23101014)`
-  );
-  expect(text).toContain(
-    `- [Social card](${ORIGIN}/api/og?seed=${SEED}&v=k4&style=blob&angle=45&bg=%23101014)`
+    `- [Social card](${ORIGIN}/api/og?seed=${SEED}&v=k4&style=blob&bg=%23101014)`
   );
   // the gradient's Markdown is as it was, with no script among its forms
   const gradient = paletteMarkdown(SEED, ORIGIN, { angle: 45 }, null, [])!;

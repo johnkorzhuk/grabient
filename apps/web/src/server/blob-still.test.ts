@@ -9,14 +9,13 @@ const page = (key: string) =>
   `<html><head><title>t</title></head><body><div class="b"><div class="s" data-blob-still="${key}"></div></div></body></html>`;
 
 describe("a blob's still on its page", () => {
-  test("its name reads back as the palette, the look and the angle it was written for", () => {
-    const key = blobStillKey(SEED, LOOK, 90);
-    expect(readBlobStillKey(key)).toEqual({ seed: SEED, look: LOOK, angle: 90 });
-    const ground = blobStillKey(SEED, { ...LOOK, frost: 0.35, bg: "#10101480" }, 135);
+  test("its name reads back as the palette and the look it was written for", () => {
+    const key = blobStillKey(SEED, LOOK);
+    expect(readBlobStillKey(key)).toEqual({ seed: SEED, look: LOOK });
+    const ground = blobStillKey(SEED, { ...LOOK, frost: 0.35, bg: "#10101480" });
     expect(readBlobStillKey(ground)).toEqual({
       seed: SEED,
-      look: { ...LOOK, frost: 0.35, bg: "#10101480" },
-      angle: 135
+      look: { ...LOOK, frost: 0.35, bg: "#10101480" }
     });
   });
 
@@ -24,20 +23,20 @@ describe("a blob's still on its page", () => {
     for (const key of [
       "",
       "x",
-      `${SEED}|1|424|`,
-      `${SEED}|1.000|424||90`,
-      `${SEED}|1|424|red|90`,
-      `${SEED}|1|424||400`,
-      `${SEED}|1|424||9.5`,
-      `<b>|1|424||90`,
+      `${SEED}|1|424`,
+      `${SEED}|1.000|424|`,
+      `${SEED}|1|424|red`,
+      `<b>|1|424|`,
       // a shape is 0 to 999
-      `${SEED}|1|4242||90`
+      `${SEED}|1|4242|`,
+      // the blob has no angle: a name that ends in one, as names did, names nothing
+      `${SEED}|1|424||90`
     ])
       expect(readBlobStillKey(key)).toBeNull();
   });
 
   test("the server writes the still into the head, a style for the holder's name, and nothing else", () => {
-    const key = blobStillKey(SEED, LOOK, 90);
+    const key = blobStillKey(SEED, LOOK);
     const html = blobStills(page(key));
     const style = /<style id="blob-still" data-key="([^"]*)">([^<]*)<\/style><\/head>/.exec(html);
     expect(style?.[1]).toBe(key);
@@ -50,23 +49,23 @@ describe("a blob's still on its page", () => {
   });
 
   test("a blob with a ground of its own paints it under the still; one without leaves the page's", () => {
-    const own = blobStills(page(blobStillKey(SEED, { ...LOOK, bg: "#10101480" }, 90)));
+    const own = blobStills(page(blobStillKey(SEED, { ...LOOK, bg: "#10101480" })));
     expect(own).toMatch(/no-repeat #10101480\}<\/style>/);
-    const none = blobStills(page(blobStillKey(SEED, LOOK, 90)));
+    const none = blobStills(page(blobStillKey(SEED, LOOK)));
     expect(none).toMatch(/no-repeat\}<\/style>/);
   });
 
   test("a list's cards each name a still: one rule a name, as many as a first screen shows", () => {
     const cards = (keys: string[]) =>
       `<html><head></head><body>${keys.map(k => `<span class="c" data-blob-still="${k}"></span>`).join("")}</body></html>`;
-    const keys = [90, 45, 90, 10].map(angle => blobStillKey(SEED, LOOK, angle));
+    const keys = [424, 45, 424, 10].map(shape => blobStillKey(SEED, { ...LOOK, shape }));
     const html = blobStills(cards(keys));
     expect(/<style id="blob-still" data-key="([^"]*)">/.exec(html)?.[1]).toBe(
       [keys[0], keys[1], keys[3]].join(" ")
     );
     expect(html.match(/\]\{background:/g)).toHaveLength(3);
-    const many = Array.from({ length: FIRST_SCREEN_STILLS + 5 }, (_, i) =>
-      blobStillKey(SEED, LOOK, i)
+    const many = Array.from({ length: FIRST_SCREEN_STILLS + 5 }, (_, shape) =>
+      blobStillKey(SEED, { ...LOOK, shape })
     );
     const capped = blobStills(cards(many));
     expect(capped.match(/\]\{background:/g)).toHaveLength(FIRST_SCREEN_STILLS);

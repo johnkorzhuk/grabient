@@ -65,7 +65,7 @@ export const FIGMA_BLOB = {
   spread: 0.42
 } as const;
 
-export interface FigmaBlobView extends Pick<BlobView, "angle" | "shape" | "frost" | "bg"> {
+export interface FigmaBlobView extends Pick<BlobView, "shape" | "frost" | "bg"> {
   palette: Palette;
   /** how fast it moves, the loop BLOB_LOOP seconds over this; 0 or none, the first frame alone */
   speed?: number;

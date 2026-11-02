@@ -38,7 +38,8 @@ const MOUNTED = Symbol.for("grabient-effect");
 
 export interface EmbedEffect {
   kind: EffectKind;
-  /** the effect's first frame as a background, as the stylesheet paints it */
+  /** the effect's first frame as a background, as the stylesheet paints it, at the address's angle, which the blob
+      has none of */
   still(P: Palette, effect: Effect, angle: number): string;
   /** the player on the canvas, telling `drawn` once its first frame is and holding its first frame while `reduced`
       says so, read again on motion(); null where WebGL 2 is missing */

@@ -69,7 +69,8 @@ test("an effect's SVG moves as the picture does, at the pixels taken, as its fil
 
 test("the page's address keeps the effect, and its files' addresses carry every setting", async () => {
   await copyFormat("url", taken("style=blob&shape=3&speed=0.5"));
-  expect(copied.pop()).toBe(`${ORIGIN}/${SEED}?style=blob&angle=45&speed=0.5&shape=3`);
+  // the blob has no angle
+  expect(copied.pop()).toBe(`${ORIGIN}/${SEED}?style=blob&speed=0.5&shape=3`);
   for (const f of ["md", "css", "js", "svg", "png"] as const) {
     await copyLink(f, taken("style=glass&shape=7"));
     expect(copied.pop()).toBe(

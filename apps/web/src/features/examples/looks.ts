@@ -6,8 +6,9 @@
    range rather than one look again and again.
    A look is the palette as a gradient, bands across, bands swept round the middle (angular), rings out from it
    (radial), the fluted glass or the blob, at an angle and in as many bands as the seed picks for the part. The glass
-   and the blob each lie at one angle a page, and the blob in its palette's shape (effect.ts's blobShapeOf), since each
-   other angle or shape is another still for the server to write and the browser to draw. */
+   lies at one angle a page and the blob in its palette's shape (effect.ts's blobShapeOf), since each other angle or
+   shape is another still for the server to write and the browser to draw; the blob has no angle, its palette lying
+   from left to right. */
 import { sampleLCH } from "@grabient/engine/curve.ts";
 import {
   blobShapeOf,
@@ -17,7 +18,7 @@ import {
   SHAPE_MAX
 } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { DEFAULT_STEPS, type Style } from "@grabient/engine/view.ts";
+import { DEFAULT_ANGLE, DEFAULT_STEPS, type Style } from "@grabient/engine/view.ts";
 import type { Shown } from "./paint.ts";
 
 /** What a part shows the palette as. */
@@ -120,9 +121,10 @@ export const lookOf = (s: Shown): Look => {
 };
 
 /** The palette in a look as a part named `name` shows it: a gradient as smooth as it needs, bands as many as the seed
-    picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings, which have none,
-    at the default's. The glass and the blob lie at the page's one angle for each, the blob in its palette's shape; or,
-    given `own`, at an angle and in a shape of their own for it, as a look a reader turns to is. */
+    picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings and the blob,
+    which have none, at the default's. The glass lies at the page's one angle for it and the blob in its palette's
+    shape; or, given `own`, in a shape of their own for it, the glass at an angle of its own too, as a look a reader
+    turns to is. */
 export function inLook(
   seed: string,
   palette: Palette,
@@ -146,7 +148,7 @@ export function inLook(
       view: {
         style: "linearGradient",
         steps: Math.max(DEFAULT_STEPS, keyframes),
-        angle: angleFor(own ?? look)
+        angle: look === "blob" ? DEFAULT_ANGLE : angleFor(own ?? look)
       },
       effect: { kind: look, ...EFFECT_PLAY, look: { ...EFFECT_LOOK, shape } }
     };

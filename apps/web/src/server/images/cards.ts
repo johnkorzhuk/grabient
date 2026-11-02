@@ -25,12 +25,11 @@ const EFFECT_DRAWING = { glass: "glass-2", blob: "blob-3" } as const;
 const BLOB_PICTURE = "clear-1";
 
 /** Everything an effect's first frame depends on: the glass's colors are its palette's, its ribs turn with the angle
-    and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and the angle lays its
-    palette. */
+    and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and it has no angle. */
 const effectParts = (effect: Effect, angle: number) =>
   effect.kind === "glass"
     ? [EFFECT_DRAWING.glass, angle, effect.look.shape ?? 0]
-    : [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg, angle];
+    : [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg];
 
 /** An effect's first frame at a size, as the editor shows it before it moves: the glass covering the box (its CPU
     renderer, engine/glass-render.ts) in three bytes a pixel, and the blobs covering it on their own ground
@@ -48,7 +47,7 @@ async function effectStill(
     const blob = await import("@grabient/engine/blob.ts");
     return blob.blobStill(
       found.palette,
-      { ...effect.look, angle },
+      effect.look,
       size,
       card ? blob.blobBackdrop(found.palette) : undefined
     );

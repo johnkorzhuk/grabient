@@ -273,7 +273,12 @@ export function ListAppearance() {
   );
   const summary = () => {
     const v = shown();
-    if (v.effect) return effectSummary(v.effect, v.angle === "auto" ? null : v.angle);
+    /* the blob has no angle */
+    if (v.effect)
+      return effectSummary(
+        v.effect,
+        v.effect.kind === "blob" || v.angle === "auto" ? null : v.angle
+      );
     const parts: string[] = [];
     if (v.steps !== "auto")
       parts.push(t("{count, plural, one {# step} other {# steps}}", { count: v.steps }));

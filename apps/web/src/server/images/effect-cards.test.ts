@@ -146,9 +146,9 @@ describe("an effect page's head", () => {
     expect(effectCard(SEED, blob, 90)).toBe(
       `/api/og?seed=${SEED}&v=k4&style=blob&frost=0.5&shape=3`
     );
-    // the blob's angle lays its palette, so its card names it
+    // the blob has no angle, so its card names none
     expect(effectCard(SEED, blob, 30)).toBe(
-      `/api/og?seed=${SEED}&v=k4&style=blob&angle=30&frost=0.5&shape=3`
+      `/api/og?seed=${SEED}&v=k4&style=blob&frost=0.5&shape=3`
     );
   });
 });

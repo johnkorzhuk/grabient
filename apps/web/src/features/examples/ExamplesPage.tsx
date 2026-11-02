@@ -291,7 +291,6 @@ function Hero(props: {
             <BlobLayer
               palette={s().palette}
               settings={s().effect ?? { ...EFFECT_PLAY, look: EFFECT_LOOK }}
-              angle={s().view.angle}
             />
           </Match>
         </Switch>

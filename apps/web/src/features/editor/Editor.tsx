@@ -712,16 +712,12 @@ function Stage(
           <div class={styles.blob}>
             <div
               class={styles.glassStill}
-              data-blob-still={blobStillKey(
-                encodePalette(calmPalette()),
-                blobSettings().look,
-                e.angle()
-              )}
+              data-blob-still={blobStillKey(encodePalette(calmPalette()), blobSettings().look)}
             />
           </div>
         }
       >
-        <BlobLayer palette={calmPalette()} settings={blobSettings()} angle={e.angle()} />
+        <BlobLayer palette={calmPalette()} settings={blobSettings()} />
       </Loading>
     </Show>
   );

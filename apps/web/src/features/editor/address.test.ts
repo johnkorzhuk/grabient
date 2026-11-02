@@ -130,10 +130,14 @@ test("a blob always has a shape: the palette's own suggestion where its address 
   expect(canonicalSeedAddress(`/${SEED}?style=blob&shape=1000`)).toBe(
     `/${SEED}?style=blob&shape=${shape}`
   );
-  // its old depth and fill are no more; its ground keeps its alpha
+  // its old depth and fill are no more, nor any angle, which the blob has none of; its ground keeps its alpha
   expect(
     canonicalSeedAddress(
       `/${SEED}?style=blob&shape=7&frost=1.5&fill=1&depth=0&bg=%23aabbcc80&angle=30`
     )
-  ).toBe(`/${SEED}?style=blob&angle=30&frost=1.5&shape=7&bg=%23aabbcc80`);
+  ).toBe(`/${SEED}?style=blob&frost=1.5&shape=7&bg=%23aabbcc80`);
+  // the glass keeps its angle
+  expect(canonicalSeedAddress(`/${SEED}?style=glass&angle=30`)).toBe(
+    `/${SEED}?style=glass&angle=30`
+  );
 });

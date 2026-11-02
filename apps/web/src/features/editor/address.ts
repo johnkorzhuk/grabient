@@ -4,9 +4,14 @@
    entry in place as the palette changes. */
 import { decodePalette, encodePalette, type Palette } from "@grabient/engine";
 import { LOCKS, type Lock } from "@grabient/engine/edits.ts";
-import { blobShapeOf, type Effect, effectParts, parseEffect } from "@grabient/engine/effect.ts";
 import {
-  DEFAULT_ANGLE,
+  blobShapeOf,
+  type Effect,
+  effectAngleParts,
+  effectParts,
+  parseEffect
+} from "@grabient/engine/effect.ts";
+import {
   type ParamReader,
   parseView,
   type Style,
@@ -83,9 +88,9 @@ export function readSeedPage(id: string, params: ParamReader): SeedPage | null {
 type Addressed = Pick<SeedPage, "seed" | "view"> &
   Partial<Pick<SeedPage, "effect" | "locks" | "selection">>;
 
-/** The canonical address: the view's defaults left out and its parts in order (an effect's style, the angle, the size
-    and how it plays, with no steps, while one plays), then the locks' words in the order lightness, chroma, hue, then
-    the selection's word with no value. */
+/** The canonical address: the view's defaults left out and its parts in order (an effect's style, the angle but for
+    the blob's, which has none, the size and how it plays, with no steps, while one plays), then the locks' words in
+    the order lightness, chroma, hue, then the selection's word with no value. */
 export function seedAddress(page: Addressed): string {
   const { lock, unlock } = page.locks ?? NO_LOCKS;
   const extra = [
@@ -98,7 +103,7 @@ export function seedAddress(page: Addressed): string {
   const size = sizeParam(page.view.size);
   const parts = [
     `style=${effect.kind}`,
-    page.view.angle !== DEFAULT_ANGLE ? `angle=${page.view.angle}` : "",
+    ...effectAngleParts(effect.kind, page.view.angle),
     size ? `size=${size}` : "",
     ...effectParts(effect),
     ...extra

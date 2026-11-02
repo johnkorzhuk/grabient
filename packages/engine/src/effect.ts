@@ -1,6 +1,6 @@
 /* The effects a palette's picture can play instead of a gradient: the fluted glass (glass.ts) and the blob (blob.ts).
-   An effect rides the palette's address as `style=glass` or `style=blob`, then the view's `angle`, which turns the
-   glass's ribs and lays the palette across the blobs, then how it plays: `speed` (the loop's pace, 1 as designed, 0 its
+   An effect rides the palette's address as `style=glass` or `style=blob`, then for the glass the view's `angle`, which
+   turns its ribs (the blob has none: its palette lies from left to right), then how it plays: `speed` (the loop's pace, 1 as designed, 0 its
    first frame held with no motion) and `fps` (frames a second at most: 60 unless it says, up to 120 where a screen
    shows that many), then its look: `shape`, a number from 0 to 999 that picks the blobs' forms and wanderings or the
    glass's ribs and the colors drifting behind them, and the blob's `frost` and `bg`, its ground: any CSS color, which
@@ -67,27 +67,23 @@ export function groundParts(bg: string): { hex: string; alpha: number } {
   };
 }
 
-/** The name a blob's still goes by on a page (server/blob-still.ts, BlobLayer.tsx): its palette's seed, its look and
-    the angle the palette lies across it at, which are all its first frame depends on. */
-export const blobStillKey = (seed: string, look: EffectLook, angle: number): string =>
-  [seed, look.frost, look.shape ?? "", look.bg ?? "", angle].join("|");
+/** The name a blob's still goes by on a page (server/blob-still.ts, BlobLayer.tsx): its palette's seed and its look,
+    which are all its first frame depends on. */
+export const blobStillKey = (seed: string, look: EffectLook): string =>
+  [seed, look.frost, look.shape ?? "", look.bg ?? ""].join("|");
 
 /** A still's name read back, or null for one no page wrote. */
-export function readBlobStillKey(
-  key: string
-): { seed: string; look: EffectLook; angle: number } | null {
+export function readBlobStillKey(key: string): { seed: string; look: EffectLook } | null {
   const parts = key.split("|");
-  if (parts.length !== 5) return null;
-  const [seed, frost, shape, bg, angle] = parts;
-  if (!/^[\w-]{2,}$/.test(seed) || !/^\d{1,3}$/.test(angle) || Number(angle) > 360) return null;
+  if (parts.length !== 4) return null;
+  const [seed, frost, shape, bg] = parts;
+  if (!/^[\w-]{2,}$/.test(seed)) return null;
   const look = effectLook({
     frost: Number(frost),
     shape: shape === "" ? null : Number(shape),
     bg: bg === "" ? null : bg
   });
-  return blobStillKey(seed, look, Number(angle)) === key
-    ? { seed, look, angle: Number(angle) }
-    : null;
+  return blobStillKey(seed, look) === key ? { seed, look } : null;
 }
 
 /** The shape number a palette suggests for its blob: the same for the same palette, so a blob whose address names no
@@ -166,7 +162,7 @@ const written = (parts: (string | false | null)[]): string[] =>
   parts.filter((part): part is string => Boolean(part));
 
 /** An effect's look as an address writes it, defaults left out: all its first frame depends on but its palette and
-    its angle. The glass's is its shape alone; a ground is written with its `#` (escaped), so no color reads as a
+    the glass's angle. The glass's is its shape alone; a ground is written with its `#` (escaped), so no color reads as a
     number. */
 export const effectLookParts = (effect: Effect): string[] => {
   const look = effect.look;
@@ -189,19 +185,23 @@ export const effectParts = (effect: Effect): string[] => [
   ...effectLookParts(effect)
 ];
 
-/** The parts of an effect's address its first frame depends on, which name a still or a card of it: its style, its
-    angle where it is not the view's default and its look, never how it plays. */
+/** The angle part of an effect's address, where it is not the view's default: the blob has none. */
+export const effectAngleParts = (kind: EffectKind, angle: number): string[] =>
+  kind !== "blob" && angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
+
+/** The parts of an effect's address its first frame depends on, which name a still or a card of it: its style, the
+    glass's angle where it is not the view's default and its look, never how it plays. */
 export const effectStillParts = (effect: Effect, angle: number): string[] => [
   `style=${effect.kind}`,
-  ...(angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : []),
+  ...effectAngleParts(effect.kind, angle),
   ...effectLookParts(effect)
 ];
 
-/** An effect's address after its palette's seed, which its page and its files are named by: its style, its angle where
-    it is not the view's default, how it plays and its look. */
+/** An effect's address after its palette's seed, which its page and its files are named by: its style, the glass's
+    angle where it is not the view's default, how it plays and its look. */
 export const effectAddressParts = (effect: Effect, angle: number): string[] => [
   `style=${effect.kind}`,
-  ...(angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : []),
+  ...effectAngleParts(effect.kind, angle),
   ...effectParts(effect)
 ];
 

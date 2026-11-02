@@ -4,8 +4,8 @@
    is lifted, so the edge breaks into sprayed dots, and that speckles the surface. Three blobs fill the box, one far,
    one midway and one near: the nearer is larger, wanders farther and is painted later, so where they melt into one
    another its colors lie over the farther's, and each swells and shrinks a little as it drifts near and far. The
-   palette lies across every blob along the view's angle, as a gradient's does at it, its first color toward the
-   angle's tail. Nothing is drawn behind the blobs unless the address asks for a ground: a color, which may let what
+   palette lies across every blob from left to right, its first color on the left, whatever the view's angle: the
+   blob has none. Nothing is drawn behind the blobs unless the address asks for a ground: a color, which may let what
    is behind it through.
 
    One filter draws everything: a second, masked drawing cross-faded by depth made Chrome's GPU painter drop the filter on
@@ -32,7 +32,7 @@ import { groundHex, groundParts } from "./effect.ts";
 import { clamp, clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
 import { svgComment } from "./svg-comment.ts";
-import { type ParamReader, parseView, type Size } from "./view.ts";
+import type { ParamReader, Size } from "./view.ts";
 
 /** The `style` that asks a palette's SVG for this animation. */
 export const BLOB_STYLE = "blob";
@@ -66,8 +66,6 @@ export interface BlobView {
   shape: number | null;
   /** The ground behind the blobs: none, or a color as #rrggbb, or #rrggbbaa where it lets what is behind it through. */
   bg: string | null;
-  /** The view's angle, in degrees: the palette lies across every blob along it, its first color toward its tail. */
-  angle: number;
   /** The first frame alone, with no motion: what a page paints before a player takes over. */
   still: boolean;
   /** Frames a second: a GIF's own (BLOB_GIF_FPS where none is asked), a player's most; null leaves a player the
@@ -84,8 +82,8 @@ const decimal = (raw: string | null, min: number, max: number, otherwise: number
 
 /** The animation an address asks for. A speed or frost that is missing or no number takes the default and one out of
     bounds comes into them; `shape` takes one to three digits, 0 to 999 (effect.ts's SHAPE_MAX), a longer number
-    none; `bg` a hex color of 3, 4, 6 or 8 digits, with or without its `#` (effect.ts's groundHex); `angle` the view's;
-    `still=1` is the first frame alone; `fps` takes 1 to 120. */
+    none; `bg` a hex color of 3, 4, 6 or 8 digits, with or without its `#` (effect.ts's groundHex); `still=1` is the
+    first frame alone; `fps` takes 1 to 120. An `angle` is the view's, which the blob leaves: it has none. */
 export function parseBlob(params: ParamReader): BlobView {
   const shape = params.get("shape");
   const fps = params.get("fps");
@@ -94,7 +92,6 @@ export function parseBlob(params: ParamReader): BlobView {
     frost: decimal(params.get("frost"), 0, BLOB_FROST_MAX, 1),
     shape: shape && /^\d{1,3}$/.test(shape) ? Number(shape) : null,
     bg: groundHex(params.get("bg")),
-    angle: parseView(params).angle,
     still: params.get("still") === "1",
     fps:
       fps && /^\d{1,3}$/.test(fps) && Number(fps) > 0 ? Math.min(Number(fps), BLOB_FPS_MAX) : null
@@ -132,7 +129,6 @@ export function blobGifPlan(view: Pick<BlobView, "speed" | "fps">, asked: Size):
 export function blobSearch(view: BlobView, extra: readonly string[] = [], loop = true): string {
   const parts = [
     `style=${BLOB_STYLE}`,
-    view.angle !== 90 && `angle=${view.angle}`,
     loop && view.speed !== 1 && `speed=${view.speed}`,
     view.frost !== 1 && `frost=${view.frost}`,
     view.shape !== null && `shape=${view.shape}`,
@@ -276,14 +272,13 @@ const depthAt = (depth: number, f: number) =>
   1 + ((DEPTH.near - DEPTH.far) / 2) * sweepAt(depth, f);
 
 /** A blob's balls about its middle: six on a ring, a drop among them and a core, drawn from `rand`, the palette across
-    them toward `toward` (radians on the screen, clockwise from the right): its first color on the far side, its last
-    on that one. */
-function ballsOf(rand: () => number, spin: number, toward: number): Ball[] {
+    them from left to right: its first color on the left, its last on the right. */
+function ballsOf(rand: () => number, spin: number): Ball[] {
   const vary = () => 1 - VARY / 2 + VARY * rand();
-  /* a number drawn and left, so a shape's blobs stand where they stood before the angle laid their colors */
+  /* a number drawn and left, so a shape's blobs stand where they have always stood */
   rand();
   const start = 2 * Math.PI * rand();
-  const along = (angle: number) => 0.5 + 0.5 * Math.cos(angle - toward);
+  const along = (angle: number) => 0.5 + 0.5 * Math.cos(angle);
   const balls: Ball[] = [];
   for (let i = 0; i < RING.count; i++) {
     const angle = start + (2 * Math.PI * i) / RING.count;
@@ -322,17 +317,13 @@ function ballsOf(rand: () => number, spin: number, toward: number): Ball[] {
   return balls;
 }
 
-/** The direction a view's angle points on the screen, in radians clockwise from the right: CSS's angle, 0 up and 90
-    to the right. */
-const towardOf = (angle: number) => ((angle - 90) * Math.PI) / 180;
-
 /** The scene a palette draws, in the design square (BLOB_DESIGN) whatever the box, `size`, it is shown in: its three
-    blobs, far to near, read from the shape number or else the palette's own numbers, the palette across each along
-    the angle, and its ground. */
+    blobs, far to near, read from the shape number or else the palette's own numbers, the palette across each from
+    left to right, and its ground. */
 export function blobScene(
   P: Palette,
   _size: Size = BLOB_DESIGN,
-  view: Pick<BlobView, "shape" | "bg" | "angle"> = { shape: null, bg: null, angle: 90 }
+  view: Pick<BlobView, "shape" | "bg"> = { shape: null, bg: null }
 ): BlobScene {
   const { width: W, height: H } = BLOB_DESIGN;
   const S = Math.min(W, H);
@@ -346,7 +337,6 @@ export function blobScene(
   const color = (at: number) => toHex(sampleSrgb(P, at));
   const seed = hash(own) % 9973;
   const backdrop = view.bg ?? null;
-  const toward = towardOf(view.angle ?? 90);
   const turn = 2 * Math.PI * rand();
   /* the shape's own scale and spread, drawn after the blobs so they stand where they did */
   const blobs = Array.from({ length: FILL.count }, (_, k): Blob => {
@@ -357,7 +347,7 @@ export function blobScene(
       x: W / 2 + FILL.out * W * Math.cos(angle),
       y: H / 2 + FILL.out * H * Math.sin(angle),
       R: FILL.radius * S * (0.9 + 0.2 * rand()),
-      balls: ballsOf(rand, spin, toward),
+      balls: ballsOf(rand, spin),
       spin,
       wander: [
         { reach: FILL.wander * W, laps: across * sign() },
@@ -765,7 +755,7 @@ const near = (bits: number) => 0.5 + ((bits & 255) + ((bits >>> 8) & 255) - 255)
     largest picture an address asks for. */
 export function blobRenderer(
   P: Palette,
-  view: Pick<BlobView, "frost" | "shape" | "bg" | "angle">,
+  view: Pick<BlobView, "frost" | "shape" | "bg">,
   size: Size,
   backdrop?: readonly number[],
   once = false
@@ -998,7 +988,7 @@ export function blobRenderer(
     and the one link previews and the PNG still show. */
 export const blobStill = (
   P: Palette,
-  view: Pick<BlobView, "frost" | "shape" | "bg" | "angle">,
+  view: Pick<BlobView, "frost" | "shape" | "bg">,
   size: Size,
   backdrop?: readonly number[]
 ): Uint8Array<ArrayBuffer> => blobRenderer(P, view, size, backdrop, true).frame(0);

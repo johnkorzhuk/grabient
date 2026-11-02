@@ -6,13 +6,14 @@ import { mount } from "./mount.ts";
 
 mount({
   kind: "blob",
-  still: (P, effect, angle) =>
-    blobStillBackground(P, { speed: 1, fps: null, still: true, angle, ...effect.look }),
-  play: (canvas, P, effect, angle, drawn, reduced) =>
+  still: (P, effect) =>
+    blobStillBackground(P, { speed: 1, fps: null, still: true, ...effect.look }),
+  /* the blob has no angle: its palette lies from left to right whatever the address says */
+  play: (canvas, P, effect, _angle, drawn, reduced) =>
     playBlob(
       canvas,
       P,
-      { speed: effect.speed, fps: effect.fps, still: false, angle, ...effect.look },
+      { speed: effect.speed, fps: effect.fps, still: false, ...effect.look },
       drawn,
       { reduced }
     )

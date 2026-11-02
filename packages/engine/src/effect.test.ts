@@ -9,6 +9,7 @@ import {
   effectFileAddress,
   effectLayerCss,
   effectLook,
+  effectStillParts,
   groundHex,
   groundParts,
   parseEffect,
@@ -24,7 +25,7 @@ const effect = (query: string) => {
   return found;
 };
 
-test("an effect's address names its style, its angle off its default, its pace, its frames a second and its look", () => {
+test("an effect's address names its style, the glass's angle off its default, its pace, its frames a second and its look", () => {
   expect(effectAddressParts(effect("style=glass"), 90)).toEqual(["style=glass"]);
   // 60 frames a second unless it says
   expect(effect("style=glass").fps).toBe(EFFECT_FPS.default);
@@ -42,10 +43,11 @@ test("an effect's address names its style, its angle off its default, its pace, 
   expect(effect("style=glass&fps=0").fps).toBe(60);
   // the glass's shape 0 is the glass as designed, as none is
   expect(effect("style=glass&shape=0").look.shape).toBeNull();
-  // the blob turns with the angle too; its old depth and fill are no more
+  // the blob has no angle, its palette lying from left to right; its old depth and fill are no more
   expect(
     effectAddressParts(effect("style=blob&fill=1&depth=0&bg=%2310101480&shape=12&frost=0.5"), 135)
-  ).toEqual(["style=blob", "angle=135", "frost=0.5", "shape=12", "bg=%2310101480"]);
+  ).toEqual(["style=blob", "frost=0.5", "shape=12", "bg=%2310101480"]);
+  expect(effectStillParts(effect("style=blob&shape=12"), 135)).toEqual(["style=blob", "shape=12"]);
   expect(effect("style=blob&bg=deep").look.bg).toBeNull();
 });
 
@@ -60,8 +62,8 @@ test("a shape is a number from 0 to 999 for both effects: a longer one is none, 
   expect(effectLook({ shape: 3857 }).shape).toBe(999);
   expect(effectLook({ shape: -3 }).shape).toBe(0);
   // a still is named for a shape in bounds, as a page writes it
-  expect(readBlobStillKey(`${SEED}|1|999||90`)?.look.shape).toBe(999);
-  expect(readBlobStillKey(`${SEED}|1|1000||90`)).toBeNull();
+  expect(readBlobStillKey(`${SEED}|1|999|`)?.look.shape).toBe(999);
+  expect(readBlobStillKey(`${SEED}|1|1000|`)).toBeNull();
   expect(readStillKey(glassStillKey(["#000000", "#ffffff"], 90, 999))?.shape).toBe(999);
   expect(readStillKey("90|1000|#000000,#ffffff")).toBeNull();
 });
@@ -87,13 +89,18 @@ test("a ground is hex, its alpha kept where it lets something through", () => {
   expect(groundParts("#ff0000")).toEqual({ hex: "#ff0000", alpha: 1 });
 });
 
-test("a blob's still is named by its palette, its look and its angle, and read back", () => {
+test("a blob's still is named by its palette and its look, and read back", () => {
   const look = effect("style=blob&shape=7&bg=%2310101480&frost=0.5").look;
-  const key = blobStillKey(SEED, look, 30);
-  expect(key).toBe(`${SEED}|0.5|7|#10101480|30`);
-  expect(readBlobStillKey(key)).toEqual({ seed: SEED, look, angle: 30 });
-  expect(readBlobStillKey(`${SEED}|1|7||400`)).toBeNull();
-  expect(readBlobStillKey(`${SEED}|1|7|`)).toBeNull();
+  const key = blobStillKey(SEED, look);
+  expect(key).toBe(`${SEED}|0.5|7|#10101480`);
+  expect(readBlobStillKey(key)).toEqual({ seed: SEED, look });
+  expect(readBlobStillKey(`${SEED}|1|7|`)).toEqual({
+    seed: SEED,
+    look: { frost: 1, shape: 7, bg: null }
+  });
+  // a name that ends in an angle, as names did, names nothing
+  expect(readBlobStillKey(`${SEED}|1|7||90`)).toBeNull();
+  expect(readBlobStillKey(`${SEED}|1|7`)).toBeNull();
 });
 
 test("an effect's file is named by the same address, its pictures at the size asked", () => {

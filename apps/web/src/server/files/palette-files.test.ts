@@ -92,8 +92,9 @@ describe("a palette's file", () => {
     // the blob, clear around itself, gives its still up as soon as the script's canvas shows
     const blob = await (await file(`/${seed}.css?style=blob&shape=12&angle=45`)).text();
     expect(blob).toContain("html[data-grabient-playing]::before {\n  background: none;\n}");
-    // the angle lays the palette across the blobs, so the blob's credit names it too
-    expect(blob).toContain(`/* ${golden.origin}/${seed}?style=blob&angle=45&shape=12 */`);
+    // the blob has no angle: its palette lies from left to right, and its credit names none
+    expect(blob).toContain(`/* ${golden.origin}/${seed}?style=blob&shape=12 */`);
+    expect(blob).toBe(await (await file(`/${seed}.css?style=blob&shape=12`)).text());
   });
 
   test("CSS takes w and h for the page's box, and style=bands plays the animated SVG inside it", async () => {

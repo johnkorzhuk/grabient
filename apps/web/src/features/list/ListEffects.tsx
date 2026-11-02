@@ -26,7 +26,7 @@ export function EffectSwatch(props: {
         <GlassArt colors={glassColors(props.palette)} angle={props.angle} gpu={props.gpu} />
       }
     >
-      <BlobArt palette={props.palette} settings={props.effect} angle={props.angle} />
+      <BlobArt palette={props.palette} settings={props.effect} />
     </Show>
   );
 }

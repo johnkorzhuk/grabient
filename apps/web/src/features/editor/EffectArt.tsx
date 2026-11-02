@@ -169,7 +169,7 @@ export function EffectArt(props: {
           angle: props.angle,
           shape: props.settings.look.shape
         }
-      : blobViewOf(props.settings, props.angle);
+      : blobViewOf(props.settings);
   let session: Session | null = null;
   let leaving: (Session & { timer: ReturnType<typeof setTimeout> }) | null = null;
   /* a start whose code is still on its way when the card goes dark again makes no player */
@@ -324,12 +324,7 @@ export function EffectArt(props: {
       {props.kind === "glass" ? (
         <GlassArt colors={colors()} angle={props.angle} shape={props.settings.look.shape} eager />
       ) : (
-        <BlobArt
-          palette={props.palette}
-          settings={props.settings}
-          angle={props.angle}
-          bare={bare()}
-        />
+        <BlobArt palette={props.palette} settings={props.settings} bare={bare()} />
       )}
     </span>
   );

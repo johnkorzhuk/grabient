@@ -236,7 +236,7 @@ describe("a palette as Markdown", () => {
     expect(blob).toMatch(/^# .+ blob\n/);
     expect(blob).not.toContain("WebP");
     expect(blob).toContain(
-      "- Drawn as: a blob, the palette across it at 90 degrees, frost 0.5, on #101014, held on its first frame"
+      "- Drawn as: a blob, the palette across it from left to right, frost 0.5, on #101014, held on its first frame"
     );
   });
 

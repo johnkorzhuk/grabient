@@ -157,6 +157,25 @@ test("an effect is written in the style's place, then the angle and size, how it
   expect(order).toEqual(["q", "style", "frost", "bg", "page", "selection"]);
 });
 
+test("the blob has no angle: an address's angle is left while it plays, and the glass keeps its own", () => {
+  expect(readListView({ style: "blob", angle: 30, frost: 1.5, bg: "#112233" })).toEqual(
+    readListView({ style: "blob", frost: 1.5, bg: "#112233" })
+  );
+  expect(listViewOf(new URLSearchParams("style=blob&angle=30")).angle).toBe("auto");
+  expect(inView("/palettes", { ...AS_SAVED, angle: 30, effect: BLOB })).toBe(
+    "/palettes?style=blob&frost=1.5&bg=%23112233"
+  );
+  // a turn to the blob takes the angle away with the steps; a turn back to the glass leaves it to the palettes
+  expect(viewParams({ style: "auto", effect: BLOB })).toMatchObject({ angle: undefined });
+  expect(viewParams({ angle: 30 })).toEqual({ angle: 30 });
+  expect(inView("/palettes", { ...AS_SAVED, angle: 30, effect: GLASS })).toBe(
+    "/palettes?style=glass&angle=30&speed=0.5&fps=30"
+  );
+  // a pasted blob's link leaves the list's angle out too
+  const pasted = listViewOf(new URLSearchParams("style=blob"));
+  expect(viewOver({ ...AS_SAVED, angle: 30 }, pasted).angle).toBe("auto");
+});
+
 test("a card plays the list's effect in its own palette's shape, the one its link opens", () => {
   expect(cardEffect(GLASS, SEED)).toBe(GLASS);
   expect(cardEffect(BLOB, SEED).look).toEqual({ ...BLOB.look, shape: blobShapeOf(SEED) });

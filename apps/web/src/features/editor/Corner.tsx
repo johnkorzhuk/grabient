@@ -58,7 +58,10 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
   };
   const said = () => {
     const kind = fx.kind();
-    return kind ? effectSummary(fx.settings(kind), set().angle ? e.angle() : null) : summary();
+    /* the blob has no angle */
+    return kind
+      ? effectSummary(fx.settings(kind), kind !== "blob" && set().angle ? e.angle() : null)
+      : summary();
   };
   const colors = () => glassColors(e.palette());
   /* the blob as it would play: its shape the palette's own suggestion until one is set */
@@ -71,14 +74,11 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
   const glassSwatch = <GlassArt colors={colors()} angle={e.angle()} shape={glassShape()} />;
   /* while the blob's picture loads, the server's still stands in its place, as on the first screen (EditorCorner.tsx) */
   const blobHeld = () => (
-    <span
-      class={styles.swatchStill}
-      data-blob-still={blobStillKey(e.seed(), blob().look, e.angle())}
-    />
+    <span class={styles.swatchStill} data-blob-still={blobStillKey(e.seed(), blob().look)} />
   );
   const blobSwatch = (
     <Loading fallback={blobHeld()}>
-      <BlobArt palette={e.palette()} settings={blob()} angle={e.angle()} />
+      <BlobArt palette={e.palette()} settings={blob()} />
     </Loading>
   );
   const extras: readonly ExtraTile[] = [
@@ -100,7 +100,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       label: t("Blob"),
       art: (
         <Loading>
-          <BlobArt palette={e.palette()} settings={blob()} angle={e.angle()} />
+          <BlobArt palette={e.palette()} settings={blob()} />
         </Loading>
       ),
       get chosen() {
