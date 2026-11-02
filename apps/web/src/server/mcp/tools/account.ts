@@ -16,6 +16,7 @@ import {
   ITEM_TITLE_MAX,
   MAX_COLLECTION_ITEMS,
   MAX_OWN_COLLECTIONS,
+  TAGS_MAX,
   validateCollection
 } from "../../../features/collections/schema.ts";
 import type { CollectionSummary } from "../../../features/collections/types.ts";
@@ -78,7 +79,6 @@ import {
   limited,
   list,
   READS,
-  refuse,
   shape,
   type Tool,
   type ToolContext,
@@ -145,16 +145,42 @@ const summaryOf = (c: ToolContext, s: Omit<CollectionSummary, "preview">) => ({
   visibility: s.visibility,
   updatedAt: day(s.updatedAt)
 });
+/** What a call is told of an address no collection of the account's and no public one has: the public collections its
+    words come near, read without the search model, never refused. */
+async function missing(c: ToolContext, slug: string) {
+  const words = slug.replace(/[-_/]+/g, " ").trim();
+  const near = words
+    ? await publicCollections(
+        c.env,
+        { query: words, sort: "popular", page: 1, limit: 3 },
+        { model: false, request: c.request, ctx: c.ctx, who: c.grant.userId, previews: false }
+      ).catch(() => null)
+    : null;
+  return answer({
+    found: false,
+    slug,
+    note: "No collection of yours and no public one has this address. search_collections finds collections by words, and list_my_collections lists the account's own.",
+    ...(near?.items.length
+      ? { near: near.items.map(s => ({ slug: s.slug, url: place(c, s.slug), title: s.title })) }
+      : {})
+  });
+}
+
 /** A batch's answer: its palettes in the order asked, one that could not be made standing in its place as the reason.
-    A batch none of whose palettes could be made is refused with every reason. */
+    A batch none of whose palettes could be made says so in its note, never refused: a refusal is an error an app counts
+    against the server, and the reasons are what the model acts on. */
 const eachMade = (
   made: readonly unknown[],
   refused: readonly string[],
   more: Record<string, unknown> = {}
 ) =>
-  refused.length && refused.length === made.length
-    ? refuse(refused.join(" "))
-    : answer({ ...more, palettes: made });
+  answer({
+    ...more,
+    palettes: made,
+    ...(refused.length && refused.length === made.length
+      ? { note: `None of these could be made. ${refused.join(" ")}` }
+      : {})
+  });
 /** A write's palettes under `key`, each once, left out when there are none. */
 const listedAs = (key: string, named: readonly string[]) =>
   named.length ? { [key]: [...new Set(named)] } : {};
@@ -307,16 +333,21 @@ export const accountTools: readonly Tool[] = [
       page: PAGE
     }),
     async run(args, c) {
-      const typed = (args.query as string | undefined) ?? "";
+      let typed = (args.query as string | undefined) ?? "";
       const asked = (args.colors as string[] | undefined) ?? [];
-      const colors = asked.map(hexColor);
-      const bad = colors.indexOf(null);
-      if (bad >= 0)
-        return refuse(
-          `color ${bad + 1} is ${quoted(asked[bad])}, and a color is taken as hex: #rrggbb or #rgb.`
-        );
+      const read = asked.map(hexColor);
+      const colors = read.filter((color): color is string => color !== null);
+      // a color that is no hex is left out of the search, and said so, never refused
+      const notHex = asked.filter((_, i) => read[i] === null);
+      const said = notHex.length
+        ? [
+            `${notHex.map(quoted).join(", ")} ${notHex.length > 1 ? "are" : "is"} no hex color (#rrggbb or #rgb), so the search left ${notHex.length > 1 ? "them" : "it"} out.`
+          ]
+        : [];
       const limit = (args.limit as number | undefined) ?? 12;
       const order = args.order as (typeof ORDERS)[number] | undefined;
+      if (!typed && !colors.length && notHex.length)
+        return answer({ total: 0, page: 1, limit, palettes: [], note: said.join(" ") });
       if (!typed && !colors.length) {
         const gallery = await listPalettes(c.env, {
           sort: order ?? "popular",
@@ -337,20 +368,46 @@ export const accountTools: readonly Tool[] = [
       let result: SearchResult;
       /* a palette's address may be longer than words may be; the model reads new words within the account's own
          allowance; and a palette asked about is left out of its own answer */
-      try {
-        result = await searchPalettes(c.env, named?.seed ?? typed, {
+      const search = (query: string) =>
+        searchPalettes(c.env, query, {
           limit,
           offset: before,
           request: c.request,
           ctx: c.ctx,
           payer: { app: c.grant.userId },
           self: false,
-          colors: colors.filter(color => color !== null)
+          colors
         });
+      try {
+        result = await search(named?.seed ?? typed);
       } catch (error) {
-        if (error instanceof RangeError)
-          return refuse(`query is at most ${QUERY_MAX} characters of words or hex codes.`);
-        throw error;
+        if (!(error instanceof RangeError)) throw error;
+        /* words past the search's length are searched as their first QUERY_MAX characters, and said so; words with
+           nothing it can read are answered as no palettes, never refused */
+        const shorter = [...typed]
+          .slice(0, QUERY_MAX)
+          .join("")
+          .replace(/\s+\S*$/u, "")
+          .trim();
+        try {
+          if (!shorter || shorter === typed) throw error;
+          result = await search(shorter);
+        } catch (again) {
+          if (!(again instanceof RangeError)) throw again;
+          return answer({
+            query: typed,
+            total: 0,
+            page,
+            limit,
+            palettes: [],
+            note: [
+              ...said,
+              `The search reads 1 to ${QUERY_MAX} characters of words, hex codes or a palette's seed, and found none here it can read.`
+            ].join(" ")
+          });
+        }
+        said.push(`query takes ${QUERY_MAX} characters at most: "${shorter}" was searched.`);
+        typed = shorter;
       }
       /* a person's words, counted once per account and words a day as the site counts its readers' searches; an
          admin's apps search for the site's own work, and a palette or colors are nobody's words */
@@ -365,6 +422,7 @@ export const accountTools: readonly Tool[] = [
         found >= limit ? result.total : found ? before + found : Math.min(result.total, before);
       const { phrases, unread } = result.read;
       const note = [
+        ...said,
         await searchNote(c, result, total),
         order
           ? "order lists the gallery when no query or colors are sent: a search's best come first."
@@ -445,7 +503,7 @@ export const accountTools: readonly Tool[] = [
       const record = slug ? await collectionRecord(c.env, slug) : null;
       const mine = !!record && ownedBy(record, { kind: "user", id: c.grant.userId });
       const doc = record && (await collectionBySlug(c.env, slug, mine));
-      if (!doc) return refuse("No collection of yours and no public one has this address.");
+      if (!doc) return missing(c, slug || String(args.slug ?? ""));
       const page = (args.page as number | undefined) ?? 1;
       const limit = (args.limit as number | undefined) ?? 48;
       const { palettes: total, ...summary } = summaryOf(c, doc);
@@ -560,6 +618,7 @@ export const accountTools: readonly Tool[] = [
     ),
     async run(args, c) {
       const given = args.palettes as PaletteGiven[];
+      if (!given.length) return answer({ palettes: [] });
       const seeds = [...new Set(given.map(one => one.seed))];
       const [views, gallery, texts, holding, names, credits] = await Promise.all([
         searchableItems(c.env, seeds),
@@ -621,8 +680,9 @@ export const accountTools: readonly Tool[] = [
     ),
     async run(args, c) {
       // the set's name, the title the view's Add to collection asks a collection of it to take
-      const name = likeTitle(args.name);
-      if (name === null) return refuse(`name is 1 to ${PALETTE_TITLE_MAX} characters.`);
+      const given = likeTitle(args.name);
+      const name = given ?? "Palettes";
+      const unnamed = given === null ? ["name had no words, so the set is called Palettes."] : [];
       const asked = args.palettes as (PaletteGiven & { title?: string })[];
       /* a tile the call gave no title takes a written one its colors bear out; a database that cannot answer leaves
          those and the held views out, never the answer */
@@ -666,8 +726,9 @@ export const accountTools: readonly Tool[] = [
         };
       });
       // the words stand alone where the view never draws; the view's data rides beside them
+      const said = [...unnamed, ...notes];
       return {
-        ...answer({ name, tiles, ...(notes.length ? { note: notes.join(" ") } : {}) }),
+        ...answer({ name, tiles, ...(said.length ? { note: said.join(" ") } : {}) }),
         ...(c.view ? { _meta: viewData(c.origin, tiles, name, credits) } : {})
       };
     }
@@ -684,8 +745,13 @@ export const accountTools: readonly Tool[] = [
     }),
     async run(args, c) {
       const limit = (args.limit as number | undefined) ?? 24;
-      const mark = args.after === undefined ? undefined : readMark(args.after);
-      if (mark === null) return refuse("after is the `next` of an earlier answer.");
+      const read = args.after === undefined ? undefined : readMark(args.after);
+      // an `after` no answer gave is read as none, and said so
+      const mark = read ?? undefined;
+      const said =
+        read === null
+          ? "after was not the `next` of an earlier answer, so this reads from the newest."
+          : "";
       // one more than the page, so the answer knows whether another follows
       const [total, rows] = await Promise.all([
         savedCount(c.env, c.grant.userId),
@@ -703,7 +769,8 @@ export const accountTools: readonly Tool[] = [
           likes: Number(row.likes),
           savedAt: day(row.at)
         })),
-        ...(last ? { next: markText({ at: Number(last.at), seed: last.kseed }) } : {})
+        ...(last ? { next: markText({ at: Number(last.at), seed: last.kseed }) } : {}),
+        ...(said ? { note: said } : {})
       });
     }
   },
@@ -731,8 +798,9 @@ export const accountTools: readonly Tool[] = [
       const saving = given.saved !== false;
       /* the account's own label for its own like: nobody else reads it, so its words are not held to the colors as the
          gallery's titles are. Only a save reads it, so a refused title never keeps a palette saved */
-      const title = saving && given.title !== undefined ? likeTitle(given.title) : undefined;
-      if (title === null) return refuse(`title is 1 to ${PALETTE_TITLE_MAX} characters.`);
+      const read = saving && given.title !== undefined ? likeTitle(given.title) : undefined;
+      // a title with no words leaves the name as it is, and says so
+      const title = read ?? undefined;
       const stopped = await writeLimited(c, likeLimits(c.grant.userId, "mcp"));
       if (stopped) return stopped;
       // a palette a public collection holds joins the gallery in its view there, so no save redraws it for others
@@ -769,11 +837,16 @@ export const accountTools: readonly Tool[] = [
       const moved = (["style", "steps", "angle"] as const).some(
         key => given[key] !== undefined && asked[key] !== s[key]
       );
-      const note = saving
-        ? moved && "It was saved before and keeps the view it was first saved in."
-        : done.change === "removed" &&
-          done.inGallery &&
-          "It is out of the saved palettes and stays in the public gallery.";
+      const note = [
+        read === null && "title had no words, so the palette keeps its name.",
+        saving
+          ? moved && "It was saved before and keeps the view it was first saved in."
+          : done.change === "removed" &&
+            done.inGallery &&
+            "It is out of the saved palettes and stays in the public gallery."
+      ]
+        .filter(Boolean)
+        .join(" ");
       return answer({
         seed: s.seed,
         url: addressOf(c.origin, s),
@@ -848,8 +921,14 @@ export const accountTools: readonly Tool[] = [
       const owner = { kind: "user" as const, id: c.grant.userId };
       const slug = slugOf(args.slug);
       const record = slug ? await collectionRecord(c.env, slug) : null;
+      /* what cannot be done is answered as undone, in words, never refused: a refusal is an error an app counts against
+         the server, and `changed` false with the reason is what the model acts on */
+      const undone = (note: string) => answer({ changed: false, note });
       if (args.slug !== undefined && !(record && ownedBy(record, owner)))
-        return refuse("No collection of yours has this address.");
+        return undone(
+          "No collection of yours has this address, so nothing was changed. list_my_collections lists the account's own, and save_collection without a slug makes a new one."
+        );
+      const said: string[] = [];
       const before = record?.input.items ?? [];
       const has = (seed: string) => before.find(item => item.seed === seed);
       /* a palette named without a view keeps the one the collection holds it in; one new to it, the one Grabient
@@ -897,20 +976,41 @@ export const accountTools: readonly Tool[] = [
         else palettes[at] = { ...palettes[at]!, ...wordsGiven(item) };
       }
       if (record && !palettes.length)
-        return refuse(
-          "This would empty the collection, and a collection keeps at least one palette."
+        return undone(
+          "This would empty the collection, and a collection keeps at least one palette, so nothing was changed. delete_collection deletes it."
         );
-      if (palettes.length > MAX_COLLECTION_ITEMS)
-        return refuse(`A collection holds ${MAX_COLLECTION_ITEMS} palettes at most.`);
+      // past what a collection holds, the first are kept and the rest said
+      const over = palettes.length - MAX_COLLECTION_ITEMS;
+      if (over > 0) {
+        palettes.splice(MAX_COLLECTION_ITEMS);
+        said.push(
+          `A collection holds ${MAX_COLLECTION_ITEMS} palettes at most: the first ${MAX_COLLECTION_ITEMS} were kept and ${over} left out.`
+        );
+      }
       const fields: Record<string, unknown> = { items: palettes };
       for (const key of ["title", "description", "tags"] as const)
         if (args[key] !== undefined) fields[key] = args[key];
-      const valid = validateCollection(fields, record?.input);
-      if (!valid.ok) return refuse(valid.error);
+      let valid = validateCollection(fields, record?.input);
+      // a tag the collection cannot take is left out, and said so, so the rest of the change is made
+      if (!valid.ok && Array.isArray(fields.tags)) {
+        const tags = fields.tags as string[];
+        const kept = tags
+          .filter(tag => validateCollection({ ...fields, tags: [tag] }, record?.input).ok)
+          .slice(0, TAGS_MAX);
+        if (kept.length < tags.length) {
+          const left = tags.filter(tag => !kept.includes(tag));
+          said.push(
+            `${left.map(quoted).join(", ")} ${left.length > 1 ? "were" : "was"} left out: a collection takes up to ${TAGS_MAX} tags of 2 to 32 letters, digits, spaces or hyphens.`
+          );
+          fields.tags = kept;
+          valid = validateCollection(fields, record?.input);
+        }
+      }
+      if (!valid.ok) return undone(`${valid.error} Nothing was changed.`);
       // a full account is told so before its allowance is spent on a collection it cannot make
       if (!record && (await ownCollectionsFull(c.env, owner.id)))
-        return refuse(
-          `This account already keeps ${MAX_OWN_COLLECTIONS} collections. Delete one first.`
+        return undone(
+          `This account already keeps ${MAX_OWN_COLLECTIONS} collections, so no new one was made. delete_collection makes room.`
         );
       const stopped = await writeLimited(c, collectionWriteLimits(owner.id, "mcp"));
       if (stopped) return stopped;
@@ -926,7 +1026,9 @@ export const accountTools: readonly Tool[] = [
         at = (await addressAfter(c.env, record, input)) ?? at;
         const moved = at === record.slug ? {} : { slug: at };
         if (!(await updateCollection(c.env, record.id, input, { ...moved, owner })))
-          return refuse("No collection of yours has this address.");
+          return undone(
+            "No collection of yours has this address any more, so nothing was changed."
+          );
       }
       /* the answer is what the call changed, never the whole collection: each palette in a view by its address, which
          `remove` reads back as that view alone, so two views of one palette are two of them */
@@ -962,7 +1064,8 @@ export const accountTools: readonly Tool[] = [
         ...listedAs(
           "notIn",
           notIn.map(({ named }) => named)
-        )
+        ),
+        ...(said.length ? { note: said.join(" ") } : {})
       });
     }
   },
@@ -976,13 +1079,20 @@ export const accountTools: readonly Tool[] = [
     async run(args, c) {
       const slug = slugOf(args.slug);
       const record = slug ? await collectionRecord(c.env, slug) : null;
+      // nothing to delete is answered as nothing deleted, never refused
       if (!record || !ownedBy(record, { kind: "user", id: c.grant.userId }))
-        return refuse("No collection of yours has this address.");
+        return answer({
+          deleted: null,
+          note: "No collection of yours has this address, so nothing was deleted. list_my_collections lists the account's own."
+        });
       const stopped = await writeLimited(c, collectionWriteLimits(c.grant.userId, "mcp"));
       if (stopped) return stopped;
       // held to the account's own in the write itself, whatever its role
       if (!(await deleteCollection(c.env, record.id, c.grant.userId, { own: true })))
-        return refuse("The collection could not be deleted.");
+        return answer({
+          deleted: null,
+          note: "Nothing was deleted: the collection is no longer the account's, or no longer there."
+        });
       return answer({ deleted: record.slug });
     }
   }

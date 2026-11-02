@@ -11,7 +11,7 @@ beforeAll(readyOldIds);
 const SEED = "kSWUkczDNDewdRK";
 
 describe("an account tool's arguments", () => {
-  it("are read and refused word for word as the schema says", () => {
+  it("are read as the schema says, each change said, and refused only for what a tool cannot do without", () => {
     for (const golden of readGolden) {
       const schema = accountGolden.find(tool => tool.name === golden.tool)!.inputSchema;
       expect(readArgs(schema, golden.args), golden.tool).toEqual(golden.read);

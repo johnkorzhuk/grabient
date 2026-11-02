@@ -43,7 +43,8 @@
             "angle": 45
           }
         ]
-      }
+      },
+      "notes": []
     }
   },
   {
@@ -61,7 +62,8 @@
       "args": {
         "slug": "a",
         "tags": []
-      }
+      },
+      "notes": []
     }
   },
   {
@@ -80,7 +82,8 @@
         "angle": 45,
         "saved": false,
         "title": "name"
-      }
+      },
+      "notes": []
     }
   },
   {
@@ -93,7 +96,8 @@
       "args": {
         "limit": 48,
         "page": 1
-      }
+      },
+      "notes": []
     }
   },
   {
@@ -106,7 +110,8 @@
       "args": {
         "seed": "kSWUkczDNDewdRK",
         "steps": 100
-      }
+      },
+      "notes": []
     }
   },
   {
@@ -115,7 +120,10 @@
       "verbose": true
     },
     "read": {
-      "error": "\"verbose\" is not a name this takes: it takes none."
+      "args": {},
+      "notes": [
+        "\"verbose\" is not a name this takes, so it was left out: it takes none."
+      ]
     }
   },
   {
@@ -130,7 +138,17 @@
       ]
     },
     "read": {
-      "error": "palette 1: \"colour\" is not a name this takes: seed, style, steps, angle, title."
+      "args": {
+        "name": "A set",
+        "palettes": [
+          {
+            "seed": "kSWUkczDNDewdRK"
+          }
+        ]
+      },
+      "notes": [
+        "palette 1: \"colour\" is not a name this takes, so it was left out: it takes seed, style, steps, angle, title."
+      ]
     }
   },
   {
@@ -175,7 +193,86 @@
       ]
     },
     "read": {
-      "error": "palettes is a list of 1 to 24: a list of 25 was sent."
+      "args": {
+        "name": "A set",
+        "palettes": [
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          }
+        ]
+      },
+      "notes": [
+        "palettes takes 24 at most: the first 24 of 25 were read."
+      ]
     }
   },
   {
@@ -188,7 +285,17 @@
       ]
     },
     "read": {
-      "error": "palette 2: seed \"k-not-a-seed\" is no palette's seed or address."
+      "args": {
+        "name": "A set",
+        "palettes": [
+          {
+            "seed": "kSWUkczDNDewdRK"
+          }
+        ]
+      },
+      "notes": [
+        "palette 2: seed \"k-not-a-seed\" is no palette's seed or address. It was left out."
+      ]
     }
   },
   {
@@ -203,7 +310,18 @@
       ]
     },
     "read": {
-      "error": "palette 1: style is one of linearGradient, linearSwatches, angularGradient, angularSwatches, radialGradient, radialSwatches: \"radial\" was sent."
+      "args": {
+        "name": "A set",
+        "palettes": [
+          {
+            "seed": "kSWUkczDNDewdRK",
+            "style": "radialGradient"
+          }
+        ]
+      },
+      "notes": [
+        "palette 1: style \"radial\" was read as radialGradient."
+      ]
     }
   },
   {
@@ -218,7 +336,18 @@
       ]
     },
     "read": {
-      "error": "palette 1: angle is a whole number from 0 to 360: 400 was sent."
+      "args": {
+        "name": "A set",
+        "palettes": [
+          {
+            "seed": "kSWUkczDNDewdRK",
+            "angle": 40
+          }
+        ]
+      },
+      "notes": [
+        "palette 1: angle is a whole number from 0 to 360: 400 was read as 40."
+      ]
     }
   },
   {
@@ -228,7 +357,12 @@
       "saved": "maybe"
     },
     "read": {
-      "error": "saved is true or false: \"maybe\" was sent."
+      "args": {
+        "seed": "kSWUkczDNDewdRK"
+      },
+      "notes": [
+        "saved is true or false: \"maybe\" was sent. It was left out."
+      ]
     }
   },
   {
@@ -240,7 +374,13 @@
       ]
     },
     "read": {
-      "error": "tag 2 is text: 7 was sent."
+      "args": {
+        "tags": [
+          "dusk",
+          "7"
+        ]
+      },
+      "notes": []
     }
   },
   {
@@ -249,7 +389,12 @@
       "query": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     },
     "read": {
-      "error": "query is text of at most 400 characters: \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx… was sent."
+      "args": {
+        "query": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "notes": [
+        "query takes 400 characters at most: the first 400 were read."
+      ]
     }
   },
   {
@@ -272,7 +417,8 @@
             "reverse": true
           }
         ]
-      }
+      },
+      "notes": []
     }
   },
   {
@@ -284,6 +430,71 @@
     },
     "read": {
       "error": "name is needed: The set's name, 1 to 80 characters: the title of a collection saved from it."
+    }
+  },
+  {
+    "tool": "get_collection",
+    "args": {},
+    "read": {
+      "error": "slug is needed: The collection's slug or address."
+    }
+  },
+  {
+    "tool": "adjust_palette",
+    "args": {
+      "seed": "k-nope",
+      "variants": [
+        {
+          "reverse": true
+        }
+      ]
+    },
+    "read": {
+      "unknown": "seed \"k-nope\" is no palette's seed or address."
+    }
+  },
+  {
+    "tool": "search_palettes",
+    "args": {
+      "order": "Trending",
+      "limit": "12.6"
+    },
+    "read": {
+      "args": {
+        "order": "rising",
+        "limit": 13
+      },
+      "notes": [
+        "order \"Trending\" was read as rising."
+      ]
+    }
+  },
+  {
+    "tool": "save_palette",
+    "args": {
+      "seed": "kSWUkczDNDewdRK",
+      "saved": "no"
+    },
+    "read": {
+      "args": {
+        "seed": "kSWUkczDNDewdRK",
+        "saved": false
+      },
+      "notes": []
+    }
+  },
+  {
+    "tool": "search_palettes",
+    "args": {
+      "colors": "#ff0000"
+    },
+    "read": {
+      "args": {
+        "colors": [
+          "#ff0000"
+        ]
+      },
+      "notes": []
     }
   }
 ]

@@ -40,7 +40,7 @@
     "content": [
       {
         "type": "text",
-        "text": "order is one of popular, rising, newest, hot: \"trending\" was sent."
+        "text": "slug is needed: The collection's slug or address."
       }
     ],
     "isError": true
