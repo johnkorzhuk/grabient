@@ -29,7 +29,7 @@ Grabient's colors are for screens: it has no print inks, paint or thread, and ta
 - [Palette as GRD](https://grabient.com/kS7Q8Yy5S_SChv0.grd): the view's gradient as a Photoshop gradient. Pattern: `https://grabient.com/{seed}.grd`
 - [Palette as design tokens](https://grabient.com/kS7Q8Yy5S_SChv0.tokens.json): the view's colors as DTCG design tokens, which Figma imports as variables. Pattern: `https://grabient.com/{seed}.tokens.json`
 - [Palette social card](https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0): 1200 by 630 with the Grabient wordmark. Pattern: `https://grabient.com/api/og?seed={seed}`
-- [Palette in the editor](https://grabient.com/kS7Q8Yy5S_SChv0): the page to give a person. At an effect's address (`style=glass` or `style=blob`) it plays the effect, and its code pane holds the effect's tags, stylesheet, colors, settings, SVG and Markdown, as its files serve them. Pattern: `https://grabient.com/{seed}`
+- [Palette in the editor](https://grabient.com/kS7Q8Yy5S_SChv0): the page to give a person. With no style in its address it plays the effect the reader last chose, the fluted glass for a new reader; with a gradient's style (`style=linearGradient`) it shows that gradient, and at an effect's address (`style=glass` or `style=blob`) it plays that effect, its code pane holding the effect's tags, stylesheet, colors, settings, SVG and Markdown, as its files serve them. Pattern: `https://grabient.com/{seed}`
 
 Every palette route takes `style`, `steps` and `angle`.
 
