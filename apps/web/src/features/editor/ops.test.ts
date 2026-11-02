@@ -189,7 +189,9 @@ describe("shapes kept through a drag to nothing", () => {
 /* the design document's own Escape rows have no id and no place in the site's key map */
 test("the key map's rows are the editor's", () => {
   const rows = fixture.keymap.filter((row: { id?: string }) => row.id);
-  expect(KEYMAP.map(({ id, keys, label, scope }) => ({ id, keys, label, scope }))).toEqual(
+  /* the examples page's rows are this site's own: grabient4's key map, the fixture, has none */
+  const ours = KEYMAP.filter(row => row.scope !== "Examples");
+  expect(ours.map(({ id, keys, label, scope }) => ({ id, keys, label, scope }))).toEqual(
     rows.map(({ id, keys, label, scope }: Record<string, unknown>) => ({ id, keys, label, scope }))
   );
 });

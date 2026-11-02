@@ -627,20 +627,23 @@ const TURNING: ReadonlySet<Kind> = new Set([
   "business"
 ]);
 
-/** Each tile's look, worked out once for each palette: the tiles in their order, each taking the seed's pick of the looks
-    it is a good fit for, the ones the tiles before it took least first (looks.ts); then the headlines that work. A blob
-    is read on the ground its tile gives it. */
-function tileLooks(base: Shown) {
+/** Each tile's look, worked out once for each palette and each set a reader turns the grid to (`turn`, 0 the page's
+    own): the tiles in their order, each taking the seed's pick of the looks it is a good fit for, the ones the tiles
+    before it took least first (looks.ts), a set past the first with its effects at an angle and in a shape of its own;
+    then the headlines that work. A blob is read on the ground its tile gives it. */
+function tileLooks(base: Shown, turn = 0) {
   const taken: Taken = new Map();
   const looks: Partial<Record<Kind, Shown>> = {};
   for (const kind of ORDER)
     looks[kind] = pickLook(
       base.seed,
       base.palette,
-      kind,
+      turn ? `${kind}~${turn}` : kind,
       TURNS[kind] ?? LOOKS,
       s => FITS[kind]?.(solidBlob(s)) ?? true,
-      taken
+      taken,
+      1,
+      turn
     );
   return { looks, headlines: headlinesOf(base, taken) };
 }
@@ -648,16 +651,17 @@ function tileLooks(base: Shown) {
 export function CardsExample(props: ExampleProps) {
   /* what every tile reads, worked out once for each palette */
   const paper = createMemo(() => pressPaper(drawnColors(props.s)));
-  const seeded = createMemo(() => tileLooks(props.s));
+  const seeded = createMemo(() => tileLooks(props.s, props.turn ?? 0));
   const headlines = () => seeded().headlines;
-  /* the looks pressed onto tiles, for the palette they were pressed on */
+  /* the looks pressed onto tiles, for the palette and the set of looks they were pressed on */
   const [picked, setPicked] = createSignal<{ seed: string; looks: Partial<Record<Kind, Look>> }>({
     seed: "",
     looks: {}
   });
+  const setOf = () => `${props.s.seed}~${props.turn ?? 0}`;
   /** The palette as a tile shows it: the look a press turned it to, else its own; a blob on a ground. */
   const shownBy = (kind: Kind): Shown => {
-    const look = picked().seed === props.s.seed ? picked().looks[kind] : undefined;
+    const look = picked().seed === setOf() ? picked().looks[kind] : undefined;
     const headline = headlines().find(h => h.kind === kind)?.shown;
     if (headline) return headline;
     return solidBlob(
@@ -668,8 +672,8 @@ export function CardsExample(props: ExampleProps) {
     const order = TURNS[kind] ?? LOOKS;
     const next = order[(order.indexOf(lookOf(shownBy(kind))) + 1) % order.length];
     setPicked(p => ({
-      seed: props.s.seed,
-      looks: { ...(p.seed === props.s.seed ? p.looks : {}), [kind]: next }
+      seed: setOf(),
+      looks: { ...(p.seed === setOf() ? p.looks : {}), [kind]: next }
     }));
     /* a reader who listens hears the look it turned to, which its name says from now on */
     announce(formWords(inLook(props.s.seed, props.s.palette, next, kind)));
@@ -684,6 +688,7 @@ export function CardsExample(props: ExampleProps) {
     <Example
       id="cards"
       n={props.n}
+      onTurn={props.onTurn}
       title={t("Covers and cards")}
       about={t("For posters, covers, posts and tickets.")}
       drawn={t("{count, plural, one {# look} other {# looks}}", { count: looks() })}

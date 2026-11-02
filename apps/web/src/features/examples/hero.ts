@@ -7,7 +7,7 @@ import { inLook, type Look, shuffled } from "./looks.ts";
 import type { Shown } from "./paint.ts";
 
 /** The looks the hero plays. */
-const HERO_LOOKS: readonly Look[] = ["glass", "blob"];
+export const HERO_LOOKS: readonly Look[] = ["glass", "blob"];
 
 /** The hero's look for a palette: the effect its seed puts first. */
 export const heroOf = (seed: string, palette: Palette): Shown =>

@@ -17,6 +17,7 @@ import { useLocation, useRouter } from "@tanstack/solid-router";
 import {
   type Component,
   createMemo,
+  createSignal,
   createUniqueId,
   For,
   Match,
@@ -34,15 +35,16 @@ import { GlassLayer } from "../editor/GlassLayer.tsx";
 import { keyOf } from "../editor/keys.ts";
 import { CardsExample } from "./Cards.tsx";
 import { ChartExample, chartFits, chartGood } from "./Chart.tsx";
-import type { ExampleProps } from "./Example.tsx";
+import { type ExampleProps, TurnHint, turnsSaid } from "./Example.tsx";
 import styles from "./ExamplesPage.module.css";
-import { heroOf } from "./hero.ts";
-import { LOOKS, lookOf, pickLook, plainOf, shuffled, type Taken } from "./looks.ts";
+import { HERO_LOOKS, heroOf } from "./hero.ts";
+import { LOOKS, lookOf, looksFor, pickLook, plainOf, shuffled, type Taken } from "./looks.ts";
 import { ProfileExample } from "./Profile.tsx";
 import type { Shown } from "./paint.ts";
 import { SwatchesExample } from "./Swatches.tsx";
 import { drawnWords, gradientOf, stopsOf, takenOf } from "./shared.ts";
 import { createExamplesState, examplesBindings } from "./state.ts";
+import { turnInPlay } from "./swipe.ts";
 import { wordsTone } from "./tone.ts";
 import { WallpapersExample, wallpapersGood } from "./Wallpapers.tsx";
 
@@ -57,12 +59,13 @@ import { WallpapersExample, wallpapersGood } from "./Wallpapers.tsx";
 
 /** The examples in their order: whether the palette suits one (else the page leaves it out, and the keys that turn the
     palette may bring it in), and what makes a look a good fit for it. The cards take their looks a tile at a time. */
-const SECTIONS: readonly {
+interface Section {
   name: string;
   example: Component<ExampleProps>;
   fits?: (base: Shown) => boolean;
   good?: (s: Shown) => boolean;
-}[] = [
+}
+const SECTIONS: readonly Section[] = [
   { name: "cards", example: CardsExample },
   { name: "profile", example: ProfileExample },
   { name: "chart", example: ChartExample, fits: chartFits, good: chartGood },
@@ -96,11 +99,29 @@ export function pageLooks(base: Shown) {
     );
   return {
     hero,
-    sections: shown.map(section => ({
-      example: section.example,
-      s: looks.get(section.name) ?? base
-    }))
+    sections: shown.map(section => ({ name: section.name, s: looks.get(section.name) ?? base }))
   };
+}
+
+/* the looks a reader turns each part through, worked out as the part is first turned, for the palette shown */
+let lists: { seed: string; of: Map<string, Shown[]> } = { seed: "", of: new Map() };
+/** The look a reader turned a part to, `turn` looks on from the page's own (`first`; back where `turn` is under 0), of
+    those it is a good fit for (looks.ts's looksFor), coming round again after the last. */
+function turnedTo(first: Shown, name: string, turn: number): Shown {
+  if (!turn) return first;
+  if (lists.seed !== first.seed) lists = { seed: first.seed, of: new Map() };
+  let list = lists.of.get(name);
+  if (!list) {
+    const section = SECTIONS.find(s => s.name === name);
+    list = looksFor(
+      first,
+      name,
+      name === "hero" ? HERO_LOOKS : LOOKS,
+      section?.good ?? (() => true)
+    );
+    lists.of.set(name, list);
+  }
+  return list[((turn % list.length) + list.length) % list.length];
 }
 
 export function ExamplesPage(props: { seed: string }) {
@@ -113,9 +134,23 @@ export function ExamplesPage(props: { seed: string }) {
     location
   });
   const looks = createMemo(() => pageLooks(st.painted()));
-  const hero = () => looks().hero;
+  /* which look a reader turned each part to, for the palette shown: none at first, and none again on another palette */
+  const [turns, setTurns] = createSignal<{ seed: string; at: Readonly<Record<string, number>> }>({
+    seed: "",
+    at: {}
+  });
+  const turnOf = (name: string) =>
+    turns().seed === st.painted().seed ? (turns().at[name] ?? 0) : 0;
+  const turnPart = (name: string, by: 1 | -1) => {
+    const seed = untrack(() => st.painted().seed);
+    setTurns(now => {
+      const at = now.seed === seed ? now.at : {};
+      return { seed, at: { ...at, [name]: (at[name] ?? 0) + by } };
+    });
+  };
+  const hero = createMemo(() => turnedTo(looks().hero, "hero", turnOf("hero")));
   const origin = siteOrigin();
-  shell?.keys(() => examplesBindings(st));
+  shell?.keys(() => examplesBindings(st, turnInPlay));
   shell?.paint(() => [
     {
       seed: hero().seed,
@@ -127,12 +162,33 @@ export function ExamplesPage(props: { seed: string }) {
   return (
     <AppPage>
       <main id="main" class={styles.page}>
-        <Hero s={hero()} origin={origin} onLeave={st.settle} onRandom={st.random} />
+        <Hero
+          s={hero()}
+          origin={origin}
+          onLeave={st.settle}
+          onRandom={st.random}
+          onTurn={by => turnPart("hero", by)}
+        />
         <div class={styles.sections}>
-          <For each={looks().sections}>
-            {(section, i) => {
-              const Section = section.example;
-              return <Section s={section.s} origin={origin} n={i() + 1} />;
+          {/* each example drawn anew for each palette, and kept as a reader turns it or another */}
+          <For each={looks().sections.map(section => `${section.s.seed}|${section.name}`)}>
+            {(key, i) => {
+              const name = key.slice(key.indexOf("|") + 1);
+              const Section = (SECTIONS.find(section => section.name === name) as Section).example;
+              const first = () =>
+                looks().sections.find(section => section.name === name)?.s ?? looks().hero;
+              const s = createMemo(() =>
+                name === "cards" ? first() : turnedTo(first(), name, turnOf(name))
+              );
+              return (
+                <Section
+                  s={s()}
+                  origin={origin}
+                  n={i() + 1}
+                  turn={turnOf(name)}
+                  onTurn={by => turnPart(name, by)}
+                />
+              );
             }}
           </For>
         </div>
@@ -148,9 +204,24 @@ const STILL_SHOWN: Readonly<Record<EffectKind, string>> = {
 };
 
 /** The hero: the palette as a page's background, from the window's top, edge to edge. */
-function Hero(props: { s: Shown; origin: string; onLeave: () => void; onRandom: () => void }) {
+function Hero(props: {
+  s: Shown;
+  origin: string;
+  onLeave: () => void;
+  onRandom: () => void;
+  /** turns the hero to another look, on or back */
+  onTurn: (by: 1 | -1) => void;
+}) {
   const heading = createUniqueId();
+  const hint = createUniqueId();
   const s = () => props.s;
+  /* a swipe across the hero or a press on its picture turns it, and the look it turned to is said to one who listens */
+  let hero!: HTMLElement;
+  turnsSaid(
+    () => hero,
+    () => props.onTurn,
+    () => drawnWords(s())
+  );
   /* the palette's own name, whatever look the hero shows */
   const name = () => paletteName(s().palette);
   /* the way back: the editor at this palette, in the view the tab keeps for it */
@@ -193,7 +264,13 @@ function Hero(props: { s: Shown; origin: string; onLeave: () => void; onRandom: 
     ];
   };
   return (
-    <section class={styles.hero} aria-labelledby={heading}>
+    <section
+      ref={hero}
+      class={styles.hero}
+      aria-labelledby={heading}
+      aria-describedby={hint}
+      data-look="hero"
+    >
       <div class={styles.backdrop} aria-hidden="true">
         {/* each layer reads the hero's look itself, never the value its Match narrowed: a turn to the other effect lets
             the layer go, and a narrowed value read as it goes is gone, which Solid throws on and the page's error
@@ -234,12 +311,16 @@ function Hero(props: { s: Shown; origin: string; onLeave: () => void; onRandom: 
         class={styles.words}
         data-theme={tone() ?? undefined}
         data-sheet={tone() ? undefined : ""}
+        data-hold=""
       >
         <span class={styles.kicker}>{t("Examples")}</span>
         <h1 id={heading} class={styles.title}>
           {name()}
         </h1>
-        <p class={styles.drawn}>{drawnWords(s())}</p>
+        <p class={styles.drawn}>
+          {drawnWords(s())}
+          <TurnHint id={hint} />
+        </p>
         <CodeTabs tabs={code()} aria-label={t("The code that paints it")} />
       </div>
     </section>

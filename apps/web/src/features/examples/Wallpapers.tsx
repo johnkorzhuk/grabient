@@ -279,6 +279,7 @@ export function WallpapersExample(props: ExampleProps) {
     <Example
       id="wallpapers"
       n={props.n}
+      onTurn={props.onTurn}
       title={t("Wallpapers")}
       about={t("For phones and desktops, sized to each screen.")}
       drawn={drawnWords(props.s)}

@@ -304,6 +304,7 @@ export function ChartExample(props: ExampleProps) {
     <Example
       id="chart"
       n={props.n}
+      onTurn={props.onTurn}
       title={t("Charts")}
       about={t("For dashboards and reports.")}
       drawn={plan().drawn}

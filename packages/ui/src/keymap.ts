@@ -2,7 +2,7 @@ import { msg } from "./i18n.ts";
 
 /* Every key the site answers to, where it works and what it does. The ? list, the Shortcuts page and the pages that
    bind keys all read this table. A label is a message keyed by its English, so changing one drops its translations. */
-export type KeyScope = "Every route" | "Editor";
+export type KeyScope = "Every route" | "Editor" | "Examples";
 
 export interface KeyMapRow {
   /** a row with an id can be changed on the Shortcuts page */
@@ -42,6 +42,8 @@ export const KEYMAP: readonly KeyMapRow[] = [
   { id: "stops", keys: ["[", "]"], label: msg("Fewer or more steps"), scope: "Editor" },
   { id: "rotate", keys: [",", "."], label: msg("Rotate 15°"), scope: "Editor" },
   { id: "undo", keys: ["Mod+Z", "Mod+Shift+Z"], label: msg("Undo or redo"), scope: "Every route" },
+  /* a palette's examples: the part in play turned to its next look or back */
+  { id: "look", keys: ["ArrowLeft", "ArrowRight"], label: msg("Another look"), scope: "Examples" },
   { id: "save", keys: ["Mod+S"], label: msg("Save"), scope: "Editor", admin: true }
 ];
 

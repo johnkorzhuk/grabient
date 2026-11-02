@@ -282,6 +282,7 @@ export function SwatchesExample(props: ExampleProps) {
     <Example
       id="swatches"
       n={props.n}
+      onTurn={props.onTurn}
       title={t("Color tokens")}
       about={t("For code and design apps.")}
       drawn={drawn()}

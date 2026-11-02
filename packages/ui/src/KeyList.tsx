@@ -7,7 +7,8 @@ import link from "./link.module.css";
 /* each scope's heading, as a message; a scope not named here is its own heading */
 const HEADINGS: Record<string, string> = {
   "Every route": msg("Everywhere"),
-  Editor: msg("Editor")
+  Editor: msg("Editor"),
+  Examples: msg("Examples")
 };
 const MODIFIERS = new Set(["Shift", "Control", "Alt", "Meta", "CapsLock", "AltGraph", "Fn"]);
 

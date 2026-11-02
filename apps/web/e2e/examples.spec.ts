@@ -30,7 +30,7 @@ async function random(page: Page, from: string) {
 /** Each tile of the cards' grid by its name, which says its look. */
 const tilesOf = (page: Page) =>
   page
-    .locator("#cards [role=group]")
+    .locator("#cards [role=group][data-kind]")
     .evaluateAll(tiles => tiles.map(t => t.getAttribute("aria-label")));
 
 test("a palette's examples are one page whatever view or effect a link names, which moves there for good", async ({
@@ -117,7 +117,7 @@ test("the way back opens the editor at the palette the keys left", async ({ page
 
 test("a press on a tile turns it to the palette's next look", async ({ page }) => {
   await open(page, `/${SEED}/examples`);
-  await expect(page.locator("#cards [role=group]")).toHaveCount(11);
+  await expect(page.locator("#cards [role=group][data-kind]")).toHaveCount(11);
   const album = page.locator('#cards [data-kind="album"]');
   const before = await album.getAttribute("aria-label");
   await album.click({ position: { x: 12, y: 12 } });
@@ -147,4 +147,136 @@ test("a tile turns with Enter and Space as with a press, says its new look, and 
   await open(fresh, new URL(page.url()).pathname);
   const own = await fresh.locator('#cards [data-kind="poster"]').getAttribute("aria-label");
   await expect(poster).toHaveAttribute("aria-label", own ?? "");
+});
+
+/** The tag under a part's stage, which names the look it is drawn in. */
+const tagOf = (page: Page, id: string) => page.locator(`#${id} figcaption > span`).first();
+
+/** A part's stage brought to the window's middle at once, so a pointer meets it where it was measured. */
+async function stageOf(page: Page, id: string) {
+  const stage = page.locator(`[data-look="${id}"]`);
+  await stage.evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
+  return stage;
+}
+
+test("a part turns to another look with the arrow keys while it holds the focus, says it, and turns back; the keys show beside its tag", async ({
+  page
+}) => {
+  await open(page, `/${SEED}/examples`);
+  const stage = await stageOf(page, "profile");
+  const tag = tagOf(page, "profile");
+  const first = (await tag.textContent()) ?? "";
+  await expect(page.locator("#profile figcaption kbd")).toHaveText(["←", "→"]);
+  await expect(
+    page.locator("#profile figcaption").getByText("Swipe for another look")
+  ).toBeHidden();
+  await stage.focus();
+  /* the shell listens for keys once the page has settled, a moment after it hydrates */
+  await expect(async () => {
+    await page.keyboard.press("ArrowRight");
+    await expect(tag).not.toHaveText(first, { timeout: 2000 });
+  }).toPass({ timeout: 30000 });
+  const turned = (await tag.textContent()) ?? "";
+  await expect(page.locator("[data-announce]")).toHaveText(turned);
+  await page.keyboard.press("ArrowLeft");
+  await expect(tag).toHaveText(first);
+  /* the address stays the palette's: a part's look is the reader's own, for this visit */
+  await expect(page).toHaveURL(new RegExp(`/${SEED}/examples$`));
+});
+
+test("a drag across a part turns it once, the press it ends with turning nothing more, and a press turns it as the drag did", async ({
+  page
+}) => {
+  await open(page, `/${SEED}/examples`);
+  const stage = await stageOf(page, "wallpapers");
+  const tag = tagOf(page, "wallpapers");
+  const first = (await tag.textContent()) ?? "";
+  const box = await stage.boundingBox();
+  if (!box) throw new Error("the wallpapers' stage is not drawn");
+  const x = box.x + box.width * 0.75;
+  const y = box.y + Math.min(box.height / 2, 120);
+  /* toward the line's start: on to the next look */
+  await expect(async () => {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x - 80, y + 4, { steps: 5 });
+    await page.mouse.move(x - 160, y + 6, { steps: 5 });
+    await page.mouse.up();
+    await expect(tag).not.toHaveText(first, { timeout: 2000 });
+  }).toPass({ timeout: 30000 });
+  const dragged = (await tag.textContent()) ?? "";
+  /* one key back finds the first look, so the drag turned it once (it holds the focus the drag gave it) */
+  await page.keyboard.press("ArrowLeft");
+  await expect(tag).toHaveText(first);
+  await stage.click({ position: { x: 12, y: 12 } });
+  await expect(tag).toHaveText(dragged);
+});
+
+test("the hero turns with a key while it fills the window, and a press on its words leaves it", async ({
+  page
+}) => {
+  /* each turn may start the other effect, which a browser with no GPU draws on its processor */
+  test.slow();
+  await open(page, `/${SEED}/examples`);
+  const drawn = page.locator('[data-look="hero"] [data-hold] p').first();
+  /* the words before the hint the paragraph ends with */
+  const words = () =>
+    drawn.evaluate(p =>
+      [...p.childNodes]
+        .filter(node => node.nodeType === Node.TEXT_NODE)
+        .map(node => node.textContent)
+        .join("")
+    );
+  const first = await words();
+  await expect(drawn.locator("kbd")).toHaveText(["←", "→"]);
+  await expect(async () => {
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(words, { timeout: 4000 }).not.toBe(first);
+  }).toPass({ timeout: 60000 });
+  const turned = await words();
+  await page.locator('[data-look="hero"] [data-hold]').click({ position: { x: 8, y: 8 } });
+  await page.waitForTimeout(500);
+  expect(await words()).toBe(turned);
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(words, { timeout: 10000 }).toBe(first);
+});
+
+test.describe("on a touch screen", () => {
+  test.use({ viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true });
+
+  test("a finger drawn across a part turns it, one drawn up the page scrolls it, and the hint says to swipe", async ({
+    page
+  }) => {
+    await open(page, `/${SEED}/examples`);
+    const caption = page.locator("#wallpapers figcaption");
+    await expect(caption.getByText("Swipe for another look")).toBeVisible();
+    await expect(caption.locator("kbd").first()).toBeHidden();
+    const stage = await stageOf(page, "wallpapers");
+    const tag = tagOf(page, "wallpapers");
+    const first = (await tag.textContent()) ?? "";
+    const box = await stage.boundingBox();
+    if (!box) throw new Error("the wallpapers' stage is not drawn");
+    const touch = await page.context().newCDPSession(page);
+    /** A finger set down at `from` and drawn to `to` in eight moves, a frame apart. */
+    async function finger(from: { x: number; y: number }, to: { x: number; y: number }) {
+      await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
+      for (let i = 1; i <= 8; i++) {
+        const at = { x: from.x + ((to.x - from.x) * i) / 8, y: from.y + ((to.y - from.y) * i) / 8 };
+        await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [at] });
+        await page.waitForTimeout(16);
+      }
+      await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    }
+    const y = box.y + Math.min(box.height / 2, 150);
+    await expect(async () => {
+      await finger({ x: box.x + box.width * 0.8, y }, { x: box.x + box.width * 0.2, y: y + 8 });
+      await expect(tag).not.toHaveText(first, { timeout: 2000 });
+    }).toPass({ timeout: 30000 });
+    const swiped = (await tag.textContent()) ?? "";
+    const scrolled = await page.evaluate(() => scrollY);
+    const x = box.x + box.width / 2;
+    await finger({ x, y: y + 100 }, { x: x + 2, y: y - 100 });
+    await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(scrolled + 50);
+    await expect(tag).toHaveText(swiped);
+  });
 });

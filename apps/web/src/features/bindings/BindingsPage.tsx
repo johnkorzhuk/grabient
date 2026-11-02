@@ -27,7 +27,8 @@ import styles from "./Bindings.module.css";
 
 const GROUPS: readonly [KeyScope, string][] = [
   ["Every route", msg("Everywhere")],
-  ["Editor", msg("Editor")]
+  ["Editor", msg("Editor")],
+  ["Examples", msg("Examples")]
 ];
 const changeable = (row: KeyMapRow) => !row.fixed;
 

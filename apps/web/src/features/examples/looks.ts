@@ -9,7 +9,13 @@
    and the blob each lie at one angle a page, and the blob in its palette's shape (effect.ts's blobShapeOf), since each
    other angle or shape is another still for the server to write and the browser to draw. */
 import { sampleLCH } from "@grabient/engine/curve.ts";
-import { blobShapeOf, EFFECT_LOOK, EFFECT_PLAY, type EffectKind } from "@grabient/engine/effect.ts";
+import {
+  blobShapeOf,
+  EFFECT_LOOK,
+  EFFECT_PLAY,
+  type EffectKind,
+  SHAPE_MAX
+} from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { DEFAULT_STEPS, type Style } from "@grabient/engine/view.ts";
 import type { Shown } from "./paint.ts";
@@ -115,26 +121,36 @@ export const lookOf = (s: Shown): Look => {
 
 /** The palette in a look as a part named `name` shows it: a gradient as smooth as it needs, bands as many as the seed
     picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings, which have none,
-    at the default's; the glass and the blob at the page's one angle for each, the blob in its palette's shape. */
-export function inLook(seed: string, palette: Palette, look: Look, name: string, turn = 0): Shown {
+    at the default's. The glass and the blob lie at the page's one angle for each, the blob in its palette's shape; or,
+    given `own`, at an angle and in a shape of their own for it, as a look a reader turns to is. */
+export function inLook(
+  seed: string,
+  palette: Palette,
+  look: Look,
+  name: string,
+  turn = 0,
+  own?: string
+): Shown {
   const keyframes = palette.anchors.length;
   const angleFor = (of: string, on = 0) =>
     ANGLES[(Math.floor(seeded(seed, `${of}:angle`) * ANGLES.length) + on) % ANGLES.length];
-  if (look === "glass" || look === "blob")
+  if (look === "glass" || look === "blob") {
+    const shape = own
+      ? Math.floor(seeded(seed, `${own}:shape`) * (SHAPE_MAX + 1))
+      : look === "blob"
+        ? blobShapeOf(seed)
+        : null;
     return {
       seed,
       palette,
       view: {
         style: "linearGradient",
         steps: Math.max(DEFAULT_STEPS, keyframes),
-        angle: angleFor(look)
+        angle: angleFor(own ?? look)
       },
-      effect: {
-        kind: look,
-        ...EFFECT_PLAY,
-        look: { ...EFFECT_LOOK, shape: look === "blob" ? blobShapeOf(seed) : null }
-      }
+      effect: { kind: look, ...EFFECT_PLAY, look: { ...EFFECT_LOOK, shape } }
     };
+  }
   const bands =
     FEWEST_BANDS + Math.floor(seeded(seed, `${name}:bands`) * (MOST_BANDS - FEWEST_BANDS + 1));
   return {
@@ -161,7 +177,8 @@ function inOrder(
   name: string,
   pool: readonly Look[],
   taken: Taken,
-  angles: number
+  angles: number,
+  variant = 0
 ) {
   const count = (look: Look) => taken.get(look) ?? 0;
   const turns = (look: Look) =>
@@ -170,7 +187,9 @@ function inOrder(
     .map((look, i) => ({ look, i }))
     .sort((a, b) => count(a.look) - count(b.look) || a.i - b.i)
     .flatMap(({ look }) =>
-      Array.from({ length: turns(look) }, (_, turn) => inLook(seed, palette, look, name, turn))
+      Array.from({ length: turns(look) }, (_, turn) =>
+        inLook(seed, palette, look, name, turn, variant ? `${look}~${variant}` : undefined)
+      )
     );
 }
 const take = (taken: Taken, s: Shown) => {
@@ -187,14 +206,16 @@ export function pickFitting(
   name: string,
   pool: readonly Look[],
   fits: (s: Shown) => boolean,
-  taken: Taken
+  taken: Taken,
+  variant = 0
 ): Shown | null {
-  const found = inOrder(seed, palette, name, pool, taken, 1).find(fits);
+  const found = inOrder(seed, palette, name, pool, taken, 1, variant).find(fits);
   return found ? take(taken, found) : null;
 }
 
 /** A part's look: the first of `pool` in the order it takes them that `fits`, else the first, counted in `taken`. A
-    part whose fit turns on the angle may try `angles` of them for each look. */
+    part whose fit turns on the angle may try `angles` of them for each look. A `variant` past 0, a set of looks a reader
+    turned to, gives its effects an angle and a shape of that set's own. */
 export function pickLook(
   seed: string,
   palette: Palette,
@@ -202,8 +223,40 @@ export function pickLook(
   pool: readonly Look[],
   fits: (s: Shown) => boolean,
   taken: Taken,
-  angles = 1
+  angles = 1,
+  variant = 0
 ): Shown {
-  const order = inOrder(seed, palette, name, pool, taken, angles);
+  const order = inOrder(seed, palette, name, pool, taken, angles, variant);
   return take(taken, order.find(fits) ?? order[0]);
+}
+
+/** How many looks a reader turns a part through before they come round again, at most. */
+const MOST_LOOKS = 24;
+/** What tells two looks apart: the look, its steps, its angle and an effect's shape. */
+const lookKey = (s: Shown) =>
+  [lookOf(s), s.view.steps, s.view.angle, s.effect?.look.shape ?? ""].join("|");
+/** The looks a reader turns a part through, in order: the one the page gave it first, then rounds of the looks of
+    `pool` in the order the seed shuffles them for the part, each round at an angle, as many bands and an effect's
+    shape of its own, each look a good fit for the part and unlike every one before it; MOST_LOOKS at most. */
+export function looksFor(
+  first: Shown,
+  name: string,
+  pool: readonly Look[],
+  fits: (s: Shown) => boolean
+): Shown[] {
+  const { seed, palette } = first;
+  const out = [first];
+  const seen = new Set([lookKey(first)]);
+  const order = shuffled(pool, seed, `${name}~order`);
+  for (let round = 1; round <= MOST_LOOKS && out.length < MOST_LOOKS; round++)
+    for (const look of order) {
+      const own = `${name}~${round}~${look}`;
+      const s = inLook(seed, palette, look, own, 0, own);
+      const key = lookKey(s);
+      if (seen.has(key) || !fits(s)) continue;
+      seen.add(key);
+      out.push(s);
+      if (out.length === MOST_LOOKS) break;
+    }
+  return out;
 }

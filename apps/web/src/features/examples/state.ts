@@ -208,9 +208,10 @@ const row = (id: string) => {
   return found;
 };
 
-/** The editor's keys that turn the palette, as this page answers them. Each names its row of the key map, so a key the
-    reader changed on the Shortcuts page applies here and the ? list shows it. */
-export function examplesBindings(st: ExamplesState): Binding[] {
+/** The editor's keys that turn the palette, as this page answers them, and the arrows that turn the part in play to
+    another look (`turn`, swipe.ts's turnInPlay). Each names its row of the key map, so a key the reader changed on the
+    Shortcuts page applies here and the ? list shows it. A tab list keeps its arrows. */
+export function examplesBindings(st: ExamplesState, turn: (by: 1 | -1) => void): Binding[] {
   const bind = (id: string, run: Binding["run"], when?: () => boolean): Binding => {
     const r = row(id);
     return { id, key: r.keys, label: r.label, scope: r.scope, run, when };
@@ -224,6 +225,11 @@ export function examplesBindings(st: ExamplesState): Binding[] {
     bind(
       "random",
       onceAFrame(() => st.random())
+    ),
+    bind(
+      "look",
+      onceAFrame(i => turn(i ? 1 : -1)),
+      () => !document.activeElement?.closest('[role="tablist"]')
     ),
     bind(
       "invert",

@@ -104,11 +104,28 @@
     overflow-wrap: anywhere;
   }
   .drawn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-s1) var(--space-s3);
     margin: 0 0 var(--space-s2);
     font-family: var(--font-sans);
     font-weight: var(--font-medium);
     font-size: var(--font-fs4);
     line-height: var(--font-lh-ui);
+  }
+  /* the hero a reader turns to another look (swipe.ts): a press on its picture does it, a finger's sideways drag is
+     the hero's and its scroll up and down the page's, a drag holds the words still, and the words' card is its own */
+  .hero[data-look] {
+    cursor: pointer;
+    touch-action: pan-y;
+    &[data-dragging] {
+      cursor: grabbing;
+      user-select: none;
+    }
+    & .words {
+      cursor: auto;
+    }
   }
 
   /* the examples, one under another, at the lists' margins and no wider than a page reads well */

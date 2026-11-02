@@ -31,6 +31,55 @@
     padding-block: var(--space-s4);
     forced-color-adjust: none;
   }
+  /* a stage a reader turns to another look (swipe.ts): a press does it, a finger's sideways drag is the stage's and its
+     scroll up and down the page's, and a drag holds the words still */
+  .stage[data-look] {
+    cursor: pointer;
+    touch-action: pan-y;
+    &[data-dragging] {
+      cursor: grabbing;
+      user-select: none;
+    }
+    & img {
+      -webkit-user-drag: none;
+    }
+  }
+  /* how to turn it, beside the tag: the keys where a pointer hovers, the swipe where a finger works the screen */
+  .hint {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+    color: var(--color-ink3);
+    font-size: var(--font-fs2);
+  }
+  .keysHint {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s1);
+  }
+  .key {
+    min-width: 18px;
+    padding: 0 var(--space-s1);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-tight);
+    background-color: var(--color-paper2);
+    color: var(--color-ink2);
+    font-family: var(--font-system);
+    font-size: var(--font-fs1);
+    line-height: 16px;
+    text-align: center;
+  }
+  .swipeHint {
+    display: none;
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .keysHint {
+      display: none;
+    }
+    .swipeHint {
+      display: inline;
+    }
+  }
   /* the line under the stage: how the palette is drawn there, a tag in the code's face, then what more it has to say */
   .caption {
     display: flex;

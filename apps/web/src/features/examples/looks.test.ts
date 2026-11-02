@@ -7,6 +7,7 @@ import {
   LOOKS,
   type Look,
   lookOf,
+  looksFor,
   pickFitting,
   pickLook,
   plainOf,
@@ -150,5 +151,35 @@ describe("smoothSteps", () => {
       anchors: Array.from({ length: 8 }, (_, i) => ({ l: 0.5 + i * 0.01, c: 0.02, h: 200 }))
     };
     expect(smoothSteps(eight)).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe("looksFor", () => {
+  const first = inLook(SEED, PALETTE, "gradient", "profile");
+  test("starts at the page's own look, then gives others, each unlike every one before it", () => {
+    const looks = looksFor(first, "profile", LOOKS, () => true);
+    expect(looks[0]).toBe(first);
+    expect(looks.length).toBeGreaterThan(6);
+    expect(looks.length).toBeLessThanOrEqual(24);
+    const keys = looks.map(s =>
+      [lookOf(s), s.view.steps, s.view.angle, s.effect?.look.shape].join()
+    );
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(new Set(looks.map(lookOf)).size).toBe(LOOKS.length);
+  });
+  test("gives only looks the part is a good fit for, the same each time", () => {
+    const bandsOnly = (s: Parameters<typeof lookOf>[0]) => lookOf(s) === "bands";
+    const looks = looksFor(first, "chart", LOOKS, bandsOnly);
+    expect(looks.slice(1).every(bandsOnly)).toBe(true);
+    expect(looksFor(first, "chart", LOOKS, bandsOnly).map(s => s.view.angle)).toEqual(
+      looks.map(s => s.view.angle)
+    );
+  });
+  test("turns an effect to angles and shapes of its own, where the page's are one a page", () => {
+    const hero = inLook(SEED, PALETTE, "blob", "hero");
+    const blobs = looksFor(hero, "hero", ["glass", "blob"], () => true).filter(s => s.effect);
+    expect(new Set(blobs.map(s => `${s.view.angle}|${s.effect?.look.shape}`)).size).toBeGreaterThan(
+      4
+    );
   });
 });

@@ -107,6 +107,7 @@ export function ProfileExample(props: ExampleProps) {
     <Example
       id="profile"
       n={props.n}
+      onTurn={props.onTurn}
       title={t("Avatars and banners")}
       about={t("For profiles and default avatars.")}
       drawn={drawnWords(props.s)}
