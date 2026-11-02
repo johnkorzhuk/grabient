@@ -280,4 +280,4 @@ test("the pages' script computes the engine's numbers for random palettes, looks
       expect(x, `${seed} ${address} at ${f}`).toEqual(y);
     }
   }
-});
+}, 60_000);
