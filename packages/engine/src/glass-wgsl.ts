@@ -8,7 +8,8 @@
     triangle up from another corner, which moves the last bit of a varying, so each pixel's varyings are worked out as
     the player's WebGL triangles give them: the corners snapped to 16ths of a pixel, the strip's triangles (v2, v0, v1)
     and (v2, v1, v3), each varying from its triangle's plane. */
-export const GLASS_DISC_WGSL = `@group(0) @binding(0) var<uniform> uField: vec4f;   // the field's size in texels, xy; 1, w
+export const GLASS_DISC_WGSL = `// the field's size in texels, across (x) and down (y); z unused; w 1, a one the compiler cannot see
+@group(0) @binding(0) var<uniform> uField: vec4f;
 
 struct Disc {
   @builtin(position) position: vec4f,
@@ -70,13 +71,14 @@ fn varyings(c0: vec2f, c1: vec2f, c2: vec2f, lx: vec3f, ly: vec3f, color: vec3f,
 
 @fragment
 fn fs_main(in: Disc) -> @location(0) vec4f {
-  let size = uField.x;
+  let fw = uField.x;
+  let fh = uField.y;
   let d = in.disc;
   // the quad's corners: v0 (-1, -1) and v1 (1, -1) at yA, v2 (-1, 1) and v3 (1, 1) at yB, left at xL, right at xR
-  let xL = snap((d.x - d.z) / size * 2.0 - 1.0, size);
-  let xR = snap((d.x + d.z) / size * 2.0 - 1.0, size);
-  let yA = snap(1.0 - (d.y - d.z) / size * 2.0, size);
-  let yB = snap(1.0 - (d.y + d.z) / size * 2.0, size);
+  let xL = snap((d.x - d.z) / fw * 2.0 - 1.0, fw);
+  let xR = snap((d.x + d.z) / fw * 2.0 - 1.0, fw);
+  let yA = snap(1.0 - (d.y - d.z) / fh * 2.0, fh);
+  let yB = snap(1.0 - (d.y + d.z) / fh * 2.0, fh);
   let px = floor(in.position.xy);
   let h = i32(yA - yB);
   var v: Varyings;

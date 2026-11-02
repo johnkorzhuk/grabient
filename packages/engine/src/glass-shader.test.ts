@@ -1,7 +1,13 @@
 import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
 import { decodePalette } from "./codec.ts";
-import { EFFECT_EASE_S, type Effect, parseEffect } from "./effect.ts";
+import {
+  EFFECT_EASE_S,
+  EFFECT_PIXELS_MAX,
+  EFFECT_SETTLE_MS,
+  type Effect,
+  parseEffect
+} from "./effect.ts";
 import {
   GLASS_ANGLE,
   GLASS_LOOP,
@@ -18,7 +24,7 @@ import {
   GLASS_FINAL_FS,
   GLASS_FULL_VS
 } from "./glass-gl.ts";
-import { GLASS_SHADER_KINDS, type GlassShaderKind, glassShader } from "./glass-shader.ts";
+import { GLASS_SHADER_KINDS, glassShader } from "./glass-shader.ts";
 import { glassShadertoy, glslDouble, glslFloat } from "./glass-shadertoy.ts";
 import {
   GLASS_BAKE_WGSL,
@@ -27,11 +33,12 @@ import {
   GLASS_FINAL_WGSL
 } from "./glass-wgsl.ts";
 import type { Palette } from "./palette.ts";
+import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
 import { parseView } from "./view.ts";
 
 const { origin, entries } = golden<{
   origin: string;
-  entries: { id: string; seed: string; address: string; texts: Record<GlassShaderKind, string> }[];
+  entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
 }>("glass-shaders");
 
 const read = (address: string): { effect: Effect; angle: number } => {
@@ -55,7 +62,7 @@ test("the glass's five texts are as before, near grays and every setting among t
 });
 
 test("each text credits the seed, the effect's address and what it is", () => {
-  const credit = (kind: GlassShaderKind) =>
+  const credit = (kind: ShaderKind) =>
     glassShader(kind, P, GLASS.effect, GLASS.angle, SEED, origin).split("\n").slice(0, 3);
   const address = `${origin}/${SEED}?style=glass&angle=137&speed=3&fps=24&shape=7`;
   expect(credit("shadertoy").slice(0, 2)).toEqual([`// grabient ${SEED}`, `// ${address}`]);
@@ -108,13 +115,46 @@ test("the WebGPU page runs each module as the WGSL text writes it", () => {
   }
 });
 
+test("the glass offers the Shader tab's kinds", () => {
+  expect(GLASS_SHADER_KINDS).toEqual(SHADER_KINDS.map(([kind]) => kind));
+});
+
 test("nothing in a page's shaders or code could end its script element", () => {
   for (const kind of ["webgl", "webgpu"] as const) {
     const page = glassShader(kind, P, GLASS.effect, GLASS.angle, SEED, origin);
     const scripts = [...page.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-    expect(scripts.length).toBe(kind === "webgl" ? 7 : 5);
+    expect(scripts.length).toBe(kind === "webgl" ? 8 : 6);
     for (const s of scripts) expect(s).not.toMatch(/<\/|<!--/);
   }
+});
+
+test("a page's settings are its first script, where a reader finds them", () => {
+  for (const kind of ["webgl", "webgpu"] as const) {
+    const page = glassShader(kind, P, GLASS.effect, GLASS.angle, SEED, origin);
+    const first = /<canvas><\/canvas>\n<script>\n([\s\S]*?)\n<\/script>/.exec(page)?.[1] ?? "";
+    expect(first).toMatch(/^\/\/ The glass's colors/);
+    expect(first).toContain(
+      "const ANGLE = 137;\nconst SHAPE = 7;\nconst SPEED = 3;\nconst FPS = 24;"
+    );
+    expect(first).toContain(`const EASE = ${EFFECT_EASE_S};`);
+  }
+});
+
+test("a page plays by the players' numbers and goes on after its GPU is lost and found", () => {
+  const webgl = glassShader("webgl", P, GLASS.effect, GLASS.angle, SEED);
+  const webgpu = glassShader("webgpu", P, GLASS.effect, GLASS.angle, SEED);
+  for (const page of [webgl, webgpu]) {
+    expect(page).toContain(`const PIXELS_MAX = ${EFFECT_PIXELS_MAX};`);
+    expect(page).toContain(`laidOut ? ${EFFECT_SETTLE_MS} : 0`);
+  }
+  expect(webgl).toMatch(
+    /"webglcontextlost", event => \{\n\s+event\.preventDefault\(\);\n\s+lose\(\);/
+  );
+  expect(webgl).toMatch(
+    /"webglcontextrestored", \(\) => \{\n\s+drawn = drawing\(\);\n\s+found\(\);/
+  );
+  expect(webgpu).toContain("one.lost.then(async () => {");
+  expect(webgpu).toContain('"This page lost its GPU device, and the browser gave it no other."');
 });
 
 test("a page says so where the browser lacks what it needs, and holds still for less motion", () => {

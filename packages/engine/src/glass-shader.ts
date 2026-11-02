@@ -1,9 +1,10 @@
 /* The fluted glass as shader code, each text drawing what the site's player draws (ui/glass-player.ts) at the same size
    and time: its WebGL page runs the player's own GLSL (glass-gl.ts) on the numbers the player works out, its WebGPU
    page the same passes in WGSL, and its Shadertoy tabs work the numbers out on the GPU. Each starts with the credit
-   the palette's shaders carry (shader.ts): the seed, the effect's address and what the text is. The editor loads this
-   module with the Shader tab of an effect, never with a page's start. */
-import { type Effect, effectAddressParts } from "./effect.ts";
+   the palette's shaders carry (shader-shell.ts): the seed, the effect's address and what the text is. The editor
+   loads this module with the glass's Shader tab (effect-sources.ts), never with a page's start. */
+import { EFFECT_EASE_S, type Effect, effectAddressParts } from "./effect.ts";
+import { EFFECT_CLOCK } from "./effect-page.ts";
 import { GLASS_ANGLE } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import {
@@ -14,7 +15,7 @@ import {
   GLASS_FINAL_FS,
   GLASS_FULL_VS
 } from "./glass-gl.ts";
-import { GLASS_CLOCK, GLASS_MODEL, glassPageHtml } from "./glass-page.ts";
+import { GLASS_MODEL } from "./glass-page.ts";
 import { glassShadertoy } from "./glass-shadertoy.ts";
 import {
   GLASS_BAKE_WGSL,
@@ -23,21 +24,13 @@ import {
   GLASS_FINAL_WGSL
 } from "./glass-wgsl.ts";
 import type { Palette } from "./palette.ts";
+import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
+import { shaderCreditLines, shaderPageHtml } from "./shader-shell.ts";
 
-/** The kinds of glass shader code: three texts and two pages that run them, as the palette's Shader tab offers. */
-export type GlassShaderKind = "shadertoy" | "glsl" | "wgsl" | "webgl" | "webgpu";
-export const GLASS_SHADER_KINDS: readonly GlassShaderKind[] = [
-  "shadertoy",
-  "glsl",
-  "wgsl",
-  "webgl",
-  "webgpu"
-];
+/** The kinds of glass shader code, the Shader tab's: three texts and two pages that run them. */
+export const GLASS_SHADER_KINDS: readonly ShaderKind[] = SHADER_KINDS.map(([kind]) => kind);
 
-/** Seconds the motion takes from rest to its pace, as the site's player eases in. */
-const EASE_S = 1.6;
-
-const WHAT: Record<GlassShaderKind, string> = {
+const WHAT: Record<ShaderKind, string> = {
   shadertoy:
     "fluted glass in Shadertoy: paste each section into the tab it names and set its channels as its header says",
   glsl: "fluted glass: the GLSL ES 3.00 passes its WebGL page runs",
@@ -48,25 +41,26 @@ const WHAT: Record<GlassShaderKind, string> = {
 
 /** The credit every text carries: the seed, the effect's address where an origin is given, and what the text is. */
 export function glassShaderCredit(
-  kind: GlassShaderKind,
+  kind: ShaderKind,
   seed: string,
   effect: Effect,
   angle: number,
   origin?: string
 ): string[] {
-  const lines = [`grabient ${seed}`];
-  if (origin)
-    lines.push(
-      `${origin.replace(/\/$/, "")}/${seed}?${effectAddressParts(effect, angle).join("&")}`
-    );
-  lines.push(WHAT[kind]);
-  return lines;
+  return shaderCreditLines(
+    seed,
+    origin
+      ? `${origin.replace(/\/$/, "")}/${seed}?${effectAddressParts(effect, angle).join("&")}`
+      : null,
+    WHAT[kind]
+  );
 }
 
-/** The settings a reader edits, as the page's JavaScript names them. */
+/** The settings a reader edits, the page's first script, as its JavaScript names them. */
 function settingsJs(P: Palette, effect: Effect, angle: number): string {
-  return `// The glass's colors, the angle its ribs run at (${GLASS_ANGLE} as designed), its shape (0 as designed, up to 999), how fast
-// it plays (1 as designed, 0 holds the first frame), frames a second at most, and the seconds it takes to ease in.
+  return `// The glass's colors (the site takes six along the palette; any number will do), the angle its ribs run at
+// (${GLASS_ANGLE} as designed), its shape (0 as designed, up to 999), how fast it plays (1 as designed, 0 holds the first
+// frame), frames a second at most, and the seconds it takes to ease in.
 const COLORS = [${glassColors(P)
     .map(c => `"${c}"`)
     .join(", ")}];
@@ -74,7 +68,7 @@ const ANGLE = ${angle};
 const SHAPE = ${effect.look.shape ?? 0};
 const SPEED = ${effect.speed};
 const FPS = ${effect.fps};
-const EASE = ${EASE_S};`;
+const EASE = ${EFFECT_EASE_S};`;
 }
 
 const WEBGL_SHADERS = [
@@ -88,7 +82,9 @@ const WEBGL_SHADERS = [
 
 /* The player's drawing (ui/glass-player.ts createGlassDrawing, glass-bake.ts) in the page: the same textures, passes
    and uniforms, so each frame's GPU work is the player's. */
-const WEBGL_DRAWING = `const canvas = document.querySelector("canvas");
+const WEBGL_DRAWING = `// The player's drawing: the same textures, passes and uniforms, so each frame's GPU work is the player's. A context the
+// browser gives back after losing it gets a drawing of its own.
+const canvas = document.querySelector("canvas");
 const gl = canvas.getContext("webgl2", {
   alpha: false,
   antialias: false,
@@ -97,10 +93,10 @@ const gl = canvas.getContext("webgl2", {
   premultipliedAlpha: true,
   preserveDrawingBuffer: false
 });
-if (gl) play(gl);
+if (gl) play();
 else document.body.textContent = "This page needs WebGL 2, which this browser does not have.";
 
-function play(gl) {
+function drawing() {
   const compile = (type, id) => {
     const shader = gl.createShader(type);
     gl.shaderSource(shader, document.getElementById(id).textContent);
@@ -359,8 +355,24 @@ function play(gl) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.activeTexture(gl.TEXTURE0);
   };
+  return { layout, draw };
+}
 
-${indent(GLASS_CLOCK)}
+function play() {
+  let drawn = drawing();
+  const layout = (w, h) => drawn?.layout(w, h);
+  const draw = t => drawn?.draw(t);
+${indent(EFFECT_CLOCK)}
+  // A lost context draws nothing until the browser gives it back; a drawing is then made on it.
+  canvas.addEventListener("webglcontextlost", event => {
+    event.preventDefault();
+    lose();
+    drawn = null;
+  });
+  canvas.addEventListener("webglcontextrestored", () => {
+    drawn = drawing();
+    found();
+  });
 }`;
 
 function indent(text: string): string {
@@ -378,18 +390,11 @@ function webglPage(
   seed: string,
   origin?: string
 ): string {
-  const code = `${settingsJs(P, effect, angle)}
-
-${GLASS_MODEL}
-
-${WEBGL_DRAWING}`;
-  return glassPageHtml(
-    glassShaderCredit("webgl", seed, effect, angle, origin),
-    seed,
-    WEBGL_SHADERS,
-    code,
-    false
-  );
+  return shaderPageHtml(glassShaderCredit("webgl", seed, effect, angle, origin), seed, [
+    { code: settingsJs(P, effect, angle) },
+    ...WEBGL_SHADERS.map(([id, type, code]) => ({ id, type, code })),
+    { code: `${GLASS_MODEL}\n\n${WEBGL_DRAWING}` }
+  ]);
 }
 
 const WEBGPU_SHADERS = [
@@ -400,14 +405,19 @@ const WEBGPU_SHADERS = [
 ] as const;
 
 /* The player's drawing in WebGPU: the same textures, laid out as the player's, the same passes and the same numbers. */
-const WEBGPU_DRAWING = `const canvas = document.querySelector("canvas");
-const adapter = await navigator.gpu?.requestAdapter().catch(() => null);
-const device = await adapter?.requestDevice().catch(() => null);
+const WEBGPU_DRAWING = `// The player's drawing in WebGPU: the same textures, laid out as the player's, the same passes and the same numbers. A
+// device the browser loses is asked for again, and the new one gets a drawing of its own.
+const canvas = document.querySelector("canvas");
+const context = canvas.getContext("webgpu");
+const gpu = async () => {
+  const adapter = await navigator.gpu?.requestAdapter().catch(() => null);
+  return (await adapter?.requestDevice().catch(() => null)) ?? null;
+};
+const device = await gpu();
 if (device) play(device);
 else document.body.textContent = "This page needs WebGPU, which this browser does not have.";
 
-function play(device) {
-  const context = canvas.getContext("webgpu");
+function drawing(device) {
   const format = navigator.gpu.getPreferredCanvasFormat();
   context.configure({ device, format, alphaMode: "opaque" });
   const module = id => device.createShaderModule({ code: document.getElementById(id).textContent });
@@ -545,6 +555,12 @@ function play(device) {
       glass: group(pFinal, [views.map, views.field[0], bilinear, { buffer: uGlass }]),
       views
     };
+    const { region } = geo;
+    device.queue.writeBuffer(
+      uGlass,
+      0,
+      new Float32Array([region.x, region.y, win.x, win.y, 1 / (pl.q * pl.fw), 1 / (pl.q * pl.fh), win.h, geo.scale])
+    );
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
@@ -614,11 +630,6 @@ function play(device) {
       data[7 * i + 1] = (pos[1] - region.y) / q;
     }
     device.queue.writeBuffer(inst, 0, data);
-    device.queue.writeBuffer(
-      uGlass,
-      0,
-      new Float32Array([region.x, region.y, win.x, win.y, 1 / (q * pl.fw), 1 / (q * pl.fh), win.h, geo.scale])
-    );
     const discs = run(encoder, groups.views.field[0], pDisc, groups.disc, { r: base[0], g: base[1], b: base[2], a: 1 });
     discs.setVertexBuffer(1, inst);
     discs.draw(4, fld.discs.length);
@@ -635,8 +646,30 @@ function play(device) {
     device.queue.submit([encoder.finish()]);
     ribsBuffer?.destroy();
   };
+  return { layout, draw };
+}
 
-${indent(GLASS_CLOCK)}
+function play(device) {
+  let drawn = drawing(device);
+  const layout = (w, h) => drawn?.layout(w, h);
+  const draw = t => drawn?.draw(t);
+${indent(EFFECT_CLOCK)}
+  // A device lost draws nothing: the page asks for another, three times at most, and goes on with it, or says so.
+  let again = 0;
+  const watch = one =>
+    one.lost.then(async () => {
+      lose();
+      drawn = null;
+      const next = ++again <= 3 ? await gpu() : null;
+      if (!next) {
+        document.body.textContent = "This page lost its GPU device, and the browser gave it no other.";
+        return;
+      }
+      drawn = drawing(next);
+      watch(next);
+      found();
+    });
+  watch(device);
 }`;
 
 /** The WebGPU page: the player's passes in WGSL (glass-wgsl.ts) on the numbers the player works out. */
@@ -647,18 +680,11 @@ function webgpuPage(
   seed: string,
   origin?: string
 ): string {
-  const code = `${settingsJs(P, effect, angle)}
-
-${GLASS_MODEL}
-
-${WEBGPU_DRAWING}`;
-  return glassPageHtml(
-    glassShaderCredit("webgpu", seed, effect, angle, origin),
-    seed,
-    WEBGPU_SHADERS,
-    code,
-    true
-  );
+  return shaderPageHtml(glassShaderCredit("webgpu", seed, effect, angle, origin), seed, [
+    { code: settingsJs(P, effect, angle) },
+    ...WEBGPU_SHADERS.map(([id, type, code]) => ({ id, type, code })),
+    { type: "module", code: `${GLASS_MODEL}\n\n${WEBGPU_DRAWING}` }
+  ]);
 }
 
 const GLSL_SECTIONS = `// ==== Vertex: full target ==== the quad over a whole target, for passes 2 to 4 and the bake
@@ -692,7 +718,7 @@ ${GLASS_BAKE_WGSL}`;
 /** The glass in a kind of shader code, for its palette, effect and angle. `origin` adds the effect's address to the
     credit. */
 export function glassShader(
-  kind: GlassShaderKind,
+  kind: ShaderKind,
   P: Palette,
   effect: Effect,
   angle: number,
