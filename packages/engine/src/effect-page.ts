@@ -1,7 +1,8 @@
-/* How an effect's shader page plays (glass-shader.ts): the site's players' clock (ui/glass-player.ts, blob-player.ts)
-   and frame rate (ui/pace.ts) in the page's own JavaScript, with the players' ease, pixel cap and settle (effect.ts),
-   so the page draws each frame at the player's time. The page gives `layout(w, h)`, which lays its drawing out for
-   the canvas's device pixels, and `draw(t)`, which draws the frame at t; this code gives the rest. */
+/* How an effect's shader page plays (glass-webgl.ts, glass-webgpu.ts): the site's players' clock (ui/glass-player.ts,
+   blob-player.ts) and frame rate (ui/pace.ts) in the page's own JavaScript, with the players' ease, pixel cap and
+   settle (effect.ts), so the page draws each frame at the player's time. The page gives `layout(w, h)`, which lays its
+   drawing out for the canvas's device pixels, and `draw(t)`, which draws the frame at t, and calls `lose()` as its
+   GPU is lost and `found()` once a new drawing stands on the one given back; this code gives the rest. */
 import { EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS } from "./effect.ts";
 
 /** A frame due once each 1/FPS, a little early rather than a refresh late, counted from the last one's due time: pace.ts
