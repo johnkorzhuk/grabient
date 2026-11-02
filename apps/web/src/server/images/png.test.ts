@@ -2,6 +2,12 @@ import { expect, test } from "vitest";
 import { decodePng } from "../../../test/png.ts";
 import { encodePng } from "./png.ts";
 
+/* byte for byte: toEqual walks a typed array item by item, about 14 s for these pictures on a busy machine */
+const same = (a: Uint8Array, b: Uint8Array) =>
+  Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(
+    Buffer.from(b.buffer, b.byteOffset, b.byteLength)
+  );
+
 const noise = (length: number) => {
   let seed = 7;
   return Uint8Array.from({ length }, () => {
@@ -26,7 +32,7 @@ test("a picture of many bands of rows reads back whole, in its chunks, with ever
       channels,
       ["IHDR", "sRGB", "IDAT", "IEND"]
     ]);
-    expect(read.pixels).toEqual(pixels);
+    expect(same(read.pixels, pixels), `${width} by ${height}, ${channels} channels`).toBe(true);
   }
 });
 
