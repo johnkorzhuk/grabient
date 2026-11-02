@@ -111,6 +111,26 @@ export function seedAddress(page: Addressed): string {
   return `/${page.seed}?${parts.join("&")}`;
 }
 
+/** A palette's look as its address writes it after its seed: its view and its effect in the canonical address's order,
+    their defaults left out, and nothing else (no size, no locks, no selection). What a save keeps of how the palette
+    was drawn (a like, a collection's item): any style, effect or view setting the address writes, with no store of
+    its own for each. */
+export function lookQuery(view: View, effect: Effect | null): string {
+  const address = seedAddress({ seed: "k", view: { ...view, size: null }, effect });
+  const at = address.indexOf("?");
+  return at < 0 ? "" : address.slice(at + 1);
+}
+
+/** A look a save kept, read for its palette as the palette's own address reads it: its view and its effect, a blob's
+    shape the palette's own suggestion where the look names none; null for a seed that is no palette. */
+export function readLook(
+  seed: string,
+  query: string
+): { view: View; effect: Effect | null } | null {
+  const page = readSeedPage(seed, new URLSearchParams(query));
+  return page ? { view: page.view, effect: page.effect ?? null } : null;
+}
+
 /** The parameters the router keeps as numbers: a number-like string would be written quoted. */
 export const NUMBERS = new Set(["steps", "angle", "speed", "fps", "frost", "shape"]);
 

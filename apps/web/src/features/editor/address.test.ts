@@ -1,8 +1,11 @@
+import { blobShapeOf } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import {
   canonicalSeedAddress,
   isSeed,
+  lookQuery,
   openedFrom,
+  readLook,
   readSeedPage,
   sameAddress,
   seedAddress,
@@ -140,4 +143,34 @@ test("a blob always has a shape: the palette's own suggestion where its address 
   expect(canonicalSeedAddress(`/${SEED}?style=glass&angle=30`)).toBe(
     `/${SEED}?style=glass&angle=30`
   );
+});
+
+test("a save keeps a palette's whole look as its address writes it, and reads it back for the palette", () => {
+  const look = (query: string) => {
+    const page = readSeedPage(SEED, new URLSearchParams(query))!;
+    return lookQuery(page.view, page.effect ?? null);
+  };
+  // an effect and its settings, in the canonical order, defaults left out; the size is no part of a look
+  expect(look("speed=2&style=glass&shape=7&angle=30&size=1200x630")).toBe(
+    "style=glass&angle=30&speed=2&shape=7"
+  );
+  expect(look("style=blob&frost=0.5&bg=%23101014&shape=12")).toBe(
+    "style=blob&frost=0.5&shape=12&bg=%23101014"
+  );
+  // a gradient's view as the address writes it
+  expect(look("style=radialSwatches&steps=9&angle=45")).toBe(
+    "style=radialSwatches&steps=9&angle=45"
+  );
+  // read back: the same view and effect, which written again are the same look
+  for (const query of [
+    "style=glass&angle=30&speed=2&shape=7",
+    "style=blob&frost=0.5&shape=12&bg=%23101014",
+    "style=radialSwatches&steps=9&angle=45"
+  ]) {
+    const read = readLook(SEED, query)!;
+    expect(lookQuery(read.view, read.effect)).toBe(query);
+  }
+  // a blob kept with no shape plays the palette's own, as its address does
+  expect(readLook(SEED, "style=blob")?.effect?.look.shape).toBe(blobShapeOf(SEED));
+  expect(readLook("nothing", "style=glass")).toBeNull();
 });

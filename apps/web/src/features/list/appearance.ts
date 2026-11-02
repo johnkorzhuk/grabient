@@ -145,6 +145,29 @@ export function inOrder(
   return { q, style, steps, angle, size, speed, fps, frost, bg, ...rest, selection };
 }
 
+/** The effect a save kept in a palette's look (editor/address.ts's lookQuery), as the palette's address reads it: a
+    blob in the palette's own shape where the look names none; null for a look with no effect. What a card reads of a
+    look, with the list's own readers. */
+export function lookEffect(seed: string, look: string): Effect | null {
+  const effect = parseEffect(new URLSearchParams(look));
+  return effect?.kind === "blob" && effect.look.shape === null
+    ? { ...effect, look: { ...effect.look, shape: blobShapeOf(seed) } }
+    : effect;
+}
+
+/** The effect a card plays, its link opens and its files take: the list's in its palette's own shape (cardEffect), else
+    the card's own as its save kept it (`kept`) while the list draws every palette as saved, no style and no effect set
+    and none being set in the menu (`draft`). */
+export function cardPlays(
+  view: ListView,
+  draft: ViewDraft | null,
+  seed: string,
+  kept: Effect | null
+): Effect | null {
+  if (view.effect) return cardEffect(view.effect, seed);
+  return view.style === "auto" && !(draft && "effect" in draft) ? kept : null;
+}
+
 /** The effect a card plays: the list's, in its palette's own shape. The glass's is its design; the blob's is the one
     its seed suggests, which the editor settles a blob with none to, so a card plays the blob its link opens. */
 export const cardEffect = (effect: Effect, seed: string): Effect =>

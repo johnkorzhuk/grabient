@@ -204,6 +204,49 @@ test("a palette opened from Saved lands styled, and Back returns to Saved", asyn
   expect(reports).toEqual([]);
 });
 
+test("Saved plays each palette as it was saved, effect and settings included, and opens it that way", async ({
+  page
+}) => {
+  const reports = reported(page);
+  await signedIn(page);
+  const items = [
+    { kseed: "kS7CQ31Do6asvY-", angle: 30, look: "style=glass&angle=30&speed=2" },
+    { kseed: "kSEiS3qzo6dQvY-", angle: 90, look: "style=blob&frost=0.5&shape=12" },
+    { kseed: "kWTATrcQ7MeMxv1MwbbLKq84", angle: 90 }
+  ].map((item, i) => ({
+    style: "linearGradient",
+    steps: 7,
+    likes: 1,
+    createdAt: 1_700_000_000_000 - i,
+    ...item
+  }));
+  await page.route(
+    url => url.pathname === "/api/saved",
+    route =>
+      route.fulfill({
+        json: { items, total: 3, page: 1, totalPages: 1, fetchedAt: Date.now() }
+      })
+  );
+  await open(page, "/palettes/saved");
+  const cards = page.locator("main article");
+  await expect(cards).toHaveCount(3);
+  // As saved: the glass and the blob each in its kept settings, the third its gradient
+  await expect(cards.nth(0).locator("[data-glass-still]")).toHaveCount(1);
+  await expect(cards.nth(1).locator("[data-blob-still]")).toHaveCount(1);
+  await expect(cards.nth(2).locator("[data-glass-still], [data-blob-still]")).toHaveCount(0);
+  const edit = (i: number) => cards.nth(i).locator('a[aria-label^="Edit "]');
+  await expect(edit(0)).toHaveAttribute("href", "/kS7CQ31Do6asvY-?style=glass&angle=30&speed=2");
+  await expect(edit(1)).toHaveAttribute("href", "/kSEiS3qzo6dQvY-?style=blob&frost=0.5&shape=12");
+  // a style set for every palette takes each look's place
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Radial", exact: true }).click();
+  await expect(page).toHaveURL(/style=radialGradient/);
+  await expect(
+    page.locator("main article [data-glass-still], main article [data-blob-still]")
+  ).toHaveCount(0);
+  expect(reports).toEqual([]);
+});
+
 test("a collection opened from a list by its title, and a palette from the collection, each land styled and Back returns to each", async ({
   page
 }) => {

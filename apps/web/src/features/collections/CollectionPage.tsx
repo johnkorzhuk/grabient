@@ -820,6 +820,7 @@ export function CollectionPage(props: {
                         <div class={styles.cell} data-item={keyOf(item())}>
                           <ItemCard
                             own={inputOf(item())}
+                            look={item().look}
                             words={{ title: item().title, description: item().description }}
                             naming={
                               owned() &&

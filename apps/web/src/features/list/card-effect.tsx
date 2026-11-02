@@ -39,6 +39,8 @@ export function createCardEffect(o: {
   angle: () => number;
   /** the list's effect as the cards play it now */
   effect: () => Effect | null;
+  /** the card's own effect, as its save kept it in its own shape, which it plays where the list plays none */
+  own?: () => Effect | null;
   /** a gradient's style is previewed on every card */
   peek: () => boolean;
   name: () => string;
@@ -46,7 +48,9 @@ export function createCardEffect(o: {
   const palette = createMemo(() => decodePalette(o.seed()));
   const effect = createMemo(() => {
     const fx = o.effect();
-    return fx && palette() ? cardEffect(fx, o.seed()) : null;
+    if (fx) return palette() ? cardEffect(fx, o.seed()) : null;
+    const own = o.own?.() ?? null;
+    return own && palette() ? own : null;
   });
   /* the picture keeps the last effect it played while the list lets it go, until the card takes it away */
   const played = createMemo<Effect | null>(last => effect() ?? last ?? null);

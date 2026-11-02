@@ -9,12 +9,20 @@ const WAKE_MS = 1000;
     server's cards are claimed as it drew them. The cards' effect code is asked for as the page settles, so the cards
     the reader's first move draws live have it, and these wait for it: a card drawn without it stands empty a moment.
     Until they wake, the GPU draws the glass's stills into the still cards themselves as soon as its canvas is made,
-    which the page asks for at once: they showed their fields alone, without the ribs, until the page idled. */
+    which the page asks for at once: they showed their fields alone, without the ribs, until the page idled. A page
+    whose list plays the glass does, and one drawing every palette as saved where a still card plays the glass as its
+    save kept it. */
 export function createGlassWake(view: () => ListView): () => boolean {
   const [idle, setIdle] = createSignal(false);
+  /* a still card plays the glass: the list's, or its own as saved */
+  const [glassy, setGlassy] = createSignal(false);
   onSettled(() => {
     let gone = false;
-    if (untrack(view).effect?.kind === "glass")
+    const glass =
+      untrack(view).effect?.kind === "glass" ||
+      !!document.querySelector("[data-still] [data-glass-still]");
+    setGlassy(glass);
+    if (glass)
       void import("../editor/glass-draw.ts")
         .then(m => m.loadGpuStill(true).then(() => gone || m.paintStills()))
         .catch(() => {});
@@ -33,5 +41,5 @@ export function createGlassWake(view: () => ListView): () => boolean {
       cancelIdleCallback(id);
     };
   });
-  return () => idle() && view().effect?.kind === "glass";
+  return () => idle() && (view().effect?.kind === "glass" || glassy());
 }

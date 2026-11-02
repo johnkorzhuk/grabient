@@ -19,9 +19,10 @@ import { cardTakings } from "../gallery/take.ts";
 import { cardWords, type Words } from "../gallery/words.ts";
 import {
   AppearanceContext,
-  cardEffect,
+  cardPlays,
   drawnIn,
   type ListView,
+  lookEffect,
   shownEffect
 } from "../list/appearance.ts";
 import { createCardEffect } from "../list/card-effect.tsx";
@@ -38,6 +39,9 @@ import { rememberOpening } from "./navigation.ts";
 export function ItemCard(props: {
   /** the palette as the collection saved it */
   own: Drawn;
+  /** the whole look the collection saved it in, where it kept more than its view: played while the page draws every
+      palette as saved */
+  look?: string | null;
   /** the words the collection gives it */
   words?: Words;
   /** the owner names it on the card */
@@ -72,7 +76,10 @@ export function ItemCard(props: {
   );
   const seed = () => props.own.seed;
   const words = () => cardWords(shown(), props.words);
-  const href = () => paletteHref(shown(), props.view.size, props.view.effect);
+  /* the look the collection saved, which the card plays while the page draws every palette as saved */
+  const kept = createMemo(() => (props.look ? lookEffect(props.own.seed, props.look) : null));
+  const plays = () => cardPlays(props.view, sight.inSight() ? look.draft() : null, seed(), kept());
+  const href = () => paletteHref(shown(), props.view.size, plays(), true);
   const similar = () => similarHref(seed());
   const collect = props.collect(shown);
   const name = () => props.words?.title ?? nameOf(shown());
@@ -80,14 +87,15 @@ export function ItemCard(props: {
     seed,
     angle: () => picture().angle,
     effect: () => shownEffect(props.view, sight.inSight() ? look.draft() : null, null),
+    own: () => (props.view.effect ? null : plays()),
     peek: () => sight.inSight() && look.peek() !== null,
     name
   });
   const take = cardTakings({
     palette: shown,
     played: () => {
-      const { effect, size } = props.view;
-      return effect && { effect: cardEffect(effect, seed()), size };
+      const effect = plays();
+      return effect && { effect, size: props.view.size };
     },
     name,
     place: () => props.place(),

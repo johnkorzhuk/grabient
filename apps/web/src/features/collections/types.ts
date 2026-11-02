@@ -24,7 +24,10 @@ export const CollectionPreviewSchema = v.object({
   rising: v.optional(v.number()),
   /** what the collection calls it and says of it, where it does */
   title: v.optional(v.string()),
-  description: v.optional(v.string())
+  description: v.optional(v.string()),
+  /** the whole look the collection saved it in, where it saved more than its view: an effect and its settings, as the
+      palette's address writes them (features/editor/address.ts's lookQuery) */
+  look: v.optional(v.nullable(v.string()))
 });
 export type CollectionPreview = v.InferOutput<typeof CollectionPreviewSchema>;
 
@@ -67,7 +70,9 @@ export const CollectionItemSchema = v.object({
   position: v.number(),
   rising: v.optional(v.number()),
   title: v.optional(v.string()),
-  description: v.optional(v.string())
+  description: v.optional(v.string()),
+  /** the whole look the collection saved it in, where it saved more than its view (CollectionPreviewSchema's look) */
+  look: v.optional(v.nullable(v.string()))
 });
 export type CollectionItem = v.InferOutput<typeof CollectionItemSchema>;
 

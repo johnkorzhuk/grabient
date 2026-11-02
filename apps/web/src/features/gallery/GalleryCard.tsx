@@ -13,7 +13,13 @@ import { likeCount, liked, toggleLike } from "../account/likes.ts";
 import { rememberOpening } from "../collections/navigation.ts";
 import { openedFrom } from "../editor/address.ts";
 import { askFacts } from "../editor/page.ts";
-import { AppearanceContext, cardEffect, drawnIn, shownEffect } from "../list/appearance.ts";
+import {
+  AppearanceContext,
+  cardPlays,
+  drawnIn,
+  lookEffect,
+  shownEffect
+} from "../list/appearance.ts";
 import { createCardEffect } from "../list/card-effect.tsx";
 import { createSight } from "../list/sight.ts";
 import { type UseAt, useOpened } from "../palette-use/use.ts";
@@ -57,7 +63,13 @@ export function GalleryCard(props: {
       ? picturedAs(ownOf(props.item), page.params(), look.draft(), look.peek())
       : picturedAs(ownOf(props.item), page.params(), null, null)
   );
-  const path = () => paletteHref(shown(), page.params().size, page.params().effect);
+  /* the whole look the palette's save kept, which the card plays while the list draws every palette as saved */
+  const kept = createMemo(() =>
+    props.item.look ? lookEffect(props.item.kseed, props.item.look) : null
+  );
+  const plays = () =>
+    cardPlays(page.params(), sight.inSight() ? look.draft() : null, seed(), kept());
+  const path = () => paletteHref(shown(), page.params().size, plays(), true);
   const similar = () => similarHref(seed());
   const where = () => props.at?.() ?? {};
   const words = () => cardWords(shown(), props.words);
@@ -66,6 +78,7 @@ export function GalleryCard(props: {
     seed,
     angle: () => picture().angle,
     effect: () => shownEffect(page.params(), sight.inSight() ? look.draft() : null, null),
+    own: () => (page.params().effect ? null : plays()),
     peek: () => sight.inSight() && look.peek() !== null,
     name
   });
@@ -86,8 +99,8 @@ export function GalleryCard(props: {
   const take = cardTakings({
     palette: shown,
     played: () => {
-      const { effect, size } = page.params();
-      return effect && { effect: cardEffect(effect, seed()), size };
+      const effect = plays();
+      return effect && { effect, size: page.params().size };
     },
     name,
     place: page.place,

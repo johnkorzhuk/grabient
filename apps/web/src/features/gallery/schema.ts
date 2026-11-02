@@ -4,14 +4,17 @@ import * as v from "valibot";
 /* What the gallery's reads answer, the same on both sides: the Worker writes these shapes and the browser checks the
    answers it is sent against them. */
 
-/** A palette as a list shows it: its own view, its likes and when the site first held it. */
+/** A palette as a list shows it: its own view, its likes and when the site first held it, and the whole look a save
+    kept where it kept one (an effect and its settings, as the palette's address writes them: features/editor
+    address.ts's lookQuery), which a list drawing every palette as saved plays. */
 export const PaletteItem = v.object({
   kseed: v.string(),
   style: v.picklist(STYLES),
   steps: v.number(),
   angle: v.number(),
   likes: v.number(),
-  createdAt: v.number()
+  createdAt: v.number(),
+  look: v.optional(v.nullable(v.string()))
 });
 export type PaletteItem = v.InferOutput<typeof PaletteItem>;
 

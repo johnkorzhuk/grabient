@@ -276,6 +276,7 @@ export function CollectionsPage(props: {
     return (
       <ItemCard
         own={inputOf(preview())}
+        look={preview().look}
         words={{ title: preview().title, description: preview().description }}
         view={place().view}
         age={relativeAge(preview().createdAt ?? collection().updatedAt, now())}

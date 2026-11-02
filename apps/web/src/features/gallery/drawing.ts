@@ -76,13 +76,20 @@ export function nameOf(p: Drawn): string {
 }
 
 /** The palette's page in the view it is drawn in, at the size the reader set, in the reader's language: playing the
-    list's effect where it plays one, in the palette's own shape, as the card does. */
-export const paletteHref = (p: Drawn, size: SizeChoice | null, effect?: Effect | null): string =>
+    list's effect where it plays one, in the palette's own shape, as the card does, or the card's own effect as its
+    save kept it (`own`). */
+export const paletteHref = (
+  p: Drawn,
+  size: SizeChoice | null,
+  effect?: Effect | null,
+  /** the effect is the card's own, already in its shape, where a list's takes the palette's own (cardEffect) */
+  own = false
+): string =>
   localHref(
     seedAddress({
       seed: p.seed,
       view: { ...p, size },
-      effect: effect && cardEffect(effect, p.seed)
+      effect: effect && (own ? effect : cardEffect(effect, p.seed))
     })
   );
 
