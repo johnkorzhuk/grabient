@@ -84,7 +84,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     /* soft and grain (as "/", and the editor's own: its view's two parts, the stage's and the corner's pictures, the
        code pane's and the copies' blurred stops and elided tile) took it from 323.1 to 326.0 on 2 Nov 2026 */
     /* the color reader, as "/", took it from 326.7 to 329.0 on 3 Nov 2026 */
-    budget: 330
+    /* it stood at 330.3 once the effects' soft and grain, papercut and the shaders' finish were merged (sg/int at
+       3e00c5e0, 3 Nov 2026), and the effects' pictures soft and grained (sg/files: the copies' PNG of an effect, its
+       SVG drawn by the browser) took it to 330.4 */
+    budget: 331
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
      the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.
@@ -134,8 +137,11 @@ const BUDGETS = {
   // six sections, which the Worker renders, took it from 1347.4 KiB to 1374.7 on 31 Oct 2026. The glass's still as a
   // WebP (server/images/still.ts and libwebp's glue, loaded with the first still an isolate draws) took it from 1422.1
   // KiB to 1430.0 on 3 Nov 2026; libwebp's module itself, 346 KB and 129 gzipped, is WebAssembly, which this counts
-  // no more than it counts the video's
-  worker: 1445,
+  // no more than it counts the video's. It stood at 1445.2 KiB once the effects' soft and grain, papercut and the
+  // shaders' finish were merged (sg/int at 3e00c5e0, 3 Nov 2026), and the effects' pictures and cards soft and grained
+  // (engine/fx-frame.ts, server/images/effect-frame.ts and the finish's blurs, loaded with the first such picture an
+  // isolate draws) took it to 1448.8 to 1449.0, by the build
+  worker: 1450,
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
   // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks. The
   // color reader (engine/written-color.ts), which the search, the pages' titles and the MCP read, took it from 237.5
