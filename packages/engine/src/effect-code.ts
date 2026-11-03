@@ -51,9 +51,10 @@ export const effectStill = (P: Palette, effect: Effect, angle: number): string =
 /** What the view's soft and grain lay with the effect's still behind a page (effect-embed.ts effectLayerCss), as the
     site's stage finishes its picture (fx-finish.ts): the still blurred by a share of the page's longer side, in `vmax`
     as the stage's blur is in its box's `cqmax`, over its palette's gradient at the effect's angle, its stops blurred
-    by the same soft (none under a blob with no ground, whose edges go clear), and the grain's tile over both at one
-    speck a CSS pixel, `grain` the tile at the view's grain as a CSS image (`url("data:…")`, the Worker's or the
-    editor's own, engine/grain.ts grainPng). */
+    by the same soft (none under a blob whose ground lets the page through, or that has none, whose edges go clear to
+    the page as it shows through without the soft), and the grain's tile over both at one speck a CSS pixel, `grain`
+    the tile at the view's grain as a CSS image (`url("data:…")`, the Worker's or the editor's own, engine/grain.ts
+    grainPng). */
 export function effectLayers(
   P: Palette,
   effect: Effect,
@@ -239,6 +240,12 @@ export const effectMarkdown =
     const kind = effect.kind;
     const colors = doc.colors.join(", ");
     const scripted = hasEmbedScript(kind);
+    /* a blob whose ground lets the page through has no gradient under its soft: its edges go clear */
+    const softly = !finish.soft
+      ? ""
+      : effectUnderlay(P, effect, angle, finish.soft)
+        ? "soft blurs it over the palette's gradient"
+        : "soft blurs it with its edges going clear";
     return {
       called: `${name} ${kind === "glass" ? "fluted glass" : kind}`,
       lead:
@@ -260,7 +267,7 @@ export const effectMarkdown =
       }${finished ? `, ${finished}` : ""}`,
       code: `## Behind a page
 
-${scripted ? "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays." : "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[finish.soft ? "soft blurs it over the palette's gradient" : "", finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
+${scripted ? "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays." : "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[softly, finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
 
 \`\`\`html
 ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle, undefined, finish)}

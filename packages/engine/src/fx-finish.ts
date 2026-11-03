@@ -9,7 +9,7 @@
    over the whole picture). */
 import { hexBytes } from "./color.ts";
 import { type Stop, sampleStops } from "./curve.ts";
-import { EFFECT_KINDS, type Effect, type EffectKind } from "./effect.ts";
+import { EFFECT_KINDS, type Effect, type EffectKind, groundParts } from "./effect.ts";
 import { GRAIN_SIDE, grainAlpha, grainSpeck, grainTilesSvg } from "./grain.ts";
 import type { Palette } from "./palette.ts";
 import { drawnStops } from "./soft.ts";
@@ -47,14 +47,17 @@ export interface Underlay {
   /** each stop's place along the line, where the soft placed them */
   at?: number[];
 }
-/** The gradient under an effect, or null where nothing is under it: a blob with no ground stands clear. */
+/** The gradient under an effect, or null where nothing is under it: a blob whose ground lets the page through, or
+    that has none, stands clear, its soft edges thinning toward the page, as its files are clear. Laid under a ground
+    that lets it through, the gradient would show through the ground everywhere, where the site shows the page. */
 export function effectUnderlay(
   P: Palette,
   effect: Pick<Effect, "kind" | "look">,
   angle: number,
   soft?: number | null
 ): Underlay | null {
-  if (effect.kind === "blob" && !effect.look.bg) return null;
+  if (effect.kind === "blob" && !(effect.look.bg && groundParts(effect.look.bg).alpha === 1))
+    return null;
   const drawn = drawnStops(sampleStops(P, Math.max(DEFAULT_STEPS, P.anchors.length)), {
     style: "linearGradient",
     soft: soft ?? null
