@@ -5,6 +5,8 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { type ColorKind, cssLine } from "@grabient/engine/css.ts";
 import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
+import { GRAIN_SIDE, grainTile, grainTilesSvg } from "@grabient/engine/grain.ts";
+import { drawnStops } from "@grabient/engine/soft.ts";
 import { paletteSvg } from "@grabient/engine/svg.ts";
 import {
   isSwatchStyle,
@@ -158,18 +160,25 @@ export const cellFor = (s: ExportSettings, autoSize?: Size): GridOptions => ({
   padding: 0
 });
 
-/** A palette as the grid draws it: its seed in its view. */
+/** A palette as the grid draws it: its seed in its view, a soft and a grain where the view has them. */
 export interface GridItem {
   seed: string;
   style: Style;
   steps: number;
   angle: number;
+  soft?: number;
+  grain?: number;
 }
+/** The grain's tile at a strength as a data URI, for the files that carry it in themselves (SVG, CSS). */
+export type GrainSource = (grain: number) => string | undefined;
 function stopsOf(item: GridItem): Stop[] {
   const palette = decodePalette(item.seed);
   if (!palette) throw new Error(t("Invalid palette."));
   return sampleStops(palette, item.steps);
 }
+/* the stops as the picture draws them: a soft view's blurred along the line, in its family's gradient, where they
+   stand (engine/soft.ts) */
+const drawnOf = (item: GridItem) => drawnStops(stopsOf(item), item);
 const addressOf = (item: GridItem, origin: string) =>
   new URL(`/${item.seed}${viewSearch(item)}`, origin).toString();
 /* where a tile stands on the grid, in the image's raw pixels */
@@ -191,13 +200,15 @@ function cssLineOf(angle: number, w: number, h: number) {
 export function exportGridCss(
   items: readonly GridItem[],
   origin: string,
-  kind: ColorKind = "oklch"
+  kind: ColorKind = "oklch",
+  grains?: GrainSource
 ): string {
   return `${items
-    .map(
-      (item, i) =>
-        `/* ${addressOf(item, origin)} */\n.palette-${i + 1} {\n  ${cssLine(stopsOf(item), item.style, item.angle, kind)}\n}`
-    )
+    .map((item, i) => {
+      const drawn = drawnOf(item);
+      const grain = item.grain ? grains?.(item.grain) : undefined;
+      return `/* ${addressOf(item, origin)} */\n.palette-${i + 1} {\n  ${cssLine(drawn.stops, drawn.style, item.angle, kind, { ...(drawn.at ? { at: drawn.at } : {}), ...(grain ? { grain: `url("${grain}")` } : {}) })}\n}`;
+    })
     .join("\n\n")}\n`;
 }
 
@@ -206,29 +217,40 @@ export function exportGridCss(
 export function exportGridSvg(
   items: readonly GridItem[],
   input: GridOptions,
-  origin: string
+  origin: string,
+  grains?: GrainSource
 ): string {
   if (!items.length) throw new Error(t("Select a palette first."));
   const layout = gridLayout(items.length, input);
   const o = layout.options;
   const tiles = items.map((item, index) => {
     const { x, y } = placeOf(index, o, layout.columns);
-    const stops = stopsOf(item);
+    const drawn = drawnOf(item);
+    const stops = drawn.stops;
+    const at = drawn.at;
+    const grain = item.grain ? grains?.(item.grain) : undefined;
     let inner: string;
-    if (item.style === "linearGradient") {
+    if (drawn.style === "linearGradient") {
       const { dx, dy, line } = cssLineOf(item.angle, o.width, o.height);
       const cx = o.width / 2;
       const cy = o.height / 2;
       const id = `grid_linear_${index}`;
       const corner = ((o.radius / 100) * Math.min(o.width, o.height)) / 2;
-      inner = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${cx - (dx * line) / 2}" y1="${cy - (dy * line) / 2}" x2="${cx + (dx * line) / 2}" y2="${cy + (dy * line) / 2}">${stops.map(s => `<stop offset="${s.t}" stop-color="${s.hex}"/>`).join("")}</linearGradient></defs><rect width="${o.width}" height="${o.height}" rx="${corner}" fill="url(#${id})"/>`;
+      inner = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${cx - (dx * line) / 2}" y1="${cy - (dy * line) / 2}" x2="${cx + (dx * line) / 2}" y2="${cy + (dy * line) / 2}">${stops.map((s, i) => `<stop offset="${at ? at[i] : s.t}" stop-color="${s.hex}"/>`).join("")}</linearGradient></defs><rect width="${o.width}" height="${o.height}" rx="${corner}" fill="url(#${id})"/>${grain ? grainTilesSvg(grain, { width: o.width, height: o.height }, { tile: `grid_grain_${index}`, clip: `grid_grain_box_${index}` }, corner) : ""}`;
     } else {
       const svg = paletteSvg(
         stops.map(s => s.hex),
-        item.style,
+        drawn.style,
         item.angle,
         { seed: item.seed, search: viewSearch(item), baseUrl: origin },
-        { width: o.width, height: o.height, gridItemIndex: index, borderRadius: o.radius }
+        {
+          width: o.width,
+          height: o.height,
+          gridItemIndex: index,
+          borderRadius: o.radius,
+          ...(at ? { at } : {}),
+          ...(grain ? { grain } : {})
+        }
       );
       inner = svg.slice(svg.indexOf(">") + 1, svg.lastIndexOf("</svg>"));
     }
@@ -238,7 +260,11 @@ export function exportGridSvg(
       .replace(/"/g, "&quot;");
     return `<g transform="translate(${x} ${y})"><title>${title}</title>${inner}</g>`;
   });
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.rawWidth} ${layout.rawHeight}" fill="none">\n${tiles.join("\n")}\n</svg>`;
+  /* the grain's tiles link their image: the namespace only where one is laid, so a plain grid is as it was */
+  const linked = tiles.some(tile => tile.includes("xlink:href"))
+    ? ' xmlns:xlink="http://www.w3.org/1999/xlink"'
+    : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg"${linked} width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.rawWidth} ${layout.rawHeight}" fill="none">\n${tiles.join("\n")}\n</svg>`;
 }
 
 /** The 2D drawing a raster export needs, from a page's canvas or a worker's. */
@@ -254,7 +280,31 @@ export type GridContext = Pick<
   | "createLinearGradient"
   | "createRadialGradient"
   | "createConicGradient"
-> & { fillStyle: CanvasRenderingContext2D["fillStyle"] };
+> & {
+  fillStyle: CanvasRenderingContext2D["fillStyle"];
+  /** for a grained palette's tile (a context that has none draws no grain) */
+  createPattern?: CanvasRenderingContext2D["createPattern"];
+};
+
+/* the grain's tile at a strength as a canvas a pattern repeats, a speck a pixel of the grid's own; made once a strength,
+   where the drawing has OffscreenCanvas (a page and a worker do) */
+const grainTiles = new Map<number, OffscreenCanvas | null>();
+function grainCanvas(grain: number): OffscreenCanvas | null {
+  let tile = grainTiles.get(grain);
+  if (tile === undefined) {
+    tile =
+      typeof OffscreenCanvas === "undefined" ? null : new OffscreenCanvas(GRAIN_SIDE, GRAIN_SIDE);
+    tile
+      ?.getContext("2d")
+      ?.putImageData(
+        new ImageData(new Uint8ClampedArray(grainTile(grain)), GRAIN_SIDE, GRAIN_SIDE),
+        0,
+        0
+      );
+    grainTiles.set(grain, tile);
+  }
+  return tile;
+}
 /** The grid painted on a context sized to `gridLayout`'s width and height. Bands are hard stops, as on the page. */
 export function paintGrid(ctx: GridContext, items: readonly GridItem[], input: GridOptions): void {
   const layout = gridLayout(items.length, input);
@@ -278,9 +328,11 @@ export function paintGrid(ctx: GridContext, items: readonly GridItem[], input: G
         cy + (dy * line) / 2
       );
     }
-    const stops = stopsOf(item);
+    const drawn = drawnOf(item);
+    const stops = drawn.stops;
     stops.forEach((stop, i) => {
-      if (isSwatchStyle(item.style)) {
+      if (drawn.at) gradient.addColorStop(drawn.at[i], stop.hex);
+      else if (isSwatchStyle(drawn.style)) {
         gradient.addColorStop(i / stops.length, stop.hex);
         gradient.addColorStop((i + 1) / stops.length, stop.hex);
       } else gradient.addColorStop(stop.t, stop.hex);
@@ -291,6 +343,14 @@ export function paintGrid(ctx: GridContext, items: readonly GridItem[], input: G
     ctx.clip();
     ctx.fillStyle = gradient;
     ctx.fillRect(x, y, o.width, o.height);
+    /* the grain over it, its tile's corner at the palette's */
+    const tile = item.grain ? grainCanvas(item.grain) : null;
+    const pattern = tile && ctx.createPattern?.(tile, "repeat");
+    if (pattern) {
+      pattern.setTransform(new DOMMatrix().translate(x, y));
+      ctx.fillStyle = pattern;
+      ctx.fillRect(x, y, o.width, o.height);
+    }
     ctx.restore();
   });
 }

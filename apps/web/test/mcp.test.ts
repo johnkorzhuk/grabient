@@ -443,9 +443,10 @@ describe("the tools", () => {
     expect(JSON.stringify(tools)).toBe(JSON.stringify(accountGolden));
     for (const tool of tools as { description: string }[])
       expect(tool.description.length).toBeLessThan(450);
-    /* what an app puts before the model on every turn, kept lean: 17,914 characters since a save keeps a palette's
-       look (save_palette's and save_collection's `look`, 425 of them) */
-    expect(JSON.stringify({ tools }).length).toBeLessThan(18_000);
+    /* what an app puts before the model on every turn, kept lean: 18,678 characters since the four tools that draw a
+       palette take its soft and grain (compose_palette, adjust_palette, inspect_palettes and show_palettes, 764 of
+       them), after a save kept a palette's look (save_palette's and save_collection's `look`, 425) */
+    expect(JSON.stringify({ tools }).length).toBeLessThan(18_800);
   });
 
   it("are the admins' thirty more for an admin who chose them, every hint stated", async () => {

@@ -194,6 +194,18 @@
                 "description": "Degrees, 90 running left to right.",
                 "minimum": 0,
                 "maximum": 360
+              },
+              "soft": {
+                "type": "integer",
+                "description": "A blur along the gradient's line.",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "grain": {
+                "type": "integer",
+                "description": "Film grain over it.",
+                "minimum": 1,
+                "maximum": 100
               }
             },
             "required": [
@@ -256,6 +268,18 @@
           "description": "Degrees, 90 running left to right.",
           "minimum": 0,
           "maximum": 360
+        },
+        "soft": {
+          "type": "integer",
+          "description": "A blur along the gradient's line.",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "grain": {
+          "type": "integer",
+          "description": "Film grain over it.",
+          "minimum": 1,
+          "maximum": 100
         },
         "variants": {
           "type": "array",
@@ -360,6 +384,18 @@
                 "description": "Degrees, 90 running left to right.",
                 "minimum": 0,
                 "maximum": 360
+              },
+              "soft": {
+                "type": "integer",
+                "description": "A blur along the gradient's line.",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "grain": {
+                "type": "integer",
+                "description": "Film grain over it.",
+                "minimum": 1,
+                "maximum": 100
               }
             },
             "required": [
@@ -434,6 +470,18 @@
                 "type": "string",
                 "description": "A name for its tile.",
                 "maxLength": 80
+              },
+              "soft": {
+                "type": "integer",
+                "description": "A blur along the gradient's line.",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "grain": {
+                "type": "integer",
+                "description": "Film grain over it.",
+                "minimum": 1,
+                "maximum": 100
               }
             },
             "required": [

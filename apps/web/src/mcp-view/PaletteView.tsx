@@ -25,6 +25,7 @@ import {
   Show
 } from "solid-js";
 import { copyPng } from "./copies.ts";
+import { grainData, grainImage, withGrain } from "./grain.ts";
 import styles from "./PaletteView.module.css";
 import {
   artOf,
@@ -269,8 +270,8 @@ export function PaletteView(props: PaletteViewProps) {
         format === "url"
           ? paletteUrl(props.origin, tile)
           : format === "css"
-            ? cssOf(stops, tile)
-            : svgOf(stops, tile, props.origin);
+            ? cssOf(stops, tile, grainImage(tile.grain))
+            : svgOf(stops, tile, props.origin, grainData(tile.grain));
       label = format.toUpperCase();
     }
     if (await copyText(text)) {
@@ -510,7 +511,7 @@ export function PaletteView(props: PaletteViewProps) {
           <div
             class={styles.art}
             data-size="card"
-            style={{ background: artOf(stops(), tile()) }}
+            style={{ background: withGrain(artOf(stops(), tile()), tile().grain) }}
             dir="ltr"
             aria-hidden="true"
             data-part="picture"
@@ -557,7 +558,7 @@ export function PaletteView(props: PaletteViewProps) {
               <div
                 class={styles.art}
                 data-size="slide"
-                style={{ background: artOf(stops(), tile()) }}
+                style={{ background: withGrain(artOf(stops(), tile()), tile().grain) }}
                 dir="ltr"
                 aria-hidden="true"
                 data-part="picture"
@@ -570,7 +571,7 @@ export function PaletteView(props: PaletteViewProps) {
               type="button"
               class={styles.art}
               data-size="slide"
-              style={{ background: artOf(stops(), tile()) }}
+              style={{ background: withGrain(artOf(stops(), tile()), tile().grain) }}
               dir="ltr"
               data-part="picture"
               aria-label={t("Open palette {number} in full screen", { number: tile().tile })}
@@ -742,7 +743,8 @@ export function PaletteView(props: PaletteViewProps) {
     const tile = () => tileAt(chosen());
     const stops = createMemo(() => stopsOf(tile()));
     const [peek, setPeek] = createSignal<Style | null>(null);
-    const art = () => artOf(stops(), { ...tile(), style: peek() ?? tile().style });
+    const art = () =>
+      withGrain(artOf(stops(), { ...tile(), style: peek() ?? tile().style }), tile().grain);
     const keyframes = () => decodePalette(tile().seed)?.anchors.length ?? 2;
     return (
       <div class={styles.root} data-full="">
@@ -859,7 +861,7 @@ export function PaletteView(props: PaletteViewProps) {
                         class={styles.art}
                         data-size="tile"
                         data-chosen={on() ? "" : undefined}
-                        style={{ background: artOf(stopsOf(at()), at()) }}
+                        style={{ background: withGrain(artOf(stopsOf(at()), at()), at().grain) }}
                         dir="ltr"
                         aria-label={t(PALETTE, { number: at().tile, name: named(at()) })}
                         aria-pressed={on() ? "true" : "false"}

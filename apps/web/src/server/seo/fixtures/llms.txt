@@ -31,7 +31,7 @@ Grabient's colors are for screens: it has no print inks, paint or thread, and ta
 - [Palette social card](https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0): 1200 by 630 with the Grabient wordmark. Pattern: `https://grabient.com/api/og?seed={seed}`
 - [Palette in the editor](https://grabient.com/kS7Q8Yy5S_SChv0): the page to give a person. With no style in its address it plays the effect the reader last chose, the fluted glass for a new reader; with a gradient's style (`style=linearGradient`) it shows that gradient, and at an effect's address (`style=glass`, `blob`, `silk` or `rosette`) it plays that effect, its code pane holding the effect's tags, stylesheet, colors, settings, SVG and Markdown, as its files serve them. Pattern: `https://grabient.com/{seed}`
 
-Every palette route takes `style`, `steps` and `angle`.
+Every palette route takes `style`, `steps` and `angle`, and `soft` and `grain` (1 to 100 each): a blur along the picture's line and film grain over it, on every style and effect.
 
 ## Find palettes
 

@@ -1,5 +1,5 @@
 import { parseEffect } from "@grabient/engine/effect.ts";
-import { parseView } from "@grabient/engine/view.ts";
+import { finishOf, parseView } from "@grabient/engine/view.ts";
 import { keptLook } from "../../features/editor/look.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import type { PaletteGiven } from "./cards.ts";
@@ -16,7 +16,8 @@ import type { PaletteGiven } from "./cards.ts";
     with or without a file's ending, or its card's address. A seed names no view; an address names a whole one, as its
     page draws it: what its query leaves out is the default. An address that says more than its view brings its look
     (editor/look.ts's keptLook), and one that plays an effect names no gradient: the palette keeps the view it has,
-    turned to the address's angle where it names one. Null when the text names no palette. */
+    turned to the address's angle where it names one. A soft and a grain it names are the picture's either way. Null
+    when the text names no palette. */
 export function paletteNamed(named: string): PaletteGiven | null {
   if (named.length > 400) return null;
   const bare = resolvePalette(named);
@@ -31,12 +32,19 @@ export function paletteNamed(named: string): PaletteGiven | null {
   const last = (url.pathname.split("/").filter(Boolean).pop() ?? "").replace(/\.[a-z0-9]+$/i, "");
   const found = resolvePalette(last) ?? resolvePalette(url.searchParams.get("seed") ?? "");
   if (!found) return null;
-  const { style, steps, angle } = parseView(url.searchParams);
+  const { style, steps, angle, soft, grain } = parseView(url.searchParams);
   const look = keptLook(found.seed, url.search, { style, steps, angle });
   const looked = look ? { look } : {};
+  /* the soft and the grain an address names draw the palette's picture, as its page draws them */
+  const finished = finishOf({ soft, grain });
   if (parseEffect(url.searchParams))
-    return { seed: found.seed, ...(url.searchParams.has("angle") ? { angle } : {}), ...looked };
-  return { seed: found.seed, style, steps, angle, ...looked };
+    return {
+      seed: found.seed,
+      ...(url.searchParams.has("angle") ? { angle } : {}),
+      ...finished,
+      ...looked
+    };
+  return { seed: found.seed, style, steps, angle, ...finished, ...looked };
 }
 
 interface Schema {

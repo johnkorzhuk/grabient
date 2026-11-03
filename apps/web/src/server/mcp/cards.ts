@@ -1,10 +1,12 @@
 import { cssLine } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
+import { drawnStops } from "@grabient/engine/soft.ts";
 import {
   DEFAULT_ANGLE,
   DEFAULT_STEPS,
   DEFAULT_STYLE,
+  finishOf,
   isSwatchStyle,
   STEPS_MIN,
   type Style,
@@ -14,11 +16,14 @@ import {
 /* A palette as the account's tools answer it: one card in every list, and a made card for a palette a call made,
    changed or inspected. All of it comes from the seed and the view: no database, no drawing. */
 
-/** A view as a call may name it: any of the three left out. */
+/** A view as a call may name it: any part left out. The soft and the grain are a blur along the gradient's line and
+    film grain over it, 1 to 100 each (engine/soft.ts, grain.ts). */
 export interface ViewGiven {
   style?: Style;
   steps?: number;
   angle?: number;
+  soft?: number;
+  grain?: number;
 }
 /** A palette a call named: its canonical seed, the view the call or its address gave, and the look an address played or
     a call gave, as sent: a save keeps it as keptLook reads it. */
@@ -33,6 +38,9 @@ export interface Shown {
   style: Style;
   steps: number;
   angle: number;
+  /** where the view has them */
+  soft?: number;
+  grain?: number;
 }
 
 /** A palette in the view a call names. A field left out is `held`'s, the view Grabient shows the palette in, else the
@@ -57,7 +65,8 @@ export function shown(
     palette,
     style,
     steps: Math.max(STEPS_MIN, colors, steps),
-    angle: given.angle ?? held.angle ?? DEFAULT_ANGLE
+    angle: given.angle ?? held.angle ?? DEFAULT_ANGLE,
+    ...finishOf({ soft: given.soft ?? held.soft, grain: given.grain ?? held.grain })
   };
 }
 
@@ -71,7 +80,8 @@ export function raised(s: Shown, asked?: number): string[] {
     : [];
 }
 
-const query = (s: Shown) => viewSearch({ style: s.style, steps: s.steps, angle: s.angle });
+const query = (s: Shown) =>
+  viewSearch({ style: s.style, steps: s.steps, angle: s.angle, ...finishOf(s) });
 /** A palette's page in a view. */
 export const addressOf = (origin: string, s: Shown) => `${origin}/${s.seed}${query(s)}`;
 /** One of a palette's files in a view: the seed plus the format, as the Worker serves them. */
@@ -107,11 +117,22 @@ export const card = (
   style: s.style,
   steps: s.steps,
   angle: s.angle,
+  ...finishOf(s),
   ...more
 });
 
 /** CSS past this many steps is left to the palette's file. */
 const CSS_STEPS_MAX = 32;
+
+/** The CSS a card gives: the view's stops, a soft view's blurred along the line where they stand (engine/soft.ts),
+    and the grain's tile at its strength over them, the file the site lays (a speck a CSS pixel), by its address. */
+function cardCss(origin: string, s: Shown): string {
+  const drawn = drawnStops(sampleStops(s.palette, s.steps), s);
+  return cssLine(drawn.stops, drawn.style, s.angle, "hex", {
+    ...(drawn.at ? { at: drawn.at } : {}),
+    ...(s.grain ? { grain: `url("${origin}${__GRAIN__}/${s.grain}.png")` } : {})
+  });
+}
 
 /** A palette made, changed or inspected: the card, its CSS, its files in its view (`card` is its share picture), then
     what `more` adds, and `notes` joined as one note. An app that draws the view (`drawn`) is given no file: a model
@@ -125,9 +146,7 @@ export const madeCard = (
   drawn = false
 ) => ({
   ...card(origin, s, title),
-  ...(s.steps > CSS_STEPS_MAX
-    ? {}
-    : { css: cssLine(sampleStops(s.palette, s.steps), s.style, s.angle, "hex") }),
+  ...(s.steps > CSS_STEPS_MAX ? {} : { css: cardCss(origin, s) }),
   ...(drawn
     ? {}
     : {

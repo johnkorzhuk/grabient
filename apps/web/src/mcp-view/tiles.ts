@@ -1,17 +1,21 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
-import { cssLine, gradientCss } from "@grabient/engine/css.ts";
+import { cssLine, gradientCss, paletteCss } from "@grabient/engine/css.ts";
 import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
 import type { Language } from "@grabient/engine/message.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
+import { drawnStops } from "@grabient/engine/soft.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { SWATCH_FILES, type SwatchFormat } from "@grabient/engine/swatches.ts";
 import {
   DEFAULT_ANGLE,
   DEFAULT_STEPS,
   DEFAULT_STYLE,
+  finishOf,
+  GRAIN_MAX,
   isStyle,
   parseView,
+  SOFT_MAX,
   STEPS_MAX,
   STEPS_MIN,
   type Style,
@@ -31,13 +35,16 @@ export const SHEET_MAX = 24;
 const TITLE_MAX = 80;
 /* the names a call and each of its palettes may carry: the server refuses a call with any other */
 const CALL = ["name", "palettes"];
-const ITEM = ["seed", "style", "steps", "angle", "title"];
+const ITEM = ["seed", "style", "steps", "angle", "soft", "grain", "title"];
 const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
 
 export interface TileView {
   style: Style;
   steps: number;
   angle: number;
+  /** a blur along the gradient's line and film grain over it, 1 to 100 each, where the view has them */
+  soft?: number;
+  grain?: number;
 }
 /** Who brought a palette to Grabient, as the site credits it (server/gallery/credit.ts). */
 export type TileCredit = { by: "grabient" } | { by: "person"; name: string };
@@ -111,8 +118,15 @@ function paletteOf(seed: string): ({ palette: Palette } & Partial<TileView>) | n
     decodePalette(last.replace(/\.[a-z0-9]+$/i, "")) ??
     decodePalette(url.searchParams.get("seed") ?? "");
   if (!palette) return null;
-  const { style, steps, angle } = parseView(url.searchParams);
-  return { palette, style, steps, angle };
+  const { style, steps, angle, soft, grain } = parseView(url.searchParams);
+  return { palette, style, steps, angle, ...finishOf({ soft, grain }) };
+}
+
+/* a soft or a grain as the server reads one: a whole number brought into 1 to its most, and one with no reading left
+   out, as the call may leave it out */
+function finishPart(v: unknown, most: number): number | undefined {
+  const n = v === undefined || v === null ? Number.NaN : whole(v);
+  return Number.isInteger(n) ? Math.min(most, Math.max(1, n)) : undefined;
 }
 
 /** One palette of a call as the server reads it, or null where the server refuses it. */
@@ -130,6 +144,8 @@ function paletteItem(raw: unknown): (TileView & { seed: string; title?: string }
   const style = typed(given.style) ?? said.style ?? DEFAULT_STYLE;
   const steps = whole(given.steps ?? said.steps ?? DEFAULT_STEPS);
   const angle = whole(given.angle ?? said.angle ?? DEFAULT_ANGLE);
+  const soft = finishPart(given.soft, SOFT_MAX) ?? said.soft;
+  const grain = finishPart(given.grain, GRAIN_MAX) ?? said.grain;
   if (
     !isStyle(style) ||
     !Number.isInteger(steps) ||
@@ -145,12 +161,18 @@ function paletteItem(raw: unknown): (TileView & { seed: string; title?: string }
     style,
     steps: Math.min(STEPS_MAX, Math.max(floor, steps)),
     angle,
+    ...finishOf({ soft, grain }),
     title: titleOf(title)
   };
 }
 
 const sameView = (a: TileView & { seed: string }, b: TileView & { seed: string }) =>
-  a.seed === b.seed && a.style === b.style && a.steps === b.steps && a.angle === b.angle;
+  a.seed === b.seed &&
+  a.style === b.style &&
+  a.steps === b.steps &&
+  a.angle === b.angle &&
+  a.soft === b.soft &&
+  a.grain === b.grain;
 
 /** The tiles a call's arguments ask for, numbered as the server numbers them, or null where the server would refuse
     the call, so nothing is painted that the answer will not confirm. One tile per palette and view, titled by the
@@ -220,6 +242,10 @@ function tileOf(raw: unknown, at: number, words: boolean): Tile | null {
     style: value.style,
     steps: Math.min(STEPS_MAX, Math.max(floor, value.steps as number)),
     angle: Math.min(360, Math.max(0, value.angle as number)),
+    ...finishOf({
+      soft: finishPart(value.soft, SOFT_MAX),
+      grain: finishPart(value.grain, GRAIN_MAX)
+    }),
     ...(title ? { title } : {}),
     ...(credit ? { credit } : {})
   };
@@ -275,21 +301,57 @@ export function stopsOf(tile: { seed: string; steps: number }): Stop[] {
   const palette = decodePalette(tile.seed);
   return palette ? sampleStops(palette, Math.max(tile.steps, palette.anchors.length)) : [];
 }
-/** The picture's CSS background, as a card on the site draws it. */
-export const artOf = (stops: readonly Stop[], view: TileView) =>
-  gradientCss(
-    stops.map(stop => stop.hex),
-    view.style,
-    view.angle
+/** A view's stops as its picture draws them: a soft one's blurred along the line where they stand (engine/soft.ts). */
+const drawnOf = (stops: readonly Stop[], view: TileView) => drawnStops(stops, view);
+/** The picture's CSS background, as a card on the site draws it: a soft view's blurred stops; the grain stands over it
+    as a layer of its own (grain.ts). */
+export const artOf = (stops: readonly Stop[], view: TileView) => {
+  const drawn = drawnOf(stops, view);
+  return gradientCss(
+    drawn.stops.map(stop => stop.hex),
+    drawn.style,
+    view.angle,
+    undefined,
+    drawn.at
   );
-/** What CSS copies: the one OKLCH line a gallery card copies, so one strip copies the same thing everywhere. */
-export const cssOf = (stops: readonly Stop[], view: TileView) =>
-  cssLine(stops, view.style, view.angle, "oklch");
-/** The site's own SVG file of this view, at the view's size, crediting the site. */
-export const svgOf = (stops: readonly Stop[], tile: Tile, origin: string) =>
-  artworkSvg(stops, tile, tile.seed, origin || undefined);
+};
+/** What CSS copies: the one OKLCH line a gallery card copies, so one strip copies the same thing everywhere, a soft
+    view's blurred stops at their places, and the grain's tile (`grain`, a ready `url("data:…")`) over them. */
+export const cssOf = (stops: readonly Stop[], view: TileView, grain?: string) => {
+  const drawn = drawnOf(stops, view);
+  return cssLine(drawn.stops, drawn.style, view.angle, "oklch", {
+    ...(drawn.at ? { at: drawn.at } : {}),
+    ...(view.grain && grain ? { grain } : {})
+  });
+};
+/** The palette's CSS file in this view, as the site serves it: a soft view's blurred stops at their places, and the
+    grain's tile (`grain`, a ready `url("data:…")`) over them. */
+export const cssFileOf = (stops: readonly Stop[], tile: Tile, address: string, grain?: string) => {
+  const drawn = drawnOf(stops, tile);
+  return paletteCss(
+    drawn.stops,
+    { style: drawn.style, angle: tile.angle },
+    address,
+    "oklch",
+    null,
+    {
+      ...(drawn.at ? { at: drawn.at } : {}),
+      ...(tile.grain && grain ? { grain } : {})
+    }
+  );
+};
+/** The site's own SVG file of this view, at the view's size, crediting the site: a soft view's blurred stops, and the
+    grain's tiles (`grain`, the tile's data URI at its strength). */
+export const svgOf = (stops: readonly Stop[], tile: Tile, origin: string, grain?: string) => {
+  const drawn = drawnOf(stops, tile);
+  return artworkSvg(drawn.stops, tile, tile.seed, origin || undefined, undefined, {
+    style: drawn.style,
+    ...(drawn.at ? { at: drawn.at } : {}),
+    ...(grain ? { grain } : {})
+  });
+};
 const query = (tile: Tile) =>
-  viewSearch({ style: tile.style, steps: tile.steps, angle: tile.angle });
+  viewSearch({ style: tile.style, steps: tile.steps, angle: tile.angle, ...finishOf(tile) });
 /** The palette's page on the site, in this view. */
 export const paletteUrl = (origin: string, tile: Tile) => `${origin}/${tile.seed}${query(tile)}`;
 export type FileFormat = "svg" | "png" | "css" | "md" | SwatchFormat;
@@ -299,7 +361,7 @@ export const fileUrl = (origin: string, tile: Tile, format: FileFormat) =>
 /** What the app's model is told of the palette a person chose in full screen: its tile and seed, the view it is drawn
     in now, and its address there, so "make this one warmer" names a palette. English, as a tool's answer is. */
 export const chosenWords = (tile: Tile, origin: string): string =>
-  `The person chose tile ${tile.tile} of the Grabient palette sheet, seed ${tile.seed}. It is drawn there now with style ${tile.style}, steps ${tile.steps}, angle ${tile.angle}.${origin ? ` Its address in this view: ${paletteUrl(origin, tile)}` : ""}`;
+  `The person chose tile ${tile.tile} of the Grabient palette sheet, seed ${tile.seed}. It is drawn there now with style ${tile.style}, steps ${tile.steps}, angle ${tile.angle}${tile.soft ? `, soft ${tile.soft}` : ""}${tile.grain ? `, grain ${tile.grain}` : ""}.${origin ? ` Its address in this view: ${paletteUrl(origin, tile)}` : ""}`;
 /** A tile's name: its title, or what its colors are called in the view, in the reader's words. */
 export const nameOf = (tile: Tile, language?: Language): string =>
   tile.title || seedName(tile.seed, tile.style, tile.steps, language) || tile.seed;

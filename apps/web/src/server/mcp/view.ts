@@ -80,6 +80,8 @@ export const viewData = (
     style: string;
     steps: number;
     angle: number;
+    soft?: number;
+    grain?: number;
   }[],
   name?: string,
   credits?: ReadonlyMap<string, Credit | null>
@@ -87,7 +89,7 @@ export const viewData = (
   [VIEW_DATA]: {
     origin,
     ...(name ? { name } : {}),
-    tiles: tiles.map(({ tile, seed, title, own, style, steps, angle }) => {
+    tiles: tiles.map(({ tile, seed, title, own, style, steps, angle, soft, grain }) => {
       const credit = credits?.get(seed);
       return {
         tile,
@@ -95,6 +97,8 @@ export const viewData = (
         style,
         steps,
         angle,
+        ...(soft ? { soft } : {}),
+        ...(grain ? { grain } : {}),
         ...(own ? { title } : {}),
         ...(credit ? { credit } : {})
       };

@@ -1,7 +1,6 @@
 import "@grabient/ui/tokens.css";
 import "@grabient/ui/tokens-host.css";
 import "./base.css";
-import { paletteCss } from "@grabient/engine/css.ts";
 import {
   isSwatchFormat,
   SWATCH_FILES,
@@ -27,10 +26,12 @@ import { render } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import { createBridge, object, type Params, Refused } from "./bridge.ts";
 import { base64Of, pngBase64 } from "./copies.ts";
+import { grainData, grainImage } from "./grain.ts";
 import { type AddAnswer, type DownloadFormat, type Mode, PaletteView } from "./PaletteView.tsx";
 import { APPS_PROTOCOL, MESSAGES_ID } from "./page.ts";
 import {
   chosenWords,
+  cssFileOf,
   fileUrl,
   nameFromArguments,
   nameOf,
@@ -218,8 +219,16 @@ async function download(tile: Tile, format: DownloadFormat) {
   } else
     resource =
       format === "svg"
-        ? { uri, mimeType: "image/svg+xml", text: svgOf(stops, tile, origin()) }
-        : { uri, mimeType: "text/css", text: paletteCss(stops, tile, paletteUrl(origin(), tile)) };
+        ? {
+            uri,
+            mimeType: "image/svg+xml",
+            text: svgOf(stops, tile, origin(), grainData(tile.grain))
+          }
+        : {
+            uri,
+            mimeType: "text/css",
+            text: cssFileOf(stops, tile, paletteUrl(origin(), tile), grainImage(tile.grain))
+          };
   try {
     await bridge.request("ui/download-file", { contents: [{ type: "resource", resource }] });
   } catch (error) {

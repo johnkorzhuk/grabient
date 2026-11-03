@@ -1,7 +1,15 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { paletteTitle, readPalette } from "@grabient/engine/name.ts";
 import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
-import { isStyle, STEPS_MAX, STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
+import {
+  GRAIN_MAX,
+  isStyle,
+  SOFT_MAX,
+  STEPS_MAX,
+  STEPS_MIN,
+  STYLES,
+  type Style
+} from "@grabient/engine/view.ts";
 import { splitLocale } from "@grabient/i18n";
 import { queryColor } from "@grabient/search/colors.ts";
 import { QUERY_MAX } from "@grabient/search/text.ts";
@@ -260,6 +268,11 @@ const VIEW_FIELDS = {
   style: text("A gradient or hard bands: linear, angular or radial.", { enum: [...STYLES] }),
   steps: whole("How many colors the view draws.", STEPS_MIN, STEPS_MAX),
   angle: whole("Degrees, 90 running left to right.", 0, 360)
+};
+/* the soft and the grain the tools that draw a palette take, beside its view (engine/soft.ts, grain.ts) */
+const FINISH_FIELDS = {
+  soft: whole("A blur along the gradient's line.", 1, SOFT_MAX),
+  grain: whole("Film grain over it.", 1, GRAIN_MAX)
 };
 const PAGE = whole("Page, from 1.", 1, 10000);
 /** The orders a search with neither words nor colors lists the gallery in. */
@@ -553,7 +566,10 @@ export const accountTools: readonly Tool[] = [
     inputSchema: shape(
       {
         palettes: list(
-          shape({ colors: list(HEX, "Its colors, in order.", 2, 8), ...VIEW_FIELDS }, ["colors"]),
+          shape(
+            { colors: list(HEX, "Its colors, in order.", 2, 8), ...VIEW_FIELDS, ...FINISH_FIELDS },
+            ["colors"]
+          ),
           "The palettes to make.",
           1,
           8
@@ -589,6 +605,7 @@ export const accountTools: readonly Tool[] = [
       {
         seed: PALETTE_SEED,
         ...VIEW_FIELDS,
+        ...FINISH_FIELDS,
         variants: list(VARIANT, "The palettes to make from it.", 1, 8)
       },
       ["seed", "variants"]
@@ -633,7 +650,14 @@ export const accountTools: readonly Tool[] = [
     description:
       "Read color palettes in full, up to 12: each color's hex, its name and its WCAG 2 contrast on white and on black, with the CSS. Each is read in the view given, else the one Grabient shows it in: the colors of a Swatches view are its bands, and of a gradient the ones it blends between. `gallery` is null for a palette the gallery lacks, `collections` are the public ones that hold it, and `credit` names who brought it.",
     inputSchema: shape(
-      { palettes: list(paletteItem(), "The palettes, each in the view to read it in.", 1, 12) },
+      {
+        palettes: list(
+          paletteItem(FINISH_FIELDS),
+          "The palettes, each in the view to read it in.",
+          1,
+          12
+        )
+      },
       ["palettes"]
     ),
     async run(args, c) {
@@ -690,7 +714,10 @@ export const accountTools: readonly Tool[] = [
           { maxLength: PALETTE_TITLE_MAX }
         ),
         palettes: list(
-          paletteItem({ title: text("A name for its tile.", { maxLength: PALETTE_TITLE_MAX }) }),
+          paletteItem({
+            title: text("A name for its tile.", { maxLength: PALETTE_TITLE_MAX }),
+            ...FINISH_FIELDS
+          }),
           "The palettes, in tile order.",
           1,
           SHEET_MAX
@@ -729,7 +756,10 @@ export const accountTools: readonly Tool[] = [
       for (const one of asked) {
         const s = drawn(one, views.get(one.seed));
         const title = likeTitle(one.title);
-        const tile = placed.find(other => itemKey(other.s) === itemKey(s));
+        const tile = placed.find(
+          other =>
+            itemKey(other.s) === itemKey(s) && other.s.soft === s.soft && other.s.grain === s.grain
+        );
         if (tile) tile.title ??= title;
         else {
           placed.push({ s, title });

@@ -147,7 +147,7 @@
         ]
       },
       "notes": [
-        "palette 1: \"colour\" is not a name this takes, so it was left out: it takes seed, style, steps, angle, title."
+        "palette 1: \"colour\" is not a name this takes, so it was left out: it takes seed, style, steps, angle, title, soft, grain."
       ]
     }
   },
