@@ -81,10 +81,14 @@ test("an MP4 being made stops at a press on it, or once the stage shows another 
   await download.dblclick();
   await expect(making).toBeVisible();
   await expect.poll(clips).toBe(1);
-  /* its tooltip says how far along it is, where its name does not */
+  /* its tooltip says how far along it is, where its name does not, and rises while it stays open */
   await page.mouse.move(0, 0);
   await making.hover();
-  await expect(page.getByRole("tooltip")).toHaveText(/^Making MP4, \d+%\. Stop$/);
+  const tip = page.getByRole("tooltip");
+  await expect(tip).toHaveText(/^Making MP4, \d+%\. Stop$/);
+  const first = await tip.textContent();
+  await expect.poll(() => tip.textContent(), { timeout: 20_000 }).not.toBe(first);
+  await expect(tip).toHaveText(/^Making MP4, \d+%\. Stop$/);
   await making.click();
   await expect(download).toBeVisible();
   await expect.poll(clips).toBe(0);

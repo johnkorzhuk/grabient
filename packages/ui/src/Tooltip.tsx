@@ -1,5 +1,5 @@
 import { isServer } from "@solidjs/web";
-import { type Element, onCleanup, onSettled } from "solid-js";
+import { createEffect, type Element, onCleanup, onSettled } from "solid-js";
 import { createHold } from "./press.ts";
 import styles from "./Tooltip.module.css";
 
@@ -250,10 +250,20 @@ export function tooltip(
   options?: TipOptions
 ): (el: HTMLElement) => void {
   let off: (() => void) | undefined;
+  let host: HTMLElement | undefined;
   onCleanup(() => off?.());
+  /* a bubble open over its control says its text as the text changes under it, as a download's percent rises while
+     the file is made, in place */
+  createEffect(
+    () => text(),
+    words => {
+      if (host && current === host && said(words)) show(host, words);
+    }
+  );
   return el => {
     if (isServer) return;
     off?.();
+    host = el;
     off = listen(el, text, options);
   };
 }
