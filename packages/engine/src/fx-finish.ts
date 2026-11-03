@@ -9,7 +9,7 @@
    over the whole picture). */
 import { hexBytes } from "./color.ts";
 import { type Stop, sampleStops } from "./curve.ts";
-import { EFFECT_KINDS, type Effect, type EffectKind } from "./effect.ts";
+import { EFFECT_KINDS, type Effect, type EffectKind, groundParts } from "./effect.ts";
 import { GRAIN_SIDE, grainAlpha, grainSpeck, grainTilesSvg } from "./grain.ts";
 import type { Palette } from "./palette.ts";
 import { drawnStops } from "./soft.ts";
@@ -47,14 +47,17 @@ export interface Underlay {
   /** each stop's place along the line, where the soft placed them */
   at?: number[];
 }
-/** The gradient under an effect, or null where nothing is under it: a blob with no ground stands clear. */
+/** The gradient under an effect, or null where nothing is under it: a blob whose ground lets the page through, or
+    that has none, stands clear, its soft edges thinning toward the page, as its files are clear. Laid under a ground
+    that lets it through, the gradient would show through the ground everywhere, where the site shows the page. */
 export function effectUnderlay(
   P: Palette,
   effect: Pick<Effect, "kind" | "look">,
   angle: number,
   soft?: number | null
 ): Underlay | null {
-  if (effect.kind === "blob" && !effect.look.bg) return null;
+  if (effect.kind === "blob" && !(effect.look.bg && groundParts(effect.look.bg).alpha === 1))
+    return null;
   const drawn = drawnStops(sampleStops(P, Math.max(DEFAULT_STEPS, P.anchors.length)), {
     style: "linearGradient",
     soft: soft ?? null
@@ -79,10 +82,23 @@ export function linearGradientPixels(
   size: Size,
   at?: readonly number[]
 ): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(size.width * size.height * 3);
+  gradientRows(hexes, angle, size, at, 0, size.height, out);
+  return out;
+}
+/* The gradient's rows `from` to `to` of the box, written from the start of `out`. */
+function gradientRows(
+  hexes: readonly string[],
+  angle: number,
+  size: Size,
+  at: readonly number[] | undefined,
+  from: number,
+  to: number,
+  out: Uint8Array
+) {
   const { width: w, height: h } = size;
-  const out = new Uint8Array(w * h * 3);
   const n = hexes.length;
-  if (!n) return out;
+  if (!n) return;
   const bytes = hexes.map(hexBytes);
   const places = at ?? hexes.map((_, i) => (n > 1 ? i / (n - 1) : 0));
   const a = (angle * Math.PI) / 180;
@@ -109,14 +125,13 @@ export function linearGradientPixels(
     for (let c = 0; c < 3; c++)
       into[k + c] = Math.round(bytes[j - 1][c] + (bytes[j][c] - bytes[j - 1][c]) * u);
   };
-  for (let y = 0; y < h; y++) {
+  for (let y = from; y < to; y++) {
     const py = y + 0.5 - h / 2;
     for (let x = 0; x < w; x++) {
       const t = ((x + 0.5 - w / 2) * dx + py * dy) / length + 0.5;
-      color(t, out, (y * w + x) * 3);
+      color(t, out, ((y - from) * w + x) * 3);
     }
   }
-  return out;
 }
 /** An underlay's pixels in a box. */
 export const underlayPixels = (underlay: Underlay, size: Size): Uint8Array<ArrayBuffer> =>
@@ -125,6 +140,17 @@ export const underlayPixels = (underlay: Underlay, size: Size): Uint8Array<Array
     underlay.angle,
     size,
     underlay.at
+  );
+/* An underlay's rows `from` to `to`, from the start of `out`. */
+const underlayRows = (underlay: Underlay, size: Size, from: number, to: number, out: Uint8Array) =>
+  gradientRows(
+    underlay.stops.map(s => s.hex),
+    underlay.angle,
+    size,
+    underlay.at,
+    from,
+    to,
+    out
   );
 
 /* The three box blurs a browser runs for a Gaussian (Filter Effects 1, feGaussianBlur): a box of d pixels, d from the
@@ -254,6 +280,231 @@ export function overUnder(
   return out;
 }
 
+/* From a blur this wide (its box, d pixels, a sigma of about 6) it runs on the picture's cells (cellsOver), which
+   stays within about a level of the browser's at a fraction of the time and memory; a narrower one runs as blurRgba
+   does, by bands. Cells of two pixels under a box of 8, three or four cells a box, were off by a mean of 0.67 levels
+   and up to 4 over hard bars of saturated colors. */
+const CELLS_FROM = 12;
+/** How many cells each of the three boxes spans, at least. */
+const CELLS_A_BOX = 6;
+/** Rows a band of the narrow blur keeps, which bounds what it holds at once. */
+const BAND_ROWS = 128;
+
+/* A box of `v` cells² variance as a sliding window: weight 1 from -r to r and `a` at ±(r + 1) (Gwosdek et al.'s
+   extended box), so its variance is any, not only a whole box's. */
+function extendedBox(v: number): { r: number; a: number } {
+  const r = Math.max(0, Math.floor((Math.sqrt(12 * v + 1) - 1) / 2));
+  const a = ((2 * r + 1) * (v - (r * (r + 1)) / 3)) / (2 * ((r + 1) ** 2 - v));
+  return { r, a: Math.min(1, Math.max(0, a)) };
+}
+/* Three extended boxes over a line of `n` cells, four channels a cell, clear past its ends (the grid's own pad holds
+   their spread), from `line` back into it. */
+function cellLine(line: Float32Array, scratch: Float32Array, n: number, r: number, a: number) {
+  const norm = 1 / (2 * r + 1 + 2 * a);
+  let src = line;
+  let dst = scratch;
+  for (let pass = 0; pass < 3; pass++) {
+    for (let c = 0; c < 4; c++) {
+      let sum = 0;
+      for (let i = 0; i <= Math.min(r, n - 1); i++) sum += src[i * 4 + c];
+      for (let x = 0; x < n; x++) {
+        const below = x - r - 1;
+        const above = x + r + 1;
+        const ends = (below >= 0 ? src[below * 4 + c] : 0) + (above < n ? src[above * 4 + c] : 0);
+        dst[x * 4 + c] = (sum + a * ends) * norm;
+        if (above < n) sum += src[above * 4 + c];
+        if (x - r >= 0) sum -= src[(x - r) * 4 + c];
+      }
+    }
+    const swap = src;
+    src = dst;
+    dst = swap;
+  }
+  if (src !== line) line.set(src.subarray(0, n * 4));
+}
+
+/* A wide blur on the picture's cells, f pixels a side: their premultiplied sums, blurred by three boxes of the
+   variance the browser's three take (blurRgba) less what the cells and their bilinear read back take, then read back
+   at each pixel, over the gradient where one is given. Over the effects' frames, 800 by 400 to 2400 by 1260, it stays
+   within a mean of 0.2 levels and at most 2 of the browser's blur (blurRgba's, over its gradient); at the largest
+   picture it takes 175 to 340 ms where that took 580 to 740, and it holds no copy of the picture but the one it
+   writes. */
+function cellsOver(
+  rgba: ArrayLike<number>,
+  size: Size,
+  passes: readonly [number, number][],
+  underlay: Underlay | null
+): Uint8ClampedArray<ArrayBuffer> {
+  const { width: w, height: h } = size;
+  const d = passes[0][0] + passes[0][1] + 1;
+  const variance = passes.reduce(
+    (sum, [left, right]) => sum + ((left + right + 1) ** 2 - 1) / 12,
+    0
+  );
+  const f = Math.max(2, Math.floor(d / CELLS_A_BOX));
+  /* the variance a bilinear read adds, over a pixel's places in its cell */
+  let read = 0;
+  for (let k = 0; k < f; k++) {
+    const u = (k + 0.5) / f - 0.5;
+    const phase = u - Math.floor(u);
+    read += phase * (1 - phase) * f;
+  }
+  const box = extendedBox((variance - (f * f - 1) / 12 - read) / (3 * f * f));
+  const pad = 3 * (box.r + 1) + 2;
+  const gw = Math.ceil(w / f) + 2 * pad;
+  const gh = Math.ceil(h / f) + 2 * pad;
+  const cells = new Float32Array(gw * gh * 4);
+  /* each pixel's premultiplied channels into its cell, a cell's sum over f² */
+  const share = 1 / (f * f);
+  const column = new Int32Array(w);
+  for (let x = 0; x < w; x++) column[x] = (Math.floor(x / f) + pad) * 4;
+  for (let y = 0; y < h; y++) {
+    const row = (Math.floor(y / f) + pad) * gw * 4;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const alpha = rgba[i + 3];
+      if (!alpha) continue;
+      const k = (alpha / 255) * share;
+      const at = row + column[x];
+      cells[at] += rgba[i] * k;
+      cells[at + 1] += rgba[i + 1] * k;
+      cells[at + 2] += rgba[i + 2] * k;
+      cells[at + 3] += alpha * share;
+    }
+  }
+  const longest = Math.max(gw, gh) * 4;
+  const line = new Float32Array(longest);
+  const scratch = new Float32Array(longest);
+  for (let y = 0; y < gh; y++) {
+    const row = cells.subarray(y * gw * 4, (y + 1) * gw * 4);
+    line.set(row);
+    cellLine(line, scratch, gw, box.r, box.a);
+    row.set(line.subarray(0, gw * 4));
+  }
+  for (let x = 0; x < gw; x++) {
+    for (let y = 0; y < gh; y++)
+      for (let c = 0; c < 4; c++) line[y * 4 + c] = cells[(y * gw + x) * 4 + c];
+    cellLine(line, scratch, gh, box.r, box.a);
+    for (let y = 0; y < gh; y++)
+      for (let c = 0; c < 4; c++) cells[(y * gw + x) * 4 + c] = line[y * 4 + c];
+  }
+  /* read back: each pixel's place among the cells' middles, across, then two rows of cells read across at a time */
+  const left = new Int32Array(w);
+  const across = new Float32Array(w);
+  for (let x = 0; x < w; x++) {
+    const u = (x + 0.5) / f - 0.5 + pad;
+    left[x] = Math.floor(u);
+    across[x] = u - left[x];
+  }
+  const rowAt = (j: number, into: Float32Array) => {
+    const base = j * gw * 4;
+    for (let x = 0; x < w; x++) {
+      const i = base + left[x] * 4;
+      const t = across[x];
+      for (let c = 0; c < 4; c++)
+        into[x * 4 + c] = cells[i + c] + (cells[i + 4 + c] - cells[i + c]) * t;
+    }
+  };
+  let upper = new Float32Array(w * 4);
+  let lower = new Float32Array(w * 4);
+  let held = -2;
+  const out = new Uint8ClampedArray(w * h * 4);
+  const ground = underlay ? new Uint8Array(w * 3) : null;
+  for (let y = 0; y < h; y++) {
+    const v = (y + 0.5) / f - 0.5 + pad;
+    const j = Math.floor(v);
+    const s = v - j;
+    if (j === held + 1) {
+      const swap = upper;
+      upper = lower;
+      lower = swap;
+      rowAt(j + 1, lower);
+    } else if (j !== held) {
+      rowAt(j, upper);
+      rowAt(j + 1, lower);
+    }
+    held = j;
+    if (ground && underlay) underlayRows(underlay, size, y, y + 1, ground);
+    for (let x = 0; x < w; x++) {
+      const k = x * 4;
+      const o = (y * w + x) * 4;
+      const alpha = upper[k + 3] + (lower[k + 3] - upper[k + 3]) * s;
+      if (ground) {
+        const keep = 1 - alpha / 255;
+        for (let c = 0; c < 3; c++)
+          out[o + c] = Math.round(
+            upper[k + c] + (lower[k + c] - upper[k + c]) * s + ground[x * 3 + c] * keep
+          );
+        out[o + 3] = 255;
+        continue;
+      }
+      if (alpha <= 0) continue;
+      for (let c = 0; c < 3; c++)
+        out[o + c] = Math.round(((upper[k + c] + (lower[k + c] - upper[k + c]) * s) * 255) / alpha);
+      out[o + 3] = Math.round(alpha);
+    }
+  }
+  return out;
+}
+
+/* A narrow blur as blurRgba runs it, a band of rows at a time with the rows its reach reads either side, laid over
+   the gradient where one is given. */
+function bandsOver(
+  rgba: Uint8Array | Uint8ClampedArray,
+  size: Size,
+  sigma: number,
+  passes: readonly [number, number][],
+  underlay: Underlay | null
+): Uint8ClampedArray<ArrayBuffer> {
+  const { width: w, height: h } = size;
+  const reach = passes.reduce((sum, [left, right]) => sum + Math.max(left, right), 0) + 1;
+  const out = new Uint8ClampedArray(w * h * 4);
+  const ground = underlay ? new Uint8Array(w * BAND_ROWS * 3) : null;
+  for (let top = 0; top < h; top += BAND_ROWS) {
+    const bottom = Math.min(h, top + BAND_ROWS);
+    const from = Math.max(0, top - reach);
+    const to = Math.min(h, bottom + reach);
+    const blurred = blurRgba(
+      rgba.subarray(from * w * 4, to * w * 4),
+      w,
+      to - from,
+      sigma,
+      !underlay
+    );
+    const kept = blurred.subarray((top - from) * w * 4, (bottom - from) * w * 4);
+    if (!ground || !underlay) {
+      out.set(kept, top * w * 4);
+      continue;
+    }
+    underlayRows(underlay, size, top, bottom, ground);
+    for (let i = 0, j = 0, o = top * w * 4; i < kept.length; i += 4, j += 3, o += 4) {
+      const keep = 1 - kept[i + 3] / 255;
+      out[o] = Math.round(kept[i] + ground[j] * keep);
+      out[o + 1] = Math.round(kept[i + 1] + ground[j + 1] * keep);
+      out[o + 2] = Math.round(kept[i + 2] + ground[j + 2] * keep);
+      out[o + 3] = 255;
+    }
+  }
+  return out;
+}
+
+/** A picture's straight-alpha RGBA pixels blurred by a Gaussian of `sigma` pixels as a browser blurs a layer (clear
+    past its edges, which thin toward them), over the gradient under it where one is given, opaque then, else straight
+    alpha. A wide blur runs on cells of the picture (cellsOver), a narrow one by bands of rows as blurRgba runs it, so
+    neither holds more than the picture it writes: at the largest picture an address asks for, 2400 by 1260, the
+    whole-picture blur's premultiplied copy alone was 48 MB of an isolate's 128. */
+export function blurOver(
+  rgba: Uint8Array | Uint8ClampedArray,
+  size: Size,
+  sigma: number,
+  underlay: Underlay | null
+): Uint8ClampedArray<ArrayBuffer> {
+  const passes = boxes(sigma);
+  if (passes.length && passes[0][0] + passes[0][1] + 1 >= CELLS_FROM)
+    return cellsOver(rgba, size, passes, underlay);
+  return bandsOver(rgba, size, sigma, passes, underlay);
+}
+
 /* the tile's specks at a grain: each speck's alpha, and whether it is white */
 function tileAt(grain: number) {
   const alpha = new Uint8Array(GRAIN_SIDE * GRAIN_SIDE);
@@ -312,26 +563,12 @@ export function finishPixels(
   finish: Finish,
   underlay: Underlay | null
 ): Uint8ClampedArray<ArrayBuffer> | Uint8ClampedArray | Uint8Array {
-  const { width, height } = size;
-  let out: Uint8ClampedArray | Uint8Array = rgba;
   const sigma = effectBlurSigma(finish.soft, size);
-  if (sigma > 0) {
-    if (underlay) {
-      const blurred = blurRgba(rgba, width, height, sigma);
-      const rgb = overUnder(blurred, underlayPixels(underlay, size), width, height);
-      const opaque = new Uint8ClampedArray(width * height * 4);
-      for (let i = 0, j = 0; i < opaque.length; i += 4, j += 3) {
-        opaque[i] = rgb[j];
-        opaque[i + 1] = rgb[j + 1];
-        opaque[i + 2] = rgb[j + 2];
-        opaque[i + 3] = 255;
-      }
-      out = opaque;
-    } else out = blurRgba(rgba, width, height, sigma, true);
-  }
+  let out: Uint8ClampedArray | Uint8Array =
+    sigma > 0 ? blurOver(rgba, size, sigma, underlay) : rgba;
   if (finish.grain) {
     if (out === rgba) out = Uint8ClampedArray.from(rgba);
-    grainOverRgba(out, width, height, finish.grain);
+    grainOverRgba(out, size.width, size.height, finish.grain);
   }
   return out;
 }
@@ -349,8 +586,8 @@ function rootOf(svg: string): { open: string; inner: string } | null {
 }
 
 /** An effect's SVG document finished as the site paints it, in a box of its pixels: its drawing, whole and untouched as
-    an SVG inside the finished one, blurred by the soft over the gradient under it (`underlay`, none for a clear blob)
-    and clipped to the box, then the grain's tiles (`grain`, the tile's data URI at the grain's strength) over all.
+    an SVG inside the finished one, clipped to the box and blurred by the soft over the gradient under it (`underlay`,
+    none for a clear blob), clipped again, then the grain's tiles (`grain`, the tile's data URI at the grain's strength) over all.
     Where its root names the box alone (`0 0 width height`), its drawing stands in a group instead, which a design tool
     reads as plainly. The blur is in sRGB, as a CSS blur is; its sigma is `effectBlurSigma`. Credit comments stay at
     the top. */
@@ -401,8 +638,11 @@ export function finishSvg(
       ? `<filter id="${ID.soft}" filterUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${fmt(sigma)}"/></filter>`
       : ""
   ].join("");
+  /* the drawing clipped to the box before it is blurred as well as after: Chromium blurs what a drawing paints past
+     the filter's region into its edges, where Firefox and a CSS blur read clear, so a rosette's petals past the box
+     kept its edges from thinning in Chromium alone */
   const picture = sigma
-    ? `<g clip-path="url(#${ID.box})">${underlay ? `<rect width="${w}" height="${h}" fill="url(#${ID.under})"/>` : ""}<g filter="url(#${ID.soft})">${drawing}</g></g>`
+    ? `<g clip-path="url(#${ID.box})">${underlay ? `<rect width="${w}" height="${h}" fill="url(#${ID.under})"/>` : ""}<g filter="url(#${ID.soft})"><g clip-path="url(#${ID.box})">${drawing}</g></g></g>`
     : drawing;
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${credit}<defs>${defs}</defs>${picture}${grain ? grainTilesSvg(grain, size) : ""}</svg>`;
 }
