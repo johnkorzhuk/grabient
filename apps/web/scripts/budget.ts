@@ -150,13 +150,18 @@ const BUDGETS = {
   // (engine/fx-frame.ts, server/images/effect-frame.ts and the finish's blurs, loaded with the first such picture an
   // isolate draws) took it to 1448.8 to 1449.0, by the build. The editor's MP4 (3 Nov 2026), whose chips the Worker
   // renders, and the clips' address read alike by the Worker and the reader's browser (engine/video.ts's videoAt,
-  // lib/picture-size.ts) took it from 1449.2 to 1450.2 to 1450.3, by the build
-  worker: 1451,
+  // lib/picture-size.ts) took it from 1449.2 to 1450.2 to 1450.3, by the build. The papercut's clips, its moving SVG
+  // (engine/papercut-svg.ts papercutMovingOf), its script's route and the SVGs' grain laid as one image
+  // (lib/grain-image.ts) took it to 1453.1 (pc/int, 3 Nov 2026); the total moves by up to 1.4 KiB between builds of the
+  // same code, since the chunks that share a name are gzipped together in their hashes' order
+  // (W/styles-lab/sg/pc-shader/tools/worker-hash-noise.mjs), so the budget stands that much over the build
+  worker: 1455,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
-  // (engine/video/video.wasm, 137 KB, 44.5 gzipped) is WebAssembly, which this counts no more than the Worker's
-  mp4Worker: 21,
+  // (engine/video/video.wasm, 137 KB, 44.5 gzipped) is WebAssembly, which this counts no more than the Worker's.
+  // The papercut's clips put its scene in it too (engine/papercut.ts's levels, relief and colors): 21.9 KB on 3 Nov 2026
+  mp4Worker: 23,
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
   // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks. The
   // color reader (engine/written-color.ts), which the search, the pages' titles and the MCP read, took it from 237.5
@@ -167,7 +172,8 @@ const BUDGETS = {
   // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders
   // them, the SVG writer's placed stops and grain pattern, the painter's soft reads and grain, and the pictures' keys.
   // It stood at 176.5 at the effects' finished SVG (d5cdb607, 3 Nov 2026: every SVG's grain laid as tiles of its image,
-  // grain-tiles.ts grainSvg, and an effect's SVG, card and addresses named by its soft and grain); papercut adds nothing
+  // since one image of the picture's size, grain-tiles.ts grainSvg, and an effect's SVG, card and addresses named by
+  // its soft and grain); papercut adds nothing
   // here, its drawing loading with the first file or card of it
   firstRequest: 177
 };
