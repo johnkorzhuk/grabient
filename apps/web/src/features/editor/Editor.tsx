@@ -72,6 +72,7 @@ import { Corner, type Panel } from "./Corner.tsx";
 import styles from "./Editor.module.css";
 import { holdCorner } from "./EditorCorner.tsx";
 import { createPaletteEditor, type PaletteEditor } from "./editor.ts";
+import { effectUnderCss } from "./effect-under.ts";
 import { FilePicture } from "./FilePicture.tsx";
 import {
   copyFormat,
@@ -638,9 +639,12 @@ function Stage(
   /* the artwork never flashes: a press that turns it back waits a moment, the state behind it never does */
   const calm = createFlashGuard(e.shownStops, lights);
   /* the picture with its finish: a soft one blurred from the palette's own colors, held by the flash guard as the
-     glass's are; the grain over either */
+     glass's are, and under a soft effect the gradient its files lay there (effect-under.ts), whatever the gradient was
+     set to before the effect was picked; the grain over either */
   const art = () => {
     const soft = e.soft();
+    const kind = e.shownEffect();
+    if (kind && soft) return effectUnderCss(calmPalette(), kind, e.angle(), soft, e.wide());
     if (!soft)
       return gradientCss(
         calm().map(s => s.paint ?? s.hex),
