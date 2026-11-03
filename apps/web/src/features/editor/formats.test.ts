@@ -98,11 +98,14 @@ function stubCanvas(): Canvas {
   vi.stubGlobal(
     "ImageData",
     class {
-      constructor(
-        readonly data: Uint8ClampedArray,
-        readonly width: number,
-        readonly height: number
-      ) {}
+      data: Uint8ClampedArray;
+      width: number;
+      height: number;
+      constructor(data: Uint8ClampedArray, width: number, height: number) {
+        this.data = data;
+        this.width = width;
+        this.height = height;
+      }
     }
   );
   vi.stubGlobal(
@@ -140,7 +143,10 @@ function stubCanvas(): Canvas {
   vi.stubGlobal(
     "ClipboardItem",
     class {
-      constructor(readonly items: Record<string, Promise<Blob>>) {}
+      items: Record<string, Promise<Blob>>;
+      constructor(items: Record<string, Promise<Blob>>) {
+        this.items = items;
+      }
     }
   );
   vi.stubGlobal("navigator", {
@@ -192,9 +198,10 @@ test("the glass's PNG is its first frame drawn and blurred by the view's soft on
 });
 
 test("the silk's, the rosette's and the blob's PNG is their finished still SVG, its grain inside, drawn by the browser", async () => {
-  const tile = `data:image/png;base64,${Buffer.from(GRAIN_BYTES).toString("base64")}`;
   for (const query of ["style=silk&shape=4", "style=rosette", "style=blob&shape=3"]) {
     const canvas = stubCanvas();
+    /* the tile as a copy carries it, read from the file the page's pictures lay over */
+    const tile = await (await import("./copy-finish.ts")).grainDataUrl(40);
     await copyFormat("png", finished(query, 50, 40));
     const svg = effectSvg(
       P,
