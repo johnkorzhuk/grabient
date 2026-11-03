@@ -9,20 +9,25 @@ import { holdGpu, stillPainted } from "./painted.ts";
 /* the players: their code alone, asked for as the stage plays one */
 const players = {
   silk: () => import("@grabient/ui/silk-player.ts"),
-  rosette: () => import("@grabient/ui/rosette-player.ts")
+  rosette: () => import("@grabient/ui/rosette-player.ts"),
+  papercut: () => import("@grabient/ui/papercut-player.ts")
 };
 /** The player of a kind. */
 async function fxPlayer(kind: VectorKind) {
-  return kind === "silk" ? (await players.silk()).playSilk : (await players.rosette()).playRosette;
+  return kind === "silk"
+    ? (await players.silk()).playSilk
+    : kind === "papercut"
+      ? (await players.papercut()).playPapercut
+      : (await players.rosette()).playRosette;
 }
 
 /** How long the canvas takes to fade in or out over the still (GlassStage.module.css). */
 const FADE_MS = 700;
 
-/* A vector effect playing (silk, rosette): its WebGL player over its still (FxLayer.tsx), loaded once the page is live,
-   as the glass's is (GlassStage.tsx). Its first frame is the still's own, to about a level, and its canvas fades in
-   only once that frame is drawn, so the still hands over without a seam; where WebGL is missing it shows nothing and
-   the still stays. `still` (speed 0) fades it out to the still, and once it has faded the player goes back to that
+/* A vector effect playing (silk, rosette, papercut): its WebGL player over its still (FxLayer.tsx), loaded once the
+   page is live, as the glass's is (GlassStage.tsx). Its first frame is the still's own, to about a level, and its
+   canvas fades in only once that frame is drawn, so the still hands over without a seam; where WebGL is missing it
+   shows nothing and the still stays. `still` (speed 0) fades it out to the still, and once it has faded the player goes back to that
    frame. `held` (the palette or the look changing) shows the canvas over a still picture too, at once. `reduced` holds
    it at its first frame. `onLive` hears whether the canvas covers the still. */
 export function FxStage(props: {

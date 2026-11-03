@@ -1,7 +1,12 @@
 import { decodePalette } from "@grabient/engine";
 import { cssLine } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import type { Effect } from "@grabient/engine/effect.ts";
+import {
+  type Effect,
+  type EffectKind,
+  hasEmbedScript,
+  hasFigmaCopy
+} from "@grabient/engine/effect.ts";
 import { paletteSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { DEFAULT_SIZE, resolveSize, type SizeChoice, viewSearch } from "@grabient/engine/view.ts";
@@ -77,9 +82,10 @@ export const linkPalette = (p: Drawn, format: Format): Promise<void> =>
   writeText(fileAddress(p, format));
 
 /* A card playing its list's effect hands the effect over as the editor's strips do, at the size the list sets (its
-   code loads with the first press), and offers what they offer (editor/formats.ts STRIP_*): Copy adds the tags that
-   play it and its Figma layers, Copy link its script. The formats are a copy of the editor's, which take.test.ts holds
-   alike: shared, they cost a list's start more than the copy does. */
+   code loads with the first press), and offers what they offer (editor/formats.ts STRIP_*, effectCopyFormats,
+   effectLinkFormats): Copy adds the tags that play it and its Figma layers where the effect has them, Copy link its
+   script where it has one. The formats are a copy of the editor's, which take.test.ts holds alike: shared, they cost
+   a list's start more than the copy does. */
 const formats = () => import("../editor/formats.ts");
 const playedTaken = (p: Drawn, effect: Effect, size: SizeChoice | null, name?: string) => ({
   ...p,
@@ -92,11 +98,14 @@ const playedTaken = (p: Drawn, effect: Effect, size: SizeChoice | null, name?: s
 const COPY: readonly Format[] = ["url", "css", "svg", "png"];
 const FILES: readonly Format[] = ["md", "css", "svg", "png"];
 const CHIPS = { copy: COPY, download: FILES, link: FILES };
-const EFFECT_CHIPS: typeof CHIPS = {
-  copy: [...COPY, "html", "figma"],
+const EFFECT_COPY: readonly Format[] = [...COPY, "html", "figma"];
+const EFFECT_LINKS: readonly Format[] = [...FILES, "js"];
+/** The chips of a card playing an effect of `kind`. */
+const effectChips = (kind: EffectKind): typeof CHIPS => ({
+  copy: hasFigmaCopy(kind) ? EFFECT_COPY : EFFECT_COPY.filter(f => f !== "figma"),
   download: FILES,
-  link: [...FILES, "js"]
-};
+  link: hasEmbedScript(kind) ? EFFECT_LINKS : FILES
+});
 
 /** What a card's strip does: its palette as the card draws it copied, saved as a file or linked, each counted with the
     page and where the card stands, or the effect it plays as the editor's strips hand one over. What could not be done
@@ -118,14 +127,18 @@ export function cardTakings(card: {
     return false;
   };
   const played = () => card.played?.() ?? null;
-  /* the chips follow whether the card plays an effect, never the view it plays it in: a list's view taken by the
+  /* the chips follow the kind of effect the card plays, never the view it plays it in: a list's view taken by the
      address would otherwise lay out every card's strip again */
-  const playing = createMemo(() => played() !== null);
+  const playing = createMemo(() => played()?.effect.kind ?? null);
+  const chips = createMemo(() => {
+    const kind = playing();
+    return kind ? effectChips(kind) : CHIPS;
+  });
   const taken = (fx: { effect: Effect; size: SizeChoice | null }) =>
     playedTaken(card.palette(), fx.effect, fx.size, card.name?.());
   return {
     /** the formats the card's strip offers in each mode */
-    chips: () => (playing() ? EFFECT_CHIPS : CHIPS),
+    chips,
     copy: (format: Format) => {
       const fx = played();
       return (

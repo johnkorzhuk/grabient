@@ -23,6 +23,7 @@ import { glassColors } from "./glass-colors.ts";
 import { GRAIN_SIDE } from "./grain.ts";
 import type { MarkdownEffect } from "./markdown.ts";
 import type { Palette } from "./palette.ts";
+import { PAPERCUT_LOOK } from "./papercut.ts";
 import { toSpec } from "./spec.ts";
 import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, effectSoftShare, type Size } from "./view.ts";
@@ -144,10 +145,12 @@ export function effectSvg(
     : drawn;
 }
 
-/** The colors the effect draws, along the palette from its first: the glass's six behind its ribs, and the colors
-    the blob's balls are painted in, each once. */
+/** The colors the effect draws, along the palette from its first: the glass's six behind its ribs, the papercut's
+    sheets, and the colors the blob's balls are painted in, each once. */
 export function effectColors(P: Palette, effect: Effect): string[] {
   if (effect.kind === "glass") return glassColors(P);
+  /* each of the papercut's sheets is one of the palette's colors, at even steps along it */
+  if (effect.kind === "papercut") return sampleStops(P, PAPERCUT_LOOK.sheets).map(s => s.hex);
   /* the silk's dye and the rosette's rings read the palette's curve end to end */
   if (isVectorKind(effect.kind)) return sampleStops(P, 6).map(s => s.hex);
   const scene = blobScene(P, BLOB_DESIGN, effect.look);
@@ -248,7 +251,9 @@ export const effectMarkdown =
             ? `${name} played as silk: the palette ${colors} dyed into satin that drapes in soft folds, each swaying slowly about the gather. Two tags play it behind any page.`
             : kind === "rosette"
               ? `${name} played as a rosette: petals on a golden spiral, each one color of the palette ${colors} by its ring, the rings rippling out from the heart as the petals grow. Two tags play it behind any page.`
-              : `${name} played as a frosted blob: the palette's colors ${colors} melt into one another as it drifts. Two tags play it behind any page.`,
+              : kind === "papercut"
+                ? `${name} played as papercut: the palette ${colors} cut into sheets of paper stacked into a relief that drifts and breathes, each sheet casting a soft shadow on the one below as the light swings slowly round. A stylesheet paints it behind any page.`
+                : `${name} played as a frosted blob: the palette's colors ${colors} melt into one another as it drifts. Two tags play it behind any page.`,
       drawn: `${
         kind === "glass"
           ? `fluted glass, its ribs at ${angle} degrees, shape ${shape ?? 0}, ${play}`
@@ -256,7 +261,9 @@ export const effectMarkdown =
             ? `silk, its drape turned to ${angle} degrees, shape ${shape ?? 0}, ${play}`
             : kind === "rosette"
               ? `a rosette, turned to ${angle} degrees, shape ${shape ?? 0}, ${play}`
-              : `a blob, the palette across it from left to right${shape === null ? "" : `, shape ${shape}`}, frost ${frost}, ${bg ? `on ${bg}` : "on no ground"}, ${play}`
+              : kind === "papercut"
+                ? `papercut, its sheets climbing toward ${angle} degrees, shape ${shape ?? 0}, ${play}`
+                : `a blob, the palette across it from left to right${shape === null ? "" : `, shape ${shape}`}, frost ${frost}, ${bg ? `on ${bg}` : "on no ground"}, ${play}`
       }${finished ? `, ${finished}` : ""}`,
       code: `## Behind a page
 

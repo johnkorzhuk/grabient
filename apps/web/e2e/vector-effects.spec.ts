@@ -1,9 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
 import { live } from "./live.ts";
 
-/* The silk and the rosette: effects drawn by one pass of their loop over a plain vector still (engine/fx-still.ts),
-   painted from the head in the first paint (server/fx-still.ts), chosen in the Appearance menu, played on a list's
-   cards, and served as files. */
+/* The silk, the rosette and the papercut: effects drawn by one drawing of their loop over a plain vector still
+   (engine/fx-still.ts), painted from the head in the first paint (server/fx-still.ts), chosen in the Appearance menu,
+   played on a list's cards, and served as files. */
 
 const SEED = "kS7CQ31Do6asvY-";
 
@@ -42,7 +42,17 @@ test("the editor stands while the menu's tiles under the pointer turn its pictur
   });
   await open(page, `/${SEED}?style=silk&angle=45`);
   await page.getByRole("button", { name: /^Appearance/ }).click();
-  for (const tile of ["Fluted glass", "Linear", "Blob", "Rosette", "Silk", "Radial bands", "Silk"])
+  for (const tile of [
+    "Fluted glass",
+    "Linear",
+    "Blob",
+    "Rosette",
+    "Papercut",
+    "Silk",
+    "Radial bands",
+    "Papercut",
+    "Silk"
+  ])
     await page.getByRole("button", { name: tile, exact: true }).hover();
   await page.mouse.move(10, 700);
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
@@ -51,8 +61,30 @@ test("the editor stands while the menu's tiles under the pointer turn its pictur
   await page.getByRole("button", { name: "Rosette", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=rosette&angle=45$`));
   await expect(page.locator('main [data-fx-still^="rosette|"]').first()).toBeAttached();
+  await page.getByRole("button", { name: "Papercut", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=papercut&angle=45$`));
+  await expect(page.locator('main [data-fx-still^="papercut|"]').first()).toBeAttached();
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
   expect(reports).toEqual([]);
+});
+
+test("a papercut's page paints its stepped still from the head, and offers no Copy for Figma yet", async ({
+  page,
+  request
+}) => {
+  const html = await (await request.get(`/${SEED}?style=papercut&angle=30&shape=7`)).text();
+  const painted = /<style id="fx-still" data-key="([^"]*)">([^<]*)<\/style>/.exec(html);
+  const named = /data-fx-still="([^"]*)"/.exec(html)?.[1];
+  expect(named).toBe(`papercut|${SEED}|30|7`);
+  expect(painted?.[1].split(" ")).toContain(named);
+  /* the still's shadows are stepped strokes, no blur for a list of them to paint */
+  expect(painted?.[2]).toContain("stroke-width");
+  expect(painted?.[2]).not.toMatch(/filter/);
+
+  await open(page, `/${SEED}?style=papercut&angle=30&shape=7`);
+  await expect(page.getByRole("button", { name: /Papercut/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy HTML" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy for Figma" })).toHaveCount(0);
 });
 
 test("Copy for Figma puts the silk and the rosette on the clipboard as Figma's own layers", async ({
@@ -86,35 +118,43 @@ test("Copy for Figma puts the silk and the rosette on the clipboard as Figma's o
   }
 });
 
-test("a list playing the silk draws its cards' stills, each named for the silk", async ({
+test("a list playing the silk or the papercut draws its cards' stills, each named for its kind", async ({
   page,
   request
 }) => {
-  const sent = await request.get("/palettes?style=silk", { maxRedirects: 0 });
-  expect(sent.status()).toBe(200);
-  const html = await sent.text();
-  const painted = /<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1].split(" ") ?? [];
-  const first = /<span[^>]*data-fx-still="([^"]*)"/.exec(html)?.[1];
-  expect(first).toMatch(/^silk\|/);
-  expect(painted).toContain(first);
+  for (const [kind, name] of [
+    ["silk", "Silk"],
+    ["papercut", "Papercut"]
+  ]) {
+    const sent = await request.get(`/palettes?style=${kind}`, { maxRedirects: 0 });
+    expect(sent.status()).toBe(200);
+    const html = await sent.text();
+    const painted = /<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1].split(" ") ?? [];
+    const first = /<span[^>]*data-fx-still="([^"]*)"/.exec(html)?.[1];
+    expect(first).toMatch(new RegExp(`^${kind}\\|`));
+    expect(painted).toContain(first);
 
-  await open(page, "/palettes?style=silk");
-  await expect(
-    page
-      .locator("main article")
-      .first()
-      .getByRole("img", { name: /, Silk$/ })
-  ).toBeVisible();
+    await open(page, `/palettes?style=${kind}`);
+    await expect(
+      page
+        .locator("main article")
+        .first()
+        .getByRole("img", { name: new RegExp(`, ${name}$`) })
+    ).toBeVisible();
+  }
 });
 
-test("the silk's and the rosette's files: moving SVG, stylesheet, PNG, JSON, Markdown, the script that plays them and a clip", async ({
+test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, JSON and Markdown, and the silk's and the rosette's script and clip; none yet for the papercut", async ({
   request
 }) => {
-  for (const kind of ["silk", "rosette"]) {
+  for (const kind of ["silk", "rosette", "papercut"]) {
     const at = (extension: string) => request.get(`/${SEED}.${extension}?style=${kind}&shape=7`);
     const svg = await at("svg");
     expect(svg.headers()["content-type"]).toMatch(/^image\/svg\+xml/);
-    expect(await svg.text()).toMatch(/^<svg[^>]*width="800" height="400"/);
+    const drawn = await svg.text();
+    expect(drawn).toMatch(/^<svg[^>]*width="800" height="400"/);
+    /* the papercut's is its still with its shadows blurred, as Figma's importer takes them */
+    if (kind === "papercut") expect(drawn).toContain("<feGaussianBlur");
     const css = await at("css");
     expect(await css.text()).toMatch(/html::before[\s\S]*cover no-repeat/);
     const png = await at("png");
@@ -123,11 +163,16 @@ test("the silk's and the rosette's files: moving SVG, stylesheet, PNG, JSON, Mar
     expect(json.effect).toMatchObject({ style: kind, shape: 7 });
     expect(await (await at("md")).text()).toContain(kind);
     const script = await at("js");
+    const clip = await request.head(`/${SEED}.mp4?style=${kind}&shape=7`);
+    /* the papercut's script and clips are not built yet */
+    if (kind === "papercut") {
+      expect([script.status(), clip.status()]).toEqual([404, 404]);
+      continue;
+    }
     expect([script.status(), script.headers()["content-type"]]).toEqual([
       200,
       "text/javascript; charset=utf-8"
     ]);
-    const clip = await request.head(`/${SEED}.mp4?style=${kind}&shape=7`);
     expect([clip.status(), clip.headers()["content-type"]]).toEqual([200, "video/mp4"]);
   }
 });

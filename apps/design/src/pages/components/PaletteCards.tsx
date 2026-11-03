@@ -78,7 +78,7 @@ export function PaletteCards() {
             "With no title, the age says who brought it after itself while the card is open, in the room it keeps unseen at rest.",
             "Who brought it: Grabient, where the site made the palette: its own collections or an admin's held it first, the gallery held it before anyone liked it, as it holds 2017's, or a script liked it first; an admin by their username, only where their own like brought it; else the first person to like it, only if they chose to show their username.",
             "On touch the tools wait for a tap on the picture, one card at a time.",
-            "In a list that plays an effect (the fluted glass, the blob, the silk or the rosette), each picture is the effect's still in its palette's own shape, moving while its card is lit; a style the Appearance menu previews shows over it, and the still stays under it.",
+            "In a list that plays an effect (the fluted glass, the blob, the silk, the rosette or the papercut), each picture is the effect's still in its palette's own shape, moving while its card is lit; a style the Appearance menu previews shows over it, and the still stays under it.",
             "Soft and grain finish every picture, a gradient's or an effect's: soft blurs a gradient along its line, its bands melting into one another, and blurs an effect over its palette's gradient, clipped to the card; grain lays one tile of fine specks over it, a speck a pixel, at the grain's share as its opacity. A list that draws every palette as saved draws each card's own, as its save kept them.",
             "An article named by its palette, so its Edit is that palette's Edit."
           ]}

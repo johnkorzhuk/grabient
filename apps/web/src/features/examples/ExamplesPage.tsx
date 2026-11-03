@@ -198,7 +198,8 @@ const STILL_SHOWN: Readonly<Record<EffectKind, string>> = {
   glass: 'url("data:image/webp;base64,…") 50% 50%/cover no-repeat',
   blob: 'url("data:image/svg+xml,…") 50% 50% / 100% 100% no-repeat',
   silk: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
-  rosette: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat'
+  rosette: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
+  papercut: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat'
 };
 
 /** The hero: the palette as a page's background, from the window's top, edge to edge. */

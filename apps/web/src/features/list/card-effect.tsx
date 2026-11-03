@@ -89,11 +89,12 @@ export function createCardEffect(o: {
           style: "linearGradient" as const,
           angle: o.angle()
         };
-      /* the silk's dye along its angle, the rosette's rings out from its heart: the palette end to end */
-      if (fx.kind === "silk" || fx.kind === "rosette")
+      /* the silk's dye and the papercut's sheets along their angle, the rosette's rings out from its heart: the
+         palette end to end */
+      if (fx.kind === "silk" || fx.kind === "rosette" || fx.kind === "papercut")
         return {
           stops: sampleStops(palette()!, 6).map(s => s.hex),
-          style: fx.kind === "silk" ? ("linearGradient" as const) : ("radialGradient" as const),
+          style: fx.kind === "rosette" ? ("radialGradient" as const) : ("linearGradient" as const),
           angle: o.angle()
         };
       return null;

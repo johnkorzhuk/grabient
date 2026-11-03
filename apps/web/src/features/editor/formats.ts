@@ -6,7 +6,8 @@ import {
   type Effect,
   type EffectKind,
   effectFileAddress,
-  hasEmbedScript
+  hasEmbedScript,
+  hasFigmaCopy
 } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
@@ -55,6 +56,9 @@ export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png",
 /** An effect's links: its script where one plays it behind a page (engine/effect.ts's hasEmbedScript). */
 export const effectLinkFormats = (kind: EffectKind): readonly Format[] =>
   hasEmbedScript(kind) ? STRIP_EFFECT_LINKS : STRIP_EFFECT_LINKS.filter(f => f !== "js");
+/** An effect's copies: its Figma layers where they are built (engine/effect.ts's hasFigmaCopy). */
+export const effectCopyFormats = (kind: EffectKind): readonly Format[] =>
+  hasFigmaCopy(kind) ? STRIP_EFFECT_COPY : STRIP_EFFECT_COPY.filter(f => f !== "figma");
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {

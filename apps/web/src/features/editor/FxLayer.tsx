@@ -20,9 +20,9 @@ import {
 import styles from "./Editor.module.css";
 import { fxLookOf, fxStillBackground, loadFx, serverFxStill } from "./fx-draw.ts";
 
-/* A vector effect over the picture's gradient (silk, rosette): its still, the first frame as a background covering
-   the box, and the WebGL player over it once the page is live and the effect moves or changes, its canvas fading in
-   over the still once its first frame, the still's own, is drawn, and out again to the still at speed 0. The still is
+/* A vector effect over the picture's gradient (silk, rosette, papercut): its still, the first frame as a background
+   covering the box, and the WebGL player over it once the page is live and the effect moves or changes, its canvas
+   fading in over the still once its first frame, the still's own, is drawn, and out again to the still at speed 0. The still is
    the server's where it shows this palette and this look: the holder names them as the first screen's does
    (Boot.tsx), and the style in the head paints both (server/fx-still.ts), so the editor arriving changes no pixel.
    Otherwise it is drawn here, the same background, once the stills' code has come. A reader who asks for less motion

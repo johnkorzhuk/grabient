@@ -24,8 +24,9 @@ import {
 import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
 import { effectSoftShare, type Size } from "./view.ts";
 
-/** The effects a clip can be drawn of: every one, its frames drawn by video/video.wasm. */
-export type VideoKind = EffectKind;
+/** The effects a clip can be drawn of, their frames drawn by video/video.wasm: every one but the papercut, whose frames
+    are not drawn yet. */
+export type VideoKind = Exclude<EffectKind, "papercut">;
 
 /* The host's WebAssembly, as much of it as this names: the engine's own lib knows no host (as zip.ts declares
    TextEncoder). Every host the engine runs in has it: a Worker, a browser, Node. */

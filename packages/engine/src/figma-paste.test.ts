@@ -776,8 +776,11 @@ test("the playing rosette turns and zooms on Figma's timeline as its moving SVG 
 const underlayOf = (kind: Effect["kind"], angle: number, soft: number, bg: string | null = null) =>
   effectUnderlay(palette, { kind, look: { shape: null, frost: 1, bg } }, angle, soft);
 const box = { width: 1200, height: 800 };
-/* each effect's paste in a box, finished or not */
-const pastes: Record<Effect["kind"], (finish?: FigmaFinish, speed?: number) => Node[]> = {
+/* each effect's paste in a box, finished or not: every effect but the papercut, which has none yet (hasFigmaCopy) */
+const pastes: Record<
+  Exclude<Effect["kind"], "papercut">,
+  (finish?: FigmaFinish, speed?: number) => Node[]
+> = {
   glass: (finish, speed = 0) =>
     figmaGlassNodes({ ...view, palette, ...box, angle: 135, speed, finish }) as Node[],
   blob: (finish, speed = 0) =>

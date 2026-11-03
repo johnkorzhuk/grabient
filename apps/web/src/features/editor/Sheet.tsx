@@ -56,10 +56,10 @@ import {
   copyContrast,
   copyLink,
   copyOrSave,
+  effectCopyFormats,
   effectLinkFormats,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
-  STRIP_EFFECT_COPY,
   STRIP_FILES,
   saveContrast,
   saveFormat,
@@ -423,11 +423,12 @@ export function Sheet(props: {
       if (!kind || !P) return undefined;
       if (kind === "glass")
         return { stops: glassColors(P), style: "linearGradient" as const, angle: palette().angle };
-      /* the silk's dye along its angle, the rosette's rings out from its heart: the palette end to end */
-      if (kind === "silk" || kind === "rosette")
+      /* the silk's dye and the papercut's sheets along their angle, the rosette's rings out from its heart: the
+         palette end to end */
+      if (kind === "silk" || kind === "rosette" || kind === "papercut")
         return {
           stops: sampleStops(P, 6).map(s => s.hex),
-          style: kind === "silk" ? ("linearGradient" as const) : ("radialGradient" as const),
+          style: kind === "rosette" ? ("radialGradient" as const) : ("linearGradient" as const),
           angle: palette().angle
         };
       return null;
@@ -550,7 +551,7 @@ export function Sheet(props: {
           <FormatStrip
             size="sm"
             variant="art"
-            copy={playing() ? STRIP_EFFECT_COPY : STRIP_COPY}
+            copy={playing() ? effectCopyFormats(playing()!) : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={playing() ? effectLinkFormats(playing()!) : STRIP_FILES}

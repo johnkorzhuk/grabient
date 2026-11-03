@@ -8,9 +8,9 @@ const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 const page = (key: string) =>
   `<html><head><title>t</title></head><body><div class="b"><div class="s" data-fx-still="${key}"></div></div></body></html>`;
 
-describe("a silk's or a rosette's still on its page", () => {
+describe("a silk's, a rosette's or a papercut's still on its page", () => {
   test("its name reads back as the kind, the palette and the look it was written for", () => {
-    for (const kind of ["silk", "rosette"] as const)
+    for (const kind of ["silk", "rosette", "papercut"] as const)
       for (const look of [
         { angle: 90, shape: null },
         { angle: 0, shape: 0 },
@@ -32,7 +32,8 @@ describe("a silk's or a rosette's still on its page", () => {
       `silk|${SEED}|361|`,
       `silk|${SEED}|090|`,
       `rosette|${SEED}|90|1000`,
-      `rosette|<b>|90|`
+      `rosette|<b>|90|`,
+      `paper|${SEED}|90|`
     ])
       expect(readFxStillKey(key)).toBeNull();
   });
@@ -52,6 +53,16 @@ describe("a silk's or a rosette's still on its page", () => {
     /* a plain SVG: no filter for a list of them to paint */
     expect(style?.[2]).not.toMatch(/filter/);
     expect(html.replace(/<style id="fx-still"[^<]*<\/style>/, "")).toBe(page(key));
+  });
+
+  test("the papercut's still in the head is its stepped one, its shadows strokes, no blur", () => {
+    const key = fxStillKey("papercut", SEED, { angle: 30, shape: 7 });
+    const html = fxStills(page(key));
+    const style = /<style id="fx-still" data-key="([^"]*)">([^<]*)<\/style><\/head>/.exec(html);
+    expect(style?.[1]).toBe(key);
+    expect(style?.[2]).toMatch(/\) 50% 50% \/ cover no-repeat\}$/);
+    expect(style?.[2]).not.toMatch(/filter|feGaussianBlur/);
+    expect(style?.[2]).toContain("stroke-width");
   });
 
   test("a list's cards each name a still: one rule a name, as many as a first screen shows", () => {

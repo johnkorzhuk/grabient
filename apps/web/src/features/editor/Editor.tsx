@@ -76,10 +76,10 @@ import { FilePicture } from "./FilePicture.tsx";
 import {
   copyFormat,
   copyLink,
+  effectCopyFormats,
   effectLinkFormats,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
-  STRIP_EFFECT_COPY,
   STRIP_FILES,
   saveFormat,
   type Taken
@@ -768,11 +768,11 @@ function Stage(
       </Loading>
     </Show>
   );
-  /* a vector effect over the gradient while it plays (silk, rosette), its colors held by the flash guard as well; while
-     its code comes, the still the first screen showed stands in its place (server/fx-still.ts). One layer a kind, each
-     shown by a plain test as the glass's and the blob's are: a layer keeps the kind it was made for (its player plays
-     that kind), so another kind is another layer, and nothing reads a kind its condition no longer holds while a tile
-     under the pointer turns the picture to another style and back */
+  /* a vector effect over the gradient while it plays (silk, rosette, papercut), its colors held by the flash guard as
+     well; while its code comes, the still the first screen showed stands in its place (server/fx-still.ts). One layer
+     a kind, each shown by a plain test as the glass's and the blob's are: a layer keeps the kind it was made for (its
+     player plays that kind), so another kind is another layer, and nothing reads a kind its condition no longer holds
+     while a tile under the pointer turns the picture to another style and back */
   const fxLayerOf = (kind: VectorKind) => (
     <Show when={e.shownEffect() === kind}>
       <Loading
@@ -801,6 +801,7 @@ function Stage(
     <>
       {fxLayerOf("silk")}
       {fxLayerOf("rosette")}
+      {fxLayerOf("papercut")}
     </>
   );
   return (
@@ -922,7 +923,7 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={e.effect() ? STRIP_EFFECT_COPY : STRIP_COPY}
+            copy={e.effect() ? effectCopyFormats(e.effect()!.kind) : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={e.effect() ? effectLinkFormats(e.effect()!.kind) : STRIP_FILES}

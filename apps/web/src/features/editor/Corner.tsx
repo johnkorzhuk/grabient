@@ -105,8 +105,8 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       <BlobArt palette={e.palette()} settings={blob()} />
     </Loading>
   );
-  /* a vector effect's picture (silk, rosette): its still, the server's where the head holds it, as the first screen's
-     swatch was (EditorCorner.tsx) */
+  /* a vector effect's picture (silk, rosette, papercut): its still, the server's where the head holds it, as the first
+     screen's swatch was (EditorCorner.tsx) */
   const fxArt = (kind: VectorKind) => (
     <Loading
       fallback={
@@ -172,7 +172,8 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       onPeek: () => e.peekEffect("blob")
     },
     fxTile("silk", t("Silk")),
-    fxTile("rosette", t("Rosette"))
+    fxTile("rosette", t("Rosette")),
+    fxTile("papercut", t("Papercut"))
   ];
   /* the fields of the effect playing: the glass's where none plays (the menu opens on the glass's) */
   const fieldsKind = (): EffectKind => fx.kind() ?? "glass";

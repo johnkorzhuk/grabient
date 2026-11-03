@@ -128,7 +128,8 @@ export async function seedMp4Answer(
   const params = addressParams(url.searchParams);
   if (!params.has("style")) params.set("style", "glass");
   const effect = parseEffect(params);
-  if (!effect) {
+  /* the papercut's clips are not drawn yet (engine/video.ts's VideoKind) */
+  if (!effect || effect.kind === "papercut") {
     return failure(
       404,
       "An MP4 plays an effect: style=glass, style=blob, style=silk or style=rosette."
