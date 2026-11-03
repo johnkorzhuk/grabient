@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { EFFECT_KEY } from "./effect-page.ts";
 import { createEffects } from "./effects.ts";
+import { stillWanted } from "./glass-draw.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 const store = new Map<string, string>();
@@ -43,6 +44,48 @@ test("a choice marks the page and is kept at once, not one change late", () => {
   fx.choose(null);
   expect(root.dataset.glass).toBe("off");
   expect(kept().kind).toBeNull();
+});
+
+test("an editor a navigation opens marks its own effect over the mark the page before left", () => {
+  const look = { shape: null, frost: 1, bg: null };
+  // a page whose address named no style hid the glass for a reader who chose the gradient
+  root.dataset.glass = "off";
+  createEffects({ kind: "glass", speed: 1, fps: 60, look }, true, () => SEED);
+  expect(root.dataset.glass).toBeUndefined();
+  createEffects({ kind: "blob", speed: 1, fps: 60, look }, true, () => SEED);
+  expect(root.dataset.glass).toBe("off");
+  // an address that names no style opens on the reader's choice, the glass until another is kept
+  createEffects(null, false, () => SEED);
+  expect(root.dataset.glass).toBeUndefined();
+  // a figure's palette plays none and leaves the page's mark as it is
+  root.dataset.glass = "off";
+  createEffects({ kind: "glass", speed: 1, fps: 60, look }, true, () => SEED, true);
+  expect(root.dataset.glass).toBe("off");
+  expect(kept()).toBeNull();
+});
+
+test("a navigation asks the address it goes to whether its editor draws the glass's still", () => {
+  let booting = false;
+  Object.assign(root, { hasAttribute: () => booting });
+  expect(stillWanted("?style=glass&angle=135")).toBe(true);
+  expect(stillWanted("?style=blob")).toBe(false);
+  expect(stillWanted("?style=linearGradient&steps=5")).toBe(false);
+  // no style: the reader's choice, the glass until another is kept, and a kind this build doesn't know plays the glass
+  expect(stillWanted("")).toBe(true);
+  for (const [kind, glass] of [
+    ["glass", true],
+    ["silk", false],
+    [null, false],
+    ["tinsel", true]
+  ] as const) {
+    store.set(EFFECT_KEY, JSON.stringify({ kind, settings: {} }));
+    expect(stillWanted("?steps=7"), String(kind)).toBe(glass);
+  }
+  store.set(EFFECT_KEY, "{not json");
+  expect(stillWanted("")).toBe(true);
+  // the page's first screen still shows the server's still
+  booting = true;
+  expect(stillWanted("?style=glass")).toBe(false);
 });
 
 test("an address that lands shows its effect and leaves the reader's own choice as kept", () => {

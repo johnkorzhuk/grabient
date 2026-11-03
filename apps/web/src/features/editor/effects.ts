@@ -128,6 +128,17 @@ export function createEffects(
   };
   let opened = effectOf(now);
   const [openedAt, setOpenedAt] = createSignal(opened);
+  /* the mark on <html> that shows the glass's layers or hides them (Editor.module.css, Corner.module.css), set as a
+     document loads (effectScript) and here: an editor a navigation opens marks its own effect at once, since the mark
+     is still the page's it came from, which hid the glass where that page's address named no style and the reader's
+     choice was another */
+  const mark = () => {
+    if (own || typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (now.kind === "glass") delete root.dataset.glass;
+    else root.dataset.glass = "off";
+  };
+  mark();
   /** a new state: the signals, the mark on <html> (the server's glass still answers to it, effectScript) and, where
       the reader made it, this browser's copy follow; a figure's palette plays none and touches neither */
   const commit = (next: Kept, keep = true, told = keep) => {
@@ -135,11 +146,7 @@ export function createEffects(
     setKind(now.kind);
     setSettings(now.settings);
     if (own) return;
-    if (typeof document !== "undefined") {
-      const root = document.documentElement;
-      if (now.kind === "glass") delete root.dataset.glass;
-      else root.dataset.glass = "off";
-    }
+    mark();
     if (!keep) return;
     try {
       localStorage.setItem(EFFECT_KEY, JSON.stringify(now));

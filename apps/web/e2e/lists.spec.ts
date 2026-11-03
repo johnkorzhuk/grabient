@@ -373,6 +373,36 @@ test("a list plays the effect chosen in its menu, paints its stills from the fir
   expect(reports).toEqual([]);
 });
 
+test("a card opens the editor's glass for a reader whose own choice is the gradient", async ({
+  page
+}) => {
+  const reports = reported(page);
+  // the reader chose the gradient before, so a page whose address names no style is marked to hide the glass
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("kept")) return;
+    sessionStorage.setItem("kept", "1");
+    localStorage.setItem("grabient-effect", JSON.stringify({ kind: null, settings: {} }));
+  });
+  await page.goto("/palettes");
+  await live(page);
+  const mark = () => page.evaluate(() => document.documentElement.dataset.glass ?? null);
+  expect(await mark()).toBe("off");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Fluted glass", exact: true }).click();
+  await expect(page).toHaveURL(/\/palettes\?style=glass$/);
+  await page.keyboard.press("Escape");
+
+  // a card opens the palette on the glass, and the editor's glass shows over the mark the list left
+  const first = page.locator("main article").first();
+  await first.hover();
+  await first.getByRole("link", { name: /^Edit/ }).click();
+  await expect(page).toHaveURL(/\/k[\w-]+\?style=glass(&angle=\d+)?$/);
+  // the list stands until the editor can draw: the editor's own still (GlassLayer.tsx) is the one to see
+  await expect.poll(mark).toBeNull();
+  await expect(page.locator('main [data-glass-still][elementtiming="effect-still"]')).toBeVisible();
+  expect(reports).toEqual([]);
+});
+
 test("a list playing the blob is drawn with its stills, and its lists' links keep it", async ({
   page,
   request

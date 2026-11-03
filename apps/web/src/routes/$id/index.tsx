@@ -61,7 +61,8 @@ export const Route = createFileRoute("/$id/")({
         : Promise.all([
             Editor.preload(),
             /* a navigation's editor draws the glass's still itself, its code asked for with the editor's
-               (features/editor/glass-draw.ts), where the reader's effect may be the glass */
+               (features/editor/glass-draw.ts), where the page it goes to opens on the glass: asked of its address
+               and the reader's choice, since the mark on <html> is still the page's it leaves */
             /* and the blob's, where the address names it (features/editor/blob-draw.ts, BlobLayer.tsx) */
             new URLSearchParams(location.searchStr).get("style") === "blob"
               ? Promise.all([
@@ -78,11 +79,9 @@ export const Route = createFileRoute("/$id/")({
                   import("../../features/editor/FxArt.tsx")
                 ])
               : null,
-            document.documentElement.dataset.glass !== "off"
-              ? import("../../features/editor/glass-draw.ts").then(m =>
-                  m.stillWanted() ? m.loadStill() : null
-                )
-              : null,
+            import("../../features/editor/glass-draw.ts").then(m =>
+              m.stillWanted(location.searchStr) ? m.loadStill() : null
+            ),
             /* and the selection's screen's, where the address opens it over the editor */
             loadSelectionScreen(location.searchStr)
           ]).catch(() => {});

@@ -2,8 +2,10 @@
    angle, or the glass chosen. Its code (engine/glass.ts) is no part of a palette page's start, whose first screen has
    the server's still (server/glass-still.ts): it loads on demand, and is asked for with a navigation's editor code and
    as the Appearance menu opens, so the still is there for the editor's first frame. */
+import { isEffect } from "@grabient/engine/effect.ts";
 import { readStillKey } from "@grabient/engine/glass-colors.ts";
 import { BOOT_MARK } from "./boot.ts";
+import { EFFECT_KEY } from "./effect-page.ts";
 
 /** The id of the style in the head that holds the server's still; its data-key names the still it shows. */
 export const GLASS_STILL_STYLE = "glass-still";
@@ -25,12 +27,24 @@ export const loadStill = (): Promise<void> =>
     recolor = r.recolor;
   }));
 
-/** Whether a navigation's editor will draw the still itself: an effect may play, and the page has booted, so the
-    server's still is another palette's. */
-export const stillWanted = (): boolean =>
-  typeof document !== "undefined" &&
-  document.documentElement.dataset.glass !== "off" &&
-  !document.documentElement.hasAttribute(BOOT_MARK);
+/** Whether a navigation's editor will draw the still itself: the page has booted, so the server's still is another
+    palette's, and the page at `search` opens on the glass. Its address says so, or, naming no style, this browser's
+    choice does, as effects.ts reads it (the glass until the reader picks another). The mark on <html> can't say: it
+    is the page's the navigation leaves until the editor marks its own (effects.ts). */
+export function stillWanted(search: string): boolean {
+  if (typeof document === "undefined" || document.documentElement.hasAttribute(BOOT_MARK))
+    return false;
+  const style = new URLSearchParams(search).get("style");
+  if (style !== null) return style === "glass";
+  try {
+    const kept = JSON.parse(localStorage.getItem(EFFECT_KEY) ?? "null") as {
+      kind?: unknown;
+    } | null;
+    return !kept || (kept.kind !== null && (kept.kind === "glass" || !isEffect(kept.kind)));
+  } catch {
+    return true;
+  }
+}
 
 /** Whether the server's still is the one this key names. */
 export const serverStill = (key: string): boolean =>
