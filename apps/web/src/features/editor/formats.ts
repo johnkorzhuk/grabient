@@ -220,14 +220,27 @@ async function gradientPng(p: Taken): Promise<Blob> {
   if (!png) throw new Error("no PNG");
   return png;
 }
-/* a PNG is the first frame: the glass as its player draws it, the blob as its still SVG paints */
+/* An effect's PNG is its first frame finished as the site paints it: the glass, the silk and the rosette drawn on the
+   CPU as their players draw them and finished there, the same pixels as the server's picture of the address
+   (engine/fx-frame.ts) in every browser, where their finished SVG differs by browser (Safari draws the silk's
+   repeating gradients padded inside a filter, so its soft silk lost its folds' light and shade); the blob as its
+   finished still SVG paints, its frost the site's own. */
+async function framePng(p: Taken, effect: Effect): Promise<Blob> {
+  const { effectRgba } = await import("@grabient/engine/fx-frame.ts");
+  const { width, height } = p.pixels;
+  const pixels = await effectRgba(paletteOf(p), effect, p.angle, p.pixels, finishOf(p));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d")?.putImageData(new ImageData(pixels, width, height), 0, 0);
+  const png = await encoded(canvas, "image/png");
+  if (!png) throw new Error("no PNG");
+  return png;
+}
 const pngOf = async (p: Taken): Promise<Blob> => {
-  if (p.effect && p.effect.kind !== "glass")
-    return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
   if (!p.effect) return gradientPng(p);
-  const picture = await encoded(await glassPixels(p, p.pixels), "image/png");
-  if (!picture) throw new Error("no PNG");
-  return picture;
+  if (p.effect.kind === "blob") return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
+  return framePng(p, p.effect);
 };
 /* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
 const fileUrl = (p: Taken, f: Format) =>
