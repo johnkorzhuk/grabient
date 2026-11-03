@@ -908,7 +908,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:282",
-      "apps/web/src/features/editor/effect-sources.ts:321"
+      "apps/web/src/features/editor/effect-sources.ts:349"
     ]
   },
   "Columns": {
@@ -1064,7 +1064,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:298"
+      "apps/web/src/features/editor/effect-sources.ts:326"
     ]
   },
   "Copy link": {
@@ -4448,7 +4448,7 @@
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
       "apps/web/src/features/editor/code.ts:300",
-      "apps/web/src/features/editor/effect-sources.ts:256"
+      "apps/web/src/features/editor/effect-sources.ts:284"
     ]
   },
   "Shape": {
@@ -5150,7 +5150,7 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:336"
+      "apps/web/src/features/editor/effect-sources.ts:364"
     ]
   },
   "The keyframes as JSON.": {
@@ -5210,26 +5210,32 @@
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:355"
+      "apps/web/src/features/editor/effect-sources.ts:383"
     ]
   },
   "The picture as an SVG file, moving by SMIL alone.": {
     "note": "Editor's code pane, SVG tab while the silk plays: the picture as an animated SVG file whose motion is SMIL (SVG's own animation elements), with no script. SMIL is a name, kept as it is.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:353"
+      "apps/web/src/features/editor/effect-sources.ts:381"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:337",
-      "apps/web/src/features/editor/effect-sources.ts:356"
+      "apps/web/src/features/editor/effect-sources.ts:384"
     ]
   },
   "The profile's code": {
     "note": "Read by screen readers only: the name of the Avatars and banners section's code tabs (HTML, CSS, Random).",
     "refs": [
       "apps/web/src/features/examples/Profile.tsx:131"
+    ]
+  },
+  "The relief, then each sheet's shadows, lit cut and face, pass by pass.": {
+    "note": "Editor's code pane, Shader tab while the papercut plays: what its shader code draws, one pass after another: first the relief (the smooth field of hills and hollows the paper is cut from), then for each pixel the sheets of paper about it, each with its shadows, the thin lit edge where it is cut and its face. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
+    "refs": [
+      "apps/web/src/features/editor/effect-sources.ts:172"
     ]
   },
   "The ribs, the colors' blur and the light, pass by pass.": {
@@ -5259,13 +5265,13 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:317"
+      "apps/web/src/features/editor/effect-sources.ts:345"
     ]
   },
   "The tag that paints its first frame behind a page, for the page's head.": {
     "note": "Editor, the code pane's HTML tab while the silk or the rosette plays: the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page; these effects have no script yet.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:294"
+      "apps/web/src/features/editor/effect-sources.ts:322"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5283,7 +5289,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:293"
+      "apps/web/src/features/editor/effect-sources.ts:321"
     ]
   },
   "The wallpapers' code": {
@@ -5316,19 +5322,19 @@
     "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
     "refs": [
       "apps/web/src/features/editor/code.ts:315",
-      "apps/web/src/features/editor/effect-sources.ts:273"
+      "apps/web/src/features/editor/effect-sources.ts:301"
     ]
   },
   "Then its soft and grain, as the site lays them over it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture has both soft and grain: the shader's last passes blur it and lay the grain over it, as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:269"
+      "apps/web/src/features/editor/effect-sources.ts:297"
     ]
   },
   "Then its soft, as the site blurs it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture is soft: the shader's last passes blur it as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:271"
+      "apps/web/src/features/editor/effect-sources.ts:299"
     ]
   },
   "This address isn't a palette or a page.": {
@@ -6778,7 +6784,7 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:296",
-      "apps/web/src/features/editor/effect-sources.ts:326"
+      "apps/web/src/features/editor/effect-sources.ts:354"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
