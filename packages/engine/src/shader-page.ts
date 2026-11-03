@@ -5,7 +5,7 @@
    WebGPU. The gradient holds still, so it draws only then. The editor loads this module with the shader's texts once
    its Shader tab shows, never with a page's start. */
 import type { Palette } from "./palette.ts";
-import { type ShaderView, shaderCredit, shaderText } from "./shader.ts";
+import { type ShaderFinish, type ShaderView, shaderCredit, shaderText } from "./shader.ts";
 import type { ShaderPageKind } from "./shader-kinds.ts";
 import { shaderPageHtml } from "./shader-shell.ts";
 
@@ -128,20 +128,22 @@ const PAGE = {
 } as const;
 
 /** The palette's shader as a complete page: `kind` "webgl" runs the GLSL, "webgpu" the WGSL, `steps` stops in the
-    view's style. `origin` adds the palette's address to the credit, as the shader's own has it. */
+    view's style. `origin` adds the palette's address to the credit, as the shader's own has it; `finish` is the
+    shader's (a soft view's stops, the grain). */
 export function shaderPage(
   kind: ShaderPageKind,
   P: Palette,
   view: ShaderView,
   steps: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: ShaderFinish = {}
 ): string {
   const page = PAGE[kind];
   const credit = shaderCredit(seed, view, steps, origin);
   credit[credit.length - 1] += `, drawn by ${page.api}`;
   /* the shader's text as the tab writes it, from the element's first character, so its #version leads the GLSL */
-  const shader = shaderText(page.shader, P, view, steps, seed, origin);
+  const shader = shaderText(page.shader, P, view, steps, seed, origin, finish);
   return shaderPageHtml(credit, seed, [
     { type: page.type, id: "shader", code: shader },
     { type: page.script, code: page.code }

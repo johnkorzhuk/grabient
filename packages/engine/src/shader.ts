@@ -3,12 +3,18 @@
    editing ANCHORS, STEPS or ANGLE still draws the edited palette. A palette with a near gray that keeps its own tint
    adds the tints as a curve of their own in OKLab, as the engine's sampleLCH does. The OKLab matrices are Björn
    Ottosson's (see NOTICE). The WebGL and WebGPU kinds are pages that run the GLSL and the WGSL as written here
-   (shader-page.ts); the kinds themselves are in shader-kinds.ts. */
+   (shader-page.ts); the kinds themselves are in shader-kinds.ts.
+   A soft view draws its stops as its picture does (soft.ts drawnStops: blurred along its family's line, each at its
+   place), which the caller hands over as the CSS tab takes them, and a grained one lays the grain over its bytes, a
+   speck a pixel from the top left, as a file bakes it (shader-finish.ts). */
+import { hexBytes } from "./color.ts";
+import type { Stop } from "./curve.ts";
 import { DEG } from "./math.ts";
 import type { Palette } from "./palette.ts";
+import { grainGlsl, grainWgsl } from "./shader-grain.ts";
 import type { ShaderKind, ShaderPageKind } from "./shader-kinds.ts";
 import { shaderCreditLines } from "./shader-shell.ts";
-import { isSwatchStyle, type View, viewSearch } from "./view.ts";
+import { isSwatchStyle, type Style, type View, viewSearch } from "./view.ts";
 
 export {
   isShaderPage,
@@ -38,7 +44,14 @@ const tintsOf = (P: Palette): [number, number][] | null =>
 const TINT_NOTE =
   "// The faint tint each near-gray keyframe keeps beside the hue it carries, as an offset in OKLab.";
 
-export type ShaderView = Pick<View, "style" | "angle">;
+export type ShaderView = Pick<View, "style" | "angle" | "soft" | "grain">;
+/** What a soft or grained view's shader draws beyond a plain one's: a soft view's stops as its picture draws them
+    (soft.ts drawnStops, the family's gradient they are drawn in, and each stop's place along its line), and the
+    grain. Neither, and the shader is the plain one. */
+export interface ShaderFinish {
+  drawn?: { stops: readonly Stop[]; style: Style; at: readonly number[] };
+  grain?: number;
+}
 /** The credit every dialect carries, so a shader found later says where it came from: the seed, the palette's address
     where an origin is given, and what the shader draws. Lines without their comment marks, which a page writes its
     own way. */
@@ -51,7 +64,7 @@ export function shaderCredit(
   return shaderCreditLines(
     seed,
     origin ? `${origin}/${seed}${viewSearch({ ...view, steps })}` : null,
-    `${steps} ${isSwatchStyle(view.style) ? "hard bands" : "stops along the curve"}`
+    `${steps} ${isSwatchStyle(view.style) ? "hard bands" : "stops along the curve"}${view.soft ? `, soft ${view.soft}` : ""}${view.grain ? `, grain ${view.grain}` : ""}`
   );
 }
 const header = (seed: string, view: ShaderView, steps: number, origin?: string) =>
@@ -64,6 +77,82 @@ const gradTComment = (view: ShaderView) =>
     : view.style.startsWith("angular")
       ? `// conic-gradient(from ${view.angle}deg): starts at up, turns clockwise`
       : `// linear-gradient(${view.angle}deg): measured from up, clockwise`;
+/* the geometry's t in GLSL and WGSL for a style's family, as each body writes it */
+const gradTGlsl = (style: Style) =>
+  style.startsWith("radial")
+    ? "  return length(q) / length(R * 0.5);"
+    : style.startsWith("angular")
+      ? "  return fract((atan(q.x, q.y) - radians(ANGLE)) / 6.2831853);"
+      : "  vec2 dir = vec2(sin(radians(ANGLE)), cos(radians(ANGLE)));\n  float len = abs(R.x * dir.x) + abs(R.y * dir.y);\n  return dot(q, dir) / len + 0.5;";
+const gradTWgsl = (style: Style) =>
+  style.startsWith("radial")
+    ? "  return length(q) / length(R * 0.5);"
+    : style.startsWith("angular")
+      ? "  return fract((atan2(q.x, q.y) - radians(ANGLE)) / 6.2831853);"
+      : "  let dir = vec2f(sin(radians(ANGLE)), cos(radians(ANGLE)));\n  let len = abs(R.x * dir.x) + abs(R.y * dir.y);\n  return dot(q, dir) / len + 0.5;";
+/* a soft stop's place as the CSS writes it, to a thousandth of a percent */
+const placeOf = (x: number) => Number((x * 100).toFixed(3)) / 100;
+const SOFT_NOTE =
+  "// The palette's stops blurred along the line by the soft (engine/soft.ts), as the site's CSS draws them: each stop's\n// sRGB color in bytes and its place along the line, blended in sRGB between them.";
+const softRows = (drawn: NonNullable<ShaderFinish["drawn"]>, vec: string) =>
+  drawn.stops
+    .map(stop => {
+      const [r, g, b] = hexBytes(stop.hex);
+      return `  ${vec}(${r}.0, ${g}.0, ${b}.0)`;
+    })
+    .join(",\n");
+const softPlaces = (drawn: NonNullable<ShaderFinish["drawn"]>) =>
+  drawn.at.map(a => num(placeOf(a))).join(", ");
+
+/* A soft view's body: its stops and their places, the family's geometry. */
+function glslSoftBody(view: ShaderView, drawn: NonNullable<ShaderFinish["drawn"]>): string {
+  return `const float ANGLE = ${num(view.angle)};
+
+${SOFT_NOTE}
+const vec3 STOPS[] = vec3[](
+${softRows(drawn, "vec3")}
+);
+const float AT[] = float[](${softPlaces(drawn)});
+const int N = STOPS.length();
+
+vec3 stops(float t) {
+  if (t <= AT[0]) return STOPS[0] / 255.0;
+  for (int i = 1; i < N; i++)
+    if (AT[i] >= t) return mix(STOPS[i - 1], STOPS[i], clamp((t - AT[i - 1]) / (AT[i] - AT[i - 1]), 0.0, 1.0)) / 255.0;
+  return STOPS[N - 1] / 255.0;
+}
+
+${gradTComment({ ...view, style: drawn.style })}
+float gradT(vec2 q, vec2 R) {
+${gradTGlsl(drawn.style)}
+}`;
+}
+function wgslSoftBody(view: ShaderView, drawn: NonNullable<ShaderFinish["drawn"]>): string {
+  return `const ANGLE: f32 = ${num(view.angle)};
+
+${SOFT_NOTE}
+const N: i32 = ${drawn.stops.length};
+const STOPS = array<vec3f, N>(
+${softRows(drawn, "vec3f")}
+);
+const AT = array<f32, N>(${softPlaces(drawn)});
+
+fn stops(t: f32) -> vec3f {
+  if (t <= AT[0]) { return STOPS[0] / 255.0; }
+  for (var i = 1; i < N; i++) {
+    if (AT[i] >= t) {
+      return mix(STOPS[i - 1], STOPS[i], clamp((t - AT[i - 1]) / (AT[i] - AT[i - 1]), 0.0, 1.0)) / 255.0;
+    }
+  }
+  return STOPS[N - 1] / 255.0;
+}
+
+${gradTComment({ ...view, style: drawn.style })}
+fn gradT(q: vec2f, R: vec2f) -> f32 {
+${gradTWgsl(drawn.style)}
+}`;
+}
+
 const STOPS_COMMENT = {
   bands: "// Sample the curve into equal-width bands.",
   blend: "// Sample the curve at STEPS positions and blend in sRGB."
@@ -105,11 +194,7 @@ vec3 stops(float t) {
   float x = clamp(t, 0.0, 1.0) * n;
   return mix(palette(floor(x) / n), palette(min(floor(x) + 1.0, n) / n), fract(x));
 }`;
-  const gradT = view.style.startsWith("radial")
-    ? "  return length(q) / length(R * 0.5);"
-    : view.style.startsWith("angular")
-      ? "  return fract((atan(q.x, q.y) - radians(ANGLE)) / 6.2831853);"
-      : "  vec2 dir = vec2(sin(radians(ANGLE)), cos(radians(ANGLE)));\n  float len = abs(R.x * dir.x) + abs(R.y * dir.y);\n  return dot(q, dir) / len + 0.5;";
+  const gradT = gradTGlsl(view.style);
   return `const float ANGLE = ${num(view.angle)};
 const float STEPS = ${steps}.0;
 
@@ -171,7 +256,7 @@ ${gradT}
 }`;
 }
 
-function wgslText(P: Palette, view: ShaderView, steps: number, head: string): string {
+function wgslBody(P: Palette, view: ShaderView, steps: number): string {
   const tints = tintsOf(P);
   const rows = P.anchors.map(a => `  vec3f(${num(a.l)}, ${num(a.c)}, ${num(a.h)})`).join(",\n");
   const tintDecl = tints
@@ -209,16 +294,8 @@ fn stops(t: f32) -> vec3f {
   let x = clamp(t, 0.0, 1.0) * n;
   return mix(palette(floor(x) / n), palette(min(floor(x) + 1.0, n) / n), fract(x));
 }`;
-  const gradT = view.style.startsWith("radial")
-    ? "  return length(q) / length(R * 0.5);"
-    : view.style.startsWith("angular")
-      ? "  return fract((atan2(q.x, q.y) - radians(ANGLE)) / 6.2831853);"
-      : "  let dir = vec2f(sin(radians(ANGLE)), cos(radians(ANGLE)));\n  let len = abs(R.x * dir.x) + abs(R.y * dir.y);\n  return dot(q, dir) / len + 0.5;";
-  return `${head}
-
-@group(0) @binding(0) var<uniform> uResolution: vec2f;
-
-const ANGLE: f32 = ${num(view.angle)};
+  const gradT = gradTWgsl(view.style);
+  return `const ANGLE: f32 = ${num(view.angle)};
 const STEPS: f32 = ${steps}.0;
 
 // Editable OKLCH keyframes; hue is in degrees and may span multiple turns.
@@ -279,32 +356,62 @@ ${stopsFn}
 ${gradTComment(view)}
 fn gradT(q: vec2f, R: vec2f) -> f32 {
 ${gradT}
+}`;
 }
 
+/* the grain over the picture's bytes, rounded as the canvas rounds them (to the nearest, a half to the even, as the
+   glass's Shadertoy found SwiftShader's 8-bit targets round), a speck a pixel from its top left, as a file bakes it */
+const GRAIN_LINE = "  // The grain over the picture's bytes, a speck a pixel from its top left.";
+function wgslText(
+  P: Palette,
+  view: ShaderView,
+  steps: number,
+  head: string,
+  finish: ShaderFinish
+): string {
+  const body = finish.drawn ? wgslSoftBody(view, finish.drawn) : wgslBody(P, view, steps);
+  const color = finish.grain
+    ? `  let c = stops(gradT(q, uResolution));
+${GRAIN_LINE}
+  return vec4f(grainOver(round(clamp(c, vec3f(0.0), vec3f(1.0)) * 255.0), vec2i(pos.xy)) / 255.0, 1.0);`
+    : "  return vec4f(stops(gradT(q, uResolution)), 1.0);";
+  return `${head}
+
+@group(0) @binding(0) var<uniform> uResolution: vec2f;
+
+${body}
+${finish.grain ? `\n${grainWgsl(finish.grain)}\n` : ""}
 @fragment
 fn fs_main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   // Convert WebGPU's top-left origin to the y-up coordinates used by gradT.
   let q = vec2f(pos.x, uResolution.y - pos.y) - uResolution * 0.5;
-  return vec4f(stops(gradT(q, uResolution)), 1.0);
+${color}
 }
 `;
 }
 
 /** The palette's shader in a dialect, `steps` stops in the view's style. `origin` adds the palette's address to the
-    credit. */
+    credit. `finish` draws a soft view's stops as its picture does and lays the grain over it. */
 export function shaderText(
   kind: Exclude<ShaderKind, ShaderPageKind>,
   P: Palette,
   view: ShaderView,
   steps: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: ShaderFinish = {}
 ): string {
   const head = header(seed, view, steps, origin);
-  if (kind === "wgsl") return wgslText(P, view, steps, head);
-  const body = glslBody(P, view, steps);
+  if (kind === "wgsl") return wgslText(P, view, steps, head, finish);
+  const body = finish.drawn ? glslSoftBody(view, finish.drawn) : glslBody(P, view, steps);
+  const grain = finish.grain ? `\n\n${grainGlsl(finish.grain)}` : "";
+  /* the color at the pixel, and the grain over its bytes where there is one */
+  const color = (coord: string, size: string) =>
+    finish.grain
+      ? `  vec3 c = stops(gradT(q, ${size}));\n${GRAIN_LINE}\n  ivec2 p = ivec2(${coord}.x, ${size}.y - ${coord}.y);\n  fragColor = vec4(grainOver(roundEven(clamp(c, 0.0, 1.0) * 255.0), p) / 255.0, 1.0);`
+      : `  fragColor = vec4(stops(gradT(q, ${size})), 1.0);`;
   if (kind === "glsl") {
-    return `#version 300 es\nprecision highp float;\n\n${head}\n\nuniform vec2 uResolution;\nout vec4 fragColor;\n\n${body}\n\nvoid main() {\n  vec2 q = gl_FragCoord.xy - 0.5 * uResolution;\n  fragColor = vec4(stops(gradT(q, uResolution)), 1.0);\n}\n`;
+    return `#version 300 es\nprecision highp float;${finish.grain ? "\nprecision highp int;" : ""}\n\n${head}\n\nuniform vec2 uResolution;\nout vec4 fragColor;\n\n${body}${grain}\n\nvoid main() {\n  vec2 q = gl_FragCoord.xy - 0.5 * uResolution;\n${color("gl_FragCoord", "uResolution")}\n}\n`;
   }
-  return `${head}\n\n${body}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n  vec2 q = fragCoord - 0.5 * iResolution.xy;\n  fragColor = vec4(stops(gradT(q, iResolution.xy)), 1.0);\n}\n`;
+  return `${head}\n\n${body}${grain}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n  vec2 q = fragCoord - 0.5 * iResolution.xy;\n${color("fragCoord", "iResolution.xy")}\n}\n`;
 }
