@@ -15,6 +15,8 @@ import { EFFECT_EASE_S, type Effect } from "./effect.ts";
 import { GLASS_ANGLE, GLASS_LOOP, GLASS_REF_D, GLASS_TUNING } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import type { Palette } from "./palette.ts";
+import type { EffectShaderFinish } from "./shader-finish.ts";
+import { grainGlsl } from "./shader-grain.ts";
 import { effectShaderCredit } from "./shader-shell.ts";
 
 const F = Math.fround;
@@ -877,14 +879,38 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   fragColor = blurTexel(iChannel1, iChannel0, fragCoord, vec2(0.0, 1.0 / float(side)), 4, 0);
 }`;
 
-const IMAGE = `// ==== Image ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp); iChannel2: Buffer D (filter: nearest, wrap: clamp)
-// The glass: the rib map at the pixel, the blurred field read where its displacement points, and the ribs' light.
+/* The Image tab: the glass, and the grain over its bytes where it has one (from the top left, as a file bakes it, a
+   speck GRAIN_SCALE pixels wide: the glass's values never fall on a half, so its bytes are the canvas's own). */
+const image = (
+  grain: number
+) => `// ==== Image ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp); iChannel2: Buffer D (filter: nearest, wrap: clamp)
+// The glass: the rib map at the pixel, the blurred field read where its displacement points, and the ribs' light.${grain ? `\n\n${grainGlsl(grain, "setting")}\n` : ""}
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec4 place = texelFetch(iChannel0, A_LAYOUT, 0);
   float origin = texelFetch(iChannel0, A_REGION, 0).x;
   vec2 inv = texelFetch(iChannel0, A_GLASS, 0).xy;
   vec4 sizes = texelFetch(iChannel0, A_FIELD, 0);
-  float size = sizes.x;
+  float size = sizes.x;${
+    grain
+      ? `
+  float uH = iResolution.y;
+  ivec2 p = ivec2(fragCoord.x, uH - fragCoord.y);
+  vec3 glass;
+  if (!fits(size, sizes.z)) {
+    int c = COLORS[BASE % COLORS.length()];
+    glass = vec3(float((c >> 16) & 255), float((c >> 8) & 255), float(c & 255)) / 255.0;
+  } else {
+    int bytes = int(texelFetch(iChannel1, p, 0).x);
+    vec3 m = vec3(float(bytes >> 16), float((bytes >> 8) & 255), float(bytes & 255)) * INV255;
+    vec2 s = vec2(p) + place.yz + floor(place.w * (m.rg - 0.5) + 0.5);
+    vec2 f = (s + 0.5 - vec2(origin)) * inv;
+    vec3 c = bilinear(iChannel2, vec2(f.x, 1.0 - f.y), size, 4, 0);
+    glass = min(vec3(1.0), floor(c * 255.0 + 0.5) / 255.0 * (2.0 * m.b));
+  }
+  // the grain over the glass's bytes, from the top left
+  fragColor = vec4(grainOver(floor(glass * 255.0 + 0.5), p) / 255.0, 1.0);
+}`
+      : `
   if (!fits(size, sizes.z)) {
     int c = COLORS[BASE % COLORS.length()];
     fragColor = vec4(vec3(float((c >> 16) & 255), float((c >> 8) & 255), float(c & 255)) / 255.0, 1.0);
@@ -898,15 +924,17 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec2 f = (s + 0.5 - vec2(origin)) * inv;
   vec3 c = bilinear(iChannel2, vec2(f.x, 1.0 - f.y), size, 4, 0);
   fragColor = vec4(min(vec3(1.0), floor(c * 255.0 + 0.5) / 255.0 * (2.0 * m.b)), 1.0);
-}`;
+}`
+  }`;
 
-/** The Shadertoy text after its credit: the tabs, each under its header. */
+/** The Shadertoy text after its credit: the tabs, each under its header, the grain in the Image where it has one. */
 export function glassShadertoy(
   colors: readonly string[],
   angle: number,
   shape: number,
   speed: number,
-  fps: number
+  fps: number,
+  grain = 0
 ): string {
   return `// ==== Common ====
 ${settings(colors, angle, shape, speed, fps)}
@@ -921,28 +949,35 @@ ${BUFFER_C}
 
 ${BUFFER_D}
 
-${IMAGE}
+${image(grain)}
 `;
 }
 
-/** The glass as Shadertoy's tabs, for its palette, effect and angle: the credit, then the tabs, each under its header.
-    `origin` adds the effect's address to the credit. The editor loads this module with the Shader tab's Shadertoy
-    spelling. */
+/** The glass as Shadertoy's tabs, for its palette, effect and angle: the credit, then the tabs, each under its header,
+    and the grain over the Image where it has one. A soft glass has no Shadertoy text: its tabs take all four buffers
+    before the glass is drawn, leaving none for the blur after it, so the editor offers its other spellings. `origin`
+    adds the effect's address to the credit. The editor loads this module with the Shader tab's Shadertoy spelling. */
 export function glassShadertoyText(
   P: Palette,
   effect: Effect,
   angle: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
+  if (finish.soft)
+    throw new Error(
+      "the glass's Shadertoy text has no soft: its tabs leave no buffer for the blur"
+    );
   const credit = effectShaderCredit(
     seed,
     effect,
     angle,
     "fluted glass in Shadertoy: paste each section into the tab it names and set its channels as its header says",
-    origin
+    origin,
+    finish
   );
   return `${credit.map(line => `// ${line}`).join("\n")}
 
-${glassShadertoy(glassColors(P), angle, effect.look.shape ?? 0, effect.speed, effect.fps)}`;
+${glassShadertoy(glassColors(P), angle, effect.look.shape ?? 0, effect.speed, effect.fps, finish.grain ?? 0)}`;
 }

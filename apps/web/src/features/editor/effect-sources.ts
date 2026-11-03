@@ -19,6 +19,8 @@ import {
   effectSvg
 } from "@grabient/engine/effect-code.ts";
 import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
+import { effectUnderlay } from "@grabient/engine/fx-finish.ts";
+import type { EffectShaderFinish } from "@grabient/engine/shader-finish.ts";
 import { SHADER_KINDS, type ShaderKind } from "@grabient/engine/shader-kinds.ts";
 import { finishOf } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
@@ -34,15 +36,17 @@ import { effectHtml, type Taken } from "./formats.ts";
 
 /* an effect as shader code, each kind's module asked for once its spelling shows in the Shader tab: Shadertoy's tabs
    (engine/glass-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts, blob-webgl.ts), the WGSL or its WebGPU
-   page (glass-webgpu.ts, blob-webgpu.ts). The effect's code carries only the tab's spellings, and the Worker's build
-   none of them: a server never writes a shader, and its ask waits for ever. */
+   page (glass-webgpu.ts, blob-webgpu.ts), each with the picture's soft and grain (shader-finish.ts). The effect's code
+   carries only the tab's spellings, and the Worker's build none of them: a server never writes a shader, and its ask
+   waits for ever. */
 type ShaderWriter = (
   kind: ShaderKind,
   P: Palette,
   effect: Effect,
   angle: number,
   seed: string,
-  origin: string
+  origin: string,
+  finish: EffectShaderFinish
 ) => string;
 type ShaderPart = "shadertoy" | "webgl" | "webgpu";
 const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<ShaderWriter>>>> = {
@@ -83,8 +87,8 @@ const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<
         : import("@grabient/engine/blob-webgl.ts")
       ).then(
         (m): ShaderWriter =>
-          (kind, P, effect, _angle, seed, origin) =>
-            m.blobWebgl(kind as "glsl" | "webgl", P, effect, seed, origin)
+          (kind, P, effect, _angle, seed, origin, finish) =>
+            m.blobWebgl(kind as "glsl" | "webgl", P, effect, seed, origin, finish)
       ),
     webgpu: () =>
       (import.meta.env.SSR
@@ -92,8 +96,8 @@ const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<
         : import("@grabient/engine/blob-webgpu.ts")
       ).then(
         (m): ShaderWriter =>
-          (kind, P, effect, _angle, seed, origin) =>
-            m.blobWebgpu(kind as "wgsl" | "webgpu", P, effect, seed, origin)
+          (kind, P, effect, _angle, seed, origin, finish) =>
+            m.blobWebgpu(kind as "wgsl" | "webgpu", P, effect, seed, origin, finish)
       )
   },
   /* the silk's, the rosette's and the papercut's shader spellings come later: their Shader tab offers none yet */
@@ -103,9 +107,13 @@ const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<
 };
 const partOf = (kind: ShaderKind): ShaderPart =>
   kind === "shadertoy" ? "shadertoy" : kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";
-/* the Shader tab's spellings for an effect: the kinds it has a writer for */
-const shaderKinds = (effect: EffectKind) =>
-  SHADER_KINDS.filter(([kind]) => SHADER_PARTS[effect][partOf(kind)]);
+/* the Shader tab's spellings for an effect: the kinds it has a writer for. A soft glass has no Shadertoy text: its tabs
+   use all four of Shadertoy's buffers before the glass is drawn, which leaves none for the blur after it */
+const shaderKinds = (effect: EffectKind, soft = false) =>
+  SHADER_KINDS.filter(
+    ([kind]) =>
+      SHADER_PARTS[effect][partOf(kind)] && !(soft && effect === "glass" && kind === "shadertoy")
+  );
 const [writers, setWriters] = createSignal<Partial<Record<string, ShaderWriter>>>({});
 const asked = new Set<string>();
 const writerNow = (effect: EffectKind, kind: ShaderKind) => {
@@ -151,13 +159,17 @@ export function effectSources(
 ): CodeSource[] {
   const angle = taken.angle;
   /* the soft and the grain the picture is finished by, which its files' addresses name, and the rules lay with its
-     still: the grain's tile shown elided, copied whole */
+     still: the grain's tile shown elided, copied whole; and for its shaders the gradient under a soft effect's edges */
   const finish = finishOf(taken);
   const grained = !!finish.grain;
   const shownLayers = () =>
     effectLayers(P, effect, angle, finish, grained ? `url("${GRAIN_SHOWN}")` : undefined);
   const grainImage = async () =>
     finish.grain ? `url("${await grainDataUrl(finish.grain)}")` : undefined;
+  const shaderFinish: EffectShaderFinish = {
+    ...finish,
+    ...(finish.soft ? { underlay: effectUnderlay(P, effect, angle, finish.soft) } : {})
+  };
   const glass = effect.kind === "glass";
   /* what Copy writes whole: the glass's WebP or the grain's tile */
   const elided = glass || grained;
@@ -176,15 +188,28 @@ export function effectSources(
   const shaderSource = (): CodeSource => ({
     id: "shader",
     label: msg("Shader"),
-    spellings: shaderKinds(effect.kind).map(([id, label]) => ({ id, label })),
+    spellings: shaderKinds(effect.kind, !!finish.soft).map(([id, label]) => ({ id, label })),
     text: (spelling?: string) => {
-      const kind = (spelling ?? shaderKinds(effect.kind)[0]?.[0]) as ShaderKind;
-      return writerNow(effect.kind, kind)?.(kind, P, effect, angle, seed, origin) ?? "";
+      const kind = (spelling ?? shaderKinds(effect.kind, !!finish.soft)[0]?.[0]) as ShaderKind;
+      return (
+        writerNow(effect.kind, kind)?.(kind, P, effect, angle, seed, origin, shaderFinish) ?? ""
+      );
     },
-    note: () =>
-      glass
+    note: () => {
+      const passes = glass
         ? t("The ribs, the colors' blur and the light, pass by pass.")
-        : t("The balls, their melt and the frost, pass by pass.")
+        : t("The balls, their melt and the frost, pass by pass.");
+      /* the finish the passes end on, where the picture has one */
+      const after =
+        finish.soft && finish.grain
+          ? t("Then its soft and grain, as the site lays them over it.")
+          : finish.soft
+            ? t("Then its soft, as the site blurs it.")
+            : finish.grain
+              ? t("Then its grain, a speck a CSS pixel.")
+              : "";
+      return after ? `${passes} ${after}` : passes;
+    }
   });
   const colors = () => effectColors(P, effect).map(stopOf);
   return [

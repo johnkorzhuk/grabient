@@ -1,6 +1,7 @@
 /* The fluted glass in WGSL and as a WebGPU page that plays it (glass-shader.ts names every kind): the player's passes
    in WGSL (glass-wgsl.ts) on the numbers the player works out (glass-page.ts), played by the players' clock
-   (effect-page.ts). The editor loads this module with the Shader tab's WGSL or WebGPU spelling. */
+   (effect-page.ts). A soft or grained glass draws its last pass into the finish's frame, which the finish then lays
+   over the canvas (shader-finish.ts). The editor loads this module with the Shader tab's WGSL or WebGPU spelling. */
 import type { Effect } from "./effect.ts";
 import { EFFECT_CLOCK } from "./effect-page.ts";
 import { GLASS_MODEL, glassSettingsJs } from "./glass-page.ts";
@@ -11,17 +12,44 @@ import {
   GLASS_FINAL_WGSL
 } from "./glass-wgsl.ts";
 import type { Palette } from "./palette.ts";
+import {
+  type EffectShaderFinish,
+  FINISH_MATH_JS,
+  FINISH_WEBGPU_JS,
+  FINISH_WEBGPU_SHADERS,
+  FINISH_WGSL_SECTIONS,
+  finished,
+  finishSettingsJs,
+  GRAIN_TILE_JS,
+  GRAIN_WEBGPU_JS,
+  grainedWgsl,
+  grainOnly,
+  grainSettingsJs
+} from "./shader-finish.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 
-const WEBGPU_SHADERS = [
-  ["disc", "text/wgsl", GLASS_DISC_WGSL],
-  ["blur", "text/wgsl", GLASS_BLUR_WGSL],
-  ["glass", "text/wgsl", GLASS_FINAL_WGSL],
-  ["bake", "text/wgsl", GLASS_BAKE_WGSL]
-] as const;
+/* the glass's last pass with the grain over its bytes, for a grain with no soft: the tile at binding 4, its scale at 5 */
+const GLASS_FINAL_GRAIN_WGSL = grainedWgsl(
+  GLASS_FINAL_WGSL,
+  4,
+  "  return vec4f(min(vec3f(1.0), floor(c * 255.0 + 0.5) / 255.0 * (2.0 * m.b)), 1.0);",
+  "  return grainOver(vec4f(floor(min(vec3f(1.0), floor(c * 255.0 + 0.5) / 255.0 * (2.0 * m.b)) * 255.0 + 0.5), 255.0), p) / 255.0;"
+);
 
-/* The player's drawing in WebGPU: the same textures, laid out as the player's, the same passes and the same numbers. */
-const WEBGPU_DRAWING = `// The player's drawing in WebGPU: the same textures, laid out as the player's, the same passes and the same numbers. A
+const webgpuShaders = (grain: boolean) =>
+  [
+    ["disc", "text/wgsl", GLASS_DISC_WGSL],
+    ["blur", "text/wgsl", GLASS_BLUR_WGSL],
+    ["glass", "text/wgsl", grain ? GLASS_FINAL_GRAIN_WGSL : GLASS_FINAL_WGSL],
+    ["bake", "text/wgsl", GLASS_BAKE_WGSL]
+  ] as const;
+
+/* The player's drawing in WebGPU: the same textures, laid out as the player's, the same passes and the same numbers; a
+   grained one's last pass lays the grain from its tile, and a soft one's draws into the finish's frame. */
+const webgpuDrawing = (mode: "plain" | "grain" | "finish") => {
+  const finish = mode === "finish";
+  const grain = mode === "grain";
+  return `// The player's drawing in WebGPU: the same textures, laid out as the player's, the same passes and the same numbers. A
 // device the browser loses is asked for again, and the new one gets a drawing of its own.
 const canvas = document.querySelector("canvas");
 const context = canvas.getContext("webgpu");
@@ -66,8 +94,8 @@ function drawing(device) {
     { color: over, alpha: over }
   );
   const pBlur = pipeline("blur", "rgba8unorm", QUAD);
-  const pFinal = pipeline("glass", format, QUAD);
-  const pBake = pipeline("bake", "rgba8unorm", QUAD);
+  const pFinal = pipeline("glass", ${finish ? '"rgba8unorm"' : "format"}, QUAD);
+  const pBake = pipeline("bake", "rgba8unorm", QUAD);${finish ? "\n  const finish = finishing(device, format);" : ""}
   const buffer = (size, usage) => device.createBuffer({ size, usage: usage | GPUBufferUsage.COPY_DST });
   const quad = buffer(32, GPUBufferUsage.VERTEX);
   device.queue.writeBuffer(quad, 0, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]));
@@ -76,7 +104,7 @@ function drawing(device) {
   const uDown = buffer(112, GPUBufferUsage.UNIFORM);
   const uGlass = buffer(32, GPUBufferUsage.UNIFORM);
   const uBake = buffer(576, GPUBufferUsage.UNIFORM);
-  const bilinear = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+  const bilinear = device.createSampler({ magFilter: "linear", minFilter: "linear" });${grain ? "\n  const grainTex = grainTexture(device);\n  const uGrainScale = grainScaleBuffer(device);" : ""}
   const target = (w, h) =>
     device.createTexture({
       size: [w, h],
@@ -122,7 +150,7 @@ function drawing(device) {
   };
 
   // The design covering the canvas, the textures its size, and the rib map baked with the next frame.
-  const layout = (w, h) => {
+  const layout = (w, h) => {${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : ""}${grain ? "\n    device.queue.writeBuffer(uGrainScale, 0, new Float32Array([grainScaleOf(w)]));" : ""}
     const next = cover(w, h, ANGLE, SHAPE);
     if (
       geo &&
@@ -168,7 +196,7 @@ function drawing(device) {
       disc: group(pDisc, [{ buffer: uField }]),
       across: group(pBlur, [views.field[0], bilinear, { buffer: uAcross }]),
       down: group(pBlur, [views.field[1], bilinear, { buffer: uDown }]),
-      glass: group(pFinal, [views.map, views.field[0], bilinear, { buffer: uGlass }]),
+      glass: group(pFinal, [views.map, views.field[0], bilinear, { buffer: uGlass }${grain ? ", grainTex.createView(), { buffer: uGrainScale }" : ""}]),
       views
     };
     const { region } = geo;
@@ -256,9 +284,9 @@ function drawing(device) {
     pass = run(encoder, groups.views.field[0], pBlur, groups.down);
     pass.draw(4);
     pass.end();
-    pass = run(encoder, context.getCurrentTexture().createView(), pFinal, groups.glass);
+    pass = run(encoder, ${finish ? "finish.view" : "context.getCurrentTexture().createView()"}, pFinal, groups.glass);
     pass.draw(4);
-    pass.end();
+    pass.end();${finish ? "\n    finish.draw(encoder, context.getCurrentTexture().createView());" : ""}
     device.queue.submit([encoder.finish()]);
     ribsBuffer?.destroy();
   };
@@ -287,13 +315,16 @@ ${indent(EFFECT_CLOCK)}
     });
   watch(device);
 }`;
+};
 
-const WGSL_SECTIONS = `// ==== Pass 1: discs ==== target: the field, fw x fh texels (1/q of the filter's region), rgba8unorm, cleared to the base color, blended one, one-minus-src-alpha | inputs: the twelve discs as instanced quads (a triangle strip of 4 vertices)
+const wgslSections = (
+  grain: boolean
+) => `// ==== Pass 1: discs ==== target: the field, fw x fh texels (1/q of the filter's region), rgba8unorm, cleared to the base color, blended one, one-minus-src-alpha | inputs: the twelve discs as instanced quads (a triangle strip of 4 vertices)
 ${GLASS_DISC_WGSL}
 // ==== Passes 2 and 3: blur ==== target: across into a second field texture, then down into the first, rgba8unorm, step (1 / fw, 0) then (0, 1 / fh) | inputs: the field before (linear, clamp to edge)
 ${GLASS_BLUR_WGSL}
-// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (textureLoad), Pass 3 (linear, clamp to edge)
-${GLASS_FINAL_WGSL}
+// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (textureLoad), Pass 3 (linear, clamp to edge)${grain ? ", the grain's tile (binding 4: 128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad) and its scale (binding 5: the canvas's pixels to a CSS pixel)" : ""}
+${grain ? GLASS_FINAL_GRAIN_WGSL : GLASS_FINAL_WGSL}
 // ==== Bake: rib map ==== target: W x H, rgba8unorm, once for each size, angle and shape, before the frame that needs it | inputs: the ribs, a row each (a storage buffer)
 ${GLASS_BAKE_WGSL}`;
 
@@ -305,16 +336,34 @@ export function glassWebgpu(
   effect: Effect,
   angle: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
+  /* a grain alone in the glass's own last pass; a soft in the finish's passes after it */
+  const grain = grainOnly(finish);
+  const done = finished(finish) && !grain;
   if (kind === "webgpu")
     return shaderPageHtml(
-      effectShaderCredit(seed, effect, angle, "fluted glass, drawn by WebGPU", origin),
+      effectShaderCredit(seed, effect, angle, "fluted glass, drawn by WebGPU", origin, finish),
       seed,
       [
-        { code: glassSettingsJs(P, effect, angle) },
-        ...WEBGPU_SHADERS.map(([id, type, code]) => ({ id, type, code })),
-        { type: "module", code: `${GLASS_MODEL}\n\n${WEBGPU_DRAWING}` }
+        {
+          code: done
+            ? `${glassSettingsJs(P, effect, angle)}\n\n${finishSettingsJs(finish, "ANGLE")}`
+            : grain
+              ? `${glassSettingsJs(P, effect, angle)}\n\n${grainSettingsJs(finish.grain ?? 0)}`
+              : glassSettingsJs(P, effect, angle)
+        },
+        ...webgpuShaders(grain).map(([id, type, code]) => ({ id, type, code })),
+        ...(done ? FINISH_WEBGPU_SHADERS.map(([id, type, code]) => ({ id, type, code })) : []),
+        {
+          type: "module",
+          code: done
+            ? `${GLASS_MODEL}\n\n${FINISH_MATH_JS}\n\n${FINISH_WEBGPU_JS}\n\n${webgpuDrawing("finish")}`
+            : grain
+              ? `${GLASS_MODEL}\n\n${GRAIN_TILE_JS}\n\n${GRAIN_WEBGPU_JS}\n\n${webgpuDrawing("grain")}`
+              : `${GLASS_MODEL}\n\n${webgpuDrawing("plain")}`
+        }
       ]
     );
   const credit = effectShaderCredit(
@@ -322,11 +371,12 @@ export function glassWebgpu(
     effect,
     angle,
     "fluted glass: the WGSL passes its WebGPU page runs",
-    origin
+    origin,
+    finish
   );
   return `${credit.map(line => `// ${line}`).join("\n")}
 // The page's JavaScript works out each frame's numbers as the site's player does: the ribs and their stops, the
 // discs' places, the blur's taps and the uniforms below.
 
-${WGSL_SECTIONS}`;
+${wgslSections(grain)}${done ? `\n\n${FINISH_WGSL_SECTIONS}` : ""}`;
 }

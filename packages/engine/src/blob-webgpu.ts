@@ -1,22 +1,47 @@
 /* The blob in WGSL and as a WebGPU page that plays it (blob-shader.ts names every kind): the player's passes in WGSL
    (blob-wgsl.ts) on the numbers the player works out (blob-page.ts), played by the players' clock (effect-page.ts).
-   The editor loads this module with the Shader tab's WGSL or WebGPU spelling. */
+   A soft or grained blob draws its last pass into the finish's frame, which the finish then lays over the canvas
+   (shader-finish.ts). The editor loads this module with the Shader tab's WGSL or WebGPU spelling. */
 import { BLOB_MATH, BLOB_WHAT, blobSettings, blobTextHead } from "./blob-page.ts";
 import { BLOB_WGSL } from "./blob-wgsl.ts";
 import type { Effect } from "./effect.ts";
 import { EFFECT_CLOCK } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
+import {
+  type EffectShaderFinish,
+  FINISH_MATH_JS,
+  FINISH_WEBGPU_JS,
+  FINISH_WEBGPU_SHADERS,
+  FINISH_WGSL_SECTIONS,
+  finished,
+  finishSettingsJs,
+  GRAIN_TILE_JS,
+  GRAIN_WEBGPU_JS,
+  grainedWgsl,
+  grainOnly,
+  grainSettingsJs
+} from "./shader-finish.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 import { DEFAULT_ANGLE } from "./view.ts";
 
-const WEBGPU_SHADERS = [
-  ["noise", "text/wgsl", BLOB_WGSL.noise],
-  ["dots", "text/wgsl", BLOB_WGSL.dots],
-  ["blur", "text/wgsl", BLOB_WGSL.blur],
-  ["final", "text/wgsl", BLOB_WGSL.final]
-] as const;
+/* the blob's last pass with the grain over the canvas's bytes, for a grain with no soft: the tile at binding 4, its
+   scale at 5 */
+const BLOB_FINAL_GRAIN_WGSL = grainedWgsl(
+  BLOB_WGSL.final,
+  4,
+  "  return s + uni.ground * (1.0 - s.a);",
+  "  return grainOver(floor((s + uni.ground * (1.0 - s.a)) * 255.0 + 0.5), p) / 255.0;"
+);
 
-const WGSL_SECTIONS: readonly [header: string, module: string][] = [
+const webgpuShaders = (grain: boolean) =>
+  [
+    ["noise", "text/wgsl", BLOB_WGSL.noise],
+    ["dots", "text/wgsl", BLOB_WGSL.dots],
+    ["blur", "text/wgsl", BLOB_WGSL.blur],
+    ["final", "text/wgsl", grain ? BLOB_FINAL_GRAIN_WGSL : BLOB_WGSL.final]
+  ] as const;
+
+const wgslSections = (grain: boolean): readonly [header: string, module: string][] => [
   [
     "Pass 0: frost noise ==== target: W x H (the canvas's device pixels), rgba8unorm, once a size | inputs: lattice (256 x 1, r8uint), gradients (256 x 4, rgba8unorm)",
     BLOB_WGSL.noise
@@ -30,14 +55,18 @@ const WGSL_SECTIONS: readonly [header: string, module: string][] = [
     BLOB_WGSL.blur
   ],
   [
-    "Pass 4: canvas ==== target: the canvas, W x H, premultiplied alpha | inputs: the melt after pass 3 (linear, clamp to edge), the noise (textureLoad)",
-    BLOB_WGSL.final
+    `Pass 4: canvas ==== target: the canvas, W x H, premultiplied alpha | inputs: the melt after pass 3 (linear, clamp to edge), the noise (textureLoad)${grain ? ", the grain's tile (binding 4: 128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad) and its scale (binding 5: the canvas's pixels to a CSS pixel)" : ""}`,
+    grain ? BLOB_FINAL_GRAIN_WGSL : BLOB_WGSL.final
   ]
 ];
 
 /* The WebGPU page's drawing: the same passes and the same numbers, in WebGPU's calls, laid out and drawn by the
-   players' clock. */
-const WEBGPU_DRAWING = `// The drawing, WebGPU, as the site's player draws it with WebGL: the same passes and the same numbers.
+   players' clock; a grained one's last pass lays the grain from its tile, and a soft one's draws into the finish's
+   frame. */
+const webgpuDrawing = (mode: "plain" | "grain" | "finish") => {
+  const finish = mode === "finish";
+  const grain = mode === "grain";
+  return `// The drawing, WebGPU, as the site's player draws it with WebGL: the same passes and the same numbers.
 const canvas = document.querySelector("canvas");
 const request = async () => {
   const adapter = await navigator.gpu?.requestAdapter().catch(() => null);
@@ -99,7 +128,7 @@ function play() {
   let melt = [];
   let noise = null;
   let groups = null;
-  let baked = false;
+  let baked = false;${finish ? "\n  let finish = null;" : ""}${grain ? "\n  let grainTex = null;\n  let grainScale = null;" : ""}
   const make = () => {
     context.configure({ device: gpu, format, alphaMode: "premultiplied" });
     dots = pipeline("dots", "rgba16float", {
@@ -118,7 +147,7 @@ function play() {
     });
     blur = pipeline("blur", "rgba16float");
     bake = pipeline("noise", "rgba8unorm");
-    final = pipeline("final", format);
+    final = pipeline("final", ${finish ? '"rgba8unorm"' : "format"});
     quad = buffer(GPUBufferUsage.VERTEX, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]));
     dotsU = uniforms(16);
     acrossU = uniforms(96);
@@ -134,7 +163,7 @@ function play() {
     melt = [];
     noise = null;
     groups = null;
-    baked = false;
+    baked = false;${finish ? "\n    finish = finishing(gpu, format);" : ""}${grain ? "\n    grainTex = grainTexture(gpu);\n    grainScale = grainScaleBuffer(gpu);" : ""}
   };
   make();
 
@@ -152,7 +181,7 @@ function play() {
     const css = canvas.getBoundingClientRect();
     const W = Math.max(1, css.width);
     const H = Math.max(1, css.height);
-    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);
+    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);${finish ? "\n    finish.layout(cw, ch, grainScaleOf(cw));" : ""}${grain ? "\n    gpu.queue.writeBuffer(grainScale, 0, new Float32Array([grainScaleOf(cw)]));" : ""}
     if (canvas.width !== cw || canvas.height !== ch) {
       canvas.width = cw;
       canvas.height = ch;
@@ -206,7 +235,7 @@ function play() {
       across: group(blur, [acrossU, melt[0].createView()]),
       down: group(blur, [downU, melt[1].createView()]),
       bake: group(bake, [bakeU, latticeTex.createView(), gradientTex.createView()]),
-      final: group(final, [finalU, melt[0].createView(), linear, noise.createView()])
+      final: group(final, [finalU, melt[0].createView(), linear, noise.createView()${grain ? ", grainTex.createView(), { buffer: grainScale }" : ""}])
     };
   };
 
@@ -248,7 +277,7 @@ function play() {
     pass(encoder, melt[1].createView(), blur, groups.across, at => at.draw(4));
     pass(encoder, melt[0].createView(), blur, groups.down, at => at.draw(4));
     // every pixel: the frost's scatter, the lift of the edge, the speckle, the ground
-    pass(encoder, context.getCurrentTexture().createView(), final, groups.final, at => at.draw(4));
+    pass(encoder, ${finish ? "finish.view" : "context.getCurrentTexture().createView()"}, final, groups.final, at => at.draw(4));${finish ? "\n    finish.draw(encoder, context.getCurrentTexture().createView());" : ""}
     gpu.queue.submit([encoder.finish()]);
   };
 
@@ -271,6 +300,7 @@ ${indent(EFFECT_CLOCK)}
     });
   watch(gpu);
 }`;
+};
 
 /** The blob as WGSL, its WebGPU page's modules, or as that page: the player's passes on the numbers the player works
     out. `origin` adds the effect's address to the credit, which names no angle: the blob has none. */
@@ -279,17 +309,33 @@ export function blobWebgpu(
   P: Palette,
   effect: Effect,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
+  /* a grain alone in the blob's own last pass; a soft in the finish's passes after it */
+  const grain = grainOnly(finish);
+  const done = finished(finish) && !grain;
   if (kind === "webgpu")
     return shaderPageHtml(
-      effectShaderCredit(seed, effect, DEFAULT_ANGLE, `${BLOB_WHAT}, drawn by WebGPU`, origin),
+      effectShaderCredit(
+        seed,
+        effect,
+        DEFAULT_ANGLE,
+        `${BLOB_WHAT}, drawn by WebGPU`,
+        origin,
+        finish
+      ),
       seed,
       [
-        ...WEBGPU_SHADERS.map(([id, type, code]) => ({ id, type, code })),
+        ...webgpuShaders(grain).map(([id, type, code]) => ({ id, type, code })),
+        ...(done ? FINISH_WEBGPU_SHADERS.map(([id, type, code]) => ({ id, type, code })) : []),
         {
           type: "module",
-          code: `${blobSettings(P, effect)}\n\n${BLOB_MATH}\n\n${WEBGPU_DRAWING}`
+          code: done
+            ? `${blobSettings(P, effect)}\n\n${finishSettingsJs(finish, String(DEFAULT_ANGLE))}\n\n${BLOB_MATH}\n\n${FINISH_MATH_JS}\n\n${FINISH_WEBGPU_JS}\n\n${webgpuDrawing("finish")}`
+            : grain
+              ? `${blobSettings(P, effect)}\n\n${grainSettingsJs(finish.grain ?? 0)}\n\n${BLOB_MATH}\n\n${GRAIN_TILE_JS}\n\n${GRAIN_WEBGPU_JS}\n\n${webgpuDrawing("grain")}`
+              : `${blobSettings(P, effect)}\n\n${BLOB_MATH}\n\n${webgpuDrawing("plain")}`
         }
       ]
     );
@@ -298,9 +344,12 @@ export function blobWebgpu(
     effect,
     DEFAULT_ANGLE,
     `${BLOB_WHAT}, as WGSL, the WebGPU page's modules, a section a pass`,
-    origin
+    origin,
+    finish
   );
   return `${blobTextHead(credit)}
-${WGSL_SECTIONS.map(([header, module]) => `\n// ==== ${header}\n${module}`).join("\n")}
-`;
+${wgslSections(grain)
+  .map(([header, module]) => `\n// ==== ${header}\n${module}`)
+  .join("\n")}
+${done ? `\n${FINISH_WGSL_SECTIONS}` : ""}`;
 }
