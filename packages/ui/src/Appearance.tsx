@@ -337,7 +337,7 @@ export function AppearanceMenu(props: AppearanceProps) {
                 aria-hidden="true"
               />
               <span class={styles.name} aria-hidden="true">
-                {styleLabel(style())}
+                <span class={styles.label}>{styleLabel(style())}</span>
               </span>
             </button>
           )}
@@ -364,7 +364,7 @@ export function AppearanceMenu(props: AppearanceProps) {
                 {extra.art}
               </span>
               <span class={styles.name} aria-hidden="true">
-                {extra.label}
+                <span class={styles.label}>{extra.label}</span>
               </span>
             </button>
           )}

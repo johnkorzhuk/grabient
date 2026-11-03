@@ -202,9 +202,13 @@
     outline-offset: 2px;
     transition: box-shadow var(--motion-fast) var(--motion-ease);
   }
+  /* a name's box is its whole cell, the room beside its picture included, which only a word longer than the picture
+     takes (.label): the longest in the site's languages, German's Papierschnitt and Russian's Радиальный at 83 px,
+     fit six cells across 560 px */
   .name {
     display: block;
     overflow: hidden;
+    margin-inline: calc(-0.5 * var(--space-s3));
     color: var(--color-ink3);
     font-family: var(--font-sans);
     font-weight: var(--font-medium);
@@ -212,12 +216,43 @@
     /* the line of the menu's own text, which the smaller name stands on */
     line-height: calc(var(--font-fs3) * var(--font-lh-ui));
     text-align: center;
-    text-overflow: ellipsis;
-    /* a name longer than its picture is wide takes a second line rather than lose its end: "Fluted glass" and the
-       bands' names on a phone, and in some languages more */
-    text-wrap: balance;
     [aria-pressed="true"] > & {
       color: var(--color-ink);
+    }
+  }
+  /* the name's words wrap at its picture's width, a name longer than that taking a second line rather than lose its
+     end ("Fluted glass", the bands' names in some languages), and a single word longer than the picture is as wide
+     as it is, centered over the room beside it */
+  .label {
+    display: inline-block;
+    min-width: min-content;
+    max-width: calc(100% - var(--space-s3));
+    vertical-align: top;
+    text-wrap: balance;
+  }
+  /* a phone's menu has no room for a column to each style (six cells need 560 px of page for that longest word): the
+     styles stand three across, each over its bands, and the effects beneath them three to a row, so a name has about
+     100 px. APPEARANCE_OPTIONS's order puts each style's tile before its bands' */
+  @container page (max-width: 560px) {
+    .tiles {
+      grid-auto-flow: row;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: none;
+    }
+    .tile:nth-child(-n + 6):nth-child(odd) {
+      grid-row: 1;
+    }
+    .tile:nth-child(-n + 6):nth-child(even) {
+      grid-row: 2;
+    }
+    .tile:nth-child(-n + 2) {
+      grid-column: 1;
+    }
+    .tile:nth-child(n + 3):nth-child(-n + 4) {
+      grid-column: 2;
+    }
+    .tile:nth-child(n + 5):nth-child(-n + 6) {
+      grid-column: 3;
     }
   }
   .pair {

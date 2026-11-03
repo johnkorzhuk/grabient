@@ -1539,6 +1539,34 @@ test.describe("on a phone", () => {
     await expect(page.getByRole("spinbutton", { name: "Hue" })).toBeAttached();
   });
 
+  test("the Appearance menu stands three across, each style over its bands and the effects beneath, every name whole", async ({
+    page
+  }) => {
+    await open(page, `/${SEED}?style=papercut`);
+    await page.getByRole("button", { name: /^Appearance/ }).tap();
+    const tiles = page.locator('[class*="_tiles_"]');
+    const at = async (name: string) => {
+      const box = await tiles.getByRole("button", { name, exact: true }).boundingBox();
+      if (!box) throw new Error(`no ${name} tile`);
+      return box;
+    };
+    const [linear, bands, radial, angular, glass, rosette] = await Promise.all(
+      ["Linear", "Linear bands", "Radial", "Angular", "Fluted glass", "Rosette"].map(at)
+    );
+    expect([radial.y, angular.y]).toEqual([linear.y, linear.y]);
+    expect([bands.x, glass.x, rosette.x]).toEqual([linear.x, linear.x, linear.x]);
+    expect(bands.y).toBeGreaterThan(linear.y);
+    expect(glass.y).toBeGreaterThan(bands.y);
+    expect(rosette.y).toBeGreaterThan(glass.y);
+    /* no name is cut short, Papercut's and Angular's among them */
+    const cut = await tiles
+      .locator('[class*="_name_"]')
+      .evaluateAll(names =>
+        names.filter(n => n.scrollWidth > n.clientWidth + 0.5).map(n => n.textContent)
+      );
+    expect(cut).toEqual([]);
+  });
+
   test("the palette's name stands at the picture's foot as the first screen's largest paint, and gives way to the presses a tap brings", async ({
     page
   }) => {
