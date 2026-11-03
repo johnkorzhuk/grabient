@@ -349,10 +349,11 @@ export const FINISH_MATH_JS = `${GRAIN_TILE_JS}
 // texels t pixels wide, a power of two, the largest at most half the sigma (so the sigma there is 2 to 4 texels, as
 // Chromium's own blur halves a picture before it blurs it), a texel past each edge, made from the frame in two
 // levels (at most 8 pixels a side, then the rest); its taps either side, three sigmas, read in pairs, each pair one
-// read between its two texels, and their weights. None for no soft.
+// read between its two texels, and their weights. None for no soft, or one under a quarter of a pixel, whose blur
+// moves no byte (its nearest tap weighs under a 2,900th).
 const softPlan = (w, h) => {
   const sigma = SOFT * Math.max(w, h);
-  if (!(sigma > 0)) return null;
+  if (!(sigma >= 0.25)) return null;
   let t = 1;
   while (4 * t <= sigma) t *= 2;
   const s = sigma / t;
@@ -370,7 +371,7 @@ const softPlan = (w, h) => {
     const wa = weights[a] / total;
     const wb = a < reach ? weights[a + 1] / total : 0;
     pairs++;
-    taps[2 * pairs] = a + wb / (wa + wb);
+    taps[2 * pairs] = wa + wb > 0 ? a + wb / (wa + wb) : a;
     taps[2 * pairs + 1] = wa + wb;
   }
   const first = Math.min(t, 8);
@@ -462,7 +463,8 @@ function finishing(gl) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     return t;
   };
-  // the soft's grid in half floats where they can be drawn into, so its blur adds no rounding of its own
+  // the soft's grid: in bytes at a texel a pixel, as Chromium keeps a blur it draws at full size, else in half floats
+  // where they can be drawn into, which come nearer the blur Chromium draws on a smaller picture
   const half = !!(gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float"));
   const frameTex = texture(gl.NEAREST);
   const frame = gl.createFramebuffer();
@@ -492,9 +494,10 @@ function finishing(gl) {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, frameTex, 0);
     plan = softPlan(w, h);
     // the grid's textures, a texel each where there is no soft, so none is bound empty
+    const floats = half && plan && plan.t > 1;
     const sized = (g, gw, gh) => {
       gl.bindTexture(gl.TEXTURE_2D, g.texture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, half ? gl.RGBA16F : gl.RGBA8, gw, gh, 0, gl.RGBA, half ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(gl.TEXTURE_2D, 0, floats ? gl.RGBA16F : gl.RGBA8, gw, gh, 0, gl.RGBA, floats ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
       gl.bindFramebuffer(gl.FRAMEBUFFER, g.frame);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, g.texture, 0);
     };
@@ -588,8 +591,10 @@ function finishing(device, format) {
       primitive: { topology: "triangle-list" }
     });
   };
-  const pDown = pipeline("finish-down", "rgba16float");
-  const pBlur = pipeline("finish-blur", "rgba16float");
+  // the soft's grid: in bytes at a texel a pixel, as Chromium keeps a blur it draws at full size, else in half floats,
+  // which come nearer the blur Chromium draws on a smaller picture; a pipeline for each, made as it is first needed
+  const pipelines = {};
+  const passes = f => (pipelines[f] ??= { down: pipeline("finish-down", f), blur: pipeline("finish-blur", f) });
   const pFinal = pipeline("finish", format);
   const uniforms = size => device.createBuffer({ size, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
   const uFirst = uniforms(16);
@@ -626,6 +631,8 @@ function finishing(device, format) {
   let level = null;
   let grid = [];
   let groups = null;
+  let pDown = null;
+  let pBlur = null;
 
   // the frame's texture at the canvas's size, the soft's grid for it, and their uniforms
   const layout = (w, h, cssScale) => {
@@ -637,8 +644,10 @@ function finishing(device, format) {
     for (const g of grid) g.destroy();
     frame = texture(w, h, "rgba8unorm");
     plan = softPlan(w, h);
-    grid = plan ? [0, 1].map(() => texture(plan.lw, plan.lh, "rgba16float")) : [texture(1, 1, "rgba16float")];
-    level = plan && plan.rest > 1 ? texture(plan.lw * plan.rest, plan.lh * plan.rest, "rgba16float") : null;
+    const f = plan && plan.t > 1 ? "rgba16float" : "rgba8unorm";
+    ({ down: pDown, blur: pBlur } = passes(f));
+    grid = plan ? [0, 1].map(() => texture(plan.lw, plan.lh, f)) : [texture(1, 1, f)];
+    level = plan && plan.rest > 1 ? texture(plan.lw * plan.rest, plan.lh * plan.rest, f) : null;
     const t = plan ? plan.t : 1;
     const down = (x, y, factor) => {
       const b = new ArrayBuffer(16);
@@ -658,10 +667,10 @@ function finishing(device, format) {
     };
     device.queue.writeBuffer(uAcross, 0, blur(1, 0));
     device.queue.writeBuffer(uAlong, 0, blur(0, 1));
-    const f = new ArrayBuffer(48);
-    new Float32Array(f, 0, 8).set([-t, -t, t, plan ? 1 : 0, w, h, ...underLine(w, h)]);
-    new Int32Array(f, 32, 1).set([plan ? UNDER.length : 0]);
-    device.queue.writeBuffer(uFinal, 0, f);
+    const fin = new ArrayBuffer(48);
+    new Float32Array(fin, 0, 8).set([-t, -t, t, plan ? 1 : 0, w, h, ...underLine(w, h)]);
+    new Int32Array(fin, 32, 1).set([plan ? UNDER.length : 0]);
+    device.queue.writeBuffer(uFinal, 0, fin);
     groups = {
       view: frame.createView(),
       first: plan && group(pDown, [frame.createView(), { buffer: uFirst }]),
@@ -713,7 +722,7 @@ function finishing(device, format) {
 export const FINISH_GLSL_SECTIONS = `// ==== Finish ==== the vertex stage of the finish's passes: one triangle over the target, drawn as 3 vertices with no attributes | the effect's last pass draws into the frame: the canvas's size, RGBA8
 ${FINISH_VS}
 
-// ==== Finish 1: soft's grid ==== target: ceil(W / t) + 2 x ceil(H / t) + 2 texels, RGBA16F (RGBA8 without float targets), t a power of two, the largest at most half the soft's sigma (1 under 4 pixels), its corner a texel past the left and the top; drawn from the frame (texelFetch) a factor of t at a time up to 8, so t over 8 takes a level of (t / 8) times the grid's texels between | inputs: the frame or the level before (texelFetch); only with a soft
+// ==== Finish 1: soft's grid ==== target: ceil(W / t) + 2 x ceil(H / t) + 2 texels, RGBA8 where t is 1, else RGBA16F (RGBA8 without float targets), t a power of two, the largest at most half the soft's sigma (1 under 4 pixels), its corner a texel past the left and the top; drawn from the frame (texelFetch) a factor of t at a time up to 8, so t over 8 takes a level of (t / 8) times the grid's texels between | inputs: the frame or the level before (texelFetch); only with a soft
 ${FINISH_DOWN_FS}
 
 // ==== Finish 2 and 3: soft's blur across, then down ==== target: the other grid texture, the same size | inputs: the grid (linear, clamp to edge), along (1, 0) then (0, 1), a Gaussian of sigma / t texels to three sigmas (12 at most), read in pairs: the middle's weight, then each pair's offset and weight; only with a soft
@@ -724,7 +733,7 @@ ${FINISH_FS}
 `;
 
 /** The finish's WGSL as the effects' WGSL texts write it, a section a module, after the effect's own. */
-export const FINISH_WGSL_SECTIONS = `// ==== Finish 1: soft's grid ==== target: ceil(W / t) + 2 x ceil(H / t) + 2 texels, rgba16float, t a power of two, the largest at most half the soft's sigma (1 under 4 pixels), its corner a texel past the left and the top; drawn from the frame the effect's last pass draws into (the canvas's size, rgba8unorm) a factor of t at a time up to 8, so t over 8 takes a level of (t / 8) times the grid's texels between | inputs: the frame or the level before (textureLoad); only with a soft
+export const FINISH_WGSL_SECTIONS = `// ==== Finish 1: soft's grid ==== target: ceil(W / t) + 2 x ceil(H / t) + 2 texels, rgba8unorm where t is 1, else rgba16float, t a power of two, the largest at most half the soft's sigma (1 under 4 pixels), its corner a texel past the left and the top; drawn from the frame the effect's last pass draws into (the canvas's size, rgba8unorm) a factor of t at a time up to 8, so t over 8 takes a level of (t / 8) times the grid's texels between | inputs: the frame or the level before (textureLoad); only with a soft
 ${FINISH_WGSL.down}
 
 // ==== Finish 2 and 3: soft's blur across, then down ==== target: the other grid texture, the same size | inputs: the grid (linear, clamp to edge), along (1, 0) then (0, 1), a Gaussian of sigma / t texels to three sigmas (12 at most), read in pairs: the middle's weight, then each pair's offset and weight; only with a soft

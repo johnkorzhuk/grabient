@@ -64,7 +64,7 @@ test("the page's grain tile is the engine's, a byte a speck: its alpha with the 
 
 test("the soft's plan draws on texels a power of two wide, the sigma there 2 to 4 of them, its taps paired, summing to 1", () => {
   for (const [soft, w, h] of [
-    [1, 800, 400],
+    [2, 3840, 2160],
     [8, 800, 400],
     [40, 800, 400],
     [100, 1920, 1080],
@@ -104,6 +104,15 @@ test("the soft's plan draws on texels a power of two wide, the sigma there 2 to 
       400
     )
   ).toBeNull();
+  /* a sigma under a quarter of a pixel moves no byte, so it draws no blur (soft 1 at 800 pixels is 0.03) */
+  const tiny = `const SOFT = ${effectSoftShare(1)}; const UNDER = []; const UNDER_ANGLE = 90; const GRAIN = 0;`;
+  expect(pageMath(tiny).softPlan(800, 400)).toBeNull();
+  /* just past it, every tap is a number */
+  const quarter = pageMath(
+    `const SOFT = ${0.2501 / 800}; const UNDER = []; const UNDER_ANGLE = 90; const GRAIN = 0;`
+  ).softPlan(800, 400);
+  expect(quarter?.pairs).toBe(1);
+  expect([...(quarter?.taps ?? [])].every(Number.isFinite)).toBe(true);
 });
 
 test("the gradient under a soft effect carries every stop, past the most a shader's array could hold", () => {
