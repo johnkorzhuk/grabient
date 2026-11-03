@@ -97,7 +97,8 @@ const effectTabsNow = () => {
   return effectTabs();
 };
 /* the shader's texts and its WebGL and WebGPU pages (engine/shader.ts, shader-page.ts), asked for once the Shader tab
-   shows: a page's start carries only the tab's spellings */
+   shows: a page's start carries only the tab's spellings, and the Worker's build none of them (a server never writes a
+   shader, and its ask waits for ever) */
 interface ShaderCode {
   text: typeof import("@grabient/engine/shader.ts");
   page: typeof import("@grabient/engine/shader-page.ts");
@@ -107,10 +108,14 @@ let shaderAsked = false;
 const shaderCodeNow = () => {
   if (!shaderAsked) {
     shaderAsked = true;
-    void Promise.all([
-      import("@grabient/engine/shader.ts"),
-      import("@grabient/engine/shader-page.ts")
-    ]).then(
+    void (
+      import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : Promise.all([
+            import("@grabient/engine/shader.ts"),
+            import("@grabient/engine/shader-page.ts")
+          ])
+    ).then(
       ([text, page]) => setShaderCode({ text, page }),
       () => {
         shaderAsked = false;

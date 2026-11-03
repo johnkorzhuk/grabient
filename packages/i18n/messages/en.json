@@ -907,7 +907,7 @@
   "Colors": {
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:277",
+      "apps/web/src/features/editor/code.ts:282",
       "apps/web/src/features/editor/effect-sources.ts:232"
     ]
   },
@@ -2466,14 +2466,14 @@
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:989",
-      "apps/web/src/features/editor/code.ts:317",
+      "apps/web/src/features/editor/code.ts:322",
       "packages/ui/src/Keyframes.tsx:156"
     ]
   },
   "Keyframes, spline and OKLCH to sRGB conversion.": {
     "note": "Code pane: what the shader holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:309"
+      "apps/web/src/features/editor/code.ts:314"
     ]
   },
   "Language": {
@@ -3545,7 +3545,7 @@
   "Plus a Display P3 line.": {
     "note": "Code pane: the CSS also has a line for wide-gamut screens.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:220"
+      "apps/web/src/features/editor/code.ts:225"
     ]
   },
   "Popular": {
@@ -4312,7 +4312,7 @@
   "Seed": {
     "note": "Code pane tab: the palette's seed, the short code in its address.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:183"
+      "apps/web/src/features/editor/code.ts:188"
     ]
   },
   "Seeding agents read these notes before they write again.": {
@@ -4440,7 +4440,7 @@
   "Shader": {
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:295",
+      "apps/web/src/features/editor/code.ts:300",
       "apps/web/src/features/editor/effect-sources.ts:178"
     ]
   },
@@ -5094,7 +5094,7 @@
   "The colors as design tokens.": {
     "note": "Code pane: what the JSON tab holds when it is set to design tokens.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:325"
+      "apps/web/src/features/editor/code.ts:330"
     ]
   },
   "The dots are keyframes. The graph shows lightness, chroma and hue along the gradient. Drag a dot to change a keyframe.": {
@@ -5143,7 +5143,7 @@
   "The keyframes as JSON.": {
     "note": "Code pane: what the JSON tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:325"
+      "apps/web/src/features/editor/code.ts:330"
     ]
   },
   "The most liked CSS gradients and color palettes on Grabient. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
@@ -5173,13 +5173,13 @@
   "The palette as Markdown: colors, names and CSS.": {
     "note": "Code pane: what the MD tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:334"
+      "apps/web/src/features/editor/code.ts:339"
     ]
   },
   "The palette as Markdown: colors, names and the tags that play it.": {
     "note": "Editor's code pane, Markdown tab while an effect plays: the palette as a Markdown file, with its colors, their names and the HTML tags that play the effect.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:200"
+      "apps/web/src/features/editor/code.ts:205"
     ]
   },
   "The palette in the color space": {
@@ -5197,7 +5197,7 @@
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:332",
+      "apps/web/src/features/editor/code.ts:337",
       "apps/web/src/features/editor/effect-sources.ts:262"
     ]
   },
@@ -5228,7 +5228,7 @@
   "The stops blurred along the line, at their places, blended in sRGB.": {
     "note": "Editor's code pane, Shader tab for a soft palette: what its shader draws: the palette's stops blurred along the gradient's line by the soft, each at its place, blended in sRGB, as the CSS draws them (in place of the plain shader's keyframes and spline).",
     "refs": [
-      "apps/web/src/features/editor/code.ts:308"
+      "apps/web/src/features/editor/code.ts:313"
     ]
   },
   "The stylesheet that paints its first frame behind the page.": {
@@ -5290,7 +5290,7 @@
   "Then its grain, a speck a CSS pixel.": {
     "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:310",
+      "apps/web/src/features/editor/code.ts:315",
       "apps/web/src/features/editor/effect-sources.ts:197"
     ]
   },
@@ -6722,7 +6722,7 @@
   "{count, plural, one {# band} other {# bands}}, one per line.": {
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:290"
+      "apps/web/src/features/editor/code.ts:295"
     ]
   },
   "{count, plural, one {# change not saved} other {# changes not saved}}": {
@@ -6740,7 +6740,7 @@
   "{count, plural, one {# character} other {# characters}}. The whole palette.": {
     "note": "Code pane: the seed's length; it holds the whole palette.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:186"
+      "apps/web/src/features/editor/code.ts:191"
     ]
   },
   "{count, plural, one {# color} other {# colors}}": {
@@ -6752,7 +6752,7 @@
   "{count, plural, one {# color} other {# colors}}, one per line.": {
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:291",
+      "apps/web/src/features/editor/code.ts:296",
       "apps/web/src/features/editor/effect-sources.ts:237"
     ]
   },
@@ -6765,7 +6765,7 @@
   "{count, plural, one {# hard band} other {# hard bands}} as oklch().": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:239"
+      "apps/web/src/features/editor/code.ts:244"
     ]
   },
   "{count, plural, one {# hour} other {# hours}}": {
@@ -6813,25 +6813,25 @@
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:246"
+      "apps/web/src/features/editor/code.ts:251"
     ]
   },
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as {fn}.": {
     "note": "Code pane: what the CSS holds. fn is the CSS color function the bands are written in, rgb() or hsl(), shown as code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:251"
+      "apps/web/src/features/editor/code.ts:256"
     ]
   },
   "{count, plural, one {# sRGB stop} other {# sRGB stops}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:249"
+      "apps/web/src/features/editor/code.ts:254"
     ]
   },
   "{count, plural, one {# sRGB stop} other {# sRGB stops}} as {fn}.": {
     "note": "Code pane: what the CSS holds. fn is the CSS color function the stops are written in, rgb() or hsl(), shown as code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:255"
+      "apps/web/src/features/editor/code.ts:260"
     ]
   },
   "{count, plural, one {# session} other {# sessions}}": {
@@ -6861,13 +6861,13 @@
   "{count, plural, one {# stop, blended in OKLCH} other {# stops, blended in OKLCH}} as oklch().": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:240"
+      "apps/web/src/features/editor/code.ts:245"
     ]
   },
   "{count, plural, one {# stop, blurred along the line} other {# stops, blurred along the line}}.": {
     "note": "Editor, the code pane's CSS tab while the picture is soft: how many color stops the CSS gradient holds, each placed along the gradient's line to draw the blur.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:231"
+      "apps/web/src/features/editor/code.ts:236"
     ]
   },
   "{count, plural, one {<n>#</n> <w>palette</w>} other {<n>#</n> <w>palettes</w>}}": {
