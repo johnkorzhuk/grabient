@@ -207,3 +207,59 @@ test("a blob held at speed 0 keeps its still, which is its whole picture, and no
   await expect(page.locator("canvas")).toHaveCount(0);
   expect(await contexts(page)).toBe(0);
 });
+
+test("a soft and grained silk paints its still blurred over its gradient and grained, and its script plays it so under a strict policy", async ({
+  page
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  await site(page, tags("style=silk&angle=40&soft=50&grain=30&shape=7"), true);
+  const pseudo = (element: "html" | "body", which: "::before" | "::after", property: string) =>
+    page.evaluate(
+      ([element, which, property]) =>
+        getComputedStyle(
+          element === "html" ? document.documentElement : document.body,
+          which
+        ).getPropertyValue(property),
+      [element, which, property] as const
+    );
+  expect(await painted(page)).toContain("data:image/svg+xml");
+  /* the still blurred by a share of the page's longer side, the gradient under it, the grain over it */
+  expect(await pseudo("html", "::before", "filter")).toMatch(/^blur\([\d.]+px\)$/);
+  expect(await pseudo("html", "::after", "background-image")).toMatch(/^linear-gradient\(/);
+  expect(await pseudo("html", "::after", "z-index")).toBe("-2");
+  expect(await pseudo("body", "::before", "background-image")).toContain("data:image/png;base64,");
+  const blur = await pseudo("html", "::before", "filter");
+  /* the opaque silk fades in over the still, then the still, its gradient and its grain give way to the layer's own */
+  await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
+    timeout: 15_000
+  });
+  await expect(layer(page)).toHaveCSS("opacity", "1");
+  await expect(layer(page)).toHaveCSS("background-image", /^linear-gradient\(/);
+  await expect(page.locator("canvas")).toHaveCSS("filter", blur);
+  await expect(layer(page).locator("div")).toHaveCSS("background-image", /data:image\/png;base64,/);
+  await expect(layer(page).locator("div")).toHaveCSS("image-rendering", "pixelated");
+  expect(await pseudo("html", "::before", "background-image")).toBe("none");
+  expect(await pseudo("html", "::after", "background-image")).toBe("none");
+  expect(await pseudo("body", "::before", "background-image")).toBe("none");
+  expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
+    []
+  );
+  expect(errors).toEqual([]);
+});
+
+test("without the stylesheet the rosette's script paints its finished still itself, and held at speed 0 takes no context", async ({
+  page
+}) => {
+  await site(page, tags("style=rosette&soft=30&grain=20&speed=0", false), true);
+  await expect.poll(() => painted(page)).toContain("data:image/svg+xml");
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.body, "::before").backgroundImage))
+    .toContain("data:image/png;base64,");
+  expect(
+    await page.evaluate(() => getComputedStyle(document.documentElement, "::before").filter)
+  ).toMatch(/^blur\(/);
+  await page.waitForTimeout(2000);
+  await expect(page.locator("canvas")).toHaveCount(0);
+  expect(await contexts(page)).toBe(0);
+});

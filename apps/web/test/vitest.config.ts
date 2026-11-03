@@ -16,8 +16,13 @@ export default defineConfig({
   define: {
     // the build's name, which the edge cache's keys carry (lib/build.ts)
     __BUILD_ID__: JSON.stringify("test"),
-    // the effects' scripts are written by their own plugin (src/embed/build.ts); a static file stands in for both
-    __EFFECT_EMBEDS__: JSON.stringify({ glass: "/ads.txt", blob: "/ads.txt" }),
+    // the effects' scripts are written by their own plugin (src/embed/build.ts); a static file stands in for each
+    __EFFECT_EMBEDS__: JSON.stringify({
+      glass: "/ads.txt",
+      blob: "/ads.txt",
+      silk: "/ads.txt",
+      rosette: "/ads.txt"
+    }),
     // the grain's tiles are written by their own plugin (scripts/grain.ts)
     __GRAIN__: JSON.stringify("/assets/grain-test")
   },

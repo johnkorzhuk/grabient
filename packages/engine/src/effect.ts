@@ -34,9 +34,11 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   silk: { angle: true, vector: true },
   rosette: { angle: true, vector: true }
 };
-/** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed): the
-    glass's and the blob's; the silk's and the rosette's are not built yet, and their stylesheet paints their still. */
-export const hasEmbedScript = (kind: EffectKind): boolean => kind === "glass" || kind === "blob";
+/* the effects a script plays behind another site's page */
+const SCRIPTED: readonly EffectKind[] = ["glass", "blob", "silk", "rosette"];
+/** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
+    without has its stylesheet alone, which paints its still. */
+export const hasEmbedScript = (kind: EffectKind): boolean => SCRIPTED.includes(kind);
 /** The effects drawn by one pass of their loop's time over a vector still. */
 export type VectorKind = "silk" | "rosette";
 export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>

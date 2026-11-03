@@ -51,9 +51,13 @@ export function fxStillSvg(
     : silkStillSvg(P, look, size);
 }
 
+/** A still's SVG as a CSS background covering any box, centered, as the player lays the box out: what a kind's own
+    embed script paints its still with (apps/web/src/embed), carrying no other kind's drawing. */
+export const fxCover = (svg: string): string => `${svgUrl(svg)} 50% 50% / cover no-repeat`;
+
 /** The still as a CSS background covering any box, centered, as the player lays the box out. */
 export const fxStillBackground = (kind: VectorKind, P: Palette, look: FxLook): string =>
-  `${svgUrl(fxStillSvg(kind, P, look))} 50% 50% / cover no-repeat`;
+  fxCover(fxStillSvg(kind, P, look));
 
 /** The moving SVG of a size at a speed (1 as designed); 0 is the still. */
 export function fxMovingSvg(

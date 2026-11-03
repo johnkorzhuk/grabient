@@ -193,7 +193,7 @@ export function effectLinks(
   return {
     page: effectPage(base, seed, effect, angle, true, finish),
     css: at("css"),
-    /* the silk's and the rosette's scripts are not built yet: their stylesheet paints their still */
+    /* an effect with no script has its stylesheet alone, which paints its still */
     js: hasEmbedScript(effect.kind) ? at("js") : null,
     svg: at("svg"),
     png: at("png"),
@@ -247,9 +247,9 @@ export const effectMarkdown =
         kind === "glass"
           ? `${name} played as fluted glass: its colors ${glassColors(P).join(", ")} drift behind ribbed glass. Two tags play it behind any page.`
           : kind === "silk"
-            ? `${name} played as silk: the palette ${colors} dyed into satin that drapes in soft folds, each swaying slowly about the gather. A stylesheet paints it behind any page.`
+            ? `${name} played as silk: the palette ${colors} dyed into satin that drapes in soft folds, each swaying slowly about the gather. Two tags play it behind any page.`
             : kind === "rosette"
-              ? `${name} played as a rosette: petals on a golden spiral, each one color of the palette ${colors} by its ring, the rings rippling out from the heart as the petals grow. A stylesheet paints it behind any page.`
+              ? `${name} played as a rosette: petals on a golden spiral, each one color of the palette ${colors} by its ring, the rings rippling out from the heart as the petals grow. Two tags play it behind any page.`
               : `${name} played as a frosted blob: the palette's colors ${colors} melt into one another as it drifts. Two tags play it behind any page.`,
       drawn: `${
         kind === "glass"
