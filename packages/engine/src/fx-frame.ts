@@ -3,9 +3,11 @@
    before the effect moves, drawn on the CPU, the glass by its renderer (glass-render.ts), the blob as its still
    (blob.ts), the silk and the rosette by their drawings (silk-render.ts, rosette-render.ts). A soft or a grain finishes
    it as the site paints it (fx-finish.ts): the frame blurred by a share of its longer side over the palette's gradient,
-   toward clear where it lets the page through, the grain over all. Each one's code comes with the first picture that
-   needs it, so the module holds none of it. */
+   toward clear where it lets the page through, the grain over all. Each effect's drawing comes with the first picture
+   of it, so the module holds none of them; the finish, which a server's SVG of an effect loads too, comes with it. */
 import type { Effect, EffectFinish } from "./effect.ts";
+import { effectUnderlay, finishPixels } from "./fx-finish.ts";
+import { glassColors } from "./glass-colors.ts";
 import type { Palette } from "./palette.ts";
 import type { Size } from "./view.ts";
 
@@ -38,17 +40,13 @@ async function drawn(
     const backdrop = card ? blob.blobBackdrop(P) : undefined;
     return { pixels: blob.blobStill(P, effect.look, size, backdrop), backdrop };
   }
-  const [model, render, colors] = await Promise.all([
-    import("./glass.ts"),
-    import("./glass-render.ts"),
-    import("./glass-colors.ts")
-  ]);
+  const [model, render] = await Promise.all([import("./glass.ts"), import("./glass-render.ts")]);
   const { geometry, window } = render.glassCover(size, 1, angle, effect.look.shape);
   // one frame, drawn without holding the rib map and each pixel's read for frames to come
   return {
     pixels: render
       .glassRenderer(geometry, window, undefined, true)
-      .frame(model.glassField(geometry, colors.glassColors(P)), 0)
+      .frame(model.glassField(geometry, glassColors(P)), 0)
   };
 }
 
@@ -127,9 +125,7 @@ async function finishedOf(
   const n = size.width * size.height;
   const rgba = frame.pixels.length === n * 3 ? rgbaOf(frame.pixels, n) : frame.pixels;
   if (!finish.soft && !finish.grain) return rgba;
-  const fx = await import("./fx-finish.ts");
-  const underlay = fx.effectUnderlay(P, effect, angle, finish.soft);
-  return fx.finishPixels(rgba, size, finish, underlay);
+  return finishPixels(rgba, size, finish, effectUnderlay(P, effect, angle, finish.soft));
 }
 
 /** The same frame as straight RGBA, four bytes a pixel, as a canvas takes it: the editor's Copy PNG and Download PNG,
