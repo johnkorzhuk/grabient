@@ -236,6 +236,10 @@ export interface PapercutScene {
   width: number;
   height: number;
   D: number;
+  /** the view's name where the scene has the designed look (its angle and shape), which what depends on the view
+      alone is kept by: its levels here, and with the box the cuts its stills trace (papercut-svg.ts); null for any
+      other look */
+  view: string | null;
   /** the ramp: its direction on screen (toward the palette's last color), over its half length */
   rx: number;
   ry: number;
@@ -561,13 +565,30 @@ export function papercutDither(x: number, y: number) {
 }
 
 /** The scene a palette and a view draw in a box of `width` by `height` px. */
-export function papercutModel(
+export const papercutModel = (
   P: Palette,
   view: PapercutView,
   width: number,
   height: number,
   look: PapercutLook = PAPERCUT_LOOK
-): PapercutScene {
+): PapercutScene => atOnce(papercutModelSteps(P, view, width, height, look));
+
+/** Steps run through at once. */
+export function atOnce<T>(steps: Generator<void, T>): T {
+  let step = steps.next();
+  while (!step.done) step = steps.next();
+  return step.value;
+}
+
+/** The scene built a step at a time: its levels, where they are not kept, found a share of the work a step (the
+    field's grid a few rows at a time, then each level's specks), so a page can build one between its other work. */
+export function* papercutModelSteps(
+  P: Palette,
+  view: PapercutView,
+  width: number,
+  height: number,
+  look: PapercutLook = PAPERCUT_LOOK
+): Generator<void, PapercutScene> {
   const D = PAPERCUT_SPAN * Math.max(width, height);
   const rad = (view.angle * Math.PI) / 180;
   const dx = Math.sin(rad);
@@ -606,6 +627,7 @@ export function papercutModel(
     width,
     height,
     D,
+    view: look === PAPERCUT_LOOK ? `${view.angle}|${view.shape || 0}` : null,
     rx: (dx / half) * look.slope,
     ry: (dy / half) * look.slope,
     bumps: layout.bumps,
@@ -626,14 +648,15 @@ export function papercutModel(
     face: hex.flatMap(bytes),
     wallRgb: wallHex.flatMap(bytes),
     shadowRgb: shadowHex.flatMap(bytes),
+    /* a hundredth of a pixel at least, so a box a few pixels wide divides by none (its cuts are hard edges) */
     sigma: Array.from({ length: n }, (_, k) =>
-      round(look.shadowBlur * D * Math.sqrt(thick(k)), 0.01)
+      Math.max(0.01, round(look.shadowBlur * D * Math.sqrt(thick(k)), 0.01))
     ),
     offset: Array.from({ length: n }, (_, k) => round(look.shadowOffset * D * thick(k), 0.01)),
     alpha: Array.from({ length: n }, (_, k) =>
       round(Math.min(0.9, look.shadowAlpha * Math.sqrt(thick(k))), 0.001)
     ),
-    csigma: round(look.contactBlur * D, 0.01),
+    csigma: Math.max(0.01, round(look.contactBlur * D, 0.01)),
     calpha: round(look.contactAlpha, 0.001),
     isigma: [],
     icsigma: 0,
@@ -643,13 +666,40 @@ export function papercutModel(
   m.isigma = m.sigma.map(v => 1 / v);
   m.reach = m.sigma.map((v, k) => round(1.5 * (m.offset[k] + PAPERCUT_REACH * v), 0.01));
   m.icsigma = 1 / m.csigma;
-  m.levels = levelsOf(m);
+  m.levels = yield* keptLevels(m);
   return m;
+}
+
+/** The views whose levels are kept, the least lately used out first: a list's cards at one angle and shape, the
+    player's every layout as a palette changes and a still's every palette cut the same sheets, which take a few
+    milliseconds to find. */
+export const PAPERCUT_LEVELS_KEPT = 64;
+const levelsKept = new Map<string, readonly number[]>();
+/** The levels of a scene's view, found once while they are kept (a look other than the designed one, every time). */
+function* keptLevels(m: PapercutScene): Generator<void, number[]> {
+  if (m.view === null) return yield* levelSteps(m);
+  let levels = levelsKept.get(m.view);
+  if (levels) levelsKept.delete(m.view);
+  else {
+    levels = yield* levelSteps(m);
+    /* another build of the view may have kept them meanwhile */
+    levelsKept.delete(m.view);
+    if (levelsKept.size >= PAPERCUT_LEVELS_KEPT)
+      levelsKept.delete(levelsKept.keys().next().value as string);
+  }
+  levelsKept.set(m.view, levels);
+  return levels.slice();
 }
 
 /** The scene a palette and a view draw in a box. */
 export const papercutScene = (P: Palette, view: PapercutView, size: Size): PapercutScene =>
   papercutModel(P, view, size.width, size.height);
+/** The same scene built a step at a time. */
+export const papercutSceneSteps = (
+  P: Palette,
+  view: PapercutView,
+  size: Size
+): Generator<void, PapercutScene> => papercutModelSteps(P, view, size.width, size.height);
 
 /** The least share of the design's box an island or hole cut at t = 0 may have. */
 const SPECK = 0.004;
@@ -661,15 +711,16 @@ const GRID_H = 72;
     each then moved a hair past any island or hole it would cut smaller than SPECK of the box, so the still never shows
     a speck (in motion, islands still surface and sink, as they would). They depend on the palette's view alone, never
     on the box, so every box cuts the same sheets. A few ms: a grid of the field alone, one flood a level, nothing
-    allocated per cell. */
-function levelsOf(m: PapercutScene): number[] {
+    allocated per cell; a step is a sixth of the grid, the sort, or a level's specks. */
+function* levelSteps(m: PapercutScene): Generator<void, number[]> {
   const gw = GRID_W;
   const gh = GRID_H;
   const cells = gw * gh;
   const at = new Float64Array(papercutFrameSize(m));
   papercutFrameAt(m, 0, at);
   const vals = new Float64Array(cells);
-  for (let j = 0; j < gh; j++)
+  for (let j = 0; j < gh; j++) {
+    if (j % 12 === 11) yield;
     for (let i = 0; i < gw; i++)
       vals[j * gw + i] = papercutFieldValue(
         m,
@@ -677,15 +728,19 @@ function levelsOf(m: PapercutScene): number[] {
         ((i + 0.5) / gw - 0.5) * 2 * FRAME_HW,
         ((j + 0.5) / gh - 0.5) * 2 * FRAME_HH
       );
+  }
+  yield;
   const sorted = vals.slice().sort();
-  const levels = Array.from(
+  const shares = Array.from(
     { length: m.n - 1 },
     (_, k) => sorted[Math.floor(((k + 1) / m.n) * cells)]
   );
+  const levels = shares.slice();
   const label = new Int32Array(cells);
   const stack = new Int32Array(cells);
   const min = SPECK * cells;
-  for (let k = 0; k < levels.length; k++)
+  for (let k = 0; k < levels.length; k++) {
+    yield;
     for (let pass = 0; pass < 4; pass++) {
       const L = levels[k];
       label.fill(0);
@@ -736,5 +791,17 @@ function levelsOf(m: PapercutScene): number[] {
       }
       if (!moved) break;
     }
-  return levels.map(v => round(v, 1e-6));
+  }
+  /* a speck nested in another (an island's top within the next sheet's) moves two levels past one top, to the same
+     place: that sheet would have no paper, its color nowhere and the cut's shadow cast twice. Both keep their shares
+     instead, and the speck shows (5 views of 12,000, every shape at an angle every 30 degrees, did so) */
+  const out = levels.map(v => round(v, 1e-6));
+  const share = shares.map(v => round(v, 1e-6));
+  for (let k = 1; k < out.length; k++)
+    if (out[k] <= out[k - 1] && (out[k] !== share[k] || out[k - 1] !== share[k - 1])) {
+      out[k] = share[k];
+      out[k - 1] = share[k - 1];
+      k = Math.max(0, k - 2);
+    }
+  return out;
 }

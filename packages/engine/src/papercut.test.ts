@@ -10,6 +10,7 @@ import {
   papercutField,
   papercutFrameAt,
   papercutFrameSize,
+  papercutModel,
   papercutScene,
   papercutShade
 } from "./papercut.ts";
@@ -20,8 +21,15 @@ import {
   papercutFrameUniforms,
   papercutSceneUniforms
 } from "./papercut-gl.ts";
-import { renderPapercut } from "./papercut-render.ts";
-import { PAPERCUT_STEPS, papercutFileSvg, papercutStillSvg } from "./papercut-svg.ts";
+import { papercutRows, renderPapercut } from "./papercut-render.ts";
+import {
+  PAPERCUT_STEPS,
+  papercutFileOf,
+  papercutFileSvg,
+  papercutStillOf,
+  papercutStillSteps,
+  papercutStillSvg
+} from "./papercut-svg.ts";
 
 const P = decodePalette("kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ")!;
 const Q = decodePalette("kUMzO5Na871ukuyhHUJA")!;
@@ -181,4 +189,85 @@ test("the shaders' uniforms are plain numbers, filled a frame with no allocation
     expect(PAPERCUT_FIELD_FS).toMatch(new RegExp(`uniform [^;]+\\b${name}\\b`));
   for (const name of ["uLight", "uSheets", "uLevel", "uFace", "uWallC", "uShade", "uSheet"])
     expect(PAPERCUT_SHADE_FS).toMatch(new RegExp(`uniform [^;]+\\b${name}\\b`));
+});
+
+test("every sheet has paper: the levels climb, a speck nested in another kept rather than two levels met", () => {
+  const box = { width: 64, height: 36 };
+  /* the views whose specks moved two levels to one place (styles-lab/sg/papercut/fix/levels-sweep.ts), and a sweep */
+  const views: [number, number][] = [
+    [0, 543],
+    [30, 572],
+    [120, 533],
+    [180, 381],
+    [240, 844],
+    [315, 944]
+  ];
+  for (let shape = 1; shape < 1000; shape += 53)
+    for (const angle of [0, 90, 135, 270]) views.push([angle, shape]);
+  for (const [angle, shape] of views) {
+    const { levels } = papercutScene(Q, { angle, shape }, box);
+    for (let k = 1; k < levels.length; k++) expect(levels[k]).toBeGreaterThan(levels[k - 1]);
+  }
+});
+
+test("a box of a pixel or two divides by no sigma of 0", () => {
+  const f = new Float64Array(4);
+  const c = new Float64Array(3);
+  for (const side of [1, 2, 3]) {
+    const m = papercutScene(P, { angle: 90, shape: null }, { width: side, height: side });
+    for (const v of [...m.isigma, m.icsigma]) expect(Number.isFinite(v)).toBe(true);
+    for (const v of Object.values(papercutSceneUniforms(m)).flatMap(u => [...u]))
+      expect(Number.isFinite(v)).toBe(true);
+    /* every color it shades is a number, at points all over the box (a byte would hide a NaN as 0) */
+    const at = new Float64Array(papercutFrameSize(m));
+    papercutFrameAt(m, 0, at);
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        papercutField(
+          m,
+          at,
+          ((x + 0.5) / 16 - 0.5) * (side / m.D),
+          ((y + 0.5) / 16 - 0.5) * (side / m.D),
+          f
+        );
+        papercutShade(m, f[0], f[1], f[2], f[3], at[at.length - 2], at[at.length - 1], c);
+        for (const v of c) expect(Number.isFinite(v)).toBe(true);
+      }
+  }
+});
+
+test("what a view keeps (its levels, its stills' cuts) draws what drawing afresh does, for every palette", () => {
+  /* a look equal to the designed one but not it: its scene keeps nothing, so it is drawn afresh each time */
+  const afresh = { ...PAPERCUT_LOOK };
+  for (const [palette, view, box] of [
+    [P, { angle: 30, shape: 7 }, { width: 1000, height: 1000 }],
+    [Q, { angle: 30, shape: 7 }, { width: 1000, height: 1000 }],
+    [Q, { angle: 200, shape: null }, { width: 480, height: 270 }],
+    [P, { angle: 200, shape: null }, { width: 480, height: 270 }]
+  ] as const) {
+    const kept = papercutScene(palette, view, box);
+    const fresh = papercutModel(palette, view, box.width, box.height, afresh);
+    expect(fresh.view).toBeNull();
+    expect(kept.levels).toEqual(fresh.levels);
+    expect(papercutStillOf(kept)).toBe(papercutStillOf(fresh));
+    expect(papercutFileOf(kept)).toBe(papercutFileOf(fresh));
+  }
+});
+
+test("the still a step at a time is the still, and the CPU drawing a band of rows at a time is the drawing", () => {
+  const m = papercutScene(Q, { angle: 315, shape: 77 }, { width: 1000, height: 1000 });
+  const steps = papercutStillSteps(
+    papercutModel(Q, { angle: 315, shape: 77 }, 1000, 1000, { ...PAPERCUT_LOOK })
+  );
+  let step = steps.next();
+  let n = 0;
+  for (; !step.done; step = steps.next()) n++;
+  expect(n).toBeGreaterThan(20);
+  expect(step.value).toBe(papercutStillOf(m));
+  const box = papercutScene(P, { angle: 135, shape: 3 }, { width: 203, height: 117 });
+  const frame = papercutRows(box, 12.5);
+  let bands = 0;
+  for (let rows = 7; !frame.rows(rows); rows += 7) bands++;
+  expect(bands).toBe(Math.ceil(box.height / 7) - 1);
+  expect(frame.px).toEqual(renderPapercut(box, 12.5));
 });

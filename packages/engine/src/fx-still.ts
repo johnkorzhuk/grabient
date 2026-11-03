@@ -14,8 +14,8 @@ import { type FxLook, fxStillKey, type VectorKind } from "./effect.ts";
 export { type FxLook, fxStillKey } from "./effect.ts";
 
 import type { Palette } from "./palette.ts";
-import { PAPERCUT_LOOP } from "./papercut.ts";
-import { papercutFileSvg, papercutStillSvg } from "./papercut-svg.ts";
+import { PAPERCUT_LOOP, papercutSceneSteps } from "./papercut.ts";
+import { papercutFileSvg, papercutStillSteps, papercutStillSvg } from "./papercut-svg.ts";
 import { rosetteScene } from "./rosette.ts";
 import { rosetteMovingSvg, rosetteStillSvg } from "./rosette-svg.ts";
 import { SILK_LOOP } from "./silk.ts";
@@ -57,8 +57,19 @@ export function fxStillSvg(
 }
 
 /** The still as a CSS background covering any box, centered, as the player lays the box out. */
+const backgroundOf = (svg: string) => `${svgUrl(svg)} 50% 50% / cover no-repeat`;
 export const fxStillBackground = (kind: VectorKind, P: Palette, look: FxLook): string =>
-  `${svgUrl(fxStillSvg(kind, P, look))} 50% 50% / cover no-repeat`;
+  backgroundOf(fxStillSvg(kind, P, look));
+
+/** The same background drawn a step at a time, each under a millisecond on a desktop: the papercut's levels are found
+    and its cuts traced from its field, some 10 ms for a view no still has shown yet (papercut.ts and papercut-svg.ts
+    keep them by the view), where the silk's and the rosette's are written in tenths of one, in one step. A page
+    drawing a list of them gives each frame its share of the steps. */
+export function* fxStillSteps(kind: VectorKind, P: Palette, look: FxLook): Generator<void, string> {
+  if (kind !== "papercut") return fxStillBackground(kind, P, look);
+  const m = yield* papercutSceneSteps(P, look, SQUARE);
+  return backgroundOf(yield* papercutStillSteps(m));
+}
 
 /** The SVG file of a size at a speed (1 as designed): the silk and the rosette moving, 0 their still. The papercut's
     is its still at any speed, its shadows blurred as the CPU draws them (a cut's islands surface and part as it moves,
