@@ -260,6 +260,64 @@ test("the hero plays the silk, the rosette or the papercut from the server's sti
   }
 });
 
+test("soft and grained looks are drawn as the server drew them, none drawn plain a moment while the blur's code comes", async ({
+  page
+}) => {
+  /* a palette whose hero is a soft rosette, among soft bands and effects and grained ones (features/examples/looks.ts
+     finishFor) */
+  const seed = "kQuhy_2UYco";
+  /* any soft picture's gradient the page draws again otherwise than the server did, were it drawn plain a moment
+     while the blur's code came */
+  await page.addInitScript(() => {
+    const changed: string[] = [];
+    Object.assign(window, { softChanged: changed });
+    new MutationObserver(records => {
+      for (const record of records) {
+        const el = record.target as Element;
+        const was = record.oldValue ?? "";
+        if (
+          was.includes("gradient(") &&
+          el.closest("[data-soft]") &&
+          el.getAttribute("style") !== was
+        )
+          changed.push(was);
+      }
+    }).observe(document, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style"],
+      attributeOldValue: true
+    });
+  });
+  const html = await (await page.request.get(`/${seed}/examples`)).text();
+  await open(page, `/${seed}/examples`);
+  expect(
+    await page.evaluate(() => (window as unknown as { softChanged: string[] }).softChanged)
+  ).toEqual([]);
+  await expect(page.locator('[data-look="hero"] [data-hold] p').first()).toContainText(
+    "Rosette · 1× · 135° · Soft 28"
+  );
+  const drawn = await page.evaluate(served => {
+    /* every soft picture's gradient, as the server wrote it and as the page shows it now */
+    const soft = (root: ParentNode) =>
+      [
+        ...root.querySelectorAll(
+          '[data-soft][style*="gradient("], [data-soft] [style*="gradient("]'
+        )
+      ].map(el => el.getAttribute("style"));
+    return {
+      served: soft(new DOMParser().parseFromString(served, "text/html")),
+      shown: soft(document)
+    };
+  }, html);
+  expect(drawn.served.length).toBeGreaterThan(1);
+  expect(drawn.shown).toEqual(drawn.served);
+  /* the grain over the grained ones, the tile at its strength's share */
+  const grain = page.locator("#cards [data-grain]").first();
+  await expect(grain).toBeAttached();
+  expect(Number(await grain.evaluate(el => getComputedStyle(el).opacity))).toBeLessThan(1);
+});
+
 test("the hero turns with a key while it fills the window, and a press on its words leaves it", async ({
   page
 }) => {

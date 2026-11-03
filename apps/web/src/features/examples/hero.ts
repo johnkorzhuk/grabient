@@ -4,12 +4,12 @@
    the route loads as its data loads, so no page's start carries the examples. */
 import { EFFECTS } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { inLook, type Look, shuffled } from "./looks.ts";
+import { finished, inLook, type Look, shuffled } from "./looks.ts";
 import type { Shown } from "./paint.ts";
 
 /** The looks the hero plays: every effect. */
 export const HERO_LOOKS: readonly Look[] = EFFECTS;
 
-/** The hero's look for a palette: the effect its seed puts first. */
+/** The hero's look for a palette: the effect its seed puts first, finished as its seed picks. */
 export const heroOf = (seed: string, palette: Palette): Shown =>
-  inLook(seed, palette, shuffled(HERO_LOOKS, seed, "hero")[0], "hero");
+  finished(inLook(seed, palette, shuffled(HERO_LOOKS, seed, "hero")[0], "hero"), "hero");

@@ -13,8 +13,15 @@ import {
   effectFileAddress,
   isEffect
 } from "@grabient/engine/effect.ts";
-import { DEFAULT_SIZE, isSwatchStyle, type Size, STYLE_LABELS } from "@grabient/engine/view.ts";
+import {
+  DEFAULT_SIZE,
+  finishParts,
+  isSwatchStyle,
+  type Size,
+  STYLE_LABELS
+} from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
+import { pictureCss, pictureOf } from "../../lib/picture.ts";
 import { effectLabel, effectSummary } from "../editor/effect-page.ts";
 import type { Taken } from "../editor/formats.ts";
 import { smoothSteps } from "./looks.ts";
@@ -31,15 +38,27 @@ export const levelWords = (ratio: number): string => {
   return level ? t(LEVELS[level]) : "";
 };
 
+/** A look's soft and grain as its words say them: "Soft 48", "Grain 20". */
+const finishWords = (s: Shown): string[] => [
+  ...(s.view.soft ? [t("Soft {value}", { value: s.view.soft })] : []),
+  ...(s.view.grain ? [t("Grain {value}", { value: s.view.grain })] : [])
+];
+
 /** How the palette is drawn in the page's style, as the hero and an example's tag say it: "Linear bands · 5 steps ·
-    45°", "Fluted glass · 0.3× · 45°", "Blob · 0.3×". A radial style and the blob have no angle to say. */
+    45°", "Fluted glass · 0.3× · 45° · Soft 48", "Blob · 0.3× · Grain 20". A radial style and the blob have no angle
+    to say. */
 export function drawnWords(s: Shown): string {
   if (s.effect)
-    return `${effectLabel(s.effect.kind)} · ${effectSummary(s.effect, s.effect.kind === "blob" ? null : s.view.angle)}`;
+    return [
+      effectLabel(s.effect.kind),
+      effectSummary(s.effect, s.effect.kind === "blob" ? null : s.view.angle),
+      ...finishWords(s)
+    ].join(" · ");
   return [
     t(STYLE_LABELS[s.view.style]),
     t("{count, plural, one {# step} other {# steps}}", { count: s.view.steps }),
-    ...(s.view.style.startsWith("radial") ? [] : [`${s.view.angle}°`])
+    ...(s.view.style.startsWith("radial") ? [] : [`${s.view.angle}°`]),
+    ...finishWords(s)
   ].join(" · ");
 }
 
@@ -117,11 +136,17 @@ export const plainAt = (s: Shown, angle: number): Shown => ({
 });
 /** The plain gradient's angles a part's checks try: along, across and both diagonals. */
 export const PLAIN_ANGLES = [90, 0, 45, 135] as const;
-/** A form in a few words, as a tag says it: "Fluted glass", "Linear bands · 5 steps". */
+/** A form in a few words, as a tag says it: "Fluted glass", "Linear bands · 5 steps · Soft 48". */
 export const formWords = (s: Shown): string =>
-  s.effect
-    ? effectLabel(s.effect.kind)
-    : `${t(STYLE_LABELS[s.view.style])} · ${t("{count, plural, one {# step} other {# steps}}", { count: s.view.steps })}`;
+  [
+    ...(s.effect
+      ? [effectLabel(s.effect.kind)]
+      : [
+          t(STYLE_LABELS[s.view.style]),
+          t("{count, plural, one {# step} other {# steps}}", { count: s.view.steps })
+        ]),
+    ...finishWords(s)
+  ].join(" · ");
 
 /** The palette's stops at the page's steps. */
 export const stopsOf = (s: Shown) => sampleStops(s.palette, s.view.steps);
@@ -133,6 +158,10 @@ export const gradientOf = (s: Shown): string =>
     s.view.style,
     s.view.angle
   );
+/** A gradient's or bands' picture as the page paints it: a soft one blurred along its line (lib/picture.ts), as every
+    picture of the site is. */
+export const paintOf = (s: Shown): string =>
+  s.view.soft ? pictureCss(pictureOf(stopsOf(s), s.view), s.view.angle) : gradientOf(s);
 
 /** The address of the palette's picture as a file, in the page's style: a gradient's PNG or SVG at a size, or an
     effect's first frame as PNG or its moving SVG. */
@@ -150,13 +179,15 @@ export function pictureAddress(
       extension === "png" ? { ...s.effect, speed: 1, fps: EFFECT_FPS.default } : s.effect,
       s.view.angle,
       extension,
-      size
+      size,
+      s.view
     );
   const query = new URLSearchParams();
   if (s.view.style !== "linearGradient") query.set("style", s.view.style);
   query.set("steps", String(s.view.steps));
   if (!s.view.style.startsWith("radial") && s.view.angle !== 90)
     query.set("angle", String(s.view.angle));
+  for (const part of finishParts(s.view)) query.set(...(part.split("=") as [string, string]));
   query.set("w", String(size.width));
   query.set("h", String(size.height));
   return `${origin}/${s.seed}.${extension}?${query}`;
@@ -166,12 +197,14 @@ export function pictureAddress(
 export const cssRule = (selector: string, declarations: readonly string[]): string =>
   `${selector} {\n${declarations.map(d => `  ${d}`).join("\n")}\n}`;
 
-/** The palette as the editor's copies and files take it. */
+/** The palette as the editor's copies and files take it, its soft and grain with it. */
 export const takenOf = (s: Shown, pixels: Size = DEFAULT_SIZE): Taken => ({
   seed: s.seed,
   style: s.view.style,
   steps: s.view.steps,
   angle: s.view.angle,
+  ...(s.view.soft ? { soft: s.view.soft } : {}),
+  ...(s.view.grain ? { grain: s.view.grain } : {}),
   size: null,
   pixels,
   stops: stopsOf(s),

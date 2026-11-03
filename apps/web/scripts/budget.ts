@@ -119,8 +119,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      this page's strip shares) took it from 296.9 to 297.2 to 297.3, by the build */
   /* the silk, the rosette and the papercut among its looks (3 Nov 2026): the hero's layer for them
      (editor/FxLayer.tsx, 1.2 KB, as the glass's and the blob's are this page's own) and the colors they lay, which its
-     checks read for words on them (features/examples/paint.ts), took it from 297.5 to 299.9 */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 300 },
+     checks read for words on them (features/examples/paint.ts), took it from 297.5 to 299.9; soft and grain on its
+     pictures' looks (the soft gradient and the grain's layer of lib/picture.ts, the gradient a soft effect's edges thin
+     to, editor/effect-under.ts, and the reach of a soft picture's blur its checks read) to 301.3 */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 302 },
   /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
      view's parts in every address, the header's swatch) from 225.2 to 226.6 */
   /* the color reader, as "/", took it from 226.8 to 229.2 on 3 Nov 2026 */
@@ -163,8 +165,8 @@ const BUDGETS = {
   // (W/styles-lab/sg/pc-shader/tools/worker-hash-noise.mjs), so the budget stands that much over the build. The silk,
   // the rosette and the papercut on a palette's examples page (3 Nov 2026), which the Worker renders: the hero's layer
   // for them and the colors they lay, which the page's checks read (features/examples/paint.ts), took it from 1454.2
-  // to 1455.7
-  worker: 1457,
+  // to 1455.7, and soft and grain on its pictures' looks to 1456.8
+  worker: 1458,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with

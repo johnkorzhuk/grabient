@@ -8,7 +8,9 @@
    (radial), or one of the effects: the fluted glass, the blob, the silk, the rosette or the papercut, at an angle and in
    as many bands as the seed picks for the part. Each effect but the blob lies at one angle a page, as designed, and the
    blob in its palette's shape (effect.ts's blobShapeOf), since each other angle or shape is another still for the
-   server to write and the browser to draw; the blob has no angle, its palette lying from left to right. */
+   server to write and the browser to draw; the blob has no angle, its palette lying from left to right. A part that
+   shows a picture of the palette (the hero, the cards' media, the profile and the wallpapers) finishes its looks as
+   the seed picks, soft, grained, both or neither (finished). */
 import { sampleLCH } from "@grabient/engine/curve.ts";
 import {
   blobShapeOf,
@@ -19,7 +21,7 @@ import {
   SHAPE_MAX
 } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { DEFAULT_ANGLE, DEFAULT_STEPS, type Style } from "@grabient/engine/view.ts";
+import { DEFAULT_ANGLE, DEFAULT_STEPS, type Style, type View } from "@grabient/engine/view.ts";
 import type { Shown } from "./paint.ts";
 
 /** What a part shows the palette as. */
@@ -131,6 +133,35 @@ export const lookOf = (s: Shown): Look => {
   return "gradient";
 };
 
+/** The soft and the grain a part's looks may take, each at a strength the seed picks: a soft that melts a gradient's
+    bands and rounds its turns along its line, or blurs an effect by a share of its box over its palette's gradient,
+    gentler, where a little goes a long way (soft 32 blurs a screen-wide picture by 14 pixels); and film grain over the
+    picture, light enough to read as texture. */
+const SOFTS = { line: [40, 56, 72], effect: [12, 20, 28] } as const;
+const GRAINS = [16, 24, 32] as const;
+/** The finish the seed picks for a part named `name`, its soft as strong as suits a gradient or an `effect`: half the
+    parts take none, so the page shows its palette plain as well as finished; of the rest, a soft, a grain or both,
+    about two, two and one in five. */
+export function finishFor(
+  seed: string,
+  name: string,
+  effect: boolean
+): Pick<View, "soft" | "grain"> {
+  const pick = seeded(seed, `${name}:finish`);
+  const strength = (list: readonly number[], of: string) =>
+    list[Math.floor(seeded(seed, `${name}:${of}`) * list.length)];
+  const softs = effect ? SOFTS.effect : SOFTS.line;
+  if (pick < 0.5) return {};
+  if (pick < 0.7) return { soft: strength(softs, "soft") };
+  if (pick < 0.9) return { grain: strength(GRAINS, "grain") };
+  return { soft: strength(softs, "soft"), grain: strength(GRAINS, "grain") };
+}
+/** A look finished as the seed picks for the part named `name` (finishFor). */
+export const finished = (s: Shown, name: string): Shown => ({
+  ...s,
+  view: { ...s.view, ...finishFor(s.seed, name, !!s.effect) }
+});
+
 /** The palette in a look as a part named `name` shows it: a gradient as smooth as it needs, bands as many as the seed
     picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings and the blob,
     which have none, at the default's. An effect lies at the page's one angle for it, as designed, and the blob in its
@@ -183,7 +214,8 @@ export type Taken = Map<Look, number>;
 
 /** The looks of `pool` in the order a part takes them: those the parts so far took least first, then in the order the
     seed shuffles them for the part; each at its angle, then, where the part tries `angles` of them, at the next eighths
-    of a turn on (an effect's angle is the page's, and rings have none). */
+    of a turn on (an effect's angle is the page's, and rings have none); each finished as the part's are, where it
+    takes a finish. */
 function inOrder(
   seed: string,
   palette: Palette,
@@ -191,7 +223,8 @@ function inOrder(
   pool: readonly Look[],
   taken: Taken,
   angles: number,
-  variant = 0
+  variant = 0,
+  finish = false
 ) {
   const count = (look: Look) => taken.get(look) ?? 0;
   const turns = (look: Look) =>
@@ -200,9 +233,17 @@ function inOrder(
     .map((look, i) => ({ look, i }))
     .sort((a, b) => count(a.look) - count(b.look) || a.i - b.i)
     .flatMap(({ look }) =>
-      Array.from({ length: turns(look) }, (_, turn) =>
-        inLook(seed, palette, look, name, turn, variant ? `${look}~${variant}` : undefined)
-      )
+      Array.from({ length: turns(look) }, (_, turn) => {
+        const s = inLook(
+          seed,
+          palette,
+          look,
+          name,
+          turn,
+          variant ? `${look}~${variant}` : undefined
+        );
+        return finish ? finished(s, name) : s;
+      })
     );
 }
 const take = (taken: Taken, s: Shown) => {
@@ -228,7 +269,8 @@ export function pickFitting(
 
 /** A part's look: the first of `pool` in the order it takes them that `fits`, else the first, counted in `taken`. A
     part whose fit turns on the angle may try `angles` of them for each look. A `variant` past 0, a set of looks a reader
-    turned to, gives its effects an angle and a shape of that set's own. */
+    turned to, gives its effects an angle and a shape of that set's own. A part that takes a `finish` has its looks
+    finished as the seed picks for it, and checked so. */
 export function pickLook(
   seed: string,
   palette: Palette,
@@ -237,25 +279,35 @@ export function pickLook(
   fits: (s: Shown) => boolean,
   taken: Taken,
   angles = 1,
-  variant = 0
+  variant = 0,
+  finish = false
 ): Shown {
-  const order = inOrder(seed, palette, name, pool, taken, angles, variant);
+  const order = inOrder(seed, palette, name, pool, taken, angles, variant, finish);
   return take(taken, order.find(fits) ?? order[0]);
 }
 
 /** How many looks a reader turns a part through before they come round again, at most. */
 const MOST_LOOKS = 24;
-/** What tells two looks apart: the look, its steps, its angle and an effect's shape. */
+/** What tells two looks apart: the look, its steps, its angle, an effect's shape, and its soft and grain. */
 const lookKey = (s: Shown) =>
-  [lookOf(s), s.view.steps, s.view.angle, s.effect?.look.shape ?? ""].join("|");
+  [
+    lookOf(s),
+    s.view.steps,
+    s.view.angle,
+    s.effect?.look.shape ?? "",
+    s.view.soft ?? 0,
+    s.view.grain ?? 0
+  ].join("|");
 /** The looks a reader turns a part through, in order: the one the page gave it first, then rounds of the looks of
     `pool` in the order the seed shuffles them for the part, each round at an angle, as many bands and an effect's
-    shape of its own, each look a good fit for the part and unlike every one before it; MOST_LOOKS at most. */
+    shape of its own, and a finish of its own where the part takes one, each look a good fit for the part and unlike
+    every one before it; MOST_LOOKS at most. */
 export function looksFor(
   first: Shown,
   name: string,
   pool: readonly Look[],
-  fits: (s: Shown) => boolean
+  fits: (s: Shown) => boolean,
+  finish = false
 ): Shown[] {
   const { seed, palette } = first;
   const out = [first];
@@ -264,7 +316,8 @@ export function looksFor(
   for (let round = 1; round <= MOST_LOOKS && out.length < MOST_LOOKS; round++)
     for (const look of order) {
       const own = `${name}~${round}~${look}`;
-      const s = inLook(seed, palette, look, own, 0, own);
+      const plain = inLook(seed, palette, look, own, 0, own);
+      const s = finish ? finished(plain, own) : plain;
       const key = lookKey(s);
       if (seen.has(key) || !fits(s)) continue;
       seen.add(key);

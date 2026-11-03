@@ -3,6 +3,7 @@ import { toHex } from "@grabient/engine/color.ts";
 import { luminance } from "@grabient/engine/contrast.ts";
 import type { Effect } from "@grabient/engine/effect.ts";
 import { effectColors } from "@grabient/engine/effect-code.ts";
+import { effectRgba } from "@grabient/engine/fx-frame.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { PAPERCUT_LOOP, papercutScene } from "@grabient/engine/papercut.ts";
 import { renderPapercut } from "@grabient/engine/papercut-render.ts";
@@ -10,6 +11,7 @@ import { rosetteColors, rosetteDesign, rosetteScene } from "@grabient/engine/ros
 import { renderRosette } from "@grabient/engine/rosette-render.ts";
 import { bakeDye, SILK_DESIGN, SILK_LOOP, silkDesign, silkScene } from "@grabient/engine/silk.ts";
 import { renderSilk } from "@grabient/engine/silk-render.ts";
+import { softSigma } from "@grabient/engine/soft.ts";
 import type { Style } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
 import {
@@ -19,6 +21,7 @@ import {
   drawnColors,
   groundOn,
   inkOn,
+  lineSigma,
   mirrored,
   PAPERCUT_SHEETS,
   type Shown,
@@ -386,6 +389,76 @@ describe("the silk, the rosette and the papercut", () => {
                       );
                   }
                 });
+              }
+          }
+        }
+  });
+});
+
+describe("a soft look", () => {
+  test("blurs along its line as far as the engine's soft does", () => {
+    const styles: Style[] = ["linearSwatches", "radialGradient", "angularSwatches"];
+    for (const style of styles)
+      for (const soft of [1, 20, 48, 72, 100])
+        expect(lineSigma(style, soft)).toBeCloseTo(softSigma(style, soft), 12);
+  });
+
+  test("a soft band's part takes the bands its blur reaches, and a cone's wraps round the turn's start", () => {
+    const middle = { x0: 0.45, y0: 0, x1: 0.55, y1: 1 };
+    const bands = shown("linearSwatches", 90, 5);
+    const stops = drawnColors(bands);
+    expect(colorsOfParts(bands, 1)(middle)).toEqual([stops[2]]);
+    expect(colorsOfParts({ ...bands, view: { ...bands.view, soft: 100 } }, 1)(middle)).toEqual(
+      stops.slice(1, 4)
+    );
+    /* just after a cone's start: its last band too, once soft */
+    const cone = shown("angularSwatches", 0, 6);
+    const start = { x0: 0.52, y0: 0, x1: 0.56, y1: 0.1 };
+    const last = drawnColors(cone)[5];
+    expect(colorsOfParts(cone, 1)(start)).not.toContain(last);
+    expect(colorsOfParts({ ...cone, view: { ...cone.view, soft: 72 } }, 1)(start)).toContain(last);
+  });
+
+  test("every pixel of the engine's soft first frames is a blend of the colors the page reads under its part", async () => {
+    const box = { width: 64, height: 36 };
+    const parts = Array.from({ length: 12 }, (_, i) => ({
+      x0: (i % 4) / 4,
+      y0: Math.floor(i / 4) / 3,
+      x1: ((i % 4) + 1) / 4,
+      y1: (Math.floor(i / 4) + 1) / 3
+    }));
+    for (const seed of SEEDS.slice(0, 3))
+      for (const kind of ["silk", "rosette", "papercut"] as const)
+        for (const soft of [32, 72]) {
+          const s: Shown = {
+            ...fx(kind, seed, 45, null),
+            view: { style: "linearGradient", steps: 7, angle: 45, soft }
+          };
+          const effect: Effect = {
+            kind,
+            speed: 1,
+            fps: 60,
+            look: { shape: null, frost: 1, bg: null }
+          };
+          const look = { ...s, effect };
+          const px = await effectRgba(look.palette, effect, 45, box, soft);
+          const colorsOf = colorsOfParts(look, box.width / box.height);
+          for (const part of parts) {
+            const within = colorsOf(part).map(rgbOf);
+            const [lo, hi] = [0, 1].map(end =>
+              [0, 1, 2].map(k => (end ? Math.max : Math.min)(...within.map(c => c[k])))
+            );
+            for (let y = 0; y < box.height; y++)
+              for (let x = 0; x < box.width; x++) {
+                const [u, v] = [(x + 0.5) / box.width, (y + 0.5) / box.height];
+                if (u < part.x0 || u > part.x1 || v < part.y0 || v > part.y1) continue;
+                for (let k = 0; k < 3; k++) {
+                  const c = px[4 * (y * box.width + x) + k];
+                  if (c < lo[k] - 2 || c > hi[k] + 2)
+                    throw new Error(
+                      `${kind} ${seed} soft ${soft}: pixel ${x},${y} channel ${k} ${c} outside ${lo[k]}..${hi[k]}`
+                    );
+                }
               }
           }
         }

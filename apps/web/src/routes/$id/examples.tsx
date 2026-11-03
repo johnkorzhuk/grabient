@@ -5,6 +5,7 @@ import { ExamplesPage } from "../../features/examples/ExamplesPage.tsx";
 import { PAGE } from "../../lib/cache.ts";
 import { pageHead } from "../../lib/page-meta.ts";
 import { drawnSearch } from "../../lib/route.ts";
+import { loadSoft } from "../../lib/soft-load.ts";
 
 /* A palette's examples: the ways it is put to use, each part in a look its seed picks (features/examples/looks.ts), each
    with the code that does it. One page for each palette at the palette's address plus /examples: an address naming a
@@ -18,8 +19,12 @@ export const Route = createFileRoute("/$id/examples")({
       throw redirect({ to: "/$id/examples", params, search: {}, statusCode: 301 });
     const page = readSeedPage(params.id, searchReader({}));
     if (!page) throw notFound();
-    /* the hero's look, from a module of its own: the route's start carries none of the page */
-    const { heroOf } = await import("../../features/examples/hero.ts");
+    /* the hero's look, from a module of its own: the route's start carries none of the page; and the blur's code,
+       since the page's looks take soft finishes, which the server draws its first screen with (lib/picture.ts) */
+    const [{ heroOf }] = await Promise.all([
+      import("../../features/examples/hero.ts"),
+      loadSoft().catch(() => {})
+    ]);
     const { view, effect } = heroOf(page.seed, page.palette);
     return {
       seed: page.seed,

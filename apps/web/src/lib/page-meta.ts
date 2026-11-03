@@ -258,7 +258,7 @@ function examplesPage(
      effect's first frame, or a gradient's view */
   meta.image = absolute(
     page.effect
-      ? effectCard(page.seed, page.effect, page.view.angle)
+      ? effectCard(page.seed, page.effect, page.view.angle, finishOf(page.view))
       : `${paletteCard(page.seed, page.view)}&chips=off`,
     origin
   );

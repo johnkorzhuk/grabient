@@ -38,8 +38,14 @@
     position: absolute;
     inset: 0;
     z-index: -1;
+    overflow: hidden;
+    /* a soft effect's blur is a share of the hero's longer side (Example.tsx effectBlur) */
+    container-type: size;
     /* the palette's colors are the content: forced colors leave them as they are */
     forced-color-adjust: none;
+    & > :not([data-grain]) {
+      filter: var(--fx-blur, none);
+    }
   }
   .fill {
     position: absolute;

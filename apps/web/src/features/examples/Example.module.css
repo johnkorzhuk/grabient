@@ -151,4 +151,25 @@
     position: absolute;
     inset: 0;
   }
+  /* a finished picture (Painted): a box of its own, whose longer side a soft effect's blur is a share of, over the
+     gradient its blurred edges thin to; the grain over all */
+  .finished {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    container-type: size;
+    & > :not([data-grain]) {
+      filter: var(--fx-blur, none);
+    }
+  }
+  /* the grain over a picture, a tile at full strength at the grain's opacity, a speck a CSS pixel, crisp on a dense
+     screen (the editor's .grain) */
+  .grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-size: 128px 128px;
+    image-rendering: pixelated;
+  }
 }

@@ -12,7 +12,7 @@ import { inkThrough, MARK, type Press, pressPaper, standsOut, TEXT, TILE } from 
 import { frostOn } from "./frost.ts";
 import { HeadlineTile, headlinesOf } from "./Headline.tsx";
 import { createLit } from "./lit.ts";
-import { inLook, LOOKS, type Look, lookOf, pickLook, type Taken } from "./looks.ts";
+import { finished, inLook, LOOKS, type Look, lookOf, pickLook, type Taken } from "./looks.ts";
 import {
   colorsUnder,
   drawnColors,
@@ -628,10 +628,14 @@ const TURNING: ReadonlySet<Kind> = new Set([
   "business"
 ]);
 
+/** A tile's name in a set of looks a reader turned the grid to (`turn`, 0 the page's own), which seeds its looks. */
+const nameIn = (kind: Kind, turn = 0) => (turn ? `${kind}~${turn}` : kind);
+
 /** Each tile's look, worked out once for each palette and each set a reader turns the grid to (`turn`, 0 the page's
     own): the tiles in their order, each taking the seed's pick of the looks it is a good fit for, the ones the tiles
-    before it took least first (looks.ts), a set past the first with its effects at an angle and in a shape of its own;
-    then the headlines that work. A blob is read on the ground its tile gives it. */
+    before it took least first (looks.ts), a set past the first with its effects at an angle and in a shape of its own,
+    a tile that turns finished as the seed picks for it (soft, grained, both or neither); then the headlines that work.
+    A blob is read on the ground its tile gives it. */
 function tileLooks(base: Shown, turn = 0) {
   const taken: Taken = new Map();
   const looks: Partial<Record<Kind, Shown>> = {};
@@ -639,12 +643,13 @@ function tileLooks(base: Shown, turn = 0) {
     looks[kind] = pickLook(
       base.seed,
       base.palette,
-      turn ? `${kind}~${turn}` : kind,
+      nameIn(kind, turn),
       TURNS[kind] ?? LOOKS,
       s => FITS[kind]?.(solidBlob(s)) ?? true,
       taken,
       1,
-      turn
+      turn,
+      TURNING.has(kind)
     );
   return { looks, headlines: headlinesOf(base, taken) };
 }
@@ -665,10 +670,11 @@ export function CardsExample(props: ExampleProps) {
     const look = picked().seed === setOf() ? picked().looks[kind] : undefined;
     const headline = headlines().find(h => h.kind === kind)?.shown;
     if (headline) return headline;
-    return solidBlob(
-      look ? inLook(props.s.seed, props.s.palette, look, kind) : (seeded().looks[kind] ?? props.s)
-    );
+    return solidBlob(look ? pressed(look, kind) : (seeded().looks[kind] ?? props.s));
   };
+  /* a look a press turned a tile to, in the tile's finish */
+  const pressed = (look: Look, kind: Kind) =>
+    finished(inLook(props.s.seed, props.s.palette, look, kind), nameIn(kind, props.turn));
   const turn = (kind: Kind) => {
     const order = TURNS[kind] ?? LOOKS;
     const next = order[(order.indexOf(lookOf(shownBy(kind))) + 1) % order.length];
@@ -677,7 +683,7 @@ export function CardsExample(props: ExampleProps) {
       looks: { ...(p.seed === setOf() ? p.looks : {}), [kind]: next }
     }));
     /* a reader who listens hears the look it turned to, which its name says from now on */
-    announce(formWords(inLook(props.s.seed, props.s.palette, next, kind)));
+    announce(formWords(pressed(next, kind)));
   };
   const kinds = () => [...ORDER, ...headlines().map(h => h.kind)];
   /* the looks the grid shows, which its tag counts, and the ground a blob with none of its own stands on */

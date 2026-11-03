@@ -1,3 +1,4 @@
+import { effectSoftShare, GRAIN_MAX } from "@grabient/engine/view.ts";
 import { formatNumber, t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
 import { Button } from "@grabient/ui/Button.tsx";
@@ -16,10 +17,12 @@ import {
   onSettled,
   Show
 } from "solid-js";
+import { GRAIN_IMAGE } from "../../lib/picture.ts";
 import { EffectArt } from "../editor/EffectArt.tsx";
+import { effectUnderCss } from "../editor/effect-under.ts";
 import styles from "./Example.module.css";
-import { type Shown, twoPlaces } from "./paint.ts";
-import { gradientOf, levelWords } from "./shared.ts";
+import { bare, type Shown, twoPlaces } from "./paint.ts";
+import { levelWords, paintOf } from "./shared.ts";
 import { turnsOn } from "./swipe.ts";
 
 /* One way to use a palette, as the page shows it: its number and its use in a few words, a line on what it is for, then
@@ -56,12 +59,44 @@ export function Chip(props: { color?: string; children: Element }) {
   );
 }
 
-/** The palette filling its holder: the gradient, or the effect's still, playing while `lit`. */
-export function Painted(props: { s: Shown; lit: boolean }) {
+/** The grain over a picture: the tile at full strength at the grain's share as its opacity, as every picture of the
+    site lays it (lib/picture.ts), a speck a CSS pixel. */
+export function Grain(props: { grain: number }) {
   return (
+    <span
+      class={styles.grain}
+      data-grain=""
+      style={{ "background-image": GRAIN_IMAGE, opacity: String(props.grain / GRAIN_MAX) }}
+      aria-hidden="true"
+    />
+  );
+}
+
+/** A soft effect's blur, a share of its holder's longer side, as the editor's stage blurs it (Editor.tsx fxBlur); none
+    for a gradient, whose soft is along its line. */
+export const effectBlur = (s: Shown, unit: "cqmax" | "vmax" = "cqmax"): string | undefined =>
+  s.effect && s.view.soft
+    ? `blur(${(effectSoftShare(s.view.soft) * 100).toFixed(3)}${unit})`
+    : undefined;
+/** What a soft effect's blurred edges thin to: the palette's gradient as its files lay it (effect-under.ts), or the
+    page's ground where it stands on the page, a blob with none of its own. */
+export const effectUnder = (s: Shown): string | undefined =>
+  s.effect && s.view.soft
+    ? bare(s.effect)
+      ? "var(--color-bg)"
+      : effectUnderCss(s.palette, s.effect.kind, s.view.angle, s.view.soft)
+    : undefined;
+
+/** The palette filling its holder: the gradient, or the effect's still, playing while `lit`. A finished one is soft,
+    the gradient blurred along its line and an effect over the gradient its edges thin to, and grained over either, as
+    the editor's stage shows it, its holder marked soft. The page's route has the blur's code before it draws
+    (routes/$id/examples.tsx); a browser taking over the server's page draws its soft pictures again only once the code
+    has come, as they stand. */
+export function Painted(props: { s: Shown; lit: boolean }) {
+  const picture = () => (
     <Show
       when={props.s.effect}
-      fallback={<span class={styles.fill} style={{ background: gradientOf(props.s) }} />}
+      fallback={<span class={styles.fill} style={{ background: paintOf(props.s) }} />}
     >
       {effect => (
         <EffectArt
@@ -72,6 +107,18 @@ export function Painted(props: { s: Shown; lit: boolean }) {
           active={props.lit}
         />
       )}
+    </Show>
+  );
+  return (
+    <Show when={props.s.view.soft || props.s.view.grain} fallback={picture()}>
+      <span
+        class={styles.finished}
+        data-soft={props.s.view.soft ? "" : undefined}
+        style={{ background: effectUnder(props.s), "--fx-blur": effectBlur(props.s) }}
+      >
+        {picture()}
+        <Show when={props.s.view.grain}>{grain => <Grain grain={grain()} />}</Show>
+      </span>
     </Show>
   );
 }

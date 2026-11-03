@@ -6,7 +6,8 @@ import {
   type EffectKind,
   type VectorKind
 } from "@grabient/engine/effect.ts";
-import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
+import { type EffectLayers, effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
+import { GRAIN_SIDE } from "@grabient/engine/grain-tiles.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
 import { localHref, t } from "@grabient/i18n";
@@ -22,6 +23,7 @@ import {
   createUniqueId,
   For,
   Match,
+  Show,
   Switch,
   untrack,
   useContext
@@ -37,12 +39,19 @@ import { GlassLayer } from "../editor/GlassLayer.tsx";
 import { keyOf } from "../editor/keys.ts";
 import { CardsExample } from "./Cards.tsx";
 import { ChartExample, chartFits, chartGood } from "./Chart.tsx";
-import { type ExampleProps, TurnHint, turnsSaid } from "./Example.tsx";
+import {
+  type ExampleProps,
+  effectBlur,
+  effectUnder,
+  Grain,
+  TurnHint,
+  turnsSaid
+} from "./Example.tsx";
 import styles from "./ExamplesPage.module.css";
 import { HERO_LOOKS, heroOf } from "./hero.ts";
 import { LOOKS, lookOf, looksFor, pickLook, plainOf, shuffled, type Taken } from "./looks.ts";
 import { ProfileExample } from "./Profile.tsx";
-import type { Shown } from "./paint.ts";
+import { bare, type Shown } from "./paint.ts";
 import { SwatchesExample } from "./Swatches.tsx";
 import { drawnWords, gradientOf, stopsOf, takenOf } from "./shared.ts";
 import { createExamplesState, examplesBindings } from "./state.ts";
@@ -66,12 +75,15 @@ interface Section {
   example: Component<ExampleProps>;
   fits?: (base: Shown) => boolean;
   good?: (s: Shown) => boolean;
+  /** it shows a picture of the palette, which takes a soft and a grain (looks.ts finished); the charts and the tokens
+      take its colors alone */
+  finish?: boolean;
 }
 const SECTIONS: readonly Section[] = [
   { name: "cards", example: CardsExample },
-  { name: "profile", example: ProfileExample },
+  { name: "profile", example: ProfileExample, finish: true },
   { name: "chart", example: ChartExample, fits: chartFits, good: chartGood },
-  { name: "wallpapers", example: WallpapersExample, good: wallpapersGood },
+  { name: "wallpapers", example: WallpapersExample, good: wallpapersGood, finish: true },
   { name: "swatches", example: SwatchesExample }
 ];
 
@@ -96,7 +108,10 @@ export function pageLooks(base: Shown) {
             section.name,
             LOOKS,
             section.good ?? (() => true),
-            taken
+            taken,
+            1,
+            0,
+            section.finish
           )
     );
   return {
@@ -119,7 +134,8 @@ function turnedTo(first: Shown, name: string, turn: number): Shown {
       first,
       name,
       name === "hero" ? HERO_LOOKS : LOOKS,
-      section?.good ?? (() => true)
+      section?.good ?? (() => true),
+      name === "hero" || !!section?.finish
     );
     lists.of.set(name, list);
   }
@@ -208,6 +224,20 @@ const STILL_SHOWN: Readonly<Record<EffectKind, string>> = {
   papercut: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat'
 };
 
+/** The layers a soft or grained effect's first frame lies on behind a page, as the hero's code shows them: its blur,
+    the gradient under it and the grain's tile, whose data the code elides, which Copy writes in full
+    (engine/effect-code.ts effectLayers). */
+function layersShown(s: Shown): EffectLayers {
+  const { soft, grain } = s.view;
+  return {
+    ...(soft ? { blur: effectBlur(s, "vmax") } : {}),
+    ...(soft && !bare(s.effect) ? { under: effectUnder(s) } : {}),
+    ...(grain
+      ? { grain: `url("data:image/png;base64,…") 0 0 / ${GRAIN_SIDE}px ${GRAIN_SIDE}px` }
+      : {})
+  };
+}
+
 /** The effects drawn over a vector still, each its own layer in the hero. */
 const VECTOR_KINDS: readonly VectorKind[] = ["silk", "rosette", "papercut"];
 
@@ -247,14 +277,23 @@ function Hero(props: {
             s().seed,
             effect,
             s().view.angle,
-            STILL_SHOWN[effect.kind]
+            STILL_SHOWN[effect.kind],
+            s().view,
+            layersShown(s())
           ),
           take: () => effectHtml(takenOf(s()), effect),
           where: { text: t("In the page's head") }
         },
         {
           label: t("Linked"),
-          code: effectEmbedHtml(props.origin, s().seed, effect, s().view.angle),
+          code: effectEmbedHtml(
+            props.origin,
+            s().seed,
+            effect,
+            s().view.angle,
+            undefined,
+            s().view
+          ),
           where: { text: t("In the page's head") }
         }
       ];
@@ -279,7 +318,13 @@ function Hero(props: {
       aria-describedby={hint}
       data-look="hero"
     >
-      <div class={styles.backdrop} aria-hidden="true">
+      {/* a soft effect blurred over the gradient its edges thin to, and the grain over it, as the editor's stage */}
+      <div
+        class={styles.backdrop}
+        aria-hidden="true"
+        data-soft={s().view.soft ? "" : undefined}
+        style={{ background: effectUnder(s()), "--fx-blur": effectBlur(s()) }}
+      >
         {/* each layer reads the hero's look itself, never the value its Match narrowed: a turn to the other effect lets
             the layer go, and a narrowed value read as it goes is gone, which Solid throws on and the page's error
             showed between palettes */}
@@ -313,6 +358,7 @@ function Hero(props: {
             </Match>
           ))}
         </Switch>
+        <Show when={s().view.grain}>{grain => <Grain grain={grain()} />}</Show>
       </div>
       {/* the way back to the editor, and a random palette for a reader with no keyboard, the key in its tip */}
       <div class={styles.top}>

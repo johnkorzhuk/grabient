@@ -4,21 +4,30 @@
    draws, for a box of a given shape), the fluted glass's as the line of its six colors its ribs run across, a blob's as
    all its colors over its ground, which the page's own is where it has none, the silk's as its dye's line lit and
    shaded by its folds, and the rosette's and the papercut's as every color they lay, which their motion carries
-   anywhere in them. */
+   anywhere in them. A soft picture reads farther: a gradient's blur along its line, an effect's over the box and the
+   gradient under it, as far as the blur reaches. */
 import { hexToSrgb, lchToSrgb, srgbToLch, type Triple, toHex } from "@grabient/engine/color.ts";
 import { CONTRAST_LARGE, CONTRAST_TEXT, contrast } from "@grabient/engine/contrast.ts";
 import { sampleHex, sampleLCH, sampleSrgb, sampleStops } from "@grabient/engine/curve.ts";
-import { type Effect, isVectorKind } from "@grabient/engine/effect.ts";
+import { EFFECT_KINDS, type Effect, groundParts, isVectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { isSwatchStyle, type Style, type View } from "@grabient/engine/view.ts";
+import {
+  DEFAULT_ANGLE,
+  DEFAULT_STEPS,
+  effectSoftShare,
+  isSwatchStyle,
+  SOFT_MAX,
+  type Style,
+  type View
+} from "@grabient/engine/view.ts";
 
-/** The palette as a part of the page shows it: its seed, its colors, the view of its look, and the effect it plays
-    where the look is one. */
+/** The palette as a part of the page shows it: its seed, its colors, the view of its look with its soft and grain,
+    and the effect it plays where the look is one. */
 export interface Shown {
   seed: string;
   palette: Palette;
-  view: Pick<View, "style" | "steps" | "angle">;
+  view: Pick<View, "style" | "steps" | "angle" | "soft" | "grain">;
   effect: Effect | null;
 }
 
@@ -410,28 +419,118 @@ function colorsOver(colors: readonly string[], a: number, b: number, bands: bool
     color there is a blend of, the colors at the ends of each stretch of the line the part covers and each stop between
     (the glass's stretch widened by its ribs' bend, the silk's its dye's line, lit and shaded), a blob's all of its
     colors and its ground, and every color the rosette or the papercut lays. A part's corners and the point nearest the
-    middle say which stretch it covers, so no stop between two points read goes unseen. */
+    middle say which stretch it covers, so no stop between two points read goes unseen. A soft gradient's stretch is
+    widened by as far as its blur reaches along the line; a soft effect's part by as far as its blur reaches over the
+    box, the gradient under it too, which its edges thin to. */
 export function colorsOfParts(s: Shown, aspect: number): (part: Part) => string[] {
-  const colors = drawnColors(s);
   const effect = s.effect;
-  if (effect?.kind === "blob") {
-    const all = blobColors(effect, colors);
+  const soft = s.view.soft ?? 0;
+  if (!effect)
+    return lineParts(
+      drawnColors(s),
+      s.view.style,
+      s.view.angle,
+      aspect,
+      soft ? REACH * lineSigma(s.view.style, soft) : 0
+    );
+  const shown = effectParts(s, effect, aspect);
+  if (!soft) return shown;
+  const share = REACH * effectSoftShare(soft);
+  /* the gradient a soft effect's edges thin to, none under a blob that stands on the page (fx-finish.ts
+     effectUnderlay): the palette's at its steps or its keyframes, along the effect's angle, the blob's left to right */
+  const under = bare(effect)
+    ? null
+    : lineParts(
+        sampleStops(s.palette, Math.max(DEFAULT_STEPS, s.palette.anchors.length)).map(
+          stop => stop.hex
+        ),
+        "linearGradient",
+        EFFECT_KINDS[effect.kind].angle ? s.view.angle : DEFAULT_ANGLE,
+        aspect,
+        REACH * lineSigma("linearGradient", soft)
+      );
+  return part => {
+    const reached = spread(part, share, aspect);
+    return [...new Set([...shown(reached), ...(under?.(reached) ?? [])])];
+  };
+}
+
+/** The colors under parts of an effect's picture, as colorsOfParts reads them before a soft. */
+function effectParts(s: Shown, effect: Effect, aspect: number): (part: Part) => string[] {
+  if (effect.kind === "blob") {
+    const all = blobColors(effect, drawnColors(s));
     return () => all;
   }
-  if (effect?.kind === "rosette" || effect?.kind === "papercut") {
+  if (effect.kind === "rosette" || effect.kind === "papercut") {
     const all = effect.kind === "rosette" ? rosetteColors(s.palette) : papercutColors(s.palette);
     return () => all;
   }
-  if (effect?.kind === "silk") return silkParts(s, aspect);
-  const glass = effect?.kind === "glass";
-  const style: Style = glass ? "linearGradient" : s.view.style;
-  const bands = !glass && isSwatchStyle(style);
-  const bend = glass ? GLASS_BEND : 0;
+  if (effect.kind === "silk") return silkParts(s, aspect);
+  return lineParts(drawnColors(s), "linearGradient", s.view.angle, aspect, GLASS_BEND);
+}
+
+/** The colors under parts of `colors` drawn in a style at an angle: each stretch of the line a part covers, widened by
+    `reach` either way (round the turn's start for a cone, which a blur wraps across), at its ends and each stop
+    between, or each band it crosses. */
+function lineParts(
+  colors: readonly string[],
+  style: Style,
+  angle: number,
+  aspect: number,
+  reach: number
+): (part: Part) => string[] {
+  const bands = isSwatchStyle(style);
+  const around = style.startsWith("angular");
+  const widened = ([a, b]: [number, number]): [number, number][] => {
+    const [from, to] = [a - reach, b + reach];
+    if (!around || to - from >= 1) return [[from, to]];
+    return [
+      [Math.max(0, from), Math.min(1, to)],
+      ...(from < 0 ? ([[1 + from, 1]] as [number, number][]) : []),
+      ...(to > 1 ? ([[0, to - 1]] as [number, number][]) : [])
+    ];
+  };
   return part => [
     ...new Set(
-      stretchesOf(style, s.view.angle, aspect, part).flatMap(([a, b]) =>
-        colorsOver(colors, a - bend, b + bend, bands)
-      )
+      stretchesOf(style, angle, aspect, part)
+        .flatMap(widened)
+        .flatMap(([a, b]) => colorsOver(colors, a, b, bands))
     )
   ];
 }
+
+/** How far a blur reaches, in its deviations: past three, it takes nothing that shows. */
+const REACH = 3;
+/** A soft's deviation along its style's line at SOFT_MAX, as a share of the line: 0.08 of a 16:9 picture's D (the
+    square root of its area) along its width for a linear style, to its corner for a radial one, and round the circle
+    a third of the way out for an angular one. engine/soft.ts's own (softSigma), written again so the page carries
+    none of the blur's code, which loads only where a picture is soft; a test holds them to it. */
+const SIGMA_FULL = {
+  linear: 0.08 / (16 / 12),
+  radial: 0.08 / (Math.hypot(16, 9) / 2 / 12),
+  angular: 0.08 / (2 * Math.PI * 0.32)
+} as const;
+/** A soft's deviation along its style's line, as a share of the line: eased as engine/soft.ts eases it. */
+export const lineSigma = (style: Style, soft: number): number =>
+  SIGMA_FULL[
+    style.startsWith("radial") ? "radial" : style.startsWith("angular") ? "angular" : "linear"
+  ] *
+  (Math.min(SOFT_MAX, Math.max(0, soft)) / SOFT_MAX) ** 1.6;
+
+/** A part spread by `share` of a box's longer side on every side, within the box, the box `aspect` times as wide as
+    tall: how far an effect's blur reaches from it. */
+function spread(part: Part, share: number, aspect: number): Part {
+  const x = share * Math.max(1, 1 / aspect);
+  const y = share * Math.max(aspect, 1);
+  return {
+    x0: Math.max(0, part.x0 - x),
+    y0: Math.max(0, part.y0 - y),
+    x1: Math.min(1, part.x1 + x),
+    y1: Math.min(1, part.y1 + y)
+  };
+}
+
+/** Whether an effect stands on the page with no ground of its own under it: a blob with none, or one the page shows
+    through (features/list/card-effect.tsx standsBare). */
+export const bare = (effect: Effect | null): boolean =>
+  effect?.kind === "blob" && !(effect.look.bg && groundParts(effect.look.bg).alpha === 1);
