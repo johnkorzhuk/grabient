@@ -71,8 +71,9 @@ export interface PaletteCardProps {
   angle: number;
   /** each stop's place along the line, where the view is soft (engine/soft.ts): the stops are its blurred ones */
   at?: readonly number[];
-  /** the grain over the picture, a background layer (engine/grain.ts grainLayer); none for none */
-  grain?: string;
+  /** the grain over the picture: one tile at full strength (engine/grain.ts), as a CSS image, at the grain's
+      opacity, so a grain being set changes no file and nothing flickers as one comes; none for none */
+  grain?: { image: string; opacity: number };
   /** where Edit leads: the palette's page, in the reader's language and the view the card draws */
   href: string;
   /** Edit's relation to its page: nofollow where the index keeps the palette's page out */
@@ -150,9 +151,7 @@ export function PaletteCard(props: PaletteCardProps) {
   const [armed, setArmed] = createSignal(untrack(() => props.state === "hover"));
   const arm = () => setArmed(true);
   onSettled(() => (armed() ? undefined : whenIdle(arm)));
-  const art = () =>
-    (props.grain ? `${props.grain}, ` : "") +
-    gradientCss(props.stops, props.style, props.angle, undefined, props.at);
+  const art = () => gradientCss(props.stops, props.style, props.angle, undefined, props.at);
   /* what lights under the card: its gradient, or what its picture brings in its place, or nothing */
   const lit = () =>
     props.bare || props.glow === null
@@ -270,11 +269,7 @@ export function PaletteCard(props: PaletteCardProps) {
         {/* a picture in the gradient's place stands alone: no gradient shows under it as it comes */}
         <div
           class={styles.paint}
-          style={{
-            background: props.picture && !props.peek ? undefined : art(),
-            /* a speck of grain a CSS pixel, crisp on a dense screen */
-            "image-rendering": props.grain ? "pixelated" : undefined
-          }}
+          style={{ background: props.picture && !props.peek ? undefined : art() }}
           data-peek={props.picture && props.peek ? "" : undefined}
           role="img"
           aria-label={
@@ -286,6 +281,17 @@ export function PaletteCard(props: PaletteCardProps) {
         >
           {/* called once, untracked: the picture follows its own props */}
           <Show when={props.picture}>{picture => untrack(() => picture()(active))}</Show>
+          {/* the grain over whatever the picture is, the gradient or an effect */}
+          <Show when={props.grain}>
+            <span
+              class={styles.grain}
+              style={{
+                "background-image": props.grain?.image,
+                opacity: String(props.grain?.opacity ?? 0)
+              }}
+              aria-hidden="true"
+            />
+          </Show>
         </div>
         <Show
           when={!props.removed}

@@ -8,7 +8,7 @@ import {
   type VectorKind
 } from "@grabient/engine/effect.ts";
 import { glassColors, glassStillKey } from "@grabient/engine/glass-colors.ts";
-import { isFixedSize } from "@grabient/engine/view.ts";
+import { GRAIN_MAX, isFixedSize } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
@@ -17,7 +17,7 @@ import sheet from "@grabient/ui/PaletteSheet.module.css";
 import { StillStrip } from "@grabient/ui/StopStrip.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createMemo, Show } from "solid-js";
-import { pictureCss, pictureOf } from "../../lib/picture.ts";
+import { GRAIN_IMAGE, pictureCss, pictureOf } from "../../lib/picture.ts";
 import type { SeedPage } from "./address.ts";
 import styles from "./Editor.module.css";
 import { FilePicture } from "./FilePicture.tsx";
@@ -36,7 +36,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
   );
   /* the stage's picture as the editor paints it, its soft and its grain too (lib/picture.ts) */
   const art = (wide: boolean) =>
-    view().soft || view().grain
+    view().soft
       ? pictureCss(
           pictureOf(sampleStops(props.page.palette, view().steps), view(), wide),
           view().angle
@@ -96,6 +96,19 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
       )}
     </Show>
   );
+  /* the grain over the picture, as the editor lays it (Editor.tsx): the tile at full strength at the grain's opacity */
+  const grain = () => (
+    <Show when={view().grain}>
+      <span
+        class={styles.grain}
+        style={{
+          "background-image": GRAIN_IMAGE,
+          opacity: String((view().grain ?? 0) / GRAIN_MAX)
+        }}
+        aria-hidden="true"
+      />
+    </Show>
+  );
   /* a size with an auto side is the stage's own shape, which only the editor measures: its stage stands empty */
   const fixed = () => {
     const size = view().size;
@@ -105,7 +118,6 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
     <div
       class={[styles.page, styles.boot]}
       style={{ "--art": art(false), "--art-p3": art(true) }}
-      data-grain={view().grain ? "" : undefined}
       /* inert: no key or pointer reaches it and no assistive technology reads it, the editor it stands for read once it
          comes. Not aria-hidden too, which inert makes needless: Chrome leaves what aria-hidden covers out of the largest
          contentful paint, and counted the editor drawing this same picture again, later, as the page's largest */
@@ -127,6 +139,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
                 {glass()}
                 {blob()}
                 {fx()}
+                {grain()}
               </div>
             </Show>
             <Show when={fixed()}>
@@ -141,6 +154,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
                   {glass()}
                   {blob()}
                   {fx()}
+                  {grain()}
                 </div>
               )}
             </Show>

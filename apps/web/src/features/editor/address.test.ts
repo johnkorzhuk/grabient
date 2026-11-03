@@ -54,6 +54,17 @@ test("the router's search object keeps the canonical order", () => {
   expect(page && seedAddress(page)).toBe(`/${SEED}?steps=9&angle=45&lock=hue&selection`);
 });
 
+test("soft and grain stand in the router's search as numbers, which the router writes bare", () => {
+  /* a string the router writes quoted (soft=%2240%22), which a reload reads as no number and the canonical address
+     then leaves out */
+  const page = readSeedPage(SEED, new URLSearchParams("grain=12&soft=40&style=linearSwatches"));
+  expect(page && seedSearch(page)).toEqual({ style: "linearSwatches", soft: 40, grain: 12 });
+  expect(page && seedAddress(page)).toBe(`/${SEED}?style=linearSwatches&soft=40&grain=12`);
+  expect(canonicalSeedAddress(`/${SEED}?style=linearSwatches&soft=40&grain=12`)).toBe(
+    `/${SEED}?style=linearSwatches&soft=40&grain=12`
+  );
+});
+
 test("a seed is what decodes to a palette, never what only has a seed's shape", () => {
   expect(isSeed(SEED)).toBe(true);
   expect(isSeed(EIGHT)).toBe(true);

@@ -7,8 +7,7 @@ import { decodePalette } from "@grabient/engine/codec.ts";
 import { lchToP3, toCssP3 } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
-import { grainLayer } from "@grabient/engine/grain.ts";
-import type { Style } from "@grabient/engine/view.ts";
+import { GRAIN_MAX, type Style } from "@grabient/engine/view.ts";
 import type { Drawn } from "./palette.ts";
 import { loadSoft, softNow } from "./soft-load.ts";
 
@@ -27,19 +26,22 @@ export function drawn(
   return soft.drawnStops(stops, view);
 }
 
-/** The grain's tile at a strength, as the build writes it. */
+/** The grain's tile at a strength, as the build writes it: what a copy carries. */
 export const grainSrc = (grain: number): string => `${__GRAIN__}/${grain}.png`;
-/** The grain's layer over a picture, or none. */
-export const grainOver = (grain?: number | null): string | undefined =>
-  grain ? grainLayer(grainSrc(grain)) : undefined;
+/** The tile at full strength as a CSS image, which every picture on the site lays over itself at the grain's share
+    as its opacity (grainLook): a grain being set changes no file, so none flickers as it comes. */
+export const GRAIN_IMAGE = `url("${grainSrc(GRAIN_MAX)}")`;
+/** The grain's layer over a picture: the tile and its opacity; none for none. */
+export const grainLook = (grain?: number | null): { image: string; opacity: number } | undefined =>
+  grain ? { image: GRAIN_IMAGE, opacity: grain / GRAIN_MAX } : undefined;
 
 /** What a picture paints: its colors (hexes, or Display-P3 where the screen shows it), the style they are drawn in, a
-    soft view's places for them along the line, and the grain over them. */
+    soft view's places for them along the line, and the grain over them, a layer of its own. */
 export interface Picture {
   stops: readonly string[];
   style: Style;
   at?: readonly number[];
-  grain?: string;
+  grain?: { image: string; opacity: number };
 }
 
 /** A view's stops as its picture paints them. */
@@ -49,7 +51,7 @@ export function pictureOf(
   wide = false
 ): Picture {
   const d = drawn(stops, view);
-  const grain = grainOver(view.grain);
+  const grain = grainLook(view.grain);
   return {
     stops: d.stops.map(s => (wide ? toCssP3(lchToP3(...s.lch)) : s.hex)),
     style: d.style,
@@ -58,9 +60,9 @@ export function pictureOf(
   };
 }
 
-/** A picture as one CSS background: the grain's layer over the gradient. */
+/** A picture's gradient as one CSS background; the grain stands over it as a layer of its own. */
 export const pictureCss = (p: Picture, angle: number): string =>
-  (p.grain ? `${p.grain}, ` : "") + gradientCss(p.stops, p.style, angle, undefined, p.at);
+  gradientCss(p.stops, p.style, angle, undefined, p.at);
 
 /* A list reads the same palettes again and again as its view changes; each card's picture is kept by seed and view,
    the oldest going first. */

@@ -7,7 +7,7 @@ import { blobShapeOf, blobStillKey, fxStillKey, type VectorKind } from "@grabien
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
-import { resolveSize, type Size } from "@grabient/engine/view.ts";
+import { GRAIN_MAX, resolveSize, type Size } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
@@ -45,7 +45,7 @@ import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
 import { type PaletteView, relTo } from "../../lib/page-meta.ts";
-import { grainOver, pictureCss, pictureOf } from "../../lib/picture.ts";
+import { GRAIN_IMAGE, pictureCss, pictureOf } from "../../lib/picture.ts";
 import { shownError } from "../../lib/query.ts";
 import {
   countDue,
@@ -641,26 +641,33 @@ function Stage(
      glass's are; the grain over either */
   const art = () => {
     const soft = e.soft();
-    const grain = e.grain();
     if (!soft)
-      return (
-        (grain ? `${grainOver(grain)}, ` : "") +
-        gradientCss(
-          calm().map(s => s.paint ?? s.hex),
-          e.shownStyle(),
-          e.angle()
-        )
+      return gradientCss(
+        calm().map(s => s.paint ?? s.hex),
+        e.shownStyle(),
+        e.angle()
       );
     const P = calmPalette();
     return pictureCss(
       pictureOf(
         sampleStops(P, Math.max(e.steps(), P.anchors.length)),
-        { style: e.shownStyle(), soft, grain },
+        { style: e.shownStyle(), soft },
         e.wide()
       ),
       e.angle()
     );
   };
+  /* the grain over the picture, the gradient's or an effect's: the tile at full strength at the grain's opacity, so a
+     grain being set changes no file and nothing flickers as one comes (lib/picture.ts) */
+  const grainLayer = () => (
+    <Show when={e.grain()}>
+      <span
+        class={styles.grain}
+        style={{ "background-image": GRAIN_IMAGE, opacity: String(e.grain() / GRAIN_MAX) }}
+        aria-hidden="true"
+      />
+    </Show>
+  );
   /* the size a row of the size list is resting on, painted without being set */
   const [sizePeek, setSizePeek] = createSignal<Size | null | undefined>(undefined);
   const drawn = () => {
@@ -826,14 +833,13 @@ function Stage(
               role="img"
               aria-label={t("The gradient")}
               style={{
-                background: art(),
-                /* a speck of grain a CSS pixel, crisp on a dense screen; never over an effect, whose canvas would take it */
-                "image-rendering": e.grain() && !e.shownEffect() ? "pixelated" : undefined
+                background: art()
               }}
             >
               {glassLayer()}
               {blobLayer()}
               {fxLayer()}
+              {grainLayer()}
             </div>
           </>
         }
@@ -846,14 +852,13 @@ function Stage(
             style={{
               "--ar": String(size().width / size().height),
               "--w": `${size().width}px`,
-              background: art(),
-              /* a speck of grain a CSS pixel, crisp on a dense screen; never over an effect, whose canvas would take it */
-              "image-rendering": e.grain() && !e.shownEffect() ? "pixelated" : undefined
+              background: art()
             }}
           >
             {glassLayer()}
             {blobLayer()}
             {fxLayer()}
+            {grainLayer()}
           </div>
         )}
       </Show>

@@ -199,8 +199,8 @@
   "Add a title": {
     "note": "Press, and the empty field's placeholder, in the place of a palette's age on its card in the account's own collection: gives the palette a title in that collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:391",
-      "packages/ui/src/PaletteCard.tsx:410"
+      "packages/ui/src/PaletteCard.tsx:397",
+      "packages/ui/src/PaletteCard.tsx:416"
     ]
   },
   "Add all to selection": {
@@ -244,11 +244,11 @@
   "Add to selection": {
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Boot.tsx:173",
+      "apps/web/src/features/editor/Boot.tsx:187",
       "apps/web/src/features/editor/Editor.tsx:594",
       "apps/web/src/features/editor/Editor.tsx:595",
-      "packages/ui/src/PaletteCard.tsx:449",
-      "packages/ui/src/PaletteCard.tsx:450"
+      "packages/ui/src/PaletteCard.tsx:455",
+      "packages/ui/src/PaletteCard.tsx:456"
     ]
   },
   "Add to {app}": {
@@ -1133,8 +1133,8 @@
   "Couldn't copy the palette.": {
     "note": "Error line after a failed copy of a palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:696",
-      "apps/web/src/features/editor/Editor.tsx:707",
+      "apps/web/src/features/editor/Editor.tsx:703",
+      "apps/web/src/features/editor/Editor.tsx:714",
       "apps/web/src/features/editor/Sheet.tsx:151",
       "apps/web/src/features/examples/Swatches.tsx:202",
       "apps/web/src/features/examples/Swatches.tsx:212",
@@ -1196,7 +1196,7 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
-      "apps/web/src/features/editor/Editor.tsx:714",
+      "apps/web/src/features/editor/Editor.tsx:721",
       "apps/web/src/features/editor/Sheet.tsx:560",
       "apps/web/src/features/editor/Sheet.tsx:638",
       "apps/web/src/features/examples/Swatches.tsx:209",
@@ -1621,22 +1621,22 @@
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:540",
       "apps/web/src/features/collections/Heading.tsx:131",
-      "packages/ui/src/PaletteCard.tsx:314"
+      "packages/ui/src/PaletteCard.tsx:320"
     ]
   },
   "Edit {name}": {
     "note": "Read by screen readers: a palette card's Edit press, and the edit press on a collection's title. {name} is the palette's or the collection's name.",
     "refs": [
       "apps/web/src/features/collections/Heading.tsx:130",
-      "packages/ui/src/PaletteCard.tsx:313",
-      "packages/ui/src/PaletteCard.tsx:319"
+      "packages/ui/src/PaletteCard.tsx:319",
+      "packages/ui/src/PaletteCard.tsx:325"
     ]
   },
   "Editor": {
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1170",
+      "apps/web/src/features/editor/Editor.tsx:1175",
       "apps/web/src/features/examples/ExamplesPage.tsx:304",
       "packages/ui/src/KeyList.tsx:10"
     ]
@@ -2276,7 +2276,7 @@
   "Images can't be copied here.": {
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:695",
+      "apps/web/src/features/editor/Editor.tsx:702",
       "apps/web/src/features/editor/Sheet.tsx:150",
       "apps/web/src/mcp-view/PaletteView.tsx:247",
       "apps/web/src/mcp-view/PaletteView.tsx:255",
@@ -2449,21 +2449,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:989",
+      "apps/web/src/features/editor/Editor.tsx:994",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:985",
+      "apps/web/src/features/editor/Editor.tsx:990",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:974",
+      "apps/web/src/features/editor/Editor.tsx:979",
       "apps/web/src/features/editor/code.ts:297",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -3294,7 +3294,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:888",
+      "apps/web/src/features/editor/Editor.tsx:893",
       "packages/ui/src/PaletteSheet.tsx:131"
     ]
   },
@@ -3355,7 +3355,7 @@
   "Palette title": {
     "note": "Field on a palette's card in the account's own collection: the palette's title there.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:411"
+      "packages/ui/src/PaletteCard.tsx:417"
     ]
   },
   "Palette titles are up to {max} characters.": {
@@ -3393,10 +3393,10 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:874",
+      "apps/web/src/features/editor/Editor.tsx:879",
       "apps/web/src/lib/page-meta.ts:582",
       "apps/web/src/lib/page-meta.ts:593",
-      "packages/ui/src/PaletteCard.tsx:330"
+      "packages/ui/src/PaletteCard.tsx:336"
     ]
   },
   "Palettes you like appear here.": {
@@ -3850,8 +3850,8 @@
       "apps/web/src/features/editor/Editor.tsx:594",
       "apps/web/src/features/editor/Editor.tsx:595",
       "packages/ui/src/ExportPreview.tsx:83",
-      "packages/ui/src/PaletteCard.tsx:449",
-      "packages/ui/src/PaletteCard.tsx:450"
+      "packages/ui/src/PaletteCard.tsx:455",
+      "packages/ui/src/PaletteCard.tsx:456"
     ]
   },
   "Remove held keyframes": {
@@ -3864,7 +3864,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1187",
+      "apps/web/src/features/editor/Editor.tsx:1192",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3872,7 +3872,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1187"
+      "apps/web/src/features/editor/Editor.tsx:1192"
     ]
   },
   "Remove {hex}": {
@@ -3904,7 +3904,7 @@
   "Rename {title}": {
     "note": "Screen reader name of a palette's title on its card in the account's own collection: a press that opens a field to change the title. {title} is the palette's title.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:199"
+      "packages/ui/src/PaletteCard.tsx:198"
     ]
   },
   "Replaces it in the gallery": {
@@ -4679,10 +4679,10 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:877",
+      "apps/web/src/features/editor/Editor.tsx:882",
       "apps/web/src/features/editor/Sheet.tsx:678",
       "apps/web/src/features/editor/StaticPalette.tsx:148",
-      "packages/ui/src/PaletteCard.tsx:331"
+      "packages/ui/src/PaletteCard.tsx:337"
     ]
   },
   "Since lightness, chroma and hue are separate, changing a keyframe's hue keeps its lightness.": {
@@ -5120,8 +5120,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:827",
-      "apps/web/src/features/editor/Editor.tsx:845"
+      "apps/web/src/features/editor/Editor.tsx:834",
+      "apps/web/src/features/editor/Editor.tsx:851"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -6986,7 +6986,7 @@
   "{name} gradient": {
     "note": "Screen reader name of a card's picture drawn as a gradient.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:282"
+      "packages/ui/src/PaletteCard.tsx:277"
     ]
   },
   "{name} is disconnected": {
@@ -7006,7 +7006,7 @@
   "{name} palette": {
     "note": "Screen reader name of a palette card, with the palette's name.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:215",
+      "packages/ui/src/PaletteCard.tsx:214",
       "packages/ui/src/Thumbnail.tsx:27"
     ]
   },
@@ -7019,13 +7019,13 @@
   "{name} palette, removed": {
     "note": "Screen reader name of a palette card just taken out of a collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:215"
+      "packages/ui/src/PaletteCard.tsx:214"
     ]
   },
   "{name} swatches": {
     "note": "Screen reader name of a card's picture drawn as bands of flat color.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:282"
+      "packages/ui/src/PaletteCard.tsx:277"
     ]
   },
   "{name} {style}": {

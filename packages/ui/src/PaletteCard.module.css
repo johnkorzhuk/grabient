@@ -238,7 +238,17 @@
     gap: var(--space-s2);
   }
   /* a style previewed on the card hides its picture without taking it down: the drawing stays for the preview's end */
-  .paint[data-peek] > * {
+  .paint[data-peek] > :not(.grain) {
     visibility: hidden;
+  }
+  /* the grain over the picture: one tile at full strength at the grain's opacity (apps/web lib/picture.ts), a speck a
+     CSS pixel, crisp on a dense screen */
+  .grain {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background-size: 128px 128px;
+    image-rendering: pixelated;
   }
 }

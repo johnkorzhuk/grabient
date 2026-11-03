@@ -524,10 +524,7 @@
         }
       }
     }
-    /* a speck of grain a CSS pixel, crisp on a dense screen, as the editor paints it */
-    &[data-grain] :is(.paint, .fitted) {
-      image-rendering: pixelated;
-    }
+
     & .railDock {
       display: none;
     }
@@ -579,5 +576,17 @@
   }
   .more {
     height: 100vh;
+  }
+}
+
+@layer components {
+  /* the grain over the stage's picture, the gradient's or an effect's: one tile at full strength at the grain's
+     opacity (lib/picture.ts), a speck a CSS pixel, crisp on a dense screen */
+  .grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-size: 128px 128px;
+    image-rendering: pixelated;
   }
 }

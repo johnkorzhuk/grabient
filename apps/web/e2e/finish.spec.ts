@@ -34,7 +34,28 @@ test("a list's Soft and Grain fields soften and grain every card through the add
   await grain.focus();
   for (let press = 0; press < 12; press++) await page.keyboard.press("ArrowUp");
   await expect(page).toHaveURL(/[?&]soft=30&grain=12(&|$)/);
-  await expect.poll(() => art(page)).toMatch(/^url\("[^"]*\/grain-[0-9a-f]+\/12\.png"\)/);
+  /* the grain is a layer of its own over the picture: one tile at full strength at the grain's opacity, so sliding it
+     loads no file and nothing flickers */
+  const layer = page
+    .locator("main article")
+    .first()
+    .locator("[role=img] > span[aria-hidden]")
+    .last();
+  await expect
+    .poll(() =>
+      layer.evaluate(el => {
+        const style = getComputedStyle(el);
+        return `${style.backgroundImage} ${style.opacity}`;
+      })
+    )
+    .toMatch(/\/grain-[0-9a-f]+\/100\.png"\) 0\.12$/);
+  const tiles: string[] = [];
+  page.on("request", request => {
+    if (/\/grain-/.test(request.url())) tiles.push(request.url());
+  });
+  for (let press = 0; press < 6; press++) await page.keyboard.press("ArrowUp");
+  await expect(page).toHaveURL(/[?&]grain=18(&|$)/);
+  expect(tiles).toEqual([]);
   expect(errors).toEqual([]);
 });
 
@@ -46,7 +67,11 @@ test("a soft, grained palette draws its finish in its first paint, and its files
   const html = await (await request.get(address)).text();
   /* the first screen's picture, as the server drew it: the grain's tile over the blurred stops */
   const drawn = (/--art:(.*?);--art-p3:/.exec(html)?.[1] ?? "").replaceAll("&quot;", '"');
-  expect(drawn).toMatch(/^url\("[^"]*\/grain-[0-9a-f]+\/20\.png"\) 0 0 \/ 128px 128px, /);
+  expect(drawn).toMatch(/^radial-gradient\(/);
+  /* and its grain, a layer of its own: the tile at full strength at the grain's opacity */
+  expect(html).toMatch(
+    /background-image:url\(&quot;[^&]*\/grain-[0-9a-f]+\/100\.png&quot;\);opacity:0\.2/
+  );
   expect(drawn).toContain("radial-gradient(");
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(String(error)));
@@ -56,12 +81,28 @@ test("a soft, grained palette draws its finish in its first paint, and its files
   const stage = page.getByRole("img", { name: "The gradient" }).first();
   await expect
     .poll(() => stage.evaluate(el => getComputedStyle(el).backgroundImage))
-    .toMatch(/^url\("[^"]*\/grain-[0-9a-f]+\/20\.png"\), radial-gradient\(/);
+    .toMatch(/^radial-gradient\(/);
+  await expect
+    .poll(() =>
+      stage
+        .locator("> span[aria-hidden]")
+        .last()
+        .evaluate(el => getComputedStyle(el).opacity)
+    )
+    .toBe("0.2");
+
   await page.getByRole("button", { name: /^Appearance/ }).click();
   await expect(page.getByRole("spinbutton", { name: /^Soft/ })).toHaveAttribute(
     "aria-valuenow",
     "40"
   );
+  /* the editor writes a grain into its address as a number, bare, which a reload keeps */
+  await page.getByRole("spinbutton", { name: /^Grain/ }).focus();
+  await page.keyboard.press("ArrowUp");
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=radialSwatches&soft=40&grain=21$`));
+  await page.reload();
+  await live(page);
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=radialSwatches&soft=40&grain=21$`));
   expect(errors).toEqual([]);
 
   const file = (extension: string) =>
