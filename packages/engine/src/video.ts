@@ -265,6 +265,27 @@ export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   rosette: { qp: 24, keyQp: 12, ramp: 20, effort: 9 }
 };
 
+/** How a clip is coded: as its effect is, but a blob with a soft, or grained with less frost than designed, as the
+    glass is. The blob's coarser quantizer is for its frost, noise in every pixel; a grain, which holds still while
+    the picture moves, keeps its pattern through it as well as through the glass's, but where a soft blurs the frost
+    away or there is less of it, that quantizer lets the grain fade frame by frame until the loop's key frame brings it
+    back, a pulse at every seam, where the glass's holds it. Through a 480 square blob's loop at speed 2, decoded, the
+    share of grain 30's pattern kept (W/styles-lab/sg/mp4/grain-seam.ts): at the blob's numbers, with soft 40, 0.94 at
+    the key frame and 0.45 by the loop's end (soft 15 to 25 alike; soft 10, its sigma under a pixel, leaves the frost
+    as it is), with no soft at frost 0, 0.5 and 1 0.44 to 0.65, 0.69 to 0.77 and 0.78 to 0.87, at frost 2 0.91 to
+    0.93; at the glass's, with soft 40, 0.84 to 0.85 throughout, as on the glass (0.85 to 0.87), at 1.6 times the bytes
+    (2,185 KiB where 1,355; the plain blob 1,572), and at frost 0 0.84 to 0.86. A frosted blob's grain at the glass's
+    numbers would be 0.95 for 1.65 times the bytes. The glass's key frame also makes the seam's step in the decoded
+    picture 1.8 levels where the blob's made it 2.6 (an ordinary step 0.8 to 0.9). A plain blob is coded as it was. */
+export const videoQuality = (effect: {
+  kind: VideoKind;
+  look: Pick<EffectLook, "frost">;
+  finish?: { soft?: unknown; grain?: unknown };
+}): VideoQuality =>
+  effect.kind === "blob" && (effect.finish?.soft || (effect.finish?.grain && effect.look.frost < 1))
+    ? VIDEO_QUALITY.glass
+    : VIDEO_QUALITY[effect.kind];
+
 /** The clips' module by its contents: the first 12 hex digits of video/video.wasm's SHA-256, which a test checks. An
     encoder's state holds pointers into the memory of the module that kept it, which another module lays out elsewhere
     (going on from one traps), so a drawing goes on only from a state the same module kept (video-make.ts). */
@@ -354,7 +375,7 @@ export function videoDrawer(
   wasm: WebAssembly.Module,
   ask: VideoAsk,
   plan: VideoPlan,
-  quality = VIDEO_QUALITY[ask.kind],
+  quality = videoQuality(ask),
   keepRgb = false
 ) {
   const m = new WebAssembly.Instance(wasm, {}).exports as unknown as VideoModule;
@@ -607,7 +628,7 @@ export function videoFrames(
   from = 0,
   to = plan.frames,
   state: Uint8Array | null = null,
-  quality = VIDEO_QUALITY[ask.kind]
+  quality = videoQuality(ask)
 ): { frames: Mp4Frame[]; state: Uint8Array<ArrayBuffer> } {
   const drawer = videoDrawer(wasm, ask, plan, quality);
   if (from > 0) {

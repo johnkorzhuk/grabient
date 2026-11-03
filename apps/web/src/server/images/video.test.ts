@@ -331,28 +331,47 @@ describe("a palette's MP4", () => {
     expect(await etagOf(env, keep, finished)).not.toBe(await etagOf(env, keep, CLIP));
     expect(await etagOf(env, keep, `${CLIP}&grain=30`)).not.toBe(await etagOf(env, keep, finished));
     /* the key a plain clip had before clips took a soft and a grain */
+    const keyOf = async (parts: unknown[]) => {
+      const digest = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(JSON.stringify([VIDEO_DRAWING, ...parts]))
+      );
+      return `"video:${Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("")}"`;
+    };
     const fit = videoFit({ kind: "glass", look: { shape: 0, frost: 1, bg: null } }, 1, 10, 2, {
       width: 64,
       height: 48
     });
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(
-        JSON.stringify([
-          VIDEO_DRAWING,
-          VIDEO_QUALITY.glass,
-          SEED,
-          "glass",
-          135,
-          { shape: 0, frost: 1, bg: null },
-          fit.size,
-          fit.fps,
-          fit.plan
-        ])
-      )
+    const plain = [
+      SEED,
+      "glass",
+      135,
+      { shape: 0, frost: 1, bg: null },
+      fit.size,
+      fit.fps,
+      fit.plan
+    ];
+    expect(await etagOf(env, keep, CLIP)).toBe(await keyOf([VIDEO_QUALITY.glass, ...plain]));
+    /* a soft blob is coded as the glass is, and keyed so; a plain one as it was */
+    const blobLook = { shape: null, frost: 1, bg: null };
+    const blobFit = videoFit({ kind: "blob", look: blobLook }, 1, 10, 2, { width: 64, height: 48 });
+    const blobKey = (quality: unknown, finish: unknown[]) =>
+      keyOf([
+        quality,
+        SEED,
+        "blob",
+        90,
+        blobLook,
+        blobFit.size,
+        blobFit.fps,
+        blobFit.plan,
+        ...finish
+      ]);
+    const blobClip = `/${SEED}.mp4?style=blob&size=64x48&fps=10&duration=2`;
+    expect(await etagOf(env, keep, blobClip)).toBe(await blobKey(VIDEO_QUALITY.blob, []));
+    expect(await etagOf(env, keep, `${blobClip}&soft=40`)).toBe(
+      await blobKey(VIDEO_QUALITY.glass, [{ soft: 40 }])
     );
-    const key = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
-    expect(await etagOf(env, keep, CLIP)).toBe(`"video:${key}"`);
     const still = new URL(
       (await seedMp4Answer(get(finished), env, keep, parts.run)).headers.get("Location") ?? ""
     );

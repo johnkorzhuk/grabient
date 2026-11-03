@@ -30,6 +30,7 @@ import {
   videoParts,
   videoPlan,
   videoQp,
+  videoQuality,
   videoWork
 } from "./video.ts";
 import { videoBlur, videoFinish } from "./video-finish.ts";
@@ -134,6 +135,41 @@ describe("videoParts", () => {
     for (const [from, to] of runs)
       expect((to - from) * size.width * size.height).toBeLessThanOrEqual(60_000_000);
     expect(videoParts(glass, videoPlan(glass, 0, 30, 3), size, 1)).toEqual([[0, 90]]);
+  });
+});
+
+describe("videoQuality", () => {
+  it("codes a soft blob, or a grained one with less frost than designed, as the glass, every other as before", () => {
+    const thin = { ...blob, look: { ...look, frost: 0.5 } };
+    expect(videoQuality(blob)).toEqual(VIDEO_QUALITY.blob);
+    expect(videoQuality({ ...blob, finish: {} })).toEqual(VIDEO_QUALITY.blob);
+    expect(videoQuality({ ...blob, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.glass);
+    expect(videoQuality({ ...thin, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.glass);
+    /* the frost holds the grain as the glass's coding holds the glass's */
+    expect(videoQuality({ ...blob, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.blob);
+    expect(videoQuality({ ...thin, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.glass);
+    for (const kind of ["glass", "silk", "rosette"] as const)
+      expect(videoQuality({ kind, look, finish: { soft: 40, grain: 30 } })).toEqual(
+        VIDEO_QUALITY[kind]
+      );
+  });
+
+  it("is what a clip's frames are coded at", () => {
+    const size = { width: 64, height: 48 };
+    const ask: VideoAsk = {
+      kind: "blob",
+      palette,
+      look,
+      angle: 90,
+      size,
+      fps: 10,
+      finish: videoFinish(palette, blob, 90, { soft: 40, grain: 30 }, size)
+    };
+    const plan = videoPlan(blob, 2, 10, 2);
+    const coded = (quality?: typeof VIDEO_QUALITY.blob) =>
+      videoFrames(wasm, ask, plan, 0, plan.frames, null, quality).frames.map(f => f.data);
+    expect(coded()).toEqual(coded(VIDEO_QUALITY.glass));
+    expect(coded()).not.toEqual(coded(VIDEO_QUALITY.blob));
   });
 });
 
