@@ -1,9 +1,10 @@
 import { decodePalette } from "@grabient/engine";
 import { toHex } from "@grabient/engine/color.ts";
-import { luminance } from "@grabient/engine/contrast.ts";
+import { contrast, luminance } from "@grabient/engine/contrast.ts";
 import type { Effect } from "@grabient/engine/effect.ts";
 import { effectColors } from "@grabient/engine/effect-code.ts";
 import { effectRgba } from "@grabient/engine/fx-frame.ts";
+import { glassGeometry } from "@grabient/engine/glass.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { PAPERCUT_LOOP, papercutScene } from "@grabient/engine/papercut.ts";
 import { renderPapercut } from "@grabient/engine/papercut-render.ts";
@@ -395,6 +396,54 @@ describe("the silk, the rosette and the papercut", () => {
   });
 });
 
+describe("the glass", () => {
+  test("its ribs light its colors no darker and no lighter than the page reads them, whatever its angle and shape", () => {
+    for (const shape of [null, 1, 7, 500, 999])
+      for (const angle of [0, 45, 90, 160]) {
+        const { shadeTable } = glassGeometry({ width: 1000, height: 1000 }, angle, shape);
+        expect(2 * Math.min(...shadeTable)).toBeGreaterThanOrEqual(0.94);
+        expect(2 * Math.max(...shadeTable)).toBeLessThanOrEqual(1.03);
+      }
+  });
+  test("words the page reads on it read on the engine's own glass, wherever they stand", async () => {
+    const box = { width: 320, height: 180 };
+    const parts = Array.from({ length: 12 }, (_, i) => ({
+      x0: (i % 4) / 4,
+      y0: Math.floor(i / 4) / 3,
+      x1: ((i % 4) + 1) / 4,
+      y1: (Math.floor(i / 4) + 1) / 3
+    }));
+    for (const seed of SEEDS)
+      for (const angle of [45, 90, 160]) {
+        const P = real(seed);
+        const effect: Effect = {
+          kind: "glass",
+          speed: 1,
+          fps: 60,
+          look: { shape: null, frost: 1, bg: null }
+        };
+        const s: Shown = {
+          seed,
+          palette: P,
+          view: { style: "linearGradient", steps: 7, angle },
+          effect
+        };
+        const px = await effectRgba(P, effect, angle, box, null);
+        const colorsOf = colorsOfParts(s, box.width / box.height);
+        for (const part of parts) {
+          const read = inkOn(colorsOf(part));
+          if (read.ratio < 4.5) continue;
+          for (let y = Math.ceil(part.y0 * box.height); y < part.y1 * box.height; y++)
+            for (let x = Math.ceil(part.x0 * box.width); x < part.x1 * box.width; x++) {
+              const o = 4 * (y * box.width + x);
+              const shown = toHex([px[o] / 255, px[o + 1] / 255, px[o + 2] / 255]);
+              expect(contrast(read.ink, shown)).toBeGreaterThanOrEqual(4.5);
+            }
+        }
+      }
+  });
+});
+
 describe("a soft look", () => {
   test("blurs along its line as far as the engine's soft does", () => {
     const styles: Style[] = ["linearSwatches", "radialGradient", "angularSwatches"];
@@ -419,7 +468,7 @@ describe("a soft look", () => {
     expect(colorsOfParts({ ...cone, view: { ...cone.view, soft: 72 } }, 1)(start)).toContain(last);
   });
 
-  test("every pixel of the engine's soft first frames is a blend of the colors the page reads under its part", async () => {
+  test("every pixel of the engine's first frames, plain and soft, is a blend of the colors the page reads under its part", async () => {
     const box = { width: 64, height: 36 };
     const parts = Array.from({ length: 12 }, (_, i) => ({
       x0: (i % 4) / 4,
@@ -428,11 +477,11 @@ describe("a soft look", () => {
       y1: (Math.floor(i / 4) + 1) / 3
     }));
     for (const seed of SEEDS.slice(0, 3))
-      for (const kind of ["silk", "rosette", "papercut"] as const)
-        for (const soft of [32, 72]) {
+      for (const kind of ["glass", "silk", "rosette", "papercut"] as const)
+        for (const soft of [0, 32, 72]) {
           const s: Shown = {
-            ...fx(kind, seed, 45, null),
-            view: { style: "linearGradient", steps: 7, angle: 45, soft }
+            ...fx(kind === "glass" ? "silk" : kind, seed, 45, null),
+            view: { style: "linearGradient", steps: 7, angle: 45, ...(soft ? { soft } : {}) }
           };
           const effect: Effect = {
             kind,
@@ -441,7 +490,7 @@ describe("a soft look", () => {
             look: { shape: null, frost: 1, bg: null }
           };
           const look = { ...s, effect };
-          const px = await effectRgba(look.palette, effect, 45, box, soft);
+          const px = await effectRgba(look.palette, effect, 45, box, soft || null);
           const colorsOf = colorsOfParts(look, box.width / box.height);
           for (const part of parts) {
             const within = colorsOf(part).map(rgbOf);

@@ -1,8 +1,9 @@
 /* What a palette shows on its examples page, and what reads on it. Each part draws the palette in the look the page
    gives it (looks.ts), or says how it draws it otherwise. Where words stand on a picture, the colors under them say which ink
    reads there, by WCAG 2's contrast: a gradient's are read off its geometry (the line, the cone or the circle the CSS
-   draws, for a box of a given shape), the fluted glass's as the line of its six colors its ribs run across, a blob's as
-   all its colors over its ground, which the page's own is where it has none, the silk's as its dye's line lit and
+   draws, for a box of a given shape), the fluted glass's as all six of its colors, which its drifting discs carry
+   anywhere in it, lit and shaded by its ribs, a blob's as all its colors over its ground, which the page's own is
+   where it has none, the silk's as its dye's line lit and
    shaded by its folds, and the rosette's and the papercut's as every color they lay, which their motion carries
    anywhere in them. A soft picture reads farther: a gradient's blur along its line, an effect's over the box and the
    gradient under it, as far as the blur reaches. */
@@ -110,8 +111,28 @@ function placeOf(style: Style, angle: number, aspect: number, x: number, y: numb
   return 0.5 + (dx * Math.sin(turn) - dy * Math.cos(turn)) / length;
 }
 
-/* the glass bends its colors across its ribs: a point may show the line's colors this far either way */
-const GLASS_BEND = 0.15;
+/* The glass (engine/glass.ts) lays its six colors as soft discs over a ground of its second, which drift along its
+   ribs over its loop, blurs them and bends them through its ribs, whose light multiplies each by a factor of its lens's
+   gray, 1 + shade · (skew · x − x² + 1/3) for x from −1 to 1, 0.944 at its least and 1.021 at its most: every color it
+   shows anywhere is a blend of its six, darkened or lightened so far (GLASS_LIGHT, held to the engine's by a test). */
+const GLASS_LIGHT = [0.94, 1.03] as const;
+const glasses = new WeakMap<Palette, string[]>();
+/** Every color the glass shows: each of its six at its ribs' least light and at their most. */
+function glassLit(P: Palette): string[] {
+  let all = glasses.get(P);
+  if (!all) {
+    all = [
+      ...new Set(
+        glassColors(P).flatMap(hex => {
+          const rgb = hexToSrgb(hex) ?? [0, 0, 0];
+          return GLASS_LIGHT.map(light => toHex(rgb.map(v => v * light)));
+        })
+      )
+    ];
+    glasses.set(P, all);
+  }
+  return all;
+}
 
 /** A blob's colors as they may stand anywhere: all of them, and its ground, the page's own in both themes where it has
     none, since a server draws the page before it knows the reader's theme. */
@@ -417,8 +438,8 @@ function colorsOver(colors: readonly string[], a: number, b: number, bands: bool
 
 /** The colors under any part of a box `aspect` times as wide as tall where the palette is its picture: those every
     color there is a blend of, the colors at the ends of each stretch of the line the part covers and each stop between
-    (the glass's stretch widened by its ribs' bend, the silk's its dye's line, lit and shaded), a blob's all of its
-    colors and its ground, and every color the rosette or the papercut lays. A part's corners and the point nearest the
+    (the silk's its dye's line, lit and shaded), a blob's all of its colors and its ground, and every color the glass,
+    the rosette or the papercut lays. A part's corners and the point nearest the
     middle say which stretch it covers, so no stop between two points read goes unseen. A soft gradient's stretch is
     widened by as far as its blur reaches along the line; a soft effect's part by as far as its blur reaches over the
     box, the gradient under it too, which its edges thin to. */
@@ -461,12 +482,14 @@ function effectParts(s: Shown, effect: Effect, aspect: number): (part: Part) => 
     const all = blobColors(effect, drawnColors(s));
     return () => all;
   }
-  if (effect.kind === "rosette" || effect.kind === "papercut") {
-    const all = effect.kind === "rosette" ? rosetteColors(s.palette) : papercutColors(s.palette);
-    return () => all;
-  }
   if (effect.kind === "silk") return silkParts(s, aspect);
-  return lineParts(drawnColors(s), "linearGradient", s.view.angle, aspect, GLASS_BEND);
+  const all =
+    effect.kind === "rosette"
+      ? rosetteColors(s.palette)
+      : effect.kind === "papercut"
+        ? papercutColors(s.palette)
+        : glassLit(s.palette);
+  return () => all;
 }
 
 /** The colors under parts of `colors` drawn in a style at an angle: each stretch of the line a part covers, widened by
