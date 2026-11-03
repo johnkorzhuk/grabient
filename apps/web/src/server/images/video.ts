@@ -20,13 +20,7 @@
    Clips are a preview: who a clip no one has kept is drawn for, its drawing and that page are video-make.ts's, which
    loads with the first of them an isolate is asked for. This answers a kept clip to a player without it. */
 
-import {
-  type Effect,
-  type EffectFinish,
-  effectFileAddress,
-  effectStillParts,
-  parseEffect
-} from "@grabient/engine/effect.ts";
+import { type Effect, type EffectFinish, parseEffect } from "@grabient/engine/effect.ts";
 import type { VideoPlan } from "@grabient/engine/video.ts";
 import type { Size } from "@grabient/engine/view.ts";
 import { DEFAULT_ANGLE, finishOf } from "@grabient/engine/view.ts";
@@ -76,49 +70,25 @@ async function hashOf(parts: readonly unknown[]): Promise<string> {
 const listed = (header: string | null, tag: string) =>
   !!header?.split(",").some(each => each.trim().replace(/^W\//, "") === tag);
 
-/** The clip's first frame as a PNG at its size, soft and grained as the clip is: its poster, and what stands in for it
-    while it is not drawn. */
-const stillAddress = (
-  origin: string,
-  seed: string,
-  effect: Effect,
-  angle: number,
-  finish: EffectFinish,
-  size: Size
-) =>
-  `${origin}/${seed}.png?${[
-    ...effectStillParts(effect, angle, finish),
-    `w=${size.width}`,
-    `h=${size.height}`
-  ].join("&")}`;
-
-/** The address a clip is named by: its effect's (effectFileAddress: its style, angle, soft and grain, how it plays and
-    its look), its size and the duration asked, which answer the same clip as the address asked for. */
-const clipAddress = (
-  origin: string,
-  seed: string,
-  effect: Effect,
-  angle: number,
-  finish: EffectFinish,
-  size: Size,
-  duration: number | null
-) =>
-  `${effectFileAddress(origin, seed, effect, angle, "mp4", undefined, finish)}&${[
-    `w=${size.width}`,
-    `h=${size.height}`,
-    ...(duration === null ? [] : [`duration=${duration}`])
-  ].join("&")}`;
-
-/** A clip as its drawing takes it: its key and its file's name in R2, the job each part is handed, its parts' frames,
-    and its size, rate and plan. */
+/** A clip as its drawing takes it: its key and its file's name in R2, the job each part is handed but for the finish,
+    which its drawing works out (video-make.ts), its parts' frames, its size, rate and plan, and what its finish and its
+    addresses are written from: the effect, its angle, its soft and grain and the duration asked. */
 export interface Clip {
   hash: string;
   name: string;
-  job: Omit<VideoPartJob, "from" | "to" | "state">;
+  job: Omit<VideoPartJob, "finish" | "from" | "to" | "state">;
   runs: [number, number][];
   size: Size;
   fps: number;
   plan: VideoPlan;
+  address: {
+    origin: string;
+    seed: string;
+    effect: Effect;
+    angle: number;
+    finish: EffectFinish;
+    duration: number | null;
+  };
 }
 
 /** Whether the asker is an admin. */
@@ -198,7 +168,6 @@ export async function seedMp4Answer(
   const name = `videos/${hash}.mp4`;
   const store = env.DEPLOYMENT !== "preview" ? env.UPLOADS : undefined;
   const origin = publicOrigin(env, request);
-  const still = stillAddress(origin, found.seed, effect, angle, finish, size);
   const clip: Clip = {
     hash,
     name,
@@ -206,7 +175,6 @@ export async function seedMp4Answer(
       palette: found.palette,
       kind,
       look: effect.look,
-      finish,
       angle,
       width: size.width,
       height: size.height,
@@ -216,17 +184,13 @@ export async function seedMp4Answer(
     runs: videoParts(drawn, plan, size, options.partWork ?? PART_WORK),
     size,
     fps,
-    plan
+    plan,
+    address: { origin, seed: found.seed, effect, angle, finish, duration }
   };
 
   if (isLinkPreview(request) && !params.has("raw")) {
-    const named = clipAddress(origin, found.seed, effect, angle, finish, size, duration);
     const { previewAnswer } = await import("./video-make.ts");
-    return previewAnswer(request, env, store, clip, parts, keep, admin, {
-      address: named,
-      file: `${named}&raw`,
-      poster: still
-    });
+    return previewAnswer(request, env, store, clip, parts, keep, admin);
   }
 
   const tag = `"video:${hash}"`;
@@ -250,7 +214,7 @@ export async function seedMp4Answer(
     return kept;
   }
   const { madeAnswer } = await import("./video-make.ts");
-  return madeAnswer(request, env, store, clip, parts, keep, still, headers, {
+  return madeAnswer(request, env, store, clip, parts, keep, headers, {
     admin,
     lookEvery: options.lookEvery
   });

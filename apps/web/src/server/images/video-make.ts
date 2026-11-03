@@ -9,6 +9,7 @@
    being drawn waits for it to be kept and is answered from there. Nothing is drawn while the `videos` flag is off;
    then, and for an asker a clip is not drawn for, the address goes to its first frame as a PNG. */
 
+import { effectFileAddress, effectStillParts } from "@grabient/engine/effect.ts";
 import type { Mp4Frame } from "@grabient/engine/mp4.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
 import type { VideoKind } from "@grabient/engine/video.ts";
@@ -20,12 +21,31 @@ import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import { LIMITS } from "@grabient/server/limits/config.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { NO_STORE } from "../../lib/cache.ts";
-/* This imports nothing the answer (video.ts) reads the address with, nor serve.ts, which reads the cards' sizes: a
-   module that loads apart and imports either takes them out of the chunks the Worker starts with, splitting those. */
+/* This imports nothing the answer (video.ts) reads the address with from the router's chunk (files/address.ts,
+   resolve.ts, size.ts), nor serve.ts, which reads the cards' sizes: a module that loads apart and imports one takes
+   it out of the chunks the Worker starts with, splitting those. effect.ts stands in a chunk of its own. */
 import type { Keep } from "./serve.ts";
 import type { Clip, VideoAdmin, VideoPartRunner } from "./video.ts";
 import { bytesAnswer, keptAnswer } from "./video-bytes.ts";
 import type { VideoPartDrawn } from "./video-draw.ts";
+
+/** The clip's first frame as a PNG at its size, soft and grained as the clip is: its poster, and what stands in for it
+    while it is not drawn. */
+const stillAddress = ({ address: at, size }: Clip) =>
+  `${at.origin}/${at.seed}.png?${[
+    ...effectStillParts(at.effect, at.angle, at.finish),
+    `w=${size.width}`,
+    `h=${size.height}`
+  ].join("&")}`;
+
+/** The address a clip is named by: its effect's (effectFileAddress: its style, angle, soft and grain, how it plays and
+    its look), its size and the duration asked, which answer the same clip as the address asked for. */
+const clipAddress = ({ address: at, size }: Clip) =>
+  `${effectFileAddress(at.origin, at.seed, at.effect, at.angle, "mp4", undefined, at.finish)}&${[
+    `w=${size.width}`,
+    `h=${size.height}`,
+    ...(at.duration === null ? [] : [`duration=${at.duration}`])
+  ].join("&")}`;
 
 /** An answer that is no clip, as serve.ts's `failure` writes it: plain words, kept by no cache, readable anywhere. */
 const failure = (status: number, message: string, headers: Record<string, string> = {}) =>
@@ -106,15 +126,23 @@ const stateName = (hash: string) => `videos/${hash}/state`;
 
 /** A clip's MP4: its parts drawn one after another, each going on from the state the one before left (the Worker's own
     entrypoint runs on this thread, so parts at once would take as long), from the last part kept where a drawing
-    before this one stopped. Each part and the state after it are kept as the next is drawn. */
+    before this one stopped, each handed the finish worked out once. Each part and the state after it are kept as the
+    next is drawn. */
 async function drawClip(
   store: R2Bucket | undefined,
   clip: Clip,
   parts: VideoPartRunner
 ): Promise<Uint8Array<ArrayBuffer>> {
-  const [{ packFrames, unpackFrames }, { videoFile }] = await Promise.all([
+  const { soft, grain } = clip.address.finish;
+  const [{ packFrames, unpackFrames }, { videoFile }, finish] = await Promise.all([
     import("@grabient/engine/mp4.ts"),
-    import("@grabient/engine/video.ts")
+    import("@grabient/engine/video.ts"),
+    /* worked out once for every part, from fx-finish.ts, which the parts' drawing does not load (video-finish.ts) */
+    soft || grain
+      ? import("@grabient/engine/video-finish.ts").then(({ videoFinish }) =>
+          videoFinish(clip.job.palette, clip.job, clip.job.angle, clip.address.finish, clip.size)
+        )
+      : {}
   ]);
   const { hash, runs } = clip;
   const frames: Mp4Frame[][] = [];
@@ -145,7 +173,7 @@ async function drawClip(
   try {
     for (let i = start; i < runs.length; i++) {
       const [from, to] = runs[i];
-      const part: VideoPartDrawn = await parts({ ...clip.job, from, to, state });
+      const part: VideoPartDrawn = await parts({ ...clip.job, finish, from, to, state });
       frames[i] = part.frames;
       state = part.state;
       if (store && i < runs.length - 1) {
@@ -232,7 +260,6 @@ export async function madeAnswer(
   clip: Clip,
   parts: VideoPartRunner,
   keep: Keep,
-  still: string,
   headers: Record<string, string>,
   options: { admin: VideoAdmin; lookEvery?: number }
 ): Promise<Response> {
@@ -240,7 +267,7 @@ export async function madeAnswer(
   const maker = paused ? null : await makerOf(env, request, options.admin);
   if (!maker) {
     countUsage(env, "image", "video", "refused");
-    return toStill(still, paused);
+    return toStill(stillAddress(clip), paused);
   }
   const lookEvery = options.lookEvery ?? LOOK_EVERY_MS;
   for (let round = 0; round < ROUNDS; round++) {
@@ -340,16 +367,16 @@ export async function previewAnswer(
   clip: Clip,
   parts: VideoPartRunner,
   keep: Keep,
-  admin: VideoAdmin,
-  page: { address: string; file: string; poster: string }
+  admin: VideoAdmin
 ): Promise<Response> {
   const plays =
     (store ? !!(await store.head(clip.name).catch(() => null)) : false) ||
     (await previewPlays(request, env, store, clip, parts, keep, admin));
+  const address = clipAddress(clip);
   return videoPreview({
-    address: page.address,
-    file: plays ? page.file : null,
-    poster: page.poster,
+    address,
+    file: plays ? `${address}&raw` : null,
+    poster: stillAddress(clip),
     size: clip.size,
     title: `${readingName(readPalette(clip.job.palette))} · Grabient`,
     about: ABOUT[clip.job.kind]

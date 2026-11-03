@@ -2,20 +2,21 @@
    (engine/video/video.wasm, compiled with the Worker) and the engine's video code load with the first video asked for.
    A part is handed its palette rather than the seed it reads from, so this imports nothing the Worker starts with,
    and its loading moves none of the Worker's start into chunks of its own. */
-import type { EffectFinish, EffectLook } from "@grabient/engine/effect.ts";
+import type { EffectLook } from "@grabient/engine/effect.ts";
 import type { Mp4Frame } from "@grabient/engine/mp4.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import wasm from "@grabient/engine/video/video.wasm";
-import type { VideoKind } from "@grabient/engine/video.ts";
+import type { VideoFinish, VideoKind } from "@grabient/engine/video.ts";
 import { type VideoPlan, videoFrames } from "@grabient/engine/video.ts";
 
-/** One part of a clip, as its answer hands it to an invocation of its own: the palette, the effect, its soft and
-    grain, the clip, the frames to draw, and the encoder's state where the part before stopped (none for the first). */
+/** One part of a clip, as its answer hands it to an invocation of its own: the palette, the effect, its finish worked
+    out (engine/video-finish.ts), the clip, the frames to draw, and the encoder's state where the part before stopped
+    (none for the first). */
 export interface VideoPartJob {
   palette: Palette;
   kind: VideoKind;
   look: EffectLook;
-  finish: EffectFinish;
+  finish: VideoFinish;
   angle: number;
   width: number;
   height: number;

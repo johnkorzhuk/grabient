@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
+import { decodePalette } from "@grabient/engine/codec.ts";
 import { VIDEO_QUALITY, videoFit, videoFrames } from "@grabient/engine/video.ts";
+import { videoFinish } from "@grabient/engine/video-finish.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -364,7 +366,21 @@ describe("a palette's MP4", () => {
     ]);
     const drawing = world();
     await seedMp4Answer(get(finished), drawing.env, drawing.keep, parts.run);
-    expect(parts.jobs.map(job => job.finish)).toEqual([{ soft: 40, grain: 30 }]);
+    const palette = decodePalette(SEED);
+    if (!palette) throw new Error("the test's palette");
+    expect(parts.jobs.map(job => job.finish)).toEqual([
+      videoFinish(
+        palette,
+        { kind: "glass", look: { shape: null, frost: 1, bg: null } },
+        135,
+        { soft: 40, grain: 30 },
+        {
+          width: 64,
+          height: 48
+        }
+      )
+    ]);
+    expect(parts.jobs[0].finish.soft?.under?.angle).toBe(135);
   });
 
   test("goes to its first frame while drawing is off, and a kept clip is still answered", async () => {

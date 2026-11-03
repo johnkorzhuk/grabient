@@ -7,7 +7,7 @@
 import { BLOB_DESIGN, BLOB_LOOP, blobBackdrop, blobFit, blobFrame, blobScene } from "./blob.ts";
 import { hexBytes } from "./color.ts";
 import { type EffectFinish, type EffectKind, type EffectLook, groundParts } from "./effect.ts";
-import { blurBoxes, effectBlurSigma, effectUnderlay } from "./fx-finish.ts";
+import type { Underlay } from "./fx-finish.ts";
 import { GLASS_LOOP, type GlassGeometry, glassDiscAt, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { type GlassWindow, glassCover, glassMap, glassPlan } from "./glass-render.ts";
@@ -22,7 +22,7 @@ import {
   rosetteScene
 } from "./rosette.ts";
 import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
-import type { Size } from "./view.ts";
+import { effectSoftShare, type Size } from "./view.ts";
 
 /** The effects a clip can be drawn of: every one, its frames drawn by video/video.wasm. */
 export type VideoKind = EffectKind;
@@ -45,13 +45,32 @@ export interface VideoEffect {
   finish?: EffectFinish;
 }
 
-/** A clip of an effect, as an address asks for it. */
-export interface VideoAsk extends VideoEffect {
+/** How a clip's frames are finished, worked out from its soft and grain for its size (video-finish.ts's videoFinish):
+    the grain's strength; and for a soft, how the module blurs a frame (videoBlur) and the palette's gradient under the
+    blurred frame, none under a blob with no ground, which lies on the clip's backdrop. Plain numbers, which the answer
+    hands each part. */
+export interface VideoFinish {
+  grain?: number;
+  soft?: { blur: VideoBlur; under: Underlay | null };
+}
+
+/** How the module blurs a frame for a soft (video-finish.ts's videoBlur): at the frame's own resolution or at a half or a
+    quarter of it, by three boxes, each its reach before a sample and after it (none for a blur too small). */
+export interface VideoBlur {
+  scale: 1 | 2 | 4;
+  boxes: [number, number][];
+}
+
+/** A clip of an effect, as an address asks for it, its finish worked out. */
+export interface VideoAsk {
+  kind: VideoKind;
+  look: EffectLook;
   palette: Palette;
   angle: number;
   /** even sides */
   size: Size;
   fps: number;
+  finish?: VideoFinish;
 }
 
 /** How a clip plays: whole loops in whole frames, so its last frame leads into its first. */
@@ -95,10 +114,19 @@ export const VIDEO_WEIGHT: Record<VideoKind, number> = {
 export const VIDEO_SOFT_WEIGHT: Record<VideoBlur["scale"], number> = { 1: 1, 2: 0.45, 4: 0.35 };
 export const VIDEO_GRAIN_WEIGHT = 0.3;
 
+/** The resolution a soft's blur of `sigma` pixels runs at (videoBlur): the frame's own for a narrow one, a half for a
+    wider and a quarter past that, each within two levels of fx-finish.ts's finishPixels. */
+export const videoBlurScale = (sigma: number): VideoBlur["scale"] =>
+  sigma < 7 ? 1 : sigma < 16 ? 2 : 4;
+
+/** A soft's sigma in a picture of a size, as fx-finish.ts's effectBlurSigma reads it: a share of its longer side. */
+export const videoSoftSigma = (soft: number, size: Size): number =>
+  effectSoftShare(soft) * Math.max(size.width, size.height);
+
 /** A pixel's cost in a clip of a size: its effect's, and its soft's and grain's. */
 export function videoWeight(effect: VideoEffect, size: Size): number {
   const soft = effect.finish?.soft
-    ? VIDEO_SOFT_WEIGHT[videoBlurScale(effectBlurSigma(effect.finish.soft, size))]
+    ? VIDEO_SOFT_WEIGHT[videoBlurScale(videoSoftSigma(effect.finish.soft, size))]
     : 0;
   return VIDEO_WEIGHT[effect.kind] + soft + (effect.finish?.grain ? VIDEO_GRAIN_WEIGHT : 0);
 }
@@ -306,8 +334,7 @@ export function videoDrawer(
   ask: VideoAsk,
   plan: VideoPlan,
   quality = VIDEO_QUALITY[ask.kind],
-  keepRgb = false,
-  blurAs?: VideoBlur["scale"]
+  keepRgb = false
 ) {
   const m = new WebAssembly.Instance(wasm, {}).exports as unknown as VideoModule;
   const { width: W, height: H } = ask.size;
@@ -326,7 +353,7 @@ export function videoDrawer(
         : ask.kind === "silk"
           ? silkDraw(m, params, ask, plan)
           : rosetteDraw(m, params, ask, plan);
-  finishSetup(m, params, ask, blurAs);
+  finishSetup(m, params, ask);
   const code = (i: number): Uint8Array<ArrayBuffer> => {
     const n = m.frame(i === 0 ? 1 : 0, videoQp(quality, i, plan.frames));
     if (n < 0) throw new Error(`video: minih264 error ${-n}`);
@@ -341,66 +368,12 @@ export function videoDrawer(
   return { draw, code, rgb, state, resume };
 }
 
-/** How the module blurs a frame for a soft of `sigma` pixels: at the frame's own resolution, by fx-finish.ts's own
-    boxes (blurBoxes), or at 1/`scale` of it, the frame averaged `scale` by `scale` as it is drawn and read back up
-    bilinearly after, as a browser draws a wide blur, by three boxes whose variance is the full blur's less what the
-    averaging and the reading back spread (a box of f's (f² - 1) / 12 and a bilinear read's f² / 6 a side), each box
-    centered: three of odd widths, or two of even widths leaning either way and one of odd, their widths within 2 of
-    each other, so their sum stays near a Gaussian. Each step down costs a quarter of the blur before it. */
-export interface VideoBlur {
-  scale: 1 | 2 | 4;
-  /** each box's reach before a sample and after it */
-  boxes: [number, number][];
-}
-export function videoBlur(sigma: number, scale = videoBlurScale(sigma)): VideoBlur {
-  const full = blurBoxes(sigma);
-  if (scale === 1 || !full.length) return { scale: 1, boxes: full };
-  const variance = (boxes: readonly [number, number][]) =>
-    boxes.reduce((v, [l, r]) => v + ((l + r + 1) ** 2 - 1) / 12, 0);
-  const target =
-    (variance(full) - ((scale * scale - 1) / 12 + (scale * scale) / 6)) / (scale * scale);
-  if (target <= 0) return { scale: 1, boxes: full };
-  const w0 = Math.sqrt(4 * target + 1);
-  let best: { boxes: [number, number][]; off: number; spread: number } | null = null;
-  for (let a = Math.max(1, Math.floor(w0) - 2); a <= Math.ceil(w0) + 2; a++)
-    for (let b = a; b <= a + 2; b++)
-      for (let c = Math.max(1, b - 2); c <= a + 2; c++) {
-        const odd = a % 2 && b % 2 && c % 2 && c >= b;
-        const paired = !(a % 2) && !(b % 2) && c % 2;
-        if (!odd && !paired) continue;
-        const boxes: [number, number][] = odd
-          ? [a, b, c].map((w): [number, number] => [(w - 1) / 2, (w - 1) / 2])
-          : [
-              [a / 2, a / 2 - 1],
-              [b / 2 - 1, b / 2],
-              [(c - 1) / 2, (c - 1) / 2]
-            ];
-        const off = Math.abs(variance(boxes) - target);
-        const spread = Math.max(a, b, c) - Math.min(a, b, c);
-        if (
-          !best ||
-          off < best.off - 1e-9 ||
-          (Math.abs(off - best.off) <= 1e-9 && spread < best.spread)
-        )
-          best = { boxes, off, spread };
-      }
-  return best ? { scale, boxes: best.boxes } : { scale: 1, boxes: full };
-}
-
-/** The resolution a soft of `sigma` pixels is blurred at (videoBlur). */
-export const videoBlurScale = (sigma: number): 1 | 2 | 4 => (sigma < 7 ? 1 : sigma < 16 ? 2 : 4);
-
-/* The clip's soft and grain, which the module lays on each frame as fx-finish.ts's finishPixels does: the grain's tile
-   at its strength, a speck a pixel; and for a soft, the blur's sigma and what lies under the blurred frame, the
-   palette's gradient at the effect's angle, its stops blurred by the same soft, or, under a blob with no ground, the
-   clip's backdrop, which a clip, never clear, lays every blob on (blobDraw). A blob with a soft is drawn as its layer
-   alone, over its own ground where it has one, as the site lays it over that gradient. */
-function finishSetup(
-  m: VideoModule,
-  params: () => Float64Array,
-  ask: VideoAsk,
-  blurAs?: VideoBlur["scale"]
-): void {
+/* The clip's finish, which the module lays on each frame as fx-finish.ts's finishPixels does: the grain's tile at its
+   strength, a speck a pixel; and for a soft, the blur and what lies under the blurred frame, the palette's gradient,
+   or, under a blob with no ground, the clip's backdrop, which a clip, never clear, lays every blob on (blobDraw). A
+   blob with a soft is drawn as its layer alone, over its own ground where it has one, as the site lays it over that
+   gradient. */
+function finishSetup(m: VideoModule, params: () => Float64Array, ask: VideoAsk): void {
   const finish = ask.finish ?? {};
   if (finish.grain) {
     const tile = new Uint8Array(m.memory.buffer, m.params(), GRAIN_SIDE * GRAIN_SIDE);
@@ -412,15 +385,14 @@ function finishSetup(
     if (!m.grain_setup()) throw new Error("video: out of memory");
   }
   if (!finish.soft) return;
-  const underlay = effectUnderlay(ask.palette, ask, ask.angle, finish.soft);
+  const { blur, under } = finish.soft;
   if (ask.kind === "blob") {
     const ground = ask.look.bg ? groundParts(ask.look.bg) : null;
     const [r, g, b] = ground ? hexBytes(ground.hex) : [0, 0, 0];
     m.blob_ground(r, g, b, ground?.alpha ?? 0);
   }
-  const blur = videoBlur(effectBlurSigma(finish.soft, ask.size), blurAs);
   const reach = [0, 1, 2].flatMap(i => blur.boxes[i] ?? [0, 0]);
-  const setup = (under: number, r: number, g: number, b: number) =>
+  const setup = (gradient: number, r: number, g: number, b: number) =>
     m.finish_setup(
       blur.scale,
       blur.boxes.length,
@@ -430,22 +402,20 @@ function finishSetup(
       reach[3],
       reach[4],
       reach[5],
-      under,
+      gradient,
       r,
       g,
       b
     );
   let done: number;
-  if (underlay) {
-    const n = underlay.stops.length;
-    const a = (underlay.angle * Math.PI) / 180;
+  if (under) {
+    /* the gradient's stops and its line, as linearGradientPixels reads them */
+    const n = under.stops.length;
+    const a = (under.angle * Math.PI) / 180;
     const p = params();
     p.set([n, Math.sin(a), -Math.cos(a)]);
-    for (const [i, stop] of underlay.stops.entries())
-      p.set(
-        [...hexBytes(stop.hex), underlay.at ? underlay.at[i] : n > 1 ? i / (n - 1) : 0],
-        3 + 4 * i
-      );
+    for (const [i, stop] of under.stops.entries())
+      p.set([...hexBytes(stop.hex), under.at ? under.at[i] : n > 1 ? i / (n - 1) : 0], 3 + 4 * i);
     done = setup(1, 0, 0, 0);
   } else {
     const [r, g, b] = blobBackdrop(ask.palette);

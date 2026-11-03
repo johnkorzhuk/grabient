@@ -19,7 +19,6 @@ import {
   type VideoBlur,
   type VideoKind,
   type VideoPlan,
-  videoBlur,
   videoBlurScale,
   videoDrawer,
   videoDuration,
@@ -31,6 +30,7 @@ import {
   videoQp,
   videoWork
 } from "./video.ts";
+import { videoBlur, videoFinish } from "./video-finish.ts";
 
 /* Node's WebAssembly, as much of it as this names (the engine's lib knows no host, as video.ts says) */
 declare const WebAssembly: {
@@ -260,7 +260,7 @@ describe("the module's frames", () => {
 
 /* A frame finished as the site paints it, by the engine's own code: the effect's CPU drawing as straight-alpha RGBA,
    finishPixels over it, then the clip's backdrop under what is not opaque (a blob with no ground). */
-function finished(ask: VideoAsk, plan: VideoPlan, i: number): Uint8Array {
+function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: number): Uint8Array {
   const { kind, size, look: shown, angle, palette: P } = ask;
   const n = size.width * size.height;
   const opaque = (rgb: ArrayLike<number>, stride: number) => {
@@ -293,7 +293,6 @@ function finished(ask: VideoAsk, plan: VideoPlan, i: number): Uint8Array {
     const scene = rosetteScene(P, { angle, shape: shown.shape }, size);
     rgba = opaque(renderRosette(scene, ((i * plan.loops) % plan.frames) / plan.frames), 4);
   }
-  const finish = ask.finish ?? {};
   const done = finishPixels(rgba, size, finish, effectUnderlay(P, ask, angle, finish.soft));
   const back = blobBackdrop(P);
   const out = new Uint8Array(n * 3);
@@ -306,17 +305,22 @@ function finished(ask: VideoAsk, plan: VideoPlan, i: number): Uint8Array {
 }
 
 describe("a clip's soft and grain", () => {
-  /* the module's frames against the engine's, the level differences' share past 1 and their most */
-  const against = (ask: VideoAsk, blurAs?: VideoBlur["scale"]) => {
+  /* the module's frames, finished as videoFinish works it out, against the engine's, the level differences' share
+     past 1 and their most */
+  const against = (shown: VideoAsk, finish: EffectFinish, blurAs?: VideoBlur["scale"]) => {
+    const ask = {
+      ...shown,
+      finish: videoFinish(palette, shown, shown.angle, finish, shown.size, blurAs)
+    };
     const plan = videoPlan(ask, 2.45, ask.fps, null);
-    const drawer = videoDrawer(wasm, ask, plan, VIDEO_QUALITY[ask.kind], true, blurAs);
+    const drawer = videoDrawer(wasm, ask, plan, VIDEO_QUALITY[ask.kind], true);
     let worst = 0;
     let past = 0;
     let all = 0;
     for (const i of [0, Math.floor(plan.frames / 2)]) {
       drawer.draw(i);
       const ours = drawer.rgb();
-      const theirs = finished(ask, plan, i);
+      const theirs = finished(ask, finish, plan, i);
       for (let k = 0; k < ours.length; k++) {
         const d = Math.abs(ours[k] - theirs[k]);
         worst = Math.max(worst, d);
@@ -343,10 +347,9 @@ describe("a clip's soft and grain", () => {
         look: shown,
         angle: 135,
         size: { width: 96, height: 54 },
-        fps: 30,
-        finish: { grain: 60 }
+        fps: 30
       };
-      const { worst, past } = against(ask);
+      const { worst, past } = against(ask, { grain: 60 });
       expect(worst, kind).toBeLessThanOrEqual(2);
       expect(past, kind).toBeLessThan(0.005);
     }
@@ -361,15 +364,11 @@ describe("a clip's soft and grain", () => {
     ] as [{ width: number; height: number }, EffectFinish, VideoBlur["scale"]][]) {
       expect(videoBlurScale(effectBlurSigma(finish.soft, size))).toBe(scale);
       for (const [kind, shown] of kinds) {
-        const { worst, past } = against({
-          kind,
-          palette,
-          look: shown,
-          angle: 135,
-          size,
-          fps: 30,
-          finish
-        });
+        const { worst, past } = against(
+          { kind, palette, look: shown, angle: 135, size, fps: 30 },
+          finish,
+          scale
+        );
         expect(worst, `${kind} at 1/${scale}`).toBeLessThanOrEqual(2);
         expect(past, `${kind} at 1/${scale}`).toBeLessThan(0.01);
       }
@@ -469,20 +468,21 @@ describe("videoFrames", () => {
   it("draws a soft, grained clip of each effect in parts as the same stream it draws whole", () => {
     for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
       for (const finish of [{ soft: 100, grain: 30 }, { soft: 60 }]) {
+        const size = { width: 64, height: 48 };
         const ask: VideoAsk = {
           kind,
           palette,
           look,
           angle: 135,
-          size: { width: 64, height: 48 },
+          size,
           fps: 30,
-          finish
+          finish: videoFinish(palette, { kind, look }, 135, finish, size)
         };
         const plan = videoPlan(ask, 10, 30, null);
         const whole = videoFrames(wasm, ask, plan).frames;
         const parted = [];
         let state: Uint8Array | null = null;
-        for (const [from, to] of videoParts(ask, plan, ask.size, 64 * 48 * 40)) {
+        for (const [from, to] of videoParts({ kind, look, finish }, plan, size, 64 * 48 * 40)) {
           const part = videoFrames(wasm, ask, plan, from, to, state);
           parted.push(...part.frames);
           state = part.state;
