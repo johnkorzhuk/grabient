@@ -68,6 +68,15 @@ test("a linear gradient's pixels run along CSS's line", () => {
   const placed = linearGradientPixels(["#000000", "#ffffff"], 90, size, [0.5, 0.5]);
   expect(placed[(0 * 64 + 10) * 3]).toBe(0);
   expect(placed[(0 * 64 + 50) * 3]).toBe(255);
+  /* a band of the box's rows alone is those rows of the whole, as the blur lays it */
+  const hexes = ["#ff0000", "#0000ff", "#00ff00"];
+  const whole = linearGradientPixels(hexes, 30, size);
+  const band = linearGradientPixels(hexes, 30, size, undefined, {
+    from: 5,
+    to: 9,
+    into: new Uint8Array(64 * 4 * 3)
+  });
+  expect([...band]).toEqual([...whole.subarray(5 * 64 * 3, 9 * 64 * 3)]);
 });
 
 test("the blur of a picture's pixels: a Gaussian's three boxes, clear past the edges", () => {
@@ -198,8 +207,8 @@ test("a wide blur runs on the picture's cells within about a level of the browse
 });
 
 test("a narrow blur runs by bands of rows, as the whole picture's would", () => {
-  /* taller than a band, so its rows read the bands either side */
-  const size = { width: 40, height: 300 };
+  /* taller than two bands, so a band's rows read the bands either side, one with the picture's ends on neither */
+  const size = { width: 40, height: 600 };
   const frame = bars(size.width, size.height, true);
   for (const sigma of [0.8, 2.5]) {
     const { out, under } = exactOver(frame, size, sigma);
