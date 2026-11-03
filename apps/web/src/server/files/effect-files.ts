@@ -62,7 +62,7 @@ export function effectSvgAnswer(
             : effect.kind === "rosette"
               ? "An animated SVG of a Grabient palette: a rosette of petals in its colors, the rings rippling out from the heart, moved by CSS alone."
               : effect.kind === "papercut"
-                ? "An SVG of a Grabient palette: its colors cut into sheets of paper stacked into a relief, each casting a soft shadow on the one below."
+                ? "An animated SVG of a Grabient palette: its colors cut into sheets of paper stacked into a drifting relief, each casting a soft shadow on the one below, moved by CSS alone."
                 : "An animated SVG of a Grabient palette: a frosted blob of its colors, drifting, moved by CSS alone."
     });
   }

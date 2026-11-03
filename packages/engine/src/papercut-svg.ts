@@ -21,6 +21,7 @@
 import type { Palette } from "./palette.ts";
 import {
   atOnce,
+  PAPERCUT_LOOP,
   type PapercutScene,
   type PapercutView,
   papercutField,
@@ -63,11 +64,11 @@ const ROWS = 24;
 const marginOf = (m: PapercutScene, reach: number) =>
   Math.ceil(Math.max(...m.offset) + reach * Math.max(...m.sigma) + 4);
 
-/** The contours of every sheet's level at t = 0, in px, with their tangents, a step at a time: the grid of the field,
-    the cells' segments at every level, then each level's loops. */
-function* contourSteps(m: PapercutScene, how: Trace): Generator<void, Contour[][]> {
+/** The contours of every sheet's level at t (seconds of the loop at speed 1), in px, with their tangents, a step at a
+    time: the grid of the field, the cells' segments at every level, then each level's loops. */
+function* contourSteps(m: PapercutScene, how: Trace, t = 0): Generator<void, Contour[][]> {
   const at = new Float64Array(papercutFrameSize(m));
-  papercutFrameAt(m, 0, at);
+  papercutFrameAt(m, t, at);
   const out = new Float64Array(4);
   const { width: W, height: H, D } = m;
   const margin = marginOf(m, how.reach);
@@ -471,8 +472,8 @@ function fit(
 
 /** Each sheet's cut as its loops, sheet k at k - 1 (none where its level cuts nothing in the box), a step at a time:
     the contours', then each level's curves fitted. */
-function* cutLoopSteps(m: PapercutScene, how: Trace): Generator<void, Loop[][]> {
-  const contours = yield* contourSteps(m, how);
+function* cutLoopSteps(m: PapercutScene, how: Trace, t = 0): Generator<void, Loop[][]> {
+  const contours = yield* contourSteps(m, how, t);
   const cuts: Loop[][] = [];
   for (const loops of contours) {
     yield;
@@ -514,10 +515,10 @@ function* kept<T>(
   return cuts;
 }
 
-/** The light at t = 0, on screen: toward it. */
-function lightOf(m: PapercutScene): [number, number] {
+/** The light at t, on screen: toward it. */
+function lightOf(m: PapercutScene, t = 0): [number, number] {
   const at = new Float64Array(papercutFrameSize(m));
-  papercutFrameAt(m, 0, at);
+  papercutFrameAt(m, t, at);
   return [at[at.length - 2], at[at.length - 1]];
 }
 
@@ -574,13 +575,28 @@ export function* papercutStillSteps(m: PapercutScene): Generator<void, string> {
       loops.length ? pathOf(loops, how.places) : null
     );
   });
-  const [lx, ly] = lightOf(m);
+  const { defs, body } = stillSheets(m, cuts, lightOf(m), "c");
+  /* the box's own edge clips it: a card's picture and a page's background are the box */
+  return (
+    `${svgOpen(m)}<defs>${defs}</defs>` +
+    `<g fill-rule="evenodd" stroke-linejoin="round"><rect width="${W}" height="${H}" fill="${m.hex[0]}"/>${body}</g></svg>`
+  );
+}
+
+/** A still's sheets above the ground, under a light: each cut's path (ids `${id}${k}`), and the layers that use it, its
+    stepped drop shadow, its contact shadow and lit cut, then its face. */
+function stillSheets(
+  m: PapercutScene,
+  cuts: readonly (string | null)[],
+  [lx, ly]: [number, number],
+  id: string
+): { defs: string; body: string } {
   const defs: string[] = [];
   const body: string[] = [];
   for (let k = 1; k < m.n; k++) {
     const cut = cuts[k - 1];
     if (cut === null) continue;
-    defs.push(`<path id="c${k}" d="${cut}"/>`);
+    defs.push(`<path id="${id}${k}" d="${cut}"/>`);
     const shadow = m.shadowHex[k];
     const off = m.offset[k];
     const moved = `translate(${fmt(-off * lx, 2)} ${fmt(-off * ly, 2)})`;
@@ -589,20 +605,72 @@ export function* papercutStillSteps(m: PapercutScene): Generator<void, string> {
       const stroke = `stroke="${shadow}" stroke-opacity="${fmt(share * a, 3)}" stroke-width="${fmt(2 * r * m.sigma[k], 2)}"`;
       body.push(
         i === 0
-          ? `<use href="#c${k}" transform="${moved}" fill="${shadow}" fill-opacity="${fmt(PAPERCUT_STEPS.fill * a, 3)}" ${stroke}/>`
-          : `<use href="#c${k}" transform="${moved}" fill="none" ${stroke}/>`
+          ? `<use href="#${id}${k}" transform="${moved}" fill="${shadow}" fill-opacity="${fmt(PAPERCUT_STEPS.fill * a, 3)}" ${stroke}/>`
+          : `<use href="#${id}${k}" transform="${moved}" fill="none" ${stroke}/>`
       );
     });
     /* the contact shadow's stroke under the lit cut, which paints over its inner half */
     body.push(
-      `<use href="#c${k}" fill="${m.wallHex[k]}" stroke="${shadow}" stroke-opacity="${fmt(CONTACT.share * m.calpha, 3)}" stroke-width="${fmt(2 * CONTACT.reach * m.csigma, 2)}" paint-order="stroke"/>`,
-      `<use href="#c${k}" transform="translate(${fmt(-m.wall * lx, 2)} ${fmt(-m.wall * ly, 2)})" fill="${m.hex[k]}"/>`
+      `<use href="#${id}${k}" fill="${m.wallHex[k]}" stroke="${shadow}" stroke-opacity="${fmt(CONTACT.share * m.calpha, 3)}" stroke-width="${fmt(2 * CONTACT.reach * m.csigma, 2)}" paint-order="stroke"/>`,
+      `<use href="#${id}${k}" transform="translate(${fmt(-m.wall * lx, 2)} ${fmt(-m.wall * ly, 2)})" fill="${m.hex[k]}"/>`
     );
   }
-  /* the box's own edge clips it: a card's picture and a page's background are the box */
+  return { defs: defs.join(""), body: body.join("") };
+}
+
+/** Frames a moving papercut's SVG draws in a loop: one every three seconds at speed 1, where its fastest motion, two
+    cycles a loop, moves a cut by a few pixels in a picture a thousand wide. */
+export const PAPERCUT_SVG_FRAMES = 60;
+
+/** The moving SVG at a speed (1 as designed: a loop in PAPERCUT_LOOP seconds): the still's stepped sheets traced at
+    PAPERCUT_SVG_FRAMES even times of the loop, each fading in over the one before it through the time between them,
+    by CSS alone, so the picture passes from one to the next as the player's cuts move (a cut's islands surface and
+    part, which no transform of fixed paths follows, and a morph of each cut's outline swam along it where the cut ran
+    out of the box: W/styles-lab/sg/pc-moving). Each frame is exact at its time and the fade between two is the mean of
+    them, a cut's edge doubling softly where it moves most. The first frame is drawn again on top, which the loop's
+    last fade ends on, and every frame but the first is hidden until its animation shows it, so an importer that runs
+    no animation takes the first alone. Two frames are drawn at a time at most, and none has a filter. */
+export function papercutMovingOf(
+  m: PapercutScene,
+  speed = 1,
+  frames = PAPERCUT_SVG_FRAMES
+): string {
+  const { width: W, height: H } = m;
+  const how = STILL_TRACE(m);
+  const seconds = PAPERCUT_LOOP / Math.max(1e-6, speed);
+  const slot = seconds / frames;
+  const defs: string[] = [];
+  const bodies: string[] = [];
+  for (let f = 0; f < frames; f++) {
+    const t = (f * PAPERCUT_LOOP) / frames;
+    const cuts = atOnce(cutLoopSteps(m, how, t)).map(loops =>
+      loops.length ? pathOf(loops, how.places) : null
+    );
+    const sheets = stillSheets(m, cuts, lightOf(m, t), `f${f}c`);
+    defs.push(sheets.defs);
+    bodies.push(sheets.body);
+  }
+  const ground = `<rect width="${W}" height="${H}" fill="${m.hex[0]}"/>`;
+  /* the first shows from the loop's start, each next one over it in turn, and the first again over the last */
+  const groups = [`<g id="frame-0" class="pca">${ground}${bodies[0]}</g>`];
+  for (let f = 1; f < frames; f++)
+    groups.push(
+      `<g id="frame-${f}" class="pcf" visibility="hidden" style="animation-delay:${fmt((f - 1) * slot, 3)}s">${ground}${bodies[f]}</g>`
+    );
+  groups.push(`<g id="frame-${frames}" class="pcz" visibility="hidden">${ground}${bodies[0]}</g>`);
+  /* frame f fades in from f - 1 slots to f, stays until f + 1 covers it, and goes; the first shows until the second
+     covers it, and the last only through the loop's last slot */
+  const pct = (v: number) => fmt((v / seconds) * 100, 4);
+  const css =
+    `.pcf,.pcz,.pca{animation:${fmt(seconds, 3)}s linear infinite}` +
+    `.pcf{animation-name:pcf}.pcz{animation-name:pcz}.pca{animation-name:pca}` +
+    `@keyframes pcf{0%{visibility:visible;opacity:0}${pct(slot)}%{opacity:1}${pct(2 * slot)}%{visibility:visible;opacity:1}${pct(2 * slot + 1e-3)}%,100%{visibility:hidden;opacity:1}}` +
+    `@keyframes pcz{0%,${pct(seconds - slot)}%{visibility:hidden;opacity:0}${pct(seconds - slot + 1e-3)}%{visibility:visible;opacity:0}100%{visibility:visible;opacity:1}}` +
+    `@keyframes pca{0%,${pct(slot)}%{visibility:visible}${pct(slot + 1e-3)}%,100%{visibility:hidden}}` +
+    `@media (prefers-reduced-motion:reduce){.pcf,.pcz,.pca{animation:none}}`;
   return (
-    `${svgOpen(m)}<defs>${defs.join("")}</defs>` +
-    `<g fill-rule="evenodd" stroke-linejoin="round"><rect width="${W}" height="${H}" fill="${m.hex[0]}"/>${body.join("")}</g></svg>`
+    `${svgOpen(m)}<style>${css}</style><defs>${defs.join("")}</defs>` +
+    `<g fill-rule="evenodd" stroke-linejoin="round">${groups.join("")}</g></svg>`
   );
 }
 
@@ -676,5 +744,8 @@ export function papercutFileOf(m: PapercutScene): string {
 export const papercutStillSvg = (P: Palette, view: PapercutView, size: Size): string =>
   papercutStillOf(papercutScene(P, view, size));
 /** The file's SVG of a palette and a view in a box. */
+/** The moving SVG of a size (papercutMovingOf). */
+export const papercutMovingSvg = (P: Palette, view: PapercutView, size: Size, speed = 1): string =>
+  papercutMovingOf(papercutScene(P, view, size), speed);
 export const papercutFileSvg = (P: Palette, view: PapercutView, size: Size): string =>
   papercutFileOf(papercutScene(P, view, size));

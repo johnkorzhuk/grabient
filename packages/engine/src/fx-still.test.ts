@@ -20,6 +20,7 @@ import {
   fxStillSvg
 } from "./fx-still.ts";
 import { GRAIN_SIDE } from "./grain.ts";
+import { PAPERCUT_SVG_FRAMES } from "./papercut-svg.ts";
 
 const SEED = "kUMzO5Na871ukuyhHUJA";
 const P = decodePalette(SEED)!;
@@ -74,7 +75,7 @@ test("the silk's and the rosette's files: a moving SVG, a stylesheet, their colo
   }
 });
 
-test("the papercut's files: its stepped still covers a page, its SVG is the still blurred at any speed, the script that plays it", () => {
+test("the papercut's files: its stepped still covers a page, its SVG moves by its stills fading one into the next and holds the still blurred, the script that plays it", () => {
   const fx: Effect = {
     kind: "papercut",
     speed: 1,
@@ -86,9 +87,27 @@ test("the papercut's files: its stepped still covers a page, its SVG is the stil
   expect(still).toContain(`width="${FX_STILL_SIDE}" height="${FX_STILL_SIDE}"`);
   expect(still).not.toContain("<filter");
   const box = { width: 640, height: 320 };
+  /* held, its first frame with its shadows blurred, as a design app imports them */
+  const held = fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, 0);
+  expect(held).toContain("<feGaussianBlur");
+  /* moving: its stills at even times of the loop, each fading in over the one before, the first again over the last,
+     every one but the first hidden until its animation shows it, and no filter */
   const file = fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, 1);
-  expect(file).toContain("<feGaussianBlur");
-  expect(fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, 0)).toBe(file);
+  expect(file).not.toContain("<filter");
+  expect(file.match(/<g id="frame-\d+"/g)).toHaveLength(PAPERCUT_SVG_FRAMES + 1);
+  expect(file).toContain('<g id="frame-0" class="pca">');
+  expect(file.match(/class="pcf" visibility="hidden"/g)).toHaveLength(PAPERCUT_SVG_FRAMES - 1);
+  expect(file).toContain(`<g id="frame-${PAPERCUT_SVG_FRAMES}" class="pcz" visibility="hidden">`);
+  expect(file).toContain(".pcf,.pcz,.pca{animation:180s linear infinite}");
+  expect(file).toContain("prefers-reduced-motion");
+  /* the last frame is the first again */
+  const frame = (svg: string, f: number) =>
+    new RegExp(`<g id="frame-${f}"[^>]*>(.*?)</g>(?=<g id=|</g></svg>)`).exec(svg)?.[1];
+  expect(frame(file, PAPERCUT_SVG_FRAMES)).toBe(frame(file, 0));
+  expect(frame(file, 1)).not.toBe(frame(file, 0));
+  expect(fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, 2)).toContain(
+    ".pcf,.pcz,.pca{animation:90s linear infinite}"
+  );
   const svg = effectSvg(P, SEED, fx, 120, box, "https://grabient.com");
   expect(svg).toMatch(/^<svg[^>]*width="640" height="320"/);
   expect(svg).toContain(`<!-- https://grabient.com/${SEED}?style=papercut&angle=120&shape=7 -->`);
@@ -122,9 +141,10 @@ test("the papercut's files: its stepped still covers a page, its SVG is the stil
 });
 
 test("the papercut's SVG finished: its drawing whole in a group, blurred over its gradient, its own blurs and clip kept, the grain's tiles over it", () => {
+  /* held, the file with its own blurs and clip; moving, its frames as they are, inside the same finish */
   const fx: Effect = {
     kind: "papercut",
-    speed: 1,
+    speed: 0,
     fps: 60,
     look: { shape: 7, frost: 1, bg: null }
   };
@@ -142,7 +162,7 @@ test("the papercut's SVG finished: its drawing whole in a group, blurred over it
   );
   expect(svg).toMatch(
     new RegExp(
-      `^<svg [^>]*><!-- https://grabient\\.com/${SEED}\\?style=papercut&angle=120&soft=40&grain=30&shape=7 -->`
+      `^<svg [^>]*><!-- https://grabient\\.com/${SEED}\\?style=papercut&angle=120&soft=40&grain=30&speed=0&shape=7 -->`
     )
   );
   expect(svg).toContain(
@@ -179,6 +199,13 @@ test("the papercut's SVG finished: its drawing whole in a group, blurred over it
   );
   expect(grained).not.toContain("gfx-soft");
   expect(grained).toContain(`${drawing}`);
+  /* moving, its frames and their animations inside the same finish */
+  const moving = effectSvg(P, SEED, { ...fx, speed: 1 }, 120, box, "https://grabient.com", {
+    soft: 40
+  });
+  expect(moving).toContain('<g filter="url(#gfx-soft)">');
+  expect(moving).toContain("@keyframes pcf{");
+  expect(moving).not.toContain('<filter id="pc0"');
 });
 
 test("a still drawn a step at a time is the still, the papercut's in a share of a millisecond or so a step", () => {

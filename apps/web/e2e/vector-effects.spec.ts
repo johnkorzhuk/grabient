@@ -153,8 +153,14 @@ test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, 
     expect(svg.headers()["content-type"]).toMatch(/^image\/svg\+xml/);
     const drawn = await svg.text();
     expect(drawn).toMatch(/^<svg[^>]*width="800" height="400"/);
-    /* the papercut's is its still with its shadows blurred, as Figma's importer takes them */
-    if (kind === "papercut") expect(drawn).toContain("<feGaussianBlur");
+    /* the papercut's moves by its stills fading one into the next, and held is its still with its shadows blurred, as
+       Figma's importer takes them */
+    if (kind === "papercut") {
+      expect(drawn).toContain("@keyframes pcf{");
+      expect(drawn).not.toContain("<feGaussianBlur");
+      const held = await request.get(`/${SEED}.svg?style=papercut&shape=7&speed=0`);
+      expect(await held.text()).toContain("<feGaussianBlur");
+    }
     const css = await at("css");
     expect(await css.text()).toMatch(/html::before[\s\S]*cover no-repeat/);
     const png = await at("png");

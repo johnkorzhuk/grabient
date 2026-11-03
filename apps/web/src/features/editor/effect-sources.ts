@@ -346,7 +346,7 @@ export function effectSources(
               effectSvg(P, seed, effect, angle, taken.pixels, origin, finish, data)
             )
           : Promise.resolve(effectSvg(P, seed, effect, angle, taken.pixels, origin, finish)),
-      /* the papercut's SVG is its first frame at any speed, the silk's moves by SMIL, the others' by CSS */
+      /* the silk's SVG moves by SMIL, the others' by CSS */
       note: () => {
         const motion = effect.speed === 0 ? null : EFFECT_SVG_MOTION[effect.kind];
         return motion === "smil"
