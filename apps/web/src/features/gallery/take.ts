@@ -1,12 +1,7 @@
 import { decodePalette } from "@grabient/engine";
 import { cssLine } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import {
-  type Effect,
-  type EffectKind,
-  hasEmbedScript,
-  hasFigmaCopy
-} from "@grabient/engine/effect.ts";
+import { type Effect, type EffectKind, hasEmbedScript } from "@grabient/engine/effect.ts";
 import { paletteSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { DEFAULT_SIZE, resolveSize, type SizeChoice, viewSearch } from "@grabient/engine/view.ts";
@@ -82,8 +77,8 @@ export const linkPalette = (p: Drawn, format: Format): Promise<void> =>
   writeText(fileAddress(p, format));
 
 /* A card playing its list's effect hands the effect over as the editor's strips do, at the size the list sets (its
-   code loads with the first press), and offers what they offer (editor/formats.ts STRIP_*, effectCopyFormats,
-   effectLinkFormats): Copy adds the tags that play it and its Figma layers where the effect has them, Copy link its
+   code loads with the first press), and offers what they offer (editor/formats.ts STRIP_*,
+   effectLinkFormats): Copy adds the tags that play it and its Figma layers, Copy link its
    script where it has one. The formats are a copy of the editor's, which take.test.ts holds alike: shared, they cost
    a list's start more than the copy does. */
 const formats = () => import("../editor/formats.ts");
@@ -102,7 +97,7 @@ const EFFECT_COPY: readonly Format[] = [...COPY, "html", "figma"];
 const EFFECT_LINKS: readonly Format[] = [...FILES, "js"];
 /** The chips of a card playing an effect of `kind`. */
 const effectChips = (kind: EffectKind): typeof CHIPS => ({
-  copy: hasFigmaCopy(kind) ? EFFECT_COPY : EFFECT_COPY.filter(f => f !== "figma"),
+  copy: EFFECT_COPY,
   download: FILES,
   link: hasEmbedScript(kind) ? EFFECT_LINKS : FILES
 });

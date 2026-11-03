@@ -135,6 +135,7 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
   const { figmaRosetteHtml } = await import("@grabient/engine/figma-rosette.ts");
   const { figmaBlobHtml } = await import("@grabient/engine/figma-blob.ts");
   const { figmaGlassHtml } = await import("@grabient/engine/figma-glass.ts");
+  const { figmaPapercutHtml } = await import("@grabient/engine/figma-papercut.ts");
   const { glassColors } = await import("@grabient/engine/glass-colors.ts");
   const { effectUnderlay } = await import("@grabient/engine/fx-finish.ts");
   /* a press in the browser, where each effect's code comes on it (the server's render never loads it) */
@@ -150,7 +151,8 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
     ["style=blob&shape=3&bg=%23f0e6d240", { soft: 40 }],
     ["style=blob&shape=3", { soft: 40, grain: 10 }],
     ["style=glass&shape=12", { soft: 50, grain: 50 }],
-    ["style=glass&speed=0", { grain: 20 }]
+    ["style=glass&speed=0", { grain: 20 }],
+    ["style=papercut&shape=7", { soft: 40, grain: 30 }]
   ] as const) {
     const fx = effect(query);
     pasted.length = 0;
@@ -158,28 +160,30 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
     const underlay = "soft" in finish ? effectUnderlay(P, fx, 45, finish.soft) : null;
     const view = { ...size, finish, underlay };
     const html =
-      fx.kind === "silk"
-        ? figmaSilkHtml(
-            { palette: P, angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
-            id
-          )
-        : fx.kind === "rosette"
-          ? figmaRosetteHtml(
+      fx.kind === "papercut"
+        ? figmaPapercutHtml({ palette: P, angle: 45, shape: fx.look.shape, ...view }, id)
+        : fx.kind === "silk"
+          ? figmaSilkHtml(
               { palette: P, angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
               id
             )
-          : fx.kind === "blob"
-            ? figmaBlobHtml({ palette: P, ...fx.look, ...view, speed: fx.speed }, id)
-            : figmaGlassHtml(
-                {
-                  colors: glassColors(P),
-                  angle: 45,
-                  shape: fx.look.shape,
-                  ...view,
-                  speed: fx.speed
-                },
+          : fx.kind === "rosette"
+            ? figmaRosetteHtml(
+                { palette: P, angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
                 id
-              );
+              )
+            : fx.kind === "blob"
+              ? figmaBlobHtml({ palette: P, ...fx.look, ...view, speed: fx.speed }, id)
+              : figmaGlassHtml(
+                  {
+                    colors: glassColors(P),
+                    angle: 45,
+                    shape: fx.look.shape,
+                    ...view,
+                    speed: fx.speed
+                  },
+                  id
+                );
     expect(pasted).toEqual([html]);
     /* a finished paste is no plain one: the blur and the noise ride in it */
     await copyFormat("figma", taken(query));

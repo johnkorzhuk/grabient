@@ -486,7 +486,7 @@ function* cutLoopSteps(m: PapercutScene, how: Trace): Generator<void, Loop[][]> 
     one angle and shape trace them once and each card writes its colors about them (a still's are about 10 KB, a
     file's at 1920 by 1080 about 60). */
 export const PAPERCUT_TRACES_KEPT = { still: 32, file: 4 } as const;
-interface FileCut {
+export interface FileCut {
   /** the cut moved away from the light by its shadow's offset, the cut, and the cut moved by the lit edge's width */
   shadow: string;
   cut: string;
@@ -606,13 +606,12 @@ export function* papercutStillSteps(m: PapercutScene): Generator<void, string> {
   );
 }
 
-/** The file's SVG: the shadows blurred, as the sketch drew them, for a browser and a design app alike. Every layer is
-    a path of its own, its fill and its rule on it, its offset in its own first points, with no <use> and no transform
-    for an importer to resolve: Figma's takes each as a vector, its blur as a layer blur. */
-export function papercutFileOf(m: PapercutScene): string {
-  const { width: W, height: H } = m;
+/** The file's sheets above the ground, each its three paths as the file lays them (the cut moved away from the light
+    by its shadow's offset, the cut, and the cut moved toward it by the lit edge's width; evenodd), or null for a sheet
+    no cut shows: what the file's SVG and Copy for Figma (figma-papercut.ts) both draw. */
+export const papercutFileCuts = (m: PapercutScene): (FileCut | null)[] => {
   const how = FILE_TRACE(m);
-  const cuts = atOnce(
+  return atOnce(
     kept(fileCuts, PAPERCUT_TRACES_KEPT.file, m, function* () {
       const [lx, ly] = lightOf(m);
       return (yield* cutLoopSteps(m, how)).map((loops, i) => {
@@ -626,6 +625,15 @@ export function papercutFileOf(m: PapercutScene): string {
       });
     })
   );
+};
+
+/** The file's SVG: the shadows blurred, as the sketch drew them, for a browser and a design app alike. Every layer is
+    a path of its own, its fill and its rule on it, its offset in its own first points, with no <use> and no transform
+    for an importer to resolve: Figma's takes each as a vector, its blur as a layer blur. */
+export function papercutFileOf(m: PapercutScene): string {
+  const { width: W, height: H } = m;
+  const how = FILE_TRACE(m);
+  const cuts = papercutFileCuts(m);
   const margin = marginOf(m, how.reach);
   const region = `x="${-margin}" y="${-margin}" width="${W + 2 * margin}" height="${H + 2 * margin}" filterUnits="userSpaceOnUse"`;
   const blurs = new Map<number, string>();

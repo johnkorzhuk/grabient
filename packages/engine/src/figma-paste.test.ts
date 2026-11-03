@@ -5,14 +5,18 @@ import { decodePalette } from "./codec.ts";
 import { blobShapeOf, type Effect } from "./effect.ts";
 import { FIGMA_BLOB, type FigmaBlobView, figmaBlobHtml, figmaBlobNodes } from "./figma-blob.ts";
 import { FIGMA_GLASS, figmaGlassHtml, figmaGlassNodes } from "./figma-glass.ts";
+import { figmaPapercutHtml, figmaPapercutNodes } from "./figma-papercut.ts";
 import {
   FIGMA_FINISH,
   FIGMA_INTERNAL,
   FIGMA_PAGE,
   type FigmaFinish,
   type FigmaNode,
+  figmaColor,
   figmaLinear,
-  figmaNoise
+  figmaNoise,
+  figmaPathLoops,
+  figmaVectorNetwork
 } from "./figma-paste.ts";
 import { figmaRosetteHtml, figmaRosetteNodes } from "./figma-rosette.ts";
 import { FIGMA_DEFS, FIGMA_SCHEMA, FIGMA_VERSION } from "./figma-schema.ts";
@@ -27,6 +31,7 @@ import {
   glassGeometry
 } from "./glass.ts";
 import { decodeKiwi, encodeKiwi } from "./kiwi.ts";
+import { papercutScene } from "./papercut.ts";
 import { HEART_STOPS, rosettePetals, rosetteScene } from "./rosette.ts";
 import { zoomKeys } from "./rosette-svg.ts";
 import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
@@ -783,7 +788,8 @@ const madeFor = (
   bg: string | null = null
 ) => (finish?.soft ? underlayOf(kind, angle, finish.soft, bg) : null);
 const box = { width: 1200, height: 800 };
-/* each effect's paste in a box, finished or not: every effect but the papercut, which has none yet (hasFigmaCopy) */
+/* each effect's paste in a box, finished or not, as the moving ones play: the papercut, a still at any pace, has its
+   own test */
 const pastes: Record<
   Exclude<Effect["kind"], "papercut">,
   (finish?: FigmaFinish, speed?: number) => Node[]
@@ -1076,4 +1082,150 @@ test("a finished paste writes and reads back whole, its noise with both colors, 
   expect(layer).toMatchObject({ type: "RECTANGLE", blendMode: "HARD_LIGHT" });
   expect(layer.fillPaints[0].color).toMatchObject({ r: 0.5, g: 0.5, b: 0.5 });
   expect(layer.effects[0]).toMatchObject({ type: "NOISE", noiseType: "DUOTONE" });
+});
+
+test("a path's loops as Figma's vector network: each segment's handles from its own vertex, every loop in one odd region", () => {
+  /* relative and absolute, a line and a curve, a minus its only separator, numbers with no zero before the point */
+  const loops = figmaPathLoops("M10 10c0 5 5 10 10 10l5-5z M30 30L40 30 40 40Z");
+  expect(loops).toEqual([
+    [
+      [
+        [10, 10],
+        [10, 15],
+        [15, 20],
+        [20, 20]
+      ],
+      [
+        [20, 20],
+        [20, 20],
+        [25, 15],
+        [25, 15]
+      ],
+      [
+        [25, 15],
+        [25, 15],
+        [10, 10],
+        [10, 10]
+      ]
+    ],
+    [
+      [
+        [30, 30],
+        [30, 30],
+        [40, 30],
+        [40, 30]
+      ],
+      [
+        [40, 30],
+        [40, 30],
+        [40, 40],
+        [40, 40]
+      ],
+      [
+        [40, 40],
+        [40, 40],
+        [30, 30],
+        [30, 30]
+      ]
+    ]
+  ]);
+  expect(figmaPathLoops("M.5-.5c.1 0 .2.1 .3.2z")[0][0]).toEqual([
+    [0.5, -0.5],
+    [0.6, -0.5],
+    [0.7, -0.4],
+    [0.8, -0.3]
+  ]);
+  /* in the layout Figma's own clipboard writes (W/figma-clip samples/01): counts, then vertices, segments, regions */
+  const bytes = figmaVectorNetwork(loops);
+  const v = new DataView(bytes.buffer);
+  const u = (at: number) => v.getUint32(at, true);
+  const f = (at: number) => v.getFloat32(at, true);
+  expect([u(0), u(4), u(8)]).toEqual([6, 6, 1]);
+  expect([u(12), f(16), f(20)]).toEqual([0, 10, 10]);
+  const segment = 12 + 6 * 12;
+  /* the first: from vertex 0, its handle 5 down, to vertex 1, its handle 5 left */
+  expect([u(segment + 4), f(segment + 8), f(segment + 12), u(segment + 16)]).toEqual([0, 0, 5, 1]);
+  expect([f(segment + 20), f(segment + 24)]).toEqual([-5, 0]);
+  /* a loop's last segment closes on its first vertex */
+  expect(u(segment + 2 * 28 + 16)).toBe(0);
+  expect(u(segment + 5 * 28 + 16)).toBe(3);
+  const region = segment + 6 * 28;
+  /* the odd rule (WindingRule ODD), two loops of three segments each */
+  expect([u(region + 4), u(region + 8), u(region + 12)]).toEqual([1, 2, 3]);
+  expect([u(region + 16), u(region + 20), u(region + 24)]).toEqual([0, 1, 2]);
+  expect(bytes.length).toBe(region + 12 + 2 * 16);
+});
+
+test("the papercut as Figma's layers: each sheet a group of its shadow, its contact, its wall and its face, vectors whose networks the paste carries", () => {
+  const view = {
+    palette,
+    angle: 135,
+    shape: 7,
+    width: 1200,
+    height: 800,
+    name: "Navy and teal"
+  };
+  const { blobs } = figmaPapercutNodes(view);
+  const pasted = read(figmaPapercutHtml(view, 7));
+  expect(pasted.signature).toBe("fig-kiwi");
+  const message = pasted.message;
+  const all = message.nodeChanges as Node[];
+  parentsFirst(all);
+  /* the networks the vectors name, as they were made */
+  expect(message.blobs.map((b: { bytes: number[] }) => Uint8Array.from(b.bytes))).toEqual(blobs);
+  const frame = all.find(n => n.name === "Navy and teal")!;
+  expect(frame).toMatchObject({ type: "FRAME", size: { x: 1200, y: 800 } });
+  const sheets = all.filter(n => /^sheet \d+$/.test(n.name));
+  const m = papercutScene(palette, { angle: 135, shape: 7 }, { width: 1200, height: 800 });
+  expect(sheets.length).toBeGreaterThan(m.n / 2);
+  for (const sheet of sheets) {
+    const k = Number(sheet.name.slice(6));
+    const layers = kidsOf(all, sheet);
+    expect(layers.map(n => [n.type, n.name])).toEqual([
+      ["VECTOR", "shadow"],
+      ["VECTOR", "contact"],
+      ["VECTOR", "wall"],
+      ["VECTOR", "face"]
+    ]);
+    const [shadow, contact, wall, face] = layers;
+    expect(shadow.opacity).toBeCloseTo(m.alpha[k], 6);
+    expect(shadow.effects[0]).toMatchObject({ type: "FOREGROUND_BLUR" });
+    expect(shadow.effects[0].radius).toBeCloseTo(FIGMA_FINISH.blur * m.sigma[k], 2);
+    expect(contact.effects[0].radius).toBeCloseTo(FIGMA_FINISH.blur * m.csigma, 2);
+    expect(contact.opacity).toBeCloseTo(m.calpha, 6);
+    /* Figma keeps a color's channels as 32-bit floats: the same byte each */
+    const byte = (c: { r: number; g: number; b: number }) =>
+      [c.r, c.g, c.b].map(x => Math.round(x * 255));
+    expect(byte(wall.fillPaints[0].color)).toEqual(byte(figmaColor(m.wallHex[k])));
+    expect(byte(face.fillPaints[0].color)).toEqual(byte(figmaColor(m.hex[k])));
+    for (const layer of layers) {
+      const { vectorNetworkBlob, normalizedSize } = layer.vectorData;
+      expect(normalizedSize).toEqual(layer.size);
+      /* its network's vertices stand inside its own box */
+      const net = new DataView(Uint8Array.from(message.blobs[vectorNetworkBlob].bytes).buffer);
+      const count = net.getUint32(0, true);
+      for (let i = 0; i < count; i++) {
+        expect(net.getFloat32(12 + i * 12 + 4, true)).toBeGreaterThanOrEqual(-1e-3);
+        expect(net.getFloat32(12 + i * 12 + 8, true)).toBeLessThanOrEqual(layer.size.y + 1e-3);
+      }
+    }
+  }
+  /* soft and grain wrap it as every effect's: the noise over all, the gradient under the blurred drawing */
+  const finished = figmaPapercutNodes({
+    ...view,
+    finish: { soft: 50, grain: 50 },
+    underlay: effectUnderlay(
+      palette,
+      { kind: "papercut", look: { shape: 7, frost: 1, bg: null } },
+      135,
+      50
+    )
+  }).nodes as Node[];
+  const grain = finished.find(n => n.name === "grain")!;
+  expect(grain.effects[0]).toMatchObject({ type: "NOISE" });
+  expect(kidsOf(finished, grain).map(n => n.name)).toEqual(["mask", "gradient", "soft"]);
+  expect(finished.find(n => n.name === "soft")!.effects[0].radius).toBeCloseTo(
+    FIGMA_FINISH.blur * effectBlurSigma(50, { width: 1200, height: 800 }),
+    2
+  );
 });
