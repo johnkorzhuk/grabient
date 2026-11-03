@@ -750,7 +750,8 @@ export function finishSvg(
   const nested = root.open
     .replace(/\s(width|height|x|y)="[^"]*"/g, "")
     .replace(/^<svg\b/, `<svg x="0" y="0" width="${w}" height="${h}"`);
-  const drawing = plain ? `<g>${inner}</g>` : `${nested}${inner}</svg>`;
+  /* a root that is the box alone gives its drawing as it is, with no group for an importer to make a frame of */
+  const drawing = plain ? inner : `${nested}${inner}</svg>`;
   const underlay = sigma && over.underlay ? over.underlay : null;
   const isolated = !!sigma && !!over.isolated;
   const defs = [

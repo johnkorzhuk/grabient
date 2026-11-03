@@ -89,23 +89,43 @@ test("the papercut's files: its stepped still covers a page, its SVG moves by it
   /* held, its first frame with its shadows blurred, as a design app imports them */
   const held = fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, 0);
   expect(held).toContain("<feGaussianBlur");
-  /* moving: its stills at even times of the loop, each fading in over the one before, the first again over the last,
-     every one but the first hidden until its animation shows it, and no filter */
+  /* moving: its stills at even times of the loop in the defs, each fading in over the one before by two <use>s that
+     SMIL points at them and that name no frame of their own, so an importer that runs no animation (Figma's) takes
+     the one picture outside them, the held still, which less motion shows and a moving page never draws */
   const file = fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, 1);
-  expect(file).not.toContain("<filter");
-  expect(file.match(/<g id="frame-\d+"/g)).toHaveLength(PAPERCUT_SVG_FRAMES + 1);
-  expect(file).toContain('<g id="frame-0" class="pca">');
-  expect(file.match(/class="pcf" visibility="hidden"/g)).toHaveLength(PAPERCUT_SVG_FRAMES - 1);
-  expect(file).toContain(`<g id="frame-${PAPERCUT_SVG_FRAMES}" class="pcz" visibility="hidden">`);
-  expect(file).toContain(".pcf,.pcz,.pca{animation:180s linear infinite}");
-  expect(file).toContain("prefers-reduced-motion");
-  /* the last frame is the first again */
-  const frame = (svg: string, f: number) =>
-    new RegExp(`<g id="frame-${f}"[^>]*>(.*?)</g>(?=<g id=|</g></svg>)`).exec(svg)?.[1];
-  expect(frame(file, PAPERCUT_SVG_FRAMES)).toBe(frame(file, 0));
-  expect(frame(file, 1)).not.toBe(frame(file, 0));
+  expect(file.match(/<g id="pcf\d+" /g)).toHaveLength(PAPERCUT_SVG_FRAMES);
+  expect(file).not.toMatch(/visibility="hidden"/);
+  expect(file.match(/<use class="pcm">/g)).toHaveLength(2);
+  expect(file).not.toMatch(/<use class="pcm" [^>]*href=/);
+  const lower = /<use class="pcm"><animate attributeName="href" values="([^"]*)"/
+    .exec(file)?.[1]
+    .split(";");
+  const upper = /<\/use><use class="pcm"><animate attributeName="href" values="([^"]*)"/
+    .exec(file)?.[1]
+    .split(";");
+  /* in slot k the lower one shows frame k where k is even, k + 1 where odd, and the upper one the other: each turns to
+     its next frame while it is covered or clear, and the loop's last slot ends on the first frame */
+  expect(lower?.slice(0, 4)).toEqual(["#pcf0", "#pcf2", "#pcf2", "#pcf4"]);
+  expect(upper?.slice(0, 4)).toEqual(["#pcf1", "#pcf1", "#pcf3", "#pcf3"]);
+  expect(lower?.at(-1)).toBe("#pcf0");
+  expect(upper?.at(-1)).toBe(`#pcf${PAPERCUT_SVG_FRAMES - 1}`);
+  expect(lower).toHaveLength(PAPERCUT_SVG_FRAMES);
+  expect(file).toContain(
+    `<animate attributeName="opacity" values="${Array.from({ length: PAPERCUT_SVG_FRAMES + 1 }, (_, k) => k % 2).join(";")}" dur="180s" repeatCount="indefinite"/>`
+  );
+  expect(file).toContain('calcMode="discrete" dur="180s" repeatCount="indefinite"');
+  /* the held still, every byte of its drawing as the held file's, its blurs with it; the frames have none */
+  const heldBody = held.slice(
+    held.indexOf('<g clip-path="url(#pcbox)">') + '<g clip-path="url(#pcbox)">'.length,
+    -"</g></svg>".length
+  );
+  expect(file).toContain(`<g class="pcs">${heldBody}</g>`);
+  expect(/<g id="pcf\d+"[^>]*>(.*?)<\/g>/.exec(file)?.[1]).not.toContain("filter");
+  expect(file).toContain(
+    "@media (prefers-reduced-motion:no-preference){.pcs{display:none}}@media (prefers-reduced-motion:reduce){.pcm{display:none}}"
+  );
   expect(fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, 2)).toContain(
-    ".pcf,.pcz,.pca{animation:90s linear infinite}"
+    'calcMode="discrete" dur="90s" repeatCount="indefinite"'
   );
   const svg = effectSvg(P, SEED, fx, 120, box, "https://grabient.com");
   expect(svg).toMatch(/^<svg[^>]*width="640" height="320"/);
@@ -139,7 +159,7 @@ test("the papercut's files: its stepped still covers a page, its SVG moves by it
   expect(md.files).toHaveProperty("script");
 });
 
-test("the papercut's SVG finished: its drawing whole in a group, blurred over its gradient, its own blurs and clip kept, the grain's tiles over it", () => {
+test("the papercut's SVG finished: its drawing whole, blurred over its gradient, its own blurs and clip kept, the grain's tiles over it", () => {
   /* held, the file with its own blurs and clip; moving, its frames as they are, inside the same finish */
   const fx: Effect = {
     kind: "papercut",
@@ -168,13 +188,14 @@ test("the papercut's SVG finished: its drawing whole in a group, blurred over it
     `<filter id="gfx-soft" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="240" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${Number(effectBlurSigma(40, box).toFixed(3))}"/></filter>`
   );
   expect(svg).toContain(
-    '<g clip-path="url(#gfx-box)"><rect width="400" height="240" fill="url(#gfx-under)"/><g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><g>'
+    '<g clip-path="url(#gfx-box)"><rect width="400" height="240" fill="url(#gfx-under)"/><g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><defs>'
   );
-  /* the papercut's root names the box alone, so its drawing stands in a group, every byte of it as the plain file's:
-     its shadows' blurs (pc0, pc1, ...) and its clip (pcbox) meet none of the finish's ids (gfx-) */
+  /* the papercut's root names the box alone, so its drawing stands as it is, with no group for an importer to make a
+     frame of, every byte of it as the plain file's: its shadows' blurs (pc0, pc1, ...) and its clip (pcbox) meet none
+     of the finish's ids (gfx-) */
   const drawing = plain.slice(plain.indexOf("<defs>"), -"</svg>".length);
   expect(svg).toContain(
-    `<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><g>${drawing}</g></g></g>`
+    `<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)">${drawing}</g></g>`
   );
   expect(drawing).toMatch(/<filter id="pc0" /);
   expect(drawing).toContain('clip-path="url(#pcbox)"');
@@ -203,8 +224,9 @@ test("the papercut's SVG finished: its drawing whole in a group, blurred over it
     soft: 40
   });
   expect(moving).toContain('<g filter="url(#gfx-soft)">');
-  expect(moving).toContain("@keyframes pcf{");
-  expect(moving).not.toContain('<filter id="pc0"');
+  expect(moving).toContain('<animate attributeName="href" ');
+  /* the held still's blurs come with it, for less motion and an importer */
+  expect(moving).toContain('<filter id="pc0"');
 });
 
 test("a still drawn a step at a time is the still, the papercut's in a share of a millisecond or so a step", () => {

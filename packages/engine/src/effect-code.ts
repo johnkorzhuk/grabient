@@ -104,14 +104,14 @@ export const effectStylesheet = (
 export const effectSize = (effect: Effect): Size =>
   effect.kind === "blob" ? BLOB_SIZE : DEFAULT_SIZE;
 
-/** How each effect's SVG moves at a speed: by CSS animations (the papercut's by its stills fading one into the next,
-    since its cuts change shape as they move), or by SMIL (the silk's rings). */
+/** How each effect's SVG moves at a speed: by CSS animations, or by SMIL (the silk's rings, and the papercut's stills
+    fading one into the next, since its cuts change shape as they move, shown by <use>s an importer leaves out). */
 export const EFFECT_SVG_MOTION: Readonly<Record<EffectKind, "css" | "smil">> = {
   glass: "css",
   blob: "css",
   silk: "smil",
   rosette: "css",
-  papercut: "css"
+  papercut: "smil"
 };
 
 /** The effect as an SVG moved by CSS or SMIL alone (EFFECT_SVG_MOTION), covering its box (effectSize where none is

@@ -624,12 +624,16 @@ export const PAPERCUT_SVG_FRAMES = 60;
 
 /** The moving SVG at a speed (1 as designed: a loop in PAPERCUT_LOOP seconds): the still's stepped sheets traced at
     PAPERCUT_SVG_FRAMES even times of the loop, each fading in over the one before it through the time between them,
-    by CSS alone, so the picture passes from one to the next as the player's cuts move (a cut's islands surface and
-    part, which no transform of fixed paths follows, and a morph of each cut's outline swam along it where the cut ran
-    out of the box: W/styles-lab/sg/pc-moving). Each frame is exact at its time and the fade between two is the mean of
-    them, a cut's edge doubling softly where it moves most. The first frame is drawn again on top, which the loop's
-    last fade ends on, and every frame but the first is hidden until its animation shows it, so an importer that runs
-    no animation takes the first alone. Two frames are drawn at a time at most, and none has a filter. */
+    so the picture passes from one to the next as the player's cuts move (a cut's islands surface and part, which no
+    transform of fixed paths follows, and a morph of each cut's outline swam along it where the cut ran out of the
+    box: W/styles-lab/sg/pc-moving). Each frame is exact at its time and the fade between two is the mean of them, a
+    cut's edge doubling softly where it moves most.
+    The frames stand in the defs, drawn by two <use>s that SMIL points at them: in slot k the lower one shows frame k
+    where k is even and k + 1 where it is odd, the upper one the other, fading in over it where k is even and out where
+    odd, so each changes frame only while it is covered or clear, and two frames are drawn at a time, none with a
+    filter. Neither <use> names a frame of its own, so an importer that runs no animation (Figma's) draws neither, and
+    takes the one picture the file has outside them: the held file's still, its shadows blurred (papercutFileOf), which
+    a reader who asks for less motion sees in place of the frames, and a moving page never draws. */
 export function papercutMovingOf(
   m: PapercutScene,
   speed = 1,
@@ -638,39 +642,38 @@ export function papercutMovingOf(
   const { width: W, height: H } = m;
   const how = STILL_TRACE(m);
   const seconds = PAPERCUT_LOOP / Math.max(1e-6, speed);
-  const slot = seconds / frames;
+  const ground = `<rect width="${W}" height="${H}" fill="${m.hex[0]}"/>`;
   const defs: string[] = [];
-  const bodies: string[] = [];
   for (let f = 0; f < frames; f++) {
     const t = (f * PAPERCUT_LOOP) / frames;
     const cuts = atOnce(cutLoopSteps(m, how, t)).map(loops =>
       loops.length ? pathOf(loops, how.places) : null
     );
     const sheets = stillSheets(m, cuts, lightOf(m, t), `f${f}c`);
-    defs.push(sheets.defs);
-    bodies.push(sheets.body);
-  }
-  const ground = `<rect width="${W}" height="${H}" fill="${m.hex[0]}"/>`;
-  /* the first shows from the loop's start, each next one over it in turn, and the first again over the last */
-  const groups = [`<g id="frame-0" class="pca">${ground}${bodies[0]}</g>`];
-  for (let f = 1; f < frames; f++)
-    groups.push(
-      `<g id="frame-${f}" class="pcf" visibility="hidden" style="animation-delay:${fmt((f - 1) * slot, 3)}s">${ground}${bodies[f]}</g>`
+    defs.push(
+      sheets.defs,
+      `<g id="pcf${f}" fill-rule="evenodd" stroke-linejoin="round">${ground}${sheets.body}</g>`
     );
-  groups.push(`<g id="frame-${frames}" class="pcz" visibility="hidden">${ground}${bodies[0]}</g>`);
-  /* frame f fades in from f - 1 slots to f, stays until f + 1 covers it, and goes; the first shows until the second
-     covers it, and the last only through the loop's last slot */
-  const pct = (v: number) => fmt((v / seconds) * 100, 4);
+  }
+  const held = fileDrawing(m);
+  /* the frame each <use> shows in slot k: the lower one k + 1 where k is odd, the upper one where k is even */
+  const shown = (lower: boolean) =>
+    Array.from(
+      { length: frames },
+      (_, k) => `#pcf${(k + ((k % 2 === 1) === lower ? 1 : 0)) % frames}`
+    ).join(";");
+  const loop = `dur="${fmt(seconds, 3)}s" repeatCount="indefinite"`;
+  const swap = (lower: boolean) =>
+    `<animate attributeName="href" values="${shown(lower)}" calcMode="discrete" ${loop}/>`;
+  /* the upper one clear at an even slot's start, whole at an odd one's: the loop's last ends clear on the first frame */
+  const fade = `<animate attributeName="opacity" values="${Array.from({ length: frames + 1 }, (_, k) => k % 2).join(";")}" ${loop}/>`;
   const css =
-    `.pcf,.pcz,.pca{animation:${fmt(seconds, 3)}s linear infinite}` +
-    `.pcf{animation-name:pcf}.pcz{animation-name:pcz}.pca{animation-name:pca}` +
-    `@keyframes pcf{0%{visibility:visible;opacity:0}${pct(slot)}%{opacity:1}${pct(2 * slot)}%{visibility:visible;opacity:1}${pct(2 * slot + 1e-3)}%,100%{visibility:hidden;opacity:1}}` +
-    `@keyframes pcz{0%,${pct(seconds - slot)}%{visibility:hidden;opacity:0}${pct(seconds - slot + 1e-3)}%{visibility:visible;opacity:0}100%{visibility:visible;opacity:1}}` +
-    `@keyframes pca{0%,${pct(slot)}%{visibility:visible}${pct(slot + 1e-3)}%,100%{visibility:hidden}}` +
-    `@media (prefers-reduced-motion:reduce){.pcf,.pcz,.pca{animation:none}}`;
+    "@media (prefers-reduced-motion:no-preference){.pcs{display:none}}" +
+    "@media (prefers-reduced-motion:reduce){.pcm{display:none}}";
   return (
-    `${svgOpen(m)}<style>${css}</style><defs>${defs.join("")}</defs>` +
-    `<g fill-rule="evenodd" stroke-linejoin="round">${groups.join("")}</g></svg>`
+    `${svgOpen(m)}<style>${css}</style><defs>${held.filters}${defs.join("")}</defs>` +
+    `<g class="pcs">${held.body}</g>` +
+    `<use class="pcm">${swap(true)}</use><use class="pcm">${swap(false)}${fade}</use></svg>`
   );
 }
 
@@ -695,10 +698,8 @@ export const papercutFileCuts = (m: PapercutScene): (FileCut | null)[] => {
   );
 };
 
-/** The file's SVG: the shadows blurred, as the sketch drew them, for a browser and a design app alike. Every layer is
-    a path of its own, its fill and its rule on it, its offset in its own first points, with no <use> and no transform
-    for an importer to resolve: Figma's takes each as a vector, its blur as a layer blur. */
-export function papercutFileOf(m: PapercutScene): string {
+/** The file's drawing: its shadows' blurs (ids pc0, pc1, ...), for its defs, and its ground and layers. */
+function fileDrawing(m: PapercutScene): { filters: string; body: string } {
   const { width: W, height: H } = m;
   const how = FILE_TRACE(m);
   const cuts = papercutFileCuts(m);
@@ -734,9 +735,21 @@ export function papercutFileOf(m: PapercutScene): string {
     ([s, id]) =>
       `<filter id="${id}" ${region}><feGaussianBlur stdDeviation="${fmt(s, 3)}"/></filter>`
   );
+  return {
+    filters: filters.join(""),
+    body: `<rect width="${W}" height="${H}" fill="${m.hex[0]}"/>${body.join("")}`
+  };
+}
+
+/** The file's SVG: the shadows blurred, as the sketch drew them, for a browser and a design app alike. Every layer is
+    a path of its own, its fill and its rule on it, its offset in its own first points, with no <use> and no transform
+    for an importer to resolve: Figma's takes each as a vector, its blur as a layer blur. */
+export function papercutFileOf(m: PapercutScene): string {
+  const { width: W, height: H } = m;
+  const { filters, body } = fileDrawing(m);
   return (
-    `${svgOpen(m)}<defs>${filters.join("")}<clipPath id="pcbox"><rect width="${W}" height="${H}"/></clipPath></defs>` +
-    `<g clip-path="url(#pcbox)"><rect width="${W}" height="${H}" fill="${m.hex[0]}"/>${body.join("")}</g></svg>`
+    `${svgOpen(m)}<defs>${filters}<clipPath id="pcbox"><rect width="${W}" height="${H}"/></clipPath></defs>` +
+    `<g clip-path="url(#pcbox)">${body}</g></svg>`
   );
 }
 

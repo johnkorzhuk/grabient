@@ -263,10 +263,10 @@ test("an effect's SVG finished: its drawing whole, blurred over its gradient and
   expect(svg).toContain('<image id="gfx-grain" width="300" height="200" xlink:href="');
   expect(svg).not.toContain('<use xlink:href="#gfx-grain"');
   /* the silk's light and shade are translucent layers over its dye, which Safari composites in linear light inside a
-     filter: its drawing (a group, its root naming the box alone) is a pattern whose tile is the box, and the blur
-     reads one rect painted by it */
+     filter: its drawing (its root naming the box alone, so its elements as they are, with no group for an importer to
+     make a frame of) is a pattern whose tile is the box, and the blur reads one rect painted by it */
   expect(svg).toContain(
-    '<pattern id="gfx-drawing" patternUnits="userSpaceOnUse" width="300" height="200"><g><defs>'
+    '<pattern id="gfx-drawing" patternUnits="userSpaceOnUse" width="300" height="200"><defs>'
   );
   expect(svg).toContain(
     '<g filter="url(#gfx-soft)"><rect width="300" height="200" fill="url(#gfx-drawing)"/></g>'
@@ -283,7 +283,8 @@ test("an effect's SVG finished: its drawing whole, blurred over its gradient and
     "https://grabient.com",
     { soft: 50 }
   );
-  expect(rosette).toContain('<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><g>');
+  expect(rosette).toContain('<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)">');
+  expect(rosette).not.toContain('<g clip-path="url(#gfx-box)"><g>');
   expect(rosette).not.toContain("<pattern");
   /* the blob's root scales a design square to cover the box, so it stands inside as an SVG of its own */
   const blobSvg = effectSvg(
