@@ -127,10 +127,10 @@ export const underlayPixels = (underlay: Underlay, size: Size): Uint8Array<Array
     underlay.at
   );
 
-/* The three box blurs a browser runs for a Gaussian (Filter Effects 1, feGaussianBlur): a box of d pixels, d from the
-   sigma, three times; for an even d two of d, one leaning left and one right of the pixel, and one of d + 1. Each
-   reads clear past the line's ends. `line` holds one channel of a line, premultiplied, scaled by 256. */
-function boxes(sigma: number): [number, number][] {
+/** The three box blurs a browser runs for a Gaussian (Filter Effects 1, feGaussianBlur), as each box's reach before a
+    pixel and after it: a box of d pixels, d from the sigma, three times; for an even d two of d, one leaning left and
+    one right of the pixel, and one of d + 1. Each reads clear past the line's ends. None for a sigma too small. */
+export function blurBoxes(sigma: number): [number, number][] {
   const d = Math.floor(sigma * ((3 * Math.sqrt(2 * Math.PI)) / 4) + 0.5);
   if (d < 1) return [];
   if (d % 2 === 1) {
@@ -201,7 +201,7 @@ export function blurRgba(
     pre[i * 4 + 2] = rgba[i * 4 + 2] * k;
     pre[i * 4 + 3] = a;
   }
-  const passes = boxes(sigma);
+  const passes = blurBoxes(sigma);
   if (passes.length) {
     /* room either side for the three passes' spread */
     const pad = passes.reduce((sum, [left, right]) => sum + Math.max(left, right), 0) + 1;

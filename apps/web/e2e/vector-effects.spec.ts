@@ -107,7 +107,7 @@ test("a list playing the silk draws its cards' stills, each named for the silk",
   ).toBeVisible();
 });
 
-test("the silk's and the rosette's files: moving SVG, stylesheet, PNG, JSON, Markdown and the script that plays them; no clip yet", async ({
+test("the silk's and the rosette's files: moving SVG, stylesheet, PNG, JSON, Markdown, the script that plays them and a clip", async ({
   request
 }) => {
   for (const kind of ["silk", "rosette"]) {
@@ -127,6 +127,7 @@ test("the silk's and the rosette's files: moving SVG, stylesheet, PNG, JSON, Mar
       200,
       "text/javascript; charset=utf-8"
     ]);
-    expect((await at("mp4")).status()).toBe(404);
+    const clip = await request.head(`/${SEED}.mp4?style=${kind}&shape=7`);
+    expect([clip.status(), clip.headers()["content-type"]]).toEqual([200, "video/mp4"]);
   }
 });

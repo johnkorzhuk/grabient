@@ -7,3 +7,5 @@ cd "$(dirname "$0")"
 "${ZIG:-zig}" cc -target wasm32-freestanding -O3 -msimd128 -mbulk-memory -ffreestanding -nostdlib -Ishim -Isimd \
   -D__SSE__ -D__SSE2__ -Wno-implicit-const-int-float-conversion \
   -Wl,--no-entry -Wl,--strip-all -Wl,-z,stack-size=1048576 -o video.wasm video.c
+# zig writes its output executable; the module is data
+chmod 644 video.wasm

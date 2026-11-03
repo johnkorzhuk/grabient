@@ -1,24 +1,31 @@
-/* A palette's effect as a video: the fluted glass or the blob playing whole loops, so the clip loops without a seam,
-   drawn and coded by video/video.wasm (C: the pixels of glassRenderer and blobRenderer within a level of theirs, BT.709
-   YUV 4:2:0, and minih264's H.264), in an MP4 (mp4.ts). The engine's own code says where the glass's discs and the
-   blob's balls stand in each frame; the module draws them. The caller hands over the module, compiled: a Worker imports
-   it, a test reads its file. */
+/* A palette's effect as a video: the fluted glass, the blob, the silk or the rosette playing whole loops, so the clip
+   loops without a seam, drawn and coded by video/video.wasm (C: the pixels of glassRenderer, blobRenderer, renderSilk
+   and renderRosette within a level or two of theirs, finished with the view's soft and grain as fx-finish.ts's
+   finishPixels finishes a frame, BT.709 YUV 4:2:0, and minih264's H.264), in an MP4 (mp4.ts). The engine's own code says
+   where the glass's discs, the blob's balls, the silk's folds and the rosette's petals stand in each frame; the module
+   draws them. The caller hands over the module, compiled: a Worker imports it, a test reads its file. */
 import { BLOB_DESIGN, BLOB_LOOP, blobBackdrop, blobFit, blobFrame, blobScene } from "./blob.ts";
 import { hexBytes } from "./color.ts";
-import { type EffectKind, type EffectLook, groundParts } from "./effect.ts";
-
-/** The effects a clip can be drawn of: the glass and the blob, whose frames video/video.wasm draws. The others play in
-    the browser and as files, and their clips are not drawn yet. */
-export type VideoKind = "glass" | "blob";
-export const isVideoKind = (kind: EffectKind): kind is VideoKind =>
-  kind === "glass" || kind === "blob";
-
+import { type EffectFinish, type EffectKind, type EffectLook, groundParts } from "./effect.ts";
+import type { Underlay } from "./fx-finish.ts";
 import { GLASS_LOOP, type GlassGeometry, glassDiscAt, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { type GlassWindow, glassCover, glassMap, glassPlan } from "./glass-render.ts";
+import { GRAIN_SIDE, grainAlpha, grainSpeck } from "./grain.ts";
 import { type Mp4Frame, mp4 } from "./mp4.ts";
 import type { Palette } from "./palette.ts";
-import type { Size } from "./view.ts";
+import {
+  HEART_STOPS,
+  rosetteDesign,
+  rosetteGroupAt,
+  rosettePetals,
+  rosetteScene
+} from "./rosette.ts";
+import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
+import { effectSoftShare, type Size } from "./view.ts";
+
+/** The effects a clip can be drawn of: every one, its frames drawn by video/video.wasm. */
+export type VideoKind = EffectKind;
 
 /* The host's WebAssembly, as much of it as this names: the engine's own lib knows no host (as zip.ts declares
    TextEncoder). Every host the engine runs in has it: a Worker, a browser, Node. */
@@ -30,15 +37,40 @@ declare namespace WebAssembly {
   const Instance: new (module: Module, imports: object) => { readonly exports: object };
 }
 
-/** A clip of an effect, as an address asks for it. */
+/** What a clip draws, which its loop and its cost depend on: the effect, its look, and its soft and grain (none where
+    absent). */
+export interface VideoEffect {
+  kind: VideoKind;
+  look: EffectLook;
+  finish?: EffectFinish;
+}
+
+/** How a clip's frames are finished, worked out from its soft and grain for its size (video-finish.ts's videoFinish):
+    the grain's strength; and for a soft, how the module blurs a frame (videoBlur) and the palette's gradient under the
+    blurred frame, none under a blob with no ground, which lies on the clip's backdrop. Plain numbers, which the answer
+    hands each part. */
+export interface VideoFinish {
+  grain?: number;
+  soft?: { blur: VideoBlur; under: Underlay | null };
+}
+
+/** How the module blurs a frame for a soft (video-finish.ts's videoBlur): at the frame's own resolution or at a half or a
+    quarter of it, by three boxes, each its reach before a sample and after it (none for a blur too small). */
+export interface VideoBlur {
+  scale: 1 | 2 | 4;
+  boxes: [number, number][];
+}
+
+/** A clip of an effect, as an address asks for it, its finish worked out. */
 export interface VideoAsk {
   kind: VideoKind;
-  palette: Palette;
   look: EffectLook;
+  palette: Palette;
   angle: number;
   /** even sides */
   size: Size;
   fps: number;
+  finish?: VideoFinish;
 }
 
 /** How a clip plays: whole loops in whole frames, so its last frame leads into its first. */
@@ -52,7 +84,7 @@ export interface VideoPlan {
 }
 
 /** What a clip may be, so each costs a known most to draw: its frames' longer side and pixels, its rate, its length,
-    and its work, pixels times frames weighed by its effect (VIDEO_WEIGHT), past which a clip is drawn smaller. A clip
+    and its work, pixels times frames weighed by what it draws (videoWeight), past which a clip is drawn smaller. A clip
     of the most work is about 20 seconds of one core's time here: a 1080 by 1080 glass at 60 frames a second for 23
     seconds, its speed 2.45. */
 export const VIDEO_LIMITS = {
@@ -64,26 +96,69 @@ export const VIDEO_LIMITS = {
   work: 1.6e9
 } as const;
 
-/** What a pixel of a frame costs to draw and code, the glass's 1: the blob's melt and frost cost half again. */
-export const VIDEO_WEIGHT: Record<VideoKind, number> = { glass: 1, blob: 1.5 };
+/** What a pixel of a frame costs to draw and code, the glass's 1, measured against the glass frame by frame and in
+    whole clips drawn in parts as the Worker draws them (3 Nov 2026): the blob's melt and frost cost half again (1.1 to
+    1.3 measured; 1.5 keeps its clips as they were); the silk's seven bands and three dyes 1.6 to 1.8 a frame, and 2.4
+    in its clips, whose 60 seconds of a four-minute loop move each frame further, which costs the coding; the rosette's
+    petals 1.5 to 1.6. */
+export const VIDEO_WEIGHT: Record<VideoKind, number> = {
+  glass: 1,
+  blob: 1.5,
+  silk: 2.4,
+  rosette: 1.6
+};
+/** What a soft adds to a pixel's cost, by the resolution its blur runs at (videoBlur), measured as VIDEO_WEIGHT is: at
+    the frame's own, about what the glass costs (0.7 to 0.95); at a half or a quarter, its passes a quarter or a
+    sixteenth of that, the averaging, the reading back up and the laying over the rest (0.3 to 0.4, 0.2 to 0.35). The
+    grain costs the coding its specks (0.2 to 0.45). */
+export const VIDEO_SOFT_WEIGHT: Record<VideoBlur["scale"], number> = { 1: 1, 2: 0.45, 4: 0.35 };
+export const VIDEO_GRAIN_WEIGHT = 0.3;
 
-/** A clip's work: its pixels across its frames, weighed by its effect. */
-export const videoWork = (kind: VideoKind, size: Size, frames: number): number =>
-  size.width * size.height * frames * VIDEO_WEIGHT[kind];
+/** The resolution a soft's blur of `sigma` pixels runs at (videoBlur): the frame's own for a narrow one, a half for a
+    wider and a quarter past that, each within two levels of fx-finish.ts's finishPixels. */
+export const videoBlurScale = (sigma: number): VideoBlur["scale"] =>
+  sigma < 7 ? 1 : sigma < 16 ? 2 : 4;
 
-/** A loop's seconds at speed 1. */
-export const videoLoop = (kind: VideoKind): number => (kind === "glass" ? GLASS_LOOP : BLOB_LOOP);
+/** A soft's sigma in a picture of a size, as fx-finish.ts's effectBlurSigma reads it: a share of its longer side. */
+export const videoSoftSigma = (soft: number, size: Size): number =>
+  effectSoftShare(soft) * Math.max(size.width, size.height);
+
+/** A pixel's cost in a clip of a size: its effect's, and its soft's and grain's. */
+export function videoWeight(effect: VideoEffect, size: Size): number {
+  const soft = effect.finish?.soft
+    ? VIDEO_SOFT_WEIGHT[videoBlurScale(videoSoftSigma(effect.finish.soft, size))]
+    : 0;
+  return VIDEO_WEIGHT[effect.kind] + soft + (effect.finish?.grain ? VIDEO_GRAIN_WEIGHT : 0);
+}
+
+/** A clip's work: its pixels across its frames, weighed by what it draws. */
+export const videoWork = (effect: VideoEffect, size: Size, frames: number): number =>
+  size.width * size.height * frames * videoWeight(effect, size);
+
+/** A loop's seconds at speed 1: the rosette's by its shape (its rings' period and density). */
+export function videoLoop(effect: Pick<VideoEffect, "kind" | "look">): number {
+  switch (effect.kind) {
+    case "glass":
+      return GLASS_LOOP;
+    case "blob":
+      return BLOB_LOOP;
+    case "silk":
+      return SILK_LOOP;
+    case "rosette":
+      return rosetteDesign(effect.look.shape).loop;
+  }
+}
 
 /** The clip a speed, a rate and a duration make: one loop where no duration is asked, else as many whole loops as come
     nearest to the speed in that time (one at least), the speed nudged to fit them. A speed of 0, the effect held, is
     its first frame for the duration, or for a second. */
 export function videoPlan(
-  kind: VideoKind,
+  effect: Pick<VideoEffect, "kind" | "look">,
   speed: number,
   fps: number,
   duration: number | null
 ): VideoPlan {
-  const loop = videoLoop(kind);
+  const loop = videoLoop(effect);
   if (speed === 0) {
     const frames = Math.max(1, Math.round((duration ?? 1) * fps));
     return { frames, loops: 0, speed: 0, seconds: frames / fps };
@@ -102,41 +177,50 @@ export function videoDuration(raw: string | null | undefined): number | null {
 
 /** A clip within the limits: its rate up to the most, one loop longer than the longest clip played in that time, and
     its sides even (H.264's colors are a quarter of its pixels), at least 16, scaled down together where the sides, the
-    pixels or the work ask. */
+    pixels or the work ask. A soft's cost grows as its picture shrinks (videoBlur), so the work is weighed again at
+    each smaller size until it fits. */
 export function videoFit(
-  kind: VideoKind,
+  effect: VideoEffect,
   speed: number,
   fps: number,
   duration: number | null,
   asked: Size
 ): { size: Size; fps: number; plan: VideoPlan } {
   const rate = Math.max(1, Math.min(VIDEO_LIMITS.fps, Math.round(fps)));
-  const long = speed > 0 && videoLoop(kind) / speed > VIDEO_LIMITS.seconds;
-  const plan = videoPlan(kind, speed, rate, duration ?? (long ? VIDEO_LIMITS.seconds : null));
+  const long = speed > 0 && videoLoop(effect) / speed > VIDEO_LIMITS.seconds;
+  const plan = videoPlan(effect, speed, rate, duration ?? (long ? VIDEO_LIMITS.seconds : null));
   const w = Math.max(16, asked.width);
   const h = Math.max(16, asked.height);
-  const scale = Math.min(
+  // the hair before flooring keeps a side that scales to a whole number from losing a pixel
+  const sized = (scale: number): Size => {
+    const even = (v: number) => Math.max(16, 2 * Math.floor((v * scale + 1e-9) / 2));
+    return { width: even(w), height: even(h) };
+  };
+  let scale = Math.min(
     1,
     VIDEO_LIMITS.side / Math.max(w, h),
     Math.sqrt(VIDEO_LIMITS.pixels / (w * h)),
-    Math.sqrt(VIDEO_LIMITS.work / videoWork(kind, { width: w, height: h }, plan.frames))
+    Math.sqrt(VIDEO_LIMITS.work / videoWork(effect, { width: w, height: h }, plan.frames))
   );
-  // the hair before flooring keeps a side that scales to a whole number from losing a pixel
-  const even = (v: number) => Math.max(16, 2 * Math.floor((v * scale + 1e-9) / 2));
-  return { size: { width: even(w), height: even(h) }, fps: rate, plan };
+  for (let tries = 0; tries < 4; tries++) {
+    const work = videoWork(effect, sized(scale), plan.frames);
+    if (work <= VIDEO_LIMITS.work) break;
+    scale *= Math.sqrt(VIDEO_LIMITS.work / work);
+  }
+  return { size: sized(scale), fps: rate, plan };
 }
 
 /** A clip's frames shared out in runs of at most `work` (videoWork) each, so each run may be drawn by an invocation of
     its own, each going on from where the one before stopped (videoFrames). A held effect is one run: it is drawn
     once. */
 export function videoParts(
-  kind: VideoKind,
+  effect: VideoEffect,
   plan: VideoPlan,
   size: Size,
   work: number
 ): [number, number][] {
   if (!plan.loops) return [[0, plan.frames]];
-  const per = Math.max(1, Math.floor(work / videoWork(kind, size, 1)));
+  const per = Math.max(1, Math.floor(work / videoWork(effect, size, 1)));
   const count = Math.ceil(plan.frames / per);
   // as even as whole frames allow
   return Array.from({ length: count }, (_, i): [number, number] => [
@@ -160,7 +244,9 @@ export interface VideoQuality {
 }
 export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   glass: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
-  blob: { qp: 28, keyQp: 18, ramp: 20, effort: 9 }
+  blob: { qp: 28, keyQp: 18, ramp: 20, effort: 9 },
+  silk: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
+  rosette: { qp: 24, keyQp: 12, ramp: 20, effort: 9 }
 };
 
 /** Frame i's quantizer in a clip of n frames. */
@@ -175,6 +261,22 @@ export function videoQp(quality: VideoQuality, i: number, n: number): number {
 interface VideoModule {
   memory: WebAssembly.Memory;
   params: () => number;
+  grain_setup: () => number;
+  finish_setup: (
+    scale: number,
+    boxes: number,
+    l0: number,
+    r0: number,
+    l1: number,
+    r1: number,
+    l2: number,
+    r2: number,
+    under: number,
+    r: number,
+    g: number,
+    b: number
+  ) => number;
+  blob_ground: (r: number, g: number, b: number, alpha: number) => void;
   create: (
     width: number,
     height: number,
@@ -186,7 +288,7 @@ interface VideoModule {
     transfer: number,
     matrix: number
   ) => number;
-  keep_rgb: (on: number) => void;
+  keep_rgb: (on: number) => number;
   frame: (key: number, qp: number) => number;
   out: () => number;
   state: () => number;
@@ -217,6 +319,10 @@ interface VideoModule {
     b: number
   ) => number;
   blob_frame: (dots: number) => void;
+  silk_setup: (n: number, x1: number, y1: number, ux: number, uy: number, ul: number) => number;
+  silk_frame: () => void;
+  rosette_setup: (keys: number, S: number, heartIn: number, heartOut: number) => number;
+  rosette_frame: (petals: number) => void;
 }
 
 /** A drawer of one clip's frames in a fresh instance of the module: `draw(i)` draws frame i into the encoder's planes
@@ -236,22 +342,86 @@ export function videoDrawer(
   /* BT.709 primaries, transfer and matrix, as the stream and the file both say */
   const pixels = m.create(W, H, ask.fps, 0, quality.effort, quality.qp, 1, 1, 1);
   if (!pixels) throw new Error("video: no encoder for this size");
-  m.keep_rgb(keepRgb ? 1 : 0);
+  const kept = m.keep_rgb(keepRgb ? 1 : 0);
+  if (keepRgb && !kept) throw new Error("video: out of memory");
   const params = () => new Float64Array(m.memory.buffer, m.params(), 4096);
   const draw =
-    ask.kind === "glass" ? glassDraw(m, pixels, params, ask, plan) : blobDraw(m, params, ask, plan);
+    ask.kind === "glass"
+      ? glassDraw(m, pixels, params, ask, plan)
+      : ask.kind === "blob"
+        ? blobDraw(m, params, ask, plan)
+        : ask.kind === "silk"
+          ? silkDraw(m, params, ask, plan)
+          : rosetteDraw(m, params, ask, plan);
+  finishSetup(m, params, ask);
   const code = (i: number): Uint8Array<ArrayBuffer> => {
     const n = m.frame(i === 0 ? 1 : 0, videoQp(quality, i, plan.frames));
     if (n < 0) throw new Error(`video: minih264 error ${-n}`);
     return new Uint8Array(m.memory.buffer, m.out(), n).slice();
   };
-  const rgb = () => new Uint8Array(m.memory.buffer, pixels, W * H * 3);
+  const rgb = () => new Uint8Array(m.memory.buffer, kept, W * H * 3);
   const state = () => new Uint8Array(m.memory.buffer, m.state(), m.state_size()).slice();
   const resume = (saved: Uint8Array) => {
     if (saved.length !== m.state_size()) throw new Error("video: a state of another clip");
     new Uint8Array(m.memory.buffer, m.state(), saved.length).set(saved);
   };
   return { draw, code, rgb, state, resume };
+}
+
+/* The clip's finish, which the module lays on each frame as fx-finish.ts's finishPixels does: the grain's tile at its
+   strength, a speck a pixel; and for a soft, the blur and what lies under the blurred frame, the palette's gradient,
+   or, under a blob with no ground, the clip's backdrop, which a clip, never clear, lays every blob on (blobDraw). A
+   blob with a soft is drawn as its layer alone, over its own ground where it has one, as the site lays it over that
+   gradient. */
+function finishSetup(m: VideoModule, params: () => Float64Array, ask: VideoAsk): void {
+  const finish = ask.finish ?? {};
+  if (finish.grain) {
+    const tile = new Uint8Array(m.memory.buffer, m.params(), GRAIN_SIDE * GRAIN_SIDE);
+    for (let y = 0; y < GRAIN_SIDE; y++)
+      for (let x = 0; x < GRAIN_SIDE; x++) {
+        const { white, size } = grainSpeck(x, y);
+        tile[y * GRAIN_SIDE + x] = grainAlpha(size, finish.grain) | (white ? 1 : 0);
+      }
+    if (!m.grain_setup()) throw new Error("video: out of memory");
+  }
+  if (!finish.soft) return;
+  const { blur, under } = finish.soft;
+  if (ask.kind === "blob") {
+    const ground = ask.look.bg ? groundParts(ask.look.bg) : null;
+    const [r, g, b] = ground ? hexBytes(ground.hex) : [0, 0, 0];
+    m.blob_ground(r, g, b, ground?.alpha ?? 0);
+  }
+  const reach = [0, 1, 2].flatMap(i => blur.boxes[i] ?? [0, 0]);
+  const setup = (gradient: number, r: number, g: number, b: number) =>
+    m.finish_setup(
+      blur.scale,
+      blur.boxes.length,
+      reach[0],
+      reach[1],
+      reach[2],
+      reach[3],
+      reach[4],
+      reach[5],
+      gradient,
+      r,
+      g,
+      b
+    );
+  let done: number;
+  if (under) {
+    /* the gradient's stops and its line, as linearGradientPixels reads them */
+    const n = under.stops.length;
+    const a = (under.angle * Math.PI) / 180;
+    const p = params();
+    p.set([n, Math.sin(a), -Math.cos(a)]);
+    for (const [i, stop] of under.stops.entries())
+      p.set([...hexBytes(stop.hex), under.at ? under.at[i] : n > 1 ? i / (n - 1) : 0], 3 + 4 * i);
+    done = setup(1, 0, 0, 0);
+  } else {
+    const [r, g, b] = blobBackdrop(ask.palette);
+    done = setup(0, r, g, b);
+  }
+  if (!done) throw new Error("video: out of memory");
 }
 
 /* The glass's ribs' map for the last box drawn, which every part of a clip drawn in this isolate shares: a tenth of a
@@ -333,6 +503,76 @@ function blobDraw(
     const dots = blobFrame(scene, f);
     for (const [n, dot] of dots.entries()) p.set([dot.x, dot.y, dot.r, ...rgbOf(dot.color)], 6 * n);
     m.blob_frame(dots.length);
+  };
+}
+
+function silkDraw(
+  m: VideoModule,
+  params: () => Float64Array,
+  ask: VideoAsk,
+  plan: VideoPlan
+): (i: number) => void {
+  const scene = silkScene(ask.palette, { angle: ask.angle, shape: ask.look.shape }, ask.size);
+  const ux = scene.x2 - scene.x1;
+  const uy = scene.y2 - scene.y1;
+  params().set([
+    ...scene.folds.map(f => f.R),
+    ...scene.folds.map(f => 1 / f.w),
+    ...scene.valley.table,
+    ...scene.crest.table,
+    ...scene.dye.baseB,
+    ...scene.dye.shadeB,
+    ...scene.dye.liftB
+  ]);
+  if (!m.silk_setup(scene.folds.length, scene.x1, scene.y1, ux, uy, 1 / (ux * ux + uy * uy)))
+    throw new Error("video: a silk of too many folds");
+  const centres = new Float64Array(2 * scene.folds.length);
+  return i => {
+    centresAt(scene, plan.loops ? (i * plan.loops * SILK_LOOP) / plan.frames : 0, centres);
+    params().set(centres);
+    m.silk_frame();
+  };
+}
+
+function rosetteDraw(
+  m: VideoModule,
+  params: () => Float64Array,
+  ask: VideoAsk,
+  plan: VideoPlan
+): (i: number) => void {
+  const scene = rosetteScene(ask.palette, { angle: ask.angle, shape: ask.look.shape }, ask.size);
+  /* every petal any frame of the loop shows, rim first */
+  const petals = rosettePetals(scene, true);
+  const { lens, design, colors } = scene;
+  params().set([
+    lens.x0,
+    lens.x1,
+    lens.w,
+    lens.xm,
+    lens.d,
+    lens.rho,
+    lens.reach,
+    design.grad.cu,
+    design.grad.cv,
+    design.grad.ru,
+    design.grad.rv,
+    ...design.stops.map(([at]) => at),
+    ...HEART_STOPS.flat(),
+    ...colors.ground,
+    ...colors.heart,
+    ...colors.grads.flat(2)
+  ]);
+  if (!m.rosette_setup(colors.grads.length, scene.S, design.heartIn, design.heartOut))
+    throw new Error("video: out of memory");
+  return i => {
+    const tau = plan.loops ? ((i * plan.loops) % plan.frames) / plan.frames : 0;
+    const group = rosetteGroupAt(scene, tau);
+    const p = params();
+    for (const [k, petal] of petals.entries()) {
+      const turn = petal.th + group.turn;
+      p.set([petal.r * group.zoom, Math.cos(turn), Math.sin(turn), petal.key], 4 * k);
+    }
+    m.rosette_frame(petals.length);
   };
 }
 
