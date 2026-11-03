@@ -1,9 +1,18 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BLOB_LOOP, blobBackdrop, blobRenderer } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
 import type { EffectFinish, EffectLook } from "./effect.ts";
-import { blurBoxes, effectBlurSigma, effectUnderlay, finishPixels } from "./fx-finish.ts";
+import {
+  blurBoxes,
+  blurRgba,
+  effectBlurSigma,
+  effectUnderlay,
+  finishPixels,
+  grainOverRgba,
+  overUnder
+} from "./fx-finish.ts";
 import { GLASS_LOOP, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { glassCover, glassRenderer } from "./glass-render.ts";
@@ -14,6 +23,7 @@ import { SILK_LOOP, silkScene } from "./silk.ts";
 import { renderSilk } from "./silk-render.ts";
 import {
   VIDEO_LIMITS,
+  VIDEO_MODULE,
   VIDEO_QUALITY,
   type VideoAsk,
   type VideoBlur,
@@ -28,6 +38,7 @@ import {
   videoParts,
   videoPlan,
   videoQp,
+  videoQuality,
   videoWork
 } from "./video.ts";
 import { videoBlur, videoFinish } from "./video-finish.ts";
@@ -36,7 +47,8 @@ import { videoBlur, videoFinish } from "./video-finish.ts";
 declare const WebAssembly: {
   Module: { new (bytes: Uint8Array): object; imports(module: object): unknown[] };
 };
-const wasm = new WebAssembly.Module(readFileSync(new URL("./video/video.wasm", import.meta.url)));
+const wasmFile = readFileSync(new URL("./video/video.wasm", import.meta.url));
+const wasm = new WebAssembly.Module(wasmFile);
 const palette = decodePalette("kWnCIwwC47igfOklkTlShq44");
 if (!palette) throw new Error("the test's palette");
 const look = { shape: null, frost: 1, bg: null };
@@ -46,6 +58,10 @@ const blob = { kind: "blob", look } as const;
 describe("video.wasm", () => {
   it("imports nothing, so a Worker loads it as it is", () => {
     expect(WebAssembly.Module.imports(wasm)).toEqual([]);
+  });
+
+  it("is named by its contents, which a drawing goes on from a kept state by", () => {
+    expect(VIDEO_MODULE).toBe(createHash("sha256").update(wasmFile).digest("hex").slice(0, 12));
   });
 });
 
@@ -127,6 +143,41 @@ describe("videoParts", () => {
     for (const [from, to] of runs)
       expect((to - from) * size.width * size.height).toBeLessThanOrEqual(60_000_000);
     expect(videoParts(glass, videoPlan(glass, 0, 30, 3), size, 1)).toEqual([[0, 90]]);
+  });
+});
+
+describe("videoQuality", () => {
+  it("codes a soft blob, or a grained one with less frost than designed, as the glass, every other as before", () => {
+    const thin = { ...blob, look: { ...look, frost: 0.5 } };
+    expect(videoQuality(blob)).toEqual(VIDEO_QUALITY.blob);
+    expect(videoQuality({ ...blob, finish: {} })).toEqual(VIDEO_QUALITY.blob);
+    expect(videoQuality({ ...blob, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.glass);
+    expect(videoQuality({ ...thin, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.glass);
+    /* the frost holds the grain as the glass's coding holds the glass's */
+    expect(videoQuality({ ...blob, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.blob);
+    expect(videoQuality({ ...thin, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.glass);
+    for (const kind of ["glass", "silk", "rosette"] as const)
+      expect(videoQuality({ kind, look, finish: { soft: 40, grain: 30 } })).toEqual(
+        VIDEO_QUALITY[kind]
+      );
+  });
+
+  it("is what a clip's frames are coded at", () => {
+    const size = { width: 64, height: 48 };
+    const ask: VideoAsk = {
+      kind: "blob",
+      palette,
+      look,
+      angle: 90,
+      size,
+      fps: 10,
+      finish: videoFinish(palette, blob, 90, { soft: 40, grain: 30 }, size)
+    };
+    const plan = videoPlan(blob, 2, 10, 2);
+    const coded = (quality?: typeof VIDEO_QUALITY.blob) =>
+      videoFrames(wasm, ask, plan, 0, plan.frames, null, quality).frames.map(f => f.data);
+    expect(coded()).toEqual(coded(VIDEO_QUALITY.glass));
+    expect(coded()).not.toEqual(coded(VIDEO_QUALITY.blob));
   });
 });
 
@@ -237,29 +288,38 @@ describe("the module's frames", () => {
   });
 
   it("loop: the frame a loop on is the first", () => {
-    for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
-      const ask: VideoAsk = {
-        kind,
-        palette,
-        look,
-        angle: 135,
-        size: { width: 64, height: 48 },
-        fps: 30
-      };
+    const most = (a: ArrayLike<number>, b: ArrayLike<number>) =>
+      Array.from(a).reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
+    const size = { width: 64, height: 48 };
+    /* the glass's and the silk's time runs on past the loop, so the module draws the frame after the last */
+    for (const kind of ["glass", "silk"] as const) {
+      const ask: VideoAsk = { kind, palette, look, angle: 135, size, fps: 30 };
       const plan = videoPlan(ask, 2.45, 30, null);
       const drawer = videoDrawer(wasm, ask, plan, VIDEO_QUALITY[kind], true);
       drawer.draw(0);
       const first = drawer.rgb().slice();
       drawer.draw(plan.frames);
-      expect(Math.max(...drawer.rgb().map((v, i) => Math.abs(v - first[i])))).toBeLessThanOrEqual(
-        1
-      );
+      expect(most(drawer.rgb(), first), kind).toBeLessThanOrEqual(1);
+    }
+    /* the blob's and the rosette's drawers wrap their phase, so the module's frame there is the first by
+       construction: their designs at a loop's end against its start */
+    const melt = blobRenderer(palette, look, size, blobBackdrop(palette));
+    expect(most(melt.frame(1), melt.frame(0)), "blob").toBeLessThanOrEqual(1);
+    /* at a clip's sizes: a box of 64 by 48 has its innermost petals under a pixel at the heart, where a few channels
+       differ by up to 7 */
+    for (const shape of [null, 417, 7]) {
+      const flower = rosetteScene(palette, { angle: 135, shape }, { width: 160, height: 90 });
+      expect(
+        most(renderRosette(flower, 1), renderRosette(flower, 0)),
+        `rosette ${shape}`
+      ).toBeLessThanOrEqual(2);
     }
   });
 });
 
 /* A frame finished as the site paints it, by the engine's own code: the effect's CPU drawing as straight-alpha RGBA,
-   finishPixels over it, then the clip's backdrop under what is not opaque (a blob with no ground). */
+   finishPixels over it, then the clip's backdrop under what is not opaque (a blob with no ground: under a soft one,
+   as its gradient goes under another). */
 function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: number): Uint8Array {
   const { kind, size, look: shown, angle, palette: P } = ask;
   const n = size.width * size.height;
@@ -293,8 +353,21 @@ function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: numbe
     const scene = rosetteScene(P, { angle, shape: shown.shape }, size);
     rgba = opaque(renderRosette(scene, ((i * plan.loops) % plan.frames) / plan.frames), 4);
   }
-  const done = finishPixels(rgba, size, finish, effectUnderlay(P, ask, angle, finish.soft));
   const back = blobBackdrop(P);
+  const underlay = effectUnderlay(P, ask, angle, finish.soft);
+  const sigma = effectBlurSigma(finish.soft, size);
+  let done: ArrayLike<number>;
+  if (!underlay && sigma > 0) {
+    /* a soft blob with no ground over the clip's backdrop, which goes under its blurred layer as finishPixels lays a
+       gradient under one, the layer's premultiplied colors rounded once, as a browser composites it: finishPixels'
+       own straight-alpha bytes, which a page lays over itself, lose a level or two where the blur leaves the picture
+       thin (W/styles-lab/sg/mp4/parity-exact.ts) */
+    const ground = Uint8Array.from({ length: n * 3 }, (_, k) => back[k % 3]);
+    const blurred = blurRgba(rgba, size.width, size.height, sigma);
+    const layered = opaque(overUnder(blurred, ground, size.width, size.height), 3);
+    grainOverRgba(layered, size.width, size.height, finish.grain ?? 0);
+    done = layered;
+  } else done = finishPixels(rgba, size, finish, underlay);
   const out = new Uint8Array(n * 3);
   for (let p = 0; p < n; p++) {
     const a = done[4 * p + 3] / 255;
@@ -352,6 +425,35 @@ describe("a clip's soft and grain", () => {
       const { worst, past } = against(ask, { grain: 60 });
       expect(worst, kind).toBeLessThanOrEqual(2);
       expect(past, kind).toBeLessThan(0.005);
+    }
+  });
+
+  it("are the site's within two levels where the blur is wide against the picture's shorter side", () => {
+    /* There a clear blob is thin all over, its colors the blur's middle rather than its whole, which the boxes at a
+       half or a quarter of the resolution reach a little apart from the frame's own: against an exact composite
+       (W/styles-lab/sg/mp4/parity-exact.ts) the module sits half a level off on the whole at 1920 by 16 to 100, 640
+       by 32 or 18 by 1080 (most 2), where the reference sits 0.15 to 0.25; at 282 by 502 within a level of it. Every
+       other effect is opaque there, its edges alone thinned. */
+    for (const [size, finish] of [
+      [
+        { width: 1920, height: 16 },
+        { soft: 40, grain: 30 }
+      ],
+      [{ width: 18, height: 1080 }, { soft: 40 }],
+      [
+        { width: 282, height: 502 },
+        { soft: 100, grain: 100 }
+      ]
+    ] as [{ width: number; height: number }, EffectFinish][]) {
+      for (const [kind, shown] of kinds) {
+        const { worst, past } = against(
+          { kind, palette, look: shown, angle: 135, size, fps: 30 },
+          finish
+        );
+        const at = `${kind} ${shown.bg ?? "clear"} ${size.width}x${size.height}`;
+        expect(worst, at).toBeLessThanOrEqual(2);
+        expect(past, at).toBeLessThan(kind === "blob" && !shown.bg ? 0.15 : 0.005);
+      }
     }
   });
 
@@ -428,6 +530,35 @@ describe("the silk's and the rosette's clips", () => {
 });
 
 describe("videoFit with a soft", () => {
+  it("fits within the work, and a fitted size to itself, across the steps of the blur's resolution", () => {
+    const sides = [16, 320, 540, 1080, 1600, 1920];
+    let over = 0;
+    let moved = 0;
+    for (const kind of ["glass", "blob", "silk", "rosette"] as const)
+      for (const finish of [{}, { soft: 5 }, { soft: 20 }, { soft: 40, grain: 30 }, { soft: 100 }])
+        for (const width of sides)
+          for (const height of sides)
+            for (const [speed, fps, duration] of [
+              [2.45, 60, null],
+              [1, 60, 60],
+              [1, 30, null]
+            ] as const) {
+              const effect = { kind, look, finish };
+              const fit = videoFit(effect, speed, fps, duration, { width, height });
+              if (videoWork(effect, fit.size, fit.plan.frames) > VIDEO_LIMITS.work * (1 + 1e-12))
+                over++;
+              const again = videoFit(effect, speed, fps, duration, fit.size).size;
+              if (again.width !== fit.size.width || again.height !== fit.size.height) moved++;
+            }
+    expect({ over, moved }).toEqual({ over: 0, moved: 0 });
+    /* shrinking past a sigma of 7 pixels blurs at the frame's own resolution, at twice the cost: the steps after it
+       moved the scale a thousandth and left the floored sides as they were, over the work */
+    const soft = { ...glass, finish: { soft: 40, grain: 30 } };
+    const fit = videoFit(soft, 1, 60, 60, { width: 512, height: 512 });
+    expect(fit.size).toEqual({ width: 438, height: 438 });
+    expect(videoWork(soft, fit.size, fit.plan.frames)).toBeLessThanOrEqual(VIDEO_LIMITS.work);
+  });
+
   it("weighs the soft's blur into the work, at the size the clip is drawn at", () => {
     const plain = videoFit(glass, 2.45, 60, null, { width: 1080, height: 1080 });
     for (const soft of [10, 40, 100]) {

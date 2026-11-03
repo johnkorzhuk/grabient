@@ -117,7 +117,7 @@ const toStill = (still: string, paused: boolean) =>
   });
 
 /* Where a clip in the making keeps its parts in R2: each part's frames, and the encoder's state after the last part
-   kept, which names that part. All of it goes once the clip is kept. */
+   kept, which names that part and the module that kept it. All of it goes once the clip is kept. */
 const partName = (hash: string, i: number) => `videos/${hash}/part-${i}`;
 /** How often the state is kept: writing its few megabytes after every part made a clip of 27 parts 6 seconds slower
     here; every fourth, a drawing cut short loses at most three parts. */
@@ -134,7 +134,7 @@ async function drawClip(
   parts: VideoPartRunner
 ): Promise<Uint8Array<ArrayBuffer>> {
   const { soft, grain } = clip.address.finish;
-  const [{ packFrames, unpackFrames }, { videoFile }, finish] = await Promise.all([
+  const [{ packFrames, unpackFrames }, { VIDEO_MODULE, videoFile }, finish] = await Promise.all([
     import("@grabient/engine/mp4.ts"),
     import("@grabient/engine/video.ts"),
     /* worked out once for every part, from fx-finish.ts, which the parts' drawing does not load (video-finish.ts) */
@@ -150,7 +150,8 @@ async function drawClip(
   let start = 0;
   const saved =
     store && runs.length > 1 ? await store.get(stateName(hash)).catch(() => null) : null;
-  if (saved && store) {
+  /* a state another module kept holds pointers into that module's memory: this one draws from the first part */
+  if (saved && store && saved.customMetadata?.module === VIDEO_MODULE) {
     const last = Number(saved.customMetadata?.part);
     const kept = new Uint8Array(await saved.arrayBuffer());
     if (Number.isInteger(last) && last >= 0 && last < runs.length - 1) {
@@ -185,7 +186,9 @@ async function drawClip(
           .then(() => store.put(partName(hash, i), bytes))
           .then(() =>
             after
-              ? store.put(stateName(hash), after, { customMetadata: { part: String(i) } })
+              ? store.put(stateName(hash), after, {
+                  customMetadata: { part: String(i), module: VIDEO_MODULE }
+                })
               : null
           )
           .catch(error => console.warn("videos: R2 kept no part", String(error)));

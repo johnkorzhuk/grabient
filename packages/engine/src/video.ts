@@ -176,10 +176,16 @@ export function videoDuration(raw: string | null | undefined): number | null {
   return seconds > 0 ? Math.min(Math.max(seconds, VIDEO_LIMITS.least), VIDEO_LIMITS.seconds) : null;
 }
 
+/** The share past the work's limit that counts as within it: the hair before flooring may leave a side a billionth of
+    a pixel past its scaled length, so a clip scaled to the limit can weigh that little more. A size within it fits
+    again to itself: a scale so near 1 moves no side of VIDEO_LIMITS.side or less past the hair. */
+const WORK_HAIR = 1e-12;
+
 /** A clip within the limits: its rate up to the most, one loop longer than the longest clip played in that time, and
     its sides even (H.264's colors are a quarter of its pixels), at least 16, scaled down together where the sides, the
     pixels or the work ask. A soft's cost grows as its picture shrinks (videoBlur), so the work is weighed again at
-    each smaller size until it fits. */
+    each smaller size until it fits, the longer side two pixels shorter where a step left the floored sides as they
+    were. So a fitted size fits again to itself, which a posted link's page names its clip by (video-make.ts). */
 export function videoFit(
   effect: VideoEffect,
   speed: number,
@@ -203,12 +209,22 @@ export function videoFit(
     Math.sqrt(VIDEO_LIMITS.pixels / (w * h)),
     Math.sqrt(VIDEO_LIMITS.work / videoWork(effect, { width: w, height: h }, plan.frames))
   );
-  for (let tries = 0; tries < 4; tries++) {
-    const work = videoWork(effect, sized(scale), plan.frames);
-    if (work <= VIDEO_LIMITS.work) break;
-    scale *= Math.sqrt(VIDEO_LIMITS.work / work);
+  let size = sized(scale);
+  /* every step makes a side shorter, so this ends: within the work, or at the least sides */
+  for (
+    let work = videoWork(effect, size, plan.frames);
+    work > VIDEO_LIMITS.work * (1 + WORK_HAIR) && Math.max(size.width, size.height) > 16;
+    work = videoWork(effect, size, plan.frames)
+  ) {
+    const next = scale * Math.sqrt(VIDEO_LIMITS.work / work);
+    const smaller = sized(next);
+    scale =
+      smaller.width < size.width || smaller.height < size.height
+        ? next
+        : (Math.max(size.width, size.height) - 2) / Math.max(w, h);
+    size = sized(scale);
   }
-  return { size: sized(scale), fps: rate, plan };
+  return { size, fps: rate, plan };
 }
 
 /** A clip's frames shared out in runs of at most `work` (videoWork) each, so each run may be drawn by an invocation of
@@ -249,6 +265,32 @@ export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   silk: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
   rosette: { qp: 24, keyQp: 12, ramp: 20, effort: 9 }
 };
+
+/** How a clip is coded: as its effect is, but a blob with a soft, or grained with less frost than designed, as the
+    glass is. The blob's coarser quantizer is for its frost, noise in every pixel; a grain, which holds still while
+    the picture moves, keeps its pattern through it as well as through the glass's, but where a soft blurs the frost
+    away or there is less of it, that quantizer lets the grain fade frame by frame until the loop's key frame brings it
+    back, a pulse at every seam, where the glass's holds it. Through a 480 square blob's loop at speed 2, decoded, the
+    share of grain 30's pattern kept (W/styles-lab/sg/mp4/grain-seam.ts): at the blob's numbers, with soft 40, 0.94 at
+    the key frame and 0.45 by the loop's end (soft 15 to 25 alike; soft 10, its sigma under a pixel, leaves the frost
+    as it is), with no soft at frost 0, 0.5 and 1 0.44 to 0.65, 0.69 to 0.77 and 0.78 to 0.87, at frost 2 0.91 to
+    0.93; at the glass's, with soft 40, 0.84 to 0.85 throughout, as on the glass (0.85 to 0.87), at 1.6 times the bytes
+    (2,185 KiB where 1,355; the plain blob 1,572), and at frost 0 0.84 to 0.86. A frosted blob's grain at the glass's
+    numbers would be 0.95 for 1.65 times the bytes. The glass's key frame also makes the seam's step in the decoded
+    picture 1.8 levels where the blob's made it 2.6 (an ordinary step 0.8 to 0.9). A plain blob is coded as it was. */
+export const videoQuality = (effect: {
+  kind: VideoKind;
+  look: Pick<EffectLook, "frost">;
+  finish?: { soft?: unknown; grain?: unknown };
+}): VideoQuality =>
+  effect.kind === "blob" && (effect.finish?.soft || (effect.finish?.grain && effect.look.frost < 1))
+    ? VIDEO_QUALITY.glass
+    : VIDEO_QUALITY[effect.kind];
+
+/** The clips' module by its contents: the first 12 hex digits of video/video.wasm's SHA-256, which a test checks. An
+    encoder's state holds pointers into the memory of the module that kept it, which another module lays out elsewhere
+    (going on from one traps), so a drawing goes on only from a state the same module kept (video-make.ts). */
+export const VIDEO_MODULE = "0cab9b66e1fc";
 
 /** Frame i's quantizer in a clip of n frames. */
 export function videoQp(quality: VideoQuality, i: number, n: number): number {
@@ -334,7 +376,7 @@ export function videoDrawer(
   wasm: WebAssembly.Module,
   ask: VideoAsk,
   plan: VideoPlan,
-  quality = VIDEO_QUALITY[ask.kind],
+  quality = videoQuality(ask),
   keepRgb = false
 ) {
   const m = new WebAssembly.Instance(wasm, {}).exports as unknown as VideoModule;
@@ -587,7 +629,7 @@ export function videoFrames(
   from = 0,
   to = plan.frames,
   state: Uint8Array | null = null,
-  quality = VIDEO_QUALITY[ask.kind]
+  quality = videoQuality(ask)
 ): { frames: Mp4Frame[]; state: Uint8Array<ArrayBuffer> } {
   const drawer = videoDrawer(wasm, ask, plan, quality);
   if (from > 0) {

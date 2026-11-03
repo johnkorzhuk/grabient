@@ -41,8 +41,10 @@ import type { VideoPartDrawn, VideoPartJob } from "./video-draw.ts";
 export type VideoPartRunner = (job: VideoPartJob) => Promise<VideoPartDrawn>;
 
 /** The clips' drawing and coding, counted up by a change that moves their pixels or their bytes (engine/glass.ts,
-    glass-render.ts, blob.ts, silk.ts, rosette.ts, fx-finish.ts, video.ts, video/video.c), so no clip coded before is
-    answered for it; the coding's numbers (VIDEO_QUALITY) are in the key besides. */
+    glass-render.ts, blob.ts, silk.ts, rosette.ts, grain.ts, soft.ts, fx-finish.ts, video-finish.ts, video.ts,
+    video/video.c), so no clip coded before is answered for it; the coding's numbers (videoQuality) are in the key
+    besides. A module that draws the same bytes needs none: a drawing goes on only from a state its own module kept
+    (VIDEO_MODULE, video-make.ts). */
 export const VIDEO_DRAWING = "video-1";
 
 /** The most one part draws, its pixels across its frames weighed by its effect (engine/video.ts's videoWork): about
@@ -140,7 +142,7 @@ export async function seedMp4Answer(
   /* the blob has no angle: one clip for every angle its address names */
   const angle = kind === "blob" ? DEFAULT_ANGLE : view.angle;
   const finish = finishOf(view);
-  const { VIDEO_QUALITY, videoDuration, videoFit, videoParts } = await import(
+  const { videoDuration, videoFit, videoParts, videoQuality } = await import(
     "@grabient/engine/video.ts"
   );
   const duration = videoDuration(params.get("duration"));
@@ -155,7 +157,7 @@ export async function seedMp4Answer(
   const look = kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
   const hash = await hashOf([
     VIDEO_DRAWING,
-    VIDEO_QUALITY[kind],
+    videoQuality(drawn),
     found.seed,
     kind,
     angle,

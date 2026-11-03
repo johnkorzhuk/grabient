@@ -67,7 +67,8 @@ static H264E_create_param_t cp;
 static H264E_run_param_t rp;
 static H264E_io_yuv_t io;
 /* a frame's pixels, four bytes each: the glass's map while it is set up, then, for a clip with a soft, each frame's
-   own RGBA before it is finished */
+   own RGBA before it is finished, or, where its blur runs at a half or a quarter of the frame's resolution, the
+   averaged frame (finish_setup), which at a half takes the bytes of a frame four pixels wider and taller */
 static unsigned char *pixels;
 /* whether a drawing keeps its RGB, finished, for a test to read, and where */
 static int keepRgb;
@@ -98,7 +99,7 @@ int create(int width, int height, int fps, int gop, int speed, int qp, int prima
   W = width;
   H = height;
   N = W * H;
-  pixels = take(N * 4);
+  pixels = take(4 * (W + 4) * (H + 4));
   /* rows padded to 32 bytes: the SIMD code reads 8-aligned rows */
   io.stride[0] = (W + 31) & ~31;
   io.stride[1] = io.stride[0] / 2;
@@ -419,14 +420,17 @@ int finish_setup(int scale, int boxes, int l0, int r0, int l1, int r1, int l2, i
   __builtin_memset(fInV, 0, down * 16);
   if (fScale > 1) {
     fStride = fSw + 2;
-    fSmall = take(fStride * (fSh + 2) * 16);
+    /* in the frame's own pixels, which a drawing at a half or a quarter never keeps: (W / 2 + 2) by (H / 2 + 2)
+       samples of 16 bytes at a half, fewer at a quarter, within the 4 (W + 4) (H + 4) bytes `create` took; the
+       glass's map they held was read at its setup, before this */
+    fSmall = (v128_t *)pixels;
     fJ0 = take(W * 4);
     fFx = take(W * 16);
     fI0 = take(H * 4);
     fFy = take(H * 4);
     fRow0 = take(fStride * 16);
     fRow1 = take(fStride * 16);
-    if (!fSmall || !fJ0 || !fFx || !fI0 || !fFy || !fRow0 || !fRow1) return 0;
+    if (!fJ0 || !fFx || !fI0 || !fFy || !fRow0 || !fRow1) return 0;
     __builtin_memset(fSmall, 0, fStride * (fSh + 2) * 16);
     for (int x = 0; x < W; x++) {
       float share;

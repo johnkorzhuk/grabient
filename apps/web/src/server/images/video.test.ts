@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { VIDEO_QUALITY, videoFit, videoFrames } from "@grabient/engine/video.ts";
+import { VIDEO_MODULE, VIDEO_QUALITY, videoFit, videoFrames } from "@grabient/engine/video.ts";
 import { videoFinish } from "@grabient/engine/video-finish.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
@@ -331,28 +331,47 @@ describe("a palette's MP4", () => {
     expect(await etagOf(env, keep, finished)).not.toBe(await etagOf(env, keep, CLIP));
     expect(await etagOf(env, keep, `${CLIP}&grain=30`)).not.toBe(await etagOf(env, keep, finished));
     /* the key a plain clip had before clips took a soft and a grain */
+    const keyOf = async (parts: unknown[]) => {
+      const digest = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(JSON.stringify([VIDEO_DRAWING, ...parts]))
+      );
+      return `"video:${Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("")}"`;
+    };
     const fit = videoFit({ kind: "glass", look: { shape: 0, frost: 1, bg: null } }, 1, 10, 2, {
       width: 64,
       height: 48
     });
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(
-        JSON.stringify([
-          VIDEO_DRAWING,
-          VIDEO_QUALITY.glass,
-          SEED,
-          "glass",
-          135,
-          { shape: 0, frost: 1, bg: null },
-          fit.size,
-          fit.fps,
-          fit.plan
-        ])
-      )
+    const plain = [
+      SEED,
+      "glass",
+      135,
+      { shape: 0, frost: 1, bg: null },
+      fit.size,
+      fit.fps,
+      fit.plan
+    ];
+    expect(await etagOf(env, keep, CLIP)).toBe(await keyOf([VIDEO_QUALITY.glass, ...plain]));
+    /* a soft blob is coded as the glass is, and keyed so; a plain one as it was */
+    const blobLook = { shape: null, frost: 1, bg: null };
+    const blobFit = videoFit({ kind: "blob", look: blobLook }, 1, 10, 2, { width: 64, height: 48 });
+    const blobKey = (quality: unknown, finish: unknown[]) =>
+      keyOf([
+        quality,
+        SEED,
+        "blob",
+        90,
+        blobLook,
+        blobFit.size,
+        blobFit.fps,
+        blobFit.plan,
+        ...finish
+      ]);
+    const blobClip = `/${SEED}.mp4?style=blob&size=64x48&fps=10&duration=2`;
+    expect(await etagOf(env, keep, blobClip)).toBe(await blobKey(VIDEO_QUALITY.blob, []));
+    expect(await etagOf(env, keep, `${blobClip}&soft=40`)).toBe(
+      await blobKey(VIDEO_QUALITY.glass, [{ soft: 40 }])
     );
-    const key = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
-    expect(await etagOf(env, keep, CLIP)).toBe(`"video:${key}"`);
     const still = new URL(
       (await seedMp4Answer(get(finished), env, keep, parts.run)).headers.get("Location") ?? ""
     );
@@ -505,7 +524,8 @@ describe("a palette's MP4 drawn in parts", () => {
     expect(kept.filter(name => name.endsWith(".mp4"))).toEqual([]);
     expect(kept.filter(name => name.includes("/part-")).length).toBe(6);
     expect(store.objects.get(kept.find(name => name.endsWith("/state")) ?? "")?.meta).toEqual({
-      part: "3"
+      part: "3",
+      module: VIDEO_MODULE
     });
     const again = runner();
     const answer = await seedMp4Answer(get(CLIP), env, keep, again.run, { partWork });
@@ -515,6 +535,31 @@ describe("a palette's MP4 drawn in parts", () => {
     expect(again.jobs[0].state).toBeInstanceOf(Uint8Array);
     await settled();
     expect([...store.objects.keys()].filter(name => !name.endsWith(".mp4"))).toEqual([]);
+  });
+
+  test("goes on only from a state its own module kept, else draws from the first part", async () => {
+    const partWork = 64 * 48 * 2;
+    const clean = world();
+    const whole = await bytes(
+      await seedMp4Answer(get(CLIP), clean.env, clean.keep, runner().run, { partWork })
+    );
+    const { env, keep, store, settled } = world({ windows: { videoClip: 0 } });
+    expect((await seedMp4Answer(get(CLIP), env, keep, runner(6).run, { partWork })).status).toBe(
+      503
+    );
+    await settled();
+    /* as a module before this one kept it: its state holds pointers into that module's memory, and names none */
+    const state = store.objects.get(
+      [...store.objects.keys()].find(name => name.endsWith("/state")) ?? ""
+    );
+    if (!state) throw new Error("the cut drawing kept no state");
+    state.meta = { part: "3" };
+    const again = runner();
+    expect(await bytes(await seedMp4Answer(get(CLIP), env, keep, again.run, { partWork }))).toEqual(
+      whole
+    );
+    expect(again.jobs.map(job => job.from)).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
+    expect(again.jobs[0].state).toBeNull();
   });
 });
 
@@ -569,6 +614,25 @@ describe("a palette's MP4 posted as a link", () => {
     );
     const named = `${video.pathname}${video.search.replace("&raw", "")}`;
     expect(await etagOf(env, keep, named)).toBe(await etagOf(env, keep, asked));
+  });
+
+  test("names the clip by an address that fits to the same clip, where a soft's blur steps as it shrinks too", async () => {
+    const { env, keep } = world({ off: ["videos"] });
+    const parts = runner();
+    for (const asked of [
+      `/${SEED}.mp4?style=glass&soft=20&size=540x1600&fps=60&duration=60`,
+      `/${SEED}.mp4?style=glass&soft=40&grain=30&size=512x512&fps=60&duration=60`,
+      `/${SEED}.mp4?style=silk&soft=40&grain=30&size=1920x1080`
+    ]) {
+      const html = await (await seedMp4Answer(preview(asked), env, keep, parts.run)).text();
+      const named = new URL(
+        /<meta property="og:url" content="([^"]*)">/.exec(html)?.[1]?.replaceAll("&amp;", "&") ?? ""
+      );
+      expect(await etagOf(env, keep, `${named.pathname}${named.search}`), asked).toBe(
+        await etagOf(env, keep, asked)
+      );
+    }
+    expect(parts.jobs.length).toBe(0);
   });
 
   test("names no video while drawing is off, and begins none", async () => {
