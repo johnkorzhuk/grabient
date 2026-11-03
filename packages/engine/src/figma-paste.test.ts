@@ -2,12 +2,22 @@ import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
 import { BLOB_DEPTH, BLOB_DESIGN, BLOB_LOOP, blobFilter, blobFit, blobScene } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
+import { blobShapeOf, type Effect } from "./effect.ts";
 import { FIGMA_BLOB, type FigmaBlobView, figmaBlobHtml, figmaBlobNodes } from "./figma-blob.ts";
 import { FIGMA_GLASS, figmaGlassHtml, figmaGlassNodes } from "./figma-glass.ts";
-import { FIGMA_INTERNAL, FIGMA_PAGE } from "./figma-paste.ts";
+import {
+  FIGMA_FINISH,
+  FIGMA_INTERNAL,
+  FIGMA_PAGE,
+  type FigmaFinish,
+  type FigmaNode,
+  figmaLinear,
+  figmaNoise
+} from "./figma-paste.ts";
 import { figmaRosetteHtml, figmaRosetteNodes } from "./figma-rosette.ts";
 import { FIGMA_DEFS, FIGMA_SCHEMA, FIGMA_VERSION } from "./figma-schema.ts";
 import { type FigmaSilkView, figmaSilkHtml, figmaSilkNodes } from "./figma-silk.ts";
+import { effectBlurSigma, effectUnderlay } from "./fx-finish.ts";
 import {
   GLASS_DESIGN,
   GLASS_LOOP,
@@ -760,4 +770,195 @@ test("the playing rosette turns and zooms on Figma's timeline as its moving SVG 
       expect(k.easingData.easingType).toBe(i ? "CUSTOM_CUBIC" : "LINEAR");
     }
   }
+});
+
+/* the soft and the grain, and the gradient the site lays under a soft effect */
+const underlayOf = (kind: Effect["kind"], angle: number, soft: number, bg: string | null = null) =>
+  effectUnderlay(palette, { kind, look: { shape: null, frost: 1, bg } }, angle, soft);
+const box = { width: 1200, height: 800 };
+/* each effect's paste in a box, finished or not */
+const pastes: Record<Effect["kind"], (finish?: FigmaFinish, speed?: number) => Node[]> = {
+  glass: (finish, speed = 0) =>
+    figmaGlassNodes({ ...view, palette, ...box, angle: 135, speed, finish }) as Node[],
+  blob: (finish, speed = 0) =>
+    figmaBlobNodes({
+      ...blobView,
+      ...box,
+      shape: blobShapeOf("kUMzO5Na871ukuyhHUJA"),
+      bg: "#f0e6d2",
+      speed,
+      finish
+    }) as Node[],
+  silk: (finish, speed = 0) => figmaSilkNodes({ ...silkView, speed, finish }) as Node[],
+  rosette: (finish, speed = 0) => figmaRosetteNodes({ ...rosetteView, speed, finish }) as Node[]
+};
+const angleOf = { glass: 135, blob: 90, silk: 135, rosette: 60 } as const;
+/* a layer's children in their order */
+const kidsOf = (nodes: Node[], parent: Node) =>
+  childrenOf(nodes, parent).sort((a, b) =>
+    a.parentIndex.position < b.parentIndex.position ? -1 : 1
+  );
+/* a layer's subtree as its names, types and paints, the finish's groups' own places left out */
+const shapeOf = (nodes: Node[], parent: Node): unknown[] =>
+  kidsOf(nodes, parent).map(n => [n.name, n.type, n.fillPaints, n.effects, shapeOf(nodes, n)]);
+
+test("Figma's Noise as the grain: black and white specks a design unit each, at the alpha that matches the tile", () => {
+  for (const grain of [1, 20, 50, 100]) {
+    const noise = figmaNoise(grain);
+    expect(noise).toMatchObject({
+      type: "NOISE",
+      noiseType: "DUOTONE",
+      noiseSize: { x: 1, y: 1 },
+      density: FIGMA_FINISH.density
+    });
+    expect(noise.color).toMatchObject({ r: 0, g: 0, b: 0 });
+    expect(noise.secondaryColor).toMatchObject({ r: 1, g: 1, b: 1 });
+    expect(noise.color.a).toBeCloseTo((FIGMA_FINISH.alpha * grain) / 100, 3);
+    expect(noise.secondaryColor.a).toBe(noise.color.a);
+  }
+});
+
+test("a linear gradient runs along CSS's line: its start and end at the corners the angle points from and to", () => {
+  /* the box's own point (0 to 1 each way) to the gradient's place along its line */
+  const along = (t: ReturnType<typeof figmaLinear>["transform"], x: number, y: number) =>
+    t.m00 * x + t.m01 * y + t.m02;
+  for (const [angle, from, to] of [
+    [90, [0, 0.5], [1, 0.5]],
+    [0, [0.5, 1], [0.5, 0]],
+    [180, [0.5, 0], [0.5, 1]],
+    [45, [0, 1], [1, 0]],
+    [135, [0, 0], [1, 1]],
+    [300, [1, 0.75], [0, 0.25]]
+  ] as const) {
+    const { transform } = figmaLinear(["#000000", "#ffffff"], angle, 1200, 800);
+    if (angle === 300) {
+      /* off the corners, CSS's line runs through the middle: the middle is halfway along it */
+      expect(along(transform, 0.5, 0.5)).toBeCloseTo(0.5, 9);
+      continue;
+    }
+    expect(along(transform, from[0], from[1])).toBeCloseTo(0, 9);
+    expect(along(transform, to[0], to[1])).toBeCloseTo(1, 9);
+  }
+  const stops = figmaLinear(["#ff0000", "#00ff00", "#0000ff"], 90, 10, 10, [0, 0.2, 1]).stops;
+  expect(stops.map(s => s.position)).toEqual([0, 0.2, 1]);
+  expect(stops[1].color).toMatchObject({ r: 0, g: 1, b: 0, a: 1 });
+});
+
+test("every effect's soft and grain wrap its drawing: the grain's noise over a masked group, the gradient under, the drawing blurred, itself masked to the box", () => {
+  for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
+    const nodes = pastes[kind]({ soft: 50, grain: 50 });
+    const plain = pastes[kind]();
+    const [top] = nodes.filter(n => n.name === "Navy and teal");
+    const size = { x: top.size.x, y: top.size.y };
+    const [grain] = kidsOf(nodes, top);
+    expect(grain).toMatchObject({ type: "FRAME", resizeToFit: true, name: "grain", size });
+    expect(grain.effects).toEqual([figmaNoise(50)]);
+    const [mask, gradient, soft] = kidsOf(nodes, grain);
+    expect(mask).toMatchObject({ type: "RECTANGLE", mask: true, maskType: "ALPHA", size });
+    /* the palette's gradient at the effect's angle (the blob's left to right), its stops blurred by the soft */
+    expect(gradient).toMatchObject({ type: "RECTANGLE", name: "gradient", size });
+    const underlay = underlayOf(kind, angleOf[kind], 50, kind === "blob" ? "#f0e6d2" : null)!;
+    expect(gradient.fillPaints[0]).toEqual(
+      figmaLinear(
+        underlay.stops.map(s => s.hex),
+        underlay.angle,
+        size.x,
+        size.y,
+        underlay.at
+      )
+    );
+    expect(underlay.angle).toBe(kind === "blob" ? 90 : angleOf[kind]);
+    /* the blur: Figma's radius 2.351 times the site's sigma */
+    expect(soft).toMatchObject({ type: "FRAME", resizeToFit: true, name: "soft", size });
+    expect(soft.effects[0]).toMatchObject({ type: "FOREGROUND_BLUR" });
+    expect(soft.effects[0].radius).toBeCloseTo(
+      FIGMA_FINISH.blur * effectBlurSigma(50, { width: size.x, height: size.y }),
+      2
+    );
+    const [picture] = kidsOf(nodes, soft);
+    const [clip, ...drawing] = kidsOf(nodes, picture);
+    expect(clip).toMatchObject({ type: "RECTANGLE", mask: true, size });
+    /* the drawing itself unchanged, the blob's ground a layer under it in the frame's place */
+    const own = drawing.filter(n => n.name !== "ground" || kind === "rosette");
+    expect(own.map(n => shapeOf(nodes, n))).toEqual(
+      kidsOf(plain, plain[2]).map(n => shapeOf(plain, n))
+    );
+    if (kind === "blob") {
+      expect(drawing[0]).toMatchObject({ type: "RECTANGLE", name: "ground", size });
+      expect(drawing[0].fillPaints[0].color.r).toBeCloseTo(0xf0 / 255, 5);
+      expect(top.fillPaints).toEqual([]);
+      expect(plain[2].fillPaints[0].color.r).toBeCloseTo(0xf0 / 255, 5);
+    }
+    parentsFirst(nodes);
+  }
+});
+
+test("a grain alone lays the noise over the drawing, a soft alone blurs it with no noise, and neither leaves the paste as it was", () => {
+  for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
+    const grained = pastes[kind]({ grain: 20 });
+    const top = grained[2];
+    const [grain] = kidsOf(grained, top);
+    expect(grain.name).toBe("grain");
+    expect(grain.effects).toEqual([figmaNoise(20)]);
+    expect(grained.some(n => n.name === "soft" || n.name === "gradient")).toBe(false);
+    const softened = pastes[kind]({ soft: 30 });
+    const [outer] = kidsOf(softened, softened[2]);
+    expect(outer.name).toBe("finish");
+    expect(outer.effects).toBeUndefined();
+    expect(
+      softened.some(n =>
+        n.effects?.some((e: Node) => e.type === "NOISE" && e.noiseType === "DUOTONE")
+      )
+    ).toBe(false);
+    expect(JSON.stringify(pastes[kind]({ soft: 0, grain: 0 }))).toBe(
+      JSON.stringify(pastes[kind]())
+    );
+  }
+  /* a blob with no ground has no gradient under its blur: its edges go clear */
+  const clear = figmaBlobNodes({ ...blobView, finish: { soft: 40, grain: 10 } }) as Node[];
+  expect(clear.some(n => n.name === "gradient" || n.name === "ground")).toBe(false);
+  expect(clear.some(n => n.name === "soft")).toBe(true);
+});
+
+test("a soft glass given no palette blurs over nothing: its edges go clear", () => {
+  const nodes = figmaGlassNodes({ ...view, finish: { soft: 50 } }) as Node[];
+  expect(nodes.some(n => n.name === "soft")).toBe(true);
+  expect(nodes.some(n => n.name === "gradient")).toBe(false);
+});
+
+test("a moving paste keeps its soft and grain still: the finish's groups take no track, the moving layers move inside them", () => {
+  for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
+    const nodes = pastes[kind]({ soft: 60, grain: 40 }, 1);
+    const byId = new Map(nodes.map(n => [n.guid.localID, n]));
+    const finishGroups = nodes.filter(n =>
+      ["grain", "soft", "picture", "gradient", "mask"].includes(n.name)
+    );
+    for (const g of finishGroups) expect(g.parameterConsumptionMap).toBeUndefined();
+    const moving = nodes.filter(n => n.parameterConsumptionMap);
+    expect(moving.length).toBeGreaterThan(0);
+    /* every moving layer stands inside the blurred picture */
+    for (const m of moving) {
+      let up = byId.get(m.parentIndex.guid.localID);
+      while (up && up.name !== "picture") up = byId.get(up.parentIndex.guid.localID);
+      expect(up?.name).toBe("picture");
+    }
+    expect(nodes[2].timelineDuration).toBeGreaterThan(0);
+  }
+});
+
+test("a finished paste writes and reads back whole, its noise with both colors", () => {
+  const html = figmaSilkHtml({ ...silkView, finish: { soft: 50, grain: 50 } }, 11);
+  const nodes = read(html).message.nodeChanges as FigmaNode[] as Node[];
+  const grain = nodes.find(n => n.name === "grain")!;
+  expect(grain.effects[0]).toMatchObject({
+    type: "NOISE",
+    noiseType: "DUOTONE",
+    density: 0.5,
+    noiseSize: { x: 1, y: 1 },
+    secondaryColor: { r: 1, g: 1, b: 1 }
+  });
+  expect(grain.effects[0].color.a).toBeCloseTo(0.375, 6);
+  const gradient = nodes.find(n => n.name === "gradient")!;
+  expect(gradient.fillPaints[0].type).toBe("GRADIENT_LINEAR");
+  expect(nodes.find(n => n.name === "soft")!.effects[0].type).toBe("FOREGROUND_BLUR");
 });

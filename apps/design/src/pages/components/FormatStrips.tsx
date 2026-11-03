@@ -43,7 +43,7 @@ export function FormatStrips() {
             />
           </Cell>
           <Cell
-            caption="the editor's strip and a list card's while an effect plays · Copy adds HTML, the two tags that play it behind a page, and Figma, its own layers moving on Figma's timeline; Copy link adds its script"
+            caption="the editor's strip and a list card's while an effect plays · Copy adds HTML, the two tags that play it behind a page, and Figma, its own layers moving on Figma's timeline, its soft a layer blur over the palette's gradient and its grain Figma's Noise; Copy link adds its script"
             art={ART}
           >
             <FormatStrip
