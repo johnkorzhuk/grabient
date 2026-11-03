@@ -46,10 +46,11 @@ export interface PaletteRow {
   angle: number;
   likes_count?: number | null;
   created_at: number;
-  /** a like's whole look, where it keeps one (Saved's rows) */
+  /** the whole look a save kept: a like's on Saved's rows, the look the palette was published in on the gallery's
+      (migration 0064) */
   look?: string | null;
 }
-export const ROW = "seed, style, steps, angle, likes_count, created_at";
+export const ROW = "seed, style, steps, angle, likes_count, created_at, look";
 
 /** A row as a list shows it, or null for a seed the codec would write otherwise: only canonical seeds enter lists. Its
     steps are never fewer than its keyframes, and a look it keeps is read again beside its view (keptLook). */

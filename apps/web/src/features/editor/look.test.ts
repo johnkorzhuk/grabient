@@ -38,4 +38,14 @@ test("a save keeps a look written canonically, beside its view, and only where i
   const glass = readLook(SEED, "style=glass&speed=0&shape=3")!.effect;
   expect(savedLook(SEED, view, glass)).toBe("style=glass&angle=30&speed=0&shape=3");
   expect(savedLook(SEED, view, null)).toBeUndefined();
+  /* the soft and the grain the view is drawn with go along, beside an effect and on a gradient alone, and the server
+     keeps them as sent */
+  const finished = { ...view, soft: 30, grain: 20 };
+  expect(savedLook(SEED, finished, glass)).toBe(
+    "style=glass&angle=30&soft=30&grain=20&speed=0&shape=3"
+  );
+  expect(keptLook(SEED, savedLook(SEED, finished, glass), view)).toBe(
+    "style=glass&angle=30&soft=30&grain=20&speed=0&shape=3"
+  );
+  expect(savedLook(SEED, { ...view, grain: 40 }, null)).toMatch(/grain=40/);
 });

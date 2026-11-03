@@ -127,9 +127,9 @@ export async function replacePalette(
     statements.push(
       [
         `INSERT INTO k_palettes (seed, style, steps, angle, legacy_likes_count, likes_count, created_at, hot, rising,
-           rising_3m, rising_1y)
+           rising_3m, rising_1y, look)
          SELECT ?, style, MAX(steps, ?), angle, legacy_likes_count, likes_count, created_at, hot, rising, rising_3m,
-           rising_1y FROM k_palettes WHERE seed = ? AND ${ADMIN} ON CONFLICT(seed) DO NOTHING`,
+           rising_1y, look FROM k_palettes WHERE seed = ? AND ${ADMIN} ON CONFLICT(seed) DO NOTHING`,
         to,
         floor,
         from,

@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/solid-query";
 import type { FramedData } from "../../app/shell.ts";
 import { paletteAddress } from "../../lib/page-meta.ts";
-import { effectsReady } from "../list/appearance.ts";
+import { effectsReady, keptReady } from "../list/appearance.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
 import { homePaint, paintOf } from "./drawing.ts";
 import {
@@ -57,6 +57,9 @@ export async function loadPalettes(
   ]);
   const page = keptPage(client, source, place.params.page);
   if (failed(data as object) || !page) return { edge: 0, status: (data as Failed).status };
+  /* and the blur's code where a palette's own look, the one a save published it in, is soft, so the server draws it as
+     the card will */
+  await keptReady(page.items.map(item => item.look));
   const paint = paintOf(page.items, place.params);
   if (place.params.page > Math.max(1, page.totalPages)) {
     return { edge: 0, robots: "noindex,follow", status: 404 };
@@ -83,6 +86,7 @@ export async function loadHome(client: QueryClient, params: ListParams): Promise
   const head = params.words ? await reads[0]() : reads[0]();
   const [answered, collections] = await Promise.all([head, reads[1](), effectsReady(params)]);
   if (failed(answered) || failed(collections)) return { edge: 0 };
+  await keptReady(answered.palettes.map(item => item.look));
   const paint = homePaint(answered.palettes, collections.items, params);
   if (answered.limited || answered.tier === "unavailable") {
     return { edge: 0, robots: "noindex,follow", status: answered.limited ? 429 : 503, paint };

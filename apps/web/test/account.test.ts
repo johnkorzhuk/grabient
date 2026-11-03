@@ -12,6 +12,7 @@ import { handleFlags } from "../src/server/account/flags.ts";
 import { checkUsername, saveUsername, uploadAvatar } from "../src/server/account/profile.ts";
 import { handleSync } from "../src/server/account/sync.ts";
 import { savedPage } from "../src/server/gallery/likes.ts";
+import { galleryItems } from "../src/server/gallery/list.ts";
 import { connect } from "./connect.ts";
 import {
   bodyOf,
@@ -608,6 +609,31 @@ describe("a like's look", () => {
       mutations: [{ id: 7, op: { ...like(glass), at: was!.at, look: was!.look } }]
     });
     expect((await stored())[glass]).toBe(kept[glass]);
+  });
+
+  it("is the look a palette a save publishes keeps in the gallery, which every list drawing palettes as saved reads", async () => {
+    const env = testEnv();
+    const ada = await makeAccount(env);
+    const [silk, grained, plain] = [palette(), palette(), palette()];
+    const looked = (seed: string, look: string): SyncOp => ({ ...like(seed), look });
+    await sync(env, ada.cookie, {
+      client: client(),
+      cursor: null,
+      mutations: [
+        { id: 1, op: looked(silk, "style=silk&angle=40&soft=30&grain=20&shape=7") },
+        { id: 2, op: looked(grained, "grain=40") },
+        { id: 3, op: like(plain) }
+      ]
+    });
+    /* the save published each, in its look: the silk's with its soft and grain, the gradient's grain, none for a plain one */
+    const items = await galleryItems(env.DB, [silk, grained, plain]);
+    expect(
+      Object.fromEntries([...items.values()].map(item => [item.kseed, item.look ?? undefined]))
+    ).toEqual({
+      [silk]: "style=silk&soft=30&grain=20&shape=7",
+      [grained]: "grain=40",
+      [plain]: undefined
+    });
   });
 });
 

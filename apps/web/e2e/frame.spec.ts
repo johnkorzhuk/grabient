@@ -403,6 +403,51 @@ test("a palette liked from a card keeps the look the card plays, and one liked f
   expect(reports).toEqual([]);
 });
 
+test("the editor's heart keeps the look on screen with its effect, soft and grain", async ({
+  page
+}) => {
+  const reports = reported(page);
+  const reader = {
+    id: "e2e-reader",
+    name: "Reader",
+    email: "reader@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "reader",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: reader.id }, user: reader } })
+  );
+  const likes: { seed?: string; liked?: boolean; look?: string }[] = [];
+  await page.route("**/api/me/sync", route => {
+    const { mutations = [] } = (route.request().postDataJSON() ?? {}) as {
+      mutations?: {
+        id: number;
+        op: { op: string; seed?: string; liked?: boolean; look?: string };
+      }[];
+    };
+    for (const { op } of mutations) if (op.op === "like") likes.push(op);
+    return route.fulfill({
+      json: {
+        ...{ cursor: 1, reset: true, likes: [], unliked: [], collections: [], removed: [] },
+        lastMutation: mutations.at(-1)?.id ?? 0,
+        results: mutations.map(({ id }) => ({ id, ok: true, likesCount: 1 })),
+        ...{ admin: false, account: reader }
+      }
+    });
+  });
+  const seed = "kS7CQ31Do6asvY-";
+  await open(page, `/${seed}?style=papercut&angle=40&soft=30&grain=20&shape=7`);
+  await page.locator("main").getByRole("button", { name: /^Like/ }).first().click();
+  await expect.poll(() => likes.find(like => like.seed === seed)).toBeTruthy();
+  const sent = likes.find(like => like.seed === seed)!;
+  expect(sent.liked).toBe(true);
+  for (const part of ["style=papercut", "soft=30", "grain=20", "shape=7"])
+    expect(sent.look).toContain(part);
+  expect(reports).toEqual([]);
+});
+
 test("a collection opened from a list by its title, and a palette from the collection, each land styled and Back returns to each", async ({
   page
 }) => {

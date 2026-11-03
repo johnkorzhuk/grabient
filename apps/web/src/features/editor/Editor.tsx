@@ -320,8 +320,10 @@ export default function Editor(props: { data: PaletteData }) {
     count: () => likeCount(e.seed(), e.seed() === first.page.seed ? (first.facts?.likes ?? 0) : 0),
     toggle() {
       const { seed, ...view } = drawn();
-      toggleLike(seed, !liked(seed), { view, look: savedLook(seed, view, e.effect()) }).catch(
-        (reason: unknown) => toast(shownError(reason, msg("Couldn't save the palette.")))
+      /* the look keeps the soft and the grain beside the effect, so Saved draws the palette as it was saved */
+      const look = savedLook(seed, { ...view, soft: e.soft(), grain: e.grain() }, e.effect());
+      toggleLike(seed, !liked(seed), { view, look }).catch((reason: unknown) =>
+        toast(shownError(reason, msg("Couldn't save the palette.")))
       );
     }
   };
@@ -579,10 +581,10 @@ function Tools(props: {
   const e = props.editor;
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   const chosen = () => selected(drawn());
-  /* the palette as a save keeps it: with the look it plays where that says more than its view */
+  /* the palette as a save keeps it: with the look it plays where that says more than its view, its soft and grain in it */
   const saved = () => {
     const at = drawn();
-    const look = savedLook(at.seed, at, e.effect());
+    const look = savedLook(at.seed, { ...at, soft: e.soft(), grain: e.grain() }, e.effect());
     return look ? { ...at, look } : at;
   };
   return (

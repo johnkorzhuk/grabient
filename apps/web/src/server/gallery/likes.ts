@@ -186,6 +186,9 @@ async function save(
   const shown = input.shown ?? { style: input.style, steps, angle: input.angle };
   /* the look as the palette's address writes it, beside the view the like keeps, where it says more than that view */
   const look = keptLook(seed, input.look, { style: input.style, steps, angle: input.angle });
+  /* and beside the gallery's view, which a palette this save publishes keeps (migration 0064), so a list drawing every
+     palette as saved plays it as it was saved */
+  const published = keptLook(seed, input.look, shown);
   /* a like saved again keeps its time, its view and its look; a title sent with it renames it, so the sync's log hears a
      rename and no other repeated save. An undo's title comes back only with the like it makes again */
   const onHeld =
@@ -196,8 +199,8 @@ async function save(
     ...(publish
       ? ([
           [
-            `INSERT INTO k_palettes (seed, style, steps, angle, created_at, hot)
-             SELECT ?, ?, ?, ?, ${FIRST_HELD}, ?
+            `INSERT INTO k_palettes (seed, style, steps, angle, created_at, hot, look)
+             SELECT ?, ?, ?, ?, ${FIRST_HELD}, ?, ?
              WHERE NOT EXISTS (SELECT 1 FROM k_admin_actions WHERE seed = ? AND action = 'delete')
              ON CONFLICT (seed) DO NOTHING`,
             seed,
@@ -208,6 +211,7 @@ async function save(
             seed,
             now,
             NEW_WEIGHT,
+            published,
             seed
           ],
           /* it counts the likes saved while it stayed out of the gallery */
