@@ -574,7 +574,13 @@ export function finishPixels(
 }
 
 /* ids the finish adds to an SVG, named so none meets one an effect's own drawing writes */
-const ID = { box: "gfx-box", soft: "gfx-soft", under: "gfx-under", grain: "gfx-grain" } as const;
+const ID = {
+  box: "gfx-box",
+  soft: "gfx-soft",
+  under: "gfx-under",
+  grain: "gfx-grain",
+  drawing: "gfx-drawing"
+} as const;
 const fmt = (v: number) => Number(v.toFixed(3)).toString();
 
 /* the root element of an SVG document and what follows it */
@@ -587,15 +593,22 @@ function rootOf(svg: string): { open: string; inner: string } | null {
 
 /** An effect's SVG document finished as the site paints it, in a box of its pixels: its drawing, whole and untouched as
     an SVG inside the finished one, clipped to the box and blurred by the soft over the gradient under it (`underlay`,
-    none for a clear blob), clipped again, then the grain's tiles (`grain`, the tile's data URI at the grain's strength) over all.
-    Where its root names the box alone (`0 0 width height`), its drawing stands in a group instead, which a design tool
-    reads as plainly. The blur is in sRGB, as a CSS blur is; its sigma is `effectBlurSigma`. Credit comments stay at
-    the top. */
+    none for a clear blob), clipped again, then the grain's tiles (`grain`, the tile's data URI at the grain's
+    strength) over all. Where its root names the box alone (`0 0 width height`), its drawing stands in a group instead,
+    which a design tool reads as plainly. The blur is in sRGB, as a CSS blur is; its sigma is `effectBlurSigma`.
+    Credit comments stay at the top.
+
+    `isolated` blurs a rect painted by a pattern that holds the drawing, its tile the box, rather than the drawing
+    itself: Safari composites the layers a filter reads in linear light, whatever color-interpolation-filters says
+    (half a red over a blue inside a blur paints 188, 0, 187 there, 128, 0, 127 in Chromium and Firefox and anywhere
+    outside a filter), and a pattern's tile it composites as anywhere else. A drawing whose look is translucent layers
+    over one another, as the silk's light and shade over its dye, needs it; it plays inside the pattern as it would
+    outside (SMIL in all three engines). */
 export function finishSvg(
   svg: string,
   size: Size,
   finish: Finish,
-  over: { underlay?: Underlay | null; grain?: string | null } = {}
+  over: { underlay?: Underlay | null; grain?: string | null; isolated?: boolean } = {}
 ): string {
   if (!hasFinish(finish)) return svg;
   const root = rootOf(svg);
@@ -624,6 +637,7 @@ export function finishSvg(
     .replace(/^<svg\b/, `<svg x="0" y="0" width="${w}" height="${h}"`);
   const drawing = plain ? `<g>${inner}</g>` : `${nested}${inner}</svg>`;
   const underlay = sigma && over.underlay ? over.underlay : null;
+  const isolated = !!sigma && !!over.isolated;
   const defs = [
     `<clipPath id="${ID.box}"><rect width="${w}" height="${h}"/></clipPath>`,
     underlay
@@ -636,13 +650,19 @@ export function finishSvg(
       : "",
     sigma
       ? `<filter id="${ID.soft}" filterUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${fmt(sigma)}"/></filter>`
+      : "",
+    isolated
+      ? `<pattern id="${ID.drawing}" patternUnits="userSpaceOnUse" width="${w}" height="${h}">${drawing}</pattern>`
       : ""
   ].join("");
   /* the drawing clipped to the box before it is blurred as well as after: Chromium blurs what a drawing paints past
      the filter's region into its edges, where Firefox and a CSS blur read clear, so a rosette's petals past the box
-     kept its edges from thinning in Chromium alone */
+     kept its edges from thinning in Chromium alone. A pattern's tile is the box already. */
+  const blurred = isolated
+    ? `<rect width="${w}" height="${h}" fill="url(#${ID.drawing})"/>`
+    : `<g clip-path="url(#${ID.box})">${drawing}</g>`;
   const picture = sigma
-    ? `<g clip-path="url(#${ID.box})">${underlay ? `<rect width="${w}" height="${h}" fill="url(#${ID.under})"/>` : ""}<g filter="url(#${ID.soft})"><g clip-path="url(#${ID.box})">${drawing}</g></g></g>`
+    ? `<g clip-path="url(#${ID.box})">${underlay ? `<rect width="${w}" height="${h}" fill="url(#${ID.under})"/>` : ""}<g filter="url(#${ID.soft})">${blurred}</g></g>`
     : drawing;
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${credit}<defs>${defs}</defs>${picture}${grain ? grainTilesSvg(grain, size) : ""}</svg>`;
 }

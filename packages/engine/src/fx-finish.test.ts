@@ -252,9 +252,29 @@ test("an effect's SVG finished: its drawing whole, blurred over its gradient and
   expect(svg).toContain('color-interpolation-filters="sRGB"');
   expect(svg).toContain('<rect width="300" height="200" fill="url(#gfx-under)"/>');
   expect(svg.match(/<use xlink:href="#gfx-grain"/g)).toHaveLength(3 * 2);
-  /* the silk's root names the box alone, so its drawing stands in a group, read plainly by a design tool; it is
-     clipped to the box before its blur, so no browser blurs what it paints past the box into its edges */
-  expect(svg).toContain('<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><g>');
+  /* the silk's light and shade are translucent layers over its dye, which Safari composites in linear light inside a
+     filter: its drawing (a group, its root naming the box alone) is a pattern whose tile is the box, and the blur
+     reads one rect painted by it */
+  expect(svg).toContain(
+    '<pattern id="gfx-drawing" patternUnits="userSpaceOnUse" width="300" height="200"><g><defs>'
+  );
+  expect(svg).toContain(
+    '<g filter="url(#gfx-soft)"><rect width="300" height="200" fill="url(#gfx-drawing)"/></g>'
+  );
+  /* the rosette's petals are opaque, so its drawing is blurred itself, which Figma's importer takes as a layer blur
+     over its petals; it is clipped to the box before its blur, so no browser blurs what it paints past the box into
+     its edges */
+  const rosette = effectSvg(
+    P,
+    "kUMzO5Na871ukuyhHUJA",
+    { ...silk, kind: "rosette" },
+    40,
+    size,
+    "https://grabient.com",
+    { soft: 50 }
+  );
+  expect(rosette).toContain('<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><g>');
+  expect(rosette).not.toContain("<pattern");
   /* the blob's root scales a design square to cover the box, so it stands inside as an SVG of its own */
   const blobSvg = effectSvg(
     P,
@@ -269,9 +289,15 @@ test("an effect's SVG finished: its drawing whole, blurred over its gradient and
     /<g filter="url\(#gfx-soft\)"><g clip-path="url\(#gfx-box\)"><svg x="0" y="0" width="300" height="200"/
   );
   expect(blobSvg).not.toContain("gfx-grain");
-  /* grain alone needs no gradient or filter */
-  const grained = finishSvg(plain, size, { grain: 30 }, { grain: "data:image/png;base64,AAAA" });
+  /* grain alone needs no gradient or filter, nor a pattern to blur through */
+  const grained = finishSvg(
+    plain,
+    size,
+    { grain: 30 },
+    { grain: "data:image/png;base64,AAAA", isolated: true }
+  );
   expect(grained).not.toContain("feGaussianBlur");
+  expect(grained).not.toContain("<pattern");
   expect(grained).toContain("gfx-grain");
   /* a grain with no tile to lay is no change */
   expect(finishSvg(plain, size, { grain: 30 })).toBe(plain);

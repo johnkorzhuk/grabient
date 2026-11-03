@@ -100,7 +100,10 @@ export function effectSvg(
   return kept.soft || kept.grain
     ? finishSvg(drawn, box, kept, {
         underlay: effectUnderlay(P, effect, angle, kept.soft),
-        grain: grain ?? null
+        grain: grain ?? null,
+        /* the silk's light and shade are translucent layers over its dye, which Safari composites in linear light
+           inside a filter, 9 levels off the site's picture: blurred through a pattern, they composite as anywhere */
+        isolated: effect.kind === "silk"
       })
     : drawn;
 }
