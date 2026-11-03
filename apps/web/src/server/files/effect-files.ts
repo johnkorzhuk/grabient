@@ -1,14 +1,14 @@
-/* A palette's effect (fluted glass, blob, silk, rosette) as files, which load with the first one asked for. The page
-   background is two files whose address is the whole setting:
+/* A palette's effect (fluted glass, blob, silk, rosette, papercut) as files, which load with the first one asked for.
+   The page background is two files whose address is the whole setting:
      <link rel="stylesheet" href="https://grabient.com/{seed}.css?style=glass">
      <script src="https://grabient.com/{seed}.js?style=glass" async></script>
    The stylesheet paints the effect's first frame behind the page, as its palette's page paints it (glass-still.ts,
    blob-still.ts, fx-still.ts), its soft and grain as the page's stage lays them, and being a stylesheet it is in the
    page's first paint; the script (src/embed) plays the effect from that very frame. The still is a layer fixed behind
-   the page, where the script's canvas comes: the glass's, the silk's and the rosette's canvases are opaque and fade in
-   over it, and the blob's is clear around the blob, so its still goes in the frame the canvas comes (the script marks
-   the root). Both and the moving SVG are the engine's writing (engine/effect-code.ts), which the editor's copies are
-   too. */
+   the page, where the script's canvas comes: the glass's, the silk's, the rosette's and the papercut's canvases are
+   opaque and fade in over it (the papercut's bringing the soft shadows its still steps), and the blob's is clear
+   around the blob, so its still goes in the frame the canvas comes (the script marks the root). Both and the moving
+   SVG are the engine's writing (engine/effect-code.ts), which the editor's copies are too. */
 import { type Effect, type EffectFinish, effectAddressParts } from "@grabient/engine/effect.ts";
 import { effectSize, effectStylesheet, effectSvg } from "@grabient/engine/effect-code.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";

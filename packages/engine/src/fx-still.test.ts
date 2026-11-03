@@ -74,14 +74,14 @@ test("the silk's and the rosette's files: a moving SVG, a stylesheet, their colo
   }
 });
 
-test("the papercut's files: its stepped still covers a page, its SVG is the still blurred at any speed, no script yet", () => {
+test("the papercut's files: its stepped still covers a page, its SVG is the still blurred at any speed, the script that plays it", () => {
   const fx: Effect = {
     kind: "papercut",
     speed: 1,
     fps: 60,
     look: { shape: 7, frost: 1, bg: null }
   };
-  expect(hasEmbedScript("papercut")).toBe(false);
+  expect(hasEmbedScript("papercut")).toBe(true);
   const still = fxStillSvg("papercut", P, { angle: 90, shape: null });
   expect(still).toContain(`width="${FX_STILL_SIDE}" height="${FX_STILL_SIDE}"`);
   expect(still).not.toContain("<filter");
@@ -96,8 +96,12 @@ test("the papercut's files: its stepped still covers a page, its SVG is the stil
   expect(css).toMatch(/50% 50% \/ cover no-repeat/);
   expect(effectColors(P, fx)).toHaveLength(12);
   expect(fxLoop("papercut", P, { angle: 90, shape: null })).toBe(180);
-  expect(effectLinks("https://grabient.com", SEED, fx, 120, "/og").js).toBeNull();
-  expect(effectEmbedHtml("https://grabient.com", SEED, fx, 120)).not.toContain("<script");
+  expect(effectLinks("https://grabient.com", SEED, fx, 120, "/og").js).toBe(
+    `https://grabient.com/${SEED}.js?style=papercut&angle=120&shape=7`
+  );
+  expect(effectEmbedHtml("https://grabient.com", SEED, fx, 120)).toContain(
+    `<script src="https://grabient.com/${SEED}.js?style=papercut&amp;angle=120&amp;shape=7" async></script>`
+  );
   const md = effectMarkdown(
     "https://grabient.com",
     SEED,
@@ -109,6 +113,12 @@ test("the papercut's files: its stepped still covers a page, its SVG is the stil
   } as never);
   expect(md.called).toBe("Navy and teal papercut");
   expect(md.drawn).toContain("papercut, its sheets climbing toward 120 degrees, shape 7");
+  expect(md.lead).toContain("Two tags play it behind any page.");
+  /* its stylesheet steps the shadows the script draws soft, held for a reader who asks for less motion */
+  expect(md.code).toContain(
+    "the stylesheet paints the first frame in the page's first paint, its shadows stepped, and the script plays it from there with WebGL, its shadows soft. Without WebGL the first frame stays, and for a reader who asks for less motion the script holds its own."
+  );
+  expect(md.files).toHaveProperty("script");
 });
 
 test("the papercut's SVG finished: its drawing whole in a group, blurred over its gradient, its own blurs and clip kept, the grain's tiles over it", () => {

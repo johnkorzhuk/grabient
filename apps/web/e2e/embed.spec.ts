@@ -4,8 +4,10 @@ import { expect, type Page, test } from "@playwright/test";
 /* A palette's effect behind another site's page (src/embed): the stylesheet of its address paints the first frame, the
    script plays the effect from there under a strict policy, a page plays one effect however many scripts it holds, a
    lost context brings the still back, and a reader who asks for less motion, like a blob held still, keeps the still.
-   A soft and grained address paints and plays finished, as the site's stage does. The tests' browser draws WebGL on
-   the CPU, where the players play nothing; here its renderer is said to be a GPU's, so they play. */
+   A soft and grained address paints and plays finished, as the site's stage does. The papercut's still steps the
+   shadows its canvas draws soft, so its canvas comes held at speed 0 and for a reader who asks for less motion too.
+   The tests' browser draws WebGL on the CPU, where the players play nothing; here its renderer is said to be a GPU's,
+   so they play. */
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 
@@ -45,9 +47,10 @@ test.beforeAll(async () => {
 });
 test.afterAll(() => new Promise<void>(resolve => server.close(() => resolve())));
 
-/** Another site's page with these tags in its head, under a strict policy where asked, its refusals counted. */
-async function site(page: Page, head: string, strict = false) {
-  const path = `/${test.info().testId}`;
+/** Another site's page with these tags in its head, under a strict policy where asked, its refusals counted; `name`
+    tells a test's second page from its first. */
+async function site(page: Page, head: string, strict = false, name = "") {
+  const path = `/${test.info().testId}${name}`;
   pages.set(path, { app: new URL(test.info().project.use.baseURL ?? "").origin, head, strict });
   await page.addInitScript(() => {
     const w = window as unknown as {
@@ -55,15 +58,19 @@ async function site(page: Page, head: string, strict = false) {
       gl?: WebGL2RenderingContext;
       contexts: Set<WebGL2RenderingContext>;
       painted?: string;
+      blurred?: string;
     };
     w.refused = [];
     w.contexts = new Set();
-    /* the first still the page paints behind itself, read before each frame from the first: the canvas may take its
-       place before a test looks */
+    /* the first still the page paints behind itself and its blur, read before each frame from the first: the canvas
+       may take its place before a test looks */
     const look = () => {
-      const image = getComputedStyle(document.documentElement, "::before").backgroundImage;
-      if (image !== "none") w.painted = image;
-      else requestAnimationFrame(look);
+      const before = getComputedStyle(document.documentElement, "::before");
+      if (before.backgroundImage === "none") requestAnimationFrame(look);
+      else {
+        w.painted = before.backgroundImage;
+        w.blurred = before.filter;
+      }
     };
     requestAnimationFrame(look);
     document.addEventListener("securitypolicyviolation", e => w.refused.push(e.effectiveDirective));
@@ -97,6 +104,9 @@ const layer = (page: Page) => page.locator("canvas").locator("..");
 /** The first still the page painted behind itself, "" while none has been. */
 const painted = (page: Page) =>
   page.evaluate(() => (window as unknown as { painted?: string }).painted ?? "");
+/** The blur of the first still the page painted behind itself. */
+const blurred = (page: Page) =>
+  page.evaluate(() => (window as unknown as { blurred?: string }).blurred ?? "");
 const tags = (query: string, still = true) =>
   `${still ? `<link rel="stylesheet" href="APP/${SEED}.css?${query}">` : ""}<script src="APP/${SEED}.js?${query.replaceAll("&", "&amp;")}" async></script>`;
 
@@ -262,4 +272,94 @@ test("without the stylesheet the rosette's script paints its finished still itse
   await page.waitForTimeout(2000);
   await expect(page.locator("canvas")).toHaveCount(0);
   expect(await contexts(page)).toBe(0);
+});
+
+test("a soft and grained papercut held at speed 0 paints its stepped still, then fades its own first frame in over it under a strict policy", async ({
+  page
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  await site(page, tags("style=papercut&angle=30&soft=40&grain=30&shape=7&speed=0"), true);
+  expect(await painted(page)).toContain("data:image/svg+xml");
+  expect(
+    await page.evaluate(() => getComputedStyle(document.documentElement, "::before").filter)
+  ).toMatch(/^blur\([\d.]+px\)$/);
+  /* its first frame's shadows are soft where the still steps them, so held still it takes a context, as the site's
+     stage does, and its canvas covers the still, blurred over the gradient and grained as the still was */
+  await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
+    timeout: 15_000
+  });
+  await expect(layer(page)).toHaveCSS("opacity", "1");
+  await expect(layer(page)).toHaveCSS("background-image", /^linear-gradient\(/);
+  await expect(page.locator("canvas")).toHaveCSS("filter", /^blur\(/);
+  await expect(layer(page).locator("div")).toHaveCSS("background-image", /data:image\/png;base64,/);
+  expect(await contexts(page)).toBe(1);
+  expect(await still(page)).toBe("none");
+  expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
+    []
+  );
+  expect(errors).toEqual([]);
+});
+
+test("without the stylesheet the papercut's script draws the stylesheet's stepped still itself, then its canvas covers it under a strict policy", async ({
+  page,
+  context
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  const query = "style=papercut&angle=30&soft=40&grain=30&shape=7";
+  /* what the stylesheet of the same address paints, on a page of its own */
+  const linked = await context.newPage();
+  await site(linked, `<link rel="stylesheet" href="APP/${SEED}.css?${query}">`, true, "-linked");
+  const sheet = await still(linked);
+  const blur = await linked.evaluate(
+    () => getComputedStyle(document.documentElement, "::before").filter
+  );
+  expect(sheet).toContain("data:image/svg+xml");
+  await linked.close();
+  /* the script alone draws the same still, a share at a time, and adopts it with the same blur */
+  await site(page, tags(query, false), true);
+  await expect.poll(() => painted(page), { timeout: 15_000 }).toContain("data:image/svg+xml");
+  expect((await painted(page)) === sheet, "the script's still is the stylesheet's").toBe(true);
+  expect(await blurred(page)).toBe(blur);
+  /* an adopted still may be on its way to the screen: the canvas takes its place at once */
+  await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
+    timeout: 15_000
+  });
+  await expect(layer(page)).toHaveCSS("opacity", "1");
+  await expect(page.locator("canvas")).toHaveCSS("filter", blur);
+  expect(await contexts(page)).toBe(1);
+  expect(await still(page)).toBe("none");
+  expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
+    []
+  );
+  expect(errors).toEqual([]);
+});
+
+test("for a reader who asks for less motion the papercut's script holds its own first frame over its stepped still, where the silk's still stays with no context", async ({
+  page,
+  context
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await site(page, tags("style=papercut&angle=30&shape=7"), true);
+  expect(await painted(page)).toContain("data:image/svg+xml");
+  /* its first frame's shadows are soft where the still steps them, as the site's stage shows them to that reader */
+  await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
+    timeout: 15_000
+  });
+  await expect(layer(page)).toHaveCSS("opacity", "1");
+  expect(await contexts(page)).toBe(1);
+  expect(await still(page)).toBe("none");
+  /* and holds it */
+  const held = await page.screenshot();
+  await page.waitForTimeout(1500);
+  expect((await page.screenshot()).equals(held)).toBe(true);
+  /* the silk's still is its first frame */
+  const silk = await context.newPage();
+  await silk.emulateMedia({ reducedMotion: "reduce" });
+  await site(silk, tags("style=silk&angle=40"), true, "-silk");
+  expect(await still(silk)).toContain("data:image/svg+xml");
+  await silk.waitForTimeout(2000);
+  await expect(silk.locator("canvas")).toHaveCount(0);
+  expect(await contexts(silk)).toBe(0);
 });

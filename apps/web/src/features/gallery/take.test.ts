@@ -40,13 +40,15 @@ test("a card's strip offers the formats the editor's strips offer, with an effec
       download: STRIP_FILES,
       link: STRIP_EFFECT_LINKS
     });
-  /* the vector effects, their links as effectLinkFormats lists them */
-  for (const effect of ["silk", "rosette", "papercut"] as const)
+  /* the silk, the rosette and the papercut, each with the script that plays it, on a card as in the editor */
+  for (const effect of ["silk", "rosette", "papercut"] as const) {
+    expect(effectLinkFormats(effect)).toEqual(STRIP_EFFECT_LINKS);
     expect(card(effect).chips()).toEqual({
       copy: STRIP_EFFECT_COPY,
       download: STRIP_FILES,
-      link: effectLinkFormats(effect)
+      link: STRIP_EFFECT_LINKS
     });
+  }
   /* every effect, the papercut too, has Copy for Figma */
   expect(STRIP_EFFECT_COPY).toContain("figma");
 });

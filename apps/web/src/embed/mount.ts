@@ -1,23 +1,30 @@
-/* What the effects' scripts share (glass.ts, blob.ts, silk.ts, rosette.ts): a palette's effect behind any page, set
-   by the script's own address, which is the whole setting:
+/* What the effects' scripts share (glass.ts, blob.ts, silk.ts, rosette.ts, papercut.ts): a palette's effect behind any
+   page, set by the script's own address, which is the whole setting:
      <link rel="stylesheet" href="https://grabient.com/{seed}.css?style=glass">
      <script src="https://grabient.com/{seed}.js?style=glass" async></script>
    The script is the same for every palette. It reads the palette, the effect and its soft and grain from its address
    and plays the effect on a canvas fixed behind the page, from the first frame the stylesheet of the same address
    painted in the page's first paint (server/files/effect-files.ts), or the same rules in the page's own <style> (the
    editor's Copy HTML); where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows
-   once its first frame, the still's own, is drawn: the glass, the silk and the rosette fading in over a still the page
-   painted, the blob (clear around itself) taking the still's place in one frame. The still goes once the canvas covers
-   it, so a resize never draws it again under the canvas, and comes back if the canvas loses its context. Where WebGL 2
-   is missing the still stays. No context is made for a reader who asks for less motion, nor for a blob, a silk or a
-   rosette held at speed 0, whose still is its whole picture at any size. The browser restoring a lost context plays the
-   effect again. A soft or grained address plays as the site's stage paints it and as the still was painted
-   (engine/effect-code.ts effectLayers): the canvas blurred by a share of the page's longer side over its palette's
-   gradient, the layer's own ground, and the grain's tile over both, so the layer, opaque but where a blob's ground
-   lets the page through, takes the still's place as one picture. It writes no markup and no style attribute, only
-   CSSOM, so a page with a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second
-   script, the same or another, leaves it be. */
-import { type Effect, type EffectKind, EMBED_PLAYING } from "@grabient/engine/effect.ts";
+   once its first frame, the still's own, is drawn: the glass, the silk, the rosette and the papercut fading in over a
+   still the page painted, the blob (clear around itself) taking the still's place in one frame. The papercut's still
+   steps its shadows (engine/effect.ts steppedStill), so its canvas brings them soft, as the site's stage does, and
+   comes for a reader who asks for less motion and held at speed 0 too, holding its first frame. The still goes once
+   the canvas covers it, so a resize never draws it again under the canvas, and comes back if the canvas loses its
+   context. Where WebGL 2 is missing the still stays. Otherwise no context is made for a reader who asks for less
+   motion, nor for a blob, a silk or a rosette held at speed 0, whose still is its whole picture at any size. The
+   browser restoring a lost context plays the effect again. A soft or grained address plays as the site's stage paints
+   it and as the still was painted (engine/effect-code.ts effectLayers): the canvas blurred by a share of the page's
+   longer side over its palette's gradient, the layer's own ground, and the grain's tile over both, so the layer,
+   opaque but where a blob's ground lets the page through, takes the still's place as one picture. It writes no markup
+   and no style attribute, only CSSOM, so a page with a strict Content Security Policy and Trusted Types runs it. A
+   page plays one effect: a second script, the same or another, leaves it be. */
+import {
+  EFFECT_KINDS,
+  type Effect,
+  type EffectKind,
+  EMBED_PLAYING
+} from "@grabient/engine/effect.ts";
 import { effectLayers } from "@grabient/engine/effect-code.ts";
 import { type EffectLayers, effectLayerCss } from "@grabient/engine/effect-embed.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
@@ -41,8 +48,8 @@ export interface EmbedEffect {
   /** the blob's ground written in other words than hex read to the hex the server answers it at (address.ts) */
   ground?: GroundReader;
   /** the effect's first frame as a background, as the stylesheet paints it, at the address's angle, which the blob
-      has none of */
-  still(P: Palette, effect: Effect, angle: number): string;
+      has none of: drawn at once, or a share at a time where that takes long (the papercut's) */
+  still(P: Palette, effect: Effect, angle: number): string | Promise<string>;
   /** the player on the canvas, telling `drawn` once its first frame is and holding its first frame while `reduced`
       says so, read again on motion(); null where WebGL 2 is missing */
   play(
@@ -127,7 +134,8 @@ export function mount(embed: EmbedEffect): void {
     fade = false;
     if (!("adoptedStyleSheets" in document)) return;
     const sheet = new CSSStyleSheet();
-    sheet.replaceSync(effectLayerCss(embed.still(P, effect, angle), await layers));
+    const [paint, finished] = await Promise.all([embed.still(P, effect, angle), layers]);
+    sheet.replaceSync(effectLayerCss(paint, finished));
     document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
   });
   const body = new Promise<void>(resolve =>
@@ -217,14 +225,18 @@ export function mount(embed: EmbedEffect): void {
     if (!player) return layer.remove();
     motion.addEventListener("change", () => player?.motion(), { signal: ended.signal });
   };
+  /* the papercut's still stands in for its first frame, whose shadows are soft where the still steps them: its player
+     comes held as well, holding that frame, as the site's stage does (FxLayer.tsx) */
+  const stepped = EFFECT_KINDS[embed.kind].steppedStill;
   /* a blob, a silk or a rosette held at speed 0 is its still exactly, a vector drawing at any size, so it takes no
      context; the glass held keeps its canvas, which draws the frame at the screen's pixels where the still Copy HTML
-     writes inside a page is a 1000-pixel picture */
-  if (effect.speed === 0 && embed.kind !== "glass") return;
-  /* for a reader who asks for less motion the still is the first frame held: no context until motion is welcome */
+     writes inside a page is a 1000-pixel picture, and the papercut its own */
+  if (effect.speed === 0 && embed.kind !== "glass" && !stepped) return;
+  /* for a reader who asks for less motion the still is the first frame held: no context until motion is welcome, but
+     for the papercut, whose player holds its own */
   void Promise.all([layers, still, body, firstPaint()]).then(([finished]) => {
     const start = () => {
-      if (motion.matches) motion.addEventListener("change", start, { once: true });
+      if (motion.matches && !stepped) motion.addEventListener("change", start, { once: true });
       else play(finished);
     };
     start();

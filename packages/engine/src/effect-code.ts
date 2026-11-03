@@ -273,7 +273,7 @@ export const effectMarkdown =
             : kind === "rosette"
               ? `${name} played as a rosette: petals on a golden spiral, each one color of the palette ${colors} by its ring, the rings rippling out from the heart as the petals grow. Two tags play it behind any page.`
               : kind === "papercut"
-                ? `${name} played as papercut: the palette ${colors} cut into sheets of paper stacked into a relief that drifts and breathes, each sheet casting a soft shadow on the one below as the light swings slowly round. A stylesheet paints it behind any page.`
+                ? `${name} played as papercut: the palette ${colors} cut into sheets of paper stacked into a relief that drifts and breathes, each sheet casting a soft shadow on the one below as the light swings slowly round. Two tags play it behind any page.`
                 : `${name} played as a frosted blob: the palette's colors ${colors} melt into one another as it drifts. Two tags play it behind any page.`,
       drawn: `${
         kind === "glass"
@@ -288,7 +288,7 @@ export const effectMarkdown =
       }${finished ? `, ${finished}` : ""}`,
       code: `## Behind a page
 
-${scripted ? "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays." : "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[softly, finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
+${!scripted ? "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once." : kind === "papercut" ? "In the page's head, the stylesheet paints the first frame in the page's first paint, its shadows stepped, and the script plays it from there with WebGL, its shadows soft. Without WebGL the first frame stays, and for a reader who asks for less motion the script holds its own." : "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[softly, finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
 
 \`\`\`html
 ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle, undefined, finish)}
