@@ -952,6 +952,54 @@ test("while the blob plays, its Shader tab writes it in GLSL and WGSL, and as We
   expect(asked).toEqual(["blob-webgl.ts", "blob-webgpu.ts"]);
 });
 
+test("a soft or grained picture's Shader tab writes its finish: a soft glass's pages blur and grain it after its passes and offer no Shadertoy, a palette's shader draws its blurred stops and its grain", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?style=glass&angle=45&soft=40&grain=30`);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await tabs.getByRole("tab", { name: "Shader" }).click();
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  const spellings = page.getByRole("tablist", { name: "Syntax" });
+  /* its tabs leave Shadertoy no buffer for the blur: the four others */
+  await expect(spellings.getByRole("tab")).toHaveText(["GLSL", "WGSL", "WebGL", "WebGPU"]);
+  await expect(code).toContainText(`/${SEED}?style=glass&angle=45&soft=40&grain=30`);
+  await expect(code).toContainText("// ==== Finish 4: canvas ====");
+  await expect(
+    page.getByText(
+      "The ribs, the colors' blur and the light, pass by pass. Then its soft and grain, as the site lays them over it."
+    )
+  ).toBeVisible();
+  await spellings.getByRole("tab", { name: "WebGL" }).click();
+  await expect(code).toContainText("const finish = finishing(gl);");
+  await expect(code).toContainText("const GRAIN = 30;");
+  /* a grain alone: the glass's Shadertoy text lays it over its Image */
+  await open(page, `/${SEED}?style=glass&angle=45&grain=30`);
+  await tabs.scrollIntoViewIfNeeded();
+  await tabs.getByRole("tab", { name: "Shader" }).click();
+  await expect(spellings.getByRole("tab")).toHaveText([
+    "Shadertoy",
+    "GLSL",
+    "WGSL",
+    "WebGL",
+    "WebGPU"
+  ]);
+  await expect(code).toContainText(
+    "fragColor = vec4(grainOver(floor(glass * 255.0 + 0.5), p) / 255.0, 1.0);"
+  );
+  /* the palette's own: a soft view's blurred stops, and the grain over them */
+  await open(page, `/${SEED}?style=radialSwatches&soft=40&grain=30`);
+  await tabs.scrollIntoViewIfNeeded();
+  await tabs.getByRole("tab", { name: "Shader" }).click();
+  await expect(code).toContainText("const vec3 STOPS[] = vec3[](");
+  await expect(code).toContainText("vec3 grainOver(vec3 c, ivec2 p) {");
+  await expect(
+    page.getByText(
+      "The stops blurred along the line, at their places, blended in sRGB. Then its grain, a speck a pixel."
+    )
+  ).toBeVisible();
+});
+
 test("a copy of the glass's tags the browser refuses selects them whole, its first frame written out", async ({
   page
 }) => {
