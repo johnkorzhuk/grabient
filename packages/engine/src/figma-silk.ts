@@ -23,6 +23,7 @@ import {
   figmaScene,
   figmaSolid
 } from "./figma-paste.ts";
+import type { Underlay } from "./fx-finish.ts";
 import type { Palette } from "./palette.ts";
 import { PROF_N, SILK_LOOP, type SilkScene, silkScene } from "./silk.ts";
 
@@ -36,6 +37,8 @@ export interface FigmaSilkView {
   name: string;
   speed: number;
   finish?: FigmaFinish | null;
+  /** the gradient a soft silk's edges go to (fx-finish.ts effectUnderlay), none for none */
+  underlay?: Underlay | null;
 }
 
 type Mat = [[number, number, number], [number, number, number]];
@@ -250,11 +253,13 @@ export function figmaSilkNodes(view: FigmaSilkView): FigmaNode[] {
       emit(kid, g, i, x0, y0);
     });
   };
-  const into = figmaFinish({ add, group }, top, { width: W, height: H }, view.finish, {
-    palette: view.palette,
-    kind: "silk",
-    angle: view.angle
-  });
+  const into = figmaFinish(
+    { add, group },
+    top,
+    { width: W, height: H },
+    view.finish,
+    view.underlay
+  );
   silkLayers(scene, speed).forEach((l, i) => {
     emit(l, into.parent, into.index + i, 0, 0);
   });

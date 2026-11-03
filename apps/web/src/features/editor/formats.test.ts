@@ -84,3 +84,72 @@ test("the blob's tags carry the stylesheet's own still inside the page", async (
   const blob = effect("style=blob&shape=3");
   expect(copied.pop()).toBe(effectEmbedHtml(ORIGIN, SEED, blob, 45, effectStill(P, blob, 45)));
 });
+
+/* Copy for Figma: the clipboard's HTML, as the copy command's event hands it over */
+const pasted: string[] = [];
+vi.mock("@grabient/ui/copy.ts", async load => ({
+  ...(await load<typeof import("@grabient/ui/copy.ts")>()),
+  copyHtml: async (html: string) => {
+    pasted.push(html);
+    return true;
+  }
+}));
+
+test("Copy for Figma pastes the effect with the view's soft and grain, over the gradient its files lay under it", async () => {
+  const { figmaSilkHtml } = await import("@grabient/engine/figma-silk.ts");
+  const { figmaRosetteHtml } = await import("@grabient/engine/figma-rosette.ts");
+  const { figmaBlobHtml } = await import("@grabient/engine/figma-blob.ts");
+  const { figmaGlassHtml } = await import("@grabient/engine/figma-glass.ts");
+  const { glassColors } = await import("@grabient/engine/glass-colors.ts");
+  const { effectUnderlay } = await import("@grabient/engine/fx-finish.ts");
+  /* a press in the browser, where each effect's code comes on it (the server's render never loads it) */
+  vi.stubEnv("SSR", false);
+  /* the paste's id is the one thing a paste draws by chance */
+  vi.spyOn(Math, "random").mockReturnValue(0.25);
+  const id = Math.floor(0.25 * 0x7fffffff);
+  const size = { width: 1200, height: 700, name: "Grabient" };
+  for (const [query, finish] of [
+    ["style=silk&shape=7&speed=0", { soft: 50, grain: 50 }],
+    ["style=rosette&speed=1.5", { soft: 30 }],
+    ["style=blob&shape=3&bg=%23f0e6d2", { soft: 60, grain: 30 }],
+    ["style=blob&shape=3&bg=%23f0e6d240", { soft: 40 }],
+    ["style=blob&shape=3", { soft: 40, grain: 10 }],
+    ["style=glass&shape=12", { soft: 50, grain: 50 }],
+    ["style=glass&speed=0", { grain: 20 }]
+  ] as const) {
+    const fx = effect(query);
+    pasted.length = 0;
+    await copyFormat("figma", { ...taken(query), ...finish });
+    const underlay = "soft" in finish ? effectUnderlay(P, fx, 45, finish.soft) : null;
+    const view = { ...size, finish, underlay };
+    const html =
+      fx.kind === "silk"
+        ? figmaSilkHtml(
+            { palette: P, angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
+            id
+          )
+        : fx.kind === "rosette"
+          ? figmaRosetteHtml(
+              { palette: P, angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
+              id
+            )
+          : fx.kind === "blob"
+            ? figmaBlobHtml({ palette: P, ...fx.look, ...view, speed: fx.speed }, id)
+            : figmaGlassHtml(
+                {
+                  colors: glassColors(P),
+                  angle: 45,
+                  shape: fx.look.shape,
+                  ...view,
+                  speed: fx.speed
+                },
+                id
+              );
+    expect(pasted).toEqual([html]);
+    /* a finished paste is no plain one: the blur and the noise ride in it */
+    await copyFormat("figma", taken(query));
+    expect(pasted[1]).not.toBe(html);
+  }
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});

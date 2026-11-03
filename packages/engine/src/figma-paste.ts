@@ -9,12 +9,11 @@
    deflate's uncompressed blocks so the whole paste is made at once, inside the press that copies it. A layer is a node
    of Figma's scene, placed under its parent by an index; a group is a frame that fits its children. A paste that moves
    keeps its keyframe tracks under Figma's internal canvas, as Figma's own copies do. An effect's soft and grain wrap
-   its drawing (figmaFinish). */
-import type { EffectKind } from "./effect.ts";
+   its drawing (figmaFinish, figmaGrainLayer); the gradient under a soft one comes made (fx-finish.ts effectUnderlay),
+   so a press loads the blur's code only for a soft view. */
 import { FIGMA_DEFS, FIGMA_SCHEMA, FIGMA_VERSION } from "./figma-schema.ts";
-import { effectUnderlay } from "./fx-finish.ts";
+import type { Underlay } from "./fx-finish.ts";
 import { encodeKiwi } from "./kiwi.ts";
-import type { Palette } from "./palette.ts";
 import { effectSoftShare, type Size } from "./view.ts";
 
 export type FigmaNode = Record<string, unknown> & { guid: { sessionID: number; localID: number } };
@@ -271,10 +270,11 @@ export function figmaLayers() {
 
 /** The soft and the grain in Figma's own effects, tuned in the lab file against the site's picture (W/styles-lab/sg/
     figma, 3 Nov 2026). Figma's layer blur is a Gaussian whose sigma is its radius over 2.351 (fitted on steps blurred
-    at radii 8 to 200, within 1.1 levels rms), so the soft's blur is 2.351 times the site's sigma. The grain is Figma's
-    duotone Noise, black and white at one alpha, a design unit a speck: at density 0.5 its pull toward mid gray and its
-    spread keep the ratio of the site's tile, and at an alpha of 0.749 times the grain over 100 its spread over mid
-    gray and its mean over a palette's tones are the tile's within half a level at grains 20, 50 and 100. */
+    at radii 8 to 900, within 1.5 levels rms: a picture 6000 wide at soft 100 asks for 846), so the soft's blur is
+    2.351 times the site's sigma. The grain is Figma's duotone Noise, black and white at one alpha, a design unit a
+    speck: at density 0.5 its pull toward mid gray and its spread keep the ratio of the site's tile, and at an alpha of
+    0.749 times the grain over 100 its spread over mid gray and its mean over a palette's tones are the tile's within
+    half a level at grains 20, 50 and 100. */
 export const FIGMA_FINISH = { blur: 2.351, density: 0.5, alpha: 0.749 } as const;
 
 /** Figma's Noise as the grain, 1 to 100: black and white specks a design unit each. */
@@ -339,27 +339,19 @@ export interface FigmaFinish {
   soft?: number;
   grain?: number;
 }
-/** What the gradient under a soft effect is made from (fx-finish.ts effectUnderlay): the palette, the effect and its
-    ground (the blob's, none for a blob that stands clear, which has no gradient under it), and the view's angle. */
-export interface FigmaUnder {
-  palette: Palette;
-  kind: EffectKind;
-  bg?: string | null;
-  angle: number;
-}
 
 /** Wraps an effect's drawing in its soft and grain as the site paints them, under the frame `top` of `size`: a group
-    masked to the box, carrying the grain as Figma's Noise over all of it, and holding the palette's gradient under a
-    soft effect (`under`) and the drawing blurred, the drawing itself masked to the box first so the blur reads clear
-    past the box, as the site's does, and its edges thin to the gradient. The masks keep each group the box's size
-    however its layers move. Gives the parent the effect's layers go in and the index of the first; with neither, the
-    frame and 0. */
+    masked to the box, carrying the grain as Figma's Noise over all of it, and holding the gradient a soft effect's
+    edges go to (`underlay`, fx-finish.ts effectUnderlay: none where the effect stands clear) and the drawing blurred,
+    the drawing itself masked to the box first so the blur reads clear past the box, as the site's does, and its edges
+    thin to the gradient. The masks keep each group the box's size however its layers move. Gives the parent the
+    effect's layers go in and the index of the first; with neither, the frame and 0. */
 export function figmaFinish(
   { add, group }: Pick<ReturnType<typeof figmaLayers>, "add" | "group">,
   top: FigmaNode,
   size: Size,
   finish: FigmaFinish | null | undefined,
-  under: FigmaUnder | null
+  underlay: Underlay | null | undefined
 ): { parent: FigmaNode; index: number } {
   const { width: W, height: H } = size;
   const soft = finish?.soft ?? 0;
@@ -384,14 +376,6 @@ export function figmaFinish(
   );
   mask(outer);
   if (!sigma) return { parent: outer, index: 1 };
-  const underlay =
-    under &&
-    effectUnderlay(
-      under.palette,
-      { kind: under.kind, look: { shape: null, frost: 1, bg: under.bg ?? null } },
-      under.angle,
-      soft
-    );
   if (underlay)
     add("RECTANGLE", "gradient", outer, 1, W, H, 0, 0, {
       fillPaints: [
@@ -411,6 +395,34 @@ export function figmaFinish(
   mask(drawing);
   return { parent: drawing, index: 1 };
 }
+
+/** The grain as a layer of its own over a picture opaque across its box, at `index` under `parent`: a rectangle of
+    50% gray carrying Figma's Noise, laid in Hard Light, which leaves what is under the gray as it is and lands each
+    speck as the site's plain alpha does (a white speck of alpha a over the gray screens the picture to b + a(1 - b),
+    a black one multiplies it to b(1 - a)). The glass takes its grain so: Figma's Glass refracts a noise on any group
+    above it, which doubled the grain's lift under the ribs (in the lab file at grain 50 a navy glass rose 13 levels in
+    red where the site's rises 6.8, and 7.7 under this layer, 3 Nov 2026). Over a clear picture the gray would show,
+    so the effects that may stand clear carry their grain on a group (figmaFinish). */
+export const figmaGrainLayer = (
+  add: ReturnType<typeof figmaLayers>["add"],
+  parent: FigmaNode,
+  index: number,
+  { width, height }: Size,
+  grain: number
+): FigmaNode =>
+  add("RECTANGLE", "grain", parent, index, width, height, 0, 0, {
+    fillPaints: [
+      {
+        type: "SOLID",
+        color: { r: 0.5, g: 0.5, b: 0.5, a: 1 },
+        opacity: 1,
+        visible: true,
+        blendMode: "NORMAL"
+      }
+    ],
+    blendMode: "HARD_LIGHT",
+    effects: [figmaNoise(grain)]
+  });
 
 /** Layers as Figma's scene: the document, its page, the layers (the first the frame a paste selects), Figma's
     internal canvas and what it holds (`internal`, a moving paste's keyframe tracks). */
