@@ -35,12 +35,11 @@ import { effectHtml, type Taken } from "./formats.ts";
 /* The code pane's tabs for an effect, which load with the effect's code as an effect first shows in the pane
    (code.ts), never with a palette's start. */
 
-/* an effect as shader code, each kind's module asked for once its spelling shows in the Shader tab: Shadertoy's tabs
-   (engine/glass-shadertoy.ts, silk-shadertoy.ts, rosette-shadertoy.ts, papercut-shadertoy.ts), the GLSL or its WebGL
-   page (glass-webgl.ts, blob-webgl.ts, silk-webgl.ts, rosette-webgl.ts, papercut-webgl.ts), the WGSL or its WebGPU page
-   (glass-webgpu.ts, blob-webgpu.ts, silk-webgpu.ts, rosette-webgpu.ts, papercut-webgpu.ts), each with the picture's
-   soft and grain (shader-finish.ts). The effect's code carries only the tab's spellings, and the Worker's build none of
-   them: a server never writes a shader, and its ask waits for ever. */
+/* an effect as shader code, each kind's module asked for once its spelling shows in the Shader tab: the WebGL page or
+   the GLSL it runs (engine/glass-webgl.ts, blob-webgl.ts, silk-webgl.ts, rosette-webgl.ts, papercut-webgl.ts), the
+   WebGPU page or its WGSL (glass-webgpu.ts, blob-webgpu.ts, silk-webgpu.ts, rosette-webgpu.ts, papercut-webgpu.ts),
+   each with the picture's soft and grain (shader-finish.ts). The effect's code carries only the tab's spellings, and
+   the Worker's build none of them: a server never writes a shader, and its ask waits for ever. */
 type ShaderWriter = (
   kind: ShaderKind,
   P: Palette,
@@ -50,7 +49,7 @@ type ShaderWriter = (
   origin: string,
   finish: EffectShaderFinish
 ) => string;
-type ShaderPart = "shadertoy" | "webgl" | "webgpu";
+type ShaderPart = "webgl" | "webgpu";
 /* a kind's shader code: what its passes draw, the tab's note before its finish's, and its modules; null for a kind
    with none, whose Shader tab offers no spelling (a kind given modules must say what they draw) */
 type EffectShaders = { passes: () => string } & Partial<
@@ -59,15 +58,6 @@ type EffectShaders = { passes: () => string } & Partial<
 const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
   glass: {
     passes: () => t("The ribs, the colors' blur and the light, pass by pass."),
-    shadertoy: () =>
-      (import.meta.env.SSR
-        ? (new Promise(() => {}) as never)
-        : import("@grabient/engine/glass-shadertoy.ts")
-      ).then(
-        (m): ShaderWriter =>
-          (_, ...rest) =>
-            m.glassShadertoyText(...rest)
-      ),
     webgl: () =>
       (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
@@ -111,15 +101,6 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
   },
   silk: {
     passes: () => t("The dye, its folds' shade and light, in one pass."),
-    shadertoy: () =>
-      (import.meta.env.SSR
-        ? (new Promise(() => {}) as never)
-        : import("@grabient/engine/silk-shadertoy.ts")
-      ).then(
-        (m): ShaderWriter =>
-          (_, ...rest) =>
-            m.silkShadertoyText(...rest)
-      ),
     webgl: () =>
       (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
@@ -141,15 +122,6 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
   },
   rosette: {
     passes: () => t("The petals ring by ring, the ground and the heart's glow, in one pass."),
-    shadertoy: () =>
-      (import.meta.env.SSR
-        ? (new Promise(() => {}) as never)
-        : import("@grabient/engine/rosette-shadertoy.ts")
-      ).then(
-        (m): ShaderWriter =>
-          (_, ...rest) =>
-            m.rosetteShadertoyText(...rest)
-      ),
     webgl: () =>
       (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
@@ -171,15 +143,6 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
   },
   papercut: {
     passes: () => t("The relief, then each sheet's shadows, lit cut and face, pass by pass."),
-    shadertoy: () =>
-      (import.meta.env.SSR
-        ? (new Promise(() => {}) as never)
-        : import("@grabient/engine/papercut-shadertoy.ts")
-      ).then(
-        (m): ShaderWriter =>
-          (_, ...rest) =>
-            m.papercutShadertoyText(...rest)
-      ),
     webgl: () =>
       (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
@@ -201,14 +164,10 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
   }
 };
 const partOf = (kind: ShaderKind): ShaderPart =>
-  kind === "shadertoy" ? "shadertoy" : kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";
-/* the Shader tab's spellings for an effect: the kinds it has a writer for. A soft glass has no Shadertoy text: its tabs
-   use all four of Shadertoy's buffers before the glass is drawn, which leaves none for the blur after it */
-const shaderKinds = (effect: EffectKind, soft = false) =>
-  SHADER_KINDS.filter(
-    ([kind]) =>
-      SHADER_PARTS[effect]?.[partOf(kind)] && !(soft && effect === "glass" && kind === "shadertoy")
-  );
+  kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";
+/* the Shader tab's spellings for an effect: the kinds it has a writer for, the WebGL page first */
+const shaderKinds = (effect: EffectKind) =>
+  SHADER_KINDS.filter(([kind]) => SHADER_PARTS[effect]?.[partOf(kind)]);
 const [writers, setWriters] = createSignal<Partial<Record<string, ShaderWriter>>>({});
 const asked = new Set<string>();
 const writerNow = (effect: EffectKind, kind: ShaderKind) => {
@@ -283,12 +242,9 @@ export function effectSources(
   const shaderSource = (): CodeSource => ({
     id: "shader",
     label: msg("Shader"),
-    spellings: shaderKinds(effect.kind, !!finish.soft).map(([id, label]) => ({ id, label })),
-    /* Shadertoy's text is its tabs, each under its header: the pane copies each on its own too */
-    parted: spelling =>
-      (spelling ?? shaderKinds(effect.kind, !!finish.soft)[0]?.[0]) === "shadertoy",
+    spellings: shaderKinds(effect.kind).map(([id, label]) => ({ id, label })),
     text: (spelling?: string) => {
-      const kind = (spelling ?? shaderKinds(effect.kind, !!finish.soft)[0]?.[0]) as ShaderKind;
+      const kind = (spelling ?? shaderKinds(effect.kind)[0]?.[0]) as ShaderKind;
       return (
         writerNow(effect.kind, kind)?.(kind, P, effect, angle, seed, origin, shaderFinish) ?? ""
       );

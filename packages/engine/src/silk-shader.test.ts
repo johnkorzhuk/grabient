@@ -9,7 +9,6 @@ import {
   parseEffect
 } from "./effect.ts";
 import { effectUnderlay } from "./fx-finish.ts";
-import { glslFloat, shadertoyPass } from "./fx-shadertoy.ts";
 import type { Palette } from "./palette.ts";
 import {
   FINISH_GLSL_SECTIONS,
@@ -20,7 +19,7 @@ import {
   grainTileWgsl
 } from "./shader-finish.ts";
 import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
-import { MAX_FOLDS, SILK_LOOP, silkDesign, silkScene, swingTrack } from "./silk.ts";
+import { MAX_FOLDS, SILK_LOOP, silkScene } from "./silk.ts";
 import {
   bandUniforms,
   colorTexels,
@@ -32,7 +31,6 @@ import {
 } from "./silk-gl.ts";
 import { silkModel, silkSettings } from "./silk-page.ts";
 import { SILK_SHADER_KINDS, silkShader } from "./silk-shader.ts";
-import { halfOf } from "./silk-shadertoy.ts";
 import { SILK_WGSL } from "./silk-wgsl.ts";
 import { effectSoftShare, parseView } from "./view.ts";
 
@@ -79,7 +77,7 @@ const modelOf = (P: Palette, effect: Effect, angle: number): Model =>
     `${silkSettings(P, effect, angle)}\n${silkModel()}\nreturn { silkScene, sceneUniforms, bandUniforms, foldUniforms, colorTexels, profileTexels };`
   )() as Model;
 
-test("the silk's five texts are as the shader lab checked them, for four palettes and looks", () => {
+test("the silk's four texts are as the shader lab checked them, for four palettes and looks", () => {
   const { origin, entries } = golden<{
     origin: string;
     entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
@@ -93,18 +91,6 @@ test("the silk's five texts are as the shader lab checked them, for four palette
         `${e.id} ${kind}`
       ).toBe(e.texts[kind]);
   }
-});
-
-test("every shape's swings turn its folds a few degrees at most, as the Shadertoy text's short series takes them", () => {
-  let most = 0;
-  for (let shape = 0; shape <= 999; shape++) {
-    const d = silkDesign(shape);
-    d.folds.forEach((f, i) => {
-      for (const key of swingTrack(f, 0x5111c + 977 * i, d.ease))
-        most = Math.max(most, Math.abs(key.v));
-    });
-  }
-  expect(most).toBeLessThan(1.5);
 });
 
 test("the pages lay the silk out as the player does, to the last bit, for any palette, angle, shape and canvas", () => {
@@ -219,6 +205,25 @@ test("a page's settings are its first script, and it plays by the players' clock
   }
 });
 
+/** A float as the browser keeps it in the player's RG16F texture: rounded to the half float nearest, ties to even. */
+function halfOf(v: number): number {
+  const f = new Float32Array([v]);
+  const x = new Uint32Array(f.buffer)[0];
+  const sign = (x >>> 16) & 0x8000;
+  const abs = x & 0x7fffffff;
+  let h: number;
+  if (abs > 0x47ffefff) h = sign | 0x7c00;
+  else if (abs < 0x38800000) {
+    const e = 113 - (abs >>> 23);
+    const m = e < 24 ? ((abs & 0x7fffff) | 0x800000) >>> e : 0;
+    h = sign | ((m + 0xfff + ((m >>> 13) & 1)) >>> 13);
+  } else h = sign | (((abs + 0xc8000000 + 0xfff + ((abs >>> 13) & 1)) >>> 0) >>> 13);
+  const e = (h >>> 10) & 31;
+  const m = h & 1023;
+  const s = h & 0x8000 ? -1 : 1;
+  return s * (e === 0 ? m * 2 ** -24 : e === 31 ? Infinity : (1 + m / 1024) * 2 ** (e - 15));
+}
+
 test("the WebGPU page rounds the profiles to half floats as the browser rounds the player's texture", () => {
   const page = silkShader(
     "webgpu",
@@ -258,32 +263,6 @@ test("the WebGPU page rounds the profiles to half floats as the browser rounds t
   /* ties to even: 1 + 2^-11 lies halfway between 1 and the next half float, and rounds down to 1 */
   expect(halfOf(1 + 2 ** -11)).toBe(1);
   expect(halfOf(1 + 3 * 2 ** -11)).toBe(1 + 2 ** -9);
-});
-
-test("the Shadertoy text is Shadertoy's tabs in order, the player's own shader in its frame", () => {
-  const P = decodePalette(SEEDS[2]) as Palette;
-  const { effect, angle } = read("style=silk&angle=300&speed=3&fps=24&shape=999");
-  const text = silkShader("shadertoy", P, effect, angle, SEEDS[2], ORIGIN);
-  const tabs = [...text.matchAll(/^\/\/ ==== (.+?) ====/gm)].map(m => m[1]);
-  expect(tabs).toEqual(["Common", "Buffer A", "Buffer B", "Image"]);
-  expect(text).toMatch(
-    /\/\/ ==== Common ====\n.*\nconst float SPEED = 3\.0;.*\nconst float FPS = 24\.0;.*\nconst float EASE = (.+?);/
-  );
-  /* the ease is the players' own */
-  expect(Number(/^const float EASE = (.+?);/m.exec(text)?.[1])).toBe(EFFECT_EASE_S);
-  /* without 32-bit float buffers the state reads back wrong: the frame says so in magenta */
-  expect(text).toContain(
-    "if (iResolution.x < float(STATE) || state(iChannel0, T_MARK).x != MAGIC) {\n    fragColor = vec4(1.0, 0.0, 1.0, 1.0);"
-  );
-  expect(text).toContain(shadertoyPass(SILK_FS, { samplers: ["T", "S"] }));
-  /* the player's main, as it is */
-  const body = SILK_FS.slice(SILK_FS.indexOf("void main()") + "void main()".length).replace(
-    /gl_FragCoord/g,
-    "fragPlace"
-  );
-  expect(text).toContain(
-    body.replace("textureLod(S, ", "lookup(1, ").replace(/textureLod\(T, /g, "lookup(0, ")
-  );
 });
 
 test("a soft silk's pages draw the pass into the finish's frame and lay the finish over the canvas, its texts the finish's passes", () => {
@@ -355,49 +334,4 @@ test("a grained silk with no soft lays its grain in its own pass, from a tile it
   expect(silkShader("wgsl", P, effect, angle, SEEDS[1], ORIGIN, finish)).toContain(
     grainTileWgsl(4)
   );
-});
-
-test("a soft silk's Shadertoy text takes its frame down to the soft's grid in Buffer C, blurs it in C and D and lays it over the gradient in the Image", () => {
-  const P = decodePalette(SEEDS[0]) as Palette;
-  const { effect, angle } = read("style=silk&angle=45");
-  const underlay = effectUnderlay(P, effect, angle, 40);
-  const text = silkShader("shadertoy", P, effect, angle, SEEDS[0], ORIGIN, {
-    soft: 40,
-    grain: 30,
-    underlay
-  });
-  const tabs = [...text.matchAll(/^\/\/ ==== (.+?) ====(.*)$/gm)].map(m => [m[1], m[2]]);
-  expect(tabs.map(([tab]) => tab)).toEqual([
-    "Common",
-    "Buffer A",
-    "Buffer B",
-    "Buffer C",
-    "Buffer D",
-    "Image"
-  ]);
-  expect(tabs[5][1]).toBe(" iChannel0: Buffer D (filter: nearest, wrap: clamp)");
-  expect(text).toContain(`const float SOFT = ${glslFloat(effectSoftShare(40))};`);
-  expect(text).toContain(`const int UNDERS = ${underlay?.stops.length};`);
-  /* an edit to the soft lays the state out again, so it shows at once */
-  expect(text).toContain("k == 2 ? EASE : SOFT");
-  expect(text).toContain(
-    "sum += (frameAt(iChannel1, b + ivec2(i, 0)) + frameAt(iChannel1, b - ivec2(i, 0))) * g.w[i];"
-  );
-  /* the frame in Buffer B as plain, taken down to the soft's grid in C, the grid blurred in C and D */
-  expect(text).toContain("vec4 blockAt(sampler2D frame, ivec2 i, Plan g) {");
-  expect(text).toContain(
-    "for (int i = -g.reach; i <= g.reach; i++) row += gridAt(iChannel1, b + ivec2(i, j), g) * g.w[abs(i)];"
-  );
-  expect(text).toContain("fragColor = vec4(grainOver(c.rgb, p) / 255.0, 1.0);");
-  expect(text).toContain("Buffers A to D each in Shadertoy's tab of the name");
-  /* a grain alone: the frame's tabs, the grain over the Image */
-  const grained = silkShader("shadertoy", P, effect, angle, SEEDS[0], ORIGIN, { grain: 30 });
-  expect([...grained.matchAll(/^\/\/ ==== (.+?) ====/gm)].map(m => m[1])).toEqual([
-    "Common",
-    "Buffer A",
-    "Buffer B",
-    "Image"
-  ]);
-  expect(grained).toContain("fragColor = vec4(grainOver(c, p) / 255.0, 1.0);");
-  expect(grained).not.toContain("SOFT");
 });

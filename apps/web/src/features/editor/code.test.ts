@@ -12,16 +12,12 @@ import {
 } from "@grabient/engine/effect-code.ts";
 import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { effectUnderlay } from "@grabient/engine/fx-finish.ts";
-import { glassShadertoyText } from "@grabient/engine/glass-shadertoy.ts";
 import { glassWebgl } from "@grabient/engine/glass-webgl.ts";
 import { glassWebgpu } from "@grabient/engine/glass-webgpu.ts";
-import { papercutShadertoyText } from "@grabient/engine/papercut-shadertoy.ts";
 import { papercutWebgl } from "@grabient/engine/papercut-webgl.ts";
 import { papercutWebgpu } from "@grabient/engine/papercut-webgpu.ts";
-import { rosetteShadertoyText } from "@grabient/engine/rosette-shadertoy.ts";
 import { rosetteWebgl } from "@grabient/engine/rosette-webgl.ts";
 import { rosetteWebgpu } from "@grabient/engine/rosette-webgpu.ts";
-import { silkShadertoyText } from "@grabient/engine/silk-shadertoy.ts";
 import { silkWebgl } from "@grabient/engine/silk-webgl.ts";
 import { silkWebgpu } from "@grabient/engine/silk-webgpu.ts";
 import { flush } from "solid-js";
@@ -160,14 +156,9 @@ test("the glass's Shader tab writes each spelling with the engine's own writer, 
   const P = decodePalette(SEED)!;
   const glass = parseEffect(new URLSearchParams("style=glass&shape=12&speed=2"))!;
   const shader = () => effectSource("style=glass&shape=12&speed=2", "shader")!;
-  expect(shader().spellings?.map(s => s.id)).toEqual([
-    "shadertoy",
-    "glsl",
-    "wgsl",
-    "webgl",
-    "webgpu"
-  ]);
-  expect(await loaded(() => shader().text())).toBe(glassShadertoyText(P, glass, 45, SEED, ORIGIN));
+  expect(shader().spellings?.map(s => s.id)).toEqual(["webgl", "webgpu", "glsl", "wgsl"]);
+  /* the page that plays it first, the one the tab shows unasked */
+  expect(await loaded(() => shader().text())).toBe(glassWebgl("webgl", P, glass, 45, SEED, ORIGIN));
   for (const kind of ["glsl", "webgl"] as const)
     expect(await loaded(() => shader().text(kind))).toBe(
       glassWebgl(kind, P, glass, 45, SEED, ORIGIN)
@@ -185,8 +176,8 @@ test("the blob's Shader tab writes each spelling with the engine's own writer, e
   const P = decodePalette(SEED)!;
   const blob = parseEffect(new URLSearchParams("style=blob&shape=3&speed=2&frost=0.5"))!;
   const shader = () => effectSource("style=blob&shape=3&speed=2&frost=0.5", "shader")!;
-  expect(shader().spellings?.map(s => s.id)).toEqual(["glsl", "wgsl", "webgl", "webgpu"]);
-  expect(await loaded(() => shader().text())).toBe(blobWebgl("glsl", P, blob, SEED, ORIGIN));
+  expect(shader().spellings?.map(s => s.id)).toEqual(["webgl", "webgpu", "glsl", "wgsl"]);
+  expect(await loaded(() => shader().text())).toBe(blobWebgl("webgl", P, blob, SEED, ORIGIN));
   for (const kind of ["glsl", "webgl"] as const)
     expect(await loaded(() => shader().text(kind))).toBe(blobWebgl(kind, P, blob, SEED, ORIGIN));
   for (const kind of ["wgsl", "webgpu"] as const)
@@ -205,9 +196,9 @@ test("the silk's, the rosette's and the papercut's Shader tabs write each spelli
   await tabsIn();
   const P = decodePalette(SEED)!;
   const writers = {
-    silk: [silkShadertoyText, silkWebgl, silkWebgpu],
-    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu],
-    papercut: [papercutShadertoyText, papercutWebgl, papercutWebgpu]
+    silk: [silkWebgl, silkWebgpu],
+    rosette: [rosetteWebgl, rosetteWebgpu],
+    papercut: [papercutWebgl, papercutWebgpu]
   } as const;
   const notes = {
     silk: "The dye, its folds' shade and light, in one pass.",
@@ -217,13 +208,13 @@ test("the silk's, the rosette's and the papercut's Shader tabs write each spelli
   for (const kind of ["silk", "rosette", "papercut"] as const) {
     const query = `style=${kind}&shape=12&speed=2`;
     const effect = parseEffect(new URLSearchParams(query))!;
-    const [shadertoy, webgl, webgpu] = writers[kind];
+    const [webgl, webgpu] = writers[kind];
     const shader = () => effectSource(query, "shader")!;
     expect(
       shader().spellings?.map(s => s.id),
       kind
-    ).toEqual(["shadertoy", "glsl", "wgsl", "webgl", "webgpu"]);
-    expect(await loaded(() => shader().text())).toBe(shadertoy(P, effect, 45, SEED, ORIGIN));
+    ).toEqual(["webgl", "webgpu", "glsl", "wgsl"]);
+    expect(await loaded(() => shader().text())).toBe(webgl("webgl", P, effect, 45, SEED, ORIGIN));
     for (const spelling of ["glsl", "webgl"] as const)
       expect(await loaded(() => shader().text(spelling))).toBe(
         webgl(spelling, P, effect, 45, SEED, ORIGIN)
@@ -245,15 +236,15 @@ test("a soft, grained silk's, rosette's or papercut's Shader tab writes every sp
   await tabsIn();
   const P = decodePalette(SEED)!;
   const writers = {
-    silk: [silkShadertoyText, silkWebgl, silkWebgpu],
-    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu],
-    papercut: [papercutShadertoyText, papercutWebgl, papercutWebgpu]
+    silk: [silkWebgl, silkWebgpu],
+    rosette: [rosetteWebgl, rosetteWebgpu],
+    papercut: [papercutWebgl, papercutWebgpu]
   } as const;
   for (const kind of ["silk", "rosette", "papercut"] as const) {
     const query = `style=${kind}&shape=12`;
     const effect = parseEffect(new URLSearchParams(query))!;
     const finish = { soft: 40, grain: 30, underlay: effectUnderlay(P, effect, 45, 40) };
-    const [shadertoy, webgl, webgpu] = writers[kind];
+    const [webgl, webgpu] = writers[kind];
     const shader = () =>
       codeSources(
         P,
@@ -263,15 +254,11 @@ test("a soft, grained silk's, rosette's or papercut's Shader tab writes every sp
         createRest(),
         { ...played(query), soft: 40, grain: 30 }
       ).find(s => s.id === "shader")!;
-    /* the silk's, the rosette's and the papercut's Shadertoy texts keep two buffers for the soft's blur */
     expect(
       shader().spellings?.map(s => s.id),
       kind
-    ).toEqual(["shadertoy", "glsl", "wgsl", "webgl", "webgpu"]);
+    ).toEqual(["webgl", "webgpu", "glsl", "wgsl"]);
     expect(await loaded(() => shader().text())).toBe(
-      shadertoy(P, effect, 45, SEED, ORIGIN, finish)
-    );
-    expect(await loaded(() => shader().text("webgl"))).toBe(
       webgl("webgl", P, effect, 45, SEED, ORIGIN, finish)
     );
     expect(await loaded(() => shader().text("wgsl"))).toBe(

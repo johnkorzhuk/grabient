@@ -65,7 +65,7 @@ const SIZES = [
   [801, 401]
 ] as const;
 
-test("the blob's five texts are as before, for six palettes and looks", () => {
+test("the blob's four texts are as before, for six palettes and looks", () => {
   expect(entries.length).toBe(6);
   for (const e of entries) {
     const effect = read(e.address);
@@ -83,11 +83,7 @@ test("each text credits the seed, the effect's address and what it is, and names
   const credit = (kind: ShaderKind, lines = 3) =>
     blobShader(kind, P, effect, SEED, "https://grabient.com/").split("\n").slice(0, lines);
   const what = "the blob, the palette's balls melted and frosted";
-  expect(credit("shadertoy")).toEqual([
-    `// grabient ${SEED}`,
-    `// ${address}`,
-    `// ${what}, for Shadertoy, a section a tab, each tab's channels as its header says`
-  ]);
+  expect(credit("glsl").slice(0, 2)).toEqual([`// grabient ${SEED}`, `// ${address}`]);
   expect(credit("glsl")[2]).toBe(
     `// ${what}, as GLSL ES 3.00, the WebGL page's shaders, a section a pass`
   );

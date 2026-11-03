@@ -1,5 +1,5 @@
 {
-  "what": "The gradient's WebGL and WebGPU pages (shaderPage) for six of shaders.json's palettes, three of them tinted near grays, one style each. Each runs the shader text shaders.json holds for its palette; checked in Chromium on SwiftShader (W/shader-lab), both pages draw what the palette's Shadertoy text draws, 0 pixels apart.",
+  "what": "The gradient's WebGL and WebGPU pages (shaderPage) for six of shaders.json's palettes, three of them tinted near grays, one style each. Each runs the shader text shaders.json holds for its palette; checked in Chromium on SwiftShader (W/shader-lab), both pages draw what the palette's shader text draws, 0 pixels apart.",
   "origin": "https://grabient.com",
   "entries": [
     {

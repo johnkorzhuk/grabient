@@ -1,19 +1,17 @@
 /* The papercut as shader code, each text drawing what the site's player draws (ui/papercut-player.ts) at the same size
-   and time, in each kind the Shader tab offers (shader-kinds.ts): Shadertoy's tabs, which work the player's numbers out
-   on the GPU (papercut-shadertoy.ts); the GLSL and the WebGL page that runs it, the player's own two passes
-   (papercut-webgl.ts); and the WGSL and the WebGPU page that runs it, the same passes (papercut-webgpu.ts). Each starts
-   with the credit the palette's shaders carry (shader-shell.ts): the seed, the effect's address and what the text is.
-   The editor loads each kind's module with its spelling (effect-sources.ts); this one names them all, for the tests and
-   the shader lab. */
+   and time, in each kind the Shader tab offers (shader-kinds.ts): the GLSL and the WebGL page that runs it, the
+   player's own two passes (papercut-webgl.ts); and the WGSL and the WebGPU page that runs it, the same passes
+   (papercut-webgpu.ts). Each starts with the credit the palette's shaders carry (shader-shell.ts): the seed, the
+   effect's address and what the text is. The editor loads each kind's module with its spelling (effect-sources.ts);
+   this one names them all, for the tests and the shader lab. */
 import type { Effect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
-import { papercutShadertoyText } from "./papercut-shadertoy.ts";
 import { papercutWebgl } from "./papercut-webgl.ts";
 import { papercutWebgpu } from "./papercut-webgpu.ts";
 import type { EffectShaderFinish } from "./shader-finish.ts";
 import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
 
-/** The kinds of papercut shader code, the Shader tab's: three texts and two pages that run them. */
+/** The kinds of papercut shader code, the Shader tab's: two pages that play it and the two texts they run. */
 export const PAPERCUT_SHADER_KINDS: readonly ShaderKind[] = SHADER_KINDS.map(([kind]) => kind);
 
 /** The papercut in a kind of shader code, for its palette, effect and angle, and its finish (soft and grain, and the
@@ -27,7 +25,6 @@ export function papercutShader(
   origin?: string,
   finish: EffectShaderFinish = {}
 ): string {
-  if (kind === "shadertoy") return papercutShadertoyText(P, effect, angle, seed, origin, finish);
   if (kind === "glsl" || kind === "webgl")
     return papercutWebgl(kind, P, effect, angle, seed, origin, finish);
   return papercutWebgpu(kind, P, effect, angle, seed, origin, finish);

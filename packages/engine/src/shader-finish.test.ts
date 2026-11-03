@@ -240,11 +240,6 @@ test("a finished effect's pages carry the finish's shaders, settings and code, a
   expect(glassShader("wgsl", P, glass, 40, SEED, undefined, finish)).toContain(
     FINISH_WGSL_SECTIONS
   );
-  /* a soft glass has no Shadertoy text; the grain alone lays itself over its Image */
-  expect(() => glassShader("shadertoy", P, glass, 40, SEED, undefined, finish)).toThrow(/no soft/);
-  expect(glassShader("shadertoy", P, glass, 40, SEED, undefined, { grain: 30 })).toContain(
-    "fragColor = vec4(grainOver(floor(glass * 255.0 + 0.5), p) / 255.0, 1.0);"
-  );
   /* the blob's pages lay theirs over a canvas with alpha, its gradient left to right */
   const blobFinish = { soft: 40, underlay: effectUnderlay(P, blob, 90, 40) };
   const blobPage = blobShader("webgl", P, blob, SEED, undefined, blobFinish);

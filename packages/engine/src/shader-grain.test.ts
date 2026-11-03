@@ -93,7 +93,7 @@ test("the grain's table holds every speck a float may round the other way, in or
     expect(fixes.length).toBeLessThan(40);
   }
   /* the table and its lookup are in each language's text */
-  expect(grainGlsl(30, "setting")).toContain(`const int GRAIN_FIX[] = int[](`);
+  expect(grainGlsl(30)).toContain(`const int GRAIN_FIX[] = int[](`);
   expect(grainWgsl(30)).toContain(`const GRAIN_FIX = array<i32, ${grainFixes(30).length}>(`);
 });
 
@@ -122,13 +122,6 @@ test("a soft view's shader draws its blurred stops at the places its CSS writes,
 test("a grained view's shader lays the grain over its bytes in every spelling, and its pages run the texts whole", () => {
   const view = { style: "linearGradient" as const, angle: 90, grain: 30 };
   const finish = { grain: 30 };
-  const toy = shaderText("shadertoy", P, view, 7, SEED, undefined, finish);
-  /* Shadertoy's reader sets the speck's scale; it cannot know the screen's density */
-  expect(toy).toContain(grainGlsl(30, "setting"));
-  expect(toy).toContain("const float GRAIN_SCALE = 1.0;");
-  expect(toy).toContain(
-    "fragColor = vec4(grainOver(roundEven(clamp(c, 0.0, 1.0) * 255.0), p) / 255.0, 1.0);"
-  );
   const glsl = shaderText("glsl", P, view, 7, SEED, undefined, finish);
   expect(glsl.split("\n").slice(0, 3)).toEqual([
     "#version 300 es",
@@ -137,7 +130,10 @@ test("a grained view's shader lays the grain over its bytes in every spelling, a
   ]);
   expect(glsl).toContain("ivec2 p = ivec2(gl_FragCoord.x, uResolution.y - gl_FragCoord.y);");
   /* its page sets the scale, a uniform */
-  expect(glsl).toContain(grainGlsl(30, "uniform"));
+  expect(glsl).toContain(grainGlsl(30));
+  expect(glsl).toContain(
+    "fragColor = vec4(grainOver(roundEven(clamp(c, 0.0, 1.0) * 255.0), p) / 255.0, 1.0);"
+  );
   expect(glsl).toContain("uniform float uGrainScale;");
   expect(glsl).toContain(
     "vec2 s = grainSpeck(ivec2(floor((vec2(p) + 0.5) / max(uGrainScale, 1.0))));"
@@ -163,5 +159,5 @@ test("a grained view's shader lays the grain over its bytes in every spelling, a
     "grainScale"
   );
   /* nothing in a shader could end its script element */
-  expect(`${toy}${glsl}${wgsl}`).not.toMatch(/<\/|<!--/);
+  expect(`${glsl}${wgsl}`).not.toMatch(/<\/|<!--/);
 });

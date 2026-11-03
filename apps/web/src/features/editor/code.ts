@@ -299,10 +299,8 @@ export function codeSources(
       id: "shader",
       label: msg("Shader"),
       spellings: SHADER_KINDS.map(([id, label]) => ({ id, label })),
-      /* Shadertoy's text is its tabs, each under its header: the pane copies each on its own too */
-      parted: s => (s ?? "shadertoy") === "shadertoy",
       text: s => {
-        const kind = (s ?? "shadertoy") as ShaderKind;
+        const kind = (s ?? SHADER_KINDS[0][0]) as ShaderKind;
         const code = shaderCodeNow();
         if (!code) return "";
         return isShaderPage(kind)

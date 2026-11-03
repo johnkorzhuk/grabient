@@ -8,7 +8,7 @@ import { ContrastGrid } from "../src/ContrastGrid.tsx";
 import { FigurePane } from "../src/FigurePane.tsx";
 import { FormatStrip, placesOf, SWATCH_CHIPS } from "../src/FormatStrip.tsx";
 import { MakingIcon, madeLabel, makingLabel, makingName } from "../src/MakingIcon.tsx";
-import { type CodeSource, codeParts, PaletteCode } from "../src/PaletteCode.tsx";
+import { type CodeSource, PaletteCode } from "../src/PaletteCode.tsx";
 import { BRAND_SUPPLY } from "../src/supply.ts";
 
 const P = decodePalette(BRAND_SUPPLY[1]) as Palette;
@@ -123,55 +123,6 @@ describe("the sheet's panes", () => {
     const css = renderToString(() => <PaletteCode sources={sources} initial="css" />);
     expect(css).toContain('aria-label="Syntax"');
     expect(css).toContain(">oklch;<");
-  });
-
-  test("a text pasted in parts, as Shadertoy's tabs are, shows a part at a time under a row of their names, the credit with the first", () => {
-    const toy = [
-      "// a credit",
-      "",
-      "// ==== Common ====",
-      "const float A = 1.0;",
-      "// ==== Buffer A ==== iChannel0: Buffer A",
-      "void mainImage(out vec4 c, in vec2 p) { c = vec4(A); }",
-      "// ==== Image ==== iChannel0: Buffer A",
-      "void mainImage(out vec4 c, in vec2 p) { c = texelFetch(iChannel0, ivec2(p), 0); }"
-    ].join("\n");
-    const parts = codeParts(toy);
-    expect(parts.map(part => part.name)).toEqual(["Common", "Buffer A", "Image"]);
-    expect(parts[0].text).toBe("// a credit\n\n// ==== Common ====\nconst float A = 1.0;\n");
-    /* each tab's code is its own: one mainImage a buffer, none in Common */
-    expect(parts.map(part => (part.text.match(/void mainImage/g) ?? []).length)).toEqual([0, 1, 1]);
-    /* a header that names channels has them to set */
-    expect(parts.map(part => part.channels)).toEqual([false, true, true]);
-    const sources: CodeSource[] = [
-      {
-        id: "shader",
-        label: "Shader",
-        spellings: [
-          { id: "shadertoy", label: "Shadertoy" },
-          { id: "glsl", label: "GLSL" }
-        ],
-        text: s => (s === "glsl" ? "void main() {}" : toy),
-        note: () => "The palette, pass by pass.",
-        parted: s => (s ?? "shadertoy") === "shadertoy"
-      }
-    ];
-    const html = renderToString(() => <PaletteCode sources={sources} />);
-    const shown = html.replace(/<[^>]+>/g, "");
-    expect(html).toContain('aria-label="Shadertoy tab"');
-    for (const name of ["Common", "Buffer A", "Image"]) expect(shown).toContain(name);
-    /* the first part alone, its credit with it, and where it goes before what it is */
-    expect(shown).toContain("// a credit");
-    expect(shown).toContain("const float A = 1.0;");
-    expect(shown).not.toContain("mainImage");
-    expect(shown).toContain("Paste it into Shadertoy's Common tab.");
-    expect(shown).not.toContain("The palette, pass by pass.");
-    /* a text in one part has no row of them, and shows whole */
-    const one = renderToString(() => (
-      <PaletteCode sources={[{ ...sources[0], text: () => "void main() {}" }]} />
-    ));
-    expect(one).not.toContain('aria-label="Shadertoy tab"');
-    expect(one.replace(/<[^>]+>/g, "")).toContain("void main() {}");
   });
 
   test("a spelling the kind does not offer is never the one shown: the first it offers is, chosen", () => {

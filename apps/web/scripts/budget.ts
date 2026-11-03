@@ -94,8 +94,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
        draws a clip for (editor/formats.ts), the clip's address, the press that starts and stops its making, and the
        strip's chip while a download is made (ui/FormatStrip.tsx), took it from 330.4 to 331.0 to 331.1, by the build;
        the making, its worker, the module that draws (engine/video/video.wasm) and the chip's ring (ui/MakingIcon.tsx)
-       come with the first press. The code pane's copy of each of Shadertoy's tabs (ui/PaletteCode.tsx, John's paste
-       of the papercut's text into one tab, 3 Nov 2026) took it to 332.1 */
+       come with the first press; the code pane's rows for Shadertoy's tabs took it to 332.1 (3 Nov 2026), gone again
+       with the Shadertoy spelling (John, 3 Nov 2026: "i think we drop shadertoy this is too much") */
     budget: 333
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
@@ -141,9 +141,9 @@ const BUDGETS = {
   // and its rebuild as six sections with a masonry of ten media (10.4 KB of its own, gzipped alone) from 31.0 to 35.4
   // the same day
   stylesheet: 37,
-  // the glass's Shadertoy text (engine/glass-shadertoy.ts: its six tabs, 41 KB as written), which loads only as a reader
-  // picks the Shadertoy spelling of the glass's Shader tab, took the largest from 11.4 KB to 13.6 on 1 Nov 2026; its
-  // GLSL and WebGL page and its WGSL and WebGPU page load apart, 4.0 and 6.7 KB, beside the pages' design, 5.7
+  // the glass's Shadertoy text took the largest from 11.4 KB to 13.6 on 1 Nov 2026, until the Shadertoy spelling went
+  // (3 Nov 2026); its GLSL and WebGL page and its WGSL and WebGPU page load apart, 4.0 and 6.7 KB, beside the pages'
+  // design, 5.7
   onDemand: 14,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,

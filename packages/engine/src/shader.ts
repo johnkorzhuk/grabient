@@ -1,4 +1,4 @@
-/* The palette as a fragment shader for Shadertoy, GLSL ES 3.00 and WGSL. The shader evaluates the editable OKLCH
+/* The palette as a fragment shader in GLSL ES 3.00 and WGSL. The shader evaluates the editable OKLCH
    keyframes itself: the engine's Catmull-Rom curve, its 24-step chroma fit to sRGB, and the style's CSS geometry, so
    editing ANCHORS, STEPS or ANGLE still draws the edited palette. A palette with a near gray that keeps its own tint
    adds the tints as a curve of their own in OKLab, as the engine's sampleLCH does. The OKLab matrices are Björn
@@ -359,8 +359,8 @@ ${gradT}
 }`;
 }
 
-/* the grain over the picture's bytes, rounded as the canvas rounds them (to the nearest, a half to the even, as the
-   glass's Shadertoy found SwiftShader's 8-bit targets round), from its top left, as a file bakes it */
+/* the grain over the picture's bytes, rounded as the canvas rounds them (to the nearest, a half to the even, as
+   SwiftShader's 8-bit targets round), from its top left, as a file bakes it */
 const GRAIN_LINE = "  // The grain over the picture's bytes, from its top left.";
 function wgslText(
   P: Palette,
@@ -404,17 +404,12 @@ export function shaderText(
   const head = header(seed, view, steps, origin);
   if (kind === "wgsl") return wgslText(P, view, steps, head, finish);
   const body = finish.drawn ? glslSoftBody(view, finish.drawn) : glslBody(P, view, steps);
-  /* the GLSL's page sets the grain's scale; Shadertoy's reader does */
-  const grain = finish.grain
-    ? `\n\n${grainGlsl(finish.grain, kind === "glsl" ? "uniform" : "setting")}`
-    : "";
+  /* the GLSL's page sets the grain's scale */
+  const grain = finish.grain ? `\n\n${grainGlsl(finish.grain)}` : "";
   /* the color at the pixel, and the grain over its bytes where there is one */
   const color = (coord: string, size: string) =>
     finish.grain
       ? `  vec3 c = stops(gradT(q, ${size}));\n${GRAIN_LINE}\n  ivec2 p = ivec2(${coord}.x, ${size}.y - ${coord}.y);\n  fragColor = vec4(grainOver(roundEven(clamp(c, 0.0, 1.0) * 255.0), p) / 255.0, 1.0);`
       : `  fragColor = vec4(stops(gradT(q, ${size})), 1.0);`;
-  if (kind === "glsl") {
-    return `#version 300 es\nprecision highp float;${finish.grain ? "\nprecision highp int;" : ""}\n\n${head}\n\nuniform vec2 uResolution;\nout vec4 fragColor;\n\n${body}${grain}\n\nvoid main() {\n  vec2 q = gl_FragCoord.xy - 0.5 * uResolution;\n${color("gl_FragCoord", "uResolution")}\n}\n`;
-  }
-  return `${head}\n\n${body}${grain}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n  vec2 q = fragCoord - 0.5 * iResolution.xy;\n${color("fragCoord", "iResolution.xy")}\n}\n`;
+  return `#version 300 es\nprecision highp float;${finish.grain ? "\nprecision highp int;" : ""}\n\n${head}\n\nuniform vec2 uResolution;\nout vec4 fragColor;\n\n${body}${grain}\n\nvoid main() {\n  vec2 q = gl_FragCoord.xy - 0.5 * uResolution;\n${color("gl_FragCoord", "uResolution")}\n}\n`;
 }

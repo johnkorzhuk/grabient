@@ -16,7 +16,7 @@ const { entries } = golden<{
   }[];
 }>("shaders");
 
-test("Shadertoy, GLSL and WGSL text is as before, tinted near grays included", () => {
+test("GLSL and WGSL text is as before, tinted near grays included", () => {
   expect(entries.filter(e => e.tinted).length).toBeGreaterThan(20);
   for (const e of entries) {
     const P = decodePalette(e.seed) as Palette;

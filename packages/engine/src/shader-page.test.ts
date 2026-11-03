@@ -41,14 +41,8 @@ test("the WebGL and WebGPU pages are as before, tinted near grays included", () 
   }
 });
 
-test("the Shader tab offers the pages after the texts", () => {
-  expect(SHADER_KINDS.map(([kind]) => kind)).toEqual([
-    "shadertoy",
-    "glsl",
-    "wgsl",
-    "webgl",
-    "webgpu"
-  ]);
+test("the Shader tab offers the pages that play it first, then the texts they run", () => {
+  expect(SHADER_KINDS.map(([kind]) => kind)).toEqual(["webgl", "webgpu", "glsl", "wgsl"]);
   expect(SHADER_KINDS.filter(([kind]) => isShaderPage(kind)).map(([, label]) => label)).toEqual([
     "WebGL",
     "WebGPU"

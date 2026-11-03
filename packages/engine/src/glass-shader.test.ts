@@ -8,14 +8,7 @@ import {
   type Effect,
   parseEffect
 } from "./effect.ts";
-import {
-  GLASS_ANGLE,
-  GLASS_LOOP,
-  GLASS_REF_D,
-  GLASS_TUNING,
-  glassColors,
-  glassGeometry
-} from "./glass.ts";
+import { glassColors } from "./glass.ts";
 import {
   GLASS_BAKE_FS,
   GLASS_BLUR_FS,
@@ -25,7 +18,6 @@ import {
   GLASS_FULL_VS
 } from "./glass-gl.ts";
 import { GLASS_SHADER_KINDS, glassShader } from "./glass-shader.ts";
-import { glassShadertoy, glslDouble, glslFloat } from "./glass-shadertoy.ts";
 import {
   GLASS_BAKE_WGSL,
   GLASS_BLUR_WGSL,
@@ -49,7 +41,7 @@ const SEED = "kY4mpDazO-mUuu_fuLqXU49dvVP6";
 const P = decodePalette(SEED) as Palette;
 const GLASS = read("style=glass&angle=137&speed=3&fps=24&shape=7");
 
-test("the glass's five texts are as before, near grays and every setting among them", () => {
+test("the glass's four texts are as before, near grays and every setting among them", () => {
   expect(entries.length).toBe(6);
   for (const e of entries) {
     const { effect, angle } = read(e.address);
@@ -65,7 +57,7 @@ test("each text credits the seed, the effect's address and what it is", () => {
   const credit = (kind: ShaderKind) =>
     glassShader(kind, P, GLASS.effect, GLASS.angle, SEED, origin).split("\n").slice(0, 3);
   const address = `${origin}/${SEED}?style=glass&angle=137&speed=3&fps=24&shape=7`;
-  expect(credit("shadertoy").slice(0, 2)).toEqual([`// grabient ${SEED}`, `// ${address}`]);
+  expect(credit("glsl").slice(0, 2)).toEqual([`// grabient ${SEED}`, `// ${address}`]);
   expect(credit("glsl")[2]).toBe("// fluted glass: the GLSL ES 3.00 passes its WebGL page runs");
   expect(
     glassShader("webgpu", P, GLASS.effect, GLASS.angle, SEED, origin).split("\n").slice(0, 6)
@@ -172,94 +164,5 @@ test("a page says so where the browser lacks what it needs, and holds still for 
     expect(page).toContain(
       "const ANGLE = 137;\nconst SHAPE = 7;\nconst SPEED = 3;\nconst FPS = 24;"
     );
-  }
-});
-
-test("the Shadertoy text is Shadertoy's tabs in order, its settings at the top of Common", () => {
-  const text = glassShader("shadertoy", P, GLASS.effect, GLASS.angle, SEED, origin);
-  const headers = text.split("\n").filter(line => line.startsWith("// ===="));
-  expect(headers.map(line => /^\/\/ ==== (.+?) ====/.exec(line)?.[1])).toEqual([
-    "Common",
-    "Buffer A",
-    "Buffer B",
-    "Buffer C",
-    "Buffer D",
-    "Image"
-  ]);
-  expect(headers[2]).toBe(
-    "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)"
-  );
-  const colors = glassColors(P)
-    .map(c => `0x${c.slice(1)}`)
-    .join(", ");
-  expect(text).toContain(
-    `const int COLORS[] = int[](${colors});\nconst int ANGLE = 137;\nconst int SHAPE = 7;\nconst float SPEED = 3.0;\nconst int FPS = 24;\nconst float EASE = ${glslFloat(EFFECT_EASE_S)};`
-  );
-  /* every channel reads a buffer as it is: no tab filters a buffer, every read by hand */
-  expect(text).not.toMatch(/filter: (linear|mipmap)/);
-});
-
-test("the Shadertoy text holds the design's light and core as the engine draws them", () => {
-  const text = glassShadertoy(glassColors(P), 90, 0, 1, 60);
-  const table = glassGeometry({ width: 1000, height: 1000 }).shadeTable.map(glslFloat).join(",");
-  expect(text.replace(/\s+/g, "")).toContain(`constfloatSHADE[17]=float[](${table});`);
-  expect(text).toContain("const float CORE = 0.3626;");
-});
-
-test("the Shadertoy text takes the design's numbers from the engine, none written in by hand", () => {
-  const text = glassShadertoy(glassColors(P), 90, 0, 1, 60);
-  const T = GLASS_TUNING;
-  for (const line of [
-    `const vec2 REF_D = ${glslDouble(GLASS_REF_D)};`,
-    `const int NPTS = ${T.nPts};`,
-    `const int GRID_X = ${T.gridX};`,
-    `const int ROWS = ${Math.ceil(T.nPts / T.gridX)};`,
-    `const int BASE = ${T.base};`,
-    `const uint DESIGN_SEED = ${T.seed}u;`,
-    `const float LOOP = ${glslFloat(GLASS_LOOP)};`,
-    `const int DESIGN_ANGLE = ${GLASS_ANGLE};`
-  ])
-    expect(text).toContain(line);
-  /* the counts and the loop only by name past their definitions */
-  const body = text.slice(text.indexOf("const int DESIGN_ANGLE"));
-  expect(body).not.toMatch(/\b56\.0\b|: 7u\b|1152\.56|k % 4\b|k < 12;|\/ 3\.0\)|ANGLE - 90\b/);
-  /* every color by the array's length: a reader may write any number of them */
-  expect(body).not.toMatch(/COLORS\[(\d|i % \d)/);
-});
-
-test("the Shadertoy tabs keep no tab's frames for another's, and remake the layout for a new ANGLE or SHAPE", () => {
-  const text = glassShadertoy(glassColors(P), 90, 0, 1, 60);
-  const tab = (name: string) => {
-    const from = text.indexOf(`// ==== ${name} ====`);
-    const to = text.indexOf("// ==== ", from + 10);
-    return text.slice(from, to < 0 ? undefined : to);
-  };
-  /* only Buffer A reads iFrame, its own */
-  for (const name of ["Buffer B", "Buffer C", "Buffer D", "Image"])
-    expect(tab(name)).not.toContain("iFrame");
-  expect(tab("Buffer A")).toContain("const float KEY = float(ANGLE * 1000 + SHAPE);");
-  expect(tab("Buffer A")).toContain(
-    "bool fresh = !made || built.xyz != vec3(iResolution.xy, KEY);"
-  );
-  /* every step of the exact sums and products, and each quotient, behind the integer guard */
-  expect(text).toContain(
-    "float keep(float x) { return uintBitsToFloat(floatBitsToUint(x) ^ (uint(ONE) - 1u)); }"
-  );
-  for (const step of [
-    "float s = keep(a + b);\n  float v = keep(s - a);\n  return vec2(s, keep(keep(a - keep(s - v)) + keep(b - v)));",
-    "return vec2(s, keep(b - keep(s - a)));",
-    "float ah = keep(ta - keep(ta - a));\n  float al = keep(a - ah);",
-    "float q1 = keep(a.x / b.x);"
-  ])
-    expect(text).toContain(step);
-});
-
-test("a float and a double are written so GLSL reads back the same numbers", () => {
-  for (const v of [0, 1, -2.5, 0.1, 1 / 255, 1 / 65535, Math.PI, 1e-30, 6.2201, 1152.56, -47.336]) {
-    expect(Math.fround(Number(glslFloat(v).replace(/\.0e/, "e")))).toBe(Math.fround(v));
-    expect(glslFloat(v)).toMatch(/^-?\d+\.\d+(e-?\d+)?$/);
-    const parts = /vec2\((\S+), (\S+)\)/.exec(glslDouble(v)) ?? [];
-    const [hi, lo] = parts.slice(1).map(s => Math.fround(Number(s)));
-    expect(Math.abs(hi + lo - v)).toBeLessThanOrEqual(Math.abs(v) * 2 ** -46);
   }
 });

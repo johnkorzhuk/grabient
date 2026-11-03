@@ -8,12 +8,6 @@ import { live } from "./live.ts";
    minute. */
 test.describe.configure({ timeout: 60_000 });
 
-/* Shadertoy's text shows a tab of Shadertoy's at a time: the one named */
-const toyTab = (page: Page, name: string) =>
-  page
-    .getByRole("tablist", { name: "Shadertoy tab" })
-    .getByRole("tab", { name, exact: true })
-    .click();
 const SEED = "kS7CQ31Do6asvY-";
 
 /* The palette's page as these tests meet it: a gradient. A page whose address names no style plays the reader's own
@@ -837,7 +831,7 @@ test("while the glass plays, the code pane holds its code: its tags, its stylesh
   await expect(code).toContainText("- Drawn as: fluted glass, its ribs at 45 degrees");
 });
 
-test("the Shader tab writes the shader for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that run it, its code coming with the tab", async ({
+test("the Shader tab writes the shader as WebGL and WebGPU pages that play it, first, and as the GLSL and WGSL they run, its code coming with the tab", async ({
   page
 }) => {
   const asked = new Set<string>();
@@ -854,31 +848,27 @@ test("the Shader tab writes the shader for Shadertoy, GLSL and WGSL, and as WebG
   expect([...asked]).toEqual([]);
   await tabs.getByRole("tab", { name: "Shader" }).click();
   const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
-  await expect(code).toContainText("void mainImage(out vec4 fragColor, in vec2 fragCoord) {");
-  expect([...asked].sort()).toEqual(["shader-page.ts", "shader.ts"]);
-  const spellings = page.getByRole("tablist", { name: "Syntax" });
-  await expect(spellings.getByRole("tab")).toHaveText([
-    "Shadertoy",
-    "GLSL",
-    "WGSL",
-    "WebGL",
-    "WebGPU"
-  ]);
-  await spellings.getByRole("tab", { name: "WebGL" }).click();
+  /* the WebGL page first: one copy that plays */
   await expect(code).toContainText(
     '<script type="x-shader/x-fragment" id="shader">#version 300 es'
   );
+  expect([...asked].sort()).toEqual(["shader-page.ts", "shader.ts"]);
+  const spellings = page.getByRole("tablist", { name: "Syntax" });
+  await expect(spellings.getByRole("tab")).toHaveText(["WebGL", "WebGPU", "GLSL", "WGSL"]);
+  await spellings.getByRole("tab", { name: "GLSL" }).click();
+  await expect(code).toContainText("void main() {");
+  await expect(code).not.toContainText("mainImage");
   await spellings.getByRole("tab", { name: "WebGPU" }).click();
   await expect(code).toContainText(`<script type="text/wgsl" id="shader">// grabient ${SEED}`);
   await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
 });
 
-test("while the glass plays, its Shader tab writes it for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling", async ({
+test("while the glass plays, its Shader tab writes it as WebGL and WebGPU pages that play it, first, and as the GLSL and WGSL they run, each kind's code coming with its spelling", async ({
   page
 }) => {
   const asked: string[] = [];
   page.on("request", request => {
-    const name = /\/engine\/src\/(glass-(?:shader|shadertoy|webgl|webgpu)\.ts)$/.exec(
+    const name = /\/engine\/src\/(glass-(?:shader|webgl|webgpu)\.ts)$/.exec(
       new URL(request.url()).pathname
     )?.[1];
     if (name) asked.push(name);
@@ -890,43 +880,32 @@ test("while the glass plays, its Shader tab writes it for Shadertoy, GLSL and WG
   expect(asked).toEqual([]);
   await tabs.getByRole("tab", { name: "Shader" }).click();
   const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
-  await expect(code).toContainText(`// grabient ${SEED}`);
+  await expect(code).toContainText(`grabient ${SEED}`);
   await expect(code).toContainText(`/${SEED}?style=glass&angle=45`);
-  await toyTab(page, "Buffer B");
-  await expect(code).toContainText(
-    "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)"
-  );
-  expect(asked).toEqual(["glass-shadertoy.ts"]);
-  const spellings = page.getByRole("tablist", { name: "Syntax" });
-  await expect(spellings.getByRole("tab")).toHaveText([
-    "Shadertoy",
-    "GLSL",
-    "WGSL",
-    "WebGL",
-    "WebGPU"
-  ]);
-  await spellings.getByRole("tab", { name: "GLSL" }).click();
-  await expect(code).toContainText("// ==== Pass 4: glass ====");
-  await spellings.getByRole("tab", { name: "WebGL" }).click();
   await expect(code).toContainText(
     '<script type="x-shader/x-fragment" id="disc-fs">#version 300 es'
   );
   await expect(code).toContainText("const ANGLE = 45;");
-  expect(asked).toEqual(["glass-shadertoy.ts", "glass-webgl.ts"]);
+  expect(asked).toEqual(["glass-webgl.ts"]);
+  const spellings = page.getByRole("tablist", { name: "Syntax" });
+  await expect(spellings.getByRole("tab")).toHaveText(["WebGL", "WebGPU", "GLSL", "WGSL"]);
+  await spellings.getByRole("tab", { name: "GLSL" }).click();
+  await expect(code).toContainText("// ==== Pass 4: glass ====");
+  expect(asked).toEqual(["glass-webgl.ts"]);
   await spellings.getByRole("tab", { name: "WebGPU" }).click();
   await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
   await expect(
     page.getByText("The ribs, the colors' blur and the light, pass by pass.")
   ).toBeVisible();
-  expect(asked).toEqual(["glass-shadertoy.ts", "glass-webgl.ts", "glass-webgpu.ts"]);
+  expect(asked).toEqual(["glass-webgl.ts", "glass-webgpu.ts"]);
 });
 
-test("while the blob plays, its Shader tab writes it in GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling", async ({
+test("while the blob plays, its Shader tab writes it as WebGL and WebGPU pages that play it, first, and in the GLSL and WGSL they run, each kind's code coming with its spelling", async ({
   page
 }) => {
   const asked: string[] = [];
   page.on("request", request => {
-    const name = /\/engine\/src\/(blob-(?:shader|shadertoy|webgl|webgpu)\.ts)$/.exec(
+    const name = /\/engine\/src\/(blob-(?:shader|webgl|webgpu)\.ts)$/.exec(
       new URL(request.url()).pathname
     )?.[1];
     if (name) asked.push(name);
@@ -938,17 +917,17 @@ test("while the blob plays, its Shader tab writes it in GLSL and WGSL, and as We
   expect(asked).toEqual([]);
   await tabs.getByRole("tab", { name: "Shader" }).click();
   const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
-  await expect(code).toContainText(`// grabient ${SEED}`);
+  await expect(code).toContainText(`grabient ${SEED}`);
   await expect(code).toContainText(`/${SEED}?style=blob&shape=3`);
-  await expect(code).toContainText("// ==== Pass 4: canvas ====");
-  expect(asked).toEqual(["blob-webgl.ts"]);
-  const spellings = page.getByRole("tablist", { name: "Syntax" });
-  await expect(spellings.getByRole("tab")).toHaveText(["GLSL", "WGSL", "WebGL", "WebGPU"]);
-  await spellings.getByRole("tab", { name: "WebGL" }).click();
   await expect(code).toContainText(
     '<script type="x-shader/x-fragment" id="final-fs">#version 300 es'
   );
   await expect(code).toContainText("const SHAPE = 3;");
+  expect(asked).toEqual(["blob-webgl.ts"]);
+  const spellings = page.getByRole("tablist", { name: "Syntax" });
+  await expect(spellings.getByRole("tab")).toHaveText(["WebGL", "WebGPU", "GLSL", "WGSL"]);
+  await spellings.getByRole("tab", { name: "GLSL" }).click();
+  await expect(code).toContainText("// ==== Pass 4: canvas ====");
   expect(asked).toEqual(["blob-webgl.ts"]);
   await spellings.getByRole("tab", { name: "WGSL" }).click();
   await expect(code).toContainText("@fragment");
@@ -959,24 +938,16 @@ test("while the blob plays, its Shader tab writes it in GLSL and WGSL, and as We
   expect(asked).toEqual(["blob-webgl.ts", "blob-webgpu.ts"]);
 });
 
-for (const [kind, frame, note] of [
-  [
-    "silk",
-    "lookup(0, vec2(u, 1.0 / 6.0), 0.0).rgb",
-    "The dye, its folds' shade and light, in one pass."
-  ],
-  [
-    "rosette",
-    "if (cover > 0.99999) break;",
-    "The petals ring by ring, the ground and the heart's glow, in one pass."
-  ]
+for (const [kind, note] of [
+  ["silk", "The dye, its folds' shade and light, in one pass."],
+  ["rosette", "The petals ring by ring, the ground and the heart's glow, in one pass."]
 ] as const)
-  test(`while the ${kind} plays, its Shader tab writes it for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling`, async ({
+  test(`while the ${kind} plays, its Shader tab writes it as WebGL and WebGPU pages that play it, first, and as the GLSL and WGSL they run, each kind's code coming with its spelling`, async ({
     page
   }) => {
     const asked: string[] = [];
     page.on("request", request => {
-      const name = new RegExp(`/engine/src/(${kind}-(?:shader|shadertoy|webgl|webgpu)\\.ts)$`).exec(
+      const name = new RegExp(`/engine/src/(${kind}-(?:shader|webgl|webgpu)\\.ts)$`).exec(
         new URL(request.url()).pathname
       )?.[1];
       if (name) asked.push(name);
@@ -988,123 +959,42 @@ for (const [kind, frame, note] of [
     expect(asked).toEqual([]);
     await tabs.getByRole("tab", { name: "Shader" }).click();
     const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
-    await expect(code).toContainText(`// grabient ${SEED}`);
+    await expect(code).toContainText(`grabient ${SEED}`);
     await expect(code).toContainText(`/${SEED}?style=${kind}&angle=45&shape=7`);
-    /* the frame in Buffer B, the player's own fragment shader in it */
-    await toyTab(page, "Buffer B");
-    await expect(code).toContainText(
-      "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)"
-    );
-    await expect(code).toContainText(frame);
-    expect(asked).toEqual([`${kind}-shadertoy.ts`]);
-    const spellings = page.getByRole("tablist", { name: "Syntax" });
-    await expect(spellings.getByRole("tab")).toHaveText([
-      "Shadertoy",
-      "GLSL",
-      "WGSL",
-      "WebGL",
-      "WebGPU"
-    ]);
-    await spellings.getByRole("tab", { name: "GLSL" }).click();
-    await expect(code).toContainText(`// ==== Pass 1: the ${kind} ====`);
-    await spellings.getByRole("tab", { name: "WebGL" }).click();
     await expect(code).toContainText(
       `<script type="x-shader/x-fragment" id="${kind}-fs">#version 300 es`
     );
     await expect(code).toContainText("const ANGLE = 45;");
     await expect(code).toContainText("const SHAPE = 7;");
-    expect(asked).toEqual([`${kind}-shadertoy.ts`, `${kind}-webgl.ts`]);
+    expect(asked).toEqual([`${kind}-webgl.ts`]);
+    const spellings = page.getByRole("tablist", { name: "Syntax" });
+    await expect(spellings.getByRole("tab")).toHaveText(["WebGL", "WebGPU", "GLSL", "WGSL"]);
+    await spellings.getByRole("tab", { name: "GLSL" }).click();
+    await expect(code).toContainText(`// ==== Pass 1: the ${kind} ====`);
+    expect(asked).toEqual([`${kind}-webgl.ts`]);
     await spellings.getByRole("tab", { name: "WebGPU" }).click();
     await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
     await expect(page.getByText(note)).toBeVisible();
-    expect(asked).toEqual([`${kind}-shadertoy.ts`, `${kind}-webgl.ts`, `${kind}-webgpu.ts`]);
-    /* soft and grained: every spelling lays the finish over the frame, Shadertoy's in Buffers C and D and its Image */
+    expect(asked).toEqual([`${kind}-webgl.ts`, `${kind}-webgpu.ts`]);
+    /* soft and grained: every spelling lays the finish over the frame, the page first */
     await open(page, `/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=7`);
     await tabs.scrollIntoViewIfNeeded();
     await tabs.getByRole("tab", { name: "Shader" }).click();
-    await expect(spellings.getByRole("tab")).toHaveText([
-      "Shadertoy",
-      "GLSL",
-      "WGSL",
-      "WebGL",
-      "WebGPU"
-    ]);
+    await expect(spellings.getByRole("tab")).toHaveText(["WebGL", "WebGPU", "GLSL", "WGSL"]);
     await expect(code).toContainText(`/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=7`);
-    await toyTab(page, "Image");
-    await expect(code).toContainText(
-      "// ==== Image ==== iChannel0: Buffer D (filter: nearest, wrap: clamp)"
-    );
-    await spellings.getByRole("tab", { name: "WebGL" }).click();
+    await expect(code).toContainText("finish = finishing(gl);");
+    await expect(code).toContainText("const GRAIN = 30;");
     await expect(
       page.getByText(`${note} Then its soft and grain, as the site lays them over it.`)
     ).toBeVisible();
-    await expect(code).toContainText("finish = finishing(gl);");
-    await expect(code).toContainText("const GRAIN = 30;");
   });
 
-test("a Shadertoy text shows a tab at a time, each tab's code alone, which Copy takes, so no tab of Shadertoy holds two passes", async ({
-  page,
-  context
-}) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await open(page, `/${SEED}?style=papercut&angle=45&soft=40&grain=30&shape=7`);
-  const tabs = page.getByRole("tablist", { name: "Format" });
-  await tabs.scrollIntoViewIfNeeded();
-  await tabs.getByRole("tab", { name: "Shader" }).click();
-  const parts = page.getByRole("tablist", { name: "Shadertoy tab" });
-  await expect(parts.getByRole("tab")).toHaveText([
-    "Common",
-    "Buffer A",
-    "Buffer B",
-    "Buffer C",
-    "Buffer D",
-    "Image"
-  ]);
-  /* the first shows first, the credit with it, and no pass */
-  await expect(parts.getByRole("tab", { name: "Common" })).toHaveAttribute("aria-selected", "true");
-  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
-  await expect(code).toContainText(`// grabient ${SEED}`);
-  await expect(code).not.toContainText("void mainImage");
-  /* the line under it says where it goes, and that alone */
-  await expect(
-    page.getByText("Paste it into Shadertoy's Common tab.", { exact: true })
-  ).toBeVisible();
-  const copy = page.getByRole("button", { name: /^(Copy code|Copied)$/ });
-  for (const [name, mains] of [
-    ["Image", 1],
-    ["Buffer D", 1],
-    ["Common", 0]
-  ] as const) {
-    await parts.getByRole("tab", { name, exact: true }).click();
-    await expect(code).toContainText(`// ==== ${name} ====`);
-    await copy.click();
-    const copied = await page.evaluate(() => navigator.clipboard.readText());
-    expect(copied.match(/\/\/ ==== .+? ====/g)).toEqual([`// ==== ${name} ====`]);
-    expect(copied.match(/void mainImage/g) ?? []).toHaveLength(mains);
-  }
-  /* a tab that reads others says to set its channels; the arrows walk the row */
-  await parts.getByRole("tab", { name: "Buffer D" }).click();
-  await expect(
-    page.getByText("Paste it into Shadertoy's Buffer D tab; set its channels as line 1 says.", {
-      exact: true
-    })
-  ).toBeVisible();
-  await parts.getByRole("tab", { name: "Buffer D" }).press("ArrowRight");
-  await expect(parts.getByRole("tab", { name: "Image" })).toBeFocused();
-  await expect(code).toContainText("// ==== Image ==== iChannel0: Buffer D");
-  /* the other spellings are one text each: no row, the whole text */
-  await page.getByRole("tablist", { name: "Syntax" }).getByRole("tab", { name: "GLSL" }).click();
-  await expect(parts).toHaveCount(0);
-  await expect(code).toContainText("// ==== Pass 1: the field ====");
-  await expect(code).toContainText("// ==== Pass 2: the sheets ====");
-});
-
-test("while the papercut plays, its Shader tab writes it for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling", async ({
+test("while the papercut plays, its Shader tab writes it as WebGL and WebGPU pages that play it, first, and as the GLSL and WGSL they run, each kind's code coming with its spelling", async ({
   page
 }) => {
   const asked: string[] = [];
   page.on("request", request => {
-    const name = /\/engine\/src\/(papercut-(?:shader|shadertoy|webgl|webgpu)\.ts)$/.exec(
+    const name = /\/engine\/src\/(papercut-(?:shader|webgl|webgpu)\.ts)$/.exec(
       new URL(request.url()).pathname
     )?.[1];
     if (name) asked.push(name);
@@ -1117,66 +1007,40 @@ test("while the papercut plays, its Shader tab writes it for Shadertoy, GLSL and
   expect(asked).toEqual([]);
   await tabs.getByRole("tab", { name: "Shader" }).click();
   const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
-  await expect(code).toContainText(`// grabient ${SEED}`);
+  await expect(code).toContainText(`grabient ${SEED}`);
   await expect(code).toContainText(`/${SEED}?style=papercut&angle=45&shape=7`);
-  /* the field in Buffer B, the frame in Buffer C, each the player's own pass */
-  await toyTab(page, "Buffer B");
-  await expect(code).toContainText(
-    "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp)"
-  );
-  await expect(code).toContainText("o = floatBitsToUint(field((p - 0.5 * uSize) / uD));");
-  await toyTab(page, "Buffer C");
-  await expect(code).toContainText(
-    "// ==== Buffer C ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer C (filter: nearest, wrap: clamp); iChannel2: Buffer B (filter: nearest, wrap: clamp)"
-  );
-  expect(asked).toEqual(["papercut-shadertoy.ts"]);
-  const spellings = page.getByRole("tablist", { name: "Syntax" });
-  await expect(spellings.getByRole("tab")).toHaveText([
-    "Shadertoy",
-    "GLSL",
-    "WGSL",
-    "WebGL",
-    "WebGPU"
-  ]);
-  await spellings.getByRole("tab", { name: "GLSL" }).click();
-  await expect(code).toContainText("// ==== Pass 1: the field ====");
-  await expect(code).toContainText("// ==== Pass 2: the sheets ====");
-  await spellings.getByRole("tab", { name: "WebGL" }).click();
   await expect(code).toContainText(
     '<script type="x-shader/x-fragment" id="papercut-shade-fs">#version 300 es'
   );
   await expect(code).toContainText("const ANGLE = 45;");
   await expect(code).toContainText("const SHAPE = 7;");
-  expect(asked).toEqual(["papercut-shadertoy.ts", "papercut-webgl.ts"]);
+  /* the field, the player's own pass */
+  await expect(code).toContainText("o = floatBitsToUint(field((p - 0.5 * uSize) / uD));");
+  expect(asked).toEqual(["papercut-webgl.ts"]);
+  const spellings = page.getByRole("tablist", { name: "Syntax" });
+  await expect(spellings.getByRole("tab")).toHaveText(["WebGL", "WebGPU", "GLSL", "WGSL"]);
+  await spellings.getByRole("tab", { name: "GLSL" }).click();
+  await expect(code).toContainText("// ==== Pass 1: the field ====");
+  await expect(code).toContainText("// ==== Pass 2: the sheets ====");
+  expect(asked).toEqual(["papercut-webgl.ts"]);
   await spellings.getByRole("tab", { name: "WebGPU" }).click();
   await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
   await expect(page.getByText(note)).toBeVisible();
-  expect(asked).toEqual(["papercut-shadertoy.ts", "papercut-webgl.ts", "papercut-webgpu.ts"]);
-  /* soft and grained: every spelling lays the finish over the frame, Shadertoy's in Buffers C and D and its Image */
+  expect(asked).toEqual(["papercut-webgl.ts", "papercut-webgpu.ts"]);
+  /* soft and grained: every spelling lays the finish over the frame, the page first */
   await open(page, `/${SEED}?style=papercut&angle=45&soft=40&grain=30&shape=7`);
   await tabs.scrollIntoViewIfNeeded();
   await tabs.getByRole("tab", { name: "Shader" }).click();
-  await expect(spellings.getByRole("tab")).toHaveText([
-    "Shadertoy",
-    "GLSL",
-    "WGSL",
-    "WebGL",
-    "WebGPU"
-  ]);
+  await expect(spellings.getByRole("tab")).toHaveText(["WebGL", "WebGPU", "GLSL", "WGSL"]);
   await expect(code).toContainText(`/${SEED}?style=papercut&angle=45&soft=40&grain=30&shape=7`);
-  await toyTab(page, "Image");
-  await expect(code).toContainText(
-    "// ==== Image ==== iChannel0: Buffer D (filter: nearest, wrap: clamp)"
-  );
-  await spellings.getByRole("tab", { name: "WebGL" }).click();
+  await expect(code).toContainText("finish = finishing(gl);");
+  await expect(code).toContainText("const GRAIN = 30;");
   await expect(
     page.getByText(`${note} Then its soft and grain, as the site lays them over it.`)
   ).toBeVisible();
-  await expect(code).toContainText("finish = finishing(gl);");
-  await expect(code).toContainText("const GRAIN = 30;");
 });
 
-test("a soft or grained picture's Shader tab writes its finish: a soft glass's pages blur and grain it after its passes and offer no Shadertoy, a palette's shader draws its blurred stops and its grain", async ({
+test("a soft or grained picture's Shader tab writes its finish: a soft glass's pages blur and grain it after its passes, a palette's shader draws its blurred stops and its grain", async ({
   page
 }) => {
   await open(page, `/${SEED}?style=glass&angle=45&soft=40&grain=30`);
@@ -1185,43 +1049,33 @@ test("a soft or grained picture's Shader tab writes its finish: a soft glass's p
   await tabs.getByRole("tab", { name: "Shader" }).click();
   const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
   const spellings = page.getByRole("tablist", { name: "Syntax" });
-  /* its tabs leave Shadertoy no buffer for the blur: the four others */
-  await expect(spellings.getByRole("tab")).toHaveText(["GLSL", "WGSL", "WebGL", "WebGPU"]);
+  await expect(spellings.getByRole("tab")).toHaveText(["WebGL", "WebGPU", "GLSL", "WGSL"]);
   await expect(code).toContainText(`/${SEED}?style=glass&angle=45&soft=40&grain=30`);
-  await expect(code).toContainText("// ==== Finish 4: canvas ====");
+  await expect(code).toContainText("const finish = finishing(gl);");
+  await expect(code).toContainText("const GRAIN = 30;");
+  /* a speck a CSS pixel, as the stage lays it: the page hands the finish the canvas's pixels to one */
+  await expect(code).toContainText("finish.layout(w, h, grainScaleOf(w));");
   await expect(
     page.getByText(
       "The ribs, the colors' blur and the light, pass by pass. Then its soft and grain, as the site lays them over it."
     )
   ).toBeVisible();
-  await spellings.getByRole("tab", { name: "WebGL" }).click();
-  await expect(code).toContainText("const finish = finishing(gl);");
-  await expect(code).toContainText("const GRAIN = 30;");
-  /* a speck a CSS pixel, as the stage lays it: the page hands the finish the canvas's pixels to one */
-  await expect(code).toContainText("finish.layout(w, h, grainScaleOf(w));");
-  /* a grain alone: the glass's Shadertoy text lays it over its Image */
+  await spellings.getByRole("tab", { name: "GLSL" }).click();
+  await expect(code).toContainText("// ==== Finish 4: canvas ====");
+  /* a grain alone: the glass's page lays it over its last pass */
   await open(page, `/${SEED}?style=glass&angle=45&grain=30`);
   await tabs.scrollIntoViewIfNeeded();
   await tabs.getByRole("tab", { name: "Shader" }).click();
-  await expect(spellings.getByRole("tab")).toHaveText([
-    "Shadertoy",
-    "GLSL",
-    "WGSL",
-    "WebGL",
-    "WebGPU"
-  ]);
-  await toyTab(page, "Image");
-  await expect(code).toContainText(
-    "fragColor = vec4(grainOver(floor(glass * 255.0 + 0.5), p) / 255.0, 1.0);"
-  );
+  await expect(code).toContainText("const GRAIN = 30;");
+  await expect(code).toContainText("grainOver");
   /* the palette's own: a soft view's blurred stops, and the grain over them */
   await open(page, `/${SEED}?style=radialSwatches&soft=40&grain=30`);
   await tabs.scrollIntoViewIfNeeded();
   await tabs.getByRole("tab", { name: "Shader" }).click();
   await expect(code).toContainText("const vec3 STOPS[] = vec3[](");
   await expect(code).toContainText("vec3 grainOver(vec3 c, ivec2 p) {");
-  /* Shadertoy's reader sets the speck's scale */
-  await expect(code).toContainText("const float GRAIN_SCALE = 1.0;");
+  /* the page sets the speck's scale */
+  await expect(code).toContainText("uniform float uGrainScale;");
   await expect(
     page.getByText(
       "The stops blurred along the line, at their places, blended in sRGB. Then its grain, a speck a CSS pixel."

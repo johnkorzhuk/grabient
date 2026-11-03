@@ -95,30 +95,22 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
 - Views and files: `view.ts`, `css.ts`, `svg.ts`, `shader.ts` (its kinds in `shader-kinds.ts`, its WebGL and WebGPU
   pages in `shader-page.ts`, the credit and page every shader shares in `shader-shell.ts`), `swatches.ts`,
   `document.ts`, `markdown.ts`, `zip.ts`.
-- The fluted glass's shader code, every kind named in `glass-shader.ts`: Shadertoy's tabs (`glass-shadertoy.ts`), the
-  GLSL and its WebGL page (`glass-webgl.ts`, the player's own GLSL in `glass-gl.ts`), the WGSL and its WebGPU page
-  (`glass-webgpu.ts` over `glass-wgsl.ts`), the pages' design in `glass-page.ts` and their clock in `effect-page.ts`.
-- The blob's, every kind named in `blob-shader.ts`: Shadertoy's tabs (`blob-shadertoy.ts`, which keeps the player's
-  numbers in a buffer: its layout and clock as JavaScript's doubles by `blob-program.ts` over `double-program.ts` and
-  `glsl-double.ts`, the balls' places in fixed point by `blob-fixed.ts`), the GLSL and its WebGL page (`blob-webgl.ts`,
-  the player's own GLSL in `blob-gl.ts`), the WGSL and its WebGPU page (`blob-webgpu.ts` over `blob-wgsl.ts`), the
-  pages' script in `blob-page.ts`, played by the same clock.
-- The silk's, every kind named in `silk-shader.ts`: Shadertoy's tabs (`silk-shadertoy.ts`, which keeps the player's
-  numbers in a buffer: its clock as JavaScript's doubles by `fx-shadertoy.ts` over `double-program.ts` and
-  `glsl-double.ts`, the layout and the folds' swings in pairs of floats), the GLSL and its WebGL page (`silk-webgl.ts`,
-  the player's own GLSL in `silk-gl.ts`), the WGSL and its WebGPU page (`silk-webgpu.ts` over `silk-wgsl.ts`), the
-  pages' script in `silk-page.ts`, played by the same clock. The rosette's alike: `rosette-shader.ts`,
-  `rosette-shadertoy.ts`, `rosette-webgl.ts` over `rosette-gl.ts`, `rosette-webgpu.ts` over `rosette-wgsl.ts`,
-  `rosette-page.ts`.
-- The papercut's, every kind named in `papercut-shader.ts`: Shadertoy's tabs (`papercut-shadertoy.ts`, its clock and
-  its canvas's shadows as JavaScript's doubles over `double-program.ts`, a frame's motion in pairs of floats, the field
-  in Buffer B and the frame in C, or a soft text's frame in B working out its field's samples itself), the GLSL and its
-  WebGL page (`papercut-webgl.ts`, the player's two passes in `papercut-gl.ts`), the WGSL and its WebGPU page
-  (`papercut-webgpu.ts` over `papercut-wgsl.ts`), the pages' script in `papercut-page.ts`, played by the same clock.
+- The fluted glass's shader code, every kind named in `glass-shader.ts`: the GLSL and its WebGL page (`glass-webgl.ts`,
+  the player's own GLSL in `glass-gl.ts`), the WGSL and its WebGPU page (`glass-webgpu.ts` over `glass-wgsl.ts`), the
+  pages' design in `glass-page.ts` and their clock in `effect-page.ts`.
+- The blob's, every kind named in `blob-shader.ts`: the GLSL and its WebGL page (`blob-webgl.ts`, the player's own GLSL
+  in `blob-gl.ts`), the WGSL and its WebGPU page (`blob-webgpu.ts` over `blob-wgsl.ts`), the pages' script in
+  `blob-page.ts`, played by the same clock.
+- The silk's, every kind named in `silk-shader.ts`: the GLSL and its WebGL page (`silk-webgl.ts`, the player's own GLSL
+  in `silk-gl.ts`), the WGSL and its WebGPU page (`silk-webgpu.ts` over `silk-wgsl.ts`), the pages' script in
+  `silk-page.ts`, played by the same clock. The rosette's alike: `rosette-shader.ts`, `rosette-webgl.ts` over
+  `rosette-gl.ts`, `rosette-webgpu.ts` over `rosette-wgsl.ts`, `rosette-page.ts`.
+- The papercut's, every kind named in `papercut-shader.ts`: the GLSL and its WebGL page (`papercut-webgl.ts`, the
+  player's two passes in `papercut-gl.ts`), the WGSL and its WebGPU page (`papercut-webgpu.ts` over `papercut-wgsl.ts`),
+  the pages' script in `papercut-page.ts`, played by the same clock.
 - The effects' soft and grain in their shader code, as the site lays them over the player (`fx-finish.ts`): the
   pages' finish in `shader-finish.ts` (the soft's grid and blur, the gradient under its edges, the grain's tile), the
-  grain a single shader works out itself in `shader-grain.ts`, and the silk's, the rosette's and the papercut's
-  Shadertoy finish, its grid in Buffer B, its blur in C and D, in `fx-shadertoy.ts`.
+  grain a single shader works out itself in `shader-grain.ts`.
 - The effects as looping MP4 clips: `video-kinds.ts` (the kinds a clip is drawn of, which loads nothing), `video.ts`
   (a clip's plan, limits and coding, and `videoAt`, the clip an address asks for, which the Worker's /{seed}.mp4 and
   the editor's Download MP4, drawn in the reader's browser, read alike), `video-finish.ts` (a clip's soft and grain),

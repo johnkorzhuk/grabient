@@ -1,7 +1,6 @@
 import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
 import { decodePalette } from "./codec.ts";
-import { compile, evaluate, registersOf } from "./double-program.ts";
 import {
   EFFECT_EASE_S,
   EFFECT_PIXELS_MAX,
@@ -10,7 +9,6 @@ import {
   parseEffect
 } from "./effect.ts";
 import { effectUnderlay } from "./fx-finish.ts";
-import { FX_BUFFER_C, FX_BUFFER_D, glslFloat, shadertoyPass } from "./fx-shadertoy.ts";
 import type { Palette } from "./palette.ts";
 import {
   PAPERCUT_BUMP,
@@ -21,7 +19,6 @@ import {
   papercutScene
 } from "./papercut.ts";
 import {
-  PAPERCUT_FIELD,
   PAPERCUT_FIELD_FS,
   PAPERCUT_SHADE_FS,
   PAPERCUT_VS,
@@ -31,7 +28,6 @@ import {
 } from "./papercut-gl.ts";
 import { papercutModel, papercutSettings, papercutSheetHexes } from "./papercut-page.ts";
 import { PAPERCUT_SHADER_KINDS, papercutShader } from "./papercut-shader.ts";
-import { papercutClock, papercutLayout } from "./papercut-shadertoy.ts";
 import {
   PAPERCUT_FIELD_UNIFORMS,
   PAPERCUT_FIELD_WGSL,
@@ -104,7 +100,7 @@ const modelOf = (P: Palette, effect: Effect, angle: number): Model =>
     `${papercutSettings(P, effect, angle)}\n${papercutModel()}\nreturn { papercutScene, sceneUniforms, frameUniforms, fieldSize };`
   )() as Model;
 
-test("the papercut's five texts are as the shader lab checked them, for four palettes and looks", () => {
+test("the papercut's four texts are as the shader lab checked them, for four palettes and looks", () => {
   const { origin, entries } = golden<{
     origin: string;
     entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
@@ -165,48 +161,6 @@ test("a page's sheets are the palette's colors the site cuts, and each one's cut
   )() as { n: number; face: number[] };
   expect(page.n).toBe(own.length);
   expect(page.face.slice(0, 3)).toEqual([16 / 255, 32 / 255, 48 / 255]);
-});
-
-test("the Shadertoy text works the canvas's shadows out as the player's doubles do, to the last bit, odd tens and all", () => {
-  const program = compile(papercutLayout());
-  const P = decodePalette(SEEDS[0]) as Palette;
-  const reg = (name: string) => program.pinned.get(name) as number;
-  for (let side = 1; side <= 4000; side += side < 200 ? 1 : 7)
-    for (const [w, h] of [
-      [side, Math.max(1, Math.round(side / 2))],
-      [Math.max(1, Math.round(side * 0.6)), side]
-    ]) {
-      const R = evaluate(program, registersOf(program, { W: w, H: h }));
-      const u = papercutSceneUniforms(
-        papercutScene(P, { angle: 90, shape: null }, { width: w, height: h })
-      );
-      const at = `${w}x${h}`;
-      expect(R[reg("D")], at).toBe(Math.fround(0.75 * Math.max(w, h)));
-      /* sheet 1 is thin, sheet 4 thick */
-      expect([R[reg("thinIsigma")], R[reg("thinOffset")], R[reg("thinReach")]], at).toEqual([
-        u.sheet[4],
-        u.sheet[5],
-        u.reach[1]
-      ]);
-      expect([R[reg("thickIsigma")], R[reg("thickOffset")], R[reg("thickReach")]], at).toEqual([
-        u.sheet[16],
-        u.sheet[17],
-        u.reach[4]
-      ]);
-      expect([R[reg("icsigma")], R[reg("wall")]], at).toEqual([u.sheet[7], Math.fround(u.misc[1])]);
-    }
-  /* and the loop's own seconds at the time drawn, as papercutFrameAt takes them: a first frame draws the clock's time
-     as it stands */
-  const clock = compile(papercutClock());
-  for (const t of [0, 0.4, 179.99999999999997, 180, 359.5, 3600.25, 12345.678]) {
-    const R = evaluate(
-      clock,
-      registersOf(clock, { t, first: 1, changed: 1, speed100: 100, ease100: 160, fps: 60 })
-    );
-    expect(R[clock.pinned.get("loopT") as number], String(t)).toBe(
-      t - PAPERCUT_LOOP * Math.floor(t / PAPERCUT_LOOP)
-    );
-  }
 });
 
 test("each text credits the seed, the effect's address and what it is", () => {
@@ -377,50 +331,6 @@ test("a page's settings are its first script, and it plays by the players' clock
   }
 });
 
-test("the Shadertoy text is Shadertoy's tabs in order, the player's own two passes in Buffers B and C", () => {
-  const P = decodePalette(SEEDS[2]) as Palette;
-  const { effect, angle } = read("style=papercut&angle=300&speed=3&fps=24&shape=999");
-  const text = papercutShader("shadertoy", P, effect, angle, SEEDS[2], ORIGIN);
-  const tabs = [...text.matchAll(/^\/\/ ==== (.+?) ====(.*)$/gm)].map(m => [m[1], m[2]]);
-  expect(tabs.map(([tab]) => tab)).toEqual(["Common", "Buffer A", "Buffer B", "Buffer C", "Image"]);
-  expect(tabs[3][1]).toBe(
-    " iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer C (filter: nearest, wrap: clamp); iChannel2: Buffer B (filter: nearest, wrap: clamp)"
-  );
-  expect(tabs[4][1]).toBe(" iChannel0: Buffer C (filter: nearest, wrap: clamp)");
-  expect(text).toMatch(
-    /\/\/ ==== Common ====\n.*\nconst float SPEED = 3\.0;.*\nconst float FPS = 24\.0;.*\nconst float EASE = (.+?);/
-  );
-  /* the ease is the players' own */
-  expect(Number(/^const float EASE = (.+?);/m.exec(text)?.[1])).toBe(EFFECT_EASE_S);
-  /* without 32-bit float buffers the state reads back wrong: the frame says so in magenta */
-  expect(text).toContain(
-    "if (iResolution.x < float(STATE) || state(iChannel0, T_MARK).x != MAGIC) {\n    fragColor = vec4(1.0, 0.0, 1.0, 1.0);"
-  );
-  /* the player's own passes: the field as it is, its output a global; the shading pass reading Buffer B's floats as
-     the player reads its texture's bits, the levels and colors Common's */
-  expect(text).toContain(shadertoyPass(PAPERCUT_FIELD_FS.replace("\nout uvec4 o;", "\nuvec4 o;")));
-  expect(text).toContain(
-    shadertoyPass(
-      PAPERCUT_SHADE_FS.replace("\nuniform highp usampler2D uField;", "").replace(
-        /texelFetch\(uField, /g,
-        "fieldBits("
-      ),
-      { common: ["uLevel", "uFace", "uWallC", "uShade"] }
-    )
-  );
-  expect(text).toContain(
-    "uvec4 fieldBits(ivec2 i, int lod) { return floatBitsToUint(texelFetch(iChannel2, i, lod)); }"
-  );
-  expect(text).toContain("fragColor = uintBitsToFloat(o);");
-  /* the text's levels and sheets are the player's floats */
-  const levels = papercutSceneUniforms(
-    papercutScene(P, { angle, shape: 999 }, { width: 1, height: 1 })
-  );
-  expect(text).toContain(
-    `const float uLevel[${PAPERCUT_MAX_SHEETS}] = float[](\n  ${glslFloat(levels.level[0])},`
-  );
-});
-
 test("a soft papercut's pages draw the shading pass into the finish's frame and lay the finish over the canvas, its texts the finish's passes", () => {
   const P = decodePalette(SEEDS[0]) as Palette;
   const { effect, angle } = read("style=papercut&angle=45&shape=7");
@@ -490,54 +400,4 @@ test("a grained papercut with no soft lays its grain in its shading pass, from a
   expect(papercutShader("wgsl", P, effect, angle, SEEDS[1], ORIGIN, finish)).toContain(
     grainTileWgsl(2)
   );
-});
-
-test("a soft papercut's Shadertoy text draws its frame in Buffer B, its field's samples worked out there, and blurs it in C and D as the silk's", () => {
-  const P = decodePalette(SEEDS[0]) as Palette;
-  const { effect, angle } = read("style=papercut&angle=45");
-  const underlay = effectUnderlay(P, effect, angle, 40);
-  const text = papercutShader("shadertoy", P, effect, angle, SEEDS[0], ORIGIN, {
-    soft: 40,
-    grain: 30,
-    underlay
-  });
-  const tabs = [...text.matchAll(/^\/\/ ==== (.+?) ====(.*)$/gm)].map(m => [m[1], m[2]]);
-  expect(tabs.map(([tab]) => tab)).toEqual([
-    "Common",
-    "Buffer A",
-    "Buffer B",
-    "Buffer C",
-    "Buffer D",
-    "Image"
-  ]);
-  expect(tabs[2][1]).toBe(
-    " iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)"
-  );
-  expect(tabs[5][1]).toBe(" iChannel0: Buffer D (filter: nearest, wrap: clamp)");
-  expect(text).toContain(`const float SOFT = ${glslFloat(effectSoftShare(40))};`);
-  expect(text).toContain(`const int UNDERS = ${underlay?.stops.length};`);
-  /* an edit to the soft lays the state out again, so it shows at once */
-  expect(text).toContain("k == 2 ? EASE : SOFT");
-  /* the frame's four samples of the field, each by the player's own field function as its field pass works it out */
-  expect(text).toContain(PAPERCUT_FIELD);
-  expect(text).toContain(
-    "    vec2 at = (vec2(sampled + ivec2(k & 1, k >> 1)) - 1.0) * 4.0 + 0.5;\n    samples[k] = floatBitsToUint(field((at - 0.5 * uSize) / uD));"
-  );
-  expect(text).not.toContain("fragColor = uintBitsToFloat(o);");
-  /* the silk's and the rosette's grid and blur */
-  expect(text).toContain(FX_BUFFER_C);
-  expect(text).toContain(FX_BUFFER_D);
-  expect(text).toContain("fragColor = vec4(grainOver(c.rgb, p) / 255.0, 1.0);");
-  expect(text).toContain("Buffers A to D each in Shadertoy's tab of the name");
-  /* a grain alone: the frame's tabs, the grain over the Image */
-  const grained = papercutShader("shadertoy", P, effect, angle, SEEDS[0], ORIGIN, { grain: 30 });
-  expect([...grained.matchAll(/^\/\/ ==== (.+?) ====/gm)].map(m => m[1])).toEqual([
-    "Common",
-    "Buffer A",
-    "Buffer B",
-    "Buffer C",
-    "Image"
-  ]);
-  expect(grained).toContain("fragColor = vec4(grainOver(c, p) / 255.0, 1.0);");
-  expect(grained).not.toContain("SOFT");
 });

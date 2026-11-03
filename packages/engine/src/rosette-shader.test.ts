@@ -9,7 +9,6 @@ import {
   parseEffect
 } from "./effect.ts";
 import { effectUnderlay } from "./fx-finish.ts";
-import { glslFloat, shadertoyPass } from "./fx-shadertoy.ts";
 import type { Palette } from "./palette.ts";
 import { rosetteScene } from "./rosette.ts";
 import { ROSETTE_FS, ROSETTE_VS, rosetteGroup, rosetteUniforms } from "./rosette-gl.ts";
@@ -67,7 +66,7 @@ const modelOf = (P: Palette, effect: Effect, angle: number): Model =>
     `${rosetteSettings(P, effect, angle)}\n${rosetteModel()}\nreturn { rosetteScene, rosetteUniforms, rosetteGroup };`
   )() as Model;
 
-test("the rosette's five texts are as the shader lab checked them, for four palettes and looks", () => {
+test("the rosette's four texts are as the shader lab checked them, for four palettes and looks", () => {
   const { origin, entries } = golden<{
     origin: string;
     entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
@@ -103,23 +102,6 @@ test("the pages work out the player's colors, design and uniforms to the last bi
             );
         }
       }
-}, 60_000);
-
-test("the innermost petal drawn is the same in every canvas, for every shape, as the Shadertoy text takes it", () => {
-  const P = decodePalette(SEEDS[0]) as Palette;
-  for (let shape = 0; shape <= 999; shape++)
-    for (const angle of [90, 300]) {
-      const at = (w: number, h: number) =>
-        rosetteUniforms(rosetteScene(P, { angle, shape }, { width: w, height: h })).uRange[0];
-      const first = at(1, 1);
-      for (const [w, h] of [
-        [3840, 2160],
-        [333, 777],
-        [1080, 1],
-        [7, 5000]
-      ])
-        expect(at(w, h), `shape ${shape} ${w}x${h}`).toBe(first);
-    }
 }, 60_000);
 
 test("each text credits the seed, the effect's address and what it is", () => {
@@ -194,32 +176,6 @@ test("a page's settings are its first script, and it plays by the players' clock
   }
 });
 
-test("the Shadertoy text is Shadertoy's tabs in order, the player's own shader in its frame", () => {
-  const P = decodePalette(SEEDS[2]) as Palette;
-  const { effect, angle } = read("style=rosette&angle=300&speed=3&fps=24&shape=8");
-  const text = rosetteShader("shadertoy", P, effect, angle, SEEDS[2], ORIGIN);
-  const tabs = [...text.matchAll(/^\/\/ ==== (.+?) ====/gm)].map(m => m[1]);
-  expect(tabs).toEqual(["Common", "Buffer A", "Buffer B", "Image"]);
-  expect(text).toMatch(
-    /\/\/ ==== Common ====\n.*\nconst float SPEED = 3\.0;.*\nconst float FPS = 24\.0;.*\nconst float EASE = (.+?);/
-  );
-  /* the ease is the players' own */
-  expect(Number(/^const float EASE = (.+?);/m.exec(text)?.[1])).toBe(EFFECT_EASE_S);
-  /* without 32-bit float buffers the state reads back wrong: the frame says so in magenta */
-  expect(text).toContain(
-    "if (iResolution.x < float(STATE) || state(iChannel0, T_MARK).x != MAGIC) {\n    fragColor = vec4(1.0, 0.0, 1.0, 1.0);"
-  );
-  const pass = shadertoyPass(ROSETTE_FS, { common: ["uStop", "uKeyOfSlot"] });
-  expect(text).toContain(pass);
-  expect(pass).not.toMatch(/uniform|gl_FragCoord|#version/);
-  expect(pass).toContain(
-    ROSETTE_FS.slice(ROSETTE_FS.indexOf("void main()") + "void main()".length).replace(
-      /gl_FragCoord/g,
-      "fragPlace"
-    )
-  );
-});
-
 test("a soft rosette's pages draw the pass into the finish's frame and lay the finish over the canvas, its texts the finish's passes", () => {
   const P = decodePalette(SEEDS[1]) as Palette;
   const { effect, angle } = read("style=rosette&angle=137&shape=8");
@@ -284,36 +240,4 @@ test("a grained rosette with no soft lays its grain in its own pass, from a tile
   expect(webgpu).toContain(
     "return grainOver(vec4f(round(clamp(col, vec3f(0.0), vec3f(1.0)) * 255.0), 255.0), vec2i(position.xy)) / 255.0;"
   );
-});
-
-test("a soft rosette's Shadertoy text takes its frame down to the soft's grid in Buffer C, blurs it in C and D and lays it over the gradient in the Image", () => {
-  const P = decodePalette(SEEDS[1]) as Palette;
-  const { effect, angle } = read("style=rosette&angle=137&shape=8");
-  const underlay = effectUnderlay(P, effect, angle, 60);
-  const text = rosetteShader("shadertoy", P, effect, angle, SEEDS[1], ORIGIN, {
-    soft: 60,
-    underlay
-  });
-  expect([...text.matchAll(/^\/\/ ==== (.+?) ====/gm)].map(m => m[1])).toEqual([
-    "Common",
-    "Buffer A",
-    "Buffer B",
-    "Buffer C",
-    "Buffer D",
-    "Image"
-  ]);
-  expect(text).toContain(`const float SOFT = ${glslFloat(effectSoftShare(60))};`);
-  /* the frame in Buffer B as plain, taken down to the soft's grid in C, the grid blurred in C and D */
-  expect(text).toContain("vec4 blockAt(sampler2D frame, ivec2 i, Plan g) {");
-  expect(text).toContain(
-    "for (int i = -g.reach; i <= g.reach; i++) row += gridAt(iChannel1, b + ivec2(i, j), g) * g.w[abs(i)];"
-  );
-  expect(text).toContain("// ==== Image ==== iChannel0: Buffer D (filter: nearest, wrap: clamp)");
-  expect(text).toContain("fragColor = vec4(c.rgb / 255.0, 1.0);");
-  expect(text).not.toContain("grainOver");
-  const grained = rosetteShader("shadertoy", P, effect, angle, SEEDS[1], ORIGIN, { grain: 45 });
-  expect(grained).toContain(
-    "// ==== Image ==== iChannel0: Buffer B (filter: nearest, wrap: clamp)"
-  );
-  expect(grained).toContain("fragColor = vec4(grainOver(c, p) / 255.0, 1.0);");
 });
