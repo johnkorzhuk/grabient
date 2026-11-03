@@ -96,7 +96,11 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      drawing and players loading as a card shows one */
   /* soft and grain, as "/", took it from 290.2 to 292.4 on 2 Nov 2026 */
   /* the color reader, as "/", took it from 292.8 to 295.1 on 3 Nov 2026 */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 296 },
+  /* it stood at 295.9 with papercut as an effect (d5cdb607 and sg/papercut, 3 Nov 2026); the vector stills drawn a
+     task's and a frame's share at a time (FxArt.tsx, which this page's cards draw with: a list's papercut stills held
+     the page up to 0.7 s at once) and the effects' kind fact for a still that stands in for its first frame took it
+     to 296.2 */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 297 },
   /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
      view's parts in every address, the header's swatch) from 225.2 to 226.6 */
   /* the color reader, as "/", took it from 226.8 to 229.2 on 3 Nov 2026 */
