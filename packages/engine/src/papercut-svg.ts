@@ -2,13 +2,14 @@
    drawn as the CPU paints it: its drop shadow, its contact shadow, its lit cut, then its face.
 
    - The still (papercutStillSvg): what a list's card, a page's first paint and the stylesheet paint, so it has no
-     filter (John's pick, 2 Nov 2026: "go with Stepped shadows"). Each sheet's cut is one path, which every layer uses:
-     the drop shadow as a few dilations of the cut (its path stroked round and filled), moved away from the light, each
-     at its share of the shadow's opacity, so the stack's cover steps down as the CPU's shadow fades from its cut; the
-     contact shadow as a thin stroke under the cut; the lit cut as the cut filled in a lighter paper; the face as the
-     cut moved a hair away from the light.
-   - The file's SVG (papercutFileSvg): the same paths with the shadows blurred by feGaussianBlur, as the sketch drew
-     them, which Figma's importer reads as layer blurs (a blur of twice the deviation) and every browser paints.
+     filter (John's pick, 2 Nov 2026: "go with Stepped shadows"). Each sheet's cut is one path, which every layer uses
+     (<use>): the drop shadow as the cut, moved away from the light, filled and stroked round at a few widths, each at
+     its share of the shadow's opacity, so the cover steps down as the CPU's shadow fades from its cut; the contact
+     shadow as a thin stroke under the cut; the lit cut as the cut filled in a lighter paper; the face as the cut moved
+     a hair away from the light.
+   - The file's SVG (papercutFileSvg): the same cuts with the shadows blurred by feGaussianBlur, as the sketch drew
+     them, every layer a path of its own for a design app's importer (Figma's reads a blur as a layer blur of twice
+     the deviation), which every browser paints alike.
 
    The cuts are the field's level sets: marching squares over the box and a margin wide enough that no shadow of the
    margin's closing edge reaches the box, every point moved onto the exact contour by Newton steps, then fitted with
@@ -296,9 +297,15 @@ function loopsOf(
   return loops;
 }
 
-/** A loop as cubic Beziers, relative after its first point: Schneider's fit with the contour's own tangents, split at
-    the worst point until every point lies within the tolerance. */
-function bezier(c: Contour, how: Trace): string {
+/** A loop as a path: its first point, and the cubic Beziers on from it, relative (Schneider's fit with the contour's own
+    tangents, split at the worst point until every point lies within the tolerance), so a copy of it moved is the same
+    curves from a moved first point. */
+interface Loop {
+  x0: number;
+  y0: number;
+  body: string;
+}
+function bezier(c: Contour, how: Trace): Loop {
   const n = c.x.length;
   const xs = Array.from(c.x);
   const ys = Array.from(c.y);
@@ -322,13 +329,20 @@ function bezier(c: Contour, how: Trace): string {
   const p = how.places;
   /* every point written relative to the one before as it is rounded, so the rounding never adds up along the loop */
   const pen = { x: Number(fmt(xs[0], p)), y: Number(fmt(ys[0], p)) };
-  const parts: string[] = [`M${fmt(pen.x, p)} ${fmt(pen.y, p)}`];
+  const start = { ...pen };
+  const parts: string[] = [];
   const anchors = Math.max(2, Math.min(8, Math.round(n / 24)));
   const cuts = Array.from({ length: anchors + 1 }, (_, i) => Math.round((i * n) / anchors));
   for (let a = 0; a < anchors; a++) fit(xs, ys, tx, ty, cuts[a], cuts[a + 1], how, pen, parts);
   parts.push("z");
-  return parts.join("").replace(/ -/g, "-");
+  return { x0: start.x, y0: start.y, body: parts.join("").replace(/ -/g, "-") };
 }
+
+/** A sheet's loops as one path's data, moved by (dx, dy). */
+const pathOf = (loops: readonly Loop[], places: number, dx = 0, dy = 0): string =>
+  loops
+    .map(l => `M${fmt(l.x0 + dx, places)} ${fmt(l.y0 + dy, places)}`.replace(/ -/g, "-") + l.body)
+    .join("");
 
 function fit(
   xs: number[],
@@ -448,9 +462,9 @@ function fit(
   pen.y += cy;
 }
 
-/** Each sheet's cut as one path's data, sheet k at k - 1 (empty where its level cuts nothing in the box). */
-function cutPaths(m: PapercutScene, how: Trace): string[] {
-  return contours(m, how).map(loops => loops.map(c => bezier(c, how)).join(""));
+/** Each sheet's cut as its loops, sheet k at k - 1 (none where its level cuts nothing in the box). */
+function cutLoops(m: PapercutScene, how: Trace): Loop[][] {
+  return contours(m, how).map(loops => loops.map(c => bezier(c, how)));
 }
 
 /** The light at t = 0, on screen: toward it. */
@@ -502,14 +516,15 @@ const svgOpen = (m: PapercutScene) =>
 /** The still: stepped shadows, no filter. */
 export function papercutStillOf(m: PapercutScene): string {
   const { width: W, height: H } = m;
-  const cuts = cutPaths(m, STILL_TRACE(m));
+  const how = STILL_TRACE(m);
+  const cuts = cutLoops(m, how);
   const [lx, ly] = lightOf(m);
   const defs: string[] = [];
   const body: string[] = [];
   for (let k = 1; k < m.n; k++) {
-    const d = cuts[k - 1];
-    if (!d) continue;
-    defs.push(`<path id="c${k}" d="${d}"/>`);
+    const loops = cuts[k - 1];
+    if (!loops.length) continue;
+    defs.push(`<path id="c${k}" d="${pathOf(loops, how.places)}"/>`);
     const shadow = m.shadowHex[k];
     const off = m.offset[k];
     const moved = `translate(${fmt(-off * lx, 2)} ${fmt(-off * ly, 2)})`;
@@ -535,12 +550,15 @@ export function papercutStillOf(m: PapercutScene): string {
   );
 }
 
-/** The file's SVG: the shadows blurred, as the sketch drew them, for a browser and Figma's importer alike. */
+/** The file's SVG: the shadows blurred, as the sketch drew them, for a browser and a design app alike. Every layer is
+    a path of its own, its fill and its rule on it, its offset in its own first points, with no <use> and no transform
+    for an importer to resolve: Figma's takes each as a vector, its blur as a layer blur. */
 export function papercutFileOf(m: PapercutScene): string {
   const { width: W, height: H } = m;
-  const cuts = cutPaths(m, FILE_TRACE(m));
+  const how = FILE_TRACE(m);
+  const cuts = cutLoops(m, how);
   const [lx, ly] = lightOf(m);
-  const margin = marginOf(m, FILE_TRACE(m).reach);
+  const margin = marginOf(m, how.reach);
   const region = `x="${-margin}" y="${-margin}" width="${W + 2 * margin}" height="${H + 2 * margin}" filterUnits="userSpaceOnUse"`;
   const blurs = new Map<number, string>();
   const filter = (sigma: number) => {
@@ -551,26 +569,28 @@ export function papercutFileOf(m: PapercutScene): string {
     }
     return id;
   };
-  const defs: string[] = [];
   const body: string[] = [];
+  const layer = (d: string, paint: string) =>
+    body.push(`<path d="${d}" fill-rule="evenodd" ${paint}/>`);
   for (let k = 1; k < m.n; k++) {
-    const d = cuts[k - 1];
-    if (!d) continue;
-    defs.push(`<path id="c${k}" d="${d}"/>`);
+    const loops = cuts[k - 1];
+    if (!loops.length) continue;
     const off = m.offset[k];
-    body.push(
-      `<use href="#c${k}" transform="translate(${fmt(-off * lx, 2)} ${fmt(-off * ly, 2)})" fill="${m.shadowHex[k]}" opacity="${m.alpha[k]}" filter="url(#${filter(m.sigma[k])})"/>`,
-      `<use href="#c${k}" fill="${m.shadowHex[k]}" opacity="${m.calpha}" filter="url(#${filter(m.csigma)})"/>`,
-      `<use href="#c${k}" fill="${m.wallHex[k]}"/>`,
-      `<use href="#c${k}" transform="translate(${fmt(-m.wall * lx, 2)} ${fmt(-m.wall * ly, 2)})" fill="${m.hex[k]}"/>`
+    const cut = pathOf(loops, how.places);
+    layer(
+      pathOf(loops, how.places, -off * lx, -off * ly),
+      `fill="${m.shadowHex[k]}" opacity="${m.alpha[k]}" filter="url(#${filter(m.sigma[k])})"`
     );
+    layer(cut, `fill="${m.shadowHex[k]}" opacity="${m.calpha}" filter="url(#${filter(m.csigma)})"`);
+    layer(cut, `fill="${m.wallHex[k]}"`);
+    layer(pathOf(loops, how.places, -m.wall * lx, -m.wall * ly), `fill="${m.hex[k]}"`);
   }
   const filters = [...blurs].map(
     ([s, id]) => `<filter id="${id}" ${region}><feGaussianBlur stdDeviation="${s}"/></filter>`
   );
   return (
-    `${svgOpen(m)}<defs>${filters.join("")}<clipPath id="pcbox"><rect width="${W}" height="${H}"/></clipPath>${defs.join("")}</defs>` +
-    `<g clip-path="url(#pcbox)" fill-rule="evenodd"><rect width="${W}" height="${H}" fill="${m.hex[0]}"/>${body.join("")}</g></svg>`
+    `${svgOpen(m)}<defs>${filters.join("")}<clipPath id="pcbox"><rect width="${W}" height="${H}"/></clipPath></defs>` +
+    `<g clip-path="url(#pcbox)"><rect width="${W}" height="${H}" fill="${m.hex[0]}"/>${body.join("")}</g></svg>`
   );
 }
 
