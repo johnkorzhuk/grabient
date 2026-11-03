@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BLOB_LOOP, blobBackdrop, blobRenderer } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
-import type { EffectFinish, EffectLook } from "./effect.ts";
+import { type EffectFinish, type EffectLook, groundParts } from "./effect.ts";
 import {
   blurBoxes,
   blurRgba,
@@ -429,7 +429,7 @@ describe("a clip's soft and grain", () => {
   });
 
   it("are the site's within two levels where the blur is wide against the picture's shorter side", () => {
-    /* There a clear blob is thin all over, its colors the blur's middle rather than its whole, which the boxes at a
+    /* There a clear blob (or one whose ground lets the page through) is thin all over, its colors the blur's middle rather than its whole, which the boxes at a
        half or a quarter of the resolution reach a little apart from the frame's own: against an exact composite
        (W/styles-lab/sg/mp4/parity-exact.ts) the module sits half a level off on the whole at 1920 by 16 to 100, 640
        by 32 or 18 by 1080 (most 2), where the reference sits 0.15 to 0.25; at 282 by 502 within a level of it. Every
@@ -452,7 +452,9 @@ describe("a clip's soft and grain", () => {
         );
         const at = `${kind} ${shown.bg ?? "clear"} ${size.width}x${size.height}`;
         expect(worst, at).toBeLessThanOrEqual(2);
-        expect(past, at).toBeLessThan(kind === "blob" && !shown.bg ? 0.15 : 0.005);
+        /* a blob whose ground lets the page through stands clear as one with none does (fx-finish.ts effectUnderlay) */
+        const clear = kind === "blob" && !(shown.bg && groundParts(shown.bg).alpha === 1);
+        expect(past, at).toBeLessThan(clear ? 0.15 : 0.005);
       }
     }
   });
