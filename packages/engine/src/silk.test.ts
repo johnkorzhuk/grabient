@@ -35,6 +35,29 @@ test("the still SVG stays a cheap list card: shared gradients, no filters", () =
   expect(svg).not.toMatch(/animateTransform/);
 });
 
+test("the still's rings stand at their first turn about the gather as translations, which an optimizer keeps", () => {
+  const view = { angle: 30, shape: null };
+  const size = { width: 800, height: 400 };
+  const sc = silkScene(P, view, size);
+  const svg = silkStillSvg(P, view, size);
+  const rings = [
+    ...svg.matchAll(
+      /<circle r="[^"]+" transform="translate\(([-\d.]+) ([-\d.]+)\) scale\(([\d.]+)\)"\/>/g
+    )
+  ];
+  expect(rings).toHaveLength(sc.folds.length);
+  expect(svg).not.toContain("rotate(");
+  sc.folds.forEach((f, i) => {
+    /* the ring's centre turned about the gather by its first key, clockwise as SVG turns */
+    const turn = (f.track[0].v * Math.PI) / 180;
+    const x = sc.gx + (f.cx - sc.gx) * Math.cos(turn) - (f.cy - sc.gy) * Math.sin(turn);
+    const y = sc.gy + (f.cx - sc.gx) * Math.sin(turn) + (f.cy - sc.gy) * Math.cos(turn);
+    expect(Number(rings[i][1])).toBeCloseTo(x, 1);
+    expect(Number(rings[i][2])).toBeCloseTo(y, 1);
+    expect(Number(rings[i][3])).toBeCloseTo(2 * f.w, 3);
+  });
+});
+
 test("the moving SVG swings each fold once, in the loop's own time", () => {
   const sc = silkScene(P, { angle: 90, shape: null }, { width: 800, height: 400 });
   const svg = silkMovingSvg(P, { angle: 90, shape: null }, { width: 800, height: 400 }, 2);

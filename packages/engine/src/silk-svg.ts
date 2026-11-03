@@ -75,15 +75,20 @@ export function silkSvg(scene: SilkScene, opts: SvgOptions = {}): string {
         : `<circle r="${f.n + 0.5}" transform="${at}"/>`;
     })
     .join("");
-  /* the still is the frame at t = 0: each ring at its first key's turn */
+  /* the still is the frame at t = 0: each ring at its first key's turn about the gather, which moves its centre alone,
+     a ring and its gradient being round about it, so it is written as a translation with no rotation. An optimizer
+     such as SVGO folds a small rotation about the gather into one about a point millions of pixels off, its angle at
+     three decimals, which moved the folds tens of pixels */
   const still = speed
     ? rings
     : scene.folds
         .map(f => {
-          const P = 2 * f.w;
-          const turn = f.track[0].v;
-          const at = `translate(${num(f.cx)} ${num(f.cy)}) scale(${num(P, 4)}) rotate(${num(turn, 4)} ${num((scene.gx - f.cx) / P, 5)} ${num((scene.gy - f.cy) / P, 5)})`;
-          return `<circle r="${f.n + 0.5}" transform="${at}"/>`;
+          const turn = (f.track[0].v * Math.PI) / 180;
+          const dx = f.cx - scene.gx;
+          const dy = f.cy - scene.gy;
+          const x = scene.gx + dx * Math.cos(turn) - dy * Math.sin(turn);
+          const y = scene.gy + dx * Math.sin(turn) + dy * Math.cos(turn);
+          return `<circle r="${f.n + 0.5}" transform="translate(${num(x)} ${num(y)}) scale(${num(2 * f.w, 4)})"/>`;
         })
         .join("");
   defs.push(`<g id="F" fill="none" stroke-width="1">${still}</g>`);
