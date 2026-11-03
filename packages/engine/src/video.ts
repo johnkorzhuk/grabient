@@ -1,9 +1,9 @@
-/* A palette's effect as a video: the fluted glass or the blob playing whole loops, so the clip loops without a seam,
-   drawn and coded by video/video.wasm (C: the pixels of glassRenderer and blobRenderer within a level of theirs,
-   finished with the view's soft and grain as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0, and
-   minih264's H.264), in an MP4 (mp4.ts). The engine's own code says where the glass's discs and the blob's balls stand
-   in each frame; the module draws them. The caller hands over the module, compiled: a Worker imports it, a test reads
-   its file. */
+/* A palette's effect as a video: the fluted glass, the blob, the silk or the rosette playing whole loops, so the clip
+   loops without a seam, drawn and coded by video/video.wasm (C: the pixels of glassRenderer, blobRenderer, renderSilk
+   and renderRosette within a level or two of theirs, finished with the view's soft and grain as fx-finish.ts's
+   finishPixels finishes a frame, BT.709 YUV 4:2:0, and minih264's H.264), in an MP4 (mp4.ts). The engine's own code says
+   where the glass's discs, the blob's balls, the silk's folds and the rosette's petals stand in each frame; the module
+   draws them. The caller hands over the module, compiled: a Worker imports it, a test reads its file. */
 import { BLOB_DESIGN, BLOB_LOOP, blobBackdrop, blobFit, blobFrame, blobScene } from "./blob.ts";
 import { hexBytes } from "./color.ts";
 import { type EffectFinish, type EffectKind, type EffectLook, groundParts } from "./effect.ts";
@@ -14,13 +14,18 @@ import { type GlassWindow, glassCover, glassMap, glassPlan } from "./glass-rende
 import { GRAIN_SIDE, grainAlpha, grainSpeck } from "./grain.ts";
 import { type Mp4Frame, mp4 } from "./mp4.ts";
 import type { Palette } from "./palette.ts";
+import {
+  HEART_STOPS,
+  rosetteDesign,
+  rosetteGroupAt,
+  rosettePetals,
+  rosetteScene
+} from "./rosette.ts";
+import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
 import type { Size } from "./view.ts";
 
-/** The effects a clip can be drawn of: the glass and the blob, whose frames video/video.wasm draws. The others play in
-    the browser and as files, and their clips are not drawn yet. */
-export type VideoKind = "glass" | "blob";
-export const isVideoKind = (kind: EffectKind): kind is VideoKind =>
-  kind === "glass" || kind === "blob";
+/** The effects a clip can be drawn of: every one, its frames drawn by video/video.wasm. */
+export type VideoKind = EffectKind;
 
 /* The host's WebAssembly, as much of it as this names: the engine's own lib knows no host (as zip.ts declares
    TextEncoder). Every host the engine runs in has it: a Worker, a browser, Node. */
@@ -72,8 +77,17 @@ export const VIDEO_LIMITS = {
   work: 1.6e9
 } as const;
 
-/** What a pixel of a frame costs to draw and code, the glass's 1: the blob's melt and frost cost half again. */
-export const VIDEO_WEIGHT: Record<VideoKind, number> = { glass: 1, blob: 1.5 };
+/** What a pixel of a frame costs to draw and code, the glass's 1, measured against the glass frame by frame and in
+    whole clips drawn in parts as the Worker draws them (3 Nov 2026): the blob's melt and frost cost half again (1.1 to
+    1.3 measured; 1.5 keeps its clips as they were); the silk's seven bands and three dyes 1.6 to 1.8 a frame, and 2.4
+    in its clips, whose 60 seconds of a four-minute loop move each frame further, which costs the coding; the rosette's
+    petals 1.5 to 1.6. */
+export const VIDEO_WEIGHT: Record<VideoKind, number> = {
+  glass: 1,
+  blob: 1.5,
+  silk: 2.4,
+  rosette: 1.6
+};
 /** What a soft adds to a pixel's cost, by the resolution its blur runs at (videoBlur), measured as VIDEO_WEIGHT is: at
     the frame's own, about what the glass costs (0.7 to 0.95); at a half or a quarter, its passes a quarter or a
     sixteenth of that, the averaging, the reading back up and the laying over the rest (0.3 to 0.4, 0.2 to 0.35). The
@@ -93,9 +107,19 @@ export function videoWeight(effect: VideoEffect, size: Size): number {
 export const videoWork = (effect: VideoEffect, size: Size, frames: number): number =>
   size.width * size.height * frames * videoWeight(effect, size);
 
-/** A loop's seconds at speed 1. */
-export const videoLoop = (effect: Pick<VideoEffect, "kind" | "look">): number =>
-  effect.kind === "glass" ? GLASS_LOOP : BLOB_LOOP;
+/** A loop's seconds at speed 1: the rosette's by its shape (its rings' period and density). */
+export function videoLoop(effect: Pick<VideoEffect, "kind" | "look">): number {
+  switch (effect.kind) {
+    case "glass":
+      return GLASS_LOOP;
+    case "blob":
+      return BLOB_LOOP;
+    case "silk":
+      return SILK_LOOP;
+    case "rosette":
+      return rosetteDesign(effect.look.shape).loop;
+  }
+}
 
 /** The clip a speed, a rate and a duration make: one loop where no duration is asked, else as many whole loops as come
     nearest to the speed in that time (one at least), the speed nudged to fit them. A speed of 0, the effect held, is
@@ -192,7 +216,9 @@ export interface VideoQuality {
 }
 export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   glass: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
-  blob: { qp: 28, keyQp: 18, ramp: 20, effort: 9 }
+  blob: { qp: 28, keyQp: 18, ramp: 20, effort: 9 },
+  silk: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
+  rosette: { qp: 24, keyQp: 12, ramp: 20, effort: 9 }
 };
 
 /** Frame i's quantizer in a clip of n frames. */
@@ -265,6 +291,10 @@ interface VideoModule {
     b: number
   ) => number;
   blob_frame: (dots: number) => void;
+  silk_setup: (n: number, x1: number, y1: number, ux: number, uy: number, ul: number) => number;
+  silk_frame: () => void;
+  rosette_setup: (keys: number, S: number, heartIn: number, heartOut: number) => number;
+  rosette_frame: (petals: number) => void;
 }
 
 /** A drawer of one clip's frames in a fresh instance of the module: `draw(i)` draws frame i into the encoder's planes
@@ -289,7 +319,13 @@ export function videoDrawer(
   if (keepRgb && !kept) throw new Error("video: out of memory");
   const params = () => new Float64Array(m.memory.buffer, m.params(), 4096);
   const draw =
-    ask.kind === "glass" ? glassDraw(m, pixels, params, ask, plan) : blobDraw(m, params, ask, plan);
+    ask.kind === "glass"
+      ? glassDraw(m, pixels, params, ask, plan)
+      : ask.kind === "blob"
+        ? blobDraw(m, params, ask, plan)
+        : ask.kind === "silk"
+          ? silkDraw(m, params, ask, plan)
+          : rosetteDraw(m, params, ask, plan);
   finishSetup(m, params, ask, blurAs);
   const code = (i: number): Uint8Array<ArrayBuffer> => {
     const n = m.frame(i === 0 ? 1 : 0, videoQp(quality, i, plan.frames));
@@ -497,6 +533,76 @@ function blobDraw(
     const dots = blobFrame(scene, f);
     for (const [n, dot] of dots.entries()) p.set([dot.x, dot.y, dot.r, ...rgbOf(dot.color)], 6 * n);
     m.blob_frame(dots.length);
+  };
+}
+
+function silkDraw(
+  m: VideoModule,
+  params: () => Float64Array,
+  ask: VideoAsk,
+  plan: VideoPlan
+): (i: number) => void {
+  const scene = silkScene(ask.palette, { angle: ask.angle, shape: ask.look.shape }, ask.size);
+  const ux = scene.x2 - scene.x1;
+  const uy = scene.y2 - scene.y1;
+  params().set([
+    ...scene.folds.map(f => f.R),
+    ...scene.folds.map(f => 1 / f.w),
+    ...scene.valley.table,
+    ...scene.crest.table,
+    ...scene.dye.baseB,
+    ...scene.dye.shadeB,
+    ...scene.dye.liftB
+  ]);
+  if (!m.silk_setup(scene.folds.length, scene.x1, scene.y1, ux, uy, 1 / (ux * ux + uy * uy)))
+    throw new Error("video: a silk of too many folds");
+  const centres = new Float64Array(2 * scene.folds.length);
+  return i => {
+    centresAt(scene, plan.loops ? (i * plan.loops * SILK_LOOP) / plan.frames : 0, centres);
+    params().set(centres);
+    m.silk_frame();
+  };
+}
+
+function rosetteDraw(
+  m: VideoModule,
+  params: () => Float64Array,
+  ask: VideoAsk,
+  plan: VideoPlan
+): (i: number) => void {
+  const scene = rosetteScene(ask.palette, { angle: ask.angle, shape: ask.look.shape }, ask.size);
+  /* every petal any frame of the loop shows, rim first */
+  const petals = rosettePetals(scene, true);
+  const { lens, design, colors } = scene;
+  params().set([
+    lens.x0,
+    lens.x1,
+    lens.w,
+    lens.xm,
+    lens.d,
+    lens.rho,
+    lens.reach,
+    design.grad.cu,
+    design.grad.cv,
+    design.grad.ru,
+    design.grad.rv,
+    ...design.stops.map(([at]) => at),
+    ...HEART_STOPS.flat(),
+    ...colors.ground,
+    ...colors.heart,
+    ...colors.grads.flat(2)
+  ]);
+  if (!m.rosette_setup(colors.grads.length, scene.S, design.heartIn, design.heartOut))
+    throw new Error("video: out of memory");
+  return i => {
+    const tau = plan.loops ? ((i * plan.loops) % plan.frames) / plan.frames : 0;
+    const group = rosetteGroupAt(scene, tau);
+    const p = params();
+    for (const [k, petal] of petals.entries()) {
+      const turn = petal.th + group.turn;
+      p.set([petal.r * group.zoom, Math.cos(turn), Math.sin(turn), petal.key], 4 * k);
+    }
+    m.rosette_frame(petals.length);
   };
 }
 

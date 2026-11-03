@@ -290,6 +290,38 @@ describe("a palette's MP4", () => {
     expect(parts.jobs.length).toBe(0);
   });
 
+  test("draws the silk and the rosette, each its own clip", async () => {
+    const { env, keep } = world();
+    const parts = runner();
+    const tags = [];
+    for (const style of ["silk", "rosette"]) {
+      const answer = await seedMp4Answer(
+        get(`/${SEED}.mp4?style=${style}&angle=135&size=64x48&fps=10&duration=2`),
+        env,
+        keep,
+        parts.run
+      );
+      expect([answer.status, answer.headers.get("Content-Type")]).toEqual([200, "video/mp4"]);
+      expect(boxTypes(await bytes(answer))).toEqual(["ftyp", "moov", "mdat"]);
+      tags.push(answer.headers.get("ETag"));
+    }
+    expect(parts.jobs.map(job => job.kind)).toEqual(["silk", "rosette"]);
+    expect(new Set([...tags, (await etagOf(env, keep, CLIP)) ?? ""]).size).toBe(3);
+    const about = async (style: string) =>
+      (
+        await (
+          await seedMp4Answer(
+            preview(`/${SEED}.mp4?style=${style}&size=64x48&duration=2`),
+            env,
+            keep,
+            parts.run
+          )
+        ).text()
+      ).match(/<meta name="description" content="([^"]*)">/)?.[1];
+    expect(await about("silk")).toContain("silk dyed in its colors");
+    expect(await about("rosette")).toContain("a rosette of petals in its colors");
+  });
+
   test("names its soft and grain in its key, its drawing and its first frame, a clip with neither keeping its key", async () => {
     const { env, keep } = world({ off: ["videos"] });
     const parts = runner();

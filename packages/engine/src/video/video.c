@@ -1,13 +1,14 @@
 /* A palette's effect as H.264, in one module with no C library and no imports, for the Worker and the browser alike:
-   the fluted glass's and the blob's pixels (engine/glass-render.ts's glassRenderer and engine/blob.ts's blobRenderer,
-   their arithmetic in single precision and wasm SIMD, within a level of theirs), finished with the soft and the grain
-   as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn, and minih264 (CC0,
-   lieff/minih264, patched for the level, the Constrained Baseline flags and the colors' VUI; its SSE2 code through
-   emscripten's SSE headers) to code them.
+   the fluted glass's, the blob's, the silk's and the rosette's pixels (engine/glass-render.ts's glassRenderer,
+   engine/blob.ts's blobRenderer, silk-render.ts's renderSilk and rosette-render.ts's renderRosette, their arithmetic in
+   single precision and wasm SIMD, within a level of theirs), finished with the soft and the grain as fx-finish.ts's
+   finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn, and minih264 (CC0, lieff/minih264, patched
+   for the level, the Constrained Baseline flags and the colors' VUI; its SSE2 code through emscripten's SSE headers) to
+   code them.
 
-   JS says where an effect stands in each frame (the glass's discs, the blob's balls: engine code, which moves them) and
-   this draws it. One encoder an instance: create(), a setup, the finish's setups where the clip has a soft or a grain,
-   then per frame a draw and frame(). */
+   JS says where an effect stands in each frame (the glass's discs, the blob's balls, the silk's folds, the rosette's
+   petals: engine code, which moves them) and this draws it. One encoder an instance: create(), a setup, the finish's
+   setups where the clip has a soft or a grain, then per frame a draw and frame(). */
 #include <wasm_simd128.h>
 
 static int grabient_fps = 0;
@@ -349,8 +350,8 @@ static inline void keepPixels(int x, int y, int n, v128_t a0, v128_t a1, v128_t 
   }
 }
 
-/* Where a drawing's pixels go, four of two rows as `put` takes them, for an effect with no alpha of its own (the
-   glass): kept, opaque, to be finished where the clip has a soft, else to the planes. */
+/* Where a drawing's pixels go, four of two rows as `put` takes them, for an effect with no alpha of its own (the glass,
+   the silk, the rosette): kept, opaque, to be finished where the clip has a soft, else to the planes. */
 static inline v128_t opaque(v128_t p) { return wasm_f32x4_replace_lane(p, 3, 255.0f); }
 static inline void emitOpaque(int x, int y, int n, v128_t a0, v128_t a1, v128_t a2, v128_t a3, v128_t b0, v128_t b1,
                               v128_t b2, v128_t b3) {
@@ -1018,3 +1019,343 @@ void blob_frame(int nDots) {
   }
 }
 
+/* ---------------------------------------------------------------- the silk (silk-render.ts's renderSilk) */
+
+/* silk.ts's sizes: the folds at most, the dye's lookup table, the profiles' grid */
+#define SILK_FOLDS 8
+#define SILK_LUT 32
+#define SILK_PROF 65
+
+static int sN;
+/* each fold's radius and its band's inverse half-width, and the band's inner and outer radii squared */
+static float sR[SILK_FOLDS], sIw[SILK_FOLDS], sIn2[SILK_FOLDS], sOut2[SILK_FOLDS];
+/* the valley's and the crest's profiles at each grid point and the next, read in one load */
+static v128_t sProf[SILK_PROF];
+/* the dye's three rows, base, shade and lift, 0 to 255 a channel, each entry and the step to the next */
+static v128_t sBase[SILK_LUT], sShade[SILK_LUT], sLift[SILK_LUT], sBaseD[SILK_LUT], sShadeD[SILK_LUT], sLiftD[SILK_LUT];
+/* the dye's line: from (x1, y1), its direction (ux, uy) over its length squared (ul) */
+static float sX1, sY1, sUx, sUy, sUl;
+
+/* The silk's scene for the box: its `n` folds and the dye's line; params hold each fold's radius R and its band's
+   inverse half-width, then the valley's and the crest's profiles (SILK_PROF each, 0 to 1), then the dye's base,
+   shade and lift (SILK_LUT colors each, three bytes a color). */
+EXPORT(silk_setup)
+int silk_setup(int n, double x1, double y1, double ux, double uy, double ul) {
+  if (n < 0 || n > SILK_FOLDS) return 0;
+  sN = n;
+  const double *p = params;
+  for (int i = 0; i < n; i++) sR[i] = (float)*p++;
+  for (int i = 0; i < n; i++) {
+    sIw[i] = (float)*p++;
+    double w = 1 / (double)sIw[i], lo = sR[i] - w, hi = sR[i] + w;
+    sIn2[i] = (float)(lo * lo);
+    sOut2[i] = (float)(hi * hi);
+  }
+  const double *valley = p, *crest = p + SILK_PROF;
+  for (int k = 0; k < SILK_PROF; k++) {
+    int next = k + 1 < SILK_PROF ? k + 1 : k;
+    sProf[k] = wasm_f32x4_make((float)valley[k], (float)crest[k], (float)valley[next], (float)crest[next]);
+  }
+  p += 2 * SILK_PROF;
+  v128_t *rows[3] = {sBase, sShade, sLift};
+  for (int r = 0; r < 3; r++)
+    for (int k = 0; k < SILK_LUT; k++, p += 3) rows[r][k] = wasm_f32x4_make((float)p[0], (float)p[1], (float)p[2], 0);
+  for (int k = 0; k < SILK_LUT; k++) {
+    int next = k + 1 < SILK_LUT ? k + 1 : k;
+    sBaseD[k] = wasm_f32x4_sub(sBase[next], sBase[k]);
+    sShadeD[k] = wasm_f32x4_sub(sShade[next], sShade[k]);
+    sLiftD[k] = wasm_f32x4_sub(sLift[next], sLift[k]);
+  }
+  sX1 = (float)x1;
+  sY1 = (float)y1;
+  sUx = (float)ux;
+  sUy = (float)uy;
+  sUl = (float)ul;
+  return 1;
+}
+
+/* silk.ts's profileAt for four pixels at once, the valley's into v and the crest's into c: the line through the grid's
+   values at each x, 0 where x is not within -1 and 1 */
+static inline void silkProfiles(v128_t x, v128_t *v, v128_t *c) {
+  const v128_t one = wasm_f32x4_splat(1);
+  v128_t in = wasm_f32x4_lt(wasm_f32x4_abs(x), one);
+  v128_t g = wasm_f32x4_mul(wasm_f32x4_add(x, one), wasm_f32x4_splat(0.5f * (SILK_PROF - 1)));
+  g = wasm_f32x4_min(wasm_f32x4_max(g, wasm_f32x4_splat(0)), wasm_f32x4_splat(SILK_PROF - 1));
+  v128_t i = wasm_i32x4_min(wasm_i32x4_trunc_sat_f32x4(g), wasm_i32x4_splat(SILK_PROF - 2));
+  v128_t f = wasm_f32x4_sub(g, wasm_f32x4_convert_i32x4(i));
+  /* each pixel's grid point and the next, valley and crest, turned into a row of each */
+  v128_t a0 = sProf[wasm_i32x4_extract_lane(i, 0)], a1 = sProf[wasm_i32x4_extract_lane(i, 1)];
+  v128_t a2 = sProf[wasm_i32x4_extract_lane(i, 2)], a3 = sProf[wasm_i32x4_extract_lane(i, 3)];
+  v128_t t0 = wasm_i32x4_shuffle(a0, a1, 0, 4, 1, 5), t1 = wasm_i32x4_shuffle(a2, a3, 0, 4, 1, 5);
+  v128_t t2 = wasm_i32x4_shuffle(a0, a1, 2, 6, 3, 7), t3 = wasm_i32x4_shuffle(a2, a3, 2, 6, 3, 7);
+  v128_t v0 = wasm_i32x4_shuffle(t0, t1, 0, 1, 4, 5), c0 = wasm_i32x4_shuffle(t0, t1, 2, 3, 6, 7);
+  v128_t v1 = wasm_i32x4_shuffle(t2, t3, 0, 1, 4, 5), c1 = wasm_i32x4_shuffle(t2, t3, 2, 3, 6, 7);
+  *v = wasm_v128_and(wasm_f32x4_add(v0, wasm_f32x4_mul(wasm_f32x4_sub(v1, v0), f)), in);
+  *c = wasm_v128_and(wasm_f32x4_add(c0, wasm_f32x4_mul(wasm_f32x4_sub(c1, c0), f)), in);
+}
+
+/* Four pixels of a row from (x, y), the folds' centres at C: each the dye at its place along the line, under the
+   valleys' shade and the crests' lift by every band's profiles there, joined as layers are. */
+static inline void silkFour(int x, int y, const double *C, v128_t out[4]) {
+  const v128_t px = wasm_f32x4_add(wasm_f32x4_splat(x + 0.5f), wasm_f32x4_make(0, 1, 2, 3));
+  const float py = y + 0.5f;
+  const v128_t one = wasm_f32x4_splat(1);
+  /* what each pixel keeps through the valleys' and the crests' masks so far */
+  v128_t tv = one, tc = one;
+  for (int i = 0; i < sN; i++) {
+    /* in the band by the distance squared, as the player tests it, so a band that reaches none of the four costs no
+       root (at the band's very edge a profile is 0, so either side of the test there draws alike) */
+    v128_t dx = wasm_f32x4_sub(px, wasm_f32x4_splat((float)C[2 * i]));
+    float dy = py - (float)C[2 * i + 1];
+    v128_t d2 = wasm_f32x4_add(wasm_f32x4_mul(dx, dx), wasm_f32x4_splat(dy * dy));
+    v128_t in = wasm_v128_and(wasm_f32x4_gt(d2, wasm_f32x4_splat(sIn2[i])), wasm_f32x4_lt(d2, wasm_f32x4_splat(sOut2[i])));
+    if (!wasm_v128_any_true(in)) continue;
+    v128_t xb = wasm_f32x4_mul(wasm_f32x4_sub(wasm_f32x4_sqrt(d2), wasm_f32x4_splat(sR[i])), wasm_f32x4_splat(sIw[i]));
+    v128_t v, c;
+    silkProfiles(xb, &v, &c);
+    tv = wasm_f32x4_mul(tv, wasm_f32x4_sub(one, v));
+    tc = wasm_f32x4_mul(tc, wasm_f32x4_sub(one, c));
+  }
+  float V[4], Cm[4], g[4];
+  wasm_v128_store(V, wasm_f32x4_sub(one, tv));
+  wasm_v128_store(Cm, wasm_f32x4_sub(one, tc));
+  v128_t u = wasm_f32x4_mul(
+      wasm_f32x4_add(wasm_f32x4_mul(wasm_f32x4_sub(px, wasm_f32x4_splat(sX1)), wasm_f32x4_splat(sUx)),
+                     wasm_f32x4_splat((py - sY1) * sUy)),
+      wasm_f32x4_splat(sUl));
+  u = wasm_f32x4_min(wasm_f32x4_max(u, wasm_f32x4_splat(0)), one);
+  wasm_v128_store(g, wasm_f32x4_mul(u, wasm_f32x4_splat(SILK_LUT - 1)));
+  for (int l = 0; l < 4; l++) {
+    int i0 = (int)g[l];
+    if (i0 > SILK_LUT - 2) i0 = SILK_LUT - 2;
+    v128_t fr = wasm_f32x4_splat(g[l] - i0);
+    v128_t base = wasm_f32x4_add(sBase[i0], wasm_f32x4_mul(sBaseD[i0], fr));
+    v128_t shade = wasm_f32x4_add(sShade[i0], wasm_f32x4_mul(sShadeD[i0], fr));
+    v128_t lift = wasm_f32x4_add(sLift[i0], wasm_f32x4_mul(sLiftD[i0], fr));
+    v128_t m = wasm_f32x4_add(base, wasm_f32x4_mul(wasm_f32x4_sub(shade, base), wasm_f32x4_splat(V[l])));
+    out[l] = wasm_f32x4_nearest(wasm_f32x4_add(m, wasm_f32x4_mul(wasm_f32x4_sub(lift, m), wasm_f32x4_splat(Cm[l]))));
+  }
+}
+
+/* The frame into the planes: params hold the folds' centres this frame (x and y each, as silk.ts's centresAt). */
+EXPORT(silk_frame)
+void silk_frame(void) {
+  double C[2 * SILK_FOLDS];
+  for (int i = 0; i < 2 * sN; i++) C[i] = params[i];
+  v128_t a[4], b[4];
+  for (int y = 0; y < H; y += 2) {
+    int x = 0;
+    for (; x + 4 <= W; x += 4) {
+      silkFour(x, y, C, a);
+      silkFour(x, y + 1, C, b);
+      emitOpaque(x, y, 4, a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3]);
+    }
+    if (x < W) {
+      silkFour(x, y, C, a);
+      silkFour(x, y + 1, C, b);
+      emitOpaque(x, y, 2, a[0], a[1], a[0], a[1], b[0], b[1], b[0], b[1]);
+    }
+  }
+  if (fSoft) finishFrame();
+}
+
+/* ---------------------------------------------------------------- the rosette (rosette-render.ts's renderRosette) */
+
+/* rows drawn at once: the petals are laid band by band, so the colors being mixed stay small */
+#define ROSETTE_BAND 32
+#define ROSETTE_KEYS 34
+
+/* the lens in a petal's frame (rosette.ts's RosetteLens): x0, x1, half-width w, middle xm, its arcs' centres' offset d
+   and radius rho, and its reach from its anchor */
+static double rX0, rX1, rW, rXm, rD, rRho, rReach;
+/* the petal's gradient in its box (cu, cv, ru, rv), its stops' places and each key's four stops' colors, 0 to 1 */
+static float rCu, rCv, rRu, rRv, rStopAt[4], rStops[ROSETTE_KEYS * 12];
+static float rGround[3], rHeart[3], rHeartStops[8];
+static double rS, rHeartIn, rHeartOut;
+static int rKeys, rStride;
+/* the band's colors, three planes of ROSETTE_BAND rows */
+static float *rAcc;
+
+/* The rosette's scene for the box: `keys` ring gradients, the flower's scale S (px) and the heart's glow from heartIn
+   to heartOut (shares of S); params hold the lens (x0, x1, w, xm, d, rho, reach), the gradient's middle and radii
+   (cu, cv, ru, rv), its stops' places (4), the glow's stops (4 places and alphas), the ground's and the heart's
+   colors (0 to 1), then each key's four stops' colors. 1, or 0 where the memory is short. */
+EXPORT(rosette_setup)
+int rosette_setup(int keys, double S, double heartIn, double heartOut) {
+  if (keys < 1 || keys > ROSETTE_KEYS) return 0;
+  const double *p = params;
+  rX0 = p[0];
+  rX1 = p[1];
+  rW = p[2];
+  rXm = p[3];
+  rD = p[4];
+  rRho = p[5];
+  rReach = p[6];
+  rCu = (float)p[7];
+  rCv = (float)p[8];
+  rRu = (float)p[9];
+  rRv = (float)p[10];
+  for (int i = 0; i < 4; i++) rStopAt[i] = (float)p[11 + i];
+  for (int i = 0; i < 8; i++) rHeartStops[i] = (float)p[15 + i];
+  for (int i = 0; i < 3; i++) {
+    rGround[i] = (float)p[23 + i];
+    rHeart[i] = (float)p[26 + i];
+  }
+  for (int i = 0; i < keys * 12; i++) rStops[i] = (float)p[29 + i];
+  rKeys = keys;
+  rS = S;
+  rHeartIn = heartIn;
+  rHeartOut = heartOut;
+  rStride = (W + 3) & ~3;
+  rAcc = take(3 * ROSETTE_BAND * rStride * 4);
+  return rAcc ? 1 : 0;
+}
+
+/* rosette.ts's stopValue: piecewise linear by (place, value) stops, flat past either end */
+static inline float rosetteStopValue(const float *stops, float g) {
+  if (g <= stops[0]) return stops[1];
+  for (int i = 1; i < 4; i++)
+    if (g <= stops[2 * i]) return stops[2 * i - 1] + (stops[2 * i + 1] - stops[2 * i - 1]) * (g - stops[2 * i - 2]) / (stops[2 * i] - stops[2 * i - 2]);
+  return stops[7];
+}
+
+/* One petal laid over the band's rows from b0 to b1 (paintPetal): its anchor radius r and turn's cosine and sine, its
+   key; only where the lens, with its half pixel of edge, can reach a row: the two discs it is the meeting of, each
+   widened by a pixel and a half. */
+static void rosettePetal(int b0, int b1, double r, double cs, double sn, int key) {
+  double cx = W / 2.0, cy = H / 2.0;
+  double ax = cx + r * cs, ay = cy + r * sn;
+  double reach = r * rReach + 2;
+  int x0 = (int)dmax(0, __builtin_floor(ax - reach)), x1 = (int)dmin(W - 1, __builtin_ceil(ax + reach));
+  int y0 = (int)dmax(0, __builtin_floor(ay - reach)), y1 = (int)dmin(H - 1, __builtin_ceil(ay + reach));
+  if (x0 > x1 || y0 > y1) return;
+  if (y0 < b0) y0 = b0;
+  if (y1 > b1 - 1) y1 = b1 - 1;
+  if (y0 > y1) return;
+  /* the discs' centres, (xm, -d) and (xm, d) of the petal's frame, and their radius, in the box's pixels */
+  double c1x = cx + r * (rXm * cs + rD * sn), c1y = cy + r * (rXm * sn - rD * cs);
+  double c2x = cx + r * (rXm * cs - rD * sn), c2y = cy + r * (rXm * sn + rD * cs);
+  double rr = r * rRho + 1.5;
+  const float inv = (float)(1 / r), rf = (float)r;
+  const float fcx = (float)cx, fcs = (float)cs, fsn = (float)sn;
+  const float xm = (float)rXm, dd = (float)rD, rho = (float)rRho, lx0 = (float)rX0;
+  const float du = (float)(1 / (rX1 - rX0)), w = (float)rW, dv = (float)(1 / (2 * rW));
+  const float *st = rStops + 12 * key;
+  /* the stops' colors as steps from one to the next, and each step's span's inverse */
+  v128_t s01 = wasm_f32x4_splat(1 / (rStopAt[1] - rStopAt[0])), s12 = wasm_f32x4_splat(1 / (rStopAt[2] - rStopAt[1]));
+  v128_t s23 = wasm_f32x4_splat(1 / (rStopAt[3] - rStopAt[2]));
+  const v128_t zero = wasm_f32x4_splat(0), one = wasm_f32x4_splat(1);
+  for (int y = y0; y <= y1; y++) {
+    double py = y + 0.5;
+    double e1 = rr * rr - (py - c1y) * (py - c1y), e2 = rr * rr - (py - c2y) * (py - c2y);
+    if (e1 <= 0 || e2 <= 0) continue;
+    double h1 = __builtin_sqrt(e1), h2 = __builtin_sqrt(e2);
+    double lo = dmax(c1x - h1, c2x - h2), hi = dmin(c1x + h1, c2x + h2);
+    if (lo > hi) continue;
+    int xa = (int)dmax(x0, __builtin_floor(lo - 0.5)), xb = (int)dmin(x1, __builtin_ceil(hi - 0.5));
+    if (xa > xb) continue;
+    float *R = rAcc + (y - b0) * rStride, *G = R + ROSETTE_BAND * rStride, *B = G + ROSETTE_BAND * rStride;
+    const float dy = (float)(py - cy);
+    for (int x = xa & ~3; x <= xb; x += 4) {
+      v128_t px = wasm_f32x4_add(wasm_f32x4_splat(x + 0.5f), wasm_f32x4_make(0, 1, 2, 3));
+      v128_t dx = wasm_f32x4_sub(px, wasm_f32x4_splat(fcx));
+      /* into the petal's frame: the heart at the origin, the anchor at (1, 0) */
+      v128_t qx = wasm_f32x4_mul(wasm_f32x4_add(wasm_f32x4_mul(dx, wasm_f32x4_splat(fcs)), wasm_f32x4_splat(dy * fsn)),
+                                 wasm_f32x4_splat(inv));
+      v128_t qy = wasm_f32x4_mul(wasm_f32x4_sub(wasm_f32x4_splat(dy * fcs), wasm_f32x4_mul(dx, wasm_f32x4_splat(fsn))),
+                                 wasm_f32x4_splat(inv));
+      v128_t lx = wasm_f32x4_sub(qx, wasm_f32x4_splat(xm));
+      v128_t ly = wasm_f32x4_add(wasm_f32x4_abs(qy), wasm_f32x4_splat(dd));
+      v128_t sd = wasm_f32x4_sub(wasm_f32x4_sqrt(wasm_f32x4_add(wasm_f32x4_mul(lx, lx), wasm_f32x4_mul(ly, ly))),
+                                 wasm_f32x4_splat(rho));
+      v128_t cov = wasm_f32x4_min(one, wasm_f32x4_max(zero, wasm_f32x4_sub(wasm_f32x4_splat(0.5f),
+                                                                           wasm_f32x4_mul(sd, wasm_f32x4_splat(rf)))));
+      /* only the pixels of the row's reach */
+      v128_t lane = wasm_i32x4_add(wasm_i32x4_splat(x), wasm_i32x4_make(0, 1, 2, 3));
+      v128_t inside = wasm_v128_and(wasm_i32x4_ge(lane, wasm_i32x4_splat(xa)), wasm_i32x4_le(lane, wasm_i32x4_splat(xb)));
+      cov = wasm_v128_and(cov, inside);
+      if (!wasm_v128_any_true(wasm_f32x4_gt(cov, zero))) continue;
+      /* the gradient's place in the lens's box, and its color there */
+      v128_t gu = wasm_f32x4_mul(wasm_f32x4_sub(wasm_f32x4_mul(wasm_f32x4_sub(qx, wasm_f32x4_splat(lx0)), wasm_f32x4_splat(du)),
+                                                wasm_f32x4_splat(rCu)),
+                                 wasm_f32x4_splat(1 / rRu));
+      v128_t gv = wasm_f32x4_mul(wasm_f32x4_sub(wasm_f32x4_mul(wasm_f32x4_add(qy, wasm_f32x4_splat(w)), wasm_f32x4_splat(dv)),
+                                                wasm_f32x4_splat(rCv)),
+                                 wasm_f32x4_splat(1 / rRv));
+      v128_t g = wasm_f32x4_sqrt(wasm_f32x4_add(wasm_f32x4_mul(gu, gu), wasm_f32x4_mul(gv, gv)));
+      v128_t f01 = wasm_f32x4_min(one, wasm_f32x4_max(zero, wasm_f32x4_mul(wasm_f32x4_sub(g, wasm_f32x4_splat(rStopAt[0])), s01)));
+      v128_t f12 = wasm_f32x4_min(one, wasm_f32x4_max(zero, wasm_f32x4_mul(wasm_f32x4_sub(g, wasm_f32x4_splat(rStopAt[1])), s12)));
+      v128_t f23 = wasm_f32x4_min(one, wasm_f32x4_max(zero, wasm_f32x4_mul(wasm_f32x4_sub(g, wasm_f32x4_splat(rStopAt[2])), s23)));
+      float *plane[3] = {R + x, G + x, B + x};
+      for (int c = 0; c < 3; c++) {
+        v128_t col = wasm_f32x4_add(
+            wasm_f32x4_add(wasm_f32x4_splat(st[c]), wasm_f32x4_mul(f01, wasm_f32x4_splat(st[3 + c] - st[c]))),
+            wasm_f32x4_add(wasm_f32x4_mul(f12, wasm_f32x4_splat(st[6 + c] - st[3 + c])),
+                           wasm_f32x4_mul(f23, wasm_f32x4_splat(st[9 + c] - st[6 + c]))));
+        v128_t acc = wasm_v128_load(plane[c]);
+        wasm_v128_store(plane[c], wasm_f32x4_add(acc, wasm_f32x4_mul(wasm_f32x4_sub(col, acc), cov)));
+      }
+    }
+  }
+}
+
+/* The frame into the planes: params hold the petals, rim first, each its anchor radius this frame (px), its turn's
+   cosine and sine and its key; laid band by band over the ground, the heart's glow over them. */
+EXPORT(rosette_frame)
+void rosette_frame(int petals) {
+  double cx = W / 2.0, cy = H / 2.0, r1 = rHeartOut * rS;
+  int hy0 = (int)dmax(0, __builtin_floor(cy - r1 - 1)), hy1 = (int)dmin(H - 1, __builtin_ceil(cy + r1 + 1));
+  int hx0 = (int)dmax(0, __builtin_floor(cx - r1 - 1)), hx1 = (int)dmin(W - 1, __builtin_ceil(cx + r1 + 1));
+  for (int b0 = 0; b0 < H; b0 += ROSETTE_BAND) {
+    int b1 = b0 + ROSETTE_BAND < H ? b0 + ROSETTE_BAND : H;
+    float *R = rAcc, *G = R + ROSETTE_BAND * rStride, *B = G + ROSETTE_BAND * rStride;
+    for (int i = 0; i < (b1 - b0) * rStride; i++) {
+      R[i] = rGround[0];
+      G[i] = rGround[1];
+      B[i] = rGround[2];
+    }
+    for (int k = 0; k < petals; k++) {
+      const double *p = params + 4 * k;
+      rosettePetal(b0, b1, p[0], p[1], p[2], (int)p[3]);
+    }
+    /* the heart's glow */
+    for (int y = hy0 > b0 ? hy0 : b0; y <= hy1 && y < b1; y++) {
+      double dy = y + 0.5 - cy;
+      for (int x = hx0; x <= hx1; x++) {
+        double dx = x + 0.5 - cx;
+        double hr = __builtin_sqrt(dx * dx + dy * dy) / rS;
+        if (hr >= rHeartOut) continue;
+        float a = hr <= rHeartIn ? 1 : rosetteStopValue(rHeartStops, (float)((hr - rHeartIn) / (rHeartOut - rHeartIn)));
+        int at = (y - b0) * rStride + x;
+        R[at] += (rHeart[0] - R[at]) * a;
+        G[at] += (rHeart[1] - G[at]) * a;
+        B[at] += (rHeart[2] - B[at]) * a;
+      }
+    }
+    /* the band's rows, two at a time, as pixels */
+    const v128_t byte = wasm_f32x4_splat(255), zero = wasm_f32x4_splat(0);
+    for (int y = b0; y < b1; y += 2) {
+      const float *r0 = R + (y - b0) * rStride, *g0 = G + (y - b0) * rStride, *bl0 = B + (y - b0) * rStride;
+      for (int x = 0; x < W; x += 4) {
+        v128_t q[8];
+        for (int row = 0; row < 2; row++) {
+          int o = row * rStride + x;
+          v128_t rv = wasm_f32x4_nearest(wasm_f32x4_mul(wasm_v128_load(r0 + o), byte));
+          v128_t gv = wasm_f32x4_nearest(wasm_f32x4_mul(wasm_v128_load(g0 + o), byte));
+          v128_t bv = wasm_f32x4_nearest(wasm_f32x4_mul(wasm_v128_load(bl0 + o), byte));
+          v128_t t0 = wasm_i32x4_shuffle(rv, gv, 0, 4, 1, 5), t1 = wasm_i32x4_shuffle(bv, zero, 0, 4, 1, 5);
+          v128_t t2 = wasm_i32x4_shuffle(rv, gv, 2, 6, 3, 7), t3 = wasm_i32x4_shuffle(bv, zero, 2, 6, 3, 7);
+          q[4 * row] = wasm_i32x4_shuffle(t0, t1, 0, 1, 4, 5);
+          q[4 * row + 1] = wasm_i32x4_shuffle(t0, t1, 2, 3, 6, 7);
+          q[4 * row + 2] = wasm_i32x4_shuffle(t2, t3, 0, 1, 4, 5);
+          q[4 * row + 3] = wasm_i32x4_shuffle(t2, t3, 2, 3, 6, 7);
+        }
+        if (x + 4 <= W)
+          emitOpaque(x, y, 4, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);
+        else
+          emitOpaque(x, y, 2, q[0], q[1], q[0], q[1], q[4], q[5], q[4], q[5]);
+      }
+    }
+  }
+  if (fSoft) finishFrame();
+}

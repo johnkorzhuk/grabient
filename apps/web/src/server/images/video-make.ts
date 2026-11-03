@@ -11,6 +11,7 @@
 
 import type { Mp4Frame } from "@grabient/engine/mp4.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
+import type { VideoKind } from "@grabient/engine/video.ts";
 import type { Size } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff, pausedBy } from "@grabient/server/flags/flags.ts";
@@ -289,6 +290,16 @@ async function previewPlays(
   return true;
 }
 
+/** What a posted link's page says its clip shows. */
+const ABOUT: Record<VideoKind, string> = {
+  glass:
+    "A looping video of a Grabient palette: fluted glass with its colors drifting behind the ribs.",
+  blob: "A looping video of a Grabient palette: a frosted blob of its colors, drifting.",
+  silk: "A looping video of a Grabient palette: silk dyed in its colors, its folds swaying.",
+  rosette:
+    "A looping video of a Grabient palette: a rosette of petals in its colors, rippling out from the heart."
+};
+
 const attribute = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -341,9 +352,6 @@ export async function previewAnswer(
     poster: page.poster,
     size: clip.size,
     title: `${readingName(readPalette(clip.job.palette))} · Grabient`,
-    about:
-      clip.job.kind === "glass"
-        ? "A looping video of a Grabient palette: fluted glass with its colors drifting behind the ribs."
-        : "A looping video of a Grabient palette: a frosted blob of its colors, drifting."
+    about: ABOUT[clip.job.kind]
   });
 }

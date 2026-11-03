@@ -8,6 +8,10 @@ import { GLASS_LOOP, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { glassCover, glassRenderer } from "./glass-render.ts";
 import { mp4 } from "./mp4.ts";
+import { rosetteDesign, rosetteScene } from "./rosette.ts";
+import { renderRosette } from "./rosette-render.ts";
+import { SILK_LOOP, silkScene } from "./silk.ts";
+import { renderSilk } from "./silk-render.ts";
 import {
   VIDEO_LIMITS,
   VIDEO_QUALITY,
@@ -21,6 +25,7 @@ import {
   videoDuration,
   videoFit,
   videoFrames,
+  videoLoop,
   videoParts,
   videoPlan,
   videoQp,
@@ -206,8 +211,33 @@ describe("the module's frames", () => {
     }
   });
 
+  it("are the silk's and the rosette's, as renderSilk and renderRosette draw them", () => {
+    for (const [size, angle, shape] of [
+      [{ width: 160, height: 90 }, 135, null],
+      [{ width: 96, height: 128 }, 20, 417]
+    ] as const) {
+      const silk: VideoAsk = {
+        kind: "silk",
+        palette,
+        look: { ...look, shape },
+        angle,
+        size,
+        fps: 30
+      };
+      const scene = silkScene(palette, { angle, shape }, size);
+      const woven = compare(silk, (i, n) => renderSilk(scene, (i * SILK_LOOP) / n), 4);
+      expect(woven.worst).toBeLessThanOrEqual(1);
+      expect(woven.share).toBeLessThan(0.001);
+      const rosette: VideoAsk = { ...silk, kind: "rosette" };
+      const flower = rosetteScene(palette, { angle, shape }, size);
+      const grown = compare(rosette, (i, n) => renderRosette(flower, i / n), 4);
+      expect(grown.worst).toBeLessThanOrEqual(1);
+      expect(grown.share).toBeLessThan(0.001);
+    }
+  });
+
   it("loop: the frame a loop on is the first", () => {
-    for (const kind of ["glass", "blob"] as const) {
+    for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
       const ask: VideoAsk = {
         kind,
         palette,
@@ -251,11 +281,17 @@ function finished(ask: VideoAsk, plan: VideoPlan, i: number): Uint8Array {
       ),
       4
     );
-  } else {
+  } else if (kind === "blob") {
     const frame = blobRenderer(P, shown, size).frame(
       ((i * plan.loops) % plan.frames) / plan.frames
     );
     rgba = frame.length === n * 4 ? frame : opaque(frame, 3);
+  } else if (kind === "silk") {
+    const scene = silkScene(P, { angle, shape: shown.shape }, size);
+    rgba = opaque(renderSilk(scene, (i * plan.loops * SILK_LOOP) / plan.frames), 4);
+  } else {
+    const scene = rosetteScene(P, { angle, shape: shown.shape }, size);
+    rgba = opaque(renderRosette(scene, ((i * plan.loops) % plan.frames) / plan.frames), 4);
   }
   const finish = ask.finish ?? {};
   const done = finishPixels(rgba, size, finish, effectUnderlay(P, ask, angle, finish.soft));
@@ -294,7 +330,9 @@ describe("a clip's soft and grain", () => {
     ["glass", look],
     ["blob", look],
     ["blob", { shape: 3, frost: 2, bg: "#ffeeddaa" }],
-    ["blob", { shape: 999, frost: 0, bg: "#102030" }]
+    ["blob", { shape: 999, frost: 0, bg: "#102030" }],
+    ["silk", { ...look, shape: 417 }],
+    ["rosette", look]
   ];
 
   it("are the site's, as finishPixels finishes a frame: the grain alone within a level nearly everywhere", () => {
@@ -368,6 +406,28 @@ describe("videoBlur", () => {
   });
 });
 
+describe("the silk's and the rosette's clips", () => {
+  it("play a loop of their design: the rosette's by its shape", () => {
+    expect(videoLoop({ kind: "silk", look })).toBe(SILK_LOOP);
+    expect(videoLoop({ kind: "rosette", look })).toBe(rosetteDesign(null).loop);
+    expect(videoLoop({ kind: "rosette", look: { ...look, shape: 417 } })).toBe(
+      rosetteDesign(417).loop
+    );
+    expect(videoLoop({ kind: "rosette", look: { ...look, shape: 417 } })).not.toBe(
+      rosetteDesign(null).loop
+    );
+  });
+
+  it("fit a loop longer than the longest clip into it, and the work into its limit", () => {
+    const silk = { kind: "silk", look } as const;
+    const fit = videoFit(silk, 1, 60, null, { width: 1080, height: 1080 });
+    expect(fit.plan.seconds).toBe(VIDEO_LIMITS.seconds);
+    expect(fit.plan.loops).toBe(1);
+    expect(fit.plan.speed).toBeCloseTo(SILK_LOOP / VIDEO_LIMITS.seconds, 6);
+    expect(videoWork(silk, fit.size, fit.plan.frames)).toBeLessThanOrEqual(VIDEO_LIMITS.work);
+  });
+});
+
 describe("videoFit with a soft", () => {
   it("weighs the soft's blur into the work, at the size the clip is drawn at", () => {
     const plain = videoFit(glass, 2.45, 60, null, { width: 1080, height: 1080 });
@@ -407,7 +467,7 @@ describe("videoFrames", () => {
   });
 
   it("draws a soft, grained clip of each effect in parts as the same stream it draws whole", () => {
-    for (const kind of ["glass", "blob"] as const) {
+    for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
       for (const finish of [{ soft: 100, grain: 30 }, { soft: 60 }]) {
         const ask: VideoAsk = {
           kind,

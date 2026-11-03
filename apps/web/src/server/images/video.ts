@@ -1,7 +1,8 @@
-/* A palette's effect as an MP4, /{seed}.mp4?style=glass|blob: whole loops of the fluted glass or the blob, so a player
-   that repeats it shows no seam, with the effect's address (the glass's angle, the soft and the grain, speed, fps,
-   shape, frost, bg), its size (`w` and `h` or `size`, as its PNG reads them) and `duration` in seconds, the speed
-   nudged so whole loops fill it (engine/video.ts). An address that names no style plays the glass, as a page does.
+/* A palette's effect as an MP4, /{seed}.mp4?style=glass|blob|silk|rosette: whole loops of the fluted glass, the blob,
+   the silk or the rosette, so a player that repeats it shows no seam, with the effect's address (its angle, the soft
+   and the grain, speed, fps, shape, frost, bg), its size (`w` and `h` or `size`, as its PNG reads them) and
+   `duration` in seconds, the speed nudged so whole loops fill it (engine/video.ts). An address that names no style
+   plays the glass, as a page does.
 
    A clip is drawn once and kept in R2 under videos/, its key every part of the address that moves its pixels, and
    answered from there to every player, a part of it to a player that asks for a range (Safari asks for nothing else).
@@ -46,8 +47,8 @@ import type { VideoPartDrawn, VideoPartJob } from "./video-draw.ts";
 export type VideoPartRunner = (job: VideoPartJob) => Promise<VideoPartDrawn>;
 
 /** The clips' drawing and coding, counted up by a change that moves their pixels or their bytes (engine/glass.ts,
-    glass-render.ts, blob.ts, fx-finish.ts, video.ts, video/video.c), so no clip coded before is answered for it; the
-    coding's numbers (VIDEO_QUALITY) are in the key besides. */
+    glass-render.ts, blob.ts, silk.ts, rosette.ts, fx-finish.ts, video.ts, video/video.c), so no clip coded before is
+    answered for it; the coding's numbers (VIDEO_QUALITY) are in the key besides. */
 export const VIDEO_DRAWING = "video-1";
 
 /** The most one part draws, its pixels across its frames weighed by its effect (engine/video.ts's videoWork): about
@@ -157,9 +158,11 @@ export async function seedMp4Answer(
   const params = addressParams(url.searchParams);
   if (!params.has("style")) params.set("style", "glass");
   const effect = parseEffect(params);
-  /* the silk's and the rosette's clips are not drawn yet (engine/video.ts's VideoKind) */
-  if (!effect || (effect.kind !== "glass" && effect.kind !== "blob")) {
-    return failure(404, "An MP4 plays the fluted glass or the blob: style=glass or style=blob.");
+  if (!effect) {
+    return failure(
+      404,
+      "An MP4 plays an effect: style=glass, style=blob, style=silk or style=rosette."
+    );
   }
   const kind = effect.kind;
   const view = viewAt(params, found.palette.anchors.length);
