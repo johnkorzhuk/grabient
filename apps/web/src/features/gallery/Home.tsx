@@ -229,7 +229,7 @@ export function Home(props: { params: ListParams }) {
   /* when the head's counts were read: the account's own answer is as fresh as it is */
   const headReadAt = () => (found.items() ? undefined : standingHead()?.fetchedAt);
   const searched = createMemo(() =>
-    searchedTitle(words(), made(), params(), look.draft(), look.peek())
+    searchedTitle(words(), made(), params(), look.draft(), look.peek(), look.peekedEffect())
   );
   /* reads that failed with no connection are said in the head's place, and made again as the connection returns */
   const headUnread = createOfflineList({

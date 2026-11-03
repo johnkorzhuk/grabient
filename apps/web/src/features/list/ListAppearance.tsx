@@ -71,6 +71,8 @@ const kept: { steps: ListView["steps"]; effects: Partial<Record<EffectKind, Effe
   steps: "auto",
   effects: {}
 };
+/* each effect as it first plays, one object a kind, so a preview of it again draws no card anew */
+const fresh: Partial<Record<EffectKind, Effect>> = {};
 
 export function ListAppearance() {
   const look = useContext(AppearanceContext)!;
@@ -172,15 +174,42 @@ export function ListAppearance() {
       v.effect !== null
     );
   };
-  const reset = () => {
+  /* the effect an effect's tile plays: the list's own where it plays that kind, else the one it last played of it */
+  const effectOf = (kind: EffectKind): Effect => {
+    const effect = view().effect;
+    if (effect?.kind === kind) return effect;
+    const was = kept.effects[kind];
+    if (was) return was;
+    fresh[kind] ??= { kind, ...EFFECT_PLAY, look: EFFECT_LOOK };
+    return fresh[kind];
+  };
+  /* the effect's tile the pointer or the keyboard rests on, whose preview starts once its cards can draw it */
+  let resting: EffectKind | null = null;
+  const peekStyle = (style: Style | null) => {
+    resting = null;
+    look.setPeek(style);
+  };
+  const peekEffect = (kind: EffectKind) => {
     look.setPeek(null);
+    resting = kind;
+    void import("./card-effect.tsx")
+      .then(m => m.readyCardEffects(kind))
+      .then(
+        () => {
+          if (resting === kind) look.peekEffect(effectOf(kind));
+        },
+        () => {}
+      );
+  };
+  const reset = () => {
+    peekStyle(null);
     kept.steps = "auto";
     kept.effects = {};
     go({ style: "auto", steps: "auto", angle: "auto", soft: 0, grain: 0, effect: null });
   };
   /* a style chosen leaves the effect, and gives back the steps it took the place of */
   const chooseStyle = (style: ListView["style"]) => {
-    look.setPeek(null);
+    peekStyle(null);
     const playing = view().effect;
     if (!playing) return go({ style });
     kept.effects[playing.kind] = playing;
@@ -231,7 +260,7 @@ export function ListAppearance() {
   };
   /* the effect the cards show, and the page's first palette playing it in its own shape, or until the page has one
      the resting colors': the header's swatch and the effects' tiles, each made once and following what it shows */
-  const playing = () => shownEffect(view(), look.draft(), look.peek());
+  const playing = () => shownEffect(view(), look.draft(), look.peek(), look.peekedEffect());
   const still = (effect: () => Effect | null, gpu?: boolean) => (
     <Show
       when={(() => {
@@ -261,12 +290,7 @@ export function ListAppearance() {
     label: effectLabel(kind),
     get art() {
       return still(
-        () => {
-          const effect = view().effect;
-          return effect?.kind === kind
-            ? effect
-            : (kept.effects[kind] ?? { kind, ...EFFECT_PLAY, look: EFFECT_LOOK });
-        },
+        () => effectOf(kind),
         /* the GPU's still only where the page plays the glass, whose context its cards made already */
         untrack(view).effect?.kind === "glass"
       );
@@ -274,12 +298,12 @@ export function ListAppearance() {
     get chosen() {
       return view().effect?.kind === kind;
     },
-    onChoose: () => chooseEffect(kind),
-    /* resting on it lets a style's preview go, and makes the cards' pictures of it ready */
-    onPeek: () => {
-      look.setPeek(null);
-      void import("./card-effect.tsx").then(m => m.preloadCardEffects(kind));
-    }
+    onChoose: () => {
+      peekStyle(null);
+      chooseEffect(kind);
+    },
+    /* resting on it plays it on the cards in sight, as the editor's stage plays it, once their pictures of it are ready */
+    onPeek: () => peekEffect(kind)
   }));
   /* a field's value goes to the cards as the address keeps it: a step of 0.05 from 1 is 0.95, not 0.9500000000000001 */
   const fields = () => (
@@ -319,7 +343,7 @@ export function ListAppearance() {
     return parts.join(" · ");
   };
   const close = () => {
-    look.setPeek(null);
+    peekStyle(null);
     settle();
     setOpen(false);
   };
@@ -351,7 +375,7 @@ export function ListAppearance() {
     onAngle: angle => change({ angle }),
     onSoft: soft => change({ soft }),
     onGrain: grain => change({ grain }),
-    onPeek: look.setPeek,
+    onPeek: peekStyle,
     get onReset() {
       return chosen() ? reset : undefined;
     },
@@ -371,7 +395,7 @@ export function ListAppearance() {
       onToggle={() => {
         if (open()) close();
         else {
-          look.setPeek(null);
+          peekStyle(null);
           /* the effects' tiles and both stills' code, so the tiles are painted as the menu shows */
           void import("./ListEffects.tsx").then(
             m => m.preloadStills(),

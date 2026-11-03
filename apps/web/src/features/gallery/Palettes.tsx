@@ -321,7 +321,7 @@ export function Palettes(props: { place: ListPlace }) {
   };
   /* a palette searched by stands in the title as the card it would be, leading to its page */
   const searched = createMemo(() =>
-    searchedTitle(words(), made(), params(), look.draft(), look.peek())
+    searchedTitle(words(), made(), params(), look.draft(), look.peek(), look.peekedEffect())
   );
   const feedTitle = () =>
     t(

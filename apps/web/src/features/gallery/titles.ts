@@ -1,4 +1,5 @@
 import { decodePalette } from "@grabient/engine";
+import type { Effect } from "@grabient/engine/effect.ts";
 import { DEFAULT_STEPS, DEFAULT_STYLE, type Style } from "@grabient/engine/view.ts";
 import type { Page } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
@@ -50,7 +51,8 @@ export function searchedTitle(
   made: readonly PaletteItem[],
   params: ListParams,
   draft: ViewDraft | null,
-  peek: Style | null
+  peek: Style | null,
+  peeked: Effect | null = null
 ): SearchedPalette | null {
   const item =
     words && searchedName(words)
@@ -59,7 +61,7 @@ export function searchedTitle(
   if (!item) return null;
   const shown = drawnIn(ownOf(item), params);
   const drawn = picturedAs(ownOf(item), params, draft, peek);
-  const effect = shownEffect(params, draft, peek);
+  const effect = shownEffect(params, draft, peek, peeked);
   return {
     seed: item.kseed,
     stops: hexesOf(drawn),

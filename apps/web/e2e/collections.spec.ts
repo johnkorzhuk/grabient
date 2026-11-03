@@ -721,6 +721,24 @@ test("a reader's votes on a collection that could not be read are read again whe
   await expect(good).toHaveAttribute("aria-pressed", "true");
 });
 
+test("a collection's cards play an effect its menu's tile rests on, and give their gradients back as it closes", async ({
+  page
+}) => {
+  await signIn(page, "ada", false, [blues]);
+  await page.goto("/@e2e-ada/my-blues");
+  await live(page);
+  const first = page.locator("main article").first().getByRole("img").first();
+  const before = await first.getAttribute("aria-label");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Rosette", exact: true }).hover();
+  await expect(first).toHaveAccessibleName(/, Rosette$/);
+  await page.getByRole("button", { name: "Papercut", exact: true }).hover();
+  await expect(first).toHaveAccessibleName(/, Papercut$/);
+  await page.keyboard.press("Escape");
+  await expect(first).toHaveAccessibleName(before ?? "");
+  await expect(page).toHaveURL(/\/@e2e-ada\/my-blues$/);
+});
+
 test("a palette removed with the keyboard leaves the focus on its Undo, which gives it back", async ({
   page
 }) => {

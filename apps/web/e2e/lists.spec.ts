@@ -373,6 +373,30 @@ test("a list plays the effect chosen in its menu, paints its stills from the fir
   expect(reports).toEqual([]);
 });
 
+test("an effect's tile rested on in a list's menu plays it on the cards in sight, as the editor's stage does, and lets it go", async ({
+  page
+}) => {
+  const reports = reported(page);
+  await page.goto("/palettes");
+  await live(page);
+  const first = page.locator("main article").first().getByRole("img").first();
+  const before = await first.getAttribute("aria-label");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  for (const name of ["Fluted glass", "Blob", "Silk", "Rosette", "Papercut"]) {
+    await page.getByRole("button", { name, exact: true }).hover();
+    await expect(first).toHaveAccessibleName(new RegExp(`, ${name}$`));
+  }
+  /* a style's tile takes the preview's place, and the menu closed lets every preview go; the address never moved */
+  await page.getByRole("button", { name: "Radial bands", exact: true }).hover();
+  await expect(first).toHaveAccessibleName(/ swatches$/);
+  await page.getByRole("button", { name: "Silk", exact: true }).hover();
+  await expect(first).toHaveAccessibleName(/, Silk$/);
+  await page.keyboard.press("Escape");
+  await expect(first).toHaveAccessibleName(before ?? "");
+  await expect(page).toHaveURL(/\/palettes$/);
+  expect(reports).toEqual([]);
+});
+
 test("a card opens the editor's glass for a reader whose own choice is the gradient", async ({
   page
 }) => {

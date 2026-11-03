@@ -87,7 +87,11 @@ export function GalleryCard(props: {
   const effect = createCardEffect({
     seed,
     angle: () => picture().angle,
-    effect: () => shownEffect(page.params(), sight.inSight() ? look.draft() : null, null),
+    /* a card in sight plays an effect previewed in the menu, as it plays a draft */
+    effect: () =>
+      sight.inSight()
+        ? shownEffect(page.params(), look.draft(), null, look.peekedEffect())
+        : shownEffect(page.params(), null, null),
     own: () => (page.params().effect ? null : plays()),
     peek: () => sight.inSight() && look.peek() !== null,
     name

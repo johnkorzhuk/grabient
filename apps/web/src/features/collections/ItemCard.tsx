@@ -96,7 +96,11 @@ export function ItemCard(props: {
   const effect = createCardEffect({
     seed,
     angle: () => picture().angle,
-    effect: () => shownEffect(props.view, sight.inSight() ? look.draft() : null, null),
+    /* a card in sight plays an effect previewed in the menu, as it plays a draft */
+    effect: () =>
+      sight.inSight()
+        ? shownEffect(props.view, look.draft(), null, look.peekedEffect())
+        : shownEffect(props.view, null, null),
     own: () => (props.view.effect ? null : plays()),
     peek: () => sight.inSight() && look.peek() !== null,
     name

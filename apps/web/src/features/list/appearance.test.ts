@@ -1,9 +1,11 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { blobShapeOf, EFFECT_LOOK, type Effect } from "@grabient/engine/effect.ts";
+import { flush } from "solid-js";
 import { expect, test } from "vitest";
 import {
   AS_SAVED,
   cardEffect,
+  createAppearance,
   drawnIn,
   inOrder,
   inView,
@@ -11,6 +13,7 @@ import {
   listViewOf,
   lookFinish,
   readListView,
+  shownEffect,
   viewOver,
   viewParams,
   viewSince
@@ -250,4 +253,25 @@ test("an effect a field steps to is read back as the address keeps it", () => {
     speed: 0.45,
     look: { ...EFFECT_LOOK, frost: 0.95 }
   });
+});
+
+test("an effect's tile rested on plays the effect on the cards over the view's, and a style's preview takes its place", () => {
+  const silk: Effect = { kind: "silk", speed: 1, fps: 60, look: EFFECT_LOOK };
+  const glass: Effect = { kind: "glass", speed: 1, fps: 60, look: EFFECT_LOOK };
+  const view = { ...AS_SAVED, effect: glass };
+  expect(shownEffect(view, null, null, silk)).toBe(silk);
+  expect(shownEffect(view, { effect: null }, null, silk)).toBe(silk);
+  expect(shownEffect(view, null, "radialGradient", silk)).toBeNull();
+  expect(shownEffect(view, null, null)).toBe(glass);
+  const look = createAppearance(() => null);
+  look.peekEffect(silk);
+  flush();
+  expect([look.peek(), look.peekedEffect()]).toEqual([null, silk]);
+  look.setPeek("radialSwatches");
+  flush();
+  expect([look.peek(), look.peekedEffect()]).toEqual(["radialSwatches", null]);
+  look.peekEffect(silk);
+  look.setPeek(null);
+  flush();
+  expect([look.peek(), look.peekedEffect()]).toEqual([null, null]);
 });

@@ -266,20 +266,32 @@ export const effectsReady = (view: ListView): Promise<void> =>
     finishReady(view)
   ]).then(() => {});
 
-/** The effect a list's cards show: the view's, a draft's over it, and none while a gradient's style is previewed. */
+/** The effect a list's cards show: the view's, a draft's over it, an effect previewed over both (`peeked`), and none
+    while a gradient's style is previewed. */
 export const shownEffect = (
   view: ListView,
   draft: ViewDraft | null,
-  peek: Style | null
+  peek: Style | null,
+  peeked: Effect | null = null
 ): Effect | null =>
-  peek ? null : draft && "effect" in draft ? (draft.effect ?? null) : view.effect;
+  peek ? null : (peeked ?? (draft && "effect" in draft ? (draft.effect ?? null) : view.effect));
 
-/** The peek and the draft the frame holds for the page's cards, and the page's first palette for the control's
-    swatch. */
+/** The peeks and the draft the frame holds for the page's cards, and the page's first palette for the control's
+    swatch. A style's tile rested on previews the style (`peek`), an effect's the effect (`peekedEffect`), as the
+    editor's stage previews them; one lets the other go, and `setPeek(null)` lets both go. */
 export function createAppearance(first: Accessor<Drawn | null>) {
-  const [peek, setPeek] = createSignal<Style | null>(null);
+  const [peek, setStyle] = createSignal<Style | null>(null);
+  const [peekedEffect, setEffect] = createSignal<Effect | null>(null);
   const [draft, setDraft] = createSignal<ViewDraft | null>(null);
-  return { first, peek, setPeek, draft, setDraft };
+  const setPeek = (style: Style | null) => {
+    setEffect(null);
+    setStyle(style);
+  };
+  const peekEffect = (effect: Effect | null) => {
+    setStyle(null);
+    setEffect(effect);
+  };
+  return { first, peek, setPeek, peekedEffect, peekEffect, draft, setDraft };
 }
 export const AppearanceContext = createContext<ReturnType<typeof createAppearance>>();
 
