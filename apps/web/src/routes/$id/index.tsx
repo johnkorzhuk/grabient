@@ -71,8 +71,11 @@ export const Route = createFileRoute("/$id/")({
                   import("../../features/editor/BlobArt.tsx")
                 ])
               : null,
-            /* and the silk's or the rosette's, where the address names one (features/editor/fx-draw.ts, FxLayer.tsx) */
-            /^(silk|rosette)$/.test(new URLSearchParams(location.searchStr).get("style") ?? "")
+            /* and the silk's, the rosette's or the papercut's, where the address names one (features/editor/fx-draw.ts,
+               FxLayer.tsx) */
+            /^(silk|rosette|papercut)$/.test(
+              new URLSearchParams(location.searchStr).get("style") ?? ""
+            )
               ? Promise.all([
                   import("../../features/editor/fx-draw.ts").then(m => m.loadFx()),
                   import("../../features/editor/FxLayer.tsx"),

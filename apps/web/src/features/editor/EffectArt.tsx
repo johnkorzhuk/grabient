@@ -91,7 +91,11 @@ const players = {
   rosette: () =>
     import.meta.env.SSR
       ? (new Promise(() => {}) as never)
-      : import("@grabient/ui/rosette-player.ts")
+      : import("@grabient/ui/rosette-player.ts"),
+  papercut: () =>
+    import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/ui/papercut-player.ts")
 };
 type Code = Awaited<ReturnType<(typeof players)[EffectKind]>>;
 /** A kind's player made from its code: each module names its own. */
@@ -124,6 +128,14 @@ function playWith(
       canvas,
       palette,
       view as Parameters<typeof code.playSilk>[2],
+      first,
+      options
+    );
+  if ("playPapercut" in code)
+    return code.playPapercut(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playPapercut>[2],
       first,
       options
     );
@@ -402,6 +414,14 @@ export function EffectArt(props: {
         <Match when={props.kind === "rosette"}>
           <FxArt
             kind="rosette"
+            palette={props.palette}
+            angle={props.angle}
+            shape={props.settings.look.shape}
+          />
+        </Match>
+        <Match when={props.kind === "papercut"}>
+          <FxArt
+            kind="papercut"
             palette={props.palette}
             angle={props.angle}
             shape={props.settings.look.shape}

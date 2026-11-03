@@ -33,10 +33,10 @@ function inTurn(who: object, draw: () => void): () => void {
   return () => waiting.delete(who);
 }
 
-/** A vector effect's first frame (silk, rosette) as a small picture filling its box: the Appearance menu's tile, the
-    header's swatch and a list's card. It names the still it shows, so the server's still (server/fx-still.ts) paints
-    it where it is that one, as it painted the first screen: nothing changes as the page comes live. Another still is
-    drawn here once the stills' code has come. */
+/** A vector effect's first frame (silk, rosette, papercut) as a small picture filling its box: the Appearance menu's
+    tile, the header's swatch and a list's card. It names the still it shows, so the server's still (server/fx-still.ts)
+    paints it where it is that one, as it painted the first screen: nothing changes as the page comes live. Another
+    still is drawn here once the stills' code has come. */
 export function FxArt(props: {
   kind: VectorKind;
   palette: Palette;

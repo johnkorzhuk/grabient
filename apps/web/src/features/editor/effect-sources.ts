@@ -94,9 +94,10 @@ const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<
             m.blobWebgpu(kind as "wgsl" | "webgpu", P, effect, seed, origin)
       )
   },
-  /* the silk's and the rosette's shader spellings come later: their Shader tab offers none yet */
+  /* the silk's, the rosette's and the papercut's shader spellings come later: their Shader tab offers none yet */
   silk: {},
-  rosette: {}
+  rosette: {},
+  papercut: {}
 };
 const partOf = (kind: ShaderKind): ShaderPart =>
   kind === "shadertoy" ? "shadertoy" : kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";
@@ -186,7 +187,7 @@ export function effectSources(
       take: spelling =>
         glass && spelling !== "link" ? effectHtml(taken, effect) : Promise.resolve(tags(spelling)),
       note: spelling => {
-        /* the silk's and the rosette's script is not built yet: their stylesheet alone paints them */
+        /* the silk's, the rosette's and the papercut's script is not built yet: their stylesheet alone paints them */
         const note = hasEmbedScript(effect.kind)
           ? t("The two tags that play it behind a page, for the page's head.")
           : t("The tag that paints its first frame behind a page, for the page's head.");
@@ -212,7 +213,7 @@ export function effectSources(
           count: colors().length
         })
     },
-    /* the Shader tab for an effect with a spelling of it: the silk's and the rosette's come later */
+    /* the Shader tab for an effect with a spelling of it: the silk's, the rosette's and the papercut's come later */
     ...(shaderKinds(effect.kind).length ? [shaderSource()] : []),
     {
       id: "json",

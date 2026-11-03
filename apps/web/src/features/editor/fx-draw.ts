@@ -1,6 +1,6 @@
-/* The vector effects' drawing in the browser (silk, rosette: engine/fx-still.ts), loaded on demand, as the menu opens
-   or one of them is chosen, so a palette page's start carries none of it: their first frame as a background that
-   covers any box, the same the server draws into a page's head (server/fx-still.ts), and their players' code. */
+/* The vector effects' drawing in the browser (silk, rosette, papercut: engine/fx-still.ts), loaded on demand, as the
+   menu opens or one of them is chosen, so a palette page's start carries none of it: their first frame as a background
+   that covers any box, the same the server draws into a page's head (server/fx-still.ts), and their players' code. */
 import type { EffectSettings, FxLook, VectorKind } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 

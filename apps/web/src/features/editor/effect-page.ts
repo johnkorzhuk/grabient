@@ -29,5 +29,7 @@ export const effectLabel = (kind: EffectKind) =>
         ? msg("Blob")
         : kind === "silk"
           ? msg("Silk")
-          : msg("Rosette")
+          : kind === "rosette"
+            ? msg("Rosette")
+            : msg("Papercut")
   );

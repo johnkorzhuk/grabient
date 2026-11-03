@@ -31,7 +31,8 @@ const EFFECT_DRAWING = {
   glass: "glass-2",
   blob: "blob-3",
   silk: "silk-1",
-  rosette: "rosette-1"
+  rosette: "rosette-1",
+  papercut: "papercut-1"
 } as const;
 /** The blob's picture alone, counted apart from its cards, which stay solid: it is clear where its ground lets the
     page through. */
@@ -56,12 +57,18 @@ async function effectStill(
   size: Size,
   card = false
 ): Promise<Uint8Array<ArrayBuffer>> {
-  /* the silk and the rosette by their CPU drawings (engine/silk-render.ts, rosette-render.ts), opaque: about 0.1 s for
-     a card, 0.35 s for the largest picture */
-  if (effect.kind === "silk" || effect.kind === "rosette") {
+  /* the silk, the rosette and the papercut by their CPU drawings (engine/silk-render.ts, rosette-render.ts,
+     papercut-render.ts), opaque: about 0.1 s for a card, 0.35 s for the largest picture */
+  if (effect.kind === "silk" || effect.kind === "rosette" || effect.kind === "papercut") {
     const look = { angle, shape: effect.look.shape };
     let rgba: Uint8ClampedArray;
-    if (effect.kind === "rosette") {
+    if (effect.kind === "papercut") {
+      const [model, render] = await Promise.all([
+        import("@grabient/engine/papercut.ts"),
+        import("@grabient/engine/papercut-render.ts")
+      ]);
+      rgba = render.renderPapercut(model.papercutScene(found.palette, look, size), 0);
+    } else if (effect.kind === "rosette") {
       const [model, render] = await Promise.all([
         import("@grabient/engine/rosette.ts"),
         import("@grabient/engine/rosette-render.ts")

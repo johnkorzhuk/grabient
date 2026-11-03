@@ -133,7 +133,7 @@ export async function seedMp4Answer(
   const params = addressParams(url.searchParams);
   if (!params.has("style")) params.set("style", "glass");
   const effect = parseEffect(params);
-  /* the silk's and the rosette's clips are not drawn yet (engine/video.ts's VideoKind) */
+  /* the silk's, the rosette's and the papercut's clips are not drawn yet (engine/video.ts's VideoKind) */
   if (!effect || (effect.kind !== "glass" && effect.kind !== "blob")) {
     return failure(404, "An MP4 plays the fluted glass or the blob: style=glass or style=blob.");
   }

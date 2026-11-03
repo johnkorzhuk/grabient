@@ -175,7 +175,7 @@ export function createEffects(
       const s = now.settings[k];
       const was = s.look.shape ?? 0;
       let next = was;
-      /* 0 is the glass's, the silk's and the rosette's design, which a shuffle leaves for another */
+      /* 0 is the glass's, the silk's, the rosette's and the papercut's design, which a shuffle leaves for another */
       while (next === was || (k !== "blob" && next === 0))
         next = Math.floor(Math.random() * (SHAPE_MAX + 1));
       commit(withSettings(k, { ...s, look: { ...s.look, shape: next } }));

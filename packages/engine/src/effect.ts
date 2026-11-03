@@ -14,15 +14,15 @@ import { DEFAULT_ANGLE, finishParts, type ParamReader, type Size, type View } fr
     effect blurred over its palette's gradient and the grain over it (fx-finish.ts). */
 export type EffectFinish = Pick<View, "soft" | "grain">;
 
-export const EFFECTS = ["glass", "blob", "silk", "rosette"] as const;
+export const EFFECTS = ["glass", "blob", "silk", "rosette", "papercut"] as const;
 export type EffectKind = (typeof EFFECTS)[number];
 export const isEffect = (value: unknown): value is EffectKind =>
   typeof value === "string" && (EFFECTS as readonly string[]).includes(value);
 
 /** What each effect is, for the code that treats them alike: whether the view's angle turns it (the blob's palette
-    always lies left to right), and whether its picture is drawn by one pass of its loop's time over a plain vector
-    still (silk, rosette: ui/effect-loop.ts plays them, and their still is an SVG with no filter), where the glass and
-    the blob have players and stills of their own. */
+    always lies left to right), and whether its picture is drawn by one drawing of its loop's time over a plain vector
+    still (silk, rosette, papercut: ui/effect-loop.ts plays them, and their still is an SVG with no filter), where the
+    glass and the blob have players and stills of their own. */
 export interface EffectKindFacts {
   angle: boolean;
   /** drawn by ui/effect-loop.ts over a vector still */
@@ -32,13 +32,18 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   glass: { angle: true, vector: false },
   blob: { angle: false, vector: false },
   silk: { angle: true, vector: true },
-  rosette: { angle: true, vector: true }
+  rosette: { angle: true, vector: true },
+  papercut: { angle: true, vector: true }
 };
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed): the
-    glass's and the blob's; the silk's and the rosette's are not built yet, and their stylesheet paints their still. */
+    glass's and the blob's; the silk's, the rosette's and the papercut's are not built yet, and their stylesheet paints
+    their still. */
 export const hasEmbedScript = (kind: EffectKind): boolean => kind === "glass" || kind === "blob";
-/** The effects drawn by one pass of their loop's time over a vector still. */
-export type VectorKind = "silk" | "rosette";
+/** Whether an effect has Copy for Figma, Figma's own layers of it (figma-glass.ts, figma-blob.ts, figma-silk.ts,
+    figma-rosette.ts): every one but the papercut, whose layers are not built yet. */
+export const hasFigmaCopy = (kind: EffectKind): boolean => kind !== "papercut";
+/** The effects drawn by one drawing of their loop's time over a vector still. */
+export type VectorKind = "silk" | "rosette" | "papercut";
 export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>
   !!kind && EFFECT_KINDS[kind].vector;
 

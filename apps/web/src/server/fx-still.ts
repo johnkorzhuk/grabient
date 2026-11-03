@@ -1,11 +1,11 @@
-/* The vector effects' stills on a page (silk, rosette: engine/fx-still.ts), drawn by the server as the blob's are
-   (blob-still.ts). A palette's first screen (Boot.tsx) and a list's cards (FxArt.tsx) leave empty holders naming the
-   still each shows (data-fx-still: the kind, the palette, the angle and the shape, all its first frame depends on);
-   this writes each name's first frame into the head as a style, the one design covering whatever box holds it. The
-   editor's holder (FxLayer.tsx) and a card's take the same rule, so the still stands through both and the player picks
-   up from it without a seam. A still is a plain SVG of shapes and gradients, no filter: about 1.5 KB in the compressed
-   page and a few milliseconds to paint, so a page names as many as its first screen shows (stills.ts). It loads with
-   the first page that has a holder. */
+/* The vector effects' stills on a page (silk, rosette, papercut: engine/fx-still.ts), drawn by the server as the
+   blob's are (blob-still.ts). A palette's first screen (Boot.tsx) and a list's cards (FxArt.tsx) leave empty holders
+   naming the still each shows (data-fx-still: the kind, the palette, the angle and the shape, all its first frame
+   depends on); this writes each name's first frame into the head as a style, the one design covering whatever box
+   holds it. The editor's holder (FxLayer.tsx) and a card's take the same rule, so the still stands through both and
+   the player picks up from it without a seam. A still is a plain SVG of shapes and gradients, no filter: about 1.5 KB
+   in the compressed page (the papercut's, its cut paths, about 3) and a few milliseconds to paint, so a page names as
+   many as its first screen shows (stills.ts). It loads with the first page that has a holder. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { fxStillBackground, readFxStillKey } from "@grabient/engine/fx-still.ts";
 import { FX_STILL_STYLE } from "../features/editor/fx-draw.ts";

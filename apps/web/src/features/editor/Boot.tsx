@@ -78,9 +78,9 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
       )}
     </Show>
   );
-  /* a vector effect's still (silk, rosette), where the address names one: the holder names it (its kind, palette, angle
-     and shape), which the server's style in the head paints (server/fx-still.ts), as the editor's holder does
-     (FxLayer.tsx) */
+  /* a vector effect's still (silk, rosette, papercut), where the address names one: the holder names it (its kind,
+     palette, angle and shape), which the server's style in the head paints (server/fx-still.ts), as the editor's holder
+     does (FxLayer.tsx) */
   const fx = () => (
     <Show when={isVectorKind(props.page.effect?.kind) ? props.page.effect : null}>
       {effect => (

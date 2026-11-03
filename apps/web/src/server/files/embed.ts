@@ -16,7 +16,7 @@ export async function embedAnswer(request: Request, env: AssetsEnv): Promise<Res
   /* the script reads its palette from its own address, so the name must be a seed itself, not an old id */
   const seed = fileName(url.pathname, "js");
   const effect = parseEffect(addressParams(url.searchParams));
-  /* the silk's and the rosette's scripts are not built yet: their stylesheet paints their still */
+  /* the silk's, the rosette's and the papercut's scripts are not built yet: their stylesheet paints their still */
   if (!decodePalette(seed) || !effect || (effect.kind !== "glass" && effect.kind !== "blob")) {
     return json(
       { error: "A palette's seed and style=glass or style=blob name an effect's script." },

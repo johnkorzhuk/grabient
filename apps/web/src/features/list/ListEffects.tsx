@@ -42,6 +42,7 @@ export function EffectSwatch(props: {
       </Match>
       <Match when={props.effect.kind === "silk"}>{fx("silk")}</Match>
       <Match when={props.effect.kind === "rosette"}>{fx("rosette")}</Match>
+      <Match when={props.effect.kind === "papercut"}>{fx("papercut")}</Match>
     </Switch>
   );
 }
