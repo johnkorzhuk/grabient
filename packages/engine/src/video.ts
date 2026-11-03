@@ -249,6 +249,11 @@ export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   rosette: { qp: 24, keyQp: 12, ramp: 20, effort: 9 }
 };
 
+/** The clips' module by its contents: the first 12 hex digits of video/video.wasm's SHA-256, which a test checks. An
+    encoder's state holds pointers into the memory of the module that kept it, which another module lays out elsewhere
+    (going on from one traps), so a drawing goes on only from a state the same module kept (video-make.ts). */
+export const VIDEO_MODULE = "0cab9b66e1fc";
+
 /** Frame i's quantizer in a clip of n frames. */
 export function videoQp(quality: VideoQuality, i: number, n: number): number {
   if (i === 0) return quality.keyQp;

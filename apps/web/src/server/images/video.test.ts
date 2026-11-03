@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { VIDEO_QUALITY, videoFit, videoFrames } from "@grabient/engine/video.ts";
+import { VIDEO_MODULE, VIDEO_QUALITY, videoFit, videoFrames } from "@grabient/engine/video.ts";
 import { videoFinish } from "@grabient/engine/video-finish.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
@@ -505,7 +505,8 @@ describe("a palette's MP4 drawn in parts", () => {
     expect(kept.filter(name => name.endsWith(".mp4"))).toEqual([]);
     expect(kept.filter(name => name.includes("/part-")).length).toBe(6);
     expect(store.objects.get(kept.find(name => name.endsWith("/state")) ?? "")?.meta).toEqual({
-      part: "3"
+      part: "3",
+      module: VIDEO_MODULE
     });
     const again = runner();
     const answer = await seedMp4Answer(get(CLIP), env, keep, again.run, { partWork });
@@ -515,6 +516,31 @@ describe("a palette's MP4 drawn in parts", () => {
     expect(again.jobs[0].state).toBeInstanceOf(Uint8Array);
     await settled();
     expect([...store.objects.keys()].filter(name => !name.endsWith(".mp4"))).toEqual([]);
+  });
+
+  test("goes on only from a state its own module kept, else draws from the first part", async () => {
+    const partWork = 64 * 48 * 2;
+    const clean = world();
+    const whole = await bytes(
+      await seedMp4Answer(get(CLIP), clean.env, clean.keep, runner().run, { partWork })
+    );
+    const { env, keep, store, settled } = world({ windows: { videoClip: 0 } });
+    expect((await seedMp4Answer(get(CLIP), env, keep, runner(6).run, { partWork })).status).toBe(
+      503
+    );
+    await settled();
+    /* as a module before this one kept it: its state holds pointers into that module's memory, and names none */
+    const state = store.objects.get(
+      [...store.objects.keys()].find(name => name.endsWith("/state")) ?? ""
+    );
+    if (!state) throw new Error("the cut drawing kept no state");
+    state.meta = { part: "3" };
+    const again = runner();
+    expect(await bytes(await seedMp4Answer(get(CLIP), env, keep, again.run, { partWork }))).toEqual(
+      whole
+    );
+    expect(again.jobs.map(job => job.from)).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
+    expect(again.jobs[0].state).toBeNull();
   });
 });
 

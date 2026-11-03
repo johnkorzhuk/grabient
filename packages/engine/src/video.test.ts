@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BLOB_LOOP, blobBackdrop, blobRenderer } from "./blob.ts";
@@ -14,6 +15,7 @@ import { SILK_LOOP, silkScene } from "./silk.ts";
 import { renderSilk } from "./silk-render.ts";
 import {
   VIDEO_LIMITS,
+  VIDEO_MODULE,
   VIDEO_QUALITY,
   type VideoAsk,
   type VideoBlur,
@@ -36,7 +38,8 @@ import { videoBlur, videoFinish } from "./video-finish.ts";
 declare const WebAssembly: {
   Module: { new (bytes: Uint8Array): object; imports(module: object): unknown[] };
 };
-const wasm = new WebAssembly.Module(readFileSync(new URL("./video/video.wasm", import.meta.url)));
+const wasmFile = readFileSync(new URL("./video/video.wasm", import.meta.url));
+const wasm = new WebAssembly.Module(wasmFile);
 const palette = decodePalette("kWnCIwwC47igfOklkTlShq44");
 if (!palette) throw new Error("the test's palette");
 const look = { shape: null, frost: 1, bg: null };
@@ -46,6 +49,10 @@ const blob = { kind: "blob", look } as const;
 describe("video.wasm", () => {
   it("imports nothing, so a Worker loads it as it is", () => {
     expect(WebAssembly.Module.imports(wasm)).toEqual([]);
+  });
+
+  it("is named by its contents, which a drawing goes on from a kept state by", () => {
+    expect(VIDEO_MODULE).toBe(createHash("sha256").update(wasmFile).digest("hex").slice(0, 12));
   });
 });
 
