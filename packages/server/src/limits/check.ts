@@ -302,6 +302,12 @@ export async function checkLimits(
     });
     return null;
   }
+  return reported(env, result);
+}
+
+/** A result as every check reports it: a site's ceiling reached said in the logs once an hour, and each refusal
+    counted. */
+function reported(env: LimitEnv, result: LimitResult): LimitResult {
   if (!result.success && result.type) {
     const site = limitOf(result.type).site;
     if (site) {
@@ -313,6 +319,38 @@ export async function checkLimits(
     countUsage(env, "limit", result.type, site ? "site" : "client");
   }
   return result;
+}
+
+/**
+ * Counts one request against its limits without waiting on the Durable Object. Asking an idle object takes hundreds of
+ * milliseconds, and for a day's allowance a few requests past it cost less than that wait on every request. The
+ * isolate's own limits are counted now, and a limit this isolate knows is spent refuses now. `later` counts the object's
+ * limits: the caller hands it to waitUntil, and a refusal it meets refuses this isolate's next request. The result is
+ * null when a production deploy lost its binding, as checkLimits's is.
+ */
+export async function checkLimitsLater(
+  env: LimitEnv,
+  checks: readonly LimitCheck[]
+): Promise<{ result: LimitResult | null; later: Promise<LimitResult | null> | null }> {
+  const namespace = env.RATE_LIMITER;
+  const inIsolate: LimitCheck[] = [];
+  const ofObject: LimitCheck[] = [];
+  for (const [identifier, names, n = 1, scaled = false] of checks) {
+    const asked = namespace ? namesOf(names).filter(counted) : [];
+    const kept = namesOf(names).filter(name => !asked.includes(name));
+    if (kept.length) inIsolate.push([identifier, kept, n, scaled]);
+    if (asked.length) ofObject.push([identifier, asked, n, scaled]);
+  }
+  const now = Date.now();
+  for (const check of ofObject) {
+    const known = knownRefusal(memoryOf(namespace), check, now);
+    if (known) return { result: reported(env, known), later: null };
+  }
+  const result = await checkLimits(env, inIsolate);
+  return {
+    result,
+    later: result?.success && ofObject.length ? checkLimits(env, ofObject) : null
+  };
 }
 
 /** The checks of one request to the account MCP server that is no tool call (initialize, a list, ping): the account's

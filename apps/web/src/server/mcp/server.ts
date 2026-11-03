@@ -5,6 +5,7 @@ import { flagOff, pausedBy } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import {
   checkLimits,
+  checkLimitsLater,
   knownLimit,
   type LimitCheck,
   mcpListLimits
@@ -273,7 +274,9 @@ async function answer(request: Request, env: Env, ctx: McpContext): Promise<Resp
 
   /* A tool call counts against the account's minute in this isolate, its day and the site's day. Everything else,
      which apps send every turn, counts against a minute of its own and, past the isolate's first two hundred of a
-     day, a day of its own, so listing never spends the tools' allowance. */
+     day, a day of its own, so listing never spends the tools' allowance. The days are counted without the answer
+     waiting on them: their objects, idle between an app's calls, take half a second to ask, and a few calls past a
+     day cost nothing. */
   const calls = method === "tools/call";
   const who = `mcp:${grant.userId}`;
   const checks: LimitCheck[] = calls
@@ -282,10 +285,13 @@ async function answer(request: Request, env: Env, ctx: McpContext): Promise<Resp
         ["mcp-account", "mcpAccountBudget"]
       ]
     : mcpListLimits(env, who);
-  const allowed = await timings.time("limiter", () => checkLimits(env, checks));
-  /* the limiter out of reach for a moment: a read goes on, as an app's connecting and listing do, since a refusal is
-     an error the app counts against the server and a read changes nothing; a write still waits for it, its allowances
-     being what keeps the site's day */
+  const { result: allowed, later } = await timings.time("limiter", () =>
+    checkLimitsLater(env, checks)
+  );
+  if (later) ctx.worker.waitUntil(later);
+  /* a production deploy without its limiter: a read goes on, as an app's connecting and listing do, since a refusal
+     is an error the app counts against the server and a read changes nothing; a write still waits for it, its
+     allowances being what keeps the site's day */
   const goesOn = !allowed && (!calls || readsOnly(params.name, admin));
   if (goesOn) console.warn("mcp: the limiter could not answer; a read went on");
   if (!allowed?.success && !goesOn) {

@@ -2,7 +2,14 @@ import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Deployment } from "../env.ts";
 import { clientAddress } from "./address.ts";
-import { checkLimits, knownLimit, limiterName, mcpListLimits } from "./check.ts";
+import {
+  checkLimits,
+  checkLimitsLater,
+  knownLimit,
+  type LimitCheck,
+  limiterName,
+  mcpListLimits
+} from "./check.ts";
 import { LIMITS, type LimitName, limitOf } from "./config.ts";
 import { RateLimiter } from "./rate-limiter.ts";
 import { workChecks } from "./writes.ts";
@@ -350,6 +357,85 @@ describe("checkLimits", () => {
     const checks = Array.from({ length: 201 }, () => mcpListLimits(env, "account"));
     expect(checks[199]).toEqual([["account", "mcpList"]]);
     expect(checks[200]).toEqual([["account", ["mcpList", "mcpListDaily"]]]);
+  });
+});
+
+describe("checkLimitsLater", () => {
+  const call: LimitCheck[] = [
+    ["acct", ["mcpAccount", "mcpAccountDaily"]],
+    ["site", "mcpAccountBudget"]
+  ];
+
+  it("answers before the object does, then counts the account's day before the site's", async () => {
+    const env = objects();
+    let open = () => {};
+    const opened = new Promise<void>(resolve => {
+      open = resolve;
+    });
+    const held = {
+      RATE_LIMITER: {
+        idFromName: (name: string) => name,
+        get: (id: string) => ({
+          fetch: async (url: URL) => {
+            await opened;
+            return env.RATE_LIMITER.get(id as unknown as DurableObjectId).fetch(url);
+          }
+        })
+      } as unknown as DurableObjectNamespace
+    };
+    const { result, later } = await checkLimitsLater(held, call);
+    expect(result?.success).toBe(true);
+    let counted = false;
+    later?.then(() => {
+      counted = true;
+    });
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(counted).toBe(false);
+    open();
+    expect((await later)?.success).toBe(true);
+    expect(env.asks).toEqual(["mcpAccountDaily 1", "mcpAccountBudget 1"]);
+  });
+
+  it("refuses an isolate's next request once the object said the day is spent, asking it no more", async () => {
+    const env = objects();
+    expect((await checkLimits(env.isolate(), [["acct", "mcpAccountDaily", 5000]]))?.success).toBe(
+      true
+    );
+    env.asks.length = 0;
+    const first = await checkLimitsLater(env, call);
+    expect(first.result?.success).toBe(true);
+    expect(await first.later).toMatchObject({ success: false, type: "mcpAccountDaily" });
+    const next = await checkLimitsLater(env, call);
+    expect(next).toEqual({
+      result: expect.objectContaining({ success: false, type: "mcpAccountDaily", limit: 5000 }),
+      later: null
+    });
+    // the account's own day refused, so the site's was never asked
+    expect(env.asks).toEqual(["mcpAccountDaily 1"]);
+  });
+
+  it("refuses at once past the isolate's own minute, and goes on when the object fails or is not bound", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const env = objects();
+    for (let i = 0; i < 120; i++) await (await checkLimitsLater(env, call)).later;
+    expect(await checkLimitsLater(env, call)).toEqual({
+      result: expect.objectContaining({ success: false, type: "mcpAccount", limit: 120 }),
+      later: null
+    });
+    const broken = {
+      RATE_LIMITER: {
+        idFromName: (name: string) => name,
+        get: () => ({ fetch: async () => new Response("", { status: 500 }) })
+      } as unknown as DurableObjectNamespace
+    };
+    const failing = await checkLimitsLater(broken, call);
+    expect(failing.result?.success).toBe(true);
+    expect(await failing.later).toBeNull();
+    // a production deploy that lost its binding answers as checkLimits does, so its caller refuses a write
+    expect(await checkLimitsLater({ DEPLOYMENT: "production" }, call)).toEqual({
+      result: null,
+      later: null
+    });
   });
 });
 
