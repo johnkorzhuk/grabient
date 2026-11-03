@@ -31,9 +31,10 @@ import { effectHtml, type Taken } from "./formats.ts";
    (code.ts), never with a palette's start. */
 
 /* an effect as shader code, each kind's module asked for once its spelling shows in the Shader tab: Shadertoy's tabs
-   (engine/glass-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts, blob-webgl.ts), the WGSL or its WebGPU
-   page (glass-webgpu.ts, blob-webgpu.ts). The effect's code carries only the tab's spellings, and the Worker's build
-   none of them: a server never writes a shader, and its ask waits for ever. */
+   (engine/glass-shadertoy.ts, silk-shadertoy.ts, rosette-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts,
+   blob-webgl.ts, silk-webgl.ts, rosette-webgl.ts), the WGSL or its WebGPU page (glass-webgpu.ts, blob-webgpu.ts,
+   silk-webgpu.ts, rosette-webgpu.ts). The effect's code carries only the tab's spellings, and the Worker's build none
+   of them: a server never writes a shader, and its ask waits for ever. */
 type ShaderWriter = (
   kind: ShaderKind,
   P: Palette,
@@ -94,9 +95,64 @@ const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<
             m.blobWebgpu(kind as "wgsl" | "webgpu", P, effect, seed, origin)
       )
   },
-  /* the silk's and the rosette's shader spellings come later: their Shader tab offers none yet */
-  silk: {},
-  rosette: {}
+  silk: {
+    shadertoy: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/silk-shadertoy.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (_, ...rest) =>
+            m.silkShadertoyText(...rest)
+      ),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/silk-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.silkWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/silk-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.silkWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  },
+  rosette: {
+    shadertoy: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/rosette-shadertoy.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (_, ...rest) =>
+            m.rosetteShadertoyText(...rest)
+      ),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/rosette-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.rosetteWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/rosette-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.rosetteWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  }
 };
 const partOf = (kind: ShaderKind): ShaderPart =>
   kind === "shadertoy" ? "shadertoy" : kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";
@@ -169,9 +225,13 @@ export function effectSources(
       return writerNow(effect.kind, kind)?.(kind, P, effect, angle, seed, origin) ?? "";
     },
     note: () =>
-      glass
+      effect.kind === "glass"
         ? t("The ribs, the colors' blur and the light, pass by pass.")
-        : t("The balls, their melt and the frost, pass by pass.")
+        : effect.kind === "blob"
+          ? t("The balls, their melt and the frost, pass by pass.")
+          : effect.kind === "silk"
+            ? t("The dye, its folds' shade and light, in one pass.")
+            : t("The petals ring by ring, the ground and the heart's glow, in one pass.")
   });
   const colors = () => effectColors(P, effect).map(stopOf);
   return [
@@ -212,7 +272,7 @@ export function effectSources(
           count: colors().length
         })
     },
-    /* the Shader tab for an effect with a spelling of it: the silk's and the rosette's come later */
+    /* the Shader tab for an effect with a spelling of it */
     ...(shaderKinds(effect.kind).length ? [shaderSource()] : []),
     {
       id: "json",
