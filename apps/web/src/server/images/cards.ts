@@ -50,11 +50,10 @@ const EFFECT_FINISH = "fx-finish-1";
    parts leave out. */
 const effectFinishPart = (finish: EffectFinish) =>
   finish.soft || finish.grain ? [`${EFFECT_FINISH}:${finish.soft ?? 0}:${finish.grain ?? 0}`] : [];
-/* An effect's first frame finished (engine/fx-frame.ts), its code loaded with the first one drawn: the picture routes
+/* An effect's first frame finished (effect-frame.ts), its code loaded with the first one drawn: the picture routes
    import this module, so the router's first request reaches it, and none of the drawing comes with that. */
-const effectFrame = async (
-  ...args: Parameters<typeof import("@grabient/engine/fx-frame.ts").effectFrame>
-) => (await import("@grabient/engine/fx-frame.ts")).effectFrame(...args);
+const effectFrame = async (...args: Parameters<typeof import("./effect-frame.ts").effectFrame>) =>
+  (await import("./effect-frame.ts")).effectFrame(...args);
 
 export function paletteCard(
   request: Request,

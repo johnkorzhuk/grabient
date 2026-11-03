@@ -1,27 +1,34 @@
-/* An effect's first frame as a picture of it is drawn, the server's (/{seed}.png?style=, a card under the wordmark at
-   /api/og?style=) and the editor's Copy PNG and Download PNG alike, each at its own size: the frame the editor shows
-   before the effect moves, drawn on the CPU, the glass by its renderer (glass-render.ts), the blob as its still
-   (blob.ts), the silk and the rosette by their drawings (silk-render.ts, rosette-render.ts). A soft or a grain finishes
-   it as the site paints it (fx-finish.ts): the frame blurred by a share of its longer side over the palette's gradient,
-   toward clear where it lets the page through, the grain over all. Each effect's drawing comes with the first picture
-   of it, so the module holds none of them; the finish, which a server's SVG of an effect loads too, comes with it. */
-import type { Effect, EffectFinish } from "./effect.ts";
-import { effectUnderlay, finishPixels } from "./fx-finish.ts";
+/* An effect's first frame as its pictures are drawn, the server's (/{seed}.png?style=, a card under the wordmark at
+   /api/og?style=, server/images/effect-frame.ts) and the editor's Copy PNG and Download PNG alike, each at its own
+   size: the frame the editor shows before the effect moves, drawn on the CPU, the glass by its renderer
+   (glass-render.ts), the blob as its still (blob.ts), the silk and the rosette by their drawings (silk-render.ts,
+   rosette-render.ts), and its soft as the site paints it (fx-finish.ts blurOver): the frame blurred by a share of its
+   longer side over the palette's gradient, toward clear where it lets the page through. Each effect's drawing comes
+   with the first picture of it, so the module holds none of them. The grain is laid by each, the server's from
+   fx-finish's specks, the editor's with its canvas: the specks come from grain.ts, which every page starts with, and
+   reading them here would put their code in every page's start. */
+import type { Effect } from "./effect.ts";
+import { blurOver, effectBlurSigma, effectUnderlay } from "./fx-finish.ts";
 import { glassColors } from "./glass-colors.ts";
 import type { Palette } from "./palette.ts";
 import type { Size } from "./view.ts";
 
-/* The frame's pixels as its drawing gives them: four bytes a pixel, straight alpha, or three where the blob stands on
-   a ground that covers the box. They are opaque but for a blob whose ground lets the page through, or that has none.
-   A card, which cannot be clear, lays the blob on its near-black or near-white (blobBackdrop), which `backdrop`
-   names. */
-async function drawn(
+/** A frame's pixels as its drawing gives them: four bytes a pixel, straight alpha, or three where the blob stands on a
+    ground that covers the box. They are opaque but for a blob whose ground lets the page through, or that has none. A
+    card, which cannot be clear, lays the blob on its near-black or near-white (blobBackdrop), which `backdrop` names. */
+export interface EffectDrawn {
+  pixels: Uint8Array | Uint8ClampedArray;
+  backdrop?: readonly number[];
+}
+
+/** An effect's first frame at a size, unfinished. */
+export async function effectDrawn(
   P: Palette,
   effect: Effect,
   angle: number,
   size: Size,
-  card: boolean
-): Promise<{ pixels: Uint8Array | Uint8ClampedArray; backdrop?: readonly number[] }> {
+  card = false
+): Promise<EffectDrawn> {
   /* the silk and the rosette by their CPU drawings: about 0.1 s for a card, 0.35 s for the largest picture */
   if (effect.kind === "silk" || effect.kind === "rosette") {
     const look = { angle, shape: effect.look.shape };
@@ -50,96 +57,32 @@ async function drawn(
   };
 }
 
-/* Four bytes a pixel as three: the smaller file, for a picture every pixel of which is opaque. */
-function rgbOf(rgba: ArrayLike<number>, n: number): Uint8Array<ArrayBuffer> {
-  const rgb = new Uint8Array(n * 3);
-  for (let i = 0, j = 0; j < rgb.length; i += 4, j += 3) {
-    rgb[j] = rgba[i];
-    rgb[j + 1] = rgba[i + 1];
-    rgb[j + 2] = rgba[i + 2];
-  }
-  return rgb;
-}
-/* Three bytes a pixel as four, each opaque. */
-function rgbaOf(rgb: ArrayLike<number>, n: number): Uint8ClampedArray<ArrayBuffer> {
+/** A frame's pixels as four bytes each, three-byte ones made opaque. */
+export function rgbaOf(pixels: Uint8Array | Uint8ClampedArray, n: number): Uint8ClampedArray {
+  if (pixels.length === n * 4)
+    return pixels instanceof Uint8ClampedArray ? pixels : new Uint8ClampedArray(pixels);
   const rgba = new Uint8ClampedArray(n * 4);
   for (let i = 0, j = 0; i < rgba.length; i += 4, j += 3) {
-    rgba[i] = rgb[j];
-    rgba[i + 1] = rgb[j + 1];
-    rgba[i + 2] = rgb[j + 2];
+    rgba[i] = pixels[j];
+    rgba[i + 1] = pixels[j + 1];
+    rgba[i + 2] = pixels[j + 2];
     rgba[i + 3] = 255;
   }
   return rgba;
 }
-/* Straight-alpha pixels laid on a solid color: three bytes a pixel. */
-function onColor(rgba: ArrayLike<number>, rgb: readonly number[], n: number) {
-  const out = new Uint8Array(n * 3);
-  for (let i = 0, j = 0; j < out.length; i += 4, j += 3) {
-    const a = rgba[i + 3] / 255;
-    for (let c = 0; c < 3; c++) out[j + c] = Math.round(rgba[i + c] * a + rgb[c] * (1 - a));
-  }
-  return out;
-}
-const opaque = (rgba: ArrayLike<number>) => {
-  for (let i = 3; i < rgba.length; i += 4) if (rgba[i] !== 255) return false;
-  return true;
-};
 
-/** An effect's first frame at a size, finished by the soft and the grain the address names: three bytes a pixel, or
-    four where the picture lets the page through (a blob's ground that does, or none), as a PNG takes it. A card is
-    opaque: a blob stands on its near-black or near-white, which a soft one's edges thin to where no ground of its own
-    covers the box. */
-export async function effectFrame(
-  P: Palette,
-  effect: Effect,
-  angle: number,
-  size: Size,
-  options: { card?: boolean; finish?: EffectFinish } = {}
-): Promise<Uint8Array<ArrayBuffer>> {
-  const n = size.width * size.height;
-  const frame = await drawn(P, effect, angle, size, options.card ?? false);
-  const three = frame.pixels.length === n * 3;
-  const { soft, grain } = options.finish ?? {};
-  if (!soft && !grain) {
-    if (three || effect.kind === "blob") return frame.pixels as Uint8Array<ArrayBuffer>;
-    return rgbOf(frame.pixels, n);
-  }
-  const finished = await finishedOf(P, effect, angle, size, frame, { soft, grain });
-  if (frame.backdrop) return onColor(finished, frame.backdrop, n);
-  return opaque(finished)
-    ? rgbOf(finished, n)
-    : new Uint8Array(finished.buffer as ArrayBuffer, finished.byteOffset, finished.length);
-}
-
-/* The frame finished: four bytes a pixel, straight alpha. Its soft edges go to the palette's gradient under it, as the
-   site's do; a blob with no ground that covers the box has none under it, and thins toward the page, or on a card
-   toward the backdrop it stands on there. */
-async function finishedOf(
-  P: Palette,
-  effect: Effect,
-  angle: number,
-  size: Size,
-  frame: Awaited<ReturnType<typeof drawn>>,
-  finish: EffectFinish
-): Promise<Uint8Array | Uint8ClampedArray> {
-  const n = size.width * size.height;
-  const rgba = frame.pixels.length === n * 3 ? rgbaOf(frame.pixels, n) : frame.pixels;
-  if (!finish.soft && !finish.grain) return rgba;
-  return finishPixels(rgba, size, finish, effectUnderlay(P, effect, angle, finish.soft));
-}
-
-/** The same frame as straight RGBA, four bytes a pixel, as a canvas takes it: the editor's Copy PNG and Download PNG,
-    which are the server's picture of the same address. */
+/** An effect's first frame blurred by its soft over the gradient under it, straight RGBA, four bytes a pixel, as a
+    canvas takes it: the editor's Copy PNG and Download PNG, which lay the grain's tile over it with the canvas as the
+    page lays it, within a level of the server's picture at a speck. */
 export async function effectRgba(
   P: Palette,
   effect: Effect,
   angle: number,
   size: Size,
-  finish: EffectFinish = {}
+  soft?: number | null
 ): Promise<Uint8ClampedArray<ArrayBuffer>> {
-  const frame = await drawn(P, effect, angle, size, false);
-  const out = await finishedOf(P, effect, angle, size, frame, finish);
-  return out instanceof Uint8ClampedArray && out.buffer instanceof ArrayBuffer
-    ? (out as Uint8ClampedArray<ArrayBuffer>)
-    : Uint8ClampedArray.from(out);
+  const rgba = rgbaOf((await effectDrawn(P, effect, angle, size)).pixels, size.width * size.height);
+  const sigma = effectBlurSigma(soft, size);
+  if (sigma > 0) return blurOver(rgba, size, sigma, effectUnderlay(P, effect, angle, soft));
+  return new Uint8ClampedArray(rgba);
 }
