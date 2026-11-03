@@ -5,9 +5,11 @@
    editor's own holders (GlassLayer.tsx, GlassArt.tsx) take the same rule: the still stands through both, the browser
    keeping the image it decoded, and the player picks up from it without a seam.
    The first frame is a picture (images/still.ts): the design at STILL_SIZE square, drawn by the glass's CPU renderer
-   and coded as WebP, asked for from the head with a preload, so it is there for the first paint where it can be. Under it lies the still's field, its colors where they lie without the ribs, which shows until the picture
-   lands. The still as an SVG filter cost a browser that paints without its GPU, as Lighthouse's does, more than a
-   second a paint, and several at 4K.
+   and coded as WebP, asked for from the head with a preload, so it is there for the first paint where it can be.
+   Under it lies the still's field, its colors where they lie without the ribs, which shows until the picture lands:
+   for a still no one asked for before, while it is drawn, about two seconds, over which the player starts on a
+   reader's GPU. The still as an SVG filter cost a browser that paints without its GPU, as Lighthouse's does, more
+   than a second a paint, and several at 4K.
    Every other holder (a list's cards, the header's swatch) gets the field in its place (glass.ts's
    glassFieldBackground), which the browser's still then fades over (GlassArt.tsx). As many as a first screen shows
    (stills.ts). It loads with the first page that has a holder. */
