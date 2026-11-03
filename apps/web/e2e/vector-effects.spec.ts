@@ -68,7 +68,7 @@ test("the editor stands while the menu's tiles under the pointer turn its pictur
   expect(reports).toEqual([]);
 });
 
-test("a papercut's page paints its stepped still from the head, and offers no Copy for Figma yet", async ({
+test("a papercut's page paints its stepped still from the head, and offers Copy for Figma", async ({
   page,
   request
 }) => {
@@ -84,15 +84,15 @@ test("a papercut's page paints its stepped still from the head, and offers no Co
   await open(page, `/${SEED}?style=papercut&angle=30&shape=7`);
   await expect(page.getByRole("button", { name: /Papercut/ }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Copy HTML" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Copy for Figma" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Copy for Figma" })).toBeVisible();
 });
 
-test("Copy for Figma puts the silk and the rosette on the clipboard as Figma's own layers", async ({
+test("Copy for Figma puts the silk, the rosette and the papercut on the clipboard as Figma's own layers", async ({
   page,
   context
 }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  for (const kind of ["silk", "rosette"]) {
+  for (const kind of ["silk", "rosette", "papercut"]) {
     await open(page, `/${SEED}?style=${kind}&angle=45`);
     const asked: string[] = [];
     page.on("request", r => {

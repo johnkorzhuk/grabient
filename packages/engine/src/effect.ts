@@ -44,9 +44,6 @@ const SCRIPTED: readonly EffectKind[] = ["glass", "blob", "silk", "rosette"];
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
     without has its stylesheet alone, which paints its still. */
 export const hasEmbedScript = (kind: EffectKind): boolean => SCRIPTED.includes(kind);
-/** Whether an effect has Copy for Figma, Figma's own layers of it (figma-glass.ts, figma-blob.ts, figma-silk.ts,
-    figma-rosette.ts): every one but the papercut, whose layers are not built yet. */
-export const hasFigmaCopy = (kind: EffectKind): boolean => kind !== "papercut";
 /** The effects drawn by one drawing of their loop's time over a vector still. */
 export type VectorKind = "silk" | "rosette" | "papercut";
 export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>

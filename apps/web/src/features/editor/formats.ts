@@ -6,8 +6,7 @@ import {
   type Effect,
   type EffectKind,
   effectFileAddress,
-  hasEmbedScript,
-  hasFigmaCopy
+  hasEmbedScript
 } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
@@ -56,9 +55,6 @@ export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png",
 /** An effect's links: its script where one plays it behind a page (engine/effect.ts's hasEmbedScript). */
 export const effectLinkFormats = (kind: EffectKind): readonly Format[] =>
   hasEmbedScript(kind) ? STRIP_EFFECT_LINKS : STRIP_EFFECT_LINKS.filter(f => f !== "js");
-/** An effect's copies: its Figma layers where they are built (engine/effect.ts's hasFigmaCopy). */
-export const effectCopyFormats = (kind: EffectKind): readonly Format[] =>
-  hasFigmaCopy(kind) ? STRIP_EFFECT_COPY : STRIP_EFFECT_COPY.filter(f => f !== "figma");
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {
@@ -293,8 +289,6 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
    (figma-paste.ts figmaFinish): a soft one's edges thin to the gradient its files lay under it, whose code comes for
    a soft view alone. Each effect's code comes on the press, and the Worker's build carries none of it */
 const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
-  /* the papercut's layers are not built (engine/effect.ts hasFigmaCopy): its strips offer no Figma copy */
-  if (!hasFigmaCopy(effect.kind)) throw new Error("No Figma copy of this effect.");
   const finish = finishOf(p);
   const frame = {
     width: p.pixels.width,
@@ -310,6 +304,18 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
         )
       : null
   };
+  /* the papercut is its still at any pace: its cuts change shape as it moves, which no layer's track follows */
+  if (effect.kind === "papercut") {
+    const { figmaPapercutHtml } = await (import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/engine/figma-papercut.ts"));
+    return figmaPapercutHtml({
+      palette: decodePalette(p.seed)!,
+      angle: p.angle,
+      shape: effect.look.shape,
+      ...frame
+    });
+  }
   if (effect.kind === "silk" || effect.kind === "rosette") {
     const look = {
       palette: decodePalette(p.seed)!,

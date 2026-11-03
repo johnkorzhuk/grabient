@@ -49,6 +49,190 @@ export const figmaBlur = (radius: number) => ({
   color: { r: 0, g: 0, b: 0, a: 1 }
 });
 
+/** A cubic Bezier of a path, absolute: its start, its two handles and its end. */
+export type FigmaCubic = readonly [
+  readonly [number, number],
+  readonly [number, number],
+  readonly [number, number],
+  readonly [number, number]
+];
+
+/** An SVG path's closed loops as absolute cubics: M, C and L in either case and Z, as a tracer writes them (numbers
+    with no zero before a point, a minus sign their only separator). A line is a cubic whose handles stay on its ends. */
+export function figmaPathLoops(d: string): FigmaCubic[][] {
+  const tokens = d.match(/[MmCcLlZz]|-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/g) ?? [];
+  const loops: FigmaCubic[][] = [];
+  let loop: FigmaCubic[] = [];
+  let x = 0;
+  let y = 0;
+  let sx = 0;
+  let sy = 0;
+  let command = "";
+  let i = 0;
+  const num = () => Number(tokens[i++]);
+  const close = () => {
+    if (!loop.length) return;
+    /* the loop's last point back onto its first, where a tracer ends it within its rounding */
+    if (Math.hypot(x - sx, y - sy) > 1e-3)
+      loop.push([
+        [x, y],
+        [x, y],
+        [sx, sy],
+        [sx, sy]
+      ]);
+    loops.push(loop);
+    loop = [];
+    x = sx;
+    y = sy;
+  };
+  while (i < tokens.length) {
+    if (/[A-Za-z]/.test(tokens[i])) command = tokens[i++];
+    const rel = command === command.toLowerCase();
+    const ox = rel ? x : 0;
+    const oy = rel ? y : 0;
+    switch (command.toLowerCase()) {
+      case "m": {
+        close();
+        x = ox + num();
+        y = oy + num();
+        sx = x;
+        sy = y;
+        /* pairs after a move draw lines, as SVG reads them */
+        command = rel ? "l" : "L";
+        break;
+      }
+      case "c": {
+        const c1: [number, number] = [ox + num(), oy + num()];
+        const c2: [number, number] = [ox + num(), oy + num()];
+        const end: [number, number] = [ox + num(), oy + num()];
+        loop.push([[x, y], c1, c2, end]);
+        [x, y] = end;
+        break;
+      }
+      case "l": {
+        const end: [number, number] = [ox + num(), oy + num()];
+        loop.push([[x, y], [x, y], end, end]);
+        [x, y] = end;
+        break;
+      }
+      case "z":
+        close();
+        break;
+      default:
+        i++;
+    }
+  }
+  close();
+  return loops;
+}
+
+/** Loops as Figma's vector network, the binary a VECTOR's vectorData names among the paste's blobs, in the layout
+    Figma's own clipboard writes (W/figma-clip samples/01, its rectangle and discs): the counts of vertices, segments
+    and regions; each vertex a style and its x and y; each segment a style, its start and its handle there, its end and
+    its handle there, handles relative to their vertices; then one region holding every loop, filled by the odd rule,
+    so a loop inside another is a hole, as SVG's evenodd fills it. Numbers little-endian, 32 bits. */
+export function figmaVectorNetwork(loops: readonly (readonly FigmaCubic[])[]): Uint8Array {
+  const vertices: [number, number][] = [];
+  const segments: [number, number, number, number, number, number][] = [];
+  const regionLoops: number[][] = [];
+  for (const loop of loops) {
+    if (!loop.length) continue;
+    const first = vertices.length;
+    const indices: number[] = [];
+    loop.forEach((c, k) => {
+      vertices.push([c[0][0], c[0][1]]);
+      const start = first + k;
+      const end = k === loop.length - 1 ? first : start + 1;
+      indices.push(segments.length);
+      segments.push([
+        start,
+        c[1][0] - c[0][0],
+        c[1][1] - c[0][1],
+        end,
+        c[2][0] - c[3][0],
+        c[2][1] - c[3][1]
+      ]);
+    });
+    regionLoops.push(indices);
+  }
+  const regionBytes = regionLoops.length
+    ? 12 + regionLoops.reduce((n, l) => n + 4 + 4 * l.length, 0)
+    : 0;
+  const out = new Uint8Array(12 + vertices.length * 12 + segments.length * 28 + regionBytes);
+  const view = new DataView(out.buffer);
+  let at = 0;
+  const u = (v: number) => {
+    view.setUint32(at, v, true);
+    at += 4;
+  };
+  const f = (v: number) => {
+    view.setFloat32(at, v, true);
+    at += 4;
+  };
+  u(vertices.length);
+  u(segments.length);
+  u(regionLoops.length ? 1 : 0);
+  for (const [x, y] of vertices) {
+    u(0);
+    f(x);
+    f(y);
+  }
+  for (const [start, tx0, ty0, end, tx1, ty1] of segments) {
+    u(0);
+    u(start);
+    f(tx0);
+    f(ty0);
+    u(end);
+    f(tx1);
+    f(ty1);
+  }
+  if (regionLoops.length) {
+    u(0);
+    /* WindingRule ODD */
+    u(1);
+    u(regionLoops.length);
+    for (const l of regionLoops) {
+      u(l.length);
+      for (const s of l) u(s);
+    }
+  }
+  return out;
+}
+
+/** A vector layer of a path's loops (figmaPathLoops), placed at its loops' bounds under `parent`: its network laid
+    among the paste's `blobs`, its vertices from its own corner, its size the network's normalized size, as Figma's
+    own copies place one. `extra` is its paint, opacity and effects. None for a path with no loop. */
+export function figmaVector(
+  add: ReturnType<typeof figmaLayers>["add"],
+  blobs: Uint8Array[],
+  name: string,
+  parent: FigmaNode,
+  index: number,
+  loops: readonly (readonly FigmaCubic[])[],
+  extra: Record<string, unknown>
+): FigmaNode | null {
+  let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const loop of loops)
+    for (const c of loop)
+      for (const [x, y] of c) {
+        x0 = Math.min(x0, x);
+        y0 = Math.min(y0, y);
+        x1 = Math.max(x1, x);
+        y1 = Math.max(y1, y);
+      }
+  if (x0 === Infinity) return null;
+  const w = Math.max(1e-3, x1 - x0);
+  const h = Math.max(1e-3, y1 - y0);
+  const moved = loops.map(l =>
+    l.map(c => c.map(([x, y]) => [x - x0, y - y0] as const) as unknown as FigmaCubic)
+  );
+  blobs.push(figmaVectorNetwork(moved));
+  return add("VECTOR", name, parent, index, w, h, x0, y0, {
+    vectorData: { vectorNetworkBlob: blobs.length - 1, normalizedSize: { x: w, y: h } },
+    ...extra
+  });
+}
+
 /** A property Figma's Motion keys on a layer. */
 export type FigmaField =
   | "MOTION_ROTATION"
@@ -499,11 +683,13 @@ function toBase64(bytes: Uint8Array): string {
 }
 
 /** The clipboard's text/html for a scene (figmaScene), which a paste into Figma reads as its layers, the scene's top
-    frame selected. `fileKey` names the file the paste says it comes from. */
+    frame selected. `fileKey` names the file the paste says it comes from; `blobs` are its vector layers' networks
+    (figmaVector). */
 export function figmaPasteHtml(
   scene: readonly FigmaNode[],
   pasteID: number,
-  fileKey: string
+  fileKey: string,
+  blobs: readonly Uint8Array[] = []
 ): string {
   const message = {
     type: "NODE_CHANGES",
@@ -527,7 +713,9 @@ export function figmaPasteHtml(
     ],
     pasteAssetType: "UNKNOWN",
     nodeChangeOrder: "GUID",
-    nodeChanges: scene
+    nodeChanges: scene,
+    /* the vector layers' networks, which their vectorData names by index */
+    ...(blobs.length ? { blobs: blobs.map(bytes => ({ bytes })) } : {})
   };
   const schema = fromBase64(FIGMA_SCHEMA);
   const body = stored(encodeKiwi(FIGMA_DEFS, "Message", message));

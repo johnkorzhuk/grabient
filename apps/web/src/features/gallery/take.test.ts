@@ -1,7 +1,6 @@
 import { parseEffect } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import {
-  effectCopyFormats,
   effectLinkFormats,
   STRIP_COPY,
   STRIP_EFFECT_COPY,
@@ -41,13 +40,13 @@ test("a card's strip offers the formats the editor's strips offer, with an effec
       download: STRIP_FILES,
       link: STRIP_EFFECT_LINKS
     });
-  /* the silk, the rosette and the papercut have no script yet, and the papercut no Figma layers */
+  /* the vector effects, their links as effectLinkFormats lists them */
   for (const effect of ["silk", "rosette", "papercut"] as const)
     expect(card(effect).chips()).toEqual({
-      copy: effectCopyFormats(effect),
+      copy: STRIP_EFFECT_COPY,
       download: STRIP_FILES,
       link: effectLinkFormats(effect)
     });
-  expect(effectCopyFormats("papercut")).not.toContain("figma");
-  expect(effectCopyFormats("silk")).toContain("figma");
+  /* every effect, the papercut too, has Copy for Figma */
+  expect(STRIP_EFFECT_COPY).toContain("figma");
 });
