@@ -144,7 +144,7 @@ test("a list playing the silk or the papercut draws its cards' stills, each name
   }
 });
 
-test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, JSON and Markdown, and the silk's and the rosette's script and clip; none yet for the papercut", async ({
+test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, JSON, Markdown and a clip, and the silk's and the rosette's script; none yet for the papercut", async ({
   request
 }) => {
   for (const kind of ["silk", "rosette", "papercut"]) {
@@ -162,18 +162,18 @@ test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, 
     const json = JSON.parse(await (await at("json")).text());
     expect(json.effect).toMatchObject({ style: kind, shape: 7 });
     expect(await (await at("md")).text()).toContain(kind);
-    const script = await at("js");
     const clip = await request.head(`/${SEED}.mp4?style=${kind}&shape=7`);
-    /* the papercut's script and clips are not built yet */
+    expect([clip.status(), clip.headers()["content-type"]]).toEqual([200, "video/mp4"]);
+    const script = await at("js");
+    /* the papercut's script is not built yet */
     if (kind === "papercut") {
-      expect([script.status(), clip.status()]).toEqual([404, 404]);
+      expect(script.status()).toBe(404);
       continue;
     }
     expect([script.status(), script.headers()["content-type"]]).toEqual([
       200,
       "text/javascript; charset=utf-8"
     ]);
-    expect([clip.status(), clip.headers()["content-type"]]).toEqual([200, "video/mp4"]);
   }
 });
 
