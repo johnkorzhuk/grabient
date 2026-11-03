@@ -115,7 +115,8 @@ test("the MCP page gives the address, each app's link and setup, and nothing of 
   const html = renderToString(() => <McpServerPage origin="https://grabient.com" />);
   const text = words(html);
   expect(text).toContain("Add Grabient to your app");
-  expect(html).toContain("https://claude.ai/customize/connectors?modal=add-custom-connector");
+  expect(html).toContain("https://claude.ai/directory/connectors/grabient");
+  expect(html).not.toContain("add-custom-connector");
   expect(html).toContain("cursor://anysphere.cursor-deeplink/mcp/install?name=Grabient");
   expect(text).toContain("Add to Claude");
   // an address is drawn in its parts, so a narrow screen breaks it between them

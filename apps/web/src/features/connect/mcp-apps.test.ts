@@ -20,3 +20,11 @@ test("each app's one-click link and setup are its maker's form, with the address
   ).toEqual(golden.setups);
   expect(otherSetup(ADDRESS)).toBe(golden.other);
 });
+
+test("Claude's press opens the directory's listing for grabient.com alone, and the filled-in dialog elsewhere", () => {
+  const claude = MCP_LINKS.find(way => way.label === "Claude");
+  expect(claude?.link(ADDRESS)).toBe("https://claude.ai/directory/connectors/grabient");
+  expect(claude?.link("https://staging.grabient.com/mcp")).toBe(
+    "https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=https%3A%2F%2Fstaging.grabient.com%2Fmcp"
+  );
+});

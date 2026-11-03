@@ -17,9 +17,9 @@ import {
   ways
 } from "@grabient/email";
 
-/* No. 2, November 2026: connecting an AI app, in the MCP page's words. It holds whether or not an app's own list of
-   connectors names Grabient: Claude's one-click link and the address work today. LISTED names the apps that do, and
-   adds the sentence that says so. */
+/* No. 2, November 2026: connecting an AI app, in the MCP page's words. Its press leads to the MCP page, whose setup
+   covers every app, since a send's check refuses a letter with a link off the site (checkLetters). LISTED names the
+   apps whose own list of connectors names Grabient, and adds the sentence that says so. */
 const PICKS = [
   pick("ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g", "linearGradient", 32, 135),
   pick("kWk5ENVro_-Mpv_wGb_-we_4", "linearSwatches", 5, 90),
@@ -61,15 +61,11 @@ const CALM = [
   view("kW2Rl-zaBJGyQVPTnrvXxHSI", "linearSwatches", 5, 90),
   view("kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg", "radialSwatches", 8, 0)
 ];
-const LISTED: readonly string[] = [];
+const LISTED: readonly string[] = ["Claude"];
 const listedIn = (apps: readonly string[]) =>
   apps.length > 1
     ? `${apps.slice(0, -1).join(", ")} and ${apps.at(-1)} list Grabient among their connectors, so you can add it there by name.`
     : `${apps[0]} lists Grabient among its connectors, so you can add it there by name.`;
-/* Claude's own link, which opens its Add custom connector dialog with the address filled in: a web address, so a mail
-   app keeps it, where the other apps' one-click links open the app itself and are stripped. */
-const addToClaude = (address: string) =>
-  `https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=${encodeURIComponent(address)}`;
 
 export const november: Issue = {
   number: 2,
@@ -99,7 +95,7 @@ export const november: Issue = {
             tiles: CALM,
             note: "From the gallery"
           }),
-          button({ href: addToClaude(address), label: "Add to Claude" }),
+          button({ href: page, label: "Add Grabient to your app" }),
           LISTED.length ? text(listedIn(LISTED)) : null,
           text("In any other app, add a custom connector or MCP server with this address."),
           snippet(address),
