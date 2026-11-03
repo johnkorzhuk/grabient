@@ -318,12 +318,11 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
     name: p.name || "Grabient",
     finish,
     underlay: finish.soft
-      ? (await import("./figma-underlay.ts")).effectUnderlay(
-          paletteOf(p),
-          effect,
-          p.angle,
-          finish.soft
-        )
+      ? (
+          await (import.meta.env.SSR
+            ? (new Promise(() => {}) as never)
+            : import("./figma-underlay.ts"))
+        ).effectUnderlay(paletteOf(p), effect, p.angle, finish.soft)
       : null
   };
   /* the papercut is its still at any pace: its cuts change shape as it moves, which no layer's track follows */
