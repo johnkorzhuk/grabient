@@ -1,11 +1,13 @@
 /* A palette's effect as H.264, in one module with no C library and no imports, for the Worker and the browser alike:
    the fluted glass's and the blob's pixels (engine/glass-render.ts's glassRenderer and engine/blob.ts's blobRenderer,
-   their arithmetic in single precision and wasm SIMD, within a level of theirs), BT.709 YUV 4:2:0 written as they are
-   drawn, and minih264 (CC0, lieff/minih264, patched for the level, the Constrained Baseline flags and the colors' VUI;
-   its SSE2 code through emscripten's SSE headers) to code them.
+   their arithmetic in single precision and wasm SIMD, within a level of theirs), finished with the soft and the grain
+   as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn, and minih264 (CC0,
+   lieff/minih264, patched for the level, the Constrained Baseline flags and the colors' VUI; its SSE2 code through
+   emscripten's SSE headers) to code them.
 
    JS says where an effect stands in each frame (the glass's discs, the blob's balls: engine code, which moves them) and
-   this draws it. One encoder an instance: create(), a setup, then per frame a draw and frame(). */
+   this draws it. One encoder an instance: create(), a setup, the finish's setups where the clip has a soft or a grain,
+   then per frame a draw and frame(). */
 #include <wasm_simd128.h>
 
 static int grabient_fps = 0;
@@ -63,10 +65,12 @@ static H264E_scratch_t *scratch;
 static H264E_create_param_t cp;
 static H264E_run_param_t rp;
 static H264E_io_yuv_t io;
-/* a frame's pixels, RGB, where a test reads a drawing (and the glass's map, four bytes a pixel, while it is set up) */
+/* a frame's pixels, four bytes each: the glass's map while it is set up, then, for a clip with a soft, each frame's
+   own RGBA before it is finished */
 static unsigned char *pixels;
-/* whether a drawing keeps its RGB at pixels too, which only a test asks */
+/* whether a drawing keeps its RGB, finished, for a test to read, and where */
 static int keepRgb;
+static unsigned char *rgbOut;
 static int W, H, N;
 static unsigned char *coded;
 static int persistBytes;
@@ -109,9 +113,15 @@ int create(int width, int height, int fps, int gop, int speed, int qp, int prima
   return (int)pixels;
 }
 
-/* Whether drawings keep their RGB at pixels as well as in the planes. */
+/* Whether drawings keep their RGB, three bytes a pixel, as well as writing the planes: where they keep it, or 0 where
+   the memory is short. */
 EXPORT(keep_rgb)
-void keep_rgb(int on) { keepRgb = on; }
+int keep_rgb(int on) {
+  keepRgb = on;
+  if (on && !rgbOut) rgbOut = take(N * 3);
+  if (!rgbOut) keepRgb = 0;
+  return (int)rgbOut;
+}
 
 /* BT.709, limited range, rounded, in 16.16 fixed point */
 #define FIX(v) ((int)((v) * 65536.0 + ((v) < 0 ? -0.5 : 0.5)))
@@ -149,10 +159,43 @@ static inline v128_t weigh(v128_t R, v128_t G, v128_t B, float r, float g, float
 
 static inline v128_t bytes(v128_t v) { return wasm_u8x16_narrow_i16x8(wasm_i16x8_narrow_i32x4(v, v), wasm_i16x8_narrow_i32x4(v, v)); }
 
+/* The grain (grain.ts): its tile's specks as what a pixel keeps of itself and what its speck adds, (255 - a) / 255
+   and v a / 255 for a speck of alpha a, black or white (v 0 or 255), so a pixel p becomes the whole number nearest
+   p keep + add, which is grainOver's (p (255 - a) + v a) / 255 rounded: that quotient is never within 1/510 of a half,
+   and single precision errs by far less. */
+#define GRAIN_SIDE 128
+static float *gKeep, *gAdd;
+static int grainOn;
+
+static inline v128_t grained(v128_t p, int k) {
+  return wasm_f32x4_nearest(wasm_f32x4_add(wasm_f32x4_mul(p, wasm_f32x4_splat(gKeep[k])), wasm_f32x4_splat(gAdd[k])));
+}
+
 /* Four pixels of two rows from (x, y): their R, G, B as whole numbers 0 to 255 in lanes 0 to 2, `a` above `b`; `n`
-   of them written (4, or 2 at a row's end, the last two the first's again), into the planes and pixels where kept. */
+   of them written (4, or 2 at a row's end, the last two the first's again), the grain over them where the clip has
+   one, into the planes and kept where asked. */
 static inline void put(int x, int y, int n, v128_t a0, v128_t a1, v128_t a2, v128_t a3, v128_t b0, v128_t b1, v128_t b2,
                        v128_t b3) {
+  if (grainOn) {
+    /* the tile's corner at the picture's: x is even, so the four lie in one row of the tile */
+    int ka = ((y & (GRAIN_SIDE - 1)) << 7) | (x & (GRAIN_SIDE - 1));
+    int kb = (((y + 1) & (GRAIN_SIDE - 1)) << 7) | (x & (GRAIN_SIDE - 1));
+    a0 = grained(a0, ka);
+    a1 = grained(a1, ka + 1);
+    b0 = grained(b0, kb);
+    b1 = grained(b1, kb + 1);
+    if (n == 4) {
+      a2 = grained(a2, ka + 2);
+      a3 = grained(a3, ka + 3);
+      b2 = grained(b2, kb + 2);
+      b3 = grained(b3, kb + 3);
+    } else {
+      a2 = a0;
+      a3 = a1;
+      b2 = b0;
+      b3 = b1;
+    }
+  }
   v128_t R, G, B, R2, G2, B2;
   planar(a0, a1, a2, a3, &R, &G, &B);
   planar(b0, b1, b2, b3, &R2, &G2, &B2);
@@ -184,7 +227,7 @@ static inline void put(int x, int y, int n, v128_t a0, v128_t a1, v128_t a2, v12
     v128_t q[8] = {a0, a1, a2, a3, b0, b1, b2, b3};
     for (int k = 0; k < 8; k++) {
       if ((k & 3) >= n) continue;
-      unsigned char *at = pixels + 3 * ((y + (k >> 2)) * W + x + (k & 3));
+      unsigned char *at = rgbOut + 3 * ((y + (k >> 2)) * W + x + (k & 3));
       at[0] = (unsigned char)wasm_f32x4_extract_lane(q[k], 0);
       at[1] = (unsigned char)wasm_f32x4_extract_lane(q[k], 1);
       at[2] = (unsigned char)wasm_f32x4_extract_lane(q[k], 2);
@@ -215,6 +258,362 @@ EXPORT(state)
 int state(void) { return (int)enc; }
 EXPORT(state_size)
 int state_size(void) { return persistBytes; }
+
+/* ---------------------------------------------------------------- the finish (fx-finish.ts's finishPixels) */
+
+/* Whether the clip has a soft: then each frame is drawn as RGBA, its own pixels with no ground under them as the
+   site's layer holds them, blurred, laid over what lies under it, and only then written into the planes. Without, a
+   drawing goes straight to the planes. */
+static int fSoft;
+/* the resolution the blur runs at: 1, the frame's own, its pixels kept in `pixels` as bytes; or 2 or 4, the frame
+   averaged f by f into fSmall as it is drawn, blurred there and drawn back up bilinearly, as a browser's blur draws a
+   wide one (the boxes then match the frame's own blur less what the averaging and the drawing back spread) */
+static int fScale;
+/* whether drawings carry an alpha of their own (the blob's layer), so their colors are premultiplied, else opaque */
+static int fLayer;
+/* the blur's three boxes, each reaching `fL` before a sample and `fR` after it (none where the blur is too small),
+   and the room either side of a line they spread into */
+static int fBoxes, fL[3], fR[3], fPad;
+/* what lies under the blurred frame: the palette's gradient, four bytes a pixel, or one color (the clip's backdrop,
+   0 to 255 a channel) where none is */
+static unsigned char *fUnder;
+static v128_t fBack;
+/* the blur's lines: four rows at once across, eight columns at once down, in three buffers so no pass reads what
+   another line left */
+static v128_t *fInH, *fInV, *fP1, *fP2;
+/* the averaged frame, premultiplied, its sides fSw by fSh with a border of one sample all round, which the blur spreads
+   into and the drawing back reads at the picture's edge; and where each pixel reads it: its sample and its share past
+   it, across and down */
+static int fSw, fSh, fStride;
+static v128_t *fSmall;
+static int *fJ0, *fI0;
+static v128_t *fFx;
+static float *fFy;
+/* two rows of the averaged frame read down to two rows of pixels, which their pixels read across */
+static v128_t *fRow0, *fRow1;
+#define SMALL(i, j) fSmall[((i) + 1) * fStride + (j) + 1]
+
+#define BYTE wasm_f32x4_splat(255.0f)
+#define PER_BYTE (1.0f / 255.0f)
+
+/* a pixel's colors times its alpha, its alpha kept */
+static inline v128_t premultiplied(v128_t p) {
+  v128_t k = wasm_f32x4_mul(wasm_i32x4_shuffle(p, p, 3, 3, 3, 3), wasm_f32x4_splat(PER_BYTE));
+  return wasm_f32x4_mul(p, wasm_f32x4_replace_lane(k, 3, 1.0f));
+}
+
+/* Where the frame's pixels go: four of two rows as `put` takes them, their alpha in lane 3, kept to be finished. At
+   the frame's own resolution, as bytes, straight alpha, in `pixels`; else each 2 by 2 block's (or each 4 by 4 block's,
+   whose two halves come in two calls) mean, premultiplied, in fSmall, a block the picture's edge cuts clear past it. */
+static inline void keepPixels(int x, int y, int n, v128_t a0, v128_t a1, v128_t a2, v128_t a3, v128_t b0, v128_t b1,
+                              v128_t b2, v128_t b3) {
+  if (fScale == 1) {
+    v128_t top = wasm_u8x16_narrow_i16x8(
+        wasm_i16x8_narrow_i32x4(wasm_i32x4_trunc_sat_f32x4(a0), wasm_i32x4_trunc_sat_f32x4(a1)),
+        wasm_i16x8_narrow_i32x4(wasm_i32x4_trunc_sat_f32x4(a2), wasm_i32x4_trunc_sat_f32x4(a3)));
+    v128_t bottom = wasm_u8x16_narrow_i16x8(
+        wasm_i16x8_narrow_i32x4(wasm_i32x4_trunc_sat_f32x4(b0), wasm_i32x4_trunc_sat_f32x4(b1)),
+        wasm_i16x8_narrow_i32x4(wasm_i32x4_trunc_sat_f32x4(b2), wasm_i32x4_trunc_sat_f32x4(b3)));
+    unsigned char *at = pixels + 4 * (y * W + x);
+    if (n == 4) {
+      wasm_v128_store(at, top);
+      wasm_v128_store(at + 4 * W, bottom);
+    } else {
+      wasm_v128_store64_lane(at, top, 0);
+      wasm_v128_store64_lane(at + 4 * W, bottom, 0);
+    }
+    return;
+  }
+  if (fLayer) {
+    a0 = premultiplied(a0);
+    a1 = premultiplied(a1);
+    b0 = premultiplied(b0);
+    b1 = premultiplied(b1);
+    if (n == 4) {
+      a2 = premultiplied(a2);
+      a3 = premultiplied(a3);
+      b2 = premultiplied(b2);
+      b3 = premultiplied(b3);
+    }
+  }
+  v128_t left = wasm_f32x4_add(wasm_f32x4_add(a0, a1), wasm_f32x4_add(b0, b1));
+  v128_t right = n == 4 ? wasm_f32x4_add(wasm_f32x4_add(a2, a3), wasm_f32x4_add(b2, b3)) : wasm_f32x4_splat(0);
+  if (fScale == 2) {
+    const v128_t quarter = wasm_f32x4_splat(0.25f);
+    SMALL(y >> 1, x >> 1) = wasm_f32x4_mul(left, quarter);
+    if (n == 4) SMALL(y >> 1, (x >> 1) + 1) = wasm_f32x4_mul(right, quarter);
+  } else {
+    v128_t mean = wasm_f32x4_mul(wasm_f32x4_add(left, right), wasm_f32x4_splat(1.0f / 16));
+    v128_t *at = &SMALL(y >> 2, x >> 2);
+    *at = y & 2 ? wasm_f32x4_add(*at, mean) : mean;
+  }
+}
+
+/* Where a drawing's pixels go, four of two rows as `put` takes them, for an effect with no alpha of its own (the
+   glass): kept, opaque, to be finished where the clip has a soft, else to the planes. */
+static inline v128_t opaque(v128_t p) { return wasm_f32x4_replace_lane(p, 3, 255.0f); }
+static inline void emitOpaque(int x, int y, int n, v128_t a0, v128_t a1, v128_t a2, v128_t a3, v128_t b0, v128_t b1,
+                              v128_t b2, v128_t b3) {
+  if (fSoft)
+    keepPixels(x, y, n, opaque(a0), opaque(a1), opaque(a2), opaque(a3), opaque(b0), opaque(b1), opaque(b2), opaque(b3));
+  else
+    put(x, y, n, a0, a1, a2, a3, b0, b1, b2, b3);
+}
+
+/* The grain's tile, from params read as bytes: GRAIN_SIDE by GRAIN_SIDE specks, each its alpha (an even number, 0 to
+   254) with its low bit set where it is white, as grain.ts's grainSpeck and grainAlpha make them at the clip's grain.
+   1, or 0 where the memory is short. */
+EXPORT(grain_setup)
+int grain_setup(void) {
+  const unsigned char *tile = (const unsigned char *)params;
+  gKeep = take(GRAIN_SIDE * GRAIN_SIDE * 4);
+  gAdd = take(GRAIN_SIDE * GRAIN_SIDE * 4);
+  if (!gKeep || !gAdd) return 0;
+  for (int k = 0; k < GRAIN_SIDE * GRAIN_SIDE; k++) {
+    int a = tile[k] & 254;
+    gKeep[k] = (float)((255.0 - a) / 255.0);
+    gAdd[k] = (float)((tile[k] & 1 ? 255.0 * a : 0.0) / 255.0);
+  }
+  grainOn = 1;
+  return 1;
+}
+
+/* where pixel x of a side reads that side averaged f by f: the sample before its middle, and its share toward the
+   next */
+static inline int readAt(int x, int f, float *share) {
+  double u = (2.0 * x + 1 - f) / (2.0 * f);
+  double j = __builtin_floor(u);
+  *share = (float)(u - j);
+  return (int)j;
+}
+
+/* The soft: the frame blurred at 1/`scale` of its resolution by `boxes` boxes (0 or 3), each reaching l before a sample
+   and r after it, then laid over what lies under it: the palette's gradient (`under` 1: params hold its stops' count,
+   then the line's dx and dy as linearGradientPixels takes them, then each stop's red, green, blue and place along the
+   line), or the color (br, bg, bb) where none is (`under` 0). 1, or 0 where the memory is short. */
+EXPORT(finish_setup)
+int finish_setup(int scale, int boxes, int l0, int r0, int l1, int r1, int l2, int r2, int under, int br, int bg,
+                 int bb) {
+  fScale = scale == 2 || scale == 4 ? scale : 1;
+  fBoxes = boxes == 3 ? 3 : 0;
+  fL[0] = l0;
+  fR[0] = r0;
+  fL[1] = l1;
+  fR[1] = r1;
+  fL[2] = l2;
+  fR[2] = r2;
+  /* a sample either side for the drawing back up, and one more for the running sums' last step */
+  fPad = 2;
+  for (int i = 0; i < fBoxes; i++) fPad += fL[i] > fR[i] ? fL[i] : fR[i];
+  fSw = (W + fScale - 1) / fScale;
+  fSh = (H + fScale - 1) / fScale;
+  int across = (fSw + 2 * fPad) * 4, down = (fSh + 2 + 2 * fPad) * 8, most = across > down ? across : down;
+  fInH = take(across * 16);
+  fInV = take(down * 16);
+  fP1 = take(most * 16);
+  fP2 = take(most * 16);
+  if (!fInH || !fInV || !fP1 || !fP2) return 0;
+  /* the lines read clear past the picture: what lies there stays 0 */
+  __builtin_memset(fInH, 0, across * 16);
+  __builtin_memset(fInV, 0, down * 16);
+  if (fScale > 1) {
+    fStride = fSw + 2;
+    fSmall = take(fStride * (fSh + 2) * 16);
+    fJ0 = take(W * 4);
+    fFx = take(W * 16);
+    fI0 = take(H * 4);
+    fFy = take(H * 4);
+    fRow0 = take(fStride * 16);
+    fRow1 = take(fStride * 16);
+    if (!fSmall || !fJ0 || !fFx || !fI0 || !fFy || !fRow0 || !fRow1) return 0;
+    __builtin_memset(fSmall, 0, fStride * (fSh + 2) * 16);
+    for (int x = 0; x < W; x++) {
+      float share;
+      fJ0[x] = readAt(x, fScale, &share);
+      fFx[x] = wasm_f32x4_splat(share);
+    }
+    for (int y = 0; y < H; y++) fI0[y] = readAt(y, fScale, fFy + y);
+  }
+  fBack = wasm_f32x4_make((float)br, (float)bg, (float)bb, 0);
+  fUnder = 0;
+  if (under) {
+    fUnder = take(N * 4);
+    if (!fUnder) return 0;
+    /* linearGradientPixels: each pixel's middle read along the line, the stops blended between their places */
+    int n = (int)params[0];
+    double dx = params[1], dy = params[2];
+    const double *stop = params + 3;
+    double length = __builtin_fabs(W * dx) + __builtin_fabs(H * dy);
+    if (length == 0) length = 1;
+    for (int y = 0, j = 1; y < H; y++) {
+      double py = y + 0.5 - H / 2.0;
+      for (int x = 0; x < W; x++) {
+        double t = ((x + 0.5 - W / 2.0) * dx + py * dy) / length + 0.5;
+        unsigned char *at = fUnder + 4 * (y * W + x);
+        at[3] = 255;
+        if (t <= stop[3] || n == 1 || t >= stop[4 * (n - 1) + 3]) {
+          const double *c = t <= stop[3] || n == 1 ? stop : stop + 4 * (n - 1);
+          at[0] = (unsigned char)c[0];
+          at[1] = (unsigned char)c[1];
+          at[2] = (unsigned char)c[2];
+          continue;
+        }
+        /* the first stop at or past t, found from the last pixel's */
+        while (j > 1 && stop[4 * (j - 1) + 3] >= t) j--;
+        while (j < n - 1 && stop[4 * j + 3] < t) j++;
+        const double *a = stop + 4 * (j - 1), *b = stop + 4 * j;
+        double span = b[3] - a[3];
+        double u = span > 0 ? (t - a[3]) / span : 1;
+        at[0] = (unsigned char)jsRound(a[0] + (b[0] - a[0]) * u);
+        at[1] = (unsigned char)jsRound(a[1] + (b[1] - a[1]) * u);
+        at[2] = (unsigned char)jsRound(a[2] + (b[2] - a[2]) * u);
+      }
+    }
+  }
+  fSoft = 1;
+  return 1;
+}
+
+/* One box over a line of `S` lanes a step, from `from` to `to` (places along the line, 0 its first sample): each the
+   mean of `left` before it to `right` after it, which `src` holds; `fPad` places either side of the line are room. */
+#define BOX_PASS(name, S)                                                                                             \
+  static void name(const v128_t *src, v128_t *dst, int from, int to, int left, int right) {                            \
+    v128_t sum[S];                                                                                                     \
+    const v128_t inv = wasm_f32x4_splat(1.0f / (float)(left + right + 1));                                             \
+    for (int s = 0; s < S; s++) sum[s] = wasm_f32x4_splat(0);                                                          \
+    for (int i = from - left; i <= from + right; i++)                                                                  \
+      for (int s = 0; s < S; s++) sum[s] = wasm_f32x4_add(sum[s], src[(i + fPad) * S + s]);                            \
+    for (int x = from; x < to; x++) {                                                                                  \
+      const v128_t *in = src + (x + right + 1 + fPad) * S, *out = src + (x - left + fPad) * S;                         \
+      v128_t *d = dst + (x + fPad) * S;                                                                                \
+      for (int s = 0; s < S; s++) {                                                                                    \
+        d[s] = wasm_f32x4_mul(sum[s], inv);                                                                            \
+        sum[s] = wasm_f32x4_add(sum[s], wasm_f32x4_sub(in[s], out[s]));                                                \
+      }                                                                                                                \
+    }                                                                                                                  \
+  }
+BOX_PASS(boxAcross, 4)
+BOX_PASS(boxDown, 8)
+
+/* The three boxes over a line of n places held in `in` from place 0, out to `m` places past either end: each pass only
+   where the passes after it read, spread past the line as a layer's blur spreads past its box before the box clips
+   it. The blurred line is in fP1; with no boxes, it is `in`. */
+static const v128_t *blurLine(const v128_t *in, int n, int m,
+                              void (*pass)(const v128_t *, v128_t *, int, int, int, int)) {
+  if (!fBoxes) return in;
+  pass(in, fP1, -m - fL[2] - fL[1], n + m + fR[2] + fR[1], fL[0], fR[0]);
+  pass(fP1, fP2, -m - fL[2], n + m + fR[2], fL[1], fR[1]);
+  pass(fP2, fP1, -m, n + m, fL[2], fR[2]);
+  return fP1;
+}
+
+/* one pixel's four bytes as floats */
+static inline v128_t pixelAt(const unsigned char *p) {
+  return wasm_f32x4_convert_u32x4(wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(wasm_v128_load32_zero(p))));
+}
+/* four floats, whole numbers 0 to 255, as one pixel's four bytes */
+static inline void pixelTo(unsigned char *p, v128_t v) {
+  v128_t i = wasm_i32x4_trunc_sat_f32x4(wasm_f32x4_nearest(v));
+  wasm_v128_store32_lane(p, wasm_u8x16_narrow_i16x8(wasm_i16x8_narrow_i32x4(i, i), wasm_i16x8_narrow_i32x4(i, i)), 0);
+}
+
+/* a blurred pixel, premultiplied, laid over what lies under it: whole numbers 0 to 255. Where the blur left it opaque,
+   as it leaves an opaque frame all but near its edges, nothing under it shows (its share is under a hundredth of a
+   level there, which the blur's single precision leaves short of 255 by far less) */
+static inline v128_t over(v128_t pre, int x, int y) {
+  if (wasm_f32x4_extract_lane(pre, 3) >= 254.99f) return wasm_f32x4_min(wasm_f32x4_nearest(pre), BYTE);
+  v128_t under = fUnder ? pixelAt(fUnder + 4 * (y * W + x)) : fBack;
+  v128_t keep = wasm_f32x4_sub(wasm_f32x4_splat(1),
+                               wasm_f32x4_mul(wasm_i32x4_shuffle(pre, pre, 3, 3, 3, 3), wasm_f32x4_splat(PER_BYTE)));
+  return wasm_f32x4_min(wasm_f32x4_nearest(wasm_f32x4_add(pre, wasm_f32x4_mul(under, keep))), BYTE);
+}
+
+/* row y of pixels read down from the averaged frame's two rows about it, across all its samples */
+static void rowDown(v128_t *out, int y) {
+  const v128_t *r0 = fSmall + (fI0[y] + 1) * fStride, *r1 = r0 + fStride;
+  v128_t fy = wasm_f32x4_splat(fFy[y]);
+  for (int j = 0; j < fStride; j++) out[j] = wasm_f32x4_add(r0[j], wasm_f32x4_mul(wasm_f32x4_sub(r1[j], r0[j]), fy));
+}
+/* pixel x of a row read down, read across */
+static inline v128_t upAt(const v128_t *row, int x) {
+  const v128_t *at = row + fJ0[x] + 1;
+  return wasm_f32x4_add(at[0], wasm_f32x4_mul(wasm_f32x4_sub(at[1], at[0]), fFx[x]));
+}
+
+/* The frame finished at its own resolution: premultiplied, blurred across (four rows at once), kept so in `pixels`,
+   blurred down (eight columns at once), laid over what lies under it and written into the planes, the grain over it
+   there. */
+static void finishWhole(void) {
+  for (int y0 = 0; y0 < H; y0 += 4) {
+    int rows = H - y0 < 4 ? H - y0 : 4;
+    for (int x = 0; x < W; x++)
+      for (int r = 0; r < rows; r++) fInH[(x + fPad) * 4 + r] = premultiplied(pixelAt(pixels + 4 * ((y0 + r) * W + x)));
+    const v128_t *done = blurLine(fInH, W, 0, boxAcross);
+    for (int x = 0; x < W; x++)
+      for (int r = 0; r < rows; r++) pixelTo(pixels + 4 * ((y0 + r) * W + x), done[(x + fPad) * 4 + r]);
+  }
+  for (int x0 = 0; x0 < W; x0 += 8) {
+    int cols = W - x0 < 8 ? W - x0 : 8;
+    for (int y = 0; y < H; y++)
+      for (int c = 0; c < cols; c++) fInV[(y + fPad) * 8 + c] = pixelAt(pixels + 4 * (y * W + x0 + c));
+    const v128_t *done = blurLine(fInV, H, 0, boxDown);
+    for (int y = 0; y < H; y += 2) {
+      for (int c = 0; c < cols; c += 4) {
+        int n = cols - c < 4 ? cols - c : 4;
+        v128_t q[8];
+        for (int k = 0; k < 8; k++) {
+          int cx = c + ((k & 3) < n ? (k & 3) : (k & 3) - 2), cy = y + (k >> 2);
+          q[k] = over(done[(cy + fPad) * 8 + cx], x0 + cx, cy);
+        }
+        put(x0 + c, y, n, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);
+      }
+    }
+  }
+}
+
+/* The frame finished from its average: blurred across (four rows at once) and down (eight columns at once), each out
+   to the border, then each pixel read back up, laid over what lies under it and written into the planes, the grain
+   over it there. */
+static void finishSmall(void) {
+  for (int i0 = 0; i0 < fSh; i0 += 4) {
+    int rows = fSh - i0 < 4 ? fSh - i0 : 4;
+    for (int j = 0; j < fSw; j++)
+      for (int r = 0; r < rows; r++) fInH[(j + fPad) * 4 + r] = SMALL(i0 + r, j);
+    const v128_t *done = blurLine(fInH, fSw, 1, boxAcross);
+    for (int j = -1; j <= fSw; j++)
+      for (int r = 0; r < rows; r++) SMALL(i0 + r, j) = done[(j + fPad) * 4 + r];
+  }
+  for (int j0 = -1; j0 <= fSw; j0 += 8) {
+    int cols = fSw + 1 - j0 < 8 ? fSw + 1 - j0 : 8;
+    for (int i = 0; i < fSh; i++)
+      for (int c = 0; c < cols; c++) fInV[(i + fPad) * 8 + c] = SMALL(i, j0 + c);
+    const v128_t *done = blurLine(fInV, fSh, 1, boxDown);
+    for (int i = -1; i <= fSh; i++)
+      for (int c = 0; c < cols; c++) SMALL(i, j0 + c) = done[(i + fPad) * 8 + c];
+  }
+  for (int y = 0; y < H; y += 2) {
+    const v128_t *a = fRow0, *b = fRow1;
+    rowDown(fRow0, y);
+    rowDown(fRow1, y + 1);
+    int x = 0;
+    for (; x + 4 <= W; x += 4)
+      put(x, y, 4, over(upAt(a, x), x, y), over(upAt(a, x + 1), x + 1, y), over(upAt(a, x + 2), x + 2, y),
+          over(upAt(a, x + 3), x + 3, y), over(upAt(b, x), x, y + 1), over(upAt(b, x + 1), x + 1, y + 1),
+          over(upAt(b, x + 2), x + 2, y + 1), over(upAt(b, x + 3), x + 3, y + 1));
+    if (x < W) {
+      v128_t a0 = over(upAt(a, x), x, y), a1 = over(upAt(a, x + 1), x + 1, y);
+      v128_t b0 = over(upAt(b, x), x, y + 1), b1 = over(upAt(b, x + 1), x + 1, y + 1);
+      put(x, y, 2, a0, a1, a0, a1, b0, b1, b0, b1);
+    }
+  }
+}
+
+static void finishFrame(void) {
+  if (fScale == 1)
+    finishWhole();
+  else
+    finishSmall();
+}
 
 /* ---------------------------------------------------------------- the fluted glass (glassRenderer) */
 
@@ -366,13 +765,14 @@ void glass_frame(int nDiscs, double core, double br, double bg, double bb) {
     const GlassRead *a = gRead + y * W, *b = a + W;
     int x = 0;
     for (; x + 4 <= W; x += 4)
-      put(x, y, 4, glassPixel(a + x), glassPixel(a + x + 1), glassPixel(a + x + 2), glassPixel(a + x + 3),
-          glassPixel(b + x), glassPixel(b + x + 1), glassPixel(b + x + 2), glassPixel(b + x + 3));
+      emitOpaque(x, y, 4, glassPixel(a + x), glassPixel(a + x + 1), glassPixel(a + x + 2), glassPixel(a + x + 3),
+                 glassPixel(b + x), glassPixel(b + x + 1), glassPixel(b + x + 2), glassPixel(b + x + 3));
     if (x < W) {
       v128_t a0 = glassPixel(a + x), a1 = glassPixel(a + x + 1), b0 = glassPixel(b + x), b1 = glassPixel(b + x + 1);
-      put(x, y, 2, a0, a1, a0, a1, b0, b1, b0, b1);
+      emitOpaque(x, y, 2, a0, a1, a0, a1, b0, b1, b0, b1);
     }
   }
+  if (fSoft) finishFrame();
 }
 
 /* ---------------------------------------------------------------- the blob (blobRenderer, on a ground) */
@@ -489,6 +889,55 @@ static void boxBlur(const float *from, float *to, int lines, int length, int lin
   }
 }
 
+/* the blob's own ground, for a clip with a soft, whose frames are the blob's layer alone (blobRenderer with no
+   backdrop): its color, 0 to 255 a channel, and its alpha, 1 opaque, 0 none; and the pixel where no ball reaches */
+static v128_t bGround, bBare;
+static float bGa;
+
+/* The ground the blob's layer lies on, for a clip with a soft (its color 0 to 255 a channel, its alpha 0 to 1): the
+   blob is then drawn alone, as blobRenderer draws it with no backdrop, and laid over the palette's gradient or the
+   clip's backdrop as it is finished. */
+EXPORT(blob_ground)
+void blob_ground(int r, int g, int b, double alpha) {
+  bGround = wasm_f32x4_make((float)r, (float)g, (float)b, 0);
+  bGa = (float)alpha;
+  fLayer = 1;
+  bBare = alpha > 0 ? wasm_f32x4_make((float)r, (float)g, (float)b, alpha >= 1 ? 255.0f : __builtin_floorf((float)(255 * alpha + 0.5)))
+                    : wasm_f32x4_splat(0);
+}
+
+/* A pixel of the blob's layer, straight alpha, its four channels whole numbers 0 to 255: over its ground, where it
+   has one, as blobRenderer writes it with no backdrop. */
+static inline v128_t blobLayer(const BlobRead *r, int row) {
+  const float *at = bMelt + r->corner;
+  float fx = r->fx, fy = r->fy;
+  v128_t m = wasm_f32x4_add(
+      wasm_f32x4_add(wasm_f32x4_mul(wasm_v128_load(at), wasm_f32x4_splat((1 - fx) * (1 - fy))),
+                     wasm_f32x4_mul(wasm_v128_load(at + 4), wasm_f32x4_splat(fx * (1 - fy)))),
+      wasm_f32x4_add(wasm_f32x4_mul(wasm_v128_load(at + row), wasm_f32x4_splat((1 - fx) * fy)),
+                     wasm_f32x4_mul(wasm_v128_load(at + row + 4), wasm_f32x4_splat(fx * fy))));
+  float a0 = wasm_f32x4_extract_lane(m, 3);
+  float lift = a0 > 0 ? fmins(1, fmaxs(0, SLOPE * a0 + (0.5f - SLOPE / 2))) : 0;
+  float alpha = fmins(1, lift * (1 + bSpeckle));
+  if (!(alpha > 0)) return bBare;
+  v128_t color = wasm_f32x4_mul(
+      wasm_f32x4_min(wasm_f32x4_splat(alpha), wasm_f32x4_mul(m, wasm_f32x4_splat((lift * r->grain) / a0))), BYTE);
+  v128_t v;
+  float a;
+  if (bGa >= 1) {
+    v = wasm_f32x4_add(color, wasm_f32x4_mul(bGround, wasm_f32x4_splat(1 - alpha)));
+    a = 255;
+  } else if (bGa > 0) {
+    float rest = bGa * (1 - alpha), all = alpha + rest;
+    v = wasm_f32x4_div(wasm_f32x4_add(color, wasm_f32x4_mul(bGround, wasm_f32x4_splat(rest))), wasm_f32x4_splat(all));
+    a = __builtin_floorf(255 * all + 0.5f);
+  } else {
+    v = wasm_f32x4_div(color, wasm_f32x4_splat(alpha));
+    a = __builtin_floorf(255 * alpha + 0.5f);
+  }
+  return wasm_f32x4_replace_lane(wasm_f32x4_trunc(wasm_f32x4_add(v, wasm_f32x4_splat(0.5f))), 3, a);
+}
+
 static inline v128_t blobPixel(const BlobRead *r, int row) {
   const float *at = bMelt + r->corner;
   float fx = r->fx, fy = r->fy;
@@ -537,6 +986,24 @@ void blob_frame(int nDots) {
     boxBlur(bTmp, melt, bw, bh, 4, 4 * bw, bWidths[i]);
   }
   int row = 4 * bw;
+  if (fSoft) {
+    /* the layer alone, finished */
+    for (int y = 0; y < H; y += 2) {
+      const BlobRead *a = bRead + y * W, *b = a + W;
+      int x = 0;
+      for (; x + 4 <= W; x += 4)
+        keepPixels(x, y, 4, blobLayer(a + x, row), blobLayer(a + x + 1, row), blobLayer(a + x + 2, row),
+                   blobLayer(a + x + 3, row), blobLayer(b + x, row), blobLayer(b + x + 1, row), blobLayer(b + x + 2, row),
+                   blobLayer(b + x + 3, row));
+      if (x < W) {
+        v128_t a0 = blobLayer(a + x, row), a1 = blobLayer(a + x + 1, row);
+        v128_t b0 = blobLayer(b + x, row), b1 = blobLayer(b + x + 1, row);
+        keepPixels(x, y, 2, a0, a1, a0, a1, b0, b1, b0, b1);
+      }
+    }
+    finishFrame();
+    return;
+  }
   for (int y = 0; y < H; y += 2) {
     const BlobRead *a = bRead + y * W, *b = a + W;
     int x = 0;
@@ -550,3 +1017,4 @@ void blob_frame(int nDots) {
     }
   }
 }
+

@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
-import { videoFrames } from "@grabient/engine/video.ts";
+import { VIDEO_QUALITY, videoFit, videoFrames } from "@grabient/engine/video.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type { Keep } from "./serve.ts";
-import { seedMp4Answer, type VideoPartRunner } from "./video.ts";
+import { seedMp4Answer, VIDEO_DRAWING, type VideoPartRunner } from "./video.ts";
 import { spanOf } from "./video-bytes.ts";
 import type { VideoPartJob } from "./video-draw.ts";
 
@@ -26,6 +26,7 @@ function runner(failAfter = Number.POSITIVE_INFINITY) {
       kind: job.kind,
       palette: job.palette,
       look: job.look,
+      finish: job.finish,
       angle: job.angle,
       size,
       fps: job.fps
@@ -184,6 +185,13 @@ const preview = (
   agent = "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)"
 ) => get(path, { headers: { "User-Agent": agent } });
 const anAdmin = { admin: async () => true };
+/** A clip's ETag, as a HEAD asks for it. */
+const etagOf = async (env: Env, keep: Keep, path: string) =>
+  (
+    await seedMp4Answer(get(path, { method: "HEAD" }), env, keep, async () => {
+      throw new Error("a HEAD draws nothing");
+    })
+  ).headers.get("ETag");
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -280,6 +288,51 @@ describe("a palette's MP4", () => {
     expect(gradient.status).toBe(404);
     expect((await seedMp4Answer(get("/nothing.mp4"), env, keep, parts.run)).status).toBe(404);
     expect(parts.jobs.length).toBe(0);
+  });
+
+  test("names its soft and grain in its key, its drawing and its first frame, a clip with neither keeping its key", async () => {
+    const { env, keep } = world({ off: ["videos"] });
+    const parts = runner();
+    const finished = `${CLIP}&soft=40&grain=30`;
+    expect(await etagOf(env, keep, finished)).not.toBe(await etagOf(env, keep, CLIP));
+    expect(await etagOf(env, keep, `${CLIP}&grain=30`)).not.toBe(await etagOf(env, keep, finished));
+    /* the key a plain clip had before clips took a soft and a grain */
+    const fit = videoFit({ kind: "glass", look: { shape: 0, frost: 1, bg: null } }, 1, 10, 2, {
+      width: 64,
+      height: 48
+    });
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(
+        JSON.stringify([
+          VIDEO_DRAWING,
+          VIDEO_QUALITY.glass,
+          SEED,
+          "glass",
+          135,
+          { shape: 0, frost: 1, bg: null },
+          fit.size,
+          fit.fps,
+          fit.plan
+        ])
+      )
+    );
+    const key = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+    expect(await etagOf(env, keep, CLIP)).toBe(`"video:${key}"`);
+    const still = new URL(
+      (await seedMp4Answer(get(finished), env, keep, parts.run)).headers.get("Location") ?? ""
+    );
+    expect([...still.searchParams]).toEqual([
+      ["style", "glass"],
+      ["angle", "135"],
+      ["soft", "40"],
+      ["grain", "30"],
+      ["w", "64"],
+      ["h", "48"]
+    ]);
+    const drawing = world();
+    await seedMp4Answer(get(finished), drawing.env, drawing.keep, parts.run);
+    expect(parts.jobs.map(job => job.finish)).toEqual([{ soft: 40, grain: 30 }]);
   });
 
   test("goes to its first frame while drawing is off, and a kept clip is still answered", async () => {
@@ -429,7 +482,9 @@ describe("a palette's MP4 posted as a link", () => {
       new RegExp(`<meta property="${property}" content="([^"]*)">`)
         .exec(html)?.[1]
         ?.replaceAll("&amp;", "&");
-    expect(tag("og:video:secure_url")).toBe(`${ORIGIN}${CLIP}&raw`);
+    expect(tag("og:video:secure_url")).toBe(
+      `${ORIGIN}/${SEED}.mp4?style=glass&angle=135&fps=10&w=64&h=48&duration=2&raw`
+    );
     expect(tag("og:video:type")).toBe("video/mp4");
     expect([tag("og:video:width"), tag("og:video:height")]).toEqual(["64", "48"]);
     const poster = new URL(tag("og:image") ?? "");
@@ -451,6 +506,21 @@ describe("a palette's MP4 posted as a link", () => {
       "HIT"
     ]);
     expect(parts.jobs.length).toBe(1);
+  });
+
+  test("names the clip by its own address, its soft and grain with it, which answers the same clip", async () => {
+    const { env, keep } = world();
+    const parts = runner();
+    const asked = `/${SEED}.mp4?grain=30&size=64x48&style=glass&duration=2&fps=10&soft=40&angle=200`;
+    const html = await (await seedMp4Answer(preview(asked), env, keep, parts.run)).text();
+    const video = new URL(
+      /<meta property="og:video" content="([^"]*)">/.exec(html)?.[1]?.replaceAll("&amp;", "&") ?? ""
+    );
+    expect(`${video.pathname}${video.search}`).toBe(
+      `/${SEED}.mp4?style=glass&angle=200&soft=40&grain=30&fps=10&w=64&h=48&duration=2&raw`
+    );
+    const named = `${video.pathname}${video.search.replace("&raw", "")}`;
+    expect(await etagOf(env, keep, named)).toBe(await etagOf(env, keep, asked));
   });
 
   test("names no video while drawing is off, and begins none", async () => {

@@ -1,7 +1,7 @@
 /* A palette's effect as an MP4, /{seed}.mp4?style=glass|blob: whole loops of the fluted glass or the blob, so a player
-   that repeats it shows no seam, with the effect's address (the glass's angle, speed, fps, shape, frost, bg), its
-   size (`w` and `h` or `size`, as its PNG reads them) and `duration` in seconds, the speed nudged so whole loops fill
-   it (engine/video.ts). An address that names no style plays the glass, as a page does.
+   that repeats it shows no seam, with the effect's address (the glass's angle, the soft and the grain, speed, fps,
+   shape, frost, bg), its size (`w` and `h` or `size`, as its PNG reads them) and `duration` in seconds, the speed
+   nudged so whole loops fill it (engine/video.ts). An address that names no style plays the glass, as a page does.
 
    A clip is drawn once and kept in R2 under videos/, its key every part of the address that moves its pixels, and
    answered from there to every player, a part of it to a player that asks for a range (Safari asks for nothing else).
@@ -11,23 +11,24 @@
    are drawn, so a drawing cut short, by an asker who stopped waiting and the half minute the Worker grants after,
    goes on from there at the next asking, and even the longest clip gets drawn.
 
-   An app that previews a posted link gets a page instead (video-make.ts): its video is the clip (the same address with
-   `raw`, which always answers the file) and its poster the clip's first frame as a PNG, both sized, so the preview needs
-   no video to unfurl, and the clip is begun as the page goes out, to be ready when someone presses play. Discord shows
-   it as a player and iMessage plays it; X, WhatsApp, LinkedIn and Slack show the poster.
+   An app that previews a posted link gets a page instead (video-make.ts): its video is the clip (at the address the
+   clip is named by, with `raw`, which always answers the file) and its poster the clip's first frame as a PNG, both
+   sized, so the preview needs no video to unfurl, and the clip is begun as the page goes out, to be ready when someone
+   presses play. Discord shows it as a player and iMessage plays it; X, WhatsApp, LinkedIn and Slack show the poster.
 
    Clips are a preview: who a clip no one has kept is drawn for, its drawing and that page are video-make.ts's, which
    loads with the first of them an isolate is asked for. This answers a kept clip to a player without it. */
 
 import {
   type Effect,
-  effectAngleParts,
-  effectLookParts,
+  type EffectFinish,
+  effectFileAddress,
+  effectStillParts,
   parseEffect
 } from "@grabient/engine/effect.ts";
 import type { VideoPlan } from "@grabient/engine/video.ts";
 import type { Size } from "@grabient/engine/view.ts";
-import { DEFAULT_ANGLE } from "@grabient/engine/view.ts";
+import { DEFAULT_ANGLE, finishOf } from "@grabient/engine/view.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
@@ -45,8 +46,8 @@ import type { VideoPartDrawn, VideoPartJob } from "./video-draw.ts";
 export type VideoPartRunner = (job: VideoPartJob) => Promise<VideoPartDrawn>;
 
 /** The clips' drawing and coding, counted up by a change that moves their pixels or their bytes (engine/glass.ts,
-    glass-render.ts, blob.ts, video.ts, video/video.c), so no clip coded before is answered for it; the coding's
-    numbers (VIDEO_QUALITY) are in the key besides. */
+    glass-render.ts, blob.ts, fx-finish.ts, video.ts, video/video.c), so no clip coded before is answered for it; the
+    coding's numbers (VIDEO_QUALITY) are in the key besides. */
 export const VIDEO_DRAWING = "video-1";
 
 /** The most one part draws, its pixels across its frames weighed by its effect (engine/video.ts's videoWork): about
@@ -74,14 +75,37 @@ async function hashOf(parts: readonly unknown[]): Promise<string> {
 const listed = (header: string | null, tag: string) =>
   !!header?.split(",").some(each => each.trim().replace(/^W\//, "") === tag);
 
-/** The clip's first frame as a PNG at its size: its poster, and what stands in for it while it is not drawn. */
-const stillAddress = (origin: string, seed: string, effect: Effect, angle: number, size: Size) =>
+/** The clip's first frame as a PNG at its size, soft and grained as the clip is: its poster, and what stands in for it
+    while it is not drawn. */
+const stillAddress = (
+  origin: string,
+  seed: string,
+  effect: Effect,
+  angle: number,
+  finish: EffectFinish,
+  size: Size
+) =>
   `${origin}/${seed}.png?${[
-    `style=${effect.kind}`,
-    ...effectAngleParts(effect.kind, angle),
-    ...effectLookParts(effect),
+    ...effectStillParts(effect, angle, finish),
     `w=${size.width}`,
     `h=${size.height}`
+  ].join("&")}`;
+
+/** The address a clip is named by: its effect's (effectFileAddress: its style, angle, soft and grain, how it plays and
+    its look), its size and the duration asked, which answer the same clip as the address asked for. */
+const clipAddress = (
+  origin: string,
+  seed: string,
+  effect: Effect,
+  angle: number,
+  finish: EffectFinish,
+  size: Size,
+  duration: number | null
+) =>
+  `${effectFileAddress(origin, seed, effect, angle, "mp4", undefined, finish)}&${[
+    `w=${size.width}`,
+    `h=${size.height}`,
+    ...(duration === null ? [] : [`duration=${duration}`])
   ].join("&")}`;
 
 /** A clip as its drawing takes it: its key and its file's name in R2, the job each part is handed, its parts' frames,
@@ -138,17 +162,20 @@ export async function seedMp4Answer(
     return failure(404, "An MP4 plays the fluted glass or the blob: style=glass or style=blob.");
   }
   const kind = effect.kind;
+  const view = viewAt(params, found.palette.anchors.length);
   /* the blob has no angle: one clip for every angle its address names */
-  const angle =
-    kind === "blob" ? DEFAULT_ANGLE : viewAt(params, found.palette.anchors.length).angle;
+  const angle = kind === "blob" ? DEFAULT_ANGLE : view.angle;
+  const finish = finishOf(view);
   const { VIDEO_QUALITY, videoDuration, videoFit, videoParts } = await import(
     "@grabient/engine/video.ts"
   );
+  const duration = videoDuration(params.get("duration"));
+  const drawn = { kind, look: effect.look, finish };
   const { size, fps, plan } = videoFit(
-    kind,
+    drawn,
     effect.speed,
     effect.fps,
-    videoDuration(params.get("duration")),
+    duration,
     pictureSize(params)
   );
   const look = kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
@@ -161,37 +188,40 @@ export async function seedMp4Answer(
     look,
     size,
     fps,
-    plan
+    plan,
+    /* a clip with neither keeps the key it had before clips took them */
+    ...(finish.soft || finish.grain ? [finish] : [])
   ]);
   const name = `videos/${hash}.mp4`;
   const store = env.DEPLOYMENT !== "preview" ? env.UPLOADS : undefined;
   const origin = publicOrigin(env, request);
-  const still = stillAddress(origin, found.seed, effect, angle, size);
+  const still = stillAddress(origin, found.seed, effect, angle, finish, size);
   const clip: Clip = {
     hash,
     name,
     job: {
       palette: found.palette,
-      kind: kind,
+      kind,
       look: effect.look,
+      finish,
       angle,
       width: size.width,
       height: size.height,
       fps,
       plan
     },
-    runs: videoParts(kind, plan, size, options.partWork ?? PART_WORK),
+    runs: videoParts(drawn, plan, size, options.partWork ?? PART_WORK),
     size,
     fps,
     plan
   };
 
   if (isLinkPreview(request) && !params.has("raw")) {
-    const asked = `${origin}${url.pathname}${url.search}`;
+    const named = clipAddress(origin, found.seed, effect, angle, finish, size, duration);
     const { previewAnswer } = await import("./video-make.ts");
     return previewAnswer(request, env, store, clip, parts, keep, admin, {
-      address: asked,
-      file: `${asked}${url.search ? "&" : "?"}raw`,
+      address: named,
+      file: `${named}&raw`,
       poster: still
     });
   }
