@@ -774,8 +774,9 @@ function Stage(
     }
   );
   const downloadClip = async (): Promise<boolean> => {
+    /* the stop is the ring's: a press before it shows, as the making's code comes (a double click), does nothing */
     if (stopMaking) {
-      stopMaking.abort();
+      if (making()) stopMaking.abort();
       return false;
     }
     const p = props.taken(props.stage);

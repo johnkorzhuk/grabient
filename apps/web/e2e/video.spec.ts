@@ -77,7 +77,8 @@ test("an MP4 being made stops at a press on it, or once the stage shows another 
   const making = page.getByRole("button", { name: "Making MP4. Stop" });
   /* the clip's own worker, beside any other the page runs */
   const clips = () => page.workers().filter(worker => /video-worker/.test(worker.url())).length;
-  await download.click();
+  /* a double click makes it once: the press that comes before its ring is not a stop */
+  await download.dblclick();
   await expect(making).toBeVisible();
   await expect.poll(clips).toBe(1);
   /* its tooltip says how far along it is, where its name does not */

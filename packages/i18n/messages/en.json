@@ -1197,7 +1197,7 @@
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
       "apps/web/src/features/editor/Editor.tsx:755",
-      "apps/web/src/features/editor/Editor.tsx:816",
+      "apps/web/src/features/editor/Editor.tsx:817",
       "apps/web/src/features/editor/Sheet.tsx:562",
       "apps/web/src/features/editor/Sheet.tsx:640",
       "apps/web/src/features/examples/Swatches.tsx:209",
@@ -1643,7 +1643,7 @@
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1283",
+      "apps/web/src/features/editor/Editor.tsx:1284",
       "apps/web/src/features/examples/ExamplesPage.tsx:301",
       "packages/ui/src/KeyList.tsx:10"
     ]
@@ -2458,21 +2458,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1102",
+      "apps/web/src/features/editor/Editor.tsx:1103",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1098",
+      "apps/web/src/features/editor/Editor.tsx:1099",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1087",
+      "apps/web/src/features/editor/Editor.tsx:1088",
       "apps/web/src/features/editor/code.ts:322",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -3315,7 +3315,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1000",
+      "apps/web/src/features/editor/Editor.tsx:1001",
       "packages/ui/src/PaletteSheet.tsx:131"
     ]
   },
@@ -3414,7 +3414,7 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:986",
+      "apps/web/src/features/editor/Editor.tsx:987",
       "apps/web/src/lib/page-meta.ts:593",
       "apps/web/src/lib/page-meta.ts:604",
       "packages/ui/src/PaletteCard.tsx:345"
@@ -3892,7 +3892,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1300",
+      "apps/web/src/features/editor/Editor.tsx:1301",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3900,7 +3900,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1300"
+      "apps/web/src/features/editor/Editor.tsx:1301"
     ]
   },
   "Remove {hex}": {
@@ -4707,7 +4707,7 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:989",
+      "apps/web/src/features/editor/Editor.tsx:990",
       "apps/web/src/features/editor/Sheet.tsx:680",
       "apps/web/src/features/editor/StaticPalette.tsx:148",
       "packages/ui/src/PaletteCard.tsx:346"
@@ -5156,8 +5156,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:939",
-      "apps/web/src/features/editor/Editor.tsx:957"
+      "apps/web/src/features/editor/Editor.tsx:940",
+      "apps/web/src/features/editor/Editor.tsx:958"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5371,7 +5371,7 @@
   "This browser can't make videos.": {
     "note": "Error line after Download MP4 in a browser that cannot run the code that makes the video file itself (no WebAssembly SIMD or no module workers).",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:815"
+      "apps/web/src/features/editor/Editor.tsx:816"
     ]
   },
   "This code expires in 5 minutes. If you didn't ask for it, ignore this email.": {
