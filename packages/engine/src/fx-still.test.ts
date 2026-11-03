@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { decodePalette } from "./codec.ts";
 import type { Effect } from "./effect.ts";
-import { effectEmbedHtml, hasEmbedScript } from "./effect.ts";
+import { hasEmbedScript } from "./effect.ts";
 import {
   effectColors,
   effectLinks,
@@ -9,6 +9,7 @@ import {
   effectStylesheet,
   effectSvg
 } from "./effect-code.ts";
+import { effectEmbedHtml } from "./effect-embed.ts";
 import { FX_STILL_SIDE, fxLoop, fxMovingSvg, fxStillSvg } from "./fx-still.ts";
 
 const SEED = "kUMzO5Na871ukuyhHUJA";

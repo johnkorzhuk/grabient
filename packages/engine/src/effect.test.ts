@@ -5,9 +5,7 @@ import {
   EFFECT_FPS,
   EMBED_PLAYING,
   effectAddressParts,
-  effectEmbedHtml,
   effectFileAddress,
-  effectLayerCss,
   effectLook,
   effectStillParts,
   groundHex,
@@ -16,6 +14,7 @@ import {
   readBlobStillKey,
   SHAPE_MAX
 } from "./effect.ts";
+import { effectEmbedHtml, effectLayerCss } from "./effect-embed.ts";
 import { glassStillKey, readStillKey } from "./glass-colors.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";

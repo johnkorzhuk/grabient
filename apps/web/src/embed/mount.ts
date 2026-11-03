@@ -21,12 +21,11 @@ import { decodePalette } from "@grabient/engine/codec.ts";
 import {
   type Effect,
   type EffectKind,
-  type EffectLayers,
   EMBED_PLAYING,
-  effectLayerCss,
   parseEffect
 } from "@grabient/engine/effect.ts";
 import { effectLayers } from "@grabient/engine/effect-code.ts";
+import { type EffectLayers, effectLayerCss } from "@grabient/engine/effect-embed.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { finishOf, parseView } from "@grabient/engine/view.ts";
 import { grainImage } from "./grain.ts";

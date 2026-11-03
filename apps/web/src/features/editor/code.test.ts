@@ -2,7 +2,7 @@ import { decodePalette } from "@grabient/engine";
 import { blobWebgl } from "@grabient/engine/blob-webgl.ts";
 import { blobWebgpu } from "@grabient/engine/blob-webgpu.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { effectEmbedHtml, parseEffect } from "@grabient/engine/effect.ts";
+import { parseEffect } from "@grabient/engine/effect.ts";
 import {
   effectColors,
   effectLayers,
@@ -10,6 +10,7 @@ import {
   effectStylesheet,
   effectSvg
 } from "@grabient/engine/effect-code.ts";
+import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { glassShadertoyText } from "@grabient/engine/glass-shadertoy.ts";
 import { glassWebgl } from "@grabient/engine/glass-webgl.ts";
 import { glassWebgpu } from "@grabient/engine/glass-webgpu.ts";

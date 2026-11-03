@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { decodePalette } from "./codec.ts";
-import { EMBED_PLAYING, effectEmbedHtml, effectFileAddress, parseEffect } from "./effect.ts";
+import { EMBED_PLAYING, effectFileAddress, parseEffect } from "./effect.ts";
 import {
   effectColors,
   effectDocument,
@@ -12,6 +12,7 @@ import {
   effectStylesheet,
   effectSvg
 } from "./effect-code.ts";
+import { effectEmbedHtml } from "./effect-embed.ts";
 import { effectUnderlay } from "./fx-finish.ts";
 import { glassStillBackground } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";

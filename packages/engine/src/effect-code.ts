@@ -9,15 +9,13 @@ import { sampleStops } from "./curve.ts";
 import {
   type Effect,
   type EffectFinish,
-  type EffectLayers,
   effectAddressParts,
-  effectEmbedHtml,
   effectFileAddress,
-  effectLayerCss,
   effectStillParts,
   hasEmbedScript,
   isVectorKind
 } from "./effect.ts";
+import { type EffectLayers, effectEmbedHtml, effectLayerCss } from "./effect-embed.ts";
 import { effectUnderlay, finishOf, finishSvg } from "./fx-finish.ts";
 import { fxMovingSvg, fxStillBackground } from "./fx-still.ts";
 import { glassDesign, glassField, glassStillBackground, glassSvg } from "./glass.ts";
@@ -50,12 +48,12 @@ export const effectStill = (P: Palette, effect: Effect, angle: number): string =
       ? fxStillBackground(effect.kind, P, { angle, shape: effect.look.shape })
       : blobStillBackground(P, { speed: 1, fps: null, still: true, ...effect.look });
 
-/** What the view's soft and grain lay with the effect's still behind a page (effect.ts effectLayerCss), as the site's
-    stage finishes its picture (fx-finish.ts): the still blurred by a share of the page's longer side, in `vmax` as the
-    stage's blur is in its box's `cqmax`, over its palette's gradient at the effect's angle, its stops blurred by the
-    same soft (none under a blob with no ground, whose edges go clear), and the grain's tile over both at one speck a
-    CSS pixel, `grain` the tile at the view's grain as a CSS image (`url("data:…")`, the Worker's or the editor's own,
-    engine/grain.ts grainPng). */
+/** What the view's soft and grain lay with the effect's still behind a page (effect-embed.ts effectLayerCss), as the
+    site's stage finishes its picture (fx-finish.ts): the still blurred by a share of the page's longer side, in `vmax`
+    as the stage's blur is in its box's `cqmax`, over its palette's gradient at the effect's angle, its stops blurred
+    by the same soft (none under a blob with no ground, whose edges go clear), and the grain's tile over both at one
+    speck a CSS pixel, `grain` the tile at the view's grain as a CSS image (`url("data:…")`, the Worker's or the
+    editor's own, engine/grain.ts grainPng). */
 export function effectLayers(
   P: Palette,
   effect: Effect,

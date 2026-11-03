@@ -5,7 +5,6 @@ import type { Stop } from "@grabient/engine/curve.ts";
 import {
   type Effect,
   type EffectKind,
-  effectEmbedHtml,
   effectFileAddress,
   hasEmbedScript
 } from "@grabient/engine/effect.ts";
@@ -98,8 +97,10 @@ const pageUrl = (p: Taken) =>
 /* the glass's model and its CPU drawing, loaded with its first file: the editor's first load carries neither */
 const model = () => import("@grabient/engine/glass.ts");
 const render = () => import("@grabient/engine/glass-render.ts");
-/* an effect's files as the Worker writes them (engine/effect-code.ts), loaded with the first effect taken */
+/* an effect's files as the Worker writes them (engine/effect-code.ts), loaded with the first effect taken, and the tags
+   that play it behind a page (engine/effect-embed.ts), with the first Copy HTML */
 const effectCode = () => import("@grabient/engine/effect-code.ts");
+const embedCode = () => import("@grabient/engine/effect-embed.ts");
 const paletteOf = (p: Taken) => decodePalette(p.seed)!;
 const colorsOf = (p: Taken) => glassColors(paletteOf(p));
 /* the glass's shape where the picture plays it: 0, as designed, otherwise */
@@ -301,13 +302,14 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
 /** The tags that play an effect behind a page, its first frame inside them, finished by the view's soft and grain, as
     Copy HTML gives them. */
 export async function effectHtml(p: Taken, effect: Effect): Promise<string> {
-  const [code, still, grain] = await Promise.all([
+  const [code, embed, still, grain] = await Promise.all([
     effectCode(),
+    embedCode(),
     stillOf(p, effect),
     grainImageOf(p)
   ]);
   const finish = finishOf(p);
-  return effectEmbedHtml(
+  return embed.effectEmbedHtml(
     origin(),
     p.seed,
     effect,

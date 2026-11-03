@@ -6,7 +6,6 @@ import {
   type Effect,
   type EffectFinish,
   type EffectKind,
-  effectEmbedHtml,
   hasEmbedScript
 } from "@grabient/engine/effect.ts";
 import {
@@ -18,6 +17,7 @@ import {
   effectStylesheet,
   effectSvg
 } from "@grabient/engine/effect-code.ts";
+import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { SHADER_KINDS, type ShaderKind } from "@grabient/engine/shader-kinds.ts";
 import { finishOf } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";

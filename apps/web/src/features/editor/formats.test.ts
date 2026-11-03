@@ -1,12 +1,13 @@
 import { decodePalette } from "@grabient/engine";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { effectEmbedHtml, effectFileAddress, parseEffect } from "@grabient/engine/effect.ts";
+import { effectFileAddress, parseEffect } from "@grabient/engine/effect.ts";
 import {
   effectLayers,
   effectStill,
   effectStylesheet,
   effectSvg
 } from "@grabient/engine/effect-code.ts";
+import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { copyFormat, copyLink, type Taken } from "./formats.ts";
 
