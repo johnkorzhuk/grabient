@@ -107,7 +107,7 @@ test("a list playing the silk draws its cards' stills, each named for the silk",
   ).toBeVisible();
 });
 
-test("the silk's and the rosette's files: moving SVG, stylesheet, PNG, JSON and Markdown; no script or clip yet", async ({
+test("the silk's and the rosette's files: moving SVG, stylesheet, PNG, JSON, Markdown and the script that plays them; no clip yet", async ({
   request
 }) => {
   for (const kind of ["silk", "rosette"]) {
@@ -122,7 +122,11 @@ test("the silk's and the rosette's files: moving SVG, stylesheet, PNG, JSON and 
     const json = JSON.parse(await (await at("json")).text());
     expect(json.effect).toMatchObject({ style: kind, shape: 7 });
     expect(await (await at("md")).text()).toContain(kind);
-    expect((await at("js")).status()).toBe(404);
+    const script = await at("js");
+    expect([script.status(), script.headers()["content-type"]]).toEqual([
+      200,
+      "text/javascript; charset=utf-8"
+    ]);
     expect((await at("mp4")).status()).toBe(404);
   }
 });
