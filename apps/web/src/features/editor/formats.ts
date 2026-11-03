@@ -12,6 +12,7 @@ import {
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
+import { isVideoKind } from "@grabient/engine/video.ts";
 import {
   finishOf,
   type Size,
@@ -32,6 +33,7 @@ import {
   writeText
 } from "../../lib/files.ts";
 import { grainSrc } from "../../lib/picture.ts";
+import { isAdmin } from "../account/session.ts";
 import { seedAddress } from "./address.ts";
 import { drawnSoon, grainDataUrl } from "./copy-finish.ts";
 
@@ -59,6 +61,26 @@ export const effectLinkFormats = (kind: EffectKind): readonly Format[] =>
 /** An effect's copies: its Figma layers where they are built (engine/effect.ts's hasFigmaCopy). */
 export const effectCopyFormats = (kind: EffectKind): readonly Format[] =>
   hasFigmaCopy(kind) ? STRIP_EFFECT_COPY : STRIP_EFFECT_COPY.filter(f => f !== "figma");
+
+/** Whether the server draws a new clip (/{seed}.mp4) for this reader, the clips being a preview: an admin's anywhere,
+    and anyone's but on production (server/images/video-make.ts's makerOf), where premium accounts will join the
+    admins. A production build is made for grabient.com alone (cloudflare.config.ts), and an admin who put the admin
+    tools away sees the strip as any reader does. */
+export const drawsClips = (): boolean => import.meta.env.MODE !== "production" || isAdmin();
+/** While an effect a clip is drawn of plays (engine/video.ts's isVideoKind), the stage's strip also downloads its MP4,
+    drawn and coded in this browser (video-download.ts), and copies its address where the server would draw it for this
+    reader (drawsClips). Copy hands over no clip, and a card's strip offers none. */
+export const stageFileFormats = (kind: EffectKind): readonly Format[] =>
+  isVideoKind(kind) ? [...STRIP_FILES, "mp4"] : STRIP_FILES;
+export function stageLinkFormats(kind: EffectKind): readonly Format[] {
+  const links = effectLinkFormats(kind);
+  if (!isVideoKind(kind) || !drawsClips()) return links;
+  /* the clip among the files, before the script that plays the effect */
+  return [...links.filter(f => f !== "js"), "mp4", ...links.filter(f => f === "js")];
+}
+/** The reason a download of an MP4 fails where this browser cannot make one: no module worker, or no WebAssembly SIMD
+    (video-download.ts). */
+export const NO_VIDEO_HERE = "no video here";
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {
@@ -434,20 +456,28 @@ export async function saveFormat(f: Format, p: Taken): Promise<void> {
   downloadFile(`${name}.png`, await pngOf(p));
 }
 
+/* an effect's file's address, at the pixels the stage shows once the reader set a size */
+const effectFileUrl = (p: Taken, effect: Effect, f: "md" | "css" | "js" | "svg" | "png" | "mp4") =>
+  effectFileAddress(
+    origin(),
+    p.seed,
+    effect,
+    p.angle,
+    f,
+    sizeParam(p.size) ? p.pixels : undefined,
+    finishOf(p)
+  );
+/** The address of the effect's clip, which Copy link copies and Download draws in this browser as the server draws it
+    (video-download.ts): at the pixels the stage shows once the reader set a size, else at the clip's own. */
+export const clipAddress = (p: Taken, effect: Effect) => effectFileUrl(p, effect, "mp4");
+
 /** The address of the palette's file onto the clipboard: while an effect plays, its file's, at the pixels the stage
     shows once the reader set a size, and the Markdown that names it. */
 export const copyLink = async (f: Format, p: Taken) =>
   writeText(
-    p.effect && (f === "md" || f === "css" || f === "js" || f === "svg" || f === "png")
-      ? effectFileAddress(
-          origin(),
-          p.seed,
-          p.effect,
-          p.angle,
-          f,
-          sizeParam(p.size) ? p.pixels : undefined,
-          finishOf(p)
-        )
+    p.effect &&
+      (f === "md" || f === "css" || f === "js" || f === "svg" || f === "png" || f === "mp4")
+      ? effectFileUrl(p, p.effect, f)
       : fileUrl(p, f)
   );
 
