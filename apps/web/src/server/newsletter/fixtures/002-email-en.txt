@@ -33,7 +33,9 @@ Find five calm palettes for a meditation app.
 Five calm palettes, From the gallery
 https://grabient.test/palettes?q=calm
 
-Add to Claude: https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=https%3A%2F%2Fgrabient.test%2Fmcp
+Add Grabient to your app: https://grabient.test/mcp-server
+
+Claude lists Grabient among its connectors, so you can add it there by name.
 
 In any other app, add a custom connector or MCP server with this address.
 

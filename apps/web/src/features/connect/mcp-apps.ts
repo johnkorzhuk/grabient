@@ -19,16 +19,24 @@ export interface McpLink {
 /* an app's one-click link carries its config as base64 where its maker asks for that */
 const base64 = (config: unknown) => encodeURIComponent(btoa(JSON.stringify(config)));
 
+/* Claude's directory lists the server at this address, and its listing's Add connects this address alone. Claude's
+   docs send a listed connector's readers to its listing, and keep the filled-in Add custom connector dialog for one
+   the directory doesn't list: https://claude.com/docs/connectors/building/directory-vs-custom */
+const CLAUDE_LISTED = "https://grabient.com/mcp";
+const CLAUDE_LISTING = "https://claude.ai/directory/connectors/grabient";
+
 /* The popular apps whose makers give a one-click link. Each press is words alone: Claude's and VS Code's marks are not
    given for such a press, and one app's mark alone would set its press apart. */
 export const MCP_LINKS: readonly McpLink[] = [
-  /* the Add custom connector dialog, filled in:
-     https://claude.com/docs/connectors/building/directory-vs-custom#custom-connector-install-link */
+  /* grabient.com's listing in Claude's directory; any other address (staging, a Preview, a local build) gets the Add
+     custom connector dialog with its own address filled in, since the listing would connect grabient.com */
   {
     label: "Claude",
     web: true,
     link: address =>
-      `https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=${encodeURIComponent(address)}`
+      address === CLAUDE_LISTED
+        ? CLAUDE_LISTING
+        : `https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=${encodeURIComponent(address)}`
   },
   /* the install deeplink, a remote server by its url: https://cursor.com/docs/mcp/install-links */
   {
