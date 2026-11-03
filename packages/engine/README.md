@@ -110,10 +110,15 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   pages' script in `silk-page.ts`, played by the same clock. The rosette's alike: `rosette-shader.ts`,
   `rosette-shadertoy.ts`, `rosette-webgl.ts` over `rosette-gl.ts`, `rosette-webgpu.ts` over `rosette-wgsl.ts`,
   `rosette-page.ts`.
+- The papercut's, every kind named in `papercut-shader.ts`: Shadertoy's tabs (`papercut-shadertoy.ts`, its clock and
+  its canvas's shadows as JavaScript's doubles over `double-program.ts`, a frame's motion in pairs of floats, the field
+  in Buffer B and the frame in C, or a soft text's frame in B working out its field's samples itself), the GLSL and its
+  WebGL page (`papercut-webgl.ts`, the player's two passes in `papercut-gl.ts`), the WGSL and its WebGPU page
+  (`papercut-webgpu.ts` over `papercut-wgsl.ts`), the pages' script in `papercut-page.ts`, played by the same clock.
 - The effects' soft and grain in their shader code, as the site lays them over the player (`fx-finish.ts`): the
   pages' finish in `shader-finish.ts` (the soft's grid and blur, the gradient under its edges, the grain's tile), the
-  grain a single shader works out itself in `shader-grain.ts`, and the silk's and the rosette's Shadertoy finish, its
-  grid in Buffer B, its blur in C and D, in `fx-shadertoy.ts`.
+  grain a single shader works out itself in `shader-grain.ts`, and the silk's, the rosette's and the papercut's
+  Shadertoy finish, its grid in Buffer B, its blur in C and D, in `fx-shadertoy.ts`.
 - What a palette is: `name.ts`, `colorname.ts` over `colornames.data.ts`, `shape.ts`, `dominant.ts`, `contrast.ts`,
   `plot.ts`, `strip.ts`.
 - Old links: `legacy.ts`, `legacy-import.ts`.

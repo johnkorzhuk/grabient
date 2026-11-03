@@ -33,7 +33,8 @@ precision highp int;
 uniform vec2 uSize;
 uniform float uD;`;
 
-const FIELD_UNIFORMS = `
+/** The field pass's uniforms beside the canvas's size and D. */
+export const PAPERCUT_FIELD_UNIFORMS = `
 uniform vec2 uRamp;
 uniform vec4 uWarp;
 uniform vec4 uPhase;
@@ -51,8 +52,9 @@ uniform vec4 uSheet[${PAPERCUT_MAX_SHEETS}];
 uniform float uReach[${PAPERCUT_MAX_SHEETS}];
 uniform vec2 uMisc;`;
 
-/* the field at q (D units): f, its slope G and its weighed curvature along the slope, as papercut.ts's papercutField */
-const FIELD = `
+/** The field at q (D units): f, its slope G and its weighed curvature along the slope, as papercut.ts's
+    papercutField. */
+export const PAPERCUT_FIELD = `
 vec4 field(vec2 q) {
   float s1 = uWarp.y * q.y + uPhase.x;
   float s2 = uWarp.y * q.x + uPhase.y;
@@ -171,9 +173,9 @@ vec4 shade(vec4 F, vec2 px) {
 
 /** The field pass: texel (i, j) holds the field at the pixel-space point ((i - 1) Q + 0.5, (j - 1) Q + 0.5), y
     down. */
-export const PAPERCUT_FIELD_FS = `${HEAD}${FIELD_UNIFORMS}
+export const PAPERCUT_FIELD_FS = `${HEAD}${PAPERCUT_FIELD_UNIFORMS}
 out uvec4 o;
-${FIELD}
+${PAPERCUT_FIELD}
 void main() {
   vec2 p = (floor(gl_FragCoord.xy) - 1.0) * ${PAPERCUT_QUARTER.toFixed(1)} + 0.5;
   o = floatBitsToUint(field((p - 0.5 * uSize) / uD));

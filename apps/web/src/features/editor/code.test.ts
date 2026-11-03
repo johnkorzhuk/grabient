@@ -15,6 +15,9 @@ import { effectUnderlay } from "@grabient/engine/fx-finish.ts";
 import { glassShadertoyText } from "@grabient/engine/glass-shadertoy.ts";
 import { glassWebgl } from "@grabient/engine/glass-webgl.ts";
 import { glassWebgpu } from "@grabient/engine/glass-webgpu.ts";
+import { papercutShadertoyText } from "@grabient/engine/papercut-shadertoy.ts";
+import { papercutWebgl } from "@grabient/engine/papercut-webgl.ts";
+import { papercutWebgpu } from "@grabient/engine/papercut-webgpu.ts";
 import { rosetteShadertoyText } from "@grabient/engine/rosette-shadertoy.ts";
 import { rosetteWebgl } from "@grabient/engine/rosette-webgl.ts";
 import { rosetteWebgpu } from "@grabient/engine/rosette-webgpu.ts";
@@ -111,7 +114,13 @@ const loaded = async (read: () => string) => {
 
 test("while an effect plays, the pane holds its code in the gradient's place, its shader its own", async () => {
   await tabsIn();
-  for (const query of ["style=glass", "style=blob", "style=silk", "style=rosette"]) {
+  for (const query of [
+    "style=glass",
+    "style=blob",
+    "style=silk",
+    "style=rosette",
+    "style=papercut"
+  ]) {
     const ids = codeSources(
       decodePalette(SEED)!,
       { style: "radialGradient", steps: 6, angle: 45 },
@@ -190,20 +199,22 @@ test("the blob's Shader tab writes each spelling with the engine's own writer, e
   expect(shader().note?.()).toBe("The balls, their melt and the frost, pass by pass.");
 });
 
-test("the silk's and the rosette's Shader tabs write each spelling with the engine's own writer, each loaded as it shows", async () => {
+test("the silk's, the rosette's and the papercut's Shader tabs write each spelling with the engine's own writer, each loaded as it shows", async () => {
   /* the browser's: a server's build never loads a shader's writers */
   vi.stubEnv("SSR", false);
   await tabsIn();
   const P = decodePalette(SEED)!;
   const writers = {
     silk: [silkShadertoyText, silkWebgl, silkWebgpu],
-    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu]
+    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu],
+    papercut: [papercutShadertoyText, papercutWebgl, papercutWebgpu]
   } as const;
   const notes = {
     silk: "The dye, its folds' shade and light, in one pass.",
-    rosette: "The petals ring by ring, the ground and the heart's glow, in one pass."
+    rosette: "The petals ring by ring, the ground and the heart's glow, in one pass.",
+    papercut: "The relief, then each sheet's shadows, lit cut and face, pass by pass."
   };
-  for (const kind of ["silk", "rosette"] as const) {
+  for (const kind of ["silk", "rosette", "papercut"] as const) {
     const query = `style=${kind}&shape=12&speed=2`;
     const effect = parseEffect(new URLSearchParams(query))!;
     const [shadertoy, webgl, webgpu] = writers[kind];
@@ -229,15 +240,16 @@ test("the silk's and the rosette's Shader tabs write each spelling with the engi
   }
 });
 
-test("a soft, grained silk's or rosette's Shader tab writes every spelling with its finish and says so", async () => {
+test("a soft, grained silk's, rosette's or papercut's Shader tab writes every spelling with its finish and says so", async () => {
   vi.stubEnv("SSR", false);
   await tabsIn();
   const P = decodePalette(SEED)!;
   const writers = {
     silk: [silkShadertoyText, silkWebgl, silkWebgpu],
-    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu]
+    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu],
+    papercut: [papercutShadertoyText, papercutWebgl, papercutWebgpu]
   } as const;
-  for (const kind of ["silk", "rosette"] as const) {
+  for (const kind of ["silk", "rosette", "papercut"] as const) {
     const query = `style=${kind}&shape=12`;
     const effect = parseEffect(new URLSearchParams(query))!;
     const finish = { soft: 40, grain: 30, underlay: effectUnderlay(P, effect, 45, 40) };
@@ -251,7 +263,7 @@ test("a soft, grained silk's or rosette's Shader tab writes every spelling with 
         createRest(),
         { ...played(query), soft: 40, grain: 30 }
       ).find(s => s.id === "shader")!;
-    /* the silk's and the rosette's Shadertoy texts keep two buffers for the soft's blur */
+    /* the silk's, the rosette's and the papercut's Shadertoy texts keep two buffers for the soft's blur */
     expect(
       shader().spellings?.map(s => s.id),
       kind
@@ -269,7 +281,7 @@ test("a soft, grained silk's or rosette's Shader tab writes every spelling with 
       `${ORIGIN}/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=12`
     );
     expect(shader().note?.()).toMatch(
-      / in one pass\. Then its soft and grain, as the site lays them over it\.$/
+      / (?:in one pass|pass by pass)\. Then its soft and grain, as the site lays them over it\.$/
     );
   }
 });

@@ -260,7 +260,8 @@ export function glslFloat(value: number): string {
 /** A player's fragment shader as a Shadertoy pass's code: its version and precision lines left out, its uniforms
     plain globals the pass sets from Buffer A's texels before it runs the player's main (now `effectMain`), those Common
     holds as constant arrays (`common`) and its samplers left out, a call to a sampler `textureLod(S, ...)` a call to
-    `lookup(n, ...)`, n the sampler's place in `samplers`, gl_FragCoord the global `fragPlace` and its output a global.
+    `lookup(n, ...)`, n the sampler's place in `samplers`, gl_FragCoord the global `fragPlace` and its output (a float's
+    or an integer's vec4) a global.
     The player's own arithmetic, character for character, so the pass computes what the player's shader computes. */
 export function shadertoyPass(
   fs: string,
@@ -276,7 +277,7 @@ export function shadertoyPass(
         if (type === "sampler2D" || common.includes(name)) return null;
         return `${type} ${name}${size};${rest}`;
       }
-      return line.replace(/^out (vec4 \w+);/, "$1;");
+      return line.replace(/^out ((?:[iu])?vec4 \w+);/, "$1;");
     })
     .filter((line): line is string => line !== null)
     .join("\n")
@@ -488,10 +489,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   fragColor = g.t == 1 ? roundEven(sum * 255.0) / 255.0 : sum;
 }`;
 
-/** The Image of a silk's or a rosette's text: the frame (Buffer B), or a soft text's grid after its blur (Buffer D)
-    read between its texels over the gradient under it where the blur thins the picture, each as the canvas's bytes,
-    and the grain over all where it has one, a speck GRAIN_SCALE pixels wide from the picture's top left. */
-export function fxImage(soft: boolean, grain: number): string {
+/** The Image of a silk's, a rosette's or a papercut's text: the frame (Buffer B, or the buffer `frame` names), or a
+    soft text's grid after its blur (Buffer D) read between its texels over the gradient under it where the blur thins
+    the picture, each as the canvas's bytes, and the grain over all where it has one, a speck GRAIN_SCALE pixels wide
+    from the picture's top left. */
+export function fxImage(soft: boolean, grain: number, frame: "B" | "C" = "B"): string {
   const grained = grain > 0;
   const what = soft
     ? `// The canvas: the soft's grid read between its texels, over the palette's gradient where the blur thins the picture
@@ -523,7 +525,7 @@ export function fxImage(soft: boolean, grain: number): string {
   vec3 c = roundEven(clamp(texelFetch(iChannel0, ivec2(fragCoord), 0).rgb, 0.0, 1.0) * 255.0);
   fragColor = vec4(grainOver(c, p) / 255.0, 1.0);`
       : "  fragColor = vec4(texelFetch(iChannel0, ivec2(fragCoord), 0).rgb, 1.0);";
-  return `// ==== Image ==== iChannel0: Buffer ${soft ? "D" : "B"} (filter: nearest, wrap: clamp)
+  return `// ==== Image ==== iChannel0: Buffer ${soft ? "D" : frame} (filter: nearest, wrap: clamp)
 ${what}${grained ? `\n\n${grainGlsl(grain, "setting")}\n` : ""}
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 ${body}

@@ -36,11 +36,11 @@ import { effectHtml, type Taken } from "./formats.ts";
    (code.ts), never with a palette's start. */
 
 /* an effect as shader code, each kind's module asked for once its spelling shows in the Shader tab: Shadertoy's tabs
-   (engine/glass-shadertoy.ts, silk-shadertoy.ts, rosette-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts,
-   blob-webgl.ts, silk-webgl.ts, rosette-webgl.ts), the WGSL or its WebGPU page (glass-webgpu.ts, blob-webgpu.ts,
-   silk-webgpu.ts, rosette-webgpu.ts), each with the picture's soft and grain (shader-finish.ts). The effect's code
-   carries only the tab's spellings, and the Worker's build none of them: a server never writes a shader, and its ask
-   waits for ever. */
+   (engine/glass-shadertoy.ts, silk-shadertoy.ts, rosette-shadertoy.ts, papercut-shadertoy.ts), the GLSL or its WebGL
+   page (glass-webgl.ts, blob-webgl.ts, silk-webgl.ts, rosette-webgl.ts, papercut-webgl.ts), the WGSL or its WebGPU page
+   (glass-webgpu.ts, blob-webgpu.ts, silk-webgpu.ts, rosette-webgpu.ts, papercut-webgpu.ts), each with the picture's
+   soft and grain (shader-finish.ts). The effect's code carries only the tab's spellings, and the Worker's build none of
+   them: a server never writes a shader, and its ask waits for ever. */
 type ShaderWriter = (
   kind: ShaderKind,
   P: Palette,
@@ -169,8 +169,36 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
             m.rosetteWebgpu(kind as "wgsl" | "webgpu", ...rest)
       )
   },
-  /* the papercut's shader spellings come later: its Shader tab offers none yet */
-  papercut: null
+  papercut: {
+    passes: () => t("The relief, then each sheet's shadows, lit cut and face, pass by pass."),
+    shadertoy: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/papercut-shadertoy.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (_, ...rest) =>
+            m.papercutShadertoyText(...rest)
+      ),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/papercut-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.papercutWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/papercut-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.papercutWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  }
 };
 const partOf = (kind: ShaderKind): ShaderPart =>
   kind === "shadertoy" ? "shadertoy" : kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";
@@ -328,7 +356,7 @@ export function effectSources(
           count: colors().length
         })
     },
-    /* the Shader tab for an effect with a spelling of it: the papercut's comes later */
+    /* the Shader tab for an effect with a spelling of it */
     ...(shaderKinds(effect.kind).length ? [shaderSource()] : []),
     {
       id: "json",
