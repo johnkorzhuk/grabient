@@ -609,6 +609,10 @@ test("the editor's Reset gives the lists back the effect the tab had as the pale
   await first.hover();
   await first.getByRole("link", { name: /^Edit/ }).click();
   await expect(page).toHaveURL(/\/k[\w-]+/);
+  /* the editor's own corner, as a reader would see it take the header: until the palette's page has loaded the router
+     keeps the list on screen, its menu with it, whose press changes the address the editor then reads as no choice of
+     the reader's (the corner's still before it is inert, out of reach) */
+  await expect(page.getByRole("button", { name: /^(Hide|Show) panel/ })).toBeVisible();
   const appearance = page.getByRole("button", { name: /^Appearance/ });
   await appearance.click();
   await page.getByRole("button", { name: "Blob", exact: true }).click();
