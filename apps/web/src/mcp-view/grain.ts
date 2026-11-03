@@ -1,26 +1,39 @@
 /* The grain's tile in the view, made in the frame from its hash (engine/grain.ts), since the frame fetches nothing: one
-   PNG a strength, a speck a CSS pixel, as the site lays it over a picture. */
+   tile a strength, a speck a CSS pixel, as the site lays it over a picture. */
 import { GRAIN_SIDE, grainTile } from "@grabient/engine/grain.ts";
 
-const made = new Map<number, string>();
+const canvases = new Map<number, HTMLCanvasElement | null>();
+const datas = new Map<number, string>();
 
-/** The tile at a grain as its PNG's base64, made once a strength; empty where the frame draws no canvas. */
-function tileBase64(grain: number): string {
-  let data = made.get(grain);
-  if (data === undefined) {
-    const canvas = document.createElement("canvas");
+/** The tile at a grain on a canvas, made once a strength; none where the frame draws no canvas. */
+export function grainCanvas(grain: number): HTMLCanvasElement | null {
+  let canvas = canvases.get(grain);
+  if (canvas === undefined) {
+    canvas = document.createElement("canvas");
     canvas.width = GRAIN_SIDE;
     canvas.height = GRAIN_SIDE;
     const context = canvas.getContext("2d");
-    if (context) {
+    if (context)
       context.putImageData(
         new ImageData(new Uint8ClampedArray(grainTile(grain)), GRAIN_SIDE, GRAIN_SIDE),
         0,
         0
       );
-      data = canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
-    } else data = "";
-    made.set(grain, data);
+    else canvas = null;
+    canvases.set(grain, canvas);
+  }
+  return canvas;
+}
+
+/* the tile at a grain as its PNG's base64; empty where the frame draws no canvas */
+function tileBase64(grain: number): string {
+  let data = datas.get(grain);
+  if (data === undefined) {
+    data =
+      grainCanvas(grain)
+        ?.toDataURL("image/png")
+        .replace(/^data:image\/png;base64,/, "") ?? "";
+    datas.set(grain, data);
   }
   return data;
 }
