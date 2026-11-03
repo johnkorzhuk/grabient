@@ -75,6 +75,11 @@ export const LIMITS = {
   imageVerifiedDaily: { requests: 40000, window: 86400, site: true, lease: 20 },
   imagePreviewDaily: { requests: 10000, window: 86400, site: true, lease: 5 },
   largeImageDaily: { requests: 2000, window: 86400, site: true, lease: 5 },
+  // The glass's first frame no cache held (apps/web/src/server/images/still.ts), which a palette's page paints until
+  // the glass plays: about two seconds of CPU each, drawn once a still and kept, so a day is the new stills its pages
+  // showed. Five thousand keep a day of them under about twenty cents however it is pressed; past them a page shows
+  // the still's colors alone until the glass plays.
+  stillRenderDaily: { requests: 5000, window: 86400, site: true, lease: 20 },
   // A palette's clip no cache holds, drawn in parts (apps/web/src/server/images/video.ts): up to about 25 seconds of
   // CPU here, perhaps twice that on Cloudflare's machines. Clips are a preview: production draws them for admins
   // alone, and staging for anyone, though only the few people its owner links to use it, so an address has five an

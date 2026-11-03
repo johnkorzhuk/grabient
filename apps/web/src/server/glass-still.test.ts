@@ -1,7 +1,7 @@
 import { glassFieldBackground, glassStillBackground } from "@grabient/engine/glass.ts";
-import { glassStillKey } from "@grabient/engine/glass-colors.ts";
+import { glassStillKey, readStillKey } from "@grabient/engine/glass-colors.ts";
 import { describe, expect, test } from "vitest";
-import { glassStills } from "./glass-still.ts";
+import { glassStills, stillAddress, stillKeyOf } from "./glass-still.ts";
 import { FIRST_SCREEN_STILLS } from "./stills.ts";
 
 const COLORS = ["#112233", "#445566", "#778899", "#aabbcc", "#ddeeff", "#102030"];
@@ -11,15 +11,45 @@ const rule = (key: string, background: string) =>
   `[data-glass-still="${key}"]{background:${background}}`;
 
 describe("the glass's stills on a page", () => {
-  test("a palette's first screen has the still, and its header's swatch of the same name takes it", () => {
+  test("a palette's first screen has the still's picture over its field, asked for at once, and its header's swatch of the same name takes it", () => {
     const key = glassStillKey(COLORS, 90);
     const html = glassStills(
       page(`<span data-glass-still="${key}"></span><div class="s" data-glass-still="${key}"></div>`)
     );
+    const picture = "/api/still?k=90-0-112233-445566-778899-aabbcc-ddeeff-102030&v=1";
+    expect(stillAddress(key)).toBe(picture);
     expect(html).toContain(
-      `<style id="glass-still" data-key="${key}">${rule(key, glassStillBackground(COLORS, 90))}</style></head>`
+      `<link rel="preload" as="image" href="${picture.replace("&", "&amp;")}" fetchpriority="high">` +
+        `<style id="glass-still" data-key="${key}">${rule(key, `url("${picture}") 50% 50%/cover no-repeat,${glassFieldBackground(COLORS, 90)}`)}</style></head>`
     );
     expect(html).not.toContain("glass-fields");
+    // no filter for the browser to paint
+    expect(html).not.toContain("feDisplacementMap");
+  });
+
+  test("the picture's address spells the still's key back, and no other", () => {
+    for (const key of [
+      glassStillKey(COLORS, 90),
+      glassStillKey(OTHER, 0, 999),
+      glassStillKey(COLORS.slice(0, 2), 360, 7)
+    ])
+      expect(
+        readStillKey(
+          stillKeyOf(new URL(stillAddress(key), "https://g.test").searchParams.get("k") ?? "")
+        )
+      ).toEqual(readStillKey(key));
+    for (const k of [
+      "",
+      "90",
+      "90-0",
+      "90-0-112233",
+      "361-0-112233-445566",
+      "90-1000-112233-445566",
+      "90-0-11223-445566",
+      "90-0-AABBCC-445566",
+      "-90-0-112233-445566"
+    ])
+      expect(readStillKey(stillKeyOf(k)), k).toBeNull();
   });
 
   test("every other holder shows the still's field, one rule a name, as many as a first screen shows", () => {

@@ -110,8 +110,11 @@ const BUDGETS = {
   // mcp/admin/visits.ts: 5 KiB). It starts with no language's messages and no old address's map: it reads a language's
   // catalog from the deploy's files when a request first needs it, and the maps when an address may first name an old
   // palette (server/i18n.ts, seo/legacy.ts), which took its start from 745 KiB to 226 on 24 Oct 2026. The examples page's
-  // six sections, which the Worker renders, took it from 1347.4 KiB to 1374.7 on 31 Oct 2026
-  worker: 1430,
+  // six sections, which the Worker renders, took it from 1347.4 KiB to 1374.7 on 31 Oct 2026. The glass's still as a
+  // WebP (server/images/still.ts and libwebp's glue, loaded with the first still an isolate draws) took it from 1422.1
+  // KiB to 1430.0 on 3 Nov 2026; libwebp's module itself, 346 KB and 129 gzipped, is WebAssembly, which this counts
+  // no more than it counts the video's
+  worker: 1445,
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
   // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks
   workerStart: 238,

@@ -1602,3 +1602,38 @@ test.describe("on a phone", () => {
     }
   });
 });
+
+test("the glass's first screen is a picture the server draws once, over its colors, with no filter to paint", async ({
+  page,
+  request
+}) => {
+  const address = `/${SEED}?style=glass`;
+  const html = await (await request.get(address)).text();
+  const href = /<link rel="preload" as="image" href="(\/api\/still\?k=[^"]+)" fetchpriority="high">/
+    .exec(html)?.[1]
+    ?.replaceAll("&amp;", "&");
+  expect(href).toMatch(/^\/api\/still\?k=\d+-\d+(?:-[0-9a-f]{6})+&v=\d+$/);
+  // the picture over the still's field, its colors where they lie, which shows until the picture lands
+  expect(html).toContain(`url("${href}") 50% 50%/cover no-repeat,url("data:image/svg+xml,`);
+  expect(html).not.toContain("feDisplacementMap");
+
+  const answered = page.waitForResponse(response => response.url().includes("/api/still?"));
+  await open(page, address);
+  const still = await answered;
+  expect([still.status(), still.headers()["content-type"]]).toEqual([200, "image/webp"]);
+  const size = await page.evaluate(async src => {
+    const image = new Image();
+    image.src = src;
+    await image.decode();
+    return [image.naturalWidth, image.naturalHeight];
+  }, href ?? "");
+  expect(size).toEqual([2048, 2048]);
+  // the editor's holder, which takes the first screen's place, paints it until the player covers it
+  await expect
+    .poll(() =>
+      page
+        .locator('main [data-glass-still][elementtiming="effect-still"]')
+        .evaluate(holder => getComputedStyle(holder).backgroundImage)
+    )
+    .toContain("/api/still?k=");
+});

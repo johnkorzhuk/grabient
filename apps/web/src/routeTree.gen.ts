@@ -50,6 +50,7 @@ import { Route as ApiSavedRouteImport } from './routes/api/saved'
 import { Route as ApiSearchSuggestionsRouteImport } from './routes/api/search-suggestions'
 import { Route as ApiSearchDotjsonRouteImport } from './routes/api/search[.]json'
 import { Route as ApiSearchedRouteImport } from './routes/api/searched'
+import { Route as ApiStillRouteImport } from './routes/api/still'
 import { Route as ApiUsedRouteImport } from './routes/api/used'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
 import { Route as FaviconChar123weekChar125DotsvgRouteImport } from './routes/favicon/{$week}[.]svg'
@@ -332,6 +333,11 @@ const ApiSearchDotjsonRoute = ApiSearchDotjsonRouteImport.update({
 const ApiSearchedRoute = ApiSearchedRouteImport.update({
   id: '/api/searched',
   path: '/api/searched',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStillRoute = ApiStillRouteImport.update({
+  id: '/api/still',
+  path: '/api/still',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUsedRoute = ApiUsedRouteImport.update({
@@ -800,6 +806,7 @@ export interface FileRoutesByFullPath {
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
   '/api/search.json': typeof ApiSearchDotjsonRoute
   '/api/searched': typeof ApiSearchedRoute
+  '/api/still': typeof ApiStillRoute
   '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
@@ -920,6 +927,7 @@ export interface FileRoutesByTo {
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
   '/api/search.json': typeof ApiSearchDotjsonRoute
   '/api/searched': typeof ApiSearchedRoute
+  '/api/still': typeof ApiStillRoute
   '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
@@ -1041,6 +1049,7 @@ export interface FileRoutesById {
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
   '/api/search.json': typeof ApiSearchDotjsonRoute
   '/api/searched': typeof ApiSearchedRoute
+  '/api/still': typeof ApiStillRoute
   '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
@@ -1163,6 +1172,7 @@ export interface FileRouteTypes {
     | '/api/search-suggestions'
     | '/api/search.json'
     | '/api/searched'
+    | '/api/still'
     | '/api/used'
     | '/collections/saved'
     | '/favicon/{$week}.svg'
@@ -1283,6 +1293,7 @@ export interface FileRouteTypes {
     | '/api/search-suggestions'
     | '/api/search.json'
     | '/api/searched'
+    | '/api/still'
     | '/api/used'
     | '/collections/saved'
     | '/favicon/{$week}.svg'
@@ -1403,6 +1414,7 @@ export interface FileRouteTypes {
     | '/api/search-suggestions'
     | '/api/search.json'
     | '/api/searched'
+    | '/api/still'
     | '/api/used'
     | '/collections/saved'
     | '/favicon/{$week}.svg'
@@ -1524,6 +1536,7 @@ export interface RootRouteChildren {
   ApiSearchSuggestionsRoute: typeof ApiSearchSuggestionsRoute
   ApiSearchDotjsonRoute: typeof ApiSearchDotjsonRoute
   ApiSearchedRoute: typeof ApiSearchedRoute
+  ApiStillRoute: typeof ApiStillRoute
   ApiUsedRoute: typeof ApiUsedRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
   FaviconChar123weekChar125DotsvgRoute: typeof FaviconChar123weekChar125DotsvgRoute
@@ -1891,6 +1904,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/searched'
       fullPath: '/api/searched'
       preLoaderRoute: typeof ApiSearchedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/still': {
+      id: '/api/still'
+      path: '/api/still'
+      fullPath: '/api/still'
+      preLoaderRoute: typeof ApiStillRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/used': {
@@ -2476,6 +2496,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSearchSuggestionsRoute: ApiSearchSuggestionsRoute,
   ApiSearchDotjsonRoute: ApiSearchDotjsonRoute,
   ApiSearchedRoute: ApiSearchedRoute,
+  ApiStillRoute: ApiStillRoute,
   ApiUsedRoute: ApiUsedRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
   FaviconChar123weekChar125DotsvgRoute: FaviconChar123weekChar125DotsvgRoute,

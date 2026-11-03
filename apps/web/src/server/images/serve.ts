@@ -1,11 +1,13 @@
 /* A picture's answer. Drawing is the one thing here that costs real CPU (a share card about 40 ms, the largest picture
-   half a second), and any palette can be asked for at any size, so a picture no cache holds is drawn only within
-   allowances and only while the `share-images` flag is on, and either refusal fails closed.
+   half a second, the glass's still about two seconds), and any palette can be asked for at any size, so a picture no
+   cache holds is drawn only within allowances and only while the `share-images` flag is on, and either refusal fails
+   closed.
 
    In front of the drawing: the edge cache (the pipeline's), then, for a share card or a sheet, R2. A card is kept in
    the UPLOADS bucket under cards/{version}/{key}.png the first time it is drawn, so each card is drawn once for every
    data center and every deploy until its version changes, or until the bucket's lifecycle rule deletes it 30 days
-   after it was written. A collection's sheet, which its page shows, is kept under sheets/, which no rule empties: drawn
+   after it was written; the glass's still (still.ts), a WebP, is kept there too, as .webp. A collection's sheet, which
+   its page shows, is kept under sheets/, which no rule empties: drawn
    again, it could be refused while a day's allowance is spent, and nothing stands in for it. A palette's picture, or
    several palettes' at a size the asker chose, lives at the edge alone: kept for good, the few asked twice would cost
    more to store than to draw. A Preview keeps nothing: it may draw differently from staging under the same version,
@@ -32,8 +34,13 @@ export type Keep = (work: Promise<unknown>) => void;
 export type Folder = "cards" | "sheets";
 
 export interface Picture {
-  /** What was asked for, as the usage counts say it. */
-  kind: "card" | "png" | "montage" | "sheet";
+  /** What was asked for, as the usage counts say it: a still is an effect's first frame, which a page paints before
+      the effect plays (still.ts). */
+  kind: "card" | "png" | "montage" | "sheet" | "still";
+  /** The file's format: PNG, but for a still. */
+  type?: "png" | "webp";
+  /** The site's day a drawing counts against in place of its asker's and the large pictures': a still's own. */
+  day?: LimitCheck;
   /** A share card: kept in R2 under cards/, and the site's card stands in when it cannot be drawn. */
   branded: boolean;
   /** Kept in R2 in this folder, with nothing standing in: a sheet, which crawlers ask for at its page's address, so a
@@ -111,8 +118,9 @@ async function overLimit(request: Request, env: PictureEnv, picture: Picture) {
   const large = picture.width * picture.height > CARD.width * CARD.height;
   const checks: LimitCheck[] = [
     ...(who ? [[`image:${who}`, "imageRender"] as const] : []),
-    ...(large ? [["image-large-day", "largeImageDaily"] as const] : []),
-    dayOf(request)
+    ...(picture.day
+      ? [picture.day]
+      : [...(large ? [["image-large-day", "largeImageDaily"] as const] : []), dayOf(request)])
   ];
   const result = await checkLimits(env, checks);
   if (!result) return unavailable();
@@ -142,9 +150,11 @@ export async function answerPicture(
 ): Promise<Response> {
   const hash = await hashOf(picture.parts);
   const tag = `"image:${CARD_VERSION}:${hash}"`;
+  const type = picture.type ?? "png";
+  const contentType = `image/${type}`;
   const headers = {
-    "Content-Type": "image/png",
-    ...(picture.kind === "png" ? FILE : CARD_CACHE),
+    "Content-Type": contentType,
+    ...(picture.kind === "png" || picture.kind === "still" ? FILE : CARD_CACHE),
     ...ANY_SITE,
     ETag: tag
   };
@@ -155,7 +165,7 @@ export async function answerPicture(
   if (request.method === "HEAD") return new Response(null, { headers });
   const store =
     (picture.branded || picture.kept) && env.DEPLOYMENT !== "preview" ? env.UPLOADS : undefined;
-  const name = `${picture.kept ?? "cards"}/${CARD_VERSION}/${hash}.png`;
+  const name = `${picture.kept ?? "cards"}/${CARD_VERSION}/${hash}.${type}`;
   const kept = await store?.get(name).catch(() => null);
   if (kept) {
     countUsage(env, "image", picture.kind, "cache");
@@ -167,18 +177,21 @@ export async function answerPicture(
     countUsage(env, "image", picture.kind, "refused");
     return refused;
   }
-  let png: Uint8Array<ArrayBuffer>;
+  let file: Uint8Array<ArrayBuffer>;
   try {
-    png = await picture.draw();
+    file = await picture.draw();
   } catch (error) {
     countUsage(env, "image", picture.kind, "failed");
-    console.error("Palette PNG render failed", error);
+    console.error(
+      picture.kind === "still" ? "Glass still render failed" : "Palette PNG render failed",
+      error
+    );
     return unavailable();
   }
   countUsage(env, "image", picture.kind, "drawn");
   if (store) {
-    const put = store.put(name, png, { httpMetadata: { contentType: "image/png" } });
+    const put = store.put(name, file, { httpMetadata: { contentType } });
     keep(put.catch(error => console.warn("cards: R2 kept no card", String(error))));
   }
-  return new Response(png, { headers: { ...headers, "X-Cache": "MISS" } });
+  return new Response(file, { headers: { ...headers, "X-Cache": "MISS" } });
 }

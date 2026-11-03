@@ -1,8 +1,10 @@
+import { glassStillKey } from "@grabient/engine/glass-colors.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import { fileAnswer } from "../src/server/files/palette-files.ts";
+import { stillAddress } from "../src/server/glass-still.ts";
 import {
   cardAnswer,
   collectionPictureAnswer,
@@ -11,6 +13,7 @@ import {
   seedPngAnswer
 } from "../src/server/images/answers.ts";
 import golden from "../src/server/images/fixtures/pictures.json" with { type: "json" };
+import { stillAnswer } from "../src/server/images/still.ts";
 import { get, testEnv, unique, watchLimits } from "./helpers.ts";
 import { decodePng, pixelHash } from "./png.ts";
 
@@ -298,6 +301,70 @@ describe("a share card", () => {
     expect(
       (await pngAnswer(get(`/api/png?seed=${SEED}&${fresh()}`), off.env, off.keep)).status
     ).toBe(200);
+  });
+});
+
+describe("the glass's still", () => {
+  /** A still's key no other test asks for, so it is drawn here first: an angle of its own. */
+  const freshKey = () =>
+    glassStillKey(
+      ["#fae4c3", "#ffb999", "#f37c81", "#aa7200", "#005f73", "#5d1150"],
+      Math.floor(Math.random() * 361),
+      0
+    );
+
+  it("is the first frame its key names, as a WebP at 2048, kept in R2 under cards/ and read from there", async () => {
+    const key = freshKey();
+    const first = isolate();
+    const answer = await stillAnswer(get(stillAddress(key)), first.env, first.keep);
+    expect([
+      answer.status,
+      answer.headers.get("Content-Type"),
+      answer.headers.get("X-Cache")
+    ]).toEqual([200, "image/webp", "MISS"]);
+    expect(answer.headers.get("X-Robots-Tag")).toBe("noindex");
+    expect(answer.headers.get("CDN-Cache-Control")).toBe("max-age=604800");
+    const webp = new Uint8Array(await answer.arrayBuffer());
+    const text = (from: number, to: number) => String.fromCharCode(...webp.subarray(from, to));
+    expect([text(0, 4), text(8, 16)]).toEqual(["RIFF", "WEBPVP8 "]);
+    const view = new DataView(webp.buffer);
+    expect([view.getUint16(26, true) & 0x3fff, view.getUint16(28, true) & 0x3fff]).toEqual([
+      2048, 2048
+    ]);
+    expect(webp.length).toBeLessThan(200_000);
+    await first.settled();
+    const hash = answer.headers.get("ETag")?.slice('"image:k4:'.length, -1);
+    const object = await first.env.UPLOADS?.get(`cards/k4/${hash}.webp`);
+    expect(object?.httpMetadata?.contentType).toBe("image/webp");
+    const again = isolate();
+    const read = await stillAnswer(get(stillAddress(key)), again.env, again.keep);
+    expect([read.headers.get("X-Cache"), new Uint8Array(await read.arrayBuffer())]).toEqual([
+      "HIT",
+      webp
+    ]);
+  });
+
+  it("counts against its own day, not a large picture's, and is nothing while drawing is off", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    const { keep } = isolate(env);
+    expect((await stillAnswer(get(stillAddress(freshKey())), env, keep)).status).toBe(200);
+    expect(asked).toEqual(["stillRenderDaily"]);
+    const off = isolate();
+    await setFlag(off.env, "share-images", false, unique("admin"));
+    const refused = await stillAnswer(get(stillAddress(freshKey())), off.env, off.keep);
+    expect([refused.status, refused.headers.get("Cache-Control")]).toEqual([503, "no-store"]);
+  });
+
+  it("is no still for a key no page writes", async () => {
+    const { env, keep } = isolate();
+    for (const k of [
+      "",
+      "90-0-fae4c3",
+      "400-0-fae4c3-ffb999",
+      "90-0-FAE4C3-ffb999",
+      "90-0-fae4c3-ffb999-zzzzzz"
+    ])
+      expect((await stillAnswer(get(`/api/still?k=${k}&v=1`), env, keep)).status, k).toBe(404);
   });
 });
 

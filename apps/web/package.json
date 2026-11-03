@@ -21,6 +21,7 @@
     "@grabient/search": "workspace:*",
     "@grabient/server": "workspace:*",
     "@grabient/ui": "workspace:*",
+    "@jsquash/webp": "1.5.0",
     "@solidjs/web": "catalog:",
     "@tanstack/solid-query": "catalog:",
     "@tanstack/solid-router": "catalog:",
