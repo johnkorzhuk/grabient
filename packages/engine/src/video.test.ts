@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BLOB_LOOP, blobBackdrop, blobRenderer } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
-import { type EffectFinish, type EffectLook, groundParts } from "./effect.ts";
+import { EFFECTS, type EffectFinish, type EffectLook, groundParts } from "./effect.ts";
 import {
   blurBoxes,
   blurRgba,
@@ -22,6 +22,7 @@ import { renderRosette } from "./rosette-render.ts";
 import { SILK_LOOP, silkScene } from "./silk.ts";
 import { renderSilk } from "./silk-render.ts";
 import {
+  isVideoKind,
   VIDEO_LIMITS,
   VIDEO_MODULE,
   VIDEO_QUALITY,
@@ -29,6 +30,7 @@ import {
   type VideoBlur,
   type VideoKind,
   type VideoPlan,
+  videoAt,
   videoBlurScale,
   videoDrawer,
   videoDuration,
@@ -62,6 +64,41 @@ describe("video.wasm", () => {
 
   it("is named by its contents, which a drawing goes on from a kept state by", () => {
     expect(VIDEO_MODULE).toBe(createHash("sha256").update(wasmFile).digest("hex").slice(0, 12));
+  });
+});
+
+describe("videoAt", () => {
+  const asked = { width: 640, height: 360 };
+  const at = (query: string) => videoAt(new URLSearchParams(query), asked);
+
+  it("names the kinds a clip is drawn of, every effect but the papercut", () => {
+    expect(EFFECTS.filter(isVideoKind)).toEqual(["glass", "blob", "silk", "rosette"]);
+    expect(at("style=papercut")).toBeNull();
+    expect(at("style=linearGradient")).toBeNull();
+  });
+
+  it("reads an address's effect, angle, soft, grain and duration, and fits the size it asks for", () => {
+    const clip = at("style=silk&angle=135&soft=40&grain=30&speed=2&fps=30&shape=7&duration=12");
+    expect(clip).toMatchObject({
+      kind: "silk",
+      angle: 135,
+      finish: { soft: 40, grain: 30 },
+      duration: 12,
+      effect: { kind: "silk", speed: 2, fps: 30, look: { shape: 7 } }
+    });
+    const fit = videoFit(
+      { kind: "silk", look: clip!.effect.look, finish: { soft: 40, grain: 30 } },
+      2,
+      30,
+      12,
+      asked
+    );
+    expect([clip?.size, clip?.fps, clip?.plan]).toEqual([fit.size, fit.fps, fit.plan]);
+  });
+
+  it("plays the glass where no style is named, and one blob for every angle", () => {
+    expect(at("angle=20")).toMatchObject({ kind: "glass", angle: 20 });
+    expect(at("style=blob&angle=20")?.angle).toBe(90);
   });
 });
 
