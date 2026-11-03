@@ -152,7 +152,7 @@ const BUDGETS = {
   // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders
   // them, the SVG writer's placed stops and grain pattern, the painter's soft reads and grain, and the pictures' keys.
   // It stood at 176.5 at the effects' finished SVG (d5cdb607, 3 Nov 2026: every SVG's grain laid as tiles of its image,
-  // grain.ts grainTilesSvg, and an effect's SVG, card and addresses named by its soft and grain); papercut adds nothing
+  // grain-tiles.ts grainSvg, and an effect's SVG, card and addresses named by its soft and grain); papercut adds nothing
   // here, its drawing loading with the first file or card of it
   firstRequest: 177
 };

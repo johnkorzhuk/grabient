@@ -27,7 +27,7 @@ import { createSignal } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import { namesNow, preciseNames } from "../../lib/color-names.ts";
 import { drawn as drawnNow } from "../../lib/picture.ts";
-import { GRAIN_SHOWN, grainDataUrl } from "./copy-finish.ts";
+import { GRAIN_SHOWN, grainDataUrl, grainPictureUrl } from "./copy-finish.ts";
 import type { PaletteFacts } from "./facts.ts";
 import type { Taken } from "./formats.ts";
 import type { Rest } from "./rest.ts";
@@ -333,7 +333,10 @@ export function codeSources(
       id: "svg",
       label: "SVG",
       text: () => svgText(GRAIN_SHOWN),
-      take: () => (v.grain ? grainDataUrl(v.grain).then(svgText) : Promise.resolve(svgText())),
+      take: () =>
+        v.grain
+          ? grainPictureUrl(v.grain, taken?.pixels ?? DEFAULT_SIZE).then(svgText)
+          : Promise.resolve(svgText()),
       note: () => t("The picture as an SVG file.")
     },
     markdownSource(() => t("The palette as Markdown: colors, names and CSS."))

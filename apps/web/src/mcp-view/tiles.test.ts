@@ -61,7 +61,9 @@ describe("the view's tiles", () => {
     );
     expect(
       svgOf(stopsOf(soft!), soft!, "https://grabient.com", "data:image/png;base64,AAAA")
-    ).toContain('<use xlink:href="#grain"');
+    ).toContain(
+      '<image id="grain" width="800" height="400" xlink:href="data:image/png;base64,AAAA"'
+    );
     expect(fileUrl("https://grabient.com", soft!, "png")).toContain("soft=30&grain=100");
     expect(chosenWords(soft!, "https://grabient.com")).toContain("soft 30, grain 100");
     /* an answer's tiles carry them too */

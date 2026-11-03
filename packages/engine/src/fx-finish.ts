@@ -10,7 +10,7 @@
 import { hexBytes } from "./color.ts";
 import { type Stop, sampleStops } from "./curve.ts";
 import { EFFECT_KINDS, type Effect, type EffectKind, groundParts } from "./effect.ts";
-import { GRAIN_SIDE, grainAlpha, grainSpeck, grainTilesSvg } from "./grain.ts";
+import { GRAIN_SIDE, grainAlpha, grainSpeck, grainSvg } from "./grain.ts";
 import type { Palette } from "./palette.ts";
 import { drawnStops } from "./soft.ts";
 import { linearLine } from "./svg.ts";
@@ -708,8 +708,8 @@ function rootOf(svg: string): { open: string; inner: string } | null {
 
 /** An effect's SVG document finished as the site paints it, in a box of its pixels: its drawing, whole and untouched as
     an SVG inside the finished one, clipped to the box and blurred by the soft over the gradient under it (`underlay`,
-    none for a clear blob), clipped again, then the grain's tiles (`grain`, the tile's data URI at the grain's
-    strength) over all. Where its root names the box alone (`0 0 width height`), its drawing stands in a group instead,
+    none for a clear blob), clipped again, then the grain (`grain`, the data URI of its image at the box's size and
+    the grain's strength: lib/grain-image.ts grainImageUri) over all. Where its root names the box alone (`0 0 width height`), its drawing stands in a group instead,
     which a design tool reads as plainly. The blur is in sRGB, as a CSS blur is; its sigma is `effectBlurSigma`.
     Credit comments stay at the top.
 
@@ -779,5 +779,5 @@ export function finishSvg(
   const picture = sigma
     ? `<g clip-path="url(#${ID.box})">${underlay ? `<rect width="${w}" height="${h}" fill="url(#${ID.under})"/>` : ""}<g filter="url(#${ID.soft})">${blurred}</g></g>`
     : drawing;
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${credit}<defs>${defs}</defs>${picture}${grain ? grainTilesSvg(grain, size) : ""}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${credit}<defs>${defs}</defs>${picture}${grain ? grainSvg(grain, size) : ""}</svg>`;
 }

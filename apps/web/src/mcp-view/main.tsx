@@ -26,7 +26,7 @@ import { render } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import { createBridge, object, type Params, Refused } from "./bridge.ts";
 import { base64Of, pngBase64 } from "./copies.ts";
-import { grainData, grainImage } from "./grain.ts";
+import { grainImage, grainPicture } from "./grain.ts";
 import { type AddAnswer, type DownloadFormat, type Mode, PaletteView } from "./PaletteView.tsx";
 import { APPS_PROTOCOL, MESSAGES_ID } from "./page.ts";
 import {
@@ -222,7 +222,7 @@ async function download(tile: Tile, format: DownloadFormat) {
         ? {
             uri,
             mimeType: "image/svg+xml",
-            text: svgOf(stops, tile, origin(), grainData(tile.grain))
+            text: svgOf(stops, tile, origin(), await grainPicture(tile.grain))
           }
         : {
             uri,

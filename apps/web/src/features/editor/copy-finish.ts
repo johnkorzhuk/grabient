@@ -2,7 +2,7 @@
    blur's code is here, and the grain's tile as a data URI, read from the file the page's pictures lay over, so a
    copied stylesheet or SVG works wherever it lands. Loaded with the editor's copies alone. */
 import type { Stop } from "@grabient/engine/curve.ts";
-import type { Style } from "@grabient/engine/view.ts";
+import type { Size, Style } from "@grabient/engine/view.ts";
 import { drawn, grainSrc } from "../../lib/picture.ts";
 import { loadSoft } from "../../lib/soft-load.ts";
 
@@ -14,6 +14,11 @@ export async function drawnSoon(
   if (view.soft) await loadSoft();
   return drawn(stops, view);
 }
+
+/** The grain over a picture of `size` as one image's data URI, which a copied SVG carries in itself
+    (lib/grain-image.ts: a design app imports it as one layer, one to one), its code loaded with the first. */
+export const grainPictureUrl = async (grain: number, size: Size): Promise<string> =>
+  (await import("../../lib/grain-image.ts")).grainImageUri(grain, size);
 
 /** The grain's data as code shows it, elided: a copy writes it whole (grainDataUrl). */
 export const GRAIN_SHOWN = "data:image/png;base64,…";

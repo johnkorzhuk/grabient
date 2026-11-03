@@ -5,9 +5,9 @@
    of 0.16, the lab's that John chose it in (2 Nov 2026). The site lays the tile at a strength as a background over
    the picture (grainLayer); a file carries it in itself. */
 import { GRAIN_SIDE } from "./grain-tiles.ts";
-import { GRAIN_MAX } from "./view.ts";
+import { GRAIN_MAX, type Size } from "./view.ts";
 
-export { GRAIN_SIDE, grainTilesSvg } from "./grain-tiles.ts";
+export { GRAIN_SIDE, grainSvg } from "./grain-tiles.ts";
 
 /** A one-sigma speck's alpha at GRAIN_MAX. */
 export const GRAIN_FULL = 0.16;
@@ -108,23 +108,49 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
 
 /** The tile at a grain as an indexed PNG, its palette the specks it holds (black or white at an alpha), the smallest
     file of it: about 11 KB at 40. `deflate` deflates in zlib's format (CompressionStream's "deflate", node's zlib). */
-export async function grainPng(
+export const grainPng = (
   grain: number,
   deflate: (bytes: Uint8Array) => Uint8Array | Promise<Uint8Array>
+): Promise<Uint8Array> => indexedPng(grain, { width: GRAIN_SIDE, height: GRAIN_SIDE }, deflate);
+
+/** The grain over a whole picture as one indexed PNG, the tile repeated from the picture's top-left corner, a speck a
+    pixel, which an SVG lays as one image (grain-tiles.ts grainSvg): Figma's importer takes it one to one as one layer,
+    where it stretches a pattern's image over the box and takes a tile laid by <use> as a rectangle of its own. About
+    50 KB at 800 by 400 and 125 at 1920 by 1080, at grain 40. */
+export const grainImagePng = (
+  grain: number,
+  size: Size,
+  deflate: (bytes: Uint8Array) => Uint8Array | Promise<Uint8Array>
+): Promise<Uint8Array> => indexedPng(grain, size, deflate);
+
+/* the specks of a box, the tile repeated from its corner, as an indexed PNG whose palette holds them */
+async function indexedPng(
+  grain: number,
+  size: Size,
+  deflate: (bytes: Uint8Array) => Uint8Array | Promise<Uint8Array>
 ): Promise<Uint8Array> {
+  const W = Math.max(1, Math.round(size.width));
+  const H = Math.max(1, Math.round(size.height));
   const index = new Map<number, number>();
-  const rows = new Uint8Array(GRAIN_SIDE * (GRAIN_SIDE + 1));
+  const tile = new Uint8Array(GRAIN_SIDE * GRAIN_SIDE);
   for (let y = 0; y < GRAIN_SIDE; y++)
     for (let x = 0; x < GRAIN_SIDE; x++) {
-      const { white, size } = grainSpeck(x, y);
-      const key = (white ? 256 : 0) + grainAlpha(size, grain);
+      const { white, size: deviation } = grainSpeck(x, y);
+      const key = (white ? 256 : 0) + grainAlpha(deviation, grain);
       let i = index.get(key);
       if (i === undefined) {
         i = index.size;
         index.set(key, i);
       }
-      rows[y * (GRAIN_SIDE + 1) + 1 + x] = i;
+      tile[y * GRAIN_SIDE + x] = i;
     }
+  const rows = new Uint8Array(H * (W + 1));
+  for (let y = 0; y < H; y++) {
+    const row = tile.subarray((y % GRAIN_SIDE) * GRAIN_SIDE, ((y % GRAIN_SIDE) + 1) * GRAIN_SIDE);
+    const at = y * (W + 1) + 1;
+    for (let x = 0; x < W; x += GRAIN_SIDE)
+      rows.set(x + GRAIN_SIDE <= W ? row : row.subarray(0, W - x), at + x);
+  }
   const colors = new Uint8Array(index.size * 3);
   const alphas = new Uint8Array(index.size);
   for (const [key, i] of index) {
@@ -133,8 +159,8 @@ export async function grainPng(
   }
   const head = new Uint8Array(13);
   const view = new DataView(head.buffer);
-  view.setUint32(0, GRAIN_SIDE);
-  view.setUint32(4, GRAIN_SIDE);
+  view.setUint32(0, W);
+  view.setUint32(4, H);
   head.set([8, 3, 0, 0, 0], 8);
   const parts = [
     Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10),

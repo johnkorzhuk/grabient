@@ -1,6 +1,8 @@
 /* The grain's tile in the view, made in the frame from its hash (engine/grain.ts), since the frame fetches nothing: one
    tile a strength, a speck a CSS pixel, as the site lays it over a picture. */
 import { GRAIN_SIDE, grainTile } from "@grabient/engine/grain.ts";
+import { DEFAULT_SIZE } from "@grabient/engine/view.ts";
+import { grainImageUri } from "../lib/grain-image.ts";
 
 const canvases = new Map<number, HTMLCanvasElement | null>();
 const datas = new Map<number, string>();
@@ -38,11 +40,10 @@ function tileBase64(grain: number): string {
   return data;
 }
 
-/** The tile at a grain as a data URI, which a copied SVG carries in itself; none for none. */
-export const grainData = (grain?: number): string | undefined => {
-  const data = grain ? tileBase64(grain) : "";
-  return data ? `data:image/png;base64,${data}` : undefined;
-};
+/** The grain over a copied SVG's picture (the site's 800 by 400) as one image's data URI, which the SVG carries in
+    itself: a design app imports it one to one as one layer (lib/grain-image.ts); none for none. */
+export const grainPicture = async (grain?: number): Promise<string | undefined> =>
+  grain ? grainImageUri(grain, DEFAULT_SIZE) : undefined;
 /** The tile as a CSS image, which a copied stylesheet carries; none for none. */
 export const grainImage = (grain?: number): string | undefined => {
   const data = grain ? tileBase64(grain) : "";

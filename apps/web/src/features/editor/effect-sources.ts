@@ -13,6 +13,7 @@ import {
   effectColors,
   effectLayers,
   effectMarkdown,
+  effectSize,
   effectSpecJson,
   effectStill,
   effectStylesheet,
@@ -28,7 +29,7 @@ import type { CodeSource } from "@grabient/ui/PaletteCode.tsx";
 import { createSignal } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import { effectCard } from "../../lib/page-meta.ts";
-import { GRAIN_SHOWN, grainDataUrl } from "./copy-finish.ts";
+import { GRAIN_SHOWN, grainDataUrl, grainPictureUrl } from "./copy-finish.ts";
 import { effectHtml, type Taken } from "./formats.ts";
 
 /* The code pane's tabs for an effect, which load with the effect's code as an effect first shows in the pane
@@ -342,7 +343,7 @@ export function effectSources(
       text: () => effectSvg(P, seed, effect, angle, taken.pixels, origin, finish, GRAIN_SHOWN),
       take: () =>
         taken.grain
-          ? grainDataUrl(taken.grain).then(data =>
+          ? grainPictureUrl(taken.grain, taken.pixels ?? effectSize(effect)).then(data =>
               effectSvg(P, seed, effect, angle, taken.pixels, origin, finish, data)
             )
           : Promise.resolve(effectSvg(P, seed, effect, angle, taken.pixels, origin, finish)),

@@ -260,7 +260,8 @@ test("an effect's SVG finished: its drawing whole, blurred over its gradient and
   expect(svg).toContain(`<feGaussianBlur stdDeviation="${Number(sigma.toFixed(3))}"/>`);
   expect(svg).toContain('color-interpolation-filters="sRGB"');
   expect(svg).toContain('<rect width="300" height="200" fill="url(#gfx-under)"/>');
-  expect(svg.match(/<use xlink:href="#gfx-grain"/g)).toHaveLength(3 * 2);
+  expect(svg).toContain('<image id="gfx-grain" width="300" height="200" xlink:href="');
+  expect(svg).not.toContain('<use xlink:href="#gfx-grain"');
   /* the silk's light and shade are translucent layers over its dye, which Safari composites in linear light inside a
      filter: its drawing (a group, its root naming the box alone) is a pattern whose tile is the box, and the blur
      reads one rect painted by it */

@@ -5,7 +5,7 @@
    under a 0.3px blur that closes the seams between wedges. */
 import { hexBytes } from "./color.ts";
 import type { Stop } from "./curve.ts";
-import { grainTilesSvg } from "./grain-tiles.ts";
+import { grainSvg } from "./grain-tiles.ts";
 import { onWheel } from "./math.ts";
 import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, resolveSize, type Size, type Style, type View, viewSearch } from "./view.ts";
@@ -25,7 +25,7 @@ export interface PaletteSvgOptions {
   /** each color's place along the line, 0 to 1, where a soft view placed them (soft.ts): a gradient style's stops
       stand there */
   at?: readonly number[];
-  /** the grain's tile as a data URI (grain.ts), laid over the picture a pixel a speck */
+  /** the grain over the picture as its image's data URI at the picture's size (lib/grain-image.ts grainImageUri), a pixel a speck */
   grain?: string;
 }
 
@@ -209,13 +209,13 @@ export function paletteSvg(
   const svg = drawnSvg(hexes, style, angle, credit, options);
   const grain = options.grain;
   if (!grain || hexes.length === 0) return svg;
-  /* the grain over the picture, in its box and its corners, a pixel a speck however it is scaled: the tile's image
-     once and a use of it per tile (fx-finish.ts), which Figma's importer takes one to one where it stretches a
-     pattern's image over the whole picture */
+  /* the grain over the picture, in its box and its corners, a pixel a speck however it is scaled: one image of it at
+     the picture's size (`grain`, its data URI: lib/grain-image.ts grainImageUri), which Figma's importer takes one to one as
+     one layer, where it stretches a pattern's image over the whole picture */
   const { width: w = 800, height: h = 400, gridItemIndex, borderRadius = 0 } = options;
   const radius = (borderRadius / 100) * (Math.min(w, h) / 2);
   const suffix = typeof gridItemIndex === "number" ? `_${gridItemIndex}` : "";
-  const over = grainTilesSvg(
+  const over = grainSvg(
     grain,
     { width: w, height: h },
     { tile: `grain${suffix}`, clip: `grainBox${suffix}` },
@@ -288,7 +288,7 @@ function drawnSvg(
 
 /** The palette's SVG file at a view: its stops' hexes, credited to its address, at the given size or the view's
     (800 by 400 for auto). A soft view's stops come blurred, with the style they are drawn in and their places
-    (`over`, soft.ts drawnStops), and its grain's tile as a data URI (grain.ts). */
+    (`over`, soft.ts drawnStops), and its grain as its image's data URI at the picture's size (lib/grain-image.ts grainImageUri). */
 export const artworkSvg = (
   stops: readonly Stop[],
   view: View,

@@ -1,10 +1,21 @@
+import { deflateSync } from "node:zlib";
 import { expect, test } from "vitest";
 import { decodePalette } from "./codec.ts";
 import { lchToSrgb, type Triple, toHex } from "./color.ts";
 import { cssBlock, cssLine, cssWide, gradientCss, paletteCss } from "./css.ts";
 import { sampleStops } from "./curve.ts";
 import { paletteDocument } from "./document.ts";
-import { GRAIN_FULL, grainAlpha, grainOf, grainOver, grainSpeck, grainTile } from "./grain.ts";
+import {
+  GRAIN_FULL,
+  grainAlpha,
+  grainImagePng,
+  grainOf,
+  grainOver,
+  grainPng,
+  grainSpeck,
+  grainSvg,
+  grainTile
+} from "./grain.ts";
 import { DEG } from "./math.ts";
 import { drawnStops, SOFT_TOLERANCE, softSigma, softStops, softStyle } from "./soft.ts";
 import { artworkSvg } from "./svg.ts";
@@ -171,13 +182,12 @@ test("the SVG file draws a soft view's stops where they stand and the grain's ti
       { width: 300, height: 200 },
       { style: drawn.style, at: drawn.at, grain: "data:image/png;base64,AAAA" }
     );
-    /* the tile's image once and a use of it per tile, 3 by 2 over 300 by 200, clipped to the box: Figma's importer
-       takes each one to one, where it stretches a pattern's image over the whole picture */
+    /* the grain one image of the picture's size: Figma's importer takes it one to one as one layer, where it
+       stretches a pattern's image over the whole picture and took each tile a <use> laid as a rectangle of its own */
     expect(svg).toContain(
-      '<image id="grain" width="128" height="128" xlink:href="data:image/png;base64,AAAA"'
+      '<image id="grain" width="300" height="200" xlink:href="data:image/png;base64,AAAA" style="image-rendering:pixelated"/>'
     );
-    expect(svg.match(/<use xlink:href="#grain"/g)).toHaveLength(6);
-    expect(svg).toContain('<g clip-path="url(#grainBox)">');
+    expect(svg).not.toContain("<use");
     expect(svg).toContain('xmlns:xlink="http://www.w3.org/1999/xlink"');
     expect(svg).not.toContain("<pattern");
     expect(svg).toContain("soft=40&grain=25");
@@ -266,5 +276,47 @@ test("a stylesheet holds the grain's tile once where a Display-P3 block lays it 
   /* one declaration lays it inline */
   expect(cssLine(vivid, "linearGradient", 90, "hex", { grain: 'url("g.png")' })).toMatch(
     /^background: url\("g\.png"\) 0 0 \/ 128px 128px, linear-gradient\(/
+  );
+});
+
+test("the grain over a picture is one PNG of its size, the tile repeated from its corner, which an SVG lays as one image", async () => {
+  const { inflateSync } = await import("node:zlib");
+  const size = { width: 300, height: 200 };
+  const png = await grainImagePng(40, size, bytes => deflateSync(bytes));
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  /* the signature, then IHDR: its width and height, 8-bit indexed */
+  expect([view.getUint32(16), view.getUint32(20), png[24], png[25]]).toEqual([300, 200, 8, 3]);
+  /* its chunks in order, and the rows they hold: each the tile's, wrapped across and down */
+  const chunks: Record<string, Uint8Array> = {};
+  for (let at = 8; at < png.length; ) {
+    const length = view.getUint32(at);
+    const type = String.fromCharCode(...png.subarray(at + 4, at + 8));
+    chunks[type] = png.subarray(at + 8, at + 8 + length);
+    at += 12 + length;
+  }
+  const rows = inflateSync(chunks.IDAT);
+  expect(rows.length).toBe(200 * 301);
+  const palette = chunks.PLTE;
+  const alphas = chunks.tRNS;
+  for (const [x, y] of [
+    [0, 0],
+    [129, 3],
+    [299, 199],
+    [40, 130]
+  ]) {
+    const i = rows[y * 301 + 1 + x];
+    const { white, size: deviation } = grainSpeck(x, y);
+    expect([palette[3 * i], alphas[i]]).toEqual([white ? 255 : 0, grainAlpha(deviation, 40)]);
+  }
+  /* the tile's own PNG is the same at its side */
+  expect(await grainPng(40, bytes => deflateSync(bytes))).toEqual(
+    await grainImagePng(40, { width: 128, height: 128 }, bytes => deflateSync(bytes))
+  );
+  /* as SVG: one image of the box, clipped where the box rounds its corners */
+  expect(grainSvg("data:x", size, { tile: "g", clip: "gb" })).toBe(
+    '<image id="g" width="300" height="200" xlink:href="data:x" style="image-rendering:pixelated"/>'
+  );
+  expect(grainSvg("data:x", size, { tile: "g", clip: "gb" }, 12)).toBe(
+    '<defs><clipPath id="gb"><rect width="300" height="200" rx="12" ry="12"/></clipPath></defs><image id="g" width="300" height="200" xlink:href="data:x" style="image-rendering:pixelated" clip-path="url(#gb)"/>'
   );
 });

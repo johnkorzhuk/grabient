@@ -25,7 +25,7 @@ import {
   Show
 } from "solid-js";
 import { copyPng } from "./copies.ts";
-import { grainData, grainImage, withGrain } from "./grain.ts";
+import { grainImage, grainPicture, withGrain } from "./grain.ts";
 import styles from "./PaletteView.module.css";
 import {
   artOf,
@@ -271,7 +271,7 @@ export function PaletteView(props: PaletteViewProps) {
           ? paletteUrl(props.origin, tile)
           : format === "css"
             ? cssOf(stops, tile, grainImage(tile.grain))
-            : svgOf(stops, tile, props.origin, grainData(tile.grain));
+            : svgOf(stops, tile, props.origin, await grainPicture(tile.grain));
       label = format.toUpperCase();
     }
     if (await copyText(text)) {

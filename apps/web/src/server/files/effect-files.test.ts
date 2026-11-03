@@ -33,10 +33,10 @@ test("an effect's stylesheet is the engine's, any page may load it, and no searc
 test("an effect's SVG is the engine's at the size asked, and a link preview reads a page whose card is its first frame", async () => {
   const glass = effect("style=glass&speed=2");
   const request = new Request(`${ORIGIN}/${SEED}.svg?style=glass&speed=2`);
-  const answer = effectSvgAnswer(request, ORIGIN, SEED, P, glass, 90, null);
+  const answer = await effectSvgAnswer(request, ORIGIN, SEED, P, glass, 90, null);
   expect(await answer.text()).toBe(effectSvg(P, SEED, glass, 90, null, ORIGIN));
   expect(answer.headers.get("Access-Control-Allow-Origin")).toBe("*");
-  const preview = effectSvgAnswer(
+  const preview = await effectSvgAnswer(
     new Request(request.url, { headers: { "User-Agent": "Slackbot-LinkExpanding 1.0" } }),
     ORIGIN,
     SEED,
@@ -49,4 +49,24 @@ test("an effect's SVG is the engine's at the size asked, and a link preview read
   expect(preview.headers.get("Content-Type")).toContain("text/html");
   expect(html).toContain(`<meta property="og:image" content="${ORIGIN}/api/og?seed=${SEED}`);
   expect(html).toContain("style=glass");
+  /* a grained one carries the grain's image at the size it draws, made for that size */
+  const sizes: string[] = [];
+  const grained = await effectSvgAnswer(
+    request,
+    ORIGIN,
+    SEED,
+    P,
+    glass,
+    90,
+    { width: 640, height: 360 },
+    { grain: 30 },
+    async size => {
+      sizes.push(`${size.width}x${size.height}`);
+      return "data:image/png;base64,AAAA";
+    }
+  );
+  expect(sizes).toEqual(["640x360"]);
+  expect(await grained.text()).toContain(
+    '<image id="gfx-grain" width="640" height="360" xlink:href="data:image/png;base64,AAAA"'
+  );
 });

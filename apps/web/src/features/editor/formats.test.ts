@@ -308,8 +308,8 @@ test("the glass's PNG is its first frame drawn and blurred by the view's soft on
 test("the silk's, the rosette's and the blob's PNG is their finished still SVG, its grain inside, drawn by the browser", async () => {
   for (const query of ["style=silk&shape=4", "style=rosette", "style=blob&shape=3"]) {
     const canvas = stubCanvas();
-    /* the tile as a copy carries it, read from the file the page's pictures lay over */
-    const tile = await (await import("./copy-finish.ts")).grainDataUrl(40);
+    /* the grain as a copy carries it: one image of the picture's size */
+    const tile = await (await import("./copy-finish.ts")).grainPictureUrl(40, PIXELS);
     await copyFormat("png", finished(query, 50, 40));
     const svg = effectSvg(
       P,

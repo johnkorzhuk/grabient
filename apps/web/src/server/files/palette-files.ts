@@ -27,6 +27,7 @@ import {
   DEFAULT_SIZE,
   finishOf,
   resolveSize,
+  type Size,
   type Style,
   sizeParam
 } from "@grabient/engine/view.ts";
@@ -73,9 +74,12 @@ async function finished(stops: Stop[], view: { style: Style; soft?: number }) {
   if (!view.soft) return { stops, style: view.style, at: undefined };
   return (await import("@grabient/engine/soft.ts")).drawnStops(stops, view);
 }
-/* the grain's tile carried in a file as a data URI, loaded with the first such file */
+/* the grain's tile carried in a stylesheet as a data URI, loaded with the first such file */
 const grainOf = async (grain: number): Promise<string> =>
   (await import("./grain.ts")).grainData(grain);
+/* the grain over an SVG's picture as one image of its size, which a design app imports as one layer */
+const grainImageOf = async (grain: number, size: Size): Promise<string> =>
+  (await import("../../lib/grain-image.ts")).grainImageUri(grain, size);
 
 async function paletteFile(
   request: Request,
@@ -145,8 +149,9 @@ async function paletteFile(
       const effect = parseEffect(params);
       if (effect) {
         const { effectSvgAnswer } = await import("./effect-files.ts");
-        /* a soft or grained effect is finished as the site paints it, its grain's tile carried in itself */
+        /* a soft or grained effect is finished as the site paints it, its grain's image carried in itself */
         const finish = finishOf(view);
+        const grain = finish.grain;
         return effectSvgAnswer(
           request,
           origin,
@@ -156,7 +161,7 @@ async function paletteFile(
           view.angle,
           svgSize(params),
           finish,
-          finish.grain ? await grainOf(finish.grain) : undefined
+          grain ? size => grainImageOf(grain, size) : undefined
         );
       }
       // style=bands is the animated SVG (engine/bands.ts), at 400 by 500 unless asked
@@ -175,11 +180,12 @@ async function paletteFile(
           headers: { ...ANIMATION, "Content-Type": "image/svg+xml; charset=utf-8" }
         });
       }
-      /* a soft view's blurred stops (engine/soft.ts), and the grain's tile carried in itself */
+      /* a soft view's blurred stops (engine/soft.ts), and the grain's image carried in itself */
       const drawn = await finished(stops(), view);
-      const grain = view.grain ? await grainOf(view.grain) : undefined;
+      const size = resolveSize(svgSize(params), DEFAULT_SIZE);
+      const grain = view.grain ? await grainImageOf(view.grain, size) : undefined;
       return new Response(
-        artworkSvg(drawn.stops, { ...view, size: svgSize(params) }, seed, origin, undefined, {
+        artworkSvg(drawn.stops, { ...view, size: svgSize(params) }, seed, origin, size, {
           style: drawn.style,
           at: drawn.at,
           grain

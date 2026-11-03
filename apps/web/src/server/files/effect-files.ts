@@ -13,7 +13,7 @@ import { type Effect, type EffectFinish, effectAddressParts } from "@grabient/en
 import { effectSize, effectStylesheet, effectSvg } from "@grabient/engine/effect-code.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { resolveSize, type SizeChoice } from "@grabient/engine/view.ts";
+import { resolveSize, type Size, type SizeChoice } from "@grabient/engine/view.ts";
 import { ANIMATION, EMBEDDED } from "../../lib/cache.ts";
 import { effectCard } from "../../lib/page-meta.ts";
 import { isLinkPreview } from "../crawlers.ts";
@@ -36,7 +36,7 @@ export const effectCssAnswer = (
 
 /** /{seed}.svg?style=glass or blob: the moving SVG, 800 by 400 for the glass and 500 by 500 for the blob unless the
     address asks; an app previewing a posted link gets a page whose card is the effect's first frame (preview.ts). */
-export function effectSvgAnswer(
+export async function effectSvgAnswer(
   request: Request,
   origin: string,
   seed: string,
@@ -45,8 +45,8 @@ export function effectSvgAnswer(
   angle: number,
   asked: SizeChoice | null | undefined,
   finish: EffectFinish = {},
-  grain?: string
-): Response {
+  grain?: (size: Size) => Promise<string>
+): Promise<Response> {
   const size = resolveSize(asked, effectSize(effect));
   if (isLinkPreview(request)) {
     const sized = asked ? [`w=${size.width}`, `h=${size.height}`] : [];
@@ -66,7 +66,8 @@ export function effectSvgAnswer(
                 : "An animated SVG of a Grabient palette: a frosted blob of its colors, drifting, moved by CSS alone."
     });
   }
-  return new Response(effectSvg(P, seed, effect, angle, size, origin, finish, grain), {
+  const image = grain ? await grain(size) : undefined;
+  return new Response(effectSvg(P, seed, effect, angle, size, origin, finish, image), {
     headers: { ...ANIMATION, ...EMBEDDED, "Content-Type": "image/svg+xml; charset=utf-8" }
   });
 }

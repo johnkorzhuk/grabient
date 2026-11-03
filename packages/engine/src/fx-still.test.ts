@@ -19,7 +19,6 @@ import {
   fxStillSteps,
   fxStillSvg
 } from "./fx-still.ts";
-import { GRAIN_SIDE } from "./grain.ts";
 import { PAPERCUT_SVG_FRAMES } from "./papercut-svg.ts";
 
 const SEED = "kUMzO5Na871ukuyhHUJA";
@@ -180,8 +179,8 @@ test("the papercut's SVG finished: its drawing whole in a group, blurred over it
   expect(drawing).toMatch(/<filter id="pc0" /);
   expect(drawing).toContain('clip-path="url(#pcbox)"');
   expect(drawing).not.toContain("gfx-");
-  expect(svg.match(/<use xlink:href="#gfx-grain"/g)).toHaveLength(
-    Math.ceil(box.width / GRAIN_SIDE) * Math.ceil(box.height / GRAIN_SIDE)
+  expect(svg).toContain(
+    `<image id="gfx-grain" width="${box.width}" height="${box.height}" xlink:href="data:image/png;base64,AAAA"`
   );
   /* the soft alone has no grain; the grain alone no blur */
   const soft = effectSvg(P, SEED, fx, 120, box, "https://grabient.com", { soft: 40 });

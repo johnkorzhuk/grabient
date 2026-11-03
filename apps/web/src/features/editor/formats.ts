@@ -32,7 +32,7 @@ import {
 } from "../../lib/files.ts";
 import { grainSrc } from "../../lib/picture.ts";
 import { seedAddress } from "./address.ts";
-import { drawnSoon, grainDataUrl } from "./copy-finish.ts";
+import { drawnSoon, grainDataUrl, grainPictureUrl } from "./copy-finish.ts";
 
 /* What the editor's strips hand over: a palette copied, saved as a file, or as the address of the file the site serves
    for it. A copy and a download of one format hold the same palette; CSS alone differs, since a copy is the
@@ -129,7 +129,7 @@ const effectSvgOf = async (p: Taken, effect: Effect, moving: boolean) =>
     p.pixels,
     origin(),
     finishOf(p),
-    p.grain ? await grainDataUrl(p.grain) : undefined
+    p.grain ? await grainPictureUrl(p.grain, p.pixels) : undefined
   );
 /* The first frame the copied tags carry inside the page, a CSS background covering it as the player covers its canvas:
    the glass as a WebP of its design square, drawn by its CPU renderer (a JPEG where the browser makes no WebP), which a
@@ -187,7 +187,7 @@ const effectCss = async (p: Taken, effect: Effect) =>
     await grainImageOf(p)
   );
 /* an effect's SVG moves as the picture does: speed 0 is its first frame */
-/* the gradient's SVG: a soft view's blurred stops (lib/picture.ts), and its grain's tile where `grain` brings it */
+/* the gradient's SVG: a soft view's blurred stops (lib/picture.ts), and its grain's image where `grain` brings it */
 async function gradientSvg(p: Taken, grain?: string): Promise<string> {
   const d = await drawnSoon(p.stops, view(p));
   return artworkSvg(d.stops, view(p), p.seed, origin(), p.pixels, {
@@ -199,7 +199,7 @@ async function gradientSvg(p: Taken, grain?: string): Promise<string> {
 const svgText = async (p: Taken) =>
   p.effect
     ? effectSvgOf(p, p.effect, true)
-    : gradientSvg(p, p.grain ? await grainDataUrl(p.grain) : undefined);
+    : gradientSvg(p, p.grain ? await grainPictureUrl(p.grain, p.pixels) : undefined);
 /* the gradient's CSS: a soft view's blurred stops at their places, and the grain's tile carried in itself */
 async function gradientCss(p: Taken): Promise<string> {
   const drawn = await drawnSoon(p.stops, view(p));
