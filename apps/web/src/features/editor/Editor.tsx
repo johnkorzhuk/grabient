@@ -3,7 +3,13 @@ import { encodePalette } from "@grabient/engine/codec.ts";
 import { hexToSrgb, luminance } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { blobShapeOf, blobStillKey, fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
+import {
+  blobShapeOf,
+  blobStillKey,
+  fxStillKey,
+  groundParts,
+  type VectorKind
+} from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
@@ -657,6 +663,14 @@ function Stage(
       e.angle()
     );
   };
+  /* a soft blob with no ground of its own, or one that lets the page through, stands on the page: its edges go to the
+     page's ground, as a card's go clear and every file's (fx-finish.ts effectUnderlay), not to the gradient */
+  const onPage = () => {
+    if (e.shownEffect() !== "blob" || !e.soft()) return false;
+    const bg = blobSettings().look.bg;
+    return !bg || groundParts(bg).alpha < 1;
+  };
+  const under = () => (onPage() ? "var(--color-bg)" : art());
   /* an effect's soft: its layer blurred by a share of the stage's longer side (engine/view.ts effectSoftShare), its
      edges going to the gradient under it rather than to the page */
   const fxBlur = () => {
@@ -841,7 +855,7 @@ function Stage(
               role="img"
               aria-label={t("The gradient")}
               style={{
-                background: art(),
+                background: under(),
                 "--fx-blur": fxBlur()
               }}
             >
@@ -861,7 +875,7 @@ function Stage(
             style={{
               "--ar": String(size().width / size().height),
               "--w": `${size().width}px`,
-              background: art(),
+              background: under(),
               "--fx-blur": fxBlur()
             }}
           >
