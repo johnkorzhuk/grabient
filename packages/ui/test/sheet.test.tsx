@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 import { ContrastGrid } from "../src/ContrastGrid.tsx";
 import { FigurePane } from "../src/FigurePane.tsx";
 import { FormatStrip, placesOf, SWATCH_CHIPS } from "../src/FormatStrip.tsx";
+import { MakingIcon, makingLabel } from "../src/MakingIcon.tsx";
 import { type CodeSource, PaletteCode } from "../src/PaletteCode.tsx";
 import { BRAND_SUPPLY } from "../src/supply.ts";
 
@@ -46,6 +47,24 @@ describe("the format strip", () => {
     /* every chip's name stays in the markup, the unseen layers holding the strip's width */
     expect(html).toContain("> URL<");
     expect(html).toContain("data-unseen");
+  });
+
+  test("an effect's MP4 takes HTML's place and its script Figma's, so a turn of the mode moves no chip", () => {
+    expect(
+      placesOf([
+        ["url", "css", "svg", "png", "html", "figma"],
+        ["md", "css", "svg", "png", "mp4"],
+        ["md", "css", "svg", "png", "mp4", "js"]
+      ])
+    ).toEqual([["url", "md"], ["css"], ["svg"], ["png"], ["html", "mp4"], ["figma", "js"]]);
+  });
+
+  test("a download being made is a ring drawn round as far as it is made, its chip saying a press stops it", () => {
+    const html = renderToString(() => <MakingIcon done={0.42} size={14} />);
+    expect(html).toContain('stroke-dasharray="42.0 100"');
+    expect(html).toContain('width="14"');
+    expect(makingLabel("mp4", 0.427)).toBe("Making MP4, 42%. Stop");
+    expect(makingLabel("mp4", 0.999)).toBe("Making MP4, 99%. Stop");
   });
 
   test("a strip of one mode has no mode press", () => {
