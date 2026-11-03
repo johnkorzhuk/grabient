@@ -5263,7 +5263,7 @@
     ]
   },
   "The tag that paints its first frame behind a page, for the page's head.": {
-    "note": "Editor, the code pane's HTML tab while the silk or the rosette plays: the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page; these effects have no script yet.",
+    "note": "Editor, the code pane's HTML tab while an effect with no script yet plays (every effect has one now; one can come before its script): the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page.",
     "refs": [
       "apps/web/src/features/editor/effect-sources.ts:294"
     ]

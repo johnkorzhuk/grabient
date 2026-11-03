@@ -39,10 +39,11 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   rosette: { angle: true, vector: true, steppedStill: false },
   papercut: { angle: true, vector: true, steppedStill: true }
 };
-/* the effects a script plays behind another site's page */
+/* the effects a script plays behind another site's page: every one since the papercut's, the list staying the one
+   switch for an effect that lands before its script, as the silk, the rosette and the papercut did */
 const SCRIPTED: readonly EffectKind[] = ["glass", "blob", "silk", "rosette", "papercut"];
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
-    without has its stylesheet alone, which paints its still. */
+    without offers its stylesheet alone, which paints its still, in its strips, its tags and its Markdown. */
 export const hasEmbedScript = (kind: EffectKind): boolean => SCRIPTED.includes(kind);
 /** Whether an effect has Copy for Figma, Figma's own layers of it (figma-glass.ts, figma-blob.ts, figma-silk.ts,
     figma-rosette.ts): every one but the papercut, whose layers are not built yet. */
