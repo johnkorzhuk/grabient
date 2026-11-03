@@ -114,6 +114,10 @@ test("the papercut's files: its stepped still covers a page, its SVG is the stil
   expect(md.called).toBe("Navy and teal papercut");
   expect(md.drawn).toContain("papercut, its sheets climbing toward 120 degrees, shape 7");
   expect(md.lead).toContain("Two tags play it behind any page.");
+  /* its stylesheet steps the shadows the script draws soft, held for a reader who asks for less motion */
+  expect(md.code).toContain(
+    "the stylesheet paints the first frame in the page's first paint, its shadows stepped, and the script plays it from there with WebGL, its shadows soft. Without WebGL the first frame stays, and for a reader who asks for less motion the script holds its own."
+  );
   expect(md.files).toHaveProperty("script");
 });
 
