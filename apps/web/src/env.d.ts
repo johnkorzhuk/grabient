@@ -10,6 +10,7 @@ declare const __EFFECT_EMBEDS__: {
   readonly blob: string;
   readonly silk: string;
   readonly rosette: string;
+  readonly papercut: string;
 };
 
 interface Window {

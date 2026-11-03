@@ -182,9 +182,12 @@ test("an effect's script is one for every setting, its stylesheet one for every 
     `/${seed}.css?angle=90&shape=3&style=blob`
   );
   expect(written(`/${seed}.css?style=glass`)?.key).not.toBe(written(`/${seed}.css`)?.key);
-  // the silk's and the rosette's are theirs too, and the soft and the grain finish the still
+  // the silk's, the rosette's and the papercut's are theirs too, and the soft and the grain finish the still
   expect(written(`/${seed}.js?style=silk&soft=40&grain=20`)?.key).toBe(`/${seed}.js?style=silk`);
   expect(written(`/${seed}.js?style=rosette`)?.key).toBe(`/${seed}.js?style=rosette`);
+  expect(written(`/${seed}.js?style=papercut&angle=30&shape=7&speed=0`)?.key).toBe(
+    `/${seed}.js?style=papercut`
+  );
   expect(written(`/${seed}.css?style=rosette&soft=40&grain=20&speed=2`)?.key).toBe(
     `/${seed}.css?angle=90&grain=20&soft=40&style=rosette`
   );

@@ -80,7 +80,8 @@ beforeAll(async () => {
     import("./glass.ts"),
     import("./blob.ts"),
     import("./silk.ts"),
-    import("./rosette.ts")
+    import("./rosette.ts"),
+    import("./papercut.ts")
   ]);
 });
 
@@ -175,6 +176,7 @@ describe("an effect's script", () => {
     const at = (query: string) => new URL(`${ORIGIN}/${SEED}.js?${query}`);
     for (const query of [
       "style=silk&angle=40&soft=50&grain=30",
+      "style=papercut&angle=30&soft=40&grain=30&shape=7&speed=0",
       // copied out of the tags' HTML, and a key twice, the last kept
       "style=rosette&amp;angle=120&amp;soft=40&amp;grain=30&amp;shape=7",
       "style=glass&angle=10&angle=135&soft=5&soft=50",
@@ -213,6 +215,8 @@ describe("an effect's script", () => {
       ["style=blob&shape=51&bg=%2300000080&soft=50"],
       ["style=blob&shape=51&soft=50&grain=30"],
       ["style=silk&angle=40"],
+      ["style=papercut&angle=30&soft=40&grain=30&shape=7"],
+      ["style=papercut&amp;speed=0"],
       [
         "style=blob&shape=51&bg=rgb(0 0 0 / 50%25)&soft=50&grain=30",
         "style=blob&shape=51&bg=%2300000080&soft=50&grain=30"
@@ -230,7 +234,7 @@ describe("an effect's script", () => {
       const embed = embeds.get(effect.kind) as EmbedEffect;
       const grain = finish.grain ? await grainImage(finish.grain) : undefined;
       const adopted = effectLayerCss(
-        embed.still(P, effect, angle),
+        await embed.still(P, effect, angle),
         effectLayers(P, effect, angle, finish, grain)
       );
       /* the file is the same rules under its credit, its tile deflated where the script's rows are stored */

@@ -273,7 +273,7 @@ export const effectMarkdown =
             : kind === "rosette"
               ? `${name} played as a rosette: petals on a golden spiral, each one color of the palette ${colors} by its ring, the rings rippling out from the heart as the petals grow. Two tags play it behind any page.`
               : kind === "papercut"
-                ? `${name} played as papercut: the palette ${colors} cut into sheets of paper stacked into a relief that drifts and breathes, each sheet casting a soft shadow on the one below as the light swings slowly round. A stylesheet paints it behind any page.`
+                ? `${name} played as papercut: the palette ${colors} cut into sheets of paper stacked into a relief that drifts and breathes, each sheet casting a soft shadow on the one below as the light swings slowly round. Two tags play it behind any page.`
                 : `${name} played as a frosted blob: the palette's colors ${colors} melt into one another as it drifts. Two tags play it behind any page.`,
       drawn: `${
         kind === "glass"

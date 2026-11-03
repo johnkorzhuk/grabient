@@ -1,4 +1,4 @@
-/* A palette's effect (fluted glass, blob, silk, rosette) as a script any page embeds:
+/* A palette's effect (fluted glass, blob, silk, rosette, papercut) as a script any page embeds:
    `<script src="/{seed}.js?style=glass" async>`. The script (src/embed, built into one for each effect by
    src/embed/build.ts) is the same for every palette and reads the palette, the effect and its soft and grain from its
    own address, so this answers it for any seed with a style that is an effect with a script, and a 404 for any other
@@ -25,7 +25,7 @@ export async function embedAnswer(request: Request, env: AssetsEnv): Promise<Res
     return json(
       {
         error:
-          "A palette's seed and style=glass, style=blob, style=silk or style=rosette name an effect's script."
+          "A palette's seed and style=glass, style=blob, style=silk, style=rosette or style=papercut name an effect's script."
       },
       { status: 404 }
     );

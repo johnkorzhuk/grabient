@@ -3,15 +3,15 @@ import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { build, type Plugin, type Rollup } from "vite";
 
-/* The effects' embeds (glass.ts, blob.ts, silk.ts, rosette.ts), each as one classic script, which the Worker serves
-   at /{seed}.js (server/files/embed.ts). They are built with the site's own toolchain in builds of their own, as the
-   MCP view is, and written into the browser's build as files under /assets/ named by their contents, as the precise
-   color names are (scripts/color-names.ts): the Worker reads them through its ASSETS binding, so they are no part of
-   its code.
+/* The effects' embeds (glass.ts, blob.ts, silk.ts, rosette.ts, papercut.ts), each as one classic script, which the
+   Worker serves at /{seed}.js (server/files/embed.ts). They are built with the site's own toolchain in builds of their
+   own, as the MCP view is, and written into the browser's build as files under /assets/ named by their contents, as
+   the precise color names are (scripts/color-names.ts): the Worker reads them through its ASSETS binding, so they are
+   no part of its code.
    Their addresses reach the Worker as __EFFECT_EMBEDS__; `vite dev` answers them from memory. Run alone
    (`node src/embed/build.ts`), this module writes every script to standard output as JSON. */
 
-const KINDS = ["glass", "blob", "silk", "rosette"] as const;
+const KINDS = ["glass", "blob", "silk", "rosette", "papercut"] as const;
 type Scripts = Record<(typeof KINDS)[number], string>;
 
 async function buildOne(kind: (typeof KINDS)[number]): Promise<string> {

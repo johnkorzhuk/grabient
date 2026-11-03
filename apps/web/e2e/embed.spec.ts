@@ -4,7 +4,8 @@ import { expect, type Page, test } from "@playwright/test";
 /* A palette's effect behind another site's page (src/embed): the stylesheet of its address paints the first frame, the
    script plays the effect from there under a strict policy, a page plays one effect however many scripts it holds, a
    lost context brings the still back, and a reader who asks for less motion, like a blob held still, keeps the still.
-   A soft and grained address paints and plays finished, as the site's stage does. The tests' browser draws WebGL on
+   A soft and grained address paints and plays finished, as the site's stage does. The papercut's still steps the
+   shadows its canvas draws soft, so its canvas comes held at speed 0 too. The tests' browser draws WebGL on
    the CPU, where the players play nothing; here its renderer is said to be a GPU's, so they play. */
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
@@ -262,4 +263,31 @@ test("without the stylesheet the rosette's script paints its finished still itse
   await page.waitForTimeout(2000);
   await expect(page.locator("canvas")).toHaveCount(0);
   expect(await contexts(page)).toBe(0);
+});
+
+test("a soft and grained papercut held at speed 0 paints its stepped still, then fades its own first frame in over it under a strict policy", async ({
+  page
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  await site(page, tags("style=papercut&angle=30&soft=40&grain=30&shape=7&speed=0"), true);
+  expect(await painted(page)).toContain("data:image/svg+xml");
+  expect(
+    await page.evaluate(() => getComputedStyle(document.documentElement, "::before").filter)
+  ).toMatch(/^blur\([\d.]+px\)$/);
+  /* its first frame's shadows are soft where the still steps them, so held still it takes a context, as the site's
+     stage does, and its canvas covers the still, blurred over the gradient and grained as the still was */
+  await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
+    timeout: 15_000
+  });
+  await expect(layer(page)).toHaveCSS("opacity", "1");
+  await expect(layer(page)).toHaveCSS("background-image", /^linear-gradient\(/);
+  await expect(page.locator("canvas")).toHaveCSS("filter", /^blur\(/);
+  await expect(layer(page).locator("div")).toHaveCSS("background-image", /data:image\/png;base64,/);
+  expect(await contexts(page)).toBe(1);
+  expect(await still(page)).toBe("none");
+  expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
+    []
+  );
+  expect(errors).toEqual([]);
 });

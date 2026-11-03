@@ -21,7 +21,8 @@ export default defineConfig({
       glass: "/ads.txt",
       blob: "/ads.txt",
       silk: "/ads.txt",
-      rosette: "/ads.txt"
+      rosette: "/ads.txt",
+      papercut: "/ads.txt"
     }),
     // the grain's tiles are written by their own plugin (scripts/grain.ts)
     __GRAIN__: JSON.stringify("/assets/grain-test")

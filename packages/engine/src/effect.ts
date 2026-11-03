@@ -39,8 +39,8 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   rosette: { angle: true, vector: true, steppedStill: false },
   papercut: { angle: true, vector: true, steppedStill: true }
 };
-/* the effects a script plays behind another site's page: the papercut's is not built yet */
-const SCRIPTED: readonly EffectKind[] = ["glass", "blob", "silk", "rosette"];
+/* the effects a script plays behind another site's page */
+const SCRIPTED: readonly EffectKind[] = ["glass", "blob", "silk", "rosette", "papercut"];
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
     without has its stylesheet alone, which paints its still. */
 export const hasEmbedScript = (kind: EffectKind): boolean => SCRIPTED.includes(kind);
