@@ -13,6 +13,7 @@ import { effectUnderlay } from "./fx-finish.ts";
 import { FX_BUFFER_C, FX_BUFFER_D, glslFloat, shadertoyPass } from "./fx-shadertoy.ts";
 import type { Palette } from "./palette.ts";
 import {
+  PAPERCUT_BUMP,
   PAPERCUT_LOOP,
   PAPERCUT_MAX_BUMPS,
   PAPERCUT_MAX_SHEETS,
@@ -31,7 +32,12 @@ import {
 import { papercutModel, papercutSettings, papercutSheetHexes } from "./papercut-page.ts";
 import { PAPERCUT_SHADER_KINDS, papercutShader } from "./papercut-shader.ts";
 import { papercutClock, papercutLayout } from "./papercut-shadertoy.ts";
-import { PAPERCUT_FIELD_WGSL, PAPERCUT_SHADE_WGSL } from "./papercut-wgsl.ts";
+import {
+  PAPERCUT_FIELD_UNIFORMS,
+  PAPERCUT_FIELD_WGSL,
+  PAPERCUT_SHADE_UNIFORMS,
+  PAPERCUT_SHADE_WGSL
+} from "./papercut-wgsl.ts";
 import {
   FINISH_GLSL_SECTIONS,
   FINISH_WEBGL_SHADERS,
@@ -250,6 +256,86 @@ test("the GLSL is the player's own two passes, and the pages run the texts' shad
   expect(webgl).toContain("gl.bindFramebuffer(gl.FRAMEBUFFER, null);\n    gl.useProgram(pShade);");
   expect(webgpu).toContain('pField = pipeline("papercut-field", "rgba32uint");');
   expect(webgpu).toContain('pShade = pipeline("papercut-shade", format);');
+});
+
+/* a uniform struct's members' offsets and its bytes, by WGSL's memory layout rules for the types the papercut's structs
+   use: a scalar on 4 bytes, a vec2 on 8, a vec4 on 16, an array of vec4s 16 bytes an element, the struct rounded up to
+   its largest member's alignment; any other member throws */
+const uniformLayout = (wgsl: string, name: string) => {
+  const body = wgsl.match(new RegExp(`^struct ${name} \\{\\n([^}]*)\\n\\}`, "m"))?.[1];
+  if (!body) throw new Error(`no struct ${name}`);
+  const SIZES: Record<string, number> = {
+    f32: 4,
+    i32: 4,
+    u32: 4,
+    vec2f: 8,
+    vec2i: 8,
+    vec4f: 16,
+    vec4i: 16
+  };
+  const offsets: Record<string, number> = {};
+  let end = 0;
+  let align = 0;
+  for (const line of body.split("\n")) {
+    const [, member, type] = line.match(/^ {2}(\w+): (array<[^>]+>|\w+),/) ?? [];
+    const array = type?.match(/^array<vec4[fiu], ([1-9]\d*)>$/);
+    const [size, alignment] = array
+      ? [16 * Number(array[1]), 16]
+      : [SIZES[type ?? ""], SIZES[type ?? ""]];
+    if (!member || !size || !alignment) throw new Error(`not a member this layout knows: ${line}`);
+    end = Math.ceil(end / alignment) * alignment;
+    offsets[member] = end;
+    end += size;
+    align = Math.max(align, alignment);
+  }
+  return { offsets, bytes: Math.ceil(end / align) * align };
+};
+
+test("the WebGPU page writes each uniform where WGSL lays it out in the passes' structs", () => {
+  const field = uniformLayout(PAPERCUT_FIELD_WGSL, "Field");
+  const shade = uniformLayout(PAPERCUT_SHADE_WGSL, "Shade");
+  const { bytes: fieldBytes, ...fieldAt } = PAPERCUT_FIELD_UNIFORMS;
+  const { bytes: shadeBytes, ...shadeAt } = PAPERCUT_SHADE_UNIFORMS;
+  expect(fieldAt).toEqual(field.offsets);
+  expect(fieldBytes).toBe(field.bytes);
+  expect(shadeAt).toEqual(shade.offsets);
+  expect(shadeBytes).toBe(shade.bytes);
+  /* a hill is one vector of the field's array, as the page's frame writes the hills; the page writes the canvas and D
+     as three floats from each block's start */
+  expect(PAPERCUT_BUMP).toBe(4);
+  for (const { offsets } of [field, shade]) expect([offsets.size, offsets.D]).toEqual([0, 8]);
+  const P = decodePalette(SEEDS[0]) as Palette;
+  const { effect, angle } = read("style=papercut&angle=45&shape=7");
+  for (const finish of [
+    {},
+    { grain: 30 },
+    { soft: 40, underlay: effectUnderlay(P, effect, angle, 40) }
+  ]) {
+    const page = papercutShader("webgpu", P, effect, angle, SEEDS[0], ORIGIN, finish);
+    for (const line of [
+      `fieldBuffer = gpu.createBuffer({ size: ${field.bytes},`,
+      `shadeBuffer = gpu.createBuffer({ size: ${shade.bytes},`,
+      `const fieldBlock = new ArrayBuffer(${field.bytes});`,
+      `const shadeBlock = new ArrayBuffer(${shade.bytes});`,
+      `const FN = new Int32Array(fieldBlock, ${field.offsets.bumps}, 1);`,
+      `const SN = new Int32Array(shadeBlock, ${shade.offsets.sheets}, 1);`,
+      "FU.set([scene.width, scene.height, scene.D]);",
+      "SU.set([scene.width, scene.height, scene.D]);",
+      `FU.set([scene.rx, scene.ry], ${field.offsets.ramp / 4});`,
+      `FU.set([scene.wa, scene.wf, scene.wa2, scene.wf2], ${field.offsets.warp / 4});`,
+      `FU.set(rest.subarray(0, 4), ${field.offsets.phase / 4});`,
+      `FU.set(bump, ${field.offsets.bump / 4});`,
+      `SU.set(rest.subarray(4, 6), ${shade.offsets.light / 4});`,
+      `SU.set(u.misc, ${shade.offsets.misc / 4});`,
+      `SU.set(u.level, ${shade.offsets.level / 4});`,
+      `SU.set(u.reach, ${shade.offsets.reach / 4});`,
+      `SU.set(u.face.subarray(3 * k, 3 * k + 3), ${shade.offsets.face / 4} + 4 * k);`,
+      `SU.set(u.wall.subarray(3 * k, 3 * k + 3), ${shade.offsets.wallC / 4} + 4 * k);`,
+      `SU.set(u.shadow.subarray(3 * k, 3 * k + 3), ${shade.offsets.shade / 4} + 4 * k);`,
+      `SU.set(u.sheet, ${shade.offsets.sheet / 4});`
+    ])
+      expect(page).toContain(line);
+  }
 });
 
 test("nothing in a page's shaders or code could end its script element", () => {

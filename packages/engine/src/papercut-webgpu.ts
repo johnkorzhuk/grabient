@@ -12,7 +12,12 @@ import {
   papercutSettings,
   papercutTextHead
 } from "./papercut-page.ts";
-import { PAPERCUT_FIELD_WGSL, PAPERCUT_SHADE_WGSL } from "./papercut-wgsl.ts";
+import {
+  PAPERCUT_FIELD_UNIFORMS as FIELD,
+  PAPERCUT_FIELD_WGSL,
+  PAPERCUT_SHADE_WGSL,
+  PAPERCUT_SHADE_UNIFORMS as SHADE
+} from "./papercut-wgsl.ts";
 import {
   type EffectShaderFinish,
   FINISH_MATH_JS,
@@ -84,8 +89,8 @@ function play() {
     context.configure({ device: gpu, format, alphaMode: "opaque" });
     pField = pipeline("papercut-field", "rgba32uint");
     pShade = pipeline("papercut-shade", ${finish ? '"rgba8unorm"' : "format"});
-    fieldBuffer = gpu.createBuffer({ size: 160, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    shadeBuffer = gpu.createBuffer({ size: 1760, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    fieldBuffer = gpu.createBuffer({ size: ${FIELD.bytes}, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    shadeBuffer = gpu.createBuffer({ size: ${SHADE.bytes}, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
     field = null;
     groups = null;${finish ? "\n    finish = finishing(gpu, format);" : grain ? "\n    grainTex = grainTexture(gpu);\n    grainScale = grainScaleBuffer(gpu);" : ""}
   };
@@ -97,12 +102,12 @@ function play() {
   // the lit cut's width, then the levels and the reaches four to a vector, the colors and each sheet's shadows a
   // vector a sheet.
   let scene = null;
-  const fieldBlock = new ArrayBuffer(160);
+  const fieldBlock = new ArrayBuffer(${FIELD.bytes});
   const FU = new Float32Array(fieldBlock);
-  const FN = new Int32Array(fieldBlock, 12, 1);
-  const shadeBlock = new ArrayBuffer(1760);
+  const FN = new Int32Array(fieldBlock, ${FIELD.bumps}, 1);
+  const shadeBlock = new ArrayBuffer(${SHADE.bytes});
   const SU = new Float32Array(shadeBlock);
-  const SN = new Int32Array(shadeBlock, 12, 1);
+  const SN = new Int32Array(shadeBlock, ${SHADE.sheets}, 1);
   const at = new Float32Array(MAX_BUMPS * BUMP + 6);
   const bump = new Float32Array(MAX_BUMPS * BUMP);
   const rest = new Float32Array(6);
@@ -121,20 +126,20 @@ function play() {
     });
     FU.set([scene.width, scene.height, scene.D]);
     FN[0] = scene.bumps.length;
-    FU.set([scene.rx, scene.ry], 4);
-    FU.set([scene.wa, scene.wf, scene.wa2, scene.wf2], 8);
+    FU.set([scene.rx, scene.ry], ${FIELD.ramp / 4});
+    FU.set([scene.wa, scene.wf, scene.wa2, scene.wf2], ${FIELD.warp / 4});
     const u = sceneUniforms(scene);
     SU.set([scene.width, scene.height, scene.D]);
     SN[0] = scene.n;
-    SU.set(u.misc, 6);
-    SU.set(u.level, 8);
-    SU.set(u.reach, 32);
+    SU.set(u.misc, ${SHADE.misc / 4});
+    SU.set(u.level, ${SHADE.level / 4});
+    SU.set(u.reach, ${SHADE.reach / 4});
     for (let k = 0; k < MAX_SHEETS; k++) {
-      SU.set(u.face.subarray(3 * k, 3 * k + 3), 56 + 4 * k);
-      SU.set(u.wall.subarray(3 * k, 3 * k + 3), 152 + 4 * k);
-      SU.set(u.shadow.subarray(3 * k, 3 * k + 3), 248 + 4 * k);
+      SU.set(u.face.subarray(3 * k, 3 * k + 3), ${SHADE.face / 4} + 4 * k);
+      SU.set(u.wall.subarray(3 * k, 3 * k + 3), ${SHADE.wallC / 4} + 4 * k);
+      SU.set(u.shadow.subarray(3 * k, 3 * k + 3), ${SHADE.shade / 4} + 4 * k);
     }
-    SU.set(u.sheet, 344);
+    SU.set(u.sheet, ${SHADE.sheet / 4});
     groups = {
       field: gpu.createBindGroup({
         layout: pField.getBindGroupLayout(0),
@@ -164,9 +169,9 @@ function play() {
   const draw = t => {
     if (!groups) return;
     frameUniforms(scene, t, at, bump, rest);
-    FU.set(rest.subarray(0, 4), 12);
-    FU.set(bump, 16);
-    SU.set(rest.subarray(4, 6), 4);
+    FU.set(rest.subarray(0, 4), ${FIELD.phase / 4});
+    FU.set(bump, ${FIELD.bump / 4});
+    SU.set(rest.subarray(4, 6), ${SHADE.light / 4});
     gpu.queue.writeBuffer(fieldBuffer, 0, fieldBlock);
     gpu.queue.writeBuffer(shadeBuffer, 0, shadeBlock);
     const encoder = gpu.createCommandEncoder();

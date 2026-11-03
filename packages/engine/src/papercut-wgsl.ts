@@ -19,6 +19,42 @@ fn vs_main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
   return vec4f(p * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
+/** Where each of the field pass's uniforms lies in its struct, in bytes, as WGSL lays a uniform struct out (a scalar
+    on 4 bytes, a vec2f on 8, a vec4f and an array of them on 16), and the struct's bytes: the WebGPU page writes its
+    block by these, so they move with the hills' count. The page writes the canvas and D as three floats from the
+    block's start. */
+export const PAPERCUT_FIELD_UNIFORMS = {
+  size: 0,
+  D: 8,
+  bumps: 12,
+  ramp: 16,
+  warp: 32,
+  phase: 48,
+  bump: 64,
+  bytes: 64 + 16 * PAPERCUT_MAX_BUMPS
+} as const;
+
+/* an array of four sheets a vector, and of a vector a sheet, in bytes */
+const QUADS = 16 * (PAPERCUT_MAX_SHEETS / 4);
+const ROWS = 16 * PAPERCUT_MAX_SHEETS;
+
+/** The shading pass's, as the field pass's: the levels and the reaches four sheets to a vector, then each sheet's
+    colors and shadows a vector a sheet, so they move with the sheets' count. */
+export const PAPERCUT_SHADE_UNIFORMS = {
+  size: 0,
+  D: 8,
+  sheets: 12,
+  light: 16,
+  misc: 24,
+  level: 32,
+  reach: 32 + QUADS,
+  face: 32 + 2 * QUADS,
+  wallC: 32 + 2 * QUADS + ROWS,
+  shade: 32 + 2 * QUADS + 2 * ROWS,
+  sheet: 32 + 2 * QUADS + 3 * ROWS,
+  bytes: 32 + 2 * QUADS + 4 * ROWS
+} as const;
+
 /** The field pass: texel (i, j) holds the field at the pixel-space point ((i - 1) Q + 0.5, (j - 1) Q + 0.5), y down,
     each float's bits. */
 export const PAPERCUT_FIELD_WGSL = `struct Field {
