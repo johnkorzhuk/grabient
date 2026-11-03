@@ -28,6 +28,7 @@ import {
 } from "@grabient/i18n";
 import { queryColor } from "@grabient/search/colors.ts";
 import { DEFAULT_FRAME, framePath, type RisingFrame } from "./orders.ts";
+import { CARD_SIZE } from "./picture-size.ts";
 
 /* A page's metadata: its title, the description a search result shows under it, its canonical address, whether search
    engines index it, its share card, the same page in the other languages and its structured data. One function makes
@@ -46,8 +47,8 @@ export const DESCRIPTION_MAX = 160;
 /** The version of everything a picture draws. A change to what any picture draws takes a new one: kept pictures are
     named by it, and a card's address carries it, so a network that keeps cards by address asks again. */
 export const CARD_VERSION = "k4";
-/** A share card's size, and a palette's own picture's where its address names none. */
-export const CARD_SIZE = { width: 1200, height: 630 } as const;
+/** A share card's size, and a palette's own picture's where its address names none (picture-size.ts). */
+export { CARD_SIZE };
 /** A collection's sheet, square as image searches show palettes (server/images/montages.ts). */
 export const SHEET_SIZE = { width: 1200, height: 1200 } as const;
 /** The palette of the site's own card: what a share card shows when its address names none. */

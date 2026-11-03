@@ -271,8 +271,8 @@ export const effectAddressParts = (
 ];
 
 /** The address of one of an effect's files: the stylesheet that paints its first frame behind a page, the script that
-    plays it from there, its moving SVG, or its first frame as PNG, these two at a size where one is asked, or the
-    palette's Markdown or JSON, which name the effect. */
+    plays it from there, its moving SVG, its first frame as PNG, or its clip as MP4, these three at a size where one is
+    asked, or the palette's Markdown or JSON, which name the effect. */
 export function effectFileAddress(
   origin: string,
   seed: string,
@@ -283,7 +283,7 @@ export function effectFileAddress(
   finish: EffectFinish = {}
 ): string {
   const sized =
-    size && (extension === "svg" || extension === "png")
+    size && (extension === "svg" || extension === "png" || extension === "mp4")
       ? [`w=${size.width}`, `h=${size.height}`]
       : [];
   return `${origin}/${seed}.${extension}?${[...effectAddressParts(effect, angle, finish), ...sized].join("&")}`;

@@ -20,17 +20,16 @@
    Clips are a preview: who a clip no one has kept is drawn for, its drawing and that page are video-make.ts's, which
    loads with the first of them an isolate is asked for. This answers a kept clip to a player without it. */
 
-import { type Effect, type EffectFinish, parseEffect } from "@grabient/engine/effect.ts";
+import type { Effect, EffectFinish } from "@grabient/engine/effect.ts";
 import type { VideoPlan } from "@grabient/engine/video.ts";
 import type { Size } from "@grabient/engine/view.ts";
-import { DEFAULT_ANGLE, finishOf } from "@grabient/engine/view.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { FILE } from "../../lib/cache.ts";
 import { isLinkPreview } from "../crawlers.ts";
-import { addressParams, fileName, viewAt } from "../files/address.ts";
+import { addressParams, fileName } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { failure, type Keep } from "./serve.ts";
@@ -128,32 +127,18 @@ export async function seedMp4Answer(
   const found = resolvePalette(fileName(url.pathname, "mp4"));
   if (!found) return failure(404, "Invalid palette seed.");
   const params = addressParams(url.searchParams);
-  if (!params.has("style")) params.set("style", "glass");
-  const effect = parseEffect(params);
-  /* the papercut's clips are not drawn yet (engine/video.ts's VideoKind) */
-  if (!effect || effect.kind === "papercut") {
+  const { videoAt, videoParts, videoQuality } = await import("@grabient/engine/video.ts");
+  /* as the editor's download reads the same address (engine/video.ts's videoAt): the papercut's clips are not drawn
+     yet, and the blob has no angle, one clip for every angle its address names */
+  const asked = videoAt(params, pictureSize(params));
+  if (!asked) {
     return failure(
       404,
       "An MP4 plays an effect: style=glass, style=blob, style=silk or style=rosette."
     );
   }
-  const kind = effect.kind;
-  const view = viewAt(params, found.palette.anchors.length);
-  /* the blob has no angle: one clip for every angle its address names */
-  const angle = kind === "blob" ? DEFAULT_ANGLE : view.angle;
-  const finish = finishOf(view);
-  const { videoDuration, videoFit, videoParts, videoQuality } = await import(
-    "@grabient/engine/video.ts"
-  );
-  const duration = videoDuration(params.get("duration"));
+  const { effect, kind, angle, finish, duration, size, fps, plan } = asked;
   const drawn = { kind, look: effect.look, finish };
-  const { size, fps, plan } = videoFit(
-    drawn,
-    effect.speed,
-    effect.fps,
-    duration,
-    pictureSize(params)
-  );
   const look = kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
   const hash = await hashOf([
     VIDEO_DRAWING,
