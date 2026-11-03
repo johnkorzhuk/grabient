@@ -86,6 +86,8 @@ async function rpc(
     modern?: boolean;
     headers?: Record<string, string>;
     capabilities?: Record<string, unknown>;
+    /** the request's context, whose work after the answer the caller waits on itself */
+    ctx?: ExecutionContext;
   } = {}
 ) {
   const headers: Record<string, string> = {
@@ -107,7 +109,7 @@ async function rpc(
       }
     };
   } else headers["MCP-Protocol-Version"] = "2025-11-25";
-  const ctx = createExecutionContext();
+  const ctx = options.ctx ?? createExecutionContext();
   const response = await serveMcp(
     new Request(`${ORIGIN}/mcp`, {
       method: "POST",
@@ -117,8 +119,8 @@ async function rpc(
     env,
     ctx
   );
-  // what a tool left to finish after its answer: a search counted
-  await waitOnExecutionContext(ctx);
+  // what a request left to finish after its answer: a search counted, the call counted against its days
+  if (!options.ctx) await waitOnExecutionContext(ctx);
   const json = response.headers.get("Content-Type")?.startsWith("application/json");
   // biome-ignore lint/suspicious/noExplicitAny: a JSON-RPC answer, read as each test expects it to be shaped
   return { response, body: json ? ((await response.json()) as Record<string, any>) : null };
@@ -285,6 +287,45 @@ describe("the MCP server's door", () => {
       /^This account's limit of 120 tool calls a minute is reached\. Try again in \d+ seconds\.$/
     );
     expect((await rpc(env, token, "tools/list")).response.status).toBe(200);
+  });
+
+  it("answers a tool call before the limiter counts it, and refuses the next once the account's day is spent", async () => {
+    const env = testEnv();
+    const { account, token } = await connected(env);
+    const watched = watchLimits(env);
+    const namespace = watched.env.RATE_LIMITER!;
+    let open = () => {};
+    const opened = new Promise<void>(resolve => {
+      open = resolve;
+    });
+    // the limiter's objects held from answering, as idle ones are for half a second
+    const held: TestEnv = {
+      ...env,
+      RATE_LIMITER: {
+        idFromName: (name: string) => namespace.idFromName(name),
+        get: (objectId: DurableObjectId) => ({
+          fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+            await opened;
+            return namespace.get(objectId).fetch(input, init);
+          }
+        })
+      } as unknown as DurableObjectNamespace
+    };
+    const ctx = createExecutionContext();
+    const { body } = await rpc(held, token, "tools/call", { name: "get_account" }, { ctx });
+    expect(body?.result.isError).toBeUndefined();
+    expect(watched.asked).toEqual([]);
+    open();
+    await waitOnExecutionContext(ctx);
+    expect(watched.asked).toEqual(["mcpAccountDaily", "mcpAccountBudget"]);
+    // another isolate spends the rest of the day: a third answers its first call, then knows, and refuses
+    await checkLimits(watchLimits(env).env, [[`mcp:${account.id}`, "mcpAccountDaily", 4999]]);
+    const third = watchLimits(env).env;
+    expect((await call(third, token, "get_account")).error).toBeNull();
+    expect((await call(third, token, "get_account")).error).toMatch(
+      /^This account's limit of 5,000 tool calls a day is reached\. Try again in \d+ hours\.$/
+    );
+    expect((await rpc(third, token, "tools/list")).response.status).toBe(200);
   });
 
   it("refuses a listing past its minute with the wait, and lets a listing and a read go on while the limiter cannot answer", async () => {
