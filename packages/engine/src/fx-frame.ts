@@ -1,8 +1,9 @@
 /* An effect's first frame as its pictures are drawn, the server's (/{seed}.png?style=, a card under the wordmark at
-   /api/og?style=, server/images/effect-frame.ts) and the editor's Copy PNG and Download PNG alike, each at its own
-   size: the frame the editor shows before the effect moves, drawn on the CPU, the glass by its renderer
-   (glass-render.ts), the blob as its still (blob.ts), the silk and the rosette by their drawings (silk-render.ts,
-   rosette-render.ts), and its soft as the site paints it (fx-finish.ts blurOver): the frame blurred by a share of its
+   /api/og?style=, server/images/effect-frame.ts) and the editor's Copy PNG and Download PNG of the glass alike (the
+   other effects' copies are their finished SVG drawn by the browser), each at its own size: the frame the editor shows
+   before the effect moves, drawn on the CPU, the glass by its renderer (glass-render.ts), the blob as its still
+   (blob.ts), the silk and the rosette by their drawings (silk-render.ts, rosette-render.ts), and its soft as the
+   site paints it (fx-finish.ts blurOver): the frame blurred by a share of its
    longer side over the palette's gradient, toward clear where it lets the page through. Each effect's drawing comes
    with the first picture of it, so the module holds none of them. The grain is laid by each, the server's from
    fx-finish's specks, the editor's with its canvas: the specks come from grain.ts, which every page starts with, and

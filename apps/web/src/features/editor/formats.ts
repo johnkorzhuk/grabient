@@ -233,11 +233,11 @@ async function gradientPng(p: Taken): Promise<Blob> {
     p.grain
   );
 }
-/* An effect's PNG is its first frame finished as the site paints it: the glass, the silk and the rosette drawn on the
-   CPU as their players draw them and blurred there, the same pixels as the server's picture of the address
-   (engine/fx-frame.ts) in every browser, where their finished SVG differs by browser (Safari draws the silk's
-   repeating gradients padded inside a filter, so its soft silk lost its folds' light and shade), the grain's tile laid
-   over them as over the gradient's; the blob as its finished still SVG paints, its frost the site's own. */
+/* An effect's PNG is its first frame finished as the site paints it: the silk, the rosette and the blob as their
+   finished still SVG paints, which each browser draws within about a level of the site's picture (the blob's frost
+   its own), drawn by the browser at once; the glass drawn on the CPU as its player draws it and blurred there, the
+   same pixels as the server's picture of the address (engine/fx-frame.ts), where its SVG is a displacement filter
+   that Firefox and Safari draw a few levels off and slowly, the grain's tile laid over it as over the gradient's. */
 async function framePng(p: Taken, effect: Effect): Promise<Blob> {
   const { effectRgba } = await import("@grabient/engine/fx-frame.ts");
   const { width, height } = p.pixels;
@@ -250,7 +250,7 @@ async function framePng(p: Taken, effect: Effect): Promise<Blob> {
 }
 const pngOf = async (p: Taken): Promise<Blob> => {
   if (!p.effect) return gradientPng(p);
-  if (p.effect.kind === "blob") return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
+  if (p.effect.kind !== "glass") return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
   return framePng(p, p.effect);
 };
 /* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
