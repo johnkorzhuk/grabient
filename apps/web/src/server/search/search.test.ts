@@ -53,6 +53,31 @@ describe("the free search answers as grabient4 did", () => {
   });
 });
 
+describe("a color written in any form answers as its hex code does", () => {
+  const env = searchEnv();
+  const without = ({ query: _, ...rest }: Record<string, unknown>) => rest;
+  test.each([
+    ["#264653", ["rgb(38 70 83)", "rgba(38, 70, 83, 0.5)", "hsl(197.3 37.2% 23.7%)", "264653"]],
+    [
+      "#ff6600",
+      ["rgb(255 102 0)", "hsl(24deg 100% 50%)", "oklch(69.58% 0.2043 43.49)", "0xff6600"]
+    ],
+    ["#264653 #e9c46a", ["rgb(38, 70, 83) and oklch(83.42% 0.117 87.43)"]],
+    ["#ff6600 navy", ["rgb 255 102 0 navy", "color(srgb 1 0.4 0) navy"]]
+  ])("%s", async (hex, forms) => {
+    const answer = without(await run(env, hex, { limit: 24 }));
+    expect(answer).toMatchObject({ tier: "color" });
+    for (const form of forms)
+      expect([form, without(await run(env, form, { limit: 24 }))]).toEqual([form, answer]);
+  });
+
+  test("a color's numbers ask for no steps of their own", async () => {
+    const plain = await run(env, "#0a0c0e", { limit: 24 });
+    const written = await run(env, "rgb(10 12 14)", { limit: 24 });
+    expect("items" in written && written.items).toEqual("items" in plain && plain.items);
+  });
+});
+
 describe("what a connected app asks beside words", () => {
   const env = searchEnv();
   test.each(

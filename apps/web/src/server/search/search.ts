@@ -11,7 +11,7 @@
    D1 is the authority: a palette shows only while D1 says it is public. */
 import { decodePalette, K_MAX } from "@grabient/engine";
 import type { Style } from "@grabient/engine/view.ts";
-import { labOf, sixDigits } from "@grabient/search/colors.ts";
+import { labOf, sixDigits, withoutColors } from "@grabient/search/colors.ts";
 import { harmonyFilter, normalizeQuery, QUERY_MAX } from "@grabient/search/text.ts";
 import { queryIntent } from "@grabient/search/words.ts";
 import { replica } from "@grabient/server/db/d1.ts";
@@ -201,7 +201,8 @@ async function present(
         ).value
       )
     : await searchableItems(env, seeds);
-  const intent = queryIntent(query);
+  // a color's numbers are no count of steps: rgb(10 12 14) asks for no 14
+  const intent = queryIntent(withoutColors(query));
   const seen = new Set<string>();
   return candidates.flatMap(candidate => {
     const seed = canonicalPaletteSeed(candidate.seed);

@@ -32,17 +32,22 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      every address the lists, the editor and the tab write, and the pictures that lay the grain's tile and place a
      soft view's stops (lib/picture.ts); the blur itself (engine/soft.ts, 1.8 KB), the grain's files and what a copy
      carries load as a soft view or a copy asks for them, took it from 285.5 to 287.3 */
-  "/": { route: "src/routes/index.tsx", budget: 288 },
+  /* the color reader (engine/written-color.ts, 3 Nov 2026): rgb(), hsl(), oklch() and every other form CSS writes a
+     color in, read wherever search reads hex codes, a page's title among them, so the page and the Worker read a
+     search alike, took it from 287.7 to 290.1 */
+  "/": { route: "src/routes/index.tsx", budget: 291 },
   /* the same took it from 288.9 to 290.7; soft and grain over the effects (their pictures blurred over the gradient,
      the menu's fields beside an effect's, the summary naming them) and the editor's glass after a move (e3636f12) to
      291.2 on 3 Nov 2026 */
-  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 292 },
+  /* the color reader, as "/", took it from 291.2 to 293.5 on 3 Nov 2026 */
+  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 294 },
   /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
      to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
   /* the silk and the rosette as effects (their names and settings, as every page) took it from 285.4 to 286.0 on
      2 Nov 2026 */
   /* soft and grain, as "/", took it from 286.3 to 288.1 on 2 Nov 2026 */
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 289 },
+  /* the color reader, as "/", took it from 288.6 to 290.9 on 3 Nov 2026 */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 292 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look
      each palette was saved in, an effect and its settings (features/list/appearance.ts's lookEffect and cardPlays,
@@ -52,7 +57,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     also: ["src/features/collections/CollectionRoute.tsx"],
     /* soft and grain, as "/", took it from 280.9 to 282.7 on 2 Nov 2026, and over the effects (as /palettes) to 283.2
        on 3 Nov 2026 */
-    budget: 284
+    /* the color reader, as "/", took it from 283.2 to 285.5 on 3 Nov 2026 */
+    budget: 286
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
@@ -73,7 +79,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     also: ["src/features/editor/Editor.tsx", "src/features/editor/Sheet.tsx"],
     /* soft and grain (as "/", and the editor's own: its view's two parts, the stage's and the corner's pictures, the
        code pane's and the copies' blurred stops and elided tile) took it from 323.1 to 326.0 on 2 Nov 2026 */
-    budget: 327
+    /* the color reader, as "/", took it from 326.7 to 329.0 on 3 Nov 2026 */
+    budget: 330
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
      the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.
@@ -84,13 +91,16 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      draw with) holding their still's holder (FxArt.tsx), which a list's server-drawn cards need at hydration, their
      drawing and players loading as a card shows one */
   /* soft and grain, as "/", took it from 290.2 to 292.4 on 2 Nov 2026 */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 293 },
+  /* the color reader, as "/", took it from 292.8 to 295.1 on 3 Nov 2026 */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 296 },
   /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
      view's parts in every address, the header's swatch) from 225.2 to 226.6 */
-  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 227 },
+  /* the color reader, as "/", took it from 226.8 to 229.2 on 3 Nov 2026 */
+  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 230 },
   /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026, and over the effects (as /palettes)
      to 251.0 on 3 Nov 2026 */
-  "/about": { route: "src/routes/about.tsx", budget: 252 }
+  /* the color reader, as "/", took it from 251.0 to 253.4 on 3 Nov 2026 */
+  "/about": { route: "src/routes/about.tsx", budget: 254 }
 };
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
 const EVERY_PAGE = ["src/app/tab-icon.ts"];
@@ -116,8 +126,10 @@ const BUDGETS = {
   // no more than it counts the video's
   worker: 1445,
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
-  // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks
-  workerStart: 238,
+  // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks. The
+  // color reader (engine/written-color.ts), which the search, the pages' titles and the MCP read, took it from 237.5
+  // to 239.7 on 3 Nov 2026
+  workerStart: 241,
   // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
   // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026). Soft and
   // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders

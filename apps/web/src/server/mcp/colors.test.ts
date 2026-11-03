@@ -26,10 +26,19 @@ describe("palettes from hex colors", () => {
     }
   });
 
-  it("read #rgb and #rrggbb in any case, and nothing else", () => {
-    expect(["#ABC", " 0052ff ", "#0052FF", "rgb(0,0,0)", "#00000000", "red"].map(hexColor)).toEqual(
-      ["#aabbcc", "#0052ff", "#0052ff", null, null, null]
-    );
+  it("read hex in any case, and any form CSS writes a color in, as the search does", () => {
+    expect(
+      ["#ABC", " 0052ff ", "#0052FF", "rgb(0,0,0)", "#00000000", "oklch(62.8% 0.258 29.23)"].map(
+        hexColor
+      )
+    ).toEqual(["#aabbcc", "#0052ff", "#0052ff", "#000000", "#000000", "#ff0000"]);
+    expect(["red", "#12345", "rgb(0 0)", "", 7].map(hexColor)).toEqual([
+      null,
+      null,
+      null,
+      null,
+      null
+    ]);
   });
 });
 

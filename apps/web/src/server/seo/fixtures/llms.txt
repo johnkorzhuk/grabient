@@ -35,7 +35,7 @@ Every palette route takes `style`, `steps` and `angle`.
 
 ## Find palettes
 
-- [Search as JSON](https://grabient.com/api/search.json?query=sunset&limit=24): words, hex codes or a seed. Pattern: `https://grabient.com/api/search.json?query={query}&limit=24`
+- [Search as JSON](https://grabient.com/api/search.json?query=sunset&limit=24): words, color codes (hex, rgb(), hsl(), oklch() or any form CSS writes a color in) or a seed. Pattern: `https://grabient.com/api/search.json?query={query}&limit=24`
 - [Search page](https://grabient.com/palettes?q=sunset): the same search for a person. Pattern: `https://grabient.com/palettes?q={query}`
 - [Search as one image](https://grabient.com/palettes/sunset.png): its sheet, the first eight palettes its page shows as rows with their hex codes. Pattern: `https://grabient.com/palettes/{query}.png`, or `.svg` for the same sheet as SVG
 - [The home page as JSON](https://grabient.com/api/hot?page=1): the Hot feed, palettes and collections in one, by what was liked lately and what is new

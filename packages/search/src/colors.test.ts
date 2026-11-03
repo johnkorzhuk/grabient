@@ -27,11 +27,28 @@ test("hex codes however a list of them is written", () => {
     ["#12345 #123456", ["#123456"], "#12345"],
     ["#gggggg", [], "#gggggg"],
     ["a#fff", ["#ffffff"], "a"],
-    ["#fff1", [], "#fff1"]
+    ["#fff1", ["#ffffff"], ""],
+    ["#fff12", [], "#fff12"]
   ];
   for (const [query, colors, rest] of cases) {
     expect(queryColors(query)).toEqual(colors);
     expect(withoutColors(query)).toBe(rest);
+  }
+});
+
+test("colors in every other form, read as their hex codes are", () => {
+  const cases: [string, string[], string][] = [
+    ["rgb(255 255 255)", ["#ffffff"], ""],
+    ["rgb(38, 70, 83) and hsl(43 74% 66%) sunset", ["#264653", "#e8c468"], "and sunset"],
+    ["oklch(62.8% 0.258 29.23) / lab(100 0 0)", ["#ff0000", "#ffffff"], "/"],
+    ["rgb 128 0 32 color", ["#800020"], "color"],
+    ["ff6600 #264653 0x2a9d8f", ["#ff6600", "#264653", "#2a9d8f"], ""],
+    ["facade decade", [], "facade decade"],
+    ["rgb gaming", [], "rgb gaming"]
+  ];
+  for (const [query, colors, rest] of cases) {
+    expect([query, queryColors(query)]).toEqual([query, colors]);
+    expect([query, withoutColors(query)]).toEqual([query, rest]);
   }
 });
 
@@ -58,7 +75,17 @@ test("a query asks about one color by its name, or by one hex code alone", () =>
   expect(queryColor("Sky blue colors")).toEqual({ name: "sky blue", hex: "#87ceeb" });
   expect(queryColor("#800020")).toEqual({ hex: "#800020" });
   expect(queryColor("hex #ABC")).toEqual({ hex: "#aabbcc" });
-  for (const query of ["#800020 #ffffff", "#800020 sunset", "sunset", "blue and green", ""]) {
+  expect(queryColor("rgb(128 0 32)")).toEqual({ hex: "#800020" });
+  expect(queryColor("oklch(38% 0.152 18.6) color code")).toEqual({ hex: "#800020" });
+  expect(queryColor("800020")).toEqual({ hex: "#800020" });
+  for (const query of [
+    "#800020 #ffffff",
+    "#800020 sunset",
+    "rgb(128 0 32) hsl(0 0% 100%)",
+    "sunset",
+    "blue and green",
+    ""
+  ]) {
     expect([query, queryColor(query)]).toEqual([query, null]);
   }
 });

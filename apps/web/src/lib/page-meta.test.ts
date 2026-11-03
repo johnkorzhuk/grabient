@@ -382,7 +382,13 @@ describe("descriptions", () => {
     expect(
       meta("/palettes?q=%23800020").description.startsWith("#800020, rgb(128 0 32). Explore")
     ).toBe(true);
+    /* so is a color in any other form, which keeps its case */
+    const rgb = meta(`/palettes?q=${encodeURIComponent("rgb(128 0 32)")}`);
+    expect(rgb.title).toBe("rgb(128 0 32) gradients and color palettes | Grabient");
+    expect(rgb.description.startsWith("#800020, rgb(128 0 32). Explore rgb(128 0 32)")).toBe(true);
+    expect(meta("/palettes?q=ff6600").title).toBe("ff6600 gradients and color palettes | Grabient");
     expect(meta("/palettes?q=sunset").title).toBe("Sunset gradients and color palettes | Grabient");
+    expect(meta("/palettes?q=y2k").title).toBe("Y2k gradients and color palettes | Grabient");
   });
 
   test("a title of typed words is cut at a word to the room, its page and the site's name kept", () => {

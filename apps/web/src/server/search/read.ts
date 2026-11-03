@@ -1,5 +1,5 @@
 /* How a query's words are read, before any palette is scored: the vocabulary's phrases they hold, the words nothing
-   reads, the colors written as hex codes, what follows a negation, and whether the words are a page of their own. */
+   reads, the colors written as codes, what follows a negation, and whether the words are a page of their own. */
 import type { Harmony } from "@grabient/engine/shape.ts";
 import { queryColors, withoutColors } from "@grabient/search/colors.ts";
 import type { LexiconHit } from "@grabient/search/lexicon.ts";
@@ -220,8 +220,8 @@ export function excludedWords(voc: Vocabulary, query: string): string[] {
   return [...out];
 }
 
-/** The hex codes in a query and the words beside them, or null when it holds none. Words that say nothing of colors
-    (hex, codes) are no words. */
+/** The colors a query writes, each as its hex, and the words beside them, or null when it writes none. Words that say
+    nothing of colors (hex, codes) are no words. */
 export function hexQuery(query: string): { hexes: string[]; words: string } | null {
   const hexes = queryColors(query);
   if (!hexes.length) return null;
@@ -229,7 +229,7 @@ export function hexQuery(query: string): { hexes: string[]; words: string } | nu
   return { hexes, words: queryWords(rest).length ? rest : "" };
 }
 
-/** Hex codes and nothing else: the colors themselves are the query. */
+/** Colors and nothing else: the colors themselves are the query. */
 export function hexLiterals(query: string): string[] | null {
   const read = hexQuery(query);
   return read && !read.words ? read.hexes : null;

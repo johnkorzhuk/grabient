@@ -64,9 +64,9 @@
   {
     "colors": [
       "#fff",
-      "rgb(0, 82, 255)"
+      "rgb(0, 82)"
     ],
-    "error": "Color 2 is \"rgb(0, 82, 255)\", and a color is taken as hex: #rrggbb or #rgb."
+    "error": "Color 2 is \"rgb(0, 82)\", and a color is taken as hex: #rrggbb or #rgb."
   },
   {
     "details": [

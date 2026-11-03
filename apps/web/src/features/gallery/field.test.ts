@@ -7,6 +7,10 @@ describe("what Enter in a list's field searches for", () => {
   test("words read as every list's address writes them", () => {
     expect(readField("  Dark   BLUE ")).toEqual({ words: "dark blue" });
     expect(readField("#FF6B6B #234567")).toEqual({ words: "#ff6b6b #234567" });
+    expect(readField("RGB(255 107 107 / 50%)")).toEqual({ words: "rgb(255 107 107 / 50%)" });
+    expect(readField("oklch(70% 0.1 200 / .5) and hsl(0 0% 0%)")).toEqual({
+      words: "oklch(70% 0.1 200 / .5) and hsl(0 0% 0%)"
+    });
   });
 
   test("a palette is searched by its seed, in its own case", () => {
@@ -47,9 +51,11 @@ describe("what Enter in a list's field searches for", () => {
     expect(readField("a".repeat(101))).toEqual({
       error: "Word searches can be up to 100 characters."
     });
-    expect(readField("red\\blue")).toEqual({
-      error: "Search with words or hex colors, or paste a palette link."
-    });
+    for (const text of ["red\\blue", "red/blue", "rgb(255 0 0) / blue"])
+      expect([text, readField(text)]).toEqual([
+        text,
+        { error: "Search with words or hex colors, or paste a palette link." }
+      ]);
     expect(readField("x".repeat(2049))).toEqual({
       error: "Links and JSON can be up to 2,048 characters."
     });

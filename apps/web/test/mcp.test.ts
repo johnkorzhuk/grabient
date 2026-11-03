@@ -905,6 +905,16 @@ describe("the tools", () => {
     expect(
       (await call(env, token, "search_palettes", { query: "#800020", limit: 1 })).value.color
     ).toMatchObject({ hex: "#800020", rgb: "rgb(128 0 32)" });
+    // a color written in another form is the same color, and its palettes are the hex's
+    const byHex = (await call(env, token, "search_palettes", { query: "#800020" })).value;
+    for (const query of ["rgb(128, 0, 32)", "hsl(345 100% 25%)", "oklch(38% 0.152 18.6)"]) {
+      const written = (await call(env, token, "search_palettes", { query })).value;
+      expect([query, written.color?.hex]).toEqual([query, "#800020"]);
+      expect(seedsOf(written)).toEqual(seedsOf(byHex));
+      expect(written).not.toHaveProperty("read");
+    }
+    const asked = (await call(env, token, "search_palettes", { colors: ["rgb(128 0 32)"] })).value;
+    expect(asked.palettes).toHaveLength(12);
     expect(words).not.toHaveProperty("color");
     // with neither words nor colors it lists the gallery
     expect((await call(env, token, "search_palettes", {})).value).toMatchObject({

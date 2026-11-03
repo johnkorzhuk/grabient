@@ -11,6 +11,7 @@ import {
   type View,
   viewSearch
 } from "@grabient/engine/view.ts";
+import { colorsIn } from "@grabient/engine/written-color.ts";
 import {
   DEFAULT_LOCALE,
   isLocale,
@@ -323,13 +324,15 @@ export const styledName = (name: string, style: Style) =>
   t("{name} {style}", { name, style: t(STYLE_WORDS[style]) });
 /** The same name inside a sentence: "Palettes like navy to lavender". */
 const paletteInline = (P: Palette) => readingPhrase(readPalette(P), language());
-/** A search's subject as a title says it: its words without the nouns the title adds itself. */
+/** A search's subject as a title says it: its words without the nouns the title adds itself, from a capital, unless
+    they start with a color's code, which keeps its case (rgb(255 0 0), ff6600). */
 function subjectOf(query: string): string {
   const bare = query
     .replace(/\b(?:colou?r\s+)?(?:gradients?|palettes?|swatches)\b/giu, " ")
     .replace(/\s+/g, " ")
     .trim();
   const subject = bare || query;
+  if (colorsIn(subject)[0]?.start === 0) return subject;
   return subject[0].toLocaleUpperCase(locale()) + subject.slice(1);
 }
 

@@ -5,6 +5,7 @@ import { sampleLCH } from "@grabient/engine/curve.ts";
 import { type Anchor, K_MAX, K_MIN, type Palette } from "@grabient/engine/palette.ts";
 import type { Namer } from "@grabient/engine/precise-names.ts";
 import { anchorsFromHexes } from "@grabient/engine/spec.ts";
+import { readColor } from "@grabient/engine/written-color.ts";
 
 /* Hex colors as an app sends them, made a palette, and what an answer says of one: a blend that shows a hue nobody
    chose, each color's name and contrast. Pure. */
@@ -25,14 +26,10 @@ const NEAR_GRAY = 0.04;
 /** A keyframe's own color: a near gray's is at its own tint's hue, whatever hue it carries along the curve. */
 export const hexOf = (a: Anchor) => toHex(lchToSrgb(a.l, a.c, a.own ?? a.h));
 
-/** #rgb or #rrggbb, with or without the #, as #rrggbb in lower case; null for anything else. */
-export function hexColor(text: unknown): string | null {
-  const hex =
-    typeof text === "string" ? /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text.trim())?.[1] : undefined;
-  if (!hex) return null;
-  const lower = hex.toLowerCase();
-  return `#${lower.length === 3 ? lower.replace(/./g, "$&$&") : lower}`;
-}
+/** A color as #rrggbb in lower case: hex with or without the #, or any form CSS writes a color in (rgb(), hsl(),
+    oklch() and the rest), as the search reads them; null for anything else. */
+export const hexColor = (text: unknown): string | null =>
+  typeof text === "string" ? readColor(text) : null;
 
 /** What was sent, quoted and cut by code point, so never through half a character. */
 export const quoted = (value: unknown) => JSON.stringify([...String(value)].slice(0, 40).join(""));

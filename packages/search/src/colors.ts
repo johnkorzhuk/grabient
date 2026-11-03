@@ -1,13 +1,13 @@
-/* A search by colors: the hex codes a query holds, and the palettes those colors make. From the codes alone, so the
-   Worker and the page read a query alike and the row of made palettes renders the same on both sides of hydration. */
+/* A search by colors: the colors a query writes, as hex codes or in any other form written-color.ts reads (rgb(),
+   hsl(), oklch() and the rest), and the palettes those colors make. From the text alone, so the Worker and the page
+   read a query alike and the row of made palettes renders the same on both sides of hydration. */
 import { canonical, decodePalette, encodePalette, K_MAX, type Palette } from "@grabient/engine";
 import { hexToSrgb, srgbToOklab } from "@grabient/engine/color.ts";
 import { sampleSrgb } from "@grabient/engine/curve.ts";
 import { colorWords, namedColor } from "@grabient/engine/named-colors.ts";
 import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 import type { Style } from "@grabient/engine/view.ts";
-
-const HEX = /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})\b/gi;
+import { colorsIn } from "@grabient/engine/written-color.ts";
 
 /** A hex code as # and six lowercase digits: three are doubled, an alpha after six is dropped. */
 export function sixDigits(hex: string): string {
@@ -15,15 +15,24 @@ export function sixDigits(hex: string): string {
   return `#${h.length === 3 ? [...h].map(c => c + c).join("") : h.slice(0, 6)}`;
 }
 
-/** The hex codes in a query, in its order, however a list of them is written (commas, "and", brackets, quotes). */
-export const queryColors = (query: string): string[] => (query.match(HEX) ?? []).map(sixDigits);
+/** The colors a query writes, in its order, each as its hex, however a list of them is written (commas, "and",
+    brackets, quotes) and in whatever form: #800020, rgb(128 0 32), hsl(345 100% 25%), oklch(…). */
+export const queryColors = (query: string): string[] => colorsIn(query).map(color => color.hex);
 
-/** The query without its hex codes. */
-export const withoutColors = (query: string): string =>
-  query.replace(HEX, " ").replace(/\s+/g, " ").trim();
+/** The query without the colors it writes. */
+export function withoutColors(query: string): string {
+  let rest = "";
+  let at = 0;
+  for (const color of colorsIn(query)) {
+    rest += `${query.slice(at, color.start)} `;
+    at = color.end;
+  }
+  return (rest + query.slice(at)).replace(/\s+/g, " ").trim();
+}
 
-/** The one color a query asks about: a color's name ("burgundy", "sky blue colors"), or one hex code alone, which has
-    no name of its own. Null for a theme, a palette or more than one color. */
+/** The one color a query asks about: a color's name ("burgundy", "sky blue colors"), or one color written alone in
+    any form (#800020, rgb(128 0 32)), which has no name of its own. Null for a theme, a palette or more than one
+    color. */
 export function queryColor(query: string): { hex: string; name?: string } | null {
   const hexes = queryColors(query);
   if (hexes.length === 1 && !colorWords(withoutColors(query))) return { hex: hexes[0] };

@@ -2,6 +2,7 @@ import { encodePalette } from "@grabient/engine";
 import { fromSpec } from "@grabient/engine/spec.ts";
 import { parseView, viewSearch } from "@grabient/engine/view.ts";
 import { msg } from "@grabient/i18n";
+import { withoutColors } from "@grabient/search/colors.ts";
 import { grabientHost, listWords, looksLikeLink, paletteId, readLink } from "../../lib/words.ts";
 
 /* What a list's search field holds, read as Enter reads it: words or a palette to search for (with the view a pasted
@@ -68,8 +69,9 @@ export function readField(text: string): FieldRead {
   if (looksLikeLink(value)) return readLinked(value);
   const words = value.normalize("NFKC").replace(/\s+/gu, " ");
   if (words.length > WORDS_MAX) return { error: msg("Word searches can be up to 100 characters.") };
+  // words take no slash, though a color may write one before its alpha: rgb(255 0 0 / 50%)
   // biome-ignore lint/suspicious/noControlCharactersInRegex: the control characters are what is refused
-  if (/[\u0000-\u001f\u007f/\\]/u.test(words)) {
+  if (/[\u0000-\u001f\u007f/\\]/u.test(withoutColors(words))) {
     return { error: msg("Search with words or hex colors, or paste a palette link.") };
   }
   return { words: listWords(words) };
