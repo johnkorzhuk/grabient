@@ -134,7 +134,9 @@ const effectSvgOf = async (p: Taken, effect: Effect, moving: boolean) =>
    the glass as a WebP of its design square, drawn by its CPU renderer (a JPEG where the browser makes no WebP), which a
    browser paints at no cost where the glass's SVG held a page's first paint ~80 ms; the blob as its SVG still, the
    stylesheet's own, whose grain its player matches exactly, since the blob's canvas takes the still's place in one
-   frame. */
+   frame. A soft or grained view's still is finished by the rules around it, as the stylesheet's is (effectLayers):
+   blurred over its palette's gradient by a share of the page's longer side, which no picture of the square can be
+   where the page is not square, and the grain's tile laid over it at a speck a CSS pixel. */
 const STILL_SIDE = 1000;
 const dataUrl = (blob: Blob) =>
   new Promise<string>((done, fail) => {
@@ -168,9 +170,21 @@ const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
   }
   return made;
 };
-/* the stylesheet that paints an effect's first frame behind a page, as /{seed}.css?style= serves it */
+/* the grain's tile as a CSS image a copy carries in itself, where the view has a grain */
+const grainImageOf = async (p: Taken) =>
+  p.grain ? `url("${await grainDataUrl(p.grain)}")` : undefined;
+/* the stylesheet that paints an effect's first frame behind a page, as /{seed}.css?style= serves it, finished by the
+   view's soft and grain */
 const effectCss = async (p: Taken, effect: Effect) =>
-  (await effectCode()).effectStylesheet(paletteOf(p), p.seed, effect, p.angle, origin());
+  (await effectCode()).effectStylesheet(
+    paletteOf(p),
+    p.seed,
+    effect,
+    p.angle,
+    origin(),
+    finishOf(p),
+    await grainImageOf(p)
+  );
 /* an effect's SVG moves as the picture does: speed 0 is its first frame */
 /* the gradient's SVG: a soft view's blurred stops (lib/picture.ts), and its grain's tile where `grain` brings it */
 async function gradientSvg(p: Taken, grain?: string): Promise<string> {
@@ -284,9 +298,25 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
   });
 };
 
-/** The tags that play an effect behind a page, its first frame inside them, as Copy HTML gives them. */
-export const effectHtml = async (p: Taken, effect: Effect): Promise<string> =>
-  effectEmbedHtml(origin(), p.seed, effect, p.angle, await stillOf(p, effect), finishOf(p));
+/** The tags that play an effect behind a page, its first frame inside them, finished by the view's soft and grain, as
+    Copy HTML gives them. */
+export async function effectHtml(p: Taken, effect: Effect): Promise<string> {
+  const [code, still, grain] = await Promise.all([
+    effectCode(),
+    stillOf(p, effect),
+    grainImageOf(p)
+  ]);
+  const finish = finishOf(p);
+  return effectEmbedHtml(
+    origin(),
+    p.seed,
+    effect,
+    p.angle,
+    still,
+    finish,
+    code.effectLayers(paletteOf(p), effect, p.angle, finish, grain)
+  );
+}
 
 /** The format onto the clipboard. */
 export async function copyFormat(f: Format, p: Taken): Promise<void> {

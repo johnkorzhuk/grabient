@@ -97,6 +97,26 @@ describe("a palette's file", () => {
     expect(blob).toBe(await (await file(`/${seed}.css?style=blob&shape=12`)).text());
   });
 
+  test("an effect's CSS with soft and grain blurs its still over its gradient and carries the grain's tile in itself", async () => {
+    const css = await (
+      await file(`/${seed}.css?style=rosette&angle=30&soft=50&grain=40&speed=2`)
+    ).text();
+    expect(css).toContain(`/* ${golden.origin}/${seed}?style=rosette&angle=30&soft=50&grain=40 */`);
+    expect(css).toMatch(/html::before \{[^}]*filter: blur\([\d.]+vmax\);/);
+    expect(css).toMatch(/html::after \{[^}]*z-index: -2;[^}]*background: linear-gradient\(30deg, /);
+    expect(css).toMatch(
+      /body::before \{[^}]*background: url\("data:image\/png;base64,[\w+/=]+"\) 0 0 \/ 128px 128px;/
+    );
+    // each strength its own tile; the plain file is unchanged
+    const lighter = await (
+      await file(`/${seed}.css?style=rosette&angle=30&soft=50&grain=10`)
+    ).text();
+    expect(lighter).not.toBe(css);
+    expect(await (await file(`/${seed}.css?style=rosette&angle=30`)).text()).not.toMatch(
+      /filter|body::before/
+    );
+  });
+
   test("CSS takes w and h for the page's box, and style=bands plays the animated SVG inside it", async () => {
     const sized = await (await file(`/${seed}.css?${view}&w=1080&h=1350`)).text();
     expect(sized).toContain(

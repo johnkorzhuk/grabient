@@ -22,6 +22,12 @@ test("an effect's stylesheet is the engine's, any page may load it, and no searc
   expect(answer.headers.get("Cross-Origin-Resource-Policy")).toBe("cross-origin");
   expect(answer.headers.get("X-Robots-Tag")).toBe("noindex");
   expect(answer.headers.has("Set-Cookie")).toBe(false);
+  // finished by the view's soft and grain, as the engine finishes it
+  const silk = effect("style=silk");
+  const finished = effectCssAnswer(ORIGIN, SEED, P, silk, 40, { soft: 20, grain: 30 }, 'url("g")');
+  expect(await finished.text()).toBe(
+    effectStylesheet(P, SEED, silk, 40, ORIGIN, { soft: 20, grain: 30 }, 'url("g")')
+  );
 });
 
 test("an effect's SVG is the engine's at the size asked, and a link preview reads a page whose card is its first frame", async () => {

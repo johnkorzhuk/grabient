@@ -7,7 +7,7 @@
 import { bandsSearch, isBands, parseBands } from "@grabient/engine/bands.ts";
 import { colorKind } from "@grabient/engine/css.ts";
 import { effectLookParts, effectParts, parseEffect } from "@grabient/engine/effect.ts";
-import { parseView, type Size, sizeParam, viewSearch } from "@grabient/engine/view.ts";
+import { finishParts, parseView, type Size, sizeParam, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
 import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montage-address.ts";
@@ -156,14 +156,19 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   }
   const view = viewAt(params, palette.anchors.length);
   /* an effect's script (embed.ts), one for every palette and setting, and its first frame: its stylesheet
-     (effect-files.ts), its picture and its card (images/cards.ts), all its angle and its look decide, none of its
-     pace; each kept for one build, as the bands' are */
+     (effect-files.ts), its picture and its card (images/cards.ts), all its angle, its soft and grain and its look
+     decide, none of its pace; each kept for one build, as the bands' are */
   const effect = parseEffect(params);
   /* its moving SVG: its pace too, and its size */
   if (effect && file.format === "svg") {
     const size = sizeParam(svgSize(params));
     const query = new URLSearchParams(
-      [`style=${effect.kind}`, ...effectParts(effect), ...(size ? [`size=${size}`] : [])].join("&")
+      [
+        `style=${effect.kind}`,
+        ...finishParts(view),
+        ...effectParts(effect),
+        ...(size ? [`size=${size}`] : [])
+      ].join("&")
     );
     query.set("angle", String(view.angle));
     return { path: `/${seed}.svg`, query, acrossBuilds: false };
@@ -178,7 +183,7 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   }
   if (effect && (file.format === "png" || file.format === "og" || file.format === "css")) {
     const query = new URLSearchParams(
-      [`style=${effect.kind}`, ...effectLookParts(effect)].join("&")
+      [`style=${effect.kind}`, ...finishParts(view), ...effectLookParts(effect)].join("&")
     );
     query.set("angle", String(view.angle));
     if (file.format === "css") return { path: `/${seed}.css`, query, acrossBuilds: false };

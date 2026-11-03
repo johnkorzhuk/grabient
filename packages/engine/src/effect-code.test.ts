@@ -4,6 +4,7 @@ import { EMBED_PLAYING, effectEmbedHtml, effectFileAddress, parseEffect } from "
 import {
   effectColors,
   effectDocument,
+  effectLayers,
   effectMarkdown,
   effectPage,
   effectSpecJson,
@@ -11,10 +12,12 @@ import {
   effectStylesheet,
   effectSvg
 } from "./effect-code.ts";
+import { effectUnderlay } from "./fx-finish.ts";
 import { glassStillBackground } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { paletteMarkdown } from "./markdown.ts";
 import { fromSpec } from "./spec.ts";
+import { effectSoftShare } from "./view.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 const P = decodePalette(SEED)!;
@@ -67,6 +70,63 @@ test("a stylesheet credits the effect's page by all its still depends on, the gl
   expect(effectPage(ORIGIN, SEED, effect("style=glass&speed=2"), 90, true)).toBe(
     `${ORIGIN}/${SEED}?style=glass&speed=2`
   );
+});
+
+test("a soft and grained stylesheet finishes its still as the site's stage does: blurred over the gradient, grained over all", () => {
+  const silk = effect("style=silk&shape=7");
+  const finish = { soft: 60, grain: 30 };
+  const css = effectStylesheet(
+    P,
+    SEED,
+    silk,
+    40,
+    ORIGIN,
+    finish,
+    'url("data:image/png;base64,AAAA")'
+  );
+  // its credit names the soft and the grain, after the angle, as its page's address does
+  expect(css.split("\n")[0]).toBe(
+    `/* ${ORIGIN}/${SEED}?style=silk&angle=40&soft=60&grain=30&shape=7 */`
+  );
+  // the still is blurred by a share of the page's longer side, in vmax as the stage's is in its box's cqmax
+  const blur = `blur(${(effectSoftShare(60) * 100).toFixed(3)}vmax)`;
+  expect(css).toContain(
+    `html::before {\n  content: "";\n  position: fixed;\n  inset: 0;\n  z-index: -1;\n  pointer-events: none;\n  background: ${effectStill(P, silk, 40)};\n  filter: ${blur};\n}`
+  );
+  // under it, the palette's gradient at the effect's angle, its stops blurred by the same soft
+  const under = effectUnderlay(P, silk, 40, 60)!;
+  expect(under.at).toBeDefined();
+  expect(css).toMatch(
+    /html::after \{\n[^}]*z-index: -2;\n[^}]*background: linear-gradient\(40deg, #/
+  );
+  expect(css).toContain(`${under.stops[0].hex} `);
+  // the grain over the still, a speck a CSS pixel, the first thing the page's body holds
+  expect(css).toContain(
+    'body::before {\n  content: "";\n  position: fixed;\n  inset: 0;\n  z-index: -1;\n  pointer-events: none;\n  background: url("data:image/png;base64,AAAA") 0 0 / 128px 128px;\n  image-rendering: pixelated;\n}'
+  );
+  // all three give way once the script's canvas, which lays its own, covers the still
+  expect(css).toContain(
+    `html[${EMBED_PLAYING}]::before {\n  background: none;\n  filter: none;\n}`
+  );
+  expect(css).toContain(
+    `html[${EMBED_PLAYING}]::after,\nhtml[${EMBED_PLAYING}] body::before {\n  background: none;\n}`
+  );
+  // the plain stylesheet is unchanged
+  expect(effectStylesheet(P, SEED, silk, 40, ORIGIN)).not.toMatch(
+    /filter|html::after|body::before/
+  );
+});
+
+test("a blob with no ground has no gradient under its soft, whose edges go clear; a grain with no tile lays none", () => {
+  const clear = effectLayers(P, effect("style=blob&shape=3"), 90, { soft: 50 });
+  expect(clear.blur).toBe(`blur(${(effectSoftShare(50) * 100).toFixed(3)}vmax)`);
+  expect(clear.under).toBeUndefined();
+  // the blob's palette lies from left to right under a ground
+  expect(effectLayers(P, effect("style=blob&bg=%23101014"), 30, { soft: 50 }).under).toMatch(
+    /^linear-gradient\(90deg, /
+  );
+  expect(effectLayers(P, effect("style=glass"), 90, { grain: 20 })).toEqual({});
+  expect(effectLayers(P, effect("style=glass"), 90, {}, 'url("x")')).toEqual({});
 });
 
 test("the glass's shape draws a still of its own", () => {

@@ -4,10 +4,12 @@
    palette's Markdown and JSON say of it. It holds both effects' drawings, so a page or an isolate loads it with the
    first effect it hands over, never at its start. */
 import { BLOB_DESIGN, BLOB_SIZE, blobScene, blobStillBackground, blobSvg } from "./blob.ts";
+import { gradientCss } from "./css.ts";
 import { sampleStops } from "./curve.ts";
 import {
   type Effect,
   type EffectFinish,
+  type EffectLayers,
   effectAddressParts,
   effectEmbedHtml,
   effectFileAddress,
@@ -20,11 +22,12 @@ import { effectUnderlay, finishOf, finishSvg } from "./fx-finish.ts";
 import { fxMovingSvg, fxStillBackground } from "./fx-still.ts";
 import { glassDesign, glassField, glassStillBackground, glassSvg } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
+import { GRAIN_SIDE } from "./grain.ts";
 import type { MarkdownEffect } from "./markdown.ts";
 import type { Palette } from "./palette.ts";
 import { toSpec } from "./spec.ts";
 import { svgComment } from "./svg-comment.ts";
-import { DEFAULT_SIZE, type Size } from "./view.ts";
+import { DEFAULT_SIZE, effectSoftShare, type Size } from "./view.ts";
 
 /** The effect's page, named by all its first frame depends on (its style, the glass's angle, the soft and the grain,
     and its look) or, `paced`, by how it plays too: what a file of it credits. */
@@ -47,16 +50,54 @@ export const effectStill = (P: Palette, effect: Effect, angle: number): string =
       ? fxStillBackground(effect.kind, P, { angle, shape: effect.look.shape })
       : blobStillBackground(P, { speed: 1, fps: null, still: true, ...effect.look });
 
-/** The stylesheet at /{seed}.css?style=glass or blob: the still on a layer fixed behind the page (effectLayerCss),
-    credited to the effect's page as its still is drawn, which is all the file depends on. */
+/** What the view's soft and grain lay with the effect's still behind a page (effect.ts effectLayerCss), as the site's
+    stage finishes its picture (fx-finish.ts): the still blurred by a share of the page's longer side, in `vmax` as the
+    stage's blur is in its box's `cqmax`, over its palette's gradient at the effect's angle, its stops blurred by the
+    same soft (none under a blob with no ground, whose edges go clear), and the grain's tile over both at one speck a
+    CSS pixel, `grain` the tile at the view's grain as a CSS image (`url("data:…")`, the Worker's or the editor's own,
+    engine/grain.ts grainPng). */
+export function effectLayers(
+  P: Palette,
+  effect: Effect,
+  angle: number,
+  finish: EffectFinish = {},
+  grain?: string | null
+): EffectLayers {
+  const { soft, grain: grained } = finishOf(finish);
+  const underlay = soft ? effectUnderlay(P, effect, angle, soft) : null;
+  return {
+    ...(soft ? { blur: `blur(${(effectSoftShare(soft) * 100).toFixed(3)}vmax)` } : {}),
+    ...(underlay
+      ? {
+          under: gradientCss(
+            underlay.stops.map(s => s.hex),
+            underlay.style,
+            underlay.angle,
+            undefined,
+            underlay.at
+          )
+        }
+      : {}),
+    ...(grained && grain ? { grain: `${grain} 0 0 / ${GRAIN_SIDE}px ${GRAIN_SIDE}px` } : {})
+  };
+}
+
+/** The stylesheet at /{seed}.css?style=: the still on a layer fixed behind the page (effectLayerCss), finished by the
+    view's soft and grain (effectLayers), credited to the effect's page as its still is drawn, which is all the file
+    depends on. */
 export const effectStylesheet = (
   P: Palette,
   seed: string,
   effect: Effect,
   angle: number,
-  origin: string
+  origin: string,
+  finish: EffectFinish = {},
+  grain?: string | null
 ): string =>
-  `/* ${effectPage(origin, seed, effect, angle)} */\n${effectLayerCss(effectStill(P, effect, angle))}`;
+  `/* ${effectPage(origin, seed, effect, angle, false, finish)} */\n${effectLayerCss(
+    effectStill(P, effect, angle),
+    effectLayers(P, effect, angle, finish, grain)
+  )}`;
 
 /** The size an effect's SVG is drawn at where none is asked. */
 export const effectSize = (effect: Effect): Size =>
@@ -221,7 +262,7 @@ export const effectMarkdown =
       }${finished ? `, ${finished}` : ""}`,
       code: `## Behind a page
 
-${scripted ? "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays." : "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}
+${scripted ? "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays." : "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[finish.soft ? "soft blurs it over the palette's gradient" : "", finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
 
 \`\`\`html
 ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle, undefined, finish)}
