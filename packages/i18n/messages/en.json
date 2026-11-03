@@ -907,8 +907,8 @@
   "Colors": {
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:270",
-      "apps/web/src/features/editor/effect-sources.ts:266"
+      "apps/web/src/features/editor/code.ts:282",
+      "apps/web/src/features/editor/effect-sources.ts:295"
     ]
   },
   "Columns": {
@@ -1064,7 +1064,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:254"
+      "apps/web/src/features/editor/effect-sources.ts:283"
     ]
   },
   "Copy link": {
@@ -2466,14 +2466,14 @@
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:989",
-      "apps/web/src/features/editor/code.ts:304",
+      "apps/web/src/features/editor/code.ts:322",
       "packages/ui/src/Keyframes.tsx:156"
     ]
   },
   "Keyframes, spline and OKLCH to sRGB conversion.": {
     "note": "Code pane: what the shader holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:298"
+      "apps/web/src/features/editor/code.ts:314"
     ]
   },
   "Language": {
@@ -3545,7 +3545,7 @@
   "Plus a Display P3 line.": {
     "note": "Code pane: the CSS also has a line for wide-gamut screens.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:220"
+      "apps/web/src/features/editor/code.ts:225"
     ]
   },
   "Popular": {
@@ -4312,7 +4312,7 @@
   "Seed": {
     "note": "Code pane tab: the palette's seed, the short code in its address.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:183"
+      "apps/web/src/features/editor/code.ts:188"
     ]
   },
   "Seeding agents read these notes before they write again.": {
@@ -4440,8 +4440,8 @@
   "Shader": {
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:288",
-      "apps/web/src/features/editor/effect-sources.ts:221"
+      "apps/web/src/features/editor/code.ts:300",
+      "apps/web/src/features/editor/effect-sources.ts:243"
     ]
   },
   "Shape": {
@@ -5070,7 +5070,7 @@
   "The balls, their melt and the frost, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the blob plays: what its shader code draws, a pass at a time: the palette's balls, their melt (a blur that runs them together into blobs) and the frost over them, a grain that scatters the edges. The code is GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:231"
+      "apps/web/src/features/editor/effect-sources.ts:89"
     ]
   },
   "The browser uses that key.": {
@@ -5094,7 +5094,7 @@
   "The colors as design tokens.": {
     "note": "Code pane: what the JSON tab holds when it is set to design tokens.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:312"
+      "apps/web/src/features/editor/code.ts:330"
     ]
   },
   "The dots are keyframes. The graph shows lightness, chroma and hue along the gradient. Drag a dot to change a keyframe.": {
@@ -5106,7 +5106,7 @@
   "The dye, its folds' shade and light, in one pass.": {
     "note": "Editor's code pane, Shader tab while the silk plays: what its shader code draws in a single pass: the palette dyed along the cloth, and over it each fold's shade and its light. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:233"
+      "apps/web/src/features/editor/effect-sources.ts:110"
     ]
   },
   "The email has no unsubscribe link.": {
@@ -5143,13 +5143,13 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:281"
+      "apps/web/src/features/editor/effect-sources.ts:310"
     ]
   },
   "The keyframes as JSON.": {
     "note": "Code pane: what the JSON tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:312"
+      "apps/web/src/features/editor/code.ts:330"
     ]
   },
   "The most liked CSS gradients and color palettes on Grabient. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
@@ -5179,13 +5179,13 @@
   "The palette as Markdown: colors, names and CSS.": {
     "note": "Code pane: what the MD tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:321"
+      "apps/web/src/features/editor/code.ts:339"
     ]
   },
   "The palette as Markdown: colors, names and the tags that play it.": {
     "note": "Editor's code pane, Markdown tab while an effect plays: the palette as a Markdown file, with its colors, their names and the HTML tags that play the effect.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:200"
+      "apps/web/src/features/editor/code.ts:205"
     ]
   },
   "The palette in the color space": {
@@ -5197,20 +5197,20 @@
   "The petals ring by ring, the ground and the heart's glow, in one pass.": {
     "note": "Editor's code pane, Shader tab while the rosette plays: what its shader code draws in a single pass: the flower's petals, a ring of the palette at a time, the ground showing between them and the glow at the flower's heart. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:234"
+      "apps/web/src/features/editor/effect-sources.ts:140"
     ]
   },
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:297"
+      "apps/web/src/features/editor/effect-sources.ts:326"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:319",
-      "apps/web/src/features/editor/effect-sources.ts:296"
+      "apps/web/src/features/editor/code.ts:337",
+      "apps/web/src/features/editor/effect-sources.ts:325"
     ]
   },
   "The profile's code": {
@@ -5222,7 +5222,7 @@
   "The ribs, the colors' blur and the light, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the fluted glass plays: what its shader code draws, a pass at a time: the glass's ribs, its colors blurred behind them, and the light on the ribs. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:229"
+      "apps/web/src/features/editor/effect-sources.ts:58"
     ]
   },
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": {
@@ -5237,16 +5237,22 @@
       "apps/web/src/features/about/AboutPage.tsx:286"
     ]
   },
+  "The stops blurred along the line, at their places, blended in sRGB.": {
+    "note": "Editor's code pane, Shader tab for a soft palette: what its shader draws: the palette's stops blurred along the gradient's line by the soft, each at its place, blended in sRGB, as the CSS draws them (in place of the plain shader's keyframes and spline).",
+    "refs": [
+      "apps/web/src/features/editor/code.ts:313"
+    ]
+  },
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:262"
+      "apps/web/src/features/editor/effect-sources.ts:291"
     ]
   },
   "The tag that paints its first frame behind a page, for the page's head.": {
     "note": "Editor, the code pane's HTML tab while the silk or the rosette plays: the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page; these effects have no script yet.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:252"
+      "apps/web/src/features/editor/effect-sources.ts:281"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5264,7 +5270,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:251"
+      "apps/web/src/features/editor/effect-sources.ts:280"
     ]
   },
   "The wallpapers' code": {
@@ -5291,6 +5297,25 @@
     "note": "Screen reader name of the Settings theme press, with its choice.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:153"
+    ]
+  },
+  "Then its grain, a speck a CSS pixel.": {
+    "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
+    "refs": [
+      "apps/web/src/features/editor/code.ts:315",
+      "apps/web/src/features/editor/effect-sources.ts:260"
+    ]
+  },
+  "Then its soft and grain, as the site lays them over it.": {
+    "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture has both soft and grain: the shader's last passes blur it and lay the grain over it, as the site's page does.",
+    "refs": [
+      "apps/web/src/features/editor/effect-sources.ts:256"
+    ]
+  },
+  "Then its soft, as the site blurs it.": {
+    "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture is soft: the shader's last passes blur it as the site's page does.",
+    "refs": [
+      "apps/web/src/features/editor/effect-sources.ts:258"
     ]
   },
   "This address isn't a palette or a page.": {
@@ -6709,7 +6734,7 @@
   "{count, plural, one {# band} other {# bands}}, one per line.": {
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:283"
+      "apps/web/src/features/editor/code.ts:295"
     ]
   },
   "{count, plural, one {# change not saved} other {# changes not saved}}": {
@@ -6727,7 +6752,7 @@
   "{count, plural, one {# character} other {# characters}}. The whole palette.": {
     "note": "Code pane: the seed's length; it holds the whole palette.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:186"
+      "apps/web/src/features/editor/code.ts:191"
     ]
   },
   "{count, plural, one {# color} other {# colors}}": {
@@ -6739,8 +6764,8 @@
   "{count, plural, one {# color} other {# colors}}, one per line.": {
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:284",
-      "apps/web/src/features/editor/effect-sources.ts:271"
+      "apps/web/src/features/editor/code.ts:296",
+      "apps/web/src/features/editor/effect-sources.ts:300"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
@@ -6752,7 +6777,7 @@
   "{count, plural, one {# hard band} other {# hard bands}} as oklch().": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:232"
+      "apps/web/src/features/editor/code.ts:244"
     ]
   },
   "{count, plural, one {# hour} other {# hours}}": {
@@ -6800,25 +6825,25 @@
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:239"
+      "apps/web/src/features/editor/code.ts:251"
     ]
   },
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as {fn}.": {
     "note": "Code pane: what the CSS holds. fn is the CSS color function the bands are written in, rgb() or hsl(), shown as code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:244"
+      "apps/web/src/features/editor/code.ts:256"
     ]
   },
   "{count, plural, one {# sRGB stop} other {# sRGB stops}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:242"
+      "apps/web/src/features/editor/code.ts:254"
     ]
   },
   "{count, plural, one {# sRGB stop} other {# sRGB stops}} as {fn}.": {
     "note": "Code pane: what the CSS holds. fn is the CSS color function the stops are written in, rgb() or hsl(), shown as code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:248"
+      "apps/web/src/features/editor/code.ts:260"
     ]
   },
   "{count, plural, one {# session} other {# sessions}}": {
@@ -6848,13 +6873,13 @@
   "{count, plural, one {# stop, blended in OKLCH} other {# stops, blended in OKLCH}} as oklch().": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:233"
+      "apps/web/src/features/editor/code.ts:245"
     ]
   },
   "{count, plural, one {# stop, blurred along the line} other {# stops, blurred along the line}}.": {
     "note": "Editor, the code pane's CSS tab while the picture is soft: how many color stops the CSS gradient holds, each placed along the gradient's line to draw the blur.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:224"
+      "apps/web/src/features/editor/code.ts:236"
     ]
   },
   "{count, plural, one {<n>#</n> <w>palette</w>} other {<n>#</n> <w>palettes</w>}}": {

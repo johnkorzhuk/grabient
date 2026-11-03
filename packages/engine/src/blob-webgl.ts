@@ -1,6 +1,7 @@
 /* The blob in GLSL and as a WebGL page that plays it (blob-shader.ts names every kind): the player's own shaders
-   (blob-gl.ts) on the numbers the player works out (blob-page.ts), played by the players' clock (effect-page.ts). The
-   editor loads this module with the Shader tab's GLSL or WebGL spelling. */
+   (blob-gl.ts) on the numbers the player works out (blob-page.ts), played by the players' clock (effect-page.ts). A
+   soft or grained blob draws its last pass into the finish's frame, which the finish then lays over the canvas
+   (shader-finish.ts). The editor loads this module with the Shader tab's GLSL or WebGL spelling. */
 import {
   BLOB_BLUR_FS,
   BLOB_DOTS_FS,
@@ -13,21 +14,44 @@ import { BLOB_MATH, BLOB_WHAT, blobSettings, blobTextHead } from "./blob-page.ts
 import type { Effect } from "./effect.ts";
 import { EFFECT_CLOCK } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
+import {
+  type EffectShaderFinish,
+  FINISH_GLSL_SECTIONS,
+  FINISH_MATH_JS,
+  FINISH_WEBGL_JS,
+  FINISH_WEBGL_SHADERS,
+  finished,
+  finishSettingsJs,
+  GRAIN_TILE_JS,
+  GRAIN_WEBGL_JS,
+  grainedGlsl,
+  grainOnly,
+  grainSettingsJs
+} from "./shader-finish.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 import { DEFAULT_ANGLE } from "./view.ts";
 
+/* the blob's last pass with the grain over the canvas's bytes, for a grain with no soft, which so needs no pass of its
+   own: an opaque ground's sums are whole bytes over 255, never a half */
+const BLOB_FINAL_GRAIN_FS = grainedGlsl(
+  BLOB_FINAL_FS,
+  "  color = s + ground * (1.0 - s.a);",
+  "  color = grainOver(floor((s + ground * (1.0 - s.a)) * 255.0 + 0.5), p) / 255.0;"
+);
+
 /* each shader in its own element, from the element's first character, so a GLSL one's #version leads it */
-const WEBGL_SHADERS = [
-  ["cover-vs", "x-shader/x-vertex", BLOB_FULL_VS],
-  ["noise-fs", "x-shader/x-fragment", BLOB_NOISE_FS],
-  ["dots-vs", "x-shader/x-vertex", BLOB_DOTS_VS],
-  ["dots-fs", "x-shader/x-fragment", BLOB_DOTS_FS],
-  ["blur-fs", "x-shader/x-fragment", BLOB_BLUR_FS],
-  ["final-fs", "x-shader/x-fragment", BLOB_FINAL_FS]
-] as const;
+const webglShaders = (grain: boolean) =>
+  [
+    ["cover-vs", "x-shader/x-vertex", BLOB_FULL_VS],
+    ["noise-fs", "x-shader/x-fragment", BLOB_NOISE_FS],
+    ["dots-vs", "x-shader/x-vertex", BLOB_DOTS_VS],
+    ["dots-fs", "x-shader/x-fragment", BLOB_DOTS_FS],
+    ["blur-fs", "x-shader/x-fragment", BLOB_BLUR_FS],
+    ["final-fs", "x-shader/x-fragment", grain ? BLOB_FINAL_GRAIN_FS : BLOB_FINAL_FS]
+  ] as const;
 
 /* the GLSL's sections: the shaders as the WebGL page compiles them, under one header each */
-const GLSL_SECTIONS: readonly [header: string, shaders: readonly string[]][] = [
+const glslSections = (grain: boolean): readonly [header: string, shaders: readonly string[]][] => [
   [
     "Cover ==== the vertex stage of passes 0, 2, 3 and 4: the quad over the target, corner (attribute 0) from 0 to 1",
     [BLOB_FULL_VS]
@@ -45,14 +69,18 @@ const GLSL_SECTIONS: readonly [header: string, shaders: readonly string[]][] = [
     [BLOB_BLUR_FS]
   ],
   [
-    "Pass 4: canvas ==== target: the canvas, W x H, premultiplied alpha | inputs: the melt after pass 3 (linear, clamp to edge), the noise (texelFetch)",
-    [BLOB_FINAL_FS]
+    `Pass 4: canvas ==== target: the canvas, W x H, premultiplied alpha | inputs: the melt after pass 3 (linear, clamp to edge), the noise (texelFetch)${grain ? ", the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch) and its scale (the canvas's pixels to a CSS pixel)" : ""}`,
+    [grain ? BLOB_FINAL_GRAIN_FS : BLOB_FINAL_FS]
   ]
 ];
 
 /* The WebGL page's drawing: the player's own (ui/blob-player.ts), its calls in its order, laid out and drawn by the
-   players' clock. */
-const WEBGL_DRAWING = `// The drawing, WebGL 2, as the site's player draws it: the same textures, passes and uniforms, so each frame's GPU
+   players' clock; a grained one's last pass lays the grain from its tile, and a soft one's draws into the finish's
+   frame. */
+const webglDrawing = (mode: "plain" | "grain" | "finish") => {
+  const finish = mode === "finish";
+  const grain = mode === "grain";
+  return `// The drawing, WebGL 2, as the site's player draws it: the same textures, passes and uniforms, so each frame's GPU
 // work is the player's.
 const canvas = document.querySelector("canvas");
 const gl = canvas.getContext("webgl2", {
@@ -109,7 +137,7 @@ function play() {
   const { lattice, gradients } = noiseTables(look.seed);
 
   // What the GPU holds, made at the start and again where a lost context comes back.
-  let dots, blur, bake, final, half, U, instances, dotsVao, fullVao, melt, noise, latticeTex, gradientTex;
+  let dots, blur, bake, final, half, U, instances, dotsVao, fullVao, melt, noise, latticeTex, gradientTex;${finish ? "\n  let finish;" : ""}${grain ? "\n  let grainTex;\n  let grainScale = 1;" : ""}
   let baked = false;
   const make = () => {
     dots = program("dots-vs", "dots-fs");
@@ -123,7 +151,7 @@ function play() {
       dots: at(dots, ["size"]),
       blur: at(blur, ["source", "step_by", "taps", "weights"]),
       bake: at(bake, ["lattice", "gradients", "scale", "offset", "frequency"]),
-      final: at(final, ["melt", "noise", "canvas_h", "melt_origin", "melt_texel", "region", "scatter", "frosted", "lift", "gray", "k", "ground"])
+      final: at(final, ["melt", "noise", "canvas_h", "melt_origin", "melt_texel", "region", "scatter", "frosted", "lift", "gray", "k", "ground"${grain ? ', "grainTile", "grainScale"' : ""}])
     };
     const quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -157,7 +185,7 @@ function play() {
     gl.bindTexture(gl.TEXTURE_2D, latticeTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, 256, 1, 0, gl.RED_INTEGER, gl.UNSIGNED_BYTE, lattice);
     gl.bindTexture(gl.TEXTURE_2D, gradientTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, gradients);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, gradients);${finish ? "\n    finish = finishing(gl);" : ""}${grain ? "\n    grainTex = grainTexture(gl);" : ""}
     baked = false;
   };
   make();
@@ -175,7 +203,7 @@ function play() {
     const css = canvas.getBoundingClientRect();
     const W = Math.max(1, css.width);
     const H = Math.max(1, css.height);
-    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);
+    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : ""}${grain ? "\n    grainScale = grainScaleOf(w);" : ""}
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
@@ -266,7 +294,7 @@ function play() {
     gl.uniform2i(U.blur.step_by, 0, 1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     // every pixel: the frost's scatter, the lift of the edge, the speckle, the ground
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, ${finish ? "finish.frame" : "null"});
     gl.viewport(0, 0, canvasSize.w, canvasSize.h);
     gl.useProgram(final);
     const u = U.final;
@@ -275,7 +303,7 @@ function play() {
     gl.uniform1i(u.melt, 0);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, noise.texture);
-    gl.uniform1i(u.noise, 1);
+    gl.uniform1i(u.noise, 1);${grain ? "\n    gl.activeTexture(gl.TEXTURE2);\n    gl.bindTexture(gl.TEXTURE_2D, grainTex);\n    gl.uniform1i(u.grainTile, 2);\n    gl.uniform1f(u.grainScale, grainScale);" : ""}
     gl.uniform1f(u.canvas_h, canvasSize.h);
     gl.uniform2f(u.melt_origin, meltBox.x, meltBox.y);
     gl.uniform1f(u.melt_texel, texel);
@@ -287,7 +315,7 @@ function play() {
     gl.uniform2f(u.k, look.k1, look.k2);
     gl.uniform4f(u.ground, ground[0], ground[1], ground[2], ground[3]);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.activeTexture(gl.TEXTURE0);
+    gl.activeTexture(gl.TEXTURE0);${finish ? "\n    finish.draw();" : ""}
   };
 
 ${indent(EFFECT_CLOCK)}
@@ -301,6 +329,7 @@ ${indent(EFFECT_CLOCK)}
     found();
   });
 }`;
+};
 
 /** The blob as GLSL, its WebGL page's shaders, or as that page: the player's passes on the numbers the player works
     out. `origin` adds the effect's address to the credit, which names no angle: the blob has none. */
@@ -309,15 +338,33 @@ export function blobWebgl(
   P: Palette,
   effect: Effect,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
+  /* a grain alone in the blob's own last pass; a soft in the finish's passes after it */
+  const grain = grainOnly(finish);
+  const done = finished(finish) && !grain;
   if (kind === "webgl")
     return shaderPageHtml(
-      effectShaderCredit(seed, effect, DEFAULT_ANGLE, `${BLOB_WHAT}, drawn by WebGL 2`, origin),
+      effectShaderCredit(
+        seed,
+        effect,
+        DEFAULT_ANGLE,
+        `${BLOB_WHAT}, drawn by WebGL 2`,
+        origin,
+        finish
+      ),
       seed,
       [
-        ...WEBGL_SHADERS.map(([id, type, code]) => ({ id, type, code })),
-        { code: `${blobSettings(P, effect)}\n\n${BLOB_MATH}\n\n${WEBGL_DRAWING}` }
+        ...webglShaders(grain).map(([id, type, code]) => ({ id, type, code })),
+        ...(done ? FINISH_WEBGL_SHADERS.map(([id, type, code]) => ({ id, type, code })) : []),
+        {
+          code: done
+            ? `${blobSettings(P, effect)}\n\n${finishSettingsJs(finish, String(DEFAULT_ANGLE))}\n\n${BLOB_MATH}\n\n${FINISH_MATH_JS}\n\n${FINISH_WEBGL_JS}\n\n${webglDrawing("finish")}`
+            : grain
+              ? `${blobSettings(P, effect)}\n\n${grainSettingsJs(finish.grain ?? 0)}\n\n${BLOB_MATH}\n\n${GRAIN_TILE_JS}\n\n${GRAIN_WEBGL_JS}\n\n${webglDrawing("grain")}`
+              : `${blobSettings(P, effect)}\n\n${BLOB_MATH}\n\n${webglDrawing("plain")}`
+        }
       ]
     );
   const credit = effectShaderCredit(
@@ -325,9 +372,12 @@ export function blobWebgl(
     effect,
     DEFAULT_ANGLE,
     `${BLOB_WHAT}, as GLSL ES 3.00, the WebGL page's shaders, a section a pass`,
-    origin
+    origin,
+    finish
   );
   return `${blobTextHead(credit)}
-${GLSL_SECTIONS.map(([header, shaders]) => `\n// ==== ${header}\n${shaders.join("\n")}`).join("\n")}
-`;
+${glslSections(grain)
+  .map(([header, shaders]) => `\n// ==== ${header}\n${shaders.join("\n")}`)
+  .join("\n")}
+${done ? `\n${FINISH_GLSL_SECTIONS}` : ""}`;
 }

@@ -97,7 +97,8 @@ const effectTabsNow = () => {
   return effectTabs();
 };
 /* the shader's texts and its WebGL and WebGPU pages (engine/shader.ts, shader-page.ts), asked for once the Shader tab
-   shows: a page's start carries only the tab's spellings */
+   shows: a page's start carries only the tab's spellings, and the Worker's build none of them (a server never writes a
+   shader, and its ask waits for ever) */
 interface ShaderCode {
   text: typeof import("@grabient/engine/shader.ts");
   page: typeof import("@grabient/engine/shader-page.ts");
@@ -107,10 +108,14 @@ let shaderAsked = false;
 const shaderCodeNow = () => {
   if (!shaderAsked) {
     shaderAsked = true;
-    void Promise.all([
-      import("@grabient/engine/shader.ts"),
-      import("@grabient/engine/shader-page.ts")
-    ]).then(
+    void (
+      import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : Promise.all([
+            import("@grabient/engine/shader.ts"),
+            import("@grabient/engine/shader-page.ts")
+          ])
+    ).then(
       ([text, page]) => setShaderCode({ text, page }),
       () => {
         shaderAsked = false;
@@ -219,6 +224,13 @@ export function codeSources(
   const p3 = (note: string) =>
     cssWide(cssStops) ? `${note} ${t("Plus a Display P3 line.")}` : note;
   const soft = !!painted.at;
+  /* the shader draws a soft view's stops as the CSS does, and lays the grain over them */
+  const shaderFinish = {
+    ...(painted.at
+      ? { drawn: { stops: painted.stops, style: painted.style, at: painted.at } }
+      : {}),
+    ...(v.grain ? { grain: v.grain } : {})
+  };
   const cssNote = (kind: ColorKind) =>
     soft
       ? t(
@@ -292,10 +304,16 @@ export function codeSources(
         const code = shaderCodeNow();
         if (!code) return "";
         return isShaderPage(kind)
-          ? code.page.shaderPage(kind, P, v, n, seed, origin())
-          : code.text.shaderText(kind, P, v, n, seed, origin());
+          ? code.page.shaderPage(kind, P, v, n, seed, origin(), shaderFinish)
+          : code.text.shaderText(kind, P, v, n, seed, origin(), shaderFinish);
       },
-      note: () => t("Keyframes, spline and OKLCH to sRGB conversion.")
+      note: () => {
+        /* a soft view's shader draws its blurred stops, as its CSS does, not the curve */
+        const what = soft
+          ? t("The stops blurred along the line, at their places, blended in sRGB.")
+          : t("Keyframes, spline and OKLCH to sRGB conversion.");
+        return v.grain ? `${what} ${t("Then its grain, a speck a CSS pixel.")}` : what;
+      }
     },
     {
       id: "json",

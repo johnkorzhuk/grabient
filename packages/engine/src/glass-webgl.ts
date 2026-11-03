@@ -1,6 +1,8 @@
 /* The fluted glass in GLSL and as a WebGL page that plays it (glass-shader.ts names every kind): the player's own passes
    (glass-gl.ts) on the numbers the player works out (glass-page.ts), played by the players' clock (effect-page.ts).
-   The editor loads this module with the Shader tab's GLSL or WebGL spelling. */
+   A soft or grained glass draws its last pass into the finish's frame, which the finish then lays over the canvas
+   (shader-finish.ts), as the site lays its blur and grain over the player. The editor loads this module with the
+   Shader tab's GLSL or WebGL spelling. */
 import type { Effect } from "./effect.ts";
 import { EFFECT_CLOCK } from "./effect-page.ts";
 import {
@@ -13,20 +15,47 @@ import {
 } from "./glass-gl.ts";
 import { GLASS_MODEL, glassSettingsJs } from "./glass-page.ts";
 import type { Palette } from "./palette.ts";
+import {
+  type EffectShaderFinish,
+  FINISH_GLSL_SECTIONS,
+  FINISH_MATH_JS,
+  FINISH_WEBGL_JS,
+  FINISH_WEBGL_SHADERS,
+  finished,
+  finishSettingsJs,
+  GRAIN_TILE_JS,
+  GRAIN_WEBGL_JS,
+  grainedGlsl,
+  grainOnly,
+  grainSettingsJs
+} from "./shader-finish.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 
-const WEBGL_SHADERS = [
-  ["disc-vs", "x-shader/x-vertex", GLASS_DISC_VS],
-  ["disc-fs", "x-shader/x-fragment", GLASS_DISC_FS],
-  ["full-vs", "x-shader/x-vertex", GLASS_FULL_VS],
-  ["blur-fs", "x-shader/x-fragment", GLASS_BLUR_FS],
-  ["final-fs", "x-shader/x-fragment", GLASS_FINAL_FS],
-  ["bake-fs", "x-shader/x-fragment", GLASS_BAKE_FS]
-] as const;
+/* the glass's last pass with the grain over its bytes, for a grain with no soft, which so needs no pass of its own:
+   the glass's values never fall on a half, so its bytes are the canvas's own */
+const GLASS_FINAL_GRAIN_FS = grainedGlsl(
+  GLASS_FINAL_FS,
+  "  o = vec4(min(vec3(1.0), floor(c * 255.0 + 0.5) / 255.0 * (2.0 * m.b)), 1.0);",
+  "  o = grainOver(vec4(floor(min(vec3(1.0), floor(c * 255.0 + 0.5) / 255.0 * (2.0 * m.b)) * 255.0 + 0.5), 255.0), p) / 255.0;"
+);
+
+const webglShaders = (grain: boolean) =>
+  [
+    ["disc-vs", "x-shader/x-vertex", GLASS_DISC_VS],
+    ["disc-fs", "x-shader/x-fragment", GLASS_DISC_FS],
+    ["full-vs", "x-shader/x-vertex", GLASS_FULL_VS],
+    ["blur-fs", "x-shader/x-fragment", GLASS_BLUR_FS],
+    ["final-fs", "x-shader/x-fragment", grain ? GLASS_FINAL_GRAIN_FS : GLASS_FINAL_FS],
+    ["bake-fs", "x-shader/x-fragment", GLASS_BAKE_FS]
+  ] as const;
 
 /* The player's drawing (ui/glass-player.ts createGlassDrawing, glass-bake.ts) in the page: the same textures, passes
-   and uniforms, so each frame's GPU work is the player's. */
-const WEBGL_DRAWING = `// The player's drawing: the same textures, passes and uniforms, so each frame's GPU work is the player's. A context the
+   and uniforms, so each frame's GPU work is the player's; a grained one's last pass lays the grain from its tile, and
+   a soft one's draws into the finish's frame. */
+const webglDrawing = (mode: "plain" | "grain" | "finish") => {
+  const finish = mode === "finish";
+  const grain = mode === "grain";
+  return `// The player's drawing: the same textures, passes and uniforms, so each frame's GPU work is the player's. A context the
 // browser gives back after losing it gets a drawing of its own.
 const canvas = document.querySelector("canvas");
 const gl = canvas.getContext("webgl2", {
@@ -73,7 +102,7 @@ function drawing() {
     fOrigin: at(pFinal, "uOrigin"),
     fOffset: at(pFinal, "uOffset"),
     fInv: at(pFinal, "uInv"),
-    fScale: at(pFinal, "uScale"),
+    fScale: at(pFinal, "uScale"),${grain ? '\n    fGrain: at(pFinal, "grainTile"),\n    fGrainScale: at(pFinal, "grainScale"),' : ""}
     kRibs: at(pBake, "uRibs"),
     kCount: at(pBake, "uCount"),
     kStops: at(pBake, "uStops"),
@@ -119,7 +148,7 @@ function drawing() {
   const ribsTex = texture(gl.NEAREST);
   const bakeFbo = gl.createFramebuffer();
   const fieldTex = [texture(gl.LINEAR), texture(gl.LINEAR)];
-  const fbo = [gl.createFramebuffer(), gl.createFramebuffer()];
+  const fbo = [gl.createFramebuffer(), gl.createFramebuffer()];${finish ? "\n  const finish = finishing(gl);" : ""}${grain ? "\n  const grainTex = grainTexture(gl);\n  let grainScale = 1;" : ""}
 
   let geo = null;
   let win = null;
@@ -151,7 +180,7 @@ function drawing() {
   };
 
   // The design covering the canvas, the textures its size, and the rib map baked with the next frame.
-  const layout = (w, h) => {
+  const layout = (w, h) => {${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : ""}${grain ? "\n    grainScale = grainScaleOf(w);" : ""}
     const next = cover(w, h, ANGLE, SHAPE);
     if (
       geo &&
@@ -282,7 +311,7 @@ function drawing() {
     gl.bindTexture(gl.TEXTURE_2D, fieldTex[1]);
     gl.uniform2f(U.bStep, 0, 1 / pl.fh);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, ${finish ? "finish.frame" : "null"});
     gl.viewport(0, 0, win.w, win.h);
     gl.useProgram(pFinal);
     gl.activeTexture(gl.TEXTURE0);
@@ -290,14 +319,14 @@ function drawing() {
     gl.uniform1i(U.fMap, 0);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, fieldTex[0]);
-    gl.uniform1i(U.fField, 1);
+    gl.uniform1i(U.fField, 1);${grain ? "\n    gl.activeTexture(gl.TEXTURE2);\n    gl.bindTexture(gl.TEXTURE_2D, grainTex);\n    gl.uniform1i(U.fGrain, 2);\n    gl.uniform1f(U.fGrainScale, grainScale);" : ""}
     gl.uniform1f(U.fH, win.h);
     gl.uniform2f(U.fOrigin, region.x, region.y);
     gl.uniform2f(U.fOffset, win.x, win.y);
     gl.uniform2f(U.fInv, 1 / (q * pl.fw), 1 / (q * pl.fh));
     gl.uniform1f(U.fScale, geo.scale);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.activeTexture(gl.TEXTURE0);
+    gl.activeTexture(gl.TEXTURE0);${finish ? "\n    finish.draw();" : ""}
   };
   return { layout, draw };
 }
@@ -318,8 +347,11 @@ ${indent(EFFECT_CLOCK)}
     found();
   });
 }`;
+};
 
-const GLSL_SECTIONS = `// ==== Vertex: full target ==== the quad over a whole target, for passes 2 to 4 and the bake
+const glslSections = (
+  grain: boolean
+) => `// ==== Vertex: full target ==== the quad over a whole target, for passes 2 to 4 and the bake
 ${GLASS_FULL_VS}
 
 // ==== Pass 1: discs ==== target: the field, fw x fh texels (1/q of the filter's region), RGBA8, cleared to the base color, blended ONE, ONE_MINUS_SRC_ALPHA | inputs: the twelve discs as instanced quads (a triangle strip of 4 vertices)
@@ -331,31 +363,49 @@ ${GLASS_BLUR_FS}
 
 // ==== Pass 3: blur down ==== target: the first field texture, fw x fh, RGBA8, the shader of Pass 2 with uStep (0, 1 / fh) | inputs: Pass 2 (linear, clamp to edge)
 
-// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (nearest, clamp to edge), Pass 3 (linear, clamp to edge)
-${GLASS_FINAL_FS}
+// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (nearest, clamp to edge), Pass 3 (linear, clamp to edge)${grain ? ", the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch) and its scale (the canvas's pixels to a CSS pixel)" : ""}
+${grain ? GLASS_FINAL_GRAIN_FS : GLASS_FINAL_FS}
 
 // ==== Bake: rib map ==== target: W x H, RGBA8, once for each size, angle and shape, before the frame that needs it | inputs: the ribs, a row each (RGBA32F, nearest)
 ${GLASS_BAKE_FS}
 `;
 
 /** The glass as GLSL, its WebGL page's passes, or as that page: the player's passes on the numbers the player works
-    out. `origin` adds the effect's address to the credit. */
+    out, and its finish after them where it has a soft or a grain. `origin` adds the effect's address to the
+    credit. */
 export function glassWebgl(
   kind: "glsl" | "webgl",
   P: Palette,
   effect: Effect,
   angle: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
+  /* a grain alone in the glass's own last pass; a soft in the finish's passes after it */
+  const grain = grainOnly(finish);
+  const done = finished(finish) && !grain;
   if (kind === "webgl")
     return shaderPageHtml(
-      effectShaderCredit(seed, effect, angle, "fluted glass, drawn by WebGL 2", origin),
+      effectShaderCredit(seed, effect, angle, "fluted glass, drawn by WebGL 2", origin, finish),
       seed,
       [
-        { code: glassSettingsJs(P, effect, angle) },
-        ...WEBGL_SHADERS.map(([id, type, code]) => ({ id, type, code })),
-        { code: `${GLASS_MODEL}\n\n${WEBGL_DRAWING}` }
+        {
+          code: done
+            ? `${glassSettingsJs(P, effect, angle)}\n\n${finishSettingsJs(finish, "ANGLE")}`
+            : grain
+              ? `${glassSettingsJs(P, effect, angle)}\n\n${grainSettingsJs(finish.grain ?? 0)}`
+              : glassSettingsJs(P, effect, angle)
+        },
+        ...webglShaders(grain).map(([id, type, code]) => ({ id, type, code })),
+        ...(done ? FINISH_WEBGL_SHADERS.map(([id, type, code]) => ({ id, type, code })) : []),
+        {
+          code: done
+            ? `${GLASS_MODEL}\n\n${FINISH_MATH_JS}\n\n${FINISH_WEBGL_JS}\n\n${webglDrawing("finish")}`
+            : grain
+              ? `${GLASS_MODEL}\n\n${GRAIN_TILE_JS}\n\n${GRAIN_WEBGL_JS}\n\n${webglDrawing("grain")}`
+              : `${GLASS_MODEL}\n\n${webglDrawing("plain")}`
+        }
       ]
     );
   const credit = effectShaderCredit(
@@ -363,11 +413,12 @@ export function glassWebgl(
     effect,
     angle,
     "fluted glass: the GLSL ES 3.00 passes its WebGL page runs",
-    origin
+    origin,
+    finish
   );
   return `${credit.map(line => `// ${line}`).join("\n")}
 // The page's JavaScript works out each frame's numbers as the site's player does: the ribs and their stops, the
 // discs' places, the blur's taps and the uniforms below.
 
-${GLSL_SECTIONS}`;
+${glslSections(grain)}${done ? `\n${FINISH_GLSL_SECTIONS}` : ""}`;
 }
