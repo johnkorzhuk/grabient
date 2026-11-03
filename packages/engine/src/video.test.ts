@@ -4,7 +4,15 @@ import { describe, expect, it } from "vitest";
 import { BLOB_LOOP, blobBackdrop, blobRenderer } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
 import type { EffectFinish, EffectLook } from "./effect.ts";
-import { blurBoxes, effectBlurSigma, effectUnderlay, finishPixels } from "./fx-finish.ts";
+import {
+  blurBoxes,
+  blurRgba,
+  effectBlurSigma,
+  effectUnderlay,
+  finishPixels,
+  grainOverRgba,
+  overUnder
+} from "./fx-finish.ts";
 import { GLASS_LOOP, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { glassCover, glassRenderer } from "./glass-render.ts";
@@ -280,29 +288,38 @@ describe("the module's frames", () => {
   });
 
   it("loop: the frame a loop on is the first", () => {
-    for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
-      const ask: VideoAsk = {
-        kind,
-        palette,
-        look,
-        angle: 135,
-        size: { width: 64, height: 48 },
-        fps: 30
-      };
+    const most = (a: ArrayLike<number>, b: ArrayLike<number>) =>
+      Array.from(a).reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
+    const size = { width: 64, height: 48 };
+    /* the glass's and the silk's time runs on past the loop, so the module draws the frame after the last */
+    for (const kind of ["glass", "silk"] as const) {
+      const ask: VideoAsk = { kind, palette, look, angle: 135, size, fps: 30 };
       const plan = videoPlan(ask, 2.45, 30, null);
       const drawer = videoDrawer(wasm, ask, plan, VIDEO_QUALITY[kind], true);
       drawer.draw(0);
       const first = drawer.rgb().slice();
       drawer.draw(plan.frames);
-      expect(Math.max(...drawer.rgb().map((v, i) => Math.abs(v - first[i])))).toBeLessThanOrEqual(
-        1
-      );
+      expect(most(drawer.rgb(), first), kind).toBeLessThanOrEqual(1);
+    }
+    /* the blob's and the rosette's drawers wrap their phase, so the module's frame there is the first by
+       construction: their designs at a loop's end against its start */
+    const melt = blobRenderer(palette, look, size, blobBackdrop(palette));
+    expect(most(melt.frame(1), melt.frame(0)), "blob").toBeLessThanOrEqual(1);
+    /* at a clip's sizes: a box of 64 by 48 has its innermost petals under a pixel at the heart, where a few channels
+       differ by up to 7 */
+    for (const shape of [null, 417, 7]) {
+      const flower = rosetteScene(palette, { angle: 135, shape }, { width: 160, height: 90 });
+      expect(
+        most(renderRosette(flower, 1), renderRosette(flower, 0)),
+        `rosette ${shape}`
+      ).toBeLessThanOrEqual(2);
     }
   });
 });
 
 /* A frame finished as the site paints it, by the engine's own code: the effect's CPU drawing as straight-alpha RGBA,
-   finishPixels over it, then the clip's backdrop under what is not opaque (a blob with no ground). */
+   finishPixels over it, then the clip's backdrop under what is not opaque (a blob with no ground: under a soft one,
+   as its gradient goes under another). */
 function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: number): Uint8Array {
   const { kind, size, look: shown, angle, palette: P } = ask;
   const n = size.width * size.height;
@@ -336,8 +353,21 @@ function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: numbe
     const scene = rosetteScene(P, { angle, shape: shown.shape }, size);
     rgba = opaque(renderRosette(scene, ((i * plan.loops) % plan.frames) / plan.frames), 4);
   }
-  const done = finishPixels(rgba, size, finish, effectUnderlay(P, ask, angle, finish.soft));
   const back = blobBackdrop(P);
+  const underlay = effectUnderlay(P, ask, angle, finish.soft);
+  const sigma = effectBlurSigma(finish.soft, size);
+  let done: ArrayLike<number>;
+  if (!underlay && sigma > 0) {
+    /* a soft blob with no ground over the clip's backdrop, which goes under its blurred layer as finishPixels lays a
+       gradient under one, the layer's premultiplied colors rounded once, as a browser composites it: finishPixels'
+       own straight-alpha bytes, which a page lays over itself, lose a level or two where the blur leaves the picture
+       thin (W/styles-lab/sg/mp4/parity-exact.ts) */
+    const ground = Uint8Array.from({ length: n * 3 }, (_, k) => back[k % 3]);
+    const blurred = blurRgba(rgba, size.width, size.height, sigma);
+    const layered = opaque(overUnder(blurred, ground, size.width, size.height), 3);
+    grainOverRgba(layered, size.width, size.height, finish.grain ?? 0);
+    done = layered;
+  } else done = finishPixels(rgba, size, finish, underlay);
   const out = new Uint8Array(n * 3);
   for (let p = 0; p < n; p++) {
     const a = done[4 * p + 3] / 255;
@@ -395,6 +425,35 @@ describe("a clip's soft and grain", () => {
       const { worst, past } = against(ask, { grain: 60 });
       expect(worst, kind).toBeLessThanOrEqual(2);
       expect(past, kind).toBeLessThan(0.005);
+    }
+  });
+
+  it("are the site's within two levels where the blur is wide against the picture's shorter side", () => {
+    /* There a clear blob is thin all over, its colors the blur's middle rather than its whole, which the boxes at a
+       half or a quarter of the resolution reach a little apart from the frame's own: against an exact composite
+       (W/styles-lab/sg/mp4/parity-exact.ts) the module sits half a level off on the whole at 1920 by 16 to 100, 640
+       by 32 or 18 by 1080 (most 2), where the reference sits 0.15 to 0.25; at 282 by 502 within a level of it. Every
+       other effect is opaque there, its edges alone thinned. */
+    for (const [size, finish] of [
+      [
+        { width: 1920, height: 16 },
+        { soft: 40, grain: 30 }
+      ],
+      [{ width: 18, height: 1080 }, { soft: 40 }],
+      [
+        { width: 282, height: 502 },
+        { soft: 100, grain: 100 }
+      ]
+    ] as [{ width: number; height: number }, EffectFinish][]) {
+      for (const [kind, shown] of kinds) {
+        const { worst, past } = against(
+          { kind, palette, look: shown, angle: 135, size, fps: 30 },
+          finish
+        );
+        const at = `${kind} ${shown.bg ?? "clear"} ${size.width}x${size.height}`;
+        expect(worst, at).toBeLessThanOrEqual(2);
+        expect(past, at).toBeLessThan(kind === "blob" && !shown.bg ? 0.15 : 0.005);
+      }
     }
   });
 
