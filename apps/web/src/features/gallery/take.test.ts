@@ -41,13 +41,15 @@ test("a card's strip offers the formats the editor's strips offer, with an effec
       download: STRIP_FILES,
       link: STRIP_EFFECT_LINKS
     });
-  /* the silk, the rosette and the papercut, each with the script that plays it */
-  for (const effect of ["silk", "rosette", "papercut"] as const)
+  /* the silk, the rosette and the papercut, each with the script that plays it, on a card as in the editor */
+  for (const effect of ["silk", "rosette", "papercut"] as const) {
+    expect(effectLinkFormats(effect)).toEqual(STRIP_EFFECT_LINKS);
     expect(card(effect).chips()).toEqual({
       copy: effectCopyFormats(effect),
       download: STRIP_FILES,
-      link: effectLinkFormats(effect)
+      link: STRIP_EFFECT_LINKS
     });
+  }
   expect(effectCopyFormats("papercut")).not.toContain("figma");
   expect(effectCopyFormats("silk")).toContain("figma");
 });

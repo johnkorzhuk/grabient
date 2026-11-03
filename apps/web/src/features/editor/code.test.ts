@@ -365,3 +365,22 @@ test("the effect's tags show its first frame inside the page or linked, and copy
     `<script src="${ORIGIN}/${SEED}.js?style=glass&amp;angle=45" async>`
   );
 });
+
+test("the papercut's tags are the two that play it: its stepped still inside the page or its stylesheet linked, then its script", async () => {
+  const P = decodePalette(SEED)!;
+  const papercut = parseEffect(new URLSearchParams("style=papercut&shape=7"))!;
+  await tabsIn();
+  const html = effectSource("style=papercut&shape=7", "html")!;
+  expect(html.spellings?.map(s => s.label)).toEqual(["<style>", "<link>"]);
+  expect(await loaded(() => html.text("style"))).toBe(
+    effectEmbedHtml(ORIGIN, SEED, papercut, 45, effectStill(P, papercut, 45))
+  );
+  expect(html.text("link")).toBe(effectEmbedHtml(ORIGIN, SEED, papercut, 45));
+  for (const spelling of ["style", "link"])
+    expect(html.text(spelling).split("\n").at(-1), spelling).toBe(
+      `<script src="${ORIGIN}/${SEED}.js?style=papercut&amp;angle=45&amp;shape=7" async></script>`
+    );
+  expect(html.note?.("style")).toBe(
+    "The two tags that play it behind a page, for the page's head."
+  );
+});
