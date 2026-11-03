@@ -245,8 +245,8 @@
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
       "apps/web/src/features/editor/Boot.tsx:203",
-      "apps/web/src/features/editor/Editor.tsx:609",
-      "apps/web/src/features/editor/Editor.tsx:610",
+      "apps/web/src/features/editor/Editor.tsx:611",
+      "apps/web/src/features/editor/Editor.tsx:612",
       "packages/ui/src/PaletteCard.tsx:465",
       "packages/ui/src/PaletteCard.tsx:466"
     ]
@@ -1133,8 +1133,8 @@
   "Couldn't copy the palette.": {
     "note": "Error line after a failed copy of a palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:737",
-      "apps/web/src/features/editor/Editor.tsx:748",
+      "apps/web/src/features/editor/Editor.tsx:739",
+      "apps/web/src/features/editor/Editor.tsx:750",
       "apps/web/src/features/editor/Sheet.tsx:151",
       "apps/web/src/features/examples/Swatches.tsx:202",
       "apps/web/src/features/examples/Swatches.tsx:212",
@@ -1196,8 +1196,8 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
-      "apps/web/src/features/editor/Editor.tsx:755",
-      "apps/web/src/features/editor/Editor.tsx:817",
+      "apps/web/src/features/editor/Editor.tsx:757",
+      "apps/web/src/features/editor/Editor.tsx:819",
       "apps/web/src/features/editor/Sheet.tsx:562",
       "apps/web/src/features/editor/Sheet.tsx:640",
       "apps/web/src/features/examples/Swatches.tsx:209",
@@ -1319,7 +1319,7 @@
   "Couldn't save the palette.": {
     "note": "Error line after a failed like.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:324"
+      "apps/web/src/features/editor/Editor.tsx:326"
     ]
   },
   "Couldn't save your vote.": {
@@ -1643,7 +1643,7 @@
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1284",
+      "apps/web/src/features/editor/Editor.tsx:1286",
       "apps/web/src/features/examples/ExamplesPage.tsx:301",
       "packages/ui/src/KeyList.tsx:10"
     ]
@@ -2285,7 +2285,7 @@
   "Images can't be copied here.": {
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:736",
+      "apps/web/src/features/editor/Editor.tsx:738",
       "apps/web/src/features/editor/Sheet.tsx:150",
       "apps/web/src/mcp-view/PaletteView.tsx:248",
       "apps/web/src/mcp-view/PaletteView.tsx:256",
@@ -2458,21 +2458,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1103",
+      "apps/web/src/features/editor/Editor.tsx:1105",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1099",
+      "apps/web/src/features/editor/Editor.tsx:1101",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1088",
+      "apps/web/src/features/editor/Editor.tsx:1090",
       "apps/web/src/features/editor/code.ts:322",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -3315,7 +3315,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1001",
+      "apps/web/src/features/editor/Editor.tsx:1003",
       "packages/ui/src/PaletteSheet.tsx:131"
     ]
   },
@@ -3414,7 +3414,7 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:987",
+      "apps/web/src/features/editor/Editor.tsx:989",
       "apps/web/src/lib/page-meta.ts:593",
       "apps/web/src/lib/page-meta.ts:604",
       "packages/ui/src/PaletteCard.tsx:346"
@@ -3875,8 +3875,8 @@
   "Remove from selection": {
     "note": "Press (a check) on a palette in the selection: takes it out. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:609",
-      "apps/web/src/features/editor/Editor.tsx:610",
+      "apps/web/src/features/editor/Editor.tsx:611",
+      "apps/web/src/features/editor/Editor.tsx:612",
       "packages/ui/src/ExportPreview.tsx:83",
       "packages/ui/src/PaletteCard.tsx:465",
       "packages/ui/src/PaletteCard.tsx:466"
@@ -3892,7 +3892,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1301",
+      "apps/web/src/features/editor/Editor.tsx:1303",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3900,7 +3900,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1301"
+      "apps/web/src/features/editor/Editor.tsx:1303"
     ]
   },
   "Remove {hex}": {
@@ -4707,7 +4707,7 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:990",
+      "apps/web/src/features/editor/Editor.tsx:992",
       "apps/web/src/features/editor/Sheet.tsx:680",
       "apps/web/src/features/editor/StaticPalette.tsx:148",
       "packages/ui/src/PaletteCard.tsx:347"
@@ -5156,8 +5156,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:940",
-      "apps/web/src/features/editor/Editor.tsx:958"
+      "apps/web/src/features/editor/Editor.tsx:942",
+      "apps/web/src/features/editor/Editor.tsx:960"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5377,7 +5377,7 @@
   "This browser can't make videos.": {
     "note": "Error line after Download MP4 in a browser that cannot run the code that makes the video file itself (no WebAssembly SIMD or no module workers).",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:816"
+      "apps/web/src/features/editor/Editor.tsx:818"
     ]
   },
   "This code expires in 5 minutes. If you didn't ask for it, ignore this email.": {
