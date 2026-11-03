@@ -1,7 +1,7 @@
 /* Several palettes as one picture: the first a list, a collection, the collections list or a search shows, in its page's
-   order. The feature that owns the palettes reads them; this draws what it is handed, each palette as it was saved
-   unless the address sets style, steps or angle for all of them. Turned off for the site, a montage is refused before
-   its palettes are read. */
+   order, or the eight a collection's sheet picks to show it. The feature that owns the palettes reads them; this draws
+   what it is handed, each palette as it was saved unless the address sets style, steps or angle for all of them.
+   Turned off for the site, a montage is refused before its palettes are read. */
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { joined } from "@grabient/server/shared-work.ts";
 import { PAGE } from "../../lib/cache.ts";
@@ -22,6 +22,8 @@ export const SHEET_PALETTES = 8;
 
 export interface MontagePalette extends Saved {
   seed: string;
+  /** How many like it, where its read knows: a collection's sheet weighs it between palettes that look alike. */
+  likes?: number;
 }
 
 /* A montage's palettes, kept a few minutes in this isolate: every size, view, HEAD and refused retry of one card reads
@@ -152,7 +154,8 @@ const drawnRow = ({ palette, view }: ReturnType<typeof sheetRows>[number]) => ({
 });
 
 /** A sheet's answer: refused while drawing is off, as a montage is, else its palettes read once per `key` in this
-    isolate (a collection's share card reads the same) and the first eight drawn as rows, each as it was saved. */
+    isolate and the first eight drawn as rows, each as it was saved: a search's first eight, or the eight that show a
+    collection best (answers.ts). */
 export async function sheetAnswer(
   request: Request,
   env: PictureEnv,

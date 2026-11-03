@@ -9,9 +9,11 @@ import { sampleSrgb } from "./curve.ts";
 export const DOMINANT_MAX = 5;
 /** The most palettes read: a collection's first ones, the ones its card shows. */
 export const DOMINANT_PALETTES = 12;
-const READINGS = 9;
+/** How many places along a palette's curve are read; a collection's sheet reads its palettes the same way
+    (representative.ts). */
+export const READINGS = 9;
 /** lightness counts for less than hue and chroma, so shades of a hue group before two hues do */
-const L_WEIGHT = 0.55;
+export const L_WEIGHT = 0.55;
 /** nearer than this, two groups read as one color */
 const ALIKE = 0.095;
 /** a group needs this share of the readings to count */

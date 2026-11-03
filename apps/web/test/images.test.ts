@@ -1,3 +1,5 @@
+import { decodePalette } from "@grabient/engine/codec.ts";
+import { sampleStops } from "@grabient/engine/curve.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
@@ -105,6 +107,52 @@ describe("a collection's sheet", () => {
     ]);
     const hidden = await stocked(env, "private");
     expect((await fileAnswer(get(`/${hidden}.svg`), bound, "svg")).status).toBe(404);
+  });
+
+  it("shows the colors its first eight leave out: its first palette and the seven that show the rest best", async () => {
+    // eight warm palettes first, as the Christmas gradients' most liked are, then three greens
+    const warm = [
+      "kU7BIRVqY_7q9vgZl75g",
+      "kS8SQNYyvAsJIwG",
+      "kWKSj5HCDAaKvQI9RUEqLM-4",
+      "kW7yw84yS_kwvP21qD9npm_Y",
+      "kQ-go87yDAA",
+      "kYl6gRyFHAETMwBPxUE4jbEG-xQa",
+      "kWRywvvShA3Ugwq_q71phm_A",
+      "kW7SVE7Zo-NqcO9EIbwsJ28o"
+    ];
+    const greens = ["kU5RJlOp8_56XwOMhr_g", "kUHBJrnp0_7MvPyYFEEA", "kY-hBAdQtC-gSQXVF8EwJZCC0SwW"];
+    const env = testEnv();
+    const id = unique("sheet");
+    const slug = id.toLowerCase();
+    await run(
+      env.DB,
+      `INSERT INTO k_collections (id, slug, owner_kind, owner_id, title, visibility, item_count, created_at, updated_at)
+       VALUES (?, ?, 'agent', 'grabient', 'Sheet', 'public', 11, 1, 1)`,
+      id,
+      slug
+    );
+    for (const [position, seed] of [...warm, ...greens].entries()) {
+      await run(
+        env.DB,
+        `INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at)
+         VALUES (?, ?, ?, 'linearGradient', 7, 90, 1)`,
+        id,
+        position,
+        seed
+      );
+    }
+    const { env: bound } = isolate(env);
+    const svg = (await (await fileAnswer(get(`/${slug}.svg`), bound, "svg")).text()).toLowerCase();
+    const shown = (seed: string) => {
+      const P = decodePalette(seed);
+      return !!P && sampleStops(P, P.anchors.length).every(s => svg.includes(`>${s.hex}</text>`));
+    };
+    expect([svg.match(/<clippath /g)?.length, shown(warm[0]), greens.some(shown)]).toEqual([
+      8,
+      true,
+      true
+    ]);
   });
 
   it("is a search's own picture too, which has none to stand in while drawing is off", async () => {

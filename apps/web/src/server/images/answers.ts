@@ -1,8 +1,13 @@
 /* The answers of the picture addresses, which the route files hand the Worker's bindings and its `waitUntil`. A
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 
+import { representatives } from "@grabient/engine/representative.ts";
 import { MARK_WEEK, markSvg, markWeek, weekMark } from "@grabient/ui/mark.ts";
-import { isCollectionSlug, slugWords } from "../../features/collections/address.ts";
+import {
+  isCollectionSlug,
+  slugWords,
+  sortCollectionItems
+} from "../../features/collections/address.ts";
 import { MAX_COLLECTION_ITEMS } from "../../features/collections/schema.ts";
 import { DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
@@ -21,7 +26,13 @@ import {
   picksKey,
   pictureWords
 } from "./montage-address.ts";
-import { type MontagePalette, montageAnswer, sheetAnswer, sheetSvgAnswer } from "./montages.ts";
+import {
+  type MontagePalette,
+  montageAnswer,
+  SHEET_PALETTES,
+  sheetAnswer,
+  sheetSvgAnswer
+} from "./montages.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
 
 const paramsOf = (request: Request) => addressParams(new URL(request.url).searchParams);
@@ -58,20 +69,31 @@ export const seedPngAnswer = (request: Request, env: PictureEnv, keep: Keep) => 
   return paletteImage(request, env, keep, name, false);
 };
 
-/* A public collection's first palettes in its page's order, read as its share card reads them, under the card's key. */
-const collectionSheetKey = (slug: string) => `collection:${slug}:popular:`;
-const collectionFirst = (env: Pick<PictureEnv, "DB">, slug: string) => () =>
-  collectionImagePalettes(env, slug, MONTAGE_PALETTES, "popular");
+/* A public collection's sheet rows: its page's first palette and the seven that, with it, look most like all of its
+   palettes (engine/representative.ts), in its page's order, each as the collection saved it. Kept under a key of their
+   own: the share card's key holds the page's first nine. */
+const collectionSheetKey = (slug: string) => `collection-sheet:${slug}`;
+const collectionSheetRows = (env: Pick<PictureEnv, "DB">, slug: string) => async () => {
+  const doc = await collectionBySlug(env, slug);
+  const held: MontagePalette[] = sortCollectionItems(doc?.items ?? [], "popular").map(item => ({
+    seed: item.kseed,
+    style: item.style,
+    steps: item.steps,
+    angle: item.angle,
+    likes: item.likes
+  }));
+  return representatives(held, SHEET_PALETTES).map(i => held[i]);
+};
 
 /** A public collection's sheet. */
 const collectionSheetAnswer = (request: Request, env: PictureEnv, keep: Keep, slug: string) =>
-  sheetAnswer(request, env, collectionSheetKey(slug), collectionFirst(env, slug), keep);
+  sheetAnswer(request, env, collectionSheetKey(slug), collectionSheetRows(env, slug), keep);
 
 /** /{slug}.svg and /@{handle}/{slug}.svg: a public collection's sheet as SVG, titled with the collection's title. */
 export const collectionSheetSvg = (env: Pick<PictureEnv, "DB">, slug: string) =>
   sheetSvgAnswer(
     collectionSheetKey(slug),
-    collectionFirst(env, slug),
+    collectionSheetRows(env, slug),
     async () => (await collectionBySlug(env, slug))?.title ?? slugWords(slug)
   );
 
