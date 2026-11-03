@@ -10,6 +10,7 @@ import {
   hasEmbedScript
 } from "@grabient/engine/effect.ts";
 import {
+  EFFECT_SVG_MOTION,
   effectColors,
   effectMarkdown,
   effectSpecJson,
@@ -232,10 +233,15 @@ export function effectSources(
               effectSvg(P, seed, effect, angle, taken.pixels, origin, finish, data)
             )
           : Promise.resolve(effectSvg(P, seed, effect, angle, taken.pixels, origin, finish)),
-      note: () =>
-        effect.speed === 0
-          ? t("The picture as an SVG file.")
-          : t("The picture as an SVG file, moving by CSS alone.")
+      /* the papercut's SVG is its first frame at any speed, the silk's moves by SMIL, the others' by CSS */
+      note: () => {
+        const motion = effect.speed === 0 ? null : EFFECT_SVG_MOTION[effect.kind];
+        return motion === "smil"
+          ? t("The picture as an SVG file, moving by SMIL alone.")
+          : motion === "css"
+            ? t("The picture as an SVG file, moving by CSS alone.")
+            : t("The picture as an SVG file.");
+      }
     }
   ];
 }

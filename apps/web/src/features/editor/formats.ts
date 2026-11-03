@@ -224,8 +224,87 @@ async function gradientPng(p: Taken): Promise<Blob> {
   if (!png) throw new Error("no PNG");
   return png;
 }
-/* a PNG is the first frame: the glass as its player draws it, the blob as its still SVG paints */
+/* the milliseconds of a task the papercut's CPU drawing takes at a time, the page's own work between */
+const DRAW_SHARE_MS = 30;
+const nextTask = () => new Promise<void>(done => setTimeout(done));
+/* The papercut's first frame by its CPU drawing, as its PNG file and its cards are drawn (engine/papercut-render.ts):
+   about 0.3 s at 1600 by 900 on a desktop, a band of rows a task so the page goes on meanwhile, where its SVG file,
+   which blurs each of its shadows, took a second to draw without the GPU. Its soft and grain as the stage lays them:
+   the frame blurred by the browser's own filter (the stage's CSS blur) over the palette's gradient, its edges going
+   to it, and the grain's tile over all; a browser whose canvas has no filter blurs it as fx-finish.ts does. */
+async function papercutPng(p: Taken, effect: Effect): Promise<Blob> {
+  const [model, render, finishing] = await Promise.all([
+    import("@grabient/engine/papercut.ts"),
+    import("@grabient/engine/papercut-render.ts"),
+    import("@grabient/engine/fx-finish.ts")
+  ]);
+  const P = paletteOf(p);
+  const size = p.pixels;
+  const { width, height } = size;
+  const frame = render.papercutRows(
+    model.papercutScene(P, { angle: p.angle, shape: effect.look.shape }, size),
+    0
+  );
+  let y = 0;
+  for (let end = performance.now() + DRAW_SHARE_MS; ; end = performance.now() + DRAW_SHARE_MS) {
+    let done = false;
+    while (!done && performance.now() < end) {
+      y += 8;
+      done = frame.rows(y);
+    }
+    if (done) break;
+    await nextTask();
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("no 2d context");
+  const finish = finishOf(p);
+  const sigma = finishing.effectBlurSigma(finish.soft, size);
+  const under = finishing.effectUnderlay(P, effect, p.angle, finish.soft);
+  const pixels = new ImageData(new Uint8ClampedArray(frame.px), width, height);
+  if (sigma > 0 && under && typeof context.filter === "string") {
+    /* CSS's gradient line at the angle, corner to corner */
+    const a = (under.angle * Math.PI) / 180;
+    const dx = Math.sin(a);
+    const dy = -Math.cos(a);
+    const half = (width * Math.abs(dx) + height * Math.abs(dy)) / 2;
+    const line = context.createLinearGradient(
+      width / 2 - dx * half,
+      height / 2 - dy * half,
+      width / 2 + dx * half,
+      height / 2 + dy * half
+    );
+    for (const [i, stop] of under.stops.entries())
+      line.addColorStop(under.at?.[i] ?? i / Math.max(1, under.stops.length - 1), stop.hex);
+    context.fillStyle = line;
+    context.fillRect(0, 0, width, height);
+    const layer = document.createElement("canvas");
+    layer.width = width;
+    layer.height = height;
+    layer.getContext("2d")?.putImageData(pixels, 0, 0);
+    context.filter = `blur(${sigma}px)`;
+    context.drawImage(layer, 0, 0);
+    context.filter = "none";
+  } else if (sigma > 0) {
+    const blurred = finishing.finishPixels(frame.px, size, { soft: finish.soft }, under);
+    context.putImageData(new ImageData(new Uint8ClampedArray(blurred), width, height), 0, 0);
+  } else context.putImageData(pixels, 0, 0);
+  if (finish.grain) {
+    const tile = new Image();
+    tile.src = grainSrc(finish.grain);
+    await tile.decode();
+    context.fillStyle = context.createPattern(tile, "repeat") ?? "transparent";
+    context.fillRect(0, 0, width, height);
+  }
+  const png = await encoded(canvas, "image/png");
+  if (!png) throw new Error("no PNG");
+  return png;
+}
+/* a PNG is the first frame: the glass and the papercut as their players draw it, the others as their still SVG paints */
 const pngOf = async (p: Taken): Promise<Blob> => {
+  if (p.effect?.kind === "papercut") return papercutPng(p, p.effect);
   if (p.effect && p.effect.kind !== "glass")
     return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
   if (!p.effect) return gradientPng(p);
@@ -245,6 +324,8 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
    as the picture moves (its speed), its first frame when held. Each effect's code comes on the press, and the
    Worker's build carries none of it */
 const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
+  /* the papercut's layers are not built (engine/effect.ts hasFigmaCopy): its strips offer no Figma copy */
+  if (!hasFigmaCopy(effect.kind)) throw new Error("No Figma copy of this effect.");
   const frame = { width: p.pixels.width, height: p.pixels.height, name: p.name || "Grabient" };
   if (effect.kind === "silk" || effect.kind === "rosette") {
     const look = {
