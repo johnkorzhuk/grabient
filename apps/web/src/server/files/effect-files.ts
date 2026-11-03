@@ -8,7 +8,7 @@
    opaque and fades in over it, and the blob's is clear around the blob, so its still goes in the frame the canvas
    comes (the script marks the root). Both and the moving SVG are the engine's writing (engine/effect-code.ts), which
    the editor's copies are too. */
-import { type Effect, effectAddressParts } from "@grabient/engine/effect.ts";
+import { type Effect, type EffectFinish, effectAddressParts } from "@grabient/engine/effect.ts";
 import { effectSize, effectStylesheet, effectSvg } from "@grabient/engine/effect-code.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
@@ -39,14 +39,16 @@ export function effectSvgAnswer(
   P: Palette,
   effect: Effect,
   angle: number,
-  asked: SizeChoice | null | undefined
+  asked: SizeChoice | null | undefined,
+  finish: EffectFinish = {},
+  grain?: string
 ): Response {
   const size = resolveSize(asked, effectSize(effect));
   if (isLinkPreview(request)) {
     const sized = asked ? [`w=${size.width}`, `h=${size.height}`] : [];
     return svgPreview({
-      address: `${origin}/${seed}.svg?${[...effectAddressParts(effect, angle), ...sized].join("&")}`,
-      card: `${origin}${effectCard(seed, effect, angle)}`,
+      address: `${origin}/${seed}.svg?${[...effectAddressParts(effect, angle, finish), ...sized].join("&")}`,
+      card: `${origin}${effectCard(seed, effect, angle, finish)}`,
       title: `${readingName(readPalette(P))} · Grabient`,
       about:
         effect.kind === "glass"
@@ -58,7 +60,7 @@ export function effectSvgAnswer(
               : "An animated SVG of a Grabient palette: a frosted blob of its colors, drifting, moved by CSS alone."
     });
   }
-  return new Response(effectSvg(P, seed, effect, angle, size, origin), {
+  return new Response(effectSvg(P, seed, effect, angle, size, origin, finish, grain), {
     headers: { ...ANIMATION, ...EMBEDDED, "Content-Type": "image/svg+xml; charset=utf-8" }
   });
 }

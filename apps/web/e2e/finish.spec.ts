@@ -111,7 +111,8 @@ test("a soft, grained palette draws its finish in its first paint, and its files
   expect(css).toContain('url("data:image/png;base64,');
   expect(css).toContain("radial-gradient(");
   const svg = await (await file("svg")).text();
-  expect(svg).toContain('<pattern id="grain"');
+  expect(svg).toContain('<image id="grain"');
+  expect(svg).toContain('<use xlink:href="#grain"');
   expect(svg).toMatch(/<radialGradient[^>]*><stop offset="0\.\d{5}"/);
   const png = await file("png");
   expect(png.headers()["content-type"]).toBe("image/png");

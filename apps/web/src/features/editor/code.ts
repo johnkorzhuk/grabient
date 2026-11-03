@@ -14,7 +14,13 @@ import { isShaderPage, SHADER_KINDS, type ShaderKind } from "@grabient/engine/sh
 import { specJson } from "@grabient/engine/spec.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { gplText, swatchPalette, tokensJson } from "@grabient/engine/swatches.ts";
-import { DEFAULT_SIZE, isSwatchStyle, type Style, viewSearch } from "@grabient/engine/view.ts";
+import {
+  DEFAULT_SIZE,
+  finishOf,
+  isSwatchStyle,
+  type Style,
+  viewSearch
+} from "@grabient/engine/view.ts";
 import { DEFAULT_LOCALE, inLocale, msg, t } from "@grabient/i18n";
 import type { CodeSource } from "@grabient/ui/PaletteCode.tsx";
 import { createSignal } from "solid-js";
@@ -146,7 +152,7 @@ export function codeSources(
      gradient the editor keeps for when the effect stops */
   const drawn = effect ? { angle: v.angle } : v;
   const markdown = () => {
-    const address = `/${seed}.md${effect ? `?${effectAddressParts(effect, v.angle).join("&")}` : viewSearch(v)}`;
+    const address = `/${seed}.md${effect ? `?${effectAddressParts(effect, v.angle, finishOf(v)).join("&")}` : viewSearch(v)}`;
     const had = files().get(address);
     if (had !== undefined) return had;
     const { facts, opened } = known();
@@ -163,7 +169,8 @@ export function codeSources(
       view: facts.written.view
     };
     /* an effect's words come with its code */
-    const words = effect && effectTabsNow()?.effectWords(origin(), seed, effect, v.angle);
+    const words =
+      effect && effectTabsNow()?.effectWords(origin(), seed, effect, v.angle, finishOf(v));
     if (effect && !words) return "";
     return (
       inLocale(DEFAULT_LOCALE, () =>

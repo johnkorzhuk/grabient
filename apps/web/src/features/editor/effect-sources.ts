@@ -4,6 +4,7 @@ import { COLOR_KINDS, colorKind, colorsText } from "@grabient/engine/css.ts";
 import type { Stop } from "@grabient/engine/curve.ts";
 import {
   type Effect,
+  type EffectFinish,
   type EffectKind,
   effectEmbedHtml,
   hasEmbedScript
@@ -17,11 +18,13 @@ import {
   effectSvg
 } from "@grabient/engine/effect-code.ts";
 import { SHADER_KINDS, type ShaderKind } from "@grabient/engine/shader-kinds.ts";
+import { finishOf } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import type { CodeSource } from "@grabient/ui/PaletteCode.tsx";
 import { createSignal } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import { effectCard } from "../../lib/page-meta.ts";
+import { GRAIN_SHOWN, grainDataUrl } from "./copy-finish.ts";
 import { effectHtml, type Taken } from "./formats.ts";
 
 /* The code pane's tabs for an effect, which load with the effect's code as an effect first shows in the pane
@@ -124,8 +127,13 @@ const stopOf = (hex: string): Stop => {
 };
 
 /** The effect's words for the palette's Markdown, as its address serves them. */
-export const effectWords = (origin: string, seed: string, effect: Effect, angle: number) =>
-  effectMarkdown(origin, seed, effect, `${origin}${effectCard(seed, effect, angle)}`);
+export const effectWords = (
+  origin: string,
+  seed: string,
+  effect: Effect,
+  angle: number,
+  finish: EffectFinish = {}
+) => effectMarkdown(origin, seed, effect, `${origin}${effectCard(seed, effect, angle, finish)}`);
 
 /** The effect's own code between the seed and the Markdown: the tags, the stylesheet, its colors, its settings and its
     SVG. The tags' first spelling holds the first frame inside the page as Copy HTML does, which for the glass is a
@@ -138,16 +146,19 @@ export function effectSources(
   origin: string
 ): CodeSource[] {
   const angle = taken.angle;
+  /* the soft and the grain the picture is finished by, which its files' addresses name */
+  const finish = finishOf(taken);
   const glass = effect.kind === "glass";
   const tags = (spelling?: string) =>
     spelling === "link"
-      ? effectEmbedHtml(origin, seed, effect, angle)
+      ? effectEmbedHtml(origin, seed, effect, angle, undefined, finish)
       : effectEmbedHtml(
           origin,
           seed,
           effect,
           angle,
-          glass ? GLASS_STILL_SHOWN : effectStill(P, effect, angle)
+          glass ? GLASS_STILL_SHOWN : effectStill(P, effect, angle),
+          finish
         );
   const shaderSource = (): CodeSource => ({
     id: "shader",
@@ -206,13 +217,20 @@ export function effectSources(
     {
       id: "json",
       label: "JSON",
-      text: () => effectSpecJson(P, effect, angle),
+      text: () => effectSpecJson(P, effect, angle, finish),
       note: () => t("The keyframes and the effect's settings as JSON.")
     },
     {
       id: "svg",
       label: "SVG",
-      text: () => effectSvg(P, seed, effect, angle, taken.pixels, origin),
+      /* the grain's tile shown elided, copied whole */
+      text: () => effectSvg(P, seed, effect, angle, taken.pixels, origin, finish, GRAIN_SHOWN),
+      take: () =>
+        taken.grain
+          ? grainDataUrl(taken.grain).then(data =>
+              effectSvg(P, seed, effect, angle, taken.pixels, origin, finish, data)
+            )
+          : Promise.resolve(effectSvg(P, seed, effect, angle, taken.pixels, origin, finish)),
       note: () =>
         effect.speed === 0
           ? t("The picture as an SVG file.")

@@ -12,7 +12,13 @@ import {
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
-import { type Size, type SizeChoice, type Style, sizeParam } from "@grabient/engine/view.ts";
+import {
+  finishOf,
+  type Size,
+  type SizeChoice,
+  type Style,
+  sizeParam
+} from "@grabient/engine/view.ts";
 import { copyHtml, downloadFile } from "@grabient/ui/copy.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { svgToPngBlob } from "@grabient/ui/figure.ts";
@@ -120,7 +126,9 @@ const effectSvgOf = async (p: Taken, effect: Effect, moving: boolean) =>
     moving ? effect : { ...effect, speed: 0 },
     p.angle,
     p.pixels,
-    origin()
+    origin(),
+    finishOf(p),
+    p.grain ? await grainDataUrl(p.grain) : undefined
   );
 /* The first frame the copied tags carry inside the page, a CSS background covering it as the player covers its canvas:
    the glass as a WebP of its design square, drawn by its CPU renderer (a JPEG where the browser makes no WebP), which a
@@ -278,7 +286,7 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
 
 /** The tags that play an effect behind a page, its first frame inside them, as Copy HTML gives them. */
 export const effectHtml = async (p: Taken, effect: Effect): Promise<string> =>
-  effectEmbedHtml(origin(), p.seed, effect, p.angle, await stillOf(p, effect));
+  effectEmbedHtml(origin(), p.seed, effect, p.angle, await stillOf(p, effect), finishOf(p));
 
 /** The format onto the clipboard. */
 export async function copyFormat(f: Format, p: Taken): Promise<void> {
@@ -330,7 +338,7 @@ export async function saveFormat(f: Format, p: Taken): Promise<void> {
       { seed: p.seed, ...view(p) },
       f,
       f === "md" && p.effect
-        ? effectFileAddress(origin(), p.seed, p.effect, p.angle, "md")
+        ? effectFileAddress(origin(), p.seed, p.effect, p.angle, "md", undefined, finishOf(p))
         : undefined
     );
   if (f === "svg")
@@ -352,7 +360,8 @@ export const copyLink = async (f: Format, p: Taken) =>
           p.effect,
           p.angle,
           f,
-          sizeParam(p.size) ? p.pixels : undefined
+          sizeParam(p.size) ? p.pixels : undefined,
+          finishOf(p)
         )
       : fileUrl(p, f)
   );

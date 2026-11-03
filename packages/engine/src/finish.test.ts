@@ -171,16 +171,21 @@ test("the SVG file draws a soft view's stops where they stand and the grain's ti
       { width: 300, height: 200 },
       { style: drawn.style, at: drawn.at, grain: "data:image/png;base64,AAAA" }
     );
+    /* the tile's image once and a use of it per tile, 3 by 2 over 300 by 200, clipped to the box: Figma's importer
+       takes each one to one, where it stretches a pattern's image over the whole picture */
     expect(svg).toContain(
-      '<pattern id="grain" width="128" height="128" patternUnits="userSpaceOnUse">'
+      '<image id="grain" width="128" height="128" xlink:href="data:image/png;base64,AAAA"'
     );
-    expect(svg.endsWith('fill="url(#grain)"/>\n</svg>')).toBe(true);
+    expect(svg.match(/<use xlink:href="#grain"/g)).toHaveLength(6);
+    expect(svg).toContain('<g clip-path="url(#grainBox)">');
+    expect(svg).toContain('xmlns:xlink="http://www.w3.org/1999/xlink"');
+    expect(svg).not.toContain("<pattern");
     expect(svg).toContain("soft=40&grain=25");
     if (!style.startsWith("angular")) expect(svg).toMatch(/<stop offset="0\.\d{5}"/);
   }
   /* no grain without its tile, and a plain view's SVG as it was */
   const plainSvg = artworkSvg(stops, { style: "linearSwatches", steps: 7, angle: 90 }, "k", "o");
-  expect(plainSvg).not.toContain("pattern");
+  expect(plainSvg).not.toContain("<use");
   expect(plainSvg).not.toContain("stop offset");
 });
 

@@ -23,7 +23,13 @@ import {
   swatchFile,
   swatchPalette
 } from "@grabient/engine/swatches.ts";
-import { DEFAULT_SIZE, resolveSize, type Style, sizeParam } from "@grabient/engine/view.ts";
+import {
+  DEFAULT_SIZE,
+  finishOf,
+  resolveSize,
+  type Style,
+  sizeParam
+} from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { ANIMATION, FILE, TEXT } from "../../lib/cache.ts";
 import { effectCard } from "../../lib/page-meta.ts";
@@ -135,7 +141,19 @@ async function paletteFile(
       const effect = parseEffect(params);
       if (effect) {
         const { effectSvgAnswer } = await import("./effect-files.ts");
-        return effectSvgAnswer(request, origin, seed, palette, effect, view.angle, svgSize(params));
+        /* a soft or grained effect is finished as the site paints it, its grain's tile carried in itself */
+        const finish = finishOf(view);
+        return effectSvgAnswer(
+          request,
+          origin,
+          seed,
+          palette,
+          effect,
+          view.angle,
+          svgSize(params),
+          finish,
+          finish.grain ? await grainOf(finish.grain) : undefined
+        );
       }
       // style=bands is the animated SVG (engine/bands.ts), at 400 by 500 unless asked
       if (isBands(params)) {
@@ -196,7 +214,8 @@ async function paletteFile(
           seed,
           effect,
           view.angle,
-          `${origin}${effectCard(seed, effect, view.angle)}`
+          `${origin}${effectCard(seed, effect, view.angle, finishOf(view))}`,
+          finishOf(view)
         )
       };
       return Response.json(played ? { ...doc, ...played } : doc, { headers: { ...TEXT, ...DATA } });

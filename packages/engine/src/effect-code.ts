@@ -7,6 +7,7 @@ import { BLOB_DESIGN, BLOB_SIZE, blobScene, blobStillBackground, blobSvg } from 
 import { sampleStops } from "./curve.ts";
 import {
   type Effect,
+  type EffectFinish,
   effectAddressParts,
   effectEmbedHtml,
   effectFileAddress,
@@ -15,6 +16,7 @@ import {
   hasEmbedScript,
   isVectorKind
 } from "./effect.ts";
+import { effectUnderlay, finishOf, finishSvg } from "./fx-finish.ts";
 import { fxMovingSvg, fxStillBackground } from "./fx-still.ts";
 import { glassDesign, glassField, glassStillBackground, glassSvg } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
@@ -24,16 +26,17 @@ import { toSpec } from "./spec.ts";
 import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, type Size } from "./view.ts";
 
-/** The effect's page, named by all its first frame depends on (its style, the glass's angle and its look) or,
-    `paced`, by how it plays too: what a file of it credits. */
+/** The effect's page, named by all its first frame depends on (its style, the glass's angle, the soft and the grain,
+    and its look) or, `paced`, by how it plays too: what a file of it credits. */
 export const effectPage = (
   origin: string,
   seed: string,
   effect: Effect,
   angle: number,
-  paced = false
+  paced = false,
+  finish: EffectFinish = {}
 ): string =>
-  `${origin.replace(/\/$/, "")}/${seed}?${(paced ? effectAddressParts(effect, angle) : effectStillParts(effect, angle)).join("&")}`;
+  `${origin.replace(/\/$/, "")}/${seed}?${(paced ? effectAddressParts(effect, angle, finish) : effectStillParts(effect, angle, finish)).join("&")}`;
 
 /** The effect's first frame as a background covering its box, all it depends on named: the glass's colors, angle and
     shape, the blob's look. */
@@ -60,33 +63,46 @@ export const effectSize = (effect: Effect): Size =>
   effect.kind === "blob" ? BLOB_SIZE : DEFAULT_SIZE;
 
 /** The effect as an SVG moved by CSS alone, covering its box (effectSize where none is given), credited to the
-    effect's page; at speed 0, its first frame. */
+    effect's page; at speed 0, its first frame. A soft or grained view's SVG is finished as the site paints it
+    (fx-finish.ts finishSvg): its drawing blurred over its palette's gradient, and the grain's tile over it, `grain` the
+    tile's data URI at the view's grain (the Worker's and the editor's own, engine/grain.ts grainPng). */
 export function effectSvg(
   P: Palette,
   seed: string,
   effect: Effect,
   angle: number,
   size: Size | null,
-  origin: string
+  origin: string,
+  finish: EffectFinish = {},
+  grain?: string | null
 ): string {
   const box = size ?? effectSize(effect);
-  const credit = effectPage(origin, seed, effect, angle, true);
+  const credit = effectPage(origin, seed, effect, angle, true, finish);
   const still = effect.speed === 0;
   const speed = effect.speed || 1;
-  if (effect.kind === "blob")
-    return blobSvg(P, { ...effect.look, speed, fps: effect.fps, still }, box, credit);
-  if (isVectorKind(effect.kind))
-    return fxMovingSvg(
-      effect.kind,
-      P,
-      { angle, shape: effect.look.shape },
-      box,
-      still ? 0 : speed
-    ).replace(/^<svg[^>]*>/, open => `${open}${svgComment(credit)}`);
-  const design = glassDesign(angle, effect.look.shape);
-  return glassSvg(design, glassField(design, glassColors(P)), { still, speed, cover: true })
-    .replace('width="100%" height="100%"', `width="${box.width}" height="${box.height}"`)
-    .replace(/^<svg[^>]*>/, open => `${open}${svgComment(credit)}`);
+  const drawn = (() => {
+    if (effect.kind === "blob")
+      return blobSvg(P, { ...effect.look, speed, fps: effect.fps, still }, box, credit);
+    if (isVectorKind(effect.kind))
+      return fxMovingSvg(
+        effect.kind,
+        P,
+        { angle, shape: effect.look.shape },
+        box,
+        still ? 0 : speed
+      ).replace(/^<svg[^>]*>/, open => `${open}${svgComment(credit)}`);
+    const design = glassDesign(angle, effect.look.shape);
+    return glassSvg(design, glassField(design, glassColors(P)), { still, speed, cover: true })
+      .replace('width="100%" height="100%"', `width="${box.width}" height="${box.height}"`)
+      .replace(/^<svg[^>]*>/, open => `${open}${svgComment(credit)}`);
+  })();
+  const kept = finishOf(finish);
+  return kept.soft || kept.grain
+    ? finishSvg(drawn, box, kept, {
+        underlay: effectUnderlay(P, effect, angle, kept.soft),
+        grain: grain ?? null
+      })
+    : drawn;
 }
 
 /** The colors the effect draws, along the palette from its first: the glass's six behind its ribs, and the colors
@@ -101,17 +117,23 @@ export function effectColors(P: Palette, effect: Effect): string[] {
 }
 
 /** An effect's settings as its address names them, defaults written out: the glass's shape 0 is the glass as designed,
-    and a blob's null shape the one its palette's own numbers draw. The blob has no angle. */
-function effectSettings(effect: Effect, angle: number) {
+    and a blob's null shape the one its palette's own numbers draw. The blob has no angle. A soft and a grain stand
+    where the view has them, as a gradient's document writes them. */
+function effectSettings(effect: Effect, angle: number, finish: EffectFinish = {}) {
   const { kind, speed, fps, look } = effect;
+  const kept = finishOf(finish);
   return kind !== "blob"
-    ? { style: kind, angle, speed, fps, shape: look.shape ?? 0 }
-    : { style: kind, speed, fps, shape: look.shape, frost: look.frost, bg: look.bg };
+    ? { style: kind, angle, ...kept, speed, fps, shape: look.shape ?? 0 }
+    : { style: kind, ...kept, speed, fps, shape: look.shape, frost: look.frost, bg: look.bg };
 }
 
 /** The palette's keyframes and the effect's settings as JSON. */
-export const effectSpecJson = (P: Palette, effect: Effect, angle: number): string =>
-  JSON.stringify({ ...toSpec(P), ...effectSettings(effect, angle) }, null, 2);
+export const effectSpecJson = (
+  P: Palette,
+  effect: Effect,
+  angle: number,
+  finish: EffectFinish = {}
+): string => JSON.stringify({ ...toSpec(P), ...effectSettings(effect, angle, finish) }, null, 2);
 
 /** The addresses an effect goes by, as a palette's document names its own files: its page, how it plays included, the
     stylesheet of its first frame, the script that plays it, its moving SVG, its first frame as PNG, and its share
@@ -121,13 +143,14 @@ export function effectLinks(
   seed: string,
   effect: Effect,
   angle: number,
-  card: string
+  card: string,
+  finish: EffectFinish = {}
 ) {
   const base = origin.replace(/\/$/, "");
   const at = (extension: "css" | "js" | "svg" | "png") =>
-    effectFileAddress(base, seed, effect, angle, extension);
+    effectFileAddress(base, seed, effect, angle, extension, undefined, finish);
   return {
-    page: effectPage(base, seed, effect, angle, true),
+    page: effectPage(base, seed, effect, angle, true, finish),
     css: at("css"),
     /* the silk's and the rosette's scripts are not built yet: their stylesheet paints their still */
     js: hasEmbedScript(effect.kind) ? at("js") : null,
@@ -145,12 +168,13 @@ export const effectDocument = (
   seed: string,
   effect: Effect,
   angle: number,
-  card: string
+  card: string,
+  finish: EffectFinish = {}
 ) => ({
-  ...effectSettings(effect, angle),
+  ...effectSettings(effect, angle, finish),
   colors: effectColors(P, effect),
-  html: effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle),
-  links: effectLinks(origin, seed, effect, angle, card)
+  html: effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle, undefined, finish),
+  links: effectLinks(origin, seed, effect, angle, card, finish)
 });
 
 /** What the palette's Markdown says at the effect's address in a gradient's place: a title naming the effect, a lead,
@@ -159,8 +183,15 @@ export const effectMarkdown =
   (origin: string, seed: string, effect: Effect, card: string): MarkdownEffect =>
   (P, name, doc) => {
     const angle = doc.angle;
+    const finish = finishOf(doc);
     const { shape, frost, bg } = effect.look;
-    const { js, ...links } = effectLinks(origin, seed, effect, angle, card);
+    const { js, ...links } = effectLinks(origin, seed, effect, angle, card, finish);
+    const finished = [
+      finish.soft ? `soft ${finish.soft}` : "",
+      finish.grain ? `grain ${finish.grain}` : ""
+    ]
+      .filter(Boolean)
+      .join(", ");
     const play =
       effect.speed === 0
         ? "held on its first frame"
@@ -179,24 +210,33 @@ export const effectMarkdown =
             : kind === "rosette"
               ? `${name} played as a rosette: petals on a golden spiral, each one color of the palette ${colors} by its ring, the rings rippling out from the heart as the petals grow. A stylesheet paints it behind any page.`
               : `${name} played as a frosted blob: the palette's colors ${colors} melt into one another as it drifts. Two tags play it behind any page.`,
-      drawn:
+      drawn: `${
         kind === "glass"
           ? `fluted glass, its ribs at ${angle} degrees, shape ${shape ?? 0}, ${play}`
           : kind === "silk"
             ? `silk, its drape turned to ${angle} degrees, shape ${shape ?? 0}, ${play}`
             : kind === "rosette"
               ? `a rosette, turned to ${angle} degrees, shape ${shape ?? 0}, ${play}`
-              : `a blob, the palette across it from left to right${shape === null ? "" : `, shape ${shape}`}, frost ${frost}, ${bg ? `on ${bg}` : "on no ground"}, ${play}`,
+              : `a blob, the palette across it from left to right${shape === null ? "" : `, shape ${shape}`}, frost ${frost}, ${bg ? `on ${bg}` : "on no ground"}, ${play}`
+      }${finished ? `, ${finished}` : ""}`,
       code: `## Behind a page
 
 ${scripted ? "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays." : "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}
 
 \`\`\`html
-${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle)}
+${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle, undefined, finish)}
 \`\`\``,
       files: {
         ...links,
-        json: effectFileAddress(origin.replace(/\/$/, ""), seed, effect, angle, "json"),
+        json: effectFileAddress(
+          origin.replace(/\/$/, ""),
+          seed,
+          effect,
+          angle,
+          "json",
+          undefined,
+          finish
+        ),
         ...(js ? { script: js } : {})
       }
     };

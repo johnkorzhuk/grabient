@@ -4,7 +4,7 @@ import { type PaletteWords, paletteMarkdown, plain } from "@grabient/engine/mark
 import { seedName } from "@grabient/engine/name.ts";
 import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
 import type { Namer } from "@grabient/engine/precise-names.ts";
-import { drawnView, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
+import { drawnView, finishOf, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
 import { PAGE, TEXT } from "../../lib/cache.ts";
 import {
   collectionCard,
@@ -137,12 +137,13 @@ export async function markdownFile(
        file is a form of */
     const effect = parseEffect(params);
     const code = effect ? await import("@grabient/engine/effect-code.ts") : null;
+    const finish = finishOf(view);
     const words =
       effect &&
-      code?.effectMarkdown(base, seed, effect, base + effectCard(seed, effect, view.angle));
+      code?.effectMarkdown(base, seed, effect, base + effectCard(seed, effect, view.angle, finish));
     const page =
       effect && code
-        ? code.effectPage(base, seed, effect, view.angle, true)
+        ? code.effectPage(base, seed, effect, view.angle, true, finish)
         : base + paletteAddress(seed, saved);
     const text = paletteMarkdown(seed, base, view, written, heldBy, names, words);
     if (text !== null) return new Response(text, { headers: markdown(page, TEXT) });

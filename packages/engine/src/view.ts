@@ -138,6 +138,13 @@ export function parseView(params: ParamReader): View {
     gradient's soft is (soft.ts): at SOFT_MAX 0.06, which a gradient's soft reaches along a 16:9 picture's line. */
 export const effectSoftShare = (soft: number): number =>
   0.06 * (Math.min(SOFT_MAX, Math.max(0, soft)) / SOFT_MAX) ** 1.6;
+/** A view's soft and grain alone, each where it has one: what an effect's files are finished by (fx-finish.ts). */
+export const finishOf = (
+  view: { soft?: number | null; grain?: number | null } | null | undefined
+): Pick<View, "soft" | "grain"> => ({
+  ...(view?.soft ? { soft: view.soft } : {}),
+  ...(view?.grain ? { grain: view.grain } : {})
+});
 /** A view's soft and grain as an address writes them, each where it has one. */
 export const finishParts = (view: Pick<View, "soft" | "grain">): string[] =>
   [view.soft ? `soft=${view.soft}` : "", view.grain ? `grain=${view.grain}` : ""].filter(Boolean);

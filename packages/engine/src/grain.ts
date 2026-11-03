@@ -4,7 +4,7 @@
    carries. Its strength, 1 to 100, scales every speck's alpha: at 100 a speck one standard deviation out has an alpha
    of 0.16, the lab's that John chose it in (2 Nov 2026). The site lays the tile at a strength as a background over
    the picture (grainLayer); a file carries it in itself. */
-import { GRAIN_MAX } from "./view.ts";
+import { GRAIN_MAX, type Size } from "./view.ts";
 
 /** The tile's side, px: one speck a pixel. */
 export const GRAIN_SIDE = 128;
@@ -62,6 +62,27 @@ export const grainOf = (v: unknown): number => {
     pixel. */
 export const grainLayer = (src: string): string =>
   `url("${src}") 0 0 / ${GRAIN_SIDE}px ${GRAIN_SIDE}px`;
+
+const fmt = (v: number) => Number(v.toFixed(3)).toString();
+
+/** The grain's tile over a box as SVG: the tile's image once (a data URI) and a use of it per tile, clipped to the box
+    (rounded by `rx`), a speck a pixel from its corner. Browsers draw it as a pattern; Figma's importer takes each use
+    as a rectangle filled with the tile one to one, where it stretches a pattern's image over the whole box. The
+    document names the xlink namespace. */
+export function grainTilesSvg(
+  src: string,
+  size: Size,
+  ids: { tile: string; clip: string } = { tile: "gfx-grain", clip: "gfx-grain-box" },
+  rx = 0
+): string {
+  const { width: w, height: h } = size;
+  const round = rx > 0 ? ` rx="${fmt(rx)}" ry="${fmt(rx)}"` : "";
+  let uses = "";
+  for (let y = 0; y < h; y += GRAIN_SIDE)
+    for (let x = 0; x < w; x += GRAIN_SIDE)
+      uses += `<use xlink:href="#${ids.tile}" x="${x}" y="${y}"/>`;
+  return `<defs><clipPath id="${ids.clip}"><rect width="${w}" height="${h}"${round}/></clipPath><image id="${ids.tile}" width="${GRAIN_SIDE}" height="${GRAIN_SIDE}" xlink:href="${src}" style="image-rendering:pixelated"/></defs><g clip-path="url(#${ids.clip})">${uses}</g>`;
+}
 
 /** Lays the tile at a grain over RGB pixels in place, the tile's corner at the picture's: the painter's PNG. */
 export function grainOver(pixels: Uint8Array, width: number, height: number, grain: number): void {

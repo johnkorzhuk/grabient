@@ -5,7 +5,7 @@
    under a 0.3px blur that closes the seams between wedges. */
 import { hexBytes } from "./color.ts";
 import type { Stop } from "./curve.ts";
-import { GRAIN_SIDE } from "./grain.ts";
+import { grainTilesSvg } from "./grain.ts";
 import { onWheel } from "./math.ts";
 import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, resolveSize, type Size, type Style, type View, viewSearch } from "./view.ts";
@@ -54,9 +54,9 @@ function placedAt(hexes: readonly string[], at: readonly number[], t: number): s
     .join("")}`;
 }
 
-/* CSS's gradient line spans the rectangle's projection on the direction: pixel coordinates keep that angle at any
-   shape, where a normalized line would be stretched with the rectangle */
-function linearLine(angle: number, w: number, h: number) {
+/** CSS's gradient line spans the rectangle's projection on the direction: pixel coordinates keep that angle at any
+    shape, where a normalized line would be stretched with the rectangle. */
+export function linearLine(angle: number, w: number, h: number) {
   const a = onWheel(angle) * (Math.PI / 180);
   const dx = Math.sin(a);
   const dy = -Math.cos(a);
@@ -209,13 +209,22 @@ export function paletteSvg(
   const svg = drawnSvg(hexes, style, angle, credit, options);
   const grain = options.grain;
   if (!grain || hexes.length === 0) return svg;
-  /* the grain over the picture, in its box and its corners, a pixel a speck however it is scaled */
+  /* the grain over the picture, in its box and its corners, a pixel a speck however it is scaled: the tile's image
+     once and a use of it per tile (fx-finish.ts), which Figma's importer takes one to one where it stretches a
+     pattern's image over the whole picture */
   const { width: w = 800, height: h = 400, gridItemIndex, borderRadius = 0 } = options;
   const radius = (borderRadius / 100) * (Math.min(w, h) / 2);
-  const rx = radius > 0 ? ` rx="${radius}" ry="${radius}"` : "";
-  const id = typeof gridItemIndex === "number" ? `grain_${gridItemIndex}` : "grain";
-  const over = `<defs><pattern id="${id}" width="${GRAIN_SIDE}" height="${GRAIN_SIDE}" patternUnits="userSpaceOnUse"><image xmlns:xlink="http://www.w3.org/1999/xlink" width="${GRAIN_SIDE}" height="${GRAIN_SIDE}" xlink:href="${grain}" style="image-rendering:pixelated"/></pattern></defs>\n<rect x="0" y="0" width="${w}" height="${h}"${rx} fill="url(#${id})"/>\n`;
-  return svg.replace(/<\/svg>$/, `${over}</svg>`);
+  const suffix = typeof gridItemIndex === "number" ? `_${gridItemIndex}` : "";
+  const over = grainTilesSvg(
+    grain,
+    { width: w, height: h },
+    { tile: `grain${suffix}`, clip: `grainBox${suffix}` },
+    radius
+  );
+  const linked = svg.includes("xmlns:xlink=")
+    ? svg
+    : svg.replace(/^<svg\b/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+  return linked.replace(/<\/svg>$/, `${over}\n</svg>`);
 }
 
 function drawnSvg(

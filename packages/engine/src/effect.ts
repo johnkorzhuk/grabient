@@ -8,7 +8,11 @@
    The gradient's steps leave the address while an effect plays, so an address says only what its picture shows (the
    editor keeps them to give back). */
 import { clamp } from "./math.ts";
-import { DEFAULT_ANGLE, type ParamReader, type Size } from "./view.ts";
+import { DEFAULT_ANGLE, finishParts, type ParamReader, type Size, type View } from "./view.ts";
+
+/** A view's soft and grain, which an effect's address names after its angle, as the editor's does (seedAddress): the
+    effect blurred over its palette's gradient and the grain over it (fx-finish.ts). */
+export type EffectFinish = Pick<View, "soft" | "grain">;
 
 export const EFFECTS = ["glass", "blob", "silk", "rosette"] as const;
 export type EffectKind = (typeof EFFECTS)[number];
@@ -231,18 +235,28 @@ export const effectAngleParts = (kind: EffectKind, angle: number): string[] =>
   EFFECT_KINDS[kind].angle && angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
 
 /** The parts of an effect's address its first frame depends on, which name a still or a card of it: its style, the
-    glass's angle where it is not the view's default and its look, never how it plays. */
-export const effectStillParts = (effect: Effect, angle: number): string[] => [
+    glass's angle where it is not the view's default, the soft and the grain, and its look, never how it plays. */
+export const effectStillParts = (
+  effect: Effect,
+  angle: number,
+  finish: EffectFinish = {}
+): string[] => [
   `style=${effect.kind}`,
   ...effectAngleParts(effect.kind, angle),
+  ...finishParts(finish),
   ...effectLookParts(effect)
 ];
 
-/** An effect's address after its palette's seed, which its page and its files are named by: its style, the glass's
-    angle where it is not the view's default, how it plays and its look. */
-export const effectAddressParts = (effect: Effect, angle: number): string[] => [
+/** An effect's address after its palette's seed, which its page and its files are named by: its style, the angle where
+    the effect takes one and it is not the view's default, the soft and the grain, how it plays and its look. */
+export const effectAddressParts = (
+  effect: Effect,
+  angle: number,
+  finish: EffectFinish = {}
+): string[] => [
   `style=${effect.kind}`,
   ...effectAngleParts(effect.kind, angle),
+  ...finishParts(finish),
   ...effectParts(effect)
 ];
 
@@ -254,14 +268,15 @@ export function effectFileAddress(
   seed: string,
   effect: Effect,
   angle: number,
-  extension: "css" | "js" | "svg" | "png" | "md" | "json",
-  size?: Size
+  extension: "css" | "js" | "svg" | "png" | "md" | "json" | "mp4",
+  size?: Size,
+  finish: EffectFinish = {}
 ): string {
   const sized =
     size && (extension === "svg" || extension === "png")
       ? [`w=${size.width}`, `h=${size.height}`]
       : [];
-  return `${origin}/${seed}.${extension}?${[...effectAddressParts(effect, angle), ...sized].join("&")}`;
+  return `${origin}/${seed}.${extension}?${[...effectAddressParts(effect, angle, finish), ...sized].join("&")}`;
 }
 
 /** The mark the embed's script sets on a page's root once its canvas covers the still (apps/web/src/embed/mount.ts),
@@ -282,10 +297,14 @@ export function effectEmbedHtml(
   seed: string,
   effect: Effect,
   angle: number,
-  still?: string
+  still?: string,
+  finish: EffectFinish = {}
 ): string {
   const at = (extension: "css" | "js") =>
-    effectFileAddress(origin, seed, effect, angle, extension).replaceAll("&", "&amp;");
+    effectFileAddress(origin, seed, effect, angle, extension, undefined, finish).replaceAll(
+      "&",
+      "&amp;"
+    );
   const first = still
     ? `<style>\n${effectLayerCss(still)}</style>`
     : `<link rel="stylesheet" href="${at("css")}">`;
