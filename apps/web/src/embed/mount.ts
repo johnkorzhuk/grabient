@@ -21,7 +21,7 @@ import { type Effect, type EffectKind, EMBED_PLAYING } from "@grabient/engine/ef
 import { effectLayers } from "@grabient/engine/effect-code.ts";
 import { type EffectLayers, effectLayerCss } from "@grabient/engine/effect-embed.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { embedAsk } from "./address.ts";
+import { embedAsk, type GroundReader } from "./address.ts";
 import { grainImage } from "./grain.ts";
 
 /** How long an opaque canvas takes to fade in over its still, as the editor's glass does (GlassStage.tsx). */
@@ -38,6 +38,8 @@ const MOUNTED = Symbol.for("grabient-effect");
 
 export interface EmbedEffect {
   kind: EffectKind;
+  /** the blob's ground written in other words than hex read to the hex the server answers it at (address.ts) */
+  ground?: GroundReader;
   /** the effect's first frame as a background, as the stylesheet paints it, at the address's angle, which the blob
       has none of */
   still(P: Palette, effect: Effect, angle: number): string;
@@ -105,7 +107,7 @@ export function mount(embed: EmbedEffect): void {
   if (!(script instanceof HTMLScriptElement) || !script.src || page[MOUNTED]) return;
   const address = new URL(script.src, location.href);
   /* the palette, the effect, its angle and its finish, read as the stylesheet of the same address is (address.ts) */
-  const ask = embedAsk(address);
+  const ask = embedAsk(address, embed.ground);
   if (!ask || ask.effect.kind !== embed.kind) return;
   page[MOUNTED] = true;
   const { name, P, effect, angle, finish } = ask;

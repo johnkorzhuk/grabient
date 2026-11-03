@@ -1,4 +1,5 @@
 import { crc32, inflateSync } from "node:zlib";
+import { cssColorText } from "@grabient/engine/css-color.ts";
 import { parseEffect } from "@grabient/engine/effect.ts";
 import { effectLayers } from "@grabient/engine/effect-code.ts";
 import { effectLayerCss } from "@grabient/engine/effect-embed.ts";
@@ -11,6 +12,7 @@ import { fileAnswer } from "../server/files/palette-files.ts";
 import { readyOldIds } from "../server/seo/legacy.ts";
 import { embedAsk } from "./address.ts";
 import { grainImage } from "./grain.ts";
+import { srgbHex } from "./ground.ts";
 import type { EmbedEffect } from "./mount.ts";
 
 /* each kind's script hands mount() what it plays; held here instead of played */
@@ -82,7 +84,84 @@ beforeAll(async () => {
   ]);
 });
 
+/* a ground's words, and the sRGB that Chromium 152, Firefox 157 and WebKit 26 (Playwright 1.64) compute for
+   color-mix(in srgb, words, words), as W/styles-lab/sg/embed-fix/colors-probe.mjs read them */
+const COMPUTED: [string, string, string, string][] = [
+  ["navy", "color(srgb 0 0 0.501961)", "color(srgb 0 0 0.501961)", "color(srgb 0 0 0.501961)"],
+  [
+    "rgb(0 0 0 / 50%)",
+    "color(srgb 0 0 0 / 0.5)",
+    "color(srgb 0 0 0 / 0.5)",
+    "color(srgb 0 0 0 / 0.5)"
+  ],
+  [
+    "rgba(10, 20, 30, 0.3)",
+    "color(srgb 0.0392157 0.0784314 0.117647 / 0.301961)",
+    "color(srgb 0.0392157 0.0784314 0.117647 / 0.3)",
+    "color(srgb 0.039216 0.078431 0.117647 / 0.3)"
+  ],
+  [
+    "hsl(200 50% 40%)",
+    "color(srgb 0.2 0.466667 0.6)",
+    "color(srgb 0.2 0.466667 0.6)",
+    "color(srgb 0.2 0.466667 0.6)"
+  ],
+  [
+    "hwb(120 10% 20% / 0.7)",
+    "color(srgb 0.1 0.8 0.1 / 0.7)",
+    "color(srgb 0.1 0.8 0.1 / 0.7)",
+    "color(srgb 0.1 0.8 0.1 / 0.7)"
+  ],
+  [
+    "oklch(0.5 0.1 200)",
+    "color(srgb -0.153058 0.45306 0.476905)",
+    "color(srgb -0.15293 0.453039 0.476874)",
+    "color(srgb -0.15293 0.453039 0.476874)"
+  ],
+  [
+    "oklch(0.7 0.4 30)",
+    "color(srgb 1.3196 -0.449799 -0.310059)",
+    "color(srgb 1.31965 -0.449821 -0.310086)",
+    "color(srgb 1.319647 -0.449821 -0.310086)"
+  ],
+  [
+    "lab(50 40 -20)",
+    "color(srgb 0.670292 0.354655 0.604598)",
+    "color(srgb 0.670353 0.354597 0.604597)",
+    "color(srgb 0.670353 0.354597 0.604597)"
+  ],
+  [
+    "color(display-p3 1 0 0)",
+    "color(srgb 1.09302 -0.22669 -0.150073)",
+    "color(srgb 1.09307 -0.226742 -0.150135)",
+    "color(srgb 1.093066 -0.226742 -0.150135)"
+  ],
+  [
+    "color(srgb 0.2 0.4 0.6 / 0.25)",
+    "color(srgb 0.2 0.4 0.6 / 0.25)",
+    "color(srgb 0.2 0.4 0.6 / 0.25)",
+    "color(srgb 0.2 0.4 0.6 / 0.25)"
+  ],
+  ["transparent", "color(srgb 0 0 0 / 0)", "color(srgb 0 0 0 / 0)", "color(srgb 0 0 0 / 0)"],
+  [
+    "#abc8",
+    "color(srgb 0.666667 0.733333 0.8 / 0.533333)",
+    "color(srgb 0.666667 0.733333 0.8 / 0.533)",
+    "color(srgb 0.666667 0.733333 0.8 / 0.533333)"
+  ]
+];
+
 describe("an effect's script", () => {
+  test("reads a blob's ground in other words than hex as the server's reader does, from what each browser computes", () => {
+    for (const [words, ...computed] of COMPUTED)
+      for (const seen of computed)
+        expect([words, srgbHex(seen)]).toEqual([words, cssColorText(words)]);
+    expect(srgbHex("rgba(10, 20, 30, 0.3)")).toBe("#0a141e4d");
+    expect(srgbHex("rgb(255, 0, 0)")).toBe("#ff0000");
+    expect(srgbHex("color(srgb none 0 0)")).toBeNull();
+    expect(srgbHex("red")).toBeNull();
+  });
+
   test("its grain's tile, its rows stored, is the engine's tile pixel for pixel and the stylesheet's", async () => {
     for (const grain of [1, 30, 100]) {
       const made = (await grainImage(grain)).match(/base64,([\w+/=]+)/)?.[1] ?? "";
@@ -115,22 +194,37 @@ describe("an effect's script", () => {
     });
     expect(embedAsk(new URL(`${ORIGIN}/nothing.js?style=silk`))).toBeNull();
     expect(embedAsk(at("style=linearGradient"))).toBeNull();
+    // a blob's ground in other words than hex, at the hex the server's redirect answers it at; words that are no color go
+    const ground = (query: string) => embedAsk(at(query), cssColorText)?.effect.look.bg;
+    expect(ground("style=blob&bg=navy")).toBe("#000080");
+    expect(ground("style=blob&bg=rgb(0 0 0 / 50%25)")).toBe("#00000080");
+    expect(ground("style=blob&bg=%23151315")).toBe("#151315");
+    expect(ground("style=blob&bg=nonsense")).toBeNull();
+    expect(embedAsk(at("style=blob&bg=navy"))?.effect.look.bg).toBeNull();
   });
 
   test("adopts the stylesheet's own rules where a page has none, finished alike", async () => {
-    for (const query of [
-      "style=silk&angle=40&soft=50&grain=30",
-      "style=rosette&amp;angle=120&amp;soft=40&amp;grain=30&amp;shape=7",
-      "style=glass&angle=135&soft=50&grain=30",
-      "style=blob&shape=51&bg=%23151315&soft=50&grain=30",
-      "style=blob&shape=51&bg=%2300000080&soft=50",
-      "style=blob&shape=51&soft=50&grain=30",
-      "style=silk&angle=40"
+    /* the script's query, and the stylesheet's where the server redirects a ground in other words to its hex */
+    for (const [query, redirected = query] of [
+      ["style=silk&angle=40&soft=50&grain=30"],
+      ["style=rosette&amp;angle=120&amp;soft=40&amp;grain=30&amp;shape=7"],
+      ["style=glass&angle=135&soft=50&grain=30"],
+      ["style=blob&shape=51&bg=%23151315&soft=50&grain=30"],
+      ["style=blob&shape=51&bg=%2300000080&soft=50"],
+      ["style=blob&shape=51&soft=50&grain=30"],
+      ["style=silk&angle=40"],
+      [
+        "style=blob&shape=51&bg=rgb(0 0 0 / 50%25)&soft=50&grain=30",
+        "style=blob&shape=51&bg=%2300000080&soft=50&grain=30"
+      ],
+      ["style=blob&shape=51&bg=navy&soft=50", "style=blob&shape=51&bg=%23000080&soft=50"],
+      ["style=blob&shape=51&bg=nonsense", "style=blob&shape=51"]
     ]) {
       const served = await (
-        await fileAnswer(new Request(`${ORIGIN}/${SEED}.css?${query}`), env, "css")
+        await fileAnswer(new Request(`${ORIGIN}/${SEED}.css?${redirected}`), env, "css")
       ).text();
-      const ask = embedAsk(new URL(`${ORIGIN}/${SEED}.js?${query}`));
+      /* the blob's script reads a ground's words in the browser (ground.ts), as the server's reader reads them */
+      const ask = embedAsk(new URL(`${ORIGIN}/${SEED}.js?${query}`), cssColorText);
       if (!ask) throw new Error(`no effect in ${query}`);
       const { P, effect, angle, finish } = ask;
       const embed = embeds.get(effect.kind) as EmbedEffect;
