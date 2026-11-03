@@ -258,7 +258,9 @@ function loopsOf(
       let gy = 0;
       if (inBox(x, y)) {
         polished[p] = 1;
-        for (let it = 0; it < 3; it++) {
+        /* two Newton steps from the crossing on the cell's edge, which lies within a hair of the contour, onto it; the
+           tangent is the slope's at the last step, a thousandth of a pixel or less from the point */
+        for (let it = 0; it < 2; it++) {
           const f = evalAt(x, y);
           /* the slope per px */
           gx = f[1] / D;
@@ -270,9 +272,6 @@ function loopsOf(
           x -= step * gx;
           y -= step * gy;
         }
-        const f = evalAt(x, y);
-        gx = f[1];
-        gy = f[2];
       }
       c.x[p] = x;
       c.y[p] = y;

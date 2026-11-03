@@ -98,6 +98,25 @@ describe("an effect's card", () => {
     expect(at(solid, 0, 0)).toEqual([16, 16, 20]);
   });
 
+  test("a papercut address's card is its first frame under the wordmark, and its picture alone at the size asked", async () => {
+    const { env, keep } = world();
+    const card = await cardAnswer(get(`/api/og?seed=${SEED}&style=papercut&shape=7`), env, keep);
+    const plain = await cardAnswer(get(`/api/og?seed=${SEED}`), env, keep);
+    expect(card.status).toBe(200);
+    const a = await middle(card);
+    const b = await middle(plain);
+    expect([a.width, a.height]).toEqual([1200, 630]);
+    expect(Math.max(...a.mean.map((v, c) => Math.abs(v - b.mean[c])))).toBeGreaterThan(2);
+    const png = await seedPngAnswer(
+      get(`/${SEED}.png?style=papercut&shape=7&w=400&h=300`),
+      env,
+      keep
+    );
+    expect(png.status).toBe(200);
+    const picture = await decodePng(new Uint8Array(await png.arrayBuffer()));
+    expect([picture.width, picture.height, picture.channels]).toEqual([400, 300, 3]);
+  });
+
   test("its key is the look it draws: another shape is another card, another pace the same one", async () => {
     const { env, keep } = world();
     const tag = async (query: string) =>
@@ -106,6 +125,8 @@ describe("an effect's card", () => {
     expect(await tag("style=blob&shape=8")).not.toBe(shape7);
     expect(await tag("style=blob&shape=7&speed=3&fps=24")).toBe(shape7);
     expect(await tag("style=glass&angle=45")).not.toBe(await tag("style=glass"));
+    expect(await tag("style=papercut&shape=7")).not.toBe(await tag("style=papercut&shape=8"));
+    expect(await tag("style=papercut&shape=7&speed=0")).toBe(await tag("style=papercut&shape=7"));
   });
 });
 

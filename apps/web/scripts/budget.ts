@@ -40,7 +40,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      the menu's fields beside an effect's, the summary naming them) and the editor's glass after a move (e3636f12) to
      291.2 on 3 Nov 2026 */
   /* the color reader, as "/", took it from 291.2 to 293.5 on 3 Nov 2026 */
-  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 294 },
+  /* it stood at 294.1 at the effects' finished SVG (d5cdb607, 3 Nov 2026), and papercut as an effect (its name and
+     settings, as every page, and a card's strip offering the copies and links of the kind it plays) took it to 294.2 */
+  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 295 },
   /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
      to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
   /* the silk and the rosette as effects (their names and settings, as every page) took it from 285.4 to 286.0 on
@@ -58,7 +60,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     /* soft and grain, as "/", took it from 280.9 to 282.7 on 2 Nov 2026, and over the effects (as /palettes) to 283.2
        on 3 Nov 2026 */
     /* the color reader, as "/", took it from 283.2 to 285.5 on 3 Nov 2026 */
-    budget: 286
+    /* it stood at 286.1 at the effects' finished SVG (d5cdb607, 3 Nov 2026), and papercut, as /palettes, took it to
+       286.2 */
+    budget: 287
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
@@ -133,8 +137,11 @@ const BUDGETS = {
   // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
   // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026). Soft and
   // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders
-  // them, the SVG writer's placed stops and grain pattern, the painter's soft reads and grain, and the pictures' keys
-  firstRequest: 176
+  // them, the SVG writer's placed stops and grain pattern, the painter's soft reads and grain, and the pictures' keys.
+  // It stood at 176.5 at the effects' finished SVG (d5cdb607, 3 Nov 2026: every SVG's grain laid as tiles of its image,
+  // grain.ts grainTilesSvg, and an effect's SVG, card and addresses named by its soft and grain); papercut adds nothing
+  // here, its drawing loading with the first file or card of it
+  firstRequest: 177
 };
 
 const out = process.argv[2] ?? ".cloudflare/output";

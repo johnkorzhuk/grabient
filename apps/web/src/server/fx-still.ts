@@ -11,18 +11,34 @@ import { fxStillBackground, readFxStillKey } from "@grabient/engine/fx-still.ts"
 import { FX_STILL_STYLE } from "../features/editor/fx-draw.ts";
 import { FIRST_SCREEN_STILLS, holderNames, intoHead } from "./stills.ts";
 
+/** The stills an isolate drew, by name, the latest KEPT of them: a papercut's takes several milliseconds (its cuts
+    traced from its field, where the silk's and the rosette's take a few tenths), and a list's first screen names
+    sixteen, which the next request for that list names again. About 15 KB a papercut's. */
+const KEPT = 128;
+const drawn = new Map<string, string>();
+
+/** A still's background by its name, drawn once while it is kept; null for a name no page wrote. */
+function stillOf(key: string): string | null {
+  const kept = drawn.get(key);
+  if (kept !== undefined) return kept;
+  const named = readFxStillKey(key);
+  const P = named ? decodePalette(named.seed) : null;
+  if (!named || !P) return null;
+  const paint = fxStillBackground(named.kind, P, named.look);
+  drawn.set(key, paint);
+  if (drawn.size > KEPT) drawn.delete(drawn.keys().next().value as string);
+  return paint;
+}
+
 /** The page with the stills its holders name in its head, the names it paints on the style. */
 export function fxStills(html: string): string {
   const rules: string[] = [];
   const painted: string[] = [];
   for (const key of holderNames(html, "data-fx-still")) {
     if (painted.length === FIRST_SCREEN_STILLS) break;
-    const named = readFxStillKey(key);
-    const P = named ? decodePalette(named.seed) : null;
-    if (!named || !P) continue;
-    rules.push(
-      `[data-fx-still="${key}"]{background:${fxStillBackground(named.kind, P, named.look)}}`
-    );
+    const paint = stillOf(key);
+    if (paint === null) continue;
+    rules.push(`[data-fx-still="${key}"]{background:${paint}}`);
     painted.push(key);
   }
   return rules.length
