@@ -12,21 +12,24 @@ import { blobWebgl } from "./blob-webgl.ts";
 import { blobWebgpu } from "./blob-webgpu.ts";
 import type { Effect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
+import type { EffectShaderFinish } from "./shader-finish.ts";
 import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
 
 /** The kinds of blob shader code, the Shader tab's: three texts and two pages that run them. */
 export const BLOB_SHADER_KINDS: readonly ShaderKind[] = SHADER_KINDS.map(([kind]) => kind);
 
-/** The blob's shader in a kind: Shadertoy's tabs, the GLSL or the WGSL its pages run, or one of the pages. `origin`
+/** The blob's shader in a kind: Shadertoy's tabs, the GLSL or the WGSL its pages run, or one of the pages, those with
+    its finish (soft and grain, and the gradient under its soft edges; the Shadertoy text, held, has none). `origin`
     adds the effect's address to the credit. It takes no angle: the blob has none. */
 export function blobShader(
   kind: ShaderKind,
   P: Palette,
   effect: Effect,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
   if (kind === "shadertoy") return blobShadertoyText(P, effect, seed, origin);
-  if (kind === "glsl" || kind === "webgl") return blobWebgl(kind, P, effect, seed, origin);
-  return blobWebgpu(kind, P, effect, seed, origin);
+  if (kind === "glsl" || kind === "webgl") return blobWebgl(kind, P, effect, seed, origin, finish);
+  return blobWebgpu(kind, P, effect, seed, origin, finish);
 }

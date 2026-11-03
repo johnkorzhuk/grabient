@@ -1,27 +1,29 @@
 /* What every shader text and page the Shader tab writes shares, the palette's (shader.ts, shader-page.ts) and the
    effects' (glass-shader.ts, blob-shader.ts): the credit that says where it came from, and the page around a drawing.
    Loaded with those, never with a page's start. */
-import { type Effect, effectAddressParts } from "./effect.ts";
+import { type Effect, type EffectFinish, effectAddressParts } from "./effect.ts";
 
 /** The credit a shader's text or page starts with, its lines without their comment marks: the seed, the address it
     was taken from where there is one, and what it is. */
 export const shaderCreditLines = (seed: string, address: string | null, what: string): string[] =>
   address ? [`grabient ${seed}`, address, what] : [`grabient ${seed}`, what];
 
-/** An effect's credit: the seed, the effect's address where an origin is given, and what the text is. */
+/** An effect's credit: the seed, the effect's address where an origin is given, its soft and grain among its parts,
+    and what the text is, saying the finish where it has one. */
 export const effectShaderCredit = (
   seed: string,
   effect: Effect,
   angle: number,
   what: string,
-  origin?: string
+  origin?: string,
+  finish: EffectFinish = {}
 ): string[] =>
   shaderCreditLines(
     seed,
     origin
-      ? `${origin.replace(/\/$/, "")}/${seed}?${effectAddressParts(effect, angle).join("&")}`
+      ? `${origin.replace(/\/$/, "")}/${seed}?${effectAddressParts(effect, angle, { ...(finish.soft ? { soft: finish.soft } : {}), ...(finish.grain ? { grain: finish.grain } : {}) }).join("&")}`
       : null,
-    what
+    `${what}${finish.soft ? `, soft ${finish.soft}` : ""}${finish.grain ? `, grain ${finish.grain}` : ""}`
   );
 
 /** A script element of a page: a shader's source (`id` names it, `type` says its language) written inline, or code the
