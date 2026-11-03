@@ -4,7 +4,8 @@ import { live } from "./live.ts";
 
 /* The editor's MP4 while an effect plays: Download makes the clip in the reader's browser, in a worker, by the module
    the Worker draws clips with, so the file is the clip the server answers at the address Copy link copies; the chip
-   says how far along it is, and a press on it stops it. Copy hands over no clip. */
+   shows how far along it is, and a press on it stops it, as the stage showing another clip does. Copy hands over no
+   clip. */
 
 const SEED = "kWnCIwwC47igfOklkTlShq44";
 
@@ -61,7 +62,7 @@ test("Download MP4 makes the effect's clip in the browser, a file that plays at 
   expect(Buffer.from(await served.body()).equals(bytes)).toBe(true);
 });
 
-test("a press on an MP4 being made stops it: its worker goes, no file comes, and its chip downloads again", async ({
+test("an MP4 being made stops at a press on it, or once the stage shows another clip: its worker goes, no file comes, and its chip downloads again", async ({
   page
 }) => {
   const files: string[] = [];
@@ -70,14 +71,25 @@ test("a press on an MP4 being made stops it: its worker goes, no file comes, and
   await page.goto(`/${SEED}?style=rosette`);
   await live(page);
   await page.getByRole("button", { name: "Copying. Switch to download" }).first().click();
-  await page.getByRole("button", { name: "Download MP4" }).click();
+  const download = page.getByRole("button", { name: "Download MP4" });
   const making = page.getByRole("button", { name: /^Making MP4, \d+%\. Stop$/ });
-  await expect(making).toBeVisible();
   /* the clip's own worker, beside any other the page runs */
   const clips = () => page.workers().filter(worker => /video-worker/.test(worker.url())).length;
+  await download.click();
+  await expect(making).toBeVisible();
   await expect.poll(clips).toBe(1);
   await making.click();
-  await expect(page.getByRole("button", { name: "Download MP4" })).toBeVisible();
+  await expect(download).toBeVisible();
+  await expect.poll(clips).toBe(0);
+
+  /* another palette on the stage, as a random one is: the clip pressed for is gone from it */
+  await download.click();
+  await expect(making).toBeVisible();
+  await expect.poll(clips).toBe(1);
+  const before = new URL(page.url()).pathname;
+  await page.keyboard.press("b");
+  await expect.poll(() => new URL(page.url()).pathname).not.toBe(before);
+  await expect(download).toBeVisible();
   await expect.poll(clips).toBe(0);
   await page.waitForTimeout(500);
   expect(files).toEqual([]);

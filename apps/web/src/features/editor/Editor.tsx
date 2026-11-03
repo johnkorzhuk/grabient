@@ -754,12 +754,25 @@ function Stage(
       () => props.used("download", f),
       () => toast(t("Couldn't download the file."))
     );
-  /* The effect's MP4, made in this browser as it is asked for, of the palette as the press found it: its making
-     (video-download.ts) and its chip's ring (MakingIcon.tsx) come with the first press, never with the page. The chip
-     shows how far along it is, and a press on it while it is made stops it, as the stage going does. */
+  /* The effect's MP4, made in this browser as it is asked for: its making (video-download.ts) and its chip's ring
+     (MakingIcon.tsx) come with the first press, never with the page. The chip shows how far along it is, and a press
+     on it while it is made stops it, as the stage going does. A making is of the clip on the stage as the press found
+     it (its address), so the stage showing another (an edit, another effect, a gradient) stops it too: the ring is only
+     ever the stage's own clip's, and no file comes of a clip that is gone from it. */
   const [making, setMaking] = createSignal<StripMaking>();
+  const [makingOf, setMakingOf] = createSignal<string>();
   let stopMaking: AbortController | null = null;
   onCleanup(() => stopMaking?.abort());
+  const clipNow = () => {
+    const p = props.taken(props.stage);
+    return p.effect ? clipAddress(p, p.effect) : undefined;
+  };
+  createEffect(
+    () => makingOf() !== undefined && clipNow() !== makingOf(),
+    strayed => {
+      if (strayed) stopMaking?.abort();
+    }
+  );
   const downloadClip = async (): Promise<boolean> => {
     if (stopMaking) {
       stopMaking.abort();
@@ -768,8 +781,10 @@ function Stage(
     const p = props.taken(props.stage);
     const effect = p.effect;
     if (!effect) return false;
+    const address = clipAddress(p, effect);
     const stop = new AbortController();
     stopMaking = stop;
+    setMakingOf(address);
     try {
       const [clips, ring] = await (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
@@ -785,7 +800,7 @@ function Stage(
       };
       shown(0);
       await clips.downloadClip(
-        { address: clipAddress(p, effect), name: `grabient-${p.seed}-${effect.kind}.mp4` },
+        { address, name: `grabient-${p.seed}-${effect.kind}.mp4` },
         shown,
         stop.signal
       );
@@ -803,6 +818,7 @@ function Stage(
       if (stopMaking === stop) {
         stopMaking = null;
         setMaking(undefined);
+        setMakingOf(undefined);
       }
     }
   };
