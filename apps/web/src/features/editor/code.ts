@@ -307,7 +307,7 @@ export function codeSources(
         const what = soft
           ? t("The stops blurred along the line, at their places, blended in sRGB.")
           : t("Keyframes, spline and OKLCH to sRGB conversion.");
-        return v.grain ? `${what} ${t("Then its grain, a speck a pixel.")}` : what;
+        return v.grain ? `${what} ${t("Then its grain, a speck a CSS pixel.")}` : what;
       }
     },
     {

@@ -194,7 +194,7 @@ export function effectSources(
           : finish.soft
             ? t("Then its soft, as the site blurs it.")
             : finish.grain
-              ? t("Then its grain, a speck a pixel.")
+              ? t("Then its grain, a speck a CSS pixel.")
               : "";
       return after ? `${passes} ${after}` : passes;
     }

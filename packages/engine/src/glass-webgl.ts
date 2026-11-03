@@ -102,7 +102,7 @@ function drawing() {
     fOrigin: at(pFinal, "uOrigin"),
     fOffset: at(pFinal, "uOffset"),
     fInv: at(pFinal, "uInv"),
-    fScale: at(pFinal, "uScale"),${grain ? '\n    fGrain: at(pFinal, "grainTile"),' : ""}
+    fScale: at(pFinal, "uScale"),${grain ? '\n    fGrain: at(pFinal, "grainTile"),\n    fGrainScale: at(pFinal, "grainScale"),' : ""}
     kRibs: at(pBake, "uRibs"),
     kCount: at(pBake, "uCount"),
     kStops: at(pBake, "uStops"),
@@ -148,7 +148,7 @@ function drawing() {
   const ribsTex = texture(gl.NEAREST);
   const bakeFbo = gl.createFramebuffer();
   const fieldTex = [texture(gl.LINEAR), texture(gl.LINEAR)];
-  const fbo = [gl.createFramebuffer(), gl.createFramebuffer()];${finish ? "\n  const finish = finishing(gl);" : ""}${grain ? "\n  const grainTex = grainTexture(gl);" : ""}
+  const fbo = [gl.createFramebuffer(), gl.createFramebuffer()];${finish ? "\n  const finish = finishing(gl);" : ""}${grain ? "\n  const grainTex = grainTexture(gl);\n  let grainScale = 1;" : ""}
 
   let geo = null;
   let win = null;
@@ -180,7 +180,7 @@ function drawing() {
   };
 
   // The design covering the canvas, the textures its size, and the rib map baked with the next frame.
-  const layout = (w, h) => {${finish ? "\n    finish.layout(w, h);" : ""}
+  const layout = (w, h) => {${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : ""}${grain ? "\n    grainScale = grainScaleOf(w);" : ""}
     const next = cover(w, h, ANGLE, SHAPE);
     if (
       geo &&
@@ -319,7 +319,7 @@ function drawing() {
     gl.uniform1i(U.fMap, 0);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, fieldTex[0]);
-    gl.uniform1i(U.fField, 1);${grain ? "\n    gl.activeTexture(gl.TEXTURE2);\n    gl.bindTexture(gl.TEXTURE_2D, grainTex);\n    gl.uniform1i(U.fGrain, 2);" : ""}
+    gl.uniform1i(U.fField, 1);${grain ? "\n    gl.activeTexture(gl.TEXTURE2);\n    gl.bindTexture(gl.TEXTURE_2D, grainTex);\n    gl.uniform1i(U.fGrain, 2);\n    gl.uniform1f(U.fGrainScale, grainScale);" : ""}
     gl.uniform1f(U.fH, win.h);
     gl.uniform2f(U.fOrigin, region.x, region.y);
     gl.uniform2f(U.fOffset, win.x, win.y);
@@ -363,7 +363,7 @@ ${GLASS_BLUR_FS}
 
 // ==== Pass 3: blur down ==== target: the first field texture, fw x fh, RGBA8, the shader of Pass 2 with uStep (0, 1 / fh) | inputs: Pass 2 (linear, clamp to edge)
 
-// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (nearest, clamp to edge), Pass 3 (linear, clamp to edge)${grain ? ", the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch)" : ""}
+// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (nearest, clamp to edge), Pass 3 (linear, clamp to edge)${grain ? ", the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch) and its scale (the canvas's pixels to a CSS pixel)" : ""}
 ${grain ? GLASS_FINAL_GRAIN_FS : GLASS_FINAL_FS}
 
 // ==== Bake: rib map ==== target: W x H, RGBA8, once for each size, angle and shape, before the frame that needs it | inputs: the ribs, a row each (RGBA32F, nearest)

@@ -24,7 +24,8 @@ import {
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 import { DEFAULT_ANGLE } from "./view.ts";
 
-/* the blob's last pass with the grain over the canvas's bytes, for a grain with no soft: the tile at binding 4 */
+/* the blob's last pass with the grain over the canvas's bytes, for a grain with no soft: the tile at binding 4, its
+   scale at 5 */
 const BLOB_FINAL_GRAIN_WGSL = grainedWgsl(
   BLOB_WGSL.final,
   4,
@@ -54,7 +55,7 @@ const wgslSections = (grain: boolean): readonly [header: string, module: string]
     BLOB_WGSL.blur
   ],
   [
-    `Pass 4: canvas ==== target: the canvas, W x H, premultiplied alpha | inputs: the melt after pass 3 (linear, clamp to edge), the noise (textureLoad)${grain ? ", the grain's tile (binding 4: 128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad)" : ""}`,
+    `Pass 4: canvas ==== target: the canvas, W x H, premultiplied alpha | inputs: the melt after pass 3 (linear, clamp to edge), the noise (textureLoad)${grain ? ", the grain's tile (binding 4: 128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad) and its scale (binding 5: the canvas's pixels to a CSS pixel)" : ""}`,
     grain ? BLOB_FINAL_GRAIN_WGSL : BLOB_WGSL.final
   ]
 ];
@@ -127,7 +128,7 @@ function play() {
   let melt = [];
   let noise = null;
   let groups = null;
-  let baked = false;${finish ? "\n  let finish = null;" : ""}${grain ? "\n  let grainTex = null;" : ""}
+  let baked = false;${finish ? "\n  let finish = null;" : ""}${grain ? "\n  let grainTex = null;\n  let grainScale = null;" : ""}
   const make = () => {
     context.configure({ device: gpu, format, alphaMode: "premultiplied" });
     dots = pipeline("dots", "rgba16float", {
@@ -162,7 +163,7 @@ function play() {
     melt = [];
     noise = null;
     groups = null;
-    baked = false;${finish ? "\n    finish = finishing(gpu, format);" : ""}${grain ? "\n    grainTex = grainTexture(gpu);" : ""}
+    baked = false;${finish ? "\n    finish = finishing(gpu, format);" : ""}${grain ? "\n    grainTex = grainTexture(gpu);\n    grainScale = grainScaleBuffer(gpu);" : ""}
   };
   make();
 
@@ -180,7 +181,7 @@ function play() {
     const css = canvas.getBoundingClientRect();
     const W = Math.max(1, css.width);
     const H = Math.max(1, css.height);
-    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);${finish ? "\n    finish.layout(cw, ch);" : ""}
+    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);${finish ? "\n    finish.layout(cw, ch, grainScaleOf(cw));" : ""}${grain ? "\n    gpu.queue.writeBuffer(grainScale, 0, new Float32Array([grainScaleOf(cw)]));" : ""}
     if (canvas.width !== cw || canvas.height !== ch) {
       canvas.width = cw;
       canvas.height = ch;
@@ -234,7 +235,7 @@ function play() {
       across: group(blur, [acrossU, melt[0].createView()]),
       down: group(blur, [downU, melt[1].createView()]),
       bake: group(bake, [bakeU, latticeTex.createView(), gradientTex.createView()]),
-      final: group(final, [finalU, melt[0].createView(), linear, noise.createView()${grain ? ", grainTex.createView()" : ""}])
+      final: group(final, [finalU, melt[0].createView(), linear, noise.createView()${grain ? ", grainTex.createView(), { buffer: grainScale }" : ""}])
     };
   };
 

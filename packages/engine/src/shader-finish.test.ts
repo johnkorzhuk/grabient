@@ -9,11 +9,14 @@ import type { Palette } from "./palette.ts";
 import {
   FINISH_GLSL_SECTIONS,
   FINISH_MATH_JS,
+  FINISH_WEBGL_JS,
   FINISH_WEBGL_SHADERS,
+  FINISH_WEBGPU_JS,
   FINISH_WEBGPU_SHADERS,
   FINISH_WGSL_SECTIONS,
   finishSettingsJs,
   GRAIN_TILE_GLSL,
+  GRAIN_TILE_JS,
   grainTileWgsl
 } from "./shader-finish.ts";
 import { effectSoftShare } from "./view.ts";
@@ -101,6 +104,55 @@ test("the soft's plan draws on texels a power of two wide, the sigma there 2 to 
   ).toBeNull();
 });
 
+test("a speck spans the canvas's pixels to a CSS pixel, which every page hands its finish", () => {
+  /* the page's own helper, on a canvas 400 CSS pixels wide */
+  const scaleOf = new Function("canvas", `${GRAIN_TILE_JS}\nreturn grainScaleOf;`)({
+    getBoundingClientRect: () => ({ width: 400 })
+  }) as (w: number) => number;
+  expect(scaleOf(800)).toBe(2);
+  expect(scaleOf(600)).toBe(1.5);
+  /* the speck the pixel shows, nearest, as the site's tile of CSS pixels */
+  expect(GRAIN_TILE_GLSL).toContain("uniform float grainScale;");
+  expect(GRAIN_TILE_GLSL).toContain(
+    "texelFetch(grainTile, ivec2(floor((vec2(p) + 0.5) / max(grainScale, 1.0))) & 127, 0)"
+  );
+  expect(grainTileWgsl(3)).toContain("@group(0) @binding(4) var<uniform> grainScale: f32;");
+  const glass = effectOf("style=glass&angle=40");
+  const blob = effectOf("style=blob&bg=%23151315");
+  const soft = { soft: 40, grain: 30, underlay: effectUnderlay(P, glass, 40, 40) };
+  expect(glassShader("webgl", P, glass, 40, SEED, undefined, soft)).toContain(
+    "finish.layout(w, h, grainScaleOf(w));"
+  );
+  expect(glassShader("webgpu", P, glass, 40, SEED, undefined, soft)).toContain(
+    "finish.layout(w, h, grainScaleOf(w));"
+  );
+  const blobSoft = { soft: 40, grain: 30, underlay: effectUnderlay(P, blob, 90, 40) };
+  expect(blobShader("webgl", P, blob, SEED, undefined, blobSoft)).toContain(
+    "finish.layout(w, h, grainScaleOf(w));"
+  );
+  expect(blobShader("webgpu", P, blob, SEED, undefined, blobSoft)).toContain(
+    "finish.layout(cw, ch, grainScaleOf(cw));"
+  );
+  expect(FINISH_WEBGL_JS).toContain("gl.uniform1f(U.final.grainScale, scale);");
+  expect(FINISH_WEBGPU_JS).toContain(
+    "device.queue.writeBuffer(uScale, 0, new Float32Array([cssScale]));"
+  );
+  /* a grain alone sets it in the effect's own last pass */
+  const grain = { grain: 30 };
+  expect(glassShader("webgl", P, glass, 40, SEED, undefined, grain)).toContain(
+    "gl.uniform1f(U.fGrainScale, grainScale);"
+  );
+  expect(glassShader("webgpu", P, glass, 40, SEED, undefined, grain)).toContain(
+    "device.queue.writeBuffer(uGrainScale, 0, new Float32Array([grainScaleOf(w)]));"
+  );
+  expect(blobShader("webgl", P, blob, SEED, undefined, grain)).toContain(
+    "gl.uniform1f(u.grainScale, grainScale);"
+  );
+  expect(blobShader("webgpu", P, blob, SEED, undefined, grain)).toContain(
+    "gpu.queue.writeBuffer(grainScale, 0, new Float32Array([grainScaleOf(cw)]));"
+  );
+});
+
 test("a page's finish settings name the soft as its share, the gradient under it at its places, and the grain", () => {
   const glass = effectOf("style=glass&angle=40");
   const underlay = effectUnderlay(P, glass, 40, 50)!;
@@ -185,7 +237,7 @@ test("a grained effect with no soft lays its grain in its own last pass, from a 
   );
   const webgpu = glassShader("webgpu", P, glass, 40, SEED, undefined, finish);
   expect(webgpu).toContain("const grainTex = grainTexture(device);");
-  expect(webgpu).toContain("{ buffer: uGlass }, grainTex.createView()]");
+  expect(webgpu).toContain("{ buffer: uGlass }, grainTex.createView(), { buffer: uGrainScale }]");
   expect(webgpu).toContain('const pFinal = pipeline("glass", format, QUAD);');
   expect(glassShader("wgsl", P, glass, 40, SEED, undefined, finish)).toContain(grainTileWgsl(4));
   expect(blobShader("webgl", P, blob, SEED, undefined, finish)).toContain(
@@ -195,7 +247,7 @@ test("a grained effect with no soft lays its grain in its own last pass, from a 
     "color = grainOver(floor((s + ground * (1.0 - s.a)) * 255.0 + 0.5), p) / 255.0;"
   );
   expect(blobShader("webgpu", P, blob, SEED, undefined, finish)).toContain(
-    "grainTex.createView()]"
+    "grainTex.createView(), { buffer: grainScale }]"
   );
   expect(blobShader("wgsl", P, blob, SEED, undefined, finish)).toContain(
     "return grainOver(floor((s + uni.ground * (1.0 - s.a)) * 255.0 + 0.5), p) / 255.0;"

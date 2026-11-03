@@ -5287,8 +5287,8 @@
       "apps/web/src/features/account/settings/Appearance.tsx:153"
     ]
   },
-  "Then its grain, a speck a pixel.": {
-    "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per pixel.",
+  "Then its grain, a speck a CSS pixel.": {
+    "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
     "refs": [
       "apps/web/src/features/editor/code.ts:310",
       "apps/web/src/features/editor/effect-sources.ts:197"

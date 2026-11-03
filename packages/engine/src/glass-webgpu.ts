@@ -28,7 +28,7 @@ import {
 } from "./shader-finish.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 
-/* the glass's last pass with the grain over its bytes, for a grain with no soft: the tile at binding 4 */
+/* the glass's last pass with the grain over its bytes, for a grain with no soft: the tile at binding 4, its scale at 5 */
 const GLASS_FINAL_GRAIN_WGSL = grainedWgsl(
   GLASS_FINAL_WGSL,
   4,
@@ -104,7 +104,7 @@ function drawing(device) {
   const uDown = buffer(112, GPUBufferUsage.UNIFORM);
   const uGlass = buffer(32, GPUBufferUsage.UNIFORM);
   const uBake = buffer(576, GPUBufferUsage.UNIFORM);
-  const bilinear = device.createSampler({ magFilter: "linear", minFilter: "linear" });${grain ? "\n  const grainTex = grainTexture(device);" : ""}
+  const bilinear = device.createSampler({ magFilter: "linear", minFilter: "linear" });${grain ? "\n  const grainTex = grainTexture(device);\n  const uGrainScale = grainScaleBuffer(device);" : ""}
   const target = (w, h) =>
     device.createTexture({
       size: [w, h],
@@ -150,7 +150,7 @@ function drawing(device) {
   };
 
   // The design covering the canvas, the textures its size, and the rib map baked with the next frame.
-  const layout = (w, h) => {${finish ? "\n    finish.layout(w, h);" : ""}
+  const layout = (w, h) => {${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : ""}${grain ? "\n    device.queue.writeBuffer(uGrainScale, 0, new Float32Array([grainScaleOf(w)]));" : ""}
     const next = cover(w, h, ANGLE, SHAPE);
     if (
       geo &&
@@ -196,7 +196,7 @@ function drawing(device) {
       disc: group(pDisc, [{ buffer: uField }]),
       across: group(pBlur, [views.field[0], bilinear, { buffer: uAcross }]),
       down: group(pBlur, [views.field[1], bilinear, { buffer: uDown }]),
-      glass: group(pFinal, [views.map, views.field[0], bilinear, { buffer: uGlass }${grain ? ", grainTex.createView()" : ""}]),
+      glass: group(pFinal, [views.map, views.field[0], bilinear, { buffer: uGlass }${grain ? ", grainTex.createView(), { buffer: uGrainScale }" : ""}]),
       views
     };
     const { region } = geo;
@@ -323,7 +323,7 @@ const wgslSections = (
 ${GLASS_DISC_WGSL}
 // ==== Passes 2 and 3: blur ==== target: across into a second field texture, then down into the first, rgba8unorm, step (1 / fw, 0) then (0, 1 / fh) | inputs: the field before (linear, clamp to edge)
 ${GLASS_BLUR_WGSL}
-// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (textureLoad), Pass 3 (linear, clamp to edge)${grain ? ", the grain's tile (binding 4: 128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad)" : ""}
+// ==== Pass 4: glass ==== target: the canvas, W x H | inputs: the rib map (textureLoad), Pass 3 (linear, clamp to edge)${grain ? ", the grain's tile (binding 4: 128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad) and its scale (binding 5: the canvas's pixels to a CSS pixel)" : ""}
 ${grain ? GLASS_FINAL_GRAIN_WGSL : GLASS_FINAL_WGSL}
 // ==== Bake: rib map ==== target: W x H, rgba8unorm, once for each size, angle and shape, before the frame that needs it | inputs: the ribs, a row each (a storage buffer)
 ${GLASS_BAKE_WGSL}`;

@@ -5,8 +5,8 @@
    Ottosson's (see NOTICE). The WebGL and WebGPU kinds are pages that run the GLSL and the WGSL as written here
    (shader-page.ts); the kinds themselves are in shader-kinds.ts.
    A soft view draws its stops as its picture does (soft.ts drawnStops: blurred along its family's line, each at its
-   place), which the caller hands over as the CSS tab takes them, and a grained one lays the grain over its bytes, a
-   speck a pixel from the top left, as a file bakes it (shader-finish.ts). */
+   place), which the caller hands over as the CSS tab takes them, and a grained one lays the grain over its bytes from
+   the top left, a speck a CSS pixel as the site lays it (shader-grain.ts). */
 import { hexBytes } from "./color.ts";
 import type { Stop } from "./curve.ts";
 import { DEG } from "./math.ts";
@@ -360,8 +360,8 @@ ${gradT}
 }
 
 /* the grain over the picture's bytes, rounded as the canvas rounds them (to the nearest, a half to the even, as the
-   glass's Shadertoy found SwiftShader's 8-bit targets round), a speck a pixel from its top left, as a file bakes it */
-const GRAIN_LINE = "  // The grain over the picture's bytes, a speck a pixel from its top left.";
+   glass's Shadertoy found SwiftShader's 8-bit targets round), from its top left, as a file bakes it */
+const GRAIN_LINE = "  // The grain over the picture's bytes, from its top left.";
 function wgslText(
   P: Palette,
   view: ShaderView,
@@ -404,7 +404,10 @@ export function shaderText(
   const head = header(seed, view, steps, origin);
   if (kind === "wgsl") return wgslText(P, view, steps, head, finish);
   const body = finish.drawn ? glslSoftBody(view, finish.drawn) : glslBody(P, view, steps);
-  const grain = finish.grain ? `\n\n${grainGlsl(finish.grain)}` : "";
+  /* the GLSL's page sets the grain's scale; Shadertoy's reader does */
+  const grain = finish.grain
+    ? `\n\n${grainGlsl(finish.grain, kind === "glsl" ? "uniform" : "setting")}`
+    : "";
   /* the color at the pixel, and the grain over its bytes where there is one */
   const color = (coord: string, size: string) =>
     finish.grain

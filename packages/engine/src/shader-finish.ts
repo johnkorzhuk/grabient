@@ -5,8 +5,9 @@
    Chromium's own blur halves a picture so before it blurs and scales back up), reading clear past the picture's
    edges, and one pass over the canvas lays it over the palette's gradient under it (fx-finish.ts effectUnderlay;
    clear where there is none) and the grain over all, from a tile the page's JavaScript makes exactly as grain.ts
-   does. A grain with no soft needs no pass of its own: it goes into the effect's own last pass (grainedGlsl,
-   grainedWgsl). The grain a single shader computes itself is shader-grain.ts's.
+   does, a speck a CSS pixel as the site lays it (grainScale, the canvas's pixels to a CSS pixel). A grain with no soft
+   needs no pass of its own: it goes into the effect's own last pass (grainedGlsl, grainedWgsl). The grain a single
+   shader computes itself is shader-grain.ts's.
    The effects' writers load this module with their own, never with a page's start. */
 import type { Finish, Underlay } from "./fx-finish.ts";
 import { GRAIN_FULL } from "./grain.ts";
@@ -20,12 +21,15 @@ export interface EffectShaderFinish extends Finish {
 /** Whether an effect's shader code has a finish to draw. */
 export const finished = (finish: Finish | undefined): boolean => !!(finish?.soft || finish?.grain);
 
-/** The grain from its tile over a picture's bytes in GLSL: \`grainOver(c, p)\` lays the speck at p (from the picture's
-    top left) over c (premultiplied bytes, 0 to 255), as a file bakes it: straight where the picture is clear or
-    translucent, so a speck there stands at its own alpha. The tile is the page's (GRAIN_TILE_JS grainTile). */
+/** The grain from its tile over a picture's bytes in GLSL: \`grainOver(c, p)\` lays the speck the pixel p (from the
+    picture's top left) shows over c (premultiplied bytes, 0 to 255), as a file bakes it: straight where the picture is
+    clear or translucent, so a speck there stands at its own alpha. A speck spans grainScale pixels, the canvas's
+    pixels to a CSS pixel, as the site lays its tile of CSS pixels. The tile is the page's (GRAIN_TILE_JS grainTile). */
 export const GRAIN_TILE_GLSL = `uniform highp usampler2D grainTile;  // the grain's tile, 128 x 128: a speck's alpha, white in its lowest bit
+uniform float grainScale;            // the canvas's pixels a speck spans, its pixels to a CSS pixel; under 1, a pixel
 vec4 grainOver(vec4 c, ivec2 p) {
-  uint s = texelFetch(grainTile, p & 127, 0).r;
+  // the speck the pixel shows, as a picture's pixels show a tile of CSS pixels, nearest
+  uint s = texelFetch(grainTile, ivec2(floor((vec2(p) + 0.5) / max(grainScale, 1.0))) & 127, 0).r;
   float a = float(s & 254u);
   float v = (s & 1u) == 1u ? 255.0 : 0.0;
   if (a == 0.0) return c;
@@ -39,12 +43,14 @@ vec4 grainOver(vec4 c, ivec2 p) {
   float alpha = floor(oa * 255.0 + 0.5);
   return vec4(rgb * (alpha / 255.0), alpha);
 }`;
-/** The same in WGSL, its tile at \`binding\` of group 0. */
+/** The same in WGSL, its tile at \`binding\` of group 0 and its scale at the next. */
 export const grainTileWgsl = (
   binding: number
 ) => `@group(0) @binding(${binding}) var grainTile: texture_2d<u32>;  // the grain's tile, 128 x 128: a speck's alpha, white in its lowest bit
+@group(0) @binding(${binding + 1}) var<uniform> grainScale: f32;  // the canvas's pixels a speck spans, its pixels to a CSS pixel; under 1, a pixel
 fn grainOver(c: vec4f, p: vec2i) -> vec4f {
-  let s = textureLoad(grainTile, p & vec2i(127), 0).r;
+  // the speck the pixel shows, as a picture's pixels show a tile of CSS pixels, nearest
+  let s = textureLoad(grainTile, vec2i(floor((vec2f(p) + 0.5) / max(grainScale, 1.0))) & vec2i(127), 0).r;
   let a = f32(s & 254u);
   let v = select(0.0, 255.0, (s & 1u) == 1u);
   if (a == 0.0) {
@@ -65,7 +71,7 @@ fn grainOver(c: vec4f, p: vec2i) -> vec4f {
 
 /** An effect's own last fragment shader with the grain from its tile over what it draws, for a grained effect with no
     soft, which so needs no pass of its own: its line \`from\` replaced by \`to\` (which lays grainOver over its bytes),
-    the tile and grainOver before its main. Throws where the shader is not the one it was written for. */
+    the tile, its scale and grainOver before its main. Throws where the shader is not the one it was written for. */
 export function grainedGlsl(fs: string, from: string, to: string): string {
   if (
     !fs.includes(from) ||
@@ -78,7 +84,7 @@ export function grainedGlsl(fs: string, from: string, to: string): string {
     : fs.replace("precision highp float;", "precision highp float;\nprecision highp int;");
   return ints.replace("\nvoid main() {", `\n${GRAIN_TILE_GLSL}\nvoid main() {`).replace(from, to);
 }
-/** The same for a WGSL module, its tile at \`binding\`, before its fragment stage. */
+/** The same for a WGSL module, its tile at \`binding\` and its scale at the next, before its fragment stage. */
 export function grainedWgsl(module: string, binding: number, from: string, to: string): string {
   if (!module.includes(from) || !module.includes("\n@fragment"))
     throw new Error("grainedWgsl: the module is not the one it was written for");
@@ -240,8 +246,8 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
 @group(0) @binding(0) var frame: texture_2d<f32>;
 @group(0) @binding(1) var soft: texture_2d<f32>;
 @group(0) @binding(2) var linear: sampler;
-@group(0) @binding(4) var<uniform> fin: Finish;
 ${grainTileWgsl(3)}
+@group(0) @binding(5) var<uniform> fin: Finish;
 ${WGSL_FULL}
 fn underAt(t: f32) -> vec3f {
   if (t <= fin.under[0].a) {
@@ -294,7 +300,7 @@ export function finishSettingsJs(finish: EffectShaderFinish, angle: string): str
     : [];
   return `// The finish, as the site lays it over the picture: the soft, a blur whose sigma is SOFT of the canvas's longer side (0
 // for none), over the gradient under its edges (UNDER: each stop's color and its place along the line, at
-// UNDER_ANGLE; none for none); and the grain, 1 to 100 (0 for none), a speck a pixel.
+// UNDER_ANGLE; none for none); and the grain, 1 to 100 (0 for none), a speck a CSS pixel.
 const SOFT = ${share};
 const UNDER = [${stops.join(",")}${stops.length ? "\n" : ""}];
 const UNDER_ANGLE = ${angle};
@@ -321,11 +327,16 @@ const grainTile = grain => {
       tile[y * 128 + x] = alpha | (g > 0 ? 1 : 0);
     }
   return tile;
+};
+// The canvas's pixels to a CSS pixel, which a speck spans, as the site's speck is a CSS pixel: w of them across it.
+const grainScaleOf = w => {
+  const css = canvas.getBoundingClientRect().width;
+  return css > 0 ? w / css : 1;
 };`;
 
 /** A grained effect's settings with no soft, after the effect's own. */
 export const grainSettingsJs = (grain: number): string =>
-  `// The grain, as the site lays it over the picture: 1 to 100 (0 for none), a speck a pixel.\nconst GRAIN = ${grain};`;
+  `// The grain, as the site lays it over the picture: 1 to 100 (0 for none), a speck a CSS pixel.\nconst GRAIN = ${grain};`;
 /** Whether an effect's shader code lays its grain in its own last pass: a grain with no soft. */
 export const grainOnly = (finish: Finish | undefined): boolean => !!finish?.grain && !finish.soft;
 
@@ -393,8 +404,8 @@ const grainTexture = gl => {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, 128, 128, 0, gl.RED_INTEGER, gl.UNSIGNED_BYTE, grainTile(GRAIN));
   return t;
 };`;
-/** The same for a WebGPU page: \`grainTexture(device)\`. */
-export const GRAIN_WEBGPU_JS = `// The grain's tile as an integer texture, a byte a speck, for the last pass to read.
+/** The same for a WebGPU page: \`grainTexture(device)\`, and \`grainScaleBuffer(device)\` for its scale. */
+export const GRAIN_WEBGPU_JS = `// The grain's tile as an integer texture, a byte a speck, and a buffer for its scale, for the last pass to read.
 const grainTexture = device => {
   const t = device.createTexture({
     size: [128, 128],
@@ -403,12 +414,14 @@ const grainTexture = device => {
   });
   device.queue.writeTexture({ texture: t }, grainTile(GRAIN), { bytesPerRow: 128 }, [128, 128]);
   return t;
-};`;
+};
+const grainScaleBuffer = device =>
+  device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });`;
 
 /** The finish in a WebGL 2 page: \`finishing(gl)\` makes its programs and textures on a context (again on one given
-    back) and gives the framebuffer the effect draws its last pass into, \`layout(w, h)\` at each size and \`draw()\`,
-    which lays the finish over the canvas. The page's shaders carry the finish's under the ids finish-vs,
-    finish-down-fs, finish-blur-fs and finish-fs. */
+    back) and gives the framebuffer the effect draws its last pass into, \`layout(w, h, scale)\` at each size (scale
+    the canvas's pixels to a CSS pixel, which a speck spans) and \`draw()\`, which lays the finish over the canvas. The
+    page's shaders carry the finish's under the ids finish-vs, finish-down-fs, finish-blur-fs and finish-fs. */
 export const FINISH_WEBGL_JS = `// The finish over the canvas: the effect's last pass draws into \`frame\`; draw() blurs it by the soft on its grid,
 // lays it over the gradient under it, and the grain over all.
 function finishing(gl) {
@@ -435,7 +448,7 @@ function finishing(gl) {
   const U = {
     down: at(pDown, ["source", "corner", "factor"]),
     blur: at(pBlur, ["source", "along", "taps", "pairs"]),
-    final: at(pFinal, ["frame", "soft", "grainTile", "softened", "grid", "canvas", "unders", "under", "line"])
+    final: at(pFinal, ["frame", "soft", "grainTile", "grainScale", "softened", "grid", "canvas", "unders", "under", "line"])
   };
   const texture = filter => {
     const t = gl.createTexture();
@@ -460,9 +473,11 @@ function finishing(gl) {
   let size = null;
   let plan = null;
   let line = [0, 0];
+  let scale = 1;
 
   // the frame's texture at the canvas's size, and the soft's grid for it
-  const layout = (w, h) => {
+  const layout = (w, h, cssScale) => {
+    scale = cssScale;
     if (size && size.w === w && size.h === h) return;
     size = { w, h };
     gl.bindTexture(gl.TEXTURE_2D, frameTex);
@@ -535,6 +550,7 @@ function finishing(gl) {
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, grainTex);
     gl.uniform1i(U.final.grainTile, 2);
+    gl.uniform1f(U.final.grainScale, scale);
     gl.uniform1i(U.final.softened, plan ? 1 : 0);
     gl.uniform3f(U.final.grid, corner[0], corner[1], plan ? plan.t : 1);
     gl.uniform2f(U.final.canvas, w, h);
@@ -548,9 +564,9 @@ function finishing(gl) {
 }`;
 
 /** The finish in a WebGPU page: \`finishing(device, format)\` makes its pipelines and textures on a device (again on a
-    new one), \`layout(w, h)\` at each size gives the view the effect draws its last pass into, and \`draw(encoder,
-    canvasView)\` lays the finish over the canvas. The page's modules carry the finish's under the ids finish-down,
-    finish-blur and finish. */
+    new one), \`layout(w, h, scale)\` at each size (scale the canvas's pixels to a CSS pixel, which a speck spans)
+    gives the view the effect draws its last pass into, and \`draw(encoder, canvasView)\` lays the finish over the
+    canvas. The page's modules carry the finish's under the ids finish-down, finish-blur and finish. */
 export const FINISH_WEBGPU_JS = `// The finish over the canvas: the effect's last pass draws into finish.view; draw(encoder, canvas) blurs it by the soft
 // on its grid, lays it over the gradient under it, and the grain over all.
 function finishing(device, format) {
@@ -572,6 +588,7 @@ function finishing(device, format) {
   const uRest = uniforms(16);
   const uAcross = uniforms(128);
   const uAlong = uniforms(128);
+  const uScale = uniforms(16);
   const uFinal = uniforms(1072);
   const linear = device.createSampler({ magFilter: "linear", minFilter: "linear" });
   const grain = device.createTexture({
@@ -600,7 +617,8 @@ function finishing(device, format) {
   let groups = null;
 
   // the frame's texture at the canvas's size, the soft's grid for it, and their uniforms
-  const layout = (w, h) => {
+  const layout = (w, h, cssScale) => {
+    device.queue.writeBuffer(uScale, 0, new Float32Array([cssScale]));
     if (size && size.w === w && size.h === h) return;
     size = { w, h };
     frame?.destroy();
@@ -640,7 +658,14 @@ function finishing(device, format) {
       rest: level && group(pDown, [level.createView(), { buffer: uRest }]),
       across: plan && group(pBlur, [grid[0].createView(), linear, { buffer: uAcross }]),
       along: plan && group(pBlur, [grid[1].createView(), linear, { buffer: uAlong }]),
-      final: group(pFinal, [frame.createView(), grid[0].createView(), linear, grain.createView(), { buffer: uFinal }])
+      final: group(pFinal, [
+        frame.createView(),
+        grid[0].createView(),
+        linear,
+        grain.createView(),
+        { buffer: uScale },
+        { buffer: uFinal }
+      ])
     };
   };
 
@@ -683,7 +708,7 @@ ${FINISH_DOWN_FS}
 // ==== Finish 2 and 3: soft's blur across, then down ==== target: the other grid texture, the same size | inputs: the grid (linear, clamp to edge), along (1, 0) then (0, 1), a Gaussian of sigma / t texels to three sigmas (12 at most), read in pairs: the middle's weight, then each pair's offset and weight; only with a soft
 ${FINISH_BLUR_FS}
 
-// ==== Finish 4: canvas ==== target: the canvas, W x H | inputs: the frame (texelFetch), the grid after pass 3 (linear, clamp to edge), the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch), the gradient under the soft's edges
+// ==== Finish 4: canvas ==== target: the canvas, W x H | inputs: the frame (texelFetch), the grid after pass 3 (linear, clamp to edge), the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch) and its scale (the canvas's pixels to a CSS pixel), the gradient under the soft's edges
 ${FINISH_FS}
 `;
 
@@ -694,7 +719,7 @@ ${FINISH_WGSL.down}
 // ==== Finish 2 and 3: soft's blur across, then down ==== target: the other grid texture, the same size | inputs: the grid (linear, clamp to edge), along (1, 0) then (0, 1), a Gaussian of sigma / t texels to three sigmas (12 at most), read in pairs: the middle's weight, then each pair's offset and weight; only with a soft
 ${FINISH_WGSL.blur}
 
-// ==== Finish 4: canvas ==== target: the canvas, W x H | inputs: the frame (textureLoad), the grid after pass 3 (linear, clamp to edge), the grain's tile (128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad), the gradient under the soft's edges
+// ==== Finish 4: canvas ==== target: the canvas, W x H | inputs: the frame (textureLoad), the grid after pass 3 (linear, clamp to edge), the grain's tile (128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad) and its scale (the canvas's pixels to a CSS pixel), the gradient under the soft's edges
 ${FINISH_WGSL.final}
 `;
 

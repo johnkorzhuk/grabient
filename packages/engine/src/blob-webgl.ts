@@ -69,7 +69,7 @@ const glslSections = (grain: boolean): readonly [header: string, shaders: readon
     [BLOB_BLUR_FS]
   ],
   [
-    `Pass 4: canvas ==== target: the canvas, W x H, premultiplied alpha | inputs: the melt after pass 3 (linear, clamp to edge), the noise (texelFetch)${grain ? ", the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch)" : ""}`,
+    `Pass 4: canvas ==== target: the canvas, W x H, premultiplied alpha | inputs: the melt after pass 3 (linear, clamp to edge), the noise (texelFetch)${grain ? ", the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch) and its scale (the canvas's pixels to a CSS pixel)" : ""}`,
     [grain ? BLOB_FINAL_GRAIN_FS : BLOB_FINAL_FS]
   ]
 ];
@@ -137,7 +137,7 @@ function play() {
   const { lattice, gradients } = noiseTables(look.seed);
 
   // What the GPU holds, made at the start and again where a lost context comes back.
-  let dots, blur, bake, final, half, U, instances, dotsVao, fullVao, melt, noise, latticeTex, gradientTex;${finish ? "\n  let finish;" : ""}${grain ? "\n  let grainTex;" : ""}
+  let dots, blur, bake, final, half, U, instances, dotsVao, fullVao, melt, noise, latticeTex, gradientTex;${finish ? "\n  let finish;" : ""}${grain ? "\n  let grainTex;\n  let grainScale = 1;" : ""}
   let baked = false;
   const make = () => {
     dots = program("dots-vs", "dots-fs");
@@ -151,7 +151,7 @@ function play() {
       dots: at(dots, ["size"]),
       blur: at(blur, ["source", "step_by", "taps", "weights"]),
       bake: at(bake, ["lattice", "gradients", "scale", "offset", "frequency"]),
-      final: at(final, ["melt", "noise", "canvas_h", "melt_origin", "melt_texel", "region", "scatter", "frosted", "lift", "gray", "k", "ground"${grain ? ', "grainTile"' : ""}])
+      final: at(final, ["melt", "noise", "canvas_h", "melt_origin", "melt_texel", "region", "scatter", "frosted", "lift", "gray", "k", "ground"${grain ? ', "grainTile", "grainScale"' : ""}])
     };
     const quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -203,7 +203,7 @@ function play() {
     const css = canvas.getBoundingClientRect();
     const W = Math.max(1, css.width);
     const H = Math.max(1, css.height);
-    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);${finish ? "\n    finish.layout(w, h);" : ""}
+    const { kx, ky } = canvasOf(W, H, devicePixelRatio || 1, pixels);${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : ""}${grain ? "\n    grainScale = grainScaleOf(w);" : ""}
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
@@ -303,7 +303,7 @@ function play() {
     gl.uniform1i(u.melt, 0);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, noise.texture);
-    gl.uniform1i(u.noise, 1);${grain ? "\n    gl.activeTexture(gl.TEXTURE2);\n    gl.bindTexture(gl.TEXTURE_2D, grainTex);\n    gl.uniform1i(u.grainTile, 2);" : ""}
+    gl.uniform1i(u.noise, 1);${grain ? "\n    gl.activeTexture(gl.TEXTURE2);\n    gl.bindTexture(gl.TEXTURE_2D, grainTex);\n    gl.uniform1i(u.grainTile, 2);\n    gl.uniform1f(u.grainScale, grainScale);" : ""}
     gl.uniform1f(u.canvas_h, canvasSize.h);
     gl.uniform2f(u.melt_origin, meltBox.x, meltBox.y);
     gl.uniform1f(u.melt_texel, texel);

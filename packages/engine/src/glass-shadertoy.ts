@@ -879,12 +879,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   fragColor = blurTexel(iChannel1, iChannel0, fragCoord, vec2(0.0, 1.0 / float(side)), 4, 0);
 }`;
 
-/* The Image tab: the glass, and the grain over its bytes where it has one (a speck a pixel from the top left, as a
-   file bakes it: the glass's values never fall on a half, so its bytes are the canvas's own). */
+/* The Image tab: the glass, and the grain over its bytes where it has one (from the top left, as a file bakes it, a
+   speck GRAIN_SCALE pixels wide: the glass's values never fall on a half, so its bytes are the canvas's own). */
 const image = (
   grain: number
 ) => `// ==== Image ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp); iChannel2: Buffer D (filter: nearest, wrap: clamp)
-// The glass: the rib map at the pixel, the blurred field read where its displacement points, and the ribs' light.${grain ? `\n\n${grainGlsl(grain)}\n` : ""}
+// The glass: the rib map at the pixel, the blurred field read where its displacement points, and the ribs' light.${grain ? `\n\n${grainGlsl(grain, "setting")}\n` : ""}
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec4 place = texelFetch(iChannel0, A_LAYOUT, 0);
   float origin = texelFetch(iChannel0, A_REGION, 0).x;
@@ -907,7 +907,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 c = bilinear(iChannel2, vec2(f.x, 1.0 - f.y), size, 4, 0);
     glass = min(vec3(1.0), floor(c * 255.0 + 0.5) / 255.0 * (2.0 * m.b));
   }
-  // the grain over the glass's bytes, a speck a pixel from the top left
+  // the grain over the glass's bytes, from the top left
   fragColor = vec4(grainOver(floor(glass * 255.0 + 0.5), p) / 255.0, 1.0);
 }`
       : `

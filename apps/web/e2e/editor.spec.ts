@@ -973,6 +973,8 @@ test("a soft or grained picture's Shader tab writes its finish: a soft glass's p
   await spellings.getByRole("tab", { name: "WebGL" }).click();
   await expect(code).toContainText("const finish = finishing(gl);");
   await expect(code).toContainText("const GRAIN = 30;");
+  /* a speck a CSS pixel, as the stage lays it: the page hands the finish the canvas's pixels to one */
+  await expect(code).toContainText("finish.layout(w, h, grainScaleOf(w));");
   /* a grain alone: the glass's Shadertoy text lays it over its Image */
   await open(page, `/${SEED}?style=glass&angle=45&grain=30`);
   await tabs.scrollIntoViewIfNeeded();
@@ -993,9 +995,11 @@ test("a soft or grained picture's Shader tab writes its finish: a soft glass's p
   await tabs.getByRole("tab", { name: "Shader" }).click();
   await expect(code).toContainText("const vec3 STOPS[] = vec3[](");
   await expect(code).toContainText("vec3 grainOver(vec3 c, ivec2 p) {");
+  /* Shadertoy's reader sets the speck's scale */
+  await expect(code).toContainText("const float GRAIN_SCALE = 1.0;");
   await expect(
     page.getByText(
-      "The stops blurred along the line, at their places, blended in sRGB. Then its grain, a speck a pixel."
+      "The stops blurred along the line, at their places, blended in sRGB. Then its grain, a speck a CSS pixel."
     )
   ).toBeVisible();
 });

@@ -1,6 +1,8 @@
-/* The grain a fragment shader computes itself, a speck a pixel from the picture's top left, as a file bakes it
-   (grain.ts): grainSpeck's integer hash, its Box-Muller normal and grainAlpha's steps of 2, laid over the picture's
-   bytes, for the palette's shaders (shader.ts) and the glass's Shadertoy text, which have no page to make the tile.
+/* The grain a fragment shader computes itself, as a file bakes it (grain.ts): grainSpeck's integer hash, its
+   Box-Muller normal and grainAlpha's steps of 2, laid over the picture's bytes from its top left, for the palette's
+   shaders (shader.ts) and the glass's Shadertoy text, which have no page to make the tile. A speck is a CSS pixel, as
+   the site lays its tile: its scale, the canvas's pixels a speck spans, is a uniform the text's page sets to the
+   canvas's pixels a CSS pixel (the GLSL and the WGSL) or a setting its reader sets (Shadertoy's, which cannot know it).
    A GPU's own log and cosine stray in the fourth digit (SwiftShader's by up to 1.5e-2 of a half-alpha), so the shader
    works both out itself; a float still rounds a few specks' halves the other way than the site's doubles do, so each
    text carries those specks at its grain (grainFixes), which makes it the file's grain on any GPU whose floats come
@@ -68,16 +70,37 @@ const fixList = (fixes: readonly number[]) =>
     .join("");
 
 const GRAIN_NOTE = (
-  grain: number
-) => `// The grain at ${grain} (engine/grain.ts): a black or white speck a pixel, from an integer hash of its place in a tile of
-// 128 by 128 pixels from the picture's top left, its alpha the size of a normal (Box-Muller) times GRAIN_K, in steps
-// of 2 of 255, laid over the picture's bytes. The log and the cosine are worked out here, as a GPU's own may stray in
-// the fourth digit; a float still rounds a few specks' halves the other way than the site's doubles, so GRAIN_FIX holds
-// each speck whose half comes near a half, its place in the tile (y * 128 + x) times 128 plus its half.`;
+  grain: number,
+  scale: string
+) => `// The grain at ${grain} (engine/grain.ts): a black or white speck ${scale} pixels wide, from an integer hash of its place
+// in a tile of 128 by 128 specks from the picture's top left, its alpha the size of a normal (Box-Muller) times
+// GRAIN_K, in steps of 2 of 255, laid over the picture's bytes. The log and the cosine are worked out here, as a GPU's
+// own may stray in the fourth digit; a float still rounds a few specks' halves the other way than the site's doubles,
+// so GRAIN_FIX holds each speck whose half comes near a half, its place in the tile (y * 128 + x) times 128 plus its
+// half.`;
 
-/** The grain at a grain as GLSL ES 3.00: its constants, grainSpeck(p) (a speck's alpha, 0 to 254, and its shade, 0 or
-    255, at the pixel p from the picture's top left) and grainOver(c, p) (opaque bytes under the speck, as bytes). */
-export function grainGlsl(grain: number): string {
+/** Where a text takes the grain's scale from, the canvas's pixels a speck spans (a speck is a CSS pixel on the site):
+    "uniform", uGrainScale, which the page that runs the text sets to the canvas's pixels a CSS pixel; "setting",
+    GRAIN_SCALE, which the text's reader sets (Shadertoy's, which has no way to know it). */
+export type GrainScaleFrom = "uniform" | "setting";
+
+const SCALE_GLSL: Record<GrainScaleFrom, string> = {
+  uniform: `// The grain's scale, the canvas's pixels a speck spans: a speck is a CSS pixel on the site, so the page sets it to the
+// canvas's pixels a CSS pixel (its devicePixelRatio); under 1, or unset, a speck a pixel.
+uniform float uGrainScale;`,
+  setting: `// The grain's scale, the canvas's pixels a speck spans: 1 lays a speck a pixel. A speck is a CSS pixel on the site, so
+// where the canvas is drawn at the screen's density, the screen's devicePixelRatio (2 on most phones) matches it.
+const float GRAIN_SCALE = 1.0;`
+};
+const SCALE_NAME: Record<GrainScaleFrom, string> = {
+  uniform: "uGrainScale",
+  setting: "GRAIN_SCALE"
+};
+
+/** The grain at a grain as GLSL ES 3.00: its scale (`from` says where it comes from), its constants, grainSpeck(s)
+    (a speck's alpha, 0 to 254, and its shade, 0 or 255, for the speck s from the picture's top left) and
+    grainOver(c, p) (opaque bytes under the speck at the pixel p from the picture's top left, as bytes). */
+export function grainGlsl(grain: number, from: GrainScaleFrom): string {
   const fixes = grainFixes(grain);
   const table = fixes.length
     ? `const int GRAIN_FIX[] = int[](${fixList(fixes)}\n);`
@@ -96,7 +119,8 @@ export function grainGlsl(grain: number): string {
     if (lo < GRAIN_FIX.length() && (GRAIN_FIX[lo] >> 7) == key) n = float(GRAIN_FIX[lo] & 127);
   }`
     : "";
-  return `${GRAIN_NOTE(grain)}
+  return `${GRAIN_NOTE(grain, SCALE_NAME[from])}
+${SCALE_GLSL[from]}
 const float GRAIN_K = ${shaderFloat(grainFactor(grain))};
 ${table}
 // ln(u) for u > 0: the exponent from its bits, and the mantissa's log by the series of atanh
@@ -122,9 +146,9 @@ float grainCos(float u) {
   int q = int(k) & 3;
   return q == 0 ? c : q == 1 ? -s : q == 2 ? -c : s;
 }
-vec2 grainSpeck(ivec2 p) {
-  uint x = uint(p.x & 127);
-  uint y = uint(p.y & 127);
+vec2 grainSpeck(ivec2 speck) {
+  uint x = uint(speck.x & 127);
+  uint y = uint(speck.y & 127);
   uint h = (x * 0x27d4eb2du) ^ (y * 0x165667b1u);
   h = (h ^ (h >> 15u)) * 0x85ebca6bu;
   h = (h ^ (h >> 13u)) * 0xc2b2ae35u;
@@ -136,13 +160,15 @@ vec2 grainSpeck(ivec2 p) {
   float n = floor(q + 0.5);${lookup}
   return vec2(min(254.0, 2.0 * n), g > 0.0 ? 255.0 : 0.0);
 }
+// the speck the pixel p shows, as a picture's pixels show a tile of CSS pixels, nearest
 vec3 grainOver(vec3 c, ivec2 p) {
-  vec2 s = grainSpeck(p);
+  vec2 s = grainSpeck(ivec2(floor((vec2(p) + 0.5) / max(${SCALE_NAME[from]}, 1.0))));
   return floor((c * (255.0 - s.x) + s.y * s.x) / 255.0 + 0.5);
 }`;
 }
 
-/** The grain at a grain as WGSL: the same constants and functions as grainGlsl's. */
+/** The grain at a grain as WGSL: the same constants and functions as grainGlsl's, its scale the uniform uGrainScale
+    at group 0, binding 1, which the page that runs it sets. */
 export function grainWgsl(grain: number): string {
   const fixes = grainFixes(grain);
   const table = fixes.length
@@ -161,7 +187,10 @@ export function grainWgsl(grain: number): string {
     if (lo < ${fixes.length} && (GRAIN_FIX[lo] >> 7u) == key) { n = f32(GRAIN_FIX[lo] & 127); }
   }`
     : "";
-  return `${GRAIN_NOTE(grain)}
+  return `${GRAIN_NOTE(grain, "uGrainScale")}
+// The grain's scale, the canvas's pixels a speck spans (group 0, binding 1): a speck is a CSS pixel on the site, so the
+// page sets it to the canvas's pixels a CSS pixel (its devicePixelRatio); under 1, a speck a pixel.
+@group(0) @binding(1) var<uniform> uGrainScale: f32;
 const GRAIN_K: f32 = ${shaderFloat(grainFactor(grain))};
 ${table}
 // ln(u) for u > 0: the exponent from its bits, and the mantissa's log by the series of atanh
@@ -187,9 +216,9 @@ fn grainCos(u: f32) -> f32 {
   let q = i32(k) & 3;
   return select(select(select(s, -c, q == 2), -s, q == 1), c, q == 0);
 }
-fn grainSpeck(p: vec2i) -> vec2f {
-  let x = u32(p.x & 127);
-  let y = u32(p.y & 127);
+fn grainSpeck(speck: vec2i) -> vec2f {
+  let x = u32(speck.x & 127);
+  let y = u32(speck.y & 127);
   var h = (x * 0x27d4eb2du) ^ (y * 0x165667b1u);
   h = (h ^ (h >> 15u)) * 0x85ebca6bu;
   h = (h ^ (h >> 13u)) * 0xc2b2ae35u;
@@ -201,8 +230,9 @@ fn grainSpeck(p: vec2i) -> vec2f {
   var n = floor(q + 0.5);${lookup}
   return vec2f(min(254.0, 2.0 * n), select(0.0, 255.0, g > 0.0));
 }
+// the speck the pixel p shows, as a picture's pixels show a tile of CSS pixels, nearest
 fn grainOver(c: vec3f, p: vec2i) -> vec3f {
-  let s = grainSpeck(p);
+  let s = grainSpeck(vec2i(floor((vec2f(p) + 0.5) / max(uGrainScale, 1.0))));
   return floor((c * (255.0 - s.x) + s.y * s.x) / 255.0 + 0.5);
 }`;
 }
