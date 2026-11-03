@@ -41,7 +41,7 @@
     flex-grow: 1;
     min-width: 0;
     min-height: 0;
-    padding: var(--space-s3) var(--space-s4) var(--space-s4);
+    padding: 0 var(--space-s4) var(--space-s4);
     overflow-y: auto;
     border-top: var(--size-hairline) solid var(--color-edge);
     background-color: var(--color-bg);
@@ -50,9 +50,11 @@
       border-end-end-radius: calc(var(--radius-control) - var(--size-hairline));
     }
   }
+  /* the space over the code is the code's own, inside the scroll: a pane its rows of tabs and its line fill takes the
+     code down to nothing before its line spills past the pane */
   .pre {
     min-width: 0;
-    margin: 0;
+    margin: var(--space-s3) 0 0;
     padding: 0;
     border-radius: var(--radius-tight);
     color: var(--color-ink);

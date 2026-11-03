@@ -164,7 +164,8 @@ describe("the sheet's panes", () => {
     expect(shown).toContain("// a credit");
     expect(shown).toContain("const float A = 1.0;");
     expect(shown).not.toContain("mainImage");
-    expect(shown).toContain("Paste it into Shadertoy's Common tab. The palette, pass by pass.");
+    expect(shown).toContain("Paste it into Shadertoy's Common tab.");
+    expect(shown).not.toContain("The palette, pass by pass.");
     /* a text in one part has no row of them, and shows whole */
     const one = renderToString(() => (
       <PaletteCode sources={[{ ...sources[0], text: () => "void main() {}" }]} />

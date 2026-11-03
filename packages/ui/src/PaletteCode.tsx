@@ -63,18 +63,13 @@ export function codeParts(code: string): CodePart[] {
 /* where the part shown goes: its Shadertoy tab, and the channels its header names */
 const partNote = (part: CodePart) =>
   part.channels
-    ? t(
-        "Paste it into Shadertoy's {tab} tab, and set the tab's channels as the code's first line says.",
-        {
-          tab: part.name
-        }
-      )
+    ? t("Paste it into Shadertoy's {tab} tab; set its channels as line 1 says.", { tab: part.name })
     : t("Paste it into Shadertoy's {tab} tab.", { tab: part.name });
 
 /* The palette as text, in a pane of the editor's sheet: one code block whose tabs are the kinds of text, the one Copy
    at their end; under them a row of spellings where a kind has more than one, and under that a row of parts where a
    spelling is pasted in parts (Shadertoy's tabs), one shown at a time; then the code, which Copy takes, and, under its
-   ground, a line that says what it is. The spelling and the part chosen are kept per kind, and another text is read
+   ground, a line that says what it is, or for a part, where it goes. The spelling and the part chosen are kept per kind, and another text is read
    from its top. */
 export function PaletteCode(props: {
   sources: readonly CodeSource[];
@@ -257,11 +252,8 @@ export function PaletteCode(props: {
             }}
           />
         </div>
-        <Show
-          when={[part() && partNote(part()!), source().note?.(spelling())]
-            .filter(Boolean)
-            .join(" ")}
-        >
+        {/* a part's line says where it goes alone: the pane can be short, and its three rows of tabs take most of it */}
+        <Show when={part() ? partNote(part()!) : source().note?.(spelling())}>
           {note => (
             <div class={block.foot}>
               <span class={block.note}>{note()}</span>

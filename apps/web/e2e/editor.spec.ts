@@ -1034,10 +1034,10 @@ for (const [kind, frame, note] of [
     await expect(code).toContainText(
       "// ==== Image ==== iChannel0: Buffer D (filter: nearest, wrap: clamp)"
     );
+    await spellings.getByRole("tab", { name: "WebGL" }).click();
     await expect(
       page.getByText(`${note} Then its soft and grain, as the site lays them over it.`)
     ).toBeVisible();
-    await spellings.getByRole("tab", { name: "WebGL" }).click();
     await expect(code).toContainText("finish = finishing(gl);");
     await expect(code).toContainText("const GRAIN = 30;");
   });
@@ -1065,7 +1065,10 @@ test("a Shadertoy text shows a tab at a time, each tab's code alone, which Copy 
   const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
   await expect(code).toContainText(`// grabient ${SEED}`);
   await expect(code).not.toContainText("void mainImage");
-  await expect(page.getByText("Paste it into Shadertoy's Common tab.")).toBeVisible();
+  /* the line under it says where it goes, and that alone */
+  await expect(
+    page.getByText("Paste it into Shadertoy's Common tab.", { exact: true })
+  ).toBeVisible();
   const copy = page.getByRole("button", { name: /^(Copy code|Copied)$/ });
   for (const [name, mains] of [
     ["Image", 1],
@@ -1082,9 +1085,9 @@ test("a Shadertoy text shows a tab at a time, each tab's code alone, which Copy 
   /* a tab that reads others says to set its channels; the arrows walk the row */
   await parts.getByRole("tab", { name: "Buffer D" }).click();
   await expect(
-    page.getByText(
-      "Paste it into Shadertoy's Buffer D tab, and set the tab's channels as the code's first line says."
-    )
+    page.getByText("Paste it into Shadertoy's Buffer D tab; set its channels as line 1 says.", {
+      exact: true
+    })
   ).toBeVisible();
   await parts.getByRole("tab", { name: "Buffer D" }).press("ArrowRight");
   await expect(parts.getByRole("tab", { name: "Image" })).toBeFocused();
@@ -1165,10 +1168,10 @@ test("while the papercut plays, its Shader tab writes it for Shadertoy, GLSL and
   await expect(code).toContainText(
     "// ==== Image ==== iChannel0: Buffer D (filter: nearest, wrap: clamp)"
   );
+  await spellings.getByRole("tab", { name: "WebGL" }).click();
   await expect(
     page.getByText(`${note} Then its soft and grain, as the site lays them over it.`)
   ).toBeVisible();
-  await spellings.getByRole("tab", { name: "WebGL" }).click();
   await expect(code).toContainText("finish = finishing(gl);");
   await expect(code).toContainText("const GRAIN = 30;");
 });
