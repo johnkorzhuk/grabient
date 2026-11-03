@@ -4,8 +4,8 @@ import { expect, type Page, test } from "@playwright/test";
 /* A palette's effect behind another site's page (src/embed): the stylesheet of its address paints the first frame, the
    script plays the effect from there under a strict policy, a page plays one effect however many scripts it holds, a
    lost context brings the still back, and a reader who asks for less motion, like a blob held still, keeps the still.
-   The tests' browser draws WebGL on the CPU, where the players play nothing; here its renderer is said to be a GPU's,
-   so they play. */
+   A soft and grained address paints and plays finished, as the site's stage does. The tests' browser draws WebGL on
+   the CPU, where the players play nothing; here its renderer is said to be a GPU's, so they play. */
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 
@@ -92,6 +92,8 @@ const contexts = (page: Page) =>
 /** What the page paints behind itself now: html::before's image. */
 const still = (page: Page) =>
   page.evaluate(() => getComputedStyle(document.documentElement, "::before").backgroundImage);
+/** The script's layer, which holds its canvas and shows once the canvas has drawn. */
+const layer = (page: Page) => page.locator("canvas").locator("..");
 /** The first still the page painted behind itself, "" while none has been. */
 const painted = (page: Page) =>
   page.evaluate(() => (window as unknown as { painted?: string }).painted ?? "");
@@ -109,7 +111,7 @@ test("the stylesheet paints the first frame behind another site's page, and the 
   await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
     timeout: 15_000
   });
-  await expect(page.locator("canvas")).toHaveCSS("opacity", "1");
+  await expect(layer(page)).toHaveCSS("opacity", "1");
   expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
     []
   );
@@ -126,7 +128,7 @@ test("without the stylesheet the script paints the still itself, and three scrip
     true
   );
   await expect.poll(() => painted(page)).toContain("data:image/svg+xml");
-  await expect(page.locator("canvas")).toHaveCSS("opacity", "1", { timeout: 15_000 });
+  await expect(layer(page)).toHaveCSS("opacity", "1", { timeout: 15_000 });
   await page.waitForTimeout(500);
   await expect(page.locator("canvas")).toHaveCount(1);
   expect(await contexts(page)).toBe(1);
@@ -150,7 +152,7 @@ test("a lost context shows the still again, and the effect plays again once the 
     w.lose?.loseContext();
   });
   await expect(html).not.toHaveAttribute("data-grabient-playing");
-  await expect(page.locator("canvas")).toHaveCSS("opacity", "0");
+  await expect(layer(page)).toHaveCSS("opacity", "0");
   expect(await still(page)).toContain("data:image/svg+xml");
   await page.evaluate(() =>
     (window as unknown as { lose: WEBGL_lose_context }).lose.restoreContext()
@@ -174,7 +176,7 @@ test("the glass's still goes once its canvas has faded in over it, and comes bac
   expect(await painted(page)).toContain("data:image/svg+xml");
   /* the mark comes once the fade has ended, with the canvas opaque over the still */
   await expect(html).toHaveAttribute("data-grabient-playing", "", { timeout: 15_000 });
-  await expect(page.locator("canvas")).toHaveCSS("opacity", "1");
+  await expect(layer(page)).toHaveCSS("opacity", "1");
   expect(await still(page)).toBe("none");
   await page.evaluate(() =>
     (window as unknown as { gl: WebGL2RenderingContext }).gl

@@ -1,30 +1,37 @@
-/* What the effects' scripts share (glass.ts, blob.ts): a palette's fluted glass or blob behind any page, set by the
-   script's own address, which is the whole setting:
+/* What the effects' scripts share (glass.ts, blob.ts, silk.ts, rosette.ts): a palette's effect behind any page, set
+   by the script's own address, which is the whole setting:
      <link rel="stylesheet" href="https://grabient.com/{seed}.css?style=glass">
      <script src="https://grabient.com/{seed}.js?style=glass" async></script>
-   The script is the same for every palette. It reads the palette and the effect from its address and plays the effect
-   on a canvas fixed behind the page, from the first frame the stylesheet of the same address painted in the page's
-   first paint (server/files/effect-files.ts), or the same rules in the page's own <style> (the editor's Copy HTML);
-   where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows once its first frame,
-   the still's own, is drawn: the glass fading in over a still the page painted, the blob (clear around itself) taking
-   the still's place in one frame. The still goes once the canvas covers it, so a resize never draws it again under the
-   canvas, and comes back if the canvas loses its context. Where WebGL 2 is missing the still stays. No context is made
-   for a reader who asks for less motion, nor for a blob held at speed 0, whose still is its whole picture. The browser
-   restoring a lost context plays the effect again. It writes no markup and no style attribute, only CSSOM, so a page
-   with a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second script, the same
-   or another, leaves it be. */
+   The script is the same for every palette. It reads the palette, the effect and its soft and grain from its address
+   and plays the effect on a canvas fixed behind the page, from the first frame the stylesheet of the same address
+   painted in the page's first paint (server/files/effect-files.ts), or the same rules in the page's own <style> (the
+   editor's Copy HTML); where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows
+   once its first frame, the still's own, is drawn: the glass, the silk and the rosette fading in over a still the page
+   painted, the blob (clear around itself) taking the still's place in one frame. The still goes once the canvas covers
+   it, so a resize never draws it again under the canvas, and comes back if the canvas loses its context. Where WebGL 2
+   is missing the still stays. No context is made for a reader who asks for less motion, nor for a blob, a silk or a
+   rosette held at speed 0, whose still is its whole picture at any size. The browser restoring a lost context plays the
+   effect again. A soft or grained address plays as the site's stage paints it and as the still was painted
+   (engine/effect-code.ts effectLayers): the canvas blurred by a share of the page's longer side over its palette's
+   gradient, the layer's own ground, and the grain's tile over both, so the layer, opaque but where a clear blob lets
+   the page through, takes the still's place as one picture. It writes no markup and no style attribute, only CSSOM, so
+   a page with a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second script,
+   the same or another, leaves it be. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import {
   type Effect,
   type EffectKind,
+  type EffectLayers,
   EMBED_PLAYING,
   effectLayerCss,
   parseEffect
 } from "@grabient/engine/effect.ts";
+import { effectLayers } from "@grabient/engine/effect-code.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { parseView } from "@grabient/engine/view.ts";
+import { finishOf, parseView } from "@grabient/engine/view.ts";
+import { grainImage } from "./grain.ts";
 
-/** How long the glass's canvas takes to fade in over its still, as the editor's does (GlassStage.tsx). */
+/** How long an opaque canvas takes to fade in over its still, as the editor's glass does (GlassStage.tsx). */
 const FADE_MS = 700;
 /** How far into the page's life its context waits for the page's first paint: one made while the GPU paints the still
     waits on that painting, and the page's thread with it. */
@@ -115,19 +122,26 @@ export function mount(embed: EmbedEffect): void {
   const effect = parseEffect(address.searchParams);
   if (!P || !effect || effect.kind !== embed.kind) return;
   page[MOUNTED] = true;
-  const angle = parseView(address.searchParams).angle;
+  const view = parseView(address.searchParams);
+  const angle = view.angle;
+  const finish = finishOf(view);
   const root = document.documentElement;
+  /* the soft's blur and gradient and the grain's tile, as the stylesheet of the same address lays them */
+  const layers: Promise<EffectLayers> = (
+    finish.grain ? grainImage(finish.grain) : Promise.resolve(undefined)
+  ).then(grain => effectLayers(P, effect, angle, finish, grain));
 
   /* the still: the page's own, else the stylesheet's rules adopted, which need no body. One the page painted is in
-     its first paint, and the glass fades in over it; one adopted late may still be on its way to the screen when the
-     player's first frame is drawn, so the glass shows at once over it, where a fade would show the page's own ground */
+     its first paint, and an opaque canvas fades in over it; one adopted late may still be on its way to the screen
+     when the player's first frame is drawn, so the canvas shows at once over it, where a fade would show the page's
+     own ground */
   let fade = true;
-  const still = pagePaints(address, name).then(paints => {
+  const still = pagePaints(address, name).then(async paints => {
     if (paints) return;
     fade = false;
     if (!("adoptedStyleSheets" in document)) return;
     const sheet = new CSSStyleSheet();
-    sheet.replaceSync(effectLayerCss(embed.still(P, effect, angle)));
+    sheet.replaceSync(effectLayerCss(embed.still(P, effect, angle), await layers));
     document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
   });
   const body = new Promise<void>(resolve =>
@@ -140,7 +154,9 @@ export function mount(embed: EmbedEffect): void {
      asks for less */
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   let again = 0;
-  const play = () => {
+  const play = (finished: EffectLayers) => {
+    /* the layer, shown once the canvas has drawn its first frame: a soft effect's gradient its own ground, opaque
+       under the blurred canvas, and the grain over both, so it fades in over the still, or takes its place, whole */
     const layer = document.createElement("div");
     layer.setAttribute("aria-hidden", "true");
     const box = layer.style;
@@ -149,6 +165,8 @@ export function mount(embed: EmbedEffect): void {
     box.zIndex = "-1";
     box.pointerEvents = "none";
     box.overflow = "hidden";
+    box.opacity = "0";
+    if (finished.under) box.background = finished.under;
     const canvas = document.createElement("canvas");
     const look = canvas.style;
     look.position = "absolute";
@@ -156,8 +174,17 @@ export function mount(embed: EmbedEffect): void {
     look.display = "block";
     look.width = "100%";
     look.height = "100%";
-    look.opacity = "0";
+    if (finished.blur) look.filter = finished.blur;
     layer.append(canvas);
+    if (finished.grain) {
+      const grain = document.createElement("div");
+      const tile = grain.style;
+      tile.position = "absolute";
+      tile.inset = "0";
+      tile.background = finished.grain;
+      tile.imageRendering = "pixelated";
+      layer.append(grain);
+    }
     document.body.prepend(layer);
     let player: { motion(): void; destroy(): void } | null = null;
     /* a lost context drew nothing: the still comes back at once, and the effect plays again once the browser restores
@@ -167,8 +194,8 @@ export function mount(embed: EmbedEffect): void {
     canvas.addEventListener(
       "webglcontextlost",
       () => {
-        look.transition = "none";
-        look.opacity = "0";
+        box.transition = "none";
+        box.opacity = "0";
         root.removeAttribute(EMBED_PLAYING);
       },
       { signal: ended.signal }
@@ -179,11 +206,11 @@ export function mount(embed: EmbedEffect): void {
         ended.abort();
         player?.destroy();
         layer.remove();
-        if (++again <= AGAIN_MAX) play();
+        if (++again <= AGAIN_MAX) play(finished);
       },
       { signal: ended.signal }
     );
-    /* the still goes once the canvas covers it: the blob's at once, the glass's once it has faded in, opaque */
+    /* the still goes once the canvas covers it: the blob's at once, an opaque canvas's once it has faded in */
     const covered = () => root.setAttribute(EMBED_PLAYING, "");
     player = embed.play(
       canvas,
@@ -193,23 +220,27 @@ export function mount(embed: EmbedEffect): void {
       () =>
         /* a frame after its first was drawn: a canvas shown in the frame it was first drawn in may not fade in */
         requestAnimationFrame(() => {
-          if (embed.kind === "glass" && fade) {
-            look.transition = `opacity ${FADE_MS}ms ease-in-out`;
-            canvas.addEventListener("transitionend", covered, { once: true, signal: ended.signal });
+          if (embed.kind !== "blob" && fade) {
+            box.transition = `opacity ${FADE_MS}ms ease-in-out`;
+            layer.addEventListener("transitionend", covered, { once: true, signal: ended.signal });
           } else covered();
-          look.opacity = "1";
+          box.opacity = "1";
         }),
       () => motion.matches
     );
     if (!player) return layer.remove();
     motion.addEventListener("change", () => player?.motion(), { signal: ended.signal });
   };
-  /* a blob held at speed 0 is its still exactly, so it takes no context; the glass held keeps its canvas, which draws
-     the frame at the screen's pixels where the still Copy HTML writes inside a page is a 1000-pixel picture */
-  if (embed.kind === "blob" && effect.speed === 0) return;
+  /* a blob, a silk or a rosette held at speed 0 is its still exactly, a vector drawing at any size, so it takes no
+     context; the glass held keeps its canvas, which draws the frame at the screen's pixels where the still Copy HTML
+     writes inside a page is a 1000-pixel picture */
+  if (effect.speed === 0 && embed.kind !== "glass") return;
   /* for a reader who asks for less motion the still is the first frame held: no context until motion is welcome */
-  void Promise.all([still, body, firstPaint()]).then(function start() {
-    if (motion.matches) motion.addEventListener("change", start, { once: true });
-    else play();
+  void Promise.all([layers, still, body, firstPaint()]).then(([finished]) => {
+    const start = () => {
+      if (motion.matches) motion.addEventListener("change", start, { once: true });
+      else play(finished);
+    };
+    start();
   });
 }
