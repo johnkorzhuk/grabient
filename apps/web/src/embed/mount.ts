@@ -8,10 +8,11 @@
    editor's Copy HTML); where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows
    once its first frame, the still's own, is drawn: the glass, the silk, the rosette and the papercut fading in over a
    still the page painted, the blob (clear around itself) taking the still's place in one frame. The papercut's still
-   steps its shadows (engine/effect.ts steppedStill), so its canvas brings them soft, as the site's stage does. The
-   still goes once the canvas covers it, so a resize never draws it again under the canvas, and comes back if the
-   canvas loses its context. Where WebGL 2 is missing the still stays. No context is made for a reader who asks for
-   less motion, nor for a blob, a silk or a rosette held at speed 0, whose still is its whole picture at any size. The
+   steps its shadows (engine/effect.ts steppedStill), so its canvas brings them soft, as the site's stage does, and
+   comes for a reader who asks for less motion and held at speed 0 too, holding its first frame. The still goes once
+   the canvas covers it, so a resize never draws it again under the canvas, and comes back if the canvas loses its
+   context. Where WebGL 2 is missing the still stays. Otherwise no context is made for a reader who asks for less
+   motion, nor for a blob, a silk or a rosette held at speed 0, whose still is its whole picture at any size. The
    browser restoring a lost context plays the effect again. A soft or grained address plays as the site's stage paints
    it and as the still was painted (engine/effect-code.ts effectLayers): the canvas blurred by a share of the page's
    longer side over its palette's gradient, the layer's own ground, and the grain's tile over both, so the layer,
@@ -224,16 +225,18 @@ export function mount(embed: EmbedEffect): void {
     if (!player) return layer.remove();
     motion.addEventListener("change", () => player?.motion(), { signal: ended.signal });
   };
+  /* the papercut's still stands in for its first frame, whose shadows are soft where the still steps them: its player
+     comes held as well, holding that frame, as the site's stage does (FxLayer.tsx) */
+  const stepped = EFFECT_KINDS[embed.kind].steppedStill;
   /* a blob, a silk or a rosette held at speed 0 is its still exactly, a vector drawing at any size, so it takes no
      context; the glass held keeps its canvas, which draws the frame at the screen's pixels where the still Copy HTML
-     writes inside a page is a 1000-pixel picture, and the papercut its own, whose first frame has the soft shadows its
-     still steps */
-  if (effect.speed === 0 && embed.kind !== "glass" && !EFFECT_KINDS[embed.kind].steppedStill)
-    return;
-  /* for a reader who asks for less motion the still is the first frame held: no context until motion is welcome */
+     writes inside a page is a 1000-pixel picture, and the papercut its own */
+  if (effect.speed === 0 && embed.kind !== "glass" && !stepped) return;
+  /* for a reader who asks for less motion the still is the first frame held: no context until motion is welcome, but
+     for the papercut, whose player holds its own */
   void Promise.all([layers, still, body, firstPaint()]).then(([finished]) => {
     const start = () => {
-      if (motion.matches) motion.addEventListener("change", start, { once: true });
+      if (motion.matches && !stepped) motion.addEventListener("change", start, { once: true });
       else play(finished);
     };
     start();

@@ -5,8 +5,9 @@ import { expect, type Page, test } from "@playwright/test";
    script plays the effect from there under a strict policy, a page plays one effect however many scripts it holds, a
    lost context brings the still back, and a reader who asks for less motion, like a blob held still, keeps the still.
    A soft and grained address paints and plays finished, as the site's stage does. The papercut's still steps the
-   shadows its canvas draws soft, so its canvas comes held at speed 0 too. The tests' browser draws WebGL on
-   the CPU, where the players play nothing; here its renderer is said to be a GPU's, so they play. */
+   shadows its canvas draws soft, so its canvas comes held at speed 0 and for a reader who asks for less motion too.
+   The tests' browser draws WebGL on the CPU, where the players play nothing; here its renderer is said to be a GPU's,
+   so they play. */
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 
@@ -46,9 +47,10 @@ test.beforeAll(async () => {
 });
 test.afterAll(() => new Promise<void>(resolve => server.close(() => resolve())));
 
-/** Another site's page with these tags in its head, under a strict policy where asked, its refusals counted. */
-async function site(page: Page, head: string, strict = false) {
-  const path = `/${test.info().testId}`;
+/** Another site's page with these tags in its head, under a strict policy where asked, its refusals counted; `name`
+    tells a test's second page from its first. */
+async function site(page: Page, head: string, strict = false, name = "") {
+  const path = `/${test.info().testId}${name}`;
   pages.set(path, { app: new URL(test.info().project.use.baseURL ?? "").origin, head, strict });
   await page.addInitScript(() => {
     const w = window as unknown as {
@@ -290,4 +292,32 @@ test("a soft and grained papercut held at speed 0 paints its stepped still, then
     []
   );
   expect(errors).toEqual([]);
+});
+
+test("for a reader who asks for less motion the papercut's script holds its own first frame over its stepped still, where the silk's still stays with no context", async ({
+  page,
+  context
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await site(page, tags("style=papercut&angle=30&shape=7"), true);
+  expect(await painted(page)).toContain("data:image/svg+xml");
+  /* its first frame's shadows are soft where the still steps them, as the site's stage shows them to that reader */
+  await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
+    timeout: 15_000
+  });
+  await expect(layer(page)).toHaveCSS("opacity", "1");
+  expect(await contexts(page)).toBe(1);
+  expect(await still(page)).toBe("none");
+  /* and holds it */
+  const held = await page.screenshot();
+  await page.waitForTimeout(1500);
+  expect((await page.screenshot()).equals(held)).toBe(true);
+  /* the silk's still is its first frame */
+  const silk = await context.newPage();
+  await silk.emulateMedia({ reducedMotion: "reduce" });
+  await site(silk, tags("style=silk&angle=40"), true, "-silk");
+  expect(await still(silk)).toContain("data:image/svg+xml");
+  await silk.waitForTimeout(2000);
+  await expect(silk.locator("canvas")).toHaveCount(0);
+  expect(await contexts(silk)).toBe(0);
 });
