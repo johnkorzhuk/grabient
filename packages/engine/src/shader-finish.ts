@@ -149,21 +149,23 @@ uniform bool softened;            // the frame is blurred
 uniform vec3 grid;                // the soft's grid: its corner in the canvas's pixels (as GL counts them), its texel
 uniform vec2 canvas;              // the canvas's pixels
 uniform int unders;               // the gradient under the blur: its stops, none for none
-uniform vec4 under[64];           // each stop's color in bytes and its place along the line
+uniform highp sampler2D under;    // a texel a stop (RGBA32F, texelFetch): its color in bytes and its place along the line
 uniform vec2 line;                // the line's direction from the top left (y down), over its length
 out vec4 color;
 ${GRAIN_TILE_GLSL}
 vec3 underAt(float t) {
-  if (t <= under[0].a) return under[0].rgb;
-  for (int i = 1; i < 64; i++) {
-    if (i >= unders) break;
-    if (under[i].a >= t) {
-      float span = under[i].a - under[i - 1].a;
-      float u = span > 0.0 ? (t - under[i - 1].a) / span : 1.0;
-      return floor(under[i - 1].rgb + (under[i].rgb - under[i - 1].rgb) * u + 0.5);
+  vec4 before = texelFetch(under, ivec2(0, 0), 0);
+  if (t <= before.a) return before.rgb;
+  for (int i = 1; i < unders; i++) {
+    vec4 stop = texelFetch(under, ivec2(i, 0), 0);
+    if (stop.a >= t) {
+      float span = stop.a - before.a;
+      float u = span > 0.0 ? (t - before.a) / span : 1.0;
+      return floor(before.rgb + (stop.rgb - before.rgb) * u + 0.5);
     }
+    before = stop;
   }
-  return under[unders - 1].rgb;
+  return before.rgb;
 }
 void main() {
   ivec2 at = ivec2(gl_FragCoord.xy);
@@ -241,29 +243,29 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
   canvas: vec2f,                // the canvas's pixels
   line: vec2f,                  // the gradient's direction (y down), over its line's length
   unders: i32,                  // the gradient under the blur: its stops, none for none
-  under: array<vec4f, 64>,      // each stop's color in bytes and its place along the line
 }
 @group(0) @binding(0) var frame: texture_2d<f32>;
 @group(0) @binding(1) var soft: texture_2d<f32>;
 @group(0) @binding(2) var linear: sampler;
 ${grainTileWgsl(3)}
 @group(0) @binding(5) var<uniform> fin: Finish;
+@group(0) @binding(6) var<storage, read> under: array<vec4f>;  // a stop each: its color in bytes and its place along the line
 ${WGSL_FULL}
 fn underAt(t: f32) -> vec3f {
-  if (t <= fin.under[0].a) {
-    return fin.under[0].rgb;
+  var before = under[0];
+  if (t <= before.a) {
+    return before.rgb;
   }
-  for (var i = 1; i < 64; i++) {
-    if (i >= fin.unders) {
-      break;
+  for (var i = 1; i < fin.unders; i++) {
+    let stop = under[i];
+    if (stop.a >= t) {
+      let span = stop.a - before.a;
+      let u = select(1.0, (t - before.a) / span, span > 0.0);
+      return floor(before.rgb + (stop.rgb - before.rgb) * u + 0.5);
     }
-    if (fin.under[i].a >= t) {
-      let span = fin.under[i].a - fin.under[i - 1].a;
-      let u = select(1.0, (t - fin.under[i - 1].a) / span, span > 0.0);
-      return floor(fin.under[i - 1].rgb + (fin.under[i].rgb - fin.under[i - 1].rgb) * u + 0.5);
-    }
+    before = stop;
   }
-  return fin.under[fin.unders - 1].rgb;
+  return before.rgb;
 }
 // the frame, or the soft's grid read between its texels over the gradient under it, and the grain's speck over all,
 // each kept as bytes as a file keeps them
@@ -375,11 +377,12 @@ const softPlan = (w, h) => {
   return { t, first, rest: t / first, pairs, taps, lw: Math.ceil(w / t) + 2, lh: Math.ceil(h / t) + 2 };
 };
 
-// The gradient under the soft's edges: its stops' colors in bytes and their places, and its line in a w by h canvas
-// as CSS lays a linear gradient's (from the top left, y down, over the line's length).
+// The gradient under the soft's edges: its stops' colors in bytes and their places (a stop at the least, so nothing
+// is bound empty), and its line in a w by h canvas as CSS lays a linear gradient's (from the top left, y down, over
+// the line's length).
 const underStops = () => {
-  const out = new Float32Array(4 * 64);
-  UNDER.slice(0, 64).forEach(([hex, at], i) => {
+  const out = new Float32Array(4 * Math.max(1, UNDER.length));
+  UNDER.forEach(([hex, at], i) => {
     const n = Number.parseInt(hex.slice(1), 16);
     out.set([(n >> 16) & 255, (n >> 8) & 255, n & 255, at], 4 * i);
   });
@@ -469,7 +472,10 @@ function finishing(gl) {
   const grainTex = texture(gl.NEAREST);
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, 128, 128, 0, gl.RED_INTEGER, gl.UNSIGNED_BYTE, grainTile(GRAIN));
+  // the gradient under, a texel a stop
+  const underTex = texture(gl.NEAREST);
   const under = underStops();
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, under.length / 4, 1, 0, gl.RGBA, gl.FLOAT, under);
   let size = null;
   let plan = null;
   let line = [0, 0];
@@ -550,12 +556,14 @@ function finishing(gl) {
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, grainTex);
     gl.uniform1i(U.final.grainTile, 2);
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, underTex);
+    gl.uniform1i(U.final.under, 3);
     gl.uniform1f(U.final.grainScale, scale);
     gl.uniform1i(U.final.softened, plan ? 1 : 0);
     gl.uniform3f(U.final.grid, corner[0], corner[1], plan ? plan.t : 1);
     gl.uniform2f(U.final.canvas, w, h);
-    gl.uniform1i(U.final.unders, plan ? Math.min(64, UNDER.length) : 0);
-    gl.uniform4fv(U.final.under, under);
+    gl.uniform1i(U.final.unders, plan ? UNDER.length : 0);
     gl.uniform2f(U.final.line, line[0], line[1]);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.activeTexture(gl.TEXTURE0);
@@ -589,7 +597,7 @@ function finishing(device, format) {
   const uAcross = uniforms(128);
   const uAlong = uniforms(128);
   const uScale = uniforms(16);
-  const uFinal = uniforms(1072);
+  const uFinal = uniforms(48);
   const linear = device.createSampler({ magFilter: "linear", minFilter: "linear" });
   const grain = device.createTexture({
     size: [128, 128],
@@ -597,7 +605,10 @@ function finishing(device, format) {
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
   });
   device.queue.writeTexture({ texture: grain }, grainTile(GRAIN), { bytesPerRow: 128 }, [128, 128]);
+  // the gradient under, a stop each
   const under = underStops();
+  const uUnder = device.createBuffer({ size: under.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(uUnder, 0, under);
   const texture = (w, h, f) =>
     device.createTexture({
       size: [w, h],
@@ -647,10 +658,9 @@ function finishing(device, format) {
     };
     device.queue.writeBuffer(uAcross, 0, blur(1, 0));
     device.queue.writeBuffer(uAlong, 0, blur(0, 1));
-    const f = new ArrayBuffer(1072);
+    const f = new ArrayBuffer(48);
     new Float32Array(f, 0, 8).set([-t, -t, t, plan ? 1 : 0, w, h, ...underLine(w, h)]);
-    new Int32Array(f, 32, 1).set([plan ? Math.min(64, UNDER.length) : 0]);
-    new Float32Array(f, 48, 256).set(under);
+    new Int32Array(f, 32, 1).set([plan ? UNDER.length : 0]);
     device.queue.writeBuffer(uFinal, 0, f);
     groups = {
       view: frame.createView(),
@@ -664,7 +674,8 @@ function finishing(device, format) {
         linear,
         grain.createView(),
         { buffer: uScale },
-        { buffer: uFinal }
+        { buffer: uFinal },
+        { buffer: uUnder }
       ])
     };
   };
@@ -708,7 +719,7 @@ ${FINISH_DOWN_FS}
 // ==== Finish 2 and 3: soft's blur across, then down ==== target: the other grid texture, the same size | inputs: the grid (linear, clamp to edge), along (1, 0) then (0, 1), a Gaussian of sigma / t texels to three sigmas (12 at most), read in pairs: the middle's weight, then each pair's offset and weight; only with a soft
 ${FINISH_BLUR_FS}
 
-// ==== Finish 4: canvas ==== target: the canvas, W x H | inputs: the frame (texelFetch), the grid after pass 3 (linear, clamp to edge), the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch) and its scale (the canvas's pixels to a CSS pixel), the gradient under the soft's edges
+// ==== Finish 4: canvas ==== target: the canvas, W x H | inputs: the frame (texelFetch), the grid after pass 3 (linear, clamp to edge), the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch) and its scale (the canvas's pixels to a CSS pixel), the gradient under the soft's edges (a texel a stop, RGBA32F, texelFetch)
 ${FINISH_FS}
 `;
 
@@ -719,7 +730,7 @@ ${FINISH_WGSL.down}
 // ==== Finish 2 and 3: soft's blur across, then down ==== target: the other grid texture, the same size | inputs: the grid (linear, clamp to edge), along (1, 0) then (0, 1), a Gaussian of sigma / t texels to three sigmas (12 at most), read in pairs: the middle's weight, then each pair's offset and weight; only with a soft
 ${FINISH_WGSL.blur}
 
-// ==== Finish 4: canvas ==== target: the canvas, W x H | inputs: the frame (textureLoad), the grid after pass 3 (linear, clamp to edge), the grain's tile (128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad) and its scale (the canvas's pixels to a CSS pixel), the gradient under the soft's edges
+// ==== Finish 4: canvas ==== target: the canvas, W x H | inputs: the frame (textureLoad), the grid after pass 3 (linear, clamp to edge), the grain's tile (128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad) and its scale (the canvas's pixels to a CSS pixel), the gradient under the soft's edges (a storage buffer, a stop each)
 ${FINISH_WGSL.final}
 `;
 

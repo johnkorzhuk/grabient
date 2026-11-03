@@ -7,12 +7,14 @@ import { glassShader } from "./glass-shader.ts";
 import { GRAIN_SIDE, grainTile } from "./grain.ts";
 import type { Palette } from "./palette.ts";
 import {
+  FINISH_FS,
   FINISH_GLSL_SECTIONS,
   FINISH_MATH_JS,
   FINISH_WEBGL_JS,
   FINISH_WEBGL_SHADERS,
   FINISH_WEBGPU_JS,
   FINISH_WEBGPU_SHADERS,
+  FINISH_WGSL,
   FINISH_WGSL_SECTIONS,
   finishSettingsJs,
   GRAIN_TILE_GLSL,
@@ -102,6 +104,32 @@ test("the soft's plan draws on texels a power of two wide, the sigma there 2 to 
       400
     )
   ).toBeNull();
+});
+
+test("the gradient under a soft effect carries every stop, past the most a shader's array could hold", () => {
+  /* eight keyframes a half turn apart, dark and light by turns: 83 stops under it at soft 60 */
+  const busy = decodePalette("kcWdoAcu1VKztVTy7VUrO1VPLtVSs7VU8u1VI") as Palette;
+  const glass = effectOf("style=glass&angle=40");
+  const underlay = effectUnderlay(busy, glass, 40, 60)!;
+  expect(underlay.stops.length).toBeGreaterThan(64);
+  const settings = finishSettingsJs({ soft: 60, underlay }, "ANGLE");
+  const stops = pageMath(`const ANGLE = 40;\n${settings}`).underStops();
+  expect(stops.length).toBe(4 * underlay.stops.length);
+  const last = underlay.stops.at(-1)!;
+  const n = Number.parseInt(last.hex.slice(1), 16);
+  expect([...stops.slice(-4, -1)]).toEqual([(n >> 16) & 255, (n >> 8) & 255, n & 255]);
+  /* the shaders read them from a texture and a storage buffer, as many as there are */
+  expect(FINISH_FS).toContain("uniform highp sampler2D under;");
+  expect(FINISH_FS).toContain("for (int i = 1; i < unders; i++) {");
+  expect(FINISH_WGSL.final).toContain("var<storage, read> under: array<vec4f>;");
+  expect(`${FINISH_FS}${FINISH_WGSL.final}`).not.toMatch(/\b64\b/);
+  expect(FINISH_WEBGL_JS).toContain(
+    "gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, under.length / 4, 1, 0, gl.RGBA, gl.FLOAT, under);"
+  );
+  expect(FINISH_WEBGL_JS).toContain("gl.uniform1i(U.final.unders, plan ? UNDER.length : 0);");
+  expect(FINISH_WEBGPU_JS).toContain("GPUBufferUsage.STORAGE");
+  /* no underlay still binds a stop, so nothing is bound empty */
+  expect(pageMath(finishSettingsJs({ grain: 30 }, "90")).underStops().length).toBe(4);
 });
 
 test("a speck spans the canvas's pixels to a CSS pixel, which every page hands its finish", () => {
