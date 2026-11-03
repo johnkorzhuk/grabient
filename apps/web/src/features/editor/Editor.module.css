@@ -135,14 +135,18 @@
   }
   /* the fluted glass over the gradient: its still, the server's style in the head painting the holder that names its
      colors (server/glass-still.ts) or the editor's own SVG in it (GlassLayer.tsx), and the player over that once the
-     page is live; hidden from before the first paint where this browser chose otherwise (effectScript) */
+     page is live */
   .glass {
     position: absolute;
     inset: 0;
     overflow: hidden;
     border-radius: inherit;
   }
-  :global(html[data-glass="off"]) .glass {
+  /* the first screen's glass where the address names no style (Boot.tsx), which stands for the reader's own choice:
+     hidden from before the first paint where this browser chose otherwise (effectScript). A layer the editor or a page
+     draws (GlassLayer.tsx) is there only while the glass is what it shows, a tile's preview of it too, so the mark,
+     which follows the effect chosen, never hides one */
+  :global(html[data-glass="off"]) .glass[data-choice] {
     display: none;
   }
   /* a vector effect over the gradient (FxLayer.tsx): its still, the server's style in the head painting the holder

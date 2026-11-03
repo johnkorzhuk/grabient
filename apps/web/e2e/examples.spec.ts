@@ -213,6 +213,26 @@ test("a drag across a part turns it once, the press it ends with turning nothing
   await expect(tag).toHaveText(dragged);
 });
 
+test("the hero plays the glass for a reader whose own choice is another style", async ({
+  page
+}) => {
+  /* a turn may start another effect, which a browser with no GPU draws on its processor */
+  test.slow();
+  /* the address names no style, so the first screen marks the glass off for a reader who chose the gradient
+     (effectScript): the mark stands for the editor's first screen, and the hero's own glass never answers to it */
+  await page.addInitScript(() =>
+    localStorage.setItem("grabient-effect", JSON.stringify({ kind: null }))
+  );
+  await open(page, `/${SEED}/examples`);
+  await expect(page.locator("html")).toHaveAttribute("data-glass", "off");
+  const glass = page.locator('[data-look="hero"] [data-glass-still]');
+  /* a key turns the hero to its next look, until it plays the glass */
+  await expect(async () => {
+    if ((await glass.count()) === 0) await page.keyboard.press("ArrowRight");
+    await expect(glass).toBeVisible({ timeout: 4000 });
+  }).toPass({ timeout: 60000 });
+});
+
 test("the hero turns with a key while it fills the window, and a press on its words leaves it", async ({
   page
 }) => {

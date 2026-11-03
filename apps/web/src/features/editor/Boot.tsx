@@ -58,13 +58,13 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
   };
   /* the fluted glass's still over the gradient, where the glass may play: an address that names it, or one that names
      no style, which takes the reader's own choice (effects.ts: the glass, unless this browser chose otherwise, when
-     effectScript hides it before the first paint). The holder names the still (its ribs' angle and the palette's
-     colors), which the server's style in the head paints (server/glass-still.ts), and the editor's holder names it
-     too (GlassLayer.tsx) */
+     effectScript hides it before the first paint: data-choice, Editor.module.css). The holder names the still (its
+     ribs' angle and the palette's colors), which the server's style in the head paints (server/glass-still.ts), and the
+     editor's holder names it too (GlassLayer.tsx) */
   const glassMay = () => props.page.effect?.kind === "glass" || !props.page.styled;
   const glass = () => (
     <Show when={glassMay()}>
-      <div class={styles.glass}>
+      <div class={styles.glass} data-choice={props.page.styled ? undefined : ""}>
         <div
           class={styles.glassStill}
           data-glass-still={glassStillKey(

@@ -1939,3 +1939,30 @@ test("the glass's first screen is a picture the server draws once, over its colo
     )
     .toContain("/api/still?k=");
 });
+
+test("the Fluted glass tile under the pointer plays the glass on the picture whatever style is chosen, and leaving the tiles gives that style back", async ({
+  page
+}) => {
+  /* a reader whose choice is another style has the glass marked off on <html> (effectScript, effects.ts), which hides
+     the first screen's glass that stands for that choice and never the editor's own: the gradient here, then the
+     papercut */
+  for (const [address, chosen] of [
+    [`/${SEED}`, "img"],
+    [`/${SEED}?style=papercut`, 'main [data-fx-still^="papercut|"]']
+  ] as const) {
+    await open(page, address);
+    await live(page);
+    await expect(page.locator("html")).toHaveAttribute("data-glass", "off");
+    await page.getByRole("button", { name: /^Appearance/ }).click();
+    await page.getByRole("button", { name: "Fluted glass", exact: true }).hover();
+    const glass = page.locator('main [data-glass-still][elementtiming="effect-still"]');
+    await expect(glass).toBeVisible();
+    await page.mouse.move(10, 700);
+    await expect(glass).toHaveCount(0);
+    await expect(
+      chosen === "img"
+        ? page.getByRole("img", { name: "The gradient" })
+        : page.locator(chosen).first()
+    ).toBeVisible();
+  }
+});

@@ -128,10 +128,11 @@ export function createEffects(
   };
   let opened = effectOf(now);
   const [openedAt, setOpenedAt] = createSignal(opened);
-  /* the mark on <html> that shows the glass's layers or hides them (Editor.module.css, Corner.module.css), set as a
+  /* the mark on <html> that shows or hides what stands for the reader's choice where an address names no style, the
+     first screen's glass and the header's button until the editor holds it (Editor.module.css, Corner.module.css),
+     never a glass the editor draws, so a tile's preview of the glass shows over any effect chosen. It is set as a
      document loads (effectScript) and here: an editor a navigation opens marks its own effect at once, since the mark
-     is still the page's it came from, which hid the glass where that page's address named no style and the reader's
-     choice was another */
+     is still the page's it came from */
   const mark = () => {
     if (own || typeof document === "undefined") return;
     const root = document.documentElement;
