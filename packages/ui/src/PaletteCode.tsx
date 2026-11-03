@@ -1,11 +1,7 @@
 import { createSignal, createUniqueId, For, Show, untrack } from "solid-js";
-import { announce } from "./announce.ts";
 import block from "./CodeBlock.module.css";
 import { CodeLines, refusedCopy } from "./CodeBlock.tsx";
 import { CopyButton } from "./CopyButton.tsx";
-import { copyText } from "./copy.ts";
-import { createDone } from "./done.ts";
-import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import styles from "./PaletteCode.module.css";
 import tabs from "./tabs.module.css";
@@ -26,55 +22,60 @@ export interface CodeSource {
   take?: (spelling?: string) => Promise<string>;
   /** the line under the code, in the reader's language */
   note?: (spelling?: string) => string;
-  /** the text is pasted in parts, each under its header line (`// ==== Buffer A ====`, Shadertoy's tabs): each part
-      has a copy of its own beside the whole's, so no tab takes another's code */
+  /** the text is pasted in parts, each under its header line (`// ==== Buffer A ====`, Shadertoy's tabs): a row of
+      tabs shows one part at a time, which Copy takes */
   parted?: (spelling?: string) => boolean;
 }
 
-/* a header line of a text pasted in parts: the part's name between its rules */
-const HEADER = /^\/\/ ={2,} (.+?) ={2,}/;
+/** One part of a text pasted in parts: its name, its code, and whether its header names inputs to set (Shadertoy's
+    channels). */
+export interface CodePart {
+  name: string;
+  text: string;
+  channels: boolean;
+}
+
+/* a header line of a text pasted in parts: the part's name between its rules, and after them what it reads */
+const HEADER = /^\/\/ ={2,} (.+?) ={2,}(.*)$/;
 /** A text pasted in parts, cut at its header lines: each part its header and the lines to the next, the lines before
     the first (a credit) going with the first. */
-export function codeParts(code: string): { name: string; text: string }[] {
-  const parts: { name: string; lines: string[] }[] = [];
+export function codeParts(code: string): CodePart[] {
+  const parts: { name: string; channels: boolean; lines: string[] }[] = [];
   const lead: string[] = [];
   for (const line of code.split("\n")) {
-    const name = HEADER.exec(line)?.[1];
-    if (name) parts.push({ name, lines: parts.length ? [line] : [...lead, line] });
+    const header = HEADER.exec(line);
+    if (header)
+      parts.push({
+        name: header[1],
+        channels: /\biChannel\d/.test(header[2]),
+        lines: parts.length ? [line] : [...lead, line]
+      });
     else if (parts.length) parts.at(-1)!.lines.push(line);
     else lead.push(line);
   }
-  return parts.map(part => ({ name: part.name, text: `${part.lines.join("\n").trim()}\n` }));
+  return parts.map(({ name, channels, lines }) => ({
+    name,
+    text: `${lines.join("\n").trim()}\n`,
+    channels
+  }));
 }
 
-/* one part's copy: its name, set as the spellings are, the glyph a check for a moment once it is copied */
-function PartCopy(props: { name: string; text: string; onCopy?: (text: string) => void }) {
-  const [copied, mark] = createDone();
-  const label = () =>
-    copied() !== null ? t("Copied") : t("Copy the {tab} tab", { tab: props.name });
-  const copy = async () => {
-    props.onCopy?.(props.text);
-    if (await copyText(props.text)) {
-      mark(true);
-      announce(t("Copied"));
-    } else announce(t("Couldn't copy. Select the text and copy it."));
-  };
-  return (
-    <button
-      type="button"
-      class={[tabs.tab, styles.part]}
-      aria-label={label()}
-      onClick={() => void copy()}
-    >
-      <Icon name={copied() !== null ? "check" : "copy"} size={12} />
-      {props.name}
-    </button>
-  );
-}
+/* where the part shown goes: its Shadertoy tab, and the channels its header names */
+const partNote = (part: CodePart) =>
+  part.channels
+    ? t(
+        "Paste it into Shadertoy's {tab} tab, and set the tab's channels as the code's first line says.",
+        {
+          tab: part.name
+        }
+      )
+    : t("Paste it into Shadertoy's {tab} tab.", { tab: part.name });
 
 /* The palette as text, in a pane of the editor's sheet: one code block whose tabs are the kinds of text, the one Copy
-   at their end; under them a row of spellings where a kind has more than one; then the code and, under its ground, a
-   line that says what it is. The spelling chosen is kept per kind, and another text is read from its top. */
+   at their end; under them a row of spellings where a kind has more than one, and under that a row of parts where a
+   spelling is pasted in parts (Shadertoy's tabs), one shown at a time; then the code, which Copy takes, and, under its
+   ground, a line that says what it is. The spelling and the part chosen are kept per kind, and another text is read
+   from its top. */
 export function PaletteCode(props: {
   sources: readonly CodeSource[];
   initial?: string;
@@ -96,12 +97,21 @@ export function PaletteCode(props: {
   let code: HTMLElement | undefined;
   const copy = refusedCopy(() => code);
   const text = () => copy.shown(source().text(spelling()));
-  /* a text pasted in parts, each part's copy; none where it is one */
+  /* a text pasted in parts: its parts, and the one shown, the first until the reader picks another */
+  const [chosenParts, setChosenParts] = createSignal<Readonly<Record<string, string>>>({});
   const parts = () => (source().parted?.(spelling()) ? codeParts(text()) : []);
+  const partKey = () => `${source().id}|${spelling() ?? ""}`;
+  const part = () => {
+    const all = parts();
+    if (all.length < 2) return null;
+    return all.find(p => p.name === chosenParts()[partKey()]) ?? all[0];
+  };
+  /* the code shown and copied: the part where the text is pasted in parts, else the whole */
+  const shown = () => part()?.text ?? text();
   const take = () => {
     const { take } = source();
     const spelled = spelling();
-    return take && (() => take(spelled));
+    return take && !part() ? () => take(spelled) : undefined;
   };
   let scroller!: HTMLDivElement;
   const pick = (id: string) => {
@@ -110,6 +120,10 @@ export function PaletteCode(props: {
   };
   const spell = (id: string) => {
     setSpellings(all => ({ ...all, [source().id]: id }));
+    scroller.scrollTop = 0;
+  };
+  const choosePart = (name: string) => {
+    setChosenParts(all => ({ ...all, [partKey()]: name }));
     scroller.scrollTop = 0;
   };
   /* each row of tabs is one Tab stop on the chosen tab; the arrows (as the row is seen), Home and End choose and move
@@ -159,12 +173,12 @@ export function PaletteCode(props: {
           </For>
         </div>
         <CopyButton
-          text={text()}
+          text={shown()}
           take={take()}
           aria-label={t("Copy code")}
           compact
           onCopy={value => props.onCopy?.(source().id, value, spelling())}
-          onRefused={taken => copy.refuse(source().text(spelling()), taken)}
+          onRefused={taken => copy.refuse(part() ? shown() : source().text(spelling()), taken)}
         />
       </div>
       <Show when={(source().spellings?.length ?? 0) > 1}>
@@ -198,20 +212,33 @@ export function PaletteCode(props: {
           </For>
         </div>
       </Show>
-      <Show when={parts().length > 1}>
-        {/* biome-ignore lint/a11y/useSemanticElements: a row of presses that flows on from its words; a fieldset's
-            legend stands apart from what it names */}
-        <div class={styles.parts} role="group" aria-label={t("Copy a tab")}>
-          <span class={styles.partsLead} aria-hidden="true">
-            {t("Copy a tab")}
-          </span>
+      <Show when={part()}>
+        <div
+          class={styles.spellings}
+          role="tablist"
+          aria-label={t("Shadertoy tab")}
+          onKeyDown={e =>
+            walk(
+              e,
+              parts().map(p => p.name),
+              part()?.name,
+              choosePart
+            )
+          }
+        >
           <For each={parts()} keyed={false}>
-            {part => (
-              <PartCopy
-                name={part().name}
-                text={part().text}
-                onCopy={value => props.onCopy?.(source().id, value, spelling())}
-              />
+            {p => (
+              <button
+                type="button"
+                role="tab"
+                class={[tabs.tab, styles.spelling]}
+                aria-selected={p().name === part()?.name ? "true" : "false"}
+                aria-controls={panel}
+                tabindex={p().name === part()?.name ? 0 : -1}
+                onClick={() => choosePart(p().name)}
+              >
+                {p().name}
+              </button>
             )}
           </For>
         </div>
@@ -224,16 +251,20 @@ export function PaletteCode(props: {
       >
         <div ref={scroller} class={block.panel}>
           <CodeLines
-            code={text()}
+            code={shown()}
             ref={el => {
               code = el;
             }}
           />
         </div>
-        <Show when={source().note}>
+        <Show
+          when={[part() && partNote(part()!), source().note?.(spelling())]
+            .filter(Boolean)
+            .join(" ")}
+        >
           {note => (
             <div class={block.foot}>
-              <span class={block.note}>{note()(spelling())}</span>
+              <span class={block.note}>{note()}</span>
             </div>
           )}
         </Show>

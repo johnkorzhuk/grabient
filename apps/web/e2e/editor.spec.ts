@@ -8,6 +8,12 @@ import { live } from "./live.ts";
    minute. */
 test.describe.configure({ timeout: 60_000 });
 
+/* Shadertoy's text shows a tab of Shadertoy's at a time: the one named */
+const toyTab = (page: Page, name: string) =>
+  page
+    .getByRole("tablist", { name: "Shadertoy tab" })
+    .getByRole("tab", { name, exact: true })
+    .click();
 const SEED = "kS7CQ31Do6asvY-";
 
 /* The palette's page as these tests meet it: a gradient. A page whose address names no style plays the reader's own
@@ -886,6 +892,7 @@ test("while the glass plays, its Shader tab writes it for Shadertoy, GLSL and WG
   const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
   await expect(code).toContainText(`// grabient ${SEED}`);
   await expect(code).toContainText(`/${SEED}?style=glass&angle=45`);
+  await toyTab(page, "Buffer B");
   await expect(code).toContainText(
     "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)"
   );
@@ -984,6 +991,7 @@ for (const [kind, frame, note] of [
     await expect(code).toContainText(`// grabient ${SEED}`);
     await expect(code).toContainText(`/${SEED}?style=${kind}&angle=45&shape=7`);
     /* the frame in Buffer B, the player's own fragment shader in it */
+    await toyTab(page, "Buffer B");
     await expect(code).toContainText(
       "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)"
     );
@@ -1022,6 +1030,7 @@ for (const [kind, frame, note] of [
       "WebGPU"
     ]);
     await expect(code).toContainText(`/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=7`);
+    await toyTab(page, "Image");
     await expect(code).toContainText(
       "// ==== Image ==== iChannel0: Buffer D (filter: nearest, wrap: clamp)"
     );
@@ -1033,7 +1042,7 @@ for (const [kind, frame, note] of [
     await expect(code).toContainText("const GRAIN = 30;");
   });
 
-test("a Shadertoy text copies a tab at a time, each tab's code alone, so no tab of Shadertoy holds two passes", async ({
+test("a Shadertoy text shows a tab at a time, each tab's code alone, which Copy takes, so no tab of Shadertoy holds two passes", async ({
   page,
   context
 }) => {
@@ -1042,8 +1051,8 @@ test("a Shadertoy text copies a tab at a time, each tab's code alone, so no tab 
   const tabs = page.getByRole("tablist", { name: "Format" });
   await tabs.scrollIntoViewIfNeeded();
   await tabs.getByRole("tab", { name: "Shader" }).click();
-  const parts = page.getByRole("group", { name: "Copy a tab" });
-  await expect(parts.getByRole("button")).toHaveText([
+  const parts = page.getByRole("tablist", { name: "Shadertoy tab" });
+  await expect(parts.getByRole("tab")).toHaveText([
     "Common",
     "Buffer A",
     "Buffer B",
@@ -1051,19 +1060,40 @@ test("a Shadertoy text copies a tab at a time, each tab's code alone, so no tab 
     "Buffer D",
     "Image"
   ]);
+  /* the first shows first, the credit with it, and no pass */
+  await expect(parts.getByRole("tab", { name: "Common" })).toHaveAttribute("aria-selected", "true");
+  const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+  await expect(code).toContainText(`// grabient ${SEED}`);
+  await expect(code).not.toContainText("void mainImage");
+  await expect(page.getByText("Paste it into Shadertoy's Common tab.")).toBeVisible();
+  const copy = page.getByRole("button", { name: /^(Copy code|Copied)$/ });
   for (const [name, mains] of [
     ["Image", 1],
     ["Buffer D", 1],
     ["Common", 0]
   ] as const) {
-    await parts.getByRole("button", { name: `Copy the ${name} tab` }).click();
+    await parts.getByRole("tab", { name, exact: true }).click();
+    await expect(code).toContainText(`// ==== ${name} ====`);
+    await copy.click();
     const copied = await page.evaluate(() => navigator.clipboard.readText());
-    expect(copied).toContain(`// ==== ${name} ====`);
+    expect(copied.match(/\/\/ ==== .+? ====/g)).toEqual([`// ==== ${name} ====`]);
     expect(copied.match(/void mainImage/g) ?? []).toHaveLength(mains);
   }
-  /* the other spellings are one text each: no row */
+  /* a tab that reads others says to set its channels; the arrows walk the row */
+  await parts.getByRole("tab", { name: "Buffer D" }).click();
+  await expect(
+    page.getByText(
+      "Paste it into Shadertoy's Buffer D tab, and set the tab's channels as the code's first line says."
+    )
+  ).toBeVisible();
+  await parts.getByRole("tab", { name: "Buffer D" }).press("ArrowRight");
+  await expect(parts.getByRole("tab", { name: "Image" })).toBeFocused();
+  await expect(code).toContainText("// ==== Image ==== iChannel0: Buffer D");
+  /* the other spellings are one text each: no row, the whole text */
   await page.getByRole("tablist", { name: "Syntax" }).getByRole("tab", { name: "GLSL" }).click();
   await expect(parts).toHaveCount(0);
+  await expect(code).toContainText("// ==== Pass 1: the field ====");
+  await expect(code).toContainText("// ==== Pass 2: the sheets ====");
 });
 
 test("while the papercut plays, its Shader tab writes it for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling", async ({
@@ -1087,13 +1117,15 @@ test("while the papercut plays, its Shader tab writes it for Shadertoy, GLSL and
   await expect(code).toContainText(`// grabient ${SEED}`);
   await expect(code).toContainText(`/${SEED}?style=papercut&angle=45&shape=7`);
   /* the field in Buffer B, the frame in Buffer C, each the player's own pass */
+  await toyTab(page, "Buffer B");
   await expect(code).toContainText(
     "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp)"
   );
+  await expect(code).toContainText("o = floatBitsToUint(field((p - 0.5 * uSize) / uD));");
+  await toyTab(page, "Buffer C");
   await expect(code).toContainText(
     "// ==== Buffer C ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer C (filter: nearest, wrap: clamp); iChannel2: Buffer B (filter: nearest, wrap: clamp)"
   );
-  await expect(code).toContainText("o = floatBitsToUint(field((p - 0.5 * uSize) / uD));");
   expect(asked).toEqual(["papercut-shadertoy.ts"]);
   const spellings = page.getByRole("tablist", { name: "Syntax" });
   await expect(spellings.getByRole("tab")).toHaveText([
@@ -1129,6 +1161,7 @@ test("while the papercut plays, its Shader tab writes it for Shadertoy, GLSL and
     "WebGPU"
   ]);
   await expect(code).toContainText(`/${SEED}?style=papercut&angle=45&soft=40&grain=30&shape=7`);
+  await toyTab(page, "Image");
   await expect(code).toContainText(
     "// ==== Image ==== iChannel0: Buffer D (filter: nearest, wrap: clamp)"
   );
@@ -1174,6 +1207,7 @@ test("a soft or grained picture's Shader tab writes its finish: a soft glass's p
     "WebGL",
     "WebGPU"
   ]);
+  await toyTab(page, "Image");
   await expect(code).toContainText(
     "fragColor = vec4(grainOver(floor(glass * 255.0 + 0.5), p) / 255.0, 1.0);"
   );

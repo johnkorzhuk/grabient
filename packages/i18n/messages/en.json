@@ -1018,8 +1018,6 @@
       "packages/ui/src/CopyButton.tsx:37",
       "packages/ui/src/CopyButton.tsx:51",
       "packages/ui/src/FormatStrip.tsx:229",
-      "packages/ui/src/PaletteCode.tsx:54",
-      "packages/ui/src/PaletteCode.tsx:59",
       "packages/ui/src/StopStrip.tsx:101",
       "packages/ui/src/StopStrip.tsx:182"
     ]
@@ -1043,13 +1041,6 @@
       "packages/ui/src/keys.ts:461"
     ]
   },
-  "Copy a tab": {
-    "note": "Editor's code pane, Shader tab while its Shadertoy spelling shows: the words before a row of presses, one for each of Shadertoy's tabs the code goes in (Common, Buffer A, Image...), each copying that tab's code alone, so it can be pasted into that tab.",
-    "refs": [
-      "packages/ui/src/PaletteCode.tsx:202",
-      "packages/ui/src/PaletteCode.tsx:204"
-    ]
-  },
   "Copy address": {
     "note": "Press: copies the address beside it.",
     "refs": [
@@ -1061,7 +1052,7 @@
     "note": "Press over a code block: copies the code.",
     "refs": [
       "packages/ui/src/CodeTabs.tsx:102",
-      "packages/ui/src/PaletteCode.tsx:164"
+      "packages/ui/src/PaletteCode.tsx:175"
     ]
   },
   "Copy for {format}": {
@@ -1080,12 +1071,6 @@
     "note": "Label of the format row while its presses copy file links.",
     "refs": [
       "packages/ui/src/FormatStrip.tsx:91"
-    ]
-  },
-  "Copy the {tab} tab": {
-    "note": "Name of one press in that row: copies the code of one of Shadertoy's tabs alone. {tab} is the tab's own name in Shadertoy, left in English as Shadertoy shows it (Common, Buffer A, Image).",
-    "refs": [
-      "packages/ui/src/PaletteCode.tsx:54"
     ]
   },
   "Copy {format}": {
@@ -1179,7 +1164,6 @@
       "apps/web/src/mcp-view/PaletteView.tsx:281",
       "packages/ui/src/ColorCodes.tsx:33",
       "packages/ui/src/CopyButton.tsx:41",
-      "packages/ui/src/PaletteCode.tsx:60",
       "packages/ui/src/StopStrip.tsx:102"
     ]
   },
@@ -1968,7 +1952,7 @@
     "note": "Screen reader name of the code tabs (Seed, CSS, Colors, Shader...).",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:455",
-      "packages/ui/src/PaletteCode.tsx:135"
+      "packages/ui/src/PaletteCode.tsx:146"
     ]
   },
   "From Grabient": {
@@ -3468,6 +3452,18 @@
       "apps/web/src/features/gallery/field.ts:58"
     ]
   },
+  "Paste it into Shadertoy's {tab} tab, and set the tab's channels as the code's first line says.": {
+    "note": "The same line for a tab that reads other tabs: the code shown goes into that tab of a Shadertoy page, and its first line names each of the tab's channels (iChannel0, iChannel1...) with how Shadertoy reads it (filter, wrap), set in the boxes under the tab's code. {tab} is the tab's own name in Shadertoy, left in English (Buffer A, Image).",
+    "refs": [
+      "packages/ui/src/PaletteCode.tsx:66"
+    ]
+  },
+  "Paste it into Shadertoy's {tab} tab.": {
+    "note": "Line under the code while one of Shadertoy's tabs is chosen in that row (one with nothing to set, such as Common): the code shown goes into that tab of a Shadertoy page. {tab} is the tab's own name in Shadertoy, left in English as Shadertoy shows it (Common, Buffer A, Image).",
+    "refs": [
+      "packages/ui/src/PaletteCode.tsx:69"
+    ]
+  },
   "Paste palette JSON from Grabient.": {
     "note": "Search error: JSON that is not a palette.",
     "refs": [
@@ -4486,6 +4482,12 @@
       "apps/web/src/features/editor/effect-sources.ts:285"
     ]
   },
+  "Shadertoy tab": {
+    "note": "Editor's code pane, Shader tab while its Shadertoy spelling shows: the name screen readers say for a row of tabs under the spellings, one for each of Shadertoy's tabs the code goes in (Common, Buffer A, Image...); choosing one shows that tab's code alone, which Copy takes.",
+    "refs": [
+      "packages/ui/src/PaletteCode.tsx:216"
+    ]
+  },
   "Shape": {
     "note": "Editor, the Appearance menu's blob fields: a number field, which of many shapes the blob takes; each number is another shape.",
     "refs": [
@@ -4977,7 +4979,7 @@
   "Syntax": {
     "note": "Screen reader name of the tabs for one format's variants (hex or oklch, GLSL or WGSL).",
     "refs": [
-      "packages/ui/src/PaletteCode.tsx:174"
+      "packages/ui/src/PaletteCode.tsx:185"
     ]
   },
   "System": {
@@ -7056,7 +7058,7 @@
     "note": "Screen reader name of the code shown for a tab, or of a field holding text to copy by hand.",
     "refs": [
       "apps/web/src/mcp-view/PaletteView.tsx:419",
-      "packages/ui/src/PaletteCode.tsx:220"
+      "packages/ui/src/PaletteCode.tsx:246"
     ]
   },
   "{min} to {max}": {
