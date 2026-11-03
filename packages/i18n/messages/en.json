@@ -384,7 +384,7 @@
   "Another look": {
     "note": "Examples page: turns one example to another of the palette's looks (another style, steps, angle or shape that suits it). The shortcut list's entry for ← and →, and the hint after those keys under each example. Short.",
     "refs": [
-      "apps/web/src/features/examples/Example.tsx:228",
+      "apps/web/src/features/examples/Example.tsx:275",
       "packages/ui/src/keymap.ts:46"
     ]
   },
@@ -506,7 +506,7 @@
   "Background <c>{color}</c>": {
     "note": "A chip under an example: the background color the example gives a blob that has none of its own. <c>…</c> marks the hex code (like #101828), which stays as written; keep the tags.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:701",
+      "apps/web/src/features/examples/Cards.tsx:707",
       "apps/web/src/features/examples/Profile.tsx:124",
       "apps/web/src/features/examples/Wallpapers.tsx:261"
     ]
@@ -1423,7 +1423,7 @@
   "Covers and cards": {
     "note": "Examples page: title of a section, shown after its number as '2 · Covers and cards'. A masonry of media made with the palette: a poster, an album cover, a video thumbnail, a social post, an event card, a ticket, a membership card, an app icon, a business card, buttons. Short title.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:693"
+      "apps/web/src/features/examples/Cards.tsx:699"
     ]
   },
   "Custom": {
@@ -1644,7 +1644,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
       "apps/web/src/features/editor/Editor.tsx:1286",
-      "apps/web/src/features/examples/ExamplesPage.tsx:321",
+      "apps/web/src/features/examples/ExamplesPage.tsx:367",
       "packages/ui/src/KeyList.tsx:10"
     ]
   },
@@ -1766,7 +1766,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:31",
       "apps/web/src/features/examples/ExamplesLink.tsx:14",
-      "apps/web/src/features/examples/ExamplesPage.tsx:334",
+      "apps/web/src/features/examples/ExamplesPage.tsx:380",
       "packages/ui/src/KeyList.tsx:11"
     ]
   },
@@ -1945,7 +1945,7 @@
   "For posters, covers, posts and tickets.": {
     "note": "Examples page: the one short line under the 'Covers and cards' title, naming what the palette dresses there. Plain list, no marketing words.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:694"
+      "apps/web/src/features/examples/Cards.tsx:700"
     ]
   },
   "For profiles and default avatars.": {
@@ -2122,6 +2122,7 @@
       "apps/web/src/features/editor/Corner.tsx:72",
       "apps/web/src/features/editor/Corner.tsx:86",
       "apps/web/src/features/editor/EditorCorner.tsx:66",
+      "apps/web/src/features/examples/shared.ts:44",
       "apps/web/src/features/list/ListAppearance.tsx:328",
       "apps/web/src/features/list/ListAppearance.tsx:342"
     ]
@@ -2301,7 +2302,7 @@
   "In any CSS rule": {
     "note": "Short note under a code tab holding one CSS declaration: it can be pasted into any CSS rule. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:265"
+      "apps/web/src/features/examples/ExamplesPage.tsx:304"
     ]
   },
   "In the formula, <c>t</c> runs from 0 at the start of the gradient to 1 at the end. With <c>K</c> keyframes, keyframe <c>i</c> sits at <c>t = i / (K − 1)</c>, counting from 0. Each curve is a Catmull–Rom spline, and <c>gamut()</c> fits the color to the screen (section 6):": {
@@ -2313,9 +2314,9 @@
   "In the page's head": {
     "note": "Short note under a code tab holding tags for a web page's <head> element. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:253",
-      "apps/web/src/features/examples/ExamplesPage.tsx:258",
-      "apps/web/src/features/examples/ExamplesPage.tsx:270"
+      "apps/web/src/features/examples/ExamplesPage.tsx:285",
+      "apps/web/src/features/examples/ExamplesPage.tsx:297",
+      "apps/web/src/features/examples/ExamplesPage.tsx:309"
     ]
   },
   "In these collections": {
@@ -2651,7 +2652,7 @@
   "Linked": {
     "note": "Tab name of a code block on the examples page, beside 'HTML': the same tags, linking Grabient's stylesheet instead of holding the picture inline. One short word.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:256"
+      "apps/web/src/features/examples/ExamplesPage.tsx:288"
     ]
   },
   "Links and JSON can be up to 2,048 characters.": {
@@ -3826,7 +3827,7 @@
     "refs": [
       "apps/web/src/features/editor/Controls.tsx:347",
       "apps/web/src/features/editor/Controls.tsx:349",
-      "apps/web/src/features/examples/ExamplesPage.tsx:325"
+      "apps/web/src/features/examples/ExamplesPage.tsx:371"
     ]
   },
   "Random palette": {
@@ -4799,6 +4800,7 @@
       "apps/web/src/features/editor/Corner.tsx:71",
       "apps/web/src/features/editor/Corner.tsx:85",
       "apps/web/src/features/editor/EditorCorner.tsx:65",
+      "apps/web/src/features/examples/shared.ts:43",
       "apps/web/src/features/list/ListAppearance.tsx:327",
       "apps/web/src/features/list/ListAppearance.tsx:341"
     ]
@@ -4979,7 +4981,7 @@
   "Swipe for another look": {
     "note": "Examples page: the hint under each example on a touch screen: a finger drawn sideways across the example turns it to another of the palette's looks (another style, steps, angle or shape that suits it).",
     "refs": [
-      "apps/web/src/features/examples/Example.tsx:230"
+      "apps/web/src/features/examples/Example.tsx:277"
     ]
   },
   "Syntax": {
@@ -5138,7 +5140,7 @@
   "The code that paints it": {
     "note": "Read by screen readers only: the name of the code tabs at the top of a palette's examples page, the code that paints the palette as a page's background.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:342"
+      "apps/web/src/features/examples/ExamplesPage.tsx:388"
     ]
   },
   "The colors as design tokens.": {
@@ -5866,21 +5868,21 @@
   "WCAG AA": {
     "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's level for text (4.5:1 and up). WCAG and AA are the W3C's names: keep them as written.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:25",
+      "apps/web/src/features/examples/shared.ts:32",
       "packages/ui/src/ContrastGrid.tsx:63"
     ]
   },
   "WCAG AA Large": {
     "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's level for large text only (3:1 to 4.5:1). Keep WCAG and AA; Large means large text, 24px and up.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:26",
+      "apps/web/src/features/examples/shared.ts:33",
       "packages/ui/src/ContrastGrid.tsx:65"
     ]
   },
   "WCAG AAA": {
     "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's enhanced level for text (7:1 and up). WCAG and AAA are the W3C's names: keep them as written.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:24",
+      "apps/web/src/features/examples/shared.ts:31",
       "packages/ui/src/ContrastGrid.tsx:61"
     ]
   },
@@ -6307,7 +6309,7 @@
   "examples\u0004Code": {
     "note": "Examples page: the press under each example that shows or hides its code (CSS, HTML, Tailwind). Source code, not a sign-in code. One short word.",
     "refs": [
-      "apps/web/src/features/examples/Example.tsx:173"
+      "apps/web/src/features/examples/Example.tsx:220"
     ]
   },
   "feature\u0004Email": {
@@ -6826,7 +6828,7 @@
   "{count, plural, one {# color} other {# colors}}": {
     "note": "A tag under a section of the examples page, after an effect's name ('Fluted glass · 6 colors'): how many of the effect's colors the section takes as single colors. Give each plural form your language needs.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:51"
+      "apps/web/src/features/examples/shared.ts:70"
     ]
   },
   "{count, plural, one {# color} other {# colors}}, one per line.": {
@@ -6863,7 +6865,7 @@
   "{count, plural, one {# look} other {# looks}}": {
     "note": "Examples page: the tag under the cards grid, how many looks its tiles show the palette in (a gradient, bands across, bands swept round, rings, the fluted glass, the blob).",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:695"
+      "apps/web/src/features/examples/Cards.tsx:701"
     ]
   },
   "{count, plural, one {# minute} other {# minutes}}": {
@@ -6931,8 +6933,8 @@
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:68",
       "apps/web/src/features/examples/Chart.tsx:171",
-      "apps/web/src/features/examples/shared.ts:124",
-      "apps/web/src/features/examples/shared.ts:41",
+      "apps/web/src/features/examples/shared.ts:146",
+      "apps/web/src/features/examples/shared.ts:59",
       "apps/web/src/features/list/ListAppearance.tsx:339",
       "apps/web/src/mcp-view/PaletteView.tsx:96",
       "packages/ui/src/figure.ts:121"
@@ -7162,7 +7164,7 @@
   "{number} · {title}": {
     "note": "Heading of each section of a palette's examples page: its number, a middle dot, its title ('2 · Covers and cards'). Keep both placeholders and the middle dot; change the order only if your language needs it.",
     "refs": [
-      "apps/web/src/features/examples/Example.tsx:137"
+      "apps/web/src/features/examples/Example.tsx:184"
     ]
   },
   "{percent}% gamut-mapped": {
