@@ -56,6 +56,7 @@ import {
   figmaScene,
   figmaSolid
 } from "./figma-paste.ts";
+import type { Underlay } from "./fx-finish.ts";
 import type { Palette } from "./palette.ts";
 
 /** The lab's numbers: Figma's layer blur radius for a stdDeviation of Chrome's (fitted on the lab's tiles: radius 211
@@ -80,6 +81,9 @@ export interface FigmaBlobView extends Pick<BlobView, "shape" | "frost" | "bg"> 
   name: string;
   /** the soft and the grain over it, none where absent */
   finish?: FigmaFinish | null;
+  /** the gradient a soft blob's edges go to (fx-finish.ts effectUnderlay), none where it stands clear or is not
+      soft */
+  underlay?: Underlay | null;
 }
 
 type Blend = "COLOR_BURN" | "COLOR_DODGE";
@@ -434,12 +438,13 @@ export function figmaBlobNodes(view: FigmaBlobView): FigmaNode[] {
     frameMaskDisabled: false,
     ...(loop ? { timelineDuration: Math.round(loop * 1e6) } : {})
   });
-  const into = figmaFinish({ add, group }, top, { width: W, height: H }, view.finish, {
-    palette: view.palette,
-    kind: "blob",
-    bg: view.bg,
-    angle: 90
-  });
+  const into = figmaFinish(
+    { add, group },
+    top,
+    { width: W, height: H },
+    view.finish,
+    view.underlay
+  );
   let index = into.index;
   if (ground && finished)
     add("RECTANGLE", "ground", into.parent, index++, W, H, 0, 0, {

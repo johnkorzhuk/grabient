@@ -258,13 +258,23 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
 
 /* The effect as Figma's own layers at the pixels taken, the frame named for the palette, moving on Figma's timeline
    as the picture moves (its speed), its first frame when held, with its soft and grain as the stage paints them
-   (figma-paste.ts figmaFinish). Each effect's code comes on the press, and the Worker's build carries none of it */
+   (figma-paste.ts figmaFinish): a soft one's edges thin to the gradient its files lay under it, whose code comes for
+   a soft view alone. Each effect's code comes on the press, and the Worker's build carries none of it */
 const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
+  const finish = finishOf(p);
   const frame = {
     width: p.pixels.width,
     height: p.pixels.height,
     name: p.name || "Grabient",
-    finish: finishOf(p)
+    finish,
+    underlay: finish.soft
+      ? (await import("./figma-underlay.ts")).effectUnderlay(
+          paletteOf(p),
+          effect,
+          p.angle,
+          finish.soft
+        )
+      : null
   };
   if (effect.kind === "silk" || effect.kind === "rosette") {
     const look = {
@@ -301,7 +311,6 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
     : import("@grabient/engine/figma-glass.ts"));
   return figmaGlassHtml({
     colors: colorsOf(p),
-    palette: paletteOf(p),
     angle: p.angle,
     shape: shapeOf(p),
     ...frame,

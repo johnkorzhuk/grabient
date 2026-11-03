@@ -20,13 +20,13 @@ import {
   type FigmaFinish,
   type FigmaMotion,
   type FigmaNode,
-  type FigmaUnder,
   figmaColor,
   figmaFinish,
   figmaLayers,
   figmaPasteHtml,
   figmaScene
 } from "./figma-paste.ts";
+import type { Underlay } from "./fx-finish.ts";
 import type { Palette } from "./palette.ts";
 import {
   HEART_STOPS,
@@ -233,11 +233,11 @@ const loopOf = (l: Layer): number =>
 
 /** The paste's nodes: groups are frames fit to their children, placed by the bounds of what they hold; a group with two
     tracks is two groups, the second track on the inner one. The soft and the grain wrap the frame's layers, a soft
-    one over the gradient `under` makes. */
+    one over `underlay`. */
 export function rosetteNodes(
   root: Layer,
   finish?: FigmaFinish | null,
-  under: FigmaUnder | null = null
+  underlay: Underlay | null = null
 ): FigmaNode[] {
   const { nodes, internal, add, group, animate } = figmaLayers();
   const bounds = (l: Layer): [number, number, number, number] => {
@@ -296,7 +296,13 @@ export function rosetteNodes(
       fillPaints: fill
     });
   };
-  const into = figmaFinish({ add, group }, top, { width: root.w, height: root.h }, finish, under);
+  const into = figmaFinish(
+    { add, group },
+    top,
+    { width: root.w, height: root.h },
+    finish,
+    underlay
+  );
   (root.kids ?? []).forEach((k, i) => {
     put(k, into.parent, into.index + i, 0, 0);
   });
@@ -314,6 +320,8 @@ export interface FigmaRosetteView {
   name: string;
   speed: number;
   finish?: FigmaFinish | null;
+  /** the gradient a soft rosette's edges go to (fx-finish.ts effectUnderlay), none for none */
+  underlay?: Underlay | null;
 }
 
 /** The rosette's paste nodes: the document, its page, the frame and its layers, and its keyframe tracks. */
@@ -329,7 +337,7 @@ export const figmaRosetteNodes = (view: FigmaRosetteView): FigmaNode[] =>
       view.name
     ),
     view.finish,
-    { palette: view.palette, kind: "rosette", angle: view.angle }
+    view.underlay
   );
 
 /** The clipboard's text/html for the rosette, which a paste into Figma reads as its layers. */

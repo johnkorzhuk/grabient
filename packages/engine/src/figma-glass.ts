@@ -14,8 +14,9 @@
    along the ribs, one or two laps a loop (GLASS_LOOP over the speed). An ellipse is no turn Figma can key, but each of
    its screen axes is a plain wave, so a disc's group moves across and its inner group down, each keyed at the wave's
    turning points on the ease a sine's swing follows, a stretch that starts or ends partway on that part of it. The
-   ribs stay still, as on the site. Its soft and grain wrap the masked group as the site paints them (figmaFinish),
-   still while the colors move. */
+   ribs stay still, as on the site. Its soft wraps the masked group as the site paints it (figmaFinish) and its grain
+   is a layer of its own over the frame (figmaGrainLayer), which Figma's Glass takes no part of: a noise on any group
+   above the ribs doubles the grain's lift under them. Both hold still while the colors move. */
 import {
   FIGMA_PAGE,
   type FigmaCurve,
@@ -28,13 +29,14 @@ import {
   figmaColor,
   figmaCurveBetween,
   figmaFinish,
+  figmaGrainLayer,
   figmaLayers,
   figmaPasteHtml,
   figmaScene,
   figmaSolid
 } from "./figma-paste.ts";
+import type { Underlay } from "./fx-finish.ts";
 import { GLASS_DESIGN, GLASS_LOOP, glassDiscAt, glassField, glassGeometry } from "./glass.ts";
-import type { Palette } from "./palette.ts";
 
 /** The Glass a rib carries, in the clipboard's names: refractionIntensity is Figma's Refraction, refractionRadius its
     Depth, specularIntensity and specularAngle its Light, chromaticAberration its Dispersion, reflectionDistance its
@@ -49,8 +51,6 @@ export const FIGMA_GLASS = {
 export interface FigmaGlassView {
   /** the six colors the glass takes (glassColors) */
   colors: readonly string[];
-  /** its palette, whose gradient a soft glass's edges go to */
-  palette?: Palette;
   angle: number;
   shape: number | null;
   width: number;
@@ -61,6 +61,8 @@ export interface FigmaGlassView {
   speed?: number;
   /** the soft and the grain over it, none where absent */
   finish?: FigmaFinish | null;
+  /** the gradient a soft glass's edges go to (fx-finish.ts effectUnderlay), none for none */
+  underlay?: Underlay | null;
 }
 
 /** The ease of a cosine's swing from one end to the other (CSS's easeInOutSine), within half a percent of it. */
@@ -144,12 +146,13 @@ export function figmaGlassNodes(view: FigmaGlassView): FigmaNode[] {
     frameMaskDisabled: true,
     ...(loop ? { timelineDuration: Math.round(loop * 1e6) } : {})
   });
+  const soft = view.finish?.soft;
   const into = figmaFinish(
     { add, group },
     top,
     { width: W, height: H },
-    view.finish,
-    view.palette ? { palette: view.palette, kind: "glass", angle: view.angle } : null
+    soft ? { soft } : null,
+    view.underlay
   );
   const glass = group("glass", into.parent, into.index, 0, 0, W, H);
   add("RECTANGLE", "mask", glass, 0, W, H, 0, 0, {
@@ -294,6 +297,9 @@ export function figmaGlassNodes(view: FigmaGlassView): FigmaNode[] {
       fillPaints: [figmaSolid("#ffffff")]
     });
   }
+  /* the grain over all of it, the glass's group (or its soft's) under it */
+  const grain = view.finish?.grain;
+  if (grain) figmaGrainLayer(add, top, 1, { width: W, height: H }, grain);
   return figmaScene(nodes, internal);
 }
 
