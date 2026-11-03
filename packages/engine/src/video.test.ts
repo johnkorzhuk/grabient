@@ -22,7 +22,6 @@ import { renderRosette } from "./rosette-render.ts";
 import { SILK_LOOP, silkScene } from "./silk.ts";
 import { renderSilk } from "./silk-render.ts";
 import {
-  isVideoKind,
   VIDEO_LIMITS,
   VIDEO_MODULE,
   VIDEO_QUALITY,
@@ -44,6 +43,7 @@ import {
   videoWork
 } from "./video.ts";
 import { videoBlur, videoFinish } from "./video-finish.ts";
+import { hasVideo, VIDEO_KINDS } from "./video-kinds.ts";
 
 /* Node's WebAssembly, as much of it as this names (the engine's lib knows no host, as video.ts says) */
 declare const WebAssembly: {
@@ -71,9 +71,10 @@ describe("videoAt", () => {
   const asked = { width: 640, height: 360 };
   const at = (query: string) => videoAt(new URLSearchParams(query), asked);
 
-  it("names the kinds a clip is drawn of, every effect but the papercut", () => {
-    expect(EFFECTS.filter(isVideoKind)).toEqual(["glass", "blob", "silk", "rosette"]);
-    expect(at("style=papercut")).toBeNull();
+  it("names a clip of each effect the clips' list names, and of no other style", () => {
+    for (const kind of VIDEO_KINDS) expect(at(`style=${kind}`)?.kind).toBe(kind);
+    for (const kind of EFFECTS.filter(kind => !hasVideo(kind)))
+      expect(at(`style=${kind}`), kind).toBeNull();
     expect(at("style=linearGradient")).toBeNull();
   });
 

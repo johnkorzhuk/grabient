@@ -10,7 +10,6 @@ import { hexBytes } from "./color.ts";
 import {
   type Effect,
   type EffectFinish,
-  type EffectKind,
   type EffectLook,
   groundParts,
   parseEffect
@@ -30,6 +29,7 @@ import {
   rosetteScene
 } from "./rosette.ts";
 import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
+import { hasVideo, type VideoKind } from "./video-kinds.ts";
 import {
   DEFAULT_ANGLE,
   effectSoftShare,
@@ -39,20 +39,7 @@ import {
   type Size
 } from "./view.ts";
 
-/** The effects a clip can be drawn of, their frames drawn by video/video.wasm: every one but the papercut, whose frames
-    are not drawn yet. */
-export type VideoKind = Exclude<EffectKind, "papercut">;
-/* the same as the one list the Worker's /{seed}.mp4 and the editor's MP4 chips read (isVideoKind): a kind whose clips
-   land joins it here, which the type above holds complete */
-const VIDEO_KINDS: Readonly<Record<VideoKind, true>> = {
-  glass: true,
-  blob: true,
-  silk: true,
-  rosette: true
-};
-/** Whether a clip is drawn of an effect: what /{seed}.mp4 plays, and what the editor offers an MP4 of. */
-export const isVideoKind = (kind: EffectKind): kind is VideoKind =>
-  Object.hasOwn(VIDEO_KINDS, kind);
+export type { VideoKind } from "./video-kinds.ts";
 
 /* The host's WebAssembly, as much of it as this names: the engine's own lib knows no host (as zip.ts declares
    TextEncoder). Every host the engine runs in has it: a Worker, a browser, Node. */
@@ -255,9 +242,10 @@ export function videoFit(
 
 /** A clip as its address asks for it (/{seed}.mp4, server/images/video.ts), which the Worker and the editor's download
     read alike, so a clip drawn in a reader's browser (apps/web features/editor/video-clip.ts) is the server's: its
-    effect, of a kind a clip is drawn of; its angle, the view's default for the blob, whose one clip serves every angle
-    its address names; its soft and grain; the duration asked, none for one loop; and its size, rate and plan within the
-    limits, fitted from the size the address asks for. An address that names no style plays the glass, as a page does. */
+    effect, of a kind a clip is drawn of (video-kinds.ts); its angle, the view's default for the blob, whose one clip
+    serves every angle its address names; its soft and grain; the duration asked, none for one loop; and its size, rate
+    and plan within the limits, fitted from the size the address asks for. An address that names no style plays the
+    glass, as a page does. */
 export interface VideoAt {
   effect: Effect;
   kind: VideoKind;
@@ -270,7 +258,7 @@ export interface VideoAt {
 }
 export function videoAt(params: ParamReader, asked: Size): VideoAt | null {
   const effect = parseEffect({ get: key => params.get(key) ?? (key === "style" ? "glass" : null) });
-  if (!effect || !isVideoKind(effect.kind)) return null;
+  if (!effect || !hasVideo(effect.kind)) return null;
   const kind = effect.kind;
   const view = parseView(params);
   const angle = kind === "blob" ? DEFAULT_ANGLE : view.angle;

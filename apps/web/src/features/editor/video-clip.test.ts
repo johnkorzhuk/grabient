@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECTS, parseEffect } from "@grabient/engine/effect.ts";
 import { videoFit } from "@grabient/engine/video.ts";
+import { hasVideo } from "@grabient/engine/video-kinds.ts";
 import { describe, expect, test } from "vitest";
 import { CARD_SIZE } from "../../lib/picture-size.ts";
 import { answerClip, type ClipSaid, clipAt, drawClip } from "./video-clip.ts";
@@ -60,7 +61,8 @@ describe("the clip at an MP4's address", () => {
 
   test("names no clip for a gradient, an effect no clip is drawn of, or no palette", () => {
     expect(at("style=linearGradient")).toBeNull();
-    expect(at("style=papercut")).toBeNull();
+    for (const kind of EFFECTS.filter(kind => !hasVideo(kind)))
+      expect(at(`style=${kind}`), kind).toBeNull();
     expect(clipAt(`${ORIGIN}/nothing.mp4?style=glass`)).toBeNull();
     expect(clipAt(`${ORIGIN}/${SEED}.png?style=glass`)).toBeNull();
     expect(clipAt("not an address")).toBeNull();
@@ -107,10 +109,9 @@ describe("the worker", () => {
       throw new WebAssembly.CompileError("no SIMD here");
     };
     const failed = (said: { said: ClipSaid }[]) => said.at(-1)?.said;
-    expect(failed(await run(`${ORIGIN}/${SEED}.mp4?style=papercut`, async () => wasm))).toEqual({
-      said: "failed",
-      why: "address"
-    });
+    expect(
+      failed(await run(`${ORIGIN}/${SEED}.mp4?style=linearGradient`, async () => wasm))
+    ).toEqual({ said: "failed", why: "address" });
     expect(failed(await run(address, refused))).toEqual({ said: "failed", why: "browser" });
     const quiet = console.error;
     console.error = () => {};

@@ -20,8 +20,9 @@
    Clips are a preview: who a clip no one has kept is drawn for, its drawing and that page are video-make.ts's, which
    loads with the first of them an isolate is asked for. This answers a kept clip to a player without it. */
 
-import type { Effect, EffectFinish } from "@grabient/engine/effect.ts";
+import { type Effect, type EffectFinish, parseEffect } from "@grabient/engine/effect.ts";
 import type { VideoPlan } from "@grabient/engine/video.ts";
+import { hasVideo, VIDEO_KINDS } from "@grabient/engine/video-kinds.ts";
 import type { Size } from "@grabient/engine/view.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
@@ -127,17 +128,19 @@ export async function seedMp4Answer(
   const found = resolvePalette(fileName(url.pathname, "mp4"));
   if (!found) return failure(404, "Invalid palette seed.");
   const params = addressParams(url.searchParams);
-  const { videoAt, videoParts, videoQuality } = await import("@grabient/engine/video.ts");
-  /* as the editor's download reads the same address (engine/video.ts's videoAt): the papercut's clips are not drawn
-     yet, and the blob has no angle, one clip for every angle its address names */
-  const asked = videoAt(params, pictureSize(params));
-  if (!asked) {
+  if (!params.has("style")) params.set("style", "glass");
+  const effect = parseEffect(params);
+  if (!effect || !hasVideo(effect.kind)) {
+    const styles = VIDEO_KINDS.map(kind => `style=${kind}`);
     return failure(
       404,
-      "An MP4 plays an effect: style=glass, style=blob, style=silk or style=rosette."
+      `An MP4 plays an effect: ${styles.slice(0, -1).join(", ")} or ${styles.at(-1)}.`
     );
   }
-  const { effect, kind, angle, finish, duration, size, fps, plan } = asked;
+  const { videoAt, videoParts, videoQuality } = await import("@grabient/engine/video.ts");
+  /* the clip, of the kind just read, as the editor's download reads the same address (engine/video.ts's videoAt): the
+     blob has no angle, one clip for every angle its address names */
+  const { kind, angle, finish, duration, size, fps, plan } = videoAt(params, pictureSize(params))!;
   const drawn = { kind, look: effect.look, finish };
   const look = kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
   const hash = await hashOf([

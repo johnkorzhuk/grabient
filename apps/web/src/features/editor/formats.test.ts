@@ -1,6 +1,11 @@
 import { decodePalette } from "@grabient/engine";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { effectFileAddress, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  EFFECTS,
+  effectFileAddress,
+  hasEmbedScript,
+  parseEffect
+} from "@grabient/engine/effect.ts";
 import {
   effectLayers,
   effectStill,
@@ -8,6 +13,7 @@ import {
   effectSvg
 } from "@grabient/engine/effect-code.ts";
 import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
+import { hasVideo, VIDEO_KINDS } from "@grabient/engine/video-kinds.ts";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   copyFormat,
@@ -106,14 +112,24 @@ test("the page's address keeps the effect, and its files' addresses carry every 
 });
 
 test("while an effect a clip is drawn of plays, the stage downloads its MP4 and copies its link, and never copies the clip", () => {
-  for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
+  for (const kind of VIDEO_KINDS) {
     expect(stageFileFormats(kind)).toEqual([...STRIP_FILES, "mp4"]);
-    expect(stageLinkFormats(kind)).toEqual(["md", "css", "svg", "png", "mp4", "js"]);
+    /* the clip among the files, before the script that plays the effect where one does */
+    expect(stageLinkFormats(kind)).toEqual([
+      "md",
+      "css",
+      "svg",
+      "png",
+      "mp4",
+      ...(hasEmbedScript(kind) ? ["js"] : [])
+    ]);
     expect(effectCopyFormats(kind)).not.toContain("mp4");
   }
-  /* the papercut's clips are not drawn yet */
-  expect(stageFileFormats("papercut")).toEqual(STRIP_FILES);
-  expect(stageLinkFormats("papercut")).not.toContain("mp4");
+  /* an effect whose clips are not drawn yet offers none */
+  for (const kind of EFFECTS.filter(kind => !hasVideo(kind))) {
+    expect(stageFileFormats(kind)).toEqual(STRIP_FILES);
+    expect(stageLinkFormats(kind)).not.toContain("mp4");
+  }
   /* production draws a new clip for an admin alone, so it links one for an admin alone; a download costs it nothing */
   vi.stubEnv("MODE", "production");
   expect(stageLinkFormats("glass")).toEqual(["md", "css", "svg", "png", "js"]);

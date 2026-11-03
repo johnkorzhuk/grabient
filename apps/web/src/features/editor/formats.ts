@@ -12,7 +12,7 @@ import {
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
-import { isVideoKind } from "@grabient/engine/video.ts";
+import { hasVideo } from "@grabient/engine/video-kinds.ts";
 import {
   finishOf,
   type Size,
@@ -67,14 +67,14 @@ export const effectCopyFormats = (kind: EffectKind): readonly Format[] =>
     admins. A production build is made for grabient.com alone (cloudflare.config.ts), and an admin who put the admin
     tools away sees the strip as any reader does. */
 export const drawsClips = (): boolean => import.meta.env.MODE !== "production" || isAdmin();
-/** While an effect a clip is drawn of plays (engine/video.ts's isVideoKind), the stage's strip also downloads its MP4,
-    drawn and coded in this browser (video-download.ts), and copies its address where the server would draw it for this
+/** While an effect a clip is drawn of plays (engine/video-kinds.ts), the stage's strip also downloads its MP4, drawn
+    and coded in this browser (video-download.ts), and copies its address where the server would draw it for this
     reader (drawsClips). Copy hands over no clip, and a card's strip offers none. */
 export const stageFileFormats = (kind: EffectKind): readonly Format[] =>
-  isVideoKind(kind) ? [...STRIP_FILES, "mp4"] : STRIP_FILES;
+  hasVideo(kind) ? [...STRIP_FILES, "mp4"] : STRIP_FILES;
 export function stageLinkFormats(kind: EffectKind): readonly Format[] {
   const links = effectLinkFormats(kind);
-  if (!isVideoKind(kind) || !drawsClips()) return links;
+  if (!hasVideo(kind) || !drawsClips()) return links;
   /* the clip among the files, before the script that plays the effect */
   return [...links.filter(f => f !== "js"), "mp4", ...links.filter(f => f === "js")];
 }
