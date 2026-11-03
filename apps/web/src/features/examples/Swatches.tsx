@@ -2,7 +2,7 @@ import { gradientCss, spell } from "@grabient/engine/css.ts";
 import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
 import { SWATCH_FILES, type SwatchFormat } from "@grabient/engine/swatches.ts";
 import { type View, viewSearch } from "@grabient/engine/view.ts";
-import { t } from "@grabient/i18n";
+import { msg, t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
 import { copyText, downloadFile } from "@grabient/ui/copy.ts";
 import { createDone } from "@grabient/ui/done.ts";
@@ -25,7 +25,8 @@ import { drawnWords, effectColorsWords, gradientOf, takenOf } from "./shared.ts"
    under it the token's name and what its ink reaches there, each line level with its neighbors'. A gradient or bands
    stand over their chips as the token that draws them, in the page's style, and the chips are its stops at the page's
    steps, as the editor's strip has them: the palette as its address names it. An effect has no such token, and its
-   chips are the colors it is drawn from, the glass's six or the blob's along its palette, which the tag says. Up to
+   chips are the colors it is drawn from, as the editor's Colors tab lists them (the glass's six, the blob's along its
+   palette, the papercut's sheets), which the tag says. Up to
    nine colors stand as roomy chips; more stand in a grid of small ones, number and hex alone, none left out. Under
    them the app's own strip takes the chips' colors away: the palette's CSS, JSON and Markdown, the swatch files behind
    its book, each copied, saved or its address copied as its mode press turns. The chip under the stage is the least
@@ -85,8 +86,9 @@ function columns(n: number, most: number): number {
 }
 
 /** The view Grabient's files are read in for the chips' colors: the page's for a gradient or bands; for an effect a
-    linear gradient at its count of colors, or, where a glass's keyframes outnumber its six (a file never holds fewer
-    colors than keyframes), at eleven, every other one of which is the glass's. */
+    linear gradient at its count of colors, or, where the palette's keyframes outnumber them (a file never holds fewer
+    colors than keyframes, and the glass, the silk and the rosette are drawn from six), at twice as many less one,
+    every other one of which is the effect's. */
 function filesView(
   s: Shown,
   count: number
@@ -260,7 +262,7 @@ export function SwatchesExample(props: ExampleProps) {
     ].join("\n");
   };
   /* the code speaks for itself; Tailwind's says its version, since an older one reads no @theme, and files that hold
-     more colors than the glass's six say which are its */
+     more colors than the effect's say which are its */
   const code = () => [
     { label: "CSS", code: css() },
     { label: "Tailwind", code: tailwind(), where: { text: t("For Tailwind v4") } },
@@ -270,7 +272,17 @@ export function SwatchesExample(props: ExampleProps) {
       code: SWATCHES.map(
         f => `${props.origin}/${s().seed}.${SWATCH_FILES[f].extension}${search()}`
       ).join("\n"),
-      ...(files().every > 1 ? { where: { text: t("Every other color is the glass's") } } : {})
+      ...(files().every > 1
+        ? {
+            where: {
+              text: t(
+                s().effect?.kind === "glass"
+                  ? msg("Every other color is the glass's")
+                  : msg("Every other color is the effect's")
+              )
+            }
+          }
+        : {})
     }
   ];
 

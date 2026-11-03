@@ -258,6 +258,7 @@
   "Event card": "Card de evento",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "Todos os atalhos de teclado: tema, copiar URL, desfazer, refazer, paleta aleatória, inverter, inverter ordem, etapas e mais. Clique em um para alterá-lo.",
   "Every other color is the glass's": "Uma em cada duas cores é do vidro",
+  "Every other color is the effect's": "Uma em cada duas cores é do efeito",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "O endereço de cada paleta contém a sua semente, um código curto dos seus quadros-chave. A semente da primeira figura é <c>{seed}</c>.",
   "Everyone it hasn't reached": "Todos que ainda não receberam",
   "Everywhere": "Em todo lugar",

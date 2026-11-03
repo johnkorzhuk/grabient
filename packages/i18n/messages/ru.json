@@ -258,6 +258,7 @@
   "Event card": "Карточка мероприятия",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "Все горячие клавиши Grabient: тема, копирование URL, отмена и повтор, случайная палитра, инверсия, разворот, шаги и другие. Нажмите клавишу, чтобы изменить её.",
   "Every other color is the glass's": "Каждый второй цвет взят у стекла",
+  "Every other color is the effect's": "Каждый второй цвет взят у эффекта",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "Адрес каждой палитры содержит её сид, короткий код ключевых точек. Сид первого рисунка: <c>{seed}</c>.",
   "Everyone it hasn't reached": "Все, кто ещё не получил выпуск",
   "Everywhere": "Везде",

@@ -258,6 +258,7 @@
   "Event card": "Thẻ sự kiện",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "Mọi phím tắt trong Grabient: giao diện, sao chép URL, hoàn tác và làm lại, bảng màu ngẫu nhiên, đảo màu, đảo chiều, số bước, v.v. Nhấn một phím tắt để đổi.",
   "Every other color is the glass's": "Cứ cách một màu là màu của kính",
+  "Every other color is the effect's": "Cứ cách một màu là màu của hiệu ứng",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "Địa chỉ của mỗi bảng màu chứa mã seed, một mã ngắn cho các keyframe. Mã seed của hình đầu tiên là <c>{seed}</c>.",
   "Everyone it hasn't reached": "Mọi người chưa nhận được",
   "Everywhere": "Mọi nơi",

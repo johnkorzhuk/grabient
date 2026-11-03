@@ -258,6 +258,7 @@
   "Event card": "بطاقة فعالية",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "كل اختصارات لوحة المفاتيح في Grabient: المظهر، ونسخ الرابط، والتراجع والإعادة، واللوحة العشوائية، وعكس الألوان والترتيب، والخطوات وغيرها. اضغط أحدها لتغييره.",
   "Every other color is the glass's": "ألوان الزجاج تتناوب مع غيرها",
+  "Every other color is the effect's": "ألوان المؤثر تتناوب مع غيرها",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "يحمل رابط كل لوحة بذرتها، وهي رمز قصير لإطاراتها الرئيسية. بذرة الشكل الأول هي <c>{seed}</c>.",
   "Everyone it hasn't reached": "كل من لم يصله العدد بعد",
   "Everywhere": "في كل مكان",

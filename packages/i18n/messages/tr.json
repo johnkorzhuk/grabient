@@ -258,6 +258,7 @@
   "Event card": "Etkinlik kartı",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "Tüm klavye kısayolları: tema, URL kopyala, geri al ve yinele, rastgele palet, ters çevir, sırayı çevir, adımlar ve dahası. Değiştirmek için birine basın.",
   "Every other color is the glass's": "Her ikinci renk camın",
+  "Every other color is the effect's": "Her ikinci renk efektin",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "Her paletin adresi, anahtar kareleri için kısa bir kod olan tohumunu taşır. İlk şeklin tohumu: <c>{seed}</c>.",
   "Everyone it hasn't reached": "Henüz almamış herkes",
   "Everywhere": "Her yerde",

@@ -5,10 +5,10 @@
    parts take turns: each one looks first at the looks the parts before it took least, so the page shows the palette's
    range rather than one look again and again.
    A look is the palette as a gradient, bands across, bands swept round the middle (angular), rings out from it
-   (radial), the fluted glass or the blob, at an angle and in as many bands as the seed picks for the part. The glass
-   lies at one angle a page and the blob in its palette's shape (effect.ts's blobShapeOf), since each other angle or
-   shape is another still for the server to write and the browser to draw; the blob has no angle, its palette lying
-   from left to right. */
+   (radial), or one of the effects: the fluted glass, the blob, the silk, the rosette or the papercut, at an angle and in
+   as many bands as the seed picks for the part. Each effect but the blob lies at one angle a page, as designed, and the
+   blob in its palette's shape (effect.ts's blobShapeOf), since each other angle or shape is another still for the
+   server to write and the browser to draw; the blob has no angle, its palette lying from left to right. */
 import { sampleLCH } from "@grabient/engine/curve.ts";
 import {
   blobShapeOf,
@@ -24,8 +24,18 @@ import type { Shown } from "./paint.ts";
 
 /** What a part shows the palette as. */
 export type Look = "gradient" | "bands" | "sweep" | "rings" | EffectKind;
-/** Every look, in the order a press on a tile turns through them. */
-export const LOOKS: readonly Look[] = ["gradient", "bands", "glass", "sweep", "blob", "rings"];
+/** Every look, in the order a press on a tile turns through them: a stylesheet's and an effect's in turn. */
+export const LOOKS: readonly Look[] = [
+  "gradient",
+  "glass",
+  "bands",
+  "silk",
+  "sweep",
+  "rosette",
+  "rings",
+  "papercut",
+  "blob"
+];
 /** The looks a stylesheet draws alone, which a page's first screen paints at once. */
 export const CSS_LOOKS: readonly Look[] = ["gradient", "bands", "sweep", "rings"];
 
@@ -123,9 +133,9 @@ export const lookOf = (s: Shown): Look => {
 
 /** The palette in a look as a part named `name` shows it: a gradient as smooth as it needs, bands as many as the seed
     picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings and the blob,
-    which have none, at the default's. The glass lies at the page's one angle for it and the blob in its palette's
-    shape; or, given `own`, in a shape of their own for it, the glass at an angle of its own too, as a look a reader
-    turns to is. */
+    which have none, at the default's. An effect lies at the page's one angle for it, as designed, and the blob in its
+    palette's shape; or, given `own`, in a shape of its own, at an angle of its own too, as a look a reader turns to
+    is. */
 export function inLook(
   seed: string,
   palette: Palette,

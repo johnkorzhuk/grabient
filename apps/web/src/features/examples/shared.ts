@@ -10,7 +10,8 @@ import {
   EFFECT_LOOK,
   EFFECT_PLAY,
   type EffectKind,
-  effectFileAddress
+  effectFileAddress,
+  isEffect
 } from "@grabient/engine/effect.ts";
 import { DEFAULT_SIZE, isSwatchStyle, type Size, STYLE_LABELS } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
@@ -66,8 +67,8 @@ export function solidBlob(s: Shown): Shown {
   return { ...s, effect: { ...effect, look: { ...effect.look, bg } } };
 }
 
-/** The forms a palette takes: a gradient (linear, angular or radial), bands, the fluted glass and the blob. The page is
-    every palette's whole range, each part in a look of its own (looks.ts). */
+/** The forms a palette takes: a gradient (linear, angular or radial), bands, or one of the effects. The page is every
+    palette's whole range, each part in a look of its own (looks.ts). */
 export type Form = "gradient" | "bands" | EffectKind;
 export const formOf = (s: Shown): Form =>
   s.effect?.kind ?? (isSwatchStyle(s.view.style) ? "bands" : "gradient");
@@ -80,7 +81,7 @@ export function inForm(s: Shown, form: Form): Shown {
   if (form === formOf(s)) return s;
   const { seed, palette } = s;
   const angle = s.view.angle;
-  if (form === "glass" || form === "blob")
+  if (isEffect(form))
     return {
       seed,
       palette,

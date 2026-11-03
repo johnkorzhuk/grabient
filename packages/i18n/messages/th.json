@@ -258,6 +258,7 @@
   "Event card": "การ์ดกิจกรรม",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "ปุ่มลัดทุกปุ่มใน Grabient: ธีม คัดลอก URL เลิกทำและทำซ้ำ สุ่มพาเลตต์ กลับสี กลับลำดับ จำนวนสี และอื่นๆ กดปุ่มลัดในหน้านี้เพื่อเปลี่ยน",
   "Every other color is the glass's": "สีเว้นสีเป็นสีของกระจก",
+  "Every other color is the effect's": "สีเว้นสีเป็นสีของเอฟเฟกต์",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "ที่อยู่ของพาเลตต์แต่ละอันมีรหัสพาเลตต์อยู่ด้วย ซึ่งเป็นรหัสสั้น ๆ ของคีย์เฟรม รหัสของรูปแรกคือ <c>{seed}</c>",
   "Everyone it hasn't reached": "ทุกคนที่ยังไม่ได้รับ",
   "Everywhere": "ทุกที่",

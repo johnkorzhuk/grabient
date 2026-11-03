@@ -135,8 +135,8 @@ function fitOf(colors: readonly string[]): Fit {
 }
 
 /** The palette's colors as the charts take them, with the curve's stops they are: a gradient's curve at FINE steps,
-    the bands' own, an effect's (the glass's six and the blob's nine lie at even steps of the curve too, so the JSON
-    address at that many steps gives them). */
+    the bands' own, an effect's (the glass's six, the blob's nine, the silk's and the rosette's six and the papercut's
+    sheets lie at even steps of the curve too, so the JSON address at that many steps gives them). */
 function alongOf(s: Shown): Stop[] {
   if (s.effect) return sampleStops(s.palette, drawnColors(s).length);
   return isSwatchStyle(s.view.style) ? stopsOf(s) : sampleStops(s.palette, FINE);

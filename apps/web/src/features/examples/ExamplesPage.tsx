@@ -1,6 +1,11 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { cssBlock } from "@grabient/engine/css.ts";
-import { EFFECT_LOOK, EFFECT_PLAY, type EffectKind } from "@grabient/engine/effect.ts";
+import {
+  EFFECT_LOOK,
+  EFFECT_PLAY,
+  type EffectKind,
+  type VectorKind
+} from "@grabient/engine/effect.ts";
 import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
@@ -26,6 +31,7 @@ import { ShellContext } from "../../app/shell.ts";
 import { colorFormat } from "../../lib/color-format.ts";
 import { paletteName, siteOrigin } from "../../lib/page-meta.ts";
 import { BlobLayer } from "../editor/BlobLayer.tsx";
+import { FxLayer } from "../editor/FxLayer.tsx";
 import { effectHtml } from "../editor/formats.ts";
 import { GlassLayer } from "../editor/GlassLayer.tsx";
 import { keyOf } from "../editor/keys.ts";
@@ -46,8 +52,8 @@ import { WallpapersExample, wallpapersGood } from "./Wallpapers.tsx";
 
 /* A palette's examples (routes/$id/examples.tsx): one page for each palette, whatever its address named, each part of it
    showing the palette in a look of its own that the seed picks of the looks the part is a good fit for (looks.ts). First
-   the hero: the palette as a page's background playing the fluted glass or the blob, which the seed picks, from the
-   server's still, run under the header to the window's top and edge to edge, with the way back to the editor at its top and at its foot
+   the hero: the palette as a page's background playing one of the effects, which the seed picks, from the server's
+   still, run under the header to the window's top and edge to edge, with the way back to the editor at its top and at its foot
    the palette's name, how it is drawn and the code that puts it there, in the theme that reads on the colors under them
    (tone.ts), the look picked where one does, or on a sheet of the page's own where none does. Then the examples, each
    in the documentation's frame (Example.tsx), taking turns at the looks so the page shows the palette's range. The
@@ -202,6 +208,9 @@ const STILL_SHOWN: Readonly<Record<EffectKind, string>> = {
   papercut: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat'
 };
 
+/** The effects drawn over a vector still, each its own layer in the hero. */
+const VECTOR_KINDS: readonly VectorKind[] = ["silk", "rosette", "papercut"];
+
 /** The hero: the palette as a page's background, from the window's top, edge to edge. */
 function Hero(props: {
   s: Shown;
@@ -292,6 +301,17 @@ function Hero(props: {
               settings={s().effect ?? { ...EFFECT_PLAY, look: EFFECT_LOOK }}
             />
           </Match>
+          {/* a layer for each vector effect, as the editor's stage has: a layer plays the kind it was made for */}
+          {VECTOR_KINDS.map(kind => (
+            <Match when={s().effect?.kind === kind}>
+              <FxLayer
+                kind={kind}
+                palette={s().palette}
+                settings={s().effect ?? { ...EFFECT_PLAY, look: EFFECT_LOOK }}
+                angle={s().view.angle}
+              />
+            </Match>
+          ))}
         </Switch>
       </div>
       {/* the way back to the editor, and a random palette for a reader with no keyboard, the key in its tip */}

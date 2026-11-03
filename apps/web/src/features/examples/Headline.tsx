@@ -7,7 +7,7 @@ import { EffectArt } from "../editor/EffectArt.tsx";
 import { inkThrough, LARGE, lettersTheme, TILE, tileFor } from "./fit.ts";
 import styles from "./Headline.module.css";
 import { LOOKS, pickFitting, type Taken } from "./looks.ts";
-import { drawnColors, groundOn, type Shown, type Theme } from "./paint.ts";
+import { drawnColors, groundOn, type Shown, shownColors, type Theme } from "./paint.ts";
 import { gradientOf, inForm, PLAIN_ANGLES, plainAt } from "./shared.ts";
 
 /* Headlines in the palette, as tiles of the cards' grid (Cards.tsx), each shown only where the palette works for it
@@ -135,15 +135,15 @@ function withGround(s: Shown, ground: string | null): Shown {
   return { ...s, effect: { ...effect, look: { ...effect.look, bg: ground } } };
 }
 
-/** The palette inside the letters: the page's theme in which every color reads as large words, and the ground a blob
-    with none is given there (the palette's color that stands out most from that page). Null where no theme's page holds
-    them all. */
+/** The palette inside the letters: the page's theme in which every color reads as large words, the lights and shades
+    an effect lays them in too, and the ground a blob with none is given there (the palette's color that stands out most
+    from that page). Null where no theme's page holds them all. */
 interface Letters {
   theme: Theme;
   ground: string | null;
 }
 function lettersOf(s: Shown): Letters | null {
-  const colors = drawnColors(s);
+  const colors = shownColors(s);
   const effect = s.effect;
   const own = effect?.kind === "blob" ? effect.look.bg?.slice(0, 7) : undefined;
   const theme = lettersTheme(own ? [...colors, own] : colors);

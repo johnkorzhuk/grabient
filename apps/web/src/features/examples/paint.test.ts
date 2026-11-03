@@ -1,6 +1,15 @@
 import { decodePalette } from "@grabient/engine";
+import { toHex } from "@grabient/engine/color.ts";
+import { luminance } from "@grabient/engine/contrast.ts";
 import type { Effect } from "@grabient/engine/effect.ts";
+import { effectColors } from "@grabient/engine/effect-code.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
+import { PAPERCUT_LOOP, papercutScene } from "@grabient/engine/papercut.ts";
+import { renderPapercut } from "@grabient/engine/papercut-render.ts";
+import { rosetteColors, rosetteDesign, rosetteScene } from "@grabient/engine/rosette.ts";
+import { renderRosette } from "@grabient/engine/rosette-render.ts";
+import { bakeDye, SILK_DESIGN, SILK_LOOP, silkDesign, silkScene } from "@grabient/engine/silk.ts";
+import { renderSilk } from "@grabient/engine/silk-render.ts";
 import type { Style } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
 import {
@@ -11,7 +20,9 @@ import {
   groundOn,
   inkOn,
   mirrored,
+  PAPERCUT_SHEETS,
   type Shown,
+  shownColors,
   THEME_GROUND,
   themeOn,
   twoPlaces,
@@ -233,5 +244,150 @@ describe("colorsOfParts", () => {
           }
         }
     }
+  });
+});
+
+/* real palettes, light and dark, quiet and vivid */
+const SEEDS = [
+  "kWPgBjqiK5UIirpZorp5IA6Y",
+  "kWTATrcQ7MeMxv1MwbbLKq84",
+  "kWnCIwwC47igfOklkTlShq44",
+  "kWede9SdS_WExOrXTdG1szDY",
+  "kUzkiw66E-e4YQltnUXg",
+  "kUMzO5Na871ukuyhHUJA"
+];
+const real = (seed: string): Palette => {
+  const P = decodePalette(seed);
+  if (!P) throw new Error(`no palette ${seed}`);
+  return P;
+};
+const fx = (
+  kind: "silk" | "rosette" | "papercut",
+  seed: string,
+  angle: number,
+  shape: number | null
+): Shown => ({
+  seed,
+  palette: real(seed),
+  view: { style: "linearGradient", steps: 7, angle },
+  effect: { kind, speed: 1, fps: 60, look: { shape, frost: 1, bg: null } }
+});
+const rgbOf = (hex: string) => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16));
+
+describe("the silk, the rosette and the papercut", () => {
+  test("are drawn from their palette at six places, and the papercut from its twelve sheets, as the editor lists them", () => {
+    const P = real(SEEDS[0]);
+    for (const kind of ["silk", "rosette", "papercut"] as const)
+      expect(drawnColors(fx(kind, SEEDS[0], 90, null))).toEqual(
+        effectColors(P, fx(kind, SEEDS[0], 90, null).effect as Effect)
+      );
+  });
+
+  test("the silk's colors are its dye's, dyed, lit and shaded, as the engine bakes them, whatever its shape", () => {
+    for (const seed of SEEDS) {
+      const dye = bakeDye(real(seed), SILK_DESIGN);
+      const all = new Set([...dye.base, ...dye.lift, ...dye.shade]);
+      expect(new Set(shownColors(fx("silk", seed, 90, null)))).toEqual(all);
+      /* a shape moves the folds and turns the dye's line, never its colors */
+      for (const shape of [1, 7, 500]) expect(bakeDye(real(seed), silkDesign(shape))).toEqual(dye);
+    }
+    for (let shape = 1; shape <= 999; shape++) {
+      const { tilt } = silkDesign(shape);
+      expect(tilt).toBeGreaterThanOrEqual(-32);
+      expect(tilt).toBeLessThanOrEqual(-16);
+    }
+    expect(SILK_DESIGN.tilt).toBe(-24);
+  });
+
+  test("the papercut's colors are its sheets' faces, lit cuts and shadows, as the engine makes them", () => {
+    for (const seed of SEEDS) {
+      const m = papercutScene(real(seed), { angle: 90, shape: null }, { width: 16, height: 9 });
+      expect(m.n).toBe(PAPERCUT_SHEETS);
+      expect(new Set(shownColors(fx("papercut", seed, 90, null)))).toEqual(
+        new Set([...m.hex, ...m.wallHex, ...m.shadowHex])
+      );
+    }
+  });
+
+  test("the rosette's colors reach as light and as dark as the engine's petals, heart and ground, whatever its shape", () => {
+    for (const seed of SEEDS) {
+      const mine = shownColors(fx("rosette", seed, 90, null)).map(luminance);
+      for (const shape of [null, 1, 2, 3, 7, 42, 500, 999]) {
+        const c = rosetteColors(real(seed), rosetteDesign(shape));
+        const theirs = [...c.grads.flat(), c.heart, c.ground].map(rgb => luminance(toHex(rgb)));
+        expect(Math.max(...mine)).toBeGreaterThanOrEqual(Math.max(...theirs) - 0.002);
+        expect(Math.min(...mine)).toBeLessThanOrEqual(Math.min(...theirs) + 0.002);
+      }
+    }
+  });
+
+  test("every pixel the engine draws over their loops is a blend of the colors the page reads under its part", () => {
+    const size = (aspect: number) =>
+      aspect >= 1
+        ? { width: 48, height: Math.round(48 / aspect) }
+        : { width: Math.round(48 * aspect), height: 48 };
+    const frames = [0, 0.13, 0.37, 0.61, 0.89];
+    /* the box in a grid of parts, and the whole of it */
+    const parts = [
+      { x0: 0, y0: 0, x1: 1, y1: 1 },
+      ...Array.from({ length: 12 }, (_, i) => ({
+        x0: (i % 4) / 4,
+        y0: Math.floor(i / 4) / 3,
+        x1: ((i % 4) + 1) / 4,
+        y1: (Math.floor(i / 4) + 1) / 3
+      }))
+    ];
+    for (const [i, seed] of SEEDS.slice(0, 3).entries())
+      for (const kind of ["silk", "rosette", "papercut"] as const)
+        for (const [shape, angle, aspect] of [
+          [null, 90, 16 / 9],
+          [7, 160, 0.6],
+          [123, 45 + 30 * i, 1.4]
+        ] as const) {
+          const s = fx(kind, seed, angle, shape);
+          const box = size(aspect);
+          const view = { angle, shape };
+          const draw =
+            kind === "silk"
+              ? (() => {
+                  const scene = silkScene(s.palette, view, box);
+                  return (f: number) => renderSilk(scene, f * SILK_LOOP);
+                })()
+              : kind === "rosette"
+                ? (() => {
+                    const scene = rosetteScene(s.palette, view, box);
+                    return (f: number) => renderRosette(scene, f);
+                  })()
+                : (() => {
+                    const scene = papercutScene(s.palette, view, box);
+                    return (f: number) => renderPapercut(scene, f * PAPERCUT_LOOP);
+                  })();
+          const colorsOf = colorsOfParts(s, box.width / box.height);
+          const bounds = parts.map(part => {
+            const within = colorsOf(part).map(rgbOf);
+            return [0, 1, 2].map(k => [
+              Math.min(...within.map(c => c[k])) - 1,
+              Math.max(...within.map(c => c[k])) + 1
+            ]);
+          });
+          for (const f of frames) {
+            const px = draw(f);
+            for (let y = 0; y < box.height; y++)
+              for (let x = 0; x < box.width; x++) {
+                const [u, v] = [(x + 0.5) / box.width, (y + 0.5) / box.height];
+                parts.forEach((part, p) => {
+                  if (u < part.x0 || u > part.x1 || v < part.y0 || v > part.y1) return;
+                  for (let k = 0; k < 3; k++) {
+                    const c = px[4 * (y * box.width + x) + k];
+                    const [lo, hi] = bounds[p][k];
+                    if (c < lo || c > hi)
+                      throw new Error(
+                        `${kind} ${seed} shape ${shape} angle ${angle}: pixel ${x},${y} channel ${k} ${c} outside ${lo}..${hi} of part ${p} at ${f}`
+                      );
+                  }
+                });
+              }
+          }
+        }
   });
 });

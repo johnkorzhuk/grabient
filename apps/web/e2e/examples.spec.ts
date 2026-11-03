@@ -233,6 +233,33 @@ test("the hero plays the glass for a reader whose own choice is another style", 
   }).toPass({ timeout: 60000 });
 });
 
+test("the hero plays the silk, the rosette or the papercut from the server's still, in the page's first paint", async ({
+  page
+}) => {
+  /* palettes whose seed puts each of them first for the hero (features/examples/hero.ts) */
+  for (const [seed, kind] of [
+    ["kWede9SdS_WExOrXTdG1szDY", "Silk"],
+    ["kEVpjrmgSF4XhjABAHhjA", "Rosette"],
+    ["kEURB2VmMuMcBluB99F7A", "Papercut"]
+  ]) {
+    const html = await (await page.request.get(`/${seed}/examples`)).text();
+    /* the hero's holder names its still, which the head paints */
+    const named = /data-look="hero"[\s\S]*?data-fx-still="([^"]+)"/.exec(html)?.[1];
+    expect(named).toMatch(new RegExp(`^${kind.toLowerCase()}\\|${seed}\\|`));
+    const painted = /<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1].split(" ");
+    expect(painted).toContain(named);
+    await open(page, `/${seed}/examples`);
+    await expect(page.locator('[data-look="hero"] [data-hold] p').first()).toContainText(
+      `${kind} · 1×`
+    );
+    const still = page.locator(`[data-look="hero"] [data-fx-still="${named}"]`);
+    await expect(still).toHaveCount(1);
+    expect(await still.evaluate(el => getComputedStyle(el).backgroundImage)).toContain(
+      "data:image/svg+xml"
+    );
+  }
+});
+
 test("the hero turns with a key while it fills the window, and a press on its words leaves it", async ({
   page
 }) => {

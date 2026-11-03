@@ -258,6 +258,7 @@
   "Event card": "Картка події",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "Усі гарячі клавіші: тема, копіювання URL, скасування й повтор, випадкова палітра, інвертування, розворот, кроки та інше. Натисніть клавішу, щоб змінити її.",
   "Every other color is the glass's": "Кожен другий колір належить склу",
+  "Every other color is the effect's": "Кожен другий колір належить ефекту",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "Адреса кожної палітри містить її зерно, короткий код ключових кадрів. Зерно першого рисунка: <c>{seed}</c>.",
   "Everyone it hasn't reached": "Усі, хто ще не отримав випуск",
   "Everywhere": "Скрізь",

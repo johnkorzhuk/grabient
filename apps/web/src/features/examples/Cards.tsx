@@ -1,5 +1,6 @@
 import { contrast } from "@grabient/engine/contrast.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
+import { EFFECTS } from "@grabient/engine/effect.ts";
 import { dir, formatDate, formatNumber, msg, rich, t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
 import { createDone } from "@grabient/ui/done.ts";
@@ -611,9 +612,9 @@ const FITS: Partial<Record<Kind, (s: Shown) => boolean>> = {
   icon: s => glyphInk(s).ratio >= MARK,
   buttons: s => labelInk(s) !== null
 };
-/** The looks a tile takes and a press on it turns through, from the one it shows: the album's sleeve between the two
-    effects, the rest through all six. The buttons and the headlines keep theirs. */
-const TURNS: Partial<Record<Kind, readonly Look[]>> = { album: ["glass", "blob"] };
+/** The looks a tile takes and a press on it turns through, from the one it shows: the album's sleeve through the
+    effects, the rest through every look. The buttons and the headlines keep theirs. */
+const TURNS: Partial<Record<Kind, readonly Look[]>> = { album: EFFECTS };
 const TURNING: ReadonlySet<Kind> = new Set([
   "poster",
   "album",

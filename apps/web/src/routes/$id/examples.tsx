@@ -9,8 +9,8 @@ import { drawnSearch } from "../../lib/route.ts";
 /* A palette's examples: the ways it is put to use, each part in a look its seed picks (features/examples/looks.ts), each
    with the code that does it. One page for each palette at the palette's address plus /examples: an address naming a
    view or an effect, as the editor's sheet once linked, moves there for good. The whole page is drawn on the server; an
-   effect's first frame is in its first paint (server/glass-still.ts, blob-still.ts) and its players take over in the
-   browser. Its hero runs under the header to the window's top, the header frosted over it until the page scrolls. */
+   effect's first frame is in its first paint (server/glass-still.ts, blob-still.ts, fx-still.ts) and its players take
+   over in the browser. Its hero runs under the header to the window's top, the header frosted over it until the page scrolls. */
 export const Route = createFileRoute("/$id/examples")({
   loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
   loader: async ({ params, deps }) => {

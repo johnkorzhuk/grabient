@@ -258,6 +258,7 @@
   "Event card": "イベントカード",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "Grabient のすべてのキーボードショートカット：テーマ、URL をコピー、元に戻す・やり直す、ランダムなパレット、反転、逆順、色数など。ページで押すと変更できます。",
   "Every other color is the glass's": "1色おきにガラスの色",
+  "Every other color is the effect's": "1色おきにエフェクトの色",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "どのパレットのアドレスにもシードが含まれています。シードは、キーフレームを表す短いコードです。最初の図のシードは <c>{seed}</c> です。",
   "Everyone it hasn't reached": "まだ届いていない全員",
   "Everywhere": "全体",

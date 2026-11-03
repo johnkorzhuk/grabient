@@ -258,6 +258,7 @@
   "Event card": "کارت رویداد",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "همه کلیدهای میانبر Grabient: پوسته، کپی URL، واگرد و ازنو، پالت تصادفی، معکوس، وارونه، گام‌ها و بیشتر. برای تغییر هر میانبر، آن را در صفحه بزنید.",
   "Every other color is the glass's": "یک رنگ در میان از رنگ‌های شیشه است",
+  "Every other color is the effect's": "یک رنگ در میان از رنگ‌های افکت است",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "نشانی هر پالت بذر آن را در خود دارد، کدی کوتاه برای کی‌فریم‌هایش. بذر شکل اول <c>{seed}</c> است.",
   "Everyone it hasn't reached": "همه کسانی که هنوز دریافتش نکرده‌اند",
   "Everywhere": "همه‌جا",

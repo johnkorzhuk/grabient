@@ -298,13 +298,13 @@
   "Admit one": {
     "note": "Demo content: the words printed on a ticket's stub, meaning the ticket lets one person in. Small capitals, set vertically; keep it short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:407"
+      "apps/web/src/features/examples/Cards.tsx:408"
     ]
   },
   "Album cover": {
     "note": "Read by screen readers: the name of one tile, a music album's cover (its sleeve with a vinyl record) made with the palette.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:78"
+      "apps/web/src/features/examples/Cards.tsx:79"
     ]
   },
   "All features": {
@@ -404,7 +404,7 @@
   "App icon": {
     "note": "Read by screen readers: the name of one tile, a phone app's icon.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:85"
+      "apps/web/src/features/examples/Cards.tsx:86"
     ]
   },
   "Appearance": {
@@ -506,7 +506,7 @@
   "Background <c>{color}</c>": {
     "note": "A chip under an example: the background color the example gives a blob that has none of its own. <c>…</c> marks the hex code (like #101828), which stays as written; keep the tags.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:700",
+      "apps/web/src/features/examples/Cards.tsx:701",
       "apps/web/src/features/examples/Profile.tsx:124",
       "apps/web/src/features/examples/Wallpapers.tsx:261"
     ]
@@ -585,13 +585,13 @@
   "Business card": {
     "note": "Read by screen readers: the name of one tile, a small printed card with a person's name and job.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:86"
+      "apps/web/src/features/examples/Cards.tsx:87"
     ]
   },
   "Buttons": {
     "note": "Read by screen readers: the name of one tile holding two example buttons. A plural noun.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:87"
+      "apps/web/src/features/examples/Cards.tsx:88"
     ]
   },
   "By continuing you agree to the <terms>Terms of Service</terms>. The <privacy>Privacy Policy</privacy> says how your information is used.": {
@@ -867,7 +867,7 @@
   "Color in interfaces": {
     "note": "Demo content: the title of the example event card, a workshop about using color in app and web interfaces. Short title.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:358"
+      "apps/web/src/features/examples/Cards.tsx:359"
     ]
   },
   "Color palettes and CSS gradients like {name}. Edit any of them, then copy CSS or export SVG and PNG.": {
@@ -895,7 +895,7 @@
   "Color tokens": {
     "note": "Examples page: title of a section, shown after its number as '6 · Color tokens': the palette's colors as named design tokens (CSS variables, swatch files). Short title; use the design-systems term your language uses for 'design tokens'.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:286"
+      "apps/web/src/features/examples/Swatches.tsx:298"
     ]
   },
   "Color {number}, {hex}": {
@@ -1011,7 +1011,7 @@
     "note": "Status on a press after a copy.",
     "refs": [
       "apps/web/src/app/keys.ts:19",
-      "apps/web/src/features/examples/Swatches.tsx:147",
+      "apps/web/src/features/examples/Swatches.tsx:149",
       "packages/ui/src/ColorCodes.tsx:32",
       "packages/ui/src/ColorCodes.tsx:72",
       "packages/ui/src/CopyButton.tsx:31",
@@ -1025,7 +1025,7 @@
   "Copy": {
     "note": "Press or label: copies to the clipboard.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:326",
+      "apps/web/src/features/examples/Swatches.tsx:338",
       "packages/ui/src/ColorCodes.tsx:48",
       "packages/ui/src/CopyButton.tsx:31",
       "packages/ui/src/CopyButton.tsx:48",
@@ -1088,7 +1088,7 @@
   "Copy {hex}": {
     "note": "Screen reader name of a color in the row: copies its hex.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:336",
+      "apps/web/src/features/examples/Swatches.tsx:348",
       "packages/ui/src/ColorCodes.tsx:61",
       "packages/ui/src/StopStrip.tsx:172"
     ]
@@ -1136,8 +1136,8 @@
       "apps/web/src/features/editor/Editor.tsx:739",
       "apps/web/src/features/editor/Editor.tsx:750",
       "apps/web/src/features/editor/Sheet.tsx:151",
-      "apps/web/src/features/examples/Swatches.tsx:202",
-      "apps/web/src/features/examples/Swatches.tsx:212",
+      "apps/web/src/features/examples/Swatches.tsx:204",
+      "apps/web/src/features/examples/Swatches.tsx:214",
       "apps/web/src/features/gallery/take.ts:150",
       "apps/web/src/features/gallery/take.ts:172"
     ]
@@ -1160,7 +1160,7 @@
     "note": "Status after a refused copy.",
     "refs": [
       "apps/web/src/app/keys.ts:19",
-      "apps/web/src/features/examples/Swatches.tsx:148",
+      "apps/web/src/features/examples/Swatches.tsx:150",
       "apps/web/src/mcp-view/PaletteView.tsx:281",
       "packages/ui/src/ColorCodes.tsx:33",
       "packages/ui/src/CopyButton.tsx:41",
@@ -1200,7 +1200,7 @@
       "apps/web/src/features/editor/Editor.tsx:819",
       "apps/web/src/features/editor/Sheet.tsx:562",
       "apps/web/src/features/editor/Sheet.tsx:640",
-      "apps/web/src/features/examples/Swatches.tsx:209",
+      "apps/web/src/features/examples/Swatches.tsx:211",
       "apps/web/src/lib/files.ts:70"
     ]
   },
@@ -1423,7 +1423,7 @@
   "Covers and cards": {
     "note": "Examples page: title of a section, shown after its number as '2 · Covers and cards'. A masonry of media made with the palette: a poster, an album cover, a video thumbnail, a social post, an event card, a ticket, a membership card, an app icon, a business card, buttons. Short title.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:692"
+      "apps/web/src/features/examples/Cards.tsx:693"
     ]
   },
   "Custom": {
@@ -1644,7 +1644,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
       "apps/web/src/features/editor/Editor.tsx:1286",
-      "apps/web/src/features/examples/ExamplesPage.tsx:301",
+      "apps/web/src/features/examples/ExamplesPage.tsx:321",
       "packages/ui/src/KeyList.tsx:10"
     ]
   },
@@ -1720,7 +1720,7 @@
   "Event card": {
     "note": "Read by screen readers: the name of one tile, a card announcing an event, with a button to sign up.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:81"
+      "apps/web/src/features/examples/Cards.tsx:82"
     ]
   },
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": {
@@ -1729,10 +1729,16 @@
       "apps/web/src/lib/page-meta.ts:402"
     ]
   },
+  "Every other color is the effect's": {
+    "note": "Short note under the swatch files' addresses when the palette plays as one of the effects other than the fluted glass (silk, rosette, papercut, blob): the files hold twice as many colors, and every other one is a color the effect is drawn from. A few words; say the effect as the glossary does.",
+    "refs": [
+      "apps/web/src/features/examples/Swatches.tsx:281"
+    ]
+  },
   "Every other color is the glass's": {
     "note": "Short note under the swatch files' addresses when the palette plays as fluted glass: the files hold twice as many colors, and every other one is a color of the glass. A few words.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:273"
+      "apps/web/src/features/examples/Swatches.tsx:280"
     ]
   },
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": {
@@ -1760,7 +1766,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:31",
       "apps/web/src/features/examples/ExamplesLink.tsx:14",
-      "apps/web/src/features/examples/ExamplesPage.tsx:314",
+      "apps/web/src/features/examples/ExamplesPage.tsx:334",
       "packages/ui/src/KeyList.tsx:11"
     ]
   },
@@ -1909,7 +1915,7 @@
   "For Tailwind v4": {
     "note": "Short note under the Tailwind code tab: the code is for version 4 of the Tailwind CSS framework. Keep 'Tailwind' and 'v4' as written.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:266"
+      "apps/web/src/features/examples/Swatches.tsx:268"
     ]
   },
   "For any chart library": {
@@ -1921,7 +1927,7 @@
   "For code and design apps.": {
     "note": "Examples page: the one short line under the 'Color tokens' title: the colors are given as variables for code and as swatch files for design apps. Plain.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:287"
+      "apps/web/src/features/examples/Swatches.tsx:299"
     ]
   },
   "For dashboards and reports.": {
@@ -1939,7 +1945,7 @@
   "For posters, covers, posts and tickets.": {
     "note": "Examples page: the one short line under the 'Covers and cards' title, naming what the palette dresses there. Plain list, no marketing words.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:693"
+      "apps/web/src/features/examples/Cards.tsx:694"
     ]
   },
   "For profiles and default avatars.": {
@@ -2004,14 +2010,14 @@
   "Gate {gate} · Seat {seat}": {
     "note": "Demo content on an example ticket: the entrance and the seat number ('Gate B · Seat 14'). Keep both placeholders and the middle dot.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:414"
+      "apps/web/src/features/examples/Cards.tsx:415"
     ]
   },
   "Get started": {
     "note": "Demo content: the label of an example call-to-action button. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:535",
-      "apps/web/src/features/examples/Cards.tsx:545"
+      "apps/web/src/features/examples/Cards.tsx:536",
+      "apps/web/src/features/examples/Cards.tsx:546"
     ]
   },
   "Glaring, clipped or too neon": {
@@ -2023,7 +2029,7 @@
   "Glass Harbor": {
     "note": "Demo content: the name of a fictional band, under the album title 'Low Tide'. Translate as a natural band name, or keep it if band names stay in English in your language.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:253"
+      "apps/web/src/features/examples/Cards.tsx:254"
     ]
   },
   "Good fit": {
@@ -2148,7 +2154,7 @@
   "Harbor Hall": {
     "note": "Demo content: the name of a fictional venue by a harbor, under an example poster's title. Translate as a natural venue name; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:236"
+      "apps/web/src/features/examples/Cards.tsx:237"
     ]
   },
   "Hard steps where a blend was meant": {
@@ -2166,7 +2172,7 @@
   "Headline": {
     "note": "Examples page, said to a screen reader: the name of a tile in the cards grid showing the palette name set as a big heading in the palette colors.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:88"
+      "apps/web/src/features/examples/Cards.tsx:89"
     ]
   },
   "Height": {
@@ -2200,13 +2206,13 @@
   "High tide": {
     "note": "Examples page: the label on the widget tile of the cards grid, a tide app's frosted card telling the day's high tide; the time of it stands under it. Coastal like the grid's other names (Harbor Hall, Low Tide).",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:451"
+      "apps/web/src/features/examples/Cards.tsx:452"
     ]
   },
   "Highlighted headline": {
     "note": "Examples page, said to a screen reader: the name of a tile in the cards grid showing a heading with some words highlighted by the palette, like a marker.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:89"
+      "apps/web/src/features/examples/Cards.tsx:90"
     ]
   },
   "Hold all keyframes": {
@@ -2268,7 +2274,7 @@
   "Illustrator and type designer": {
     "note": "Demo content: what the fictional person Mira does, on her demo social profile and business card. Short, as a profile bio reads.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:514",
+      "apps/web/src/features/examples/Cards.tsx:515",
       "apps/web/src/features/examples/Profile.tsx:177"
     ]
   },
@@ -2295,7 +2301,7 @@
   "In any CSS rule": {
     "note": "Short note under a code tab holding one CSS declaration: it can be pasted into any CSS rule. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:256"
+      "apps/web/src/features/examples/ExamplesPage.tsx:265"
     ]
   },
   "In the formula, <c>t</c> runs from 0 at the start of the gradient to 1 at the end. With <c>K</c> keyframes, keyframe <c>i</c> sits at <c>t = i / (K − 1)</c>, counting from 0. Each curve is a Catmull–Rom spline, and <c>gamut()</c> fits the color to the screen (section 6):": {
@@ -2307,9 +2313,9 @@
   "In the page's head": {
     "note": "Short note under a code tab holding tags for a web page's <head> element. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:244",
-      "apps/web/src/features/examples/ExamplesPage.tsx:249",
-      "apps/web/src/features/examples/ExamplesPage.tsx:261"
+      "apps/web/src/features/examples/ExamplesPage.tsx:253",
+      "apps/web/src/features/examples/ExamplesPage.tsx:258",
+      "apps/web/src/features/examples/ExamplesPage.tsx:270"
     ]
   },
   "In these collections": {
@@ -2531,7 +2537,7 @@
   "Learn more": {
     "note": "Demo content: the label of an example secondary button. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:566"
+      "apps/web/src/features/examples/Cards.tsx:567"
     ]
   },
   "Left out: {unsubscribed} opted out or waiting for a yes, {personas} personas, {undeliverable} test addresses, {already} already sent it.": {
@@ -2645,7 +2651,7 @@
   "Linked": {
     "note": "Tab name of a code block on the examples page, beside 'HTML': the same tags, linking Grabient's stylesheet instead of holding the picture inline. One short word.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:247"
+      "apps/web/src/features/examples/ExamplesPage.tsx:256"
     ]
   },
   "Links and JSON can be up to 2,048 characters.": {
@@ -2663,7 +2669,7 @@
   "Live": {
     "note": "Demo content on an example poster, before its date ('Live · Nov 12'): a live performance or event. Small capitals; one short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:234"
+      "apps/web/src/features/examples/Cards.tsx:235"
     ]
   },
   "Loading more…": {
@@ -2703,7 +2709,7 @@
   "Low Tide": {
     "note": "Demo content: the title of a fictional song or album, shown beside an example album cover. Translate as a natural song title; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:252"
+      "apps/web/src/features/examples/Cards.tsx:253"
     ]
   },
   "MCP server": {
@@ -2746,7 +2752,7 @@
   "Make room for color.": {
     "note": "Demo content: the quote set large on an example social media post. A short, friendly invitation to use more color. Keep it short (a few words) and end it as a sentence.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:306"
+      "apps/web/src/features/examples/Cards.tsx:307"
     ]
   },
   "Make, edit and delete your collections.": {
@@ -2795,13 +2801,13 @@
   "Member": {
     "note": "Demo content: the small label at the top of an example membership card. One short word, in capitals.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:470"
+      "apps/web/src/features/examples/Cards.tsx:471"
     ]
   },
   "Membership card": {
     "note": "Read by screen readers: the name of one tile, a club or store membership card the size of a bank card.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:84"
+      "apps/web/src/features/examples/Cards.tsx:85"
     ]
   },
   "Message": {
@@ -2813,8 +2819,8 @@
   "Mira": {
     "note": "A fictional person's first name: the name on a demo social profile, a membership card and a business card. Write it in your language's script; keep it a short, ordinary woman's name.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:477",
-      "apps/web/src/features/examples/Cards.tsx:513",
+      "apps/web/src/features/examples/Cards.tsx:478",
+      "apps/web/src/features/examples/Cards.tsx:514",
       "apps/web/src/features/examples/Profile.tsx:32"
     ]
   },
@@ -2917,8 +2923,8 @@
   "Night Market": {
     "note": "Demo content: the name of a fictional evening market event, the title of an example poster and ticket. Translate as a natural event name; short.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:235",
-      "apps/web/src/features/examples/Cards.tsx:411"
+      "apps/web/src/features/examples/Cards.tsx:236",
+      "apps/web/src/features/examples/Cards.tsx:412"
     ]
   },
   "No app is waiting. Connect again from your app.": {
@@ -3129,7 +3135,7 @@
   "Online": {
     "note": "Demo content: where the example event takes place (online, not in a room). One short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:362"
+      "apps/web/src/features/examples/Cards.tsx:363"
     ]
   },
   "Only Grabient links can be opened here.": {
@@ -3328,7 +3334,7 @@
   "Palette colors": {
     "note": "Screen reader name of the row of the palette's colors.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:321",
+      "apps/web/src/features/examples/Swatches.tsx:333",
       "packages/ui/src/StopStrip.tsx:147"
     ]
   },
@@ -3608,7 +3614,7 @@
   "Poster": {
     "note": "Read by screen readers: the name of one tile in the 'Covers and cards' section, a poster made with the palette. A noun.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:77"
+      "apps/web/src/features/examples/Cards.tsx:78"
     ]
   },
   "Prepare": {
@@ -3820,7 +3826,7 @@
     "refs": [
       "apps/web/src/features/editor/Controls.tsx:347",
       "apps/web/src/features/editor/Controls.tsx:349",
-      "apps/web/src/features/examples/ExamplesPage.tsx:305"
+      "apps/web/src/features/examples/ExamplesPage.tsx:325"
     ]
   },
   "Random palette": {
@@ -4157,7 +4163,7 @@
   "Save a seat": {
     "note": "Demo content: the button of the example event card, to sign up for the workshop. Short button label.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:376"
+      "apps/web/src/features/examples/Cards.tsx:377"
     ]
   },
   "Save likes, collections and votes from accounts and their apps. When off, pages keep likes and changes to an account's collections until saving is back, other saves are refused, and reading still works.": {
@@ -4344,7 +4350,7 @@
   "Seat saved": {
     "note": "The event card's button after it was pressed: a seat is now saved for you. Short button label, about as long as 'Save a seat'.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:379"
+      "apps/web/src/features/examples/Cards.tsx:380"
     ]
   },
   "Seed": {
@@ -4778,7 +4784,7 @@
   "Social post": {
     "note": "Read by screen readers: the name of one tile, an image post for a social network, with a quote on it.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:80"
+      "apps/web/src/features/examples/Cards.tsx:81"
     ]
   },
   "Soft": {
@@ -4954,7 +4960,7 @@
   "Sunrise": {
     "note": "Demo content: the name of a fictional app, under its example app icon (a sun). One short word.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:502"
+      "apps/web/src/features/examples/Cards.tsx:503"
     ]
   },
   "Sunset: lightness falls from 0.86 to 0.32, chroma peaks at 0.19, and hue turns from yellow to crimson.": {
@@ -4966,7 +4972,7 @@
   "Swatches": {
     "note": "Name of the format strip's swatch files mode, read aloud and shown over the selection's strip: its chips download files design apps import (Tokens, ASE, GPL, GRD). Swatches as in a design app's Swatches panel, not the hard-band style.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:269",
+      "apps/web/src/features/examples/Swatches.tsx:271",
       "packages/ui/src/FormatStrip.tsx:209"
     ]
   },
@@ -5132,7 +5138,7 @@
   "The code that paints it": {
     "note": "Read by screen readers only: the name of the code tabs at the top of a palette's examples page, the code that paints the palette as a page's background.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:322"
+      "apps/web/src/features/examples/ExamplesPage.tsx:342"
     ]
   },
   "The colors as design tokens.": {
@@ -5320,7 +5326,7 @@
   "The tokens' code": {
     "note": "Read by screen readers only: the name of the Color tokens section's code tabs.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:292"
+      "apps/web/src/features/examples/Swatches.tsx:304"
     ]
   },
   "The two tags that play it behind a page, for the page's head.": {
@@ -5527,7 +5533,7 @@
   "Ticket": {
     "note": "Read by screen readers: the name of one tile, an admission ticket with a tear-off stub.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:82"
+      "apps/web/src/features/examples/Cards.tsx:83"
     ]
   },
   "Title": {
@@ -5817,7 +5823,7 @@
   "Video thumbnail": {
     "note": "Read by screen readers: the name of one tile, the small preview picture of an online video, with a play button.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:79"
+      "apps/web/src/features/examples/Cards.tsx:80"
     ]
   },
   "Videos": {
@@ -5860,21 +5866,21 @@
   "WCAG AA": {
     "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's level for text (4.5:1 and up). WCAG and AA are the W3C's names: keep them as written.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:24",
+      "apps/web/src/features/examples/shared.ts:25",
       "packages/ui/src/ContrastGrid.tsx:63"
     ]
   },
   "WCAG AA Large": {
     "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's level for large text only (3:1 to 4.5:1). Keep WCAG and AA; Large means large text, 24px and up.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:25",
+      "apps/web/src/features/examples/shared.ts:26",
       "packages/ui/src/ContrastGrid.tsx:65"
     ]
   },
   "WCAG AAA": {
     "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's enhanced level for text (7:1 and up). WCAG and AAA are the W3C's names: keep them as written.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:23",
+      "apps/web/src/features/examples/shared.ts:24",
       "packages/ui/src/ContrastGrid.tsx:61"
     ]
   },
@@ -5947,7 +5953,7 @@
   "Widget": {
     "note": "Examples page, said to a screen reader: the name of a tile in the cards grid showing a home-screen widget, a frosted glass card with an amount laid on the palette.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:83"
+      "apps/web/src/features/examples/Cards.tsx:84"
     ]
   },
   "Width": {
@@ -5966,7 +5972,7 @@
   "Workshop": {
     "note": "Demo content: the small label at the top of an example event card: a workshop people sign up for. One short word, shown in capitals.",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:357"
+      "apps/web/src/features/examples/Cards.tsx:358"
     ]
   },
   "Write 5 to 5,000 characters, and a valid email for a reply.": {
@@ -6668,7 +6674,7 @@
   "sample\u0004Aa": {
     "note": "Sample text set in each cell of Text contrast, in a text color on one of the palette's colors, to show how it reads; also on the line under the grid at two sizes. Two letters of your language's own script that show its letter shapes, as Latin's capital and small A do.",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:137",
+      "apps/web/src/features/examples/Swatches.tsx:139",
       "packages/ui/src/ContrastGrid.tsx:68"
     ]
   },
@@ -6820,7 +6826,7 @@
   "{count, plural, one {# color} other {# colors}}": {
     "note": "A tag under a section of the examples page, after an effect's name ('Fluted glass · 6 colors'): how many of the effect's colors the section takes as single colors. Give each plural form your language needs.",
     "refs": [
-      "apps/web/src/features/examples/shared.ts:50"
+      "apps/web/src/features/examples/shared.ts:51"
     ]
   },
   "{count, plural, one {# color} other {# colors}}, one per line.": {
@@ -6857,7 +6863,7 @@
   "{count, plural, one {# look} other {# looks}}": {
     "note": "Examples page: the tag under the cards grid, how many looks its tiles show the palette in (a gradient, bands across, bands swept round, rings, the fluted glass, the blob).",
     "refs": [
-      "apps/web/src/features/examples/Cards.tsx:694"
+      "apps/web/src/features/examples/Cards.tsx:695"
     ]
   },
   "{count, plural, one {# minute} other {# minutes}}": {
@@ -6925,8 +6931,8 @@
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:68",
       "apps/web/src/features/examples/Chart.tsx:171",
-      "apps/web/src/features/examples/shared.ts:123",
-      "apps/web/src/features/examples/shared.ts:40",
+      "apps/web/src/features/examples/shared.ts:124",
+      "apps/web/src/features/examples/shared.ts:41",
       "apps/web/src/features/list/ListAppearance.tsx:339",
       "apps/web/src/mcp-view/PaletteView.tsx:96",
       "packages/ui/src/figure.ts:121"
@@ -7235,7 +7241,7 @@
   "{text} on {ground}: {ratio}, enough for text": {
     "note": "Read aloud for a contrast cell: text color on ground color, the ratio, and that it is enough for text (WCAG 4.5:1).",
     "refs": [
-      "apps/web/src/features/examples/Swatches.tsx:52",
+      "apps/web/src/features/examples/Swatches.tsx:53",
       "packages/ui/src/ContrastGrid.tsx:336"
     ]
   },

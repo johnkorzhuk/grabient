@@ -258,6 +258,7 @@
   "Event card": "活动卡片",
   "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.": "Grabient 的所有键盘快捷键：主题、复制 URL、撤销和重做、随机调色板、反相、反转、步数等。在页面上按下快捷键即可更改。",
   "Every other color is the glass's": "每隔一种颜色取自玻璃",
+  "Every other color is the effect's": "每隔一种颜色取自效果",
   "Every palette's address holds its seed, a short code for its keyframes. The first figure's seed is <c>{seed}</c>.": "每个调色板的地址都包含它的种子，即其关键帧的简短编码。第一张图的种子是 <c>{seed}</c>。",
   "Everyone it hasn't reached": "尚未收到的所有人",
   "Everywhere": "全局",
