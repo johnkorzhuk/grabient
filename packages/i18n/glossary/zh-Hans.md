@@ -48,6 +48,11 @@ every time, and add a row when a new product word gets its translation.
 | banding (a fault) | 断层 | As in 渐变断层. |
 | view (how a palette is drawn: style, steps, angle) | 显示方式 | "Set view" is 设置显示方式. The palette view in AI apps is a screen: 调色板视图, as in 嵌入视图. |
 | Appearance | 外观 | The press and menu for style, steps and angle; Reset appearance is 重置外观. Not 显示方式, the admin's view. |
+| Soft | 柔化 | The Appearance menu's field, 关 to 100, that blurs the picture, as photo editors say 柔化. The header's summary is 柔化 40. |
+| Grain | 颗粒 | Film grain over the picture, Lightroom's 颗粒 (胶片颗粒). The summary is 颗粒 30. |
+| Silk | 丝绸 | An effect: the palette dyed into satin that drapes in soft folds. The fabric's everyday name. |
+| Rosette | 团花 | An effect: petals on a golden spiral, like a dahlia seen from above. 团花 is the round flower ornament of paper-cuts and security printing, which is what a rosette is. |
+| look (the examples page) | 风格 | One of the ways a palette is shown: another style, steps, angle or shape. Another look is 换一种风格, Swipe for another look 滑动换一种风格, 6 looks `6 种风格`. Not 外观 (Appearance) or 样式 (style). |
 | tag | 标签 | |
 | mood | 氛围 | In search hints: 颜色、氛围或主题. |
 | No results. | 无结果。 | The empty search, also a heading. With its hint: 无结果。试试颜色、氛围或主题。 |

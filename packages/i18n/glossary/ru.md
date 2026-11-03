@@ -29,10 +29,15 @@ How Russian says Grabient's own words. Read `README.md` first for what each word
 | palette | палитра | |
 | gradient | градиент | «CSS градиент», «линейный градиент». |
 | effect | эффект, эффекты | Анимированные стили в меню «Оформление»: рифлёное стекло и капля. |
+| Silk (an animated style) | Шёлк | The fabric, as a dressmaker names it: the palette dyed into satin that drapes in soft folds. A style tile and the header's button, beside «Рифлёное стекло» and «Капля». |
+| Rosette (an animated style) | Розетка | The ornament's name in architecture and decorative art: a stylized flower seen from above, petals on a golden spiral. Its tile's picture keeps it apart from a power socket. |
 | swatches (a style) | полосы, секторы, кольца | Named by what each draws: hard bands, wedges, rings. The style picker's tiles are narrow on a phone, and «Радиальные полосы» did not fit where "Radial bands" does, so Linear bands, Angular bands and Radial bands are «Полосы», «Секторы», «Кольца». In page titles the swatch styles are «цветовые полосы», «цветовые секторы», «цветовые кольца»; a card drawn as swatches is «Цветовые полосы «{name}»». «Образцы» (Adobe's Swatches panel) reads as color samples, not bands. |
 | Swatches (the strip's swatch files) | Образцы | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Переключить на образцы. |
 | style | стиль | Gradient styles: «Линейный», «Угловой» (Photoshop's name for the angle gradient), «Радиальный». |
 | appearance (style, steps and angle) | оформление | macOS's and Illustrator's word: «Оформление», «Сбросить оформление». Not «вид», which is the admin's view («Задать вид»). |
+| Soft (the Appearance menu's field) | мягкость | A noun, as the menu's other fields are («Шаги», «Угол», «Скорость»); the summary reads «Мягкость 40». The CSS tab's soft stops: «7 цветов, размытых вдоль линии». |
+| Grain (the Appearance menu's film grain) | зерно | Photographers' and Lightroom's word for film grain; the summary reads «Зерно 30». Kept apart from the blob's Frost, «Матовость». |
+| look (the examples page) | вариант | One of a palette's looks (a style, steps, angle or shape): «Другой вариант», «Смахните, чтобы сменить вариант», «6 вариантов». Not «вид», the admin's view, nor «оформление», the menu. |
 | steps (the control, and a count of them) | шаги | Illustrator's word for blend steps: «7 шагов», «Меньше или больше шагов». |
 | colors / stops (a count of colors) | цвета | «7 цветов», «# цветов sRGB». |
 | color stop (CSS's and Figma's, on the About page) | контрольная точка цвета | Photoshop's name for a gradient's stop; kept apart from «ключевая точка». |

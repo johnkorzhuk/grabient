@@ -10,11 +10,16 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | palette | палітра | Plural палітри, genitive plural палітр. |
 | gradient | градієнт | "CSS gradient" is CSS-градієнт (hyphen, as the orthography writes PDF-файл; search engines match it to "css градієнт"). "Gradient palettes" is градієнтні палітри. |
 | effect | ефект, ефекти | Анімовані стилі в меню «Вигляд»: рифлене скло і крапля. |
+| Silk (an animated style) | Шовк | The fabric, as a dressmaker names it: the palette dyed into satin that drapes in soft folds. A style tile and the header's button, beside Рифлене скло and Крапля. |
+| Rosette (an animated style) | Розетка | The ornament's name in architecture and decorative art: a stylized flower seen from above, petals on a golden spiral. Its tile's picture keeps it apart from a power socket. |
 | color palette | палітра кольорів | The phrase Ukrainian searchers type; used in titles and descriptions. |
 | swatches | зразки | As Photoshop's Swatches panel is Зразки. Style names: лінійні / кутові / радіальні зразки. The style menu's "bands" is смуги (Лінійні смуги). |
 | Swatches (the strip's swatch files) | Зразки | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Перемкнути на зразки. |
 | style | стиль | Linear, Angular, Radial: Лінійний, Кутовий, Радіальний (they agree with градієнт; Кутовий градієнт is Photoshop's name). As saved: Як збережено. |
 | appearance | вигляд | The press for style, steps and angle: Вигляд, Скинути вигляд. An admin's view is the same word: Задати вигляд, Вигляд збережено. |
+| Soft (the Appearance menu's field) | м’якість | A noun, as the menu's other fields are (Кроки, Кут, Швидкість); the summary reads М’якість 40. The CSS tab's soft stops: 7 точок з розмиттям уздовж лінії. |
+| Grain (the Appearance menu's film grain) | зернистість | Judgment: not зерно, which is already the seed. Зернистість is the photographers' word too (зернистість плівки). The summary reads Зернистість 30. Kept apart from the blob's Frost, Матовість. |
+| look (the examples page) | варіант | One of a palette's looks (a style, steps, angle or shape): Інший варіант, Проведіть, щоб змінити варіант, 6 варіантів. Not вигляд, which is the menu. |
 | steps | кроки | The Steps control. "7 colors" is 7 кольорів. |
 | colors | кольори | |
 | stop | точка | A color stop: "7 stops" is 7 точок; "color stops" in prose, точки кольору. Keeps точка free of the keyframe's name. |

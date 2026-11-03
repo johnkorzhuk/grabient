@@ -30,12 +30,17 @@ time; add a row when a new product word gets its translation.
 | palette | bảng màu | |
 | gradient | gradient | The loanword Vietnamese designers and searchers use ("tạo gradient", "gradient CSS", "màu gradient"). Not "dải màu", so one word serves the UI and search. |
 | effect | hiệu ứng | Các kiểu chuyển động trong menu "Cách hiển thị": kính gân và đốm màu. |
+| silk (an effect) | lụa | The animated style that dyes the palette into satin draped in soft folds, named as the fabric: "Lụa". |
+| rosette (an effect) | hoa thị | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament of Vietnamese decoration ("họa tiết hoa thị"). Not "hoa hồng", the rose. |
 | swatches, bands (the style) | sọc màu, sọc | Hard bands of the colors. "khối" is taken by the color solid, and "ô màu" reads as square tiles. "{count} hard bands" = "{count} sọc". |
 | Swatches (the strip's swatch files) | Mẫu màu | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Chuyển sang mẫu màu. |
 | style | kiểu | "Sai kiểu, số bước hoặc góc". |
 | Linear / Angular / Radial | Tuyến tính / Hình nón / Xuyên tâm | Angular is CSS's conic gradient, "gradient hình nón" in Vietnamese CSS writing. "Góc" would clash with Angle. Bands: "Sọc tuyến tính", "Sọc hình nón", "Sọc xuyên tâm". |
 | As saved | Như đã lưu | |
 | Appearance (style, steps and angle) | cách hiển thị | Not "giao diện", which is Theme. The same words as Set view ("Đặt cách hiển thị"): "Đặt lại cách hiển thị" (Reset appearance). |
+| Soft (the Appearance field) | độ mềm | The field from Tắt to 100 that blurs the colors along the style's line, a photo editor's softness, named as độ sáng and độ tươi are: "Độ mềm 40" in the press's summary. What it blurs is "làm mờ" ("# điểm dừng, làm mờ dọc theo đường gradient"); kept apart from "Mờ sương", the blob's Frost. |
+| Grain (the Appearance field) | độ hạt | Film grain, "hạt" as photographers say it (hạt phim): "Độ hạt 30" in the summary. Not "nhiễu", which is noise. |
+| look (the examples page's turns) | cách hiển thị | Another of the palette's styles, steps, angles or shapes that suits it, the same words as the Appearance menu that sets them: "Cách hiển thị khác" (the ← → keys), "Vuốt để xem cách hiển thị khác", "6 cách hiển thị". Not "kiểu", which is style. |
 | steps | số bước (the control), bước | |
 | colors (a count) | màu | "7 màu". |
 | stop | điểm dừng | The CSS term "điểm dừng màu". "{count} stops" = "{count} điểm dừng". |

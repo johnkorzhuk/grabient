@@ -35,6 +35,8 @@ time, and add a row when a new product word gets its translation.
 | palette | palet | "color palette" is palet warna (the search phrase, used in titles and descriptions); palet alone in the UI. |
 | gradient | gradien | The word in design tools and CSS tutorials (gradien CSS, gradien linear). Judgment: never gradasi, the everyday word for any color transition. |
 | effect | efek | Gaya animasi di menu "Tampilan": kaca fluted dan blob. |
+| silk (an effect) | sutra | The animated style that dyes the palette into satin draped in soft folds, named as the fabric (kain sutra): Sutra, a style tile and the header's button. |
+| rosette (an effect) | roset | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament, roset as Indonesian spells the word. Never mawar, the rose. |
 | swatches (style) | pita warna | Judgment: the style draws hard bands, and the English menu itself says "bands". Pita is the band of pita frekuensi; blok warna would suggest squares. Menu: Pita linear, Pita angular, Pita radial. In titles: pita warna linear. |
 | Swatches (the strip's swatch files) | Swatch | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Beralih ke mode swatch. |
 | style | gaya | Canva's word. Linear, Angular, Radial stay as Figma names them (gradien linear, gradien angular, gradien radial). |
@@ -78,6 +80,9 @@ time, and add a row when a new product word gets its translation.
 | Pick color (the eyedropper) | Ambil warna | Judgment: the action as Indonesian tutorials say it (mengambil warna dari gambar); pilih would mean choose. |
 | saturation / brightness (the picker's square) | saturasi / kecerahan | HSB's S and B, the words Indonesian photo and color tools use: Saturasi 40%, kecerahan 80%. Saturasi is never chroma's word. Judgment: kecerahan is also lightness; the square and its percent tell the two apart. |
 | view / Appearance (a palette's style, steps and angle) | tampilan | "Set view" is Atur tampilan; the Appearance press and its menu are Tampilan, and Reset appearance is Atur ulang tampilan. |
+| Soft (the Appearance field) | Lembut | The field from Nonaktif to 100 that blurs the colors along the style's line, as a photo editor softens: Lembut 40 in the press's summary. Its name is kept apart from Buram, the blob's Frost; a blurred stop or color is still diburamkan (# warna yang diburamkan di sepanjang garis gradien). |
+| Grain (the Appearance field) | Grain | Film grain, the loanword Indonesian photographers use (grain film); butiran reads as a dictionary word. Grain 30 in the summary. |
+| look (the examples page's turns) | tampilan | Another of the palette's styles, steps, angles or shapes that suits it, the same word as the Appearance menu that sets them: Tampilan lain (the ← → keys), Geser untuk tampilan lain, 6 tampilan. |
 | tag | tag | |
 | sign-in link / code | tautan masuk / kode masuk | Send link is Kirim tautan, Send code Kirim kode, and while it waits Kirim ulang dalam # dtk (Resend there is the verb, not the company). Sign-in as a service (busy, unavailable) is layanan masuk; Google sign-in is Masuk dengan Google. |
 | theme | tema | Tema terang / Tema gelap. |

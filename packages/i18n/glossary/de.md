@@ -34,11 +34,16 @@ How German says Grabient's words. Read `README.md` for what each word means here
 | palette | Palette, Paletten | „Farbpalette“ in titles, descriptions and alt text, where people search for it. |
 | gradient | Farbverlauf, Farbverläufe | Never the bare Adobe short form „Verlauf“ in the UI. „CSS-Farbverlauf“. |
 | effect | Effekt, Effekte | Die bewegten Stile im Menü „Darstellung“: Riffelglas und Blob. |
+| silk (an effect) | Seide | The animated style that dyes the palette into satin draped in soft folds, named as a dressmaker names the fabric. A style tile and the header's button, beside Riffelglas, Blob and Rosette. |
+| rosette (an effect) | Rosette | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament, which German names Rosette as architects and designers do. Not „Rose“. |
 | swatches | Farbfelder | Adobe's own word. „{name} swatches“ is „Farbfelder {name}“; „linear swatches“ is „lineare Farbfelder“. |
 | Swatches (the strip's swatch files) | Farbfelder | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Auf Farbfelder umschalten. |
 | bands (the style names „Linear bands“ …) | gestuft; a band is a Stufe | „Linear gestuft“, „Konisch gestuft“, „Radial gestuft“; „gestufte Stile“; „# harte Stufen“ in the code notes. Short enough for the style tiles on a phone. |
 | style | Stil | |
 | appearance (style, steps and angle) | Darstellung | The press's tooltip and its menu's heading; „Darstellung: {label}“, „Darstellung zurücksetzen“. |
+| Soft (the Appearance field) | Weichheit | The field from Aus to 100 that blurs the colors along the style's line, a photo editor's softness: a noun, as its neighbours Stufen, Winkel and Körnung are; „Weichheit 40“ in the press's summary. The code pane's soft stops are „weichgezeichnet“. Not „Unschärfe“, which is the fluted glass's own blur of its colors. |
+| Grain (the Appearance field) | Körnung | Film grain, as Lightroom's German names it; „Körnung 30“ in the summary. Not „Rauschen“, which is noise. |
+| look (the examples page's turns) | Look, Looks (der) | Another of the palette's styles, steps, angles or shapes that suits it: „Anderer Look“ (the ← → keys), „Für einen anderen Look wischen“, „6 Looks“. Kept apart from „Darstellung“, the menu. |
 | Linear / Angular / Radial | Linear / Konisch / Radial | Angular is konisch, as CSS `conic-gradient` is on MDN („konischer Verlauf“) and in Affinity, not Photoshop's „Winkelverlauf“: „Winkel“ already names the angle here. |
 | As saved | Wie gespeichert | |
 | steps (the Steps control) | Stufen | As Illustrator DE calls steps. |

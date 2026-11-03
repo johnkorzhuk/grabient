@@ -64,6 +64,10 @@ around it: يتراوح عدد أحرفه بين 1 و{max}، ما لا يزيد 
 | color palette (titles, search) | لوحة ألوان، لوحات ألوان | What Arabic searchers type. |
 | gradient | تدرج لوني; short تدرج، pl. تدرجات | CSS gradient: تدرج CSS. Gradient generator: مولد تدرجات. |
 | effect | المؤثرات | الأنماط المتحركة في قائمة طريقة العرض: الزجاج المضلع والكتلة. |
+| Silk (an animated style) | حرير | The fabric the palette is dyed into, as a dressmaker names it. No article on its tile, as كتلة has none. |
+| Rosette (an animated style) | وردة | The flower-shaped ornament, petals round a heart, as a designer names it. Kept apart from وردي, the color pink. |
+| Soft (the Appearance menu's field) | النعومة | A blur along the style's line, from إيقاف to 100; the header's summary says النعومة {value}. |
+| Grain (the Appearance menu's field) | الحبيبات | Film grain, as photographers say it (حبيبات الفيلم); the summary says الحبيبات {value}. Kept apart from صقيع, the blob's Frost. |
 | linear / angular / radial gradient | تدرج خطي / تدرج زاوي / تدرج شعاعي | Adobe's Arabic words for the three gradient types. |
 | swatches | عينات (عينات خطية، عينات زاوية، عينات شعاعية) | The page titles' word for the hard-band styles. |
 | Swatches (the strip's swatch files) | عينات الألوان | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": بدّل إلى عينات الألوان. |

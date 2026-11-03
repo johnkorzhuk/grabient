@@ -11,6 +11,8 @@ and add a row when a new product word gets its translation.
 | palette | palette (f.) | The product noun. In page titles and descriptions, "color palette(s)" is *palette(s) de couleurs* (what French searchers type) and "gradient palettes" is *palettes de dégradés*. |
 | gradient | dégradé (m.) | "CSS gradient" is *dégradé CSS*. "CSS gradient generator" in a title is *générateur de dégradé CSS* (the search term, singular). |
 | effect | effet, effets | Les styles animés du menu « Apparence » : verre cannelé et tache. |
+| silk (an effect) | Soie | The animated style that dyes the palette into satin in soft folds, the fabric's own name. A style tile and the header's button, beside *Verre cannelé*, *Tache* and *Rosace*. |
+| rosette (an effect) | Rosace | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament, as French designers and architects name it. Not *rosette*, which in French is a ribbon's knot. |
 | swatches | aplats | The hard-band styles in titles and card names: *aplats linéaires*, *aplats angulaires*, *aplats radiaux*, *Aplats {name}*. The style menu's English says "bands", so there it is *Bandes linéaires / angulaires / radiales*. Not *nuancier*, which is Adobe's panel of saved swatches, not a way of drawing. |
 | Swatches (the strip's swatch files) | Nuanciers | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Passer aux nuanciers. |
 | style | style | *Linéaire*, *Angulaire* (Photoshop's *dégradé angulaire*), *Radial*. "As saved" is *Tel qu’enregistré*. |
@@ -58,6 +60,9 @@ and add a row when a new product word gets its translation.
 | tag | tag | As French web interfaces say it; the row's arrows are *Tags précédents* / *Tags suivants*. |
 | view (style, steps and angle of one palette) | vue | "Set view" is *Définir la vue*; "View saved." is *Vue enregistrée.* The palettes an AI app draws are an *affichage* (*Affichage des palettes dans les applications d’IA*), kept apart from *vue*. |
 | appearance | Apparence | The press for style, steps and angle, and its menu; *Réinitialiser l’apparence*. |
+| Soft (the Appearance field) | Douceur | The field from *Désactivé* to 100 that blurs the colors along the style's line, a photo editor's softness: a noun like its neighbour *Grain*; *Douceur 40* in the press's summary. What it does is a blur: the code pane's stops are *floutés le long de la ligne*. |
+| Grain (the Appearance field) | Grain | Film grain, as Lightroom's French names it; *Grain 30*. Not *bruit*, which is noise. |
+| look (the examples page's turns) | variante | Another of the palette's styles, steps, angles or shapes that suits it: *Autre variante* (the ← → keys), *Balayez pour une autre variante*, *6 variantes*. Kept apart from *apparence* (the menu) and *vue*. |
 | like {name} (a search by a palette) | proches de {name} | *Palettes proches de {name}*, *Collections proches de {name}*; "Similar palettes" is *Palettes similaires*. |
 | sign-in link / code | lien de connexion / code de connexion | *Envoyer le lien*, *Envoyer le code*. |
 | email | e-mail | The field label is *E-mail*. |

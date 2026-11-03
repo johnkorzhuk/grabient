@@ -49,6 +49,11 @@ Other product words, kept the same everywhere:
 | gamut, in gamut, gamut-mapped, wide-gamut | 色域, 色域内, 色域マッピング, 広色域 |
 | color space | 色空間 |
 | Appearance (the press and menu for style, steps and angle) | 外観; Reset appearance 外観をリセット |
+| Soft (the Appearance menu's field, Off to 100, that blurs the picture) | ぼかし, the design tools' word for blur (Figma のレイヤーのぼかし); the header's summary ぼかし 40 |
+| Grain (film grain over the picture, Off to 100) | 粒子, as Lightroom and photographers name film grain; the summary 粒子 30. Not ノイズ, Figma's Noise effect |
+| Silk (an effect: the palette dyed into satin that drapes in soft folds) | シルク, the fabric's everyday name |
+| Rosette (an effect: petals on a golden spiral, like a dahlia seen from above) | ロゼット, the flower-shaped ornament |
+| look (one of the ways the examples page shows a palette: another style, steps, angle or shape) | 見た目; Another look 別の見た目, Swipe for another look スワイプで別の見た目へ, 6 looks 6通りの見た目. Not 外観, the Appearance menu |
 | Show / Hide (the panel, the color space) | 表示 / 非表示; パネルを表示, パネルを非表示, パネルの表示・非表示, 色空間を非表示 |
 | Full screen / Exit full screen | 全画面表示 / 全画面表示を終了 |
 | Format / Syntax (the code tabs and their spellings) | 形式 / 構文; a tab's note is a noun line: {count}色を1行に1つずつ記述。 |

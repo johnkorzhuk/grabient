@@ -12,6 +12,10 @@ and add a row when a new product word gets its translation. Persian reads right 
 | palette | پالت | Plural پالت‌ها. A noun after a number stays singular (`7 پالت`), so both plural cases are the same words. In page titles and descriptions "color palette" is پالت رنگ, the phrase Persian searchers type. |
 | gradient | گرادیان | "CSS gradient" is گرادیان CSS. "Gradient generator" in a title is ساخت گرادیان (the search phrase). Tutorials also say گرادینت, but گرادیان is the standard written form. |
 | effect | افکت، افکت‌ها | سبک‌های متحرک در منوی «ظاهر»: شیشه شیاردار و لکه. |
+| Silk (an animated style) | ابریشم | The fabric the palette is dyed into, as a dressmaker names it. |
+| Rosette (an animated style) | روزت | The flower-shaped ornament, the word interior designers use for a ceiling rose (روزت سقفی). |
+| Soft (the Appearance menu's field) | نرمی | A blur along the style's line, from خاموش to 100: `نرمی {value}` in the header's summary. |
+| Grain (the Appearance menu's field) | دانه | Film grain, as photographers say it (دانه فیلم): `دانه {value}`. Kept apart from seed (بذر) and the blob's Frost (مات). |
 | swatches | نوارهای رنگی | Judgment: نمونه‌رنگ is a swatch in a design tool's swatch panel, not a palette drawn as hard bands. The style menu's "bands" is the same word: نوارهای خطی، نوارهای زاویه‌ای، نوارهای شعاعی. |
 | Swatches (the strip's swatch files) | نمونه‌رنگ‌ها | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": تغییر به نمونه‌رنگ‌ها. |
 | hard band | نوار لبه‌تیز | |

@@ -10,12 +10,17 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | palette | paleta (f.) | "paleta de cores" where the English says color palette. |
 | gradient | gradiente (m.) | The word Figma, Canva and Adobe use in pt-BR. "Degradê" is the everyday word people also search; it is not used in the interface, but the site's description keeps it for search: "gradientes CSS (degradês)". |
 | effect | efeito, efeitos | Os estilos animados do menu "Aparência": vidro canelado e mancha. |
+| Silk (an animated style) | Seda | The fabric, as a dressmaker names it: the palette dyed into satin that drapes in soft folds. A style tile and the header's button, beside Vidro canelado and Mancha. |
+| Rosette (an animated style) | Roseta | The flower-shaped ornament, as a ceiling's "roseta de gesso": petals on a golden spiral, seen from above. Not "rosácea", the rose window. |
 | swatches | amostras | "linear swatches" = "amostras lineares", "{name} swatches" = "Amostras {name}". |
 | Swatches (the strip's swatch files) | Amostras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Mudar para amostras. |
 | bands (style labels) | faixas | "Linear bands" = "Faixas lineares"; "hard band" = "faixa sólida"; a band of flat color is "uma faixa de cor sólida" (Photoshop's "Cor sólida"). |
 | strip (the About figures) | barra | "Arraste a barra". Not "faixa", which is a band. |
 | style | estilo | Linear, Angular, Radial stay as they are (same words in Portuguese). |
 | Appearance (style, steps and angle) | Aparência | Reset appearance is "Redefinir aparência". |
+| Soft (the Appearance menu's field) | Suavidade | A noun, as the menu's other fields are (Etapas, Ângulo, Velocidade); the summary reads "Suavidade 40". The CSS tab's soft stops are "paradas desfocadas". |
+| Grain (the Appearance menu's film grain) | Granulação | Lightroom's name for the same slider; the summary reads "Granulação 30". Kept apart from the blob's Frost, "Fosco". |
+| look (the examples page) | visual (pl. visuais) | One of a palette's looks (a style, steps, angle or shape): "Outro visual", "Deslize para ver outro visual", "6 visuais". Not "aparência", which is the menu. |
 | steps | etapas | Adobe's word for blend steps ("Etapas especificadas"). A count of them is "7 etapas"; where the English counts colors, "7 cores". Not "passos". |
 | colors | cores | |
 | angle | ângulo | |

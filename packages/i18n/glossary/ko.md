@@ -17,6 +17,11 @@ The product's words in Korean, as Korean designers meet them in Figma, Adobe and
 | bands (the swatch styles' labels) | 밴드 | 선형 밴드, 원뿔형 밴드, 방사형 밴드. A hard band is 단색 밴드. Banding (the fault) is 밴딩. |
 | style | 스타일 | |
 | Appearance | 모양 | The press and menu for style, steps and angle, as Illustrator's 모양 패널. Reset appearance: 모양 초기화. |
+| Soft (the Appearance menu's field) | 부드러움 | A field from 끔 to 100 that blurs the picture. The header's summary: 부드러움 40. Not 흐림 효과, since 효과 is the effect. |
+| Grain | 그레인 | Film grain over the picture, as Korean photographers and Lightroom say it. The summary: 그레인 30. |
+| Silk | 실크 | An effect, the palette dyed into satin that drapes in soft folds: the fabric's everyday name. |
+| Rosette | 로제트 | An effect, petals on a golden spiral like a dahlia seen from above: the flower-shaped ornament (로제트 장식). |
+| look (the examples page) | 모습 | One of the ways a palette is shown: another style, steps, angle or shape. Another look: 다른 모습 보기. Swipe for another look: 스와이프해서 다른 모습 보기. 6 looks: 모습 6가지. Not 모양, which is Appearance and Shape. |
 | Linear / Angular / Radial | 선형 / 원뿔형 / 방사형 | Angular is the conic gradient: 원뿔형, as Korean CSS writing calls conic-gradient. Not 각도, which is Angle. |
 | steps | 단계 | The Steps control, and a count of steps: 단계 7개. "7 colors" is 색상 7개. |
 | stop | 스톱 | A color stop: "스톱 7개". |

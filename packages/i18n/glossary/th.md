@@ -46,11 +46,16 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | palette | พาเลตต์ | The main noun. พาเลตต์สี in titles, descriptions and alt text, where the page is found by it. Not จานสี, which reads as a painter's plate, and not the casual spelling พาเลท. |
 | gradient | ไล่เฉดสี | The noun and the effect (Thai Canva and design tutorials say ไล่สี or ไล่เฉดสี, often with "Gradient" beside it). The drawn picture is ภาพไล่เฉดสี. "CSS gradient" stays in English beside it in descriptions, since Thai searchers type it that way. Kept over ไล่ระดับสี; Thai designers do not read ไล่เฉดสี as a hue term. |
 | effect | เอฟเฟกต์ | สไตล์เคลื่อนไหวในเมนู "การแสดงผล": กระจกลายริ้วและบลอบ |
+| silk (an effect) | ผ้าไหม | The animated style that dyes the palette into satin draped in soft folds, named as the fabric. Not ไหม alone, which reads as the question particle. |
+| rosette (an effect) | โรเซตต์ | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament, its loanword spelled as พาเลตต์ is. Judgment: ลายดอกไม้ would read as any floral print, and กุหลาบ as a rose. |
 | linear / angular / radial (style names) | เชิงเส้น / เชิงมุม / รัศมี | The usual Thai names for gradient types (เชิงเส้น, รัศมี); เชิงมุม follows Figma's Angular. In a phrase: ไล่เฉดสีเชิงเส้น, ไล่เฉดสีเชิงมุม, ไล่เฉดสีแบบรัศมี. |
 | swatches, bands | แถบสี | A palette drawn as hard bands: แถบสีเชิงเส้น, แถบสีเชิงมุม, แถบสีรัศมี. A single hard band is แถบ. |
 | Swatches (the strip's swatch files) | ตัวอย่างสี | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": เปลี่ยนเป็นตัวอย่างสี. |
 | style | สไตล์ | |
 | appearance | การแสดงผล | The press and menu that set style, steps and angle (รีเซ็ตการแสดงผล), and the admin's view of a palette (ตั้งค่าการแสดงผล). |
+| Soft (the Appearance field) | ความนุ่ม | The field from ปิด to 100 that blurs the colors along the style's line, a photo editor's softness, a noun as its neighbours จำนวนสี and มุม are: ความนุ่ม 40 in the press's summary. What it blurs is เบลอ (# จุดสี เบลอไปตามแนวไล่เฉดสี). |
+| Grain (the Appearance field) | เกรน | Film grain, as Thai photographers say it (เกรนฟิล์ม): เกรน 30 in the summary. |
+| look (the examples page's turns) | แบบ | Another of the palette's styles, steps, angles or shapes that suits it: แบบอื่น (the ← → keys), ปัดเพื่อดูแบบอื่น, # แบบ. Kept apart from สไตล์ (style) and การแสดงผล (the menu). |
 | steps (the control) | จำนวนสี | What the control sets is how many colors are sampled. Kept over จำนวนขั้น or สเต็ป, which would name the mechanism instead of what the reader sees change. |
 | colors (a count) | สี | `7 สี`. |
 | stop | จุดสี | A sampled or stored color point (color stop). |

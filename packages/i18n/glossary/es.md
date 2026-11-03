@@ -11,6 +11,8 @@ The reader is addressed as **tú**. Read the English list in `README.md` first; 
 | palette | paleta (f.) | "paleta de colores" in titles and descriptions, the phrase people search for. |
 | gradient | degradado (m.) | "degradado CSS", "generador de degradados", as in Photoshop and Canva. Not "gradiente". |
 | effect | efecto, efectos | Los estilos animados del menú «Apariencia»: vidrio acanalado y mancha. |
+| silk (an effect) | Seda | The animated style that dyes the palette into satin in soft folds, the fabric's own name. A style tile and the header's button, beside "Vidrio acanalado", "Mancha" and "Roseta". |
+| rosette (an effect) | Roseta | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament. Not "rosetón", the round window of a church. |
 | swatches | muestras | Only where the English says swatches ("muestras lineales" in page titles, "Muestras {name}"). |
 | Swatches (the strip's swatch files) | Muestras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Cambiar a muestras. |
 | bands / hard bands (the swatch styles) | franjas / franjas nítidas | The style names: "Franjas lineales", "Franjas angulares", "Franjas radiales". Kept apart from "Bandas", the curation fault (banding). |
@@ -42,6 +44,9 @@ The reader is addressed as **tú**. Read the English list in `README.md` first; 
 | preview size | tamaño de vista previa | "Auto" stays "Auto". |
 | Layout / Columns / Gap / Padding / Corners / Custom (size) / Story (export panel) | Disposición / Columnas / Espacio / Relleno / Esquinas / Personalizado / Historia | Relleno as in Spanish Figma tutorials, "relleno (padding)"; Historia is Instagram's Spanish name. Disposición, not "Diseño", which reads as design. |
 | Appearance (style, steps and angle) | Apariencia | "Apariencia: {label}", "Restablecer apariencia". |
+| Soft (the Appearance field) | Suavidad | The field from "Desactivado" to 100 that blurs the colors along the style's line, a photo editor's softness: a noun like its neighbour "Grano"; "Suavidad 40" in the press's summary. What it does is a blur ("desenfoque"): the code pane's stops are "desenfocadas a lo largo de la línea". |
+| Grain (the Appearance field) | Grano | Film grain, as Lightroom's Spanish names it; "Grano 30". Not "ruido", which is noise. |
+| look (the examples page's turns) | variante | Another of the palette's styles, steps, angles or shapes that suits it: "Otra variante" (the ← → keys), "Desliza para ver otra variante", "6 variantes". Kept apart from "Apariencia" (the menu) and "vista". |
 | Copying. Switch to download (the format row's toggle) | Copiando / Descargando / Copiando enlaces, then Cambiar a copiar / descargar / enlaces | What the row is doing, then the mode it turns to: "Copiando. Cambiar a descargar". The row's labels are "Copiar", "Descargar", "Copiar enlace". |
 | shortcuts | atajos de teclado | The page, its link and the ? list are "Atajos" ("Mostrar atajos", "Cambiar atajos"). A key is "tecla" ("Cambiar tecla"). |
 | key names: Ctrl / Shift / Alt / Esc / Tab / Space / Backspace / Delete / Enter (context `key`) | Ctrl / Mayús / Alt / Esc / Tab / Espacio / Retroceso / Supr / Intro | As Spanish keyboards and Microsoft's Spanish documentation name them. |

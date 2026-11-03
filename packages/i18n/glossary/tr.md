@@ -11,6 +11,10 @@ word gets its Turkish.
 | palette | palet (paleti, paletler) | "renk paleti" for color palette, as Turkish searchers write it. After a number the noun stays singular: "7 palet". |
 | gradient | gradyan | "CSS gradyan", "gradyan oluşturucu": the spelling Turkish design tools use, not "degrade" (Photoshop's older word). Kept on that basis; Search Console found no /tr impressions yet to confirm Turkish searchers type it too, so recheck once those pages are indexed. |
 | effect | efekt, efektler | "Görünüm" menüsündeki hareketli stiller: oluklu cam ve damla. |
+| Silk (an animated style) | İpek | The fabric the palette is dyed into, as a dressmaker names it. |
+| Rosette (an animated style) | Rozet | The flower-shaped ornament of architecture and decoration (rozet motifi), not a lapel badge. |
+| Soft (the Appearance menu's field) | Yumuşaklık | A blur along the style's line, from Kapalı to 100; the header's summary says "Yumuşaklık {value}". |
+| Grain (the Appearance menu's field) | Gren | Film grain, the photographers' word (film greni); the summary says "Gren {value}". Kept apart from the blob's Frost (Buzlu). |
 | swatches / bands | şerit (şeritler) | One word for the hard-band styles: "Doğrusal şeritler", "linear swatches" = "doğrusal şeritler". |
 | Swatches (the strip's swatch files) | Renk örnekleri | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Renk örneklerine geç. |
 | banding (the fault) | bantlaşma | The unwanted steps in a smooth blend, the photography word. Kept apart from the şerit styles. |
