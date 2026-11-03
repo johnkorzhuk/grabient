@@ -1,12 +1,13 @@
-/* A palette's effect as a video: the fluted glass, the blob, the silk or the rosette playing whole loops, so the clip
-   loops without a seam, drawn and coded by video/video.wasm (C: the pixels of glassRenderer, blobRenderer, renderSilk
-   and renderRosette within a level or two of theirs, finished with the view's soft and grain as fx-finish.ts's
-   finishPixels finishes a frame, BT.709 YUV 4:2:0, and minih264's H.264), in an MP4 (mp4.ts). The engine's own code says
-   where the glass's discs, the blob's balls, the silk's folds and the rosette's petals stand in each frame; the module
-   draws them. The caller hands over the module, compiled: a Worker imports it, a test reads its file. */
+/* A palette's effect as a video: the fluted glass, the blob, the silk, the rosette or the papercut playing whole loops,
+   so the clip loops without a seam, drawn and coded by video/video.wasm (C: the pixels of glassRenderer, blobRenderer,
+   renderSilk and renderRosette within a level or two of theirs and renderPapercut's own, finished with the view's soft
+   and grain as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0, and minih264's H.264), in an MP4
+   (mp4.ts). The engine's own code says where the glass's discs, the blob's balls, the silk's folds, the rosette's
+   petals and the papercut's hills, waves and light stand in each frame; the module draws them. The caller hands over
+   the module, compiled: a Worker imports it, a test reads its file. */
 import { BLOB_DESIGN, BLOB_LOOP, blobBackdrop, blobFit, blobFrame, blobScene } from "./blob.ts";
 import { hexBytes } from "./color.ts";
-import { type EffectFinish, type EffectKind, type EffectLook, groundParts } from "./effect.ts";
+import { type EffectFinish, type EffectLook, groundParts } from "./effect.ts";
 import type { Underlay } from "./fx-finish.ts";
 import { GLASS_LOOP, type GlassGeometry, glassDiscAt, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
@@ -14,6 +15,7 @@ import { type GlassWindow, glassCover, glassMap, glassPlan } from "./glass-rende
 import { GRAIN_SIDE, grainAlpha, grainSpeck } from "./grain.ts";
 import { type Mp4Frame, mp4 } from "./mp4.ts";
 import type { Palette } from "./palette.ts";
+import { PAPERCUT_LOOP, papercutFrameAt, papercutFrameSize, papercutScene } from "./papercut.ts";
 import {
   HEART_STOPS,
   rosetteDesign,
@@ -22,11 +24,10 @@ import {
   rosetteScene
 } from "./rosette.ts";
 import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
+import type { VideoKind } from "./video-kinds.ts";
 import { effectSoftShare, type Size } from "./view.ts";
 
-/** The effects a clip can be drawn of, their frames drawn by video/video.wasm: every one but the papercut, whose frames
-    are not drawn yet. */
-export type VideoKind = Exclude<EffectKind, "papercut">;
+export type { VideoKind } from "./video-kinds.ts";
 
 /* The host's WebAssembly, as much of it as this names: the engine's own lib knows no host (as zip.ts declares
    TextEncoder). Every host the engine runs in has it: a Worker, a browser, Node. */
@@ -101,12 +102,15 @@ export const VIDEO_LIMITS = {
     whole clips drawn in parts as the Worker draws them (3 Nov 2026): the blob's melt and frost cost half again (1.1 to
     1.3 measured; 1.5 keeps its clips as they were); the silk's seven bands and three dyes 1.6 to 1.8 a frame, and 2.4
     in its clips, whose 60 seconds of a four-minute loop move each frame further, which costs the coding; the rosette's
-    petals 1.5 to 1.6. */
+    petals 1.5 to 1.6; the papercut's field and its sheets' shadows 1.7 to 2.0 a frame, and in its clips' parts, each
+    paired with a part of the glass's longest clip, 1.9 to 2.25 (its 60-second clips' frames are small, which costs
+    each pixel more): at 2.3 its parts cost what the glass's do at 60 and 30 frames a second, 0.84 of it at 762 square. */
 export const VIDEO_WEIGHT: Record<VideoKind, number> = {
   glass: 1,
   blob: 1.5,
   silk: 2.4,
-  rosette: 1.6
+  rosette: 1.6,
+  papercut: 2.3
 };
 /** What a soft adds to a pixel's cost, by the resolution its blur runs at (videoBlur), measured as VIDEO_WEIGHT is: at
     the frame's own, about what the glass costs (0.7 to 0.95); at a half or a quarter, its passes a quarter or a
@@ -147,6 +151,8 @@ export function videoLoop(effect: Pick<VideoEffect, "kind" | "look">): number {
       return SILK_LOOP;
     case "rosette":
       return rosetteDesign(effect.look.shape).loop;
+    case "papercut":
+      return PAPERCUT_LOOP;
   }
 }
 
@@ -263,7 +269,8 @@ export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   glass: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
   blob: { qp: 28, keyQp: 18, ramp: 20, effort: 9 },
   silk: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
-  rosette: { qp: 24, keyQp: 12, ramp: 20, effort: 9 }
+  rosette: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
+  papercut: { qp: 24, keyQp: 12, ramp: 20, effort: 9 }
 };
 
 /** How a clip is coded: as its effect is, but a blob with a soft, or grained with less frost than designed, as the
@@ -290,7 +297,7 @@ export const videoQuality = (effect: {
 /** The clips' module by its contents: the first 12 hex digits of video/video.wasm's SHA-256, which a test checks. An
     encoder's state holds pointers into the memory of the module that kept it, which another module lays out elsewhere
     (going on from one traps), so a drawing goes on only from a state the same module kept (video-make.ts). */
-export const VIDEO_MODULE = "0cab9b66e1fc";
+export const VIDEO_MODULE = "49888cb556d3";
 
 /** Frame i's quantizer in a clip of n frames. */
 export function videoQp(quality: VideoQuality, i: number, n: number): number {
@@ -366,6 +373,21 @@ interface VideoModule {
   silk_frame: () => void;
   rosette_setup: (keys: number, S: number, heartIn: number, heartOut: number) => number;
   rosette_frame: (petals: number) => void;
+  papercut_setup: (
+    n: number,
+    nb: number,
+    D: number,
+    rx: number,
+    ry: number,
+    wa: number,
+    wf: number,
+    wa2: number,
+    wf2: number,
+    icsigma: number,
+    calpha: number,
+    wall: number
+  ) => number;
+  papercut_frame: () => void;
 }
 
 /** A drawer of one clip's frames in a fresh instance of the module: `draw(i)` draws frame i into the encoder's planes
@@ -395,7 +417,9 @@ export function videoDrawer(
         ? blobDraw(m, params, ask, plan)
         : ask.kind === "silk"
           ? silkDraw(m, params, ask, plan)
-          : rosetteDraw(m, params, ask, plan);
+          : ask.kind === "rosette"
+            ? rosetteDraw(m, params, ask, plan)
+            : papercutDraw(m, params, ask, plan);
   finishSetup(m, params, ask);
   const code = (i: number): Uint8Array<ArrayBuffer> => {
     const n = m.frame(i === 0 ? 1 : 0, videoQp(quality, i, plan.frames));
@@ -616,6 +640,35 @@ function rosetteDraw(
       p.set([petal.r * group.zoom, Math.cos(turn), Math.sin(turn), petal.key], 4 * k);
     }
     m.rosette_frame(petals.length);
+  };
+}
+
+function papercutDraw(
+  m: VideoModule,
+  params: () => Float64Array,
+  ask: VideoAsk,
+  plan: VideoPlan
+): (i: number) => void {
+  const scene = papercutScene(ask.palette, { angle: ask.angle, shape: ask.look.shape }, ask.size);
+  params().set([
+    ...scene.levels,
+    ...scene.face,
+    ...scene.wallRgb,
+    ...scene.shadowRgb,
+    ...scene.isigma,
+    ...scene.offset,
+    ...scene.alpha,
+    ...scene.reach
+  ]);
+  const { n, bumps, D, rx, ry, wa, wf, wa2, wf2, icsigma, calpha, wall } = scene;
+  if (!m.papercut_setup(n, bumps.length, D, rx, ry, wa, wf, wa2, wf2, icsigma, calpha, wall))
+    throw new Error("video: out of memory");
+  /* the frame's hills, waves and light, as the CPU drawing takes them */
+  const at = new Float64Array(papercutFrameSize(scene));
+  return i => {
+    papercutFrameAt(scene, plan.loops ? (i * plan.loops * PAPERCUT_LOOP) / plan.frames : 0, at);
+    params().set(at);
+    m.papercut_frame();
   };
 }
 

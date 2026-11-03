@@ -327,7 +327,9 @@ const ABOUT: Record<VideoKind, string> = {
   blob: "A looping video of a Grabient palette: a frosted blob of its colors, drifting.",
   silk: "A looping video of a Grabient palette: silk dyed in its colors, its folds swaying.",
   rosette:
-    "A looping video of a Grabient palette: a rosette of petals in its colors, rippling out from the heart."
+    "A looping video of a Grabient palette: a rosette of petals in its colors, rippling out from the heart.",
+  papercut:
+    "A looping video of a Grabient palette: sheets of paper in its colors, cut and stacked, their shadows turning with the light."
 };
 
 const attribute = (text: string) =>

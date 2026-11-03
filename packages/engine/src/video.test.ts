@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BLOB_LOOP, blobBackdrop, blobRenderer } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
-import { type EffectFinish, type EffectLook, groundParts } from "./effect.ts";
+import { EFFECTS, type EffectFinish, type EffectLook, groundParts } from "./effect.ts";
 import {
   blurBoxes,
   blurRgba,
@@ -17,6 +17,8 @@ import { GLASS_LOOP, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { glassCover, glassRenderer } from "./glass-render.ts";
 import { mp4 } from "./mp4.ts";
+import { PAPERCUT_LOOP, papercutScene } from "./papercut.ts";
+import { renderPapercut } from "./papercut-render.ts";
 import { rosetteDesign, rosetteScene } from "./rosette.ts";
 import { renderRosette } from "./rosette-render.ts";
 import { SILK_LOOP, silkScene } from "./silk.ts";
@@ -42,6 +44,7 @@ import {
   videoWork
 } from "./video.ts";
 import { videoBlur, videoFinish } from "./video-finish.ts";
+import { hasVideo, VIDEO_KINDS } from "./video-kinds.ts";
 
 /* Node's WebAssembly, as much of it as this names (the engine's lib knows no host, as video.ts says) */
 declare const WebAssembly: {
@@ -62,6 +65,20 @@ describe("video.wasm", () => {
 
   it("is named by its contents, which a drawing goes on from a kept state by", () => {
     expect(VIDEO_MODULE).toBe(createHash("sha256").update(wasmFile).digest("hex").slice(0, 12));
+  });
+});
+
+describe("the clips' kinds", () => {
+  it("are every effect, each drawn by the module, which the address and the editor read from one list", () => {
+    expect(EFFECTS.filter(hasVideo)).toEqual([...VIDEO_KINDS]);
+    expect(VIDEO_KINDS).toContain("papercut");
+    const size = { width: 32, height: 24 };
+    for (const kind of VIDEO_KINDS) {
+      const ask: VideoAsk = { kind, palette, look, angle: 135, size, fps: 10 };
+      const drawer = videoDrawer(wasm, ask, videoPlan(ask, 2.45, 10, 1), VIDEO_QUALITY[kind], true);
+      drawer.draw(0);
+      expect(drawer.code(0).length, kind).toBeGreaterThan(0);
+    }
   });
 });
 
@@ -156,7 +173,7 @@ describe("videoQuality", () => {
     /* the frost holds the grain as the glass's coding holds the glass's */
     expect(videoQuality({ ...blob, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.blob);
     expect(videoQuality({ ...thin, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.glass);
-    for (const kind of ["glass", "silk", "rosette"] as const)
+    for (const kind of ["glass", "silk", "rosette", "papercut"] as const)
       expect(videoQuality({ kind, look, finish: { soft: 40, grain: 30 } })).toEqual(
         VIDEO_QUALITY[kind]
       );
@@ -287,12 +304,38 @@ describe("the module's frames", () => {
     }
   });
 
+  it("are the papercut's, as renderPapercut draws it: its own arithmetic, the same bytes", () => {
+    /* the module computes as the CPU drawing does, in double precision, but for the waves' third and fourth sines
+       (sums of their terms across and down) and its own sin, cos and exp, each within a hair of V8's: a byte could
+       differ only where a value lies within that hair of a rounding's half */
+    for (const [size, angle, shape] of [
+      [{ width: 160, height: 90 }, 135, null],
+      [{ width: 96, height: 128 }, 20, 417],
+      [{ width: 202, height: 114 }, 300, 7],
+      [{ width: 18, height: 64 }, 90, 999]
+    ] as const) {
+      const ask: VideoAsk = {
+        kind: "papercut",
+        palette,
+        look: { ...look, shape },
+        angle,
+        size,
+        fps: 30
+      };
+      const scene = papercutScene(palette, { angle, shape }, size);
+      const cut = compare(ask, (i, n) => renderPapercut(scene, (i * PAPERCUT_LOOP) / n), 4);
+      expect(cut.worst, `${size.width}x${size.height} ${angle} ${shape}`).toBeLessThanOrEqual(1);
+      expect(cut.share).toBeLessThan(1e-5);
+    }
+  });
+
   it("loop: the frame a loop on is the first", () => {
     const most = (a: ArrayLike<number>, b: ArrayLike<number>) =>
       Array.from(a).reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
     const size = { width: 64, height: 48 };
-    /* the glass's and the silk's time runs on past the loop, so the module draws the frame after the last */
-    for (const kind of ["glass", "silk"] as const) {
+    /* the glass's, the silk's and the papercut's time runs on past the loop, so the module draws the frame after the
+       last: the papercut's is its first exactly, as its motions are whole cycles of its loop */
+    for (const kind of ["glass", "silk", "papercut"] as const) {
       const ask: VideoAsk = { kind, palette, look, angle: 135, size, fps: 30 };
       const plan = videoPlan(ask, 2.45, 30, null);
       const drawer = videoDrawer(wasm, ask, plan, VIDEO_QUALITY[kind], true);
@@ -349,9 +392,12 @@ function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: numbe
   } else if (kind === "silk") {
     const scene = silkScene(P, { angle, shape: shown.shape }, size);
     rgba = opaque(renderSilk(scene, (i * plan.loops * SILK_LOOP) / plan.frames), 4);
-  } else {
+  } else if (kind === "rosette") {
     const scene = rosetteScene(P, { angle, shape: shown.shape }, size);
     rgba = opaque(renderRosette(scene, ((i * plan.loops) % plan.frames) / plan.frames), 4);
+  } else {
+    const scene = papercutScene(P, { angle, shape: shown.shape }, size);
+    rgba = opaque(renderPapercut(scene, (i * plan.loops * PAPERCUT_LOOP) / plan.frames), 4);
   }
   const back = blobBackdrop(P);
   const underlay = effectUnderlay(P, ask, angle, finish.soft);
@@ -409,7 +455,8 @@ describe("a clip's soft and grain", () => {
     ["blob", { shape: 3, frost: 2, bg: "#ffeeddaa" }],
     ["blob", { shape: 999, frost: 0, bg: "#102030" }],
     ["silk", { ...look, shape: 417 }],
-    ["rosette", look]
+    ["rosette", look],
+    ["papercut", { ...look, shape: 7 }]
   ];
 
   it("are the site's, as finishPixels finishes a frame: the grain alone within a level nearly everywhere", () => {
@@ -509,9 +556,10 @@ describe("videoBlur", () => {
   });
 });
 
-describe("the silk's and the rosette's clips", () => {
+describe("the silk's, the rosette's and the papercut's clips", () => {
   it("play a loop of their design: the rosette's by its shape", () => {
     expect(videoLoop({ kind: "silk", look })).toBe(SILK_LOOP);
+    expect(videoLoop({ kind: "papercut", look })).toBe(PAPERCUT_LOOP);
     expect(videoLoop({ kind: "rosette", look })).toBe(rosetteDesign(null).loop);
     expect(videoLoop({ kind: "rosette", look: { ...look, shape: 417 } })).toBe(
       rosetteDesign(417).loop
@@ -522,12 +570,17 @@ describe("the silk's and the rosette's clips", () => {
   });
 
   it("fit a loop longer than the longest clip into it, and the work into its limit", () => {
-    const silk = { kind: "silk", look } as const;
-    const fit = videoFit(silk, 1, 60, null, { width: 1080, height: 1080 });
-    expect(fit.plan.seconds).toBe(VIDEO_LIMITS.seconds);
-    expect(fit.plan.loops).toBe(1);
-    expect(fit.plan.speed).toBeCloseTo(SILK_LOOP / VIDEO_LIMITS.seconds, 6);
-    expect(videoWork(silk, fit.size, fit.plan.frames)).toBeLessThanOrEqual(VIDEO_LIMITS.work);
+    for (const [kind, loop] of [
+      ["silk", SILK_LOOP],
+      ["papercut", PAPERCUT_LOOP]
+    ] as const) {
+      const effect = { kind, look };
+      const fit = videoFit(effect, 1, 60, null, { width: 1080, height: 1080 });
+      expect(fit.plan.seconds, kind).toBe(VIDEO_LIMITS.seconds);
+      expect(fit.plan.loops).toBe(1);
+      expect(fit.plan.speed).toBeCloseTo(loop / VIDEO_LIMITS.seconds, 6);
+      expect(videoWork(effect, fit.size, fit.plan.frames)).toBeLessThanOrEqual(VIDEO_LIMITS.work);
+    }
   });
 });
 
@@ -536,7 +589,7 @@ describe("videoFit with a soft", () => {
     const sides = [16, 320, 540, 1080, 1600, 1920];
     let over = 0;
     let moved = 0;
-    for (const kind of ["glass", "blob", "silk", "rosette"] as const)
+    for (const kind of VIDEO_KINDS)
       for (const finish of [{}, { soft: 5 }, { soft: 20 }, { soft: 40, grain: 30 }, { soft: 100 }])
         for (const width of sides)
           for (const height of sides)
@@ -599,7 +652,7 @@ describe("videoFrames", () => {
   });
 
   it("draws a soft, grained clip of each effect in parts as the same stream it draws whole", () => {
-    for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
+    for (const kind of VIDEO_KINDS) {
       for (const finish of [{ soft: 100, grain: 30 }, { soft: 60 }]) {
         const size = { width: 64, height: 48 };
         const ask: VideoAsk = {
