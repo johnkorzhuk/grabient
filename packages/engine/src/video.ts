@@ -4,10 +4,17 @@
    and grain as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0, and minih264's H.264), in an MP4
    (mp4.ts). The engine's own code says where the glass's discs, the blob's balls, the silk's folds, the rosette's
    petals and the papercut's hills, waves and light stand in each frame; the module draws them. The caller hands over
-   the module, compiled: a Worker imports it, a test reads its file. */
+   the module, compiled: a Worker imports it, the editor's download fetches it into a Web Worker of the reader's
+   browser, a test reads its file. */
 import { BLOB_DESIGN, BLOB_LOOP, blobBackdrop, blobFit, blobFrame, blobScene } from "./blob.ts";
 import { hexBytes } from "./color.ts";
-import { type EffectFinish, type EffectLook, groundParts } from "./effect.ts";
+import {
+  type Effect,
+  type EffectFinish,
+  type EffectLook,
+  groundParts,
+  parseEffect
+} from "./effect.ts";
 import type { Underlay } from "./fx-finish.ts";
 import { GLASS_LOOP, type GlassGeometry, glassDiscAt, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
@@ -24,8 +31,15 @@ import {
   rosetteScene
 } from "./rosette.ts";
 import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
-import type { VideoKind } from "./video-kinds.ts";
-import { effectSoftShare, type Size } from "./view.ts";
+import { hasVideo, type VideoKind } from "./video-kinds.ts";
+import {
+  DEFAULT_ANGLE,
+  effectSoftShare,
+  finishOf,
+  type ParamReader,
+  parseView,
+  type Size
+} from "./view.ts";
 
 export type { VideoKind } from "./video-kinds.ts";
 
@@ -234,6 +248,40 @@ export function videoFit(
     size = sized(scale);
   }
   return { size, fps: rate, plan };
+}
+
+/** A clip as its address asks for it (/{seed}.mp4, server/images/video.ts), which the Worker and the editor's download
+    read alike, so a clip drawn in a reader's browser (apps/web features/editor/video-clip.ts) is the server's: its
+    effect, of a kind a clip is drawn of (video-kinds.ts); its angle, the view's default for the blob, whose one clip
+    serves every angle its address names; its soft and grain; the duration asked, none for one loop; and its size, rate
+    and plan within the limits, fitted from the size the address asks for. An address that names no style plays the
+    glass, as a page does. */
+export interface VideoAt {
+  effect: Effect;
+  kind: VideoKind;
+  angle: number;
+  finish: EffectFinish;
+  duration: number | null;
+  size: Size;
+  fps: number;
+  plan: VideoPlan;
+}
+export function videoAt(params: ParamReader, asked: Size): VideoAt | null {
+  const effect = parseEffect({ get: key => params.get(key) ?? (key === "style" ? "glass" : null) });
+  if (!effect || !hasVideo(effect.kind)) return null;
+  const kind = effect.kind;
+  const view = parseView(params);
+  const angle = kind === "blob" ? DEFAULT_ANGLE : view.angle;
+  const finish = finishOf(view);
+  const duration = videoDuration(params.get("duration"));
+  const fit = videoFit(
+    { kind, look: effect.look, finish },
+    effect.speed,
+    effect.fps,
+    duration,
+    asked
+  );
+  return { effect, kind, angle, finish, duration, ...fit };
 }
 
 /** A clip's frames shared out in runs of at most `work` (videoWork) each, so each run may be drawn by an invocation of
@@ -677,7 +725,8 @@ function papercutDraw(
 
 /** Frames `from` to `to` of a clip, coded: from its key frame, or from `state`, the encoder's state where the frames
     before stopped, so parts drawn apart join as one stream. With the state after them, for the next part. A held
-    effect is drawn once. */
+    effect is drawn once. `each` hears how many frames are coded as each is, for a drawing that says how far along it
+    is (the editor's download draws a whole clip in one). */
 export function videoFrames(
   wasm: WebAssembly.Module,
   ask: VideoAsk,
@@ -685,7 +734,8 @@ export function videoFrames(
   from = 0,
   to = plan.frames,
   state: Uint8Array | null = null,
-  quality = videoQuality(ask)
+  quality = videoQuality(ask),
+  each?: (coded: number) => void
 ): { frames: Mp4Frame[]; state: Uint8Array<ArrayBuffer> } {
   const drawer = videoDrawer(wasm, ask, plan, quality);
   if (from > 0) {
@@ -696,6 +746,7 @@ export function videoFrames(
   for (let i = from; i < to; i++) {
     if (plan.loops || i === from) drawer.draw(i);
     frames.push({ data: drawer.code(i), key: i === 0 });
+    each?.(frames.length);
   }
   return { frames, state: drawer.state() };
 }

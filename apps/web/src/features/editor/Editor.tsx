@@ -19,7 +19,12 @@ import { announce } from "@grabient/ui/announce.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { keepKeyboard } from "@grabient/ui/dismiss.ts";
-import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
+import {
+  type Format,
+  FormatStrip,
+  type StripMaking,
+  SWATCH_CHIPS
+} from "@grabient/ui/FormatStrip.tsx";
 import { createFlashGuard } from "@grabient/ui/flash.ts";
 import { HexField } from "@grabient/ui/HexField.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
@@ -81,14 +86,17 @@ import { createPaletteEditor, type PaletteEditor } from "./editor.ts";
 import { effectUnderCss } from "./effect-under.ts";
 import { FilePicture } from "./FilePicture.tsx";
 import {
+  clipAddress,
   copyFormat,
   copyLink,
-  effectLinkFormats,
   NO_IMAGE_CLIPBOARD,
+  NO_VIDEO_HERE,
   STRIP_COPY,
   STRIP_EFFECT_COPY,
   STRIP_FILES,
   saveFormat,
+  stageFileFormats,
+  stageLinkFormats,
   type Taken
 } from "./formats.ts";
 import { GlassLayer } from "./GlassLayer.tsx";
@@ -746,6 +754,77 @@ function Stage(
       () => props.used("download", f),
       () => toast(t("Couldn't download the file."))
     );
+  /* The effect's MP4, made in this browser as it is asked for: its making (video-download.ts) and its chip's ring
+     (MakingIcon.tsx) come with the first press, never with the page. The chip shows how far along it is, and a press
+     on it while it is made stops it, as the stage going does. A making is of the clip on the stage as the press found
+     it (its address), so the stage showing another (an edit, another effect, a gradient) stops it too: the ring is only
+     ever the stage's own clip's, and no file comes of a clip that is gone from it. */
+  const [making, setMaking] = createSignal<StripMaking>();
+  const [makingOf, setMakingOf] = createSignal<string>();
+  let stopMaking: AbortController | null = null;
+  onCleanup(() => stopMaking?.abort());
+  const clipNow = () => {
+    const p = props.taken(props.stage);
+    return p.effect ? clipAddress(p, p.effect) : undefined;
+  };
+  createEffect(
+    () => makingOf() !== undefined && clipNow() !== makingOf(),
+    strayed => {
+      if (strayed) stopMaking?.abort();
+    }
+  );
+  const downloadClip = async (): Promise<boolean> => {
+    /* the stop is the ring's: a press before it shows, as the making's code comes (a double click), does nothing */
+    if (stopMaking) {
+      if (making()) stopMaking.abort();
+      return false;
+    }
+    const p = props.taken(props.stage);
+    const effect = p.effect;
+    if (!effect) return false;
+    const address = clipAddress(p, effect);
+    const stop = new AbortController();
+    stopMaking = stop;
+    setMakingOf(address);
+    try {
+      const [clips, ring] = await (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : Promise.all([import("./video-download.ts"), import("@grabient/ui/MakingIcon.tsx")]));
+      const shown = (done: number) => {
+        if (!stop.signal.aborted)
+          setMaking({
+            format: "mp4",
+            done,
+            name: ring.makingName("mp4"),
+            label: ring.makingLabel("mp4", done),
+            Icon: ring.MakingIcon
+          });
+      };
+      shown(0);
+      await clips.downloadClip(
+        { address, name: `grabient-${p.seed}-${effect.kind}.mp4` },
+        shown,
+        stop.signal
+      );
+      props.used("download", "mp4");
+      announce(ring.madeLabel("mp4"));
+      return true;
+    } catch (error) {
+      if (!stop.signal.aborted)
+        toast(
+          error instanceof Error && error.message === NO_VIDEO_HERE
+            ? t("This browser can't make videos.")
+            : t("Couldn't download the file.")
+        );
+      return false;
+    } finally {
+      if (stopMaking === stop) {
+        stopMaking = null;
+        setMaking(undefined);
+        setMakingOf(undefined);
+      }
+    }
+  };
   const similar = () => similarHref(e.seed());
   /* the fluted glass over the gradient while it plays, its colors held by the flash guard as the gradient's are: a
      held key turns the palette faster than three times a second, and the glass repaints the whole picture */
@@ -942,11 +1021,12 @@ function Stage(
             size="lg"
             variant="art"
             copy={e.effect() ? STRIP_EFFECT_COPY : STRIP_COPY}
-            download={STRIP_FILES}
+            download={e.effect() ? stageFileFormats(e.effect()!.kind) : STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={e.effect() ? effectLinkFormats(e.effect()!.kind) : STRIP_FILES}
+            link={e.effect() ? stageLinkFormats(e.effect()!.kind) : STRIP_FILES}
             onCopy={copy}
-            onDownload={f => void download(f)}
+            onDownload={f => (f === "mp4" ? downloadClip() : void download(f))}
+            making={making()}
             onLink={link}
           />
         </span>

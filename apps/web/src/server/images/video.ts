@@ -24,14 +24,13 @@ import { type Effect, type EffectFinish, parseEffect } from "@grabient/engine/ef
 import type { VideoPlan } from "@grabient/engine/video.ts";
 import { hasVideo, VIDEO_KINDS } from "@grabient/engine/video-kinds.ts";
 import type { Size } from "@grabient/engine/view.ts";
-import { DEFAULT_ANGLE, finishOf } from "@grabient/engine/view.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { FILE } from "../../lib/cache.ts";
 import { isLinkPreview } from "../crawlers.ts";
-import { addressParams, fileName, viewAt } from "../files/address.ts";
+import { addressParams, fileName } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { failure, type Keep } from "./serve.ts";
@@ -138,23 +137,11 @@ export async function seedMp4Answer(
       `An MP4 plays an effect: ${styles.slice(0, -1).join(", ")} or ${styles.at(-1)}.`
     );
   }
-  const kind = effect.kind;
-  const view = viewAt(params, found.palette.anchors.length);
-  /* the blob has no angle: one clip for every angle its address names */
-  const angle = kind === "blob" ? DEFAULT_ANGLE : view.angle;
-  const finish = finishOf(view);
-  const { videoDuration, videoFit, videoParts, videoQuality } = await import(
-    "@grabient/engine/video.ts"
-  );
-  const duration = videoDuration(params.get("duration"));
+  const { videoAt, videoParts, videoQuality } = await import("@grabient/engine/video.ts");
+  /* the clip, of the kind just read, as the editor's download reads the same address (engine/video.ts's videoAt): the
+     blob has no angle, one clip for every angle its address names */
+  const { kind, angle, finish, duration, size, fps, plan } = videoAt(params, pictureSize(params))!;
   const drawn = { kind, look: effect.look, finish };
-  const { size, fps, plan } = videoFit(
-    drawn,
-    effect.speed,
-    effect.fps,
-    duration,
-    pictureSize(params)
-  );
   const look = kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
   const hash = await hashOf([
     VIDEO_DRAWING,

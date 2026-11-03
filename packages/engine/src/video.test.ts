@@ -31,6 +31,7 @@ import {
   type VideoBlur,
   type VideoKind,
   type VideoPlan,
+  videoAt,
   videoBlurScale,
   videoDrawer,
   videoDuration,
@@ -79,6 +80,42 @@ describe("the clips' kinds", () => {
       drawer.draw(0);
       expect(drawer.code(0).length, kind).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("videoAt", () => {
+  const asked = { width: 640, height: 360 };
+  const at = (query: string) => videoAt(new URLSearchParams(query), asked);
+
+  it("names a clip of each effect the clips' list names, and of no other style", () => {
+    for (const kind of VIDEO_KINDS) expect(at(`style=${kind}`)?.kind).toBe(kind);
+    for (const kind of EFFECTS.filter(kind => !hasVideo(kind)))
+      expect(at(`style=${kind}`), kind).toBeNull();
+    expect(at("style=linearGradient")).toBeNull();
+  });
+
+  it("reads an address's effect, angle, soft, grain and duration, and fits the size it asks for", () => {
+    const clip = at("style=silk&angle=135&soft=40&grain=30&speed=2&fps=30&shape=7&duration=12");
+    expect(clip).toMatchObject({
+      kind: "silk",
+      angle: 135,
+      finish: { soft: 40, grain: 30 },
+      duration: 12,
+      effect: { kind: "silk", speed: 2, fps: 30, look: { shape: 7 } }
+    });
+    const fit = videoFit(
+      { kind: "silk", look: clip!.effect.look, finish: { soft: 40, grain: 30 } },
+      2,
+      30,
+      12,
+      asked
+    );
+    expect([clip?.size, clip?.fps, clip?.plan]).toEqual([fit.size, fit.fps, fit.plan]);
+  });
+
+  it("plays the glass where no style is named, and one blob for every angle", () => {
+    expect(at("angle=20")).toMatchObject({ kind: "glass", angle: 20 });
+    expect(at("style=blob&angle=20")?.angle).toBe(90);
   });
 });
 

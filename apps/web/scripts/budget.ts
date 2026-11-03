@@ -14,6 +14,7 @@ type Chunk = {
   isEntry?: boolean;
   isDynamicEntry?: boolean;
   imports?: string[];
+  assets?: string[];
   src?: string;
 };
 type Manifest = Record<string, Chunk>;
@@ -87,7 +88,12 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     /* it stood at 330.3 once the effects' soft and grain, papercut and the shaders' finish were merged (sg/int at
        3e00c5e0, 3 Nov 2026), and the effects' pictures soft and grained (sg/files: the copies' PNG of an effect, its
        SVG drawn by the browser) took it to 330.4 */
-    budget: 331
+    /* the editor's MP4 (3 Nov 2026): the stage's Download MP4 and Copy MP4 link chips, their lists and who the server
+       draws a clip for (editor/formats.ts), the clip's address, the press that starts and stops its making, and the
+       strip's chip while a download is made (ui/FormatStrip.tsx), took it from 330.4 to 331.0 to 331.1, by the build;
+       the making, its worker, the module that draws (engine/video/video.wasm) and the chip's ring (ui/MakingIcon.tsx)
+       come with the first press */
+    budget: 332
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
      the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.
@@ -106,7 +112,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      task's and a frame's share at a time (FxArt.tsx, which this page's cards draw with: a list's papercut stills held
      the page up to 0.7 s at once) and the effects' kind fact for a still that stands in for its first frame took it
      to 296.2 */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 297 },
+  /* the editor's MP4 (3 Nov 2026: editor/formats.ts's MP4 link and the strip's chip while a download is made, which
+     this page's strip shares) took it from 296.9 to 297.2 to 297.3, by the build */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 298 },
   /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
      view's parts in every address, the header's swatch) from 225.2 to 226.6 */
   /* the color reader, as "/", took it from 226.8 to 229.2 on 3 Nov 2026 */
@@ -140,8 +148,15 @@ const BUDGETS = {
   // no more than it counts the video's. It stood at 1445.2 KiB once the effects' soft and grain, papercut and the
   // shaders' finish were merged (sg/int at 3e00c5e0, 3 Nov 2026), and the effects' pictures and cards soft and grained
   // (engine/fx-frame.ts, server/images/effect-frame.ts and the finish's blurs, loaded with the first such picture an
-  // isolate draws) took it to 1448.8 to 1449.0, by the build
-  worker: 1450,
+  // isolate draws) took it to 1448.8 to 1449.0, by the build. The editor's MP4 (3 Nov 2026), whose chips the Worker
+  // renders, and the clips' address read alike by the Worker and the reader's browser (engine/video.ts's videoAt,
+  // lib/picture-size.ts) took it from 1449.2 to 1450.2 to 1450.3, by the build
+  worker: 1451,
+  // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
+  // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
+  // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
+  // (engine/video/video.wasm, 137 KB, 44.5 gzipped) is WebAssembly, which this counts no more than the Worker's
+  mp4Worker: 21,
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
   // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks. The
   // color reader (engine/written-color.ts), which the search, the pages' titles and the MCP read, took it from 237.5
@@ -225,6 +240,16 @@ if (onDemand) {
   const name = `largest on-demand chunk (${onDemand.file.replace(/^assets\//, "")})`;
   rows.push({ name, size: onDemand.size, budget: BUDGETS.onDemand, unit: KB });
 }
+const mp4Worker = client["src/features/editor/video-download.ts"]?.assets?.find(file =>
+  /\/video-worker-[\w-]+\.js$/.test(file)
+);
+if (!mp4Worker) throw new Error("The build wrote no MP4 worker: update budget.ts");
+rows.push({
+  name: "the MP4 worker",
+  size: clientGzip(mp4Worker),
+  budget: BUDGETS.mp4Worker,
+  unit: KB
+});
 
 const names = readdirSync(join(assets, "assets")).find(file => /^color-names-.*\.txt$/.test(file));
 if (!names) throw new Error("The build wrote no precise color names file");

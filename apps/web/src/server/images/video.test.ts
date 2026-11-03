@@ -5,6 +5,7 @@ import { videoFinish } from "@grabient/engine/video-finish.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { clipAt, drawClip } from "../../features/editor/video-clip.ts";
 import type { Keep } from "./serve.ts";
 import { seedMp4Answer, VIDEO_DRAWING, type VideoPartRunner } from "./video.ts";
 import { spanOf } from "./video-bytes.ts";
@@ -565,6 +566,35 @@ describe("a palette's MP4 drawn in parts", () => {
     );
     expect(again.jobs.map(job => job.from)).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
     expect(again.jobs[0].state).toBeNull();
+  });
+});
+
+describe("a palette's MP4 drawn in the reader's browser", () => {
+  /* The editor's Download MP4 draws the clip at the address its Copy link copies in one stream, in a worker of the
+     reader's browser (features/editor/video-clip.ts), where the Worker draws it in parts: the same file. */
+  test("is the clip the Worker answers at its address, byte for byte", async () => {
+    const { env, keep } = world();
+    for (const address of [
+      `/${SEED}.mp4?style=glass&angle=135&soft=40&grain=30&speed=10&fps=10&shape=417&w=64&h=48`,
+      `/${SEED}.mp4?style=blob&speed=4&fps=10&frost=0.5&shape=3&bg=%23ffeeddaa&w=48&h=64`,
+      /* a soft blob with no ground, over the clip's backdrop */
+      `/${SEED}.mp4?style=blob&soft=20&grain=10&speed=4&fps=10&shape=999&w=64&h=48`,
+      `/${SEED}.mp4?style=silk&angle=20&grain=50&speed=10&fps=10&w=64&h=48`,
+      `/${SEED}.mp4?style=rosette&angle=200&soft=70&speed=10&fps=10&w=64&h=48`,
+      /* held: its first frame for a second */
+      `/${SEED}.mp4?style=glass&speed=0&fps=10&w=64&h=48`,
+      /* no size: the card's */
+      `/${SEED}.mp4?style=glass&speed=10&fps=3`
+    ]) {
+      const clip = clipAt(`${ORIGIN}${address}`);
+      if (!clip) throw new Error(`no clip at ${address}`);
+      const served = await seedMp4Answer(get(address), env, keep, runner().run, {
+        ...anAdmin,
+        partWork: 64 * 48 * 3
+      });
+      expect(served.status, address).toBe(200);
+      expect(drawClip(wasm, clip), address).toEqual(await bytes(served));
+    }
   });
 });
 

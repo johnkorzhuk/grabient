@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, Show, untrack } from "solid-js";
+import { type Component, createMemo, createSignal, For, Show, untrack } from "solid-js";
 import { announce } from "./announce.ts";
 import { createDone } from "./done.ts";
 import styles from "./FormatStrip.module.css";
@@ -15,7 +15,10 @@ import { tooltip } from "./Tooltip.tsx";
    changes; it is named for what it does (Copy CSS, Download PNG). A chip confirms on itself: its icon, or a name alone,
    is a check for a moment. The formats' names are their own, never translated. A strip with less room than its chips
    take gives up their padding evenly, then scrolls the formats sideways between the mode and the book, so no chip ever
-   runs over another. The strip runs the way of the place it stands in. */
+   runs over another. A download made as it is asked for (an effect's MP4) is drawn by its page while it is made, its
+   icon saying how far along it is, its tooltip that and what a press does now, and its name only what a press does,
+   so a screen reader is not told each step; it is checked once the file is handed over. The strip runs the way of the
+   place it stands in. */
 export type Format =
   | "css"
   | "svg"
@@ -26,6 +29,7 @@ export type Format =
   | "js"
   | "html"
   | "md"
+  | "mp4"
   | "ase"
   | "gpl"
   | "grd"
@@ -49,6 +53,7 @@ const ICON: Readonly<Record<Format, IconName>> = {
   js: "braces",
   html: "codeXml",
   md: "fileText",
+  mp4: "film",
   ase: "swatchGrid",
   gpl: "palette",
   grd: "rainbow",
@@ -65,12 +70,15 @@ const LABEL: Readonly<Record<Format, string>> = {
   js: "JS",
   html: "HTML",
   md: "MD",
+  mp4: "MP4",
   ase: "ASE",
   gpl: "GPL",
   grd: "GRD",
   tokens: "Tokens",
   figma: "Figma"
 };
+/** A format's name on its chip, its own in every language. */
+export const formatName = (f: Format): string => LABEL[f];
 const MODES: readonly StripMode[] = ["copy", "download", "link"];
 const MODE_ICON: Readonly<Record<StripMode, IconName>> = {
   copy: "copy",
@@ -90,7 +98,6 @@ const CHIP: Readonly<Record<StripMode, string>> = {
 /* a chip named for where its copy goes rather than what it is: Figma takes its layers off the clipboard */
 const CHIP_FOR: Readonly<Partial<Record<Format, string>>> = { figma: msg("Copy for {format}") };
 const chipOf = (f: Format, mode: StripMode) => (mode === "copy" && CHIP_FOR[f]) || CHIP[mode];
-
 /* what the strip does now and what a press on the mode turns it to: one without downloads turns from copying to links */
 const TURN: Readonly<Record<StripMode, Partial<Record<StripMode, string>>>> = {
   copy: { download: msg("Copying. Switch to download"), link: msg("Copying. Switch to links") },
@@ -134,6 +141,17 @@ const samePlaces = (a: readonly (readonly Format[])[], b: readonly (readonly For
   a.length === b.length &&
   a.every((place, i) => place.length === b[i].length && place.every((f, j) => f === b[i][j]));
 
+/** A download being made, as its page shows it on its chip: how far along it is, 0 to 1, drawn by `Icon` in the chip's
+    icon's place (MakingIcon.tsx); the chip's name, which says what a press does now and stays as it is until the file
+    is made; and its tooltip, which says how far along it is besides. */
+export interface StripMaking {
+  format: Format;
+  done: number;
+  name: string;
+  label: string;
+  Icon: Component<{ done: number; size: number }>;
+}
+
 export interface FormatStripProps {
   /** the formats that can be copied, in order */
   copy: readonly Format[];
@@ -144,7 +162,10 @@ export interface FormatStripProps {
   link?: readonly Format[];
   /** a copy answers whether it happened: false shows no check; nothing is taken at its word */
   onCopy?: (format: Format) => unknown;
-  onDownload?: (format: Format) => void;
+  /** answers as onCopy does, once the file is handed over: a download made as it is asked for shows its check then */
+  onDownload?: (format: Format) => unknown;
+  /** a download still being made, shown on its chip in the downloads; a press on it is onDownload's to answer */
+  making?: StripMaking;
   /** answers as onCopy does */
   onLink?: (format: Format) => unknown;
   /** sm 28px over a card (with the art variant, each format's chip its name alone), md 32px among controls, lg 40px on
@@ -187,12 +208,20 @@ export function FormatStrip(props: FormatStripProps) {
   const turn = () => t(TURN[mode()][next()] ?? "");
   const book = () => t(swatching() ? msg("Back") : msg("Swatches"));
   const [done, mark] = createDone<Format>();
-  /* a reader who listens hears a copy as a reader who looks sees its check, once it is so */
+  /* a download being made, on its chip in the downloads alone */
+  const making = (f: Format) =>
+    mode() === "download" && props.making?.format === f ? props.making : undefined;
+  /* a chip's name says what a press does now, the same while its download is made; its tooltip says how far along */
+  const chipName = (f: Format) => t(chipOf(f, mode()), { format: LABEL[f] });
+  const label = (f: Format) => making(f)?.name ?? chipName(f);
+  const tipText = (f: Format) => making(f)?.label ?? chipName(f);
+  /* a reader who listens hears a copy as a reader who looks sees its check, once it is so; a download is checked once
+     its file is handed over, if the strip still downloads */
   const act = async (f: Format) => {
     const m = mode();
     if (m === "download") {
-      props.onDownload?.(f);
-      mark(f);
+      if ((await props.onDownload?.(f)) === false) return;
+      if (mode() === m) mark(f);
       return;
     }
     if ((await (m === "link" ? props.onLink : props.onCopy)?.(f)) === false) return;
@@ -281,7 +310,7 @@ export function FormatStrip(props: FormatStripProps) {
               const shown = () => place().find(f => formats().includes(f));
               const tip = tooltip(() => {
                 const f = shown();
-                return f ? t(chipOf(f, mode()), { format: LABEL[f] }) : null;
+                return f ? tipText(f) : null;
               });
               return (
                 <Show
@@ -299,11 +328,22 @@ export function FormatStrip(props: FormatStripProps) {
                       type="button"
                       class={styles.chip}
                       data-done={named && done() === f() ? "" : undefined}
-                      aria-label={t(chipOf(f(), mode()), { format: LABEL[f()] })}
+                      aria-label={label(f())}
                       onClick={() => void act(f())}
                     >
                       {named ? null : (
-                        <Icon name={done() === f() ? "check" : ICON[f()]} size={glyph()} />
+                        <Show
+                          when={making(f())}
+                          fallback={
+                            <Icon name={done() === f() ? "check" : ICON[f()]} size={glyph()} />
+                          }
+                        >
+                          {m => {
+                            /* the page's ring, the same for as long as the file is made: read once */
+                            const Making = untrack(() => m().Icon);
+                            return <Making done={m().done} size={glyph()} />;
+                          }}
+                        </Show>
                       )}
                       {name(f(), place())}
                       {/* a name alone confirms with a check in its place, the name keeping the chip's width */}

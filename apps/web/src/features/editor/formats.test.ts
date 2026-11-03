@@ -1,6 +1,11 @@
 import { decodePalette } from "@grabient/engine";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { effectFileAddress, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  EFFECTS,
+  effectFileAddress,
+  hasEmbedScript,
+  parseEffect
+} from "@grabient/engine/effect.ts";
 import {
   effectLayers,
   effectStill,
@@ -8,9 +13,24 @@ import {
   effectSvg
 } from "@grabient/engine/effect-code.ts";
 import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
+import { hasVideo, VIDEO_KINDS } from "@grabient/engine/video-kinds.ts";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { copyFormat, copyLink, type Taken } from "./formats.ts";
+import {
+  copyFormat,
+  copyLink,
+  STRIP_EFFECT_COPY,
+  STRIP_FILES,
+  stageFileFormats,
+  stageLinkFormats,
+  type Taken
+} from "./formats.ts";
 
+/* whether the account signed in is an admin's, with the admin tools on */
+const account = vi.hoisted(() => ({ admin: false }));
+vi.mock("../account/session.ts", async load => ({
+  ...(await load<typeof import("../account/session.ts")>()),
+  isAdmin: () => account.admin
+}));
 /* the grain's tile as the page's file of it would give it */
 vi.mock("./copy-finish.ts", async load => ({
   ...(await load<typeof import("./copy-finish.ts")>()),
@@ -89,6 +109,45 @@ test("the page's address keeps the effect, and its files' addresses carry every 
       effectFileAddress(ORIGIN, SEED, effect("style=glass&shape=7"), 45, f)
     );
   }
+});
+
+test("while an effect a clip is drawn of plays, the stage downloads its MP4 and copies its link, and never copies the clip", () => {
+  for (const kind of VIDEO_KINDS) {
+    expect(stageFileFormats(kind)).toEqual([...STRIP_FILES, "mp4"]);
+    /* the clip among the files, before the script that plays the effect where one does */
+    expect(stageLinkFormats(kind)).toEqual([
+      "md",
+      "css",
+      "svg",
+      "png",
+      "mp4",
+      ...(hasEmbedScript(kind) ? ["js"] : [])
+    ]);
+    expect(STRIP_EFFECT_COPY).not.toContain("mp4");
+  }
+  /* an effect whose clips are not drawn yet offers none */
+  for (const kind of EFFECTS.filter(kind => !hasVideo(kind))) {
+    expect(stageFileFormats(kind)).toEqual(STRIP_FILES);
+    expect(stageLinkFormats(kind)).not.toContain("mp4");
+  }
+  /* production draws a new clip for an admin alone, so it links one for an admin alone; a download costs it nothing */
+  vi.stubEnv("MODE", "production");
+  expect(stageLinkFormats("glass")).toEqual(["md", "css", "svg", "png", "js"]);
+  expect(stageFileFormats("glass")).toContain("mp4");
+  account.admin = true;
+  expect(stageLinkFormats("glass")).toContain("mp4");
+  account.admin = false;
+  vi.unstubAllEnvs();
+});
+
+test("an effect's MP4 link is its clip's address, its soft and grain in it, at the pixels the stage shows once set", async () => {
+  await copyLink("mp4", { ...taken("style=glass&shape=7&speed=2"), soft: 40, grain: 30 });
+  expect(copied.pop()).toBe(
+    `${ORIGIN}/${SEED}.mp4?style=glass&angle=45&soft=40&grain=30&speed=2&shape=7`
+  );
+  const sized = { width: 640, height: 360 };
+  await copyLink("mp4", { ...taken("style=blob&shape=3&fps=30"), size: sized, pixels: sized });
+  expect(copied.pop()).toBe(`${ORIGIN}/${SEED}.mp4?style=blob&fps=30&shape=3&w=640&h=360`);
 });
 
 test("a soft and grained effect's CSS and tags are finished as its stylesheet is, the grain's tile whole", async () => {

@@ -119,6 +119,10 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   pages' finish in `shader-finish.ts` (the soft's grid and blur, the gradient under its edges, the grain's tile), the
   grain a single shader works out itself in `shader-grain.ts`, and the silk's, the rosette's and the papercut's
   Shadertoy finish, its grid in Buffer B, its blur in C and D, in `fx-shadertoy.ts`.
+- The effects as looping MP4 clips: `video-kinds.ts` (the kinds a clip is drawn of, which loads nothing), `video.ts`
+  (a clip's plan, limits and coding, and `videoAt`, the clip an address asks for, which the Worker's /{seed}.mp4 and
+  the editor's Download MP4, drawn in the reader's browser, read alike), `video-finish.ts` (a clip's soft and grain),
+  `mp4.ts`, and the module that draws and codes the frames, `video/video.wasm` from `video/video.c` (`video/build.sh`).
 - What a palette is: `name.ts`, `colorname.ts` over `colornames.data.ts`, `shape.ts`, `dominant.ts`, `contrast.ts`,
   `plot.ts`, `strip.ts`.
 - Old links: `legacy.ts`, `legacy-import.ts`.
