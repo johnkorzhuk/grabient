@@ -1,6 +1,7 @@
 /* The answers of the picture addresses, which the route files hand the Worker's bindings and its `waitUntil`. A
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 
+import { representatives } from "@grabient/engine/representative.ts";
 import { MARK_WEEK, markSvg, markWeek, weekMark } from "@grabient/ui/mark.ts";
 import {
   isCollectionSlug,
@@ -30,6 +31,7 @@ import {
   keptReads,
   type MontagePalette,
   montageAnswer,
+  SHEET_PALETTES,
   sheetAnswer,
   sheetSvgAnswer
 } from "./montages.ts";
@@ -96,7 +98,8 @@ const collectionOf = (env: Pick<PictureEnv, "DB">, slug: string, changed: number
           seed: item.kseed,
           style: item.style,
           steps: item.steps,
-          angle: item.angle
+          angle: item.angle,
+          likes: item.likes
         }));
       return {
         title: doc.title,
@@ -112,18 +115,22 @@ const collectionPalettes = async (
   changed: number
 ) => (await collectionOf(env, slug, changed))?.palettes[order] ?? [];
 
-/* A public collection's first palettes in its page's order, read as its share card reads them, under the card's key,
-   which names when the collection changed, so no picture of a change is drawn from a read made before it. */
-const collectionSheetKey = (slug: string, changed: number) =>
-  `collection:${slug}:popular::${changed}`;
-const collectionFirst = (env: Pick<PictureEnv, "DB">, slug: string, changed: number) => async () =>
-  (await collectionPalettes(env, slug, "popular", changed)).slice(0, MONTAGE_PALETTES);
+/* A public collection's sheet rows: its page's first palette and the seven that, with it, look most like all of its
+   palettes (engine/representative.ts), in its page's order, each as the collection saved it. Kept under a key of their
+   own, which names when the collection changed, so no picture of a change is drawn from a read made before it: the
+   share card's key holds the page's first nine. */
+const collectionSheetKey = (slug: string, changed: number) => `collection-sheet:${slug}:${changed}`;
+const collectionSheetRows =
+  (env: Pick<PictureEnv, "DB">, slug: string, changed: number) => async () => {
+    const held = await collectionPalettes(env, slug, "popular", changed);
+    return representatives(held, SHEET_PALETTES).map(i => held[i]);
+  };
 
 /** A public collection's sheet, kept for good: its page shows it. */
 function collectionSheetAnswer(request: Request, env: PictureEnv, keep: Keep, slug: string) {
   const changed = changedOf(request);
   const key = collectionSheetKey(slug, changed);
-  return sheetAnswer(request, env, key, collectionFirst(env, slug, changed), "sheets", keep);
+  return sheetAnswer(request, env, key, collectionSheetRows(env, slug, changed), "sheets", keep);
 }
 
 /** /{slug}.svg and /@{handle}/{slug}.svg: a public collection's sheet as SVG, titled with the collection's title. */
@@ -131,7 +138,7 @@ export function collectionSheetSvg(request: Request, env: Pick<PictureEnv, "DB">
   const changed = changedOf(request);
   return sheetSvgAnswer(
     collectionSheetKey(slug, changed),
-    collectionFirst(env, slug, changed),
+    collectionSheetRows(env, slug, changed),
     async () => (await collectionOf(env, slug, changed))?.title ?? slugWords(slug)
   );
 }
