@@ -1,6 +1,6 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import type { Effect } from "@grabient/engine/effect.ts";
+import { type Effect, groundParts } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { t } from "@grabient/i18n";
 import { createMemo, Loading, lazy } from "solid-js";
@@ -31,9 +31,15 @@ export async function readyCardEffects(kind: Effect["kind"]): Promise<void> {
   ]);
 }
 
+/** Whether an effect stands on the page with no ground of its own: a blob with none, or one the page shows through. A
+    soft one's edges go to the page, as its files' and the stage's do (engine/fx-finish.ts effectUnderlay), with no
+    gradient under them. */
+export const standsBare = (fx: Effect | null | undefined): boolean =>
+  fx?.kind === "blob" && !(fx.look.bg && groundParts(fx.look.bg).alpha === 1);
+
 /** A card's picture while its list plays an effect, as the editor's sheet draws its cards: the effect's still in its
     palette's own shape, moving while the card is lit (EffectArt.tsx), its name for a screen reader, the light under
-    it (the glass's colors along its ribs, none under a blob) and whether it stands bare (a blob with no ground).
+    it (the glass's colors along its ribs, none under a blob) and whether it stands bare (standsBare).
     Nothing while the list draws gradients. A style previewed on every card shows over the picture, which stays, so
     letting the preview go shows it again as it was drawn. */
 export function createCardEffect(o: {
@@ -99,6 +105,6 @@ export function createCardEffect(o: {
         };
       return null;
     },
-    bare: () => shown()?.kind === "blob" && shown()?.look.bg === null
+    bare: () => standsBare(shown())
   };
 }
