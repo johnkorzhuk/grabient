@@ -5,9 +5,7 @@ import {
   EFFECT_FPS,
   EMBED_PLAYING,
   effectAddressParts,
-  effectEmbedHtml,
   effectFileAddress,
-  effectLayerCss,
   effectLook,
   effectStillParts,
   groundHex,
@@ -16,6 +14,7 @@ import {
   readBlobStillKey,
   SHAPE_MAX
 } from "./effect.ts";
+import { effectEmbedHtml, effectLayerCss } from "./effect-embed.ts";
 import { glassStillKey, readStillKey } from "./glass-colors.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
@@ -155,4 +154,31 @@ test("with its still, the tags hold the first frame in the page itself, and the 
   expect(effectLayerCss("red")).toBe(
     `html::before {\n  content: "";\n  position: fixed;\n  inset: 0;\n  z-index: -1;\n  pointer-events: none;\n  background: red;\n}\nhtml[${EMBED_PLAYING}]::before {\n  background: none;\n}\n`
   );
+});
+
+test("a soft and grained view's tags finish the still inside the page and name both in the script's address", () => {
+  const html = effectEmbedHtml(
+    "https://grabient.test",
+    SEED,
+    effect("style=rosette"),
+    90,
+    "url(x)",
+    { soft: 40, grain: 20 },
+    { blur: "blur(1vmax)", under: "linear-gradient(red, blue)", grain: "url(y) 0 0 / 128px 128px" }
+  );
+  // the still blurred over its gradient, the grain on a layer of its own over both
+  expect(html).toContain("  background: url(x);\n  filter: blur(1vmax);\n}");
+  expect(html).toMatch(
+    /html::after \{[^}]*z-index: -2;[^}]*background: linear-gradient\(red, blue\);/
+  );
+  expect(html).toMatch(
+    /body::before \{[^}]*background: url\(y\) 0 0 \/ 128px 128px;\n {2}image-rendering: pixelated;/
+  );
+  expect(html).toContain(
+    `<script src="https://grabient.test/${SEED}.js?style=rosette&amp;soft=40&amp;grain=20" async></script>`
+  );
+  // a grain alone lays no gradient and no blur
+  const grained = effectLayerCss("url(x)", { grain: "url(y) 0 0 / 128px 128px" });
+  expect(grained).not.toMatch(/filter|html::after/);
+  expect(grained).toContain(`html[${EMBED_PLAYING}] body::before {\n  background: none;\n}`);
 });

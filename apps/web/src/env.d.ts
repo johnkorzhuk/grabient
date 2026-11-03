@@ -5,7 +5,12 @@ declare const __COLOR_NAMES__: string;
 /** The folder of the grain's tiles the build writes, one PNG a strength: `${__GRAIN__}/40.png` (scripts/grain.ts). */
 declare const __GRAIN__: string;
 /** The addresses of the effects' embed scripts the build writes (src/embed/build.ts). */
-declare const __EFFECT_EMBEDS__: { readonly glass: string; readonly blob: string };
+declare const __EFFECT_EMBEDS__: {
+  readonly glass: string;
+  readonly blob: string;
+  readonly silk: string;
+  readonly rosette: string;
+};
 
 interface Window {
   /** the page's messages, asked for by the head as the document is read (routes/__root.tsx) */

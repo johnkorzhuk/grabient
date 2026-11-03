@@ -102,17 +102,21 @@ async function paletteFile(
   const stops = () => sampleStops(palette, view.steps);
   switch (format) {
     case "css": {
-      /* style=glass or blob: the effect's first frame behind the page, which /{seed}.js plays from (effect-files.ts),
-         loaded with the first one asked for */
+      /* style= an effect: its first frame behind the page, which /{seed}.js plays from (effect-files.ts), loaded with
+         the first one asked for, finished by the view's soft and grain, its grain's tile carried in itself */
       const effect = parseEffect(params);
-      if (effect)
+      if (effect) {
+        const finish = finishOf(view);
         return (await import("./effect-files.ts")).effectCssAnswer(
           origin,
           seed,
           palette,
           effect,
-          view.angle
+          view.angle,
+          finish,
+          finish.grain ? `url("${await grainOf(finish.grain)}")` : undefined
         );
+      }
       // w and h (or size) set the page's box; style=bands plays the animated SVG, carried inside
       const asked = svgSize(params);
       if (isBands(params)) {

@@ -106,7 +106,7 @@ export default defineConfig({
     i18n(),
     // The MCP App view, built into one page the Worker serves to AI apps.
     mcpView(),
-    // A palette's glass or blob as one script any page embeds, which the Worker serves at /{seed}.js.
+    // A palette's effect as one script any page embeds, which the Worker serves at /{seed}.js.
     effectEmbed(),
     // A newsletter issue that has no publication day yet never reaches a file the browser is given.
     draftsStayPrivate(),

@@ -3,14 +3,15 @@ import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { build, type Plugin, type Rollup } from "vite";
 
-/* The effects' embeds (glass.ts, blob.ts), each as one classic script, which the Worker serves at /{seed}.js
-   (server/files/embed.ts). They are built with the site's own toolchain in builds of their own, as the MCP view is,
-   and written into the browser's build as files under /assets/ named by their contents, as the precise color names
-   are (scripts/color-names.ts): the Worker reads them through its ASSETS binding, so they are no part of its code.
+/* The effects' embeds (glass.ts, blob.ts, silk.ts, rosette.ts), each as one classic script, which the Worker serves
+   at /{seed}.js (server/files/embed.ts). They are built with the site's own toolchain in builds of their own, as the
+   MCP view is, and written into the browser's build as files under /assets/ named by their contents, as the precise
+   color names are (scripts/color-names.ts): the Worker reads them through its ASSETS binding, so they are no part of
+   its code.
    Their addresses reach the Worker as __EFFECT_EMBEDS__; `vite dev` answers them from memory. Run alone
-   (`node src/embed/build.ts`), this module writes both scripts to standard output as JSON. */
+   (`node src/embed/build.ts`), this module writes every script to standard output as JSON. */
 
-const KINDS = ["glass", "blob"] as const;
+const KINDS = ["glass", "blob", "silk", "rosette"] as const;
 type Scripts = Record<(typeof KINDS)[number], string>;
 
 async function buildOne(kind: (typeof KINDS)[number]): Promise<string> {
@@ -42,9 +43,11 @@ async function buildOne(kind: (typeof KINDS)[number]): Promise<string> {
   return chunks[0].code;
 }
 
-/** Builds both embeds in this process and answers their scripts. */
+/** Builds every embed in this process, one after another, and answers their scripts. */
 export async function buildEffectEmbeds(): Promise<Scripts> {
-  return { glass: await buildOne("glass"), blob: await buildOne("blob") };
+  const scripts: Partial<Scripts> = {};
+  for (const kind of KINDS) scripts[kind] = await buildOne(kind);
+  return scripts as Scripts;
 }
 
 let built: Promise<Scripts> | undefined;
@@ -62,7 +65,7 @@ export const effectEmbedScripts = (): Promise<Scripts> =>
     );
   }));
 
-/** The app's plugin: both scripts as files of the browser's build, their addresses as __EFFECT_EMBEDS__. */
+/** The app's plugin: every script as a file of the browser's build, their addresses as __EFFECT_EMBEDS__. */
 export function effectEmbed(): Plugin {
   let scripts: Scripts | undefined;
   let paths: Scripts | undefined;
@@ -73,7 +76,7 @@ export function effectEmbed(): Plugin {
       const named = (kind: keyof Scripts) =>
         `/assets/embed-${kind}-${createHash("sha256").update(built[kind]).digest("hex").slice(0, 10)}.js`;
       scripts = built;
-      paths = { glass: named("glass"), blob: named("blob") };
+      paths = Object.fromEntries(KINDS.map(kind => [kind, named(kind)])) as Scripts;
       return { define: { __EFFECT_EMBEDS__: JSON.stringify(paths) } };
     },
     configureServer(server) {

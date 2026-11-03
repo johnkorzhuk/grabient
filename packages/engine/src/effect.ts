@@ -34,9 +34,11 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   silk: { angle: true, vector: true },
   rosette: { angle: true, vector: true }
 };
-/** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed): the
-    glass's and the blob's; the silk's and the rosette's are not built yet, and their stylesheet paints their still. */
-export const hasEmbedScript = (kind: EffectKind): boolean => kind === "glass" || kind === "blob";
+/* the effects a script plays behind another site's page */
+const SCRIPTED: readonly EffectKind[] = ["glass", "blob", "silk", "rosette"];
+/** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
+    without has its stylesheet alone, which paints its still. */
+export const hasEmbedScript = (kind: EffectKind): boolean => SCRIPTED.includes(kind);
 /** The effects drawn by one pass of their loop's time over a vector still. */
 export type VectorKind = "silk" | "rosette";
 export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>
@@ -280,38 +282,10 @@ export function effectFileAddress(
 }
 
 /** The mark the embed's script sets on a page's root once its canvas covers the still (apps/web/src/embed/mount.ts),
-    which takes the still away: the blob's canvas is clear around the blobs and draws their ground itself, and the
-    glass's, opaque once faded in, hides it, so a resize never draws the still's filter again under it. */
+    which takes the still away, and the gradient and the grain the page lays with it, which the canvas's layer lays
+    itself: the blob's canvas is clear around the blobs and draws their ground itself, and the others', opaque once
+    faded in, hide it, so a resize never draws the still's filter again under it. */
 export const EMBED_PLAYING = "data-grabient-playing";
-
-/** The rules that paint an effect's first frame behind a page: a layer fixed behind it, under its content and over its
-    ground, showing the still (a CSS background), which it gives up once the script's canvas covers it. */
-export const effectLayerCss = (still: string): string =>
-  `html::before {\n  content: "";\n  position: fixed;\n  inset: 0;\n  z-index: -1;\n  pointer-events: none;\n  background: ${still};\n}\nhtml[${EMBED_PLAYING}]::before {\n  background: none;\n}\n`;
-
-/** The tags that play an effect behind a page, for its head: its first frame, then the script that plays it from
-    there. With the still, the first frame is in the page itself, a style, so the page waits on no other site to paint;
-    without, the stylesheet of the same address paints it. */
-export function effectEmbedHtml(
-  origin: string,
-  seed: string,
-  effect: Effect,
-  angle: number,
-  still?: string,
-  finish: EffectFinish = {}
-): string {
-  const at = (extension: "css" | "js") =>
-    effectFileAddress(origin, seed, effect, angle, extension, undefined, finish).replaceAll(
-      "&",
-      "&amp;"
-    );
-  const first = still
-    ? `<style>\n${effectLayerCss(still)}</style>`
-    : `<link rel="stylesheet" href="${at("css")}">`;
-  return hasEmbedScript(effect.kind)
-    ? `${first}\n<script src="${at("js")}" async></script>`
-    : first;
-}
 
 /** Whether two settings are the same. */
 export const sameSettings = (a: EffectSettings, b: EffectSettings): boolean =>

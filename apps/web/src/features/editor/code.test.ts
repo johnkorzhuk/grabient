@@ -2,13 +2,15 @@ import { decodePalette } from "@grabient/engine";
 import { blobWebgl } from "@grabient/engine/blob-webgl.ts";
 import { blobWebgpu } from "@grabient/engine/blob-webgpu.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { effectEmbedHtml, parseEffect } from "@grabient/engine/effect.ts";
+import { parseEffect } from "@grabient/engine/effect.ts";
 import {
   effectColors,
+  effectLayers,
   effectStill,
   effectStylesheet,
   effectSvg
 } from "@grabient/engine/effect-code.ts";
+import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { glassShadertoyText } from "@grabient/engine/glass-shadertoy.ts";
 import { glassWebgl } from "@grabient/engine/glass-webgl.ts";
 import { glassWebgpu } from "@grabient/engine/glass-webgpu.ts";
@@ -21,6 +23,12 @@ import type { Taken } from "./formats.ts";
 import { createRest } from "./rest.ts";
 
 /* The palette as text, in the sheet's code pane. */
+
+/* the grain's tile as the page's file of it would give it */
+vi.mock("./copy-finish.ts", async load => ({
+  ...(await load<typeof import("./copy-finish.ts")>()),
+  grainDataUrl: async (grain: number) => `data:image/png;base64,G${grain}`
+}));
 
 const SEED = "kS7CQ31Do6asvY-";
 const sources = () =>
@@ -200,6 +208,49 @@ test("while an effect plays, the Markdown is the file its address serves, whatev
     const md = pane(query);
     expect(await loaded(() => md.text())).toBe(await served(query));
   }
+});
+
+test("a soft and grained effect's tags and stylesheet show the grain's tile elided, and copy it whole", async () => {
+  const P = decodePalette(SEED)!;
+  const rosette = parseEffect(new URLSearchParams("style=rosette&shape=4"))!;
+  const finish = { soft: 30, grain: 15 };
+  await tabsIn();
+  const tab = (id: string) =>
+    codeSources(
+      P,
+      { style: "radialGradient", steps: 6, angle: 45 },
+      SEED,
+      () => ({ facts: null, opened: false }),
+      createRest(),
+      { ...played("style=rosette&shape=4"), ...finish }
+    ).find(s => s.id === id)!;
+  const shown = 'url("data:image/png;base64,…")';
+  const whole = 'url("data:image/png;base64,G15")';
+  expect(await loaded(() => tab("css").text())).toBe(
+    effectStylesheet(P, SEED, rosette, 45, ORIGIN, finish, shown)
+  );
+  expect(await tab("css").take?.()).toBe(
+    effectStylesheet(P, SEED, rosette, 45, ORIGIN, finish, whole)
+  );
+  expect(tab("html").text("style")).toBe(
+    effectEmbedHtml(
+      ORIGIN,
+      SEED,
+      rosette,
+      45,
+      effectStill(P, rosette, 45),
+      finish,
+      effectLayers(P, rosette, 45, finish, shown)
+    )
+  );
+  /* Copy writes the tags as the strip's Copy HTML does, at the page's own address */
+  vi.stubGlobal("location", { origin: ORIGIN });
+  try {
+    expect(await tab("html").take?.("style")).toContain(`${whole} 0 0 / 128px 128px`);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+  expect(tab("html").note?.("style")).toContain("Copy includes the whole first frame.");
 });
 
 test("the effect's tags show its first frame inside the page or linked, and copy it whole", async () => {

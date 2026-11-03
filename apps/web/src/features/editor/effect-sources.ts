@@ -6,17 +6,18 @@ import {
   type Effect,
   type EffectFinish,
   type EffectKind,
-  effectEmbedHtml,
   hasEmbedScript
 } from "@grabient/engine/effect.ts";
 import {
   effectColors,
+  effectLayers,
   effectMarkdown,
   effectSpecJson,
   effectStill,
   effectStylesheet,
   effectSvg
 } from "@grabient/engine/effect-code.ts";
+import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { SHADER_KINDS, type ShaderKind } from "@grabient/engine/shader-kinds.ts";
 import { finishOf } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
@@ -137,7 +138,8 @@ export const effectWords = (
 
 /** The effect's own code between the seed and the Markdown: the tags, the stylesheet, its colors, its settings and its
     SVG. The tags' first spelling holds the first frame inside the page as Copy HTML does, which for the glass is a
-    WebP the browser makes on the press: shown elided, copied whole. */
+    WebP the browser makes on the press, and the grain's tile with it where the view has one: shown elided, copied
+    whole. */
 export function effectSources(
   P: Palette,
   seed: string,
@@ -146,9 +148,17 @@ export function effectSources(
   origin: string
 ): CodeSource[] {
   const angle = taken.angle;
-  /* the soft and the grain the picture is finished by, which its files' addresses name */
+  /* the soft and the grain the picture is finished by, which its files' addresses name, and the rules lay with its
+     still: the grain's tile shown elided, copied whole */
   const finish = finishOf(taken);
+  const grained = !!finish.grain;
+  const shownLayers = () =>
+    effectLayers(P, effect, angle, finish, grained ? `url("${GRAIN_SHOWN}")` : undefined);
+  const grainImage = async () =>
+    finish.grain ? `url("${await grainDataUrl(finish.grain)}")` : undefined;
   const glass = effect.kind === "glass";
+  /* what Copy writes whole: the glass's WebP or the grain's tile */
+  const elided = glass || grained;
   const tags = (spelling?: string) =>
     spelling === "link"
       ? effectEmbedHtml(origin, seed, effect, angle, undefined, finish)
@@ -158,7 +168,8 @@ export function effectSources(
           effect,
           angle,
           glass ? GLASS_STILL_SHOWN : effectStill(P, effect, angle),
-          finish
+          finish,
+          shownLayers()
         );
   const shaderSource = (): CodeSource => ({
     id: "shader",
@@ -184,13 +195,13 @@ export function effectSources(
       ],
       text: tags,
       take: spelling =>
-        glass && spelling !== "link" ? effectHtml(taken, effect) : Promise.resolve(tags(spelling)),
+        elided && spelling !== "link" ? effectHtml(taken, effect) : Promise.resolve(tags(spelling)),
       note: spelling => {
-        /* the silk's and the rosette's script is not built yet: their stylesheet alone paints them */
+        /* an effect with no script has its stylesheet alone, which paints it */
         const note = hasEmbedScript(effect.kind)
           ? t("The two tags that play it behind a page, for the page's head.")
           : t("The tag that paints its first frame behind a page, for the page's head.");
-        return glass && spelling !== "link"
+        return elided && spelling !== "link"
           ? `${note} ${t("Copy includes the whole first frame.")}`
           : note;
       }
@@ -198,7 +209,18 @@ export function effectSources(
     {
       id: "css",
       label: "CSS",
-      text: () => effectStylesheet(P, seed, effect, angle, origin),
+      text: () =>
+        effectStylesheet(
+          P,
+          seed,
+          effect,
+          angle,
+          origin,
+          finish,
+          grained ? `url("${GRAIN_SHOWN}")` : undefined
+        ),
+      take: async () =>
+        effectStylesheet(P, seed, effect, angle, origin, finish, await grainImage()),
       note: () => t("The stylesheet that paints its first frame behind the page.")
     },
     {

@@ -182,6 +182,18 @@ test("an effect's script is one for every setting, its stylesheet one for every 
     `/${seed}.css?angle=90&shape=3&style=blob`
   );
   expect(written(`/${seed}.css?style=glass`)?.key).not.toBe(written(`/${seed}.css`)?.key);
+  // the silk's and the rosette's are theirs too, and the soft and the grain finish the still
+  expect(written(`/${seed}.js?style=silk&soft=40&grain=20`)?.key).toBe(`/${seed}.js?style=silk`);
+  expect(written(`/${seed}.js?style=rosette`)?.key).toBe(`/${seed}.js?style=rosette`);
+  expect(written(`/${seed}.css?style=rosette&soft=40&grain=20&speed=2`)?.key).toBe(
+    `/${seed}.css?angle=90&grain=20&soft=40&style=rosette`
+  );
+  expect(written(`/${seed}.css?style=silk&soft=40`)?.key).not.toBe(
+    written(`/${seed}.css?style=silk`)?.key
+  );
+  expect(written(`/${seed}.png?style=blob&grain=20`)?.key).not.toBe(
+    written(`/${seed}.png?style=blob`)?.key
+  );
 });
 
 test("an effect's moving SVG is kept under its pace and size as well as its look", () => {
@@ -195,6 +207,10 @@ test("an effect's moving SVG is kept under its pace and size as well as its look
   );
   expect(written(`/${seed}.svg?style=blob&shape=3&angle=45`)?.key).toBe(
     `/${seed}.svg?angle=45&shape=3&style=blob`
+  );
+  // a soft or grained effect's SVG is finished by them (fx-finish.ts)
+  expect(written(`/${seed}.svg?style=silk&soft=40&grain=20`)?.key).toBe(
+    `/${seed}.svg?angle=90&grain=20&soft=40&style=silk`
   );
 });
 

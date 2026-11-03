@@ -92,7 +92,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      drawing and players loading as a card shows one */
   /* soft and grain, as "/", took it from 290.2 to 292.4 on 2 Nov 2026 */
   /* the color reader, as "/", took it from 292.8 to 295.1 on 3 Nov 2026 */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 296 },
+  /* the tags its hero shows and the rules that paint an effect's first frame behind a page, finished by soft and grain
+     (engine/effect-embed.ts, 0.55 KB, a chunk of its own once every other page's start left it), took it from 295.7
+     to 296.2 on 3 Nov 2026 */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 297 },
   /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
      view's parts in every address, the header's swatch) from 225.2 to 226.6 */
   /* the color reader, as "/", took it from 226.8 to 229.2 on 3 Nov 2026 */

@@ -1,9 +1,21 @@
 import { decodePalette } from "@grabient/engine";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { effectEmbedHtml, effectFileAddress, parseEffect } from "@grabient/engine/effect.ts";
-import { effectStill, effectStylesheet, effectSvg } from "@grabient/engine/effect-code.ts";
+import { effectFileAddress, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  effectLayers,
+  effectStill,
+  effectStylesheet,
+  effectSvg
+} from "@grabient/engine/effect-code.ts";
+import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { copyFormat, copyLink, type Taken } from "./formats.ts";
+
+/* the grain's tile as the page's file of it would give it */
+vi.mock("./copy-finish.ts", async load => ({
+  ...(await load<typeof import("./copy-finish.ts")>()),
+  grainDataUrl: async (grain: number) => `data:image/png;base64,G${grain}`
+}));
 
 /* What the editor's strip hands over while an effect plays: the files its address serves, written by the same code. */
 
@@ -77,6 +89,29 @@ test("the page's address keeps the effect, and its files' addresses carry every 
       effectFileAddress(ORIGIN, SEED, effect("style=glass&shape=7"), 45, f)
     );
   }
+});
+
+test("a soft and grained effect's CSS and tags are finished as its stylesheet is, the grain's tile whole", async () => {
+  const silk = effect("style=silk&shape=7");
+  const finish = { soft: 40, grain: 25 };
+  const tile = 'url("data:image/png;base64,G25")';
+  await copyFormat("css", { ...taken("style=silk&shape=7"), ...finish });
+  expect(copied.pop()).toBe(effectStylesheet(P, SEED, silk, 45, ORIGIN, finish, tile));
+  await copyFormat("html", { ...taken("style=silk&shape=7"), ...finish });
+  const html = copied.pop();
+  expect(html).toBe(
+    effectEmbedHtml(
+      ORIGIN,
+      SEED,
+      silk,
+      45,
+      effectStill(P, silk, 45),
+      finish,
+      effectLayers(P, silk, 45, finish, tile)
+    )
+  );
+  expect(html).toContain(`${tile} 0 0 / 128px 128px`);
+  expect(html).toContain(`${SEED}.js?style=silk&amp;angle=45&amp;soft=40&amp;grain=25&amp;shape=7`);
 });
 
 test("the blob's tags carry the stylesheet's own still inside the page", async () => {

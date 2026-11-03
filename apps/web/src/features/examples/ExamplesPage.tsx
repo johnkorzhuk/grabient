@@ -1,11 +1,7 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { cssBlock } from "@grabient/engine/css.ts";
-import {
-  EFFECT_LOOK,
-  EFFECT_PLAY,
-  type EffectKind,
-  effectEmbedHtml
-} from "@grabient/engine/effect.ts";
+import { EFFECT_LOOK, EFFECT_PLAY, type EffectKind } from "@grabient/engine/effect.ts";
+import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
 import { localHref, t } from "@grabient/i18n";
