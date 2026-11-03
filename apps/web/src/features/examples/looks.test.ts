@@ -3,6 +3,8 @@ import type { Palette } from "@grabient/engine/palette.ts";
 import { describe, expect, test } from "vitest";
 import {
   CSS_LOOKS,
+  finished,
+  finishFor,
   inLook,
   LOOKS,
   type Look,
@@ -181,5 +183,53 @@ describe("looksFor", () => {
     expect(new Set(blobs.map(s => `${s.view.angle}|${s.effect?.look.shape}`)).size).toBeGreaterThan(
       4
     );
+  });
+});
+
+describe("finishes", () => {
+  /* parts of many pages, each finished as the seed picks for it */
+  const parts = SEEDS.flatMap(seed =>
+    Array.from({ length: 80 }, (_, i) => ({ seed, name: `part${i}` }))
+  );
+  const share = (
+    kind: Parameters<typeof finishFor>[2],
+    has: (f: ReturnType<typeof finishFor>) => boolean
+  ) => parts.filter(({ seed, name }) => has(finishFor(seed, name, kind))).length / parts.length;
+
+  test("the rosette mostly takes a little soft and a little grain, but not always", () => {
+    const both = share("rosette", f => !!f.soft && !!f.grain);
+    expect(both).toBeGreaterThan(0.7);
+    expect(both).toBeLessThan(0.9);
+    for (const { seed, name } of parts) {
+      const f = finishFor(seed, name, "rosette");
+      if (f.soft) expect([12, 20, 28]).toContain(f.soft);
+      if (f.grain) expect([16, 24, 32]).toContain(f.grain);
+    }
+    expect(share("rosette", f => !f.soft && !f.grain)).toBeGreaterThan(0.05);
+  });
+
+  test("another effect and a gradient take none half the time, the gradient's soft stronger", () => {
+    for (const kind of ["glass", "silk", "papercut", null] as const) {
+      const none = share(kind, f => !f.soft && !f.grain);
+      expect(none).toBeGreaterThan(0.4);
+      expect(none).toBeLessThan(0.6);
+    }
+    for (const { seed, name } of parts) {
+      const soft = finishFor(seed, name, null).soft;
+      if (soft) expect(soft).toBeGreaterThanOrEqual(40);
+    }
+  });
+
+  test("a look takes the finish the seed picks for its part and its kind", () => {
+    const rosette = inLook(SEED, PALETTE, "rosette", "poster");
+    expect(finished(rosette, "poster").view).toEqual({
+      ...rosette.view,
+      ...finishFor(SEED, "poster", "rosette")
+    });
+    const plain = inLook(SEED, PALETTE, "gradient", "poster");
+    expect(finished(plain, "poster").view).toEqual({
+      ...plain.view,
+      ...finishFor(SEED, "poster", null)
+    });
   });
 });

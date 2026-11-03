@@ -263,8 +263,8 @@ test("the hero plays the silk, the rosette or the papercut from the server's sti
 test("soft and grained looks are drawn as the server drew them, none drawn plain a moment while the blur's code comes", async ({
   page
 }) => {
-  /* a palette whose hero is a soft rosette, among soft bands and effects and grained ones (features/examples/looks.ts
-     finishFor) */
+  /* a palette whose hero is a soft, grained rosette, the rosette's own finish, among soft bands and effects and
+     grained ones (features/examples/looks.ts finishFor) */
   const seed = "kQuhy_2UYco";
   /* any soft picture's gradient the page draws again otherwise than the server did, were it drawn plain a moment
      while the blur's code came */
@@ -295,7 +295,7 @@ test("soft and grained looks are drawn as the server drew them, none drawn plain
     await page.evaluate(() => (window as unknown as { softChanged: string[] }).softChanged)
   ).toEqual([]);
   await expect(page.locator('[data-look="hero"] [data-hold] p').first()).toContainText(
-    "Rosette · 1× · 135° · Soft 28"
+    "Rosette · 1× · 135° · Soft 28 · Grain 16"
   );
   const drawn = await page.evaluate(served => {
     /* every soft picture's gradient, as the server wrote it and as the page shows it now */

@@ -139,18 +139,27 @@ export const lookOf = (s: Shown): Look => {
     picture, light enough to read as texture. */
 const SOFTS = { line: [40, 56, 72], effect: [12, 20, 28] } as const;
 const GRAINS = [16, 24, 32] as const;
-/** The finish the seed picks for a part named `name`, its soft as strong as suits a gradient or an `effect`: half the
-    parts take none, so the page shows its palette plain as well as finished; of the rest, a soft, a grain or both,
-    about two, two and one in five. */
+/** The rosette's own finish, which it takes three times in four (John, 3 Nov 2026: "for the rosette i like a bit of
+    blur and grain in there. make that to go to for the examples page, but it doesnt always have to be that"): a little
+    soft and a little grain, each at a strength the seed picks; the other times, any finish as another effect takes. */
+const ROSETTE = { share: 0.75, softs: [20, 28], grains: [16, 24] } as const;
+/** The finish the seed picks for a part named `name`, its soft as strong as suits a gradient or the effect `kind`
+    plays: half the parts take none, so the page shows its palette plain as well as finished; of the rest, a soft, a
+    grain or both, about two, two and one in five. The rosette mostly takes its own (ROSETTE). */
 export function finishFor(
   seed: string,
   name: string,
-  effect: boolean
+  kind: EffectKind | null
 ): Pick<View, "soft" | "grain"> {
-  const pick = seeded(seed, `${name}:finish`);
+  let pick = seeded(seed, `${name}:finish`);
   const strength = (list: readonly number[], of: string) =>
     list[Math.floor(seeded(seed, `${name}:${of}`) * list.length)];
-  const softs = effect ? SOFTS.effect : SOFTS.line;
+  if (kind === "rosette") {
+    if (pick < ROSETTE.share)
+      return { soft: strength(ROSETTE.softs, "soft"), grain: strength(ROSETTE.grains, "grain") };
+    pick = (pick - ROSETTE.share) / (1 - ROSETTE.share);
+  }
+  const softs = kind ? SOFTS.effect : SOFTS.line;
   if (pick < 0.5) return {};
   if (pick < 0.7) return { soft: strength(softs, "soft") };
   if (pick < 0.9) return { grain: strength(GRAINS, "grain") };
@@ -159,7 +168,7 @@ export function finishFor(
 /** A look finished as the seed picks for the part named `name` (finishFor). */
 export const finished = (s: Shown, name: string): Shown => ({
   ...s,
-  view: { ...s.view, ...finishFor(s.seed, name, !!s.effect) }
+  view: { ...s.view, ...finishFor(s.seed, name, s.effect?.kind ?? null) }
 });
 
 /** The palette in a look as a part named `name` shows it: a gradient as smooth as it needs, bands as many as the seed
