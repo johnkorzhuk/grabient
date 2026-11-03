@@ -16,8 +16,9 @@ import { tooltip } from "./Tooltip.tsx";
    is a check for a moment. The formats' names are their own, never translated. A strip with less room than its chips
    take gives up their padding evenly, then scrolls the formats sideways between the mode and the book, so no chip ever
    runs over another. A download made as it is asked for (an effect's MP4) is drawn by its page while it is made, its
-   icon saying how far along it is and its name what a press does now, and checked once the file is handed over. The
-   strip runs the way of the place it stands in. */
+   icon saying how far along it is, its tooltip that and what a press does now, and its name only what a press does,
+   so a screen reader is not told each step; it is checked once the file is handed over. The strip runs the way of the
+   place it stands in. */
 export type Format =
   | "css"
   | "svg"
@@ -141,10 +142,12 @@ const samePlaces = (a: readonly (readonly Format[])[], b: readonly (readonly For
   a.every((place, i) => place.length === b[i].length && place.every((f, j) => f === b[i][j]));
 
 /** A download being made, as its page shows it on its chip: how far along it is, 0 to 1, drawn by `Icon` in the chip's
-    icon's place (MakingIcon.tsx), and the chip's name, which says what a press does now. */
+    icon's place (MakingIcon.tsx); the chip's name, which says what a press does now and stays as it is until the file
+    is made; and its tooltip, which says how far along it is besides. */
 export interface StripMaking {
   format: Format;
   done: number;
+  name: string;
   label: string;
   Icon: Component<{ done: number; size: number }>;
 }
@@ -208,7 +211,10 @@ export function FormatStrip(props: FormatStripProps) {
   /* a download being made, on its chip in the downloads alone */
   const making = (f: Format) =>
     mode() === "download" && props.making?.format === f ? props.making : undefined;
-  const label = (f: Format) => making(f)?.label ?? t(chipOf(f, mode()), { format: LABEL[f] });
+  /* a chip's name says what a press does now, the same while its download is made; its tooltip says how far along */
+  const chipName = (f: Format) => t(chipOf(f, mode()), { format: LABEL[f] });
+  const label = (f: Format) => making(f)?.name ?? chipName(f);
+  const tipText = (f: Format) => making(f)?.label ?? chipName(f);
   /* a reader who listens hears a copy as a reader who looks sees its check, once it is so; a download is checked once
      its file is handed over, if the strip still downloads */
   const act = async (f: Format) => {
@@ -304,7 +310,7 @@ export function FormatStrip(props: FormatStripProps) {
               const shown = () => place().find(f => formats().includes(f));
               const tip = tooltip(() => {
                 const f = shown();
-                return f ? label(f) : null;
+                return f ? tipText(f) : null;
               });
               return (
                 <Show
@@ -333,7 +339,8 @@ export function FormatStrip(props: FormatStripProps) {
                           }
                         >
                           {m => {
-                            const Making = m().Icon;
+                            /* the page's ring, the same for as long as the file is made: read once */
+                            const Making = untrack(() => m().Icon);
                             return <Making done={m().done} size={glyph()} />;
                           }}
                         </Show>

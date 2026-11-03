@@ -486,7 +486,7 @@
     "note": "Press: back to the previous menu or page.",
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:265",
-      "packages/ui/src/FormatStrip.tsx:206",
+      "packages/ui/src/FormatStrip.tsx:209",
       "packages/ui/src/Menu.tsx:431",
       "packages/ui/src/SizeControl.tsx:247"
     ]
@@ -1017,7 +1017,7 @@
       "packages/ui/src/CopyButton.tsx:31",
       "packages/ui/src/CopyButton.tsx:37",
       "packages/ui/src/CopyButton.tsx:51",
-      "packages/ui/src/FormatStrip.tsx:223",
+      "packages/ui/src/FormatStrip.tsx:229",
       "packages/ui/src/StopStrip.tsx:101",
       "packages/ui/src/StopStrip.tsx:182"
     ]
@@ -1030,7 +1030,7 @@
       "packages/ui/src/CopyButton.tsx:31",
       "packages/ui/src/CopyButton.tsx:48",
       "packages/ui/src/ExportPanel.tsx:257",
-      "packages/ui/src/FormatStrip.tsx:88",
+      "packages/ui/src/FormatStrip.tsx:89",
       "packages/ui/src/StopStrip.tsx:156"
     ]
   },
@@ -1058,7 +1058,7 @@
   "Copy for {format}": {
     "note": "Tooltip on the Figma press of the format row ({format} is Figma): copies the effect as layers to paste into Figma.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:98"
+      "packages/ui/src/FormatStrip.tsx:99"
     ]
   },
   "Copy includes the whole first frame.": {
@@ -1070,19 +1070,19 @@
   "Copy link": {
     "note": "Label of the format row while its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:90"
+      "packages/ui/src/FormatStrip.tsx:91"
     ]
   },
   "Copy {format}": {
     "note": "Tooltip on a format press (CSS, SVG, PNG...): copies it.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:93"
+      "packages/ui/src/FormatStrip.tsx:94"
     ]
   },
   "Copy {format} link": {
     "note": "Tooltip on a format press: copies the address of that file.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:95"
+      "packages/ui/src/FormatStrip.tsx:96"
     ]
   },
   "Copy {hex}": {
@@ -1096,19 +1096,19 @@
   "Copying links. Switch to copy": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy file links: what the row is doing, then the mode a press turns it to, after which its presses copy.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:104"
+      "packages/ui/src/FormatStrip.tsx:105"
     ]
   },
   "Copying. Switch to download": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy: what the row is doing, then the mode a press turns it to, after which its presses download.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:102"
+      "packages/ui/src/FormatStrip.tsx:103"
     ]
   },
   "Copying. Switch to links": {
     "note": "Press at the end of the format row, and its tooltip, while its presses copy, on a row with no downloads: what the row is doing, then the mode a press turns it to, after which its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:102"
+      "packages/ui/src/FormatStrip.tsx:103"
     ]
   },
   "Corners": {
@@ -1197,7 +1197,7 @@
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
       "apps/web/src/features/editor/Editor.tsx:755",
-      "apps/web/src/features/editor/Editor.tsx:814",
+      "apps/web/src/features/editor/Editor.tsx:816",
       "apps/web/src/features/editor/Sheet.tsx:562",
       "apps/web/src/features/editor/Sheet.tsx:640",
       "apps/web/src/features/examples/Swatches.tsx:209",
@@ -1541,7 +1541,7 @@
     "note": "Press or label: downloads a file.",
     "refs": [
       "packages/ui/src/ExportPanel.tsx:257",
-      "packages/ui/src/FormatStrip.tsx:89"
+      "packages/ui/src/FormatStrip.tsx:90"
     ]
   },
   "Download PNG": {
@@ -1560,19 +1560,25 @@
   "Download {format}": {
     "note": "Tooltip on a format press (CSS, SVG, PNG...): downloads it.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:94"
+      "packages/ui/src/FormatStrip.tsx:95"
+    ]
+  },
+  "Downloaded {format}": {
+    "note": "Said to a screen reader once a file that took a while to make in the browser (an effect's MP4 video) is handed over to be saved: {format} is the format's name, e.g. MP4.",
+    "refs": [
+      "packages/ui/src/MakingIcon.tsx:11"
     ]
   },
   "Downloading. Switch to copy": {
     "note": "Press at the end of the format row, and its tooltip, while its presses download, on a row with no file links: what the row is doing, then the mode a press turns it to, after which its presses copy.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:103"
+      "packages/ui/src/FormatStrip.tsx:104"
     ]
   },
   "Downloading. Switch to links": {
     "note": "Press at the end of the format row, and its tooltip, while its presses download: what the row is doing, then the mode a press turns it to, after which its presses copy file links.",
     "refs": [
-      "packages/ui/src/FormatStrip.tsx:103"
+      "packages/ui/src/FormatStrip.tsx:104"
     ]
   },
   "Drafts": {
@@ -1637,7 +1643,7 @@
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1281",
+      "apps/web/src/features/editor/Editor.tsx:1283",
       "apps/web/src/features/examples/ExamplesPage.tsx:301",
       "packages/ui/src/KeyList.tsx:10"
     ]
@@ -2452,21 +2458,21 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1100",
+      "apps/web/src/features/editor/Editor.tsx:1102",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1096",
+      "apps/web/src/features/editor/Editor.tsx:1098",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:1085",
+      "apps/web/src/features/editor/Editor.tsx:1087",
       "apps/web/src/features/editor/code.ts:322",
       "packages/ui/src/Keyframes.tsx:156"
     ]
@@ -2750,7 +2756,13 @@
     ]
   },
   "Making {format}, {done, number, percent}. Stop": {
-    "note": "Tooltip and name of a format press while the file it downloads is still being made in the browser (an effect's MP4 video): what it is doing and how far along, as a percent, then what a press does now, which stops making it.",
+    "note": "Tooltip of a format press while the file it downloads is still being made in the browser (an effect's MP4 video): what it is doing and how far along, as a percent, then what a press does now, which stops making it.",
+    "refs": [
+      "packages/ui/src/MakingIcon.tsx:10"
+    ]
+  },
+  "Making {format}. Stop": {
+    "note": "Name of a format press while the file it downloads is still being made in the browser (an effect's MP4 video): what it is doing, then what a press does now, which stops making it. It stays the same until the file is made, so a screen reader on the press is not told every percent; its tooltip says how far along (\"Making {format}, {done, number, percent}. Stop\").",
     "refs": [
       "packages/ui/src/MakingIcon.tsx:9"
     ]
@@ -3303,7 +3315,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:998",
+      "apps/web/src/features/editor/Editor.tsx:1000",
       "packages/ui/src/PaletteSheet.tsx:131"
     ]
   },
@@ -3402,7 +3414,7 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:984",
+      "apps/web/src/features/editor/Editor.tsx:986",
       "apps/web/src/lib/page-meta.ts:593",
       "apps/web/src/lib/page-meta.ts:604",
       "packages/ui/src/PaletteCard.tsx:345"
@@ -3880,7 +3892,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1298",
+      "apps/web/src/features/editor/Editor.tsx:1300",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3888,7 +3900,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1298"
+      "apps/web/src/features/editor/Editor.tsx:1300"
     ]
   },
   "Remove {hex}": {
@@ -4695,7 +4707,7 @@
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:987",
+      "apps/web/src/features/editor/Editor.tsx:989",
       "apps/web/src/features/editor/Sheet.tsx:680",
       "apps/web/src/features/editor/StaticPalette.tsx:148",
       "packages/ui/src/PaletteCard.tsx:346"
@@ -4937,7 +4949,7 @@
     "note": "Name of the format strip's swatch files mode, read aloud and shown over the selection's strip: its chips download files design apps import (Tokens, ASE, GPL, GRD). Swatches as in a design app's Swatches panel, not the hard-band style.",
     "refs": [
       "apps/web/src/features/examples/Swatches.tsx:269",
-      "packages/ui/src/FormatStrip.tsx:206"
+      "packages/ui/src/FormatStrip.tsx:209"
     ]
   },
   "Swipe for another look": {
@@ -5144,8 +5156,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:937",
-      "apps/web/src/features/editor/Editor.tsx:955"
+      "apps/web/src/features/editor/Editor.tsx:939",
+      "apps/web/src/features/editor/Editor.tsx:957"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5359,7 +5371,7 @@
   "This browser can't make videos.": {
     "note": "Error line after Download MP4 in a browser that cannot run the code that makes the video file itself (no WebAssembly SIMD or no module workers).",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:813"
+      "apps/web/src/features/editor/Editor.tsx:815"
     ]
   },
   "This code expires in 5 minutes. If you didn't ask for it, ignore this email.": {

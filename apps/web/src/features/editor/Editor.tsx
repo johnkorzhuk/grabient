@@ -794,6 +794,7 @@ function Stage(
           setMaking({
             format: "mp4",
             done,
+            name: ring.makingName("mp4"),
             label: ring.makingLabel("mp4", done),
             Icon: ring.MakingIcon
           });
@@ -805,6 +806,7 @@ function Stage(
         stop.signal
       );
       props.used("download", "mp4");
+      announce(ring.madeLabel("mp4"));
       return true;
     } catch (error) {
       if (!stop.signal.aborted)

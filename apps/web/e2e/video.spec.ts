@@ -42,11 +42,13 @@ test("Download MP4 makes the effect's clip in the browser, a file that plays at 
   await page.getByRole("button", { name: "Copying. Switch to download" }).first().click();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download MP4" }).click();
-  await expect(page.getByRole("button", { name: /^Making MP4, \d+%\. Stop$/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Making MP4. Stop" })).toBeVisible();
   const file = await download;
   expect(file.suggestedFilename()).toBe(`grabient-${SEED}-glass.mp4`);
   const bytes = readFileSync(await file.path());
   await expect(page.getByRole("button", { name: "Download MP4" })).toBeVisible();
+  /* a screen reader is told once the file is handed over, where its chip's name stayed the same as it was made */
+  await expect(page.locator("[data-announce]")).toHaveText("Downloaded MP4");
   /* the glass's loop of 56 seconds at speed 10, at 60 frames a second, at the size the stage shows */
   expect(await played(page, bytes)).toEqual({ width: 320, height: 180, seconds: 5.6 });
 
@@ -72,12 +74,16 @@ test("an MP4 being made stops at a press on it, or once the stage shows another 
   await live(page);
   await page.getByRole("button", { name: "Copying. Switch to download" }).first().click();
   const download = page.getByRole("button", { name: "Download MP4" });
-  const making = page.getByRole("button", { name: /^Making MP4, \d+%\. Stop$/ });
+  const making = page.getByRole("button", { name: "Making MP4. Stop" });
   /* the clip's own worker, beside any other the page runs */
   const clips = () => page.workers().filter(worker => /video-worker/.test(worker.url())).length;
   await download.click();
   await expect(making).toBeVisible();
   await expect.poll(clips).toBe(1);
+  /* its tooltip says how far along it is, where its name does not */
+  await page.mouse.move(0, 0);
+  await making.hover();
+  await expect(page.getByRole("tooltip")).toHaveText(/^Making MP4, \d+%\. Stop$/);
   await making.click();
   await expect(download).toBeVisible();
   await expect.poll(clips).toBe(0);

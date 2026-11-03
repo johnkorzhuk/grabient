@@ -7,7 +7,7 @@ import { describe, expect, test } from "vitest";
 import { ContrastGrid } from "../src/ContrastGrid.tsx";
 import { FigurePane } from "../src/FigurePane.tsx";
 import { FormatStrip, placesOf, SWATCH_CHIPS } from "../src/FormatStrip.tsx";
-import { MakingIcon, makingLabel } from "../src/MakingIcon.tsx";
+import { MakingIcon, madeLabel, makingLabel, makingName } from "../src/MakingIcon.tsx";
 import { type CodeSource, PaletteCode } from "../src/PaletteCode.tsx";
 import { BRAND_SUPPLY } from "../src/supply.ts";
 
@@ -63,8 +63,14 @@ describe("the format strip", () => {
     const html = renderToString(() => <MakingIcon done={0.42} size={14} />);
     expect(html).toContain('stroke-dasharray="42.0 100"');
     expect(html).toContain('width="14"');
+    /* its name the same at every step, for a screen reader on it; its tooltip how far along, never past what is made */
+    expect(makingName("mp4")).toBe("Making MP4. Stop");
     expect(makingLabel("mp4", 0.427)).toBe("Making MP4, 42%. Stop");
     expect(makingLabel("mp4", 0.999)).toBe("Making MP4, 99%. Stop");
+    /* every whole percent as the worker says it, which floating point puts a hair under 29, 57 and 58 */
+    for (let percent = 0; percent <= 100; percent++)
+      expect(makingLabel("mp4", percent / 100)).toBe(`Making MP4, ${percent}%. Stop`);
+    expect(madeLabel("mp4")).toBe("Downloaded MP4");
   });
 
   test("a strip of one mode has no mode press", () => {
