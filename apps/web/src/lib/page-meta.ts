@@ -6,6 +6,7 @@ import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
 import {
   asSaved,
   drawnView,
+  finishOf,
   isFixedSize,
   type Style,
   type View,
@@ -137,7 +138,8 @@ export type Page = Facts &
         kind: "palette";
         seed: string;
         palette: Palette;
-        view: PaletteView;
+        /** its view, with the soft and the grain its card wears */
+        view: PaletteView & Pick<View, "soft" | "grain">;
         /** the effect its address plays (the fluted glass or the blob), which its card shows in its view's place */
         effect?: Effect;
         /** the view it was saved in, which its canonical address draws: none for a palette neither the gallery nor
@@ -857,7 +859,9 @@ function palettePage(
   meta.title = titled(heading(page));
   meta.description = describe(page, name, hexes);
   meta.image = absolute(
-    page.effect ? effectCard(seed, page.effect, view.angle) : paletteCard(seed, view),
+    page.effect
+      ? effectCard(seed, page.effect, view.angle, finishOf(view))
+      : paletteCard(seed, view),
     origin
   );
   meta.imageAlt = t("{name} color palette", { name });

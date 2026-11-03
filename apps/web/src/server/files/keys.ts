@@ -156,9 +156,15 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   }
   const view = viewAt(params, palette.anchors.length);
   /* an effect's script (embed.ts), one for every palette and setting, and its first frame: its stylesheet
-     (effect-files.ts), its picture and its card (images/cards.ts), all its angle and its look decide, none of its
-     pace; each kept for one build, as the bands' are */
+     (effect-files.ts), its picture and its card (images/cards.ts), all its angle, its soft, its grain and its look
+     decide, none of its pace; each kept for one build, as the bands' are */
   const effect = parseEffect(params);
+  /* the soft and the grain an effect's files are finished by (engine/fx-finish.ts), where the view has them */
+  const finished = (query: URLSearchParams) => {
+    if (view.soft) query.set("soft", String(view.soft));
+    if (view.grain) query.set("grain", String(view.grain));
+    return query;
+  };
   /* its moving SVG: its pace too, and its size */
   if (effect && file.format === "svg") {
     const size = sizeParam(svgSize(params));
@@ -166,7 +172,7 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
       [`style=${effect.kind}`, ...effectParts(effect), ...(size ? [`size=${size}`] : [])].join("&")
     );
     query.set("angle", String(view.angle));
-    return { path: `/${seed}.svg`, query, acrossBuilds: false };
+    return { path: `/${seed}.svg`, query: finished(query), acrossBuilds: false };
   }
   if (effect && file.format === "js") {
     /* under the name it was asked by: the script reads its palette from its own address, so an old id is no script */
@@ -177,8 +183,8 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     };
   }
   if (effect && (file.format === "png" || file.format === "og" || file.format === "css")) {
-    const query = new URLSearchParams(
-      [`style=${effect.kind}`, ...effectLookParts(effect)].join("&")
+    const query = finished(
+      new URLSearchParams([`style=${effect.kind}`, ...effectLookParts(effect)].join("&"))
     );
     query.set("angle", String(view.angle));
     if (file.format === "css") return { path: `/${seed}.css`, query, acrossBuilds: false };

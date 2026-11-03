@@ -1,5 +1,7 @@
+import { blobBackdrop } from "@grabient/engine/blob.ts";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { parseEffect } from "@grabient/engine/effect.ts";
+import { effectUnderlay, finishPixels, grainOverRgba } from "@grabient/engine/fx-finish.ts";
 import { describe, expect, test } from "vitest";
 import { at, decodePng } from "../../../test/png.ts";
 import { effectCard, pageMeta } from "../../lib/page-meta.ts";
@@ -106,6 +108,158 @@ describe("an effect's card", () => {
     expect(await tag("style=blob&shape=8")).not.toBe(shape7);
     expect(await tag("style=blob&shape=7&speed=3&fps=24")).toBe(shape7);
     expect(await tag("style=glass&angle=45")).not.toBe(await tag("style=glass"));
+  });
+});
+
+/** A picture's pixels as straight RGBA, four bytes each, as the finish takes them. */
+function rgbaOf(png: { width: number; height: number; channels: number; pixels: Uint8Array }) {
+  const n = png.width * png.height;
+  if (png.channels === 4) return new Uint8ClampedArray(png.pixels);
+  const rgba = new Uint8ClampedArray(n * 4);
+  for (let i = 0; i < n; i++) rgba.set([...png.pixels.subarray(i * 3, i * 3 + 3), 255], i * 4);
+  return rgba;
+}
+const rgbOf = (rgba: ArrayLike<number>) =>
+  Array.from({ length: rgba.length / 4 }, (_, i) => [
+    rgba[i * 4],
+    rgba[i * 4 + 1],
+    rgba[i * 4 + 2]
+  ]).flat();
+
+describe("a soft or grained effect's picture and card", () => {
+  const read = async (response: Response) => {
+    expect(response.status).toBe(200);
+    return decodePng(new Uint8Array(await response.arrayBuffer()));
+  };
+
+  test("its picture is its frame finished as the site paints it: blurred over the palette's gradient, the grain over all", async () => {
+    const { env, keep } = world();
+    const png = async (query: string) =>
+      read(
+        await seedPngAnswer(get(`/${SEED}.png?style=silk&angle=40&${query}w=320&h=200`), env, keep)
+      );
+    const plain = await png("");
+    const size = { width: 320, height: 200 };
+    const silk = parseEffect(new URLSearchParams("style=silk"));
+    const P = decodePalette(SEED);
+    if (!silk || !P) throw new Error("no silk");
+    /* the grain alone is the tile over the plain frame, a speck a pixel from its corner */
+    const grained = await png("grain=40&");
+    expect(grained.channels).toBe(3);
+    const specks = rgbaOf(plain);
+    grainOverRgba(specks, size.width, size.height, 40);
+    expect([...grained.pixels]).toEqual(rgbOf(specks));
+    /* the soft one is the frame blurred by its share of the longer side over the gradient at its angle, opaque */
+    const soft = await png("soft=60&grain=40&");
+    expect(soft.channels).toBe(3);
+    const finished = finishPixels(
+      rgbaOf(plain),
+      size,
+      { soft: 60, grain: 40 },
+      effectUnderlay(P, silk, 40, 60)
+    );
+    expect([...soft.pixels]).toEqual(rgbOf(finished));
+    expect([...soft.pixels]).not.toEqual([...grained.pixels]);
+  });
+
+  test("its card is the finished frame under the wordmark, kept under its finish; a plain one keeps its key", async () => {
+    const { env, keep } = world();
+    const card = (query: string) =>
+      cardAnswer(get(`/api/og?seed=${SEED}&style=glass${query}`), env, keep);
+    const plain = await card("");
+    /* a plain card's key, as before the finish */
+    expect(plain.headers.get("ETag")).toBe(
+      '"image:k4:fb552cd757bae6610545df838a1454f6373ce4c7f289b42cd13fe121082b7f5f"'
+    );
+    const tags = new Set<string | null>([plain.headers.get("ETag")]);
+    for (const query of ["&soft=50", "&grain=40", "&soft=50&grain=40", "&soft=51&grain=40"]) {
+      const finished = await card(query);
+      tags.add(finished.headers.get("ETag"));
+      const decoded = await read(finished);
+      expect([decoded.width, decoded.height, decoded.channels]).toEqual([1200, 630, 3]);
+    }
+    expect(tags.size).toBe(5);
+    /* the soft one's middle row is smoother than the plain one's: the ribs blurred */
+    const roughness = async (response: Response) => {
+      const decoded = await read(response);
+      let sum = 0;
+      const y = 400;
+      for (let x = 1; x < decoded.width; x++)
+        sum += Math.abs(at(decoded, x, y)[0] - at(decoded, x - 1, y)[0]);
+      return sum;
+    };
+    expect(await roughness(await card("&soft=60"))).toBeLessThan((await roughness(plain)) / 3);
+  });
+
+  test("a picture's key names its finish; a plain picture's stands as it was", async () => {
+    const { env, keep } = world();
+    const tag = async (query: string) =>
+      (
+        await seedPngAnswer(get(`/${SEED}.png?style=silk&w=400&h=300${query}`), env, keep)
+      ).headers.get("ETag");
+    expect(await tag("")).toBe(
+      '"image:k4:17fd3a62e028ce802751ad2899536648f31bfd6e7be5b4dcb618879e7611ec56"'
+    );
+    expect(await tag("&soft=0&grain=0")).toBe(await tag(""));
+    const finished = [
+      await tag("&soft=20"),
+      await tag("&grain=20"),
+      await tag("&soft=20&grain=20")
+    ];
+    expect(new Set([await tag(""), ...finished]).size).toBe(4);
+  });
+
+  test("a blob that lets the page through stays clear under its soft and grain; its card stays solid", async () => {
+    const { env, keep } = world();
+    for (const bg of ["", "&bg=%2310101480"]) {
+      const png = await read(
+        await seedPngAnswer(
+          get(`/${SEED}.png?style=blob&shape=7${bg}&soft=50&grain=40&w=400&h=300`),
+          env,
+          keep
+        )
+      );
+      expect(png.channels).toBe(4);
+      const alphas = new Set(Array.from({ length: 400 * 300 }, (_, i) => png.pixels[i * 4 + 3]));
+      /* clear where the blob is not, thinning toward it, solid within it */
+      expect(alphas.has(255)).toBe(true);
+      expect([...alphas].some(a => a > 0 && a < 255)).toBe(true);
+      const card = await read(
+        await cardAnswer(
+          get(`/api/og?seed=${SEED}&style=blob&shape=7${bg}&soft=50&grain=40`),
+          env,
+          keep
+        )
+      );
+      expect(card.channels).toBe(3);
+    }
+    /* a blob on a ground that covers the box is opaque, its edges going to the gradient under it, on its card too
+       rather than to the card's backdrop */
+    const solid = await read(
+      await seedPngAnswer(
+        get(`/${SEED}.png?style=blob&shape=7&bg=%23101014&soft=50&w=400&h=300`),
+        env,
+        keep
+      )
+    );
+    expect(solid.channels).toBe(3);
+    const P = decodePalette(SEED);
+    const blob = parseEffect(new URLSearchParams("style=blob&shape=7&bg=%23101014"));
+    if (!P || !blob) throw new Error("no blob");
+    const card = await read(
+      await cardAnswer(
+        get(`/api/og?seed=${SEED}&style=blob&shape=7&bg=%23101014&soft=100`),
+        env,
+        keep
+      )
+    );
+    const edge = at(card, 0, 400)[0];
+    const gradient = Number.parseInt(
+      effectUnderlay(P, blob, 90, 100)!.stops[0].hex.slice(1, 3),
+      16
+    );
+    const backdrop = blobBackdrop(P)[0];
+    expect(Math.abs(edge - (16 + gradient) / 2)).toBeLessThan(Math.abs(edge - (16 + backdrop) / 2));
   });
 });
 

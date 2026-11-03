@@ -198,6 +198,40 @@ test("an effect's moving SVG is kept under its pace and size as well as its look
   );
 });
 
+test("an effect's files are kept under the soft and the grain they are finished by; its script under neither", () => {
+  const seed = "kS7Q8Yy5S_SChv0";
+  expect(written(`/${seed}.svg?style=silk&angle=40&soft=50&grain=40&speed=2`)?.key).toBe(
+    `/${seed}.svg?angle=40&grain=40&soft=50&speed=2&style=silk`
+  );
+  expect(written(`/${seed}.png?style=rosette&soft=20&w=400&h=300`)).toEqual({
+    key: `/${seed}.png?angle=90&h=300&soft=20&style=rosette&w=400`,
+    acrossBuilds: false
+  });
+  expect(written(`/api/og?seed=${seed}&style=glass&grain=30`)?.key).toBe(
+    `/api/og?angle=90&grain=30&h=630&seed=${seed}&style=glass&w=1200`
+  );
+  expect(written(`/${seed}.css?style=blob&shape=3&soft=10`)?.key).toBe(
+    `/${seed}.css?angle=90&shape=3&soft=10&style=blob`
+  );
+  for (const file of [
+    `/${seed}.svg?style=silk`,
+    `/${seed}.png?style=silk`,
+    `/api/og?seed=${seed}&style=silk`
+  ]) {
+    const plain = written(file)?.key;
+    expect(written(`${file}&soft=50`)?.key).not.toBe(plain);
+    expect(written(`${file}&grain=50`)?.key).not.toBe(plain);
+    expect(written(`${file}&soft=50`)?.key).not.toBe(written(`${file}&grain=50`)?.key);
+    /* a soft or a grain no view takes is none */
+    expect(written(`${file}&soft=0&grain=abc`)?.key).toBe(plain);
+  }
+  expect(written(`/${seed}.js?style=glass&soft=50&grain=40`)?.key).toBe(`/${seed}.js?style=glass`);
+  for (const format of ["md", "json"])
+    expect(written(`/${seed}.${format}?style=glass&soft=50&grain=40`)?.key).toBe(
+      `/${seed}.${format}?grain=40&soft=50&style=glass`
+    );
+});
+
 test("a palette's Markdown and JSON are kept under the effect they name, how it plays among the rest", () => {
   const seed = "kS7Q8Yy5S_SChv0";
   for (const format of ["md", "json"]) {
