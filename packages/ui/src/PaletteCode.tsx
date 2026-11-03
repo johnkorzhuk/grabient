@@ -1,7 +1,11 @@
 import { createSignal, createUniqueId, For, Show, untrack } from "solid-js";
+import { announce } from "./announce.ts";
 import block from "./CodeBlock.module.css";
 import { CodeLines, refusedCopy } from "./CodeBlock.tsx";
 import { CopyButton } from "./CopyButton.tsx";
+import { copyText } from "./copy.ts";
+import { createDone } from "./done.ts";
+import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import styles from "./PaletteCode.module.css";
 import tabs from "./tabs.module.css";
@@ -22,6 +26,50 @@ export interface CodeSource {
   take?: (spelling?: string) => Promise<string>;
   /** the line under the code, in the reader's language */
   note?: (spelling?: string) => string;
+  /** the text is pasted in parts, each under its header line (`// ==== Buffer A ====`, Shadertoy's tabs): each part
+      has a copy of its own beside the whole's, so no tab takes another's code */
+  parted?: (spelling?: string) => boolean;
+}
+
+/* a header line of a text pasted in parts: the part's name between its rules */
+const HEADER = /^\/\/ ={2,} (.+?) ={2,}/;
+/** A text pasted in parts, cut at its header lines: each part its header and the lines to the next, the lines before
+    the first (a credit) going with the first. */
+export function codeParts(code: string): { name: string; text: string }[] {
+  const parts: { name: string; lines: string[] }[] = [];
+  const lead: string[] = [];
+  for (const line of code.split("\n")) {
+    const name = HEADER.exec(line)?.[1];
+    if (name) parts.push({ name, lines: parts.length ? [line] : [...lead, line] });
+    else if (parts.length) parts.at(-1)!.lines.push(line);
+    else lead.push(line);
+  }
+  return parts.map(part => ({ name: part.name, text: `${part.lines.join("\n").trim()}\n` }));
+}
+
+/* one part's copy: its name, set as the spellings are, the glyph a check for a moment once it is copied */
+function PartCopy(props: { name: string; text: string; onCopy?: (text: string) => void }) {
+  const [copied, mark] = createDone();
+  const label = () =>
+    copied() !== null ? t("Copied") : t("Copy the {tab} tab", { tab: props.name });
+  const copy = async () => {
+    props.onCopy?.(props.text);
+    if (await copyText(props.text)) {
+      mark(true);
+      announce(t("Copied"));
+    } else announce(t("Couldn't copy. Select the text and copy it."));
+  };
+  return (
+    <button
+      type="button"
+      class={[tabs.tab, styles.part]}
+      aria-label={label()}
+      onClick={() => void copy()}
+    >
+      <Icon name={copied() !== null ? "check" : "copy"} size={12} />
+      {props.name}
+    </button>
+  );
 }
 
 /* The palette as text, in a pane of the editor's sheet: one code block whose tabs are the kinds of text, the one Copy
@@ -48,6 +96,8 @@ export function PaletteCode(props: {
   let code: HTMLElement | undefined;
   const copy = refusedCopy(() => code);
   const text = () => copy.shown(source().text(spelling()));
+  /* a text pasted in parts, each part's copy; none where it is one */
+  const parts = () => (source().parted?.(spelling()) ? codeParts(text()) : []);
   const take = () => {
     const { take } = source();
     const spelled = spelling();
@@ -144,6 +194,24 @@ export function PaletteCode(props: {
               >
                 {s().label}
               </button>
+            )}
+          </For>
+        </div>
+      </Show>
+      <Show when={parts().length > 1}>
+        {/* biome-ignore lint/a11y/useSemanticElements: a row of presses that flows on from its words; a fieldset's
+            legend stands apart from what it names */}
+        <div class={styles.parts} role="group" aria-label={t("Copy a tab")}>
+          <span class={styles.partsLead} aria-hidden="true">
+            {t("Copy a tab")}
+          </span>
+          <For each={parts()} keyed={false}>
+            {part => (
+              <PartCopy
+                name={part().name}
+                text={part().text}
+                onCopy={value => props.onCopy?.(source().id, value, spelling())}
+              />
             )}
           </For>
         </div>

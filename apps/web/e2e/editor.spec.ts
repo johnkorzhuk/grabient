@@ -1033,6 +1033,39 @@ for (const [kind, frame, note] of [
     await expect(code).toContainText("const GRAIN = 30;");
   });
 
+test("a Shadertoy text copies a tab at a time, each tab's code alone, so no tab of Shadertoy holds two passes", async ({
+  page,
+  context
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await open(page, `/${SEED}?style=papercut&angle=45&soft=40&grain=30&shape=7`);
+  const tabs = page.getByRole("tablist", { name: "Format" });
+  await tabs.scrollIntoViewIfNeeded();
+  await tabs.getByRole("tab", { name: "Shader" }).click();
+  const parts = page.getByRole("group", { name: "Copy a tab" });
+  await expect(parts.getByRole("button")).toHaveText([
+    "Common",
+    "Buffer A",
+    "Buffer B",
+    "Buffer C",
+    "Buffer D",
+    "Image"
+  ]);
+  for (const [name, mains] of [
+    ["Image", 1],
+    ["Buffer D", 1],
+    ["Common", 0]
+  ] as const) {
+    await parts.getByRole("button", { name: `Copy the ${name} tab` }).click();
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain(`// ==== ${name} ====`);
+    expect(copied.match(/void mainImage/g) ?? []).toHaveLength(mains);
+  }
+  /* the other spellings are one text each: no row */
+  await page.getByRole("tablist", { name: "Syntax" }).getByRole("tab", { name: "GLSL" }).click();
+  await expect(parts).toHaveCount(0);
+});
+
 test("while the papercut plays, its Shader tab writes it for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling", async ({
   page
 }) => {

@@ -35,8 +35,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      carries load as a soft view or a copy asks for them, took it from 285.5 to 287.3 */
   /* the color reader (engine/written-color.ts, 3 Nov 2026): rgb(), hsl(), oklch() and every other form CSS writes a
      color in, read wherever search reads hex codes, a page's title among them, so the page and the Worker read a
-     search alike, took it from 287.7 to 290.1 */
-  "/": { route: "src/routes/index.tsx", budget: 291 },
+     search alike, took it from 287.7 to 290.1. Round 2's effects (3 Nov 2026: a list's effect previews, the phone's
+     Appearance menu, saved looks) took it to 291.0, and an open tooltip following its text (Tooltip.tsx, the MP4's
+     percent as it is made) just past it */
+  "/": { route: "src/routes/index.tsx", budget: 292 },
   /* the same took it from 288.9 to 290.7; soft and grain over the effects (their pictures blurred over the gradient,
      the menu's fields beside an effect's, the summary naming them) and the editor's glass after a move (e3636f12) to
      291.2 on 3 Nov 2026 */
@@ -92,8 +94,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
        draws a clip for (editor/formats.ts), the clip's address, the press that starts and stops its making, and the
        strip's chip while a download is made (ui/FormatStrip.tsx), took it from 330.4 to 331.0 to 331.1, by the build;
        the making, its worker, the module that draws (engine/video/video.wasm) and the chip's ring (ui/MakingIcon.tsx)
-       come with the first press */
-    budget: 332
+       come with the first press. The code pane's copy of each of Shadertoy's tabs (ui/PaletteCode.tsx, John's paste
+       of the papercut's text into one tab, 3 Nov 2026) took it to 332.1 */
+    budget: 333
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
      the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.

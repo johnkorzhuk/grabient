@@ -284,6 +284,9 @@ export function effectSources(
     id: "shader",
     label: msg("Shader"),
     spellings: shaderKinds(effect.kind, !!finish.soft).map(([id, label]) => ({ id, label })),
+    /* Shadertoy's text is its tabs, each under its header: the pane copies each on its own too */
+    parted: spelling =>
+      (spelling ?? shaderKinds(effect.kind, !!finish.soft)[0]?.[0]) === "shadertoy",
     text: (spelling?: string) => {
       const kind = (spelling ?? shaderKinds(effect.kind, !!finish.soft)[0]?.[0]) as ShaderKind;
       return (
