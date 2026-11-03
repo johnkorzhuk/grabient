@@ -11,9 +11,16 @@ import {
   effectSvg
 } from "@grabient/engine/effect-code.ts";
 import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
+import { effectUnderlay } from "@grabient/engine/fx-finish.ts";
 import { glassShadertoyText } from "@grabient/engine/glass-shadertoy.ts";
 import { glassWebgl } from "@grabient/engine/glass-webgl.ts";
 import { glassWebgpu } from "@grabient/engine/glass-webgpu.ts";
+import { rosetteShadertoyText } from "@grabient/engine/rosette-shadertoy.ts";
+import { rosetteWebgl } from "@grabient/engine/rosette-webgl.ts";
+import { rosetteWebgpu } from "@grabient/engine/rosette-webgpu.ts";
+import { silkShadertoyText } from "@grabient/engine/silk-shadertoy.ts";
+import { silkWebgl } from "@grabient/engine/silk-webgl.ts";
+import { silkWebgpu } from "@grabient/engine/silk-webgpu.ts";
 import { flush } from "solid-js";
 import { afterEach, expect, test, vi } from "vitest";
 import { setColorFormat } from "../../lib/color-format.ts";
@@ -104,7 +111,7 @@ const loaded = async (read: () => string) => {
 
 test("while an effect plays, the pane holds its code in the gradient's place, its shader its own", async () => {
   await tabsIn();
-  for (const query of ["style=glass", "style=blob"]) {
+  for (const query of ["style=glass", "style=blob", "style=silk", "style=rosette"]) {
     const ids = codeSources(
       decodePalette(SEED)!,
       { style: "radialGradient", steps: 6, angle: 45 },
@@ -181,6 +188,90 @@ test("the blob's Shader tab writes each spelling with the engine's own writer, e
   );
   expect(shader().text("webgl")).not.toMatch(/angle=|\bANGLE\b/);
   expect(shader().note?.()).toBe("The balls, their melt and the frost, pass by pass.");
+});
+
+test("the silk's and the rosette's Shader tabs write each spelling with the engine's own writer, each loaded as it shows", async () => {
+  /* the browser's: a server's build never loads a shader's writers */
+  vi.stubEnv("SSR", false);
+  await tabsIn();
+  const P = decodePalette(SEED)!;
+  const writers = {
+    silk: [silkShadertoyText, silkWebgl, silkWebgpu],
+    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu]
+  } as const;
+  const notes = {
+    silk: "The dye, its folds' shade and light, in one pass.",
+    rosette: "The petals ring by ring, the ground and the heart's glow, in one pass."
+  };
+  for (const kind of ["silk", "rosette"] as const) {
+    const query = `style=${kind}&shape=12&speed=2`;
+    const effect = parseEffect(new URLSearchParams(query))!;
+    const [shadertoy, webgl, webgpu] = writers[kind];
+    const shader = () => effectSource(query, "shader")!;
+    expect(
+      shader().spellings?.map(s => s.id),
+      kind
+    ).toEqual(["shadertoy", "glsl", "wgsl", "webgl", "webgpu"]);
+    expect(await loaded(() => shader().text())).toBe(shadertoy(P, effect, 45, SEED, ORIGIN));
+    for (const spelling of ["glsl", "webgl"] as const)
+      expect(await loaded(() => shader().text(spelling))).toBe(
+        webgl(spelling, P, effect, 45, SEED, ORIGIN)
+      );
+    for (const spelling of ["wgsl", "webgpu"] as const)
+      expect(await loaded(() => shader().text(spelling))).toBe(
+        webgpu(spelling, P, effect, 45, SEED, ORIGIN)
+      );
+    /* the editor's angle turns them, as it turns the glass */
+    expect(shader().text("webgl")).toContain(
+      `${ORIGIN}/${SEED}?style=${kind}&angle=45&speed=2&shape=12`
+    );
+    expect(shader().note?.()).toBe(notes[kind]);
+  }
+});
+
+test("a soft, grained silk's or rosette's Shader tab writes every spelling with its finish and says so", async () => {
+  vi.stubEnv("SSR", false);
+  await tabsIn();
+  const P = decodePalette(SEED)!;
+  const writers = {
+    silk: [silkShadertoyText, silkWebgl, silkWebgpu],
+    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu]
+  } as const;
+  for (const kind of ["silk", "rosette"] as const) {
+    const query = `style=${kind}&shape=12`;
+    const effect = parseEffect(new URLSearchParams(query))!;
+    const finish = { soft: 40, grain: 30, underlay: effectUnderlay(P, effect, 45, 40) };
+    const [shadertoy, webgl, webgpu] = writers[kind];
+    const shader = () =>
+      codeSources(
+        P,
+        { style: "radialGradient", steps: 6, angle: 45 },
+        SEED,
+        () => ({ facts: null, opened: false }),
+        createRest(),
+        { ...played(query), soft: 40, grain: 30 }
+      ).find(s => s.id === "shader")!;
+    /* the silk's and the rosette's Shadertoy texts keep two buffers for the soft's blur */
+    expect(
+      shader().spellings?.map(s => s.id),
+      kind
+    ).toEqual(["shadertoy", "glsl", "wgsl", "webgl", "webgpu"]);
+    expect(await loaded(() => shader().text())).toBe(
+      shadertoy(P, effect, 45, SEED, ORIGIN, finish)
+    );
+    expect(await loaded(() => shader().text("webgl"))).toBe(
+      webgl("webgl", P, effect, 45, SEED, ORIGIN, finish)
+    );
+    expect(await loaded(() => shader().text("wgsl"))).toBe(
+      webgpu("wgsl", P, effect, 45, SEED, ORIGIN, finish)
+    );
+    expect(shader().text("webgl")).toContain(
+      `${ORIGIN}/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=12`
+    );
+    expect(shader().note?.()).toMatch(
+      / in one pass\. Then its soft and grain, as the site lays them over it\.$/
+    );
+  }
 });
 
 test("while an effect plays, the Markdown is the file its address serves, whatever gradient the editor keeps", async () => {

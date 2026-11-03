@@ -35,8 +35,9 @@ import { effectHtml, type Taken } from "./formats.ts";
    (code.ts), never with a palette's start. */
 
 /* an effect as shader code, each kind's module asked for once its spelling shows in the Shader tab: Shadertoy's tabs
-   (engine/glass-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts, blob-webgl.ts), the WGSL or its WebGPU
-   page (glass-webgpu.ts, blob-webgpu.ts), each with the picture's soft and grain (shader-finish.ts). The effect's code
+   (engine/glass-shadertoy.ts, silk-shadertoy.ts, rosette-shadertoy.ts), the GLSL or its WebGL page (glass-webgl.ts,
+   blob-webgl.ts, silk-webgl.ts, rosette-webgl.ts), the WGSL or its WebGPU page (glass-webgpu.ts, blob-webgpu.ts,
+   silk-webgpu.ts, rosette-webgpu.ts), each with the picture's soft and grain (shader-finish.ts). The effect's code
    carries only the tab's spellings, and the Worker's build none of them: a server never writes a shader, and its ask
    waits for ever. */
 type ShaderWriter = (
@@ -49,8 +50,14 @@ type ShaderWriter = (
   finish: EffectShaderFinish
 ) => string;
 type ShaderPart = "shadertoy" | "webgl" | "webgpu";
-const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<ShaderWriter>>>> = {
+/* a kind's shader code: what its passes draw, the tab's note before its finish's, and its modules; null for a kind
+   with none, whose Shader tab offers no spelling (a kind given modules must say what they draw) */
+type EffectShaders = { passes: () => string } & Partial<
+  Record<ShaderPart, () => Promise<ShaderWriter>>
+>;
+const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
   glass: {
+    passes: () => t("The ribs, the colors' blur and the light, pass by pass."),
     shadertoy: () =>
       (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
@@ -81,6 +88,7 @@ const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<
   },
   /* the blob has no angle */
   blob: {
+    passes: () => t("The balls, their melt and the frost, pass by pass."),
     webgl: () =>
       (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
@@ -100,10 +108,68 @@ const SHADER_PARTS: Record<EffectKind, Partial<Record<ShaderPart, () => Promise<
             m.blobWebgpu(kind as "wgsl" | "webgpu", P, effect, seed, origin, finish)
       )
   },
-  /* the silk's, the rosette's and the papercut's shader spellings come later: their Shader tab offers none yet */
-  silk: {},
-  rosette: {},
-  papercut: {}
+  silk: {
+    passes: () => t("The dye, its folds' shade and light, in one pass."),
+    shadertoy: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/silk-shadertoy.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (_, ...rest) =>
+            m.silkShadertoyText(...rest)
+      ),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/silk-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.silkWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/silk-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.silkWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  },
+  rosette: {
+    passes: () => t("The petals ring by ring, the ground and the heart's glow, in one pass."),
+    shadertoy: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/rosette-shadertoy.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (_, ...rest) =>
+            m.rosetteShadertoyText(...rest)
+      ),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/rosette-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.rosetteWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/rosette-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.rosetteWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  },
+  /* the papercut's shader spellings come later: its Shader tab offers none yet */
+  papercut: null
 };
 const partOf = (kind: ShaderKind): ShaderPart =>
   kind === "shadertoy" ? "shadertoy" : kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";
@@ -112,13 +178,13 @@ const partOf = (kind: ShaderKind): ShaderPart =>
 const shaderKinds = (effect: EffectKind, soft = false) =>
   SHADER_KINDS.filter(
     ([kind]) =>
-      SHADER_PARTS[effect][partOf(kind)] && !(soft && effect === "glass" && kind === "shadertoy")
+      SHADER_PARTS[effect]?.[partOf(kind)] && !(soft && effect === "glass" && kind === "shadertoy")
   );
 const [writers, setWriters] = createSignal<Partial<Record<string, ShaderWriter>>>({});
 const asked = new Set<string>();
 const writerNow = (effect: EffectKind, kind: ShaderKind) => {
   const part = partOf(kind);
-  const load = SHADER_PARTS[effect][part];
+  const load = SHADER_PARTS[effect]?.[part];
   const key = `${effect} ${part}`;
   if (load && !asked.has(key)) {
     asked.add(key);
@@ -196,9 +262,7 @@ export function effectSources(
       );
     },
     note: () => {
-      const passes = glass
-        ? t("The ribs, the colors' blur and the light, pass by pass.")
-        : t("The balls, their melt and the frost, pass by pass.");
+      const passes = SHADER_PARTS[effect.kind]?.passes() ?? "";
       /* the finish the passes end on, where the picture has one */
       const after =
         finish.soft && finish.grain
@@ -263,7 +327,7 @@ export function effectSources(
           count: colors().length
         })
     },
-    /* the Shader tab for an effect with a spelling of it: the silk's, the rosette's and the papercut's come later */
+    /* the Shader tab for an effect with a spelling of it: the papercut's comes later */
     ...(shaderKinds(effect.kind).length ? [shaderSource()] : []),
     {
       id: "json",

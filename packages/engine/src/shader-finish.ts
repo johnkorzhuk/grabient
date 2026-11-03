@@ -1,5 +1,6 @@
 /* Soft and grain after an effect's own passes in its shader pages (glass-webgl.ts, glass-webgpu.ts, blob-webgl.ts,
-   blob-webgpu.ts; the silk's and the rosette's call the same seam), as the site paints them over the player
+   blob-webgpu.ts, silk-webgl.ts, silk-webgpu.ts, rosette-webgl.ts, rosette-webgpu.ts; the silk's and the rosette's
+   Shadertoy texts draw the same in their buffers, fx-shadertoy.ts), as the site paints them over the player
    (fx-finish.ts, grain.ts): the effect draws its last pass into the finish's frame, the soft blurs it on a smaller
    grid (texels a power of two pixels wide, the largest at most half the sigma, so the sigma there is 2 to 4 texels:
    Chromium's own blur halves a picture so before it blurs and scales back up), reading clear past the picture's

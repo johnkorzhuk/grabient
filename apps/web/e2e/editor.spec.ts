@@ -952,6 +952,87 @@ test("while the blob plays, its Shader tab writes it in GLSL and WGSL, and as We
   expect(asked).toEqual(["blob-webgl.ts", "blob-webgpu.ts"]);
 });
 
+for (const [kind, frame, note] of [
+  [
+    "silk",
+    "lookup(0, vec2(u, 1.0 / 6.0), 0.0).rgb",
+    "The dye, its folds' shade and light, in one pass."
+  ],
+  [
+    "rosette",
+    "if (cover > 0.99999) break;",
+    "The petals ring by ring, the ground and the heart's glow, in one pass."
+  ]
+] as const)
+  test(`while the ${kind} plays, its Shader tab writes it for Shadertoy, GLSL and WGSL, and as WebGL and WebGPU pages that play it, each kind's code coming with its spelling`, async ({
+    page
+  }) => {
+    const asked: string[] = [];
+    page.on("request", request => {
+      const name = new RegExp(`/engine/src/(${kind}-(?:shader|shadertoy|webgl|webgpu)\\.ts)$`).exec(
+        new URL(request.url()).pathname
+      )?.[1];
+      if (name) asked.push(name);
+    });
+    await open(page, `/${SEED}?style=${kind}&angle=45&shape=7`);
+    const tabs = page.getByRole("tablist", { name: "Format" });
+    await tabs.scrollIntoViewIfNeeded();
+    await expect(tabs.getByRole("tab", { name: "Shader" })).toBeVisible();
+    expect(asked).toEqual([]);
+    await tabs.getByRole("tab", { name: "Shader" }).click();
+    const code = page.getByRole("tabpanel", { name: /, as text$/ }).locator("code");
+    await expect(code).toContainText(`// grabient ${SEED}`);
+    await expect(code).toContainText(`/${SEED}?style=${kind}&angle=45&shape=7`);
+    /* the frame in Buffer B, the player's own fragment shader in it */
+    await expect(code).toContainText(
+      "// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)"
+    );
+    await expect(code).toContainText(frame);
+    expect(asked).toEqual([`${kind}-shadertoy.ts`]);
+    const spellings = page.getByRole("tablist", { name: "Syntax" });
+    await expect(spellings.getByRole("tab")).toHaveText([
+      "Shadertoy",
+      "GLSL",
+      "WGSL",
+      "WebGL",
+      "WebGPU"
+    ]);
+    await spellings.getByRole("tab", { name: "GLSL" }).click();
+    await expect(code).toContainText(`// ==== Pass 1: the ${kind} ====`);
+    await spellings.getByRole("tab", { name: "WebGL" }).click();
+    await expect(code).toContainText(
+      `<script type="x-shader/x-fragment" id="${kind}-fs">#version 300 es`
+    );
+    await expect(code).toContainText("const ANGLE = 45;");
+    await expect(code).toContainText("const SHAPE = 7;");
+    expect(asked).toEqual([`${kind}-shadertoy.ts`, `${kind}-webgl.ts`]);
+    await spellings.getByRole("tab", { name: "WebGPU" }).click();
+    await expect(code).toContainText("This page needs WebGPU, which this browser does not have.");
+    await expect(page.getByText(note)).toBeVisible();
+    expect(asked).toEqual([`${kind}-shadertoy.ts`, `${kind}-webgl.ts`, `${kind}-webgpu.ts`]);
+    /* soft and grained: every spelling lays the finish over the frame, Shadertoy's in Buffers C and D and its Image */
+    await open(page, `/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=7`);
+    await tabs.scrollIntoViewIfNeeded();
+    await tabs.getByRole("tab", { name: "Shader" }).click();
+    await expect(spellings.getByRole("tab")).toHaveText([
+      "Shadertoy",
+      "GLSL",
+      "WGSL",
+      "WebGL",
+      "WebGPU"
+    ]);
+    await expect(code).toContainText(`/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=7`);
+    await expect(code).toContainText(
+      "// ==== Image ==== iChannel0: Buffer D (filter: nearest, wrap: clamp)"
+    );
+    await expect(
+      page.getByText(`${note} Then its soft and grain, as the site lays them over it.`)
+    ).toBeVisible();
+    await spellings.getByRole("tab", { name: "WebGL" }).click();
+    await expect(code).toContainText("finish = finishing(gl);");
+    await expect(code).toContainText("const GRAIN = 30;");
+  });
+
 test("a soft or grained picture's Shader tab writes its finish: a soft glass's pages blur and grain it after its passes and offer no Shadertoy, a palette's shader draws its blurred stops and its grain", async ({
   page
 }) => {
