@@ -188,3 +188,138 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
+
+/* A PNG copy as the canvas is asked to make it: what is put on it, drawn on it and laid over it. */
+interface Canvas {
+  put?: { data: Uint8ClampedArray; width: number; height: number };
+  drawn: string[];
+  tiles: string[];
+  filled?: number[];
+}
+const GRAIN_BYTES = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
+function stubCanvas(): Canvas {
+  const canvas: Canvas = { drawn: [], tiles: [] };
+  vi.stubGlobal(
+    "ImageData",
+    class {
+      data: Uint8ClampedArray;
+      width: number;
+      height: number;
+      constructor(data: Uint8ClampedArray, width: number, height: number) {
+        this.data = data;
+        this.width = width;
+        this.height = height;
+      }
+    }
+  );
+  vi.stubGlobal(
+    "Image",
+    class {
+      src = "";
+      async decode() {}
+    }
+  );
+  const context = {
+    fillStyle: "",
+    scale() {},
+    putImageData(data: Canvas["put"]) {
+      canvas.put = data;
+    },
+    drawImage(image: { src: string }) {
+      canvas.drawn.push(image.src);
+    },
+    createPattern(image: { src: string }) {
+      canvas.tiles.push(image.src);
+      return "tile";
+    },
+    fillRect(...box: number[]) {
+      canvas.filled = box;
+    }
+  };
+  vi.stubGlobal("document", {
+    createElement: () => ({
+      width: 0,
+      height: 0,
+      getContext: () => context,
+      toBlob: (done: (blob: Blob) => void, type: string) => done(new Blob(["png"], { type }))
+    })
+  });
+  vi.stubGlobal(
+    "ClipboardItem",
+    class {
+      items: Record<string, Promise<Blob>>;
+      constructor(items: Record<string, Promise<Blob>>) {
+        this.items = items;
+      }
+    }
+  );
+  vi.stubGlobal("navigator", {
+    clipboard: {
+      write: async (items: { items: Record<string, Promise<Blob>> }[]) => {
+        await items[0].items["image/png"];
+      }
+    }
+  });
+  vi.stubGlobal("fetch", async () => new Response(new Blob([GRAIN_BYTES], { type: "image/png" })));
+  vi.stubGlobal(
+    "FileReader",
+    class {
+      result = "";
+      onload = () => {};
+      onerror = () => {};
+      readAsDataURL(blob: Blob) {
+        void blob.arrayBuffer().then(bytes => {
+          this.result = `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
+          this.onload();
+        });
+      }
+    }
+  );
+  return canvas;
+}
+const PIXELS = { width: 160, height: 90 };
+const finished = (query: string, soft: number, grain: number): Taken => ({
+  ...taken(query),
+  pixels: PIXELS,
+  ...(soft ? { soft } : {}),
+  ...(grain ? { grain } : {})
+});
+
+test("the glass's PNG is its first frame drawn and blurred by the view's soft on the CPU, the grain's tile laid over it", async () => {
+  const { effectRgba } = await import("@grabient/engine/fx-frame.ts");
+  const glass = effect("style=glass&shape=5");
+  const canvas = stubCanvas();
+  await copyFormat("png", finished("style=glass&shape=5", 50, 40));
+  expect(canvas.put?.data).toEqual(await effectRgba(P, glass, 45, PIXELS, 50));
+  expect([canvas.put?.width, canvas.put?.height]).toEqual([160, 90]);
+  expect(canvas.tiles).toEqual(["/assets/grain-test/40.png"]);
+  expect(canvas.filled).toEqual([0, 0, 160, 90]);
+  /* no soft, its plain frame; no grain, no tile */
+  const plain = stubCanvas();
+  await copyFormat("png", finished("style=glass&shape=5", 0, 0));
+  expect(plain.put?.data).toEqual(await effectRgba(P, glass, 45, PIXELS, 0));
+  expect([plain.tiles, plain.filled]).toEqual([[], undefined]);
+});
+
+test("the silk's, the rosette's and the blob's PNG is their finished still SVG, its grain inside, drawn by the browser", async () => {
+  for (const query of ["style=silk&shape=4", "style=rosette", "style=blob&shape=3"]) {
+    const canvas = stubCanvas();
+    /* the tile as a copy carries it, read from the file the page's pictures lay over */
+    const tile = await (await import("./copy-finish.ts")).grainDataUrl(40);
+    await copyFormat("png", finished(query, 50, 40));
+    const svg = effectSvg(
+      P,
+      SEED,
+      { ...effect(query), speed: 0 },
+      45,
+      PIXELS,
+      ORIGIN,
+      { soft: 50, grain: 40 },
+      tile
+    );
+    expect(canvas.drawn).toEqual([`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`]);
+    expect(canvas.put).toBeUndefined();
+    expect(svg).toContain("feGaussianBlur");
+    expect(svg).toContain(tile);
+  }
+});

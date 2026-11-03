@@ -139,12 +139,14 @@ test("the papercut's SVG finished: its drawing whole in a group, blurred over it
     `<filter id="gfx-soft" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="240" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${Number(effectBlurSigma(40, box).toFixed(3))}"/></filter>`
   );
   expect(svg).toContain(
-    '<g clip-path="url(#gfx-box)"><rect width="400" height="240" fill="url(#gfx-under)"/><g filter="url(#gfx-soft)"><g>'
+    '<g clip-path="url(#gfx-box)"><rect width="400" height="240" fill="url(#gfx-under)"/><g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><g>'
   );
   /* the papercut's root names the box alone, so its drawing stands in a group, every byte of it as the plain file's:
      its shadows' blurs (pc0, pc1, ...) and its clip (pcbox) meet none of the finish's ids (gfx-) */
   const drawing = plain.slice(plain.indexOf("<defs>"), -"</svg>".length);
-  expect(svg).toContain(`<g filter="url(#gfx-soft)"><g>${drawing}</g></g>`);
+  expect(svg).toContain(
+    `<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><g>${drawing}</g></g></g>`
+  );
   expect(drawing).toMatch(/<filter id="pc0" /);
   expect(drawing).toContain('clip-path="url(#pcbox)"');
   expect(drawing).not.toContain("gfx-");

@@ -212,29 +212,31 @@ async function gradientCss(p: Taken): Promise<string> {
     ...(p.grain ? { grain: `url("${await grainDataUrl(p.grain)}")` } : {})
   });
 }
-/* the gradient's PNG: its SVG drawn, and the grain's tile laid over it as the page lays it */
-async function gradientPng(p: Taken): Promise<Blob> {
-  const svg = await gradientSvg(p);
-  if (!p.grain) return svgToPngBlob(svg, 1);
-  const load = async (src: string) => {
-    const image = new Image();
-    image.src = src;
-    await image.decode();
-    return image;
-  };
-  const [picture, tile] = await Promise.all([
-    load(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`),
-    load(grainSrc(p.grain))
-  ]);
+const loaded = async (src: string) => {
+  const image = new Image();
+  image.src = src;
+  await image.decode();
+  return image;
+};
+/* A picture drawn on a canvas at the pixels taken, the grain's tile laid over it as the page lays it, a speck a pixel
+   from its corner, as a PNG. */
+async function grainedPng(
+  p: Taken,
+  draw: (context: CanvasRenderingContext2D) => void,
+  grain?: number
+): Promise<Blob> {
+  const tile = grain ? loaded(grainSrc(grain)) : null;
   const { width, height } = p.pixels;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("no 2d context");
-  context.drawImage(picture, 0, 0, width, height);
-  context.fillStyle = context.createPattern(tile, "repeat") ?? "transparent";
-  context.fillRect(0, 0, width, height);
+  draw(context);
+  if (tile) {
+    context.fillStyle = context.createPattern(await tile, "repeat") ?? "transparent";
+    context.fillRect(0, 0, width, height);
+  }
   const png = await encoded(canvas, "image/png");
   if (!png) throw new Error("no PNG");
   return png;
@@ -245,15 +247,38 @@ const papercutPngOf = async (p: Taken, effect: Effect): Promise<Blob> =>
   (
     await (import.meta.env.SSR ? (new Promise(() => {}) as never) : import("./papercut-png.ts"))
   ).papercutPng(p, effect);
-/* a PNG is the first frame: the glass and the papercut as their players draw it, the others as their still SVG paints */
+/* the gradient's PNG: its SVG drawn, and the grain's tile laid over it */
+async function gradientPng(p: Taken): Promise<Blob> {
+  const svg = await gradientSvg(p);
+  if (!p.grain) return svgToPngBlob(svg, 1);
+  const picture = await loaded(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+  return grainedPng(
+    p,
+    context => context.drawImage(picture, 0, 0, p.pixels.width, p.pixels.height),
+    p.grain
+  );
+}
+/* An effect's PNG is its first frame finished as the site paints it: the silk, the rosette and the blob as their
+   finished still SVG paints, which each browser draws within about a level of the site's picture (the blob's frost
+   its own), drawn by the browser at once; the papercut by its own CPU drawing (papercut-png.ts); the glass drawn on
+   the CPU as its player draws it and blurred there, the same pixels as the server's picture of the address
+   (engine/fx-frame.ts), where its SVG is a displacement filter that Firefox and Safari draw a few levels off and
+   slowly, the grain's tile laid over it as over the gradient's. */
+async function framePng(p: Taken, effect: Effect): Promise<Blob> {
+  const { effectRgba } = await import("@grabient/engine/fx-frame.ts");
+  const { width, height } = p.pixels;
+  const pixels = await effectRgba(paletteOf(p), effect, p.angle, p.pixels, p.soft);
+  return grainedPng(
+    p,
+    context => context.putImageData(new ImageData(pixels, width, height), 0, 0),
+    p.grain
+  );
+}
 const pngOf = async (p: Taken): Promise<Blob> => {
-  if (p.effect?.kind === "papercut") return papercutPngOf(p, p.effect);
-  if (p.effect && p.effect.kind !== "glass")
-    return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
   if (!p.effect) return gradientPng(p);
-  const picture = await encoded(await glassPixels(p, p.pixels), "image/png");
-  if (!picture) throw new Error("no PNG");
-  return picture;
+  if (p.effect.kind === "papercut") return papercutPngOf(p, p.effect);
+  if (p.effect.kind !== "glass") return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
+  return framePng(p, p.effect);
 };
 /* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
 const fileUrl = (p: Taken, f: Format) =>

@@ -4,8 +4,8 @@
 import { bandsSearch, bandsStill, isBands, parseBands } from "@grabient/engine/bands.ts";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { hexBytes } from "@grabient/engine/color.ts";
-import { type Effect, parseEffect } from "@grabient/engine/effect.ts";
-import { type Size, viewSearch } from "@grabient/engine/view.ts";
+import { type Effect, type EffectFinish, parseEffect } from "@grabient/engine/effect.ts";
+import { finishOf, viewSearch } from "@grabient/engine/view.ts";
 import { MARK_FIXED } from "@grabient/ui/mark.ts";
 import { type Saved, viewAt } from "../files/address.ts";
 import type { Resolved } from "../files/resolve.ts";
@@ -44,78 +44,17 @@ const effectParts = (effect: Effect, angle: number) =>
   effect.kind === "blob"
     ? [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg]
     : [EFFECT_DRAWING[effect.kind], angle, effect.look.shape ?? 0];
-
-/** An effect's first frame at a size, as the editor shows it before it moves: the glass covering the box (its CPU
-    renderer, engine/glass-render.ts) in three bytes a pixel, and the blobs covering it on their own ground
-    (engine/blob.ts), in four where the ground lets what is behind them through or there is none, as the editor's
-    copy of it is, or, for a card, which cannot be clear, laid over its near-black or near-white. Their code comes
-    with the first picture that needs it. */
-async function effectStill(
-  found: Resolved,
-  effect: Effect,
-  angle: number,
-  size: Size,
-  card = false
-): Promise<Uint8Array<ArrayBuffer>> {
-  /* the silk, the rosette and the papercut by their CPU drawings (engine/silk-render.ts, rosette-render.ts,
-     papercut-render.ts), opaque: about 0.1 s for a card, 0.35 s for the largest picture */
-  if (effect.kind === "silk" || effect.kind === "rosette" || effect.kind === "papercut") {
-    const look = { angle, shape: effect.look.shape };
-    let rgba: Uint8ClampedArray;
-    if (effect.kind === "papercut") {
-      const [model, render] = await Promise.all([
-        import("@grabient/engine/papercut.ts"),
-        import("@grabient/engine/papercut-render.ts")
-      ]);
-      rgba = render.renderPapercut(model.papercutScene(found.palette, look, size), 0);
-    } else if (effect.kind === "rosette") {
-      const [model, render] = await Promise.all([
-        import("@grabient/engine/rosette.ts"),
-        import("@grabient/engine/rosette-render.ts")
-      ]);
-      rgba = render.renderRosette(model.rosetteScene(found.palette, look, size), 0, true);
-    } else {
-      const [model, render] = await Promise.all([
-        import("@grabient/engine/silk.ts"),
-        import("@grabient/engine/silk-render.ts")
-      ]);
-      rgba = render.renderSilk(model.silkScene(found.palette, look, size), 0);
-    }
-    const rgb = new Uint8Array(size.width * size.height * 3);
-    for (let i = 0, j = 0; j < rgb.length; i += 4, j += 3) {
-      rgb[j] = rgba[i];
-      rgb[j + 1] = rgba[i + 1];
-      rgb[j + 2] = rgba[i + 2];
-    }
-    return rgb;
-  }
-  if (effect.kind === "blob") {
-    const blob = await import("@grabient/engine/blob.ts");
-    return blob.blobStill(
-      found.palette,
-      effect.look,
-      size,
-      card ? blob.blobBackdrop(found.palette) : undefined
-    );
-  }
-  const [model, render, colors] = await Promise.all([
-    import("@grabient/engine/glass.ts"),
-    import("@grabient/engine/glass-render.ts"),
-    import("@grabient/engine/glass-colors.ts")
-  ]);
-  const { geometry, window } = render.glassCover(size, 1, angle, effect.look.shape);
-  // one frame, drawn without holding the rib map and each pixel's read for frames to come
-  const rgba = render
-    .glassRenderer(geometry, window, undefined, true)
-    .frame(model.glassField(geometry, colors.glassColors(found.palette)), 0);
-  const rgb = new Uint8Array(window.w * window.h * 3);
-  for (let i = 0, j = 0; j < rgb.length; i += 4, j += 3) {
-    rgb[j] = rgba[i];
-    rgb[j + 1] = rgba[i + 1];
-    rgb[j + 2] = rgba[i + 2];
-  }
-  return rgb;
-}
+/** The finish over an effect's frame (engine/fx-finish.ts), counted up by a change to it that moves its pixels. */
+const EFFECT_FINISH = "fx-finish-1";
+/* A soft or grained effect's own part of its key: none for a plain one, whose key, and the pictures kept under it,
+   stand as they were. The blob's gradient under its soft lies left to right whatever the address's angle, which its
+   parts leave out. */
+const effectFinishPart = (finish: EffectFinish) =>
+  finish.soft || finish.grain ? [`${EFFECT_FINISH}:${finish.soft ?? 0}:${finish.grain ?? 0}`] : [];
+/* An effect's first frame finished (effect-frame.ts), its code loaded with the first one drawn: the picture routes
+   import this module, so the router's first request reaches it, and none of the drawing comes with that. */
+const effectFrame = async (...args: Parameters<typeof import("./effect-frame.ts").effectFrame>) =>
+  (await import("./effect-frame.ts")).effectFrame(...args);
 
 export function paletteCard(
   request: Request,
@@ -124,24 +63,38 @@ export function paletteCard(
   params: URLSearchParams,
   keep: Keep
 ): Promise<Response> {
-  /* style=glass or blob: the effect's first frame under the wordmark, which the page shows before it moves and a link
-     to that page previews as */
+  /* style=glass, blob, silk or rosette: the effect's first frame under the wordmark, soft and grained as the address
+     asks, which the page shows before it moves and a link to that page previews as */
   const effect = parseEffect(params);
   if (effect) {
     const { width, height } = cardSize(params);
-    const angle = viewAt(params, found.palette.anchors.length).angle;
+    const view = viewAt(params, found.palette.anchors.length);
+    const finish = finishOf(view);
     return answerPicture(
       request,
       env,
       {
         kind: "card",
         branded: true,
-        parts: [...effectParts(effect, angle), found.seed, width, height, true],
+        parts: [
+          ...effectParts(effect, view.angle),
+          found.seed,
+          width,
+          height,
+          true,
+          ...effectFinishPart(finish)
+        ],
         width,
         height,
         draw: async () =>
           drawCardOver(
-            await effectStill(found, effect, angle, { width, height }, true),
+            await effectFrame(
+              found.palette,
+              effect,
+              view.angle,
+              { width, height },
+              { card: true, finish }
+            ),
             keyframeColors(found.palette),
             width,
             height
@@ -216,10 +169,11 @@ export function palettePicture(
   keep: Keep
 ): Promise<Response> {
   const { width, height } = pictureSize(params);
-  // style=glass or blob: the effect's first frame alone
+  // style=glass, blob, silk or rosette: the effect's first frame alone, soft and grained as the address asks
   const effect = parseEffect(params);
   if (effect) {
-    const angle = viewAt(params, found.palette.anchors.length).angle;
+    const view = viewAt(params, found.palette.anchors.length);
+    const finish = finishOf(view);
     return answerPicture(
       request,
       env,
@@ -227,17 +181,22 @@ export function palettePicture(
         kind: "png",
         branded: false,
         parts: [
-          ...effectParts(effect, angle),
+          ...effectParts(effect, view.angle),
           ...(effect.kind === "blob" ? [BLOB_PICTURE] : []),
           found.seed,
           width,
           height,
-          false
+          false,
+          ...effectFinishPart(finish)
         ],
         width,
         height,
         draw: async () =>
-          encodePng(width, height, await effectStill(found, effect, angle, { width, height }))
+          encodePng(
+            width,
+            height,
+            await effectFrame(found.palette, effect, view.angle, { width, height }, { finish })
+          )
       },
       keep
     );

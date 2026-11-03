@@ -3,6 +3,7 @@ import { decodePalette } from "./codec.ts";
 import { EFFECT_LOOK, type Effect, effectAddressParts, effectFileAddress } from "./effect.ts";
 import { effectSvg } from "./effect-code.ts";
 import {
+  blurOver,
   blurRgba,
   effectBlurSigma,
   effectUnderlay,
@@ -36,7 +37,7 @@ test("an effect's soft is a Gaussian a share of the picture's longer side", () =
   expect(effectBlurSigma(undefined, { width: 1000, height: 1000 })).toBe(0);
 });
 
-test("the gradient under a soft effect: the palette's, blurred alike, at its angle; none under a clear blob", () => {
+test("the gradient under a soft effect: the palette's, blurred alike, at its angle; none under a clear blob or one whose ground lets the page through", () => {
   const under = effectUnderlay(P, silk, 30, 50)!;
   expect(under.style).toBe("linearGradient");
   expect(under.angle).toBe(30);
@@ -45,6 +46,8 @@ test("the gradient under a soft effect: the palette's, blurred alike, at its ang
   /* the blob's palette lies left to right whatever the view's angle */
   expect(effectUnderlay(P, blob("#101820"), 30, 50)?.angle).toBe(90);
   expect(effectUnderlay(P, blob(null), 30, 50)).toBeNull();
+  expect(effectUnderlay(P, blob("#10182080"), 30, 50)).toBeNull();
+  expect(effectUnderlay(P, blob("#101820ff"), 30, 50)).not.toBeNull();
   /* unsoftened, the plain stops evenly */
   const plain = effectUnderlay(P, silk, 90, 0)!;
   expect(plain.at).toBeUndefined();
@@ -65,6 +68,15 @@ test("a linear gradient's pixels run along CSS's line", () => {
   const placed = linearGradientPixels(["#000000", "#ffffff"], 90, size, [0.5, 0.5]);
   expect(placed[(0 * 64 + 10) * 3]).toBe(0);
   expect(placed[(0 * 64 + 50) * 3]).toBe(255);
+  /* a band of the box's rows alone is those rows of the whole, as the blur lays it */
+  const hexes = ["#ff0000", "#0000ff", "#00ff00"];
+  const whole = linearGradientPixels(hexes, 30, size);
+  const band = linearGradientPixels(hexes, 30, size, undefined, {
+    from: 5,
+    to: 9,
+    into: new Uint8Array(64 * 4 * 3)
+  });
+  expect([...band]).toEqual([...whole.subarray(5 * 64 * 3, 9 * 64 * 3)]);
 });
 
 test("the blur of a picture's pixels: a Gaussian's three boxes, clear past the edges", () => {
@@ -121,6 +133,91 @@ test("a blurred picture over its gradient goes to the gradient at its edges", ()
   expect([...rgb.slice(0, 3)]).toEqual([...underPx.slice(0, 3)]);
 });
 
+/* A frame with hard edges a blur shows any error at: bars of saturated colors, every 13 pixels, a clear hole. */
+function bars(width: number, height: number, hole = false) {
+  const rgba = new Uint8ClampedArray(width * height * 4);
+  const colors = [
+    [255, 0, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+    [255, 255, 255],
+    [0, 0, 0]
+  ];
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const inHole = hole && Math.hypot(x - width / 3, y - height / 2) < height / 4;
+      rgba.set(
+        inHole ? [0, 0, 0, 0] : [...colors[Math.floor((x + 2 * y) / 13) % colors.length], 255],
+        (y * width + x) * 4
+      );
+    }
+  return rgba;
+}
+/* the largest level difference and the mean one between two opaque RGBA pictures' colors, or between two straight
+   ones laid over white */
+function apart(a: ArrayLike<number>, b: ArrayLike<number>) {
+  let max = 0;
+  let sum = 0;
+  let n = 0;
+  for (let i = 0; i < a.length; i += 4)
+    for (let c = 0; c < 3; c++) {
+      const over = (p: ArrayLike<number>) => (p[i + c] * p[i + 3] + 255 * (255 - p[i + 3])) / 255;
+      const d = Math.abs(over(a) - over(b));
+      max = Math.max(max, d);
+      sum += d;
+      n++;
+    }
+  return { max, mean: sum / n };
+}
+const exactOver = (
+  rgba: Uint8ClampedArray,
+  size: { width: number; height: number },
+  sigma: number
+) => {
+  const under = effectUnderlay(P, silk, 30, 60)!;
+  const rgb = overUnder(
+    blurRgba(rgba, size.width, size.height, sigma),
+    underlayPixels(under, size),
+    size.width,
+    size.height
+  );
+  const out = new Uint8ClampedArray(size.width * size.height * 4);
+  for (let i = 0, j = 0; i < out.length; i += 4, j += 3)
+    out.set([rgb[j], rgb[j + 1], rgb[j + 2], 255], i);
+  return { out, under };
+};
+
+test("a wide blur runs on the picture's cells within about a level of the browser's three boxes", () => {
+  const size = { width: 230, height: 130 };
+  const frame = bars(size.width, size.height, true);
+  /* boxes of 12, 17, 45 and 75 pixels: cells of 2, 2, 7 and 12 */
+  for (const sigma of [6.4, 9, 24, 40]) {
+    const { out, under } = exactOver(frame, size, sigma);
+    const over = apart(blurOver(frame, size, sigma, under), out);
+    expect(over.max).toBeLessThanOrEqual(2.5);
+    expect(over.mean).toBeLessThan(0.4);
+    /* with nothing under it, clear where the frame is: straight alpha */
+    const clear = apart(
+      blurOver(frame, size, sigma, null),
+      blurRgba(frame, size.width, size.height, sigma, true)
+    );
+    expect(clear.max).toBeLessThanOrEqual(2.5);
+    expect(clear.mean).toBeLessThan(0.4);
+  }
+});
+
+test("a narrow blur runs by bands of rows, as the whole picture's would", () => {
+  /* taller than two bands, so a band's rows read the bands either side, one with the picture's ends on neither */
+  const size = { width: 40, height: 600 };
+  const frame = bars(size.width, size.height, true);
+  for (const sigma of [0.8, 2.5]) {
+    const { out, under } = exactOver(frame, size, sigma);
+    expect(apart(blurOver(frame, size, sigma, under), out).max).toBeLessThanOrEqual(1);
+    const straight = blurRgba(frame, size.width, size.height, sigma, true);
+    expect(apart(blurOver(frame, size, sigma, null), straight).max).toBeLessThanOrEqual(1);
+  }
+});
+
 test("the grain over RGBA pixels is the grain over RGB where they are opaque, and stands alone where clear", () => {
   const w = GRAIN_SIDE + 7;
   const h = 9;
@@ -164,8 +261,29 @@ test("an effect's SVG finished: its drawing whole, blurred over its gradient and
   expect(svg).toContain('color-interpolation-filters="sRGB"');
   expect(svg).toContain('<rect width="300" height="200" fill="url(#gfx-under)"/>');
   expect(svg.match(/<use xlink:href="#gfx-grain"/g)).toHaveLength(3 * 2);
-  /* the silk's root names the box alone, so its drawing stands in a group, read plainly by a design tool */
-  expect(svg).toContain('<g filter="url(#gfx-soft)"><g>');
+  /* the silk's light and shade are translucent layers over its dye, which Safari composites in linear light inside a
+     filter: its drawing (a group, its root naming the box alone) is a pattern whose tile is the box, and the blur
+     reads one rect painted by it */
+  expect(svg).toContain(
+    '<pattern id="gfx-drawing" patternUnits="userSpaceOnUse" width="300" height="200"><g><defs>'
+  );
+  expect(svg).toContain(
+    '<g filter="url(#gfx-soft)"><rect width="300" height="200" fill="url(#gfx-drawing)"/></g>'
+  );
+  /* the rosette's petals are opaque, so its drawing is blurred itself, which Figma's importer takes as a layer blur
+     over its petals; it is clipped to the box before its blur, so no browser blurs what it paints past the box into
+     its edges */
+  const rosette = effectSvg(
+    P,
+    "kUMzO5Na871ukuyhHUJA",
+    { ...silk, kind: "rosette" },
+    40,
+    size,
+    "https://grabient.com",
+    { soft: 50 }
+  );
+  expect(rosette).toContain('<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)"><g>');
+  expect(rosette).not.toContain("<pattern");
   /* the blob's root scales a design square to cover the box, so it stands inside as an SVG of its own */
   const blobSvg = effectSvg(
     P,
@@ -176,11 +294,19 @@ test("an effect's SVG finished: its drawing whole, blurred over its gradient and
     "https://grabient.com",
     { soft: 50 }
   );
-  expect(blobSvg).toMatch(/<g filter="url\(#gfx-soft\)"><svg x="0" y="0" width="300" height="200"/);
+  expect(blobSvg).toMatch(
+    /<g filter="url\(#gfx-soft\)"><g clip-path="url\(#gfx-box\)"><svg x="0" y="0" width="300" height="200"/
+  );
   expect(blobSvg).not.toContain("gfx-grain");
-  /* grain alone needs no gradient or filter */
-  const grained = finishSvg(plain, size, { grain: 30 }, { grain: "data:image/png;base64,AAAA" });
+  /* grain alone needs no gradient or filter, nor a pattern to blur through */
+  const grained = finishSvg(
+    plain,
+    size,
+    { grain: 30 },
+    { grain: "data:image/png;base64,AAAA", isolated: true }
+  );
   expect(grained).not.toContain("feGaussianBlur");
+  expect(grained).not.toContain("<pattern");
   expect(grained).toContain("gfx-grain");
   /* a grain with no tile to lay is no change */
   expect(finishSvg(plain, size, { grain: 30 })).toBe(plain);
