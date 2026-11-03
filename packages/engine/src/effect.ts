@@ -27,13 +27,17 @@ export interface EffectKindFacts {
   angle: boolean;
   /** drawn by ui/effect-loop.ts over a vector still */
   vector: boolean;
+  /** its still stands in for its first frame rather than being it (the papercut's shadows stepped, for a list's cards
+      and a page's first paint), so a page's stage shows the player's own first frame over it while the effect is
+      held as well; the others' stills are that frame to within a level, which a held stage fades back to */
+  steppedStill: boolean;
 }
 export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
-  glass: { angle: true, vector: false },
-  blob: { angle: false, vector: false },
-  silk: { angle: true, vector: true },
-  rosette: { angle: true, vector: true },
-  papercut: { angle: true, vector: true }
+  glass: { angle: true, vector: false, steppedStill: false },
+  blob: { angle: false, vector: false, steppedStill: false },
+  silk: { angle: true, vector: true, steppedStill: false },
+  rosette: { angle: true, vector: true, steppedStill: false },
+  papercut: { angle: true, vector: true, steppedStill: true }
 };
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed): the
     glass's and the blob's; the silk's, the rosette's and the papercut's are not built yet, and their stylesheet paints
