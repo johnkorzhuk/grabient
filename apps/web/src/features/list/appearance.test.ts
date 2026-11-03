@@ -9,6 +9,7 @@ import {
   inView,
   type ListView,
   listViewOf,
+  lookFinish,
   readListView,
   viewOver,
   viewParams,
@@ -89,6 +90,32 @@ test("a card draws the list's view over its own, a draft over both, never fewer 
     steps: 20,
     angle: 200
   });
+});
+
+test("a card draws the soft and the grain its save kept while its list draws every palette as saved", () => {
+  const own = { seed: SEED, style: "linearGradient" as const, steps: 8, angle: 90 };
+  const kept = lookFinish("style=silk&angle=40&soft=35&grain=20&speed=2");
+  expect(kept).toEqual({ soft: 35, grain: 20 });
+  expect(lookFinish("soft=12")).toEqual({ soft: 12 });
+  expect(lookFinish(null)).toEqual({});
+  expect(lookFinish("style=glass")).toEqual({});
+  /* as saved, the kept ones */
+  expect(drawnIn(own, AS_SAVED, null, kept)).toEqual({ ...own, soft: 35, grain: 20 });
+  /* the list's own, where it sets one, and the draft's over both */
+  expect(drawnIn(own, { ...AS_SAVED, soft: 60 }, null, kept)).toEqual({
+    ...own,
+    soft: 60,
+    grain: 20
+  });
+  expect(drawnIn(own, AS_SAVED, { grain: 0 }, kept)).toEqual({ ...own, soft: 35 });
+  /* a list that draws every palette in its own style or plays its own effect draws none it did not set */
+  expect(drawnIn(own, { ...AS_SAVED, style: "radialGradient" }, null, kept)).toEqual({
+    ...own,
+    style: "radialGradient"
+  });
+  const glass: Effect = { kind: "glass", speed: 1, fps: 60, look: EFFECT_LOOK };
+  expect(drawnIn(own, { ...AS_SAVED, effect: glass }, null, kept)).toEqual(own);
+  expect(drawnIn(own, AS_SAVED, { effect: null }, kept)).toEqual(own);
 });
 
 test("a list returned to takes each choice made since it was left, a cleared one included, over its own address", () => {

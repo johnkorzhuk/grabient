@@ -10,7 +10,7 @@ import { type Failed, failed } from "../../lib/query.ts";
 import { searchOf } from "../../lib/route.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
-import { drawnIn, effectsReady, type ListView } from "../list/appearance.ts";
+import { drawnIn, effectsReady, keptReady, type ListView, lookFinish } from "../list/appearance.ts";
 import { collectionHref, type PaletteOrder, sortCollectionItems } from "./address.ts";
 import { inputOf } from "./client.ts";
 import {
@@ -178,13 +178,16 @@ export async function loadCollection(
       statusCode: 301
     });
   if (found.doc) {
-    await ready;
+    /* and the blur's code where a palette's kept look is soft, so the server draws it as the card will */
+    await Promise.all([ready, keptReady(found.doc.items.map(item => item.look))]);
     const ordered = sortCollectionItems(found.doc.items, at.order);
     return {
       facts: factsOf(found.doc, found.languages),
       languages: found.languages ?? [],
       palettes: ordered.map(item => paletteAddress(item.kseed, item)),
-      paint: ordered.slice(0, PAINTED).map(item => drawnIn(inputOf(item), viewOf(params)))
+      paint: ordered
+        .slice(0, PAINTED)
+        .map(item => drawnIn(inputOf(item), viewOf(params), null, lookFinish(item.look)))
     };
   }
   if (here) return { status: 404, robots: "noindex,follow", signedOut: noSession() };

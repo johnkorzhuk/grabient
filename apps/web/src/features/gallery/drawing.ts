@@ -6,7 +6,13 @@ import { madePalettes, madeView } from "@grabient/search/colors.ts";
 import type { Drawn } from "../../lib/palette.ts";
 import type { CollectionSummary } from "../collections/types.ts";
 import { seedAddress } from "../editor/address.ts";
-import { cardEffect, drawnIn, type ListView, type ViewDraft } from "../list/appearance.ts";
+import {
+  cardEffect,
+  drawnIn,
+  type ListView,
+  lookFinish,
+  type ViewDraft
+} from "../list/appearance.ts";
 import type { PaletteItem } from "./schema.ts";
 
 /* What a list says of a palette beside its picture: its name by its colors in the reader's language, its age, and the
@@ -22,14 +28,16 @@ export const ownOf = (item: Pick<PaletteItem, "kseed" | "style" | "steps" | "ang
 });
 
 /** A palette's picture while the header's control sets the list's view: the steps and angle on their way to the
-    address at once, and the style a tile previews. Its link, name and selection keep the address's view. */
+    address at once, and the style a tile previews. Its link, name and selection keep the address's view. `kept` is
+    the soft and grain its save kept (list/appearance.ts lookFinish). */
 export function picturedAs(
   own: Drawn,
   view: ListView,
   draft: ViewDraft | null,
-  peek: Style | null
+  peek: Style | null,
+  kept?: Pick<Drawn, "soft" | "grain">
 ): Drawn {
-  const drawn = drawnIn(own, view, draft);
+  const drawn = drawnIn(own, view, draft, kept);
   return peek ? { ...drawn, style: peek } : drawn;
 }
 
@@ -38,9 +46,12 @@ const PAINTED = 8;
 
 /** The palettes a list has on screen first, as the list draws them: what the frame paints. */
 export const paintOf = (
-  items: readonly Pick<PaletteItem, "kseed" | "style" | "steps" | "angle">[],
+  items: readonly (Pick<PaletteItem, "kseed" | "style" | "steps" | "angle"> & {
+    look?: string | null;
+  })[],
   view: ListView
-): Drawn[] => items.slice(0, PAINTED).map(item => drawnIn(ownOf(item), view));
+): Drawn[] =>
+  items.slice(0, PAINTED).map(item => drawnIn(ownOf(item), view, null, lookFinish(item.look)));
 
 /** The home's: its head's palettes, then the first two of each collection, as a searched home may hold no head. */
 export const homePaint = (

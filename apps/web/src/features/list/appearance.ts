@@ -5,9 +5,11 @@ import {
   DEFAULT_STEPS,
   DEFAULT_STYLE,
   effectiveView,
+  finishOf,
   GRAIN_MAX,
   isStyle,
   parseSize,
+  parseView,
   type SizeChoice,
   SOFT_MAX,
   STEPS_MAX,
@@ -19,7 +21,7 @@ import {
 import { isServer } from "@solidjs/web";
 import { type Accessor, createContext, createSignal } from "solid-js";
 import type { Drawn } from "../../lib/palette.ts";
-import { finishReady } from "../../lib/soft-load.ts";
+import { finishReady, loadSoft } from "../../lib/soft-load.ts";
 import { seedAddress } from "../editor/address.ts";
 
 /* The view a list draws its palettes in: style, steps and angle for every palette at once, each set or left to every
@@ -181,6 +183,16 @@ export function lookEffect(seed: string, look: string): Effect | null {
     : effect;
 }
 
+/** The soft and the grain a save kept in a palette's look, as its address reads them: what a card draws, with the
+    effect the look kept, while its list draws every palette as saved (drawnIn's `kept`). None for no look. */
+export const lookFinish = (look: string | null | undefined): Pick<Drawn, "soft" | "grain"> =>
+  look ? finishOf(parseView(new URLSearchParams(look))) : {};
+
+/** Done once a list's cards can draw the looks their saves kept: the blur's code, where one of them is soft. A list's
+    route waits for it with its palettes, as for its own view's (effectsReady), so the server draws a kept soft too. */
+export const keptReady = (looks: readonly (string | null | undefined)[]): Promise<void> =>
+  looks.some(look => lookFinish(look).soft) ? loadSoft().catch(() => {}) : Promise.resolve();
+
 /** The effect a card plays, its link opens and its files take: the list's in its palette's own shape (cardEffect), else
     the card's own as its save kept it (`kept`) while the list draws every palette as saved, no style and no effect set
     and none being set in the menu (`draft`). */
@@ -215,15 +227,23 @@ function keyframesOf(seed: string): number {
 }
 
 /** A palette as a list draws it: the list's view over the palette's own, a draft over both, and never fewer steps
-    than keyframes. */
-export function drawnIn(own: Drawn, view: ListView, draft?: ViewDraft | null): Drawn {
+    than keyframes. The soft and the grain are the list's or the draft's; where the list draws every palette as saved
+    (no style, no effect and none of either set), the ones its save kept (`kept`, lookFinish), as the card plays the
+    effect it kept (cardPlays). */
+export function drawnIn(
+  own: Drawn,
+  view: ListView,
+  draft?: ViewDraft | null,
+  kept?: Pick<Drawn, "soft" | "grain">
+): Drawn {
   const v = effectiveView(own, {
     style: view.style,
     steps: draft?.steps ?? view.steps,
     angle: draft?.angle ?? view.angle
   });
-  const soft = draft?.soft ?? view.soft;
-  const grain = draft?.grain ?? view.grain;
+  const asSaved = view.style === "auto" && !view.effect && !(draft && "effect" in draft);
+  const soft = draft?.soft ?? (view.soft || (asSaved ? (kept?.soft ?? 0) : 0));
+  const grain = draft?.grain ?? (view.grain || (asSaved ? (kept?.grain ?? 0) : 0));
   return {
     seed: own.seed,
     ...v,

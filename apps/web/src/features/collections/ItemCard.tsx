@@ -26,6 +26,7 @@ import {
   drawnIn,
   type ListView,
   lookEffect,
+  lookFinish,
   shownEffect
 } from "../list/appearance.ts";
 import { createCardEffect } from "../list/card-effect.tsx";
@@ -69,13 +70,15 @@ export function ItemCard(props: {
 }) {
   const look = useContext(AppearanceContext)!;
   const navigate = useNavigate();
-  const shown = createMemo(() => drawnIn(props.own, props.view));
+  /* the soft and the grain the collection saved, which the card draws while the page draws every palette as saved */
+  const finish = createMemo(() => lookFinish(props.look));
+  const shown = createMemo(() => drawnIn(props.own, props.view, null, finish()));
   /* out of sight, the card keeps the page's view while one is set and takes it with the address */
   const sight = createSight();
   const picture = createMemo(() =>
     sight.inSight()
-      ? picturedAs(props.own, props.view, look.draft(), look.peek())
-      : picturedAs(props.own, props.view, null, null)
+      ? picturedAs(props.own, props.view, look.draft(), look.peek(), finish())
+      : picturedAs(props.own, props.view, null, null, finish())
   );
   const seed = () => props.own.seed;
   const words = () => cardWords(shown(), props.words);

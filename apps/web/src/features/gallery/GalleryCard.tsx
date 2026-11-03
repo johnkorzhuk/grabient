@@ -20,6 +20,7 @@ import {
   cardPlays,
   drawnIn,
   lookEffect,
+  lookFinish,
   shownEffect
 } from "../list/appearance.ts";
 import { createCardEffect } from "../list/card-effect.tsx";
@@ -57,13 +58,15 @@ export function GalleryCard(props: {
   const navigate = useNavigate();
   const look = useContext(AppearanceContext)!;
   const seed = () => props.item.kseed;
-  const shown = createMemo(() => drawnIn(ownOf(props.item), page.params()));
+  /* the soft and the grain the palette's save kept, which the card draws while the list draws every palette as saved */
+  const finish = createMemo(() => lookFinish(props.item.look));
+  const shown = createMemo(() => drawnIn(ownOf(props.item), page.params(), null, finish()));
   /* out of sight, the card keeps the address's view while one is set and takes it with the address */
   const sight = createSight();
   const picture = createMemo(() =>
     sight.inSight()
-      ? picturedAs(ownOf(props.item), page.params(), look.draft(), look.peek())
-      : picturedAs(ownOf(props.item), page.params(), null, null)
+      ? picturedAs(ownOf(props.item), page.params(), look.draft(), look.peek(), finish())
+      : picturedAs(ownOf(props.item), page.params(), null, null, finish())
   );
   /* the whole look the palette's save kept, which the card plays while the list draws every palette as saved */
   const kept = createMemo(() =>
