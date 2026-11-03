@@ -48,6 +48,7 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | effect | เอฟเฟกต์ | สไตล์เคลื่อนไหวในเมนู "การแสดงผล": กระจกลายริ้วและบลอบ |
 | silk (an effect) | ผ้าไหม | The animated style that dyes the palette into satin draped in soft folds, named as the fabric. Not ไหม alone, which reads as the question particle. |
 | rosette (an effect) | โรเซตต์ | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament, its loanword spelled as พาเลตต์ is. Judgment: ลายดอกไม้ would read as any floral print, and กุหลาบ as a rose. |
+| papercut (an effect) | กระดาษตัด | The animated style that cuts the palette into sheets of paper stacked in layers, each casting a soft shadow on the one below, named as Thai crafters and designers name the craft (ศิลปะกระดาษตัด). Not ตัดกระดาษ, the act of cutting paper, and not กระดาษฉลุ, paper pierced into a lace pattern. |
 | linear / angular / radial (style names) | เชิงเส้น / เชิงมุม / รัศมี | The usual Thai names for gradient types (เชิงเส้น, รัศมี); เชิงมุม follows Figma's Angular. In a phrase: ไล่เฉดสีเชิงเส้น, ไล่เฉดสีเชิงมุม, ไล่เฉดสีแบบรัศมี. |
 | swatches, bands | แถบสี | A palette drawn as hard bands: แถบสีเชิงเส้น, แถบสีเชิงมุม, แถบสีรัศมี. A single hard band is แถบ. |
 | Swatches (the strip's swatch files) | ตัวอย่างสี | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": เปลี่ยนเป็นตัวอย่างสี. |

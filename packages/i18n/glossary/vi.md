@@ -32,6 +32,7 @@ time; add a row when a new product word gets its translation.
 | effect | hiệu ứng | Các kiểu chuyển động trong menu "Cách hiển thị": kính gân và đốm màu. |
 | silk (an effect) | lụa | The animated style that dyes the palette into satin draped in soft folds, named as the fabric: "Lụa". |
 | rosette (an effect) | hoa thị | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament of Vietnamese decoration ("họa tiết hoa thị"). Not "hoa hồng", the rose. |
+| papercut (an effect) | giấy cắt lớp | The animated style that cuts the palette into sheets of paper stacked in layers, each casting a soft shadow on the one below, named as Vietnamese crafts name layered paper-cut art ("tranh giấy cắt lớp"): "Giấy cắt lớp". Not "Cắt giấy", which on the header's button reads as the act of cutting. |
 | swatches, bands (the style) | sọc màu, sọc | Hard bands of the colors. "khối" is taken by the color solid, and "ô màu" reads as square tiles. "{count} hard bands" = "{count} sọc". |
 | Swatches (the strip's swatch files) | Mẫu màu | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Chuyển sang mẫu màu. |
 | style | kiểu | "Sai kiểu, số bước hoặc góc". |

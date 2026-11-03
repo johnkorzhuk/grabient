@@ -14,6 +14,7 @@ and add a row when a new product word gets its translation. Persian reads right 
 | effect | افکت، افکت‌ها | سبک‌های متحرک در منوی «ظاهر»: شیشه شیاردار و لکه. |
 | Silk (an animated style) | ابریشم | The fabric the palette is dyed into, as a dressmaker names it. |
 | Rosette (an animated style) | روزت | The flower-shaped ornament, the word interior designers use for a ceiling rose (روزت سقفی). |
+| Papercut (an animated style) | کاغذبری | Paper cut into sheets stacked in layers, each casting a shadow on the one below: the craft's own Persian name, as its artists write it (هنر کاغذبری، کاغذبری لایه‌ای). Not the loanword پیپرکات. |
 | Soft (the Appearance menu's field) | نرمی | A blur along the style's line, from خاموش to 100: `نرمی {value}` in the header's summary. |
 | Grain (the Appearance menu's field) | دانه | Film grain, as photographers say it (دانه فیلم): `دانه {value}`. Kept apart from seed (بذر) and the blob's Frost (مات). |
 | swatches | نوارهای رنگی | Judgment: نمونه‌رنگ is a swatch in a design tool's swatch panel, not a palette drawn as hard bands. The style menu's "bands" is the same word: نوارهای خطی، نوارهای زاویه‌ای، نوارهای شعاعی. |

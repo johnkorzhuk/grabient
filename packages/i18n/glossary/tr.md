@@ -13,6 +13,7 @@ word gets its Turkish.
 | effect | efekt, efektler | "Görünüm" menüsündeki hareketli stiller: oluklu cam ve damla. |
 | Silk (an animated style) | İpek | The fabric the palette is dyed into, as a dressmaker names it. |
 | Rosette (an animated style) | Rozet | The flower-shaped ornament of architecture and decoration (rozet motifi), not a lapel badge. |
+| Papercut (an animated style) | Kâğıt kesme | Paper cut into sheets stacked in layers, each casting a shadow on the one below: the craft as crafters and designers name it (kâğıt kesme sanatı), with TDK's circumflex. Not kâğıt oyma, the name of the traditional kaatı. |
 | Soft (the Appearance menu's field) | Yumuşaklık | A blur along the style's line, from Kapalı to 100; the header's summary says "Yumuşaklık {value}". |
 | Grain (the Appearance menu's field) | Gren | Film grain, the photographers' word (film greni); the summary says "Gren {value}". Kept apart from the blob's Frost (Buzlu). |
 | swatches / bands | şerit (şeritler) | One word for the hard-band styles: "Doğrusal şeritler", "linear swatches" = "doğrusal şeritler". |

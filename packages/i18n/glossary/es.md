@@ -13,6 +13,7 @@ The reader is addressed as **tú**. Read the English list in `README.md` first; 
 | effect | efecto, efectos | Los estilos animados del menú «Apariencia»: vidrio acanalado y mancha. |
 | silk (an effect) | Seda | The animated style that dyes the palette into satin in soft folds, the fabric's own name. A style tile and the header's button, beside "Vidrio acanalado", "Mancha" and "Roseta". |
 | rosette (an effect) | Roseta | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament. Not "rosetón", the round window of a church. |
+| papercut (an effect) | Papel recortado | The palette's colors cut into sheets of paper stacked in a layered relief, each casting a soft shadow on the one below: the craft's own name, as paper artists and design tutorials say it ("arte en papel recortado"). Not "papel picado", Mexico's perforated tissue-paper banners. A style tile and the header's button, beside "Seda" and "Roseta". |
 | swatches | muestras | Only where the English says swatches ("muestras lineales" in page titles, "Muestras {name}"). |
 | Swatches (the strip's swatch files) | Muestras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Cambiar a muestras. |
 | bands / hard bands (the swatch styles) | franjas / franjas nítidas | The style names: "Franjas lineales", "Franjas angulares", "Franjas radiales". Kept apart from "Bandas", the curation fault (banding). |

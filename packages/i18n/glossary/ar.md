@@ -66,6 +66,7 @@ around it: يتراوح عدد أحرفه بين 1 و{max}، ما لا يزيد 
 | effect | المؤثرات | الأنماط المتحركة في قائمة طريقة العرض: الزجاج المضلع والكتلة. |
 | Silk (an animated style) | حرير | The fabric the palette is dyed into, as a dressmaker names it. No article on its tile, as كتلة has none. |
 | Rosette (an animated style) | وردة | The flower-shaped ornament, petals round a heart, as a designer names it. Kept apart from وردي, the color pink. |
+| Papercut (an animated style) | ورق مقصوص | Paper cut into sheets stacked in layers, each shadowing the one below, as crafters name the art (فن الورق المقصوص). No article on its tile, as حرير and كتلة have none. Not قص الورق: without its vowels it also reads as the imperative قُصّ الورق on a press. |
 | Soft (the Appearance menu's field) | النعومة | A blur along the style's line, from إيقاف to 100; the header's summary says النعومة {value}. |
 | Grain (the Appearance menu's field) | الحبيبات | Film grain, as photographers say it (حبيبات الفيلم); the summary says الحبيبات {value}. Kept apart from صقيع, the blob's Frost. |
 | linear / angular / radial gradient | تدرج خطي / تدرج زاوي / تدرج شعاعي | Adobe's Arabic words for the three gradient types. |

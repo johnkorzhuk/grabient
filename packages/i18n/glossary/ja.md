@@ -53,6 +53,7 @@ Other product words, kept the same everywhere:
 | Grain (film grain over the picture, Off to 100) | 粒子, as Lightroom and photographers name film grain; the summary 粒子 30. Not ノイズ, Figma's Noise effect |
 | Silk (an effect: the palette dyed into satin that drapes in soft folds) | シルク, the fabric's everyday name |
 | Rosette (an effect: petals on a golden spiral, like a dahlia seen from above) | ロゼット, the flower-shaped ornament |
+| Papercut (an effect: the palette cut into sheets of paper stacked in layers, each casting a soft shadow on the one below) | 切り絵, the craft's own name, which designers use for the layered paper look too (切り絵風); not the longer ペーパーカット |
 | look (one of the ways the examples page shows a palette: another style, steps, angle or shape) | 見た目; Another look 別の見た目, Swipe for another look スワイプで別の見た目へ, 6 looks 6通りの見た目. Not 外観, the Appearance menu |
 | Show / Hide (the panel, the color space) | 表示 / 非表示; パネルを表示, パネルを非表示, パネルの表示・非表示, 色空間を非表示 |
 | Full screen / Exit full screen | 全画面表示 / 全画面表示を終了 |

@@ -12,6 +12,7 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | effect | efeito, efeitos | Os estilos animados do menu "Aparência": vidro canelado e mancha. |
 | Silk (an animated style) | Seda | The fabric, as a dressmaker names it: the palette dyed into satin that drapes in soft folds. A style tile and the header's button, beside Vidro canelado and Mancha. |
 | Rosette (an animated style) | Roseta | The flower-shaped ornament, as a ceiling's "roseta de gesso": petals on a golden spiral, seen from above. Not "rosácea", the rose window. |
+| Papercut (an animated style) | Papel recortado | The craft, as Brazilian crafters and designers name it ("arte em papel recortado"): the palette's colors cut into sheets of paper stacked in layers, each casting a soft shadow on the one below. Masculine: "o papel recortado". Crafters also say "papercut"; the menu keeps the Portuguese, as it does Seda and Roseta. Not "Recorte" alone, which reads as a crop or a clipping, nor "Kirigami", which also folds the paper. |
 | swatches | amostras | "linear swatches" = "amostras lineares", "{name} swatches" = "Amostras {name}". |
 | Swatches (the strip's swatch files) | Amostras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Mudar para amostras. |
 | bands (style labels) | faixas | "Linear bands" = "Faixas lineares"; "hard band" = "faixa sólida"; a band of flat color is "uma faixa de cor sólida" (Photoshop's "Cor sólida"). |

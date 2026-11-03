@@ -52,6 +52,7 @@ every time, and add a row when a new product word gets its translation.
 | Grain | 颗粒 | Film grain over the picture, Lightroom's 颗粒 (胶片颗粒). The summary is 颗粒 30. |
 | Silk | 丝绸 | An effect: the palette dyed into satin that drapes in soft folds. The fabric's everyday name. |
 | Rosette | 团花 | An effect: petals on a golden spiral, like a dahlia seen from above. 团花 is the round flower ornament of paper-cuts and security printing, which is what a rosette is. |
+| Papercut | 剪纸 | An effect: the palette cut into sheets of paper stacked in layers, each casting a soft shadow on the one below. The craft's own name; designers call the layered look 剪纸风. |
 | look (the examples page) | 风格 | One of the ways a palette is shown: another style, steps, angle or shape. Another look is 换一种风格, Swipe for another look 滑动换一种风格, 6 looks `6 种风格`. Not 外观 (Appearance) or 样式 (style). |
 | tag | 标签 | |
 | mood | 氛围 | In search hints: 颜色、氛围或主题. |

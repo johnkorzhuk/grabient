@@ -37,6 +37,7 @@ time, and add a row when a new product word gets its translation.
 | effect | efek | Gaya animasi di menu "Tampilan": kaca fluted dan blob. |
 | silk (an effect) | sutra | The animated style that dyes the palette into satin draped in soft folds, named as the fabric (kain sutra): Sutra, a style tile and the header's button. |
 | rosette (an effect) | roset | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament, roset as Indonesian spells the word. Never mawar, the rose. |
+| papercut (an effect) | paper cut | The animated style that cuts the palette into sheets of paper stacked in layers, each casting a soft shadow on the one below: Paper cut, a style tile and the header's button, the loanword Indonesian designers and crafters use for the craft (efek paper cut, paper cut art), as with blob. Judgment: potongan kertas reads as scraps of paper, and Potong kertas as an imperative. |
 | swatches (style) | pita warna | Judgment: the style draws hard bands, and the English menu itself says "bands". Pita is the band of pita frekuensi; blok warna would suggest squares. Menu: Pita linear, Pita angular, Pita radial. In titles: pita warna linear. |
 | Swatches (the strip's swatch files) | Swatch | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Beralih ke mode swatch. |
 | style | gaya | Canva's word. Linear, Angular, Radial stay as Figma names them (gradien linear, gradien angular, gradien radial). |

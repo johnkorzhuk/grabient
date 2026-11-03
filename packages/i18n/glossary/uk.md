@@ -12,6 +12,7 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | effect | ефект, ефекти | Анімовані стилі в меню «Вигляд»: рифлене скло і крапля. |
 | Silk (an animated style) | Шовк | The fabric, as a dressmaker names it: the palette dyed into satin that drapes in soft folds. A style tile and the header's button, beside Рифлене скло and Крапля. |
 | Rosette (an animated style) | Розетка | The ornament's name in architecture and decorative art: a stylized flower seen from above, petals on a golden spiral. Its tile's picture keeps it apart from a power socket. |
+| Papercut (an animated style) | Витинанка | Judgment: the Ukrainian craft of cutting paper, as crafters name it, layered work included (багатошарова витинанка): the palette's colors cut into sheets of paper stacked in layers, each casting a soft shadow on the one below. Not аплікація, which glues cut shapes onto a ground, and not the loanword паперкат. |
 | color palette | палітра кольорів | The phrase Ukrainian searchers type; used in titles and descriptions. |
 | swatches | зразки | As Photoshop's Swatches panel is Зразки. Style names: лінійні / кутові / радіальні зразки. The style menu's "bands" is смуги (Лінійні смуги). |
 | Swatches (the strip's swatch files) | Зразки | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Перемкнути на зразки. |
