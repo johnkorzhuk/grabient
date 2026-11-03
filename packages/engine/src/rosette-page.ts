@@ -14,6 +14,32 @@ import { ROSETTE_MAX_KEYS } from "./rosette-gl.ts";
 /** What every text of the rosette is, the start of its credit's last line. */
 export const ROSETTE_WHAT = "the rosette, the palette in rings of petals on a golden spiral";
 
+/** The head of the GLSL and the WGSL texts: the credit, then how a frame draws, as comment lines, and its finish where
+    it has one: `"grain"` the grain laid in the same pass, `"finish"` the finish's passes after it. */
+export function rosetteTextHead(
+  credit: readonly string[],
+  finish: "plain" | "grain" | "finish" = "plain"
+): string {
+  return [
+    ...credit,
+    "",
+    "Each frame is one pass over the canvas: each pixel taken back through the loop's zoom and turn into the petals'",
+    "own place, the petals that can reach it tried inner first, front to back, each laying its ring's gradient under",
+    "those above it until the pixel is covered, then the ground and the heart's glow. Nothing is baked: a frame sets",
+    "only the loop's zoom and turn. The uniforms' values are the page's.",
+    ...(finish === "grain"
+      ? ["The grain is laid over its bytes in the same pass, a speck a CSS pixel, from its tile."]
+      : finish === "finish"
+        ? [
+            "The pass draws into the finish's frame, which the finish's passes then blur by the soft on a smaller grid,",
+            "lay over the palette's gradient where the blur thins the flower toward its edges, and grain."
+          ]
+        : [])
+  ]
+    .map(line => (line ? `// ${line}` : "//"))
+    .join("\n");
+}
+
 /** A number as JavaScript source that reads back as the same double, -0 kept. */
 const jsNumber = (n: number): string => (Object.is(n, -0) ? "-0" : String(n));
 const js = (value: unknown): string =>

@@ -1,40 +1,50 @@
 /* The rosette in GLSL and as a WebGL page that plays it (rosette-shader.ts names every kind): the player's own shader
    (rosette-gl.ts) on the numbers the player works out (rosette-page.ts), played by the players' clock
-   (effect-page.ts). The page draws each frame into a texture of its own and copies it onto the canvas, the place where
-   a finish (a soft blur, a grain) would take the frame. The editor loads this module with the Shader tab's GLSL or
-   WebGL spelling. */
+   (effect-page.ts). A grained rosette lays its grain in that pass; a soft one draws the pass into the finish's frame,
+   which the finish then lays over the canvas (shader-finish.ts), as the site lays its blur and grain over the player.
+   The editor loads this module with the Shader tab's GLSL or WebGL spelling. */
 import type { Effect } from "./effect.ts";
 import { EFFECT_CLOCK } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
 import { ROSETTE_FS, ROSETTE_VS } from "./rosette-gl.ts";
-import { ROSETTE_WHAT, rosetteModel, rosetteSettings } from "./rosette-page.ts";
+import { ROSETTE_WHAT, rosetteModel, rosetteSettings, rosetteTextHead } from "./rosette-page.ts";
+import {
+  type EffectShaderFinish,
+  FINISH_GLSL_SECTIONS,
+  FINISH_MATH_JS,
+  FINISH_WEBGL_JS,
+  FINISH_WEBGL_SHADERS,
+  finished,
+  finishSettingsJs,
+  GRAIN_TILE_JS,
+  GRAIN_WEBGL_JS,
+  grainedGlsl,
+  grainOnly,
+  grainSettingsJs
+} from "./shader-finish.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
 
-/** The head of the GLSL and the WGSL texts: the credit, then how a frame draws, as comment lines. */
-export function rosetteTextHead(credit: readonly string[]): string {
-  return [
-    ...credit,
-    "",
-    "Each frame is one pass over the canvas: each pixel taken back through the loop's zoom and turn into the petals'",
-    "own place, the petals that can reach it tried inner first, front to back, each laying its ring's gradient under",
-    "those above it until the pixel is covered, then the ground and the heart's glow. Nothing is baked: a frame sets",
-    "only the loop's zoom and turn. The uniforms' values are the page's."
-  ]
-    .map(line => (line ? `// ${line}` : "//"))
-    .join("\n");
-}
+/* the rosette's pass with the grain over its bytes, for a grain with no soft, which so needs no pass of its own: the
+   pixel's place from the top left, as the grain's is, and the bytes rounded as the canvas rounds them, a half to even */
+const ROSETTE_GRAIN_FS = grainedGlsl(
+  ROSETTE_FS,
+  "  o = vec4(col, 1.0);",
+  "  o = grainOver(vec4(roundEven(clamp(col, 0.0, 1.0) * 255.0), 255.0), ivec2(gl_FragCoord.x, uBox.y - gl_FragCoord.y)) / 255.0;"
+);
 
-const WEBGL_SHADERS = [
-  ["rosette-vs", "x-shader/x-vertex", ROSETTE_VS],
-  ["rosette-fs", "x-shader/x-fragment", ROSETTE_FS]
-] as const;
+type Mode = "plain" | "grain" | "finish";
 
-const GLSL_SECTIONS: readonly [header: string, shaders: readonly string[]][] = [
+const webglShaders = (mode: Mode) =>
   [
-    "Pass 1: the rosette ==== target: the frame, W x H (the canvas's device pixels), RGBA8, one triangle over it (vertex ids 0 to 2, no attributes), then copied onto the canvas | inputs: the uniforms alone",
-    [ROSETTE_VS, ROSETTE_FS]
-  ]
-];
+    ["rosette-vs", "x-shader/x-vertex", ROSETTE_VS],
+    ["rosette-fs", "x-shader/x-fragment", mode === "grain" ? ROSETTE_GRAIN_FS : ROSETTE_FS]
+  ] as const;
+
+/* the GLSL's section: the shaders as the WebGL page compiles them, under its header */
+const glslSection = (mode: Mode) =>
+  `// ==== Pass 1: the rosette ==== target: ${mode === "finish" ? "the finish's frame, W x H (the canvas's device pixels), RGBA8" : "the canvas, W x H"}, one triangle over it (vertex ids 0 to 2, no attributes) | inputs: the uniforms${mode === "grain" ? ", the grain's tile (128 x 128, R8UI, a speck's alpha with white in its lowest bit, texelFetch) and its scale (the canvas's pixels to a CSS pixel)" : " alone"}
+${ROSETTE_VS}
+${mode === "grain" ? ROSETTE_GRAIN_FS : ROSETTE_FS}`;
 
 /* the uniforms' names in ROSETTE_FS */
 const NAMES = [
@@ -60,10 +70,13 @@ const NAMES = [
   "uHeartR"
 ];
 
-/* The WebGL page's drawing: the player's own (ui/rosette-player.ts), laid out and drawn by the players' clock. */
-const WEBGL_DRAWING = `// The drawing, WebGL 2, as the site's player draws it: the same pass and uniforms, so each frame's GPU work is the
-// player's. Each frame is drawn into a texture of its own and copied onto the canvas: a finish (a soft blur, a grain)
-// would take the frame's texture there.
+/* The WebGL page's drawing: the player's own (ui/rosette-player.ts), laid out and drawn by the players' clock; a
+   grained one's pass lays the grain from its tile, and a soft one's draws into the finish's frame. */
+const webglDrawing = (mode: Mode) => {
+  const finish = mode === "finish";
+  const grain = mode === "grain";
+  return `// The drawing, WebGL 2, as the site's player draws it: the same pass and uniforms, so each frame's GPU work is the
+// player's.${finish ? " The finish then lays the frame over the canvas, soft and grained as the site lays it." : grain ? " Its pass lays the grain over the flower, as the site lays it." : ""}
 const canvas = document.querySelector("canvas");
 const gl = canvas.getContext("webgl2", {
   alpha: false,
@@ -91,41 +104,28 @@ function play() {
     return p;
   };
 
-  // What the GPU holds, made at the start and again where a lost context comes back: the pass and the frame's texture.
-  let rosette, U, vao, frame;
+  // What the GPU holds, made at the start and again where a lost context comes back: the pass${finish ? " and the finish" : grain ? " and the grain's tile" : ""}.
+  let rosette, U, vao${finish ? ", finish" : grain ? ", grainTex" : ""};${grain ? "\n  let grainScale = 1;" : ""}
   const make = () => {
     rosette = program("rosette-vs", "rosette-fs");
-    U = Object.fromEntries(${JSON.stringify(NAMES)}.map(name => [name, gl.getUniformLocation(rosette, name)]));
-    vao = gl.createVertexArray();
-    const t = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, t);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    frame = { texture: t, buffer: gl.createFramebuffer(), w: 0, h: 0 };
+    U = Object.fromEntries(${JSON.stringify(grain ? [...NAMES, "grainTile", "grainScale"] : NAMES)}.map(name => [name, gl.getUniformLocation(rosette, name)]));
+    vao = gl.createVertexArray();${finish ? "\n    finish = finishing(gl);" : grain ? "\n    grainTex = grainTexture(gl);" : ""}
   };
   make();
 
-  // The canvas at its size, w by h device pixels: the flower laid out for it, its uniforms, and the frame's texture.
+  // The canvas at its size, w by h device pixels: the flower laid out for it and its uniforms.
   let scene = null;
   let values = null;
   const layout = (w, h) => {
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
-    }
+    }${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : grain ? "\n    grainScale = grainScaleOf(w);" : ""}
     scene = rosetteScene(ANGLE, SHAPE, w, h);
     values = rosetteUniforms(scene);
-    gl.bindTexture(gl.TEXTURE_2D, frame.texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, frame.buffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, frame.texture, 0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    frame.w = w;
-    frame.h = h;
   };
 
-  // A frame at t seconds of the loop at speed 1: the petals' group zoomed and turned to t, the flower drawn into the
-  // frame, the frame copied onto the canvas.
+  // A frame at t seconds of the loop at speed 1: the petals' group zoomed and turned to t, the flower drawn${finish ? " into the\n  // finish's frame, which the finish lays over the canvas" : " on the canvas"}.
   const draw = t => {
     const v = values;
     gl.useProgram(rosette);
@@ -149,15 +149,11 @@ function play() {
     gl.uniform3f(U.uHeart, v.uHeart[0], v.uHeart[1], v.uHeart[2]);
     gl.uniform2f(U.uHeartR, v.uHeartR[0], v.uHeartR[1]);
     const [zoom, turn] = rosetteGroup(scene, t);
-    gl.uniform2f(U.uGroup, zoom, turn);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, frame.buffer);
-    gl.viewport(0, 0, frame.w, frame.h);
+    gl.uniform2f(U.uGroup, zoom, turn);${grain ? "\n    gl.activeTexture(gl.TEXTURE0);\n    gl.bindTexture(gl.TEXTURE_2D, grainTex);\n    gl.uniform1i(U.grainTile, 0);\n    gl.uniform1f(U.grainScale, grainScale);" : ""}
+    gl.bindFramebuffer(gl.FRAMEBUFFER, ${finish ? "finish.frame" : "null"});
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.bindVertexArray(vao);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, frame.buffer);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    gl.blitFramebuffer(0, 0, frame.w, frame.h, 0, 0, frame.w, frame.h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);${finish ? "\n    finish.draw();" : ""}
   };
 
 ${indent(EFFECT_CLOCK)}
@@ -171,34 +167,52 @@ ${indent(EFFECT_CLOCK)}
     found();
   });
 }`;
+};
 
 /** The rosette as GLSL, its WebGL page's shaders, or as that page: the player's pass on the numbers the player works
-    out. `origin` adds the effect's address to the credit. */
+    out, and its finish where it has a soft or a grain: a grain alone in the pass, a soft in the finish's passes after
+    it. `origin` adds the effect's address to the credit. */
 export function rosetteWebgl(
   kind: "glsl" | "webgl",
   P: Palette,
   effect: Effect,
   angle: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
-  if (kind === "webgl")
+  const mode: Mode = grainOnly(finish) ? "grain" : finished(finish) ? "finish" : "plain";
+  if (kind === "webgl") {
+    const settings = rosetteSettings(P, effect, angle);
     return shaderPageHtml(
-      effectShaderCredit(seed, effect, angle, `${ROSETTE_WHAT}, drawn by WebGL 2`, origin),
+      effectShaderCredit(seed, effect, angle, `${ROSETTE_WHAT}, drawn by WebGL 2`, origin, finish),
       seed,
       [
-        ...WEBGL_SHADERS.map(([id, type, code]) => ({ id, type, code })),
-        { code: `${rosetteSettings(P, effect, angle)}\n\n${rosetteModel()}\n\n${WEBGL_DRAWING}` }
+        ...webglShaders(mode).map(([id, type, code]) => ({ id, type, code })),
+        ...(mode === "finish"
+          ? FINISH_WEBGL_SHADERS.map(([id, type, code]) => ({ id, type, code }))
+          : []),
+        {
+          code:
+            mode === "finish"
+              ? `${settings}\n\n${finishSettingsJs(finish, "ANGLE")}\n\n${rosetteModel()}\n\n${FINISH_MATH_JS}\n\n${FINISH_WEBGL_JS}\n\n${webglDrawing(mode)}`
+              : mode === "grain"
+                ? `${settings}\n\n${grainSettingsJs(finish.grain ?? 0)}\n\n${rosetteModel()}\n\n${GRAIN_TILE_JS}\n\n${GRAIN_WEBGL_JS}\n\n${webglDrawing(mode)}`
+                : `${settings}\n\n${rosetteModel()}\n\n${webglDrawing(mode)}`
+        }
       ]
     );
+  }
   const credit = effectShaderCredit(
     seed,
     effect,
     angle,
     `${ROSETTE_WHAT}, as GLSL ES 3.00, the WebGL page's shaders`,
-    origin
+    origin,
+    finish
   );
-  return `${rosetteTextHead(credit)}
-${GLSL_SECTIONS.map(([header, shaders]) => `\n// ==== ${header}\n${shaders.join("\n")}`).join("\n")}
-`;
+  return `${rosetteTextHead(credit, mode)}
+
+${glslSection(mode)}
+${mode === "finish" ? `\n${FINISH_GLSL_SECTIONS}` : ""}`;
 }

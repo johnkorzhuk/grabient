@@ -8,23 +8,33 @@
                floats
      Buffer B  the frame: the player's own fragment shader (silk-gl.ts), its uniforms Buffer A's texels and its two
                textures read by hand as a GPU filters them (the dye's 8-bit texels, the profiles' half floats); between
-               the frames the pace draws, the frame drawn last. The place a finish (a soft blur, a grain) would take it
-     Image     the frame on the canvas
+               the frames the pace draws, the frame drawn last
+     Buffer C  a soft text's grid from the frame, each texel the mean of the frame's bytes over the pixels it covers,
+               and Buffer D its blur (fx-shadertoy.ts)
+     Image     the frame on the canvas, or a soft text's grid over the palette's gradient where the blur thins the
+               cloth toward its edges; a grained text's grain over all
    The state is the text's own only while its first texel holds the text's mark and scene, so a buffer that held
    something else when the text was pasted in starts it afresh, as a rewind does; an edit to the settings, which the
    state keeps a signature of, lays it out again at once, as the player's set() does. Its time is Shadertoy's iTime:
    where it is the float of a whole number of 240ths of a second, the time a frame has on a 30, 60, 120 or 240 Hz screen
    counted from the first, the clock reads that many 240ths in double precision, the time the player's
    requestAnimationFrame gives the frame, so each frame is the player's own where the GPU filters textures as the text
-   does (SwiftShader does; an NVIDIA RTX filters with weights of its own). */
+   does (SwiftShader does; an NVIDIA RTX filters with weights of its own). The finish is the site's over the player
+   (fx-finish.ts), drawn as the shader pages draw it (shader-finish.ts). */
 import { compile, doubleRun } from "./double-program.ts";
-import type { Effect } from "./effect.ts";
+import { EFFECT_EASE_S, type Effect } from "./effect.ts";
 import {
+  FX_BUFFER_C,
+  FX_BUFFER_D,
   FX_CLOCK_DOUBLES,
   FX_PAIRS,
   FX_STATE,
   FX_T,
+  type FxShadertoyFinish,
+  fxBufferB,
   fxClock,
+  fxFinishCommon,
+  fxImage,
   glslFloat,
   glslPair,
   sceneMark,
@@ -32,6 +42,7 @@ import {
 } from "./fx-shadertoy.ts";
 import { dlit, GLSL_DOUBLE } from "./glsl-double.ts";
 import type { Palette } from "./palette.ts";
+import type { EffectShaderFinish } from "./shader-finish.ts";
 import { effectShaderCredit } from "./shader-shell.ts";
 import {
   bakeDye,
@@ -49,6 +60,7 @@ import {
   valleyCurve
 } from "./silk.ts";
 import { SILK_FS } from "./silk-gl.ts";
+import { effectSoftShare } from "./view.ts";
 
 const DEG = Math.PI / 180;
 const pair = (x: number) => glslPair(x, glslFloat);
@@ -92,13 +104,16 @@ const T = (() => {
 /** The state's mark: a number no half float holds, which a later form of the state would change. */
 const MAGIC = 4101.5;
 
-/** The silk's Shadertoy tabs for its palette, effect and angle, under the credit's lines. */
+/** The silk's Shadertoy tabs for its palette, effect and angle, under the credit's lines, and its finish where it has
+    one. */
 export function silkShadertoy(
   P: Palette,
   effect: Effect,
   angle: number,
-  credit: readonly string[]
+  credit: readonly string[],
+  finish: FxShadertoyFinish = { share: 0, underlay: null, angle, grain: 0 }
 ): string {
+  const soft = finish.share > 0;
   const shape = effect.look.shape;
   const d = silkDesign(shape);
   const { ex, ey } = clothFrame(d.clothTurn + angle - 90);
@@ -154,7 +169,7 @@ export function silkShadertoy(
 // The silk's settings, as its address writes them: edit them here. An edit shows at once.
 const float SPEED = ${glslFloat(effect.speed)};   // the loop's pace, two decimals: it lasts ${SILK_LOOP} s over this; 0 holds the frame it is on
 const float FPS = ${glslFloat(effect.fps)};    // frames a second at most, 1 to 120
-const float EASE = ${glslFloat(1.6)};    // seconds from rest to its pace, two decimals
+const float EASE = ${glslFloat(EFFECT_EASE_S)};    // seconds from rest to its pace, two decimals
 // The rest is the silk at angle ${angle}, ${look}, worked out by the site's own code from the palette's curve and the
 // shape's numbers: another angle or shape is another text.
 
@@ -244,7 +259,7 @@ vec4 sinCosSmall(vec2 a) {
 }
 
 ${run.globals.replace("// The program's constants and its instructions", "// The clock's program: its constants and its instructions")}
-
+${soft ? `\n${fxFinishCommon(finish, glslFloat)}\n` : ""}
 ${FX_STATE}
 const float MAGIC = ${glslFloat(MAGIC)};   // the state's mark, which no half float holds
 const float SCENE = ${scene};   // this text's scene, beside the mark
@@ -258,7 +273,7 @@ const int STATE = ${T.state};
 // Common's settings as one number, in two 16-bit halves
 vec2 signature() {
   uint h = 2166136261u;
-  for (int k = 0; k < 3; k++) h = (h ^ floatBitsToUint(k == 0 ? SPEED : k == 1 ? FPS : EASE)) * 16777619u;
+  for (int k = 0; k < ${soft ? 4 : 3}; k++) h = (h ^ floatBitsToUint(k == 0 ? SPEED : k == 1 ? FPS : ${soft ? "k == 2 ? EASE : SOFT" : "EASE"})) * 16777619u;
   return vec2(h >> 16, h & 0xffffu);
 }
 
@@ -456,66 +471,61 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   }
 }`;
 
-  const bufferB = `// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)
+  const bufferB = fxBufferB(
+    `// ==== Buffer B ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp)
 // The frame: the player's fragment shader as it is, its uniforms from Buffer A, its textures read by hand (lookup);
-// between the frames the pace draws, the frame drawn last. A finish (a soft blur, a grain) would take it from here.
-${shadertoyPass(SILK_FS, { samplers: ["T", "S"] })}
-
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-  if (state(iChannel0, T_FLAGS).z == 0.0) {
-    fragColor = texelFetch(iChannel1, ivec2(fragCoord), 0);
-    return;
-  }
-  fragPlace = vec4(fragCoord, 0.0, 1.0);
-  D = state(iChannel0, T_DYE);
+// between the frames the pace draws, the frame drawn last.`,
+    shadertoyPass(SILK_FS, { samplers: ["T", "S"] }),
+    `  D = state(iChannel0, T_DYE);
   N = FOLDS;
   for (int i = 0; i < ${MAX_FOLDS}; i++) {
     vec4 ring = state(iChannel0, T_RING + i);
     F[i] = vec4(state(iChannel0, T_CENTRE + i).xy, ring.xy);
     G[i] = ring.zw;
-  }
-  effectMain();
-  fragColor = outColor;
-}`;
-
-  const image = `// ==== Image ==== iChannel0: Buffer B (filter: nearest, wrap: clamp)
-// The frame on the canvas.
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-  fragColor = vec4(texelFetch(iChannel0, ivec2(fragCoord), 0).rgb, 1.0);
-}`;
+  }`,
+    "outColor"
+  );
 
   return `${head}
 //
-// Buffers A and B each in Shadertoy's tab of the name, the Image in Image, each tab's channels as its header says. It
+// ${soft ? "Buffers A to D" : "Buffers A and B"} each in Shadertoy's tab of the name, the Image in Image, each tab's channels as its header says. It
 // needs Shadertoy's 32-bit float buffers (its fallback, half floats, cannot hold its numbers) and a canvas at least
-// ${T.state} pixels wide. An edit to Common's settings shows at once; rewind plays it again from its first frame.
+// ${T.state} pixels wide: without either it shows magenta. An edit to Common's settings shows at once; rewind plays it
+// again from its first frame.
 
 ${common}
 
 ${bufferA}
 
 ${bufferB}
-
-${image}
+${soft ? `\n${FX_BUFFER_C}\n\n${FX_BUFFER_D}\n` : ""}
+${fxImage(soft, finish.grain)}
 `;
 }
 
-/** The silk as Shadertoy's tabs, for its palette, effect and angle: the credit, then the tabs, each under its header.
-    `origin` adds the effect's address to the credit. The editor loads this module with the Shader tab's Shadertoy
-    spelling. */
+/** The silk as Shadertoy's tabs, for its palette, effect and angle: the credit, then the tabs, each under its header,
+    with its finish where it has one (its soft in Buffers B to D and the Image, its grain in the Image). `origin` adds
+    the effect's address to the credit. The editor loads this module with the Shader tab's Shadertoy spelling. */
 export function silkShadertoyText(
   P: Palette,
   effect: Effect,
   angle: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
   const credit = effectShaderCredit(
     seed,
     effect,
     angle,
     "the silk, the palette dyed into folded cloth, for Shadertoy: paste each section into the tab it names and set its channels as its header says",
-    origin
+    origin,
+    finish
   );
-  return silkShadertoy(P, effect, angle, credit);
+  return silkShadertoy(P, effect, angle, credit, {
+    share: finish.soft ? effectSoftShare(finish.soft) : 0,
+    underlay: finish.soft ? (finish.underlay ?? null) : null,
+    angle: finish.underlay?.angle ?? angle,
+    grain: finish.grain ?? 0
+  });
 }

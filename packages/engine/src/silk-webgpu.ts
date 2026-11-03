@@ -1,37 +1,51 @@
 /* The silk in WGSL and as a WebGPU page that plays it (silk-shader.ts names every kind): the player's pass in WGSL
-   (silk-wgsl.ts) on the numbers the player works out (silk-page.ts), played by the players' clock (effect-page.ts). The
-   page draws each frame into a texture of its own and a second pass shows it on the canvas, the place where a finish
-   (a soft blur, a grain) would take the frame. The editor loads this module with the Shader tab's WGSL or WebGPU
+   (silk-wgsl.ts) on the numbers the player works out (silk-page.ts), played by the players' clock (effect-page.ts). A
+   grained silk lays its grain in that pass; a soft one draws the pass into the finish's frame, which the finish then
+   lays over the canvas (shader-finish.ts). The editor loads this module with the Shader tab's WGSL or WebGPU
    spelling. */
 import type { Effect } from "./effect.ts";
 import { EFFECT_CLOCK } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
+import {
+  type EffectShaderFinish,
+  FINISH_MATH_JS,
+  FINISH_WEBGPU_JS,
+  FINISH_WEBGPU_SHADERS,
+  FINISH_WGSL_SECTIONS,
+  finished,
+  finishSettingsJs,
+  GRAIN_TILE_JS,
+  GRAIN_WEBGPU_JS,
+  grainedWgsl,
+  grainOnly,
+  grainSettingsJs
+} from "./shader-finish.ts";
 import { effectShaderCredit, indent, shaderPageHtml } from "./shader-shell.ts";
-import { SILK_WHAT, silkModel, silkSettings } from "./silk-page.ts";
-import { silkTextHead } from "./silk-webgl.ts";
+import { SILK_WHAT, silkModel, silkSettings, silkTextHead } from "./silk-page.ts";
 import { SILK_WGSL } from "./silk-wgsl.ts";
 
-const WEBGPU_SHADERS = [
-  ["silk", "text/wgsl", SILK_WGSL.silk],
-  ["show", "text/wgsl", SILK_WGSL.show]
-] as const;
+/* the silk's pass with the grain over its bytes, for a grain with no soft: the tile at binding 4, its scale at 5; the
+   bytes rounded as the canvas rounds them, a half to even (WGSL's round) */
+const SILK_GRAIN_WGSL = grainedWgsl(
+  SILK_WGSL,
+  4,
+  "  return vec4f(mix(mix(b, s, 1.0 - tv), l, 1.0 - tc), 1.0);",
+  "  return grainOver(vec4f(round(clamp(mix(mix(b, s, 1.0 - tv), l, 1.0 - tc), vec3f(0.0), vec3f(1.0)) * 255.0), 255.0), vec2i(p)) / 255.0;"
+);
 
-const WGSL_SECTIONS: readonly [header: string, module: string][] = [
-  [
-    "Pass 1: the silk ==== target: the frame, W x H (the canvas's device pixels), rgba8unorm, one triangle over it (vertex indexes 0 to 2) | inputs: T, the dye (32 x 3, rgba8unorm; rows dyed, shade, light), S, the profiles (65 x 1, rg16float; valley, crest), both through one sampler (linear, clamp to edge)",
-    SILK_WGSL.silk
-  ],
-  [
-    "Pass 2: the canvas ==== target: the canvas, W x H | inputs: the frame (textureLoad)",
-    SILK_WGSL.show
-  ]
-];
+type Mode = "plain" | "grain" | "finish";
+
+/* the WGSL's section: the module as the WebGPU page compiles it, under its header */
+const wgslSection = (mode: Mode) =>
+  `// ==== Pass 1: the silk ==== target: ${mode === "finish" ? "the finish's frame, W x H (the canvas's device pixels), rgba8unorm" : "the canvas, W x H"}, one triangle over it (vertex indexes 0 to 2) | inputs: T, the dye (32 x 3, rgba8unorm; rows dyed, shade, light), S, the profiles (65 x 1, rg16float; valley, crest), both through one sampler (linear, clamp to edge)${mode === "grain" ? ", the grain's tile (binding 4: 128 x 128, r8uint, a speck's alpha with white in its lowest bit, textureLoad) and its scale (binding 5: the canvas's pixels to a CSS pixel)" : ""}
+${mode === "grain" ? SILK_GRAIN_WGSL : SILK_WGSL}`;
 
 /* The WebGPU page's drawing: the same pass and the same numbers, in WebGPU's calls, laid out and drawn by the players'
-   clock. */
-const WEBGPU_DRAWING = `// The drawing, WebGPU, as the site's player draws it with WebGL: the same pass, tables and numbers. Each frame is drawn
-// into a texture of its own and shown on the canvas by a second pass: a finish (a soft blur, a grain) would take the
-// frame's texture there.
+   clock; a grained one's pass lays the grain from its tile, and a soft one's draws into the finish's frame. */
+const webgpuDrawing = (mode: Mode) => {
+  const finish = mode === "finish";
+  const grain = mode === "grain";
+  return `// The drawing, WebGPU, as the site's player draws it with WebGL: the same pass, tables and numbers.${finish ? " The finish then\n// lays the frame over the canvas, soft and grained as the site lays it." : grain ? " Its pass lays the\n// grain over the cloth, as the site lays it." : ""}
 const canvas = document.querySelector("canvas");
 const request = async () => {
   const adapter = await navigator.gpu?.requestAdapter().catch(() => null);
@@ -79,24 +93,22 @@ function play() {
     return t;
   };
 
-  // What the GPU holds, made at the start and again on a new device where the old one is lost: the passes, the
-  // uniforms, the dye's table and the profiles'.
-  let silk, show, uniforms, dye, profiles, lerped, frame, groups;
+  // What the GPU holds, made at the start and again on a new device where the old one is lost: the pass, the
+  // uniforms, the dye's table and the profiles'${finish ? ", and the finish" : grain ? ", and the grain's tile and scale" : ""}.
+  let silk, uniforms, dye, profiles, lerped, groups${finish ? ", finish" : grain ? ", grainTex, grainScale" : ""};
   const make = () => {
     context.configure({ device: gpu, format, alphaMode: "opaque" });
-    silk = pipeline("silk", "rgba8unorm");
-    show = pipeline("show", format);
+    silk = pipeline("silk", ${finish ? '"rgba8unorm"' : "format"});
     uniforms = gpu.createBuffer({ size: 224, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
     dye = table(LUT_N, 3, "rgba8unorm", colorTexels(), 4 * LUT_N);
     profiles = table(PROF_N, 1, "rg16float", halves(profileTexels()), 4 * PROF_N);
     lerped = gpu.createSampler({ magFilter: "linear", minFilter: "linear" });
-    frame = null;
-    groups = null;
+    groups = null;${finish ? "\n    finish = finishing(gpu, format);" : grain ? "\n    grainTex = grainTexture(gpu);\n    grainScale = grainScaleBuffer(gpu);" : ""}
   };
   make();
 
-  // The canvas at its size, w by h device pixels: the cloth laid out for it, the uniforms that hold for it, and the
-  // frame's texture. The uniforms: D (16 bytes), F (8 vec4), G (4 vec4), N.
+  // The canvas at its size, w by h device pixels: the cloth laid out for it and the uniforms that hold for it. The
+  // uniforms: D (16 bytes), F (8 vec4), G (4 vec4), N.
   let scene = null;
   const block = new ArrayBuffer(224);
   const SU = new Float32Array(block, 0, 4);
@@ -107,17 +119,11 @@ function play() {
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
-    }
+    }${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : grain ? "\n    gpu.queue.writeBuffer(grainScale, 0, new Float32Array([grainScaleOf(w)]));" : ""}
     scene = silkScene(ANGLE, SHAPE, w, h);
     sceneUniforms(scene, SU);
     bandUniforms(scene, GU);
     NU[0] = scene.folds.length;
-    frame?.destroy();
-    frame = gpu.createTexture({
-      size: [w, h],
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
-    });
     groups = {
       silk: gpu.createBindGroup({
         layout: silk.getBindGroupLayout(0),
@@ -125,10 +131,9 @@ function play() {
           { binding: 0, resource: { buffer: uniforms } },
           { binding: 1, resource: dye.createView() },
           { binding: 2, resource: profiles.createView() },
-          { binding: 3, resource: lerped }
+          { binding: 3, resource: lerped }${grain ? ",\n          { binding: 4, resource: grainTex.createView() },\n          { binding: 5, resource: { buffer: grainScale } }" : ""}
         ]
-      }),
-      show: gpu.createBindGroup({ layout: show.getBindGroupLayout(0), entries: [{ binding: 0, resource: frame.createView() }] })
+      })
     };
   };
 
@@ -142,14 +147,13 @@ function play() {
     at.end();
   };
   // A frame at t seconds of the loop at speed 1, once the canvas has a size on this device: the rings swung to t, the
-  // cloth drawn into the frame, the frame shown on the canvas.
+  // cloth drawn${finish ? " into the finish's frame, which the finish lays over the canvas" : " on the canvas"}.
   const draw = t => {
     if (!groups) return;
     foldUniforms(scene, t, FU);
     gpu.queue.writeBuffer(uniforms, 0, block);
     const encoder = gpu.createCommandEncoder();
-    pass(encoder, frame.createView(), silk, groups.silk);
-    pass(encoder, context.getCurrentTexture().createView(), show, groups.show);
+    pass(encoder, ${finish ? "finish.view" : "context.getCurrentTexture().createView()"}, silk, groups.silk);${finish ? "\n    finish.draw(encoder, context.getCurrentTexture().createView());" : ""}
     gpu.queue.submit([encoder.finish()]);
   };
 
@@ -172,37 +176,53 @@ ${indent(EFFECT_CLOCK)}
     });
   watch(gpu);
 }`;
+};
 
 /** The silk as WGSL, its WebGPU page's modules, or as that page: the player's pass on the numbers the player works
-    out. `origin` adds the effect's address to the credit. */
+    out, and its finish where it has a soft or a grain: a grain alone in the pass, a soft in the finish's passes after
+    it. `origin` adds the effect's address to the credit. */
 export function silkWebgpu(
   kind: "wgsl" | "webgpu",
   P: Palette,
   effect: Effect,
   angle: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
-  if (kind === "webgpu")
+  const mode: Mode = grainOnly(finish) ? "grain" : finished(finish) ? "finish" : "plain";
+  if (kind === "webgpu") {
+    const settings = silkSettings(P, effect, angle);
     return shaderPageHtml(
-      effectShaderCredit(seed, effect, angle, `${SILK_WHAT}, drawn by WebGPU`, origin),
+      effectShaderCredit(seed, effect, angle, `${SILK_WHAT}, drawn by WebGPU`, origin, finish),
       seed,
       [
-        ...WEBGPU_SHADERS.map(([id, type, code]) => ({ id, type, code })),
+        { id: "silk", type: "text/wgsl", code: mode === "grain" ? SILK_GRAIN_WGSL : SILK_WGSL },
+        ...(mode === "finish"
+          ? FINISH_WEBGPU_SHADERS.map(([id, type, code]) => ({ id, type, code }))
+          : []),
         {
           type: "module",
-          code: `${silkSettings(P, effect, angle)}\n\n${silkModel()}\n\n${WEBGPU_DRAWING}`
+          code:
+            mode === "finish"
+              ? `${settings}\n\n${finishSettingsJs(finish, "ANGLE")}\n\n${silkModel()}\n\n${FINISH_MATH_JS}\n\n${FINISH_WEBGPU_JS}\n\n${webgpuDrawing(mode)}`
+              : mode === "grain"
+                ? `${settings}\n\n${grainSettingsJs(finish.grain ?? 0)}\n\n${silkModel()}\n\n${GRAIN_TILE_JS}\n\n${GRAIN_WEBGPU_JS}\n\n${webgpuDrawing(mode)}`
+                : `${settings}\n\n${silkModel()}\n\n${webgpuDrawing(mode)}`
         }
       ]
     );
+  }
   const credit = effectShaderCredit(
     seed,
     effect,
     angle,
-    `${SILK_WHAT}, as WGSL, the WebGPU page's modules, a section a pass`,
-    origin
+    `${SILK_WHAT}, as WGSL, the WebGPU page's module, a section a pass`,
+    origin,
+    finish
   );
-  return `${silkTextHead(credit)}
-${WGSL_SECTIONS.map(([header, module]) => `\n// ==== ${header}\n${module}`).join("\n")}
-`;
+  return `${silkTextHead(credit, mode)}
+
+${wgslSection(mode)}
+${mode === "finish" ? `\n${FINISH_WGSL_SECTIONS}` : ""}`;
 }

@@ -9,6 +9,7 @@ import {
   effectStylesheet,
   effectSvg
 } from "@grabient/engine/effect-code.ts";
+import { effectUnderlay } from "@grabient/engine/fx-finish.ts";
 import { glassShadertoyText } from "@grabient/engine/glass-shadertoy.ts";
 import { glassWebgl } from "@grabient/engine/glass-webgl.ts";
 import { glassWebgpu } from "@grabient/engine/glass-webgpu.ts";
@@ -217,6 +218,51 @@ test("the silk's and the rosette's Shader tabs write each spelling with the engi
       `${ORIGIN}/${SEED}?style=${kind}&angle=45&speed=2&shape=12`
     );
     expect(shader().note?.()).toBe(notes[kind]);
+  }
+});
+
+test("a soft, grained silk's or rosette's Shader tab writes every spelling with its finish and says so", async () => {
+  vi.stubEnv("SSR", false);
+  await tabsIn();
+  const P = decodePalette(SEED)!;
+  const writers = {
+    silk: [silkShadertoyText, silkWebgl, silkWebgpu],
+    rosette: [rosetteShadertoyText, rosetteWebgl, rosetteWebgpu]
+  } as const;
+  for (const kind of ["silk", "rosette"] as const) {
+    const query = `style=${kind}&shape=12`;
+    const effect = parseEffect(new URLSearchParams(query))!;
+    const finish = { soft: 40, grain: 30, underlay: effectUnderlay(P, effect, 45, 40) };
+    const [shadertoy, webgl, webgpu] = writers[kind];
+    const shader = () =>
+      codeSources(
+        P,
+        { style: "radialGradient", steps: 6, angle: 45 },
+        SEED,
+        () => ({ facts: null, opened: false }),
+        createRest(),
+        { ...played(query), soft: 40, grain: 30 }
+      ).find(s => s.id === "shader")!;
+    /* the silk's and the rosette's Shadertoy texts keep two buffers for the soft's blur */
+    expect(
+      shader().spellings?.map(s => s.id),
+      kind
+    ).toEqual(["shadertoy", "glsl", "wgsl", "webgl", "webgpu"]);
+    expect(await loaded(() => shader().text())).toBe(
+      shadertoy(P, effect, 45, SEED, ORIGIN, finish)
+    );
+    expect(await loaded(() => shader().text("webgl"))).toBe(
+      webgl("webgl", P, effect, 45, SEED, ORIGIN, finish)
+    );
+    expect(await loaded(() => shader().text("wgsl"))).toBe(
+      webgpu("wgsl", P, effect, 45, SEED, ORIGIN, finish)
+    );
+    expect(shader().text("webgl")).toContain(
+      `${ORIGIN}/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=12`
+    );
+    expect(shader().note?.()).toMatch(
+      / in one pass\. Then its soft and grain, as the site lays them over it\.$/
+    );
   }
 });
 

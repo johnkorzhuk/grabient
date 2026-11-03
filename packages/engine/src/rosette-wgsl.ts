@@ -1,6 +1,6 @@
-/* The rosette's pass in WGSL, for its WebGPU page (rosette-webgpu.ts): the player's GLSL (rosette-gl.ts) line for line,
-   and the pass that shows the frame on the canvas. WebGPU's framebuffer rows run down from the top, as the pixel's
-   place does in the player (it turns gl_FragCoord's y over), so the fragment's position is that place. Uniforms are the
+/* The rosette's pass in WGSL, for its WebGPU page (rosette-webgpu.ts): the player's GLSL (rosette-gl.ts) line for
+   line. WebGPU's framebuffer rows run down from the top, as the pixel's place does in the player (it turns
+   gl_FragCoord's y over), so the fragment's position is that place. Uniforms are the
    pass's struct at group 0, binding 0: the rings' keys four to a vector and each stop's color a vector of its own, as
    a uniform array's elements are 16 bytes apart. */
 import { HEART_STOPS } from "./rosette.ts";
@@ -10,7 +10,7 @@ const STOPS = 4;
 /* a number as the player's GLSL writes it (rosette-gl.ts), so both read the same float */
 const f = (v: number) => (Number.isInteger(v) ? v.toFixed(1) : String(v));
 
-/** The vertex stage of both passes: one triangle over the target from the vertex's index, as the player's. */
+/** The vertex stage: one triangle over the target from the vertex's index, as the player's. */
 const COVER_VS = `@vertex
 fn vs_main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
   let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u));
@@ -24,8 +24,8 @@ export const ROSETTE_UNIFORMS = {
   stops: 288
 } as const;
 
-export const ROSETTE_WGSL = {
-  rosette: `struct Rosette {
+/** The rosette's pass, the player's fragment shader in WGSL. */
+export const ROSETTE_WGSL = `struct Rosette {
   uBox: vec2f,                      // the canvas, px
   uS: f32,                          // its half-diagonal, px
   uK: f32,                          // log radius a petal grows by
@@ -133,12 +133,4 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
     col = mix(col, uni.uHeart, a);
   }
   return vec4f(col, 1.0);
-}`,
-  show: `@group(0) @binding(0) var frame: texture_2d<f32>;   // the frame, the canvas's size
-${COVER_VS}
-// the frame's texel at the pixel: where a finish (a soft blur, a grain) would take it
-@fragment
-fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
-  return textureLoad(frame, vec2i(position.xy), 0);
-}`
-};
+}`;

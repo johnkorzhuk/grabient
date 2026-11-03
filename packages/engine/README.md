@@ -103,6 +103,17 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   `glsl-double.ts`, the balls' places in fixed point by `blob-fixed.ts`), the GLSL and its WebGL page (`blob-webgl.ts`,
   the player's own GLSL in `blob-gl.ts`), the WGSL and its WebGPU page (`blob-webgpu.ts` over `blob-wgsl.ts`), the
   pages' script in `blob-page.ts`, played by the same clock.
+- The silk's, every kind named in `silk-shader.ts`: Shadertoy's tabs (`silk-shadertoy.ts`, which keeps the player's
+  numbers in a buffer: its clock as JavaScript's doubles by `fx-shadertoy.ts` over `double-program.ts` and
+  `glsl-double.ts`, the layout and the folds' swings in pairs of floats), the GLSL and its WebGL page (`silk-webgl.ts`,
+  the player's own GLSL in `silk-gl.ts`), the WGSL and its WebGPU page (`silk-webgpu.ts` over `silk-wgsl.ts`), the
+  pages' script in `silk-page.ts`, played by the same clock. The rosette's alike: `rosette-shader.ts`,
+  `rosette-shadertoy.ts`, `rosette-webgl.ts` over `rosette-gl.ts`, `rosette-webgpu.ts` over `rosette-wgsl.ts`,
+  `rosette-page.ts`.
+- The effects' soft and grain in their shader code, as the site lays them over the player (`fx-finish.ts`): the
+  pages' finish in `shader-finish.ts` (the soft's grid and blur, the gradient under its edges, the grain's tile), the
+  grain a single shader works out itself in `shader-grain.ts`, and the silk's and the rosette's Shadertoy finish, its
+  grid in Buffer B, its blur in C and D, in `fx-shadertoy.ts`.
 - What a palette is: `name.ts`, `colorname.ts` over `colornames.data.ts`, `shape.ts`, `dominant.ts`, `contrast.ts`,
   `plot.ts`, `strip.ts`.
 - Old links: `legacy.ts`, `legacy-import.ts`.

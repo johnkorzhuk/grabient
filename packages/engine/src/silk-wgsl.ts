@@ -1,18 +1,18 @@
-/* The silk's pass in WGSL, for its WebGPU page (silk-webgpu.ts): the player's GLSL (silk-gl.ts) line for line, and the
-   pass that shows the frame on the canvas. WebGPU's framebuffer rows run down from the top, as the pixel's place p does
-   in the player (it turns gl_FragCoord's y over), so the fragment's position is p. Uniforms are each pass's struct at
-   group 0, binding 0; the rings' bands are two to a vector, as a uniform array's elements are 16 bytes apart. */
+/* The silk's pass in WGSL, for its WebGPU page (silk-webgpu.ts): the player's GLSL (silk-gl.ts) line for line.
+   WebGPU's framebuffer rows run down from the top, as the pixel's place p does in the player (it turns gl_FragCoord's
+   y over), so the fragment's position is p. Uniforms are the pass's struct at group 0, binding 0; the rings' bands are
+   two to a vector, as a uniform array's elements are 16 bytes apart. */
 import { MAX_FOLDS } from "./silk.ts";
 
-/** The vertex stage of both passes: one triangle over the target from the vertex's index, as the player's. */
+/** The vertex stage: one triangle over the target from the vertex's index, as the player's. */
 const COVER_VS = `@vertex
 fn vs_main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
   let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u));
   return vec4f(p * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
-export const SILK_WGSL = {
-  silk: `struct Silk {
+/** The silk's pass, the player's fragment shader in WGSL. */
+export const SILK_WGSL = `struct Silk {
   D: vec4f,                         // the dye's line as a texel coordinate, u = dot(p, D.xy) + D.z; D.w the canvas's height
   F: array<vec4f, ${MAX_FOLDS}>,    // ring i's middle (px, y down) and its profile's texel coordinate, x = distance * F.z + F.w
   G: array<vec4f, ${MAX_FOLDS / 2}>,     // the rings' bands' squared radii, inner and outer, two rings a vector
@@ -48,12 +48,4 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
   let s = textureSampleLevel(T, lerped, vec2f(u, 0.5), 0.0).rgb;
   let l = textureSampleLevel(T, lerped, vec2f(u, 5.0 / 6.0), 0.0).rgb;
   return vec4f(mix(mix(b, s, 1.0 - tv), l, 1.0 - tc), 1.0);
-}`,
-  show: `@group(0) @binding(0) var frame: texture_2d<f32>;   // the frame, the canvas's size
-${COVER_VS}
-// the frame's texel at the pixel: where a finish (a soft blur, a grain) would take it
-@fragment
-fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
-  return textureLoad(frame, vec2i(position.xy), 0);
-}`
-};
+}`;

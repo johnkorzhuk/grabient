@@ -114,8 +114,8 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
         : import("@grabient/engine/silk-shadertoy.ts")
       ).then(
         (m): ShaderWriter =>
-          (_, P, effect, angle, seed, origin) =>
-            m.silkShadertoyText(P, effect, angle, seed, origin)
+          (_, ...rest) =>
+            m.silkShadertoyText(...rest)
       ),
     webgl: () =>
       (import.meta.env.SSR
@@ -123,8 +123,8 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
         : import("@grabient/engine/silk-webgl.ts")
       ).then(
         (m): ShaderWriter =>
-          (kind, P, effect, angle, seed, origin) =>
-            m.silkWebgl(kind as "glsl" | "webgl", P, effect, angle, seed, origin)
+          (kind, ...rest) =>
+            m.silkWebgl(kind as "glsl" | "webgl", ...rest)
       ),
     webgpu: () =>
       (import.meta.env.SSR
@@ -132,8 +132,8 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
         : import("@grabient/engine/silk-webgpu.ts")
       ).then(
         (m): ShaderWriter =>
-          (kind, P, effect, angle, seed, origin) =>
-            m.silkWebgpu(kind as "wgsl" | "webgpu", P, effect, angle, seed, origin)
+          (kind, ...rest) =>
+            m.silkWebgpu(kind as "wgsl" | "webgpu", ...rest)
       )
   },
   rosette: {
@@ -144,8 +144,8 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
         : import("@grabient/engine/rosette-shadertoy.ts")
       ).then(
         (m): ShaderWriter =>
-          (_, P, effect, angle, seed, origin) =>
-            m.rosetteShadertoyText(P, effect, angle, seed, origin)
+          (_, ...rest) =>
+            m.rosetteShadertoyText(...rest)
       ),
     webgl: () =>
       (import.meta.env.SSR
@@ -153,8 +153,8 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
         : import("@grabient/engine/rosette-webgl.ts")
       ).then(
         (m): ShaderWriter =>
-          (kind, P, effect, angle, seed, origin) =>
-            m.rosetteWebgl(kind as "glsl" | "webgl", P, effect, angle, seed, origin)
+          (kind, ...rest) =>
+            m.rosetteWebgl(kind as "glsl" | "webgl", ...rest)
       ),
     webgpu: () =>
       (import.meta.env.SSR
@@ -162,8 +162,8 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
         : import("@grabient/engine/rosette-webgpu.ts")
       ).then(
         (m): ShaderWriter =>
-          (kind, P, effect, angle, seed, origin) =>
-            m.rosetteWebgpu(kind as "wgsl" | "webgpu", P, effect, angle, seed, origin)
+          (kind, ...rest) =>
+            m.rosetteWebgpu(kind as "wgsl" | "webgpu", ...rest)
       )
   }
 };

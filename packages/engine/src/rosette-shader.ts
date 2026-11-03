@@ -10,23 +10,25 @@ import type { Palette } from "./palette.ts";
 import { rosetteShadertoyText } from "./rosette-shadertoy.ts";
 import { rosetteWebgl } from "./rosette-webgl.ts";
 import { rosetteWebgpu } from "./rosette-webgpu.ts";
+import type { EffectShaderFinish } from "./shader-finish.ts";
 import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
 
 /** The kinds of rosette shader code, the Shader tab's: three texts and two pages that run them. */
 export const ROSETTE_SHADER_KINDS: readonly ShaderKind[] = SHADER_KINDS.map(([kind]) => kind);
 
-/** The rosette in a kind of shader code, for its palette, effect and angle. `origin` adds the effect's address to the
-    credit. */
+/** The rosette in a kind of shader code, for its palette, effect and angle, and its finish (soft and grain, and the
+    gradient under its soft edges). `origin` adds the effect's address to the credit. */
 export function rosetteShader(
   kind: ShaderKind,
   P: Palette,
   effect: Effect,
   angle: number,
   seed: string,
-  origin?: string
+  origin?: string,
+  finish: EffectShaderFinish = {}
 ): string {
-  if (kind === "shadertoy") return rosetteShadertoyText(P, effect, angle, seed, origin);
+  if (kind === "shadertoy") return rosetteShadertoyText(P, effect, angle, seed, origin, finish);
   if (kind === "glsl" || kind === "webgl")
-    return rosetteWebgl(kind, P, effect, angle, seed, origin);
-  return rosetteWebgpu(kind, P, effect, angle, seed, origin);
+    return rosetteWebgl(kind, P, effect, angle, seed, origin, finish);
+  return rosetteWebgpu(kind, P, effect, angle, seed, origin, finish);
 }

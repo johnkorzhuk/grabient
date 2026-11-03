@@ -3,8 +3,11 @@
    text's Buffer A runs every frame on Shadertoy's time with glsl-double.ts's exact doubles, so every frame's time is
    the player's to the last bit; the state Buffer A keeps those doubles in; and pairs of floats (hi + lo, about 48
    bits) for the numbers a frame or a layout works out from that time, which land on the player's floats as each is
-   rounded to one. Loaded with the Shader tab's Shadertoy spelling alone. */
+   rounded to one; and the finish a soft or grained text lays over its frame, as the site lays its blur and grain over
+   the player (fx-finish.ts, shader-finish.ts). Loaded with the Shader tab's Shadertoy spelling alone. */
 import { DoubleProgram, type Value } from "./double-program.ts";
+import type { Underlay } from "./fx-finish.ts";
+import { grainGlsl } from "./shader-grain.ts";
 
 /** The time grid Shadertoy's float time is read on: a frame on a 30, 60, 120 or 240 Hz screen counted from its first
     falls on a whole number of 240ths of a second (blob-program.ts reads the blob's time alike). */
@@ -283,4 +286,246 @@ export function shadertoyPass(
     (text, name, i) => text.replace(new RegExp(`\\btextureLod\\(${name}, `, "g"), `lookup(${i}, `),
     `vec4 fragPlace;\n${out}`
   );
+}
+
+/** A silk's or a rosette's Shadertoy finish, as its text writes it: the soft as a share of the canvas's longer side
+    (view.ts effectSoftShare; 0 for none), the gradient under a soft picture's edges at the text's angle, and the
+    grain (1 to 100; 0 for none). */
+export interface FxShadertoyFinish {
+  share: number;
+  underlay: Underlay | null;
+  angle: number;
+  grain: number;
+}
+
+/** The finish's part of Common for a soft text: its settings (the soft's share, the gradient under its edges), the
+    soft's plan for the canvas (shader-finish.ts softPlan, the pages' own), and the reads the grid's passes share. The
+    grid's texel (i, j) lies in a buffer's pixel (i, j) where its texels are two or more pixels wide, and in the pixel
+    (i - 1, j - 1) at a texel a pixel, which leaves out the clear texels past the canvas's edges: a read past what a
+    buffer holds reads clear, as the pages' clamped reads of those clear texels do. */
+export function fxFinishCommon(finish: FxShadertoyFinish, float: (x: number) => string): string {
+  const u = finish.underlay;
+  const stops = u
+    ? u.stops.map((s, i) => {
+        const at = u.at ? u.at[i] : i / Math.max(1, u.stops.length - 1);
+        return { rgb: Number.parseInt(s.hex.slice(1), 16), at: Number(at.toFixed(5)) };
+      })
+    : [{ rgb: 0, at: 0 }];
+  const a = (finish.angle * Math.PI) / 180;
+  const list = (items: readonly string[], per: number) =>
+    items.map((v, i) => `${i % per === 0 ? "\n  " : " "}${v}`).join(",");
+  return `// The finish, as the site lays it over the picture: the soft, a blur whose sigma is SOFT of the canvas's longer side
+// (0 for none), over the palette's gradient under its edges (UNDERS stops, none for none): each stop's color,
+// 0xRRGGBB, and its place along the line at angle ${finish.angle}, the text's.
+const float SOFT = ${float(finish.share)};
+const int UNDERS = ${u ? stops.length : 0};
+const int UNDER_RGB[${stops.length}] = int[](${list(
+    stops.map(s => `0x${s.rgb.toString(16).padStart(6, "0")}`),
+    8
+  )}
+);
+const float UNDER_AT[${stops.length}] = float[](${list(
+    stops.map(s => float(s.at)),
+    8
+  )}
+);
+const vec2 UNDER_WAY = vec2(${float(Math.sin(a))}, ${float(-Math.cos(a))});   // the line's way from the top left, y down
+
+// The soft's plan for this canvas, as the pages work it out: the Gaussian's sigma, SOFT of the longer side, drawn on a
+// grid of texels t pixels wide, a power of two, the largest at most half the sigma (so the sigma there is 2 to 4
+// texels, as Chromium's own blur halves a picture before it blurs it), a texel past each edge, its corner a texel
+// past the left and the top; its taps either side, three sigmas, 12 at most, and their weights. A sigma under a
+// quarter of a pixel moves no byte: no taps. At a texel a pixel the grid is kept in bytes, as Chromium keeps a blur it
+// draws at full size.
+struct Plan { int t; int o; ivec2 size; ivec2 corner; int reach; float w[13]; };
+Plan softPlan() {
+  float sigma = SOFT * max(iResolution.x, iResolution.y);
+  Plan g;
+  g.t = 1;
+  for (int i = 0; i < 16; i++)
+    if (float(4 * g.t) <= sigma) g.t *= 2;
+  ivec2 wh = ivec2(iResolution.xy);
+  g.size = (wh + g.t - 1) / g.t + 2;
+  g.o = g.t == 1 ? 1 : 0;
+  g.corner = ivec2(-g.t, wh.y + g.t - g.size.y * g.t);
+  g.reach = 0;
+  g.w[0] = 1.0;
+  if (sigma >= 0.25) {
+    float s = sigma / float(g.t);
+    g.reach = min(12, int(ceil(3.0 * s)));
+    float total = 1.0;
+    for (int i = 1; i <= g.reach; i++) {
+      g.w[i] = exp(-float(i * i) / (2.0 * s * s));
+      total += 2.0 * g.w[i];
+    }
+    for (int i = 0; i <= g.reach; i++) g.w[i] /= total;
+  }
+  return g;
+}
+// the frame's bytes at a canvas pixel q as the canvas rounds them, a half to even, clear past its edges (Buffer B
+// holds the frame as the player's shader works it out)
+vec4 frameAt(sampler2D frame, ivec2 q) {
+  return all(greaterThanEqual(q, ivec2(0))) && all(lessThan(q, ivec2(iResolution.xy)))
+    ? roundEven(clamp(texelFetch(frame, q, 0), 0.0, 1.0) * 255.0) / 255.0
+    : vec4(0.0);
+}
+// a grid texel, i its place as the pages count it: the mean of the frame's bytes over the pixels it covers, clear past
+// the canvas's edges. Its loops count from 0, each pixel checked in frameAt: loops between bounds a min and a max work
+// out took the RTX's driver (ANGLE's GL on Mesa's D3D12) 20 s each to compile, these a few milliseconds.
+vec4 blockAt(sampler2D frame, ivec2 i, Plan g) {
+  ivec2 lo = g.corner + i * g.t;
+  vec4 sum = vec4(0.0);
+  for (int y = 0; y < g.t; y++)
+    for (int x = 0; x < g.t; x++) sum += frameAt(frame, lo + ivec2(x, y));
+  return sum / float(g.t * g.t);
+}
+// a texel of the grid as a buffer holds it, b its pixel: clear past what the buffer holds
+vec4 gridAt(sampler2D s, ivec2 b, Plan g) {
+  return all(greaterThanEqual(b, ivec2(0))) && all(lessThan(b, g.size - 2 * g.o)) ? texelFetch(s, b, 0) : vec4(0.0);
+}
+// the gradient under at t along its line, in bytes, its stops blended between their places
+vec3 underRgb(int i) {
+  int c = UNDER_RGB[i];
+  return vec3(float((c >> 16) & 255), float((c >> 8) & 255), float(c & 255));
+}
+vec3 underAt(float t) {
+  if (t <= UNDER_AT[0]) return underRgb(0);
+  for (int i = 1; i < UNDER_AT.length(); i++)
+    if (UNDER_AT[i] >= t) {
+      float span = UNDER_AT[i] - UNDER_AT[i - 1];
+      float u = span > 0.0 ? (t - UNDER_AT[i - 1]) / span : 1.0;
+      vec3 before = underRgb(i - 1);
+      return floor(before + (underRgb(i) - before) * u + 0.5);
+    }
+  return underRgb(UNDER_AT.length() - 1);
+}`;
+}
+
+/** Buffer B of a silk's or a rosette's text, whose header and pass (shadertoyPass) the text writes: the frame, the
+    player's fragment shader run for the pixel once its uniforms are set (`setup`, the lines that set them from Buffer
+    A's state), its output in `out`; between the frames the pace draws, the frame drawn last. Without 32-bit float
+    buffers, or on a canvas narrower than the state's row, it shows magenta. */
+export function fxBufferB(head: string, pass: string, setup: string, out: string): string {
+  return `${head}
+${pass}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  // without 32-bit float buffers the state cannot hold its numbers, nor a canvas narrower than its first row: magenta
+  // says so
+  if (iResolution.x < float(STATE) || state(iChannel0, T_MARK).x != MAGIC) {
+    fragColor = vec4(1.0, 0.0, 1.0, 1.0);
+    return;
+  }
+  if (state(iChannel0, T_FLAGS).z == 0.0) {
+    fragColor = texelFetch(iChannel1, ivec2(fragCoord), 0);
+    return;
+  }
+${setup}
+  fragPlace = vec4(fragCoord, 0.0, 1.0);
+  effectMain();
+  fragColor = ${out};
+}`;
+}
+
+/** Buffers C and D of a soft text: the frame down to the soft's grid and its blur across and down, each pass's work
+    kept small whatever the texels' width (a 1080p frame's at most 25 reads a pixel), and between the frames the pace
+    draws what it drew last. At a texel a pixel C blurs the frame across and D down, in bytes; at two or four pixels C
+    takes the frame down and blurs it across at once, D down; wider, C takes it down and D blurs it both ways at once,
+    the grid being small. */
+export const FX_BUFFER_C = `// ==== Buffer C ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer B (filter: nearest, wrap: clamp); iChannel2: Buffer C (filter: nearest, wrap: clamp)
+// The soft's grid from the frame: at a texel a pixel the frame blurred across, in bytes; at two or four pixels each
+// texel the mean of the frame's bytes over the pixels it covers, blurred across; wider, those means alone (Buffer D
+// blurs them both ways). Clear past the edges; between the frames the pace draws, the grid drawn last.
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  if (state(iChannel0, T_FLAGS).z == 0.0) {
+    fragColor = texelFetch(iChannel2, ivec2(fragCoord), 0);
+    return;
+  }
+  Plan g = softPlan();
+  ivec2 b = ivec2(fragCoord);
+  if (any(greaterThanEqual(b, g.size - 2 * g.o))) {
+    fragColor = vec4(0.0);
+    return;
+  }
+  if (g.t == 1) {
+    vec4 sum = frameAt(iChannel1, b) * g.w[0];
+    for (int i = 1; i <= g.reach; i++)
+      sum += (frameAt(iChannel1, b + ivec2(i, 0)) + frameAt(iChannel1, b - ivec2(i, 0))) * g.w[i];
+    fragColor = roundEven(sum * 255.0) / 255.0;
+  } else if (g.t <= 4) {
+    vec4 sum = blockAt(iChannel1, b, g) * g.w[0];
+    for (int i = 1; i <= g.reach; i++)
+      sum += (blockAt(iChannel1, b + ivec2(i, 0), g) + blockAt(iChannel1, b - ivec2(i, 0), g)) * g.w[i];
+    fragColor = sum;
+  } else fragColor = blockAt(iChannel1, b, g);
+}`;
+export const FX_BUFFER_D = `// ==== Buffer D ==== iChannel0: Buffer A (filter: nearest, wrap: clamp); iChannel1: Buffer C (filter: nearest, wrap: clamp); iChannel2: Buffer D (filter: nearest, wrap: clamp)
+// The soft's grid blurred: down, in bytes at a texel a pixel; at texels eight or more pixels wide both ways at once.
+// Clear past the edges; between the frames the pace draws, the blur drawn last.
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  if (state(iChannel0, T_FLAGS).z == 0.0) {
+    fragColor = texelFetch(iChannel2, ivec2(fragCoord), 0);
+    return;
+  }
+  Plan g = softPlan();
+  ivec2 b = ivec2(fragCoord);
+  if (any(greaterThanEqual(b, g.size - 2 * g.o))) {
+    fragColor = vec4(0.0);
+    return;
+  }
+  vec4 sum = vec4(0.0);
+  if (g.t >= 8) {
+    for (int j = -g.reach; j <= g.reach; j++) {
+      vec4 row = vec4(0.0);
+      for (int i = -g.reach; i <= g.reach; i++) row += gridAt(iChannel1, b + ivec2(i, j), g) * g.w[abs(i)];
+      sum += row * g.w[abs(j)];
+    }
+  } else {
+    sum = gridAt(iChannel1, b, g) * g.w[0];
+    for (int i = 1; i <= g.reach; i++)
+      sum += (gridAt(iChannel1, b + ivec2(0, i), g) + gridAt(iChannel1, b - ivec2(0, i), g)) * g.w[i];
+  }
+  fragColor = g.t == 1 ? roundEven(sum * 255.0) / 255.0 : sum;
+}`;
+
+/** The Image of a silk's or a rosette's text: the frame (Buffer B), or a soft text's grid after its blur (Buffer D)
+    read between its texels over the gradient under it where the blur thins the picture, each as the canvas's bytes,
+    and the grain over all where it has one, a speck GRAIN_SCALE pixels wide from the picture's top left. */
+export function fxImage(soft: boolean, grain: number): string {
+  const grained = grain > 0;
+  const what = soft
+    ? `// The canvas: the soft's grid read between its texels, over the palette's gradient where the blur thins the picture
+// toward its edges${grained ? ", and the grain over all" : ""}.`
+    : `// The frame on the canvas${grained ? ", the grain over it" : ""}.`;
+  const body = soft
+    ? `  Plan g = softPlan();
+  vec2 u = (fragCoord - vec2(g.corner)) / float(g.t) - 0.5 - float(g.o);
+  ivec2 i0 = ivec2(floor(u));
+  vec2 f = u - vec2(i0);
+  vec4 c = mix(
+    mix(gridAt(iChannel0, i0, g), gridAt(iChannel0, i0 + ivec2(1, 0), g), f.x),
+    mix(gridAt(iChannel0, i0 + ivec2(0, 1), g), gridAt(iChannel0, i0 + ivec2(1, 1), g), f.x),
+    f.y
+  );
+  c = floor(clamp(c, 0.0, 1.0) * 255.0 + 0.5);
+  // the pixel from the picture's top left
+  ivec2 p = ivec2(fragCoord.x, iResolution.y - fragCoord.y);
+  // the gradient under shows only where the blur thins the picture, toward its edges
+  if (UNDERS > 0 && c.a < 255.0) {
+    vec2 line = UNDER_WAY / max(abs(iResolution.x * UNDER_WAY.x) + abs(iResolution.y * UNDER_WAY.y), 1e-6);
+    float t = dot(vec2(p) + 0.5 - 0.5 * iResolution.xy, line) + 0.5;
+    c = vec4(floor(c.rgb + underAt(t) * (1.0 - c.a / 255.0) + 0.5), 255.0);
+  }
+  fragColor = vec4(${grained ? "grainOver(c.rgb, p)" : "c.rgb"} / 255.0, 1.0);`
+    : grained
+      ? `  ivec2 p = ivec2(fragCoord.x, iResolution.y - fragCoord.y);
+  // the frame's bytes, rounded as the canvas rounds them, a half to even
+  vec3 c = roundEven(clamp(texelFetch(iChannel0, ivec2(fragCoord), 0).rgb, 0.0, 1.0) * 255.0);
+  fragColor = vec4(grainOver(c, p) / 255.0, 1.0);`
+      : "  fragColor = vec4(texelFetch(iChannel0, ivec2(fragCoord), 0).rgb, 1.0);";
+  return `// ==== Image ==== iChannel0: Buffer ${soft ? "D" : "B"} (filter: nearest, wrap: clamp)
+${what}${grained ? `\n\n${grainGlsl(grain, "setting")}\n` : ""}
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+${body}
+}`;
 }

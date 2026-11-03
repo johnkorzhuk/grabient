@@ -24,6 +24,32 @@ import {
 /** What every text of the silk is, the start of its credit's last line. */
 export const SILK_WHAT = "the silk, the palette dyed into folded cloth";
 
+/** The head of the GLSL and the WGSL texts: the credit, then how a frame draws, as comment lines, and its finish where
+    it has one: `"grain"` the grain laid in the same pass, `"finish"` the finish's passes after it. */
+export function silkTextHead(
+  credit: readonly string[],
+  finish: "plain" | "grain" | "finish" = "plain"
+): string {
+  return [
+    ...credit,
+    "",
+    "Each frame is one pass over the canvas: the folds' rings tested by squared distance, a pixel in a ring's band",
+    "reading the valley's and the crest's profiles across it, then the dye's three rows at the pixel's place along the",
+    "dye's line, lerp(lerp(dyed, shade, valley), light, crest). The tables are baked once a palette; a frame sets only",
+    "the rings' middles. The uniforms' values are the page's.",
+    ...(finish === "grain"
+      ? ["The grain is laid over its bytes in the same pass, a speck a CSS pixel, from its tile."]
+      : finish === "finish"
+        ? [
+            "The pass draws into the finish's frame, which the finish's passes then blur by the soft on a smaller grid,",
+            "lay over the palette's gradient where the blur thins the cloth toward its edges, and grain."
+          ]
+        : [])
+  ]
+    .map(line => (line ? `// ${line}` : "//"))
+    .join("\n");
+}
+
 /** A value as JavaScript writes it back, numbers in the shortest spelling that reads as the same double. */
 const js = (value: unknown): string =>
   Array.isArray(value)

@@ -8,8 +8,17 @@ import {
   type Effect,
   parseEffect
 } from "./effect.ts";
-import { shadertoyPass } from "./fx-shadertoy.ts";
+import { effectUnderlay } from "./fx-finish.ts";
+import { glslFloat, shadertoyPass } from "./fx-shadertoy.ts";
 import type { Palette } from "./palette.ts";
+import {
+  FINISH_GLSL_SECTIONS,
+  FINISH_WEBGL_SHADERS,
+  FINISH_WEBGPU_SHADERS,
+  FINISH_WGSL_SECTIONS,
+  GRAIN_TILE_GLSL,
+  grainTileWgsl
+} from "./shader-finish.ts";
 import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
 import { MAX_FOLDS, SILK_LOOP, silkDesign, silkScene, swingTrack } from "./silk.ts";
 import {
@@ -25,7 +34,7 @@ import { silkModel, silkSettings } from "./silk-page.ts";
 import { SILK_SHADER_KINDS, silkShader } from "./silk-shader.ts";
 import { halfOf } from "./silk-shadertoy.ts";
 import { SILK_WGSL } from "./silk-wgsl.ts";
-import { parseView } from "./view.ts";
+import { effectSoftShare, parseView } from "./view.ts";
 
 const read = (address: string): { effect: Effect; angle: number } => {
   const params = new URLSearchParams(address);
@@ -166,10 +175,15 @@ test("the GLSL is the player's own, and the pages run the texts' shaders", () =>
   expect(webgl).toContain(`<script type="x-shader/x-fragment" id="silk-fs">${SILK_FS}</script>`);
   const wgsl = silkShader("wgsl", P, effect, angle, SEEDS[1]);
   const webgpu = silkShader("webgpu", P, effect, angle, SEEDS[1]);
-  for (const [id, module] of Object.entries(SILK_WGSL)) {
-    expect(wgsl).toContain(module);
-    expect(webgpu).toContain(`<script type="text/wgsl" id="${id}">${module}</script>`);
-  }
+  expect(wgsl).toContain(SILK_WGSL);
+  expect(webgpu).toContain(`<script type="text/wgsl" id="silk">${SILK_WGSL}</script>`);
+  /* a page with no finish draws the pass straight onto the canvas, as the player does */
+  expect(webgl).toContain("gl.bindFramebuffer(gl.FRAMEBUFFER, null);");
+  expect(webgl).not.toContain("blitFramebuffer");
+  expect(webgpu).toContain('silk = pipeline("silk", format);');
+  expect(webgpu).toContain(
+    "pass(encoder, context.getCurrentTexture().createView(), silk, groups.silk);"
+  );
 });
 
 test("nothing in a page's shaders or code could end its script element", () => {
@@ -253,7 +267,13 @@ test("the Shadertoy text is Shadertoy's tabs in order, the player's own shader i
   const tabs = [...text.matchAll(/^\/\/ ==== (.+?) ====/gm)].map(m => m[1]);
   expect(tabs).toEqual(["Common", "Buffer A", "Buffer B", "Image"]);
   expect(text).toMatch(
-    /\/\/ ==== Common ====\n.*\nconst float SPEED = 3\.0;.*\nconst float FPS = 24\.0;/
+    /\/\/ ==== Common ====\n.*\nconst float SPEED = 3\.0;.*\nconst float FPS = 24\.0;.*\nconst float EASE = (.+?);/
+  );
+  /* the ease is the players' own */
+  expect(Number(/^const float EASE = (.+?);/m.exec(text)?.[1])).toBe(EFFECT_EASE_S);
+  /* without 32-bit float buffers the state reads back wrong: the frame says so in magenta */
+  expect(text).toContain(
+    "if (iResolution.x < float(STATE) || state(iChannel0, T_MARK).x != MAGIC) {\n    fragColor = vec4(1.0, 0.0, 1.0, 1.0);"
   );
   expect(text).toContain(shadertoyPass(SILK_FS, { samplers: ["T", "S"] }));
   /* the player's main, as it is */
@@ -264,4 +284,120 @@ test("the Shadertoy text is Shadertoy's tabs in order, the player's own shader i
   expect(text).toContain(
     body.replace("textureLod(S, ", "lookup(1, ").replace(/textureLod\(T, /g, "lookup(0, ")
   );
+});
+
+test("a soft silk's pages draw the pass into the finish's frame and lay the finish over the canvas, its texts the finish's passes", () => {
+  const P = decodePalette(SEEDS[0]) as Palette;
+  const { effect, angle } = read("style=silk&angle=45&shape=7");
+  const underlay = effectUnderlay(P, effect, angle, 40);
+  const finish = { soft: 40, grain: 30, underlay };
+  const webgl = silkShader("webgl", P, effect, angle, SEEDS[0], ORIGIN, finish);
+  for (const [id, type, code] of FINISH_WEBGL_SHADERS)
+    expect(webgl).toContain(`<script type="${type}" id="${id}">${code}</script>`);
+  for (const line of [
+    "finish = finishing(gl);",
+    "finish.layout(w, h, grainScaleOf(w));",
+    "gl.bindFramebuffer(gl.FRAMEBUFFER, finish.frame);",
+    "finish.draw();",
+    `const SOFT = ${effectSoftShare(40)};`,
+    "const UNDER_ANGLE = ANGLE;",
+    "const GRAIN = 30;"
+  ])
+    expect(webgl, line).toContain(line);
+  expect(webgl.split("\n").slice(2, 5)).toEqual([
+    `  grabient ${SEEDS[0]}`,
+    `  ${ORIGIN}/${SEEDS[0]}?style=silk&angle=45&soft=40&grain=30&shape=7`,
+    "  the silk, the palette dyed into folded cloth, drawn by WebGL 2, soft 40, grain 30"
+  ]);
+  const webgpu = silkShader("webgpu", P, effect, angle, SEEDS[0], ORIGIN, finish);
+  for (const [id, type, code] of FINISH_WEBGPU_SHADERS)
+    expect(webgpu).toContain(`<script type="${type}" id="${id}">${code}</script>`);
+  for (const line of [
+    'silk = pipeline("silk", "rgba8unorm");',
+    "finish = finishing(gpu, format);",
+    "finish.layout(w, h, grainScaleOf(w));",
+    "pass(encoder, finish.view, silk, groups.silk);",
+    "finish.draw(encoder, context.getCurrentTexture().createView());"
+  ])
+    expect(webgpu, line).toContain(line);
+  const glsl = silkShader("glsl", P, effect, angle, SEEDS[0], ORIGIN, finish);
+  expect(glsl).toContain(FINISH_GLSL_SECTIONS);
+  expect(glsl).toContain("// ==== Pass 1: the silk ==== target: the finish's frame");
+  expect(silkShader("wgsl", P, effect, angle, SEEDS[0], ORIGIN, finish)).toContain(
+    FINISH_WGSL_SECTIONS
+  );
+});
+
+test("a grained silk with no soft lays its grain in its own pass, from a tile its page makes", () => {
+  const P = decodePalette(SEEDS[1]) as Palette;
+  const { effect, angle } = read("style=silk&angle=300");
+  const finish = { grain: 60 };
+  const webgl = silkShader("webgl", P, effect, angle, SEEDS[1], ORIGIN, finish);
+  expect(webgl).not.toContain("finishing(gl)");
+  expect(webgl).not.toContain("const SOFT");
+  for (const line of [
+    "grainTex = grainTexture(gl);",
+    "grainScale = grainScaleOf(w);",
+    "gl.uniform1f(U.grainScale, grainScale);",
+    "const GRAIN = 60;",
+    GRAIN_TILE_GLSL,
+    "outColor = grainOver(vec4(roundEven(clamp(mix(mix(b, s, 1.0 - tv), l, 1.0 - tc), 0.0, 1.0) * 255.0), 255.0), ivec2(p)) / 255.0;"
+  ])
+    expect(webgl, line).toContain(line);
+  const glsl = silkShader("glsl", P, effect, angle, SEEDS[1], ORIGIN, finish);
+  expect(glsl).toContain(GRAIN_TILE_GLSL);
+  expect(glsl).not.toContain("==== Finish");
+  const webgpu = silkShader("webgpu", P, effect, angle, SEEDS[1], ORIGIN, finish);
+  expect(webgpu).toContain("{ binding: 4, resource: grainTex.createView() }");
+  expect(webgpu).toContain(
+    "gpu.queue.writeBuffer(grainScale, 0, new Float32Array([grainScaleOf(w)]));"
+  );
+  expect(silkShader("wgsl", P, effect, angle, SEEDS[1], ORIGIN, finish)).toContain(
+    grainTileWgsl(4)
+  );
+});
+
+test("a soft silk's Shadertoy text takes its frame down to the soft's grid in Buffer C, blurs it in C and D and lays it over the gradient in the Image", () => {
+  const P = decodePalette(SEEDS[0]) as Palette;
+  const { effect, angle } = read("style=silk&angle=45");
+  const underlay = effectUnderlay(P, effect, angle, 40);
+  const text = silkShader("shadertoy", P, effect, angle, SEEDS[0], ORIGIN, {
+    soft: 40,
+    grain: 30,
+    underlay
+  });
+  const tabs = [...text.matchAll(/^\/\/ ==== (.+?) ====(.*)$/gm)].map(m => [m[1], m[2]]);
+  expect(tabs.map(([tab]) => tab)).toEqual([
+    "Common",
+    "Buffer A",
+    "Buffer B",
+    "Buffer C",
+    "Buffer D",
+    "Image"
+  ]);
+  expect(tabs[5][1]).toBe(" iChannel0: Buffer D (filter: nearest, wrap: clamp)");
+  expect(text).toContain(`const float SOFT = ${glslFloat(effectSoftShare(40))};`);
+  expect(text).toContain(`const int UNDERS = ${underlay?.stops.length};`);
+  /* an edit to the soft lays the state out again, so it shows at once */
+  expect(text).toContain("k == 2 ? EASE : SOFT");
+  expect(text).toContain(
+    "sum += (frameAt(iChannel1, b + ivec2(i, 0)) + frameAt(iChannel1, b - ivec2(i, 0))) * g.w[i];"
+  );
+  /* the frame in Buffer B as plain, taken down to the soft's grid in C, the grid blurred in C and D */
+  expect(text).toContain("vec4 blockAt(sampler2D frame, ivec2 i, Plan g) {");
+  expect(text).toContain(
+    "for (int i = -g.reach; i <= g.reach; i++) row += gridAt(iChannel1, b + ivec2(i, j), g) * g.w[abs(i)];"
+  );
+  expect(text).toContain("fragColor = vec4(grainOver(c.rgb, p) / 255.0, 1.0);");
+  expect(text).toContain("Buffers A to D each in Shadertoy's tab of the name");
+  /* a grain alone: the frame's tabs, the grain over the Image */
+  const grained = silkShader("shadertoy", P, effect, angle, SEEDS[0], ORIGIN, { grain: 30 });
+  expect([...grained.matchAll(/^\/\/ ==== (.+?) ====/gm)].map(m => m[1])).toEqual([
+    "Common",
+    "Buffer A",
+    "Buffer B",
+    "Image"
+  ]);
+  expect(grained).toContain("fragColor = vec4(grainOver(c, p) / 255.0, 1.0);");
+  expect(grained).not.toContain("SOFT");
 });
