@@ -3,34 +3,63 @@ import { fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { createEffect, createMemo, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./Editor.module.css";
-import { fxStillBackground, loadFx, serverFxStill } from "./fx-draw.ts";
+import { fxStillSteps, loadFx, serverFxStill } from "./fx-draw.ts";
 
 /** How often the small picture is drawn while its palette or look keeps changing (BlobArt.tsx): a change after a rest
     is drawn in the picture's turn; while the hand moves, at most once in this, and the last change once it rests. */
 const REST_MS = 250;
 /** How long a picture out of the window waits for its palette or look to rest before its still is drawn. */
 const AWAY_MS = 300;
+/** The milliseconds of a task the first stills shown in it are drawn in at once, and of a frame the stills in turn:
+    a list's cards come in a task, every one at a view a still has shown in a few tenths of a millisecond each (the
+    papercut keeps its cuts by the view, engine/papercut-svg.ts), the silk's and the rosette's too, so they show from
+    the frame they come in. A papercut's still at a new view takes some 10 ms on a desktop and 4 times that at
+    Lighthouse's phone, its cuts traced from its field: it is drawn in steps of under a millisecond on a desktop
+    (engine/fx-still.ts fxStillSteps), a frame's share at a time, so no task holds the page. */
+const SHARE_MS = 6;
 
-/* a frame draws one still, each picture in its turn with its latest (BlobArt.tsx) */
-const waiting = new Map<object, () => void>();
+/* A drawing of a still, a step a call: true once it is drawn. */
+type Steps = () => boolean;
+
+/* the stills in turn, each picture with its latest, drawn for a frame's share at a time; one not done by then goes on
+   first in the next frame */
+const waiting = new Map<object, Steps>();
 let ticking = false;
-const drawNext = () => {
-  const next = waiting.entries().next();
-  if (!next.done) {
-    const [who, draw] = next.value;
+const drawSome = () => {
+  const end = performance.now() + SHARE_MS;
+  for (let next = waiting.entries().next(); !next.done; next = waiting.entries().next()) {
+    const [who, step] = next.value;
+    if (!until(step, end)) break;
     waiting.delete(who);
-    draw();
   }
   ticking = waiting.size > 0;
-  if (ticking) requestAnimationFrame(drawNext);
+  if (ticking) requestAnimationFrame(drawSome);
 };
-function inTurn(who: object, draw: () => void): () => void {
-  waiting.set(who, draw);
+function inTurn(who: object, steps: Steps): () => void {
+  waiting.set(who, steps);
   if (!ticking) {
     ticking = true;
-    requestAnimationFrame(drawNext);
+    requestAnimationFrame(drawSome);
   }
   return () => waiting.delete(who);
+}
+/* steps taken until done, or until `end` once one is taken: true once done */
+function until(step: Steps, end: number): boolean {
+  do {
+    if (step()) return true;
+  } while (performance.now() < end);
+  return false;
+}
+/* the end of the share of the task now running that first stills take at once, until the next task */
+let taskEnd = -1;
+function inTask(step: Steps): boolean {
+  if (taskEnd < 0) {
+    taskEnd = performance.now() + SHARE_MS;
+    setTimeout(() => {
+      taskEnd = -1;
+    });
+  }
+  return performance.now() < taskEnd && until(step, taskEnd);
 }
 
 /** A vector effect's first frame (silk, rosette, papercut) as a small picture filling its box: the Appearance menu's
@@ -79,25 +108,32 @@ export function FxArt(props: {
       cancel?.();
       const now = untrack(shown);
       if (now?.key === next.key && (now.paint !== null || serverFxStill(next.key))) return;
-      const draw = () => {
+      if (!next.ready) return;
+      let steps: Iterator<void, string> | null = null;
+      const step: Steps = () => {
         if (serverFxStill(next.key)) {
           setShown({ key: next.key, paint: null });
-          return;
+          return true;
         }
-        const paint = fxStillBackground(next.kind, next.P, next.look);
-        if (paint) {
+        steps ??= fxStillSteps(next.kind, next.P, next.look);
+        const drawn = steps?.next();
+        if (drawn && !drawn.done) return false;
+        if (drawn) {
           drawnAt = performance.now();
-          setShown({ key: next.key, paint });
+          setShown({ key: next.key, paint: drawn.value });
         }
+        return true;
       };
-      if (!next.ready) return;
+      const turn = () => {
+        cancel = inTurn(self, step);
+      };
+      /* the first still: at once while the task has time for it, else in turn, one out of the window once it has
+         been away a while */
       if (!now || (now.paint === null && !serverFxStill(now.key))) {
-        draw();
+        if (!next.seen) timer = setTimeout(turn, AWAY_MS);
+        else if (!inTask(step)) turn();
         return;
       }
-      const turn = () => {
-        cancel = inTurn(self, draw);
-      };
       const wait = drawnAt + REST_MS - performance.now();
       if (!next.seen) timer = setTimeout(turn, AWAY_MS);
       else if (wait <= 0) turn();

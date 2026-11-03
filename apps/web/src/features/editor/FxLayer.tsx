@@ -1,5 +1,6 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
 import {
+  EFFECT_KINDS,
   type EffectSettings,
   type FxLook,
   fxStillKey,
@@ -28,7 +29,9 @@ import { fxLookOf, fxStillBackground, loadFx, serverFxStill } from "./fx-draw.ts
    Otherwise it is drawn here, the same background, once the stills' code has come. A reader who asks for less motion
    (Settings, else the device: ui/motion.ts) keeps the still. While the palette or the look changes the player shows
    it, over a still picture too, and the still is drawn for the last one once they rest, under the canvas, which then
-   fades back to it. */
+   fades back to it. The papercut's still stands in for its first frame (its shadows stepped), so its player comes at
+   speed 0 too and its exact first frame stays over the still (FxStage.tsx): the still is then the first paint and
+   what a page without WebGL shows. */
 
 /* the player is the browser's alone (the page stands live first): the server's build carries none of it */
 const FxStage = lazy(() =>
@@ -53,9 +56,13 @@ export function FxLayer(props: {
   const [ready, setReady] = createSignal(false);
   const moving = () => props.settings.speed > 0 && !holdsStill();
   const look = (): FxLook => fxLookOf(props.settings, props.angle);
-  createEffect(moving, on => {
-    if (on) setKept(true);
-  });
+  const stepped = () => EFFECT_KINDS[props.kind].steppedStill;
+  createEffect(
+    () => moving() || stepped(),
+    on => {
+      if (on) setKept(true);
+    }
+  );
   let holder!: HTMLDivElement;
   onSettled(() => {
     void loadFx().then(() => setReady(true));
@@ -103,7 +110,9 @@ export function FxLayer(props: {
       setKept(true);
       setHeld(true);
       resting = setTimeout(() => {
-        if (!untrack(moving) && untrack(ready))
+        /* under a papercut's first frame, which stays over it, the still waits until it shows again (the effect
+           above draws it then) */
+        if (!untrack(moving) && untrack(ready) && !(untrack(stepped) && untrack(covered)))
           still(
             untrack(() => props.kind),
             untrack(() => props.palette),

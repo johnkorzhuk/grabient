@@ -239,8 +239,15 @@ async function gradientPng(p: Taken): Promise<Blob> {
   if (!png) throw new Error("no PNG");
   return png;
 }
-/* a PNG is the first frame: the glass as its player draws it, the blob as its still SVG paints */
+/* the papercut's PNG by its CPU drawing (papercut-png.ts), its code asked for with the first one taken: neither a page's
+   start nor the Worker's build carries it */
+const papercutPngOf = async (p: Taken, effect: Effect): Promise<Blob> =>
+  (
+    await (import.meta.env.SSR ? (new Promise(() => {}) as never) : import("./papercut-png.ts"))
+  ).papercutPng(p, effect);
+/* a PNG is the first frame: the glass and the papercut as their players draw it, the others as their still SVG paints */
 const pngOf = async (p: Taken): Promise<Blob> => {
+  if (p.effect?.kind === "papercut") return papercutPngOf(p, p.effect);
   if (p.effect && p.effect.kind !== "glass")
     return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
   if (!p.effect) return gradientPng(p);
@@ -261,6 +268,8 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
    (figma-paste.ts figmaFinish): a soft one's edges thin to the gradient its files lay under it, whose code comes for
    a soft view alone. Each effect's code comes on the press, and the Worker's build carries none of it */
 const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
+  /* the papercut's layers are not built (engine/effect.ts hasFigmaCopy): its strips offer no Figma copy */
+  if (!hasFigmaCopy(effect.kind)) throw new Error("No Figma copy of this effect.");
   const finish = finishOf(p);
   const frame = {
     width: p.pixels.width,

@@ -14,10 +14,13 @@
    The cuts are the field's level sets: marching squares over the box and a margin wide enough that no shadow of the
    margin's closing edge reaches the box, every point moved onto the exact contour by Newton steps, then fitted with
    cubic Beziers whose tangents are the contour's own (across the field's slope there), split until no point strays
-   further than the tolerance. */
+   further than the tolerance. They depend on the view (its angle and shape) and the box alone, never on the palette,
+   so they are kept by these (PAPERCUT_TRACES_KEPT), and a still can be written a step at a time
+   (papercutStillSteps), which a list's cards are. */
 
 import type { Palette } from "./palette.ts";
 import {
+  atOnce,
   type PapercutScene,
   type PapercutView,
   papercutField,
@@ -53,12 +56,16 @@ interface Trace {
   reach: number;
 }
 
+/** Rows of the trace's grid a step takes, its field's or its cells'. */
+const ROWS = 24;
+
 /** The margin past the box the cuts are traced over, px. */
 const marginOf = (m: PapercutScene, reach: number) =>
   Math.ceil(Math.max(...m.offset) + reach * Math.max(...m.sigma) + 4);
 
-/** The contours of every sheet's level at t = 0, in px, with their tangents. */
-function contours(m: PapercutScene, how: Trace): Contour[][] {
+/** The contours of every sheet's level at t = 0, in px, with their tangents, a step at a time: the grid of the field,
+    the cells' segments at every level, then each level's loops. */
+function* contourSteps(m: PapercutScene, how: Trace): Generator<void, Contour[][]> {
   const at = new Float64Array(papercutFrameSize(m));
   papercutFrameAt(m, 0, at);
   const out = new Float64Array(4);
@@ -70,42 +77,43 @@ function contours(m: PapercutScene, how: Trace): Contour[][] {
   const X = (i: number) => -margin + i * h;
   const Y = (j: number) => -margin + j * h;
   const grid = new Float64Array(nx * ny);
-  for (let j = 0; j < ny; j++)
+  for (let j = 0; j < ny; j++) {
+    if (j % ROWS === ROWS - 1) yield;
     for (let i = 0; i < nx; i++) {
       const edge = i === 0 || j === 0 || i === nx - 1 || j === ny - 1;
       grid[j * nx + i] = edge
         ? -1e9
         : papercutFieldValue(m, at, (X(i) - W / 2) / D, (Y(j) - H / 2) / D);
     }
+  }
   const evalAt = (px: number, py: number) => {
     papercutField(m, at, (px - W / 2) / D, (py - H / 2) / D, out);
     return out;
   };
-  return trace(grid, nx, ny, m.levels, X, Y, h, evalAt, D, margin, W, H);
+  const nexts = yield* segments(grid, nx, ny, m.levels);
+  const loops: Contour[][] = [];
+  for (let k = 0; k < m.levels.length; k++) {
+    yield;
+    loops.push(loopsOf(nexts[k], grid, nx, m.levels[k], X, Y, h, evalAt, D, margin, W, H));
+  }
+  return loops;
 }
 
 /** Marching squares at every level in one pass over the grid (a cell's corners straddle only the levels between its
-    least and its greatest): segments between cell-edge crossings, linked into closed loops, each point polished onto
-    the exact contour. */
-function trace(
+    least and its greatest): each level's segments between cell-edge crossings, which loopsOf links into closed loops,
+    each point polished onto the exact contour. A step is ROWS rows of cells. */
+function* segments(
   grid: Float64Array,
   nx: number,
   ny: number,
-  levels: readonly number[],
-  X: (i: number) => number,
-  Y: (j: number) => number,
-  h: number,
-  evalAt: (x: number, y: number) => Float64Array,
-  D: number,
-  margin: number,
-  W: number,
-  H: number
-): Contour[][] {
+  levels: readonly number[]
+): Generator<void, Map<number, number>[]> {
   /* edge ids: horizontal edge (i, j)-(i+1, j) is 2 (j nx + i), vertical edge (i, j)-(i, j+1) is that + 1 */
   const hEdge = (i: number, j: number) => 2 * (j * nx + i);
   const vEdge = (i: number, j: number) => 2 * (j * nx + i) + 1;
   const nexts = levels.map(() => new Map<number, number>());
-  for (let j = 0; j < ny - 1; j++)
+  for (let j = 0; j < ny - 1; j++) {
+    if (j % ROWS === ROWS - 1) yield;
     for (let i = 0; i < nx - 1; i++) {
       const o = j * nx + i;
       const ga = grid[o];
@@ -188,9 +196,8 @@ function trace(
         }
       }
     }
-  return levels.map((level, k) =>
-    loopsOf(nexts[k], grid, nx, level, X, Y, h, evalAt, D, margin, W, H)
-  );
+  }
+  return nexts;
 }
 
 /** One level's segments linked into closed loops, each point polished onto the exact contour. */
@@ -462,9 +469,49 @@ function fit(
   pen.y += cy;
 }
 
-/** Each sheet's cut as its loops, sheet k at k - 1 (none where its level cuts nothing in the box). */
-function cutLoops(m: PapercutScene, how: Trace): Loop[][] {
-  return contours(m, how).map(loops => loops.map(c => bezier(c, how)));
+/** Each sheet's cut as its loops, sheet k at k - 1 (none where its level cuts nothing in the box), a step at a time:
+    the contours', then each level's curves fitted. */
+function* cutLoopSteps(m: PapercutScene, how: Trace): Generator<void, Loop[][]> {
+  const contours = yield* contourSteps(m, how);
+  const cuts: Loop[][] = [];
+  for (const loops of contours) {
+    yield;
+    cuts.push(loops.map(c => bezier(c, how)));
+  }
+  return cuts;
+}
+
+/** The cuts traced for a still, as path data, and for a file, each moved as its layers lie, kept by the scene's view
+    and box, the least lately used out first: they depend on these alone, never on the palette, so a list's cards at
+    one angle and shape trace them once and each card writes its colors about them (a still's are about 10 KB, a
+    file's at 1920 by 1080 about 60). */
+export const PAPERCUT_TRACES_KEPT = { still: 32, file: 4 } as const;
+interface FileCut {
+  /** the cut moved away from the light by its shadow's offset, the cut, and the cut moved by the lit edge's width */
+  shadow: string;
+  cut: string;
+  face: string;
+}
+const stillCuts = new Map<string, (string | null)[]>();
+const fileCuts = new Map<string, (FileCut | null)[]>();
+function* kept<T>(
+  map: Map<string, T>,
+  most: number,
+  m: PapercutScene,
+  trace: () => Generator<void, T>
+): Generator<void, T> {
+  if (m.view === null) return yield* trace();
+  const key = `${m.view}|${m.width}|${m.height}`;
+  let cuts = map.get(key);
+  if (cuts !== undefined) map.delete(key);
+  else {
+    cuts = yield* trace();
+    /* another drawing of the view may have kept them meanwhile */
+    map.delete(key);
+    if (map.size >= most) map.delete(map.keys().next().value as string);
+  }
+  map.set(key, cuts);
+  return cuts;
 }
 
 /** The light at t = 0, on screen: toward it. */
@@ -514,17 +561,26 @@ const svgOpen = (m: PapercutScene) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${m.width}" height="${m.height}" viewBox="0 0 ${m.width} ${m.height}">`;
 
 /** The still: stepped shadows, no filter. */
-export function papercutStillOf(m: PapercutScene): string {
+export const papercutStillOf = (m: PapercutScene): string => atOnce(papercutStillSteps(m));
+
+/** The still written a step at a time, each a millisecond or so on a desktop (a view's cuts traced a level at a time,
+    unless they are kept), so a page drawing a list of them can give each frame its share and never hold the page;
+    it returns the still. */
+export function* papercutStillSteps(m: PapercutScene): Generator<void, string> {
   const { width: W, height: H } = m;
-  const how = STILL_TRACE(m);
-  const cuts = cutLoops(m, how);
+  const cuts = yield* kept(stillCuts, PAPERCUT_TRACES_KEPT.still, m, function* () {
+    const how = STILL_TRACE(m);
+    return (yield* cutLoopSteps(m, how)).map(loops =>
+      loops.length ? pathOf(loops, how.places) : null
+    );
+  });
   const [lx, ly] = lightOf(m);
   const defs: string[] = [];
   const body: string[] = [];
   for (let k = 1; k < m.n; k++) {
-    const loops = cuts[k - 1];
-    if (!loops.length) continue;
-    defs.push(`<path id="c${k}" d="${pathOf(loops, how.places)}"/>`);
+    const cut = cuts[k - 1];
+    if (cut === null) continue;
+    defs.push(`<path id="c${k}" d="${cut}"/>`);
     const shadow = m.shadowHex[k];
     const off = m.offset[k];
     const moved = `translate(${fmt(-off * lx, 2)} ${fmt(-off * ly, 2)})`;
@@ -556,8 +612,20 @@ export function papercutStillOf(m: PapercutScene): string {
 export function papercutFileOf(m: PapercutScene): string {
   const { width: W, height: H } = m;
   const how = FILE_TRACE(m);
-  const cuts = cutLoops(m, how);
-  const [lx, ly] = lightOf(m);
+  const cuts = atOnce(
+    kept(fileCuts, PAPERCUT_TRACES_KEPT.file, m, function* () {
+      const [lx, ly] = lightOf(m);
+      return (yield* cutLoopSteps(m, how)).map((loops, i) => {
+        if (!loops.length) return null;
+        const off = m.offset[i + 1];
+        return {
+          shadow: pathOf(loops, how.places, -off * lx, -off * ly),
+          cut: pathOf(loops, how.places),
+          face: pathOf(loops, how.places, -m.wall * lx, -m.wall * ly)
+        };
+      });
+    })
+  );
   const margin = marginOf(m, how.reach);
   const region = `x="${-margin}" y="${-margin}" width="${W + 2 * margin}" height="${H + 2 * margin}" filterUnits="userSpaceOnUse"`;
   const blurs = new Map<number, string>();
@@ -573,20 +641,22 @@ export function papercutFileOf(m: PapercutScene): string {
   const layer = (d: string, paint: string) =>
     body.push(`<path d="${d}" fill-rule="evenodd" ${paint}/>`);
   for (let k = 1; k < m.n; k++) {
-    const loops = cuts[k - 1];
-    if (!loops.length) continue;
-    const off = m.offset[k];
-    const cut = pathOf(loops, how.places);
+    const cut = cuts[k - 1];
+    if (cut === null) continue;
     layer(
-      pathOf(loops, how.places, -off * lx, -off * ly),
-      `fill="${m.shadowHex[k]}" opacity="${m.alpha[k]}" filter="url(#${filter(m.sigma[k])})"`
+      cut.shadow,
+      `fill="${m.shadowHex[k]}" opacity="${fmt(m.alpha[k], 3)}" filter="url(#${filter(m.sigma[k])})"`
     );
-    layer(cut, `fill="${m.shadowHex[k]}" opacity="${m.calpha}" filter="url(#${filter(m.csigma)})"`);
-    layer(cut, `fill="${m.wallHex[k]}"`);
-    layer(pathOf(loops, how.places, -m.wall * lx, -m.wall * ly), `fill="${m.hex[k]}"`);
+    layer(
+      cut.cut,
+      `fill="${m.shadowHex[k]}" opacity="${fmt(m.calpha, 3)}" filter="url(#${filter(m.csigma)})"`
+    );
+    layer(cut.cut, `fill="${m.wallHex[k]}"`);
+    layer(cut.face, `fill="${m.hex[k]}"`);
   }
   const filters = [...blurs].map(
-    ([s, id]) => `<filter id="${id}" ${region}><feGaussianBlur stdDeviation="${s}"/></filter>`
+    ([s, id]) =>
+      `<filter id="${id}" ${region}><feGaussianBlur stdDeviation="${fmt(s, 3)}"/></filter>`
   );
   return (
     `${svgOpen(m)}<defs>${filters.join("")}<clipPath id="pcbox"><rect width="${W}" height="${H}"/></clipPath></defs>` +

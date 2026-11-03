@@ -33,6 +33,16 @@ export function fxStillBackground(kind: VectorKind, P: Palette, look: FxLook): s
   return fx ? fx.fxStillBackground(kind, P, look) : null;
 }
 
+/** The same background drawn a step at a time (a papercut's cuts traced a level at a time, where no still has shown
+    its view yet), or null while its code loads. */
+export function fxStillSteps(
+  kind: VectorKind,
+  P: Palette,
+  look: FxLook
+): Iterator<void, string> | null {
+  return fx ? fx.fxStillSteps(kind, P, look) : null;
+}
+
 /** How a vector effect plays: its look, its pace and its frame rate. */
 export interface FxPlay {
   angle: number;

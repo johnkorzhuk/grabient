@@ -99,6 +99,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the tags its hero shows and the rules that paint an effect's first frame behind a page, finished by soft and grain
      (engine/effect-embed.ts, 0.55 KB, a chunk of its own once every other page's start left it), took it from 295.7
      to 296.2 on 3 Nov 2026 */
+  /* it stood at 295.9 with papercut as an effect (d5cdb607 and sg/papercut, 3 Nov 2026); the vector stills drawn a
+     task's and a frame's share at a time (FxArt.tsx, which this page's cards draw with: a list's papercut stills held
+     the page up to 0.7 s at once) and the effects' kind fact for a still that stands in for its first frame took it
+     to 296.2 */
   "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 297 },
   /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
      view's parts in every address, the header's swatch) from 225.2 to 226.6 */

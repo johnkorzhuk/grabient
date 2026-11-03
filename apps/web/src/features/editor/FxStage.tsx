@@ -1,4 +1,4 @@
-import type { VectorKind } from "@grabient/engine/effect.ts";
+import { EFFECT_KINDS, type VectorKind } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import type { EffectPlayer } from "@grabient/ui/effect-loop.ts";
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid-js";
@@ -27,9 +27,11 @@ const FADE_MS = 700;
 /* A vector effect playing (silk, rosette, papercut): its WebGL player over its still (FxLayer.tsx), loaded once the
    page is live, as the glass's is (GlassStage.tsx). Its first frame is the still's own, to about a level, and its
    canvas fades in only once that frame is drawn, so the still hands over without a seam; where WebGL is missing it
-   shows nothing and the still stays. `still` (speed 0) fades it out to the still, and once it has faded the player goes back to that
-   frame. `held` (the palette or the look changing) shows the canvas over a still picture too, at once. `reduced` holds
-   it at its first frame. `onLive` hears whether the canvas covers the still. */
+   shows nothing and the still stays. `still` (speed 0) fades it out to the still, and once it has faded the player goes
+   back to that frame. A kind whose still stands in for its first frame (the papercut's stepped shadows: effect.ts's
+   steppedStill) shows the canvas again once it is back there, its exact first frame over the still, at speed 0 as in
+   motion. `held` (the palette or the look changing) shows the canvas over a still picture too, at once. `reduced`
+   holds it at its first frame. `onLive` hears whether the canvas covers the still. */
 export function FxStage(props: {
   kind: VectorKind;
   palette: Palette;
@@ -41,7 +43,10 @@ export function FxStage(props: {
 }) {
   let canvas!: HTMLCanvasElement;
   const [drawn, setDrawn] = createSignal(false);
-  const shown = () => drawn() && (!props.still || props.held);
+  /* the player shows its first frame: it has not moved since it was drawn, or it has been sent back to it */
+  const [first, setFirst] = createSignal(true);
+  const stepped = EFFECT_KINDS[untrack(() => props.kind)].steppedStill;
+  const shown = () => drawn() && (!props.still || props.held || (stepped && first()));
   let player: EffectPlayer<FxPlay> | null = null;
   let rewinding: ReturnType<typeof setTimeout> | undefined;
   let reduced = untrack(() => props.reduced);
@@ -73,10 +78,21 @@ export function FxStage(props: {
       props.onLive(false);
     };
   });
+  createEffect(
+    () => props.still,
+    still => {
+      if (!still) setFirst(false);
+    }
+  );
   createEffect(shown, on => {
     props.onLive(on);
     clearTimeout(rewinding);
-    if (!on) rewinding = setTimeout(() => player?.rewind(), FADE_MS);
+    if (!on)
+      rewinding = setTimeout(() => {
+        player?.rewind();
+        /* back at its first frame, where it stays while held still */
+        if (player && untrack(() => props.still)) setFirst(true);
+      }, FADE_MS);
   });
   onCleanup(() => clearTimeout(rewinding));
   createEffect(

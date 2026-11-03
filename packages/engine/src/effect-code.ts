@@ -9,6 +9,7 @@ import { sampleStops } from "./curve.ts";
 import {
   type Effect,
   type EffectFinish,
+  type EffectKind,
   effectAddressParts,
   effectFileAddress,
   effectStillParts,
@@ -103,8 +104,18 @@ export const effectStylesheet = (
 export const effectSize = (effect: Effect): Size =>
   effect.kind === "blob" ? BLOB_SIZE : DEFAULT_SIZE;
 
-/** The effect as an SVG moved by CSS alone, covering its box (effectSize where none is given), credited to the
-    effect's page; at speed 0, its first frame. A soft or grained view's SVG is finished as the site paints it
+/** How each effect's SVG moves at a speed: by CSS animations, by SMIL (the silk's rings), or not at all (the
+    papercut's, its first frame at any speed, since its cuts change shape as they move). */
+export const EFFECT_SVG_MOTION: Readonly<Record<EffectKind, "css" | "smil" | null>> = {
+  glass: "css",
+  blob: "css",
+  silk: "smil",
+  rosette: "css",
+  papercut: null
+};
+
+/** The effect as an SVG moved by CSS or SMIL alone (EFFECT_SVG_MOTION), covering its box (effectSize where none is
+    given), credited to the effect's page; at speed 0, its first frame. A soft or grained view's SVG is finished as the site paints it
     (fx-finish.ts finishSvg): its drawing blurred over its palette's gradient, and the grain's tile over it, `grain` the
     tile's data URI at the view's grain (the Worker's and the editor's own, engine/grain.ts grainPng). */
 export function effectSvg(

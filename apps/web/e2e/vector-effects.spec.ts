@@ -176,3 +176,68 @@ test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, 
     expect([clip.status(), clip.headers()["content-type"]]).toEqual([200, "video/mp4"]);
   }
 });
+
+test("a list turned to the papercut draws every card's still in turn, a frame's share at a time", async ({
+  page
+}) => {
+  await open(page, "/palettes?style=linearGradient");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Papercut", exact: true }).click();
+  await expect(page).toHaveURL(/\/palettes\?style=papercut$/);
+  /* no card's still was in the head, which painted the gradients: each is drawn here, and each comes */
+  const cards = page.locator('main article [data-fx-still^="papercut|"]');
+  await expect(cards.first()).toBeAttached();
+  await expect
+    .poll(
+      () =>
+        cards.evaluateAll(
+          all =>
+            all.filter(e => (e as HTMLElement).style.background.includes("data:image/svg+xml"))
+              .length === all.length
+        ),
+      { timeout: 15_000 }
+    )
+    .toBe(true);
+});
+
+test("the papercut's stage keeps its player at speed 0, its exact first frame over the stepped still, where the silk's stage keeps its still", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?style=papercut&speed=0`);
+  await expect(page.locator('main [data-fx-still^="papercut|"] ~ canvas')).toBeAttached();
+  await open(page, `/${SEED}?style=silk&speed=0`);
+  await expect(page.locator('main [data-fx-still^="silk|"]').first()).toBeAttached();
+  await expect(page.locator('main [data-fx-still^="silk|"] ~ canvas')).toHaveCount(0);
+});
+
+test("a papercut's Copy PNG is its first frame at the stage's size, grained as the page is", async ({
+  page,
+  context
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await open(page, `/${SEED}?style=papercut&angle=30&soft=40&grain=30&size=800x400&shape=7`);
+  const stage = { width: 800, height: 400 };
+  await page.evaluate(() => navigator.clipboard.writeText(""));
+  /* the stage's strip's, the first of the page's (the contrast and color space panels have theirs) */
+  await page.getByRole("button", { name: "Copy PNG" }).first().click();
+  const read = () =>
+    page.evaluate(async () => {
+      const [item] = await navigator.clipboard.read();
+      if (!item?.types.includes("image/png")) return null;
+      const image = await createImageBitmap(await item.getType("image/png"));
+      /* the grain: a speck on every pixel, so neighbours differ by levels where a sheet is flat */
+      const canvas = new OffscreenCanvas(image.width, image.height);
+      const context = canvas.getContext("2d")!;
+      context.drawImage(image, 0, 0);
+      const { data } = context.getImageData(0, 0, image.width, image.height);
+      const steps: number[] = [];
+      for (let i = 0; i + 4 < data.length; i += 4 * 97)
+        steps.push(Math.abs(data[i + 1] - data[i + 5]));
+      steps.sort((a, b) => a - b);
+      return { width: image.width, height: image.height, step: steps[steps.length >> 1] };
+    });
+  await expect.poll(read, { timeout: 15_000 }).not.toBeNull();
+  const picture = (await read())!;
+  expect({ width: picture.width, height: picture.height }).toEqual(stage);
+  expect(picture.step).toBeGreaterThan(1);
+});
