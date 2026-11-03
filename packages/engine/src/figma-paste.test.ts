@@ -1150,10 +1150,11 @@ test("a path's loops as Figma's vector network: each segment's handles from its 
   expect(u(segment + 2 * 28 + 16)).toBe(0);
   expect(u(segment + 5 * 28 + 16)).toBe(3);
   const region = segment + 6 * 28;
-  /* the odd rule (WindingRule ODD), two loops of three segments each */
-  expect([u(region + 4), u(region + 8), u(region + 12)]).toEqual([1, 2, 3]);
-  expect([u(region + 16), u(region + 20), u(region + 24)]).toEqual([0, 1, 2]);
-  expect(bytes.length).toBe(region + 12 + 2 * 16);
+  /* the region's style over its winding bit, 0 for the odd rule, then two loops of three segments each */
+  expect([u(region), u(region + 4), u(region + 8)]).toEqual([0, 2, 3]);
+  expect([u(region + 12), u(region + 16), u(region + 20)]).toEqual([0, 1, 2]);
+  expect([u(region + 24), u(region + 28), u(region + 32), u(region + 36)]).toEqual([3, 3, 4, 5]);
+  expect(bytes.length).toBe(region + 8 + 2 * 16);
 });
 
 test("the papercut as Figma's layers: each sheet a group of its shadow, its contact, its wall and its face, vectors whose networks the paste carries", () => {
@@ -1208,6 +1209,22 @@ test("the papercut as Figma's layers: each sheet a group of its shadow, its cont
         expect(net.getFloat32(12 + i * 12 + 4, true)).toBeGreaterThanOrEqual(-1e-3);
         expect(net.getFloat32(12 + i * 12 + 8, true)).toBeLessThanOrEqual(layer.size.y + 1e-3);
       }
+      /* read as Sketch's .fig reader reads one (fig2sketch's vector_network.py), to its last byte: one region by the
+         odd rule, its loops naming every segment once */
+      const segments = net.getUint32(4, true);
+      expect(net.getUint32(8, true)).toBe(1);
+      let at = 12 + count * 12 + segments * 28;
+      expect(net.getUint32(at, true) & 1).toBe(0);
+      const loops = net.getUint32(at + 4, true);
+      at += 8;
+      const named: number[] = [];
+      for (let l = 0; l < loops; l++) {
+        const n = net.getUint32(at, true);
+        for (let i = 0; i < n; i++) named.push(net.getUint32(at + 4 + 4 * i, true));
+        at += 4 + 4 * n;
+      }
+      expect(at).toBe(net.byteLength);
+      expect(named.sort((x, y) => x - y)).toEqual([...Array(segments).keys()]);
     }
   }
   /* soft and grain wrap it as every effect's: the noise over all, the gradient under the blurred drawing */

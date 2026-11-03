@@ -130,7 +130,10 @@ export function figmaPathLoops(d: string): FigmaCubic[][] {
     Figma's own clipboard writes (W/figma-clip samples/01, its rectangle and discs): the counts of vertices, segments
     and regions; each vertex a style and its x and y; each segment a style, its start and its handle there, its end and
     its handle there, handles relative to their vertices; then one region holding every loop, filled by the odd rule,
-    so a loop inside another is a hole, as SVG's evenodd fills it. Numbers little-endian, 32 bits. */
+    so a loop inside another is a hole, as SVG's evenodd fills it. A region's first word is its style shifted left
+    by one over its winding bit (1 nonzero, 0 odd), then its count of loops, each loop a count and its segments, as
+    Sketch's .fig reader decodes them (fig2sketch, src/figformat/vector_network.py; the samples' vectors hold no
+    region). Numbers little-endian, 32 bits. */
 export function figmaVectorNetwork(loops: readonly (readonly FigmaCubic[])[]): Uint8Array {
   const vertices: [number, number][] = [];
   const segments: [number, number, number, number, number, number][] = [];
@@ -156,7 +159,7 @@ export function figmaVectorNetwork(loops: readonly (readonly FigmaCubic[])[]): U
     regionLoops.push(indices);
   }
   const regionBytes = regionLoops.length
-    ? 12 + regionLoops.reduce((n, l) => n + 4 + 4 * l.length, 0)
+    ? 8 + regionLoops.reduce((n, l) => n + 4 + 4 * l.length, 0)
     : 0;
   const out = new Uint8Array(12 + vertices.length * 12 + segments.length * 28 + regionBytes);
   const view = new DataView(out.buffer);
@@ -187,9 +190,8 @@ export function figmaVectorNetwork(loops: readonly (readonly FigmaCubic[])[]): U
     f(ty1);
   }
   if (regionLoops.length) {
+    /* style 0, the odd rule: (0 << 1) | 0 */
     u(0);
-    /* WindingRule ODD */
-    u(1);
     u(regionLoops.length);
     for (const l of regionLoops) {
       u(l.length);
