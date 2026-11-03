@@ -68,7 +68,8 @@ export interface PapercutLook {
   /** the shadow's color: the paper it falls on, its OKLab lightness times depth, its chroma times chroma */
   shadowDepth: number;
   shadowChroma: number;
-  /** degrees a yellow's shadow turns toward orange (at OKLCH hue YELLOW, less to nothing 45 degrees either side) */
+  /** degrees a yellow's shadow turns toward orange (at OKLCH hue PAPERCUT_YELLOW, less to nothing 45 degrees either
+      side) */
   ochre: number;
   /** the lit cut: its width, and its color the sheet's own this much lighter (OKLab L) */
   wall: number;
@@ -126,7 +127,7 @@ export interface PapercutBump {
 }
 
 /** The designed relief (shape 0): a peak toward the head, a basin toward the tail, a small island and a dip. */
-const DESIGNED: PapercutBump[] = [
+export const PAPERCUT_DESIGNED: readonly PapercutBump[] = [
   {
     x: 0.42,
     y: -0.18,
@@ -188,7 +189,8 @@ const DESIGNED: PapercutBump[] = [
     pb: 5.1
   }
 ];
-const DESIGNED_PHASE = [0.7, 2.3, 4.1, 1.2];
+/** The designed relief's waves' phases at t = 0. */
+export const PAPERCUT_DESIGNED_PHASE: readonly number[] = [0.7, 2.3, 4.1, 1.2];
 
 /** mulberry32 */
 function rng(seed: number) {
@@ -243,13 +245,13 @@ export interface PapercutScene {
   /** the ramp: its direction on screen (toward the palette's last color), over its half length */
   rx: number;
   ry: number;
-  bumps: PapercutBump[];
+  bumps: readonly PapercutBump[];
   wa: number;
   wf: number;
   wa2: number;
   wf2: number;
   /** the waves' phases at t = 0, and their whole cycles a loop (signed) */
-  phase: number[];
+  phase: readonly number[];
   cycles: number[];
   /** toward the light at t = 0, on screen, unit; and its swing, radians each way */
   lx: number;
@@ -287,7 +289,7 @@ export const papercutFrameSize = (m: PapercutScene) => m.bumps.length * PAPERCUT
 
 const round = (v: number, step: number) => Math.round(v / step) * step;
 /** The OKLCH hue of a pure yellow, where a shadow would go most olive. */
-const YELLOW = 100;
+export const PAPERCUT_YELLOW = 100;
 const bytes = (hex: string) => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16) / 255);
 const TAU = Math.PI * 2;
 
@@ -607,7 +609,9 @@ export function* papercutModelSteps(
   }
   const lx = Math.cos(le) * dx + Math.sin(le) * px;
   const ly = Math.cos(le) * dy + Math.sin(le) * py;
-  const layout = view.shape ? seeded(view.shape) : { bumps: DESIGNED, phase: DESIGNED_PHASE };
+  const layout = view.shape
+    ? seeded(view.shape)
+    : { bumps: PAPERCUT_DESIGNED, phase: PAPERCUT_DESIGNED_PHASE };
   const n = Math.max(2, Math.min(PAPERCUT_MAX_SHEETS, Math.round(look.sheets)));
   const hex = Array.from({ length: n }, (_, i) => toHex(sampleSrgb(P, i / (n - 1))));
   const lch = hex.map(h => srgbToLch(bytes(h)));
@@ -618,7 +622,7 @@ export function* papercutModelSteps(
      it goes olive, which no paper's shadow does) */
   const shadowHex = lch.map((_, k) => {
     const [L, C, H] = lch[Math.max(0, k - 1)];
-    const off = ((((H - YELLOW) % 360) + 540) % 360) - 180;
+    const off = ((((H - PAPERCUT_YELLOW) % 360) + 540) % 360) - 180;
     const turn = look.ochre * Math.max(0, 1 - Math.abs(off) / 45) * Math.min(1, C / 0.06);
     return toHex(lchToSrgb(L * look.shadowDepth, C * look.shadowChroma, H - turn));
   });
@@ -702,19 +706,18 @@ export const papercutSceneSteps = (
 ): Generator<void, PapercutScene> => papercutModelSteps(P, view, size.width, size.height);
 
 /** The least share of the design's box an island or hole cut at t = 0 may have. */
-const SPECK = 0.004;
+export const PAPERCUT_SPECK = 0.004;
 /** The levels' grid over the design's box, cells each way. */
-const GRID_W = 128;
-const GRID_H = 72;
+export const PAPERCUT_GRID = { w: 128, h: 72 } as const;
 
 /** The levels that give every sheet an equal share of the design's box at t = 0 (quantiles of the field over a grid),
-    each then moved a hair past any island or hole it would cut smaller than SPECK of the box, so the still never shows
-    a speck (in motion, islands still surface and sink, as they would). They depend on the palette's view alone, never
-    on the box, so every box cuts the same sheets. A few ms: a grid of the field alone, one flood a level, nothing
-    allocated per cell; a step is a sixth of the grid, the sort, or a level's specks. */
+    each then moved a hair past any island or hole it would cut smaller than PAPERCUT_SPECK of the box, so the still
+    never shows a speck (in motion, islands still surface and sink, as they would). They depend on the palette's view
+    alone, never on the box, so every box cuts the same sheets. A few ms: a grid of the field alone, one flood a level,
+    nothing allocated per cell; a step is a sixth of the grid, the sort, or a level's specks. */
 function* levelSteps(m: PapercutScene): Generator<void, number[]> {
-  const gw = GRID_W;
-  const gh = GRID_H;
+  const gw = PAPERCUT_GRID.w;
+  const gh = PAPERCUT_GRID.h;
   const cells = gw * gh;
   const at = new Float64Array(papercutFrameSize(m));
   papercutFrameAt(m, 0, at);
@@ -738,7 +741,7 @@ function* levelSteps(m: PapercutScene): Generator<void, number[]> {
   const levels = shares.slice();
   const label = new Int32Array(cells);
   const stack = new Int32Array(cells);
-  const min = SPECK * cells;
+  const min = PAPERCUT_SPECK * cells;
   for (let k = 0; k < levels.length; k++) {
     yield;
     for (let pass = 0; pass < 4; pass++) {
