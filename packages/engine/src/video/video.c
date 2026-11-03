@@ -1,14 +1,16 @@
 /* A palette's effect as H.264, in one module with no C library and no imports, for the Worker and the browser alike:
    the fluted glass's, the blob's, the silk's and the rosette's pixels (engine/glass-render.ts's glassRenderer,
    engine/blob.ts's blobRenderer, silk-render.ts's renderSilk and rosette-render.ts's renderRosette, their arithmetic in
-   single precision and wasm SIMD, within a level of theirs), finished with the soft and the grain as fx-finish.ts's
-   finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn, and minih264 (CC0, lieff/minih264, patched
-   for the level, the Constrained Baseline flags and the colors' VUI; its SSE2 code through emscripten's SSE headers) to
-   code them.
+   single precision and wasm SIMD, within a level of theirs) and the papercut's (papercut-render.ts's renderPapercut,
+   its own double precision two pixels at a time, its bytes, its sin, cos and exp within an ulp of V8's), finished with
+   the soft and the grain as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn,
+   and minih264 (CC0, lieff/minih264, patched for the level, the Constrained Baseline flags and the colors' VUI; its
+   SSE2 code through emscripten's SSE headers) to code them.
 
    JS says where an effect stands in each frame (the glass's discs, the blob's balls, the silk's folds, the rosette's
-   petals: engine code, which moves them) and this draws it. One encoder an instance: create(), a setup, the finish's
-   setups where the clip has a soft or a grain, then per frame a draw and frame(). */
+   petals, the papercut's hills, waves and light: engine code, which moves them) and this draws it. One encoder an
+   instance: create(), a setup, the finish's setups where the clip has a soft or a grain, then per frame a draw and
+   frame(). */
 #include <wasm_simd128.h>
 
 static int grabient_fps = 0;
@@ -1359,6 +1361,481 @@ void rosette_frame(int petals) {
         else
           emitOpaque(x, y, 2, q[0], q[1], q[0], q[1], q[4], q[5], q[4], q[5]);
       }
+    }
+  }
+  if (fSoft) finishFrame();
+}
+
+/* ---------------------------------------------------------------- the papercut (papercut-render.ts's papercutRows) */
+
+/* papercut.ts's sheets and hills at most, its shadows' reach in sigmas and its round model's in drop-shadow offsets;
+   papercut-render.ts's pixels a sample of the field each way */
+#define PC_SHEETS 24
+#define PC_BUMPS 6
+#define PC_REACH 2.54
+#define PC_NEAR 16
+#define PC_Q 4
+/* how far a value mixed between a cell's corners can stray past theirs, the field's (which runs within a few units)
+   absolutely, its slope's and its curvature's as shares: far more than the mixing's rounding */
+#define PC_HAIR 1e-9
+
+/* sin and cos from fdlibm's kernels, in the later form FreeBSD's msun gives them: the angle less the nearest whole
+   number of quarter turns, taken off in two parts so the rest keeps its precision (the waves' phases are a few turns at
+   most), then the kernels' polynomials over [-pi/4, pi/4], the rest's own rounding carried in. Within an ulp of V8's
+   Math.sin and Math.cos, which keep fdlibm's older kernels: the last bit differs at about 1% of the waves' phases, by
+   at most 1.1e-16, which moves a byte only where a value lies that near a rounding's half */
+static inline double kernelSin(double x, double y) {
+  const double S1 = -1.66666666666666324348e-01, S2 = 8.33333333332248946124e-03, S3 = -1.98412698298579493134e-04,
+               S4 = 2.75573137070700676789e-06, S5 = -2.50507602534068634195e-08, S6 = 1.58969099521155010221e-10;
+  double z = x * x, w = z * z, r = S2 + z * (S3 + z * S4) + z * w * (S5 + z * S6), v = z * x;
+  return x - ((z * (0.5 * y - v * r) - y) - v * S1);
+}
+static inline double kernelCos(double x, double y) {
+  const double C1 = 4.16666666666666019037e-02, C2 = -1.38888888888741095749e-03, C3 = 2.48015872894767294178e-05,
+               C4 = -2.75573143513906633035e-07, C5 = 2.08757232129817482790e-09, C6 = -1.13596475577881948265e-11;
+  double z = x * x, w = z * z, r = z * (C1 + z * (C2 + z * C3)) + w * w * (C4 + z * (C5 + z * C6));
+  double hz = 0.5 * z, a = 1 - hz;
+  return a + (((1 - a) - hz) + (z * r - x * y));
+}
+static void sinCos(double x, double *s, double *c) {
+  double n = __builtin_floor(x * 6.36619772367581382433e-01 + 0.5);
+  double r = x - n * 1.57079632673412561417e+00, w = n * 6.07710050650619224932e-11;
+  double y0 = r - w, y1 = (r - y0) - w;
+  double sr = kernelSin(y0, y1), cr = kernelCos(y0, y1);
+  switch ((int)n & 3) {
+  case 0:
+    *s = sr;
+    *c = cr;
+    break;
+  case 1:
+    *s = cr;
+    *c = -sr;
+    break;
+  case 2:
+    *s = -sr;
+    *c = -cr;
+    break;
+  default:
+    *s = -cr;
+    *c = sr;
+  }
+}
+
+/* exp(x) for x at most 0, from fdlibm's: x less the nearest whole number k of ln 2's, in two parts, the rest's exp
+   from its rational approximation, times 2^k; 0 past -40, where 1 less it is 1. Within an ulp of V8's Math.exp, which
+   fdlibm's own reductions give (the last bit differs at 0.05% of x, by at most 1.1e-16 of it) */
+static double expNeg(double x) {
+  if (x < -40) return 0;
+  const double ln2hi = 6.93147180369123816490e-01, ln2lo = 1.90821492927058770002e-10,
+               invln2 = 1.44269504088896338700e+00;
+  const double P1 = 1.66666666666666019037e-01, P2 = -2.77777777770155933842e-03, P3 = 6.61375632143793436117e-05,
+               P4 = -1.65339022054652515390e-06, P5 = 4.13813679705723846039e-08;
+  int k = (int)(invln2 * x - 0.5);
+  double hi = x - k * ln2hi, lo = k * ln2lo, r = hi - lo, t = r * r;
+  double c = r - t * (P1 + t * (P2 + t * (P3 + t * (P4 + t * P5))));
+  if (k == 0) return 1 - ((r * c) / (c - 2.0) - r);
+  union {
+    unsigned long long bits;
+    double value;
+  } scale = {(unsigned long long)(1023 + k) << 52};
+  return (1 - ((lo - (r * c) / (2.0 - c)) - hi)) * scale.value;
+}
+
+static int pcN, pcNb, pcFw, pcFh;
+/* the scene (papercut.ts's PapercutScene): its unit D in pixels, the ramp, the waves' reaches and frequencies (and
+   their products, the bends' slopes), the contact shadow's 1 / sigma and opacity, the lit cut's width */
+static double pcD, pcRx, pcRy, pcWa, pcWf, pcWa2, pcWf2, pcWaf, pcWa2f2, pcIcsigma, pcCalpha, pcWall;
+/* each sheet's level (where sheet k + 1 begins), its face's, its lit cut's and its shadow's colors (0 to 1), its drop
+   shadow's 1 / sigma, offset and opacity, and how far from its cut the sheet above it is visited */
+static double pcLevel[PC_SHEETS], pcFace[3 * PC_SHEETS], pcWallC[3 * PC_SHEETS], pcShadow[3 * PC_SHEETS];
+static double pcIsigma[PC_SHEETS], pcOffset[PC_SHEETS], pcAlpha[PC_SHEETS], pcReach[PC_SHEETS];
+/* how far a sheet's cut lies from a pixel where nothing of the sheet shows there: past its drop shadow, its contact
+   shadow and its lit cut and face (pcCell) */
+static double pcClear[PC_SHEETS];
+/* the field's samples, four numbers each (the field, its slope across and down, its curvature), the slope's length at
+   each, each column's and row's place in D units, and the waves there this frame (pcSample) */
+static double *pcField, *pcSlope, *pcQx, *pcQy, *pcCol, *pcRow;
+/* the dither's products across and down (papercut.ts's papercutDither) */
+static double *pcDx, *pcDy;
+/* a row of cells' kinds and sheets (pcCell), worked out with its first pair of rows for its second */
+static int *pcKinds;
+/* each sheet's face as a pixel for `put`: its bytes, which a face's pixels are (pcCell) */
+static v128_t pcFaceBytes[PC_SHEETS];
+
+/* The papercut's scene for the box (papercut.ts's papercutScene): `n` sheets, `nb` hills, its unit D (pixels), the
+   ramp (rx, ry), the waves (wa, wf, wa2, wf2), the contact shadow's 1 / sigma and opacity and the lit cut's width;
+   params hold the n - 1 levels, then the faces', the lit cuts' and the shadows' colors (three each, 0 to 1), then
+   each sheet's drop shadow's 1 / sigma, its offset, its opacity and its reach. 1, or 0 where the memory is short. */
+EXPORT(papercut_setup)
+int papercut_setup(int n, int nb, double D, double rx, double ry, double wa, double wf, double wa2, double wf2,
+                   double icsigma, double calpha, double wall) {
+  if (n < 2 || n > PC_SHEETS || nb < 0 || nb > PC_BUMPS) return 0;
+  pcN = n;
+  pcNb = nb;
+  pcD = D;
+  pcRx = rx;
+  pcRy = ry;
+  pcWa = wa;
+  pcWf = wf;
+  pcWa2 = wa2;
+  pcWf2 = wf2;
+  pcWaf = wa * wf;
+  pcWa2f2 = wa2 * wf2;
+  pcIcsigma = icsigma;
+  pcCalpha = calpha;
+  pcWall = wall;
+  const double *p = params;
+  for (int k = 0; k < n - 1; k++) pcLevel[k] = *p++;
+  for (int k = 0; k < 3 * n; k++) pcFace[k] = *p++;
+  for (int k = 0; k < 3 * n; k++) pcWallC[k] = *p++;
+  for (int k = 0; k < 3 * n; k++) pcShadow[k] = *p++;
+  for (int k = 0; k < n; k++) pcIsigma[k] = *p++;
+  for (int k = 0; k < n; k++) pcOffset[k] = *p++;
+  for (int k = 0; k < n; k++) pcAlpha[k] = *p++;
+  for (int k = 0; k < n; k++) pcReach[k] = *p++;
+  for (int k = 0; k < n; k++)
+    pcFaceBytes[k] = wasm_f32x4_make((float)jsRound(pcFace[3 * k] * 255), (float)jsRound(pcFace[3 * k + 1] * 255),
+                                     (float)jsRound(pcFace[3 * k + 2] * 255), 255.0f);
+  for (int k = 0; k < n; k++)
+    pcClear[k] = dmax(dmax(pcOffset[k] + PC_REACH / pcIsigma[k], PC_REACH / icsigma), 0.5 + wall) + 1e-6;
+  pcFw = (W + PC_Q - 2) / PC_Q + 3;
+  pcFh = (H + PC_Q - 2) / PC_Q + 3;
+  pcField = take(pcFw * pcFh * 32);
+  pcSlope = take(pcFw * pcFh * 8);
+  pcQx = take(pcFw * 8);
+  pcQy = take(pcFh * 8);
+  pcCol = take(pcFw * 32);
+  pcRow = take(pcFh * 48);
+  pcDx = take(W * 8);
+  pcDy = take(H * 8);
+  pcKinds = take(pcFw * 8);
+  if (!pcField || !pcSlope || !pcQx || !pcQy || !pcCol || !pcRow || !pcDx || !pcDy || !pcKinds) return 0;
+  /* the dither's products, as papercutDither takes them */
+  for (int x = 0; x < W; x++) pcDx[x] = 0.06711056 * x;
+  for (int y = 0; y < H; y++) pcDy[y] = 0.00583715 * y;
+  /* sample (i, j) at the pixel-space point ((i - 1) Q + 0.5, (j - 1) Q + 0.5), in D units from the box's middle; the
+     third and fourth waves' terms across hold still */
+  for (int i = 0; i < pcFw; i++) {
+    pcQx[i] = ((double)(i - 1) * PC_Q + 0.5 - W / 2.0) / D;
+    sinCos(wf2 * pcQx[i], pcCol + 4 * i + 2, pcCol + 4 * i + 3);
+  }
+  for (int j = 0; j < pcFh; j++) pcQy[j] = ((double)(j - 1) * PC_Q + 0.5 - H / 2.0) / D;
+  return 1;
+}
+
+/* The field at sample s, its slope and its curvature (papercut.ts's papercutField) at (qx, qy), the frame's hills at
+   `at`: the waves' sines and cosines from the column's and the row's, the third and fourth as sums of their terms
+   across and down. */
+static void pcSample(int s, double qx, double qy, const double *col, const double *row, const double *at) {
+  double su = col[2] * row[3] + col[3] * row[2], cuw = col[3] * row[3] - col[2] * row[2];
+  double sv = col[2] * row[5] + col[3] * row[4], cvw = col[3] * row[5] - col[2] * row[4];
+  double wx = qx + pcWa * row[0] + pcWa2 * sv;
+  double wy = qy + pcWa * col[0] + pcWa2 * su;
+  double c1 = pcWaf * row[1], c2 = pcWaf * col[1], cu = pcWa2f2 * cuw, cv = pcWa2f2 * cvw;
+  double j11 = 1 + cv, j12 = c1 - cv, j21 = c2 + cu, j22 = 1 + cu;
+  double f = wx * pcRx + wy * pcRy, gx = pcRx, gy = pcRy, hxx = 0, hxy = 0, hyy = 0;
+  for (int i = 0; i < pcNb; i++) {
+    const double *b = at + 4 * i;
+    double ex = wx - b[0], ey = wy - b[1], ir2 = b[2], q2 = (ex * ex + ey * ey) * ir2;
+    if (q2 < 1) {
+      double k = 1 - q2, a = b[3], k2 = k * k;
+      f += a * k2 * k;
+      double c = -6 * a * k2 * ir2;
+      gx += c * ex;
+      gy += c * ey;
+      double q = 24 * a * ir2 * ir2 * k;
+      hxx += c + q * ex * ex;
+      hyy += c + q * ey * ey;
+      hxy += q * ex * ey;
+    }
+  }
+  double Gx = gx * j11 + gy * j21, Gy = gx * j12 + gy * j22;
+  double a11 = hxx * j11 + hxy * j21, a12 = hxx * j12 + hxy * j22;
+  double a21 = hxy * j11 + hyy * j21, a22 = hxy * j12 + hyy * j22;
+  double q11 = j11 * a11 + j21 * a21, q12 = j11 * a12 + j21 * a22, q22 = j12 * a12 + j22 * a22;
+  double g2 = Gx * Gx + Gy * Gy;
+  double kn = g2 > 0 ? (Gx * Gx * q11 + 2 * Gx * Gy * q12 + Gy * Gy * q22) / g2 : 0.5 * (q11 + q22);
+  double tr = q11 + q22;
+  double round = tr * tr > 0 ? clampd((8 * (q11 * q22 - q12 * q12)) / (tr * tr), 0, 1) : 0;
+  double *out = pcField + 4 * s;
+  out[0] = f;
+  out[1] = Gx;
+  out[2] = Gy;
+  out[3] = kn * round;
+  pcSlope[s] = __builtin_sqrt(g2);
+}
+
+/* Two pixels' bytes, (x, y) and (x + 1, y), from their colors (0 to 1 a channel, a pixel a lane), with the half-level
+   dither at each (papercut.ts's papercutDither: the products' tables are its own products), rounded and clamped as the
+   CPU drawing's bytes are; as two pixels for `put`. */
+static inline v128_t pcRound(v128_t c, v128_t n) {
+  /* Math.round as floor(v + 0.5), which differs from it only within 2^-54 of a half below 1 */
+  v128_t v = wasm_f64x2_add(wasm_f64x2_mul(wasm_f64x2_add(c, n), wasm_f64x2_splat(255)), wasm_f64x2_splat(0.5));
+  v128_t r = wasm_f64x2_floor(v);
+  return wasm_f32x4_demote_f64x2_zero(wasm_f64x2_pmin(wasm_f64x2_pmax(r, wasm_f64x2_splat(0)), wasm_f64x2_splat(255)));
+}
+static inline void pcBytes(v128_t R, v128_t G, v128_t B, int x, int y, v128_t *p0, v128_t *p1) {
+  v128_t a = wasm_f64x2_add(wasm_v128_load(pcDx + x), wasm_f64x2_splat(pcDy[y]));
+  v128_t b = wasm_f64x2_mul(wasm_f64x2_splat(52.9829189), wasm_f64x2_sub(a, wasm_f64x2_floor(a)));
+  v128_t n = wasm_f64x2_div(wasm_f64x2_sub(wasm_f64x2_sub(b, wasm_f64x2_floor(b)), wasm_f64x2_splat(0.5)),
+                            wasm_f64x2_splat(255));
+  v128_t t = wasm_i32x4_shuffle(pcRound(R, n), pcRound(G, n), 0, 4, 1, 5);
+  v128_t u = wasm_i32x4_shuffle(pcRound(B, n), wasm_f32x4_splat(255), 0, 4, 1, 5);
+  *p0 = wasm_i32x4_shuffle(t, u, 0, 1, 4, 5);
+  *p1 = wasm_i32x4_shuffle(t, u, 2, 3, 6, 7);
+}
+
+/* the field at a pixel pair of a row in one cell, (ax0, ax1) across it and ay down: each of its four numbers mixed
+   bilinearly from the cell's corners at s00 and s01, as papercut-render.ts mixes them, a pixel a lane */
+static inline void pcMix(const double *s00, const double *s01, v128_t ax, double ay, v128_t *m) {
+  v128_t down = wasm_f64x2_splat(ay);
+  for (int k = 0; k < 4; k++) {
+    v128_t top = wasm_f64x2_add(wasm_f64x2_splat(s00[k]), wasm_f64x2_mul(wasm_f64x2_splat(s00[4 + k] - s00[k]), ax));
+    v128_t bottom = wasm_f64x2_add(wasm_f64x2_splat(s01[k]), wasm_f64x2_mul(wasm_f64x2_splat(s01[4 + k] - s01[k]), ax));
+    m[k] = wasm_f64x2_add(top, wasm_f64x2_mul(wasm_f64x2_sub(bottom, top), down));
+  }
+}
+
+#define F2(v) wasm_f64x2_splat(v)
+static inline v128_t pcPhi2(v128_t x) {
+  v128_t t = wasm_f64x2_pmin(wasm_f64x2_pmax(wasm_f64x2_div(wasm_f64x2_add(x, F2(PC_REACH)), F2(2 * PC_REACH)), F2(0)), F2(1));
+  return wasm_f64x2_mul(wasm_f64x2_mul(wasm_f64x2_mul(t, t), t),
+                        wasm_f64x2_add(wasm_f64x2_mul(t, wasm_f64x2_sub(wasm_f64x2_mul(t, F2(6)), F2(15))), F2(10)));
+}
+/* c toward `to` by `share`, lane by lane */
+static inline v128_t pcToward(v128_t c, double to, v128_t share) {
+  return wasm_f64x2_add(c, wasm_f64x2_mul(wasm_f64x2_sub(F2(to), c), share));
+}
+
+/* Sheet k painted over two pixels' colors (pcSheet, lane by lane), each lane on the sheet below k or the one below
+   that (`above`: rise above 0, so outside the cut) or on sheet k itself (its own sheet, under its face where that does
+   not cover it whole). Its shadows and its lit cut and face lay nothing where they reach no lane (a shadow past its
+   tail and a cover of 0 change nothing), and the round model is worked out only where a lane takes it. */
+static void pcSheet2(int k, int above, v128_t f, v128_t g, v128_t kap, v128_t nl, v128_t wn, v128_t toPx, v128_t *c) {
+  const double o = pcOffset[k];
+  v128_t rise = wasm_f64x2_sub(F2(pcLevel[k - 1]), f);
+  v128_t d = wasm_f64x2_mul(wasm_f64x2_neg(rise), toPx);
+  v128_t ds = wasm_f64x2_add(d, wasm_f64x2_mul(F2(o), nl));
+  v128_t size = F2(1), csize = F2(1);
+  if (above) {
+    v128_t disc = wasm_f64x2_add(wasm_f64x2_mul(g, g), wasm_f64x2_mul(wasm_f64x2_mul(F2(2), kap), rise));
+    v128_t ak = wasm_f64x2_abs(kap);
+    v128_t sq = wasm_f64x2_sqrt(wasm_f64x2_abs(disc));
+    v128_t pos = wasm_f64x2_ge(disc, F2(0));
+    v128_t gsq = wasm_f64x2_add(g, sq);
+    v128_t num = wasm_v128_bitselect(wasm_f64x2_mul(F2(2), rise), gsq, pos);
+    v128_t den = wasm_v128_bitselect(gsq, wasm_f64x2_neg(kap), pos);
+    d = wasm_f64x2_mul(F2(-pcD), wasm_f64x2_div(num, den));
+    ds = wasm_f64x2_add(d, wasm_f64x2_mul(F2(o), nl));
+    v128_t round = wasm_f64x2_gt(wasm_f64x2_mul(wasm_f64x2_mul(ak, F2(PC_NEAR)), F2(o)), wasm_f64x2_mul(g, F2(pcD)));
+    if (wasm_v128_any_true(round)) {
+      v128_t top = wasm_f64x2_mul(wasm_f64x2_div(g, ak), F2(pcD));
+      v128_t R = wasm_f64x2_mul(wasm_f64x2_div(wasm_v128_bitselect(sq, wasm_f64x2_neg(sq), pos), ak), F2(pcD));
+      v128_t hill = wasm_f64x2_lt(kap, F2(0));
+      v128_t e = wasm_v128_bitselect(F2(1), F2(-1), hill);
+      v128_t dr = wasm_f64x2_mul(wasm_f64x2_neg(e), wasm_f64x2_sub(top, R));
+      v128_t lean = wasm_f64x2_mul(wasm_f64x2_mul(wasm_f64x2_mul(wasm_f64x2_mul(F2(2), e), top), F2(o)), nl);
+      v128_t far = wasm_f64x2_sqrt(wasm_f64x2_add(wasm_f64x2_sub(wasm_f64x2_mul(top, top), lean), F2(o * o)));
+      v128_t dsr = wasm_f64x2_mul(wasm_f64x2_neg(e), wasm_f64x2_sub(far, R));
+      d = wasm_v128_bitselect(dr, d, round);
+      ds = wasm_v128_bitselect(dsr, ds, round);
+      v128_t island = wasm_v128_and(round, hill);
+      if (wasm_v128_any_true(island)) {
+        /* a small island's shadows as deep as a blur of a disc that size is at its middle, lane by lane */
+        double r2[2], s[2] = {1, 1}, cs[2] = {1, 1};
+        wasm_v128_store(r2, wasm_f64x2_mul(wasm_f64x2_pmax(F2(0), R), R));
+        for (int l = 0; l < 2; l++) {
+          if (!(l ? wasm_i64x2_extract_lane(island, 1) : wasm_i64x2_extract_lane(island, 0))) continue;
+          s[l] = 1 - expNeg(-0.5 * r2[l] * pcIsigma[k] * pcIsigma[k]);
+          cs[l] = 1 - expNeg(-0.5 * r2[l] * pcIcsigma * pcIcsigma);
+        }
+        size = wasm_f64x2_make(s[0], s[1]);
+        csize = wasm_f64x2_make(cs[0], cs[1]);
+      }
+    }
+  }
+  const double *shadow = pcShadow + 3 * k;
+  v128_t x = wasm_f64x2_mul(ds, F2(pcIsigma[k]));
+  if (wasm_v128_any_true(wasm_f64x2_gt(x, F2(-PC_REACH)))) {
+    v128_t sh = wasm_f64x2_mul(wasm_f64x2_mul(F2(pcAlpha[k]), pcPhi2(x)), size);
+    for (int i = 0; i < 3; i++) c[i] = pcToward(c[i], shadow[i], sh);
+  }
+  v128_t xc = wasm_f64x2_mul(d, F2(pcIcsigma));
+  if (wasm_v128_any_true(wasm_f64x2_gt(xc, F2(-PC_REACH)))) {
+    v128_t ch = wasm_f64x2_mul(wasm_f64x2_mul(F2(pcCalpha), pcPhi2(xc)), csize);
+    for (int i = 0; i < 3; i++) c[i] = pcToward(c[i], shadow[i], ch);
+  }
+  if (wasm_v128_any_true(wasm_f64x2_gt(wasm_f64x2_add(d, wasm_f64x2_pmax(F2(0), wn)), F2(-0.5)))) {
+    const double *wallC = pcWallC + 3 * k, *face = pcFace + 3 * k;
+    v128_t cw = wasm_f64x2_pmin(wasm_f64x2_pmax(wasm_f64x2_add(d, F2(0.5)), F2(0)), F2(1));
+    for (int i = 0; i < 3; i++) c[i] = pcToward(c[i], wallC[i], cw);
+    v128_t cf = wasm_f64x2_pmin(wasm_f64x2_pmax(wasm_f64x2_add(wasm_f64x2_add(d, wn), F2(0.5)), F2(0)), F2(1));
+    for (int i = 0; i < 3; i++) c[i] = pcToward(c[i], face[i], cf);
+  }
+}
+
+/* Two pixels' colors on one sheet b, a pixel a lane (pcShade, lane by lane): each its own sheet's face, or the one
+   below under its own where that face does not cover it whole, then the sheet above, then the one above that where
+   the terraces crowd. */
+static void pcShade2(v128_t *m, int b, double lx, double ly, v128_t *c) {
+  const int top = pcN - 1;
+  v128_t f = m[0], gx = m[1], gy = m[2], kap = m[3];
+  v128_t g = wasm_f64x2_pmax(F2(1e-9), wasm_f64x2_sqrt(wasm_f64x2_add(wasm_f64x2_mul(gx, gx), wasm_f64x2_mul(gy, gy))));
+  v128_t toPx = wasm_f64x2_div(F2(pcD), g);
+  v128_t nl = wasm_f64x2_div(wasm_f64x2_add(wasm_f64x2_mul(gx, F2(lx)), wasm_f64x2_mul(gy, F2(ly))), g);
+  v128_t wn = wasm_f64x2_mul(F2(pcWall), nl);
+  for (int i = 0; i < 3; i++) c[i] = F2(pcFace[3 * b + i]);
+  if (b > 0) {
+    v128_t own = wasm_f64x2_lt(wasm_f64x2_add(wasm_f64x2_mul(wasm_f64x2_sub(f, F2(pcLevel[b - 1])), toPx), wn), F2(0.5));
+    if (wasm_v128_any_true(own)) {
+      v128_t under[3];
+      for (int i = 0; i < 3; i++) under[i] = F2(pcFace[3 * (b - 1) + i]);
+      pcSheet2(b, 0, f, g, kap, nl, wn, toPx, under);
+      for (int i = 0; i < 3; i++) c[i] = wasm_v128_bitselect(under[i], c[i], own);
+    }
+  }
+  if (b < top) pcSheet2(b + 1, 1, f, g, kap, nl, wn, toPx, c);
+  if (b + 1 < top) {
+    v128_t visit = wasm_f64x2_lt(wasm_f64x2_mul(wasm_f64x2_sub(F2(pcLevel[b + 1]), f), toPx), F2(pcReach[b + 2]));
+    if (wasm_v128_any_true(visit)) {
+      v128_t over[3] = {c[0], c[1], c[2]};
+      pcSheet2(b + 2, 1, f, g, kap, nl, wn, toPx, over);
+      for (int i = 0; i < 3; i++) c[i] = wasm_v128_bitselect(over[i], c[i], visit);
+    }
+  }
+}
+
+/* The least distance in pixels from a pixel to the cut its field must rise at least `rise` to, for a slope of at most
+   gmax and a curvature between kmin and kmax (papercut.ts's sheet, whose round model puts the cut where its
+   second-order step does): 2 rise D / (g + sqrt(g^2 + 2 kap rise)), least at the steepest slope and the most
+   curvature, and where the field curves down too fast to reach the level along its slope, D (g + sqrt(-disc)) / -kap,
+   at least D sqrt(2 rise / -kap). */
+static inline double pcNear(double rise, double gmax, double kmin, double kmax) {
+  double near = 2 * rise * pcD / (gmax + __builtin_sqrt(gmax * gmax + 2 * dmax(0, kmax) * rise));
+  if (kmin < 0) near = dmin(near, pcD * __builtin_sqrt(2 * rise / -kmin));
+  return near * (1 - PC_HAIR);
+}
+
+/* What every pixel of the cell from sample s00 shows: its field lies between its corners', so where those lie on one
+   sheet b, every pixel does (PC_SHADED, b), and where they lie far enough within it that the sheet's face covers them
+   whole and neither the sheet above's cut nor its shadows (nor the one above that's, where it is visited) can reach
+   them, every pixel shows that face alone (PC_PLAIN): each cut's drop shadow reaches at most its offset past where its
+   distance does (pcClear). Such a pixel's bytes are the face's: a face is a palette color, its channels bytes over
+   255, which the dither moves less than half a level, but at the picture's corner, where it moves it half a level
+   down exactly, a tie the rounding settles. Else the pixels lie on different sheets (PC_MIXED). */
+#define PC_PLAIN 0
+#define PC_SHADED 1
+#define PC_MIXED 2
+/* the levels at or below f, as papercutShade counts them: from `near`, a count nearby, stepping up and down the
+   levels, which ascend (papercut.ts's levelSteps keeps them so) */
+static inline int pcLevels(double f, int near) {
+  const int top = pcN - 1;
+  int b = near < 0 ? 0 : near > top ? top : near;
+  while (b < top && f >= pcLevel[b]) b++;
+  while (b > 0 && !(f >= pcLevel[b - 1])) b--;
+  return b;
+}
+static int pcCell(int s00, int *sheet) {
+  const int s[4] = {s00, s00 + 1, s00 + pcFw, s00 + pcFw + 1};
+  double fmin = pcField[4 * s00], fmax = fmin, kmin = pcField[4 * s00 + 3], kmax = kmin, gmax = pcSlope[s00];
+  for (int k = 1; k < 4; k++) {
+    const double *F = pcField + 4 * s[k];
+    fmin = dmin(fmin, F[0]);
+    fmax = dmax(fmax, F[0]);
+    kmin = dmin(kmin, F[3]);
+    kmax = dmax(kmax, F[3]);
+    gmax = dmax(gmax, pcSlope[s[k]]);
+  }
+  fmin -= PC_HAIR;
+  fmax += PC_HAIR;
+  const int top = pcN - 1;
+  int b = pcLevels(fmax, *sheet);
+  *sheet = b;
+  if (pcLevels(fmin, b) != b) return PC_MIXED;
+  kmin -= PC_HAIR * (1 + __builtin_fabs(kmin));
+  kmax += PC_HAIR * (1 + __builtin_fabs(kmax));
+  gmax = dmax(1e-9, gmax) * (1 + PC_HAIR);
+  double toPx = pcD / gmax;
+  if (b > 0 && !((fmin - pcLevel[b - 1]) * toPx - pcWall * (1 + PC_HAIR) >= 0.5 + 1e-6)) return PC_SHADED;
+  if (b < top) {
+    if (!(pcNear(pcLevel[b] - fmax, gmax, kmin, kmax) >= pcClear[b + 1])) return PC_SHADED;
+    if (b + 1 < top) {
+      double rise = pcLevel[b + 1] - fmax;
+      if (!(rise * toPx >= pcReach[b + 2] * (1 + PC_HAIR)) && !(pcNear(rise, gmax, kmin, kmax) >= pcClear[b + 2]))
+        return PC_SHADED;
+    }
+  }
+  return PC_PLAIN;
+}
+
+/* The frame into the planes: params hold its hills (each its middle in D units, 1 / r^2 and its height), the waves'
+   four phases and toward the light, x and y (papercut.ts's papercutFrameAt). The waves at each column and row, the
+   field at each sample, then each pixel: a cell its corners show plainly as its sheet's face, any other shaded. */
+EXPORT(papercut_frame)
+void papercut_frame(void) {
+  const double *at = params;
+  const int o = 4 * pcNb;
+  const double lx = at[o + 4], ly = at[o + 5];
+  for (int i = 0; i < pcFw; i++) sinCos(pcWf * pcQx[i] + at[o + 1], pcCol + 4 * i, pcCol + 4 * i + 1);
+  for (int j = 0; j < pcFh; j++) {
+    double *row = pcRow + 6 * j, down = pcWf2 * pcQy[j];
+    sinCos(pcWf * pcQy[j] + at[o], row, row + 1);
+    sinCos(down + at[o + 2], row + 2, row + 3);
+    sinCos(at[o + 3] - down, row + 4, row + 5);
+  }
+  for (int j = 0, s = 0; j < pcFh; j++)
+    for (int i = 0; i < pcFw; i++, s++) pcSample(s, pcQx[i], pcQy[j], pcCol + 4 * i, pcRow + 6 * j, at);
+  for (int y = 0; y < H; y += 2) {
+    for (int x = 0; x < W; x += 4) {
+      int n = W - x < 4 ? 2 : 4, cell = x / PC_Q, s00 = (y / PC_Q + 1) * pcFw + cell + 1;
+      int *kept = pcKinds + 2 * cell;
+      if (!(y & 2)) {
+        /* counted from the sheet of the cell before, or for a row's first, of the first cell a row above */
+        if (cell) kept[1] = kept[-1];
+        kept[0] = pcCell(s00, kept + 1);
+      }
+      int kind = kept[0], b = kept[1];
+      const double *c00 = pcField + 4 * s00, *c01 = c00 + 4 * pcFw;
+      v128_t q[8];
+      if (kind == PC_PLAIN && (x | y)) {
+        for (int k = 0; k < 8; k++) q[k] = pcFaceBytes[b];
+        emitOpaque(x, y, n, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);
+        continue;
+      }
+      for (int k = 0; k < 8; k += 2) {
+        int px = x + (k & 3), py = y + (k >> 2);
+        if ((k & 3) >= n) {
+          q[k] = q[k - 2];
+          q[k + 1] = q[k - 1];
+          continue;
+        }
+        v128_t c[3];
+        if (kind == PC_PLAIN)
+          for (int i = 0; i < 3; i++) c[i] = F2(pcFace[3 * b + i]);
+        else {
+          /* the pixels' places in the cell: x is even, so the pair's quarters are 0 and 1/4 or 1/2 and 3/4 */
+          v128_t ax = wasm_f64x2_make((px & 3) / (double)PC_Q, ((px & 3) + 1) / (double)PC_Q);
+          v128_t m[4];
+          pcMix(c00, c01, ax, (py & 3) / (double)PC_Q, m);
+          if (kind == PC_SHADED)
+            pcShade2(m, b, lx, ly, c);
+          else {
+            /* each pixel's own sheet, as the CPU drawing counts its levels: the pair shaded once where both lie on one
+               (a lane's colors are its own arithmetic alone), else each by its own and the lanes taken apart */
+            double f[2];
+            wasm_v128_store(f, m[0]);
+            int s0 = pcLevels(f[0], b), s1 = pcLevels(f[1], s0);
+            pcShade2(m, s0, lx, ly, c);
+            if (s1 != s0) {
+              v128_t one[3];
+              pcShade2(m, s1, lx, ly, one);
+              for (int i = 0; i < 3; i++) c[i] = wasm_i64x2_shuffle(c[i], one[i], 0, 3);
+            }
+          }
+        }
+        pcBytes(c[0], c[1], c[2], px, py, q + k, q + k + 1);
+      }
+      emitOpaque(x, y, n, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);
     }
   }
   if (fSoft) finishFrame();

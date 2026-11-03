@@ -1,8 +1,8 @@
-/* A palette's effect as an MP4, /{seed}.mp4?style=glass|blob|silk|rosette: whole loops of the fluted glass, the blob,
-   the silk or the rosette, so a player that repeats it shows no seam, with the effect's address (its angle, the soft
-   and the grain, speed, fps, shape, frost, bg), its size (`w` and `h` or `size`, as its PNG reads them) and
-   `duration` in seconds, the speed nudged so whole loops fill it (engine/video.ts). An address that names no style
-   plays the glass, as a page does.
+/* A palette's effect as an MP4, /{seed}.mp4?style=glass|blob|silk|rosette|papercut: whole loops of the fluted glass,
+   the blob, the silk, the rosette or the papercut, so a player that repeats it shows no seam, with the effect's address
+   (its angle, the soft and the grain, speed, fps, shape, frost, bg), its size (`w` and `h` or `size`, as its PNG reads
+   them) and `duration` in seconds, the speed nudged so whole loops fill it (engine/video.ts). An address that names no
+   style plays the glass, as a page does; the effects it plays are engine/video-kinds.ts's, which the editor reads.
 
    A clip is drawn once and kept in R2 under videos/, its key every part of the address that moves its pixels, and
    answered from there to every player, a part of it to a player that asks for a range (Safari asks for nothing else).
@@ -22,6 +22,7 @@
 
 import { type Effect, type EffectFinish, parseEffect } from "@grabient/engine/effect.ts";
 import type { VideoPlan } from "@grabient/engine/video.ts";
+import { hasVideo, VIDEO_KINDS } from "@grabient/engine/video-kinds.ts";
 import type { Size } from "@grabient/engine/view.ts";
 import { DEFAULT_ANGLE, finishOf } from "@grabient/engine/view.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
@@ -41,10 +42,10 @@ import type { VideoPartDrawn, VideoPartJob } from "./video-draw.ts";
 export type VideoPartRunner = (job: VideoPartJob) => Promise<VideoPartDrawn>;
 
 /** The clips' drawing and coding, counted up by a change that moves their pixels or their bytes (engine/glass.ts,
-    glass-render.ts, blob.ts, silk.ts, rosette.ts, grain.ts, soft.ts, fx-finish.ts, video-finish.ts, video.ts,
-    video/video.c), so no clip coded before is answered for it; the coding's numbers (videoQuality) are in the key
-    besides. A module that draws the same bytes needs none: a drawing goes on only from a state its own module kept
-    (VIDEO_MODULE, video-make.ts). */
+    glass-render.ts, blob.ts, silk.ts, rosette.ts, papercut.ts, papercut-render.ts, grain.ts, soft.ts, fx-finish.ts,
+    video-finish.ts, video.ts, video/video.c), so no clip coded before is answered for it; the coding's numbers
+    (videoQuality) are in the key besides. A module that draws the same bytes needs none: a drawing goes on only from a
+    state its own module kept (VIDEO_MODULE, video-make.ts). */
 export const VIDEO_DRAWING = "video-1";
 
 /** The most one part draws, its pixels across its frames weighed by its effect (engine/video.ts's videoWork): about
@@ -130,11 +131,11 @@ export async function seedMp4Answer(
   const params = addressParams(url.searchParams);
   if (!params.has("style")) params.set("style", "glass");
   const effect = parseEffect(params);
-  /* the papercut's clips are not drawn yet (engine/video.ts's VideoKind) */
-  if (!effect || effect.kind === "papercut") {
+  if (!effect || !hasVideo(effect.kind)) {
+    const styles = VIDEO_KINDS.map(kind => `style=${kind}`);
     return failure(
       404,
-      "An MP4 plays an effect: style=glass, style=blob, style=silk or style=rosette."
+      `An MP4 plays an effect: ${styles.slice(0, -1).join(", ")} or ${styles.at(-1)}.`
     );
   }
   const kind = effect.kind;

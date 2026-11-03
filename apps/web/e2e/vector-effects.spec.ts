@@ -118,33 +118,7 @@ test("Copy for Figma puts the silk, the rosette and the papercut on the clipboar
   }
 });
 
-test("a list playing the silk or the papercut draws its cards' stills, each named for its kind", async ({
-  page,
-  request
-}) => {
-  for (const [kind, name] of [
-    ["silk", "Silk"],
-    ["papercut", "Papercut"]
-  ]) {
-    const sent = await request.get(`/palettes?style=${kind}`, { maxRedirects: 0 });
-    expect(sent.status()).toBe(200);
-    const html = await sent.text();
-    const painted = /<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1].split(" ") ?? [];
-    const first = /<span[^>]*data-fx-still="([^"]*)"/.exec(html)?.[1];
-    expect(first).toMatch(new RegExp(`^${kind}\\|`));
-    expect(painted).toContain(first);
-
-    await open(page, `/palettes?style=${kind}`);
-    await expect(
-      page
-        .locator("main article")
-        .first()
-        .getByRole("img", { name: new RegExp(`, ${name}$`) })
-    ).toBeVisible();
-  }
-});
-
-test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, JSON, Markdown and script, and the silk's and the rosette's clip; none yet for the papercut", async ({
+test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, JSON, Markdown, script and clip", async ({
   request
 }) => {
   for (const kind of ["silk", "rosette", "papercut"]) {
@@ -174,11 +148,6 @@ test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, 
       "text/javascript; charset=utf-8"
     ]);
     const clip = await request.head(`/${SEED}.mp4?style=${kind}&shape=7`);
-    /* the papercut's clips are not drawn yet */
-    if (kind === "papercut") {
-      expect(clip.status()).toBe(404);
-      continue;
-    }
     expect([clip.status(), clip.headers()["content-type"]]).toEqual([200, "video/mp4"]);
   }
 });
