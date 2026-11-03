@@ -1,11 +1,11 @@
 /* A palette's effect as H.264, in one module with no C library and no imports, for the Worker and the browser alike:
    the fluted glass's, the blob's, the silk's and the rosette's pixels (engine/glass-render.ts's glassRenderer,
    engine/blob.ts's blobRenderer, silk-render.ts's renderSilk and rosette-render.ts's renderRosette, their arithmetic in
-   single precision and wasm SIMD, within a level of theirs) and the papercut's (papercut-render.ts's renderPapercut, its
-   own double precision two pixels at a time, its bytes), finished with the soft and the grain as fx-finish.ts's
-   finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn, and minih264 (CC0, lieff/minih264, patched
-   for the level, the Constrained Baseline flags and the colors' VUI; its SSE2 code through emscripten's SSE headers) to
-   code them.
+   single precision and wasm SIMD, within a level of theirs) and the papercut's (papercut-render.ts's renderPapercut,
+   its own double precision two pixels at a time, its bytes, its sin, cos and exp within an ulp of V8's), finished with
+   the soft and the grain as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn,
+   and minih264 (CC0, lieff/minih264, patched for the level, the Constrained Baseline flags and the colors' VUI; its
+   SSE2 code through emscripten's SSE headers) to code them.
 
    JS says where an effect stands in each frame (the glass's discs, the blob's balls, the silk's folds, the rosette's
    petals, the papercut's hills, waves and light: engine code, which moves them) and this draws it. One encoder an
@@ -1379,9 +1379,11 @@ void rosette_frame(int petals) {
    absolutely, its slope's and its curvature's as shares: far more than the mixing's rounding */
 #define PC_HAIR 1e-9
 
-/* sin and cos, as fdlibm's (whose V8's Math.sin and Math.cos are): the angle less the nearest whole number of quarter
-   turns, taken off in two parts so the rest keeps its precision (the waves' phases are a few turns at most), then the
-   kernels' polynomials over [-pi/4, pi/4], the rest's own rounding carried in */
+/* sin and cos from fdlibm's kernels, in the later form FreeBSD's msun gives them: the angle less the nearest whole
+   number of quarter turns, taken off in two parts so the rest keeps its precision (the waves' phases are a few turns at
+   most), then the kernels' polynomials over [-pi/4, pi/4], the rest's own rounding carried in. Within an ulp of V8's
+   Math.sin and Math.cos, which keep fdlibm's older kernels: the last bit differs at about 1% of the waves' phases, by
+   at most 1.1e-16, which moves a byte only where a value lies that near a rounding's half */
 static inline double kernelSin(double x, double y) {
   const double S1 = -1.66666666666666324348e-01, S2 = 8.33333333332248946124e-03, S3 = -1.98412698298579493134e-04,
                S4 = 2.75573137070700676789e-06, S5 = -2.50507602534068634195e-08, S6 = 1.58969099521155010221e-10;
@@ -1419,8 +1421,9 @@ static void sinCos(double x, double *s, double *c) {
   }
 }
 
-/* exp(x) for x at most 0, as fdlibm's (V8's Math.exp): x less the nearest whole number k of ln 2's, in two parts, the
-   rest's exp from its rational approximation, times 2^k; 0 past -40, where 1 less it is 1 */
+/* exp(x) for x at most 0, from fdlibm's: x less the nearest whole number k of ln 2's, in two parts, the rest's exp
+   from its rational approximation, times 2^k; 0 past -40, where 1 less it is 1. Within an ulp of V8's Math.exp, which
+   fdlibm's own reductions give (the last bit differs at 0.05% of x, by at most 1.1e-16 of it) */
 static double expNeg(double x) {
   if (x < -40) return 0;
   const double ln2hi = 6.93147180369123816490e-01, ln2lo = 1.90821492927058770002e-10,
@@ -1458,8 +1461,6 @@ static double *pcDx, *pcDy;
 static int *pcKinds;
 /* each sheet's face as a pixel for `put`: its bytes, which a face's pixels are (pcCell) */
 static v128_t pcFaceBytes[PC_SHEETS];
-/* whether the levels ascend, as papercut.ts lays them out */
-static int pcAscending;
 
 /* The papercut's scene for the box (papercut.ts's papercutScene): `n` sheets, `nb` hills, its unit D (pixels), the
    ramp (rx, ry), the waves (wa, wf, wa2, wf2), the contact shadow's 1 / sigma and opacity and the lit cut's width;
@@ -1492,8 +1493,6 @@ int papercut_setup(int n, int nb, double D, double rx, double ry, double wa, dou
   for (int k = 0; k < n; k++) pcOffset[k] = *p++;
   for (int k = 0; k < n; k++) pcAlpha[k] = *p++;
   for (int k = 0; k < n; k++) pcReach[k] = *p++;
-  pcAscending = 1;
-  for (int k = 1; k < n - 1; k++) pcAscending &= pcLevel[k - 1] <= pcLevel[k];
   for (int k = 0; k < n; k++)
     pcFaceBytes[k] = wasm_f32x4_make((float)jsRound(pcFace[3 * k] * 255), (float)jsRound(pcFace[3 * k + 1] * 255),
                                      (float)jsRound(pcFace[3 * k + 2] * 255), 255.0f);
@@ -1728,15 +1727,10 @@ static inline double pcNear(double rise, double gmax, double kmin, double kmax) 
 #define PC_SHADED 1
 #define PC_MIXED 2
 /* the levels at or below f, as papercutShade counts them: from `near`, a count nearby, stepping up and down the
-   levels, which ascend (a scene whose do not is counted level by level) */
+   levels, which ascend (papercut.ts's levelSteps keeps them so) */
 static inline int pcLevels(double f, int near) {
   const int top = pcN - 1;
-  int b = 0;
-  if (!pcAscending) {
-    for (int i = 0; i < top; i++) b += f >= pcLevel[i];
-    return b;
-  }
-  b = near < 0 ? 0 : near > top ? top : near;
+  int b = near < 0 ? 0 : near > top ? top : near;
   while (b < top && f >= pcLevel[b]) b++;
   while (b > 0 && !(f >= pcLevel[b - 1])) b--;
   return b;
@@ -1826,16 +1820,17 @@ void papercut_frame(void) {
           if (kind == PC_SHADED)
             pcShade2(m, b, lx, ly, c);
           else {
-            /* each pixel's own sheet, as the CPU drawing counts its levels */
-            v128_t one[3];
+            /* each pixel's own sheet, as the CPU drawing counts its levels: the pair shaded once where both lie on one
+               (a lane's colors are its own arithmetic alone), else each by its own and the lanes taken apart */
             double f[2];
             wasm_v128_store(f, m[0]);
-            for (int l = 0; l < 2; l++) {
-              int sb = 0;
-              for (int i = 0; i < pcN - 1; i++) sb += f[l] >= pcLevel[i];
-              pcShade2(m, sb, lx, ly, l ? one : c);
+            int s0 = pcLevels(f[0], b), s1 = pcLevels(f[1], s0);
+            pcShade2(m, s0, lx, ly, c);
+            if (s1 != s0) {
+              v128_t one[3];
+              pcShade2(m, s1, lx, ly, one);
+              for (int i = 0; i < 3; i++) c[i] = wasm_i64x2_shuffle(c[i], one[i], 0, 3);
             }
-            for (int i = 0; i < 3; i++) c[i] = wasm_i64x2_shuffle(c[i], one[i], 0, 3);
           }
         }
         pcBytes(c[0], c[1], c[2], px, py, q + k, q + k + 1);
