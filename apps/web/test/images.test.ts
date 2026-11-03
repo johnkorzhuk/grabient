@@ -304,6 +304,87 @@ describe("a share card", () => {
   });
 });
 
+describe("an effect's picture soft and grained", () => {
+  /** An angle no other test asks for, so each picture is drawn here first. */
+  const angle = () => 1 + Math.floor(Math.random() * 359);
+  /** How far a picture's rows step from pixel to pixel, on the mean and at most: a blur takes the largest steps, the
+      petals' edges, down; the grain raises the mean. */
+  const steps = (pixels: Uint8Array, width: number, channels: number) => {
+    let sum = 0;
+    let max = 0;
+    for (let i = channels; i < pixels.length; i++)
+      if (i % (width * channels) >= channels) {
+        const step = Math.abs(pixels[i] - pixels[i - channels]);
+        sum += step;
+        max = Math.max(max, step);
+      }
+    return { mean: sum / pixels.length, max };
+  };
+
+  it("is the frame blurred and grained as the address asks, opaque, under a key apart from the plain frame's", async () => {
+    const a = angle();
+    const { env, keep } = isolate();
+    const at = (finish: string) =>
+      seedPngAnswer(get(`/${SEED}.png?style=rosette&angle=${a}${finish}&w=320&h=160`), env, keep);
+    const [plain, soft, grained, both] = await Promise.all(
+      ["", "&soft=50", "&grain=40", "&soft=50&grain=40"].map(at)
+    );
+    for (const answer of [plain, soft, grained, both])
+      expect([answer.status, answer.headers.get("Content-Type")]).toEqual([200, "image/png"]);
+    const tags = [plain, soft, grained, both].map(answer => answer.headers.get("ETag"));
+    expect(new Set(tags).size).toBe(4);
+    const [p, s, g, b] = await Promise.all(
+      [plain, soft, grained, both].map(async answer => decodePng(await answer.arrayBuffer()))
+    );
+    for (const png of [p, s, g, b])
+      expect([png.width, png.height, png.channels]).toEqual([320, 160, 3]);
+    /* the soft blurs the petals' edges, about 150 levels a pixel plain, to about 10; the grain's specks lie over
+       both */
+    const [sp, ss, sg, sb] = [p, s, g, b].map(png => steps(png.pixels, 320, 3));
+    expect(sp.max).toBeGreaterThan(80);
+    expect(ss.max).toBeLessThan(20);
+    expect(sg.mean).toBeGreaterThan(3 * sp.mean);
+    expect(sb.mean).toBeGreaterThan(3 * ss.mean);
+  });
+
+  it("is clear where a blob with no ground stands, its soft edges thinning toward clear", async () => {
+    const { env, keep } = isolate();
+    const answer = await seedPngAnswer(
+      get(`/${SEED}.png?style=blob&soft=50&shape=${angle()}&w=320&h=160`),
+      env,
+      keep
+    );
+    const png = await decodePng(await answer.arrayBuffer());
+    expect([answer.status, png.channels]).toEqual([200, 4]);
+    const alpha = (x: number, y: number) => png.pixels[(y * 320 + x) * 4 + 3];
+    expect(alpha(0, 0)).toBeLessThan(255);
+  });
+
+  it("is a card of the frame finished under the wordmark, kept in R2 under a key of its own", async () => {
+    const a = angle();
+    const first = isolate();
+    const plain = await cardAnswer(
+      get(`/api/og?seed=${SEED}&style=silk&angle=${a}`),
+      first.env,
+      first.keep
+    );
+    const answer = await cardAnswer(
+      get(`/api/og?seed=${SEED}&style=silk&angle=${a}&soft=50&grain=40`),
+      first.env,
+      first.keep
+    );
+    expect([answer.status, answer.headers.get("Content-Type")]).toEqual([200, "image/png"]);
+    expect(answer.headers.get("ETag")).not.toBe(plain.headers.get("ETag"));
+    const png = new Uint8Array(await answer.arrayBuffer());
+    const card = await decodePng(png);
+    expect([card.width, card.height, card.channels]).toEqual([1200, 630, 3]);
+    await first.settled();
+    const hash = answer.headers.get("ETag")?.slice('"image:k4:'.length, -1);
+    const object = await first.env.UPLOADS?.get(`cards/k4/${hash}.png`);
+    expect(new Uint8Array((await object?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(png);
+  });
+});
+
 describe("the glass's still", () => {
   /** A still's key no other test asks for, so it is drawn here first: an angle of its own. */
   const freshKey = () =>
