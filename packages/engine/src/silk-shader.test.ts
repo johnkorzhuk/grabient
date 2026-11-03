@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { golden } from "../test/support.ts";
 import { decodePalette } from "./codec.ts";
 import {
   EFFECT_EASE_S,
@@ -9,8 +10,8 @@ import {
 } from "./effect.ts";
 import { shadertoyPass } from "./fx-shadertoy.ts";
 import type { Palette } from "./palette.ts";
-import { SHADER_KINDS } from "./shader-kinds.ts";
-import { MAX_FOLDS, SILK_LOOP, silkScene } from "./silk.ts";
+import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
+import { MAX_FOLDS, SILK_LOOP, silkDesign, silkScene, swingTrack } from "./silk.ts";
 import {
   bandUniforms,
   colorTexels,
@@ -68,6 +69,34 @@ const modelOf = (P: Palette, effect: Effect, angle: number): Model =>
   new Function(
     `${silkSettings(P, effect, angle)}\n${silkModel()}\nreturn { silkScene, sceneUniforms, bandUniforms, foldUniforms, colorTexels, profileTexels };`
   )() as Model;
+
+test("the silk's five texts are as the shader lab checked them, for four palettes and looks", () => {
+  const { origin, entries } = golden<{
+    origin: string;
+    entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
+  }>("silk-shaders");
+  expect(entries.length).toBe(4);
+  for (const e of entries) {
+    const { effect, angle } = read(e.address);
+    for (const kind of SILK_SHADER_KINDS)
+      expect(
+        silkShader(kind, decodePalette(e.seed) as Palette, effect, angle, e.seed, origin),
+        `${e.id} ${kind}`
+      ).toBe(e.texts[kind]);
+  }
+});
+
+test("every shape's swings turn its folds a few degrees at most, as the Shadertoy text's short series takes them", () => {
+  let most = 0;
+  for (let shape = 0; shape <= 999; shape++) {
+    const d = silkDesign(shape);
+    d.folds.forEach((f, i) => {
+      for (const key of swingTrack(f, 0x5111c + 977 * i, d.ease))
+        most = Math.max(most, Math.abs(key.v));
+    });
+  }
+  expect(most).toBeLessThan(1.5);
+});
 
 test("the pages lay the silk out as the player does, to the last bit, for any palette, angle, shape and canvas", () => {
   for (const [s, seed] of SEEDS.entries())

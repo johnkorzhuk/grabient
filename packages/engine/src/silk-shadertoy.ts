@@ -25,7 +25,6 @@ import {
   FX_STATE,
   FX_T,
   fxClock,
-  fxPairsTrig,
   glslFloat,
   glslPair,
   sceneMark,
@@ -122,6 +121,9 @@ export function silkShadertoy(
     };
   });
   const keys = folds.flatMap(f => f.track);
+  /* the series in sinCosSmall holds a pair's precision to a few degrees: the swings reach under a degree and a half */
+  const MAX_TURN = Math.max(...keys.map(k => Math.abs(k.v)));
+  if (MAX_TURN > 3) throw new Error(`a swing of ${MAX_TURN} degrees`);
   const from = [0];
   for (const f of folds) from.push(from[from.length - 1] + f.track.length);
   const dye = bakeDye(P, SILK_DESIGN);
@@ -178,8 +180,8 @@ const vec2 KX0[${folds.length}] = vec2[](${folds.map(f => pair(f.kx0)).join(", "
 const vec2 KX1[${folds.length}] = vec2[](${folds.map(f => pair(f.kx1)).join(", ")});
 const vec2 NX[${folds.length}] = vec2[](${folds.map(f => pair(f.nx)).join(", ")});   // its ring's middle's way from there
 const vec2 NY[${folds.length}] = vec2[](${folds.map(f => pair(f.ny)).join(", ")});
-const vec2 TWO_W[${folds.length}] = vec2[](${folds.map(f => pair(f.twoW)).join(", ")});   // its band's width, and how much it bends
-const vec2 BEND[${folds.length}] = vec2[](${folds.map(f => pair(f.cMax)).join(", ")});
+const vec2 TWO_W[${folds.length}] = vec2[](${folds.map(f => pair(f.twoW)).join(", ")});   // its band's width, and its radius over the scale
+const vec2 BEND[${folds.length}] = vec2[](${folds.map(f => pair(1 / f.cMax)).join(", ")});
 // Each fold's swing: its keys from KEY_FROM[fold], their times in the loop, their turns (degrees) and the timing curve
 // that arrives at each (x1, y1, x2, y2: hi, then lo).
 const int KEY_FROM[${from.length}] = int[](${from.join(", ")});
@@ -209,7 +211,15 @@ ${rows(
   2
 )}
 );
+// each key's stretch from the key before, as its inverse
+const vec2 KEY_SPAN[${keys.length}] = vec2[](
+${rows(
+  keys.map((k, i) => pair(i && keys[i - 1].t < k.t ? 1 / (k.t - keys[i - 1].t) : 0)),
+  4
+)}
+);
 const float LOOP = ${glslFloat(SILK_LOOP)};
+const vec2 INV_LOOP = ${pair(1 / SILK_LOOP)};
 const vec2 DEG = ${pair(DEG)};
 const vec2 G_PROF = ${pair((PROF_N - 1) / PROF_N)};   // the profile's grid over its texture, and half a texel
 const vec2 HALF_PROF = ${pair(0.5 / PROF_N)};
@@ -218,7 +228,20 @@ ${GLSL_DOUBLE}
 
 ${FX_PAIRS}
 
-${fxPairsTrig(pair)}
+// The sine and the cosine of a fold's turn, which is small (its swing reaches ${MAX_TURN} degrees at most): Taylor's series
+// to the seventh power, past which no term reaches a pair's last bit there.
+const vec2 SIN_C[4] = vec2[](${[1, -1 / 6, 1 / 120, -1 / 5040].map(pair).join(", ")});
+const vec2 COS_C[4] = vec2[](${[1, -1 / 2, 1 / 24, -1 / 720].map(pair).join(", ")});
+vec4 sinCosSmall(vec2 a) {
+  vec2 aa = pMul(a, a);
+  vec2 s = SIN_C[3];
+  vec2 c = COS_C[3];
+  for (int i = 2; i >= 0; i--) {
+    s = pAdd(pMul(s, aa), SIN_C[i]);
+    c = pAdd(pMul(c, aa), COS_C[i]);
+  }
+  return vec4(pMul(s, a), c);
+}
 
 ${run.globals.replace("// The program's constants and its instructions", "// The clock's program: its constants and its instructions")}
 
@@ -268,8 +291,8 @@ ${FX_CLOCK_DOUBLES.map(([, out], j) => `  k.d[${j}] = CR[${reg(out)}];`).join("\
 
 // The layout, as silk.ts works it out for a canvas of W by H pixels: the cloth's scale D, its numbers to hundredths
 // and ten-thousandths of a pixel as the site rounds them.
-vec2 r2(vec2 v) { return pDiv(pRound(pMul(v, pf(100.0))), pf(100.0)); }
-vec2 r4(vec2 v) { return pDiv(pRound(pMul(v, pf(10000.0))), pf(10000.0)); }
+vec2 r2(vec2 v) { return pMul(pRound(pMul(v, pf(100.0))), ${pair(1 / 100)}); }
+vec2 r4(vec2 v) { return pMul(pRound(pMul(v, pf(10000.0))), ${pair(1 / 10000)}); }
 vec2 scaleOf() { return pMul(SPAN, pf(max(iResolution.x, iResolution.y))); }
 vec4 gatherOf(vec2 D) {
   return vec4(r2(pAdd(pf(iResolution.x * 0.5), pMul(D, KG0))), r2(pAdd(pf(iResolution.y * 0.5), pMul(D, KG1))));
@@ -281,7 +304,7 @@ Ring ringOf(int i, vec2 D) {
   vec2 X1 = pAdd(pf(iResolution.y * 0.5), pMul(D, KX1[i]));
   vec2 P = r4(pMul(TWO_W[i], D));
   vec2 w = pMul(P, pf(0.5));
-  float n = max(1.0, pRound(pSub(pDiv(pDiv(D, BEND[i]), P), pf(0.5))).x);
+  float n = max(1.0, pRound(pSub(pDiv(pMul(D, BEND[i]), P), pf(0.5))).x);
   vec2 R = pMul(pf(n + 0.5), P);
   return Ring(R, w, r2(pAdd(X0, pMul(NX[i], R))), r2(pAdd(X1, pMul(NY[i], R))));
 }
@@ -303,36 +326,34 @@ vec4 dyeLine(vec2 D) {
 // A fold's swing at t: its keys' timing curve's progress found by bisection, as the site's bezierAt, between the keys
 // either side of t in the loop.
 vec2 bezierAt(vec4 hi, vec4 lo, vec2 x) {
-  if (!pLess(pf(0.0), x)) return pf(0.0);
-  if (!pLess(x, pf(1.0))) return pf(1.0);
   vec2 x1 = vec2(hi.x, lo.x), y1 = vec2(hi.y, lo.y), x2 = vec2(hi.z, lo.z), y2 = vec2(hi.w, lo.w);
   vec2 a = pf(0.0), b = pf(1.0);
   for (int i = 0; i < steps(40); i++) {
-    vec2 u = pMul(pAdd(a, b), pf(0.5));
+    vec2 u = 0.5 * pAdd(a, b);
     vec2 v = pSub(pf(1.0), u);
     vec2 three = pMul(pf(3.0), v);
     vec2 xu = pAdd(pAdd(pMul(pMul(pMul(three, v), u), x1), pMul(pMul(pMul(three, u), u), x2)), pMul(pMul(u, u), u));
     if (pLess(xu, x)) a = u;
     else b = u;
   }
-  vec2 u = pMul(pAdd(a, b), pf(0.5));
+  vec2 u = 0.5 * pAdd(a, b);
   vec2 v = pSub(pf(1.0), u);
   vec2 three = pMul(pf(3.0), v);
-  return pAdd(pAdd(pMul(pMul(pMul(three, v), u), y1), pMul(pMul(pMul(three, u), u), y2)), pMul(pMul(u, u), u));
+  vec2 y = pAdd(pAdd(pMul(pMul(pMul(three, v), u), y1), pMul(pMul(pMul(three, u), u), y2)), pMul(pMul(u, u), u));
+  return !pLess(pf(0.0), x) ? pf(0.0) : !pLess(x, pf(1.0)) ? pf(1.0) : y;
 }
-vec2 trackAt(int fold, vec2 t) {
-  vec2 loop = pf(LOOP);
-  vec2 tt = pSub(t, pMul(loop, pFloor(pDiv(t, loop))));
+// the fold's sine and cosine at t: its turn between the keys either side of t in the loop
+vec4 swingAt(int fold, vec2 t) {
+  vec2 tt = pSub(t, pMul(pf(LOOP), pFloor(pMul(t, INV_LOOP))));
   int last = KEY_FROM[fold + 1] - 1;
   int j = KEY_FROM[fold] + 1;
   for (int k = 0; k < steps(24); k++) {
     if (j >= last || !pLess(KEY_T[j], tt)) break;
     j++;
   }
-  vec2 t0 = KEY_T[j - 1];
-  vec2 span = pSub(KEY_T[j], t0);
-  vec2 p = pLess(pf(0.0), span) ? pMin(pf(1.0), pMax(pf(0.0), pDiv(pSub(tt, t0), span))) : pf(1.0);
-  return pAdd(KEY_V[j - 1], pMul(pSub(KEY_V[j], KEY_V[j - 1]), bezierAt(KEY_E[j], KEY_EL[j], p)));
+  vec2 p = pMin(pf(1.0), pMax(pf(0.0), pMul(pSub(tt, KEY_T[j - 1]), KEY_SPAN[j])));
+  vec2 turn = pAdd(KEY_V[j - 1], pMul(pSub(KEY_V[j], KEY_V[j - 1]), bezierAt(KEY_E[j], KEY_EL[j], p)));
+  return sinCosSmall(pMul(turn, DEG));
 }
 
 // The GPU's linear filters by hand, as SwiftShader reads the player's textures, clamped to the edge: the coordinate's
@@ -369,7 +390,8 @@ vec4 lookup(int table, vec2 uv, float lod) {
 
   const bufferA = `// ==== Buffer A ==== iChannel0: Buffer A (filter: nearest, wrap: clamp)
 // The state, in the first row: the mark, the settings' signature and the clock's flags, the clock's doubles, the
-// layout for the canvas (kept while the canvas and the settings are), and each fold's middle at the time drawn.
+// layout for the canvas (kept while the canvas and the settings are), and each fold's middle at the time drawn. Each
+// part is worked out in one place (a GPU's compiler writes a function out again at each call).
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   ivec2 p = ivec2(fragCoord);
   if (p.y != 0 || p.x >= STATE) discard;
@@ -383,63 +405,54 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     fragColor = vec4(MAGIC, SCENE, iResolution.xy);
     return;
   }
-  if (i < T_DYE || i >= T_CENTRE) {
-    // every frame: the clock, and each fold's middle at the time drawn
-    Tick k = tick(iChannel0, fresh, kept);
-    if (i == T_FLAGS) fragColor = vec4(sign, k.draw ? 1.0 : 0.0, k.paceSet ? 1.0 : 0.0);
-    else if (i < T_DYE) fragColor = pieces(k.d[i - T_CLOCK]);
-    else {
-      int fold = i - T_CENTRE;
-      if (fold >= FOLDS) {
-        fragColor = vec4(0.0);
-        return;
-      }
-      vec4 g;
-      vec4 arm;
-      if (kept) {
-        g = state(iChannel0, T_GATHER);
-        arm = state(iChannel0, T_ARM + fold);
-      } else {
-        vec2 D = scaleOf();
-        g = gatherOf(D);
-        Ring r = ringOf(fold, D);
-        arm = vec4(pSub(r.cx, g.xy), pSub(r.cy, g.zw));
-      }
-      vec4 sc = pSinCos(pMul(trackAt(fold, pOf(k.d[${FX_CLOCK_DOUBLES.findIndex(([n]) => n === "drawn")}])), DEG));
-      vec2 X = pSub(pAdd(g.xy, pMul(sc.zw, arm.xy)), pMul(sc.xy, arm.zw));
-      vec2 Y = pAdd(pAdd(g.zw, pMul(sc.xy, arm.xy)), pMul(sc.zw, arm.zw));
-      fragColor = vec4(X.x, Y.x, 0.0, 0.0);
-    }
-    return;
-  }
-  if (kept) {
+  bool clock = i < T_DYE;
+  bool centre = i >= T_CENTRE;
+  if (kept && !clock && !centre) {
     fragColor = state(iChannel0, i);
     return;
   }
+  // the fold a ring's, an arm's or a middle's texel is for
+  int fold = centre ? i - T_CENTRE : i >= T_ARM ? i - T_ARM : i - T_RING;
+  if (!clock && i != T_DYE && i != T_GATHER && fold >= FOLDS) {
+    fragColor = vec4(0.0);
+    return;
+  }
   // the layout for this canvas
-  vec2 D = scaleOf();
-  if (i == T_DYE) fragColor = dyeLine(D);
-  else if (i == T_GATHER) fragColor = gatherOf(D);
-  else if (i < T_GATHER) {
-    int fold = i - T_RING;
-    if (fold >= FOLDS) {
-      fragColor = vec4(0.0);
-      return;
+  vec4 g = vec4(0.0);
+  vec4 arm = vec4(0.0);
+  vec4 laid = vec4(0.0);
+  if (!clock && !kept) {
+    vec2 D = scaleOf();
+    g = gatherOf(D);
+    Ring r = ringOf(clamp(fold, 0, FOLDS - 1), D);
+    arm = vec4(pSub(r.cx, g.xy), pSub(r.cy, g.zw));
+    if (i == T_DYE) laid = dyeLine(D);
+    else if (i == T_GATHER) laid = g;
+    else if (i >= T_ARM) laid = arm;
+    else {
+      vec2 inner = pSub(r.R, r.w);
+      vec2 outer = pAdd(r.R, r.w);
+      vec2 z = pAdd(pMul(pMul(pSub(pf(1.0), pDiv(r.R, r.w)), pf(0.5)), G_PROF), HALF_PROF);
+      laid = vec4(pDiv(G_PROF, pMul(pf(2.0), r.w)).x, z.x, pMul(inner, inner).x, pMul(outer, outer).x);
     }
-    Ring r = ringOf(fold, D);
-    vec2 inner = pSub(r.R, r.w);
-    vec2 outer = pAdd(r.R, r.w);
-    vec2 z = pAdd(pMul(pMul(pSub(pf(1.0), pDiv(r.R, r.w)), pf(0.5)), G_PROF), HALF_PROF);
-    fragColor = vec4(pDiv(G_PROF, pMul(pf(2.0), r.w)).x, z.x, pMul(inner, inner).x, pMul(outer, outer).x);
-  } else {
-    int fold = i - T_ARM;
-    if (fold >= FOLDS) {
-      fragColor = vec4(0.0);
-      return;
+  }
+  if (!clock && !centre) {
+    fragColor = laid;
+    return;
+  }
+  // every frame: the clock, and each fold's middle at the time drawn
+  Tick k = tick(iChannel0, fresh, kept);
+  if (i == T_FLAGS) fragColor = vec4(sign, k.draw ? 1.0 : 0.0, k.paceSet ? 1.0 : 0.0);
+  else if (clock) fragColor = pieces(k.d[i - T_CLOCK]);
+  else {
+    if (kept) {
+      g = state(iChannel0, T_GATHER);
+      arm = state(iChannel0, T_ARM + fold);
     }
-    vec4 g = gatherOf(D);
-    Ring r = ringOf(fold, D);
-    fragColor = vec4(pSub(r.cx, g.xy), pSub(r.cy, g.zw));
+    vec4 sc = swingAt(fold, pOf(k.d[${FX_CLOCK_DOUBLES.findIndex(([n]) => n === "drawn")}]));
+    vec2 X = pSub(pAdd(g.xy, pMul(sc.zw, arm.xy)), pMul(sc.xy, arm.zw));
+    vec2 Y = pAdd(pAdd(g.zw, pMul(sc.xy, arm.xy)), pMul(sc.zw, arm.zw));
+    fragColor = vec4(X.x, Y.x, 0.0, 0.0);
   }
 }`;
 

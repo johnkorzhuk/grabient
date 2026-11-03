@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { golden } from "../test/support.ts";
 import { decodePalette } from "./codec.ts";
 import {
   EFFECT_EASE_S,
@@ -14,7 +15,7 @@ import { ROSETTE_FS, ROSETTE_VS, rosetteGroup, rosetteUniforms } from "./rosette
 import { rosetteModel, rosetteSettings } from "./rosette-page.ts";
 import { ROSETTE_SHADER_KINDS, rosetteShader } from "./rosette-shader.ts";
 import { ROSETTE_WGSL } from "./rosette-wgsl.ts";
-import { SHADER_KINDS } from "./shader-kinds.ts";
+import { SHADER_KINDS, type ShaderKind } from "./shader-kinds.ts";
 import { parseView } from "./view.ts";
 
 const read = (address: string): { effect: Effect; angle: number } => {
@@ -56,6 +57,22 @@ const modelOf = (P: Palette, effect: Effect, angle: number): Model =>
   new Function(
     `${rosetteSettings(P, effect, angle)}\n${rosetteModel()}\nreturn { rosetteScene, rosetteUniforms, rosetteGroup };`
   )() as Model;
+
+test("the rosette's five texts are as the shader lab checked them, for four palettes and looks", () => {
+  const { origin, entries } = golden<{
+    origin: string;
+    entries: { id: string; seed: string; address: string; texts: Record<ShaderKind, string> }[];
+  }>("rosette-shaders");
+  expect(entries.length).toBe(4);
+  for (const e of entries) {
+    const { effect, angle } = read(e.address);
+    for (const kind of ROSETTE_SHADER_KINDS)
+      expect(
+        rosetteShader(kind, decodePalette(e.seed) as Palette, effect, angle, e.seed, origin),
+        `${e.id} ${kind}`
+      ).toBe(e.texts[kind]);
+  }
+});
 
 test("the pages work out the player's colors, design and uniforms to the last bit, for any palette, angle, shape and canvas", () => {
   for (const [s, seed] of SEEDS.entries())

@@ -117,7 +117,9 @@ uvec2 hundredths(float x) { return dFromInt(int(floor(max(x, 0.0) * 100.0 + 0.5)
 export const FX_PAIRS = `// Pairs of floats, hi + lo (about 48 bits), for the numbers worked out from the clock: each rounds to the float the
 // player's double rounds to. Each sum and product keeps its rounding error, which a compiler that rearranges the steps
 // would drop ((a + b) - a is b only in exact numbers): keep() passes a float through an integer XOR with a 0 the
-// compiler cannot see (iResolution.z is 1.0), so no step is moved, fused or cancelled across it.
+// compiler cannot see (iResolution.z is 1.0), so no step is moved, fused or cancelled across it. Every step is guarded:
+// with the sums and the product's split alone, an NVIDIA RTX's compiler cancelled enough to put a dozen of the silk's
+// floats one apart from the player's.
 float keep(float x) { return uintBitsToFloat(floatBitsToUint(x) ^ (uint(iResolution.z) - 1u)); }
 vec2 twoSum(float a, float b) {
   float s = keep(a + b);
@@ -180,7 +182,7 @@ vec2 pOf(uvec2 d) {
 }`;
 
 /** The pairs' exp, log, sine and cosine, for a text that needs them: Taylor's series after reducing the argument by
-    pairs of ln 2 and pi / 2, Newton's steps for the log. */
+    pairs of ln 2 and pi / 2, a Newton step for the log. */
 export function fxPairsTrig(pair: (x: number) => string): string {
   const fact = (n: number) => {
     let f = 1;
@@ -202,10 +204,9 @@ vec2 pExp(vec2 a) {
   for (int i = 0; i < 4; i++) s = pMul(s, s);
   return s * uintBitsToFloat(uint(int(k) + 127) << 23);
 }
-// Newton's steps on e^y = a from the float's own log
+// a Newton step on e^y = a from the float's own log, whose error it squares, to within a pair's
 vec2 pLog(vec2 a) {
   vec2 y = pf(keep(log(a.x)));
-  y = pAdd(y, pSub(pMul(a, pExp(-y)), pf(1.0)));
   return pAdd(y, pSub(pMul(a, pExp(-y)), pf(1.0)));
 }
 const vec2 SIN_C[9] = vec2[](${list(Array.from({ length: 9 }, (_, n) => pair((n % 2 ? -1 : 1) / fact(2 * n + 1))))}
