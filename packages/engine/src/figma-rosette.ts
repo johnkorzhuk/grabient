@@ -12,13 +12,17 @@
    Figma's radial gradient transform G reads a layer's own point p (0 to 1 across its box) at G p, its middle at
    (0.5, 0.5) and its rim 0.5 out: a gradient whose middle is c and radii r (box shares) has
    G = [[0.5 / rx, 0, 0.5 - 0.5 cx / rx], [0, 0.5 / ry, 0.5 - 0.5 cy / ry]]. Figma's file keeps an angle in radians,
-   clockwise as CSS's. A boolean operation's shapes stand in its own box, as the glass's ribs' do. */
+   clockwise as CSS's. A boolean operation's shapes stand in its own box, as the glass's ribs' do. Its soft and grain
+   wrap the three as the site paints them (figmaFinish), still while the petals turn. */
 import { toHex } from "./color.ts";
 import {
   FIGMA_PAGE,
+  type FigmaFinish,
   type FigmaMotion,
   type FigmaNode,
+  type FigmaUnder,
   figmaColor,
+  figmaFinish,
   figmaLayers,
   figmaPasteHtml,
   figmaScene
@@ -228,8 +232,13 @@ const loopOf = (l: Layer): number =>
     : Math.max(0, ...(l.kids ?? []).map(loopOf));
 
 /** The paste's nodes: groups are frames fit to their children, placed by the bounds of what they hold; a group with two
-    tracks is two groups, the second track on the inner one. */
-export function rosetteNodes(root: Layer): FigmaNode[] {
+    tracks is two groups, the second track on the inner one. The soft and the grain wrap the frame's layers, a soft
+    one over the gradient `under` makes. */
+export function rosetteNodes(
+  root: Layer,
+  finish?: FigmaFinish | null,
+  under: FigmaUnder | null = null
+): FigmaNode[] {
   const { nodes, internal, add, group, animate } = figmaLayers();
   const bounds = (l: Layer): [number, number, number, number] => {
     if (l.kind === "group") {
@@ -287,13 +296,15 @@ export function rosetteNodes(root: Layer): FigmaNode[] {
       fillPaints: fill
     });
   };
+  const into = figmaFinish({ add, group }, top, { width: root.w, height: root.h }, finish, under);
   (root.kids ?? []).forEach((k, i) => {
-    put(k, top, i, 0, 0);
+    put(k, into.parent, into.index + i, 0, 0);
   });
   return figmaScene(nodes, internal);
 }
 
-/** A rosette to paste: its palette and look, the frame's size and name, and its pace (0 the still). */
+/** A rosette to paste: its palette and look, the frame's size and name, its pace (0 the still), and its soft and
+    grain. */
 export interface FigmaRosetteView {
   palette: Palette;
   angle: number;
@@ -302,6 +313,7 @@ export interface FigmaRosetteView {
   height: number;
   name: string;
   speed: number;
+  finish?: FigmaFinish | null;
 }
 
 /** The rosette's paste nodes: the document, its page, the frame and its layers, and its keyframe tracks. */
@@ -315,7 +327,9 @@ export const figmaRosetteNodes = (view: FigmaRosetteView): FigmaNode[] =>
       ),
       view.speed,
       view.name
-    )
+    ),
+    view.finish,
+    { palette: view.palette, kind: "rosette", angle: view.angle }
   );
 
 /** The clipboard's text/html for the rosette, which a paste into Figma reads as its layers. */

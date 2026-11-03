@@ -26,7 +26,10 @@
    speed) so it closes on itself. Figma turns and scales a layer about its own centre, so a ball's group holds a clear
    twin mirrored through its resting point and the ring's and the breath's groups a clear square about the middle. A
    keyframe's easing is that of the stretch arriving at it. Built in the lab and copied out of Figma, the motion
-   scored 1.0 to 1.5 against the site's SVG frame by frame over its loop. */
+   scored 1.0 to 1.5 against the site's SVG frame by frame over its loop.
+   Its soft and grain wrap the blob as the site paints them (figmaFinish), its ground with it: the ground leaves the
+   frame's fill for a layer under the blob, so the blur takes it too and the grain lies over it, as the site's layer
+   holds both. */
 import {
   BLOB_DEPTH,
   BLOB_DESIGN,
@@ -42,10 +45,12 @@ import { groundParts } from "./effect.ts";
 import {
   FIGMA_PAGE,
   type FigmaField,
+  type FigmaFinish,
   type FigmaMotion,
   type FigmaNode,
   figmaBlur,
   figmaCurveBetween,
+  figmaFinish,
   figmaLayers,
   figmaPasteHtml,
   figmaScene,
@@ -73,6 +78,8 @@ export interface FigmaBlobView extends Pick<BlobView, "shape" | "frost" | "bg"> 
   height: number;
   /** the frame's name in Figma */
   name: string;
+  /** the soft and the grain over it, none where absent */
+  finish?: FigmaFinish | null;
 }
 
 type Blend = "COLOR_BURN" | "COLOR_DODGE";
@@ -421,12 +428,24 @@ export function figmaBlobNodes(view: FigmaBlobView): FigmaNode[] {
     return 1;
   };
   const ground = view.bg ? groundParts(view.bg) : null;
+  const finished = !!(view.finish?.soft || view.finish?.grain);
   const top = add("FRAME", view.name, FIGMA_PAGE, 0, W, H, 0, 0, {
-    fillPaints: ground ? [figmaSolid(ground.hex, ground.alpha)] : [],
+    fillPaints: ground && !finished ? [figmaSolid(ground.hex, ground.alpha)] : [],
     frameMaskDisabled: false,
     ...(loop ? { timelineDuration: Math.round(loop * 1e6) } : {})
   });
-  emit({ t: "group", n: "blob", kids }, top, 0, 0, 0);
+  const into = figmaFinish({ add, group }, top, { width: W, height: H }, view.finish, {
+    palette: view.palette,
+    kind: "blob",
+    bg: view.bg,
+    angle: 90
+  });
+  let index = into.index;
+  if (ground && finished)
+    add("RECTANGLE", "ground", into.parent, index++, W, H, 0, 0, {
+      fillPaints: [figmaSolid(ground.hex, ground.alpha)]
+    });
+  emit({ t: "group", n: "blob", kids }, into.parent, index, 0, 0);
   return figmaScene(nodes, internal);
 }
 

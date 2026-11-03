@@ -10,11 +10,14 @@
    3. "crests": the same with the crest profile and the lift's stops.
    While it moves each "fold i" group carries one track, a turn keyed by the same keys the CPU, the player and the SMIL
    read; Figma's canvas shows a layer at its own turn, not its track's rest, so each fold is placed at its t = 0 turn
-   and the keys hold the turn from there: the canvas is the still, and playing adds the swing. */
+   and the keys hold the turn from there: the canvas is the still, and playing adds the swing. Its soft and grain wrap
+   the three as the site paints them (figmaFinish), still while the folds turn. */
 import {
   FIGMA_PAGE,
+  type FigmaFinish,
   type FigmaMotion,
   type FigmaNode,
+  figmaFinish,
   figmaLayers,
   figmaPasteHtml,
   figmaScene,
@@ -23,7 +26,7 @@ import {
 import type { Palette } from "./palette.ts";
 import { PROF_N, SILK_LOOP, type SilkScene, silkScene } from "./silk.ts";
 
-/** A silk to paste: its palette and look, the frame's size and name, and its pace (0 the still). */
+/** A silk to paste: its palette and look, the frame's size and name, its pace (0 the still), and its soft and grain. */
 export interface FigmaSilkView {
   palette: Palette;
   angle: number;
@@ -32,6 +35,7 @@ export interface FigmaSilkView {
   height: number;
   name: string;
   speed: number;
+  finish?: FigmaFinish | null;
 }
 
 type Mat = [[number, number, number], [number, number, number]];
@@ -246,8 +250,13 @@ export function figmaSilkNodes(view: FigmaSilkView): FigmaNode[] {
       emit(kid, g, i, x0, y0);
     });
   };
+  const into = figmaFinish({ add, group }, top, { width: W, height: H }, view.finish, {
+    palette: view.palette,
+    kind: "silk",
+    angle: view.angle
+  });
   silkLayers(scene, speed).forEach((l, i) => {
-    emit(l, top, i, 0, 0);
+    emit(l, into.parent, into.index + i, 0, 0);
   });
   return figmaScene(nodes, internal);
 }

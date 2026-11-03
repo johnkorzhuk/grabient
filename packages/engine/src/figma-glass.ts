@@ -14,23 +14,27 @@
    along the ribs, one or two laps a loop (GLASS_LOOP over the speed). An ellipse is no turn Figma can key, but each of
    its screen axes is a plain wave, so a disc's group moves across and its inner group down, each keyed at the wave's
    turning points on the ease a sine's swing follows, a stretch that starts or ends partway on that part of it. The
-   ribs stay still, as on the site. */
+   ribs stay still, as on the site. Its soft and grain wrap the masked group as the site paints them (figmaFinish),
+   still while the colors move. */
 import {
   FIGMA_PAGE,
   type FigmaCurve,
   type FigmaField,
+  type FigmaFinish,
   type FigmaMotion,
   type FigmaNode,
   figmaAt,
   figmaBlur,
   figmaColor,
   figmaCurveBetween,
+  figmaFinish,
   figmaLayers,
   figmaPasteHtml,
   figmaScene,
   figmaSolid
 } from "./figma-paste.ts";
 import { GLASS_DESIGN, GLASS_LOOP, glassDiscAt, glassField, glassGeometry } from "./glass.ts";
+import type { Palette } from "./palette.ts";
 
 /** The Glass a rib carries, in the clipboard's names: refractionIntensity is Figma's Refraction, refractionRadius its
     Depth, specularIntensity and specularAngle its Light, chromaticAberration its Dispersion, reflectionDistance its
@@ -45,6 +49,8 @@ export const FIGMA_GLASS = {
 export interface FigmaGlassView {
   /** the six colors the glass takes (glassColors) */
   colors: readonly string[];
+  /** its palette, whose gradient a soft glass's edges go to */
+  palette?: Palette;
   angle: number;
   shape: number | null;
   width: number;
@@ -53,6 +59,8 @@ export interface FigmaGlassView {
   name: string;
   /** how fast the colors drift, the loop GLASS_LOOP seconds over this; 0 or none, the first frame alone */
   speed?: number;
+  /** the soft and the grain over it, none where absent */
+  finish?: FigmaFinish | null;
 }
 
 /** The ease of a cosine's swing from one end to the other (CSS's easeInOutSine), within half a percent of it. */
@@ -136,7 +144,14 @@ export function figmaGlassNodes(view: FigmaGlassView): FigmaNode[] {
     frameMaskDisabled: true,
     ...(loop ? { timelineDuration: Math.round(loop * 1e6) } : {})
   });
-  const glass = group("glass", top, 0, 0, 0, W, H);
+  const into = figmaFinish(
+    { add, group },
+    top,
+    { width: W, height: H },
+    view.finish,
+    view.palette ? { palette: view.palette, kind: "glass", angle: view.angle } : null
+  );
+  const glass = group("glass", into.parent, into.index, 0, 0, W, H);
   add("RECTANGLE", "mask", glass, 0, W, H, 0, 0, {
     fillPaints: [figmaSolid("#000000")],
     mask: true,

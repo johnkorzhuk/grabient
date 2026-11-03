@@ -8,9 +8,14 @@
    written in (figma-schema.ts, the part of Figma's a paste uses) and the message, kiwi-encoded (kiwi.ts), stored in
    deflate's uncompressed blocks so the whole paste is made at once, inside the press that copies it. A layer is a node
    of Figma's scene, placed under its parent by an index; a group is a frame that fits its children. A paste that moves
-   keeps its keyframe tracks under Figma's internal canvas, as Figma's own copies do. */
+   keeps its keyframe tracks under Figma's internal canvas, as Figma's own copies do. An effect's soft and grain wrap
+   its drawing (figmaFinish). */
+import type { EffectKind } from "./effect.ts";
 import { FIGMA_DEFS, FIGMA_SCHEMA, FIGMA_VERSION } from "./figma-schema.ts";
+import { effectUnderlay } from "./fx-finish.ts";
 import { encodeKiwi } from "./kiwi.ts";
+import type { Palette } from "./palette.ts";
+import { effectSoftShare, type Size } from "./view.ts";
 
 export type FigmaNode = Record<string, unknown> & { guid: { sessionID: number; localID: number } };
 
@@ -262,6 +267,149 @@ export function figmaLayers() {
     };
   };
   return { nodes, internal, add, group, bare, animate };
+}
+
+/** The soft and the grain in Figma's own effects, tuned in the lab file against the site's picture (W/styles-lab/sg/
+    figma, 3 Nov 2026). Figma's layer blur is a Gaussian whose sigma is its radius over 2.351 (fitted on steps blurred
+    at radii 8 to 200, within 1.1 levels rms), so the soft's blur is 2.351 times the site's sigma. The grain is Figma's
+    duotone Noise, black and white at one alpha, a design unit a speck: at density 0.5 its pull toward mid gray and its
+    spread keep the ratio of the site's tile, and at an alpha of 0.749 times the grain over 100 its spread over mid
+    gray and its mean over a palette's tones are the tile's within half a level at grains 20, 50 and 100. */
+export const FIGMA_FINISH = { blur: 2.351, density: 0.5, alpha: 0.749 } as const;
+
+/** Figma's Noise as the grain, 1 to 100: black and white specks a design unit each. */
+export function figmaNoise(grain: number) {
+  const a = Math.round(FIGMA_FINISH.alpha * Math.min(100, Math.max(0, grain)) * 10) / 1000;
+  return {
+    type: "NOISE",
+    offset: { x: 0, y: 0 },
+    visible: true,
+    blendMode: "NORMAL",
+    spread: 0,
+    noiseType: "DUOTONE",
+    noiseSize: { x: 1, y: 1 },
+    density: FIGMA_FINISH.density,
+    color: { r: 0, g: 0, b: 0, a },
+    secondaryColor: { r: 1, g: 1, b: 1, a },
+    showShadowBehindNode: false
+  };
+}
+
+/** A linear gradient filling a w by h box as CSS's linear-gradient(angle, ...) fills it: its line through the middle at
+    the angle (0 up, 90 to the right), as long as the box's corners reach along it, its stops at `at` (else evenly). */
+export function figmaLinear(
+  hexes: readonly string[],
+  angle: number,
+  w: number,
+  h: number,
+  at?: readonly number[]
+) {
+  const a = (angle * Math.PI) / 180;
+  const ux = Math.sin(a);
+  const uy = -Math.cos(a);
+  const half = (w * Math.abs(ux) + h * Math.abs(uy)) / 2;
+  const x1 = w / 2 - ux * half;
+  const y1 = h / 2 - uy * half;
+  const dx = 2 * ux * half;
+  const dy = 2 * uy * half;
+  const l2 = dx * dx + dy * dy || 1;
+  /* the box's own point (0 to 1 each way) to the gradient's: along the line from its start, and across it */
+  return {
+    type: "GRADIENT_LINEAR",
+    opacity: 1,
+    visible: true,
+    blendMode: "NORMAL",
+    transform: {
+      m00: (w * dx) / l2,
+      m01: (h * dy) / l2,
+      m02: -(x1 * dx + y1 * dy) / l2,
+      m10: (-w * dy) / l2,
+      m11: (h * dx) / l2,
+      m12: 0.5 + (x1 * dy - y1 * dx) / l2
+    },
+    stops: hexes.map((hex, i) => ({
+      color: figmaColor(hex),
+      position: at ? at[i] : i / Math.max(1, hexes.length - 1)
+    }))
+  };
+}
+
+/** An effect's soft and grain, as its view names them: each 1 to 100, none where absent or 0. */
+export interface FigmaFinish {
+  soft?: number;
+  grain?: number;
+}
+/** What the gradient under a soft effect is made from (fx-finish.ts effectUnderlay): the palette, the effect and its
+    ground (the blob's, none for a blob that stands clear, which has no gradient under it), and the view's angle. */
+export interface FigmaUnder {
+  palette: Palette;
+  kind: EffectKind;
+  bg?: string | null;
+  angle: number;
+}
+
+/** Wraps an effect's drawing in its soft and grain as the site paints them, under the frame `top` of `size`: a group
+    masked to the box, carrying the grain as Figma's Noise over all of it, and holding the palette's gradient under a
+    soft effect (`under`) and the drawing blurred, the drawing itself masked to the box first so the blur reads clear
+    past the box, as the site's does, and its edges thin to the gradient. The masks keep each group the box's size
+    however its layers move. Gives the parent the effect's layers go in and the index of the first; with neither, the
+    frame and 0. */
+export function figmaFinish(
+  { add, group }: Pick<ReturnType<typeof figmaLayers>, "add" | "group">,
+  top: FigmaNode,
+  size: Size,
+  finish: FigmaFinish | null | undefined,
+  under: FigmaUnder | null
+): { parent: FigmaNode; index: number } {
+  const { width: W, height: H } = size;
+  const soft = finish?.soft ?? 0;
+  const sigma = soft ? effectSoftShare(soft) * Math.max(W, H) : 0;
+  const grain = finish?.grain ?? 0;
+  if (!sigma && !grain) return { parent: top, index: 0 };
+  const mask = (parent: FigmaNode) =>
+    add("RECTANGLE", "mask", parent, 0, W, H, 0, 0, {
+      fillPaints: [figmaSolid("#000000")],
+      mask: true,
+      maskType: "ALPHA"
+    });
+  const outer = group(
+    grain ? "grain" : "finish",
+    top,
+    0,
+    0,
+    0,
+    W,
+    H,
+    grain ? { effects: [figmaNoise(grain)] } : {}
+  );
+  mask(outer);
+  if (!sigma) return { parent: outer, index: 1 };
+  const underlay =
+    under &&
+    effectUnderlay(
+      under.palette,
+      { kind: under.kind, look: { shape: null, frost: 1, bg: under.bg ?? null } },
+      under.angle,
+      soft
+    );
+  if (underlay)
+    add("RECTANGLE", "gradient", outer, 1, W, H, 0, 0, {
+      fillPaints: [
+        figmaLinear(
+          underlay.stops.map(s => s.hex),
+          underlay.angle,
+          W,
+          H,
+          underlay.at
+        )
+      ]
+    });
+  const blurred = group("soft", outer, underlay ? 2 : 1, 0, 0, W, H, {
+    effects: [figmaBlur(Math.round(FIGMA_FINISH.blur * sigma * 1000) / 1000)]
+  });
+  const drawing = group("picture", blurred, 0, 0, 0, W, H);
+  mask(drawing);
+  return { parent: drawing, index: 1 };
 }
 
 /** Layers as Figma's scene: the document, its page, the layers (the first the frame a paste selects), Figma's
