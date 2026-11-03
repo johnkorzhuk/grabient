@@ -46,6 +46,8 @@ const paramsOf = (p: GoldenParams): ListParams => ({
   style: p.style as ListParams["style"],
   steps: p.steps,
   angle: p.angle,
+  soft: 0,
+  grain: 0,
   size: parseSize(p.size),
   page: p.page,
   limit: p.limit,

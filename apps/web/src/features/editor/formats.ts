@@ -25,7 +25,9 @@ import {
   swatchesOf,
   writeText
 } from "../../lib/files.ts";
+import { grainSrc } from "../../lib/picture.ts";
 import { seedAddress } from "./address.ts";
+import { drawnSoon, grainDataUrl } from "./copy-finish.ts";
 
 /* What the editor's strips hand over: a palette copied, saved as a file, or as the address of the file the site serves
    for it. A copy and a download of one format hold the same palette; CSS alone differs, since a copy is the
@@ -55,6 +57,9 @@ export interface Taken {
   style: Style;
   steps: number;
   angle: number;
+  /** the soft and the grain over the gradient, 0 or none for none */
+  soft?: number;
+  grain?: number;
   size: SizeChoice | null;
   pixels: Size;
   stops: readonly Stop[];
@@ -69,7 +74,13 @@ export interface Taken {
 export const NO_IMAGE_CLIPBOARD = "no image clipboard";
 
 const origin = () => location.origin;
-const view = (p: Taken) => ({ style: p.style, steps: p.steps, angle: p.angle });
+const view = (p: Taken) => ({
+  style: p.style,
+  steps: p.steps,
+  angle: p.angle,
+  ...(p.soft ? { soft: p.soft } : {}),
+  ...(p.grain ? { grain: p.grain } : {})
+});
 /* the palette's address as people share it, with the effect it plays: no language, no locks, no selection */
 const pageUrl = (p: Taken) =>
   origin() +
@@ -153,15 +164,59 @@ const stillOf = async (p: Taken, effect: Effect): Promise<string> => {
 const effectCss = async (p: Taken, effect: Effect) =>
   (await effectCode()).effectStylesheet(paletteOf(p), p.seed, effect, p.angle, origin());
 /* an effect's SVG moves as the picture does: speed 0 is its first frame */
-const svgText = (p: Taken) =>
+/* the gradient's SVG: a soft view's blurred stops (lib/picture.ts), and its grain's tile where `grain` brings it */
+async function gradientSvg(p: Taken, grain?: string): Promise<string> {
+  const d = await drawnSoon(p.stops, view(p));
+  return artworkSvg(d.stops, view(p), p.seed, origin(), p.pixels, {
+    style: d.style,
+    at: d.at,
+    grain
+  });
+}
+const svgText = async (p: Taken) =>
   p.effect
     ? effectSvgOf(p, p.effect, true)
-    : Promise.resolve(artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels));
+    : gradientSvg(p, p.grain ? await grainDataUrl(p.grain) : undefined);
+/* the gradient's CSS: a soft view's blurred stops at their places, and the grain's tile carried in itself */
+async function gradientCss(p: Taken): Promise<string> {
+  const drawn = await drawnSoon(p.stops, view(p));
+  return cssBlock(drawn.stops, drawn.style, p.angle, colorFormat(), {
+    ...(drawn.at ? { at: drawn.at } : {}),
+    ...(p.grain ? { grain: `url("${await grainDataUrl(p.grain)}")` } : {})
+  });
+}
+/* the gradient's PNG: its SVG drawn, and the grain's tile laid over it as the page lays it */
+async function gradientPng(p: Taken): Promise<Blob> {
+  const svg = await gradientSvg(p);
+  if (!p.grain) return svgToPngBlob(svg, 1);
+  const load = async (src: string) => {
+    const image = new Image();
+    image.src = src;
+    await image.decode();
+    return image;
+  };
+  const [picture, tile] = await Promise.all([
+    load(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`),
+    load(grainSrc(p.grain))
+  ]);
+  const { width, height } = p.pixels;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("no 2d context");
+  context.drawImage(picture, 0, 0, width, height);
+  context.fillStyle = context.createPattern(tile, "repeat") ?? "transparent";
+  context.fillRect(0, 0, width, height);
+  const png = await encoded(canvas, "image/png");
+  if (!png) throw new Error("no PNG");
+  return png;
+}
 /* a PNG is the first frame: the glass as its player draws it, the blob as its still SVG paints */
 const pngOf = async (p: Taken): Promise<Blob> => {
   if (p.effect && p.effect.kind !== "glass")
     return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
-  if (!p.effect) return svgToPngBlob(artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels), 1);
+  if (!p.effect) return gradientPng(p);
   const picture = await encoded(await glassPixels(p, p.pixels), "image/png");
   if (!picture) throw new Error("no PNG");
   return picture;
@@ -239,7 +294,7 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
     f === "css"
       ? p.effect
         ? await effectCss(p, p.effect)
-        : cssBlock(p.stops, p.style, p.angle, colorFormat())
+        : await gradientCss(p)
       : f === "svg"
         ? await svgText(p)
         : pageUrl(p)

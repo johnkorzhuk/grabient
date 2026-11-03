@@ -7,7 +7,7 @@ import { createMemo, type Element, onSettled, untrack, useContext } from "solid-
 import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { inPlace } from "../../app/navigation.ts";
 import { relTo } from "../../lib/page-meta.ts";
-import { hexesOf } from "../../lib/palette.ts";
+import { cardPicture } from "../../lib/picture.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, toggleLike } from "../account/likes.ts";
 import { rememberOpening } from "../collections/navigation.ts";
@@ -120,8 +120,10 @@ export function GalleryCard(props: {
       ref={sight.ref}
       seed={seed()}
       name={name()}
-      stops={hexesOf(picture())}
-      style={picture().style}
+      stops={cardPicture(picture()).stops}
+      style={cardPicture(picture()).style}
+      at={cardPicture(picture()).at}
+      grain={cardPicture(picture()).grain}
       angle={picture().angle}
       picture={effect.picture()}
       pictureLabel={effect.label()}

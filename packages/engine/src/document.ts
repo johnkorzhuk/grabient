@@ -40,8 +40,11 @@ export function paletteDocument(
     style: view.style,
     steps: view.steps,
     angle: view.angle,
+    ...(view.soft ? { soft: view.soft } : {}),
+    ...(view.grain ? { grain: view.grain } : {}),
     classes: paletteClasses(seed, view),
     colors: stops.map(s => s.hex),
+    /* the gradient's own; a soft view's file writes its blurred stops over these (files/palette-files.ts) */
     css: {
       hex: cssLine(stops, view.style, view.angle, "hex"),
       oklch: cssLine(stops, view.style, view.angle, "oklch")
@@ -105,6 +108,8 @@ export function paletteJson(
     style,
     steps,
     angle,
+    ...(doc.soft ? { soft: doc.soft } : {}),
+    ...(doc.grain ? { grain: doc.grain } : {}),
     classes,
     kinds: reading.kinds,
     harmony: structure(samples(P)).harmony,

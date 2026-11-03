@@ -9,6 +9,7 @@ import { framed } from "./app/framed.ts";
 import { guardNavigation } from "./app/navigation.ts";
 import { loadAccount } from "./features/account/session.ts";
 import { afterBoot } from "./features/editor/boot.ts";
+import { loadSoft } from "./lib/soft-load.ts";
 
 /* before anything can fail: an error while the page loads its language or hydrates is reported too */
 installErrorReports();
@@ -34,6 +35,10 @@ async function start() {
     }
   }
 
+  /* a picture drawn soft draws with code no other page loads (lib/picture.ts): asked for before the page hydrates, so
+     the server's pictures are claimed as they were drawn */
+  if (Number(new URLSearchParams(location.search).get("soft")) > 0)
+    await loadSoft().catch(() => {});
   watchBuild();
   const router = await hydrateStart();
   /* a page's boundary showing its fallback is the one failure the window never hears of: it is reported from here */

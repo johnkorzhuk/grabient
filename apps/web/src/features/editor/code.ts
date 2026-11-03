@@ -20,6 +20,8 @@ import type { CodeSource } from "@grabient/ui/PaletteCode.tsx";
 import { createSignal } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import { namesNow, preciseNames } from "../../lib/color-names.ts";
+import { drawn as drawnNow } from "../../lib/picture.ts";
+import { GRAIN_SHOWN, grainDataUrl } from "./copy-finish.ts";
 import type { PaletteFacts } from "./facts.ts";
 import type { Taken } from "./formats.ts";
 import type { Rest } from "./rest.ts";
@@ -42,6 +44,8 @@ interface View {
   style: Style;
   steps: number;
   angle: number;
+  soft?: number;
+  grain?: number;
 }
 
 const CSS_SPELLINGS = (["oklch", "hex", "rgb", "hsl"] as const).map(id => ({ id, label: id }));
@@ -188,31 +192,56 @@ export function codeSources(
       ...(effectTabsNow()?.effectSources(P, seed, effect, taken, origin()) ?? []),
       markdownSource(() => t("The palette as Markdown: colors, names and the tags that play it."))
     ];
+  /* the CSS draws a soft view's blurred stops at their places (engine/soft.ts), and the grain's tile over them, shown
+     elided and copied whole */
+  const painted = drawnNow(stops, v);
+  const cssStops = painted.stops;
+  const over = (grain?: string) => ({
+    ...(painted.at ? { at: painted.at } : {}),
+    ...(v.grain ? { grain: `url("${grain ?? GRAIN_SHOWN}")` } : {})
+  });
+  const cssText = (kind: ColorKind, grain?: string) =>
+    cssBlock(cssStops, painted.style, v.angle, kind, over(grain));
+  const svgText = (grain?: string) =>
+    artworkSvg(cssStops, v, seed, origin(), taken?.pixels ?? DEFAULT_SIZE, {
+      style: painted.style,
+      at: painted.at,
+      grain
+    });
   /* the second sentence where the CSS carries a Display-P3 line under its media query */
-  const p3 = (note: string) => (cssWide(stops) ? `${note} ${t("Plus a Display P3 line.")}` : note);
+  const p3 = (note: string) =>
+    cssWide(cssStops) ? `${note} ${t("Plus a Display P3 line.")}` : note;
+  const soft = !!painted.at;
   const cssNote = (kind: ColorKind) =>
-    kind === "oklch"
-      ? bands
-        ? t("{count, plural, one {# hard band} other {# hard bands}} as oklch().", { count: n })
-        : t(
-            "{count, plural, one {# stop, blended in OKLCH} other {# stops, blended in OKLCH}} as oklch().",
-            { count: n }
-          )
-      : kind === "hex"
+    soft
+      ? t(
+          "{count, plural, one {# stop, blurred along the line} other {# stops, blurred along the line}}.",
+          {
+            count: cssStops.length
+          }
+        )
+      : kind === "oklch"
         ? bands
-          ? t("{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.", {
-              count: n
-            })
-          : t("{count, plural, one {# sRGB stop} other {# sRGB stops}} as hex.", { count: n })
-        : bands
-          ? t("{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as {fn}.", {
-              count: n,
-              fn: `${kind}()`
-            })
-          : t("{count, plural, one {# sRGB stop} other {# sRGB stops}} as {fn}.", {
-              count: n,
-              fn: `${kind}()`
-            });
+          ? t("{count, plural, one {# hard band} other {# hard bands}} as oklch().", { count: n })
+          : t(
+              "{count, plural, one {# stop, blended in OKLCH} other {# stops, blended in OKLCH}} as oklch().",
+              { count: n }
+            )
+        : kind === "hex"
+          ? bands
+            ? t("{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.", {
+                count: n
+              })
+            : t("{count, plural, one {# sRGB stop} other {# sRGB stops}} as hex.", { count: n })
+          : bands
+            ? t("{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as {fn}.", {
+                count: n,
+                fn: `${kind}()`
+              })
+            : t("{count, plural, one {# sRGB stop} other {# sRGB stops}} as {fn}.", {
+                count: n,
+                fn: `${kind}()`
+              });
   /* CSS and Colors open in the spelling the reader chose in Settings */
   const initial = colorFormat();
   return [
@@ -222,7 +251,11 @@ export function codeSources(
       label: "CSS",
       spellings: CSS_SPELLINGS,
       initial,
-      text: s => cssBlock(stops, v.style, v.angle, colorKind(s)),
+      text: s => cssText(colorKind(s)),
+      take: s =>
+        v.grain
+          ? grainDataUrl(v.grain).then(data => cssText(colorKind(s), data))
+          : Promise.resolve(cssText(colorKind(s))),
       note: s => p3(cssNote(colorKind(s)))
     },
     {
@@ -274,7 +307,8 @@ export function codeSources(
     {
       id: "svg",
       label: "SVG",
-      text: () => artworkSvg(stops, v, seed, origin(), taken?.pixels ?? DEFAULT_SIZE),
+      text: () => svgText(GRAIN_SHOWN),
+      take: () => (v.grain ? grainDataUrl(v.grain).then(svgText) : Promise.resolve(svgText())),
       note: () => t("The picture as an SVG file.")
     },
     markdownSource(() => t("The palette as Markdown: colors, names and CSS."))

@@ -1,4 +1,11 @@
-import { STEPS_MAX, STYLE_LABELS, type Style, type StyleChoice } from "@grabient/engine/view.ts";
+import {
+  GRAIN_MAX,
+  SOFT_MAX,
+  STEPS_MAX,
+  STYLE_LABELS,
+  type Style,
+  type StyleChoice
+} from "@grabient/engine/view.ts";
 import { type Element, For, onSettled, Show } from "solid-js";
 import styles from "./Appearance.module.css";
 import { BarRim } from "./BarRim.tsx";
@@ -143,6 +150,12 @@ export interface AppearanceProps {
   extras?: readonly ExtraTile[];
   /** the fields that stand in Steps' and Angle's place while an extra tile is chosen */
   extraFields?: Element;
+  /** the soft and the grain every palette is drawn with, 0 for none (engine/soft.ts, grain.ts): their fields stand
+      under the others where both are handled */
+  soft?: number;
+  grain?: number;
+  onSoft?: (v: number) => void;
+  onGrain?: (v: number) => void;
 }
 
 export interface ExtraTile {
@@ -240,6 +253,35 @@ export function AppearanceMenu(props: AppearanceProps) {
       </Show>
     </div>
   );
+  /* the finish over any style: Soft and Grain, Off at none */
+  const finish = () => (
+    <Show when={props.onSoft && props.onGrain}>
+      <div class={styles.pair}>
+        <Scrub
+          label={t("Soft")}
+          min={0}
+          max={SOFT_MAX}
+          step={1}
+          grain={1}
+          def={0}
+          fmt={v => (v < 1 ? t("Off") : String(Math.round(v)))}
+          value={props.soft ?? 0}
+          onInput={v => props.onSoft?.(Math.round(v))}
+        />
+        <Scrub
+          label={t("Grain")}
+          min={0}
+          max={GRAIN_MAX}
+          step={1}
+          grain={1}
+          def={0}
+          fmt={v => (v < 1 ? t("Off") : String(Math.round(v)))}
+          value={props.grain ?? 0}
+          onInput={v => props.onGrain?.(Math.round(v))}
+        />
+      </div>
+    </Show>
+  );
   return (
     <div
       ref={root}
@@ -328,7 +370,15 @@ export function AppearanceMenu(props: AppearanceProps) {
           )}
         </For>
       </div>
-      <Show when={props.extras?.some(x => x.chosen)} fallback={pair()}>
+      <Show
+        when={props.extras?.some(x => x.chosen)}
+        fallback={
+          <>
+            {pair()}
+            {finish()}
+          </>
+        }
+      >
         <div class={styles.pair}>{props.extraFields}</div>
       </Show>
     </div>

@@ -4,7 +4,7 @@
    stops and a swatch style draws hard bands. Drawn straight into a buffer, a picture has no seams between wedges and
    needs no rasterizer to start up. */
 import { luminance } from "@grabient/engine/color.ts";
-import { sampleStops } from "@grabient/engine/curve.ts";
+import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { isSwatchStyle, type Style, type View } from "@grabient/engine/view.ts";
 import { madeOnce } from "@grabient/server/shared-work.ts";
@@ -16,11 +16,13 @@ import { WORDMARK_MASK } from "./wordmark.data.ts";
 /** An sRGB color in 0 to 255, unrounded: a stop as the curve gives it. */
 export type Rgb = readonly number[];
 
-/** What a picture shows of one palette: its stops in order, laid out by the style and the angle. */
+/** What a picture shows of one palette: its stops in order, laid out by the style and the angle, and the grain over
+    them (engine/grain.ts), 1 to 100 where it has one. */
 export interface Look {
   colors: readonly Rgb[];
   style: Style;
   angle: number;
+  grain?: number;
 }
 
 export interface Box {
@@ -37,12 +39,54 @@ interface Canvas {
 
 const toRgb = (rgb: readonly number[]) => rgb.map(v => v * 255);
 
-/** A palette in a view as a picture shows it: the view's stops. */
-export const lookOf = (P: Palette, view: Pick<View, "style" | "steps" | "angle">): Look => ({
-  colors: sampleStops(P, view.steps).map(stop => toRgb(stop.rgb)),
-  style: view.style,
-  angle: view.angle
-});
+/* a soft view's blurred stops read at even places along the line, as many as the painter blends between */
+const SOFT_READS = 1024;
+function evenly(stops: readonly Stop[]): Rgb[] {
+  const out: Rgb[] = [];
+  let j = 1;
+  for (let k = 0; k < SOFT_READS; k++) {
+    const t = k / (SOFT_READS - 1);
+    while (j < stops.length - 1 && stops[j].t < t) j++;
+    const a = stops[j - 1];
+    const b = stops[j];
+    const u = Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t || 1)));
+    out.push(a.rgb.map((v, c) => (v + (b.rgb[c] - v) * u) * 255));
+  }
+  return out;
+}
+
+/** A palette in a view as a picture shows it: the view's stops, a soft view's blurred into its family's gradient
+    (engine/soft.ts, whose drawnStops a soft view's caller brings: loaded with the first such picture, lookSoon), and
+    its grain. */
+export function lookOf(
+  P: Palette,
+  view: Pick<View, "style" | "steps" | "angle" | "soft" | "grain">,
+  blur?: typeof import("@grabient/engine/soft.ts").drawnStops
+): Look {
+  const stops = sampleStops(P, view.steps);
+  const grain = view.grain ? { grain: view.grain } : {};
+  if (!view.soft || !blur)
+    return {
+      colors: stops.map(stop => toRgb(stop.rgb)),
+      style: view.style,
+      angle: view.angle,
+      ...grain
+    };
+  const drawn = blur(stops, view);
+  return { colors: evenly(drawn.stops), style: drawn.style, angle: view.angle, ...grain };
+}
+
+/** The same with a soft view's blur loaded. */
+export const lookSoon = async (
+  P: Palette,
+  view: Pick<View, "style" | "steps" | "angle" | "soft" | "grain">
+): Promise<Look> =>
+  lookOf(P, view, view.soft ? (await import("@grabient/engine/soft.ts")).drawnStops : undefined);
+
+/* the grain over a picture's first rows, its code loaded with the first grained picture */
+async function grained(canvas: Canvas, width: number, rows: number, grain?: number) {
+  if (grain) (await import("@grabient/engine/grain.ts")).grainOver(canvas.data, width, rows, grain);
+}
 
 /** A palette's own colors, one to a keyframe, read as a view's stops are: what a card's chips show. */
 export const keyframeColors = (P: Palette): Rgb[] =>
@@ -249,9 +293,10 @@ const canvasOf = (width: number, height: number): Canvas => ({
 });
 
 /** A palette's picture: its look over every pixel. */
-export function drawPicture(look: Look, width: number, height: number) {
+export async function drawPicture(look: Look, width: number, height: number) {
   const canvas = canvasOf(width, height);
   paintLook(canvas, look, { x: 0, y: 0, width, height });
+  await grained(canvas, width, height, look.grain);
   return encodePng(width, height, canvas.data);
 }
 
@@ -266,6 +311,8 @@ export async function drawCard(
   const canvas = canvasOf(width, height);
   const top = chips ? height - CHIP_ROW : height;
   paintLook(canvas, look, { x: 0, y: 0, width, height: top });
+  /* the grain over the picture alone, its rows the canvas's first */
+  await grained(canvas, width, top, look.grain);
   if (chips) await paintChips(canvas, chips, { x: 0, y: top, width, height: CHIP_ROW });
   await paintWordmark(canvas, look.colors);
   return encodePng(width, height, canvas.data);

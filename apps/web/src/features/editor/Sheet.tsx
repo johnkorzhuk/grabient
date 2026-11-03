@@ -30,7 +30,8 @@ import { inPlace } from "../../app/navigation.ts";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { examplesPath, heading, relTo } from "../../lib/page-meta.ts";
-import { type Drawn, hexesOf } from "../../lib/palette.ts";
+import type { Drawn } from "../../lib/palette.ts";
+import { cardPicture } from "../../lib/picture.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
 import { account } from "../account/session.ts";
@@ -181,7 +182,13 @@ export function Sheet(props: {
   const router = useRouter();
   let sheet!: HTMLElement;
   const [inks, setInks] = createInks();
-  const view = () => ({ style: e.style(), steps: e.steps(), angle: e.angle() });
+  const view = () => ({
+    style: e.style(),
+    steps: e.steps(),
+    angle: e.angle(),
+    soft: e.soft(),
+    grain: e.grain()
+  });
   /* the figures under the sheet's head come a task after it: neither is on the first screen, and a phone answers
      between the two */
   const [figured, setFigured] = createSignal(false);
@@ -348,6 +355,8 @@ export function Sheet(props: {
       style: set.style ? e.style() : "auto",
       steps: set.steps ? e.steps() : "auto",
       angle: set.angle ? e.angle() : "auto",
+      soft: e.soft(),
+      grain: e.grain(),
       size: e.size(),
       /* the list these lead to plays the effect too, each card in its own palette's shape */
       effect: effect && { ...effect, look: { ...effect.look, shape: null } }
@@ -474,8 +483,10 @@ export function Sheet(props: {
       <PaletteCard
         seed={seed()}
         name={sheetName(seed(), palette())}
-        stops={hexesOf(palette())}
-        style={palette().style}
+        stops={cardPicture(palette()).stops}
+        style={cardPicture(palette()).style}
+        at={cardPicture(palette()).at}
+        grain={cardPicture(palette()).grain}
         angle={palette().angle}
         picture={
           playing()

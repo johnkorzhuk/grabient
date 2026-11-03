@@ -41,7 +41,7 @@ export function viewAt(
   params: URLSearchParams,
   keyframes: number,
   saved: Saved = {}
-): Pick<View, "style" | "steps" | "angle"> {
+): Pick<View, "style" | "steps" | "angle" | "soft" | "grain"> {
   const reader: ParamReader = {
     get: key => {
       if (params.has(key)) return params.get(key);
@@ -49,8 +49,14 @@ export function viewAt(
       return value == null ? null : String(value);
     }
   };
-  const { style, steps, angle } = parseView(reader);
-  return { style, steps: Math.max(steps, keyframes), angle };
+  const { style, steps, angle, soft, grain } = parseView(reader);
+  return {
+    style,
+    steps: Math.max(steps, keyframes),
+    angle,
+    ...(soft ? { soft } : {}),
+    ...(grain ? { grain } : {})
+  };
 }
 
 /** The SVG's size: `w` and `h` first, as a PNG's, so an address keeps its size when .png becomes .svg; a pair the

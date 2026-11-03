@@ -5,9 +5,11 @@ import {
   DEFAULT_STEPS,
   DEFAULT_STYLE,
   effectiveView,
+  GRAIN_MAX,
   isStyle,
   parseSize,
   type SizeChoice,
+  SOFT_MAX,
   STEPS_MAX,
   STEPS_MIN,
   type Style,
@@ -17,6 +19,7 @@ import {
 import { isServer } from "@solidjs/web";
 import { type Accessor, createContext, createSignal } from "solid-js";
 import type { Drawn } from "../../lib/palette.ts";
+import { finishReady } from "../../lib/soft-load.ts";
 import { seedAddress } from "../editor/address.ts";
 
 /* The view a list draws its palettes in: style, steps and angle for every palette at once, each set or left to every
@@ -35,6 +38,10 @@ export interface ListView {
   style: StyleChoice;
   steps: number | "auto";
   angle: number | "auto";
+  /** the soft and the grain every palette is drawn with, 1 to 100, 0 for none: no palette has its own, so none is
+      every palette as saved (engine/soft.ts, grain.ts) */
+  soft: number;
+  grain: number;
   size: SizeChoice | null;
   /** the effect every card plays over its gradient, which the names, the likes, the selection and the files keep: how
       it plays and the blob's frost and ground, one for the list. Its shape is none: each card plays its own palette's
@@ -43,13 +50,15 @@ export interface ListView {
   effect: Effect | null;
 }
 /** Steps, an angle or how the effect plays being set, which the pictures draw before the route takes them. */
-export type ViewDraft = Partial<Pick<ListView, "steps" | "angle" | "effect">>;
+export type ViewDraft = Partial<Pick<ListView, "steps" | "angle" | "soft" | "grain" | "effect">>;
 
 /** Every palette in its own view. */
 export const AS_SAVED: ListView = {
   style: "auto",
   steps: "auto",
   angle: "auto",
+  soft: 0,
+  grain: 0,
   size: null,
   effect: null
 };
@@ -60,7 +69,18 @@ const whole = (value: unknown, min: number, max: number): number | null => {
 };
 
 /* the parameters a list's view is read from, in the order its address writes them */
-const VIEW_PARAMS = ["style", "steps", "angle", "size", "speed", "fps", "frost", "bg"];
+const VIEW_PARAMS = [
+  "style",
+  "steps",
+  "angle",
+  "soft",
+  "grain",
+  "size",
+  "speed",
+  "fps",
+  "frost",
+  "bg"
+];
 
 /** The view a list's address names; what it leaves out or cannot read is auto. Steps under three are three. An
     effect's style names it, read as a palette's address reads it (engine/effect.ts), less its shape. */
@@ -77,6 +97,8 @@ export function readListView(search: Readonly<Record<string, unknown>>): ListVie
     style: isStyle(search.style) ? search.style : "auto",
     steps: effect || steps === null ? "auto" : Math.max(steps, STEPS_MIN),
     angle: effect?.kind === "blob" || angle === null ? "auto" : angle,
+    soft: whole(search.soft, 1, SOFT_MAX) ?? 0,
+    grain: whole(search.grain, 1, GRAIN_MAX) ?? 0,
     size: typeof search.size === "string" ? parseSize(search.size) : null,
     effect: effect && { ...effect, look: { ...effect.look, shape: null } }
   };
@@ -96,6 +118,8 @@ export const viewOver = (own: ListView, said: ListView): ListView => {
     effect,
     steps: own.steps === "auto" && !own.effect ? said.steps : own.steps,
     angle: effect?.kind === "blob" ? "auto" : own.angle === "auto" ? said.angle : own.angle,
+    soft: own.soft || said.soft,
+    grain: own.grain || said.grain,
     size: own.size ?? said.size
   };
 };
@@ -128,6 +152,8 @@ export function viewParams(view: Partial<ListView>): Record<string, string | num
   if ("steps" in view || effect)
     out.steps = effect || view.steps === "auto" ? undefined : view.steps;
   if ("angle" in view || blob) out.angle = blob || view.angle === "auto" ? undefined : view.angle;
+  if ("soft" in view) out.soft = view.soft || undefined;
+  if ("grain" in view) out.grain = view.grain || undefined;
   if ("size" in view) out.size = sizeParam(view.size) ?? undefined;
   return styled ? { ...out, ...effectParams(effect) } : out;
 }
@@ -138,11 +164,11 @@ export function inOrder(
   search: Readonly<Record<string, unknown>>,
   change: Readonly<Record<string, unknown>>
 ): Record<string, unknown> {
-  const { q, style, steps, angle, size, speed, fps, frost, bg, selection, ...rest } = {
+  const { q, style, steps, angle, soft, grain, size, speed, fps, frost, bg, selection, ...rest } = {
     ...search,
     ...change
   };
-  return { q, style, steps, angle, size, speed, fps, frost, bg, ...rest, selection };
+  return { q, style, steps, angle, soft, grain, size, speed, fps, frost, bg, ...rest, selection };
 }
 
 /** The effect a save kept in a palette's look (editor/look.ts's lookQuery), as the palette's address reads it: a
@@ -196,15 +222,29 @@ export function drawnIn(own: Drawn, view: ListView, draft?: ViewDraft | null): D
     steps: draft?.steps ?? view.steps,
     angle: draft?.angle ?? view.angle
   });
-  return { seed: own.seed, ...v, steps: Math.max(v.steps, keyframesOf(own.seed)) };
+  const soft = draft?.soft ?? view.soft;
+  const grain = draft?.grain ?? view.grain;
+  return {
+    seed: own.seed,
+    ...v,
+    steps: Math.max(v.steps, keyframesOf(own.seed)),
+    ...(soft ? { soft } : {}),
+    ...(grain ? { grain } : {})
+  };
 }
 
 /** Done once a list's cards can draw the effect its view plays, their pictures' code asked for with the page's data:
     a list reached in the app shows no card empty while it comes. At once on the server and where none plays. */
 export const effectsReady = (view: ListView): Promise<void> =>
-  isServer || !view.effect
-    ? Promise.resolve()
-    : import("./card-effect.tsx").then(m => m.readyCardEffects(view.effect!.kind)).catch(() => {});
+  Promise.all([
+    isServer || !view.effect
+      ? null
+      : import("./card-effect.tsx")
+          .then(m => m.readyCardEffects(view.effect!.kind))
+          .catch(() => {}),
+    /* and a soft view's blur, on the server too, which draws the cards with it (lib/picture.ts) */
+    finishReady(view)
+  ]).then(() => {});
 
 /** The effect a list's cards show: the view's, a draft's over it, and none while a gradient's style is previewed. */
 export const shownEffect = (
@@ -285,6 +325,8 @@ export function viewSince(own: ListView, left: ListView | undefined, now: ListVi
     style: look ? now.style : own.style,
     steps: made("steps") ? now.steps : own.steps,
     angle: made("angle") ? now.angle : own.angle,
+    soft: made("soft") ? now.soft : own.soft,
+    grain: made("grain") ? now.grain : own.grain,
     size: made("size") ? now.size : own.size,
     effect: look ? now.effect : own.effect
   };

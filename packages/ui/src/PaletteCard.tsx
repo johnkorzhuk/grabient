@@ -69,6 +69,10 @@ export interface PaletteCardProps {
   stops: readonly string[];
   style: Style;
   angle: number;
+  /** each stop's place along the line, where the view is soft (engine/soft.ts): the stops are its blurred ones */
+  at?: readonly number[];
+  /** the grain over the picture, a background layer (engine/grain.ts grainLayer); none for none */
+  grain?: string;
   /** where Edit leads: the palette's page, in the reader's language and the view the card draws */
   href: string;
   /** Edit's relation to its page: nofollow where the index keeps the palette's page out */
@@ -127,7 +131,7 @@ export interface PaletteCardProps {
   /** the picture stands on the list with no ground of its own (a blob with none): no glow under it */
   bare?: boolean;
   /** what lights under the card where its picture is not its gradient: the colors the picture shows, or none */
-  glow?: { stops: readonly string[]; style: Style; angle: number } | null;
+  glow?: { stops: readonly string[]; style: Style; angle: number; at?: readonly number[] } | null;
   /** a style previewed on every card: the gradient shows over the picture, which stays as it is under it */
   peek?: boolean;
   /** the card's element, for a list that watches where it stands */
@@ -146,12 +150,19 @@ export function PaletteCard(props: PaletteCardProps) {
   const [armed, setArmed] = createSignal(untrack(() => props.state === "hover"));
   const arm = () => setArmed(true);
   onSettled(() => (armed() ? undefined : whenIdle(arm)));
-  const art = () => gradientCss(props.stops, props.style, props.angle);
+  const art = () =>
+    (props.grain ? `${props.grain}, ` : "") +
+    gradientCss(props.stops, props.style, props.angle, undefined, props.at);
   /* what lights under the card: its gradient, or what its picture brings in its place, or nothing */
   const lit = () =>
     props.bare || props.glow === null
       ? null
-      : (props.glow ?? { stops: props.stops, style: props.style, angle: props.angle });
+      : (props.glow ?? {
+          stops: props.stops,
+          style: props.style,
+          angle: props.angle,
+          at: props.at
+        });
   /* the water takes the glow in while a mouse or a pen is in the picture or the keyboard's focus is within it */
   let over = false;
   let within = false;
@@ -243,7 +254,15 @@ export function PaletteCard(props: PaletteCardProps) {
           {glow => (
             <span
               class={styles.glow}
-              style={{ background: gradientCss(glow().stops, glow().style, glow().angle) }}
+              style={{
+                background: gradientCss(
+                  glow().stops,
+                  glow().style,
+                  glow().angle,
+                  undefined,
+                  glow().at
+                )
+              }}
               aria-hidden="true"
             />
           )}
@@ -251,7 +270,11 @@ export function PaletteCard(props: PaletteCardProps) {
         {/* a picture in the gradient's place stands alone: no gradient shows under it as it comes */}
         <div
           class={styles.paint}
-          style={{ background: props.picture && !props.peek ? undefined : art() }}
+          style={{
+            background: props.picture && !props.peek ? undefined : art(),
+            /* a speck of grain a CSS pixel, crisp on a dense screen */
+            "image-rendering": props.grain ? "pixelated" : undefined
+          }}
           data-peek={props.picture && props.peek ? "" : undefined}
           role="img"
           aria-label={

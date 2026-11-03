@@ -20,6 +20,7 @@ import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE, PALETTE_PAGE } from "../../lib/cache.ts";
 import { pageHead } from "../../lib/page-meta.ts";
 import { answerWith, drawnSearch, searchOf } from "../../lib/route.ts";
+import { finishReady } from "../../lib/soft-load.ts";
 
 /* Every one-segment address: a palette's seed, a collection's slug, an old grabient.com link, or words that lead to a
    search. A palette's page is the editor, which the browser draws alone (`ssr: "data-only"`): the server runs the
@@ -90,7 +91,8 @@ export const Route = createFileRoute("/$id/")({
       /* a palette nothing asked about before the press is asked about now, after the read that waits only for an
          answer asked for before it, and is named by its colors until the answer lands */
       if (code) askFacts(params.id, location.state);
-      await code;
+      /* and a soft picture's blur, on the server too, which draws the first screen with it (lib/picture.ts) */
+      await Promise.all([code, finishReady(palette.page.view)]);
       const { seed, view } = palette.page;
       /* the frame's bar and water carry the palette from the server's render on, before an editor is open */
       const paint = [{ seed, style: view.style, steps: view.steps, angle: view.angle }];

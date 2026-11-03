@@ -5,6 +5,7 @@
    under a 0.3px blur that closes the seams between wedges. */
 import { hexBytes } from "./color.ts";
 import type { Stop } from "./curve.ts";
+import { GRAIN_SIDE } from "./grain.ts";
 import { onWheel } from "./math.ts";
 import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, resolveSize, type Size, type Style, type View, viewSearch } from "./view.ts";
@@ -21,14 +22,37 @@ export interface PaletteSvgOptions {
   borderRadius?: number;
   /** Suffixes every id, so several palettes can share one document. */
   gridItemIndex?: number;
+  /** each color's place along the line, 0 to 1, where a soft view placed them (soft.ts): a gradient style's stops
+      stand there */
+  at?: readonly number[];
+  /** the grain's tile as a data URI (grain.ts), laid over the picture a pixel a speck */
+  grain?: string;
 }
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 const halfDiagonal = (w: number, h: number) => Math.sqrt(w * w + h * h) / 2;
-const stopTags = (hexes: readonly string[]) =>
+const stopTags = (hexes: readonly string[], at?: readonly number[]) =>
   hexes
-    .map((c, i) => `<stop offset="${(i / (hexes.length - 1)).toFixed(3)}" stop-color="${c}"/>`)
+    .map(
+      (c, i) =>
+        `<stop offset="${(at ? at[i] : i / (hexes.length - 1)).toFixed(at ? 5 : 3)}" stop-color="${c}"/>`
+    )
     .join("");
+/* the bytes at t along stops placed at `at`, blended between the two it falls between */
+function placedAt(hexes: readonly string[], at: readonly number[], t: number): string {
+  let j = 1;
+  while (j < at.length - 1 && at[j] < t) j++;
+  const u = Math.min(1, Math.max(0, (t - at[j - 1]) / (at[j] - at[j - 1] || 1)));
+  const from = hexBytes(hexes[j - 1]);
+  const to = hexBytes(hexes[j]);
+  return `#${from
+    .map((v, k) =>
+      Math.round(v + (to[k] - v) * u)
+        .toString(16)
+        .padStart(2, "0")
+    )
+    .join("")}`;
+}
 
 /* CSS's gradient line spans the rectangle's projection on the direction: pixel coordinates keep that angle at any
    shape, where a normalized line would be stretched with the rectangle */
@@ -72,8 +96,15 @@ function bands(hexes: readonly string[], angle: number, w: number, h: number) {
     })
     .join("");
 }
-/* the fan: 36 wedges per pair of stops, each the pair's byte-wise blend, overdrawn 0.5° to hide hairline seams */
-function fan(hexes: readonly string[], angle: number, w: number, h: number) {
+/* the fan: 36 wedges per pair of stops, each the pair's byte-wise blend, overdrawn 0.5° to hide hairline seams; stops
+   placed along the turn (`at`) take a wedge a degree, each the blend where it starts */
+function fan(
+  hexes: readonly string[],
+  angle: number,
+  w: number,
+  h: number,
+  at?: readonly number[]
+) {
   const cx = w / 2;
   const cy = h / 2;
   const radius = halfDiagonal(w, h) + 2;
@@ -81,31 +112,43 @@ function fan(hexes: readonly string[], angle: number, w: number, h: number) {
   const point = (rad: number) =>
     `${(cx + radius * Math.cos(rad)).toFixed(2)},${(cy + radius * Math.sin(rad)).toFixed(2)}`;
   const PER_PAIR = 36;
-  const total = (hexes.length - 1) * PER_PAIR;
+  const total = at ? 360 : (hexes.length - 1) * PER_PAIR;
   const seg = 360 / total;
   let wedges = "";
   for (let i = 0; i < total; i++) {
-    const pair = Math.floor(i / PER_PAIR);
-    const u = (i % PER_PAIR) / PER_PAIR;
-    const from = hexBytes(hexes[pair]);
-    const to = hexBytes(hexes[Math.min(pair + 1, hexes.length - 1)]);
-    const color = from.map((v, j) =>
-      Math.round(v + (to[j] - v) * u)
-        .toString(16)
-        .padStart(2, "0")
-    );
+    let fill: string;
+    if (at) fill = placedAt(hexes, at, i / total);
+    else {
+      const pair = Math.floor(i / PER_PAIR);
+      const u = (i % PER_PAIR) / PER_PAIR;
+      const from = hexBytes(hexes[pair]);
+      const to = hexBytes(hexes[Math.min(pair + 1, hexes.length - 1)]);
+      fill = `#${from
+        .map((v, j) =>
+          Math.round(v + (to[j] - v) * u)
+            .toString(16)
+            .padStart(2, "0")
+        )
+        .join("")}`;
+    }
     const s = toRad(angle - 90 + i * seg);
     const e = toRad(angle - 90 + (i + 1) * seg + 0.5);
-    wedges += `<path d="M ${cx},${cy} L ${point(s)} A ${r},${r} 0 0 1 ${point(e)} Z" fill="#${color.join("")}"/>`;
+    wedges += `<path d="M ${cx},${cy} L ${point(s)} A ${r},${r} 0 0 1 ${point(e)} Z" fill="${fill}"/>`;
   }
   return wedges;
 }
 /* Figma's GRADIENT_ANGULAR paint, as its importer reads it from data-figma-gradient-fill */
-function figmaFill(hexes: readonly string[], angle: number, w: number, h: number) {
+function figmaFill(
+  hexes: readonly string[],
+  angle: number,
+  w: number,
+  h: number,
+  at?: readonly number[]
+) {
   const stops = hexes
     .map((c, i) => {
       const [r, g, b] = hexBytes(c).map(v => v / 255);
-      return `{"color":{"r":${r},"g":${g},"b":${b},"a":1},"position":${i / (hexes.length - 1)}}`;
+      return `{"color":{"r":${r},"g":${g},"b":${b},"a":1},"position":${at ? at[i] : i / (hexes.length - 1)}}`;
     })
     .join(",");
   const rot = toRad(angle - 90);
@@ -163,7 +206,26 @@ export function paletteSvg(
   credit: Credit,
   options: PaletteSvgOptions = {}
 ): string {
+  const svg = drawnSvg(hexes, style, angle, credit, options);
+  const grain = options.grain;
+  if (!grain || hexes.length === 0) return svg;
+  /* the grain over the picture, in its box and its corners, a pixel a speck however it is scaled */
   const { width: w = 800, height: h = 400, gridItemIndex, borderRadius = 0 } = options;
+  const radius = (borderRadius / 100) * (Math.min(w, h) / 2);
+  const rx = radius > 0 ? ` rx="${radius}" ry="${radius}"` : "";
+  const id = typeof gridItemIndex === "number" ? `grain_${gridItemIndex}` : "grain";
+  const over = `<defs><pattern id="${id}" width="${GRAIN_SIDE}" height="${GRAIN_SIDE}" patternUnits="userSpaceOnUse"><image xmlns:xlink="http://www.w3.org/1999/xlink" width="${GRAIN_SIDE}" height="${GRAIN_SIDE}" xlink:href="${grain}" style="image-rendering:pixelated"/></pattern></defs>\n<rect x="0" y="0" width="${w}" height="${h}"${rx} fill="url(#${id})"/>\n`;
+  return svg.replace(/<\/svg>$/, `${over}</svg>`);
+}
+
+function drawnSvg(
+  hexes: readonly string[],
+  style: Style,
+  angle: number,
+  credit: Credit,
+  options: PaletteSvgOptions
+): string {
+  const { width: w = 800, height: h = 400, gridItemIndex, borderRadius = 0, at } = options;
   const radius = (borderRadius / 100) * (Math.min(w, h) / 2);
   const rx = radius > 0 ? ` rx="${radius}" ry="${radius}"` : "";
   const comment = svgComment(
@@ -189,7 +251,7 @@ export function paletteSvg(
       return filled(
         "gradient",
         name =>
-          `<linearGradient id="${name}" gradientUnits="userSpaceOnUse" ${linearLine(angle, w, h)}>${stopTags(hexes)}</linearGradient>`
+          `<linearGradient id="${name}" gradientUnits="userSpaceOnUse" ${linearLine(angle, w, h)}>${stopTags(hexes, at)}</linearGradient>`
       );
     case "linearSwatches":
       return clipped("bounds", bands(hexes, angle, w, h));
@@ -200,7 +262,7 @@ export function paletteSvg(
         r > 0
           ? `M${w - r} 0H${r}A${r} ${r} 0 0 0 0 ${r}V${h - r}A${r} ${r} 0 0 0 ${r} ${h}H${w - r}A${r} ${r} 0 0 0 ${w} ${h - r}V${r}A${r} ${r} 0 0 0 ${w - r} 0Z`
           : `M${w} 0H0V${h}H${w}V0Z`;
-      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg">\n${comment}\n<g clip-path="url(#${clip})" data-figma-skip-parse="true">${fan(hexes, angle, w, h)}</g><path d="${shape}" data-figma-gradient-fill="${figmaFill(hexes, angle, w, h)}"/>\n<defs>\n<clipPath id="${clip}"><path d="${shape}"/></clipPath>\n</defs>\n</svg>`;
+      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg">\n${comment}\n<g clip-path="url(#${clip})" data-figma-skip-parse="true">${fan(hexes, angle, w, h, at)}</g><path d="${shape}" data-figma-gradient-fill="${figmaFill(hexes, angle, w, h, at)}"/>\n<defs>\n<clipPath id="${clip}"><path d="${shape}"/></clipPath>\n</defs>\n</svg>`;
     }
     case "angularSwatches":
       return clipped("squareClip", wedges(hexes, angle, w, h), "antiGap");
@@ -208,7 +270,7 @@ export function paletteSvg(
       return filled(
         "radial",
         name =>
-          `<radialGradient id="${name}" gradientUnits="userSpaceOnUse" cx="${(w / 2).toFixed(3)}" cy="${(h / 2).toFixed(3)}" r="${halfDiagonal(w, h).toFixed(3)}">${stopTags(hexes)}</radialGradient>`
+          `<radialGradient id="${name}" gradientUnits="userSpaceOnUse" cx="${(w / 2).toFixed(3)}" cy="${(h / 2).toFixed(3)}" r="${halfDiagonal(w, h).toFixed(3)}">${stopTags(hexes, at)}</radialGradient>`
       );
     case "radialSwatches":
       return clipped("ringBounds", rings(hexes, w, h));
@@ -216,18 +278,24 @@ export function paletteSvg(
 }
 
 /** The palette's SVG file at a view: its stops' hexes, credited to its address, at the given size or the view's
-    (800 by 400 for auto). */
+    (800 by 400 for auto). A soft view's stops come blurred, with the style they are drawn in and their places
+    (`over`, soft.ts drawnStops), and its grain's tile as a data URI (grain.ts). */
 export const artworkSvg = (
   stops: readonly Stop[],
   view: View,
   seed: string,
   baseUrl?: string,
-  size?: Size
+  size?: Size,
+  over: { style?: Style; at?: readonly number[]; grain?: string } = {}
 ) =>
   paletteSvg(
     stops.map(s => s.hex),
-    view.style,
+    over.style ?? view.style,
     view.angle,
     { seed, search: viewSearch(view), baseUrl },
-    size ?? resolveSize(view.size, DEFAULT_SIZE)
+    {
+      ...(size ?? resolveSize(view.size, DEFAULT_SIZE)),
+      ...(over.at ? { at: over.at } : {}),
+      ...(over.grain && view.grain ? { grain: over.grain } : {})
+    }
   );

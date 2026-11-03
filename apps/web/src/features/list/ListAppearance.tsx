@@ -1,5 +1,6 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
+import { sampleStops } from "@grabient/engine/curve.ts";
 import {
   EFFECT_LOOK,
   EFFECT_PLAY,
@@ -30,7 +31,8 @@ import {
 } from "solid-js";
 import { rewriteInPlace, rewriteQuietly } from "../../app/navigation.ts";
 import { RESTING } from "../../app/water.ts";
-import { hexesOf } from "../../lib/palette.ts";
+import { pictureCss, pictureOf } from "../../lib/picture.ts";
+import { loadSoft } from "../../lib/soft-load.ts";
 import { effectLabel, effectSummary } from "../editor/effect-page.ts";
 import {
   AppearanceContext,
@@ -161,13 +163,20 @@ export function ListAppearance() {
 
   const chosen = () => {
     const v = shown();
-    return v.style !== "auto" || v.steps !== "auto" || v.angle !== "auto" || v.effect !== null;
+    return (
+      v.style !== "auto" ||
+      v.steps !== "auto" ||
+      v.angle !== "auto" ||
+      v.soft > 0 ||
+      v.grain > 0 ||
+      v.effect !== null
+    );
   };
   const reset = () => {
     look.setPeek(null);
     kept.steps = "auto";
     kept.effects = {};
-    go({ style: "auto", steps: "auto", angle: "auto", effect: null });
+    go({ style: "auto", steps: "auto", angle: "auto", soft: 0, grain: 0, effect: null });
   };
   /* a style chosen leaves the effect, and gives back the steps it took the place of */
   const chooseStyle = (style: ListView["style"]) => {
@@ -190,19 +199,35 @@ export function ListAppearance() {
     });
   };
   /* the page's first palette as the list draws it; until the page has one, the resting colors at the chosen angle */
-  const paint = (): { hexes: readonly string[]; style: Style; angle: number } => {
+  const paint = () => {
     const first = look.first();
+    const v = shown();
     if (first) {
       const drawn = drawnIn(first, view(), look.draft());
-      const hexes = hexesOf(drawn);
-      if (hexes.length) return { hexes, style: drawn.style, angle: drawn.angle };
+      const P = decodePalette(drawn.seed);
+      if (P)
+        return {
+          stops: sampleStops(P, Math.max(drawn.steps, P.anchors.length)),
+          style: drawn.style,
+          angle: drawn.angle,
+          soft: v.soft,
+          grain: v.grain
+        };
     }
-    const v = shown();
     return {
-      hexes: RESTING,
-      style: v.style === "auto" ? "linearGradient" : v.style,
-      angle: v.angle === "auto" ? 90 : v.angle
+      stops: null,
+      style: (v.style === "auto" ? "linearGradient" : v.style) as Style,
+      angle: v.angle === "auto" ? 90 : v.angle,
+      soft: v.soft,
+      grain: v.grain
     };
+  };
+  /* that palette in a style, with the list's soft and grain: the header's swatch and a style's tile */
+  const paintIn = (style: Style) => {
+    const p = paint();
+    return p.stops
+      ? pictureCss(pictureOf(p.stops, { style, soft: p.soft, grain: p.grain }), p.angle)
+      : gradientCss(RESTING, style, p.angle);
   };
   /* the effect the cards show, and the page's first palette playing it in its own shape, or until the page has one
      the resting colors': the header's swatch and the effects' tiles, each made once and following what it shows */
@@ -283,6 +308,8 @@ export function ListAppearance() {
     if (v.steps !== "auto")
       parts.push(t("{count, plural, one {# step} other {# steps}}", { count: v.steps }));
     if (v.angle !== "auto") parts.push(`${v.angle}°`);
+    if (v.soft) parts.push(t("Soft {value}", { value: v.soft }));
+    if (v.grain) parts.push(t("Grain {value}", { value: v.grain }));
     return parts.join(" · ");
   };
   const close = () => {
@@ -305,11 +332,19 @@ export function ListAppearance() {
     get angle() {
       return shown().angle;
     },
+    get soft() {
+      return shown().soft;
+    },
+    get grain() {
+      return shown().grain;
+    },
     stepsMin: STEPS_MIN,
-    bg: style => gradientCss(paint().hexes, style, paint().angle),
+    bg: style => paintIn(style),
     onStyle: chooseStyle,
     onSteps: steps => change({ steps }),
     onAngle: angle => change({ angle }),
+    onSoft: soft => change({ soft }),
+    onGrain: grain => change({ grain }),
     onPeek: look.setPeek,
     get onReset() {
       return chosen() ? reset : undefined;
@@ -322,11 +357,7 @@ export function ListAppearance() {
   };
   return (
     <Appearance
-      swatch={
-        playing()
-          ? "transparent"
-          : gradientCss(paint().hexes, look.peek() ?? paint().style, paint().angle)
-      }
+      swatch={playing() ? "transparent" : paintIn(look.peek() ?? paint().style)}
       swatchArt={swatchArt}
       label={view().effect ? effectLabel(view().effect!.kind) : styleLabel(view().style)}
       summary={summary()}
@@ -340,6 +371,8 @@ export function ListAppearance() {
             m => m.preloadStills(),
             () => {}
           );
+          /* and the blur, for the Soft field */
+          void loadSoft().catch(() => {});
           setOpen(true);
         }
       }}

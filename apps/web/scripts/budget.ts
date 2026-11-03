@@ -28,13 +28,19 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the silk and the rosette as effects (2 Nov 2026), which every page's start carries as names and settings alone
      (engine/effect.ts's kinds, the menu's tiles and labels; their drawing, stills and players load as one shows), took
      it from 284.6 to 285.0 */
-  "/": { route: "src/routes/index.tsx", budget: 286 },
-  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 290 },
+  /* soft and grain over every gradient style (2 Nov 2026): the Appearance menu's two fields, the view's two parts in
+     every address the lists, the editor and the tab write, and the pictures that lay the grain's tile and place a
+     soft view's stops (lib/picture.ts); the blur itself (engine/soft.ts, 1.8 KB), the grain's files and what a copy
+     carries load as a soft view or a copy asks for them, took it from 285.5 to 287.3 */
+  "/": { route: "src/routes/index.tsx", budget: 288 },
+  /* the same took it from 288.9 to 290.7 */
+  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 291 },
   /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
      to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
   /* the silk and the rosette as effects (their names and settings, as every page) took it from 285.4 to 286.0 on
      2 Nov 2026 */
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 287 },
+  /* soft and grain, as "/", took it from 286.3 to 288.1 on 2 Nov 2026 */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 289 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look
      each palette was saved in, an effect and its settings (features/list/appearance.ts's lookEffect and cardPlays,
@@ -42,7 +48,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   "a collection": {
     route: "src/routes/$id/index.tsx",
     also: ["src/features/collections/CollectionRoute.tsx"],
-    budget: 281
+    /* soft and grain, as "/", took it from 280.9 to 282.7 on 2 Nov 2026 */
+    budget: 283
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
@@ -61,7 +68,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   "a palette": {
     route: "src/routes/$id/index.tsx",
     also: ["src/features/editor/Editor.tsx", "src/features/editor/Sheet.tsx"],
-    budget: 324
+    /* soft and grain (as "/", and the editor's own: its view's two parts, the stage's and the corner's pictures, the
+       code pane's and the copies' blurred stops and elided tile) took it from 323.1 to 326.0 on 2 Nov 2026 */
+    budget: 327
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
      the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.
@@ -71,10 +80,13 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      2026: their names and settings, and the cards' picture (editor/EffectArt.tsx, which this page's cards and headline
      draw with) holding their still's holder (FxArt.tsx), which a list's server-drawn cards need at hydration, their
      drawing and players loading as a card shows one */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 291 },
-  /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page */
-  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 226 },
-  "/about": { route: "src/routes/about.tsx", budget: 250 }
+  /* soft and grain, as "/", took it from 290.2 to 292.4 on 2 Nov 2026 */
+  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 293 },
+  /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
+     view's parts in every address, the header's swatch) from 225.2 to 226.6 */
+  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 227 },
+  /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026 */
+  "/about": { route: "src/routes/about.tsx", budget: 251 }
 };
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
 const EVERY_PAGE = ["src/app/tab-icon.ts"];
@@ -96,10 +108,14 @@ const BUDGETS = {
   // palette (server/i18n.ts, seo/legacy.ts), which took its start from 745 KiB to 226 on 24 Oct 2026. The examples page's
   // six sections, which the Worker renders, took it from 1347.4 KiB to 1374.7 on 31 Oct 2026
   worker: 1430,
-  workerStart: 237,
+  // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
+  // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks
+  workerStart: 238,
   // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
-  // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026)
-  firstRequest: 173
+  // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026). Soft and
+  // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders
+  // them, the SVG writer's placed stops and grain pattern, the painter's soft reads and grain, and the pictures' keys
+  firstRequest: 176
 };
 
 const out = process.argv[2] ?? ".cloudflare/output";

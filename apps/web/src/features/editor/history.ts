@@ -28,7 +28,14 @@ interface EntryState {
 const addressOf = (e: PaletteEditor) =>
   seedAddress({
     seed: e.seed(),
-    view: { style: e.style(), steps: e.steps(), angle: e.angle(), size: e.size() },
+    view: {
+      style: e.style(),
+      steps: e.steps(),
+      angle: e.angle(),
+      soft: e.soft(),
+      grain: e.grain(),
+      size: e.size()
+    },
     effect: e.effect(),
     locks: e.locks(),
     selection: e.selecting()

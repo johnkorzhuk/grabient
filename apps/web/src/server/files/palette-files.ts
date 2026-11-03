@@ -10,8 +10,8 @@ import {
   isBands,
   parseBands
 } from "@grabient/engine/bands.ts";
-import { colorKind, paletteCss } from "@grabient/engine/css.ts";
-import { sampleStops } from "@grabient/engine/curve.ts";
+import { colorKind, cssLine, paletteCss } from "@grabient/engine/css.ts";
+import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
 import { paletteDocument, paletteJson } from "@grabient/engine/document.ts";
 import { parseEffect } from "@grabient/engine/effect.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
@@ -23,7 +23,7 @@ import {
   swatchFile,
   swatchPalette
 } from "@grabient/engine/swatches.ts";
-import { DEFAULT_SIZE, resolveSize, sizeParam } from "@grabient/engine/view.ts";
+import { DEFAULT_SIZE, resolveSize, type Style, sizeParam } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { ANIMATION, FILE, TEXT } from "../../lib/cache.ts";
 import { effectCard } from "../../lib/page-meta.ts";
@@ -61,6 +61,15 @@ const bandsPreview = (
     about:
       "An animated SVG of a Grabient palette: bands that bloom from the center out, drawn by CSS alone."
   });
+
+/* a soft view's stops as its files draw them, the blur's code loaded with the first such file (engine/soft.ts) */
+async function finished(stops: Stop[], view: { style: Style; soft?: number }) {
+  if (!view.soft) return { stops, style: view.style, at: undefined };
+  return (await import("@grabient/engine/soft.ts")).drawnStops(stops, view);
+}
+/* the grain's tile carried in a file as a data URI, loaded with the first such file */
+const grainOf = async (grain: number): Promise<string> =>
+  (await import("./grain.ts")).grainData(grain);
 
 async function paletteFile(
   request: Request,
@@ -109,9 +118,16 @@ async function paletteFile(
       const size = asked ? resolveSize(asked, DEFAULT_SIZE) : null;
       const address = paletteDocument(seed, palette, origin, view).url;
       const kind = colorKind(params.get("colors"));
-      return new Response(paletteCss(stops(), view, address, kind, size), {
-        headers: { ...FILE, "Content-Type": "text/css; charset=utf-8" }
-      });
+      /* a soft view's blurred stops (engine/soft.ts), and the grain's tile carried in itself */
+      const drawn = await finished(stops(), view);
+      const grain = view.grain ? `url("${await grainOf(view.grain)}")` : undefined;
+      return new Response(
+        paletteCss(drawn.stops, { style: drawn.style, angle: view.angle }, address, kind, size, {
+          at: drawn.at,
+          grain
+        }),
+        { headers: { ...FILE, "Content-Type": "text/css; charset=utf-8" } }
+      );
     }
     case "svg": {
       /* style=glass or blob: the effect moving, its first frame at speed 0 (effect-files.ts), loaded with the first one
@@ -137,9 +153,17 @@ async function paletteFile(
           headers: { ...ANIMATION, "Content-Type": "image/svg+xml; charset=utf-8" }
         });
       }
-      return new Response(artworkSvg(stops(), { ...view, size: svgSize(params) }, seed, origin), {
-        headers: { ...FILE, "Content-Type": "image/svg+xml; charset=utf-8" }
-      });
+      /* a soft view's blurred stops (engine/soft.ts), and the grain's tile carried in itself */
+      const drawn = await finished(stops(), view);
+      const grain = view.grain ? await grainOf(view.grain) : undefined;
+      return new Response(
+        artworkSvg(drawn.stops, { ...view, size: svgSize(params) }, seed, origin, undefined, {
+          style: drawn.style,
+          at: drawn.at,
+          grain
+        }),
+        { headers: { ...FILE, "Content-Type": "image/svg+xml; charset=utf-8" } }
+      );
     }
     case "json": {
       /* the title written for it, where its colors bear it out, beside what its colors call it while it is drawn as it
@@ -148,7 +172,21 @@ async function paletteFile(
         colorNames(env),
         texts(env, [seed]).catch(() => [])
       ]);
-      const doc = paletteJson(seed, origin, view, names, writtenWords(text, palette));
+      const plainDoc = paletteJson(seed, origin, view, names, writtenWords(text, palette));
+      /* a soft view's CSS draws its blurred stops at their places (engine/soft.ts) */
+      const softDrawn = view.soft ? await finished(stops(), view) : null;
+      const doc =
+        softDrawn && plainDoc
+          ? {
+              ...plainDoc,
+              css: Object.fromEntries(
+                (["hex", "oklch"] as const).map(kind => [
+                  kind,
+                  cssLine(softDrawn.stops, softDrawn.style, view.angle, kind, { at: softDrawn.at })
+                ])
+              )
+            }
+          : plainDoc;
       /* at an effect's address the effect too, its code loaded with the first such file */
       const effect = parseEffect(params);
       const played = effect && {

@@ -2,6 +2,7 @@ import { K_MAX, K_MIN } from "@grabient/engine";
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { hexToSrgb, luminance } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
+import { sampleStops } from "@grabient/engine/curve.ts";
 import { blobShapeOf, blobStillKey, fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
@@ -44,6 +45,7 @@ import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
 import { type PaletteView, relTo } from "../../lib/page-meta.ts";
+import { grainOver, pictureCss, pictureOf } from "../../lib/picture.ts";
 import { shownError } from "../../lib/query.ts";
 import {
   countDue,
@@ -284,6 +286,8 @@ export default function Editor(props: { data: PaletteData }) {
     style: e.style(),
     steps: e.steps(),
     angle: e.angle(),
+    soft: e.soft(),
+    grain: e.grain(),
     size: e.size(),
     pixels: resolveSize(e.size(), stage),
     stops: e.stopsTaken(),
@@ -633,12 +637,30 @@ function Stage(
   let finger = false;
   /* the artwork never flashes: a press that turns it back waits a moment, the state behind it never does */
   const calm = createFlashGuard(e.shownStops, lights);
-  const art = () =>
-    gradientCss(
-      calm().map(s => s.paint ?? s.hex),
-      e.shownStyle(),
+  /* the picture with its finish: a soft one blurred from the palette's own colors, held by the flash guard as the
+     glass's are; the grain over either */
+  const art = () => {
+    const soft = e.soft();
+    const grain = e.grain();
+    if (!soft)
+      return (
+        (grain ? `${grainOver(grain)}, ` : "") +
+        gradientCss(
+          calm().map(s => s.paint ?? s.hex),
+          e.shownStyle(),
+          e.angle()
+        )
+      );
+    const P = calmPalette();
+    return pictureCss(
+      pictureOf(
+        sampleStops(P, Math.max(e.steps(), P.anchors.length)),
+        { style: e.shownStyle(), soft, grain },
+        e.wide()
+      ),
       e.angle()
     );
+  };
   /* the size a row of the size list is resting on, painted without being set */
   const [sizePeek, setSizePeek] = createSignal<Size | null | undefined>(undefined);
   const drawn = () => {
@@ -803,7 +825,11 @@ function Stage(
               class={styles.paint}
               role="img"
               aria-label={t("The gradient")}
-              style={{ background: art() }}
+              style={{
+                background: art(),
+                /* a speck of grain a CSS pixel, crisp on a dense screen; never over an effect, whose canvas would take it */
+                "image-rendering": e.grain() && !e.shownEffect() ? "pixelated" : undefined
+              }}
             >
               {glassLayer()}
               {blobLayer()}
@@ -820,7 +846,9 @@ function Stage(
             style={{
               "--ar": String(size().width / size().height),
               "--w": `${size().width}px`,
-              background: art()
+              background: art(),
+              /* a speck of grain a CSS pixel, crisp on a dense screen; never over an effect, whose canvas would take it */
+              "image-rendering": e.grain() && !e.shownEffect() ? "pixelated" : undefined
             }}
           >
             {glassLayer()}

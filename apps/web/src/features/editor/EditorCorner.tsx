@@ -15,6 +15,7 @@ import { Button } from "@grabient/ui/Button.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { Dynamic } from "@solidjs/web";
 import { type Component, createSignal, onSettled, Show } from "solid-js";
+import { pictureCss, pictureOf } from "../../lib/picture.ts";
 import type { SeedPage } from "./address.ts";
 import styles from "./Corner.module.css";
 import { effectLabel, effectSummary } from "./effect-page.ts";
@@ -53,7 +54,17 @@ export const editing = (): boolean => corner() !== null;
    both, the one this browser chose showing (effects.ts marks <html> before the first paint) */
 function Still(props: { page: SeedPage }) {
   const hexes = () => sampleStops(props.page.palette, props.page.view.steps).map(s => s.hex);
-  const swatch = () => gradientCss(hexes(), props.page.view.style, props.page.view.angle);
+  const view = () => props.page.view;
+  /* with the page's soft and grain, as Corner.tsx paints it */
+  const swatch = () =>
+    view().soft || view().grain
+      ? pictureCss(pictureOf(sampleStops(props.page.palette, view().steps), view()), view().angle)
+      : gradientCss(hexes(), view().style, view().angle);
+  const finish = () =>
+    [
+      ...(view().soft ? [t("Soft {value}", { value: view().soft })] : []),
+      ...(view().grain ? [t("Grain {value}", { value: view().grain })] : [])
+    ].join(" · ");
   const glassButton = () => (
     <AppearanceButton
       swatch="transparent"
@@ -120,6 +131,7 @@ function Still(props: { page: SeedPage }) {
     <AppearanceButton
       swatch={swatch()}
       label={styleLabel("auto")}
+      summary={finish()}
       open={false}
       onToggle={() => {}}
     />

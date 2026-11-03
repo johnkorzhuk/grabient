@@ -23,6 +23,8 @@ const BANDS: ListView = {
   style: "linearSwatches",
   steps: 5,
   angle: 45,
+  soft: 0,
+  grain: 0,
   size: { width: 1200, height: 630 },
   effect: null
 };
@@ -45,10 +47,16 @@ describe("the view an address names", () => {
       style: "radialGradient",
       steps: 9,
       angle: 10,
+      soft: 0,
+      grain: 0,
       size: { width: 800, height: 600 },
       effect: null
     });
     expect(viewWith({ ...AS_SAVED, angle: 45 }, link)).toMatchObject({ steps: 9, angle: 45 });
+    /* a link's soft and grain where the page has none of its own */
+    const soft = query("soft=30&grain=12");
+    expect(viewWith(AS_SAVED, soft)).toMatchObject({ soft: 30, grain: 12 });
+    expect(viewWith({ ...AS_SAVED, soft: 5 }, soft)).toMatchObject({ soft: 5, grain: 12 });
     expect(viewWith(BANDS)).toBe(BANDS);
   });
 });

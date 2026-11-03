@@ -17,6 +17,7 @@ import sheet from "@grabient/ui/PaletteSheet.module.css";
 import { StillStrip } from "@grabient/ui/StopStrip.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createMemo, Show } from "solid-js";
+import { pictureCss, pictureOf } from "../../lib/picture.ts";
 import type { SeedPage } from "./address.ts";
 import styles from "./Editor.module.css";
 import { FilePicture } from "./FilePicture.tsx";
@@ -33,12 +34,18 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
       paint: toCssP3(lchToP3(...s.lch))
     }))
   );
+  /* the stage's picture as the editor paints it, its soft and its grain too (lib/picture.ts) */
   const art = (wide: boolean) =>
-    gradientCss(
-      stops().map(s => (wide ? s.paint : s.hex)),
-      view().style,
-      view().angle
-    );
+    view().soft || view().grain
+      ? pictureCss(
+          pictureOf(sampleStops(props.page.palette, view().steps), view(), wide),
+          view().angle
+        )
+      : gradientCss(
+          stops().map(s => (wide ? s.paint : s.hex)),
+          view().style,
+          view().angle
+        );
   /* the fluted glass's still over the gradient, where the glass may play: an address that names it, or one that names
      no style, which takes the reader's own choice (effects.ts: the glass, unless this browser chose otherwise, when
      effectScript hides it before the first paint). The holder names the still (its ribs' angle and the palette's
@@ -98,6 +105,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
     <div
       class={[styles.page, styles.boot]}
       style={{ "--art": art(false), "--art-p3": art(true) }}
+      data-grain={view().grain ? "" : undefined}
       /* inert: no key or pointer reaches it and no assistive technology reads it, the editor it stands for read once it
          comes. Not aria-hidden too, which inert makes needless: Chrome leaves what aria-hidden covers out of the largest
          contentful paint, and counted the editor drawing this same picture again, later, as the page's largest */

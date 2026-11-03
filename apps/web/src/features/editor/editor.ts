@@ -7,8 +7,10 @@ import { clamp } from "@grabient/engine/math.ts";
 import { hexAnchor } from "@grabient/engine/spec.ts";
 import {
   clampSize,
+  GRAIN_MAX,
   isStyle,
   type SizeChoice,
+  SOFT_MAX,
   STEPS_MAX,
   STEPS_MIN,
   type Style,
@@ -106,6 +108,11 @@ export function createPaletteEditor(
   const [steps, setSteps] = createSignal(start.view.steps);
   const [style, setStyle] = createSignal(start.view.style);
   const [angle, setAngle] = createSignal(start.view.angle);
+  /* the finish over any style, none at 0: no palette has its own, so it is the reader's alone, as an effect is, and
+     Reset gives back what the page opened with */
+  const [soft, setSoft] = createSignal(start.view.soft ?? 0);
+  const [grain, setGrain] = createSignal(start.view.grain ?? 0);
+  let finishOpened = { soft: start.view.soft ?? 0, grain: start.view.grain ?? 0 };
   const [size, setSize] = createSignal<SizeChoice | null>(start.view.size ?? null);
   const [locks, setLocks] = createSignal<Locks>(start.locks);
   const [selecting, setSelecting] = createSignal(start.selection);
@@ -314,6 +321,8 @@ export function createPaletteEditor(
     setSteps(page.view.steps);
     setStyle(page.view.style);
     setAngle(page.view.angle);
+    setSoft(page.view.soft ?? 0);
+    setGrain(page.view.grain ?? 0);
     setSize(page.view.size ?? null);
     setLocks(page.locks);
     setSelecting(page.selection);
@@ -326,6 +335,8 @@ export function createPaletteEditor(
     steps,
     style,
     angle,
+    soft,
+    grain,
     size,
     locks,
     selecting,
@@ -480,12 +491,30 @@ export function createPaletteEditor(
       setAngle(angle);
       remember({ angle });
     },
+    /** The soft and the grain, 0 for none: the reader's for the tab, as the lists draw them too. */
+    setSoft(n: number) {
+      const soft = clamp(Math.round(n) || 0, 0, SOFT_MAX);
+      setSoft(soft);
+      remember({ soft });
+    },
+    setGrain(n: number) {
+      const grain = clamp(Math.round(n) || 0, 0, GRAIN_MAX);
+      setGrain(grain);
+      remember({ grain });
+    },
+    /** Whether the soft or the grain is not what the page opened with, which Reset gives back. */
+    finishChanged: () => soft() !== finishOpened.soft || grain() !== finishOpened.grain,
     /** Parts of the view let go (all three with none named): as the page opened, steps kept to the keyframes, and
         the tab given back what it remembered then. */
     letViewGo(...parts: (keyof Opened["set"])[]) {
       const was = untrack(opened);
-      /* the whole view let go: the effect too, as the page opened with it */
-      if (!parts.length) effects.reset();
+      /* the whole view let go: the effect too, and the soft and the grain, as the page opened with them */
+      if (!parts.length) {
+        effects.reset();
+        setSoft(finishOpened.soft);
+        setGrain(finishOpened.grain);
+        remember({ soft: finishOpened.soft, grain: finishOpened.grain });
+      }
       const all = parts.length ? parts : (["style", "steps", "angle"] as const);
       if (all.includes("style")) setStyle(was.style);
       if (all.includes("steps")) setSteps(ops.clampSteps(was.steps, untrack(K)));
@@ -521,6 +550,7 @@ export function createPaletteEditor(
       shapes.forget();
       setPalette(page.palette);
       take(page);
+      finishOpened = { soft: page.view.soft ?? 0, grain: page.view.grain ?? 0 };
       effects.arrive(page.effect ?? null, page.styled ?? false);
       setOpened(openedOf(page, kept?.opened));
       setOpenedSeed(seedIn(kept?.edits) ?? page.seed);

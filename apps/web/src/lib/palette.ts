@@ -8,6 +8,9 @@ export interface Drawn {
   style: Style;
   steps: number;
   angle: number;
+  /** a blur along the style's line and film grain over the picture, 1 to 100 each, where the view has them */
+  soft?: number;
+  grain?: number;
 }
 
 /* A page reads the same palettes again and again (a card for its picture and its name, the bar for its colors), and

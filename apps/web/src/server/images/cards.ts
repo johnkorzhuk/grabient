@@ -9,7 +9,15 @@ import { type Size, viewSearch } from "@grabient/engine/view.ts";
 import { MARK_FIXED } from "@grabient/ui/mark.ts";
 import { type Saved, viewAt } from "../files/address.ts";
 import type { Resolved } from "../files/resolve.ts";
-import { drawCard, drawCardOver, drawPicture, keyframeColors, type Look, lookOf } from "./paint.ts";
+import {
+  drawCard,
+  drawCardOver,
+  drawPicture,
+  keyframeColors,
+  type Look,
+  lookOf,
+  lookSoon
+} from "./paint.ts";
 import { encodePng } from "./png.ts";
 import { answerPicture, type Keep, type PictureEnv } from "./serve.ts";
 import { cardSize, pictureSize } from "./size.ts";
@@ -176,13 +184,14 @@ export function paletteCard(
         width,
         height,
         true,
-        chips
+        chips,
+        ...finishPart(view)
       ],
       width,
       height,
-      draw: () =>
+      draw: async () =>
         drawCard(
-          lookOf(found.palette, view),
+          await lookSoon(found.palette, view),
           chips ? keyframeColors(found.palette) : null,
           width,
           height
@@ -252,14 +261,29 @@ export function palettePicture(
       kind: "png",
       branded: false,
       svg: `/${found.seed}.svg${viewSearch({ ...view, size: { width, height } })}`,
-      parts: ["palette", found.seed, view.style, view.steps, view.angle, width, height, false],
+      parts: [
+        "palette",
+        found.seed,
+        view.style,
+        view.steps,
+        view.angle,
+        width,
+        height,
+        false,
+        ...finishPart(view)
+      ],
       width,
       height,
-      draw: () => drawPicture(lookOf(found.palette, view), width, height)
+      draw: async () => drawPicture(await lookSoon(found.palette, view), width, height)
     },
     keep
   );
 }
+
+/* a soft or grained picture's own part of its key: none for a plain one, whose key, and the pictures kept under it,
+   stand as they were */
+const finishPart = (view: { soft?: number; grain?: number }) =>
+  view.soft || view.grain ? [`finish:${view.soft ?? 0}:${view.grain ?? 0}`] : [];
 
 const BRAND: Look = { colors: MARK_FIXED.map(hexBytes), style: "linearGradient", angle: 90 };
 

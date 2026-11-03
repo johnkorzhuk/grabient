@@ -5,6 +5,7 @@
 import { decodePalette } from "./codec.ts";
 import { fitChroma, hexBytes, lchToP3, srgbToLch, type Triple, toCssP3 } from "./color.ts";
 import { type Stop, sampleStops } from "./curve.ts";
+import { GRAIN_SIDE } from "./grain.ts";
 import { clamp01, onWheel } from "./math.ts";
 import { isSwatchStyle, type Size, type Style, type View } from "./view.ts";
 
@@ -48,33 +49,62 @@ export function spell(kind: ColorKind, stop: Stop): string {
 }
 
 const percent = (x: number, digits: number) => `${(x * 100).toFixed(digits)}%`;
+/* a place along the line to a thousandth of a percent, no trailing zeros */
+const placed = (x: number) => `${Number((x * 100).toFixed(3))}%`;
 /** The gradient of these colors (any CSS colors) in a style: blended stops at one decimal of a percent, or hard
-    bands at three. `transparent` for no colors. */
+    bands at three; or, given `at` (each color's place along the line, 0 to 1, as a soft view's stops have), blended
+    stops there. `transparent` for no colors. */
 export function gradientCss(
   colors: readonly string[],
   style: Style = "linearGradient",
   angle = 90,
-  space?: "oklch"
+  space?: "oklch",
+  at?: readonly number[]
 ): string {
   const n = colors.length;
   if (!n) return "transparent";
-  const list = isSwatchStyle(style)
-    ? colors.map((c, i) => `${c} ${percent(i / n, 3)} ${percent((i + 1) / n, 3)}`)
-    : colors.map((c, i) => `${c} ${percent(n > 1 ? i / (n - 1) : 0, 1)}`);
-  const at = space && !isSwatchStyle(style) ? ` in ${space}` : "";
+  const list = at
+    ? colors.map((c, i) => `${c} ${placed(at[i])}`)
+    : isSwatchStyle(style)
+      ? colors.map((c, i) => `${c} ${percent(i / n, 3)} ${percent((i + 1) / n, 3)}`)
+      : colors.map((c, i) => `${c} ${percent(n > 1 ? i / (n - 1) : 0, 1)}`);
+  const blend = space && !isSwatchStyle(style) ? ` in ${space}` : "";
   const fn = style.startsWith("radial")
-    ? `radial-gradient(circle at 50% 50%${at}`
+    ? `radial-gradient(circle at 50% 50%${blend}`
     : style.startsWith("angular")
-      ? `conic-gradient(from ${angle}deg${at}`
-      : `linear-gradient(${angle}deg${at}`;
+      ? `conic-gradient(from ${angle}deg${blend}`
+      : `linear-gradient(${angle}deg${blend}`;
   return `${fn}, ${list.join(", ")})`;
 }
-const declaration = (colors: readonly string[], style: Style, angle: number, kind: ColorKind) =>
-  `background: ${gradientCss(colors, style, angle, kind === "oklch" ? "oklch" : undefined)};`;
+/** What a picture lays over its gradient's stops: the grain's tile (grain.ts) as a CSS image, `url("…")` of an
+    address or a data URI, and each stop's place along the line, where a soft view placed them (soft.ts
+    drawnStops). */
+export interface Over {
+  grain?: string;
+  at?: readonly number[];
+}
+/* the custom property a stylesheet holds the grain's tile in once, where two declarations lay it */
+const GRAIN_VAR = "--grabient-grain";
+const tileLayer = (image: string) => `${image} 0 0 / ${GRAIN_SIDE}px ${GRAIN_SIDE}px`;
+const declaration = (
+  colors: readonly string[],
+  style: Style,
+  angle: number,
+  kind: ColorKind,
+  over: Over = {},
+  shared = false
+) =>
+  `background: ${over.grain ? `${tileLayer(shared ? `var(${GRAIN_VAR})` : over.grain)}, ` : ""}${gradientCss(colors, style, angle, kind === "oklch" ? "oklch" : undefined, over.at)};`;
 const spelled = (stops: readonly Stop[], kind: ColorKind) => stops.map(s => spell(kind, s));
 /** The one CSS declaration in a spelling. */
-export const cssLine = (stops: readonly Stop[], style: Style, angle: number, kind: ColorKind) =>
-  declaration(spelled(stops, kind), style, angle, kind);
+export const cssLine = (
+  stops: readonly Stop[],
+  style: Style,
+  angle: number,
+  kind: ColorKind,
+  over?: Over,
+  shared?: boolean
+) => declaration(spelled(stops, kind), style, angle, kind, over, shared);
 
 /* Display-P3. A browser keeps the last declaration it can parse on any screen, so P3 colors stand under
    @media (color-gamut: p3) and the sRGB line comes first. The block is written only where a P3 screen shows some stop
@@ -95,7 +125,9 @@ export function cssP3(
   stops: readonly Stop[],
   style: Style,
   angle: number,
-  kind: ColorKind
+  kind: ColorKind,
+  over?: Over,
+  shared?: boolean
 ): string | null {
   const wide = stops.map(wideOf);
   if (!wide.some(w => (w?.gain ?? 0) >= JND)) return null;
@@ -104,18 +136,22 @@ export function cssP3(
     if (!w) return spell(kind, s);
     return kind === "oklch" ? oklchText(w.lch) : toCssP3(lchToP3(...w.lch));
   });
-  return declaration(colors, style, angle, kind);
+  return declaration(colors, style, angle, kind, over, shared);
 }
-/** The declarations a copy takes: the line and, where wide, the P3 block. */
+/** The declarations a copy takes: the line and, where wide, the P3 block. Where both lay the grain, its tile is held
+    once in a custom property, before them. */
 export function cssBlock(
   stops: readonly Stop[],
   style: Style,
   angle: number,
-  kind: ColorKind
+  kind: ColorKind,
+  over?: Over
 ): string {
-  const line = cssLine(stops, style, angle, kind);
-  const p3 = cssP3(stops, style, angle, kind);
-  return p3 ? `${line}\n@media (color-gamut: p3) {\n  ${p3}\n}` : line;
+  const shared = !!over?.grain && cssWide(stops);
+  const line = cssLine(stops, style, angle, kind, over, shared);
+  const p3 = cssP3(stops, style, angle, kind, over, shared);
+  const held = shared ? `${GRAIN_VAR}: ${over!.grain};\n` : "";
+  return p3 ? `${held}${line}\n@media (color-gamut: p3) {\n  ${p3}\n}` : line;
 }
 /** One color a line in a spelling. */
 export const colorsText = (kind: ColorKind, stops: readonly Stop[]) =>
@@ -128,11 +164,14 @@ export function paletteCss(
   view: Pick<View, "style" | "angle">,
   address: string,
   kind: ColorKind = "oklch",
-  size?: Size | null
+  size?: Size | null,
+  over?: Over
 ): string {
-  const p3 = cssP3(stops, view.style, view.angle, kind);
+  const shared = !!over?.grain && cssWide(stops);
+  const p3 = cssP3(stops, view.style, view.angle, kind, over, shared);
   const wide = p3 ? `@media (color-gamut: p3) {\n  html {\n    ${p3}\n  }\n}\n` : "";
-  return `/* ${address} */\nhtml {\n  ${pageBox(size)}\n  ${cssLine(stops, view.style, view.angle, kind)}\n}\n${wide}`;
+  const held = shared ? `  ${GRAIN_VAR}: ${over!.grain};\n` : "";
+  return `/* ${address} */\nhtml {\n  ${pageBox(size)}\n${held}  ${cssLine(stops, view.style, view.angle, kind, over, shared)}\n}\n${wide}`;
 }
 
 /** An SVG as a CSS url(): a data URI with only what a URL must escape escaped, its double quotes made single (for

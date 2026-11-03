@@ -7,6 +7,7 @@ import {
   type VectorKind
 } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
+import type { Style } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import {
   APPEARANCE_OPTIONS,
@@ -17,6 +18,8 @@ import {
 import { Button } from "@grabient/ui/Button.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createSignal, Loading, lazy, Show } from "solid-js";
+import { pictureCss, pictureOf } from "../../lib/picture.ts";
+import { loadSoft } from "../../lib/soft-load.ts";
 import styles from "./Corner.module.css";
 import type { PaletteEditor } from "./editor.ts";
 import { effectLabel, effectSummary } from "./effect-page.ts";
@@ -50,13 +53,23 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
   const fx = e.effects;
   const [open, setOpen] = createSignal(false);
   const paint = () => e.stops().map(s => s.paint ?? s.hex);
+  /* the palette in a style with the page's soft and grain: the header's swatch and a style's tile */
+  const paintIn = (style: Style) =>
+    e.soft() || e.grain()
+      ? pictureCss(
+          pictureOf(e.stopsTaken(), { style, soft: e.soft(), grain: e.grain() }, e.wide()),
+          e.angle()
+        )
+      : gradientCss(paint(), style, e.angle());
   const set = () => e.opened().set;
   const summary = () =>
     [
       ...(set().steps
         ? [t("{count, plural, one {# step} other {# steps}}", { count: e.steps() })]
         : []),
-      ...(set().angle ? [`${e.angle()}°`] : [])
+      ...(set().angle ? [`${e.angle()}°`] : []),
+      ...(e.soft() ? [t("Soft {value}", { value: e.soft() })] : []),
+      ...(e.grain() ? [t("Grain {value}", { value: e.grain() })] : [])
     ].join(" · ");
   /* the button's name and what it adds: the effect playing, otherwise the style */
   const label = () => {
@@ -185,7 +198,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
         </Button>
       </span>
       <Appearance
-        swatch={fx.kind() ? "transparent" : gradientCss(paint(), e.style(), e.angle())}
+        swatch={fx.kind() ? "transparent" : paintIn(e.style())}
         swatchArt={
           fx.kind() === "glass"
             ? glassSwatch
@@ -205,6 +218,8 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
           void import("./blob-draw.ts").then(m => m.loadBlob());
           void import("./fx-draw.ts").then(m => m.loadFx());
           void EffectFields.preload();
+          /* and the blur, for the Soft field */
+          void loadSoft().catch(() => {});
           setOpen(!open());
         }}
         menu={{
@@ -214,7 +229,11 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
           steps: set().steps ? e.steps() : "auto",
           angle: set().angle ? e.angle() : "auto",
           stepsMin: Math.max(3, e.K()),
-          bg: style => gradientCss(paint(), style, e.angle()),
+          bg: paintIn,
+          soft: e.soft(),
+          grain: e.grain(),
+          onSoft: v => e.setSoft(v),
+          onGrain: v => e.setGrain(v),
           onStyle: style => {
             e.clearPeek();
             fx.choose(null);
@@ -225,7 +244,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
           onAngle: v => (v === "auto" ? e.letViewGo("angle") : e.setAngle(v)),
           onPeek: style => e.peekStyle(style),
           onReset:
-            set().style || set().steps || set().angle || fx.changed()
+            set().style || set().steps || set().angle || fx.changed() || e.finishChanged()
               ? () => {
                   e.clearPeek();
                   e.letViewGo();

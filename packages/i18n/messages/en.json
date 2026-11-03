@@ -199,8 +199,8 @@
   "Add a title": {
     "note": "Press, and the empty field's placeholder, in the place of a palette's age on its card in the account's own collection: gives the palette a title in that collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:368",
-      "packages/ui/src/PaletteCard.tsx:387"
+      "packages/ui/src/PaletteCard.tsx:391",
+      "packages/ui/src/PaletteCard.tsx:410"
     ]
   },
   "Add all to selection": {
@@ -244,11 +244,11 @@
   "Add to selection": {
     "note": "Press (a plus) on a palette: adds it to the selection, the palettes gathered to export or save together. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Boot.tsx:165",
-      "apps/web/src/features/editor/Editor.tsx:590",
-      "apps/web/src/features/editor/Editor.tsx:591",
-      "packages/ui/src/PaletteCard.tsx:426",
-      "packages/ui/src/PaletteCard.tsx:427"
+      "apps/web/src/features/editor/Boot.tsx:173",
+      "apps/web/src/features/editor/Editor.tsx:594",
+      "apps/web/src/features/editor/Editor.tsx:595",
+      "packages/ui/src/PaletteCard.tsx:449",
+      "packages/ui/src/PaletteCard.tsx:450"
     ]
   },
   "Add to {app}": {
@@ -359,7 +359,7 @@
     "note": "Field: the gradient's angle in degrees.",
     "refs": [
       "apps/web/src/features/editor/GlassControls.tsx:77",
-      "packages/ui/src/Appearance.tsx:230",
+      "packages/ui/src/Appearance.tsx:243",
       "packages/ui/src/Curation.tsx:271"
     ]
   },
@@ -410,20 +410,20 @@
   "Appearance": {
     "note": "The appearance press (style, steps and angle): its tooltip, and the heading of its menu.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:256",
-      "packages/ui/src/Appearance.tsx:52"
+      "packages/ui/src/Appearance.tsx:298",
+      "packages/ui/src/Appearance.tsx:59"
     ]
   },
   "Appearance: {label}": {
     "note": "Screen reader name of the appearance press, with the style.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:71"
+      "packages/ui/src/Appearance.tsx:78"
     ]
   },
   "Appearance: {label}, {summary}": {
     "note": "Screen reader name of the appearance press, with the style, steps and angle.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:71"
+      "packages/ui/src/Appearance.tsx:78"
     ]
   },
   "Apply to all palettes": {
@@ -460,15 +460,15 @@
     "note": "Style choice: each palette in the style it was saved in.",
     "refs": [
       "packages/engine/src/view.ts:31",
-      "packages/ui/src/Appearance.tsx:35"
+      "packages/ui/src/Appearance.tsx:42"
     ]
   },
   "Auto": {
     "note": "A value chosen by the app: size, steps, angle or columns follow the content.",
     "refs": [
       "apps/web/src/features/editor/GlassControls.tsx:83",
-      "packages/ui/src/Appearance.tsx:224",
-      "packages/ui/src/Appearance.tsx:236",
+      "packages/ui/src/Appearance.tsx:237",
+      "packages/ui/src/Appearance.tsx:249",
       "packages/ui/src/ExportPanel.tsx:129",
       "packages/ui/src/ExportPanel.tsx:209",
       "packages/ui/src/SizeControl.tsx:204",
@@ -544,8 +544,8 @@
   "Blob": {
     "note": "Editor, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as an animated blob, a soft amorphous shape of its colors.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:142",
-      "apps/web/src/features/editor/EditorCorner.tsx:84",
+      "apps/web/src/features/editor/Corner.tsx:155",
+      "apps/web/src/features/editor/EditorCorner.tsx:95",
       "apps/web/src/features/editor/effect-page.ts:29"
     ]
   },
@@ -755,7 +755,7 @@
     "refs": [
       "apps/web/src/mcp-view/PaletteView.tsx:425",
       "apps/web/src/mcp-view/PaletteView.tsx:426",
-      "packages/ui/src/Appearance.tsx:175",
+      "packages/ui/src/Appearance.tsx:188",
       "packages/ui/src/CollectList.tsx:164",
       "packages/ui/src/ExportPanel.tsx:155"
     ]
@@ -764,7 +764,7 @@
     "note": "Press and key list entry: closes the selection view.",
     "refs": [
       "apps/web/src/app/navigation.ts:189",
-      "apps/web/src/features/editor/Editor.tsx:216",
+      "apps/web/src/features/editor/Editor.tsx:218",
       "apps/web/src/features/selection/SelectionScreen.tsx:245",
       "apps/web/src/features/selection/SelectionScreen.tsx:304",
       "packages/ui/src/ExportPanel.tsx:154"
@@ -907,7 +907,7 @@
   "Colors": {
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:230",
+      "apps/web/src/features/editor/code.ts:263",
       "apps/web/src/features/editor/effect-sources.ts:195"
     ]
   },
@@ -1133,9 +1133,9 @@
   "Couldn't copy the palette.": {
     "note": "Error line after a failed copy of a palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:674",
-      "apps/web/src/features/editor/Editor.tsx:685",
-      "apps/web/src/features/editor/Sheet.tsx:150",
+      "apps/web/src/features/editor/Editor.tsx:696",
+      "apps/web/src/features/editor/Editor.tsx:707",
+      "apps/web/src/features/editor/Sheet.tsx:151",
       "apps/web/src/features/examples/Swatches.tsx:202",
       "apps/web/src/features/examples/Swatches.tsx:212",
       "apps/web/src/features/gallery/take.ts:142",
@@ -1196,9 +1196,9 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:50",
       "apps/web/src/features/collections/take.ts:85",
-      "apps/web/src/features/editor/Editor.tsx:692",
-      "apps/web/src/features/editor/Sheet.tsx:549",
-      "apps/web/src/features/editor/Sheet.tsx:627",
+      "apps/web/src/features/editor/Editor.tsx:714",
+      "apps/web/src/features/editor/Sheet.tsx:560",
+      "apps/web/src/features/editor/Sheet.tsx:638",
       "apps/web/src/features/examples/Swatches.tsx:209",
       "apps/web/src/lib/files.ts:70"
     ]
@@ -1318,7 +1318,7 @@
   "Couldn't save the palette.": {
     "note": "Error line after a failed like.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:305"
+      "apps/web/src/features/editor/Editor.tsx:309"
     ]
   },
   "Couldn't save your vote.": {
@@ -1342,9 +1342,9 @@
       "apps/web/src/features/account/sync.ts:148",
       "apps/web/src/features/collections/CollectionPage.tsx:476",
       "apps/web/src/features/collections/CollectionPage.tsx:482",
-      "apps/web/src/features/collections/ItemCard.tsx:122",
+      "apps/web/src/features/collections/ItemCard.tsx:123",
       "apps/web/src/features/collections/collect.ts:457",
-      "apps/web/src/features/editor/Sheet.tsx:513",
+      "apps/web/src/features/editor/Sheet.tsx:524",
       "apps/web/src/features/editor/save.ts:186",
       "apps/web/src/features/gallery/GalleryCard.tsx:105",
       "apps/web/src/server/account/sync.ts:126",
@@ -1621,22 +1621,22 @@
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:540",
       "apps/web/src/features/collections/Heading.tsx:131",
-      "packages/ui/src/PaletteCard.tsx:291"
+      "packages/ui/src/PaletteCard.tsx:314"
     ]
   },
   "Edit {name}": {
     "note": "Read by screen readers: a palette card's Edit press, and the edit press on a collection's title. {name} is the palette's or the collection's name.",
     "refs": [
       "apps/web/src/features/collections/Heading.tsx:130",
-      "packages/ui/src/PaletteCard.tsx:290",
-      "packages/ui/src/PaletteCard.tsx:296"
+      "packages/ui/src/PaletteCard.tsx:313",
+      "packages/ui/src/PaletteCard.tsx:319"
     ]
   },
   "Editor": {
     "note": "The editor: the side panel's screen reader name, and the heading of the editor's shortcuts.",
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
-      "apps/web/src/features/editor/Editor.tsx:1142",
+      "apps/web/src/features/editor/Editor.tsx:1170",
       "apps/web/src/features/examples/ExamplesPage.tsx:304",
       "packages/ui/src/KeyList.tsx:10"
     ]
@@ -1857,8 +1857,8 @@
   "Fluted glass": {
     "note": "Editor side: the switch that plays the palette behind fluted (reeded) glass in the picture, colors drifting behind a pane of curved ribs. Name it as the language's interior designers name ribbed decorative glass; also the picture's label for screen readers.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:129",
-      "apps/web/src/features/editor/EditorCorner.tsx:71",
+      "apps/web/src/features/editor/Corner.tsx:142",
+      "apps/web/src/features/editor/EditorCorner.tsx:82",
       "apps/web/src/features/editor/effect-page.ts:27"
     ]
   },
@@ -2097,6 +2097,20 @@
       "apps/web/src/lib/page-meta.ts:612"
     ]
   },
+  "Grain": {
+    "note": "Editor and lists, the Appearance menu: a field from Off to 100 that lays film grain, fine black and white specks, over the picture. As photographers say grain.",
+    "refs": [
+      "packages/ui/src/Appearance.tsx:272"
+    ]
+  },
+  "Grain {value}": {
+    "note": "The Appearance button's summary while the picture has grain: the field's name and its value, 1 to 100, after the soft, separated by a middle dot.",
+    "refs": [
+      "apps/web/src/features/editor/Corner.tsx:72",
+      "apps/web/src/features/editor/EditorCorner.tsx:66",
+      "apps/web/src/features/list/ListAppearance.tsx:312"
+    ]
+  },
   "Gray or brown through the middle": {
     "note": "Admin curation reason: its line.",
     "refs": [
@@ -2170,8 +2184,8 @@
   "Hide panel": {
     "note": "Press: hides the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:172",
-      "apps/web/src/features/editor/EditorCorner.tsx:130"
+      "apps/web/src/features/editor/Corner.tsx:185",
+      "apps/web/src/features/editor/EditorCorner.tsx:142"
     ]
   },
   "High tide": {
@@ -2253,7 +2267,7 @@
     "note": "Status line: the image could not go to the clipboard, so it was downloaded instead.",
     "refs": [
       "apps/web/src/features/collections/take.ts:74",
-      "apps/web/src/features/editor/Sheet.tsx:467",
+      "apps/web/src/features/editor/Sheet.tsx:476",
       "apps/web/src/features/gallery/take.ts:138",
       "apps/web/src/features/selection/ExportScreen.tsx:92",
       "apps/web/src/mcp-view/PaletteView.tsx:243"
@@ -2262,8 +2276,8 @@
   "Images can't be copied here.": {
     "note": "Error line: this browser, or the app the view is shown in, cannot put an image on the clipboard.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:673",
-      "apps/web/src/features/editor/Sheet.tsx:149",
+      "apps/web/src/features/editor/Editor.tsx:695",
+      "apps/web/src/features/editor/Sheet.tsx:150",
       "apps/web/src/mcp-view/PaletteView.tsx:247",
       "apps/web/src/mcp-view/PaletteView.tsx:255",
       "packages/ui/src/SolidPane.tsx:80"
@@ -2435,29 +2449,29 @@
   "Keyframe {number} · {hex}": {
     "note": "Tooltip on one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:961",
+      "apps/web/src/features/editor/Editor.tsx:989",
       "packages/ui/src/Keyframes.tsx:164"
     ]
   },
   "Keyframe {number}, {hex}": {
     "note": "Screen reader name of one keyframe: its place and its hex color.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:957",
+      "apps/web/src/features/editor/Editor.tsx:985",
       "packages/ui/src/Keyframes.tsx:187"
     ]
   },
   "Keyframes": {
     "note": "Screen reader name of the row of the palette's keyframes, the colors a person sets. Also the code pane's JSON tab choice that holds the keyframes, beside Tokens.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:946",
-      "apps/web/src/features/editor/code.ts:264",
+      "apps/web/src/features/editor/Editor.tsx:974",
+      "apps/web/src/features/editor/code.ts:297",
       "packages/ui/src/Keyframes.tsx:156"
     ]
   },
   "Keyframes, spline and OKLCH to sRGB conversion.": {
     "note": "Code pane: what the shader holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:258"
+      "apps/web/src/features/editor/code.ts:291"
     ]
   },
   "Language": {
@@ -2583,7 +2597,7 @@
   "Lightness straightened.": {
     "note": "Status line after Straighten lightness.",
     "refs": [
-      "apps/web/src/features/editor/editor.ts:429"
+      "apps/web/src/features/editor/editor.ts:440"
     ]
   },
   "Lightness, chroma and hue each have their own curve, drawn in the graph above. Each curve passes through the keyframes and bends smoothly between them. The color at any point is the three curves read there.": {
@@ -3047,6 +3061,8 @@
       "apps/web/src/features/account/settings/Appearance.tsx:43",
       "apps/web/src/features/editor/GlassControls.tsx:29",
       "apps/web/src/features/editor/effect-page.ts:18",
+      "packages/ui/src/Appearance.tsx:267",
+      "packages/ui/src/Appearance.tsx:278",
       "packages/ui/src/Switch.tsx:34"
     ]
   },
@@ -3225,7 +3241,7 @@
     "note": "Screen reader name of the tabs for a list's order (Popular, Rising, Saved).",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:639",
-      "apps/web/src/features/editor/Sheet.tsx:580",
+      "apps/web/src/features/editor/Sheet.tsx:591",
       "packages/ui/src/ListNav.tsx:102"
     ]
   },
@@ -3265,7 +3281,7 @@
   "Palette": {
     "note": "A palette with no name.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:158",
+      "apps/web/src/features/editor/Sheet.tsx:159",
       "apps/web/src/features/gallery/drawing.ts:71"
     ]
   },
@@ -3278,7 +3294,7 @@
   "Palette actions": {
     "note": "Screen reader name of the group of presses over the editor's picture.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:860",
+      "apps/web/src/features/editor/Editor.tsx:888",
       "packages/ui/src/PaletteSheet.tsx:131"
     ]
   },
@@ -3339,7 +3355,7 @@
   "Palette title": {
     "note": "Field on a palette's card in the account's own collection: the palette's title there.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:388"
+      "packages/ui/src/PaletteCard.tsx:411"
     ]
   },
   "Palette titles are up to {max} characters.": {
@@ -3377,10 +3393,10 @@
   "Palettes like {name}": {
     "note": "Title of a search by a palette, and the screen reader name of the magnifier that opens it from a palette. {name} is the palette's name.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:846",
+      "apps/web/src/features/editor/Editor.tsx:874",
       "apps/web/src/lib/page-meta.ts:582",
       "apps/web/src/lib/page-meta.ts:593",
-      "packages/ui/src/PaletteCard.tsx:307"
+      "packages/ui/src/PaletteCard.tsx:330"
     ]
   },
   "Palettes you like appear here.": {
@@ -3527,7 +3543,7 @@
   "Plus a Display P3 line.": {
     "note": "Code pane: the CSS also has a line for wide-gamut screens.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:192"
+      "apps/web/src/features/editor/code.ts:213"
     ]
   },
   "Popular": {
@@ -3831,11 +3847,11 @@
   "Remove from selection": {
     "note": "Press (a check) on a palette in the selection: takes it out. Also its tooltip.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:590",
-      "apps/web/src/features/editor/Editor.tsx:591",
+      "apps/web/src/features/editor/Editor.tsx:594",
+      "apps/web/src/features/editor/Editor.tsx:595",
       "packages/ui/src/ExportPreview.tsx:83",
-      "packages/ui/src/PaletteCard.tsx:426",
-      "packages/ui/src/PaletteCard.tsx:427"
+      "packages/ui/src/PaletteCard.tsx:449",
+      "packages/ui/src/PaletteCard.tsx:450"
     ]
   },
   "Remove held keyframes": {
@@ -3848,7 +3864,7 @@
     "note": "Press (a minus) beside the keyframe count: removes the last keyframe, or the held one. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1159",
+      "apps/web/src/features/editor/Editor.tsx:1187",
       "packages/ui/src/Keyframes.tsx:146"
     ]
   },
@@ -3856,7 +3872,7 @@
     "note": "Press (a minus) beside the keyframe count while several keyframes are held: removes them. Also its tooltip.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:111",
-      "apps/web/src/features/editor/Editor.tsx:1159"
+      "apps/web/src/features/editor/Editor.tsx:1187"
     ]
   },
   "Remove {hex}": {
@@ -3888,7 +3904,7 @@
   "Rename {title}": {
     "note": "Screen reader name of a palette's title on its card in the account's own collection: a press that opens a field to change the title. {title} is the palette's title.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:188"
+      "packages/ui/src/PaletteCard.tsx:199"
     ]
   },
   "Replaces it in the gallery": {
@@ -3924,8 +3940,8 @@
       "apps/web/src/features/collections/Actions.tsx:386",
       "apps/web/src/features/search/Sampler.tsx:265",
       "apps/web/src/mcp-view/PaletteView.tsx:845",
-      "packages/ui/src/Appearance.tsx:260",
-      "packages/ui/src/Appearance.tsx:53"
+      "packages/ui/src/Appearance.tsx:302",
+      "packages/ui/src/Appearance.tsx:60"
     ]
   },
   "Reset all": {
@@ -3937,7 +3953,7 @@
   "Reset appearance": {
     "note": "Screen reader name of the press joined to the appearance press: back to the default style, steps and angle.",
     "refs": [
-      "packages/ui/src/Appearance.tsx:100"
+      "packages/ui/src/Appearance.tsx:107"
     ]
   },
   "Resetting…": {
@@ -4039,28 +4055,28 @@
   "Rising, 1 week": {
     "note": "Screen reader name of the Rising frame chip: one week.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:82",
+      "apps/web/src/features/editor/Sheet.tsx:83",
       "packages/ui/src/ListNav.tsx:20"
     ]
   },
   "Rising, 1 year": {
     "note": "Screen reader name of the Rising frame chip: one year.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:84",
+      "apps/web/src/features/editor/Sheet.tsx:85",
       "packages/ui/src/ListNav.tsx:22"
     ]
   },
   "Rising, 3 months": {
     "note": "Screen reader name of the Rising frame chip: three months.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:83",
+      "apps/web/src/features/editor/Sheet.tsx:84",
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
   "Rosette": {
     "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as a rosette: petals on a golden spiral, like a dahlia seen from above, its rings of color rippling out from the heart. Name the flower-shaped ornament, as a designer would.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:158",
+      "apps/web/src/features/editor/Corner.tsx:171",
       "apps/web/src/features/editor/effect-page.ts:32"
     ]
   },
@@ -4294,7 +4310,7 @@
   "Seed": {
     "note": "Code pane tab: the palette's seed, the short code in its address.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:172"
+      "apps/web/src/features/editor/code.ts:176"
     ]
   },
   "Seeding agents read these notes before they write again.": {
@@ -4422,7 +4438,7 @@
   "Shader": {
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:248",
+      "apps/web/src/features/editor/code.ts:281",
       "apps/web/src/features/editor/effect-sources.ts:154"
     ]
   },
@@ -4491,8 +4507,8 @@
   "Show panel": {
     "note": "Press: shows the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:172",
-      "apps/web/src/features/editor/Editor.tsx:205"
+      "apps/web/src/features/editor/Corner.tsx:185",
+      "apps/web/src/features/editor/Editor.tsx:207"
     ]
   },
   "Show shortcuts": {
@@ -4656,17 +4672,17 @@
   "Silk": {
     "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as silk: its colors dyed into satin that drapes in soft folds, each fold swaying slowly. Name the fabric, as a dressmaker would.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:157",
+      "apps/web/src/features/editor/Corner.tsx:170",
       "apps/web/src/features/editor/effect-page.ts:31"
     ]
   },
   "Similar palettes": {
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:849",
-      "apps/web/src/features/editor/Sheet.tsx:667",
+      "apps/web/src/features/editor/Editor.tsx:877",
+      "apps/web/src/features/editor/Sheet.tsx:678",
       "apps/web/src/features/editor/StaticPalette.tsx:148",
-      "packages/ui/src/PaletteCard.tsx:308"
+      "packages/ui/src/PaletteCard.tsx:331"
     ]
   },
   "Since lightness, chroma and hue are separate, changing a keyframe's hue keeps its lightness.": {
@@ -4717,6 +4733,20 @@
     "note": "Read by screen readers: the name of one tile, an image post for a social network, with a quote on it.",
     "refs": [
       "apps/web/src/features/examples/Cards.tsx:80"
+    ]
+  },
+  "Soft": {
+    "note": "Editor and lists, the Appearance menu: a field from Off to 100 that blurs the palette's colors along the style's line, so bands melt into each other and a gradient's turns round off. Like a photo editor's softness.",
+    "refs": [
+      "packages/ui/src/Appearance.tsx:261"
+    ]
+  },
+  "Soft {value}": {
+    "note": "The Appearance button's summary while the picture is soft: the field's name and its value, 1 to 100, after the steps and the angle, separated by a middle dot.",
+    "refs": [
+      "apps/web/src/features/editor/Corner.tsx:71",
+      "apps/web/src/features/editor/EditorCorner.tsx:65",
+      "apps/web/src/features/list/ListAppearance.tsx:311"
     ]
   },
   "Some features are limited here.": {
@@ -4826,7 +4856,7 @@
     "note": "Field: how many evenly spaced colors the gradient is drawn with.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:143",
-      "packages/ui/src/Appearance.tsx:218",
+      "packages/ui/src/Appearance.tsx:231",
       "packages/ui/src/Curation.tsx:262"
     ]
   },
@@ -5060,7 +5090,7 @@
   "The colors as design tokens.": {
     "note": "Code pane: what the JSON tab holds when it is set to design tokens.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:272"
+      "apps/web/src/features/editor/code.ts:305"
     ]
   },
   "The dots are keyframes. The graph shows lightness, chroma and hue along the gradient. Drag a dot to change a keyframe.": {
@@ -5090,8 +5120,8 @@
   "The gradient": {
     "note": "Screen reader name of the editor's large picture of the palette.",
     "refs": [
-      "apps/web/src/features/editor/Editor.tsx:805",
-      "apps/web/src/features/editor/Editor.tsx:819"
+      "apps/web/src/features/editor/Editor.tsx:827",
+      "apps/web/src/features/editor/Editor.tsx:845"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5109,7 +5139,7 @@
   "The keyframes as JSON.": {
     "note": "Code pane: what the JSON tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:272"
+      "apps/web/src/features/editor/code.ts:305"
     ]
   },
   "The most liked CSS gradients and color palettes on Grabient. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
@@ -5139,13 +5169,13 @@
   "The palette as Markdown: colors, names and CSS.": {
     "note": "Code pane: what the MD tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:280"
+      "apps/web/src/features/editor/code.ts:314"
     ]
   },
   "The palette as Markdown: colors, names and the tags that play it.": {
     "note": "Editor's code pane, Markdown tab while an effect plays: the palette as a Markdown file, with its colors, their names and the HTML tags that play the effect.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:189"
+      "apps/web/src/features/editor/code.ts:193"
     ]
   },
   "The palette in the color space": {
@@ -5163,7 +5193,7 @@
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:278",
+      "apps/web/src/features/editor/code.ts:312",
       "apps/web/src/features/editor/effect-sources.ts:218"
     ]
   },
@@ -6186,21 +6216,21 @@
   "frame\u00041w": {
     "note": "Rising frame chip: one week, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:82",
+      "apps/web/src/features/editor/Sheet.tsx:83",
       "packages/ui/src/ListNav.tsx:20"
     ]
   },
   "frame\u00041y": {
     "note": "Rising frame chip: one year, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:84",
+      "apps/web/src/features/editor/Sheet.tsx:85",
       "packages/ui/src/ListNav.tsx:22"
     ]
   },
   "frame\u00043m": {
     "note": "Rising frame chip: three months, short.",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:83",
+      "apps/web/src/features/editor/Sheet.tsx:84",
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
@@ -6444,7 +6474,7 @@
     "note": "List order and its tab: the most liked first.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:108",
-      "apps/web/src/features/editor/Sheet.tsx:583",
+      "apps/web/src/features/editor/Sheet.tsx:594",
       "apps/web/src/features/gallery/Palettes.tsx:332",
       "packages/ui/src/ListNav.tsx:15"
     ]
@@ -6453,7 +6483,7 @@
     "note": "List order and its tab: palettes gaining likes now.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:109",
-      "apps/web/src/features/editor/Sheet.tsx:269",
+      "apps/web/src/features/editor/Sheet.tsx:276",
       "apps/web/src/features/gallery/Palettes.tsx:331",
       "packages/ui/src/ListNav.tsx:16"
     ]
@@ -6663,7 +6693,7 @@
   "{count, plural, one {# band} other {# bands}}, one per line.": {
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:243"
+      "apps/web/src/features/editor/code.ts:276"
     ]
   },
   "{count, plural, one {# change not saved} other {# changes not saved}}": {
@@ -6681,7 +6711,7 @@
   "{count, plural, one {# character} other {# characters}}. The whole palette.": {
     "note": "Code pane: the seed's length; it holds the whole palette.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:175"
+      "apps/web/src/features/editor/code.ts:179"
     ]
   },
   "{count, plural, one {# color} other {# colors}}": {
@@ -6693,7 +6723,7 @@
   "{count, plural, one {# color} other {# colors}}, one per line.": {
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:244",
+      "apps/web/src/features/editor/code.ts:277",
       "apps/web/src/features/editor/effect-sources.ts:200"
     ]
   },
@@ -6706,7 +6736,7 @@
   "{count, plural, one {# hard band} other {# hard bands}} as oklch().": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:196"
+      "apps/web/src/features/editor/code.ts:225"
     ]
   },
   "{count, plural, one {# hour} other {# hours}}": {
@@ -6754,25 +6784,25 @@
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:203"
+      "apps/web/src/features/editor/code.ts:232"
     ]
   },
   "{count, plural, one {# sRGB hard band} other {# sRGB hard bands}} as {fn}.": {
     "note": "Code pane: what the CSS holds. fn is the CSS color function the bands are written in, rgb() or hsl(), shown as code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:208"
+      "apps/web/src/features/editor/code.ts:237"
     ]
   },
   "{count, plural, one {# sRGB stop} other {# sRGB stops}} as hex.": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:206"
+      "apps/web/src/features/editor/code.ts:235"
     ]
   },
   "{count, plural, one {# sRGB stop} other {# sRGB stops}} as {fn}.": {
     "note": "Code pane: what the CSS holds. fn is the CSS color function the stops are written in, rgb() or hsl(), shown as code.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:212"
+      "apps/web/src/features/editor/code.ts:241"
     ]
   },
   "{count, plural, one {# session} other {# sessions}}": {
@@ -6790,11 +6820,11 @@
   "{count, plural, one {# step} other {# steps}}": {
     "note": "A count of steps: the evenly spaced colors a palette is drawn with.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:57",
+      "apps/web/src/features/editor/Corner.tsx:68",
       "apps/web/src/features/examples/Chart.tsx:171",
       "apps/web/src/features/examples/shared.ts:123",
       "apps/web/src/features/examples/shared.ts:40",
-      "apps/web/src/features/list/ListAppearance.tsx:284",
+      "apps/web/src/features/list/ListAppearance.tsx:309",
       "apps/web/src/mcp-view/PaletteView.tsx:95",
       "packages/ui/src/figure.ts:121"
     ]
@@ -6802,7 +6832,13 @@
   "{count, plural, one {# stop, blended in OKLCH} other {# stops, blended in OKLCH}} as oklch().": {
     "note": "Code pane: what the CSS holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:197"
+      "apps/web/src/features/editor/code.ts:226"
+    ]
+  },
+  "{count, plural, one {# stop, blurred along the line} other {# stops, blurred along the line}}.": {
+    "note": "Editor, the code pane's CSS tab while the picture is soft: how many color stops the CSS gradient holds, each placed along the gradient's line to draw the blur.",
+    "refs": [
+      "apps/web/src/features/editor/code.ts:217"
     ]
   },
   "{count, plural, one {<n>#</n> <w>palette</w>} other {<n>#</n> <w>palettes</w>}}": {
@@ -6950,7 +6986,7 @@
   "{name} gradient": {
     "note": "Screen reader name of a card's picture drawn as a gradient.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:259"
+      "packages/ui/src/PaletteCard.tsx:282"
     ]
   },
   "{name} is disconnected": {
@@ -6970,7 +7006,7 @@
   "{name} palette": {
     "note": "Screen reader name of a palette card, with the palette's name.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:204",
+      "packages/ui/src/PaletteCard.tsx:215",
       "packages/ui/src/Thumbnail.tsx:27"
     ]
   },
@@ -6983,13 +7019,13 @@
   "{name} palette, removed": {
     "note": "Screen reader name of a palette card just taken out of a collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:204"
+      "packages/ui/src/PaletteCard.tsx:215"
     ]
   },
   "{name} swatches": {
     "note": "Screen reader name of a card's picture drawn as bands of flat color.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:259"
+      "packages/ui/src/PaletteCard.tsx:282"
     ]
   },
   "{name} {style}": {
@@ -7010,7 +7046,7 @@
   "{name}, {style}": {
     "note": "A palette card's picture while the editor plays an effect: what a screen reader calls it. {name} is the palette's name, {style} the effect's (Fluted glass, Blob).",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:433",
+      "apps/web/src/features/editor/Sheet.tsx:442",
       "apps/web/src/features/list/card-effect.tsx:81"
     ]
   },

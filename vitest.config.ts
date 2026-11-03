@@ -9,12 +9,15 @@ import { defineConfig } from "vitest/config";
    machine, a build's among them. A project with a config file of its own inherits nothing from this one, so each is
    handed the limits where it is named. */
 const limits = { testTimeout: 30_000, hookTimeout: 30_000 };
+/* the folder of the grain's tiles the web app's build writes (apps/web/scripts/grain.ts) */
+const define = { __GRAIN__: JSON.stringify("/assets/grain-test") };
 
 export default defineConfig({
   test: {
     ...limits,
     projects: [
       {
+        define,
         test: {
           name: "unit",
           include: [
@@ -25,6 +28,7 @@ export default defineConfig({
         }
       },
       {
+        define,
         plugins: [solid({ ssr: true })],
         test: {
           name: "components",

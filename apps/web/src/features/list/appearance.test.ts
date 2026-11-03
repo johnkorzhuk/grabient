@@ -25,9 +25,15 @@ test("a list's address sets each part of the view, or leaves it to every palette
     style: "radialSwatches",
     steps: 3,
     angle: 45,
+    soft: 0,
+    grain: 0,
     size: { width: 1200, height: 630 },
     effect: null
   });
+  /* soft and grain, 1 to 100 each; none of either is every palette as saved */
+  expect(readListView({ soft: "40", grain: 15 })).toEqual({ ...AS_SAVED, soft: 40, grain: 15 });
+  expect(readListView({ soft: "0", grain: 101 })).toEqual(AS_SAVED);
+  expect(viewParams({ soft: 40, grain: 0 })).toEqual({ soft: 40, grain: undefined });
   expect(readListView({ style: "auto", steps: "12", angle: 361, size: "39x39" })).toEqual({
     ...AS_SAVED,
     steps: 12

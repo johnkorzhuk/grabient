@@ -1,6 +1,6 @@
 import { createRoot, flush } from "solid-js";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { recallView, rememberedView, rememberView } from "../list/appearance.ts";
+import { AS_SAVED, recallView, rememberedView, rememberView } from "../list/appearance.ts";
 import { readSeedPage } from "./address.ts";
 import { createPaletteEditor } from "./editor.ts";
 
@@ -48,7 +48,7 @@ function opened(query: string, run: (e: ReturnType<typeof createPaletteEditor>) 
 }
 
 test("Reset gives the lists back the effect the tab had as the page opened", () => {
-  rememberView({ style: "auto", steps: "auto", angle: "auto", size: null, effect: null });
+  rememberView({ ...AS_SAVED });
   flush();
   const tab = opened("style=glass", e => {
     e.effects.choose("blob");
@@ -60,7 +60,7 @@ test("Reset gives the lists back the effect the tab had as the page opened", () 
 });
 
 test("a gradient chosen in the editor leaves the lists' effect, the style let go with it", () => {
-  rememberView({ style: "auto", steps: "auto", angle: "auto", size: null, effect: null });
+  rememberView({ ...AS_SAVED });
   flush();
   const tab = opened("style=glass", e => {
     e.effects.choose("glass");

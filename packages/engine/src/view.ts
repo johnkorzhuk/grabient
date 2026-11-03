@@ -57,8 +57,16 @@ export interface View {
   style: Style;
   steps: number;
   angle: number;
+  /** a blur along the style's line, 1 to SOFT_MAX (soft.ts); none where absent */
+  soft?: number;
+  /** film grain over the picture, 1 to GRAIN_MAX (grain.ts); none where absent */
+  grain?: number;
   size?: SizeChoice | null;
 }
+
+/** The strongest soft and grain an address writes: 1 to these, and none for none. */
+export const SOFT_MAX = 100;
+export const GRAIN_MAX = 100;
 
 /** `WxH` with 2 to 4 digits a side, 40 to 6000, either side `auto` (not both); null for anything else. */
 export function parseSize(raw: string | null | undefined): SizeChoice | null {
@@ -114,34 +122,52 @@ const integer = (v: string | null, min: number, max: number) => {
 export function parseView(params: ParamReader): View {
   const style = params.get("style");
   const steps = integer(params.get("steps"), 1, STEPS_MAX);
+  const soft = integer(params.get("soft"), 1, SOFT_MAX);
+  const grain = integer(params.get("grain"), 1, GRAIN_MAX);
   const size = parseSize(params.get("size"));
   return {
     style: isStyle(style) ? style : DEFAULT_STYLE,
     steps: steps == null ? DEFAULT_STEPS : Math.max(steps, STEPS_MIN),
     angle: integer(params.get("angle"), 0, 360) ?? DEFAULT_ANGLE,
+    ...(soft ? { soft } : {}),
+    ...(grain ? { grain } : {}),
     ...(size ? { size } : {})
   };
 }
-/** The view's query: style, steps, angle and size in that order, defaults left out, then `extra` (raw parts an
-    address adds after the view, empty ones dropped). Every value is URL-safe as it is. */
+/** A view's soft and grain as an address writes them, each where it has one. */
+export const finishParts = (view: Pick<View, "soft" | "grain">): string[] =>
+  [view.soft ? `soft=${view.soft}` : "", view.grain ? `grain=${view.grain}` : ""].filter(Boolean);
+/** The view's query: style, steps, angle, soft, grain and size in that order, defaults left out, then `extra` (raw
+    parts an address adds after the view, empty ones dropped). Every value is URL-safe as it is. */
 export function viewSearch(view: View, extra: readonly string[] = []): string {
   const size = sizeParam(view.size);
   const parts = [
     view.style !== DEFAULT_STYLE && `style=${view.style}`,
     view.steps !== DEFAULT_STEPS && `steps=${view.steps}`,
     view.angle !== DEFAULT_ANGLE && `angle=${view.angle}`,
+    ...finishParts(view),
     size && `size=${size}`,
     ...extra
   ].filter(Boolean);
   return parts.length ? `?${parts.join("&")}` : "";
 }
-/** The view a palette's files are drawn in: style, steps and angle read as an address reads them, steps never under
-    the palette's keyframes. */
+/** The view a palette's files are drawn in: style, steps, angle, soft and grain read as an address reads them, steps
+    never under the palette's keyframes. */
 export function drawnView(P: Palette, input: Partial<View> = {}): View {
   const given = (key: string) =>
-    key === "style" || key === "steps" || key === "angle" ? input[key] : undefined;
-  const { style, steps, angle } = parseView({ get: key => given(key)?.toString() ?? null });
-  return { style, steps: Math.max(steps, P.anchors.length), angle };
+    key === "style" || key === "steps" || key === "angle" || key === "soft" || key === "grain"
+      ? input[key]
+      : undefined;
+  const { style, steps, angle, soft, grain } = parseView({
+    get: key => given(key)?.toString() ?? null
+  });
+  return {
+    style,
+    steps: Math.max(steps, P.anchors.length),
+    angle,
+    ...(soft ? { soft } : {}),
+    ...(grain ? { grain } : {})
+  };
 }
 /** Whether a palette is drawn as it was saved: the same style and steps, each read as its drawing reads it. The words
     written for a palette describe it so; an angle turns the same picture, and leaves them standing. */

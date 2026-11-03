@@ -4,6 +4,7 @@ import solid from "@solidjs/vite-plugin";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { defineConfig, type Rolldown } from "vite";
 import { colorNames } from "./scripts/color-names.ts";
+import { grain } from "./scripts/grain.ts";
 import { leanManifest } from "./scripts/lean-manifest.ts";
 import { LICENSES, licenses } from "./scripts/licenses.ts";
 import { serviceWorker } from "./scripts/service-worker.ts";
@@ -111,6 +112,8 @@ export default defineConfig({
     draftsStayPrivate(),
     // The precise color names swatch files carry, one file the browser and the Worker read when a file needs them.
     colorNames(),
+    // The grain's tile at each strength, the files a picture with grain lays over itself.
+    grain(),
     licenses(),
     // The client's manifest the Worker's start carries, with only the fields a render reads.
     leanManifest(),

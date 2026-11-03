@@ -524,6 +524,10 @@
         }
       }
     }
+    /* a speck of grain a CSS pixel, crisp on a dense screen, as the editor paints it */
+    &[data-grain] :is(.paint, .fitted) {
+      image-rendering: pixelated;
+    }
     & .railDock {
       display: none;
     }
