@@ -8,7 +8,7 @@ import {
   type VectorKind
 } from "@grabient/engine/effect.ts";
 import { glassColors, glassStillKey } from "@grabient/engine/glass-colors.ts";
-import { GRAIN_MAX, isFixedSize } from "@grabient/engine/view.ts";
+import { effectSoftShare, GRAIN_MAX, isFixedSize } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
@@ -96,6 +96,11 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
       )}
     </Show>
   );
+  /* an effect's soft, as the editor blurs it (Editor.tsx fxBlur) */
+  const fxBlur = () =>
+    props.page.effect && view().soft
+      ? `blur(${(effectSoftShare(view().soft ?? 0) * 100).toFixed(3)}cqmax)`
+      : undefined;
   /* the grain over the picture, as the editor lays it (Editor.tsx): the tile at full strength at the grain's opacity */
   const grain = () => (
     <Show when={view().grain}>
@@ -135,7 +140,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
                 view={view()}
                 alt={props.alt}
               />
-              <div class={styles.paint}>
+              <div class={styles.paint} style={{ "--fx-blur": fxBlur() }}>
                 {glass()}
                 {blob()}
                 {fx()}
@@ -148,7 +153,8 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
                   class={styles.fitted}
                   style={{
                     "--ar": String(size().width / size().height),
-                    "--w": `${size().width}px`
+                    "--w": `${size().width}px`,
+                    "--fx-blur": fxBlur()
                   }}
                 >
                   {glass()}

@@ -80,7 +80,11 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
     const kind = fx.kind();
     /* the blob has no angle */
     return kind
-      ? effectSummary(fx.settings(kind), kind !== "blob" && set().angle ? e.angle() : null)
+      ? [
+          effectSummary(fx.settings(kind), kind !== "blob" && set().angle ? e.angle() : null),
+          ...(e.soft() ? [t("Soft {value}", { value: e.soft() })] : []),
+          ...(e.grain() ? [t("Grain {value}", { value: e.grain() })] : [])
+        ].join(" · ")
       : summary();
   };
   const colors = () => glassColors(e.palette());

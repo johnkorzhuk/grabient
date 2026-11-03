@@ -299,11 +299,17 @@ export function ListAppearance() {
   const summary = () => {
     const v = shown();
     /* the blob has no angle */
+    const finish = [
+      v.soft ? t("Soft {value}", { value: v.soft }) : "",
+      v.grain ? t("Grain {value}", { value: v.grain }) : ""
+    ];
     if (v.effect)
-      return effectSummary(
-        v.effect,
-        v.effect.kind === "blob" || v.angle === "auto" ? null : v.angle
-      );
+      return [
+        effectSummary(v.effect, v.effect.kind === "blob" || v.angle === "auto" ? null : v.angle),
+        ...finish
+      ]
+        .filter(Boolean)
+        .join(" · ");
     const parts: string[] = [];
     if (v.steps !== "auto")
       parts.push(t("{count, plural, one {# step} other {# steps}}", { count: v.steps }));

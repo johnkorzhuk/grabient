@@ -7,7 +7,7 @@ import { blobShapeOf, blobStillKey, fxStillKey, type VectorKind } from "@grabien
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
-import { GRAIN_MAX, resolveSize, type Size } from "@grabient/engine/view.ts";
+import { effectSoftShare, GRAIN_MAX, resolveSize, type Size } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
@@ -657,6 +657,14 @@ function Stage(
       e.angle()
     );
   };
+  /* an effect's soft: its layer blurred by a share of the stage's longer side (engine/view.ts effectSoftShare), its
+     edges going to the gradient under it rather than to the page */
+  const fxBlur = () => {
+    const soft = e.soft();
+    return e.shownEffect() && soft
+      ? `blur(${(effectSoftShare(soft) * 100).toFixed(3)}cqmax)`
+      : undefined;
+  };
   /* the grain over the picture, the gradient's or an effect's: the tile at full strength at the grain's opacity, so a
      grain being set changes no file and nothing flickers as one comes (lib/picture.ts) */
   const grainLayer = () => (
@@ -833,7 +841,8 @@ function Stage(
               role="img"
               aria-label={t("The gradient")}
               style={{
-                background: art()
+                background: art(),
+                "--fx-blur": fxBlur()
               }}
             >
               {glassLayer()}
@@ -852,7 +861,8 @@ function Stage(
             style={{
               "--ar": String(size().width / size().height),
               "--w": `${size().width}px`,
-              background: art()
+              background: art(),
+              "--fx-blur": fxBlur()
             }}
           >
             {glassLayer()}

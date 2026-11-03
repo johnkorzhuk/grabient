@@ -2,7 +2,7 @@ import { decodePalette } from "@grabient/engine";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { seedName } from "@grabient/engine/name.ts";
-import { DEFAULT_SIZE } from "@grabient/engine/view.ts";
+import { DEFAULT_SIZE, effectSoftShare } from "@grabient/engine/view.ts";
 import { locale, localHref, msg, t } from "@grabient/i18n";
 import { CollectionGroup, CollectionGroupPlaceholder } from "@grabient/ui/CollectionGroup.tsx";
 import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
@@ -487,6 +487,7 @@ export function Sheet(props: {
         style={cardPicture(palette()).style}
         at={cardPicture(palette()).at}
         grain={cardPicture(palette()).grain}
+        blur={playing() && palette().soft ? effectSoftShare(palette().soft ?? 0) : undefined}
         angle={palette().angle}
         picture={
           playing()

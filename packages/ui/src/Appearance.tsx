@@ -370,17 +370,10 @@ export function AppearanceMenu(props: AppearanceProps) {
           )}
         </For>
       </div>
-      <Show
-        when={props.extras?.some(x => x.chosen)}
-        fallback={
-          <>
-            {pair()}
-            {finish()}
-          </>
-        }
-      >
+      <Show when={props.extras?.some(x => x.chosen)} fallback={pair()}>
         <div class={styles.pair}>{props.extraFields}</div>
       </Show>
+      {finish()}
     </div>
   );
 }

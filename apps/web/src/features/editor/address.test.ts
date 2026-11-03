@@ -54,6 +54,20 @@ test("the router's search object keeps the canonical order", () => {
   expect(page && seedAddress(page)).toBe(`/${SEED}?steps=9&angle=45&lock=hue&selection`);
 });
 
+test("an effect's address keeps the soft and the grain, after its angle", () => {
+  const glass = readSeedPage(
+    SEED,
+    new URLSearchParams("grain=12&style=glass&soft=40&angle=45&speed=2")
+  );
+  expect(glass && seedAddress(glass)).toBe(
+    `/${SEED}?style=glass&angle=45&soft=40&grain=12&speed=2`
+  );
+  expect(glass && seedSearch(glass)).toMatchObject({ soft: 40, grain: 12 });
+  /* the blob has no angle: they follow its style */
+  const blob = readSeedPage(SEED, new URLSearchParams("style=blob&grain=5&shape=3"));
+  expect(blob && seedAddress(blob)).toBe(`/${SEED}?style=blob&grain=5&shape=3`);
+});
+
 test("soft and grain stand in the router's search as numbers, which the router writes bare", () => {
   /* a string the router writes quoted (soft=%2240%22), which a reload reads as no number and the canonical address
      then leaves out */

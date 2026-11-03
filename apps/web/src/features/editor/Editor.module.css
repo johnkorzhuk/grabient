@@ -101,6 +101,8 @@
     forced-color-adjust: none;
     position: absolute;
     inset: 0;
+    /* a soft picture's blur stays in the stage */
+    overflow: hidden;
   }
   /* the palette's files, before the paint and so under it: an image search's picture, never seen (FilePicture.tsx) */
   .under {
@@ -580,6 +582,15 @@
 }
 
 @layer components {
+  /* an effect's soft: its layer blurred by a share of the picture's longer side (Editor.tsx fxBlur), so a chosen
+     size measures its own; its edges go to the gradient under it */
+  .paint > :is(.glass, .blob, .fx),
+  .fitted > :is(.glass, .blob, .fx) {
+    filter: var(--fx-blur, none);
+  }
+  .fitted {
+    container-type: size;
+  }
   /* the grain over the stage's picture, the gradient's or an effect's: one tile at full strength at the grain's
      opacity (lib/picture.ts), a speck a CSS pixel, crisp on a dense screen */
   .grain {

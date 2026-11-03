@@ -117,3 +117,57 @@ test("a soft, grained palette draws its finish in its first paint, and its files
   expect(png.headers()["content-type"]).toBe("image/png");
   expect(JSON.parse(await (await file("json")).text())).toMatchObject({ soft: 40, grain: 20 });
 });
+
+test("an effect plays soft and grained: its address keeps both, its picture blurs over the gradient under the grain", async ({
+  page
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  /* a palette's page: the address keeps them through a reload, after the effect's angle */
+  await page.goto(`/${SEED}?style=rosette&grain=20&soft=40`);
+  await live(page);
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=rosette&soft=40&grain=20$`));
+  const stage = page.getByRole("img", { name: "The gradient" }).first();
+  await expect
+    .poll(() =>
+      stage
+        .locator("> div")
+        .first()
+        .evaluate(el => getComputedStyle(el).filter)
+    )
+    .toMatch(/^blur\(\d+(\.\d+)?px\)$/);
+  await expect
+    .poll(() =>
+      stage
+        .locator("> span[aria-hidden]")
+        .last()
+        .evaluate(el => getComputedStyle(el).opacity)
+    )
+    .toBe("0.2");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await expect(page.getByRole("spinbutton", { name: /^Grain/ })).toHaveAttribute(
+    "aria-valuenow",
+    "20"
+  );
+  await page.reload();
+  await live(page);
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=rosette&soft=40&grain=20$`));
+  /* a list: its cards blur the effect over the gradient, clipped to the card, under the grain */
+  await page.goto("/palettes?style=silk&soft=45&grain=30");
+  await live(page);
+  await expect(page).toHaveURL(/\/palettes\?style=silk&soft=45&grain=30$/);
+  const art = page.locator("main article").first().locator("[role=img]").first();
+  await expect
+    .poll(() =>
+      art.evaluate(el => ({
+        ground: getComputedStyle(el).backgroundImage.startsWith("linear-gradient("),
+        clipped: getComputedStyle(el).overflow,
+        blur: getComputedStyle(el.firstElementChild!).filter
+      }))
+    )
+    .toMatchObject({ ground: true, clipped: "hidden", blur: expect.stringMatching(/^blur\(/) });
+  await expect(page.getByRole("button", { name: /^Appearance/ })).toHaveAccessibleName(
+    /Soft 45 · Grain 30/
+  );
+  expect(errors).toEqual([]);
+});

@@ -134,6 +134,10 @@ export function parseView(params: ParamReader): View {
     ...(size ? { size } : {})
   };
 }
+/** An effect's soft as a blur of its picture: the Gaussian's sigma as a share of the picture's longer side, eased as a
+    gradient's soft is (soft.ts): at SOFT_MAX 0.06, which a gradient's soft reaches along a 16:9 picture's line. */
+export const effectSoftShare = (soft: number): number =>
+  0.06 * (Math.min(SOFT_MAX, Math.max(0, soft)) / SOFT_MAX) ** 1.6;
 /** A view's soft and grain as an address writes them, each where it has one. */
 export const finishParts = (view: Pick<View, "soft" | "grain">): string[] =>
   [view.soft ? `soft=${view.soft}` : "", view.grain ? `grain=${view.grain}` : ""].filter(Boolean);

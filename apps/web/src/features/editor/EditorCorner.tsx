@@ -80,7 +80,9 @@ function Still(props: { page: SeedPage }) {
         />
       }
       label={t("Fluted glass")}
-      summary={effectSummary(props.page.effect ?? EFFECT_PLAY, null)}
+      summary={[effectSummary(props.page.effect ?? EFFECT_PLAY, null), finish()]
+        .filter(Boolean)
+        .join(" · ")}
       open={false}
       onToggle={() => {}}
     />
@@ -93,7 +95,9 @@ function Still(props: { page: SeedPage }) {
         <span class={styles.swatchStill} data-blob-still={blobStillKey(props.page.seed, look)} />
       }
       label={t("Blob")}
-      summary={effectSummary(props.page.effect ?? EFFECT_PLAY, null)}
+      summary={[effectSummary(props.page.effect ?? EFFECT_PLAY, null), finish()]
+        .filter(Boolean)
+        .join(" · ")}
       open={false}
       onToggle={() => {}}
     />
@@ -112,7 +116,9 @@ function Still(props: { page: SeedPage }) {
         />
       }
       label={effectLabel(kind)}
-      summary={effectSummary(props.page.effect ?? EFFECT_PLAY, null)}
+      summary={[effectSummary(props.page.effect ?? EFFECT_PLAY, null), finish()]
+        .filter(Boolean)
+        .join(" · ")}
       open={false}
       onToggle={() => {}}
     />

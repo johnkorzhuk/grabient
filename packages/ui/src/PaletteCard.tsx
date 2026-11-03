@@ -74,6 +74,9 @@ export interface PaletteCardProps {
   /** the grain over the picture: one tile at full strength (engine/grain.ts), as a CSS image, at the grain's
       opacity, so a grain being set changes no file and nothing flickers as one comes; none for none */
   grain?: { image: string; opacity: number };
+  /** a soft view's blur of the picture over the gradient (an effect's: engine/view.ts effectSoftShare), its sigma a
+      share of the card's width; the gradient stands under it, where its edges go */
+  blur?: number;
   /** where Edit leads: the palette's page, in the reader's language and the view the card draws */
   href: string;
   /** Edit's relation to its page: nofollow where the index keeps the palette's page out */
@@ -269,7 +272,13 @@ export function PaletteCard(props: PaletteCardProps) {
         {/* a picture in the gradient's place stands alone: no gradient shows under it as it comes */}
         <div
           class={styles.paint}
-          style={{ background: props.picture && !props.peek ? undefined : art() }}
+          style={{
+            /* a blurred picture's edges go to the gradient, unless it stands on the list with no ground */
+            background:
+              props.picture && !props.peek && !(props.blur && !props.bare) ? undefined : art(),
+            "--fx-blur":
+              props.picture && props.blur ? `blur(${(props.blur * 100).toFixed(3)}cqw)` : undefined
+          }}
           data-peek={props.picture && props.peek ? "" : undefined}
           role="img"
           aria-label={

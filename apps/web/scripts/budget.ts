@@ -33,8 +33,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      soft view's stops (lib/picture.ts); the blur itself (engine/soft.ts, 1.8 KB), the grain's files and what a copy
      carries load as a soft view or a copy asks for them, took it from 285.5 to 287.3 */
   "/": { route: "src/routes/index.tsx", budget: 288 },
-  /* the same took it from 288.9 to 290.7 */
-  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 291 },
+  /* the same took it from 288.9 to 290.7; soft and grain over the effects (their pictures blurred over the gradient,
+     the menu's fields beside an effect's, the summary naming them) and the editor's glass after a move (e3636f12) to
+     291.2 on 3 Nov 2026 */
+  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 292 },
   /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
      to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
   /* the silk and the rosette as effects (their names and settings, as every page) took it from 285.4 to 286.0 on
@@ -48,8 +50,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   "a collection": {
     route: "src/routes/$id/index.tsx",
     also: ["src/features/collections/CollectionRoute.tsx"],
-    /* soft and grain, as "/", took it from 280.9 to 282.7 on 2 Nov 2026 */
-    budget: 283
+    /* soft and grain, as "/", took it from 280.9 to 282.7 on 2 Nov 2026, and over the effects (as /palettes) to 283.2
+       on 3 Nov 2026 */
+    budget: 284
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
@@ -85,8 +88,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
      view's parts in every address, the header's swatch) from 225.2 to 226.6 */
   "/newsletter": { route: "src/routes/newsletter.tsx", budget: 227 },
-  /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026 */
-  "/about": { route: "src/routes/about.tsx", budget: 251 }
+  /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026, and over the effects (as /palettes)
+     to 251.0 on 3 Nov 2026 */
+  "/about": { route: "src/routes/about.tsx", budget: 252 }
 };
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
 const EVERY_PAGE = ["src/app/tab-icon.ts"];

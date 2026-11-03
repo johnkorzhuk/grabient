@@ -73,6 +73,8 @@
     position: absolute;
     inset: 0;
     border-radius: var(--radius-surface);
+    /* a soft picture's blur stays in the card */
+    overflow: hidden;
     transition: opacity var(--motion-fast) var(--motion-ease);
     [data-removed] > & {
       opacity: 0.3;
@@ -236,6 +238,10 @@
     flex-shrink: 0;
     align-items: center;
     gap: var(--space-s2);
+  }
+  /* a soft view's picture blurred over the gradient (PaletteCard's blur), by a share of the card's width */
+  .paint > :not(.grain) {
+    filter: var(--fx-blur, none);
   }
   /* a style previewed on the card hides its picture without taking it down: the drawing stays for the preview's end */
   .paint[data-peek] > :not(.grain) {
