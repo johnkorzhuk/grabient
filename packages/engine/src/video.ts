@@ -102,15 +102,18 @@ export const VIDEO_LIMITS = {
     whole clips drawn in parts as the Worker draws them (3 Nov 2026): the blob's melt and frost cost half again (1.1 to
     1.3 measured; 1.5 keeps its clips as they were); the silk's seven bands and three dyes 1.6 to 1.8 a frame, and 2.4
     in its clips, whose 60 seconds of a four-minute loop move each frame further, which costs the coding; the rosette's
-    petals 1.5 to 1.6; the papercut's field and its sheets' shadows 1.7 to 2.0 a frame, and in its clips' parts, each
-    paired with a part of the glass's longest clip, 1.9 to 2.25 (its 60-second clips' frames are small, which costs
-    each pixel more): at 2.3 its parts cost what the glass's do at 60 and 30 frames a second, 0.84 of it at 762 square. */
+    petals 1.5 to 1.6; the papercut's by its view: the module shades the pixels its cuts' shadows and edges reach and
+    draws the rest as plain faces, and its cuts are longest where its ramp climbs across the box's shorter side, at
+    angles near 0 and 180 (up to 0.86 of a picture shaded there, 0.53 to 0.79 at other angles), so it weighs what
+    those views cost: at 3.0 their clips' parts, each paired with a part of the glass's longest clip, cost 0.91 to 0.98
+    of the glass's at 60 frames a second and 0.89 to 0.91 at 30, the designed view at 135 degrees 0.73 (2.3, fitted on
+    that view, left the costliest 1.40 to 1.47). */
 export const VIDEO_WEIGHT: Record<VideoKind, number> = {
   glass: 1,
   blob: 1.5,
   silk: 2.4,
   rosette: 1.6,
-  papercut: 2.3
+  papercut: 3
 };
 /** What a soft adds to a pixel's cost, by the resolution its blur runs at (videoBlur), measured as VIDEO_WEIGHT is: at
     the frame's own, about what the glass costs (0.7 to 0.95); at a half or a quarter, its passes a quarter or a
