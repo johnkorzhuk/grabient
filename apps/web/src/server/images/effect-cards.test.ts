@@ -287,6 +287,16 @@ describe("an effect page's head", () => {
     expect(image("style=blob&shape=12&bg=%23101014")).toContain("bg=%23101014");
     expect(image("style=blob&shape=12&bg=%23101014&speed=2")).not.toContain("speed");
     expect(image("")).not.toContain("style=glass");
+    /* a soft or grained effect's page names its card soft and grained, as its files are */
+    const finished = pageMeta({
+      kind: "palette",
+      seed: SEED,
+      palette: P,
+      view: { ...view, angle: 40, soft: 50, grain: 30 },
+      effect: parseEffect(new URLSearchParams("style=silk"))!,
+      heldBy: []
+    }).image;
+    expect(finished).toContain("style=silk&angle=40&soft=50&grain=30");
   });
 
   test("the effect's card address writes only what changes its picture", () => {
