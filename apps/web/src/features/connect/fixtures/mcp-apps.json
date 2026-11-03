@@ -3,7 +3,7 @@
     {
       "label": "Claude",
       "web": true,
-      "link": "https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=https%3A%2F%2Fgrabient.com%2Fmcp"
+      "link": "https://claude.ai/directory/connectors/grabient"
     },
     {
       "label": "Cursor",

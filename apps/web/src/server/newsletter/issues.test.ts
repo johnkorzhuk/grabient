@@ -18,7 +18,7 @@ import { issueFoot } from "./list.ts";
 import { draftsAmong, drawn, publishedPage, testIssue } from "./page.ts";
 import { draftWords, leaks } from "./private.ts";
 import { beforeOf, issuesKey, languageOf } from "./query.ts";
-import { tagLinks } from "./sends.ts";
+import { addressesOf, tagLinks } from "./sends.ts";
 
 const ORIGIN = "https://grabient.test";
 const fixture = (name: string) =>
@@ -101,21 +101,35 @@ describe("the issues", () => {
       const page = href!.startsWith(ORIGIN) && !href!.includes("/unsubscribe/");
       expect(href!.split("utm_source=").length - 1).toBe(page ? 1 : 0);
     }
-    // another site's address keeps its own, the MCP's inside it too
+    // the MCP page's press is a page's link like any other
     const two = tagLinks(newsletter({ ...run(2), ...footFor("en"), origin: ORIGIN }), ORIGIN, 2);
-    expect(two.html).toContain(
-      `href="https://claude.ai/customize/connectors?modal=add-custom-connector&#38;connectorName=Grabient&#38;connectorUrl=${encodeURIComponent(`${ORIGIN}/mcp`)}"`
-    );
     expect(two.html).toContain(`href="${ORIGIN}/mcp-server?${tags(2).replaceAll("&", "&#38;")}"`);
+    // another site's address keeps its own, the site's address inside it too
+    const away = `https://claude.ai/customize/connectors?modal=add-custom-connector&connectorUrl=${encodeURIComponent(`${ORIGIN}/mcp`)}`;
+    const outside = {
+      subject: "",
+      html: `<a href="${away.replaceAll("&", "&#38;")}">Add</a>`,
+      text: `Add: ${away}`
+    };
+    expect(tagLinks(outside, ORIGIN, 2)).toEqual(outside);
   });
-  test("No. 2's one press into another app is Claude's own add-connector link", () => {
+  test.each(ISSUES.map(issue => [issue.number] as const))(
+    "No. %i links only to the site, as a send's check asks of every letter",
+    number => {
+      const letter = newsletter({ ...run(number), ...footFor("en"), origin: ORIGIN });
+      const away = addressesOf(letter.html).filter(
+        address =>
+          !address.startsWith("mailto:") && address !== ORIGIN && !address.startsWith(`${ORIGIN}/`)
+      );
+      expect(away).toEqual([]);
+    }
+  );
+  test("No. 2 says Claude lists Grabient, and leads to the MCP page for every app", () => {
     const letter = newsletter({ ...run(2), ...footFor("en"), origin: ORIGIN });
-    const outside = [...letter.text.matchAll(/https:\/\/\S+/g)]
-      .map(m => m[0].replace(/\)$/, ""))
-      .filter(href => !href.startsWith(ORIGIN));
-    expect(outside).toEqual([
-      `https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=${encodeURIComponent(`${ORIGIN}/mcp`)}`
-    ]);
+    expect(letter.text).toContain(
+      "Claude lists Grabient among its connectors, so you can add it there by name."
+    );
+    expect(letter.text).toContain(`Add Grabient to your app: ${ORIGIN}/mcp-server`);
   });
   test("a reader's foot is in the reader's language", () => {
     const token = "ab".repeat(32);
