@@ -175,10 +175,16 @@ export function videoDuration(raw: string | null | undefined): number | null {
   return seconds > 0 ? Math.min(Math.max(seconds, VIDEO_LIMITS.least), VIDEO_LIMITS.seconds) : null;
 }
 
+/** The share past the work's limit that counts as within it: the hair before flooring may leave a side a billionth of
+    a pixel past its scaled length, so a clip scaled to the limit can weigh that little more. A size within it fits
+    again to itself: a scale so near 1 moves no side of VIDEO_LIMITS.side or less past the hair. */
+const WORK_HAIR = 1e-12;
+
 /** A clip within the limits: its rate up to the most, one loop longer than the longest clip played in that time, and
     its sides even (H.264's colors are a quarter of its pixels), at least 16, scaled down together where the sides, the
     pixels or the work ask. A soft's cost grows as its picture shrinks (videoBlur), so the work is weighed again at
-    each smaller size until it fits. */
+    each smaller size until it fits, the longer side two pixels shorter where a step left the floored sides as they
+    were. So a fitted size fits again to itself, which a posted link's page names its clip by (video-make.ts). */
 export function videoFit(
   effect: VideoEffect,
   speed: number,
@@ -202,12 +208,22 @@ export function videoFit(
     Math.sqrt(VIDEO_LIMITS.pixels / (w * h)),
     Math.sqrt(VIDEO_LIMITS.work / videoWork(effect, { width: w, height: h }, plan.frames))
   );
-  for (let tries = 0; tries < 4; tries++) {
-    const work = videoWork(effect, sized(scale), plan.frames);
-    if (work <= VIDEO_LIMITS.work) break;
-    scale *= Math.sqrt(VIDEO_LIMITS.work / work);
+  let size = sized(scale);
+  /* every step makes a side shorter, so this ends: within the work, or at the least sides */
+  for (
+    let work = videoWork(effect, size, plan.frames);
+    work > VIDEO_LIMITS.work * (1 + WORK_HAIR) && Math.max(size.width, size.height) > 16;
+    work = videoWork(effect, size, plan.frames)
+  ) {
+    const next = scale * Math.sqrt(VIDEO_LIMITS.work / work);
+    const smaller = sized(next);
+    scale =
+      smaller.width < size.width || smaller.height < size.height
+        ? next
+        : (Math.max(size.width, size.height) - 2) / Math.max(w, h);
+    size = sized(scale);
   }
-  return { size: sized(scale), fps: rate, plan };
+  return { size, fps: rate, plan };
 }
 
 /** A clip's frames shared out in runs of at most `work` (videoWork) each, so each run may be drawn by an invocation of

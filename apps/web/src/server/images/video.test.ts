@@ -597,6 +597,25 @@ describe("a palette's MP4 posted as a link", () => {
     expect(await etagOf(env, keep, named)).toBe(await etagOf(env, keep, asked));
   });
 
+  test("names the clip by an address that fits to the same clip, where a soft's blur steps as it shrinks too", async () => {
+    const { env, keep } = world({ off: ["videos"] });
+    const parts = runner();
+    for (const asked of [
+      `/${SEED}.mp4?style=glass&soft=20&size=540x1600&fps=60&duration=60`,
+      `/${SEED}.mp4?style=glass&soft=40&grain=30&size=512x512&fps=60&duration=60`,
+      `/${SEED}.mp4?style=silk&soft=40&grain=30&size=1920x1080`
+    ]) {
+      const html = await (await seedMp4Answer(preview(asked), env, keep, parts.run)).text();
+      const named = new URL(
+        /<meta property="og:url" content="([^"]*)">/.exec(html)?.[1]?.replaceAll("&amp;", "&") ?? ""
+      );
+      expect(await etagOf(env, keep, `${named.pathname}${named.search}`), asked).toBe(
+        await etagOf(env, keep, asked)
+      );
+    }
+    expect(parts.jobs.length).toBe(0);
+  });
+
   test("names no video while drawing is off, and begins none", async () => {
     const { env, keep, store, settled } = world({ off: ["videos"] });
     const parts = runner();

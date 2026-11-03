@@ -435,6 +435,35 @@ describe("the silk's and the rosette's clips", () => {
 });
 
 describe("videoFit with a soft", () => {
+  it("fits within the work, and a fitted size to itself, across the steps of the blur's resolution", () => {
+    const sides = [16, 320, 540, 1080, 1600, 1920];
+    let over = 0;
+    let moved = 0;
+    for (const kind of ["glass", "blob", "silk", "rosette"] as const)
+      for (const finish of [{}, { soft: 5 }, { soft: 20 }, { soft: 40, grain: 30 }, { soft: 100 }])
+        for (const width of sides)
+          for (const height of sides)
+            for (const [speed, fps, duration] of [
+              [2.45, 60, null],
+              [1, 60, 60],
+              [1, 30, null]
+            ] as const) {
+              const effect = { kind, look, finish };
+              const fit = videoFit(effect, speed, fps, duration, { width, height });
+              if (videoWork(effect, fit.size, fit.plan.frames) > VIDEO_LIMITS.work * (1 + 1e-12))
+                over++;
+              const again = videoFit(effect, speed, fps, duration, fit.size).size;
+              if (again.width !== fit.size.width || again.height !== fit.size.height) moved++;
+            }
+    expect({ over, moved }).toEqual({ over: 0, moved: 0 });
+    /* shrinking past a sigma of 7 pixels blurs at the frame's own resolution, at twice the cost: the steps after it
+       moved the scale a thousandth and left the floored sides as they were, over the work */
+    const soft = { ...glass, finish: { soft: 40, grain: 30 } };
+    const fit = videoFit(soft, 1, 60, 60, { width: 512, height: 512 });
+    expect(fit.size).toEqual({ width: 438, height: 438 });
+    expect(videoWork(soft, fit.size, fit.plan.frames)).toBeLessThanOrEqual(VIDEO_LIMITS.work);
+  });
+
   it("weighs the soft's blur into the work, at the size the clip is drawn at", () => {
     const plain = videoFit(glass, 2.45, 60, null, { width: 1080, height: 1080 });
     for (const soft of [10, 40, 100]) {
