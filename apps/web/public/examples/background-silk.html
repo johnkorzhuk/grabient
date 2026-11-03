@@ -109,7 +109,7 @@ html[data-grabient-playing] body::before {
 &lt;script src="https://staging.grabient.com/kUYS-nyUXCl-3PT1NLqg.js?style=silk&amp;amp;grain=24" async&gt;&lt;/script&gt;</code></pre>
     <button type="button" class="copy" id="copy">Copy</button>
   </div>
-  <p>The style holds the first frame, so the page paints it at once and waits on no other site. The script plays the motion on WebGL from that frame. Without WebGL, or for a reader who asks for less motion, the first frame stays. Leave the page's own background off, or set it on <code>html</code> only.</p>
+  <p>The style holds the first frame, so the page paints it at once and waits on no other site. The script plays the motion on WebGL from that frame. Without WebGL, or for a reader who asks for less motion, the first frame stays. Leave the page's own background off, or set it on <code>html</code> only. The style paints on <code>html::before</code> and <code>body::before</code>, the grain on the second, so the page's own CSS leaves those to it.</p>
   <p>In the editor, Copy HTML gives these two tags for any palette. To link a stylesheet instead of pasting the style, <code>&lt;link rel="stylesheet" href="https://staging.grabient.com/kUYS-nyUXCl-3PT1NLqg.css?style=silk&amp;amp;grain=24"&gt;</code> paints the same frame, but the page then waits for it before it paints.</p>
   <p><a href="background.html">Fluted glass</a> · <a href="background-blob.html">A blob</a> · <a href="background-rosette.html">A rosette</a> · <a href="/kUYS-nyUXCl-3PT1NLqg?style=silk&amp;grain=24">Open the palette</a></p>
 </main>

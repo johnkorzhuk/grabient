@@ -5,7 +5,7 @@
 import { decodePalette } from "./codec.ts";
 import { fitChroma, hexBytes, lchToP3, srgbToLch, type Triple, toCssP3 } from "./color.ts";
 import { type Stop, sampleStops } from "./curve.ts";
-import { GRAIN_SIDE } from "./grain.ts";
+import { GRAIN_SIDE } from "./grain-tiles.ts";
 import { clamp01, onWheel } from "./math.ts";
 import { isSwatchStyle, type Size, type Style, type View } from "./view.ts";
 

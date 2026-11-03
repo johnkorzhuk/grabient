@@ -5,7 +5,7 @@
    under a 0.3px blur that closes the seams between wedges. */
 import { hexBytes } from "./color.ts";
 import type { Stop } from "./curve.ts";
-import { grainTilesSvg } from "./grain.ts";
+import { grainTilesSvg } from "./grain-tiles.ts";
 import { onWheel } from "./math.ts";
 import { svgComment } from "./svg-comment.ts";
 import { DEFAULT_SIZE, resolveSize, type Size, type Style, type View, viewSearch } from "./view.ts";

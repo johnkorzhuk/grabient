@@ -250,7 +250,10 @@ test("a soft and grained effect's tags and stylesheet show the grain's tile elid
   } finally {
     vi.unstubAllGlobals();
   }
-  expect(tab("html").note?.("style")).toContain("Copy includes the whole first frame.");
+  /* the tile is shown elided as the CSS and SVG tabs show it; only the glass's picture of a first frame is cut short */
+  expect(tab("html").note?.("style")).toBe(
+    "The two tags that play it behind a page, for the page's head."
+  );
 });
 
 test("the effect's tags show its first frame inside the page or linked, and copy it whole", async () => {

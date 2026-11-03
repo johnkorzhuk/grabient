@@ -13,21 +13,15 @@
    rosette held at speed 0, whose still is its whole picture at any size. The browser restoring a lost context plays the
    effect again. A soft or grained address plays as the site's stage paints it and as the still was painted
    (engine/effect-code.ts effectLayers): the canvas blurred by a share of the page's longer side over its palette's
-   gradient, the layer's own ground, and the grain's tile over both, so the layer, opaque but where a clear blob lets
-   the page through, takes the still's place as one picture. It writes no markup and no style attribute, only CSSOM, so
-   a page with a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second script,
-   the same or another, leaves it be. */
-import { decodePalette } from "@grabient/engine/codec.ts";
-import {
-  type Effect,
-  type EffectKind,
-  EMBED_PLAYING,
-  parseEffect
-} from "@grabient/engine/effect.ts";
+   gradient, the layer's own ground, and the grain's tile over both, so the layer, opaque but where a blob's ground
+   lets the page through, takes the still's place as one picture. It writes no markup and no style attribute, only
+   CSSOM, so a page with a strict Content Security Policy and Trusted Types runs it. A page plays one effect: a second
+   script, the same or another, leaves it be. */
+import { type Effect, type EffectKind, EMBED_PLAYING } from "@grabient/engine/effect.ts";
 import { effectLayers } from "@grabient/engine/effect-code.ts";
 import { type EffectLayers, effectLayerCss } from "@grabient/engine/effect-embed.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { finishOf, parseView } from "@grabient/engine/view.ts";
+import { embedAsk, type GroundReader } from "./address.ts";
 import { grainImage } from "./grain.ts";
 
 /** How long an opaque canvas takes to fade in over its still, as the editor's glass does (GlassStage.tsx). */
@@ -44,6 +38,8 @@ const MOUNTED = Symbol.for("grabient-effect");
 
 export interface EmbedEffect {
   kind: EffectKind;
+  /** the blob's ground written in other words than hex read to the hex the server answers it at (address.ts) */
+  ground?: GroundReader;
   /** the effect's first frame as a background, as the stylesheet paints it, at the address's angle, which the blob
       has none of */
   still(P: Palette, effect: Effect, angle: number): string;
@@ -110,20 +106,11 @@ export function mount(embed: EmbedEffect): void {
   const page = document as Document & { [MOUNTED]?: true };
   if (!(script instanceof HTMLScriptElement) || !script.src || page[MOUNTED]) return;
   const address = new URL(script.src, location.href);
-  const file = address.pathname.slice(address.pathname.lastIndexOf("/") + 1);
-  let name: string;
-  try {
-    name = decodeURIComponent(file.replace(/\.js$/, ""));
-  } catch {
-    return;
-  }
-  const P = decodePalette(name);
-  const effect = parseEffect(address.searchParams);
-  if (!P || !effect || effect.kind !== embed.kind) return;
+  /* the palette, the effect, its angle and its finish, read as the stylesheet of the same address is (address.ts) */
+  const ask = embedAsk(address, embed.ground);
+  if (!ask || ask.effect.kind !== embed.kind) return;
   page[MOUNTED] = true;
-  const view = parseView(address.searchParams);
-  const angle = view.angle;
-  const finish = finishOf(view);
+  const { name, P, effect, angle, finish } = ask;
   const root = document.documentElement;
   /* the soft's blur and gradient and the grain's tile, as the stylesheet of the same address lays them */
   const layers: Promise<EffectLayers> = (

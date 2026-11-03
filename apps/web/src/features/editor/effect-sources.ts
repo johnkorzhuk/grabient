@@ -202,7 +202,9 @@ export function effectSources(
         const note = hasEmbedScript(effect.kind)
           ? t("The two tags that play it behind a page, for the page's head.")
           : t("The tag that paints its first frame behind a page, for the page's head.");
-        return elided && spelling !== "link"
+        /* the glass's first frame is a picture the code shows cut short; a grain's tile is shown elided, as the
+           CSS and SVG tabs show it, with no word of its own */
+        return glass && spelling !== "link"
           ? `${note} ${t("Copy includes the whole first frame.")}`
           : note;
       }
