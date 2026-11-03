@@ -199,8 +199,8 @@
   "Add a title": {
     "note": "Press, and the empty field's placeholder, in the place of a palette's age on its card in the account's own collection: gives the palette a title in that collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:406",
-      "packages/ui/src/PaletteCard.tsx:425"
+      "packages/ui/src/PaletteCard.tsx:407",
+      "packages/ui/src/PaletteCard.tsx:426"
     ]
   },
   "Add all to selection": {
@@ -247,8 +247,8 @@
       "apps/web/src/features/editor/Boot.tsx:203",
       "apps/web/src/features/editor/Editor.tsx:609",
       "apps/web/src/features/editor/Editor.tsx:610",
-      "packages/ui/src/PaletteCard.tsx:464",
-      "packages/ui/src/PaletteCard.tsx:465"
+      "packages/ui/src/PaletteCard.tsx:465",
+      "packages/ui/src/PaletteCard.tsx:466"
     ]
   },
   "Add to {app}": {
@@ -908,7 +908,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:282",
-      "apps/web/src/features/editor/effect-sources.ts:349"
+      "apps/web/src/features/editor/effect-sources.ts:350"
     ]
   },
   "Columns": {
@@ -1064,7 +1064,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:326"
+      "apps/web/src/features/editor/effect-sources.ts:327"
     ]
   },
   "Copy link": {
@@ -1138,8 +1138,8 @@
       "apps/web/src/features/editor/Sheet.tsx:151",
       "apps/web/src/features/examples/Swatches.tsx:202",
       "apps/web/src/features/examples/Swatches.tsx:212",
-      "apps/web/src/features/gallery/take.ts:155",
-      "apps/web/src/features/gallery/take.ts:177"
+      "apps/web/src/features/gallery/take.ts:150",
+      "apps/web/src/features/gallery/take.ts:172"
     ]
   },
   "Couldn't copy the selection.": {
@@ -1207,7 +1207,7 @@
   "Couldn't download the palette.": {
     "note": "Error line after a failed download of a palette.",
     "refs": [
-      "apps/web/src/features/gallery/take.ts:164"
+      "apps/web/src/features/gallery/take.ts:159"
     ]
   },
   "Couldn't download the selection.": {
@@ -1343,11 +1343,11 @@
       "apps/web/src/features/account/sync.ts:148",
       "apps/web/src/features/collections/CollectionPage.tsx:476",
       "apps/web/src/features/collections/CollectionPage.tsx:482",
-      "apps/web/src/features/collections/ItemCard.tsx:127",
+      "apps/web/src/features/collections/ItemCard.tsx:131",
       "apps/web/src/features/collections/collect.ts:457",
       "apps/web/src/features/editor/Sheet.tsx:526",
       "apps/web/src/features/editor/save.ts:186",
-      "apps/web/src/features/gallery/GalleryCard.tsx:109",
+      "apps/web/src/features/gallery/GalleryCard.tsx:113",
       "apps/web/src/server/account/sync.ts:126",
       "packages/ui/src/CollectList.tsx:88",
       "packages/ui/src/Curation.tsx:184"
@@ -1628,15 +1628,15 @@
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:540",
       "apps/web/src/features/collections/Heading.tsx:131",
-      "packages/ui/src/PaletteCard.tsx:329"
+      "packages/ui/src/PaletteCard.tsx:330"
     ]
   },
   "Edit {name}": {
     "note": "Read by screen readers: a palette card's Edit press, and the edit press on a collection's title. {name} is the palette's or the collection's name.",
     "refs": [
       "apps/web/src/features/collections/Heading.tsx:130",
-      "packages/ui/src/PaletteCard.tsx:328",
-      "packages/ui/src/PaletteCard.tsx:334"
+      "packages/ui/src/PaletteCard.tsx:329",
+      "packages/ui/src/PaletteCard.tsx:335"
     ]
   },
   "Editor": {
@@ -2116,8 +2116,8 @@
       "apps/web/src/features/editor/Corner.tsx:72",
       "apps/web/src/features/editor/Corner.tsx:86",
       "apps/web/src/features/editor/EditorCorner.tsx:66",
-      "apps/web/src/features/list/ListAppearance.tsx:304",
-      "apps/web/src/features/list/ListAppearance.tsx:318"
+      "apps/web/src/features/list/ListAppearance.tsx:328",
+      "apps/web/src/features/list/ListAppearance.tsx:342"
     ]
   },
   "Gray or brown through the middle": {
@@ -2277,7 +2277,7 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:74",
       "apps/web/src/features/editor/Sheet.tsx:477",
-      "apps/web/src/features/gallery/take.ts:151",
+      "apps/web/src/features/gallery/take.ts:146",
       "apps/web/src/features/selection/ExportScreen.tsx:92",
       "apps/web/src/mcp-view/PaletteView.tsx:244"
     ]
@@ -3376,7 +3376,7 @@
   "Palette title": {
     "note": "Field on a palette's card in the account's own collection: the palette's title there.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:426"
+      "packages/ui/src/PaletteCard.tsx:427"
     ]
   },
   "Palette titles are up to {max} characters.": {
@@ -3417,7 +3417,7 @@
       "apps/web/src/features/editor/Editor.tsx:987",
       "apps/web/src/lib/page-meta.ts:593",
       "apps/web/src/lib/page-meta.ts:604",
-      "packages/ui/src/PaletteCard.tsx:345"
+      "packages/ui/src/PaletteCard.tsx:346"
     ]
   },
   "Palettes you like appear here.": {
@@ -3878,8 +3878,8 @@
       "apps/web/src/features/editor/Editor.tsx:609",
       "apps/web/src/features/editor/Editor.tsx:610",
       "packages/ui/src/ExportPreview.tsx:83",
-      "packages/ui/src/PaletteCard.tsx:464",
-      "packages/ui/src/PaletteCard.tsx:465"
+      "packages/ui/src/PaletteCard.tsx:465",
+      "packages/ui/src/PaletteCard.tsx:466"
     ]
   },
   "Remove held keyframes": {
@@ -3932,7 +3932,7 @@
   "Rename {title}": {
     "note": "Screen reader name of a palette's title on its card in the account's own collection: a press that opens a field to change the title. {title} is the palette's title.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:201"
+      "packages/ui/src/PaletteCard.tsx:202"
     ]
   },
   "Replaces it in the gallery": {
@@ -4467,7 +4467,7 @@
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
       "apps/web/src/features/editor/code.ts:300",
-      "apps/web/src/features/editor/effect-sources.ts:284"
+      "apps/web/src/features/editor/effect-sources.ts:285"
     ]
   },
   "Shape": {
@@ -4710,7 +4710,7 @@
       "apps/web/src/features/editor/Editor.tsx:990",
       "apps/web/src/features/editor/Sheet.tsx:680",
       "apps/web/src/features/editor/StaticPalette.tsx:148",
-      "packages/ui/src/PaletteCard.tsx:346"
+      "packages/ui/src/PaletteCard.tsx:347"
     ]
   },
   "Since lightness, chroma and hue are separate, changing a keyframe's hue keeps its lightness.": {
@@ -4775,8 +4775,8 @@
       "apps/web/src/features/editor/Corner.tsx:71",
       "apps/web/src/features/editor/Corner.tsx:85",
       "apps/web/src/features/editor/EditorCorner.tsx:65",
-      "apps/web/src/features/list/ListAppearance.tsx:303",
-      "apps/web/src/features/list/ListAppearance.tsx:317"
+      "apps/web/src/features/list/ListAppearance.tsx:327",
+      "apps/web/src/features/list/ListAppearance.tsx:341"
     ]
   },
   "Some features are limited here.": {
@@ -5096,7 +5096,7 @@
   "The balls, their melt and the frost, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the blob plays: what its shader code draws, a pass at a time: the palette's balls, their melt (a blur that runs them together into blobs) and the frost over them, a grain that scatters the edges. The code is GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:91"
+      "apps/web/src/features/editor/effect-sources.ts:92"
     ]
   },
   "The browser uses that key.": {
@@ -5132,7 +5132,7 @@
   "The dye, its folds' shade and light, in one pass.": {
     "note": "Editor's code pane, Shader tab while the silk plays: what its shader code draws in a single pass: the palette dyed along the cloth, and over it each fold's shade and its light. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:112"
+      "apps/web/src/features/editor/effect-sources.ts:113"
     ]
   },
   "The email has no unsubscribe link.": {
@@ -5169,7 +5169,7 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:364"
+      "apps/web/src/features/editor/effect-sources.ts:365"
     ]
   },
   "The keyframes as JSON.": {
@@ -5205,7 +5205,7 @@
   "The palette as Markdown: colors, names and CSS.": {
     "note": "Code pane: what the MD tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:339"
+      "apps/web/src/features/editor/code.ts:342"
     ]
   },
   "The palette as Markdown: colors, names and the tags that play it.": {
@@ -5223,26 +5223,26 @@
   "The petals ring by ring, the ground and the heart's glow, in one pass.": {
     "note": "Editor's code pane, Shader tab while the rosette plays: what its shader code draws in a single pass: the flower's petals, a ring of the palette at a time, the ground showing between them and the glow at the flower's heart. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:142"
+      "apps/web/src/features/editor/effect-sources.ts:143"
     ]
   },
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:383"
+      "apps/web/src/features/editor/effect-sources.ts:384"
     ]
   },
   "The picture as an SVG file, moving by SMIL alone.": {
     "note": "Editor's code pane, SVG tab while the silk plays: the picture as an animated SVG file whose motion is SMIL (SVG's own animation elements), with no script. SMIL is a name, kept as it is.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:381"
+      "apps/web/src/features/editor/effect-sources.ts:382"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
-      "apps/web/src/features/editor/code.ts:337",
-      "apps/web/src/features/editor/effect-sources.ts:384"
+      "apps/web/src/features/editor/code.ts:340",
+      "apps/web/src/features/editor/effect-sources.ts:385"
     ]
   },
   "The profile's code": {
@@ -5254,13 +5254,13 @@
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the papercut plays: what its shader code draws, one pass after another: first the relief (the smooth field of hills and hollows the paper is cut from), then for each pixel the sheets of paper about it, each with its shadows, the thin lit edge where it is cut and its face. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:172"
+      "apps/web/src/features/editor/effect-sources.ts:173"
     ]
   },
   "The ribs, the colors' blur and the light, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the fluted glass plays: what its shader code draws, a pass at a time: the glass's ribs, its colors blurred behind them, and the light on the ribs. The code is Shadertoy's tabs, GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:60"
+      "apps/web/src/features/editor/effect-sources.ts:61"
     ]
   },
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": {
@@ -5284,13 +5284,13 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:345"
+      "apps/web/src/features/editor/effect-sources.ts:346"
     ]
   },
   "The tag that paints its first frame behind a page, for the page's head.": {
     "note": "Editor, the code pane's HTML tab while an effect with no script yet plays (every effect has one now; one can come before its script): the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:322"
+      "apps/web/src/features/editor/effect-sources.ts:323"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5308,7 +5308,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:321"
+      "apps/web/src/features/editor/effect-sources.ts:322"
     ]
   },
   "The wallpapers' code": {
@@ -5341,19 +5341,19 @@
     "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
     "refs": [
       "apps/web/src/features/editor/code.ts:315",
-      "apps/web/src/features/editor/effect-sources.ts:301"
+      "apps/web/src/features/editor/effect-sources.ts:302"
     ]
   },
   "Then its soft and grain, as the site lays them over it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture has both soft and grain: the shader's last passes blur it and lay the grain over it, as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:297"
+      "apps/web/src/features/editor/effect-sources.ts:298"
     ]
   },
   "Then its soft, as the site blurs it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture is soft: the shader's last passes blur it as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:299"
+      "apps/web/src/features/editor/effect-sources.ts:300"
     ]
   },
   "This address isn't a palette or a page.": {
@@ -5474,7 +5474,7 @@
   "This palette can't be exported.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/features/gallery/take.ts:38",
+      "apps/web/src/features/gallery/take.ts:33",
       "apps/web/src/lib/files.ts:25"
     ]
   },
@@ -6809,7 +6809,7 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:296",
-      "apps/web/src/features/editor/effect-sources.ts:354"
+      "apps/web/src/features/editor/effect-sources.ts:355"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
@@ -6909,7 +6909,7 @@
       "apps/web/src/features/examples/Chart.tsx:171",
       "apps/web/src/features/examples/shared.ts:123",
       "apps/web/src/features/examples/shared.ts:40",
-      "apps/web/src/features/list/ListAppearance.tsx:315",
+      "apps/web/src/features/list/ListAppearance.tsx:339",
       "apps/web/src/mcp-view/PaletteView.tsx:96",
       "packages/ui/src/figure.ts:121"
     ]
@@ -7071,7 +7071,7 @@
   "{name} gradient": {
     "note": "Screen reader name of a card's picture drawn as a gradient.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:286"
+      "packages/ui/src/PaletteCard.tsx:287"
     ]
   },
   "{name} is disconnected": {
@@ -7091,7 +7091,7 @@
   "{name} palette": {
     "note": "Screen reader name of a palette card, with the palette's name.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:217",
+      "packages/ui/src/PaletteCard.tsx:218",
       "packages/ui/src/Thumbnail.tsx:27"
     ]
   },
@@ -7104,13 +7104,13 @@
   "{name} palette, removed": {
     "note": "Screen reader name of a palette card just taken out of a collection.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:217"
+      "packages/ui/src/PaletteCard.tsx:218"
     ]
   },
   "{name} swatches": {
     "note": "Screen reader name of a card's picture drawn as bands of flat color.",
     "refs": [
-      "packages/ui/src/PaletteCard.tsx:286"
+      "packages/ui/src/PaletteCard.tsx:287"
     ]
   },
   "{name} {style}": {
@@ -7132,7 +7132,7 @@
     "note": "A palette card's picture while the editor plays an effect: what a screen reader calls it. {name} is the palette's name, {style} the effect's (Fluted glass, Blob).",
     "refs": [
       "apps/web/src/features/editor/Sheet.tsx:443",
-      "apps/web/src/features/list/card-effect.tsx:81"
+      "apps/web/src/features/list/card-effect.tsx:87"
     ]
   },
   "{number} · {title}": {
