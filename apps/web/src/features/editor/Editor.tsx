@@ -86,6 +86,7 @@ import { createPaletteEditor, type PaletteEditor } from "./editor.ts";
 import { effectUnderCss } from "./effect-under.ts";
 import { FilePicture } from "./FilePicture.tsx";
 import {
+  clipAddress,
   copyFormat,
   copyLink,
   effectCopyFormats,
@@ -764,9 +765,11 @@ function Stage(
       stopMaking.abort();
       return false;
     }
+    const p = props.taken(props.stage);
+    const effect = p.effect;
+    if (!effect) return false;
     const stop = new AbortController();
     stopMaking = stop;
-    const p = props.taken(props.stage);
     try {
       const [clips, ring] = await (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
@@ -781,7 +784,11 @@ function Stage(
           });
       };
       shown(0);
-      await clips.downloadClip(p, shown, stop.signal);
+      await clips.downloadClip(
+        { address: clipAddress(p, effect), name: `grabient-${p.seed}-${effect.kind}.mp4` },
+        shown,
+        stop.signal
+      );
       props.used("download", "mp4");
       return true;
     } catch (error) {

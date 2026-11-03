@@ -5,7 +5,7 @@ import { videoFit } from "@grabient/engine/video.ts";
 import { hasVideo } from "@grabient/engine/video-kinds.ts";
 import { describe, expect, test } from "vitest";
 import { CARD_SIZE } from "../../lib/picture-size.ts";
-import { answerClip, type ClipSaid, clipAt, drawClip } from "./video-clip.ts";
+import { answerClip, type ClipSaid, clipAt, clipModule, drawClip } from "./video-clip.ts";
 
 /* The editor's Download MP4 as its worker draws it: the clip at the address its Copy link copies, read as the Worker
    reads it, and what the worker says as it goes. The Worker's own answer at the same address is the same file, byte
@@ -14,9 +14,10 @@ import { answerClip, type ClipSaid, clipAt, drawClip } from "./video-clip.ts";
 const ORIGIN = "https://grabient.test";
 const SEED = "kWnCIwwC47igfOklkTlShq44";
 const P = decodePalette(SEED)!;
-const wasm = new WebAssembly.Module(
-  readFileSync(new URL("../../../../../packages/engine/src/video/video.wasm", import.meta.url))
+const wasmBytes = readFileSync(
+  new URL("../../../../../packages/engine/src/video/video.wasm", import.meta.url)
 );
+const wasm = new WebAssembly.Module(wasmBytes);
 const at = (query: string) => clipAt(`${ORIGIN}/${SEED}.mp4?${query}`);
 
 describe("the clip at an MP4's address", () => {
@@ -79,17 +80,9 @@ describe("the worker", () => {
     return said;
   };
 
-  test("says the clip's plan, then how far along it is by whole percents, then hands over its file", async () => {
+  test("says how far along it is by whole percents, then hands over its file", async () => {
     const said = await run(address, async () => wasm);
     const clip = clipAt(address)!;
-    expect(said[0].said).toEqual({
-      said: "plan",
-      width: 64,
-      height: 48,
-      fps: 10,
-      frames: clip.plan.frames,
-      seconds: clip.plan.seconds
-    });
     const progress = said.flatMap(({ said }) => (said.said === "progress" ? [said.done] : []));
     expect(progress.length).toBeGreaterThan(10);
     expect(progress).toEqual([...new Set(progress)].sort((a, b) => a - b));
@@ -100,19 +93,23 @@ describe("the worker", () => {
     /* the file's bytes are handed over, not copied */
     expect(last.transfer).toEqual([last.said.file]);
     expect(new Uint8Array(last.said.file)).toEqual(drawClip(wasm, clip));
-    expect(said.length).toBe(progress.length + 2);
+    expect(said.length).toBe(progress.length + 1);
   });
 
-  test("says why there is no file: an address of no clip, a browser that refuses the module, a drawing that failed", async () => {
+  test("says why there is no file: an address of no clip, a browser that refuses the module, a module that did not load, a drawing that failed", async () => {
     const empty = new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]));
     const refused = async (): Promise<WebAssembly.Module> => {
       throw new WebAssembly.CompileError("no SIMD here");
+    };
+    const offline = async (): Promise<WebAssembly.Module> => {
+      throw new TypeError("Failed to fetch");
     };
     const failed = (said: { said: ClipSaid }[]) => said.at(-1)?.said;
     expect(
       failed(await run(`${ORIGIN}/${SEED}.mp4?style=linearGradient`, async () => wasm))
     ).toEqual({ said: "failed", why: "address" });
     expect(failed(await run(address, refused))).toEqual({ said: "failed", why: "browser" });
+    expect(failed(await run(address, offline))).toEqual({ said: "failed", why: "load" });
     const quiet = console.error;
     console.error = () => {};
     try {
@@ -123,5 +120,48 @@ describe("the worker", () => {
     } finally {
       console.error = quiet;
     }
+  });
+});
+
+describe("the clips' module", () => {
+  const answered = (status: number, body: BodyInit) => async () => new Response(body, { status });
+  const said = async (load: () => Promise<WebAssembly.Module>) => {
+    const out: ClipSaid[] = [];
+    await answerClip({ address: `${ORIGIN}/${SEED}.mp4?style=glass&w=64&h=48` }, load, each =>
+      out.push(each)
+    );
+    return out.at(-1);
+  };
+
+  test("is the module its address answers, compiled", async () => {
+    const module = await clipModule("/video.wasm", answered(200, wasmBytes));
+    expect(WebAssembly.Module.exports(module)).toEqual(WebAssembly.Module.exports(wasm));
+  });
+
+  test("did not load where its address answers no module, which is never taken for a browser that cannot run it", async () => {
+    /* a deploy since retired the module's file: the server's page in its place, or nothing found */
+    const page = answered(200, "<!doctype html><title>Grabient</title>");
+    const gone = answered(404, "Not found");
+    await expect(clipModule("/video.wasm", page)).rejects.not.toBeInstanceOf(
+      WebAssembly.CompileError
+    );
+    await expect(clipModule("/video.wasm", gone)).rejects.toThrow(/did not load: 404/);
+    expect(await said(() => clipModule("/video.wasm", page))).toEqual({
+      said: "failed",
+      why: "load"
+    });
+    expect(await said(() => clipModule("/video.wasm", gone))).toEqual({
+      said: "failed",
+      why: "load"
+    });
+  });
+
+  test("whose own bytes the browser refuses is the browser's refusal", async () => {
+    /* the module's head and a section no WebAssembly reads, as a browser without SIMD reads the module's code */
+    const unread = new Uint8Array([...wasmBytes.subarray(0, 8), 0x7f, 0x00]);
+    expect(await said(() => clipModule("/video.wasm", answered(200, unread)))).toEqual({
+      said: "failed",
+      why: "browser"
+    });
   });
 });

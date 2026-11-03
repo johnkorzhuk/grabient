@@ -15,14 +15,14 @@ export interface ClipAsk {
   address: string;
 }
 
-/** What the worker answers, in order: the clip's plan, how far along its drawing is (the share of its frames coded,
-    said as each whole percent passes), then its file, or why there is none: an address that names no clip, a browser
-    that cannot run the module, or a drawing that failed. */
+/** What the worker answers, in order: how far along its drawing is (the share of its frames coded, said as each whole
+    percent passes), then its file, or why there is none: an address that names no clip, a browser that cannot run
+    the module, a module that did not load (no connection, or a deploy since that retired it), or a drawing that
+    failed. */
 export type ClipSaid =
-  | { said: "plan"; width: number; height: number; fps: number; frames: number; seconds: number }
   | { said: "progress"; done: number }
   | { said: "done"; file: ArrayBuffer }
-  | { said: "failed"; why: "address" | "browser" | "drawing" };
+  | { said: "failed"; why: "address" | "browser" | "load" | "drawing" };
 
 /** A clip as its address asks for it, with its palette. */
 export interface Clip extends VideoAt {
@@ -82,8 +82,25 @@ export function drawClip(
   return videoFile({ size, fps }, frames);
 }
 
-/** The worker's answer to an ask, said through `say` (the file's bytes handed over, not copied); `wasm` fetches and
-    compiles the module, which a browser without WebAssembly's SIMD refuses to compile. */
+/* a WebAssembly module's first eight bytes: its magic word, then its version */
+const MODULE_HEAD = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+
+/** The clips' module, fetched from its address and compiled. A fetch that fails or answers anything but the module (a
+    page in its place, as for a module a deploy since retired) is a load that failed; only the module's own bytes reach
+    the compiler, so a refusal there (a CompileError) is the browser's, one without the WebAssembly it is built with. */
+export async function clipModule(
+  address: string,
+  get: typeof fetch = fetch
+): Promise<WebAssembly.Module> {
+  const answer = await get(address);
+  const bytes = answer.ok ? new Uint8Array(await answer.arrayBuffer()) : null;
+  if (!bytes || MODULE_HEAD.some((byte, i) => bytes[i] !== byte))
+    throw new Error(`The clips' module did not load: ${answer.status} at ${address}`);
+  return WebAssembly.compile(bytes);
+}
+
+/** The worker's answer to an ask, said through `say` (the file's bytes handed over, not copied); `wasm` loads the
+    module (clipModule), which a browser without WebAssembly's SIMD refuses to compile. */
 export async function answerClip(
   ask: ClipAsk,
   wasm: () => Promise<WebAssembly.Module>,
@@ -91,21 +108,18 @@ export async function answerClip(
 ): Promise<void> {
   const clip = clipAt(ask.address);
   if (!clip) return say({ said: "failed", why: "address" });
-  const { size, fps, plan } = clip;
-  say({
-    said: "plan",
-    width: size.width,
-    height: size.height,
-    fps,
-    frames: plan.frames,
-    seconds: plan.seconds
-  });
+  let module: WebAssembly.Module;
   try {
-    const file = drawClip(await wasm(), clip, done => say({ said: "progress", done }));
-    say({ said: "done", file: file.buffer }, [file.buffer]);
+    module = await wasm();
   } catch (error) {
     const refused = typeof WebAssembly === "undefined" || error instanceof WebAssembly.CompileError;
-    if (!refused) console.error("Video failed", error);
-    say({ said: "failed", why: refused ? "browser" : "drawing" });
+    return say({ said: "failed", why: refused ? "browser" : "load" });
+  }
+  try {
+    const file = drawClip(module, clip, done => say({ said: "progress", done }));
+    say({ said: "done", file: file.buffer }, [file.buffer]);
+  } catch (error) {
+    console.error("Video failed", error);
+    say({ said: "failed", why: "drawing" });
   }
 }
