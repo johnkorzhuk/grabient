@@ -58,15 +58,19 @@ async function site(page: Page, head: string, strict = false, name = "") {
       gl?: WebGL2RenderingContext;
       contexts: Set<WebGL2RenderingContext>;
       painted?: string;
+      blurred?: string;
     };
     w.refused = [];
     w.contexts = new Set();
-    /* the first still the page paints behind itself, read before each frame from the first: the canvas may take its
-       place before a test looks */
+    /* the first still the page paints behind itself and its blur, read before each frame from the first: the canvas
+       may take its place before a test looks */
     const look = () => {
-      const image = getComputedStyle(document.documentElement, "::before").backgroundImage;
-      if (image !== "none") w.painted = image;
-      else requestAnimationFrame(look);
+      const before = getComputedStyle(document.documentElement, "::before");
+      if (before.backgroundImage === "none") requestAnimationFrame(look);
+      else {
+        w.painted = before.backgroundImage;
+        w.blurred = before.filter;
+      }
     };
     requestAnimationFrame(look);
     document.addEventListener("securitypolicyviolation", e => w.refused.push(e.effectiveDirective));
@@ -100,6 +104,9 @@ const layer = (page: Page) => page.locator("canvas").locator("..");
 /** The first still the page painted behind itself, "" while none has been. */
 const painted = (page: Page) =>
   page.evaluate(() => (window as unknown as { painted?: string }).painted ?? "");
+/** The blur of the first still the page painted behind itself. */
+const blurred = (page: Page) =>
+  page.evaluate(() => (window as unknown as { blurred?: string }).blurred ?? "");
 const tags = (query: string, still = true) =>
   `${still ? `<link rel="stylesheet" href="APP/${SEED}.css?${query}">` : ""}<script src="APP/${SEED}.js?${query.replaceAll("&", "&amp;")}" async></script>`;
 
@@ -286,6 +293,41 @@ test("a soft and grained papercut held at speed 0 paints its stepped still, then
   await expect(layer(page)).toHaveCSS("background-image", /^linear-gradient\(/);
   await expect(page.locator("canvas")).toHaveCSS("filter", /^blur\(/);
   await expect(layer(page).locator("div")).toHaveCSS("background-image", /data:image\/png;base64,/);
+  expect(await contexts(page)).toBe(1);
+  expect(await still(page)).toBe("none");
+  expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
+    []
+  );
+  expect(errors).toEqual([]);
+});
+
+test("without the stylesheet the papercut's script draws the stylesheet's stepped still itself, then its canvas covers it under a strict policy", async ({
+  page,
+  context
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  const query = "style=papercut&angle=30&soft=40&grain=30&shape=7";
+  /* what the stylesheet of the same address paints, on a page of its own */
+  const linked = await context.newPage();
+  await site(linked, `<link rel="stylesheet" href="APP/${SEED}.css?${query}">`, true, "-linked");
+  const sheet = await still(linked);
+  const blur = await linked.evaluate(
+    () => getComputedStyle(document.documentElement, "::before").filter
+  );
+  expect(sheet).toContain("data:image/svg+xml");
+  await linked.close();
+  /* the script alone draws the same still, a share at a time, and adopts it with the same blur */
+  await site(page, tags(query, false), true);
+  await expect.poll(() => painted(page), { timeout: 15_000 }).toContain("data:image/svg+xml");
+  expect((await painted(page)) === sheet, "the script's still is the stylesheet's").toBe(true);
+  expect(await blurred(page)).toBe(blur);
+  /* an adopted still may be on its way to the screen: the canvas takes its place at once */
+  await expect(page.locator("html")).toHaveAttribute("data-grabient-playing", "", {
+    timeout: 15_000
+  });
+  await expect(layer(page)).toHaveCSS("opacity", "1");
+  await expect(page.locator("canvas")).toHaveCSS("filter", blur);
   expect(await contexts(page)).toBe(1);
   expect(await still(page)).toBe("none");
   expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
