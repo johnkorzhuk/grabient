@@ -15,12 +15,7 @@ export { type FxLook, fxStillKey } from "./effect.ts";
 
 import type { Palette } from "./palette.ts";
 import { PAPERCUT_LOOP, papercutSceneSteps } from "./papercut.ts";
-import {
-  papercutFileSvg,
-  papercutMovingSvg,
-  papercutStillSteps,
-  papercutStillSvg
-} from "./papercut-svg.ts";
+import { papercutFileSvg, papercutStillSteps, papercutStillSvg } from "./papercut-svg.ts";
 import { rosetteScene } from "./rosette.ts";
 import { rosetteMovingSvg, rosetteStillSvg } from "./rosette-svg.ts";
 import { SILK_LOOP } from "./silk.ts";
@@ -79,10 +74,11 @@ export function* fxStillSteps(kind: VectorKind, P: Palette, look: FxLook): Gener
   return fxCover(yield* papercutStillSteps(m));
 }
 
-/** The SVG file of a size at a speed (1 as designed): each moving, 0 its still. The papercut moves by its stepped
-    stills at even times of its loop, each fading in over the one before (papercut-svg.ts papercutMovingOf: a cut's
-    islands surface and part as it moves, which no transform of fixed paths follows); its still is its first frame
-    with its shadows blurred as the CPU draws them, which Figma's importer takes as layer blurs. */
+/** The SVG file of a size at a speed (1 as designed): each moving, 0 its still. The papercut's is its still at any
+    speed (John, 3 Nov 2026: "we just dont do animations with svg"): its cuts change shape as it moves, islands
+    surfacing and parting, which an SVG follows only by stills fading into each other or outlines morphing, each some
+    megabytes; its still is its first frame with its shadows blurred as the CPU draws them, which Figma's importer
+    takes as layer blurs. Its shaders, clips and script play it. */
 export function fxMovingSvg(
   kind: VectorKind,
   P: Palette,
@@ -90,8 +86,7 @@ export function fxMovingSvg(
   size: Size,
   speed: number
 ): string {
-  if (kind === "papercut")
-    return speed <= 0 ? papercutFileSvg(P, look, size) : papercutMovingSvg(P, look, size, speed);
+  if (kind === "papercut") return papercutFileSvg(P, look, size);
   if (speed <= 0) return fxStillSvg(kind, P, look, size);
   return kind === "rosette"
     ? rosetteMovingSvg(rosetteScene(P, look, size), speed)

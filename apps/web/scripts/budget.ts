@@ -159,7 +159,7 @@ const BUDGETS = {
   // isolate draws) took it to 1448.8 to 1449.0, by the build. The editor's MP4 (3 Nov 2026), whose chips the Worker
   // renders, and the clips' address read alike by the Worker and the reader's browser (engine/video.ts's videoAt,
   // lib/picture-size.ts) took it from 1449.2 to 1450.2 to 1450.3, by the build. The papercut's clips, its moving SVG
-  // (engine/papercut-svg.ts papercutMovingOf), its script's route and the SVGs' grain laid as one image
+  // (a still at any speed since 3 Nov 2026), its script's route and the SVGs' grain laid as one image
   // (lib/grain-image.ts) took it to 1453.1 (pc/int, 3 Nov 2026); the total moves by up to 1.4 KiB between builds of the
   // same code, since the chunks that share a name are gzipped together in their hashes' order
   // (W/styles-lab/sg/pc-shader/tools/worker-hash-noise.mjs), so the budget stands that much over the build. The silk,

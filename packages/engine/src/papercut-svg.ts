@@ -21,7 +21,6 @@
 import type { Palette } from "./palette.ts";
 import {
   atOnce,
-  PAPERCUT_LOOP,
   type PapercutScene,
   type PapercutView,
   papercutField,
@@ -618,65 +617,6 @@ function stillSheets(
   return { defs: defs.join(""), body: body.join("") };
 }
 
-/** Frames a moving papercut's SVG draws in a loop: one every three seconds at speed 1, where its fastest motion, two
-    cycles a loop, moves a cut by a few pixels in a picture a thousand wide. */
-export const PAPERCUT_SVG_FRAMES = 60;
-
-/** The moving SVG at a speed (1 as designed: a loop in PAPERCUT_LOOP seconds): the still's stepped sheets traced at
-    PAPERCUT_SVG_FRAMES even times of the loop, each fading in over the one before it through the time between them,
-    so the picture passes from one to the next as the player's cuts move (a cut's islands surface and part, which no
-    transform of fixed paths follows, and a morph of each cut's outline swam along it where the cut ran out of the
-    box: W/styles-lab/sg/pc-moving). Each frame is exact at its time and the fade between two is the mean of them, a
-    cut's edge doubling softly where it moves most.
-    The frames stand in the defs, drawn by two <use>s that SMIL points at them: in slot k the lower one shows frame k
-    where k is even and k + 1 where it is odd, the upper one the other, fading in over it where k is even and out where
-    odd, so each changes frame only while it is covered or clear, and two frames are drawn at a time, none with a
-    filter. Neither <use> names a frame of its own, so an importer that runs no animation (Figma's) draws neither, and
-    takes the one picture the file has outside them: the held file's still, its shadows blurred (papercutFileOf), which
-    a reader who asks for less motion sees in place of the frames, and a moving page never draws. */
-export function papercutMovingOf(
-  m: PapercutScene,
-  speed = 1,
-  frames = PAPERCUT_SVG_FRAMES
-): string {
-  const { width: W, height: H } = m;
-  const how = STILL_TRACE(m);
-  const seconds = PAPERCUT_LOOP / Math.max(1e-6, speed);
-  const ground = `<rect width="${W}" height="${H}" fill="${m.hex[0]}"/>`;
-  const defs: string[] = [];
-  for (let f = 0; f < frames; f++) {
-    const t = (f * PAPERCUT_LOOP) / frames;
-    const cuts = atOnce(cutLoopSteps(m, how, t)).map(loops =>
-      loops.length ? pathOf(loops, how.places) : null
-    );
-    const sheets = stillSheets(m, cuts, lightOf(m, t), `f${f}c`);
-    defs.push(
-      sheets.defs,
-      `<g id="pcf${f}" fill-rule="evenodd" stroke-linejoin="round">${ground}${sheets.body}</g>`
-    );
-  }
-  const held = fileDrawing(m);
-  /* the frame each <use> shows in slot k: the lower one k + 1 where k is odd, the upper one where k is even */
-  const shown = (lower: boolean) =>
-    Array.from(
-      { length: frames },
-      (_, k) => `#pcf${(k + ((k % 2 === 1) === lower ? 1 : 0)) % frames}`
-    ).join(";");
-  const loop = `dur="${fmt(seconds, 3)}s" repeatCount="indefinite"`;
-  const swap = (lower: boolean) =>
-    `<animate attributeName="href" values="${shown(lower)}" calcMode="discrete" ${loop}/>`;
-  /* the upper one clear at an even slot's start, whole at an odd one's: the loop's last ends clear on the first frame */
-  const fade = `<animate attributeName="opacity" values="${Array.from({ length: frames + 1 }, (_, k) => k % 2).join(";")}" ${loop}/>`;
-  const css =
-    "@media (prefers-reduced-motion:no-preference){.pcs{display:none}}" +
-    "@media (prefers-reduced-motion:reduce){.pcm{display:none}}";
-  return (
-    `${svgOpen(m)}<style>${css}</style><defs>${held.filters}${defs.join("")}</defs>` +
-    `<g class="pcs">${held.body}</g>` +
-    `<use class="pcm">${swap(true)}</use><use class="pcm">${swap(false)}${fade}</use></svg>`
-  );
-}
-
 /** The file's sheets above the ground, each its three paths as the file lays them (the cut moved away from the light
     by its shadow's offset, the cut, and the cut moved toward it by the lit edge's width; evenodd), or null for a sheet
     no cut shows: what the file's SVG and Copy for Figma (figma-papercut.ts) both draw. */
@@ -757,8 +697,5 @@ export function papercutFileOf(m: PapercutScene): string {
 export const papercutStillSvg = (P: Palette, view: PapercutView, size: Size): string =>
   papercutStillOf(papercutScene(P, view, size));
 /** The file's SVG of a palette and a view in a box. */
-/** The moving SVG of a size (papercutMovingOf). */
-export const papercutMovingSvg = (P: Palette, view: PapercutView, size: Size, speed = 1): string =>
-  papercutMovingOf(papercutScene(P, view, size), speed);
 export const papercutFileSvg = (P: Palette, view: PapercutView, size: Size): string =>
   papercutFileOf(papercutScene(P, view, size));
