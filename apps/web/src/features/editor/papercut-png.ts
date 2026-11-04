@@ -13,7 +13,8 @@ import { finishOf } from "@grabient/engine/view.ts";
 import { grainSrc } from "../../lib/picture.ts";
 import type { Taken } from "./formats.ts";
 
-/* The papercut's PNG as Copy PNG and Download PNG take it (formats.ts pngOf), loaded with the first one taken, so
+/* The papercut's picture as Copy PNG and Download PNG take it (formats.ts pictureCanvas), and the selection's grid,
+   loaded with the first one taken, so
    neither a page's start nor the Worker carries it: its first frame by its CPU drawing, as its PNG file and its cards
    are drawn (engine/papercut-render.ts), about 0.3 s at 1600 by 900 on a desktop, a band of rows a task so the page
    goes on meanwhile, where its SVG file, which blurs each of its shadows, took a second to draw without the GPU. Its
@@ -26,7 +27,8 @@ import type { Taken } from "./formats.ts";
 const DRAW_SHARE_MS = 30;
 const nextTask = () => new Promise<void>(done => setTimeout(done));
 
-export async function papercutPng(p: Taken, effect: Effect): Promise<Blob> {
+/** The papercut's picture at the pixels taken: the canvas its PNG is encoded from (formats.ts pictureCanvas). */
+export async function papercutCanvas(p: Taken, effect: Effect): Promise<HTMLCanvasElement> {
   const P = decodePalette(p.seed)!;
   const size = p.pixels;
   const { width, height } = size;
@@ -100,7 +102,5 @@ export async function papercutPng(p: Taken, effect: Effect): Promise<Blob> {
     context.fillStyle = context.createPattern(tile, "repeat") ?? "transparent";
     context.fillRect(0, 0, width, height);
   }
-  const png = await new Promise<Blob | null>(done => canvas.toBlob(done, "image/png"));
-  if (!png) throw new Error("no PNG");
-  return png;
+  return canvas;
 }

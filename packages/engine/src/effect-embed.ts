@@ -48,6 +48,24 @@ export function effectLayerCss(still: string, layers: EffectLayers = {}): string
   ].join("");
 }
 
+/** An effect's first frame as the background of the elements a selector names, as the selection's CSS gives each
+    palette a rule: the still covering the element, finished as effectLayerCss finishes a page's. Unsoftened, the
+    still is the element's own background, the grain's tile over it as another layer. Soft, the still is blurred on a
+    layer under the element's content, its edges thinning to the palette's gradient, the element's own background,
+    which keeps the blur inside its box; the grain's tile lies over it on a layer of its own, under the content too.
+    `layers.blur` is the filter in the element's own measure, as a page's `vmax` means nothing to an element. */
+export function effectRuleCss(selector: string, still: string, layers: EffectLayers = {}): string {
+  const { blur, under, grain } = layers;
+  if (!blur) return `${selector} {\n  background: ${grain ? `${grain}, ` : ""}${still};\n}\n`;
+  const own = (pseudo: "before" | "after", rules: string) =>
+    `${selector}::${pseudo} {\n  content: "";\n  position: absolute;\n  inset: 0;\n  z-index: -1;\n  border-radius: inherit;\n  pointer-events: none;\n${rules}}\n`;
+  return [
+    `${selector} {\n  position: relative;\n  isolation: isolate;\n  overflow: hidden;\n  background: ${under ?? "none"};\n}\n`,
+    own("before", `  background: ${still};\n  filter: ${blur};\n`),
+    grain ? own("after", `  background: ${grain};\n`) : ""
+  ].join("");
+}
+
 /** The tags that play an effect behind a page, for its head: its first frame, then the script that plays it from
     there. With the still, the first frame is in the page itself, a style, finished by the view's `layers` (soft and
     grain), so the page waits on no other site to paint; without, the stylesheet of the same address paints it. */

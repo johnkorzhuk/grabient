@@ -204,6 +204,8 @@ export function EffectArt(props: {
   angle: number;
   /** the card is lit: under the pointer, or the keyboard's focus is in it */
   active: boolean;
+  /** a picture that never moves (the selection's): its still alone, no player made or its code asked for */
+  still?: boolean;
 }) {
   let holder!: HTMLSpanElement;
   /* the player's frame covers the still */
@@ -215,8 +217,9 @@ export function EffectArt(props: {
      plays: a list turned from the glass to the blob makes one of the blob. None for a picture gone or turned
      meanwhile, whose props are gone with it */
   createEffect(
-    () => props.kind,
+    () => (props.still ? null : props.kind),
     kind => {
+      if (!kind) return;
       const ready = () => {
         void players[kind]().catch(() => {});
         /* one card of a list makes it, the others reading no layout for it; a card the layout hides has no size to
@@ -241,7 +244,7 @@ export function EffectArt(props: {
   );
   /* the glass's colors once a palette: the still reads them again with every change of the view */
   const colors = createMemo(() => glassColors(props.palette));
-  const moving = () => props.active && props.settings.speed > 0 && !holdsStill();
+  const moving = () => !props.still && props.active && props.settings.speed > 0 && !holdsStill();
   const view = () =>
     props.kind === "blob"
       ? blobViewOf(props.settings)

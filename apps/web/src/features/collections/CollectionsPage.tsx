@@ -53,7 +53,7 @@ import { searchedHere } from "../search/count.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
-import { selection } from "../selection/selection.ts";
+import { keptItem, selection } from "../selection/selection.ts";
 import { collectionHref, type PaletteOrder } from "./address.ts";
 import { deletePalette, inputOf } from "./client.ts";
 import { createChecklists } from "./collect.ts";
@@ -233,7 +233,7 @@ export function CollectionsPage(props: {
   /* the selection: its press at the row's end, its export screen in the feed's place, and its Save into the account's
      collections, after which Saved reads its list again */
   const checklists = createChecklists(setNote);
-  const saving = checklists.selection(() => selection().map(inputOf));
+  const saving = checklists.selection(() => selection().map(keptItem));
   const saved = () => {
     const asked = ownKey();
     if (asked) void readOwn(asked, true);

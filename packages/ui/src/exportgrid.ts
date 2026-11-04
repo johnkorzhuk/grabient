@@ -1,18 +1,12 @@
 /* The selection as one image. The export column's settings say each palette's size and how the palettes stand together
    (`exportLayout`); that is the grid every file is drawn on (`gridFor`), bounded so no image passes 8192 pixels a side
-   or 16 million in all (`gridLayout`). The preview, the SVG and every copy compose the selection on that grid, and a
-   PNG or JPEG download draws each palette alone at its cell's size, so the image shown is the image exported. */
+   or 16 million in all (`gridLayout`). The preview, the SVG and every copy compose the selection on that grid, each
+   palette in its own picture (exportcompose.ts, which comes with the export screen), and a PNG or JPEG download draws
+   each palette alone at its cell's size, so the image shown is the image exported. One palette's gradient alone is
+   painted here (`paintGrid`, `exportGridImage`), for the pages that draw no other. */
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { type ColorKind, cssLine } from "@grabient/engine/css.ts";
 import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
-import { paletteSvg } from "@grabient/engine/svg.ts";
-import {
-  isSwatchStyle,
-  resolveSize,
-  type Size,
-  type Style,
-  viewSearch
-} from "@grabient/engine/view.ts";
+import { isSwatchStyle, resolveSize, type Size, type Style } from "@grabient/engine/view.ts";
 import { EXPORT_DEFAULTS, type ExportSettings } from "./export-settings.ts";
 import { t } from "./i18n.ts";
 
@@ -173,10 +167,8 @@ function stopsOf(item: GridItem): Stop[] {
   if (!palette) throw new Error(t("Invalid palette."));
   return sampleStops(palette, item.steps);
 }
-const addressOf = (item: GridItem, origin: string) =>
-  new URL(`/${item.seed}${viewSearch(item)}`, origin).toString();
-/* where a tile stands on the grid, in the image's raw pixels */
-function placeOf(index: number, o: GridOptions, columns: number) {
+/** Where a tile stands on the grid, in the image's raw pixels. */
+export function placeOf(index: number, o: GridOptions, columns: number) {
   return {
     x: o.padding + (index % columns) * (o.width + o.gap),
     y: o.padding + Math.floor(index / columns) * (o.height + o.gap)
@@ -188,60 +180,6 @@ function cssLineOf(angle: number, w: number, h: number) {
   const dx = Math.sin(a);
   const dy = -Math.cos(a);
   return { dx, dy, line: Math.abs(w * dx) + Math.abs(h * dy) };
-}
-
-/** Every palette as a CSS class in the reader's spelling, each under its address. */
-export function exportGridCss(
-  items: readonly GridItem[],
-  origin: string,
-  kind: ColorKind = "oklch"
-): string {
-  return `${items
-    .map(
-      (item, i) =>
-        `/* ${addressOf(item, origin)} */\n.palette-${i + 1} {\n  ${cssLine(stopsOf(item), item.style, item.angle, kind)}\n}`
-    )
-    .join("\n\n")}\n`;
-}
-
-/** The selection on its grid as one SVG: each tile titled with its palette's address and its ids its own. A linear
-    gradient is drawn on the CSS gradient line in the tile's own pixels; the other styles are the palette's own SVG. */
-export function exportGridSvg(
-  items: readonly GridItem[],
-  input: GridOptions,
-  origin: string
-): string {
-  if (!items.length) throw new Error(t("Select a palette first."));
-  const layout = gridLayout(items.length, input);
-  const o = layout.options;
-  const tiles = items.map((item, index) => {
-    const { x, y } = placeOf(index, o, layout.columns);
-    const stops = stopsOf(item);
-    let inner: string;
-    if (item.style === "linearGradient") {
-      const { dx, dy, line } = cssLineOf(item.angle, o.width, o.height);
-      const cx = o.width / 2;
-      const cy = o.height / 2;
-      const id = `grid_linear_${index}`;
-      const corner = ((o.radius / 100) * Math.min(o.width, o.height)) / 2;
-      inner = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${cx - (dx * line) / 2}" y1="${cy - (dy * line) / 2}" x2="${cx + (dx * line) / 2}" y2="${cy + (dy * line) / 2}">${stops.map(s => `<stop offset="${s.t}" stop-color="${s.hex}"/>`).join("")}</linearGradient></defs><rect width="${o.width}" height="${o.height}" rx="${corner}" fill="url(#${id})"/>`;
-    } else {
-      const svg = paletteSvg(
-        stops.map(s => s.hex),
-        item.style,
-        item.angle,
-        { seed: item.seed, search: viewSearch(item), baseUrl: origin },
-        { width: o.width, height: o.height, gridItemIndex: index, borderRadius: o.radius }
-      );
-      inner = svg.slice(svg.indexOf(">") + 1, svg.lastIndexOf("</svg>"));
-    }
-    const title = addressOf(item, origin)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/"/g, "&quot;");
-    return `<g transform="translate(${x} ${y})"><title>${title}</title>${inner}</g>`;
-  });
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.rawWidth} ${layout.rawHeight}" fill="none">\n${tiles.join("\n")}\n</svg>`;
 }
 
 /** The 2D drawing a raster export needs, from a page's canvas or a worker's. */

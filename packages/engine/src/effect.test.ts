@@ -14,7 +14,7 @@ import {
   readBlobStillKey,
   SHAPE_MAX
 } from "./effect.ts";
-import { effectEmbedHtml, effectLayerCss } from "./effect-embed.ts";
+import { effectEmbedHtml, effectLayerCss, effectRuleCss } from "./effect-embed.ts";
 import { glassStillKey, readStillKey } from "./glass-colors.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
@@ -181,4 +181,34 @@ test("a soft and grained view's tags finish the still inside the page and name b
   const grained = effectLayerCss("url(x)", { grain: "url(y) 0 0 / 128px 128px" });
   expect(grained).not.toMatch(/filter|html::after/);
   expect(grained).toContain(`html[${EMBED_PLAYING}] body::before {\n  background: none;\n}`);
+});
+
+test("an effect's rule paints its still on the element it names, its soft and grain on layers of the element's own", () => {
+  // unsoftened, the still is the element's background, the grain's tile a layer over it
+  expect(effectRuleCss(".palette-1", "url(x) 50% 50%/cover no-repeat")).toBe(
+    ".palette-1 {\n  background: url(x) 50% 50%/cover no-repeat;\n}\n"
+  );
+  expect(effectRuleCss(".palette-1", "url(x)", { grain: "url(y) 0 0 / 128px 128px" })).toBe(
+    ".palette-1 {\n  background: url(y) 0 0 / 128px 128px, url(x);\n}\n"
+  );
+  // soft, the still is blurred under the content over the gradient its edges thin to, the grain over it, all inside
+  const soft = effectRuleCss(".palette-2", "url(x)", {
+    blur: "blur(12.5px)",
+    under: "linear-gradient(red, blue)",
+    grain: "url(y) 0 0 / 128px 128px"
+  });
+  expect(soft).toMatch(
+    /^\.palette-2 \{\n {2}position: relative;\n {2}isolation: isolate;\n {2}overflow: hidden;\n {2}background: linear-gradient\(red, blue\);\n\}/
+  );
+  expect(soft).toMatch(
+    /\.palette-2::before \{[^}]*z-index: -1;[^}]*background: url\(x\);\n {2}filter: blur\(12\.5px\);/
+  );
+  expect(soft).toMatch(
+    /\.palette-2::after \{[^}]*z-index: -1;[^}]*background: url\(y\) 0 0 \/ 128px 128px;/
+  );
+  expect(soft).not.toContain("vmax");
+  // a blob the page shows through has no gradient under it
+  expect(effectRuleCss(".palette-3", "url(x)", { blur: "blur(2px)" })).toContain(
+    "  background: none;\n}"
+  );
 });

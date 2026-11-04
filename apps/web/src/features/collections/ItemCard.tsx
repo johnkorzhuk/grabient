@@ -85,6 +85,8 @@ export function ItemCard(props: {
   /* the look the collection saved, which the card plays while the page draws every palette as saved */
   const kept = createMemo(() => (props.look ? lookEffect(props.own.seed, props.look) : null));
   const plays = () => cardPlays(props.view, sight.inSight() ? look.draft() : null, seed(), kept());
+  /* the palette as the selection takes it: in the view the card shows, with the effect it plays */
+  const chosen = () => ({ ...shown(), effect: plays() });
   const href = () => paletteHref(shown(), props.view.size, plays(), true);
   const similar = () => similarHref(seed());
   /* the palette as a save keeps it: in the view the card shows, with the look it plays where that says more */
@@ -158,9 +160,9 @@ export function ItemCard(props: {
       liked={liked(seed())}
       onLike={like}
       likeDisabled={signInUnavailable()}
-      selected={selected(shown())}
+      selected={selected(chosen())}
       onSelect={() => {
-        if (toggle(shown()) === "made room") props.note(roomNote(1));
+        if (toggle(chosen()) === "made room") props.note(roomNote(1));
       }}
       similar={{ href: similar(), rel: relTo(similar()), disabled: unreachable(similar()) }}
       onIntent={() => {

@@ -116,3 +116,60 @@ test("the export's strip keeps its mode and its swatch book square beside the fo
     expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThan(1);
   }
 });
+
+test("a palette playing an effect, soft or grained, is shown and taken in its look, held still", async ({
+  page,
+  context
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/palettes?style=silk&soft=30&grain=40");
+  await live(page);
+  await add(page, 0);
+  await page.goto("/palettes?grain=64");
+  await live(page);
+  await add(page, 0);
+  await page
+    .getByRole("button", { name: /^Selection/ })
+    .first()
+    .click();
+  // the silk's still, blurred by its soft with the grain over it, and no player: nothing moves here
+  const silk = removable(page, 1);
+  await expect(silk).toHaveAccessibleName(/^Remove .+, Silk from selection$/);
+  await expect(silk.locator('[data-kind="silk"]')).toHaveCount(1);
+  expect(await silk.evaluate(cell => getComputedStyle(cell).getPropertyValue("--fx-blur"))).toMatch(
+    /^blur\(.+cqmax\)$/
+  );
+  await expect(silk.locator(":scope > [class*=grain]")).toHaveCount(1);
+  await silk.hover();
+  await page.waitForTimeout(600);
+  await expect(
+    page.getByRole("group", { name: "Export preview" }).first().locator("canvas")
+  ).toHaveCount(0);
+  await expect(removable(page, 2).locator(":scope > [class*=grain]")).toHaveCount(1);
+  // its SVG is each palette's own still, the silk blurred and grained, every id its tile's own
+  const strip = page
+    .getByRole("complementary", { name: "Export" })
+    .getByRole("group", { name: "Copy" });
+  const copied = async (name: string) => {
+    await page.evaluate(() => navigator.clipboard.writeText(""));
+    await strip.getByRole("button", { name, exact: true }).click();
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()), { timeout: 30_000 })
+      .not.toBe("");
+    return page.evaluate(() => navigator.clipboard.readText());
+  };
+  const svg = await copied("Copy SVG");
+  expect(svg).toMatch(/<title>[^<]*\?style=silk&amp;angle=\d+&amp;soft=30&amp;grain=40<\/title>/);
+  expect(svg).toContain("<feGaussianBlur");
+  expect(svg).not.toMatch(/<animate|@keyframes/);
+  expect((svg.match(/\sid="t1-/g) ?? []).length).toBeGreaterThan(0);
+  const ids = [...svg.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
+  expect(new Set(ids).size).toBe(ids.length);
+  // its CSS paints the silk's still blurred in pixels of a palette's size, the grain held once a strength
+  const css = await copied("Copy CSS");
+  expect(css).toMatch(/\.palette-1::before \{[^}]*filter: blur\([\d.]+px\);/);
+  expect(css).toContain("--grabient-grain-40: url(");
+  expect(css).toMatch(
+    /\.palette-2 \{\n {2}background: var\(--grabient-grain-64\) 0 0 \/ 128px 128px, linear-gradient/
+  );
+});

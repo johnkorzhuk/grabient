@@ -6,13 +6,12 @@ import { ShellContext } from "../../app/shell.ts";
 import type { Drawn } from "../../lib/palette.ts";
 import { noteCounts, readLikeCounts } from "../account/likes.ts";
 import { loginHref } from "../account/session.ts";
-import { inputOf } from "../collections/client.ts";
 import { createChecklists } from "../collections/collect.ts";
 import type { UsePlace, UseSurface } from "../palette-use/use.ts";
 import type { SearchPage } from "../search/bodies.ts";
 import { searchedHere } from "../search/count.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
-import { selection } from "../selection/selection.ts";
+import { keptItem, selection } from "../selection/selection.ts";
 import { type ListParams, listSearch } from "./address.ts";
 import type { PaletteItem } from "./schema.ts";
 
@@ -43,7 +42,7 @@ export function createGalleryPage(o: {
   const say = (message: string) =>
     setSaid(message ? { words: words(), message, error: false } : null);
   const checklists = createChecklists(say);
-  const saving = checklists.selection(() => selection().map(inputOf));
+  const saving = checklists.selection(() => selection().map(keptItem));
   const chosen = createSelectionScreen({
     note: say,
     save: () => (

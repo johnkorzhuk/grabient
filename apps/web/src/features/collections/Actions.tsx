@@ -6,7 +6,6 @@ import { createEffect, createSignal, type Element, flush, onSettled, Show } from
 import { offline } from "../../app/connection.ts";
 import { goTo } from "../../app/go.ts";
 import { record } from "../../app/undo.ts";
-import type { Drawn } from "../../lib/palette.ts";
 import {
   deleteOwnCollection,
   ownsCollection,
@@ -14,7 +13,7 @@ import {
   setOwnVisibility
 } from "../account/collections.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
-import { addAll, removeAll, roomNote, selected } from "../selection/selection.ts";
+import { addAll, type Chosen, removeAll, roomNote, selected } from "../selection/selection.ts";
 import { collectionHref } from "./address.ts";
 import { changeCollection, deleteCollection, readState, saveCopy, syncCopy } from "./client.ts";
 import { failedWrite } from "./collect.ts";
@@ -42,7 +41,7 @@ export function Actions(props: {
   slug: string;
   doc: CollectionDocument;
   /** the palettes in the page's order and view, as the selection holds them */
-  palettes: readonly Drawn[];
+  palettes: readonly Chosen[];
   owned: boolean;
   canDelete: boolean;
   /** the account's copy of this collection, or this collection as the account's copy */

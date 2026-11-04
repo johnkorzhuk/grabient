@@ -74,6 +74,8 @@ export function GalleryCard(props: {
   );
   const plays = () =>
     cardPlays(page.params(), sight.inSight() ? look.draft() : null, seed(), kept());
+  /* the palette as the selection takes it: in the view the card shows, with the effect it plays */
+  const chosen = () => ({ ...shown(), effect: plays() });
   const path = () => paletteHref(shown(), page.params().size, plays(), true);
   /* the palette as a save keeps it: in the view the card shows, with the look it plays where that says more */
   const saved = () => {
@@ -150,9 +152,9 @@ export function GalleryCard(props: {
       liked={liked(seed())}
       onLike={like}
       likeDisabled={signInUnavailable()}
-      selected={selected(shown())}
+      selected={selected(chosen())}
       onSelect={() => {
-        if (toggle(shown()) === "made room") page.say(roomNote(1));
+        if (toggle(chosen()) === "made room") page.say(roomNote(1));
       }}
       collect={<CollectPress collect={page.checklists.card(saved)} />}
       tools={() => (

@@ -1,5 +1,15 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
-import { drawnView } from "@grabient/engine/view.ts";
+import {
+  blobShapeOf,
+  EFFECT_LOOK,
+  EFFECT_PLAY,
+  type Effect,
+  effectAddressParts,
+  effectLook,
+  effectStillParts,
+  isEffect
+} from "@grabient/engine/effect.ts";
+import { drawnView, finishOf, finishParts, type View } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { keyRow } from "@grabient/ui/keymap.ts";
 import { rowKeys, showKey } from "@grabient/ui/keys.ts";
@@ -7,17 +17,24 @@ import { isServer } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import { record } from "../../app/undo.ts";
 import type { Drawn } from "../../lib/palette.ts";
+import type { CollectionItemInput } from "../collections/schema.ts";
 
 /* The selection: up to a hundred palettes a reader gathers from any page to export together, each in the view it was
-   chosen in. It is this browser's (`grabient-keyframe-exports`), shared by its tabs, and starts empty on the server and
-   in the first render, so a page hydrates as it was sent; a page reads it once it is live (loadSelection). A change is
-   a step of the page's undo: Mod+Z takes back what it added and puts back what it let go, each in its place. A full
-   selection makes room by letting its oldest palettes go, never one just asked for, and Mod+Z puts them back. */
+   chosen in, its soft and grain, and the effect its picture played, held at its first frame: the selection's pictures
+   never move, so how an effect plays is no part of it. It is this browser's (`grabient-keyframe-exports`), shared by
+   its tabs, and starts empty on the server and in the first render, so a page hydrates as it was sent; a page reads it
+   once it is live (loadSelection). A change is a step of the page's undo: Mod+Z takes back what it added and puts back
+   what it let go, each in its place. A full selection makes room by letting its oldest palettes go, never one just
+   asked for, and Mod+Z puts them back. */
 
-/** A palette in the selection: the palette in its view, and the id that view makes it. */
+/** A palette in the selection: the palette in its view, the effect it was chosen playing, and the id they make it. */
 export interface SelectedPalette extends Drawn {
   id: string;
+  /** the effect its picture played, held at its first frame: its kind and look, never how it plays */
+  effect?: Effect;
 }
+/** A palette as a page hands it to the selection: in its view, with the effect its picture plays where it plays one. */
+export type Chosen = Drawn & { effect?: Effect | null };
 
 /** How many palettes the selection holds: room for a large export while the copied image, fitted in 16 megapixels,
     keeps each palette big enough to use. A collection holds as many, so a whole selection can be saved as one. */
@@ -35,15 +52,54 @@ export const selectionRead = read;
 /* the same list, plain: a signal written now reads its old value until the write settles */
 let current: readonly SelectedPalette[] = [];
 
-/** A palette as the selection holds it: canonical, in its view, never fewer steps than keyframes; null for none. */
+/** An effect as the selection holds it: its kind and its look, each part in its bounds, played as designed, which
+    its address leaves out; the glass's shape 0 as designed, as none is, and a blob with no shape of its own in its
+    palette's, as its card plays it. Null for anything that is no effect. */
+export function heldEffect(seed: string, value: unknown): Effect | null {
+  if (!value || typeof value !== "object") return null;
+  const fx = value as Partial<Effect>;
+  if (!isEffect(fx.kind)) return null;
+  const look = effectLook(fx.look);
+  return {
+    kind: fx.kind,
+    ...EFFECT_PLAY,
+    look:
+      fx.kind === "blob"
+        ? { ...look, shape: look.shape ?? blobShapeOf(seed) }
+        : { ...EFFECT_LOOK, shape: look.shape || null }
+  };
+}
+
+/* the id a palette's look makes it: its view, its soft and grain where it has them, or the effect's still as its
+   address names it (its kind, the angle where it takes one, the soft and grain and its look), which no steps change */
+const idOf = (seed: string, view: View, effect: Effect | null) => {
+  if (effect) return `${seed}?${effectStillParts(effect, view.angle, finishOf(view)).join("&")}`;
+  const plain = `${seed}:${view.style}:${view.steps}:${view.angle}`;
+  return view.soft || view.grain ? `${plain}:${view.soft ?? 0}:${view.grain ?? 0}` : plain;
+};
+
+/** A palette as the selection holds it: canonical, in its view, never fewer steps than keyframes, with the effect it
+    plays as the selection holds one (heldEffect); null for none. */
 export function selectedPalette(value: unknown): SelectedPalette | null {
   if (!value || typeof value !== "object") return null;
-  const input = value as Partial<Drawn>;
+  const input = value as Partial<Chosen>;
   const palette = decodePalette(input.seed);
   if (!palette) return null;
   const seed = encodePalette(palette);
   const view = drawnView(palette, input);
-  return { id: `${seed}:${view.style}:${view.steps}:${view.angle}`, seed, ...view };
+  const effect = heldEffect(seed, input.effect);
+  return { id: idOf(seed, view, effect), seed, ...view, ...(effect ? { effect } : {}) };
+}
+
+/** A palette of the selection as a collection keeps it: its view, with the look it was chosen in where it has one (its
+    soft and grain, the effect it played) as its address writes them after its seed, which the server keeps as
+    editor/look.ts's keptLook reads it: the export column's Save. */
+export function keptItem(item: SelectedPalette): CollectionItemInput {
+  const view = { seed: item.seed, style: item.style, steps: item.steps, angle: item.angle };
+  const look = (
+    item.effect ? effectAddressParts(item.effect, item.angle, finishOf(item)) : finishParts(item)
+  ).join("&");
+  return look ? { ...view, look } : view;
 }
 
 /** A kept selection, read: palettes past the selection's room and repeats left out. */
@@ -175,16 +231,16 @@ export function loadSelection(): void {
   });
 }
 
-/** Whether a palette is in the selection: in this view, or a seed in any. */
-export function selected(palette: Drawn | string): boolean {
+/** Whether a palette is in the selection: in this view and look, or a seed in any. */
+export function selected(palette: Chosen | string): boolean {
   if (typeof palette === "string") return items().some(entry => entry.seed === palette);
   const id = selectedPalette(palette)?.id;
   return items().some(entry => entry.id === id);
 }
 
-/** A card's plus: a palette in the selection comes out, any other goes in. A full selection makes room by letting its
-    oldest palette go ('made room'), which Mod+Z puts back. */
-export function toggle(palette: Drawn): "added" | "made room" | "removed" | "invalid" {
+/** A card's plus: a palette in the selection comes out, any other goes in, in the look its picture shows. A full
+    selection makes room by letting its oldest palette go ('made room'), which Mod+Z puts back. */
+export function toggle(palette: Chosen): "added" | "made room" | "removed" | "invalid" {
   loadSelection();
   const item = selectedPalette(palette);
   if (!item) return "invalid";
@@ -199,7 +255,7 @@ export function toggle(palette: Drawn): "added" | "made room" | "removed" | "inv
 
 /** The palettes not selected yet, added in order: a collection's Add all. Says how many came in and how many went to
     make room. */
-export function addAll(palettes: readonly Drawn[]): { added: number; dropped: number } {
+export function addAll(palettes: readonly Chosen[]): { added: number; dropped: number } {
   loadSelection();
   const asked = new Set<string>();
   const fresh: SelectedPalette[] = [];
@@ -221,7 +277,7 @@ export const removeSelected = (id: string): void =>
   change(current.filter(entry => entry.id !== id));
 
 /** These palettes out in one step, which one undo puts back: a collection's Add all pressed again. */
-export function removeAll(palettes: readonly Drawn[]): void {
+export function removeAll(palettes: readonly Chosen[]): void {
   const gone = new Set(palettes.map(palette => selectedPalette(palette)?.id));
   change(current.filter(entry => !gone.has(entry.id)));
 }

@@ -9,7 +9,7 @@ import { ownCollectionsHolding, ownPaletteWords } from "../account/collections.t
 import type { ItemView } from "../account/wire.ts";
 import { createChecklists } from "../collections/collect.ts";
 import { openedIn } from "../collections/navigation.ts";
-import { selection } from "../selection/selection.ts";
+import { keptItem, selection } from "../selection/selection.ts";
 
 /* The editor's ways into the account's collections: Add to collection under the check of the palette on screen and of
    each card, the Save side of the selection's export, and the reader's own collections on the sheet's line. They come
@@ -35,9 +35,7 @@ export function AddToCollection(props: {
 export function SaveSelection() {
   return (
     <SaveToCollection
-      {...checklists.selection(() =>
-        selection().map(({ seed, style, steps, angle }) => ({ seed, style, steps, angle }))
-      )}
+      {...checklists.selection(() => selection().map(keptItem))}
       disabled={signInUnavailable()}
     />
   );

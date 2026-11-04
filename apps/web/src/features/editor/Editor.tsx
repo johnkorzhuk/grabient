@@ -580,7 +580,9 @@ function Tools(props: {
 }) {
   const e = props.editor;
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
-  const chosen = () => selected(drawn());
+  /* the palette as the selection takes it: as the stage draws it, its soft and grain, and the effect it plays */
+  const inLook = () => ({ ...drawn(), soft: e.soft(), grain: e.grain(), effect: e.effect() });
+  const chosen = () => selected(inLook());
   /* the palette as a save keeps it: with the look it plays where that says more than its view, its soft and grain in it */
   const saved = () => {
     const at = drawn();
@@ -612,7 +614,7 @@ function Tools(props: {
           tip={t(chosen() ? msg("Remove from selection") : msg("Add to selection"))}
           onClick={() => {
             /* a full selection lets its oldest go to make room, and says how to put it back */
-            if (toggleSelected(drawn()) === "made room") toast(roomNote(1));
+            if (toggleSelected(inLook()) === "made room") toast(roomNote(1));
           }}
         >
           <Icon name={chosen() ? "check" : "plus"} size={15} />

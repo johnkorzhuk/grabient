@@ -525,9 +525,9 @@ export function Sheet(props: {
             look: savedLook(seed(), shown, played())
           }).catch((reason: unknown) => toast(shownError(reason, msg("Couldn't save."))));
         }}
-        selected={selected(palette())}
+        selected={selected({ ...palette(), effect: played() })}
         onSelect={() => {
-          if (toggle(palette()) === "made room") toast(roomNote(1));
+          if (toggle({ ...palette(), effect: played() }) === "made room") toast(roomNote(1));
         }}
         collect={
           <Loading>

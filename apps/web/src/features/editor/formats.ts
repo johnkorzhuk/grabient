@@ -21,7 +21,6 @@ import {
 } from "@grabient/engine/view.ts";
 import { copyHtml, downloadFile } from "@grabient/ui/copy.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
-import { svgToPngBlob } from "@grabient/ui/figure.ts";
 import { colorFormat } from "../../lib/color-format.ts";
 import {
   copyImage,
@@ -35,6 +34,9 @@ import { grainSrc } from "../../lib/picture.ts";
 import { isAdmin } from "../account/session.ts";
 import { seedAddress } from "./address.ts";
 import { drawnSoon, grainDataUrl, grainPictureUrl } from "./copy-finish.ts";
+
+/* what a copy carries of a soft or grained picture, for the selection's CSS, which takes its files' code from here */
+export { drawnSoon, grainDataUrl };
 
 /* What the editor's strips hand over: a palette copied, saved as a file, or as the address of the file the site serves
    for it. A copy and a download of one format hold the same palette; CSS alone differs, since a copy is the
@@ -141,8 +143,8 @@ const glassPixels = async (p: Taken, size: Size) => {
 const encoded = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
   new Promise<Blob | null>(done => canvas.toBlob(done, type, quality));
 /* an effect's SVG at the pixels taken, as /{seed}.svg?style= serves it: moving as the picture moves, or its first
-   frame */
-const effectSvgOf = async (p: Taken, effect: Effect, moving: boolean) =>
+   frame; its grain's image made at `grained`, the pixels it is shown at */
+const effectSvgOf = async (p: Taken, effect: Effect, moving: boolean, grained = p.pixels) =>
   (await effectCode()).effectSvg(
     paletteOf(p),
     p.seed,
@@ -151,7 +153,7 @@ const effectSvgOf = async (p: Taken, effect: Effect, moving: boolean) =>
     p.pixels,
     origin(),
     finishOf(p),
-    p.grain ? await grainPictureUrl(p.grain, p.pixels) : undefined
+    p.grain ? await grainPictureUrl(p.grain, grained) : undefined
   );
 /* The first frame the copied tags carry inside the page, a CSS background covering it as the player covers its canvas:
    the glass as a WebP of its design square, drawn by its CPU renderer (a JPEG where the browser makes no WebP), which a
@@ -222,6 +224,13 @@ const svgText = async (p: Taken) =>
   p.effect
     ? effectSvgOf(p, p.effect, true)
     : gradientSvg(p, p.grain ? await grainPictureUrl(p.grain, p.pixels) : undefined);
+/** The palette's SVG standing still at the pixels taken: the first frame of the effect it plays, else its gradient,
+    finished by its soft and grain, the grain's image made at `grained`, the pixels the picture is shown at (a grid's
+    tile drawn smaller than its file): what the selection's SVG lays on its grid. */
+export const stillSvg = async (p: Taken, grained: Size = p.pixels): Promise<string> =>
+  p.effect
+    ? effectSvgOf(p, p.effect, false, grained)
+    : gradientSvg(p, p.grain ? await grainPictureUrl(p.grain, grained) : undefined);
 /* the gradient's CSS: a soft view's blurred stops at their places, and the grain's tile carried in itself */
 async function gradientCss(p: Taken): Promise<string> {
   const drawn = await drawnSoon(p.stops, view(p));
@@ -237,12 +246,12 @@ const loaded = async (src: string) => {
   return image;
 };
 /* A picture drawn on a canvas at the pixels taken, the grain's tile laid over it as the page lays it, a speck a pixel
-   from its corner, as a PNG. */
-async function grainedPng(
+   from its corner. */
+async function grainedCanvas(
   p: Taken,
   draw: (context: CanvasRenderingContext2D) => void,
   grain?: number
-): Promise<Blob> {
+): Promise<HTMLCanvasElement> {
   const tile = grain ? loaded(grainSrc(grain)) : null;
   const { width, height } = p.pixels;
   const canvas = document.createElement("canvas");
@@ -255,48 +264,52 @@ async function grainedPng(
     context.fillStyle = context.createPattern(await tile, "repeat") ?? "transparent";
     context.fillRect(0, 0, width, height);
   }
-  const png = await encoded(canvas, "image/png");
-  if (!png) throw new Error("no PNG");
-  return png;
+  return canvas;
 }
-/* the papercut's PNG by its CPU drawing (papercut-png.ts), its code asked for with the first one taken: neither a page's
-   start nor the Worker's build carries it */
-const papercutPngOf = async (p: Taken, effect: Effect): Promise<Blob> =>
-  (
-    await (import.meta.env.SSR ? (new Promise(() => {}) as never) : import("./papercut-png.ts"))
-  ).papercutPng(p, effect);
-/* the gradient's PNG: its SVG drawn, and the grain's tile laid over it */
-async function gradientPng(p: Taken): Promise<Blob> {
-  const svg = await gradientSvg(p);
-  if (!p.grain) return svgToPngBlob(svg, 1);
+/* an SVG as the browser paints it at the pixels taken, the grain's tile laid over it where `grain` asks */
+async function svgCanvas(p: Taken, svg: string, grain?: number): Promise<HTMLCanvasElement> {
   const picture = await loaded(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
-  return grainedPng(
+  return grainedCanvas(
     p,
     context => context.drawImage(picture, 0, 0, p.pixels.width, p.pixels.height),
-    p.grain
+    grain
   );
 }
-/* An effect's PNG is its first frame finished as the site paints it: the silk, the rosette and the blob as their
+/* the papercut's picture by its CPU drawing (papercut-png.ts), its code asked for with the first one taken: neither a
+   page's start nor the Worker's build carries it */
+const papercutCanvasOf = async (p: Taken, effect: Effect): Promise<HTMLCanvasElement> =>
+  (
+    await (import.meta.env.SSR ? (new Promise(() => {}) as never) : import("./papercut-png.ts"))
+  ).papercutCanvas(p, effect);
+/* An effect's picture is its first frame finished as the site paints it: the silk, the rosette and the blob as their
    finished still SVG paints, which each browser draws within about a level of the site's picture (the blob's frost
    its own), drawn by the browser at once; the papercut by its own CPU drawing (papercut-png.ts); the glass drawn on
    the CPU as its player draws it and blurred there, the same pixels as the server's picture of the address
    (engine/fx-frame.ts), where its SVG is a displacement filter that Firefox and Safari draw a few levels off and
    slowly, the grain's tile laid over it as over the gradient's. */
-async function framePng(p: Taken, effect: Effect): Promise<Blob> {
+async function frameCanvas(p: Taken, effect: Effect): Promise<HTMLCanvasElement> {
   const { effectRgba } = await import("@grabient/engine/fx-frame.ts");
   const { width, height } = p.pixels;
   const pixels = await effectRgba(paletteOf(p), effect, p.angle, p.pixels, p.soft);
-  return grainedPng(
+  return grainedCanvas(
     p,
     context => context.putImageData(new ImageData(pixels, width, height), 0, 0),
     p.grain
   );
 }
+/** The palette's picture at the pixels taken, standing still, as its PNG is drawn: the first frame of the effect it
+    plays, else its gradient (its SVG painted, the grain's tile over it), finished by its soft and grain. What Copy
+    PNG and Download PNG encode, and what the selection lays on its grid. */
+export async function pictureCanvas(p: Taken): Promise<HTMLCanvasElement> {
+  if (!p.effect) return svgCanvas(p, await gradientSvg(p), p.grain);
+  if (p.effect.kind === "papercut") return papercutCanvasOf(p, p.effect);
+  if (p.effect.kind !== "glass") return svgCanvas(p, await effectSvgOf(p, p.effect, false));
+  return frameCanvas(p, p.effect);
+}
 const pngOf = async (p: Taken): Promise<Blob> => {
-  if (!p.effect) return gradientPng(p);
-  if (p.effect.kind === "papercut") return papercutPngOf(p, p.effect);
-  if (p.effect.kind !== "glass") return svgToPngBlob(await effectSvgOf(p, p.effect, false), 1);
-  return framePng(p, p.effect);
+  const png = await encoded(await pictureCanvas(p), "image/png");
+  if (!png) throw new Error("no PNG");
+  return png;
 };
 /* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
 const fileUrl = (p: Taken, f: Format) =>

@@ -1,9 +1,11 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
+import { blobShapeOf, EFFECT_LOOK, EFFECT_PLAY } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import { undo } from "../../app/undo.ts";
 import {
   addAll,
   clearSelection,
+  heldEffect,
   readSelection,
   SELECTION_MAX,
   selected,
@@ -70,4 +72,66 @@ test("a full selection makes room by letting its oldest go, and one undo puts th
   expect(selected(drawn(500))).toBe(false);
   expect(toggle(drawn(0))).toBe("removed");
   expect(toggle({ seed: "nope", style: "linearGradient", steps: 7, angle: 90 })).toBe("invalid");
+});
+
+test("a palette keeps its soft and grain and the effect it played, held still: its look, never how it plays", () => {
+  const seed = seedOf(2);
+  const view = { seed, style: "radialSwatches" as const, steps: 6, angle: 30 };
+  // the soft and the grain are part of what the selection holds, and of its id
+  expect(selectedPalette({ ...view, soft: 20, grain: 64 })).toEqual({
+    id: `${seed}:radialSwatches:6:30:20:64`,
+    ...view,
+    soft: 20,
+    grain: 64
+  });
+  // an effect is held as designed in its motion, its look kept; its id is its still's address
+  const glass = {
+    kind: "glass" as const,
+    speed: 2.5,
+    fps: 120,
+    look: { ...EFFECT_LOOK, shape: 7 }
+  };
+  const held = selectedPalette({ ...view, grain: 64, effect: glass });
+  expect(held?.effect).toEqual({
+    kind: "glass",
+    ...EFFECT_PLAY,
+    look: { ...EFFECT_LOOK, shape: 7 }
+  });
+  expect(held?.id).toBe(`${seed}?style=glass&angle=30&grain=64&shape=7`);
+  // the same palette at another pace is the same still, so one palette of the selection
+  expect(selectedPalette({ ...view, grain: 64, effect: { ...glass, speed: 0 } })?.id).toBe(
+    held?.id
+  );
+  // the blob takes no angle and no steps, and one with no shape of its own takes its palette's
+  const blob = selectedPalette({
+    ...view,
+    effect: { kind: "blob", ...EFFECT_PLAY, look: { shape: null, frost: 1.5, bg: "#102030" } }
+  });
+  expect(blob?.effect?.look).toEqual({ shape: blobShapeOf(seed), frost: 1.5, bg: "#102030" });
+  expect(blob?.id).toBe(`${seed}?style=blob&frost=1.5&shape=${blobShapeOf(seed)}&bg=%23102030`);
+  // what is no effect is none
+  expect(heldEffect(seed, { kind: "mesh" })).toBeNull();
+  expect(heldEffect(seed, "glass")).toBeNull();
+  expect(selectedPalette({ ...view, effect: null })).toEqual({
+    id: `${seed}:radialSwatches:6:30`,
+    ...view
+  });
+});
+
+test("the same palette as a gradient, grained and playing an effect is three palettes of the selection", () => {
+  clearSelection();
+  const plain = drawn(3);
+  const grained = { ...plain, grain: 40 };
+  const silk = { ...plain, effect: { kind: "silk" as const, ...EFFECT_PLAY, look: EFFECT_LOOK } };
+  expect(addAll([plain, grained, silk])).toEqual({ added: 3, dropped: 0 });
+  expect(selected(plain) && selected(grained) && selected(silk)).toBe(true);
+  expect(
+    selected({ ...silk, effect: { ...silk.effect, look: { ...EFFECT_LOOK, shape: 3 } } })
+  ).toBe(false);
+  // kept as the browser keeps it, each is read back in its look
+  const kept = readSelection(JSON.stringify({ version: 1, items: selection() }));
+  expect(kept.map(item => item.id)).toEqual(selection().map(item => item.id));
+  expect(kept[2].effect?.kind).toBe("silk");
+  expect(toggle(silk)).toBe("removed");
+  expect(selected(plain) && selected(grained)).toBe(true);
 });

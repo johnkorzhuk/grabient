@@ -15,10 +15,23 @@ export async function drawnSoon(
   return drawn(stops, view);
 }
 
+/* the latest few made, by strength and size: the selection's tiles share one */
+const PICTURES_KEPT = 4;
+const pictures = new Map<string, Promise<string>>();
+
 /** The grain over a picture of `size` as one image's data URI, which a copied SVG carries in itself
     (lib/grain-image.ts: a design app imports it as one layer, one to one), its code loaded with the first. */
-export const grainPictureUrl = async (grain: number, size: Size): Promise<string> =>
-  (await import("../../lib/grain-image.ts")).grainImageUri(grain, size);
+export function grainPictureUrl(grain: number, size: Size): Promise<string> {
+  const key = `${grain}:${size.width}x${size.height}`;
+  let made = pictures.get(key);
+  if (!made) {
+    made = import("../../lib/grain-image.ts").then(m => m.grainImageUri(grain, size));
+    made.catch(() => pictures.delete(key));
+    pictures.set(key, made);
+    if (pictures.size > PICTURES_KEPT) pictures.delete(pictures.keys().next().value!);
+  }
+  return made;
+}
 
 /** The grain's data as code shows it, elided: a copy writes it whole (grainDataUrl). */
 export const GRAIN_SHOWN = "data:image/png;base64,…";

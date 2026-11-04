@@ -57,10 +57,17 @@ import {
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { accountView, onAccountChange, syncStatus } from "../account/state.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
-import { drawnIn, effectsReady, type ListView } from "../list/appearance.ts";
+import {
+  cardPlays,
+  drawnIn,
+  effectsReady,
+  type ListView,
+  lookEffect,
+  lookFinish
+} from "../list/appearance.ts";
 import { useCollectionSeen } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
-import { selection } from "../selection/selection.ts";
+import { keptItem, selection } from "../selection/selection.ts";
 import { Actions } from "./Actions.tsx";
 import { collectionHref, type PaletteOrder, sortCollectionItems } from "./address.ts";
 import {
@@ -397,8 +404,19 @@ export function CollectionPage(props: {
     const key = keyOf(item);
     return removals().has(key) && !doc()?.items.some(i => keyOf(i) === key) ? key : null;
   };
-  /* the collection's palettes as the page draws them, in its order: what Add all takes and the frame paints */
-  const palettes = createMemo(() => ordered().map(item => drawnIn(inputOf(item), props.view)));
+  /* the collection's palettes as the page draws them, in its order, each in the look its card shows (the soft, the
+     grain and the effect the collection saved it in while the page draws every palette as saved): what Add all takes
+     and the frame paints */
+  const palettes = createMemo(() =>
+    ordered().map(item => {
+      const own = inputOf(item);
+      const kept = item.look ? lookEffect(own.seed, item.look) : null;
+      return {
+        ...drawnIn(own, props.view, null, lookFinish(item.look)),
+        effect: cardPlays(props.view, null, own.seed, kept)
+      };
+    })
+  );
 
   /* the owner takes a palette out: through the account's copy where it holds the collection, else the server. The
      removal is a step of the page's undo, and its token puts the palette back where it stood */
@@ -590,7 +608,7 @@ export function CollectionPage(props: {
   /* the selection: its press at the head of the row's actions, its export screen in the page's place, and its Save
      into the account's collections */
   const checklists = createChecklists(say);
-  const saving = checklists.selection(() => selection().map(inputOf));
+  const saving = checklists.selection(() => selection().map(keptItem));
   const sel = createSelectionScreen({
     note: say,
     save: () => (
