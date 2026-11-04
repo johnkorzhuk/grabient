@@ -34,7 +34,7 @@ import { addressParams, fileName } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { failure, type Keep } from "./serve.ts";
-import { pictureSize } from "./size.ts";
+import { boundedSize, CLIP_BOUNDS, pictureSize } from "./size.ts";
 import type { VideoPartDrawn, VideoPartJob } from "./video-draw.ts";
 
 /** Draws a part of a clip in an invocation of its own (video-parts.ts). */
@@ -81,6 +81,10 @@ export interface Clip {
   job: Omit<VideoPartJob, "finish" | "from" | "to" | "state">;
   runs: [number, number][];
   size: Size;
+  /** whether a container draws it whole (video-drawer.ts), at a size the Worker's parts would have shrunk */
+  whole: boolean;
+  /** its first frame's size as a PNG, within a picture's bounds: a 4K clip's is drawn smaller */
+  poster: Size;
   fps: number;
   plan: VideoPlan;
   address: {
@@ -137,10 +141,18 @@ export async function seedMp4Answer(
       `An MP4 plays an effect: ${styles.slice(0, -1).join(", ")} or ${styles.at(-1)}.`
     );
   }
-  const { videoAt, videoParts, videoQuality } = await import("@grabient/engine/video.ts");
+  const { videoAt, videoParts, videoQuality, VIDEO_WHOLE_LIMITS } = await import(
+    "@grabient/engine/video.ts"
+  );
   /* the clip, of the kind just read, as the editor's download reads the same address (engine/video.ts's videoAt): the
-     blob has no angle, one clip for every angle its address names */
-  const { kind, angle, finish, duration, size, fps, plan } = videoAt(params, pictureSize(params))!;
+     blob has no angle, one clip for every angle its address names. Where a container draws clips whole (staging), a
+     clip the Worker's parts would draw smaller is drawn at the size asked, up to 4K (video-drawer.ts). */
+  const parted = videoAt(params, pictureSize(params))!;
+  const wide = env.VIDEO_DRAWER
+    ? videoAt(params, pictureSize(params, CLIP_BOUNDS), VIDEO_WHOLE_LIMITS)!
+    : parted;
+  const whole = wide.size.width !== parted.size.width || wide.size.height !== parted.size.height;
+  const { kind, angle, finish, duration, size, fps, plan } = whole ? wide : parted;
   const drawn = { kind, look: effect.look, finish };
   const look = kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
   const hash = await hashOf([
@@ -172,8 +184,10 @@ export async function seedMp4Answer(
       fps,
       plan
     },
-    runs: videoParts(drawn, plan, size, options.partWork ?? PART_WORK),
+    runs: whole ? [] : videoParts(drawn, plan, size, options.partWork ?? PART_WORK),
     size,
+    whole,
+    poster: boundedSize(size.width, size.height, 1),
     fps,
     plan,
     address: { origin, seed: found.seed, effect, angle, finish, duration }

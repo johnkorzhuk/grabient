@@ -7,7 +7,12 @@
    one for anyone, within allowances sized for those few (limits/config.ts), as development and Previews do. An admin
    is held to none of them but the one drawing of a clip at a time that every asker shares: an asker who finds the clip
    being drawn waits for it to be kept and is answered from there. Nothing is drawn while the `videos` flag is off;
-   then, and for an asker a clip is not drawn for, the address goes to its first frame as a PNG. */
+   then, and for an asker a clip is not drawn for, the address goes to its first frame as a PNG.
+
+   Where a container draws clips whole (staging's VIDEO_DRAWER), a clip past the Worker's work is drawn there at the
+   size asked, up to 4K, rather than smaller in the Worker's parts: the asker begins its drawing in the clip's Durable
+   Object, or joins the drawing another began at no cost to its allowance, and is answered from R2 once it is kept
+   (video-drawer.ts). */
 
 import { effectFileAddress, effectStillParts } from "@grabient/engine/effect.ts";
 import type { Mp4Frame } from "@grabient/engine/mp4.ts";
@@ -28,14 +33,15 @@ import type { Keep } from "./serve.ts";
 import type { Clip, VideoAdmin, VideoPartRunner } from "./video.ts";
 import { bytesAnswer, keptAnswer } from "./video-bytes.ts";
 import type { VideoPartDrawn } from "./video-draw.ts";
+import type { WholeDrawer, WholeState } from "./video-drawer.ts";
 
 /** The clip's first frame as a PNG at its size, soft and grained as the clip is: its poster, and what stands in for it
     while it is not drawn. */
-const stillAddress = ({ address: at, size }: Clip) =>
+const stillAddress = ({ address: at, poster }: Clip) =>
   `${at.origin}/${at.seed}.png?${[
     ...effectStillParts(at.effect, at.angle, at.finish),
-    `w=${size.width}`,
-    `h=${size.height}`
+    `w=${poster.width}`,
+    `h=${poster.height}`
   ].join("&")}`;
 
 /** The address a clip is named by: its effect's (effectFileAddress: its style, angle, soft and grain, how it plays and
@@ -253,6 +259,79 @@ const ROUNDS = 2;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/** How long an asker waits on a clip drawn whole before it is told to come back: past a 4K minute on the slower of
+    Cloudflare's container hosts (4.2 to 4.4 minutes on the faster, which the slower took 1.66 times as long over,
+    3 Nov 2026). */
+const WHOLE_WAIT_MS = 12 * 60_000;
+
+/** The object that draws a clip whole (video-drawer.ts), named by the clip's key, where a container draws clips and
+    R2 keeps them. */
+function drawerOf(env: Env, store: R2Bucket | undefined, clip: Clip): WholeDrawer | null {
+  const namespace = env.VIDEO_DRAWER;
+  if (!namespace || !store) return null;
+  return namespace.get(namespace.idFromName(clip.hash)) as unknown as WholeDrawer;
+}
+
+/** The clip as its container draws it, with the address's soft and grain, which the container works out at the
+    clip's size as drawClip does for the parts. */
+const wholeJob = ({ job, address }: Clip) => ({ ...job, finish: address.finish });
+
+/* Begins a clip's drawing whole unless it is being drawn, which costs the asker nothing: null once it is, or the
+   refusal past the asker's allowance (an admin has none) or the site's day. */
+async function beginWhole(
+  env: Env,
+  request: Request,
+  clip: Clip,
+  drawer: WholeDrawer,
+  maker: Maker
+): Promise<Response | null> {
+  if ((await drawer.status()).state === "drawing") return null;
+  if (maker === "anyone") {
+    const who = clientAddress(request);
+    const checks: LimitCheck[] = [
+      ...(who ? [[`video:${who}`, "videoRender"] as const] : []),
+      ["video-day", "videoRenderDaily"]
+    ];
+    const result = await checkLimits(env, checks);
+    if (!result) return failure(503, "Video temporarily unavailable");
+    if (!result.success) {
+      countUsage(env, "image", "video", "refused");
+      const wait = Math.max(1, result.reset - Math.floor(Date.now() / 1000));
+      return failure(429, "Too many new videos. Try again later.", { "Retry-After": String(wait) });
+    }
+  }
+  await drawer.begin({ name: clip.name, job: wholeJob(clip) });
+  return null;
+}
+
+/** The answer to an asker of a clip drawn whole that is not kept: its drawing begun or joined, then the clip answered
+    from R2 once it is kept, looked for every `lookEvery`; an asker is told to come back if the drawing failed or takes
+    longer than any clip should. Leaving early stops nothing: the drawing runs in its object's alarm. */
+async function wholeAnswer(
+  request: Request,
+  env: Env,
+  store: R2Bucket,
+  clip: Clip,
+  drawer: WholeDrawer,
+  maker: Maker,
+  headers: Record<string, string>,
+  lookEvery = LOOK_EVERY_MS
+): Promise<Response> {
+  const refused = await beginWhole(env, request, clip, drawer, maker);
+  if (refused) return refused;
+  for (let looked = 1, until = Date.now() + WHOLE_WAIT_MS; Date.now() < until; looked++) {
+    await sleep(lookEvery);
+    const found = await keptAnswer(request, store, clip.name, headers);
+    if (found) return found;
+    if (looked % 10) continue;
+    const state: WholeState = await drawer.status();
+    if (state.state === "failed") {
+      return failure(503, "Video temporarily unavailable", { "Retry-After": "60" });
+    }
+  }
+  return failure(503, "Video is still being drawn", { "Retry-After": "60" });
+}
+
 /** The answer to an asker of a clip that is not kept: its first frame where it is not drawn for them; else the clip
     drawn for them, or, while another asker's drawing holds its slot, answered from R2 once that drawing has kept it.
     A drawing that stopped short leaves the slot to this asker, who draws on from where it stopped. */
@@ -268,9 +347,13 @@ export async function madeAnswer(
 ): Promise<Response> {
   const paused = await flagOff(env, "videos");
   const maker = paused ? null : await makerOf(env, request, options.admin);
-  if (!maker) {
+  const drawer = clip.whole ? drawerOf(env, store, clip) : null;
+  if (!maker || (clip.whole && !drawer)) {
     countUsage(env, "image", "video", "refused");
     return toStill(stillAddress(clip), paused);
+  }
+  if (drawer && store) {
+    return wholeAnswer(request, env, store, clip, drawer, maker, headers, options.lookEvery);
   }
   const lookEvery = options.lookEvery ?? LOOK_EVERY_MS;
   for (let round = 0; round < ROUNDS; round++) {
@@ -314,6 +397,10 @@ async function previewPlays(
   if (await flagOff(env, "videos")) return false;
   const maker = await makerOf(env, request, admin);
   if (!maker) return false;
+  if (clip.whole) {
+    const drawer = drawerOf(env, store, clip);
+    return !!drawer && !((await beginWhole(env, request, clip, drawer, maker)) instanceof Response);
+  }
   const refused = await drawingRefused(env, request, clip.hash, maker);
   if (refused instanceof Response) return false;
   if (refused === null) keep(drawAndKeep(env, store, clip, parts).kept);
@@ -343,6 +430,7 @@ function videoPreview(page: {
   file: string | null;
   poster: string;
   size: Size;
+  posterSize: Size;
   title: string;
   about: string;
 }): Response {
@@ -350,14 +438,15 @@ function videoPreview(page: {
     attribute
   );
   const { width, height } = page.size;
+  const still = page.posterSize;
   const file = page.file === null ? null : attribute(page.file);
   const video = file
     ? `<meta property="og:video" content="${file}"><meta property="og:video:url" content="${file}"><meta property="og:video:secure_url" content="${file}"><meta property="og:video:type" content="video/mp4"><meta property="og:video:width" content="${width}"><meta property="og:video:height" content="${height}"><meta property="og:type" content="video.other">`
     : `<meta property="og:type" content="website">`;
   const body = file
     ? `<video src="${file}" poster="${poster}" width="${width}" height="${height}" autoplay muted loop playsinline></video>`
-    : `<img src="${poster}" alt="" width="${width}" height="${height}">`;
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${about}"><link rel="canonical" href="${address}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${about}"><meta name="twitter:image" content="${poster}"><meta property="og:site_name" content="Grabient"><meta property="og:title" content="${title}"><meta property="og:description" content="${about}"><meta property="og:url" content="${address}"><meta property="og:image" content="${poster}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="${width}"><meta property="og:image:height" content="${height}">${video}</head><body>${body}</body></html>`;
+    : `<img src="${poster}" alt="" width="${still.width}" height="${still.height}">`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${about}"><link rel="canonical" href="${address}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${about}"><meta name="twitter:image" content="${poster}"><meta property="og:site_name" content="Grabient"><meta property="og:title" content="${title}"><meta property="og:description" content="${about}"><meta property="og:url" content="${address}"><meta property="og:image" content="${poster}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="${still.width}"><meta property="og:image:height" content="${still.height}">${video}</head><body>${body}</body></html>`;
   return new Response(html, {
     headers: { ...NO_STORE, "Content-Type": "text/html; charset=utf-8", Vary: "User-Agent" }
   });
@@ -383,6 +472,7 @@ export async function previewAnswer(
     file: plays ? `${address}&raw` : null,
     poster: stillAddress(clip),
     size: clip.size,
+    posterSize: clip.poster,
     title: `${readingName(readPalette(clip.job.palette))} · Grabient`,
     about: ABOUT[clip.job.kind]
   });

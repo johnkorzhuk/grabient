@@ -1,7 +1,8 @@
 /* Grabient: minih264 by lieff (https://github.com/lieff/minih264 at b0baea7a), CC0 1.0 (MINIH264-LICENSE), with its
-   changes marked "grabient:": the level also bounds the macroblock rate; the SPS says Constrained Baseline and carries
-   VUI (the colors' tags, the frame rate, no reordering); wasm counts as little-endian; and wasm SIMD takes the SSE2
-   code, through emscripten's SSE headers (simd/, MIT). video.c sets the GRABIENT_ numbers this reads. */
+   changes marked "grabient:": the level also bounds the macroblock rate, and goes on past 5.1 to 5.2 and 6 to 6.2; the
+   SPS says Constrained Baseline and carries VUI (the colors' tags, the frame rate, no reordering); wasm counts as
+   little-endian; and wasm SIMD takes the SSE2 code, through emscripten's SSE headers (simd/, MIT). video.c sets the
+   GRABIENT_ numbers this reads. */
 #ifndef MINIH264_H
 #define MINIH264_H
 /*
@@ -8844,8 +8845,9 @@ static void encode_sps(h264e_enc_t *enc, int profile_idc)
     {
         uint8_t level;
         uint8_t constrains;
-        uint16_t max_fs;
-        uint16_t max_vbvdiv5;
+        /* grabient: 32 bits, for 6 to 6.2's frame size and 6.1 and 6.2's buffer */
+        uint32_t max_fs;
+        uint32_t max_vbvdiv5;
         uint32_t max_dpb;
     };
     static const struct limit_t limit [] = {
@@ -8864,14 +8866,20 @@ static void encode_sps(h264e_enc_t *enc, int profile_idc)
         {41, 0xE0, 8192,  62500/5, 32768},
         {42, 0xE0, 8704,  62500/5, 34816},
         {50, 0xE0, 22080, 135000/5, 110400},
-        {51, 0xE0, 36864, 240000/5, 184320}
+        {51, 0xE0, 36864, 240000/5, 184320},
+        /* grabient: 5.2 and 6 to 6.2 (Table A-1), so a frame past 5.1's macroblock rate (3840 by 2160 at 60 frames a
+           second) or its frame size is not labelled 5.1 */
+        {52, 0xE0, 36864, 240000/5, 184320},
+        {60, 0xE0, 139264, 240000/5, 696320},
+        {61, 0xE0, 139264, 480000/5, 696320},
+        {62, 0xE0, 139264, 800000/5, 696320}
     };
     const struct limit_t *plim = limit;
 
     /* grabient: the level also bounds the macroblock rate (Table A-1's MaxMBPS), which the frame size alone misses */
     static const uint32_t max_mbps[] = {1485, 1485, 3000, 6000, 11880, 11880, 19800, 20250, 40500, 108000, 216000,
-        245760, 245760, 522240, 589824, 983040};
-    while (plim->level < 51 && (enc->frame.nmb > plim->max_fs ||
+        245760, 245760, 522240, 589824, 983040, 2073600, 4177920, 8355840, 16711680};
+    while (plim->level < 62 && (enc->frame.nmb > plim->max_fs ||
         enc->param.vbv_size_bytes > plim->max_vbvdiv5*(5*1000/8) ||
         (unsigned)(enc->frame.nmb*(enc->param.max_long_term_reference_frames + 1)) > plim->max_dpb ||
         (GRABIENT_FPS && (uint32_t)enc->frame.nmb*GRABIENT_FPS > max_mbps[plim - limit])))

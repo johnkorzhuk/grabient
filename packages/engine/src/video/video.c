@@ -10,7 +10,8 @@
    JS says where an effect stands in each frame (the glass's discs, the blob's balls, the silk's folds, the rosette's
    petals, the papercut's hills, waves and light: engine code, which moves them) and this draws it. One encoder an
    instance: create(), a setup, the finish's setups where the clip has a soft or a grain, then per frame a draw and
-   frame(). */
+   frame(); or the draw in one instance and frame() in another made alike, which takes the drawn planes in (plane(),
+   stride()). */
 #include <wasm_simd128.h>
 
 static int grabient_fps = 0;
@@ -262,6 +263,14 @@ EXPORT(state)
 int state(void) { return (int)enc; }
 EXPORT(state_size)
 int state_size(void) { return persistBytes; }
+
+/* Where plane i of the frame is (0 Y, 1 U, 2 V), and its stride, the bytes from one of its rows to the next: a drawing
+   leaves the planes finished, so another instance's encoder, made alike, can take them in and code them. 0 for
+   another i. */
+EXPORT(plane)
+int plane(int i) { return i >= 0 && i < 3 ? (int)io.yuv[i] : 0; }
+EXPORT(stride)
+int stride(int i) { return i >= 0 && i < 3 ? io.stride[i] : 0; }
 
 /* ---------------------------------------------------------------- the finish (fx-finish.ts's finishPixels) */
 

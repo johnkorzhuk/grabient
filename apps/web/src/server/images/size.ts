@@ -7,7 +7,13 @@ import type { Size } from "@grabient/engine/view.ts";
 import { SHEET_SIZE } from "../../lib/page-meta.ts";
 import { boundedSize, CARD_SIZE, wholeSide } from "../../lib/picture-size.ts";
 
-export { PIXELS_MAX, pictureSize, SIDE_MAX } from "../../lib/picture-size.ts";
+export {
+  boundedSize,
+  CLIP_BOUNDS,
+  PIXELS_MAX,
+  pictureSize,
+  SIDE_MAX
+} from "../../lib/picture-size.ts";
 export const CARD: Size = CARD_SIZE;
 /** A collection's sheet: square, as image searches show palettes, and kept in R2 once drawn (serve.ts). */
 export const SHEET: Size = SHEET_SIZE;

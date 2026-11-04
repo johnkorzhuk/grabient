@@ -4,5 +4,5 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "@cloudflare/workers-types", "node"]
   },
-  "include": ["src", "e2e", "scripts", "vite.config.ts"]
+  "include": ["src", "e2e", "scripts", "container", "vite.config.ts"]
 }

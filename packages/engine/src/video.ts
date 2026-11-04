@@ -111,6 +111,18 @@ export const VIDEO_LIMITS = {
   least: 0.5,
   work: 1.6e9
 } as const;
+export type VideoLimits = { [K in keyof typeof VIDEO_LIMITS]: number };
+
+/** What a clip drawn whole in a container may be (apps/web container/, server/images/video-drawer.ts): up to 4K UHD
+    either way up, its work not capped, since a container's four cores draw it as one stream however long that takes
+    (3 Nov 2026: John's 1080 by 1080 papercut at 60 frames a second is 11 times VIDEO_LIMITS.work, and was drawn 320
+    by 320). A 4K minute of the papercut with a soft and a grain took 4.2 to 4.4 minutes on one container. */
+export const VIDEO_WHOLE_LIMITS: VideoLimits = {
+  ...VIDEO_LIMITS,
+  side: 3840,
+  pixels: 3840 * 2160,
+  work: Number.POSITIVE_INFINITY
+};
 
 /** What a pixel of a frame costs to draw and code, the glass's 1, measured against the glass frame by frame and in
     whole clips drawn in parts as the Worker draws them (3 Nov 2026): the blob's melt and frost cost half again (1.1 to
@@ -214,11 +226,12 @@ export function videoFit(
   speed: number,
   fps: number,
   duration: number | null,
-  asked: Size
+  asked: Size,
+  limits: VideoLimits = VIDEO_LIMITS
 ): { size: Size; fps: number; plan: VideoPlan } {
-  const rate = Math.max(1, Math.min(VIDEO_LIMITS.fps, Math.round(fps)));
-  const long = speed > 0 && videoLoop(effect) / speed > VIDEO_LIMITS.seconds;
-  const plan = videoPlan(effect, speed, rate, duration ?? (long ? VIDEO_LIMITS.seconds : null));
+  const rate = Math.max(1, Math.min(limits.fps, Math.round(fps)));
+  const long = speed > 0 && videoLoop(effect) / speed > limits.seconds;
+  const plan = videoPlan(effect, speed, rate, duration ?? (long ? limits.seconds : null));
   const w = Math.max(16, asked.width);
   const h = Math.max(16, asked.height);
   // the hair before flooring keeps a side that scales to a whole number from losing a pixel
@@ -228,18 +241,18 @@ export function videoFit(
   };
   let scale = Math.min(
     1,
-    VIDEO_LIMITS.side / Math.max(w, h),
-    Math.sqrt(VIDEO_LIMITS.pixels / (w * h)),
-    Math.sqrt(VIDEO_LIMITS.work / videoWork(effect, { width: w, height: h }, plan.frames))
+    limits.side / Math.max(w, h),
+    Math.sqrt(limits.pixels / (w * h)),
+    Math.sqrt(limits.work / videoWork(effect, { width: w, height: h }, plan.frames))
   );
   let size = sized(scale);
   /* every step makes a side shorter, so this ends: within the work, or at the least sides */
   for (
     let work = videoWork(effect, size, plan.frames);
-    work > VIDEO_LIMITS.work * (1 + WORK_HAIR) && Math.max(size.width, size.height) > 16;
+    work > limits.work * (1 + WORK_HAIR) && Math.max(size.width, size.height) > 16;
     work = videoWork(effect, size, plan.frames)
   ) {
-    const next = scale * Math.sqrt(VIDEO_LIMITS.work / work);
+    const next = scale * Math.sqrt(limits.work / work);
     const smaller = sized(next);
     scale =
       smaller.width < size.width || smaller.height < size.height
@@ -266,7 +279,11 @@ export interface VideoAt {
   fps: number;
   plan: VideoPlan;
 }
-export function videoAt(params: ParamReader, asked: Size): VideoAt | null {
+export function videoAt(
+  params: ParamReader,
+  asked: Size,
+  limits: VideoLimits = VIDEO_LIMITS
+): VideoAt | null {
   const effect = parseEffect({ get: key => params.get(key) ?? (key === "style" ? "glass" : null) });
   if (!effect || !hasVideo(effect.kind)) return null;
   const kind = effect.kind;
@@ -279,7 +296,8 @@ export function videoAt(params: ParamReader, asked: Size): VideoAt | null {
     effect.speed,
     effect.fps,
     duration,
-    asked
+    asked,
+    limits
   );
   return { effect, kind, angle, finish, duration, ...fit };
 }
@@ -348,7 +366,7 @@ export const videoQuality = (effect: {
 /** The clips' module by its contents: the first 12 hex digits of video/video.wasm's SHA-256, which a test checks. An
     encoder's state holds pointers into the memory of the module that kept it, which another module lays out elsewhere
     (going on from one traps), so a drawing goes on only from a state the same module kept (video-make.ts). */
-export const VIDEO_MODULE = "45d27eeeedb3";
+export const VIDEO_MODULE = "c461b4d3f517";
 
 /** Frame i's quantizer in a clip of n frames. */
 export function videoQp(quality: VideoQuality, i: number, n: number): number {
@@ -390,6 +408,8 @@ interface VideoModule {
     matrix: number
   ) => number;
   keep_rgb: (on: number) => number;
+  plane: (i: number) => number;
+  stride: (i: number) => number;
   frame: (key: number, qp: number) => number;
   out: () => number;
   state: () => number;
@@ -483,7 +503,14 @@ export function videoDrawer(
     if (saved.length !== m.state_size()) throw new Error("video: a state of another clip");
     new Uint8Array(m.memory.buffer, m.state(), saved.length).set(saved);
   };
-  return { draw, code, rgb, state, resume };
+  /* the planes the last drawing finished, Y, U and V as minih264 reads them (each row `stride` bytes): views of the
+     module's memory, good until its next drawing. A drawer's are copied into an encoder's, whose code() then codes
+     them, so several drawers feed one stream (apps/web container/). */
+  const planes = () =>
+    [0, 1, 2].map(
+      i => new Uint8Array(m.memory.buffer, m.plane(i), m.stride(i) * (i ? H / 2 : H))
+    ) as [Uint8Array, Uint8Array, Uint8Array];
+  return { draw, code, rgb, state, resume, planes };
 }
 
 /* The clip's finish, which the module lays on each frame as fx-finish.ts's finishPixels does: the grain's tile at its

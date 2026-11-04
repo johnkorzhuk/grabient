@@ -10,6 +10,7 @@ import type { Keep } from "./serve.ts";
 import { seedMp4Answer, VIDEO_DRAWING, type VideoPartRunner } from "./video.ts";
 import { spanOf } from "./video-bytes.ts";
 import type { VideoPartJob } from "./video-draw.ts";
+import type { WholeClip, WholeState } from "./video-drawer.ts";
 
 const ORIGIN = "https://grabient.test";
 const SEED = "kWnCIwwC47igfOklkTlShq44";
@@ -145,26 +146,73 @@ function limiter(refuse: string[] = [], windows: Record<string, number> = {}) {
   } as unknown as DurableObjectNamespace;
 }
 
+/** The objects that draw clips whole in a container (video-drawer.ts), here: a clip begun is drawn a moment later, a
+    few bytes naming its size put in R2 under its name, or its drawing fails where `fail`; what each was handed is
+    kept. A clip being drawn is joined, not begun again. */
+function drawers(store: ReturnType<typeof bucket>, fail = false) {
+  const begun: WholeClip[] = [];
+  const states = new Map<string, WholeState>();
+  const namespace = {
+    idFromName: (name: string) => name,
+    get: (id: string) => ({
+      async begin(clip: WholeClip): Promise<WholeState> {
+        const now = states.get(id);
+        if (now?.state === "drawing") return now;
+        begun.push(clip);
+        const drawing = {
+          state: "drawing",
+          since: Date.now(),
+          coded: 0,
+          frames: clip.job.plan.frames
+        } as const;
+        states.set(id, drawing);
+        setTimeout(async () => {
+          if (fail) return void states.set(id, { state: "failed", error: "broken" });
+          await store.put(
+            clip.name,
+            new TextEncoder().encode(`${clip.job.width}x${clip.job.height}`)
+          );
+          states.delete(id);
+        }, 30);
+        return drawing;
+      },
+      status: async (): Promise<WholeState> => states.get(id) ?? { state: "idle" }
+    })
+  };
+  return { begun, namespace: namespace as unknown as DurableObjectNamespace };
+}
+
 function world(
   options: {
     off?: string[];
     refuse?: string[];
     windows?: Record<string, number>;
     deployment?: Env["DEPLOYMENT"];
+    /** a container draws clips past the Worker's work whole, or fails to where "fail" */
+    whole?: boolean | "fail";
   } = {}
 ) {
   const store = bucket();
   const points: string[] = [];
   const kept: Promise<unknown>[] = [];
+  const whole = options.whole ? drawers(store, options.whole === "fail") : null;
   const env = {
     DEPLOYMENT: options.deployment ?? "staging",
     DB: flagsOff(...(options.off ?? [])) as unknown as D1Database,
     UPLOADS: store as unknown as R2Bucket,
     RATE_LIMITER: limiter(options.refuse, options.windows),
+    VIDEO_DRAWER: whole?.namespace,
     USAGE: { writeDataPoint: (point: { blobs: string[] }) => points.push(point.blobs.join(" ")) }
   } as unknown as Env;
   const keep: Keep = work => kept.push(work);
-  return { env, keep, store, points, settled: () => Promise.all(kept) };
+  return {
+    env,
+    keep,
+    store,
+    points,
+    begun: whole?.begun ?? [],
+    settled: () => Promise.all(kept)
+  };
 }
 
 const get = (path: string, init: RequestInit = {}) =>
@@ -688,5 +736,102 @@ describe("a palette's MP4 posted as a link", () => {
     expect(html).not.toContain("og:video");
     await settled();
     expect(parts.jobs.length).toBe(0);
+  });
+});
+
+describe("a palette's MP4 drawn whole in a container", () => {
+  /* John's clip of 3 Nov 2026, which the Worker's parts drew 320 by 320 */
+  const WIDE = `/kYu01i1DI31C0ulGmctwIi7cqVT2.mp4?style=papercut&angle=0&soft=22&grain=38&speed=0.3&fps=60&shape=235&w=1080&h=1080`;
+  const UHD = `/${SEED}.mp4?style=glass&w=3840&h=2160&fps=60`;
+  const quick = { lookEvery: 5 };
+  const text = async (response: Response) => new TextDecoder().decode(await bytes(response));
+
+  test("draws an ask past the Worker's work at the size asked, once, and answers it from R2 after", async () => {
+    const { env, keep, begun } = world({ whole: true });
+    const parts = runner();
+    const first = await seedMp4Answer(get(WIDE), env, keep, parts.run, quick);
+    expect([first.status, first.headers.get("Content-Type")]).toEqual([200, "video/mp4"]);
+    expect(await text(first)).toBe("1080x1080");
+    expect(begun.length).toBe(1);
+    const { job, name } = begun[0];
+    expect([job.kind, job.width, job.height, job.fps, job.plan.frames]).toEqual([
+      "papercut",
+      1080,
+      1080,
+      60,
+      3600
+    ]);
+    // the address's soft and grain, which the container works out at the clip's size
+    expect(job.finish).toEqual({ soft: 22, grain: 38 });
+    expect(name).toBe(`videos/${first.headers.get("ETag")?.slice(7, -1)}.mp4`);
+    expect(parts.jobs.length).toBe(0);
+    const again = await seedMp4Answer(get(WIDE), env, keep, parts.run, quick);
+    expect([again.status, again.headers.get("X-Cache")]).toEqual([200, "HIT"]);
+    expect(begun.length).toBe(1);
+  });
+
+  test("is drawn smaller in parts, under a key of its own, where no container draws clips", async () => {
+    const parted = world();
+    const whole = world({ whole: true });
+    expect(await etagOf(parted.env, parted.keep, WIDE)).not.toBe(
+      await etagOf(whole.env, whole.keep, WIDE)
+    );
+  });
+
+  test("leaves an ask within the Worker's work to its parts, under the key it had", async () => {
+    const { env, keep, begun } = world({ whole: true });
+    const parted = world();
+    expect(await etagOf(env, keep, CLIP)).toBe(await etagOf(parted.env, parted.keep, CLIP));
+    const parts = runner();
+    expect((await seedMp4Answer(get(CLIP), env, keep, parts.run, quick)).status).toBe(200);
+    expect([begun.length, parts.jobs.length]).toEqual([0, 1]);
+  });
+
+  test("draws one drawing for two askers at once", async () => {
+    const { env, keep, begun } = world({ whole: true });
+    const parts = runner();
+    const both = await Promise.all([
+      seedMp4Answer(get(WIDE), env, keep, parts.run, quick),
+      seedMp4Answer(get(WIDE), env, keep, parts.run, quick)
+    ]);
+    expect(await Promise.all(both.map(text))).toEqual(["1080x1080", "1080x1080"]);
+    expect(begun.length).toBe(1);
+  });
+
+  test("draws 4K at its size, its first frame drawn within a picture's bounds", async () => {
+    const { env, keep, begun } = world({ whole: true });
+    const html = await (await seedMp4Answer(preview(UHD), env, keep, runner().run, quick)).text();
+    expect([begun[0].job.width, begun[0].job.height]).toEqual([3840, 2160]);
+    expect(html).toContain('<meta property="og:video:width" content="3840">');
+    const width = Number(/og:image:width" content="(\d+)"/.exec(html)?.[1]);
+    const height = Number(/og:image:height" content="(\d+)"/.exec(html)?.[1]);
+    expect(width).toBeLessThanOrEqual(2400);
+    expect(width * height).toBeLessThanOrEqual(4 * 1200 * 630);
+    expect(width / height).toBeCloseTo(16 / 9, 2);
+    expect(html).toContain(`w=${width}&amp;h=${height}`);
+  });
+
+  test("past its allowances answers 429 and begins nothing", async () => {
+    const { env, keep, begun } = world({ whole: true, refuse: ["videoRender"] });
+    const answer = await seedMp4Answer(get(WIDE), env, keep, runner().run, quick);
+    expect(answer.status).toBe(429);
+    expect(begun.length).toBe(0);
+  });
+
+  test("answers 503 when its drawing fails", async () => {
+    const { env, keep } = world({ whole: "fail" });
+    const answer = await seedMp4Answer(get(WIDE), env, keep, runner().run, quick);
+    expect([answer.status, answer.headers.get("Retry-After")]).toEqual([503, "60"]);
+  });
+
+  test("goes to its first frame while drawing is off, or for anyone but an admin on production", async () => {
+    for (const options of [{ off: ["videos"] }, { deployment: "production" as const }]) {
+      const { env, keep, begun } = world({ whole: true, ...options });
+      const answer = await seedMp4Answer(get(UHD), env, keep, runner().run, quick);
+      expect(answer.status).toBe(302);
+      const still = new URL(answer.headers.get("Location") ?? "");
+      expect(Number(still.searchParams.get("w"))).toBeLessThanOrEqual(2400);
+      expect(begun.length).toBe(0);
+    }
   });
 });

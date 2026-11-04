@@ -15,13 +15,27 @@ export const PIXELS_MAX = 4 * CARD_SIZE.width * CARD_SIZE.height;
 export const wholeSide = (raw: string | null | undefined) =>
   raw && /^\d+$/.test(raw) ? Math.min(Number(raw), Number.MAX_SAFE_INTEGER) : null;
 
+/** How large a picture may be: its longer side and its pixels. */
+export interface PictureBounds {
+  side: number;
+  pixels: number;
+}
+export const PICTURE_BOUNDS: PictureBounds = { side: SIDE_MAX, pixels: PIXELS_MAX };
+/** A clip drawn whole in a container, up to 4K UHD either way up (engine/video.ts VIDEO_WHOLE_LIMITS). */
+export const CLIP_BOUNDS: PictureBounds = { side: 3840, pixels: 3840 * 2160 };
+
 /** Sides within the bounds, at least `least` each. */
-export function boundedSize(width: number, height: number, least: number): Size {
+export function boundedSize(
+  width: number,
+  height: number,
+  least: number,
+  bounds: PictureBounds = PICTURE_BOUNDS
+): Size {
   const w = Math.max(least, width);
   const h = Math.max(least, height);
-  const scale = Math.min(1, SIDE_MAX / Math.max(w, h), Math.sqrt(PIXELS_MAX / (w * h)));
+  const scale = Math.min(1, bounds.side / Math.max(w, h), Math.sqrt(bounds.pixels / (w * h)));
   // The hair before flooring keeps a side that scales to a whole number, 2400 above all, from losing a pixel.
-  const fit = (v: number) => Math.max(least, Math.min(SIDE_MAX, Math.floor(v * scale + 1e-9)));
+  const fit = (v: number) => Math.max(least, Math.min(bounds.side, Math.floor(v * scale + 1e-9)));
   return { width: fit(w), height: fit(h) };
 }
 
@@ -40,14 +54,16 @@ function sizeAsked(raw: string | null): Size | null {
     : { width: Math.round((h * CARD_SIZE.width) / CARD_SIZE.height), height: h };
 }
 
-/** The pixels of a palette's own picture. A missing `w` or `h` beside the other is the card's side. */
-export function pictureSize(params: URLSearchParams): Size {
+/** The pixels of a palette's own picture, within `bounds` (a picture's, or a clip's drawn whole). A missing `w` or `h`
+    beside the other is the card's side. */
+export function pictureSize(params: URLSearchParams, bounds: PictureBounds = PICTURE_BOUNDS): Size {
   const w = wholeSide(params.get("w"));
   const h = wholeSide(params.get("h"));
   const asked = w === null && h === null ? sizeAsked(params.get("size")) : null;
   return boundedSize(
     asked?.width ?? w ?? CARD_SIZE.width,
     asked?.height ?? h ?? CARD_SIZE.height,
-    1
+    1,
+    bounds
   );
 }

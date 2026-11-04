@@ -24,6 +24,9 @@ export interface Env {
   CACHE?: KVNamespace;
   OAUTH_KV?: KVNamespace;
   RATE_LIMITER?: DurableObjectNamespace;
+  /** The objects that draw clips whole in a container, one a clip (apps/web server/images/video-drawer.ts): staging
+      alone binds them, and elsewhere a clip past the Worker's work is drawn smaller, as before. */
+  VIDEO_DRAWER?: DurableObjectNamespace;
   USAGE?: AnalyticsEngineDataset;
   ANALYTICS?: { query(options: { query: string; params?: unknown[] }): Promise<unknown> };
   AI?: Ai;

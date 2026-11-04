@@ -23,7 +23,8 @@ export default defineConfig({
           include: [
             "packages/*/src/**/*.test.ts",
             "apps/*/src/**/*.test.ts",
-            "apps/*/scripts/**/*.test.ts"
+            "apps/*/scripts/**/*.test.ts",
+            "apps/*/container/**/*.test.ts"
           ]
         }
       },

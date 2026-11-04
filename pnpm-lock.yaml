@@ -202,6 +202,9 @@ importers:
       color-name-list:
         specifier: 14.51.0
         version: 14.51.0
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

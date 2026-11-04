@@ -3,10 +3,12 @@ import {
   bindings,
   type CloudflareConfig,
   defineConfig,
+  defineContainer,
   exports,
   triggers,
   type WorkerConfig
 } from "cf/config";
+import image from "./container/image.json" with { type: "json" };
 
 /* One app, three Workers and a local one. A mode inherits nothing from another, so each names every resource it
    binds: a production deploy that kept staging's bindings would serve staging's database on grabient.com.
@@ -36,6 +38,21 @@ export const ORIGINS = {
 const EMAIL_FROM = "noreply@grabient.com";
 // The newsletter goes through Resend, on a sender it has verified: Email Sending takes only the emails a reader asks for.
 const NEWSLETTER_FROM = "news@grabient.com";
+/* Staging's video container: clips past the Worker's work drawn whole, up to 4K, by 4 drawer threads feeding one
+   encoder (container/, src/server/images/video-drawer.ts). Its image is built and pushed without Docker by
+   `pnpm --filter web video:image`, which writes the tag below into container/image.json; a test holds that image to
+   today's drawing (VIDEO_DRAWING, VIDEO_MODULE) and the container's sources. standard-4 is 4 vCPUs and 12 GiB, and
+   is named because a rollout that named none fell back to lite (1/16 vCPU). Four at once caps what staging can spend
+   drawing clips at a time. */
+const ACCOUNT_ID = "f846204052f664d57da7acde8f6803cd";
+const videoContainer = defineContainer({
+  name: "grabient-staging-video",
+  image: { reference: `registry.cloudflare.com/${ACCOUNT_ID}/grabient-video:${image.tag}` },
+  instanceType: "standard-4",
+  maxInstances: 4,
+  ssh: { enabled: false }
+});
+
 // The uploads bucket every deploy but production writes avatars to, and its public address.
 const DEV_UPLOADS = {
   name: "grabient-uploads-dev",
@@ -134,7 +151,10 @@ function staging(): CloudflareConfig {
       domains: ["staging.grabient.com"],
       workersDev: false,
       previewUrls: true,
-      exports: { RateLimiter: exports.durableObject({ storage: "sqlite" }) },
+      exports: {
+        RateLimiter: exports.durableObject({ storage: "sqlite" }),
+        VideoDrawer: exports.durableObject({ storage: "sqlite", container: videoContainer })
+      },
       env: {
         DEPLOYMENT: bindings.text("staging"),
         PUBLIC_ORIGIN: bindings.text(ORIGINS.staging),
@@ -160,12 +180,17 @@ function staging(): CloudflareConfig {
           worker: "grabient-staging",
           exportName: "RateLimiter"
         }),
+        VIDEO_DRAWER: bindings.durableObject({
+          worker: "grabient-staging",
+          exportName: "VideoDrawer"
+        }),
         USAGE: bindings.analyticsEngineDataset({ name: "grabient_staging_usage" }),
         ANALYTICS: bindings.analytics(),
         AI: bindings.ai(),
         ASSETS: bindings.assets()
       }
-    }
+    },
+    containers: [videoContainer]
   };
 }
 
