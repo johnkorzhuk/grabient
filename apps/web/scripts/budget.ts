@@ -129,8 +129,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   "/newsletter": { route: "src/routes/newsletter.tsx", budget: 230 },
   /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026, and over the effects (as /palettes)
      to 251.0 on 3 Nov 2026 */
-  /* the color reader, as "/", took it from 251.0 to 253.4 on 3 Nov 2026 */
-  "/about": { route: "src/routes/about.tsx", budget: 254 }
+  /* the color reader, as "/", took it from 251.0 to 253.4 on 3 Nov 2026; 253.99 at 7f486b89, and on 4 Nov 2026 the
+     lists' edge times (features/gallery/load.ts), none of its code, renamed chunks it imports: 19 bytes more gzipped */
+  "/about": { route: "src/routes/about.tsx", budget: 255 }
 };
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
 const EVERY_PAGE = ["src/app/tab-icon.ts"];

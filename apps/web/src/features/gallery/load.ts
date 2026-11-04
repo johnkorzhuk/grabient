@@ -9,7 +9,9 @@ import {
   failed,
   framesQuery,
   homeCollectionsQuery,
-  homeHeadQuery
+  homeHeadQuery,
+  PUBLIC_TTL,
+  RISING_TTL
 } from "./queries.ts";
 import { keptPage, pageQuery } from "./sources.ts";
 
@@ -29,13 +31,16 @@ export interface Loaded extends FramedData {
   palettes?: string[];
 }
 
-/* How long a list's page (and the home) is kept at each data center's edge: half an hour, Rising ten minutes. The
-   data under it stays fresher (server/gallery/cache.ts `listTtl`), and the app reads that data as a reader moves
-   through the site; the page is what a browser or a program gets when it asks for the address itself. On 24 Oct 2026
-   scrapers asked for the lists in every language from home connections everywhere, so most data centers drew each
-   page anew at about 130 ms of CPU; kept five minutes (Rising one), nine in ten of their pages were drawn again. */
-const PUBLIC_EDGE = 1800;
-const RISING_EDGE = 600;
+/* How long a list's page (and the home) is kept at each data center's edge: as long as the data it was drawn from
+   stays fresh in the browser (queries.ts), so the page and the browser's copy of its data go stale at the same moment.
+   From 24 Oct 2026 pages were kept half an hour (Rising ten minutes) against scrapers' renders, while their data
+   stayed fresh five minutes (Rising one): a page kept past its data's minute was read again by its browser at once,
+   and a list that had changed since was redrawn after the page loaded (John, 4 Nov 2026, of a palette he liked: "i
+   see it pop in after the page load", then "just make the time the server gets the new data the same moment when the
+   client gets the data"). The edge's bot checks since stop most of those scrapers: on 3–4 Nov about 62,600 list pages a
+   day reached the Worker, so drawn this often they cost about 16,000 more renders a day, under $1.30 a month. */
+const PUBLIC_EDGE = PUBLIC_TTL / 1000;
+const RISING_EDGE = RISING_TTL / 1000;
 const left = (fetchedAt: number, ttl: number) =>
   Math.max(0, Math.min(ttl, Math.floor((fetchedAt + ttl * 1000 - Date.now()) / 1000)));
 
@@ -66,11 +71,12 @@ export async function loadPalettes(
   }
   if (page.limited) return { edge: 0, robots: "noindex,follow", status: 429, paint };
   if (page.tier === "unavailable") return { edge: 0, robots: "noindex,follow", status: 503 };
-  const ttl = place.order === "rising" ? RISING_EDGE : PUBLIC_EDGE;
+  /* a search's answer stays fresh as long in every order (searchQuery) */
+  const ttl = place.order === "rising" && !place.params.words ? RISING_EDGE : PUBLIC_EDGE;
   /* words the search cannot read as what they mean are no page of their own for an index */
   const unread = !!place.params.words && !page.indexable;
   return {
-    edge: page.unkept ? 0 : place.params.words ? ttl : left(page.fetchedAt, ttl),
+    edge: page.unkept ? 0 : left(page.fetchedAt, ttl),
     palettes: page.items.map(item => paletteAddress(item.kseed, item)),
     paint,
     ...(unread ? { robots: "noindex,follow" } : {})
@@ -95,6 +101,7 @@ export async function loadHome(client: QueryClient, params: ListParams): Promise
     return { edge: 0, robots: "noindex,follow", status: 404, paint };
   }
   return {
+    /* both read as the page is drawn, so kept from now as long as they stay fresh */
     edge: answered.unkept || collections.unkept ? 0 : PUBLIC_EDGE,
     palettes: answered.palettes.map(item => paletteAddress(item.kseed, item)),
     paint

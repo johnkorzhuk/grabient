@@ -4,7 +4,7 @@ import { ListRoute } from "../../features/collections/ListRoute.tsx";
 import type { ListPlace } from "../../features/collections/params.ts";
 import { listHead, listPlace, loadList } from "../../features/collections/route.ts";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
-import { LIST_PAGE, MOVING_LIST_PAGE, NO_STORE } from "../../lib/cache.ts";
+import { FRESH, NO_STORE, PAGE } from "../../lib/cache.ts";
 import { DEFAULT_FRAME, isFrame } from "../../lib/orders.ts";
 import { drawnSearch, searchOf } from "../../lib/route.ts";
 
@@ -43,12 +43,10 @@ export const Route = createFileRoute("/collections/{-$order}/{-$frame}")({
       // a frame turned off leads to the week's with the selection still open, which the deps leave out
       new URLSearchParams(location.searchStr).has("selection")
     ),
+  /* kept at the edge as long as the list's data stays fresh in the browser (features/collections/queries.ts), Rising's
+     a minute, so the page and the browser's copy go stale together and nothing is redrawn after the page loads */
   headers: ({ params, loaderData }) =>
-    loaderData?.status || loaderData?.unkept
-      ? NO_STORE
-      : params.order
-        ? MOVING_LIST_PAGE
-        : LIST_PAGE,
+    loaderData?.status || loaderData?.unkept ? NO_STORE : params.order ? FRESH : PAGE,
   head: ({ match, params, loaderData }) =>
     listHead(placeOf(params, searchOf(match.search))!, loaderData),
   staticData: { corner: ListAppearance },

@@ -49,8 +49,10 @@ export const own = <T>(data: T): T => structuredClone(data);
 
 export { type Failed, failed };
 
-const PUBLIC_TTL = 300_000;
-const RISING_TTL = 60_000;
+/** How long a public list's answer, a search's or the home's stays fresh, in milliseconds; Rising's lists a minute, so a
+    like shows within it. A page the server drew is kept at the edge no longer (load.ts). */
+export const PUBLIC_TTL = 300_000;
+export const RISING_TTL = 60_000;
 const PRIVATE_TTL = 60_000;
 
 const COULD_NOT_LOAD = msg("Couldn't load palettes.");
