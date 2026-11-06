@@ -1,4 +1,5 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
+import { type EffectKind, effectView } from "@grabient/engine/effect.ts";
 import { paletteTitle, readPalette } from "@grabient/engine/name.ts";
 import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
 import {
@@ -28,7 +29,7 @@ import {
   validateCollection
 } from "../../../features/collections/schema.ts";
 import type { CollectionSummary } from "../../../features/collections/types.ts";
-import { keptLook } from "../../../features/editor/look.ts";
+import { keptLook, lookKind } from "../../../features/editor/look.ts";
 import type { Credit } from "../../../features/gallery/credit.ts";
 import { SHEET_MAX } from "../../../mcp-view/tiles.ts";
 import { heldWords, texts as paletteTexts } from "../../collections/files.ts";
@@ -110,10 +111,22 @@ const place = (c: ToolContext, path: string) => `${c.origin}/${path}`;
 const savedPage = (c: ToolContext) => place(c, "palettes/saved");
 type PaletteText = Awaited<ReturnType<typeof paletteTexts>>[number];
 /** What a palette is called: its written title where its colors bear it out and it is drawn as it was saved, or what
-    its colors call it in its view. */
-const titleOf = (s: Shown, written?: PaletteText) =>
-  heldWords(written, s.palette, s)?.title ??
-  paletteTitle(readPalette(s.palette, s.style, s.steps), s.style);
+    its colors call it in its view. Played as the effect a kept look plays, which is never as it was saved, it is
+    named as the effect's page names it: its colors read as that page reads them, and the effect in its style's place. */
+function titleOf(s: Shown, written?: PaletteText, effect?: EffectKind | null): string {
+  if (!effect)
+    return (
+      heldWords(written, s.palette, s)?.title ??
+      paletteTitle(readPalette(s.palette, s.style, s.steps), s.style)
+    );
+  const read = effectView(s.palette);
+  return paletteTitle(
+    readPalette(s.palette, read.style, read.steps),
+    read.style,
+    undefined,
+    effect
+  );
+}
 /** A palette a call named, in the view an answer draws it in. */
 const drawn = (given: PaletteGiven, held?: ViewGiven): Shown =>
   shown(given.seed, decodePalette(given.seed)!, given, held);
@@ -148,7 +161,7 @@ async function cardsOf<
       angle: Number(row.angle)
     });
     return [
-      card(c.origin, s, titleOf(s, written.get(row.kseed)), {
+      card(c.origin, s, titleOf(s, written.get(row.kseed), lookKind(row.look)), {
         ...more(row),
         ...keptOn(c, s.seed, row.look)
       })

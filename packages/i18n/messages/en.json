@@ -6177,6 +6177,12 @@
       "packages/engine/src/colornames.data.ts:6"
     ]
   },
+  "blob": {
+    "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as an animated blob, a soft amorphous shape of its colors: \"Vivid navy and blue blob\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Blob\" does. The same words start the line under the palette's name, capitalized there (\"Blob, 7 colors at 90°: …\").",
+    "refs": [
+      "packages/engine/src/effect.ts:202"
+    ]
+  },
   "blue": {
     "note": "Color name, as in a palette name: \"navy, blue and lavender\".",
     "refs": [
@@ -6304,6 +6310,12 @@
     "note": "Tab name of a code block: code that gets a random palette's picture file from Grabient's address for random palettes. One short word.",
     "refs": [
       "apps/web/src/features/examples/Profile.tsx:100"
+    ]
+  },
+  "fluted glass": {
+    "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as fluted (reeded) glass, its colors drifting behind a pane of curved ribs: \"Vivid navy and blue fluted glass\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Fluted glass\" does. The same words start the line under the palette's name, capitalized there (\"Fluted glass, 7 colors at 90°: …\").",
+    "refs": [
+      "packages/engine/src/effect.ts:201"
     ]
   },
   "frame\u00041w": {
@@ -6594,6 +6606,12 @@
       "packages/engine/src/colornames.data.ts:6"
     ]
   },
+  "papercut": {
+    "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as papercut, its colors cut into sheets of paper stacked in a layered relief: \"Vivid navy and blue papercut\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Papercut\" does. The same words start the line under the palette's name, capitalized there (\"Papercut, 7 colors at 90°: …\").",
+    "refs": [
+      "packages/engine/src/effect.ts:205"
+    ]
+  },
   "pastel {colors}": {
     "note": "Palette name: a pastel palette.",
     "refs": [
@@ -6649,6 +6667,12 @@
       "packages/engine/src/colornames.data.ts:6"
     ]
   },
+  "rosette": {
+    "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as a rosette, petals on a golden spiral like a dahlia seen from above: \"Vivid navy and blue rosette\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Rosette\" does. The same words start the line under the palette's name, capitalized there (\"Rosette, 7 colors at 90°: …\").",
+    "refs": [
+      "packages/engine/src/effect.ts:204"
+    ]
+  },
   "salmon": {
     "note": "Color name, as in a palette name: \"navy, blue and lavender\".",
     "refs": [
@@ -6666,6 +6690,12 @@
     "note": "Palette name: a palette whose ends meet, so it loops.",
     "refs": [
       "packages/engine/src/name.ts:745"
+    ]
+  },
+  "silk": {
+    "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as silk, its colors dyed into satin that drapes in soft folds: \"Vivid navy and blue silk\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Silk\" does. The same words start the line under the palette's name, capitalized there (\"Silk, 7 colors at 90°: …\").",
+    "refs": [
+      "packages/engine/src/effect.ts:203"
     ]
   },
   "source\u0004Direct": {
@@ -7122,7 +7152,7 @@
     ]
   },
   "{name} {style}": {
-    "note": "A palette's title: its name, then its style words.",
+    "note": "A palette's title: its name, then its style words (\"linear gradient\") or an effect's (\"fluted glass\", \"rosette\").",
     "refs": [
       "apps/web/src/lib/page-meta.ts:332",
       "apps/web/src/lib/page-meta.ts:875",
@@ -7130,7 +7160,7 @@
     ]
   },
   "{name} {style} with {steps, plural, one {# color} other {# colors}}: {hexes}. Edit it and copy or download CSS, SVG, PNG or shader code.": {
-    "note": "A palette's description in search results.",
+    "note": "A palette's description in search results: its name, its style words or an effect's (\"linear gradient\", \"rosette\"), how many colors it shows and its colors as hex codes.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:888",
       "packages/engine/src/name.ts:839"
@@ -7192,13 +7222,13 @@
     ]
   },
   "{style}, {steps, plural, one {# color} other {# colors}} at {angle}: {hexes}. Edit and export CSS, SVG, PNG or a shader.": {
-    "note": "Line under a palette's name on its page, for its readers and for search engines: its style (\"linear gradient\", \"angular swatches\"), how many colors it shows, the angle it turns to ({angle}, with its sign: \"45°\"), its colors from first to last as hex codes, then what the editor exports. {style} comes in lower case; the line's first letter is capitalized.",
+    "note": "Line under a palette's name on its page, for its readers and for search engines: its style (\"linear gradient\", \"angular swatches\") or the effect it plays (\"fluted glass\", \"rosette\"), how many colors it shows, the angle it turns to ({angle}, with its sign: \"45°\"), its colors from first to last as hex codes, then what the editor exports. {style} comes in lower case; the line's first letter is capitalized.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:835"
     ]
   },
   "{style}, {steps, plural, one {# color} other {# colors}}: {hexes}. Edit and export CSS, SVG, PNG or a shader.": {
-    "note": "The same line for a radial palette, which turns to no angle: its style (\"radial gradient\", \"radial swatches\"), how many colors it shows, its colors from first to last as hex codes, then what the editor exports.",
+    "note": "The same line for a radial palette or a blob, which turn to no angle: its style (\"radial gradient\", \"radial swatches\") or \"blob\", how many colors it shows, its colors from first to last as hex codes, then what the editor exports.",
     "refs": [
       "apps/web/src/lib/page-meta.ts:831"
     ]

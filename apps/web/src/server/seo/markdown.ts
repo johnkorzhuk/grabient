@@ -1,10 +1,11 @@
 import { decodePalette, sampleStops } from "@grabient/engine";
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECT_WORDS, effectView, parseEffect } from "@grabient/engine/effect.ts";
 import { type PaletteWords, paletteMarkdown, plain } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
 import type { Namer } from "@grabient/engine/precise-names.ts";
 import { drawnView, finishOf, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
+import { lookKind } from "../../features/editor/look.ts";
 import { PAGE, TEXT } from "../../lib/cache.ts";
 import {
   collectionCard,
@@ -78,11 +79,16 @@ export function collectionMarkdown(doc: CollectionWords, origin: string): string
   const color = colorFacts(namedColor(doc.slug));
   const rows = doc.items.map((item, i) => {
     const P = decodePalette(item.seed);
-    const colors = P ? sampleStops(P, drawnView(P, item).steps).map(stop => `\`${stop.hex}\``) : [];
-    const name = item.title ?? (seedName(item.seed, item.style, item.steps) || item.seed);
+    /* a look that plays an effect is drawn as the effect, which its link plays, and named as the effect's page names
+       it, its colors read as that page reads them */
+    const effect = lookKind(item.look);
+    const read = effect && P ? { ...item, ...effectView(P) } : item;
+    const colors = P ? sampleStops(P, drawnView(P, read).steps).map(stop => `\`${stop.hex}\``) : [];
+    const name = item.title ?? (seedName(item.seed, read.style, read.steps) || item.seed);
     const address = `${base}/${item.seed}${item.look ? `?${item.look}` : viewSearch(item)}`;
+    const drawn = effect ? EFFECT_WORDS[effect] : styleWords(item.style);
     const said = item.description ? `\n   ${plain(item.description)}` : "";
-    return `${i + 1}. [${plain(name)}](${address}): ${styleWords(item.style)}, ${colors.join(" ")}${said}`;
+    return `${i + 1}. [${plain(name)}](${address}): ${drawn}, ${colors.join(" ")}${said}`;
   });
   return `# ${plain(doc.title)}
 

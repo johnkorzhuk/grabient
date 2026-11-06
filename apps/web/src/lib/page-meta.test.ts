@@ -1,5 +1,5 @@
 import { decodePalette } from "@grabient/engine";
-import { type Effect, parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECTS, type Effect, parseEffect } from "@grabient/engine/effect.ts";
 import { parseView, type View } from "@grabient/engine/view.ts";
 import {
   addCatalog,
@@ -103,6 +103,7 @@ function pageOf(address: string, facts: Facts = {}): Page {
   if (palette && !second) {
     const parsed = parseView(url.searchParams);
     const view = { ...parsed, steps: Math.max(parsed.steps, palette.anchors.length) };
+    const effect = parseEffect(url.searchParams);
     const words = !!(facts.title || facts.description);
     // words are written only for a palette something saved
     const saved = facts.saved ?? (words ? view : undefined);
@@ -120,6 +121,7 @@ function pageOf(address: string, facts: Facts = {}): Page {
       palette,
       view,
       ...(saved ? { saved } : {}),
+      ...(effect ? { effect } : {}),
       written,
       heldBy: facts.heldBy,
       ...common
@@ -546,6 +548,96 @@ describe("the line under a palette's name", () => {
       expect(text, locale).toMatch(/45°/);
       expect(text.match(/#[0-9a-f]{6}/g), locale).toHaveLength(7);
     }
+  });
+});
+
+describe("a palette that plays an effect", () => {
+  const SEED_PAGE = "/kS7Q8Yy5S_SChv0";
+  const WORDS = {
+    glass: "fluted glass",
+    blob: "blob",
+    silk: "silk",
+    rosette: "rosette",
+    papercut: "papercut"
+  } as const;
+  const named = (address: string, facts: Facts = {}) => {
+    const page = pageOf(address, facts);
+    const meta = pageMeta(page, PRODUCTION_ORIGIN);
+    const work = meta.structuredData.find(data => data["@type"] === "CreativeWork");
+    return {
+      heading: heading(page),
+      title: meta.title,
+      line: paletteFacts(page as Extract<Page, { kind: "palette" }>),
+      description: work?.description as string | undefined,
+      alternateName: work?.alternateName as string | undefined
+    };
+  };
+
+  test.each(EFFECTS)("is titled as the %s it plays, never as a gradient", kind => {
+    const page = named(`${SEED_PAGE}?style=${kind}&angle=30`);
+    const plain = named(SEED_PAGE).heading.replace(/ linear gradient$/, "");
+    expect(page.heading).toBe(`${plain} ${WORDS[kind]}`);
+    expect(page.title).toBe(`${page.heading} | Grabient`);
+    expect(page.description).toMatch(new RegExp(`^${plain} ${WORDS[kind]} with 7 colors: `));
+    for (const said of [page.heading, page.line, page.description])
+      expect(said).not.toMatch(/gradient|swatches/i);
+  });
+
+  test("says the effect in the line under its name, with the angle that turns it, the blob's none", () => {
+    const hex = "#[0-9a-f]{6}";
+    expect(named(`${SEED_PAGE}?style=rosette&angle=23`).line).toMatch(
+      new RegExp(`^Rosette, 7 colors at 23°: (${hex}, ){6}${hex}\\. Edit and export`)
+    );
+    expect(named(`${SEED_PAGE}?style=glass&angle=135`).line).toMatch(
+      /^Fluted glass, 7 colors at 135°: /
+    );
+    expect(named(`${SEED_PAGE}?style=blob&shape=51`).line).toMatch(
+      new RegExp(`^Blob, 7 colors: (${hex}, ){6}${hex}\\. Edit and export`)
+    );
+  });
+
+  test("leaves a written title to the palette drawn as it was saved, and names the effect by its colors", () => {
+    const facts: Facts = {
+      title: "Pastel candy vertical bands | Grabient",
+      saved: { style: "linearGradient", steps: 7, angle: 90 }
+    };
+    const plain = named(SEED_PAGE).heading.replace(/ linear gradient$/, "");
+    expect(named(`${SEED_PAGE}?angle=90`, facts).heading).toBe("Pastel candy vertical bands");
+    const silk = named(`${SEED_PAGE}?style=silk&angle=90`, facts);
+    expect(silk.heading).toBe(`${plain} silk`);
+    expect(silk.title).toBe(`${plain} silk | Grabient`);
+    expect(silk.alternateName).toBeUndefined();
+  });
+
+  test("reads its colors as the effect's own address does, whatever gradient its view keeps under it", () => {
+    const BANDS = "/kWip242Lq_i9tQBYszteSW_Y";
+    const page = pageOf(`${BANDS}?style=rosette`) as Extract<Page, { kind: "palette" }>;
+    const kept = { ...page, view: { ...page.view, style: "angularSwatches" as const } };
+    // the gradient the editor keeps reads its colors otherwise
+    expect(heading(pageOf(`${BANDS}?style=angularSwatches`))).toBe(
+      "Monochrome blue and light blue angular swatches"
+    );
+    expect(heading(page)).toBe("Monochrome blue to light blue rosette");
+    expect(heading(kept)).toBe(heading(page));
+    expect(paletteFacts(kept)).toBe(paletteFacts(page));
+    expect(pageMeta(kept, PRODUCTION_ORIGIN).title).toBe(pageMeta(page, PRODUCTION_ORIGIN).title);
+  });
+
+  test("links the effect's own Markdown, which names the effect", () => {
+    expect(
+      pageMeta(pageOf(`${SEED_PAGE}?style=rosette&angle=23&soft=12`), PRODUCTION_ORIGIN).markdown
+    ).toBe(`${PRODUCTION_ORIGIN}${SEED_PAGE}.md?style=rosette&angle=23&soft=12`);
+    expect(pageMeta(pageOf(`${SEED_PAGE}?angle=23`), PRODUCTION_ORIGIN).markdown).toBe(
+      `${PRODUCTION_ORIGIN}${SEED_PAGE}.md?angle=23`
+    );
+  });
+
+  test("says the effect in the reader's language", () => {
+    current = "fr";
+    expect(named(`${SEED_PAGE}?style=rosette`).heading).toMatch(/ en rosace$/);
+    expect(named(`${SEED_PAGE}?style=papercut`).line).toMatch(/^Papier découpé, 7 couleurs à /);
+    current = "de";
+    expect(named(`${SEED_PAGE}?style=glass`).heading).toMatch(/, Riffelglas$/);
   });
 });
 

@@ -1,13 +1,15 @@
+import { effectView } from "@grabient/engine/effect.ts";
 import { asSaved } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
 import { paletteName as colorsName, heading } from "../../lib/page-meta.ts";
 import type { PaletteEditor } from "./editor.ts";
 import type { PaletteData } from "./page.ts";
 
-/** The palette's name as its page shows it: its written title while it is drawn as it was saved, in every language,
-    as its words were written; else the server's words while the palette and its view are the page's own, else the name
-    its colors and view give it. The page's metadata keeps to the reader's language (lib/page-meta.ts). The sheet's name
-    row reads it, and on a phone the picture's caption. */
+/** The palette's name as its page shows it: its written title while it is drawn as it was saved, which an effect
+    playing in its place never is, in every language, as its words were written; else the server's words while the
+    palette, its view and its effect are the page's own, else the name its colors give it with its view's style or the
+    effect it plays. The page's metadata keeps to the reader's language (lib/page-meta.ts). The sheet's name row reads
+    it, and on a phone the picture's caption. */
 export function paletteName(
   e: PaletteEditor,
   serverHeading: string | undefined,
@@ -15,7 +17,8 @@ export function paletteName(
 ): string {
   const view = { style: e.style(), steps: e.steps(), angle: e.angle() };
   const written = facts?.written;
-  if (written && asSaved(e.palette(), view, written.view)) return written.title;
+  const effect = e.effect();
+  if (written && !effect && asSaved(e.palette(), view, written.view)) return written.title;
   return (
     serverHeading ||
     heading({
@@ -23,17 +26,15 @@ export function paletteName(
       seed: e.seed(),
       palette: e.palette(),
       view,
+      ...(effect ? { effect } : {}),
       ...(written ? { written } : {})
     }) ||
     t("Palette editor")
   );
 }
 
-/** The palette's name for an effect's copy, which Figma's frame takes: its written title while it is drawn as it was
-    saved, else what its colors are called, with no style's words, since the effect draws no gradient. */
-export function effectName(e: PaletteEditor, facts: PaletteData["facts"]): string {
-  const view = { style: e.style(), steps: e.steps(), angle: e.angle() };
-  const written = facts?.written;
-  if (written && asSaved(e.palette(), view, written.view)) return written.title;
-  return colorsName(e.palette(), view) || t("Palette editor");
+/** The palette's name for an effect's copy, which Figma's frame takes: what its colors are called as the effect's page
+    reads them, with no style's words, since the effect draws no gradient. */
+export function effectName(e: PaletteEditor): string {
+  return colorsName(e.palette(), effectView(e.palette())) || t("Palette editor");
 }

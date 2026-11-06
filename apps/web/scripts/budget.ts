@@ -180,8 +180,10 @@ const BUDGETS = {
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
   // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks. The
   // color reader (engine/written-color.ts), which the search, the pages' titles and the MCP read, took it from 237.5
-  // to 239.7 on 3 Nov 2026
-  workerStart: 241,
+  // to 239.7 on 3 Nov 2026. Titles naming the effect a palette plays in its style's place (engine/effect.ts's
+  // EFFECT_WORDS and effectView, the pages' metadata, the MCP's cards and a collection's files) took it from 240.9 to
+  // 241.2 on 6 Nov 2026
+  workerStart: 242,
   // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
   // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026). Soft and
   // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders

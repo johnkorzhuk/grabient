@@ -36,6 +36,16 @@ const names = golden<{
 }>("names");
 const colors = golden<{ colorNames: string[]; families: Record<string, string> }>("colors");
 
+test("a palette that plays an effect is titled as the effect, in its style's place", () => {
+  const seed = names.entries[0].seed;
+  const r = readPalette(decodePalette(seed) as Palette, "linearGradient", 7);
+  const name = readingName(r);
+  expect(paletteTitle(r, "linearGradient")).toBe(`${name} linear gradient`);
+  expect(paletteTitle(r, "linearGradient", ENGLISH, "glass")).toBe(`${name} fluted glass`);
+  expect(paletteTitle(r, "radialSwatches", ENGLISH, "rosette")).toBe(`${name} rosette`);
+  expect(paletteTitle(r, "linearGradient", ENGLISH, null)).toBe(`${name} linear gradient`);
+});
+
 test("every palette's reading, name, phrase and title in every style are as before", () => {
   for (const e of names.entries) {
     const P = decodePalette(e.seed) as Palette;

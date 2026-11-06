@@ -389,7 +389,7 @@ test("the document the edge keeps for an address is the same page for its lock w
   ).toHaveAttribute("aria-pressed", "true");
 });
 
-test("a palette is called by the title written for it while its style and steps are as saved, at any angle, by its colors otherwise", async ({
+test("a palette is called by the title written for it while its style and steps are as saved, at any angle, by its colors otherwise and while an effect plays", async ({
   page,
   request
 }) => {
@@ -411,6 +411,15 @@ test("a palette is called by the title written for it while its style and steps 
   await page.keyboard.press(".");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=195");
   await page.waitForTimeout(500);
+  await expect(page).toHaveTitle(written);
+  // played as an effect it is drawn otherwise than it was saved: its colors name it, with the effect
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Rosette", exact: true }).click();
+  await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?style=rosette&angle=195");
+  await expect(page).toHaveTitle(/\S rosette \| Grabient$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/\S rosette$/);
+  await page.getByRole("button", { name: "Linear", exact: true }).click();
+  await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=195");
   await expect(page).toHaveTitle(written);
 });
 

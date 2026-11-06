@@ -761,7 +761,7 @@ describe("a public collection's files", () => {
     const md = await (
       await markdownFile(slug, new Request(`${ORIGIN}/${slug}.md`), ORIGIN, markdownReads(env))
     ).text();
-    expect(md).toContain(`](${ORIGIN}/${SEEDS[2]}?style=glass&shape=3): linear gradient`);
+    expect(md).toContain(`](${ORIGIN}/${SEEDS[2]}?style=glass&shape=3): fluted glass`);
     expect(md).toContain(`](${ORIGIN}/${SEEDS[3]}): linear gradient`);
   });
 });

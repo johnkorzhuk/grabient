@@ -7,6 +7,7 @@ import { fitChroma, srgbToLch, srgbToOklab, type Triple } from "./color.ts";
 import { colorFamily, srgbName } from "./colorname.ts";
 import { COLOR_WORDS } from "./colornames.data.ts";
 import { sampleLCH, sampleSrgb, sampleStops } from "./curve.ts";
+import { EFFECT_WORDS, type EffectKind } from "./effect.ts";
 import { onWheel } from "./math.ts";
 import { ENGLISH, type Language, msg, sentence } from "./message.ts";
 import type { Palette } from "./palette.ts";
@@ -818,15 +819,17 @@ export function seedName(
   const reading = seedReading(seed, style, steps);
   return reading ? readingName(reading, language) : "";
 }
-/** The palette's title without the site's name: "Vivid navy, blue and lavender linear gradient". */
+/** The palette's title without the site's name: "Vivid navy, blue and lavender linear gradient", or with the effect it
+    plays in its style's place: "Vivid navy, blue and lavender fluted glass". */
 export const paletteTitle = (
   reading: PaletteReading,
   style: Style,
-  language: Language = ENGLISH
+  language: Language = ENGLISH,
+  effect?: EffectKind | null
 ): string =>
   language.t(msg("{name} {style}"), {
     name: readingName(reading, language),
-    style: styleWords(style)
+    style: effect ? language.t(EFFECT_WORDS[effect]) : styleWords(style)
   });
 /** What a search result shows under the title: the name, the style, and the colors as hex. */
 export const paletteDescription = (

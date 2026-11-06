@@ -2301,8 +2301,14 @@ describe("a palette's look in an account's saves", () => {
     const listed = (await call(env, token, "list_saved_palettes")).value.palettes as {
       seed: string;
       url: string;
+      title: string;
       look?: string;
     }[];
+    // a card is titled as what its look plays: the effect in its style's place
+    const titled = Object.fromEntries(listed.map(({ seed, title }) => [seed, title]));
+    expect(titled[glass]).toMatch(/\S fluted glass$/);
+    expect(titled[blob]).toMatch(/\S blob$/);
+    expect(titled[plain]).toMatch(/\S linear swatches$/);
     // saved within a millisecond, two likes are listed by seed: compared as a set
     const bySeed = (a: { seed: string }, b: { seed: string }) => (a.seed < b.seed ? -1 : 1);
     expect(listed.map(({ seed, url, look }) => ({ seed, url, look })).sort(bySeed)).toEqual(

@@ -84,7 +84,7 @@ export function GalleryCard(props: {
   };
   const similar = () => similarHref(seed());
   const where = () => props.at?.() ?? {};
-  const words = () => cardWords(shown(), props.words);
+  const words = () => cardWords(shown(), props.words, plays()?.kind);
   const name = () => props.words?.title ?? nameOf(shown());
   const effect = createCardEffect({
     seed,

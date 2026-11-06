@@ -308,7 +308,7 @@ export default function Editor(props: { data: PaletteData }) {
     stops: e.stopsTaken(),
     effect: e.effect(),
     /* an effect draws no gradient, so its copy's name says no style */
-    name: e.effect() ? effectName(e, facts()) : name()
+    name: e.effect() ? effectName(e) : name()
   });
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
@@ -329,12 +329,14 @@ export default function Editor(props: { data: PaletteData }) {
   };
   const facts = () =>
     factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null);
-  /* the server's heading is the page's while its palette, style and steps are: a written title names the palette
-     drawn as it was saved, which a turn of its angle leaves standing */
+  /* the server's heading is the page's while its palette, style, steps and effect are: a written title names the
+     palette drawn as it was saved, which a turn of its angle leaves standing, and its colors' name says the style or
+     the effect it is drawn as */
   const own = () =>
     e.seed() === first.page.seed &&
     e.style() === first.page.view.style &&
-    e.steps() === first.page.view.steps;
+    e.steps() === first.page.view.steps &&
+    (e.effects.kind() ?? null) === (first.page.effect?.kind ?? null);
   const heading = () => (own() ? first.heading : undefined);
   /* the palette the server's page opened, as its files, while the editor draws it as it opened: the picture under the
      paint an image search indexes. One the browser opened later, a size, or an edit has none, so no edit asks for one. */

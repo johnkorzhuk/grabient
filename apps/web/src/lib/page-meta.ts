@@ -1,5 +1,14 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
-import { type Effect, type EffectFinish, effectStillParts } from "@grabient/engine/effect.ts";
+import {
+  EFFECT_KINDS,
+  EFFECT_WORDS,
+  type Effect,
+  type EffectFinish,
+  type EffectKind,
+  effectFileAddress,
+  effectStillParts,
+  effectView
+} from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
 import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
@@ -141,7 +150,7 @@ export type Page = Facts &
         palette: Palette;
         /** its view, with the soft and the grain its card wears */
         view: PaletteView & Pick<View, "soft" | "grain">;
-        /** the effect its address plays (the fluted glass or the blob), which its card shows in its view's place */
+        /** the effect its address plays, which its card shows and its title names in its view's place */
         effect?: Effect;
         /** the view it was saved in, which its canonical address draws: none for a palette neither the gallery nor
             Grabient's collections hold */
@@ -323,13 +332,18 @@ const STYLE_WORDS: Record<Style, string> = {
   radialGradient: msg("radial gradient"),
   radialSwatches: msg("radial swatches")
 };
+/** What a palette is drawn as, in the reader's language: its style's words, or the effect's that plays in its place,
+    since an effect draws no gradient. */
+const drawnWords = (style: Style, effect?: EffectKind | null) =>
+  t(effect ? EFFECT_WORDS[effect] : STYLE_WORDS[style]);
 /** A palette by what its colors are called in the reader's language: "Vivid navy, blue and lavender". */
 export const paletteName = (P: Palette, view?: Partial<Pick<View, "style" | "steps">>) =>
   readingName(readPalette(P, view?.style, view?.steps), language());
-/** That name as a title says it, with the palette's style: "Vivid navy, blue and lavender linear gradient". A page
-    whose palette has a title of other words says it under that title, and so does a card's tooltip. */
-export const styledName = (name: string, style: Style) =>
-  t("{name} {style}", { name, style: t(STYLE_WORDS[style]) });
+/** That name as a title says it, with the palette's style or the effect it plays: "Vivid navy, blue and lavender
+    linear gradient", "… rosette". A page whose palette has a title of other words says it under that title, and so
+    does a card's tooltip. */
+export const styledName = (name: string, style: Style, effect?: EffectKind | null) =>
+  t("{name} {style}", { name, style: drawnWords(style, effect) });
 /** The same name inside a sentence: "Palettes like navy to lavender". */
 const paletteInline = (P: Palette) => readingPhrase(readPalette(P), language());
 /** A search's subject as a title says it: its words without the nouns the title adds itself, from a capital, unless
@@ -569,15 +583,22 @@ function coded(hex: string, description: string): string {
   );
 }
 /** The words written for a palette as its page wears them: in English, and while it is drawn as it was saved, the one
-    view they describe. Drawn any other way, its colors name it. */
+    view they describe, which an effect playing in its place never is. Drawn any other way, its colors name it. */
 const ownWords = (page: Extract<Page, { kind: "palette" }>) =>
-  locale() === DEFAULT_LOCALE && page.written && asSaved(page.palette, page.view, page.written.view)
+  locale() === DEFAULT_LOCALE &&
+  page.written &&
+  !page.effect &&
+  asSaved(page.palette, page.view, page.written.view)
     ? page.written
     : undefined;
+/** The view a palette's page reads its colors in: its own, or the effect's while one plays (effectView), so the page
+    and its editor name it alike whatever gradient the editor keeps under the effect. */
+const readView = (page: Extract<Page, { kind: "palette" }>) =>
+  page.effect ? { ...page.view, ...effectView(page.palette) } : page.view;
 
 /** A page's heading, for a reader who listens and for a crawler: what its title says, without the site's name. A
     palette's is its written title in English while it is drawn as it was saved, else what its colors are called in
-    its style. */
+    its style or the effect it plays. */
 export function heading(page: Page): string {
   const query = "query" in page ? page.query : undefined;
   const like = query ? decodePalette(query) : null;
@@ -598,7 +619,8 @@ export function heading(page: Page): string {
       return t(LISTS[page.order].paged);
     case "palette":
       return (
-        ownWords(page)?.title || styledName(paletteName(page.palette, page.view), page.view.style)
+        ownWords(page)?.title ||
+        styledName(paletteName(page.palette, readView(page)), page.view.style, page.effect?.kind)
       );
     case "search":
       return say(msg("Palettes like {name}"), msg("{subject} gradients and color palettes"), "");
@@ -796,7 +818,7 @@ function describe(
     ownWords(page)?.description ??
       t("{name} palette with {steps, plural, one {# color} other {# colors}}.", {
         name,
-        steps: page.view.steps
+        steps: readView(page).steps
       }),
     [
       ...counts.map(
@@ -813,21 +835,23 @@ function describe(
   );
 }
 /** What a palette's page says of it under its picture, to its reader and to a crawler alike: its written words while
-    they are its own, as many sentences as a description holds, then how it is drawn (its style, how many colors and
-    the angle a linear or angular one turns to), its colors from end to end, every one up to eight, and what the editor
-    makes of it. Its title names it. */
+    they are its own, as many sentences as a description holds, then how it is drawn (its style or the effect it plays
+    in its place, how many colors, and the angle where one turns it: a linear or angular style, any effect but the
+    blob), its colors from end to end, every one up to eight, and what the editor makes of it. Its title names it. */
 export function paletteFacts(page: Extract<Page, { kind: "palette" }>): string {
-  const { palette: P, view } = page;
+  const { palette: P, effect } = page;
+  const view = readView(page);
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
   const facts = {
-    style: t(STYLE_WORDS[view.style]),
+    style: drawnWords(view.style, effect?.kind),
     steps: view.steps,
     /* with its sign, so a right-to-left sentence keeps them together */
     angle: `${Math.round(view.angle)}°`,
     hexes: spread(hexes, hexes.length > 8 ? 5 : hexes.length)
   };
+  const turned = effect ? EFFECT_KINDS[effect.kind].angle : !view.style.startsWith("radial");
   const said = sentence(
-    view.style.startsWith("radial")
+    !turned
       ? t(
           "{style}, {steps, plural, one {# color} other {# colors}}: {hexes}. Edit and export CSS, SVG, PNG or a shader.",
           facts
@@ -850,10 +874,11 @@ function palettePage(
   meta: PageMeta,
   origin: string
 ): string {
-  const { seed, palette: P, view } = page;
+  const { seed, palette: P } = page;
+  const view = readView(page);
   const reading = readPalette(P, view.style, view.steps);
   const name = readingName(reading, language());
-  const style = t(STYLE_WORDS[view.style]);
+  const style = drawnWords(view.style, page.effect?.kind);
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
   const written = ownWords(page);
   const path = paletteAddress(seed, page.saved);
@@ -867,7 +892,13 @@ function palettePage(
   );
   meta.imageAlt = t("{name} color palette", { name });
   meta.themeColor = hexes[0];
-  meta.markdown = absolute(`/${seed}.md${viewSearch(view)}`, origin);
+  /* the same page as Markdown: an effect's own, which names the effect, while one plays */
+  meta.markdown = absolute(
+    page.effect
+      ? effectFileAddress("", seed, page.effect, view.angle, "md", undefined, finishOf(view))
+      : `/${seed}.md${viewSearch(view)}`,
+    origin
+  );
   const title = untitled(meta.title);
   const held = page.heldBy ?? [];
   /* a written title is the page's name; what its colors call it stays beside it, for a search in colors */

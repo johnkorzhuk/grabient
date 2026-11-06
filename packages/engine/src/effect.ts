@@ -8,7 +8,16 @@
    The gradient's steps leave the address while an effect plays, so an address says only what its picture shows (the
    editor keeps them to give back). */
 import { clamp } from "./math.ts";
-import { DEFAULT_ANGLE, finishParts, type ParamReader, type Size, type View } from "./view.ts";
+import { msg } from "./message.ts";
+import type { Palette } from "./palette.ts";
+import {
+  DEFAULT_ANGLE,
+  drawnView,
+  finishParts,
+  type ParamReader,
+  type Size,
+  type View
+} from "./view.ts";
 
 /** A view's soft and grain, which an effect's address names after its angle, as the editor's does (seedAddress): the
     effect blurred over its palette's gradient and the grain over it (fx-finish.ts). */
@@ -184,6 +193,23 @@ export const effectFps = (value: unknown): number => {
   return value !== null && value !== undefined && value !== "" && Number.isFinite(n) && n >= 1
     ? Math.min(n, EFFECT_FPS.max)
     : EFFECT_FPS.default;
+};
+
+/** An effect as a palette's title says it after the palette's name, in a gradient's style's place, since it draws no
+    gradient: "Pastel pink and blue rosette". English as written; a page says it in its reader's language. */
+export const EFFECT_WORDS: Readonly<Record<EffectKind, string>> = {
+  glass: msg("fluted glass"),
+  blob: msg("blob"),
+  silk: msg("silk"),
+  rosette: msg("rosette"),
+  papercut: msg("papercut")
+};
+/** The style and steps a palette's colors are read and named in while it plays an effect: an effect's address names
+    neither, since it draws no gradient, so they are the ones an address that names none gives, whatever gradient the
+    editor keeps under the effect to give back. Its page, its editor, its cards and its files then call it alike. */
+export const effectView = (P: Palette): Pick<View, "style" | "steps"> => {
+  const { style, steps } = drawnView(P);
+  return { style, steps };
 };
 
 /** The effect an address asks for, or null where its style is a gradient's or none. The glass reads its shape alone

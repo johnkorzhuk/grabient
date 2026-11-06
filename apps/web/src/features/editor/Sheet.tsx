@@ -375,12 +375,19 @@ export function Sheet(props: {
      The sentence a search reads of it, its colors as hex and what the editor makes of them, is the page's description
      and its crawler's page (StaticPalette.tsx), never its reader's. */
   const said = () => {
-    const named = heading({ kind: "palette", seed: e.seed(), palette: e.palette(), view: view() });
+    const effect = e.effect();
+    const named = heading({
+      kind: "palette",
+      seed: e.seed(),
+      palette: e.palette(),
+      view: view(),
+      ...(effect ? { effect } : {})
+    });
     return named === title() ? undefined : named;
   };
   const [described, setDescribed] = createSignal(untrack(said));
   createEffect(
-    () => [e.seed(), e.style(), e.steps(), e.angle(), title()] as const,
+    () => [e.seed(), e.style(), e.steps(), e.angle(), e.effects.kind(), title()] as const,
     () => {
       const timer = setTimeout(() => setDescribed(untrack(said)), DESCRIBE_MS);
       return () => clearTimeout(timer);
@@ -443,7 +450,7 @@ export function Sheet(props: {
         ? t("{name}, {style}", { name: sheetName(seed(), palette()), style: effectLabel(kind) })
         : undefined;
     };
-    const words = () => cardWords(palette());
+    const words = () => cardWords(palette(), {}, playing());
     /* a card opens its palette playing what the card plays, so the editor shows the card's picture, and a save keeps
        it so */
     const played = () => (playing() ? e.effects.effect() : null);

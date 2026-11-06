@@ -1,7 +1,7 @@
 /* A palette's look: an effect and its settings, or a view setting, as the palette's address writes them after its seed,
    which a save keeps (a like, a collection's palette). Its own module, for the pages that save palettes and the server,
    so the frame every page loads holds none of it. */
-import type { Effect } from "@grabient/engine/effect.ts";
+import { type Effect, type EffectKind, parseEffect } from "@grabient/engine/effect.ts";
 import { isStyle, type View } from "@grabient/engine/view.ts";
 import { LOOK_MAX, readSeedPage, seedAddress } from "./address.ts";
 
@@ -14,6 +14,10 @@ export function lookQuery(view: View, effect: Effect | null): string {
   const at = address.indexOf("?");
   return at < 0 ? "" : address.slice(at + 1);
 }
+
+/** The effect a look a save kept plays, as its address names it, or null for a look that plays none. */
+export const lookKind = (look: string | null | undefined): EffectKind | null =>
+  look ? (parseEffect(new URLSearchParams(look))?.kind ?? null) : null;
 
 /** A look a save kept, read for its palette as the palette's own address reads it: its view and its effect, a blob's
     shape the palette's own suggestion where the look names none; null for a seed that is no palette. */

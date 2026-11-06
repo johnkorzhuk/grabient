@@ -81,7 +81,7 @@ export function ItemCard(props: {
       : picturedAs(props.own, props.view, null, null, finish())
   );
   const seed = () => props.own.seed;
-  const words = () => cardWords(shown(), props.words);
+  const words = () => cardWords(shown(), props.words, plays()?.kind);
   /* the look the collection saved, which the card plays while the page draws every palette as saved */
   const kept = createMemo(() => (props.look ? lookEffect(props.own.seed, props.look) : null));
   const plays = () => cardPlays(props.view, sight.inSight() ? look.draft() : null, seed(), kept());

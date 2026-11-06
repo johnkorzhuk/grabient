@@ -4,6 +4,7 @@ import { titleFaults } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { asSaved, isStyle, type Style, type View } from "@grabient/engine/view.ts";
 import { all, first } from "@grabient/server/db/d1.ts";
+import { lookKind } from "../../features/editor/look.ts";
 import { collectionBySlug, collectionsHolding, type Reader } from "./read.ts";
 
 export { isCollectionSlug } from "../../features/collections/address.ts";
@@ -131,10 +132,14 @@ export async function collectionForFiles(
         ? "Grabient"
         : doc.owner.display || doc.owner.name || "a Grabient account",
     updatedAt: doc.updatedAt,
-    // a palette is named as its collection names it, else by the words written for it that its view bears out
+    // a palette is named as its collection names it, else by the words written for it that its view bears out, which a
+    // look that plays an effect never does
     items: doc.items.map(item => {
       const title =
-        item.title ?? heldWords(written.get(item.kseed), decodePalette(item.kseed), item)?.title;
+        item.title ??
+        (lookKind(item.look)
+          ? undefined
+          : heldWords(written.get(item.kseed), decodePalette(item.kseed), item)?.title);
       return {
         seed: item.kseed,
         style: item.style,
