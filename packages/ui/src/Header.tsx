@@ -11,9 +11,7 @@ import { tooltip } from "./Tooltip.tsx";
     surface and no rule, and leaves the wordmark's bar open so the water shows through it; once the page scrolls under
     it, the surface comes up and the bar fills, at the same height, so nothing on the page moves. The app form (lists,
     editor) has a nearly opaque surface, the bar filled with the palette in view, and the dashed rule beneath. The
-    surface is a layer behind the bar: a blur on the header itself would keep its menus' own blur inside it. Over a
-    page that opens on a picture of its own (`clear`), the app form's surface is frosted and it has no rule until the
-    page scrolls, so the picture shows through it and the bar reads the same on every picture. */
+    surface is a layer behind the bar: a blur on the header itself would keep its menus' own blur inside it. */
 export function Header(props: {
   stops: readonly string[];
   /** the brand form */
@@ -26,8 +24,6 @@ export function Header(props: {
   moves?: boolean;
   /** the dashed rule under the bar: the app routes */
   rule?: boolean;
-  /** the page's own picture is under the header, which the page has not scrolled from */
-  clear?: boolean;
   barRef?: (el: SVGRectElement) => void;
   /** where the wordmark leads and what it says it leads to; the site's lists by default */
   home?: { href: string; label: string };
@@ -45,7 +41,6 @@ export function Header(props: {
       <span
         class={styles.surface}
         data-on={!props.brand || props.scrolled ? "" : undefined}
-        data-frost={props.clear ? "" : undefined}
         aria-hidden="true"
       />
       <div class={styles.bar} data-brand={props.brand ? "" : undefined}>
@@ -76,10 +71,7 @@ export function Header(props: {
         </span>
         <div class={styles.corner}>{props.children}</div>
       </div>
-      <div
-        class={styles.rule}
-        data-off={props.brand || !props.rule || props.clear ? "" : undefined}
-      >
+      <div class={styles.rule} data-off={props.brand || !props.rule ? "" : undefined}>
         <Rule inset />
       </div>
     </header>

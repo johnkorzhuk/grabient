@@ -1,6 +1,6 @@
 @layer components {
-  /* A palette's examples (ExamplesPage.tsx): the hero from the window's top, edge to edge, then the examples in one
-     column, centered, at the lists' margins. */
+  /* A palette's examples (ExamplesPage.tsx): the hero under the header, edge to edge, then the examples in one column,
+     centered, at the lists' margins. */
   .page {
     --examples-column: 1120px;
     display: flex;
@@ -14,24 +14,23 @@
     }
   }
 
-  /* The hero runs up under the header, whose bar and rule it pulls in under, so the palette reaches the window's top;
-     its parts stand clear of the header and of the screen's sides at the lists' margins. On a phone it is a screen
-     tall, the code at its foot over the palette as on a wide screen. */
+  /* The hero starts under the header's rule, as the editor's picture does, and reaches 92% of the way down the window,
+     the whole window on a phone; its parts stand clear of the screen's sides at the lists' margins, the code at its
+     foot over the palette at every width. */
   .hero {
     position: relative;
     isolation: isolate;
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: var(--space-s8);
-    min-height: max(640px, 92svh);
-    margin-block-start: calc(-1 * (var(--size-top) + var(--size-hairline)));
-    padding: calc(var(--size-top) + var(--space-s4)) var(--size-gutter) var(--space-s10);
+    min-height: calc(max(640px, 92svh) - var(--size-top) - var(--size-hairline));
+    padding: var(--space-s4) var(--size-gutter) var(--space-s10);
     @container page (max-width: 800px) {
       padding-inline: var(--space-s4);
       padding-block-end: var(--space-s6);
     }
     @container page (max-width: 600px) {
-      min-height: max(560px, 100svh);
+      min-height: calc(max(560px, 100svh) - var(--size-top) - var(--size-hairline));
     }
   }
   .backdrop {

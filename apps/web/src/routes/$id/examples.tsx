@@ -11,7 +11,8 @@ import { loadSoft } from "../../lib/soft-load.ts";
    with the code that does it. One page for each palette at the palette's address plus /examples: an address naming a
    view or an effect, as the editor's sheet once linked, moves there for good. The whole page is drawn on the server; an
    effect's first frame is in its first paint (server/glass-still.ts, blob-still.ts, fx-still.ts) and its players take
-   over in the browser. Its hero runs under the header to the window's top, the header frosted over it until the page scrolls. */
+   over in the browser. The header is the app's own, as over the editor, and the hero starts under it, as the editor's
+   picture does. */
 export const Route = createFileRoute("/$id/examples")({
   loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
   loader: async ({ params, deps }) => {
@@ -44,8 +45,8 @@ export const Route = createFileRoute("/$id/examples")({
           effect: loaderData.effect
         })
       : {},
-  /* the hero is the page's light: no water flows from the wordmark behind it, and the header stands over it */
-  staticData: { frame: "app", water: false, clear: true },
+  /* the hero is the page's light: no water flows from the wordmark behind it */
+  staticData: { frame: "app", water: false },
   component: function Examples() {
     const data = Route.useLoaderData();
     return <ExamplesPage seed={data().seed} />;

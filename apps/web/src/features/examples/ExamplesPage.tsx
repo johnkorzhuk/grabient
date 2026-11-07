@@ -62,7 +62,7 @@ import { WallpapersExample, wallpapersGood } from "./Wallpapers.tsx";
 /* A palette's examples (routes/$id/examples.tsx): one page for each palette, whatever its address named, each part of it
    showing the palette in a look of its own that the seed picks of the looks the part is a good fit for (looks.ts). First
    the hero: the palette as a page's background playing one of the effects, which the seed picks, from the server's
-   still, run under the header to the window's top and edge to edge, with the way back to the editor at its top and at its foot
+   still, under the header and edge to edge, with the way back to the editor at its top and at its foot
    the palette's name, how it is drawn and the code that puts it there, in the theme that reads on the colors under them
    (tone.ts), the look picked where one does, or on a sheet of the page's own where none does. Then the examples, each
    in the documentation's frame (Example.tsx), taking turns at the looks so the page shows the palette's range. The
@@ -241,7 +241,7 @@ function layersShown(s: Shown): EffectLayers {
 /** The effects drawn over a vector still, each its own layer in the hero. */
 const VECTOR_KINDS: readonly VectorKind[] = ["silk", "rosette", "papercut"];
 
-/** The hero: the palette as a page's background, from the window's top, edge to edge. */
+/** The hero: the palette as a page's background, under the header, edge to edge. */
 function Hero(props: {
   s: Shown;
   origin: string;

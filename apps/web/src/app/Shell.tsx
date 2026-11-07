@@ -154,9 +154,6 @@ export function Shell() {
     };
   });
 
-  /* a clear page's header, frosted over its picture until the page scrolls */
-  const clear = () => !!page().options.clear && !scrolled();
-
   /* where the wordmark leads: the home in the reader's view, or with no connection a signed-in reader's Saved palettes */
   const home = () =>
     offline() && account()
@@ -189,7 +186,6 @@ export function Shell() {
               stops={water.light()}
               brand={brand()}
               scrolled={scrolled()}
-              clear={clear()}
               lit={!!water.lit()}
               moves={!!page().options.moving}
               rule

@@ -20,10 +20,6 @@
       -webkit-backdrop-filter: blur(var(--size-blur-top));
       backdrop-filter: blur(var(--size-blur-top));
     }
-    /* over a page's own picture: the picture shows through, the bar still reads */
-    &[data-frost] {
-      background-color: color-mix(in srgb, var(--color-bg) 72%, transparent);
-    }
   }
   .bar {
     position: relative;
@@ -56,8 +52,6 @@
     text-decoration: none;
     outline: 0 solid var(--color-ring);
     outline-offset: 2px;
-    /* over a page's own picture its ink is the picture's theme's, and the page's again as the page scrolls */
-    transition: color var(--motion-base) var(--motion-ease);
     &:focus-visible {
       outline-width: 1px;
     }

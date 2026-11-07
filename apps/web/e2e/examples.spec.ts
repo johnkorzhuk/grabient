@@ -2,8 +2,8 @@ import { expect, type Page, test } from "@playwright/test";
 import { live } from "./live.ts";
 
 /* A palette's examples (features/examples): one page for each palette, whatever view or effect a link names, its parts
-   in the looks its seed picks; its hero under the header to the window's top, the editor's keys turning the palette here
-   too, and the way back to the editor. */
+   in the looks its seed picks; its hero under the app's own header, the editor's keys turning the palette here too, and
+   the way back to the editor. */
 
 const SEED = "kWPgBjqiK5UIirpZorp5IA6Y";
 /* the examples every palette fits; the rest stand where their checks pass (features/examples/fit.ts) */
@@ -70,17 +70,24 @@ test("a palette's examples are one page whatever view or effect a link names, wh
   expect(errors).toEqual([]);
 });
 
-test("the hero runs under the header to the window's top, and the header is frosted over it until the page scrolls", async ({
+test("the header is the app's own, its surface and dashed rule as over the editor, and the hero starts under it", async ({
   page
 }) => {
   await open(page, `/${SEED}/examples`);
-  const hero = page.locator("main > section").first();
-  expect((await hero.boundingBox())?.y).toBe(0);
-  const surface = page.locator("header > span").first();
-  await expect(surface).toHaveAttribute("data-frost", "");
-  await page.mouse.wheel(0, 400);
-  await expect(surface).not.toHaveAttribute("data-frost", /.*/);
-  await expect(surface).toHaveAttribute("data-on", "");
+  await expect(page.locator("header > span").first()).toHaveAttribute("data-on", "");
+  await expect(page.locator("header > div").last()).not.toHaveAttribute("data-off", /.*/);
+  const [hero, header] = await Promise.all(
+    ["main > section", "header"].map(selector =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate(el => {
+          const { top, bottom } = el.getBoundingClientRect();
+          return { top, bottom };
+        })
+    )
+  );
+  expect(hero.top).toBe(header.bottom);
 });
 
 test("the editor's keys turn the palette, the address follows in place, and the undo walks the turns back", async ({
