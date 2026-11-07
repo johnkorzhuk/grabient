@@ -10,7 +10,7 @@
 import { hexToSrgb, lchToSrgb, srgbToLch, type Triple, toHex } from "@grabient/engine/color.ts";
 import { CONTRAST_LARGE, CONTRAST_TEXT, contrast } from "@grabient/engine/contrast.ts";
 import { sampleHex, sampleLCH, sampleSrgb, sampleStops } from "@grabient/engine/curve.ts";
-import { EFFECT_KINDS, type Effect, groundParts, isVectorKind } from "@grabient/engine/effect.ts";
+import { EFFECT_KINDS, type Effect, isVectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import {
@@ -457,22 +457,18 @@ export function colorsOfParts(s: Shown, aspect: number): (part: Part) => string[
   const shown = effectParts(s, effect, aspect);
   if (!soft) return shown;
   const share = REACH * effectSoftShare(soft);
-  /* the gradient a soft effect's edges thin to, none under a blob that stands on the page (fx-finish.ts
-     effectUnderlay): the palette's at its steps or its keyframes, along the effect's angle, the blob's left to right */
-  const under = bare(effect)
-    ? null
-    : lineParts(
-        sampleStops(s.palette, Math.max(DEFAULT_STEPS, s.palette.anchors.length)).map(
-          stop => stop.hex
-        ),
-        "linearGradient",
-        EFFECT_KINDS[effect.kind].angle ? s.view.angle : DEFAULT_ANGLE,
-        aspect,
-        REACH * lineSigma("linearGradient", soft)
-      );
+  /* the gradient a soft effect's edges thin to (fx-finish.ts effectUnderlay): the palette's at its steps or its
+     keyframes, along the effect's angle */
+  const under = lineParts(
+    sampleStops(s.palette, Math.max(DEFAULT_STEPS, s.palette.anchors.length)).map(stop => stop.hex),
+    "linearGradient",
+    EFFECT_KINDS[effect.kind].angle ? s.view.angle : DEFAULT_ANGLE,
+    aspect,
+    REACH * lineSigma("linearGradient", soft)
+  );
   return part => {
     const reached = spread(part, share, aspect);
-    return [...new Set([...shown(reached), ...(under?.(reached) ?? [])])];
+    return [...new Set([...shown(reached), ...under(reached)])];
   };
 }
 
@@ -552,8 +548,3 @@ function spread(part: Part, share: number, aspect: number): Part {
     y1: Math.min(1, part.y1 + y)
   };
 }
-
-/** Whether an effect stands on the page with no ground of its own under it: a blob with none, or one the page shows
-    through (features/list/card-effect.tsx standsBare). */
-export const bare = (effect: Effect | null): boolean =>
-  effect?.kind === "blob" && !(effect.look.bg && groundParts(effect.look.bg).alpha === 1);

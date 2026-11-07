@@ -1,6 +1,7 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import {
   blobShapeOf,
+  EFFECT_KINDS,
   EFFECT_LOOK,
   EFFECT_PLAY,
   type Effect,
@@ -79,15 +80,18 @@ const idOf = (seed: string, view: View, effect: Effect | null) => {
 };
 
 /** A palette as the selection holds it: canonical, in its view, never fewer steps than keyframes, with the effect it
-    plays as the selection holds one (heldEffect); null for none. */
+    plays as the selection holds one (heldEffect), and no soft where that effect takes none; null for none. */
 export function selectedPalette(value: unknown): SelectedPalette | null {
   if (!value || typeof value !== "object") return null;
   const input = value as Partial<Chosen>;
   const palette = decodePalette(input.seed);
   if (!palette) return null;
   const seed = encodePalette(palette);
-  const view = drawnView(palette, input);
   const effect = heldEffect(seed, input.effect);
+  const view = drawnView(
+    palette,
+    effect && !EFFECT_KINDS[effect.kind].soft ? { ...input, soft: undefined } : input
+  );
   return { id: idOf(seed, view, effect), seed, ...view, ...(effect ? { effect } : {}) };
 }
 

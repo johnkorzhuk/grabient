@@ -118,26 +118,21 @@ test("a soft and grained stylesheet finishes its still as the site's stage does:
   );
 });
 
-test("a blob whose ground lets the page through has no gradient under its soft, whose edges go clear; a grain with no tile lays none", () => {
-  const clear = effectLayers(P, effect("style=blob&shape=3"), 90, { soft: 50 });
-  expect(clear.blur).toBe(`blur(${(effectSoftShare(50) * 100).toFixed(3)}vmax)`);
-  expect(clear.under).toBeUndefined();
-  // nor under a ground the page shows through, which the gradient would tint all over: the soft only blurs it
-  const through = effect("style=blob&shape=3&bg=%2300000080");
-  expect(effectUnderlay(P, through, 90, 50)).toBeNull();
-  expect(effectLayers(P, through, 90, { soft: 50 }).under).toBeUndefined();
-  const rules = (soft?: number) =>
-    effectStylesheet(P, SEED, through, 90, ORIGIN, soft ? { soft } : {})
-      .split("\n")
-      .slice(1)
-      .filter(line => !line.includes("filter:"))
-      .join("\n");
-  expect(rules(1)).toBe(rules());
-  expect(effectStylesheet(P, SEED, through, 90, ORIGIN, { soft: 1 })).not.toContain("html::after");
-  // the blob's palette lies from left to right under a ground of its own
-  expect(effectLayers(P, effect("style=blob&bg=%23101014"), 30, { soft: 50 }).under).toMatch(
-    /^linear-gradient\(90deg, /
-  );
+test("a blob takes no soft: its stylesheet is the one with none, and a grain with no tile lays none", () => {
+  for (const query of [
+    "style=blob&shape=3",
+    "style=blob&shape=3&bg=%2300000080",
+    "style=blob&bg=%23101014"
+  ]) {
+    const blob = effect(query);
+    expect(effectLayers(P, blob, 90, { soft: 50 })).toEqual({});
+    expect(effectStylesheet(P, SEED, blob, 90, ORIGIN, { soft: 50 })).toBe(
+      effectStylesheet(P, SEED, blob, 90, ORIGIN)
+    );
+  }
+  // no gradient goes under a blob the page shows through, which it would tint all over
+  expect(effectUnderlay(P, effect("style=blob&shape=3"), 90)).toBeNull();
+  expect(effectUnderlay(P, effect("style=blob&shape=3&bg=%2300000080"), 90)).toBeNull();
   expect(effectLayers(P, effect("style=glass"), 90, { grain: 20 })).toEqual({});
   expect(effectLayers(P, effect("style=glass"), 90, {}, 'url("x")')).toEqual({});
 });
@@ -254,8 +249,8 @@ test("the palette's Markdown at an effect's address says what plays and how, and
   expect(text).toContain(
     `- [Social card](${ORIGIN}/api/og?seed=${SEED}&v=k4&style=blob&bg=%23101014)`
   );
-  // a soft blob says what lies under its blur: the gradient under a ground of its own, nothing under a clear one
-  const soft = (query: string) =>
+  // a soft effect says what lies under its blur; a blob takes no soft, its grain alone over it
+  const finished = (query: string) =>
     paletteMarkdown(
       SEED,
       ORIGIN,
@@ -265,13 +260,14 @@ test("the palette's Markdown at an effect's address says what plays and how, and
       null,
       effectMarkdown(ORIGIN, SEED, effect(query), `${ORIGIN}/api/og`)
     )!;
-  expect(soft("style=blob&bg=%23101014")).toContain(
+  expect(finished("style=silk")).toContain(
     "Its soft blurs it over the palette's gradient and its grain lies over it, in the first frame and as it plays."
   );
-  for (const clear of ["style=blob", "style=blob&bg=%2310101480"])
-    expect(soft(clear)).toContain(
-      "Its soft blurs it with its edges going clear and its grain lies over it, in the first frame and as it plays."
-    );
+  for (const blob of ["style=blob&bg=%23101014", "style=blob", "style=blob&bg=%2310101480"]) {
+    const text = finished(blob);
+    expect(text).toContain("Its grain lies over it, in the first frame and as it plays.");
+    expect(text).not.toMatch(/soft 30|soft blurs/);
+  }
   // the gradient's Markdown is as it was, with no script among its forms
   const gradient = paletteMarkdown(SEED, ORIGIN, { angle: 45 }, null, [])!;
   expect(gradient).toContain("## CSS");

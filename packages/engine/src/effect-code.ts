@@ -12,12 +12,13 @@ import {
   type EffectKind,
   effectAddressParts,
   effectFileAddress,
+  effectFinish,
   effectStillParts,
   hasEmbedScript,
   isVectorKind
 } from "./effect.ts";
 import { type EffectLayers, effectEmbedHtml, effectLayerCss } from "./effect-embed.ts";
-import { effectUnderlay, finishOf, finishSvg } from "./fx-finish.ts";
+import { effectUnderlay, finishSvg } from "./fx-finish.ts";
 import { fxMovingSvg, fxStillBackground } from "./fx-still.ts";
 import { glassDesign, glassField, glassStillBackground, glassSvg } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
@@ -53,10 +54,9 @@ export const effectStill = (P: Palette, effect: Effect, angle: number): string =
 /** What the view's soft and grain lay with the effect's still behind a page (effect-embed.ts effectLayerCss), as the
     site's stage finishes its picture (fx-finish.ts): the still blurred by a share of the page's longer side, in `vmax`
     as the stage's blur is in its box's `cqmax`, over its palette's gradient at the effect's angle, its stops blurred
-    by the same soft (none under a blob whose ground lets the page through, or that has none, whose edges go clear to
-    the page as it shows through without the soft), and the grain's tile over both at one speck a CSS pixel, `grain`
-    the tile at the view's grain as a CSS image (`url("data:…")`, the Worker's or the editor's own, engine/grain.ts
-    grainPng). */
+    by the same soft (the blob takes none, effect.ts effectFinish), and the grain's tile over both at one speck a CSS
+    pixel, `grain` the tile at the view's grain as a CSS image (`url("data:…")`, the Worker's or the editor's own,
+    engine/grain.ts grainPng). */
 export function effectLayers(
   P: Palette,
   effect: Effect,
@@ -64,7 +64,7 @@ export function effectLayers(
   finish: EffectFinish = {},
   grain?: string | null
 ): EffectLayers {
-  const { soft, grain: grained } = finishOf(finish);
+  const { soft, grain: grained } = effectFinish(effect.kind, finish);
   const underlay = soft ? effectUnderlay(P, effect, angle, soft) : null;
   return {
     ...(soft ? { blur: `blur(${(effectSoftShare(soft) * 100).toFixed(3)}vmax)` } : {}),
@@ -148,7 +148,7 @@ export function effectSvg(
       .replace('width="100%" height="100%"', `width="${box.width}" height="${box.height}"`)
       .replace(/^<svg[^>]*>/, open => `${open}${svgComment(credit)}`);
   })();
-  const kept = finishOf(finish);
+  const kept = effectFinish(effect.kind, finish);
   return kept.soft || kept.grain
     ? finishSvg(drawn, box, kept, {
         underlay: effectUnderlay(P, effect, angle, kept.soft),
@@ -174,11 +174,11 @@ export function effectColors(P: Palette, effect: Effect): string[] {
 }
 
 /** An effect's settings as its address names them, defaults written out: the glass's shape 0 is the glass as designed,
-    and a blob's null shape the one its palette's own numbers draw. The blob has no angle. A soft and a grain stand
-    where the view has them, as a gradient's document writes them. */
+    and a blob's null shape the one its palette's own numbers draw. The blob has no angle and no soft. A soft and a
+    grain stand where the view has them, as a gradient's document writes them. */
 function effectSettings(effect: Effect, angle: number, finish: EffectFinish = {}) {
   const { kind, speed, fps, look } = effect;
-  const kept = finishOf(finish);
+  const kept = effectFinish(kind, finish);
   return kind !== "blob"
     ? { style: kind, angle, ...kept, speed, fps, shape: look.shape ?? 0 }
     : { style: kind, ...kept, speed, fps, shape: look.shape, frost: look.frost, bg: look.bg };
@@ -240,7 +240,7 @@ export const effectMarkdown =
   (origin: string, seed: string, effect: Effect, card: string): MarkdownEffect =>
   (P, name, doc) => {
     const angle = doc.angle;
-    const finish = finishOf(doc);
+    const finish = effectFinish(effect.kind, doc);
     const { shape, frost, bg } = effect.look;
     const { js, ...links } = effectLinks(origin, seed, effect, angle, card, finish);
     const finished = [
@@ -257,12 +257,7 @@ export const effectMarkdown =
     const kind = effect.kind;
     const colors = doc.colors.join(", ");
     const scripted = hasEmbedScript(kind);
-    /* a blob whose ground lets the page through has no gradient under its soft: its edges go clear */
-    const softly = !finish.soft
-      ? ""
-      : effectUnderlay(P, effect, angle, finish.soft)
-        ? "soft blurs it over the palette's gradient"
-        : "soft blurs it with its edges going clear";
+    const softly = finish.soft ? "soft blurs it over the palette's gradient" : "";
     return {
       called: `${name} ${kind === "glass" ? "fluted glass" : kind}`,
       lead:

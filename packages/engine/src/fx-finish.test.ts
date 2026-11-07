@@ -286,20 +286,19 @@ test("an effect's SVG finished: its drawing whole, blurred over its gradient and
   expect(rosette).toContain('<g filter="url(#gfx-soft)"><g clip-path="url(#gfx-box)">');
   expect(rosette).not.toContain('<g clip-path="url(#gfx-box)"><g>');
   expect(rosette).not.toContain("<pattern");
-  /* the blob's root scales a design square to cover the box, so it stands inside as an SVG of its own */
-  const blobSvg = effectSvg(
-    P,
-    "kUMzO5Na871ukuyhHUJA",
-    blob("#101820"),
-    90,
-    size,
-    "https://grabient.com",
-    { soft: 50 }
-  );
-  expect(blobSvg).toMatch(
-    /<g filter="url\(#gfx-soft\)"><g clip-path="url\(#gfx-box\)"><svg x="0" y="0" width="300" height="200"/
-  );
-  expect(blobSvg).not.toContain("gfx-grain");
+  /* the blob takes no soft: its SVG is the one with none */
+  const blobSvg = (soft?: number) =>
+    effectSvg(
+      P,
+      "kUMzO5Na871ukuyhHUJA",
+      blob("#101820"),
+      90,
+      size,
+      "https://grabient.com",
+      soft ? { soft } : {}
+    );
+  expect(blobSvg(50)).toBe(blobSvg());
+  expect(blobSvg(50)).not.toContain("gfx-soft");
   /* grain alone needs no gradient or filter, nor a pattern to blur through */
   const grained = finishSvg(
     plain,

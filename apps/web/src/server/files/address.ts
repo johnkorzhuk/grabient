@@ -1,4 +1,5 @@
 /* How the file and picture routes read an address: its query, and the name before a file's extension. */
+import { EFFECT_KINDS, isEffect } from "@grabient/engine/effect.ts";
 import {
   type ParamReader,
   parseSize,
@@ -36,7 +37,8 @@ export interface Saved {
 }
 
 /** The view an address asks for: style, steps and angle from its query, each one it leaves out as saved, then as the
-    defaults; steps never under the palette's keyframes. */
+    defaults; steps never under the palette's keyframes; no soft where its style is an effect that takes none (the
+    blob), whatever it says. */
 export function viewAt(
   params: URLSearchParams,
   keyframes: number,
@@ -50,11 +52,12 @@ export function viewAt(
     }
   };
   const { style, steps, angle, soft, grain } = parseView(reader);
+  const kind = params.get("style");
   return {
     style,
     steps: Math.max(steps, keyframes),
     angle,
-    ...(soft ? { soft } : {}),
+    ...(soft && !(isEffect(kind) && !EFFECT_KINDS[kind].soft) ? { soft } : {}),
     ...(grain ? { grain } : {})
   };
 }

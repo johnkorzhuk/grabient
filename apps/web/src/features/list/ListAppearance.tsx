@@ -2,6 +2,7 @@ import { decodePalette } from "@grabient/engine/codec.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import {
+  EFFECT_KINDS,
   EFFECT_LOOK,
   EFFECT_PLAY,
   EFFECTS,
@@ -362,8 +363,10 @@ export function ListAppearance() {
     get angle() {
       return shown().angle;
     },
+    /* the blob takes no soft: its field steps aside */
     get soft() {
-      return shown().soft;
+      const v = shown();
+      return v.effect && !EFFECT_KINDS[v.effect.kind].soft ? null : v.soft;
     },
     get grain() {
       return shown().grain;

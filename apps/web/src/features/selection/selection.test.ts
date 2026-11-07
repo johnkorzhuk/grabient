@@ -109,6 +109,16 @@ test("a palette keeps its soft and grain and the effect it played, held still: i
   });
   expect(blob?.effect?.look).toEqual({ shape: blobShapeOf(seed), frost: 1.5, bg: "#102030" });
   expect(blob?.id).toBe(`${seed}?style=blob&frost=1.5&shape=${blobShapeOf(seed)}&bg=%23102030`);
+  // nor a soft: a blob chosen with one is held with its grain alone, the same palette as with none
+  const softBlob = selectedPalette({
+    ...view,
+    soft: 20,
+    grain: 64,
+    effect: { kind: "blob", ...EFFECT_PLAY, look: { shape: 3, frost: 1, bg: null } }
+  });
+  expect(softBlob?.soft).toBeUndefined();
+  expect(softBlob?.grain).toBe(64);
+  expect(softBlob?.id).toBe(`${seed}?style=blob&grain=64&shape=3`);
   // what is no effect is none
   expect(heldEffect(seed, { kind: "mesh" })).toBeNull();
   expect(heldEffect(seed, "glass")).toBeNull();

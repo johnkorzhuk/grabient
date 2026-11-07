@@ -1,6 +1,7 @@
 import { gradientCss } from "@grabient/engine/css.ts";
 import {
   blobStillKey,
+  EFFECT_KINDS,
   type EffectKind,
   fxStillKey,
   isVectorKind,
@@ -78,11 +79,11 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
   };
   const said = () => {
     const kind = fx.kind();
-    /* the blob has no angle */
+    /* the blob has no angle and no soft */
     return kind
       ? [
           effectSummary(fx.settings(kind), kind !== "blob" && set().angle ? e.angle() : null),
-          ...(e.soft() ? [t("Soft {value}", { value: e.soft() })] : []),
+          ...(e.softIn(kind) ? [t("Soft {value}", { value: e.softIn(kind) })] : []),
           ...(e.grain() ? [t("Grain {value}", { value: e.grain() })] : [])
         ].join(" · ")
       : summary();
@@ -175,6 +176,11 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
     fxTile("rosette", t("Rosette")),
     fxTile("papercut", t("Papercut"))
   ];
+  /* the Soft field, aside while the blob plays, which takes none: the reader's soft is kept for the others */
+  const softField = () => {
+    const kind = fx.kind();
+    return kind && !EFFECT_KINDS[kind].soft ? null : e.soft();
+  };
   /* the fields of the effect playing: the glass's where none plays (the menu opens on the glass's) */
   const fieldsKind = (): EffectKind => fx.kind() ?? "glass";
   const fields = (
@@ -235,7 +241,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
           angle: set().angle ? e.angle() : "auto",
           stepsMin: Math.max(3, e.K()),
           bg: paintIn,
-          soft: e.soft(),
+          soft: softField(),
           grain: e.grain(),
           onSoft: v => e.setSoft(v),
           onGrain: v => e.setGrain(v),

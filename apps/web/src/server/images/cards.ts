@@ -47,8 +47,7 @@ const effectParts = (effect: Effect, angle: number) =>
 /** The finish over an effect's frame (engine/fx-finish.ts), counted up by a change to it that moves its pixels. */
 const EFFECT_FINISH = "fx-finish-1";
 /* A soft or grained effect's own part of its key: none for a plain one, whose key, and the pictures kept under it,
-   stand as they were. The blob's gradient under its soft lies left to right whatever the address's angle, which its
-   parts leave out. */
+   stand as they were. The blob takes no soft, which the address's view has left out (files/address.ts viewAt). */
 const effectFinishPart = (finish: EffectFinish) =>
   finish.soft || finish.grain ? [`${EFFECT_FINISH}:${finish.soft ?? 0}:${finish.grain ?? 0}`] : [];
 /* An effect's first frame finished (effect-frame.ts), its code loaded with the first one drawn: the picture routes

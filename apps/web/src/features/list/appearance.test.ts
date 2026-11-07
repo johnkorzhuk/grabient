@@ -212,6 +212,26 @@ test("the blob has no angle: an address's angle is left while it plays, and the 
   expect(viewOver({ ...AS_SAVED, angle: 30 }, pasted).angle).toBe("auto");
 });
 
+test("the blob takes no soft: an address's soft is left while it plays, and a save's with it is none", () => {
+  expect(readListView({ style: "blob", soft: 30, grain: 20 })).toEqual(
+    readListView({ style: "blob", grain: 20 })
+  );
+  expect(listViewOf(new URLSearchParams("style=blob&soft=30")).soft).toBe(0);
+  expect(inView("/palettes", { ...AS_SAVED, soft: 30, grain: 20, effect: BLOB })).toBe(
+    "/palettes?style=blob&grain=20&frost=1.5&bg=%23112233"
+  );
+  // a turn to the blob takes the soft away; the glass keeps one
+  expect(viewParams({ style: "auto", effect: BLOB })).toMatchObject({ soft: undefined });
+  expect(inView("/palettes", { ...AS_SAVED, soft: 30, effect: GLASS })).toBe(
+    "/palettes?style=glass&soft=30&speed=0.5&fps=30"
+  );
+  // a pasted blob's link leaves the list's soft out too
+  const pasted = listViewOf(new URLSearchParams("style=blob"));
+  expect(viewOver({ ...AS_SAVED, soft: 30 }, pasted).soft).toBe(0);
+  // and a blob a save kept with a soft is drawn with none
+  expect(lookFinish("style=blob&soft=35&grain=20&shape=3")).toEqual({ grain: 20 });
+});
+
 test("a card plays the list's effect in its own palette's shape, the one its link opens", () => {
   expect(cardEffect(GLASS, SEED)).toBe(GLASS);
   expect(cardEffect(BLOB, SEED).look).toEqual({ ...BLOB.look, shape: blobShapeOf(SEED) });

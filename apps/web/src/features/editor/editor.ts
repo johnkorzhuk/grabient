@@ -2,7 +2,7 @@ import { type Axis, canonical, decodePalette, encodePalette, type Palette } from
 import { hexToSrgb, lchToP3, lchToSrgb, toCssP3, toHex } from "@grabient/engine/color.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { addKeyframe, anchorHueWalls, type Lock, removeKeyframes } from "@grabient/engine/edits.ts";
-import type { Effect, EffectKind } from "@grabient/engine/effect.ts";
+import { EFFECT_KINDS, type Effect, type EffectKind } from "@grabient/engine/effect.ts";
 import { clamp } from "@grabient/engine/math.ts";
 import { hexAnchor } from "@grabient/engine/spec.ts";
 import {
@@ -336,6 +336,9 @@ export function createPaletteEditor(
     style,
     angle,
     soft,
+    /** The soft the picture takes while `kind` shows: the reader's, none for an effect that takes none (the blob,
+        whose frost softens it), the reader's kept to give back. */
+    softIn: (kind: EffectKind | null): number => (kind && !EFFECT_KINDS[kind].soft ? 0 : soft()),
     grain,
     size,
     locks,

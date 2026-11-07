@@ -1,4 +1,3 @@
-import { effectSoftShare } from "@grabient/engine/view.ts";
 import { msg } from "@grabient/i18n";
 import { type CardCollect, CollectPress } from "@grabient/ui/CollectPress.tsx";
 import { FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
@@ -143,7 +142,7 @@ export function ItemCard(props: {
       grain={cardPicture(picture()).grain}
       angle={picture().angle}
       picture={effect.picture()}
-      blur={effect.picture() && picture().soft ? effectSoftShare(picture().soft ?? 0) : undefined}
+      blur={effect.blur(picture().soft)}
       pictureLabel={effect.label()}
       glow={effect.glow()}
       bare={effect.bare()}

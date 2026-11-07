@@ -1,4 +1,4 @@
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { effectFinish, parseEffect } from "@grabient/engine/effect.ts";
 import { finishOf, parseView } from "@grabient/engine/view.ts";
 import { keptLook } from "../../features/editor/look.ts";
 import { resolvePalette } from "../files/resolve.ts";
@@ -35,13 +35,15 @@ export function paletteNamed(named: string): PaletteGiven | null {
   const { style, steps, angle, soft, grain } = parseView(url.searchParams);
   const look = keptLook(found.seed, url.search, { style, steps, angle });
   const looked = look ? { look } : {};
-  /* the soft and the grain an address names draw the palette's picture, as its page draws them */
+  /* the soft and the grain an address names draw the palette's picture, as its page draws them: the blob's grain
+     alone, as it takes no soft */
   const finished = finishOf({ soft, grain });
-  if (parseEffect(url.searchParams))
+  const effect = parseEffect(url.searchParams);
+  if (effect)
     return {
       seed: found.seed,
       ...(url.searchParams.has("angle") ? { angle } : {}),
-      ...finished,
+      ...effectFinish(effect.kind, finished),
       ...looked
     };
   return { seed: found.seed, style, steps, angle, ...finished, ...looked };

@@ -1,12 +1,12 @@
 /* An effect's soft and grain as every format draws them, the site's own picture the measure: the stage blurs an
    effect's layer by a Gaussian whose sigma is a share of the picture's longer side (view.ts effectSoftShare; Editor.tsx
    fxBlur, a CSS blur in cqmax), the blur reading clear past the picture's edges, so they go to the palette's gradient
-   laid under the layer (a blob with no ground of its own excepted, whose edges go clear), and lays the grain's tile
-   over all of it, a speck a pixel from the picture's corner (grain.ts, lib/picture.ts). Here are the parts a file,
-   a copy, a clip and a shader draw it from alike: the sigma, the gradient under, the blur of a picture's pixels and
-   the grain over them, and the SVG that does the same with a filter a browser runs and Figma's importer reads as a
-   layer blur, its grain as tiles of the tile's image, which Figma imports one to one (it stretches a pattern's image
-   over the whole picture). */
+   laid under the layer (the blob takes no soft: effect.ts effectFinish), and lays the grain's tile over all of it, a
+   speck a pixel from the picture's corner (grain.ts, lib/picture.ts). Here are the parts a file, a copy, a clip and a
+   shader draw it from alike: the sigma, the gradient under, the blur of a picture's pixels and the grain over them,
+   and the SVG that does the same with a filter a browser runs and Figma's importer reads as a layer blur, its grain as
+   tiles of the tile's image, which Figma imports one to one (it stretches a pattern's image over the whole
+   picture). */
 import { hexBytes } from "./color.ts";
 import { type Stop, sampleStops } from "./curve.ts";
 import { EFFECT_KINDS, type Effect, type EffectKind, groundParts } from "./effect.ts";
@@ -38,8 +38,8 @@ export const hasFinish = (finish: Finish | null | undefined): boolean =>
 export const effectBlurSigma = (soft: number | null | undefined, size: Size): number =>
   soft ? effectSoftShare(soft) * Math.max(size.width, size.height) : 0;
 
-/** The gradient a soft effect's edges go to: the palette's linear gradient at the effect's angle (the blob's palette
-    lies left to right), its stops blurred by the same soft (soft.ts), as the stage lays it under the layer. */
+/** The gradient a soft effect's edges go to: the palette's linear gradient at the effect's angle, its stops blurred by
+    the same soft (soft.ts), as the stage lays it under the layer. */
 export interface Underlay {
   stops: Stop[];
   style: Style;
@@ -48,8 +48,8 @@ export interface Underlay {
   at?: number[];
 }
 /** The gradient under an effect, or null where nothing is under it: a blob whose ground lets the page through, or
-    that has none, stands clear, its soft edges thinning toward the page, as its files are clear. Laid under a ground
-    that lets it through, the gradient would show through the ground everywhere, where the site shows the page. */
+    that has none, stands clear, as its files are clear. Laid under a ground that lets it through, the gradient would
+    show through the ground everywhere, where the site shows the page. */
 export function effectUnderlay(
   P: Palette,
   effect: Pick<Effect, "kind" | "look">,

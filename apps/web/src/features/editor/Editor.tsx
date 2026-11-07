@@ -3,13 +3,7 @@ import { encodePalette } from "@grabient/engine/codec.ts";
 import { hexToSrgb, luminance } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import {
-  blobShapeOf,
-  blobStillKey,
-  fxStillKey,
-  groundParts,
-  type VectorKind
-} from "@grabient/engine/effect.ts";
+import { blobShapeOf, blobStillKey, fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
@@ -301,7 +295,7 @@ export default function Editor(props: { data: PaletteData }) {
     style: e.style(),
     steps: e.steps(),
     angle: e.angle(),
-    soft: e.soft(),
+    soft: e.softIn(e.effects.kind()),
     grain: e.grain(),
     size: e.size(),
     pixels: resolveSize(e.size(), stage),
@@ -662,8 +656,8 @@ function Stage(
      glass's are, and under a soft effect the gradient its files lay there (effect-under.ts), whatever the gradient was
      set to before the effect was picked; the grain over either */
   const art = () => {
-    const soft = e.soft();
     const kind = e.shownEffect();
+    const soft = e.softIn(kind);
     if (kind && soft) return effectUnderCss(calmPalette(), kind, e.angle(), soft, e.wide());
     if (!soft)
       return gradientCss(
@@ -681,21 +675,12 @@ function Stage(
       e.angle()
     );
   };
-  /* a soft blob with no ground of its own, or one that lets the page through, stands on the page: its edges go to the
-     page's ground, as a card's go clear and every file's (fx-finish.ts effectUnderlay), not to the gradient */
-  const onPage = () => {
-    if (e.shownEffect() !== "blob" || !e.soft()) return false;
-    const bg = blobSettings().look.bg;
-    return !bg || groundParts(bg).alpha < 1;
-  };
-  const under = () => (onPage() ? "var(--color-bg)" : art());
   /* an effect's soft: its layer blurred by a share of the stage's longer side (engine/view.ts effectSoftShare), its
      edges going to the gradient under it rather than to the page */
   const fxBlur = () => {
-    const soft = e.soft();
-    return e.shownEffect() && soft
-      ? `blur(${(effectSoftShare(soft) * 100).toFixed(3)}cqmax)`
-      : undefined;
+    const kind = e.shownEffect();
+    const soft = e.softIn(kind);
+    return kind && soft ? `blur(${(effectSoftShare(soft) * 100).toFixed(3)}cqmax)` : undefined;
   };
   /* the grain over the picture, the gradient's or an effect's: the tile at full strength at the grain's opacity, so a
      grain being set changes no file and nothing flickers as one comes (lib/picture.ts) */
@@ -945,7 +930,7 @@ function Stage(
               role="img"
               aria-label={t("The gradient")}
               style={{
-                background: under(),
+                background: art(),
                 "--fx-blur": fxBlur()
               }}
             >
@@ -965,7 +950,7 @@ function Stage(
             style={{
               "--ar": String(size().width / size().height),
               "--w": `${size().width}px`,
-              background: under(),
+              background: art(),
               "--fx-blur": fxBlur()
             }}
           >

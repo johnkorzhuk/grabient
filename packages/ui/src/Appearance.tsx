@@ -151,8 +151,9 @@ export interface AppearanceProps {
   /** the fields that stand in Steps' and Angle's place while an extra tile is chosen */
   extraFields?: Element;
   /** the soft and the grain every palette is drawn with, 0 for none (engine/soft.ts, grain.ts): their fields stand
-      under the others where both are handled */
-  soft?: number;
+      under the others where both are handled, the soft's null where the picture drawn takes none: its field steps
+      aside */
+  soft?: number | null;
   grain?: number;
   onSoft?: (v: number) => void;
   onGrain?: (v: number) => void;
@@ -257,17 +258,19 @@ export function AppearanceMenu(props: AppearanceProps) {
   const finish = () => (
     <Show when={props.onSoft && props.onGrain}>
       <div class={styles.pair}>
-        <Scrub
-          label={t("Soft")}
-          min={0}
-          max={SOFT_MAX}
-          step={1}
-          grain={1}
-          def={0}
-          fmt={v => (v < 1 ? t("Off") : String(Math.round(v)))}
-          value={props.soft ?? 0}
-          onInput={v => props.onSoft?.(Math.round(v))}
-        />
+        <Show when={props.soft !== null}>
+          <Scrub
+            label={t("Soft")}
+            min={0}
+            max={SOFT_MAX}
+            step={1}
+            grain={1}
+            def={0}
+            fmt={v => (v < 1 ? t("Off") : String(Math.round(v)))}
+            value={props.soft ?? 0}
+            onInput={v => props.onSoft?.(Math.round(v))}
+          />
+        </Show>
         <Scrub
           label={t("Grain")}
           min={0}

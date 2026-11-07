@@ -201,15 +201,15 @@ describe("videoParts", () => {
 });
 
 describe("videoQuality", () => {
-  it("codes a soft blob, or a grained one with less frost than designed, as the glass, every other as before", () => {
+  it("codes a blob grained with less frost than designed as the glass, every other as before", () => {
     const thin = { ...blob, look: { ...look, frost: 0.5 } };
     expect(videoQuality(blob)).toEqual(VIDEO_QUALITY.blob);
     expect(videoQuality({ ...blob, finish: {} })).toEqual(VIDEO_QUALITY.blob);
-    expect(videoQuality({ ...blob, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.glass);
     expect(videoQuality({ ...thin, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.glass);
     /* the frost holds the grain as the glass's coding holds the glass's */
     expect(videoQuality({ ...blob, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.blob);
-    expect(videoQuality({ ...thin, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.glass);
+    /* and a blob takes no soft */
+    expect(videoQuality({ ...thin, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.blob);
     for (const kind of ["glass", "silk", "rosette", "papercut"] as const)
       expect(videoQuality({ kind, look, finish: { soft: 40, grain: 30 } })).toEqual(
         VIDEO_QUALITY[kind]
@@ -218,14 +218,15 @@ describe("videoQuality", () => {
 
   it("is what a clip's frames are coded at", () => {
     const size = { width: 64, height: 48 };
+    const thin = { ...look, frost: 0.5 };
     const ask: VideoAsk = {
       kind: "blob",
       palette,
-      look,
+      look: thin,
       angle: 90,
       size,
       fps: 10,
-      finish: videoFinish(palette, blob, 90, { soft: 40, grain: 30 }, size)
+      finish: videoFinish(palette, { ...blob, look: thin }, 90, { grain: 30 }, size)
     };
     const plan = videoPlan(blob, 2, 10, 2);
     const coded = (quality?: typeof VIDEO_QUALITY.blob) =>

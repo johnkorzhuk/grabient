@@ -220,6 +220,14 @@ describe("finishes", () => {
     }
   });
 
+  test("a blob takes the grain the seed picks for its part, never a soft", () => {
+    for (const { seed, name } of parts) {
+      const blob = finished(inLook(seed, decodePalette(seed) as Palette, "blob", name), name);
+      expect(blob.view.soft).toBeUndefined();
+      expect(blob.view.grain).toBe(finishFor(seed, name, "blob").grain);
+    }
+  });
+
   test("a look takes the finish the seed picks for its part and its kind", () => {
     const rosette = inLook(SEED, PALETTE, "rosette", "poster");
     expect(finished(rosette, "poster").view).toEqual({

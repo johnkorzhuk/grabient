@@ -6,8 +6,10 @@ import { decodePalette, encodePalette, type Palette } from "@grabient/engine";
 import { LOCKS, type Lock } from "@grabient/engine/edits.ts";
 import {
   blobShapeOf,
+  EFFECT_KINDS,
   type Effect,
   effectAngleParts,
+  effectFinish,
   effectParts,
   parseEffect
 } from "@grabient/engine/effect.ts";
@@ -66,7 +68,6 @@ const wordsOf = (list: readonly Lock[]) =>
 export function readSeedPage(id: string, params: ParamReader): SeedPage | null {
   const palette = SEED_SHAPE.test(id) ? decodePalette(id) : null;
   if (!palette) return null;
-  const view = parseView(params);
   const seed = encodePalette(palette);
   /* a blob always has a shape: one its address names, else the palette's own suggestion, which the canonical address
      then names */
@@ -75,6 +76,12 @@ export function readSeedPage(id: string, params: ParamReader): SeedPage | null {
     parsed?.kind === "blob" && parsed.look.shape === null
       ? { ...parsed, look: { ...parsed.look, shape: blobShapeOf(seed) } }
       : parsed;
+  /* and it takes no soft, whatever its address says */
+  const view = parseView(
+    effect && !EFFECT_KINDS[effect.kind].soft
+      ? { get: name => (name === "soft" ? null : params.get(name)) }
+      : params
+  );
   return {
     seed,
     palette,
@@ -90,8 +97,9 @@ type Addressed = Pick<SeedPage, "seed" | "view"> &
   Partial<Pick<SeedPage, "effect" | "locks" | "selection">>;
 
 /** The canonical address: the view's defaults left out and its parts in order (an effect's style, the angle but for
-    the blob's, which has none, the soft and the grain, the size and how it plays, with no steps, while one plays),
-    then the locks' words in the order lightness, chroma, hue, then the selection's word with no value. */
+    the blob's, which has none, the soft but for the blob's and the grain, the size and how it plays, with no steps,
+    while one plays), then the locks' words in the order lightness, chroma, hue, then the selection's word with no
+    value. */
 export function seedAddress(page: Addressed): string {
   const { lock, unlock } = page.locks ?? NO_LOCKS;
   const extra = [
@@ -105,7 +113,7 @@ export function seedAddress(page: Addressed): string {
   const parts = [
     `style=${effect.kind}`,
     ...effectAngleParts(effect.kind, page.view.angle),
-    ...finishParts(page.view),
+    ...finishParts(effectFinish(effect.kind, page.view)),
     size ? `size=${size}` : "",
     ...effectParts(effect),
     ...extra

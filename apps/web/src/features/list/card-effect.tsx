@@ -1,7 +1,8 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { type Effect, groundParts } from "@grabient/engine/effect.ts";
+import { EFFECT_KINDS, type Effect, groundParts } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
+import { effectSoftShare } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
 import { createMemo, Loading, lazy } from "solid-js";
 import { effectLabel } from "../editor/effect-page.ts";
@@ -31,9 +32,7 @@ export async function readyCardEffects(kind: Effect["kind"]): Promise<void> {
   ]);
 }
 
-/** Whether an effect stands on the page with no ground of its own: a blob with none, or one the page shows through. A
-    soft one's edges go to the page, as its files' and the stage's do (engine/fx-finish.ts effectUnderlay), with no
-    gradient under them. */
+/** Whether an effect stands on the page with no ground of its own: a blob with none, or one the page shows through. */
 export const standsBare = (fx: Effect | null | undefined): boolean =>
   fx?.kind === "blob" && !(fx.look.bg && groundParts(fx.look.bg).alpha === 1);
 
@@ -82,6 +81,11 @@ export function createCardEffect(o: {
         : undefined,
     /** the previewed style shows in the picture's place */
     peek: () => !!effect() && o.peek(),
+    /** the picture blurred by a soft (engine/view.ts effectSoftShare), none where its effect takes none (the blob) */
+    blur: (soft: number | undefined) => {
+      const fx = effect();
+      return fx && soft && EFFECT_KINDS[fx.kind].soft ? effectSoftShare(soft) : undefined;
+    },
     label: () => {
       const fx = shown();
       return fx ? t("{name}, {style}", { name: o.name(), style: effectLabel(fx.kind) }) : undefined;

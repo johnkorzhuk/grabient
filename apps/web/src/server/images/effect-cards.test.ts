@@ -1,4 +1,3 @@
-import { blobBackdrop } from "@grabient/engine/blob.ts";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { parseEffect } from "@grabient/engine/effect.ts";
 import { effectUnderlay, finishPixels, grainOverRgba } from "@grabient/engine/fx-finish.ts";
@@ -230,57 +229,30 @@ describe("a soft or grained effect's picture and card", () => {
     expect(new Set([await tag(""), ...finished]).size).toBe(4);
   });
 
-  test("a blob that lets the page through stays clear under its soft and grain; its card stays solid", async () => {
+  test("a blob takes no soft: its picture and its card are the ones with none, a clear one clear under its grain", async () => {
     const { env, keep } = world();
     for (const bg of ["", "&bg=%2310101480"]) {
-      const png = await read(
-        await seedPngAnswer(
-          get(`/${SEED}.png?style=blob&shape=7${bg}&soft=50&grain=40&w=400&h=300`),
+      const picture = (soft: string) =>
+        seedPngAnswer(
+          get(`/${SEED}.png?style=blob&shape=7${bg}${soft}&grain=40&w=400&h=300`),
           env,
           keep
-        )
-      );
+        );
+      const soft = await picture("&soft=50");
+      expect(soft.headers.get("ETag")).toBe((await picture("")).headers.get("ETag"));
+      const png = await read(soft);
       expect(png.channels).toBe(4);
       const alphas = new Set(Array.from({ length: 400 * 300 }, (_, i) => png.pixels[i * 4 + 3]));
       /* clear where the blob is not, thinning toward it, solid within it */
       expect(alphas.has(255)).toBe(true);
       expect([...alphas].some(a => a > 0 && a < 255)).toBe(true);
-      const card = await read(
-        await cardAnswer(
-          get(`/api/og?seed=${SEED}&style=blob&shape=7${bg}&soft=50&grain=40`),
-          env,
-          keep
-        )
-      );
-      expect(card.channels).toBe(3);
     }
-    /* a blob on a ground that covers the box is opaque, its edges going to the gradient under it, on its card too
-       rather than to the card's backdrop */
-    const solid = await read(
-      await seedPngAnswer(
-        get(`/${SEED}.png?style=blob&shape=7&bg=%23101014&soft=50&w=400&h=300`),
-        env,
-        keep
-      )
-    );
-    expect(solid.channels).toBe(3);
-    const P = decodePalette(SEED);
-    const blob = parseEffect(new URLSearchParams("style=blob&shape=7&bg=%23101014"));
-    if (!P || !blob) throw new Error("no blob");
-    const card = await read(
-      await cardAnswer(
-        get(`/api/og?seed=${SEED}&style=blob&shape=7&bg=%23101014&soft=100`),
-        env,
-        keep
-      )
-    );
-    const edge = at(card, 0, 400)[0];
-    const gradient = Number.parseInt(
-      effectUnderlay(P, blob, 90, 100)!.stops[0].hex.slice(1, 3),
-      16
-    );
-    const backdrop = blobBackdrop(P)[0];
-    expect(Math.abs(edge - (16 + gradient) / 2)).toBeLessThan(Math.abs(edge - (16 + backdrop) / 2));
+    /* its card stays solid */
+    const card = (soft: string) =>
+      cardAnswer(get(`/api/og?seed=${SEED}&style=blob&shape=7${soft}&grain=40`), env, keep);
+    const soft = await card("&soft=50");
+    expect(soft.headers.get("ETag")).toBe((await card("")).headers.get("ETag"));
+    expect((await read(soft)).channels).toBe(3);
   });
 });
 

@@ -4,7 +4,6 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 import {
   blobStillKey,
   fxStillKey,
-  groundParts,
   isVectorKind,
   type VectorKind
 } from "@grabient/engine/effect.ts";
@@ -47,15 +46,6 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
           view().style,
           view().angle
         );
-  /* a soft blob with no ground of its own, or one that lets the page through, stands on the page, as the editor lays
-     it (Editor.tsx under): its edges go to the page's ground, not the gradient */
-  const under = (wide: boolean) => {
-    const effect = props.page.effect;
-    const bg = effect?.kind === "blob" ? effect.look.bg : undefined;
-    return effect?.kind === "blob" && view().soft && (!bg || groundParts(bg).alpha < 1)
-      ? "var(--color-bg)"
-      : art(wide);
-  };
   /* the fluted glass's still over the gradient, where the glass may play: an address that names it, or one that names
      no style, which takes the reader's own choice (effects.ts: the glass, unless this browser chose otherwise, when
      effectScript hides it before the first paint: data-choice, Editor.module.css). The holder names the still (its
@@ -132,7 +122,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
   return (
     <div
       class={[styles.page, styles.boot]}
-      style={{ "--art": under(false), "--art-p3": under(true) }}
+      style={{ "--art": art(false), "--art-p3": art(true) }}
       /* inert: no key or pointer reaches it and no assistive technology reads it, the editor it stands for read once it
          comes. Not aria-hidden too, which inert makes needless: Chrome leaves what aria-hidden covers out of the largest
          contentful paint, and counted the editor drawing this same picture again, later, as the page's largest */

@@ -3,9 +3,11 @@ import {
   blobShapeOf,
   blobStillKey,
   EFFECT_FPS,
+  EFFECT_KINDS,
   EMBED_PLAYING,
   effectAddressParts,
   effectFileAddress,
+  effectFinish,
   effectLook,
   effectStillParts,
   groundHex,
@@ -48,6 +50,25 @@ test("an effect's address names its style, the glass's angle off its default, it
   ).toEqual(["style=blob", "frost=0.5", "shape=12", "bg=%2310101480"]);
   expect(effectStillParts(effect("style=blob&shape=12"), 135)).toEqual(["style=blob", "shape=12"]);
   expect(effect("style=blob&bg=deep").look.bg).toBeNull();
+});
+
+test("the blob takes no soft, its frost softening it: its address, its still's name and its files' name its grain alone", () => {
+  expect(EFFECT_KINDS.blob.soft).toBe(false);
+  const finish = { soft: 30, grain: 20 };
+  expect(effectFinish("blob", finish)).toEqual({ grain: 20 });
+  expect(effectFinish("blob", { soft: 30 })).toEqual({});
+  expect(effectFinish("glass", finish)).toEqual(finish);
+  const blob = effect("style=blob&shape=12");
+  expect(effectAddressParts(blob, 90, finish)).toEqual(["style=blob", "grain=20", "shape=12"]);
+  expect(effectStillParts(blob, 90, finish)).toEqual(["style=blob", "grain=20", "shape=12"]);
+  expect(effectFileAddress("https://o", SEED, blob, 90, "css", undefined, finish)).toBe(
+    `https://o/${SEED}.css?style=blob&grain=20&shape=12`
+  );
+  expect(effectAddressParts(effect("style=silk"), 90, finish)).toEqual([
+    "style=silk",
+    "soft=30",
+    "grain=20"
+  ]);
 });
 
 test("a shape is a number from 0 to 999 for both effects: a longer one is none, a stored one comes into bounds", () => {

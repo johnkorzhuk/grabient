@@ -6,9 +6,15 @@
    browser follows for both files while the script's own address keeps the words: the blob's script reads them with
    the server's reader (server/pipeline.ts, engine/css-color.ts), so its player keeps the ground the still has. */
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { type Effect, type EffectFinish, groundHex, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  type Effect,
+  type EffectFinish,
+  effectFinish,
+  groundHex,
+  parseEffect
+} from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { finishOf, parseView } from "@grabient/engine/view.ts";
+import { parseView } from "@grabient/engine/view.ts";
 
 export interface EmbedAsk {
   /** the palette's name in the address, as the page names its stylesheet */
@@ -52,5 +58,5 @@ export function embedAsk(address: URL, ground?: GroundReader): EmbedAsk | null {
   const effect = parseEffect(params);
   if (!P || !effect) return null;
   const view = parseView(params);
-  return { name, P, effect, angle: view.angle, finish: finishOf(view) };
+  return { name, P, effect, angle: view.angle, finish: effectFinish(effect.kind, view) };
 }

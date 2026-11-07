@@ -229,8 +229,9 @@ test("an effect's files are kept under the soft and the grain they are finished 
   expect(written(`/api/og?seed=${seed}&style=glass&grain=30`)?.key).toBe(
     `/api/og?angle=90&grain=30&h=630&seed=${seed}&style=glass&w=1200`
   );
-  expect(written(`/${seed}.css?style=blob&shape=3&soft=10`)?.key).toBe(
-    `/${seed}.css?angle=90&shape=3&soft=10&style=blob`
+  /* the blob takes no soft, so its files are the same whatever soft an address says, and kept under its grain alone */
+  expect(written(`/${seed}.css?style=blob&shape=3&soft=10&grain=20`)?.key).toBe(
+    `/${seed}.css?angle=90&grain=20&shape=3&style=blob`
   );
   for (const file of [
     `/${seed}.svg?style=silk`,

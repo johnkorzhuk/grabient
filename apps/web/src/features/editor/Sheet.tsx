@@ -186,7 +186,7 @@ export function Sheet(props: {
     style: e.style(),
     steps: e.steps(),
     angle: e.angle(),
-    soft: e.soft(),
+    soft: e.softIn(e.effects.kind()),
     grain: e.grain()
   });
   /* the figures under the sheet's head come a task after it: neither is on the first screen, and a phone answers
@@ -355,7 +355,7 @@ export function Sheet(props: {
       style: set.style ? e.style() : "auto",
       steps: set.steps ? e.steps() : "auto",
       angle: set.angle ? e.angle() : "auto",
-      soft: e.soft(),
+      soft: e.softIn(effect?.kind ?? null),
       grain: e.grain(),
       size: e.size(),
       /* the list these lead to plays the effect too, each card in its own palette's shape */

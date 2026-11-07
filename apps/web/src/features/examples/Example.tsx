@@ -21,7 +21,7 @@ import { GRAIN_IMAGE } from "../../lib/picture.ts";
 import { EffectArt } from "../editor/EffectArt.tsx";
 import { effectUnderCss } from "../editor/effect-under.ts";
 import styles from "./Example.module.css";
-import { bare, type Shown, twoPlaces } from "./paint.ts";
+import { type Shown, twoPlaces } from "./paint.ts";
 import { levelWords, paintOf } from "./shared.ts";
 import { turnsOn } from "./swipe.ts";
 
@@ -78,13 +78,10 @@ export const effectBlur = (s: Shown, unit: "cqmax" | "vmax" = "cqmax"): string |
   s.effect && s.view.soft
     ? `blur(${(effectSoftShare(s.view.soft) * 100).toFixed(3)}${unit})`
     : undefined;
-/** What a soft effect's blurred edges thin to: the palette's gradient as its files lay it (effect-under.ts), or the
-    page's ground where it stands on the page, a blob with none of its own. */
+/** What a soft effect's blurred edges thin to: the palette's gradient as its files lay it (effect-under.ts). */
 export const effectUnder = (s: Shown): string | undefined =>
   s.effect && s.view.soft
-    ? bare(s.effect)
-      ? "var(--color-bg)"
-      : effectUnderCss(s.palette, s.effect.kind, s.view.angle, s.view.soft)
+    ? effectUnderCss(s.palette, s.effect.kind, s.view.angle, s.view.soft)
     : undefined;
 
 /** The palette filling its holder: the gradient, or the effect's still, playing while `lit`. A finished one is soft,

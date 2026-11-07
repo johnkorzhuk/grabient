@@ -13,6 +13,7 @@ import type { Palette } from "./palette.ts";
 import {
   DEFAULT_ANGLE,
   drawnView,
+  finishOf,
   finishParts,
   type ParamReader,
   type Size,
@@ -29,11 +30,14 @@ export const isEffect = (value: unknown): value is EffectKind =>
   typeof value === "string" && (EFFECTS as readonly string[]).includes(value);
 
 /** What each effect is, for the code that treats them alike: whether the view's angle turns it (the blob's palette
-    always lies left to right), and whether its picture is drawn by one drawing of its loop's time over a plain vector
-    still (silk, rosette, papercut: ui/effect-loop.ts plays them, and their still is an SVG with no filter), where the
-    glass and the blob have players and stills of their own. */
+    always lies left to right), whether the view's soft blurs it (the blob's frost softens it already), and whether its
+    picture is drawn by one drawing of its loop's time over a plain vector still (silk, rosette, papercut:
+    ui/effect-loop.ts plays them, and their still is an SVG with no filter), where the glass and the blob have players
+    and stills of their own. */
 export interface EffectKindFacts {
   angle: boolean;
+  /** the view's soft blurs it; the grain goes over every effect */
+  soft: boolean;
   /** drawn by ui/effect-loop.ts over a vector still */
   vector: boolean;
   /** its still stands in for its first frame rather than being it (the papercut's shadows stepped, for a list's cards
@@ -42,11 +46,11 @@ export interface EffectKindFacts {
   steppedStill: boolean;
 }
 export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
-  glass: { angle: true, vector: false, steppedStill: false },
-  blob: { angle: false, vector: false, steppedStill: false },
-  silk: { angle: true, vector: true, steppedStill: false },
-  rosette: { angle: true, vector: true, steppedStill: false },
-  papercut: { angle: true, vector: true, steppedStill: true }
+  glass: { angle: true, soft: true, vector: false, steppedStill: false },
+  blob: { angle: false, soft: false, vector: false, steppedStill: false },
+  silk: { angle: true, soft: true, vector: true, steppedStill: false },
+  rosette: { angle: true, soft: true, vector: true, steppedStill: false },
+  papercut: { angle: true, soft: true, vector: true, steppedStill: true }
 };
 /* the effects a script plays behind another site's page: every one since the papercut's, the list staying the one
    switch for an effect that lands before its script, as the silk, the rosette and the papercut did */
@@ -268,8 +272,16 @@ export const effectParts = (effect: Effect): string[] => [
 export const effectAngleParts = (kind: EffectKind, angle: number): string[] =>
   EFFECT_KINDS[kind].angle && angle !== DEFAULT_ANGLE ? [`angle=${angle}`] : [];
 
+/** The soft and the grain an effect takes of a view's, each where it has one: the blob takes the grain alone, so its
+    picture, its address and its files are the same whatever soft an address or a save says. */
+export const effectFinish = (
+  kind: EffectKind,
+  finish: { soft?: number | null; grain?: number | null } | null | undefined
+): EffectFinish => finishOf(EFFECT_KINDS[kind].soft ? finish : { grain: finish?.grain });
+
 /** The parts of an effect's address its first frame depends on, which name a still or a card of it: its style, the
-    glass's angle where it is not the view's default, the soft and the grain, and its look, never how it plays. */
+    glass's angle where it is not the view's default, the soft and the grain it takes, and its look, never how it
+    plays. */
 export const effectStillParts = (
   effect: Effect,
   angle: number,
@@ -277,12 +289,12 @@ export const effectStillParts = (
 ): string[] => [
   `style=${effect.kind}`,
   ...effectAngleParts(effect.kind, angle),
-  ...finishParts(finish),
+  ...finishParts(effectFinish(effect.kind, finish)),
   ...effectLookParts(effect)
 ];
 
 /** An effect's address after its palette's seed, which its page and its files are named by: its style, the angle where
-    the effect takes one and it is not the view's default, the soft and the grain, how it plays and its look. */
+    the effect takes one and it is not the view's default, the soft and the grain it takes, how it plays and its look. */
 export const effectAddressParts = (
   effect: Effect,
   angle: number,
@@ -290,7 +302,7 @@ export const effectAddressParts = (
 ): string[] => [
   `style=${effect.kind}`,
   ...effectAngleParts(effect.kind, angle),
-  ...finishParts(finish),
+  ...finishParts(effectFinish(effect.kind, finish)),
   ...effectParts(effect)
 ];
 

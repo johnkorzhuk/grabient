@@ -17,6 +17,7 @@ import {
   EFFECT_LOOK,
   EFFECT_PLAY,
   type EffectKind,
+  effectFinish,
   isEffect,
   SHAPE_MAX
 } from "@grabient/engine/effect.ts";
@@ -165,11 +166,15 @@ export function finishFor(
   if (pick < 0.9) return { grain: strength(GRAINS, "grain") };
   return { soft: strength(softs, "soft"), grain: strength(GRAINS, "grain") };
 }
-/** A look finished as the seed picks for the part named `name` (finishFor). */
-export const finished = (s: Shown, name: string): Shown => ({
-  ...s,
-  view: { ...s.view, ...finishFor(s.seed, name, s.effect?.kind ?? null) }
-});
+/** A look finished as the seed picks for the part named `name` (finishFor), with no soft where its effect takes none
+    (the blob). */
+export function finished(s: Shown, name: string): Shown {
+  const finish = finishFor(s.seed, name, s.effect?.kind ?? null);
+  return {
+    ...s,
+    view: { ...s.view, ...(s.effect ? effectFinish(s.effect.kind, finish) : finish) }
+  };
+}
 
 /** The palette in a look as a part named `name` shows it: a gradient as smooth as it needs, bands as many as the seed
     picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings and the blob,

@@ -68,6 +68,20 @@ test("an effect's address keeps the soft and the grain, after its angle", () => 
   expect(blob && seedAddress(blob)).toBe(`/${SEED}?style=blob&grain=5&shape=3`);
 });
 
+test("a blob takes no soft: its address leaves out any it is given, and its page reads none", () => {
+  expect(canonicalSeedAddress(`/${SEED}?style=blob&soft=40&grain=5&shape=3`)).toBe(
+    `/${SEED}?style=blob&grain=5&shape=3`
+  );
+  expect(readSeedPage(SEED, new URLSearchParams("style=blob&soft=40&shape=3"))?.view.soft).toBe(
+    undefined
+  );
+  /* the editor keeps the reader's soft while the blob plays, to give back to the others */
+  const view = { style: "linearGradient", steps: 7, angle: 90, soft: 40 } as const;
+  const blob = readSeedPage(SEED, new URLSearchParams("style=blob&shape=3"))?.effect;
+  expect(seedAddress({ seed: SEED, view, effect: blob })).toBe(`/${SEED}?style=blob&shape=3`);
+  expect(seedAddress({ seed: SEED, view, effect: null })).toBe(`/${SEED}?soft=40`);
+});
+
 test("soft and grain stand in the router's search as numbers, which the router writes bare", () => {
   /* a string the router writes quoted (soft=%2240%22), which a reload reads as no number and the canonical address
      then leaves out */

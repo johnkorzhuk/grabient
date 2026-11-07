@@ -175,3 +175,58 @@ test("an effect plays soft and grained: its address keeps both, its picture blur
   );
   expect(errors).toEqual([]);
 });
+
+test("the blob takes no soft: its Soft field steps aside, and a soft set for the others leaves its address and comes back", async ({
+  page
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  /* a blob's address that names a soft is answered without it, its grain kept, its picture unblurred */
+  await page.goto(`/${SEED}?style=blob&soft=40&grain=20&shape=3`);
+  await live(page);
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=blob&grain=20&shape=3$`));
+  const stage = page.getByRole("img", { name: "The gradient" }).first();
+  await expect
+    .poll(() =>
+      stage
+        .locator("> div")
+        .first()
+        .evaluate(el => getComputedStyle(el).filter)
+    )
+    .toBe("none");
+  const appearance = page.getByRole("button", { name: /^Appearance/ });
+  await appearance.click();
+  await expect(page.getByRole("spinbutton", { name: /^Grain/ })).toHaveAttribute(
+    "aria-valuenow",
+    "20"
+  );
+  await expect(page.getByRole("spinbutton", { name: /^Soft/ })).toHaveCount(0);
+  /* a soft set while the rosette plays leaves the address while the blob plays, and comes back with the rosette */
+  await page.getByRole("button", { name: "Rosette", exact: true }).click();
+  const soft = page.getByRole("spinbutton", { name: /^Soft/ });
+  await soft.focus();
+  for (let press = 0; press < 30; press++) await page.keyboard.press("ArrowUp");
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=rosette&soft=30&grain=20`));
+  await page.getByRole("button", { name: "Blob", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=blob&grain=20&shape=3$`));
+  await expect(page.getByRole("spinbutton", { name: /^Soft/ })).toHaveCount(0);
+  await expect(appearance).toHaveAccessibleName(/Grain 20/);
+  await expect(appearance).not.toHaveAccessibleName(/Soft/);
+  await page.getByRole("button", { name: "Rosette", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=rosette&soft=30&grain=20`));
+  await expect(page.getByRole("spinbutton", { name: /^Soft/ })).toHaveAttribute(
+    "aria-valuenow",
+    "30"
+  );
+  /* a list plays the blob with none: its address leaves the soft out, its cards unblurred */
+  await page.goto("/palettes?style=blob&soft=45&grain=30");
+  await live(page);
+  await expect(page).toHaveURL(/\/palettes\?style=blob&grain=30$/);
+  const art = page.locator("main article").first().locator("[role=img]").first();
+  await expect
+    .poll(() => art.evaluate(el => getComputedStyle(el.firstElementChild!).filter))
+    .toBe("none");
+  await expect(appearance).toHaveAccessibleName(/Grain 30/);
+  await expect(appearance).not.toHaveAccessibleName(/Soft/);
+  expect(errors).toEqual([]);
+});

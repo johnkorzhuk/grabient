@@ -406,7 +406,7 @@ describe("a palette's MP4", () => {
       fit.plan
     ];
     expect(await etagOf(env, keep, CLIP)).toBe(await keyOf([VIDEO_QUALITY.glass, ...plain]));
-    /* a soft blob is coded as the glass is, and keyed so; a plain one as it was */
+    /* a blob takes no soft: its clip with one is the clip with none, keyed and coded as it was */
     const blobLook = { shape: null, frost: 1, bg: null };
     const blobFit = videoFit({ kind: "blob", look: blobLook }, 1, 10, 2, { width: 64, height: 48 });
     const blobKey = (quality: unknown, finish: unknown[]) =>
@@ -424,7 +424,7 @@ describe("a palette's MP4", () => {
     const blobClip = `/${SEED}.mp4?style=blob&size=64x48&fps=10&duration=2`;
     expect(await etagOf(env, keep, blobClip)).toBe(await blobKey(VIDEO_QUALITY.blob, []));
     expect(await etagOf(env, keep, `${blobClip}&soft=40`)).toBe(
-      await blobKey(VIDEO_QUALITY.glass, [{ soft: 40 }])
+      await blobKey(VIDEO_QUALITY.blob, [])
     );
     const still = new URL(
       (await seedMp4Answer(get(finished), env, keep, parts.run)).headers.get("Location") ?? ""

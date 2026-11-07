@@ -51,7 +51,7 @@ import styles from "./ExamplesPage.module.css";
 import { HERO_LOOKS, heroOf } from "./hero.ts";
 import { LOOKS, lookOf, looksFor, pickLook, plainOf, shuffled, type Taken } from "./looks.ts";
 import { ProfileExample } from "./Profile.tsx";
-import { bare, type Shown } from "./paint.ts";
+import type { Shown } from "./paint.ts";
 import { SwatchesExample } from "./Swatches.tsx";
 import { drawnWords, gradientOf, stopsOf, takenOf } from "./shared.ts";
 import { createExamplesState, examplesBindings } from "./state.ts";
@@ -230,8 +230,7 @@ const STILL_SHOWN: Readonly<Record<EffectKind, string>> = {
 function layersShown(s: Shown): EffectLayers {
   const { soft, grain } = s.view;
   return {
-    ...(soft ? { blur: effectBlur(s, "vmax") } : {}),
-    ...(soft && !bare(s.effect) ? { under: effectUnder(s) } : {}),
+    ...(soft ? { blur: effectBlur(s, "vmax"), under: effectUnder(s) } : {}),
     ...(grain
       ? { grain: `url("data:image/png;base64,…") 0 0 / ${GRAIN_SIDE}px ${GRAIN_SIDE}px` }
       : {})

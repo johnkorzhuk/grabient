@@ -10,7 +10,6 @@ import { cardPicture } from "../../lib/picture.ts";
 import { effectLabel } from "../editor/effect-page.ts";
 import { effectUnderCss } from "../editor/effect-under.ts";
 import { nameOf } from "../gallery/drawing.ts";
-import { standsBare } from "../list/card-effect.tsx";
 import { useTaken } from "../palette-use/use.ts";
 import { copySelection, downloadSelection } from "./export.ts";
 import styles from "./Selection.module.css";
@@ -25,7 +24,7 @@ const EffectArt = lazy(() => import("../editor/EffectArt.tsx"), { export: "Effec
 
 /* A palette of the selection as the preview draws it: its gradient as a card draws it, its soft stops and its grain,
    or the still of the effect it played, held at its first frame, blurred by its soft over the gradient its files lay
-   under it (none under a blob the page shows through), the grain over it, named as a card playing it is. */
+   under it (the blob takes none), the grain over it, named as a card playing it is. */
 function previewOf(item: SelectedPalette): PreviewItem {
   const picture = cardPicture(item);
   const shown: PreviewItem = {
@@ -59,9 +58,7 @@ function previewOf(item: SelectedPalette): PreviewItem {
     ...(item.soft
       ? {
           blur: effectSoftShare(item.soft),
-          ...(standsBare(fx)
-            ? {}
-            : { under: effectUnderCss(palette, fx.kind, item.angle, item.soft) })
+          under: effectUnderCss(palette, fx.kind, item.angle, item.soft)
         }
       : {})
   };

@@ -1,5 +1,12 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { blobShapeOf, type Effect, effectParts, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  blobShapeOf,
+  EFFECT_KINDS,
+  type Effect,
+  effectFinish,
+  effectParts,
+  parseEffect
+} from "@grabient/engine/effect.ts";
 import {
   DEFAULT_ANGLE,
   DEFAULT_STEPS,
@@ -27,8 +34,8 @@ import { seedAddress } from "../editor/address.ts";
 /* The view a list draws its palettes in: style, steps and angle for every palette at once, each set or left to every
    palette's own (auto, As saved), the size a palette takes into the editor and the selection's files, and an effect
    every card plays in its gradient's place. It is the list's address (?style=…&steps=…&angle=…&size=…, or with an
-   effect ?style=glass&angle=…&size=… or ?style=blob&size=…, which has no angle, and how it plays and looks, as a
-   palette's address writes them), so a change
+   effect ?style=glass&angle=…&size=… or ?style=blob&size=…, which has no angle and no soft, and how it plays and
+   looks, as a palette's address writes them), so a change
    replaces the entry and Back leaves the page, and the tab remembers it for the next page that draws palettes, the
    editor's new palettes and the wordmark's way home.
 
@@ -41,14 +48,14 @@ export interface ListView {
   steps: number | "auto";
   angle: number | "auto";
   /** the soft and the grain every palette is drawn with, 1 to 100, 0 for none: no palette has its own, so none is
-      every palette as saved (engine/soft.ts, grain.ts) */
+      every palette as saved (engine/soft.ts, grain.ts). The soft is none while the blob plays */
   soft: number;
   grain: number;
   size: SizeChoice | null;
   /** the effect every card plays over its gradient, which the names, the likes, the selection and the files keep: how
       it plays and the blob's frost and ground, one for the list. Its shape is none: each card plays its own palette's
-      (cardEffect). The style is auto and the steps leave the address while one plays, the angle while the blob
-      does. */
+      (cardEffect). The style is auto and the steps leave the address while one plays, the angle and the soft while
+      the blob does. */
   effect: Effect | null;
 }
 /** Steps, an angle or how the effect plays being set, which the pictures draw before the route takes them. */
@@ -99,7 +106,7 @@ export function readListView(search: Readonly<Record<string, unknown>>): ListVie
     style: isStyle(search.style) ? search.style : "auto",
     steps: effect || steps === null ? "auto" : Math.max(steps, STEPS_MIN),
     angle: effect?.kind === "blob" || angle === null ? "auto" : angle,
-    soft: whole(search.soft, 1, SOFT_MAX) ?? 0,
+    soft: effect && !EFFECT_KINDS[effect.kind].soft ? 0 : (whole(search.soft, 1, SOFT_MAX) ?? 0),
     grain: whole(search.grain, 1, GRAIN_MAX) ?? 0,
     size: typeof search.size === "string" ? parseSize(search.size) : null,
     effect: effect && { ...effect, look: { ...effect.look, shape: null } }
@@ -120,7 +127,7 @@ export const viewOver = (own: ListView, said: ListView): ListView => {
     effect,
     steps: own.steps === "auto" && !own.effect ? said.steps : own.steps,
     angle: effect?.kind === "blob" ? "auto" : own.angle === "auto" ? said.angle : own.angle,
-    soft: own.soft || said.soft,
+    soft: effect && !EFFECT_KINDS[effect.kind].soft ? 0 : own.soft || said.soft,
     grain: own.grain || said.grain,
     size: own.size ?? said.size
   };
@@ -143,18 +150,19 @@ function effectParams(effect: Effect | null): Record<string, string | number | u
 }
 
 /** A view as a list's search params, ready to merge over the address's: auto is no param. The style and the effect
-    are written together, one `style` naming either, the steps leave while an effect plays and the angle while the
-    blob does. */
+    are written together, one `style` naming either, the steps leave while an effect plays and the angle and the soft
+    while the blob does. */
 export function viewParams(view: Partial<ListView>): Record<string, string | number | undefined> {
   const out: Record<string, string | number | undefined> = {};
   const effect = view.effect ?? null;
   const blob = effect?.kind === "blob";
+  const unsoft = !!effect && !EFFECT_KINDS[effect.kind].soft;
   const styled = "style" in view || "effect" in view;
   if (styled) out.style = effect ? effect.kind : view.style === "auto" ? undefined : view.style;
   if ("steps" in view || effect)
     out.steps = effect || view.steps === "auto" ? undefined : view.steps;
   if ("angle" in view || blob) out.angle = blob || view.angle === "auto" ? undefined : view.angle;
-  if ("soft" in view) out.soft = view.soft || undefined;
+  if ("soft" in view || unsoft) out.soft = unsoft ? undefined : view.soft || undefined;
   if ("grain" in view) out.grain = view.grain || undefined;
   if ("size" in view) out.size = sizeParam(view.size) ?? undefined;
   return styled ? { ...out, ...effectParams(effect) } : out;
@@ -184,9 +192,15 @@ export function lookEffect(seed: string, look: string): Effect | null {
 }
 
 /** The soft and the grain a save kept in a palette's look, as its address reads them: what a card draws, with the
-    effect the look kept, while its list draws every palette as saved (drawnIn's `kept`). None for no look. */
-export const lookFinish = (look: string | null | undefined): Pick<Drawn, "soft" | "grain"> =>
-  look ? finishOf(parseView(new URLSearchParams(look))) : {};
+    effect the look kept, while its list draws every palette as saved (drawnIn's `kept`), the soft none where that
+    effect takes none. None for no look. */
+export function lookFinish(look: string | null | undefined): Pick<Drawn, "soft" | "grain"> {
+  if (!look) return {};
+  const params = new URLSearchParams(look);
+  const finish = finishOf(parseView(params));
+  const effect = parseEffect(params);
+  return effect ? effectFinish(effect.kind, finish) : finish;
+}
 
 /** Done once a list's cards can draw the looks their saves kept: the blur's code, where one of them is soft. A list's
     route waits for it with its palettes, as for its own view's (effectsReady), so the server draws a kept soft too. */
