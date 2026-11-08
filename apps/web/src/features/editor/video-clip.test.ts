@@ -43,7 +43,7 @@ describe("the clip at an MP4's address", () => {
   test("with no size is the card's, fitted within the clips' limits, and with no style the glass", () => {
     const clip = at("speed=1");
     expect(clip?.kind).toBe("glass");
-    const look = { shape: null, frost: 1, bg: null };
+    const look = { shape: null, frost: 1, bg: null, steps: null };
     /* the glass's loop of 56 seconds at 60 frames a second is past the work a clip may be at the card's size */
     expect(clip?.size).toEqual(videoFit({ kind: "glass", look }, 1, 60, null, CARD_SIZE).size);
     expect(clip?.size).toEqual({ width: 952, height: 500 });
@@ -53,7 +53,7 @@ describe("the clip at an MP4's address", () => {
     expect(at("style=blob&angle=10")?.angle).toBe(90);
     /* 1700 by 2001 is a picture's 1602 by 1886 (lib/picture-size.ts), which the glass's limits fit at 634 by 748, where
        the size asked would fit at 636 by 748 */
-    const look = { shape: null, frost: 1, bg: null };
+    const look = { shape: null, frost: 1, bg: null, steps: null };
     expect(
       videoFit({ kind: "glass", look }, 1, 60, null, { width: 1700, height: 2001 }).size
     ).toEqual({ width: 636, height: 748 });

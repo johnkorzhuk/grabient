@@ -4,6 +4,7 @@
    known. The Worker's files read it (server/images/size.ts), and so does the editor's MP4, drawn in the reader's
    browser as the Worker draws the clip at its address (features/editor/video-clip.ts); it imports nothing of a page's,
    so the browser's worker carries it alone. */
+import { isKitKind } from "@grabient/engine/kit/kinds.ts";
 import { parseSize, resolveSize, type Size } from "@grabient/engine/view.ts";
 
 /** A share card's size, and a palette's own picture's where its address names none. */
@@ -21,6 +22,17 @@ export interface PictureBounds {
   pixels: number;
 }
 export const PICTURE_BOUNDS: PictureBounds = { side: SIDE_MAX, pixels: PIXELS_MAX };
+/** A field effect's picture (engine/kit/), within a card's pixels: drawn on the CPU, its kernel read up to five times a
+    pixel (kit/render.ts), at four cards' pixels the zen garden's took 1.8 to 1.9 s here and 2.4 with a soft and a
+    grain, past the Worker's 3 s on Cloudflare's slower machines, up to three times as long, where a card's pixels take
+    it 0.44 to 0.65 s and the sandstone 0.21 to 0.37, coded (8 Nov 2026), which those finish within it. */
+export const KIT_PICTURE_BOUNDS: PictureBounds = {
+  side: SIDE_MAX,
+  pixels: CARD_SIZE.width * CARD_SIZE.height
+};
+/** How large a picture of an effect of a kind may be. */
+export const effectBounds = (kind: string): PictureBounds =>
+  isKitKind(kind) ? KIT_PICTURE_BOUNDS : PICTURE_BOUNDS;
 /** A clip drawn whole in a container, up to 4K UHD either way up (engine/video.ts VIDEO_WHOLE_LIMITS). */
 export const CLIP_BOUNDS: PictureBounds = { side: 3840, pixels: 3840 * 2160 };
 

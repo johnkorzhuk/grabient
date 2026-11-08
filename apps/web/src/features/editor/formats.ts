@@ -9,6 +9,7 @@ import {
   hasEmbedScript
 } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
+import { isKitKind } from "@grabient/engine/kit/kinds.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { hasVideo } from "@grabient/engine/video-kinds.ts";
@@ -50,10 +51,9 @@ export { drawnSoon, grainDataUrl };
 export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
 /** While an effect plays, Copy also hands over the two tags that play it behind a page (HTML) and the effect as
-    Figma's own layers (engine/figma-glass.ts, figma-blob.ts, figma-silk.ts, figma-rosette.ts), and Copy link the
-    addresses of its files: the
-    palette's Markdown naming it, the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the
-    script that plays it (server/files/effect-files.ts, embed.ts). */
+    Figma's own layers (engine/figma-{kind}.ts, figmaHtml), and Copy link the addresses of its files: the palette's
+    Markdown naming it, the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the script that
+    plays it (server/files/effect-files.ts, embed.ts). */
 export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html", "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
 /** An effect's links: its script where one plays it behind a page (engine/effect.ts's hasEmbedScript). */
@@ -349,7 +349,8 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
 /* The effect as Figma's own layers at the pixels taken, the frame named for the palette, moving on Figma's timeline
    as the picture moves (its speed), its first frame when held, with its soft and grain as the stage paints them
    (figma-paste.ts figmaFinish): a soft one's edges thin to the gradient its files lay under it, whose code comes for
-   a soft view alone. Each effect's code comes on the press, and the Worker's build carries none of it */
+   a soft view alone. Each effect's code comes on the press, and the Worker's build carries none of it. One branch an
+   effect, the switch over every kind, so an effect with none is the compiler's error rather than another's paste */
 const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
   const finish = finishOf(p);
   const frame = {
@@ -365,58 +366,101 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
         ).effectUnderlay(paletteOf(p), effect, p.angle, finish.soft)
       : null
   };
-  /* the papercut is its still at any pace: its cuts change shape as it moves, which no layer's track follows */
-  if (effect.kind === "papercut") {
-    const { figmaPapercutHtml } = await (import.meta.env.SSR
+  const { kind } = effect;
+  /* a field effect is its still at any pace, as the strings are (engine/kit/figma.ts), its definition with it */
+  if (isKitKind(kind)) {
+    const [{ figmaKitHtml }, { kitEffect }] = await (import.meta.env.SSR
       ? (new Promise(() => {}) as never)
-      : import("@grabient/engine/figma-papercut.ts"));
-    return figmaPapercutHtml({
+      : Promise.all([
+          import("@grabient/engine/kit/figma.ts"),
+          import("@grabient/engine/kit/registry.ts")
+        ]));
+    return figmaKitHtml(kitEffect(kind), {
       palette: decodePalette(p.seed)!,
       angle: p.angle,
       shape: effect.look.shape,
+      steps: effect.look.steps,
       ...frame
     });
   }
-  if (effect.kind === "silk" || effect.kind === "rosette") {
-    const look = {
-      palette: decodePalette(p.seed)!,
-      angle: p.angle,
-      shape: effect.look.shape,
-      ...frame,
-      speed: effect.speed
-    };
-    if (effect.kind === "silk") {
+  switch (kind) {
+    /* the papercut and the strings are their stills at any pace: their cuts and threads change shape as they move,
+       which no layer's track follows */
+    case "papercut": {
+      const { figmaPapercutHtml } = await (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/figma-papercut.ts"));
+      return figmaPapercutHtml({
+        palette: decodePalette(p.seed)!,
+        angle: p.angle,
+        shape: effect.look.shape,
+        ...frame
+      });
+    }
+    case "strings": {
+      const { figmaStringsHtml } = await (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/figma-strings.ts"));
+      return figmaStringsHtml({
+        palette: decodePalette(p.seed)!,
+        angle: p.angle,
+        shape: effect.look.shape,
+        bg: effect.look.bg,
+        ...frame
+      });
+    }
+    case "silk": {
       const { figmaSilkHtml } = await (import.meta.env.SSR
         ? (new Promise(() => {}) as never)
         : import("@grabient/engine/figma-silk.ts"));
-      return figmaSilkHtml(look);
+      return figmaSilkHtml({
+        palette: decodePalette(p.seed)!,
+        angle: p.angle,
+        shape: effect.look.shape,
+        ...frame,
+        speed: effect.speed
+      });
     }
-    const { figmaRosetteHtml } = await (import.meta.env.SSR
-      ? (new Promise(() => {}) as never)
-      : import("@grabient/engine/figma-rosette.ts"));
-    return figmaRosetteHtml(look);
+    case "rosette": {
+      const { figmaRosetteHtml } = await (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/figma-rosette.ts"));
+      return figmaRosetteHtml({
+        palette: decodePalette(p.seed)!,
+        angle: p.angle,
+        shape: effect.look.shape,
+        ...frame,
+        speed: effect.speed
+      });
+    }
+    case "blob": {
+      const { figmaBlobHtml } = await (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/figma-blob.ts"));
+      return figmaBlobHtml({
+        palette: decodePalette(p.seed)!,
+        ...effect.look,
+        ...frame,
+        speed: effect.speed
+      });
+    }
+    case "glass": {
+      const { figmaGlassHtml } = await (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/figma-glass.ts"));
+      return figmaGlassHtml({
+        colors: colorsOf(p),
+        angle: p.angle,
+        shape: shapeOf(p),
+        ...frame,
+        speed: effect.speed
+      });
+    }
+    default: {
+      const none: never = kind;
+      throw new Error(`No Copy for Figma for ${none}.`);
+    }
   }
-  if (effect.kind === "blob") {
-    const { figmaBlobHtml } = await (import.meta.env.SSR
-      ? (new Promise(() => {}) as never)
-      : import("@grabient/engine/figma-blob.ts"));
-    return figmaBlobHtml({
-      palette: decodePalette(p.seed)!,
-      ...effect.look,
-      ...frame,
-      speed: effect.speed
-    });
-  }
-  const { figmaGlassHtml } = await (import.meta.env.SSR
-    ? (new Promise(() => {}) as never)
-    : import("@grabient/engine/figma-glass.ts"));
-  return figmaGlassHtml({
-    colors: colorsOf(p),
-    angle: p.angle,
-    shape: shapeOf(p),
-    ...frame,
-    speed: effect.speed
-  });
 };
 
 /** The tags that play an effect behind a page, its first frame inside them, finished by the view's soft and grain, as

@@ -54,20 +54,21 @@ export const selectionRead = read;
 let current: readonly SelectedPalette[] = [];
 
 /** An effect as the selection holds it: its kind and its look, each part in its bounds, played as designed, which
-    its address leaves out; the glass's shape 0 as designed, as none is, and a blob with no shape of its own in its
-    palette's, as its card plays it. Null for anything that is no effect. */
+    its address leaves out; the glass's shape 0 as designed, as none is, a blob with no shape of its own in its
+    palette's, as its card plays it, and the steps and the ground of an effect that takes them, which draw its
+    picture. Null for anything that is no effect. */
 export function heldEffect(seed: string, value: unknown): Effect | null {
   if (!value || typeof value !== "object") return null;
   const fx = value as Partial<Effect>;
   if (!isEffect(fx.kind)) return null;
-  const look = effectLook(fx.look);
+  const look = effectLook(fx.look, fx.kind);
   return {
     kind: fx.kind,
     ...EFFECT_PLAY,
     look:
       fx.kind === "blob"
         ? { ...look, shape: look.shape ?? blobShapeOf(seed) }
-        : { ...EFFECT_LOOK, shape: look.shape || null }
+        : { ...EFFECT_LOOK, shape: look.shape || null, bg: look.bg, steps: look.steps }
   };
 }
 

@@ -1,4 +1,12 @@
+import { encodePalette } from "@grabient/engine/codec.ts";
+import { EFFECTS, isVectorKind, type VectorKind } from "@grabient/engine/effect.ts";
+import { isKitKind, type KitKind } from "@grabient/engine/kit/kinds.ts";
+import { KIT_LABELS } from "@grabient/engine/kit/names.ts";
+import { kitRng } from "@grabient/engine/kit/scene.ts";
+import { randomPalette } from "@grabient/engine/random.ts";
 import { expect, type Page, test } from "@playwright/test";
+import { HERO_LOOKS } from "../src/features/examples/hero.ts";
+import { shuffled } from "../src/features/examples/looks.ts";
 import { live } from "./live.ts";
 
 /* A palette's examples (features/examples): one page for each palette, whatever view or effect a link names, its parts
@@ -240,39 +248,57 @@ test("the hero plays the glass for a reader whose own choice is another style", 
   }).toPass({ timeout: 60000 });
 });
 
-test("the hero plays the silk, the rosette or the papercut from the server's still, in the page's first paint", async ({
-  page
-}) => {
-  /* palettes whose seed puts each of them first for the hero (features/examples/hero.ts) */
-  for (const [seed, kind] of [
-    ["kWede9SdS_WExOrXTdG1szDY", "Silk"],
-    ["kEVpjrmgSF4XhjABAHhjA", "Rosette"],
-    ["kEURB2VmMuMcBluB99F7A", "Papercut"]
-  ]) {
+/** The menu's names of the vector effects drawn by code of their own; a field effect's is the kit's (kit/names.ts). */
+const DRAWN_ALONE: Record<Exclude<VectorKind, KitKind>, string> = {
+  silk: "Silk",
+  rosette: "Rosette",
+  papercut: "Papercut",
+  strings: "Strings"
+};
+/** A palette whose seed puts the kind first for its examples page's hero (features/examples/hero.ts: the look its
+    seed's shuffle puts first): the first of a seeded run of palettes, found as the test runs, so a new effect, which
+    changes every seed's shuffle, needs no seed written here. */
+function heroSeed(kind: VectorKind): string {
+  const rand = kitRng(20261108);
+  for (let i = 0; i < 10000; i++) {
+    const seed = encodePalette(randomPalette(rand));
+    if (shuffled(HERO_LOOKS, seed, "hero")[0] === kind) return seed;
+  }
+  throw new Error(`no palette of 10,000 puts the ${kind} first for the hero`);
+}
+
+/* every vector effect (EFFECT_KINDS), the field effects among them, each a test of its own on a palette whose seed puts
+   it first, so a new effect adds a test rather than seconds to one test's limit (all eleven in one test took 28.4 s of
+   its 30, 8 Nov 2026) */
+for (const kind of EFFECTS.filter(isVectorKind))
+  test(`the hero plays the ${kind} from the server's still, in the page's first paint`, async ({
+    page
+  }) => {
+    const seed = heroSeed(kind);
+    const label = isKitKind(kind) ? KIT_LABELS[kind] : DRAWN_ALONE[kind];
     const html = await (await page.request.get(`/${seed}/examples`)).text();
     /* the hero's holder names its still, which the head paints */
     const named = /data-look="hero"[\s\S]*?data-fx-still="([^"]+)"/.exec(html)?.[1];
-    expect(named).toMatch(new RegExp(`^${kind.toLowerCase()}\\|${seed}\\|`));
+    expect(named).toMatch(new RegExp(`^${kind}\\|${seed}\\|`));
     const painted = /<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1].split(" ");
     expect(painted).toContain(named);
     await open(page, `/${seed}/examples`);
     await expect(page.locator('[data-look="hero"] [data-hold] p').first()).toContainText(
-      `${kind} · 1×`
+      `${label} · 1×`
     );
     const still = page.locator(`[data-look="hero"] [data-fx-still="${named}"]`);
     await expect(still).toHaveCount(1);
     expect(await still.evaluate(el => getComputedStyle(el).backgroundImage)).toContain(
       "data:image/svg+xml"
     );
-  }
-});
+  });
 
 test("soft and grained looks are drawn as the server drew them, none drawn plain a moment while the blur's code comes", async ({
   page
 }) => {
   /* a palette whose hero is a soft, grained rosette, the rosette's own finish, among soft bands and effects and
      grained ones (features/examples/looks.ts finishFor) */
-  const seed = "kQuhy_2UYco";
+  const seed = "kYXjusxyM5F01Plru0A8DfB2s0Qu";
   /* any soft picture's gradient the page draws again otherwise than the server did, were it drawn plain a moment
      while the blur's code came */
   await page.addInitScript(() => {

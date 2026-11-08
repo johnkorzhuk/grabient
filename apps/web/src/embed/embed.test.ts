@@ -1,6 +1,6 @@
 import { crc32, inflateSync } from "node:zlib";
 import { cssColorText } from "@grabient/engine/css-color.ts";
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECTS, hasEmbedScript, parseEffect } from "@grabient/engine/effect.ts";
 import { effectLayers } from "@grabient/engine/effect-code.ts";
 import { effectLayerCss } from "@grabient/engine/effect-embed.ts";
 import { GRAIN_SIDE, grainTile } from "@grabient/engine/grain.ts";
@@ -11,6 +11,7 @@ import { grainData } from "../server/files/grain.ts";
 import { fileAnswer } from "../server/files/palette-files.ts";
 import { readyOldIds } from "../server/seo/legacy.ts";
 import { embedAsk } from "./address.ts";
+import { KINDS } from "./build.ts";
 import { grainImage } from "./grain.ts";
 import { srgbHex } from "./ground.ts";
 import type { EmbedEffect } from "./mount.ts";
@@ -76,13 +77,12 @@ const tileOf = (css: string) => TILE.exec(css)?.[1];
 
 beforeAll(async () => {
   await readyOldIds();
-  await Promise.all([
-    import("./glass.ts"),
-    import("./blob.ts"),
-    import("./silk.ts"),
-    import("./rosette.ts"),
-    import("./papercut.ts")
-  ]);
+  await Promise.all(KINDS.map(kind => import(`./${kind}.ts`)));
+});
+
+test("every effect with a script is built, each script mounting its own kind", () => {
+  expect([...KINDS].sort()).toEqual(EFFECTS.filter(hasEmbedScript).sort());
+  expect([...embeds.keys()].sort()).toEqual([...KINDS].sort());
 });
 
 /* a ground's words, and the sRGB that Chromium 152, Firefox 157 and WebKit 26 (Playwright 1.64) compute for
@@ -161,6 +161,11 @@ describe("an effect's script", () => {
     expect(srgbHex("rgb(255, 0, 0)")).toBe("#ff0000");
     expect(srgbHex("color(srgb none 0 0)")).toBeNull();
     expect(srgbHex("red")).toBeNull();
+    /* a clear one: no ground of the blob's, the strings' clear one */
+    expect(srgbHex("rgba(0, 0, 0, 0)")).toBeNull();
+    expect(srgbHex("rgba(0, 0, 0, 0)", true)).toBe("#00000000");
+    expect(srgbHex("color(srgb 1 0 0 / 0)", true)).toBe("#00000000");
+    expect(srgbHex("rgba(10, 20, 30, 0.3)", true)).toBe("#0a141e4d");
   });
 
   test("its grain's tile, its rows stored, is the engine's tile pixel for pixel and the stylesheet's", async () => {
@@ -195,6 +200,11 @@ describe("an effect's script", () => {
       finish: { soft: 40 }
     });
     expect(embedAsk(new URL(`${ORIGIN}/nothing.js?style=silk`))).toBeNull();
+    // the sandstone's script reads its steps from its own address, as its stylesheet does; another effect's none
+    expect(embedAsk(at("style=strata&steps=12"))?.effect.look.steps).toBe(12);
+    expect(embedAsk(at("style=strata&steps=99"))?.effect.look.steps).toBe(40);
+    expect(embedAsk(at("style=strata"))?.effect.look.steps).toBeNull();
+    expect(embedAsk(at("style=zen&steps=12"))?.effect.look.steps).toBeNull();
     expect(embedAsk(at("style=linearGradient"))).toBeNull();
     // a blob's ground in other words than hex, at the hex the server's redirect answers it at; words that are no color go
     const ground = (query: string) => embedAsk(at(query), cssColorText)?.effect.look.bg;
@@ -203,6 +213,14 @@ describe("an effect's script", () => {
     expect(ground("style=blob&bg=%23151315")).toBe("#151315");
     expect(ground("style=blob&bg=nonsense")).toBeNull();
     expect(embedAsk(at("style=blob&bg=navy"))?.effect.look.bg).toBeNull();
+    /* the strings' too, a clear one kept as their clear ground; another effect's bg is none */
+    expect(ground("style=strings&bg=navy")).toBe("#000080");
+    expect(ground("style=strings&bg=transparent")).toBe("#00000000");
+    expect(ground("style=strings&bg=rgb(255 255 255 / 50%25)")).toBe("#ffffff80");
+    expect(ground("style=strings&bg=%23f4efe6")).toBe("#f4efe6");
+    expect(ground("style=strings")).toBeNull();
+    expect(ground("style=blob&bg=transparent")).toBeNull();
+    expect(ground("style=silk&bg=navy")).toBeNull();
   });
 
   test("adopts the stylesheet's own rules where a page has none, finished alike", async () => {
@@ -222,7 +240,12 @@ describe("an effect's script", () => {
         "style=blob&shape=51&bg=%2300000080&soft=50&grain=30"
       ],
       ["style=blob&shape=51&bg=navy&soft=50", "style=blob&shape=51&bg=%23000080&soft=50"],
-      ["style=blob&shape=51&bg=nonsense", "style=blob&shape=51"]
+      ["style=blob&shape=51&bg=nonsense", "style=blob&shape=51"],
+      /* the strings on a ground of their own, a clear one, one in other words, a soft one that lets the page through */
+      ["style=strings&angle=30&bg=%23f4efe6&soft=50&grain=30"],
+      ["style=strings&bg=transparent&shape=7", "style=strings&bg=%2300000000&shape=7"],
+      ["style=strings&bg=navy", "style=strings&bg=%23000080"],
+      ["style=strings&bg=%2310203080&soft=40"]
     ]) {
       const served = await (
         await fileAnswer(new Request(`${ORIGIN}/${SEED}.css?${redirected}`), env, "css")

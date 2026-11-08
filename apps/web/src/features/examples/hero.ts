@@ -7,6 +7,9 @@ import type { Palette } from "@grabient/engine/palette.ts";
 import { finished, inLook, type Look, shuffled } from "./looks.ts";
 import type { Shown } from "./paint.ts";
 
+/* the field effects' colors, which the route loads with the hero, before the page reads a look's (paint.ts) */
+export { loadKitColors } from "./paint.ts";
+
 /** The looks the hero plays: every effect. */
 export const HERO_LOOKS: readonly Look[] = EFFECTS;
 

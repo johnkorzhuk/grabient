@@ -2,7 +2,9 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import {
   blobStillKey,
   EFFECT_KINDS,
+  EFFECTS,
   type EffectKind,
+  fxLookOf,
   fxStillKey,
   isVectorKind,
   type VectorKind
@@ -82,7 +84,11 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
     /* the blob has no angle and no soft */
     return kind
       ? [
-          effectSummary(fx.settings(kind), kind !== "blob" && set().angle ? e.angle() : null),
+          effectSummary(
+            fx.settings(kind),
+            kind !== "blob" && set().angle ? e.angle() : null,
+            fx.settings(kind).look.steps
+          ),
           ...(e.softIn(kind) ? [t("Soft {value}", { value: e.softIn(kind) })] : []),
           ...(e.grain() ? [t("Grain {value}", { value: e.grain() })] : [])
         ].join(" · ")
@@ -106,17 +112,14 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       <BlobArt palette={e.palette()} settings={blob()} />
     </Loading>
   );
-  /* a vector effect's picture (silk, rosette, papercut): its still, the server's where the head holds it, as the first
+  /* a vector effect's picture (EFFECT_KINDS): its still, the server's where the head holds it, as the first
      screen's swatch was (EditorCorner.tsx) */
   const fxArt = (kind: VectorKind) => (
     <Loading
       fallback={
         <span
           class={styles.swatchStill}
-          data-fx-still={fxStillKey(kind, e.seed(), {
-            angle: e.angle(),
-            shape: fx.settings(kind).look.shape
-          })}
+          data-fx-still={fxStillKey(kind, e.seed(), fxLookOf(fx.settings(kind).look, e.angle()))}
         />
       }
     >
@@ -125,6 +128,8 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
         palette={e.palette()}
         angle={e.angle()}
         shape={fx.settings(kind).look.shape}
+        steps={fx.settings(kind).look.steps}
+        bg={fx.settings(kind).look.bg}
       />
     </Loading>
   );
@@ -172,9 +177,8 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       },
       onPeek: () => e.peekEffect("blob")
     },
-    fxTile("silk", t("Silk")),
-    fxTile("rosette", t("Rosette")),
-    fxTile("papercut", t("Papercut"))
+    /* every vector effect's tile, as EFFECT_KINDS names them, in EFFECTS' order */
+    ...EFFECTS.filter(isVectorKind).map(kind => fxTile(kind, effectLabel(kind)))
   ];
   /* the Soft field, aside while the blob plays, which takes none: the reader's soft is kept for the others */
   const softField = () => {

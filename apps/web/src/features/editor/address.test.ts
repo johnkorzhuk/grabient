@@ -82,6 +82,39 @@ test("a blob takes no soft: its address leaves out any it is given, and its page
   expect(seedAddress({ seed: SEED, view, effect: null })).toBe(`/${SEED}?soft=40`);
 });
 
+test("the sandstone keeps its steps in its address and its look, 8 to 40, none at its designed 28; every other effect drops them", () => {
+  for (const [address, canonical] of [
+    [`/${SEED}?steps=12&style=strata`, `/${SEED}?style=strata&steps=12`],
+    [`/${SEED}?style=strata&steps=28`, `/${SEED}?style=strata`],
+    [`/${SEED}?style=strata&steps=3`, `/${SEED}?style=strata&steps=8`],
+    [`/${SEED}?style=strata&steps=400`, `/${SEED}?style=strata&steps=40`],
+    [`/${SEED}?style=strata&steps=twelve`, `/${SEED}?style=strata`],
+    [
+      `/${SEED}?style=strata&shape=7&speed=2&steps=12&angle=30&soft=20`,
+      `/${SEED}?style=strata&angle=30&soft=20&speed=2&steps=12&shape=7`
+    ],
+    [`/${SEED}?style=zen&steps=12`, `/${SEED}?style=zen`],
+    [`/${SEED}?style=glass&steps=12&shape=3`, `/${SEED}?style=glass&shape=3`]
+  ])
+    expect(canonicalSeedAddress(address), address).toBe(canonical);
+  /* its steps are its look's, never the gradient's the editor keeps under it to give back */
+  const page = readSeedPage(SEED, new URLSearchParams("style=strata&steps=12"))!;
+  expect(page.effect?.look.steps).toBe(12);
+  expect(page.view.steps).toBe(7);
+  expect(seedSearch(page)).toEqual({ style: "strata", steps: 12 });
+  expect(readSeedPage(SEED, new URLSearchParams("style=strata"))?.effect?.look.steps).toBeNull();
+  expect(
+    readSeedPage(SEED, new URLSearchParams("style=zen&steps=12"))?.effect?.look.steps
+  ).toBeNull();
+  /* a save keeps them in its look, and reads them back */
+  expect(lookQuery(page.view, page.effect ?? null)).toBe("style=strata&steps=12");
+  expect(readLook(SEED, "style=strata&steps=12")?.effect?.look.steps).toBe(12);
+  /* a gradient's steps are the gradient's, as they were */
+  expect(readSeedPage(SEED, new URLSearchParams("style=linearSwatches&steps=12"))?.view.steps).toBe(
+    12
+  );
+});
+
 test("soft and grain stand in the router's search as numbers, which the router writes bare", () => {
   /* a string the router writes quoted (soft=%2240%22), which a reload reads as no number and the canonical address
      then leaves out */
@@ -181,6 +214,24 @@ test("a blob always has a shape: the palette's own suggestion where its address 
   expect(canonicalSeedAddress(`/${SEED}?style=glass&angle=30`)).toBe(
     `/${SEED}?style=glass&angle=30`
   );
+  /* the strings keep a ground, after their shape, its alpha too, a clear one as the one clear ground; none is their
+     designed ground; an effect that takes none leaves one out */
+  expect(canonicalSeedAddress(`/${SEED}?bg=%23F4EFE6&style=strings&shape=7&angle=30`)).toBe(
+    `/${SEED}?style=strings&angle=30&shape=7&bg=%23f4efe6`
+  );
+  expect(canonicalSeedAddress(`/${SEED}?style=strings&bg=%2310203080&soft=20`)).toBe(
+    `/${SEED}?style=strings&soft=20&bg=%2310203080`
+  );
+  expect(canonicalSeedAddress(`/${SEED}?style=strings&bg=%23ff000000`)).toBe(
+    `/${SEED}?style=strings&bg=%2300000000`
+  );
+  expect(canonicalSeedAddress(`/${SEED}?style=strings&bg=%2300000000`)).toBe(
+    `/${SEED}?style=strings&bg=%2300000000`
+  );
+  expect(canonicalSeedAddress(`/${SEED}?style=silk&bg=%23f4efe6`)).toBe(`/${SEED}?style=silk`);
+  expect(readSeedPage(SEED, new URLSearchParams("style=strings&bg=fff"))?.effect?.look.bg).toBe(
+    "#ffffff"
+  );
 });
 
 test("a save keeps a palette's whole look as its address writes it, and reads it back for the palette", () => {
@@ -194,6 +245,9 @@ test("a save keeps a palette's whole look as its address writes it, and reads it
   );
   expect(look("style=blob&frost=0.5&bg=%23101014&shape=12")).toBe(
     "style=blob&frost=0.5&shape=12&bg=%23101014"
+  );
+  expect(look("style=strings&bg=%23f4efe680&shape=12")).toBe(
+    "style=strings&shape=12&bg=%23f4efe680"
   );
   // a gradient's view as the address writes it
   expect(look("style=radialSwatches&steps=9&angle=45")).toBe(

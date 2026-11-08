@@ -192,6 +192,14 @@ test("an effect's JSON holds the keyframes and how it plays, as its address name
   expect(blob).toMatchObject({ style: "blob", shape: 9, frost: 2, bg: "#101014" });
   // the blob has no angle
   expect(blob).not.toHaveProperty("angle");
+  /* the strings' ground where their address names one, none their designed one */
+  expect(JSON.parse(effectSpecJson(P, effect("style=strings"), 45))).not.toHaveProperty("bg");
+  expect(JSON.parse(effectSpecJson(P, effect("style=strings&bg=%2310203080"), 45))).toMatchObject({
+    style: "strings",
+    angle: 45,
+    shape: 0,
+    bg: "#10203080"
+  });
 });
 
 test("the palette's JSON at an effect's address names the effect: its settings, its colors, its tags and its files", () => {
@@ -268,6 +276,35 @@ test("the palette's Markdown at an effect's address says what plays and how, and
     expect(text).toContain("Its grain lies over it, in the first frame and as it plays.");
     expect(text).not.toMatch(/soft 30|soft blurs/);
   }
+  /* the strings say their ground where their address names one; a soft one that lets the page through has no
+     gradient under its blur */
+  const strings = (query: string, soft = false) =>
+    paletteMarkdown(
+      SEED,
+      ORIGIN,
+      { angle: 45, ...(soft ? { soft: 30 } : {}) },
+      null,
+      [],
+      null,
+      effectMarkdown(ORIGIN, SEED, effect(query), `${ORIGIN}/api/og`)
+    )!;
+  expect(strings("style=strings")).toContain("ribbons of threads on a dark ground");
+  expect(strings("style=strings")).toContain(
+    "- Drawn as: strings, its stirring turned to 45 degrees, shape 0, speed 1"
+  );
+  expect(strings("style=strings&bg=%23f4efe6")).toContain(
+    "ribbons of threads on a ground of #f4efe6"
+  );
+  expect(strings("style=strings&bg=%23f4efe6")).toContain("shape 0, on #f4efe6, speed 1");
+  expect(strings("style=strings&bg=%2300000000")).toContain(
+    "on a clear ground, the page through it"
+  );
+  expect(strings("style=strings&bg=%2300000000", true)).toContain(
+    "soft blurs it with its edges going clear"
+  );
+  expect(strings("style=strings&bg=%23f4efe6", true)).toContain(
+    "soft blurs it over the palette's gradient"
+  );
   // the gradient's Markdown is as it was, with no script among its forms
   const gradient = paletteMarkdown(SEED, ORIGIN, { angle: 45 }, null, [])!;
   expect(gradient).toContain("## CSS");

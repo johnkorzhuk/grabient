@@ -9,32 +9,7 @@ import { papercutSceneSteps } from "@grabient/engine/papercut.ts";
 import { papercutStillSteps } from "@grabient/engine/papercut-svg.ts";
 import { playPapercut } from "@grabient/ui/papercut-player.ts";
 import { mount } from "./mount.ts";
-
-/** How long a share of the still's drawing holds the page's thread, as a list's cards share a frame (FxArt.tsx). */
-const SHARE_MS = 6;
-
-/* the page's thread given back for a moment: a message to itself, which no timer's clamp delays */
-const handBack = (): Promise<void> =>
-  new Promise(resolve => {
-    const { port1, port2 } = new MessageChannel();
-    port1.onmessage = () => {
-      port1.close();
-      resolve();
-    };
-    port2.postMessage(null);
-  });
-
-/* the steps taken a share at a time, the thread handed back between shares */
-async function inShares<T>(steps: Generator<void, T>): Promise<T> {
-  for (let end = performance.now() + SHARE_MS; ; ) {
-    const step = steps.next();
-    if (step.done) return step.value;
-    if (performance.now() > end) {
-      await handBack();
-      end = performance.now() + SHARE_MS;
-    }
-  }
-}
+import { inShares } from "./shares.ts";
 
 mount({
   kind: "papercut",

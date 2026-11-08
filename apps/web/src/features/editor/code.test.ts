@@ -2,7 +2,7 @@ import { decodePalette } from "@grabient/engine";
 import { blobWebgl } from "@grabient/engine/blob-webgl.ts";
 import { blobWebgpu } from "@grabient/engine/blob-webgpu.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECTS, isVectorKind, parseEffect, type VectorKind } from "@grabient/engine/effect.ts";
 import {
   effectColors,
   effectLayers,
@@ -14,12 +14,19 @@ import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { effectUnderlay } from "@grabient/engine/fx-finish.ts";
 import { glassWebgl } from "@grabient/engine/glass-webgl.ts";
 import { glassWebgpu } from "@grabient/engine/glass-webgpu.ts";
+import { kitKernel } from "@grabient/engine/kit/kernels.ts";
+import { KIT_KINDS, kitRecord } from "@grabient/engine/kit/kinds.ts";
+import { kitEffect } from "@grabient/engine/kit/registry.ts";
+import { kitWebgl } from "@grabient/engine/kit/webgl.ts";
+import { kitWebgpu } from "@grabient/engine/kit/webgpu.ts";
 import { papercutWebgl } from "@grabient/engine/papercut-webgl.ts";
 import { papercutWebgpu } from "@grabient/engine/papercut-webgpu.ts";
 import { rosetteWebgl } from "@grabient/engine/rosette-webgl.ts";
 import { rosetteWebgpu } from "@grabient/engine/rosette-webgpu.ts";
 import { silkWebgl } from "@grabient/engine/silk-webgl.ts";
 import { silkWebgpu } from "@grabient/engine/silk-webgpu.ts";
+import { stringsWebgl } from "@grabient/engine/strings-webgl.ts";
+import { stringsWebgpu } from "@grabient/engine/strings-webgpu.ts";
 import { flush } from "solid-js";
 import { afterEach, expect, test, vi } from "vitest";
 import { setColorFormat } from "../../lib/color-format.ts";
@@ -29,6 +36,20 @@ import type { Taken } from "./formats.ts";
 import { createRest } from "./rest.ts";
 
 /* The palette as text, in the sheet's code pane. */
+
+/* a vector effect's two shader writers: its WebGL page and GLSL, its WebGPU page and WGSL */
+type Writers = readonly [typeof silkWebgl, typeof silkWebgpu];
+/* each field effect's writers, its definition and kernel bound to them (engine/kit) */
+async function kitWriters() {
+  const kernels = await Promise.all(KIT_KINDS.map(kitKernel));
+  return kitRecord((kind): Writers => {
+    const kernel = kernels[KIT_KINDS.indexOf(kind)];
+    return [
+      (shader, ...rest) => kitWebgl(kitEffect(kind), kernel, shader, ...rest),
+      (shader, ...rest) => kitWebgpu(kitEffect(kind), kernel, shader, ...rest)
+    ];
+  });
+}
 
 /* the grain's tile as the page's file of it would give it */
 vi.mock("./copy-finish.ts", async load => ({
@@ -190,22 +211,39 @@ test("the blob's Shader tab writes each spelling with the engine's own writer, e
   expect(shader().note?.()).toBe("The balls, their melt and the frost, pass by pass.");
 });
 
-test("the silk's, the rosette's and the papercut's Shader tabs write each spelling with the engine's own writer, each loaded as it shows", async () => {
+test("every vector effect's Shader tab write each spelling with the engine's own writer, each loaded as it shows", async () => {
   /* the browser's: a server's build never loads a shader's writers */
   vi.stubEnv("SSR", false);
   await tabsIn();
   const P = decodePalette(SEED)!;
-  const writers = {
+  const writers: Record<VectorKind, Writers> = {
     silk: [silkWebgl, silkWebgpu],
     rosette: [rosetteWebgl, rosetteWebgpu],
-    papercut: [papercutWebgl, papercutWebgpu]
-  } as const;
-  const notes = {
+    papercut: [papercutWebgl, papercutWebgpu],
+    strings: [stringsWebgl, stringsWebgpu],
+    ...(await kitWriters())
+  };
+  const notes: Record<VectorKind, string> = {
     silk: "The dye, its folds' shade and light, in one pass.",
     rosette: "The petals ring by ring, the ground and the heart's glow, in one pass.",
-    papercut: "The relief, then each sheet's shadows, lit cut and face, pass by pass."
+    papercut: "The relief, then each sheet's shadows, lit cut and face, pass by pass.",
+    strings:
+      "The stirred field at each pixel, its two nearest threads over the ground, in one pass.",
+    /* a field effect's by its recipe, each note true of it: the zen garden's sheets and its stones' band, and the
+       sandstone's plain sheets, with neither shadow nor rim. A recipe neither note says, lines alone or sheets alone
+       with a shadow or a rim, fails here until effect-sources.ts kitPasses gives it a note of its own */
+    ...kitRecord(kind => {
+      const { sheets, lines } = kitEffect(kind);
+      expect(sheets, `the ${kind}'s lines alone need a note of their own`).toBeTruthy();
+      if (lines) return "The field at each pixel, then its sheets and lines in turn, in one pass.";
+      expect(
+        !sheets?.shadow && !sheets?.rim,
+        `the ${kind}'s sheets with a shadow or a rim need a note of their own`
+      ).toBe(true);
+      return "The field at each pixel, then its plain sheets edge to edge, in one pass.";
+    })
   };
-  for (const kind of ["silk", "rosette", "papercut"] as const) {
+  for (const kind of EFFECTS.filter(isVectorKind)) {
     const query = `style=${kind}&shape=12&speed=2`;
     const effect = parseEffect(new URLSearchParams(query))!;
     const [webgl, webgpu] = writers[kind];
@@ -231,16 +269,18 @@ test("the silk's, the rosette's and the papercut's Shader tabs write each spelli
   }
 });
 
-test("a soft, grained silk's, rosette's or papercut's Shader tab writes every spelling with its finish and says so", async () => {
+test("a soft, grained vector effect's Shader tab writes every spelling with its finish and says so", async () => {
   vi.stubEnv("SSR", false);
   await tabsIn();
   const P = decodePalette(SEED)!;
-  const writers = {
+  const writers: Record<VectorKind, Writers> = {
     silk: [silkWebgl, silkWebgpu],
     rosette: [rosetteWebgl, rosetteWebgpu],
-    papercut: [papercutWebgl, papercutWebgpu]
-  } as const;
-  for (const kind of ["silk", "rosette", "papercut"] as const) {
+    papercut: [papercutWebgl, papercutWebgpu],
+    strings: [stringsWebgl, stringsWebgpu],
+    ...(await kitWriters())
+  };
+  for (const kind of EFFECTS.filter(isVectorKind)) {
     const query = `style=${kind}&shape=12`;
     const effect = parseEffect(new URLSearchParams(query))!;
     const finish = { soft: 40, grain: 30, underlay: effectUnderlay(P, effect, 45, 40) };

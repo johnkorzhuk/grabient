@@ -108,6 +108,25 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
 - The papercut's, every kind named in `papercut-shader.ts`: the GLSL and its WebGL page (`papercut-webgl.ts`, the
   player's two passes in `papercut-gl.ts`), the WGSL and its WebGPU page (`papercut-webgpu.ts` over `papercut-wgsl.ts`),
   the pages' script in `papercut-page.ts`, played by the same clock.
+- The strings' (`strings.ts`, its CPU drawing in `strings-render.ts`, its stills and any frame's SVG in
+  `strings-svg.ts`), every kind named in `strings-shader.ts`: the GLSL and its WebGL page (`strings-webgl.ts`, the
+  player's own pass in `strings-gl.ts`), the WGSL and its WebGPU page (`strings-webgpu.ts` over `strings-wgsl.ts`), the
+  pages' script in `strings-page.ts`, played by the same clock. The papercut's and the strings' tracers write their
+  curves with `svg-fit.ts`.
+- The field effects (`kit/`, the zen garden and the sandstone): each is one file in `kit/fields/`, its kernel in the
+  kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
+  levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for
+  `effect.ts`'s `EFFECT_KINDS`) and what the site says of it, with its kind in `kit/kinds.ts`, its line in
+  `kit/registry.ts` and its words in `kit/names.ts`. The rest
+  is the kit's, written once for every field effect: the scene and the pixel's shading (`kit/scene.ts`, `kit/shade.ts`),
+  the CPU drawing (`kit/render.ts`), the compiler that writes each kernel in GLSL, WGSL and C (`kit/compile.ts`;
+  `pnpm kit:gen` writes `kit/gen/` and `video/kit-kernels.c`), the tracer, the stills, any frame's SVG and Copy for
+  Figma (`kit/trace.ts`, `kit/svg.ts`, `kit/figma.ts`), the player's pass (`kit/gl.ts`, `kit/wgsl.ts`) and the shader
+  pages (`kit/shader.ts`, `kit/webgl.ts`, `kit/webgpu.ts`, `kit/page.ts`). `kit/fields/demo.ts` is the kit's own
+  example, never an effect of the site.
+- What each effect hands over in each form, and why where it hands over less: `effect.ts`'s `EFFECT_KINDS`, which
+  `effect-conformance.test.ts` holds every effect to. Any frame of a vector effect as an SVG and CSS of its own:
+  `fx-still.ts`'s `fxFrameSvg` and `fxFrameCss`.
 - The effects' soft and grain in their shader code, as the site lays them over the player (`fx-finish.ts`): the
   pages' finish in `shader-finish.ts` (the soft's grid and blur, the gradient under its edges, the grain's tile), the
   grain a single shader works out itself in `shader-grain.ts`.
@@ -126,3 +145,9 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
 and spelling, SVG, shaders, names, Markdown, JSON and swatch file bytes are compared with the outputs in
 `test/fixtures/`. `pnpm --filter @grabient/engine typecheck` checks the source against the bare ECMAScript library,
 which keeps it free of DOM and Node APIs, and the tests with Node's types.
+
+`effect-conformance.test.ts` holds every effect to `EFFECT_KINDS`: every frame of a vector effect drawn as its own SVG
+by resvg (`test/raster.ts`) within a few hundredths of OKLab of the CPU's frame at that time, its still, its CSS and its
+address. `CONFORMANCE=deep` sweeps twelve times of the loop and four looks, as whoever designs or changes an effect runs
+it. `node test/look.ts kind=<effect> shapes=0,7 times=0,60 out=look.png` draws an effect's frames as one picture to look
+at, and `mode=diff` the CPU's beside the SVG's and their difference.

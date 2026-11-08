@@ -229,6 +229,24 @@
   .blob[data-cut] > canvas {
     transition: none;
   }
+  /* a vector effect whose ground lets the page through (FxLayer.tsx's data-bare: the strings' on a translucent or clear
+     one) stands on the page's own ground, as the blob does, and its still and its canvas never show together, as the
+     blob's never do: they change places in one frame where they show the same frame, and cross-fade where they
+     differ */
+  .fx[data-bare] {
+    background: var(--color-bg);
+  }
+  .fx[data-bare] > .glassStill,
+  .fx[data-bare] > canvas {
+    transition: opacity 0.7s ease-in-out;
+  }
+  .fx[data-bare][data-covered] > .glassStill {
+    opacity: 0;
+  }
+  .fx[data-bare][data-cut] > .glassStill,
+  .fx[data-bare][data-cut] > canvas {
+    transition: none;
+  }
   /* On a touch phone the first screen is the picture and the strip alone, and the sheet's name row is under it: the
      name stands at the picture's foot instead, quiet on the art's glass, and gives way to the presses a tap brings to
      the same corners. They are the first screen's words, which the browser's measure of the page's paint reads too. */

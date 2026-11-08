@@ -1,5 +1,12 @@
-import { EFFECTS, type EffectKind, type EffectSettings } from "@grabient/engine/effect.ts";
+import {
+  EFFECTS,
+  type EffectKind,
+  type EffectSettings,
+  effectBare,
+  isVectorKind
+} from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
+import { kitRecord } from "@grabient/engine/kit/kinds.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { holdsStill, reducesNow } from "@grabient/ui/motion.ts";
 import {
@@ -16,6 +23,7 @@ import { blobViewOf, loadBlob } from "./blob-draw.ts";
 import styles from "./EffectArt.module.css";
 
 import { FxArt } from "./FxArt.tsx";
+import { kitPlayer } from "./fx-draw.ts";
 
 import { GlassArt } from "./GlassArt.tsx";
 import { loadStill } from "./glass-draw.ts";
@@ -81,6 +89,8 @@ function release(s: Session): void {
   else s.player.destroy();
 }
 
+/* a field effect's player, made from its definition and kernel (fx-draw.ts kitPlayer) */
+const kitPlayers = kitRecord(kind => () => kitPlayer(kind).then(playField => ({ playField })));
 const players = {
   glass: () =>
     import.meta.env.SSR ? (new Promise(() => {}) as never) : import("@grabient/ui/glass-player.ts"),
@@ -95,8 +105,13 @@ const players = {
   papercut: () =>
     import.meta.env.SSR
       ? (new Promise(() => {}) as never)
-      : import("@grabient/ui/papercut-player.ts")
-};
+      : import("@grabient/ui/papercut-player.ts"),
+  strings: () =>
+    import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/ui/strings-player.ts"),
+  ...kitPlayers
+} satisfies Record<EffectKind, () => Promise<unknown>>;
 type Code = Awaited<ReturnType<(typeof players)[EffectKind]>>;
 /** A kind's player made from its code: each module names its own. */
 function playWith(
@@ -139,13 +154,32 @@ function playWith(
       first,
       options
     );
-  return code.playRosette(
-    canvas,
-    palette,
-    view as Parameters<typeof code.playRosette>[2],
-    first,
-    options
-  );
+  if ("playStrings" in code)
+    return code.playStrings(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playStrings>[2],
+      first,
+      options
+    );
+  if ("playRosette" in code)
+    return code.playRosette(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playRosette>[2],
+      first,
+      options
+    );
+  if ("playField" in code)
+    return code.playField(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playField>[2],
+      first,
+      options
+    );
+  /* every kind's module is named above: a kind's player left out is no player at all, not another's */
+  return code satisfies never;
 }
 
 /* One player of the kind the cards play, made ahead as the page idles once its still is painted (painted.ts), where a
@@ -192,9 +226,11 @@ export function preloadEffectArt(kind: EffectKind): void {
    (GlassArt, BlobArt), and only while the card is lit and the effect moves, its WebGL player over it, from that very
    frame and at its pace at once. A player is made as the pointer or the focus arrives, in a canvas of its own, and let
    go as it leaves, so a list of these holds no WebGL context at rest. Its first frame is the still's, so the canvas
-   takes the still's place in one frame. Leaving, the blob's still is back in one frame; the glass holds its frame and
-   fades out to its still, and a card lit again meanwhile takes that player back. A blob with no ground of its own
-   stands on the list with none (`bare`). Nothing in the picture takes the pointer, so the swap never reads as the
+   takes the still's place in one frame. Leaving, the blob's still is back in one frame, and any picture's whose
+   ground lets the list through; the glass holds its frame and fades out to its still, and a card lit again meanwhile
+   takes that player back. A picture that lets the list through (engine/effect.ts effectBare: a blob with no ground of
+   its own, or one the list shows through, the strings on such a ground) stands on the list with none (`bare`), its
+   canvas and its still never shown together. Nothing in the picture takes the pointer, so the swap never reads as the
    pointer leaving. A reader who asks for less motion (Settings, else the device: ui/motion.ts) keeps the still, and one
    who asks for it while a card plays stops it there. */
 export function EffectArt(props: {
@@ -212,7 +248,7 @@ export function EffectArt(props: {
   const [covered, setCovered] = createSignal(false);
   /* the glass's canvas is fading out to the still */
   const [fading, setFading] = createSignal(false);
-  const bare = () => props.kind === "blob" && props.settings.look.bg === null;
+  const bare = () => effectBare(props.kind, props.settings.look);
   /* the players' code while the page idles, and a player made ahead for the first card lit, of each kind the card
      plays: a list turned from the glass to the blob makes one of the blob. None for a picture gone or turned
      meanwhile, whose props are gone with it */
@@ -252,7 +288,9 @@ export function EffectArt(props: {
           speed: props.settings.speed,
           fps: props.settings.fps,
           angle: props.angle,
-          shape: props.settings.look.shape
+          shape: props.settings.look.shape,
+          steps: props.settings.look.steps,
+          bg: props.settings.look.bg
         };
   let session: Session | null = null;
   let leaving: (Session & { timer: ReturnType<typeof setTimeout> }) | null = null;
@@ -286,7 +324,8 @@ export function EffectArt(props: {
     const going = session;
     session = null;
     if (!going) return;
-    if (now || going.kind === "blob") return end(going);
+    /* a picture that lets the list through, as the blob's canvas does about its blobs: two translucent ones thicken */
+    if (now || going.kind === "blob" || untrack(bare)) return end(going);
     /* the glass holds its frame and fades out to its still: two pictures that stand still meet, never a moving one */
     hold(going);
     setFading(true);
@@ -401,35 +440,31 @@ export function EffectArt(props: {
       data-fading={fading() ? "" : undefined}
     >
       <Switch
-        fallback={<BlobArt palette={props.palette} settings={props.settings} bare={bare()} />}
+        fallback={
+          <BlobArt
+            palette={props.palette}
+            settings={props.settings}
+            bare={props.kind === "blob" && props.settings.look.bg === null}
+          />
+        }
       >
         <Match when={props.kind === "glass"}>
           <GlassArt colors={colors()} angle={props.angle} shape={props.settings.look.shape} eager />
         </Match>
-        <Match when={props.kind === "silk"}>
-          <FxArt
-            kind="silk"
-            palette={props.palette}
-            angle={props.angle}
-            shape={props.settings.look.shape}
-          />
-        </Match>
-        <Match when={props.kind === "rosette"}>
-          <FxArt
-            kind="rosette"
-            palette={props.palette}
-            angle={props.angle}
-            shape={props.settings.look.shape}
-          />
-        </Match>
-        <Match when={props.kind === "papercut"}>
-          <FxArt
-            kind="papercut"
-            palette={props.palette}
-            angle={props.angle}
-            shape={props.settings.look.shape}
-          />
-        </Match>
+        {/* every vector effect's still (FxArt), one Match a kind, so a picture keeps the kind it was made for: one
+            that joins EFFECT_KINDS shows its own, never another's */}
+        {EFFECTS.filter(isVectorKind).map(kind => (
+          <Match when={props.kind === kind}>
+            <FxArt
+              kind={kind}
+              palette={props.palette}
+              angle={props.angle}
+              shape={props.settings.look.shape}
+              steps={props.settings.look.steps}
+              bg={props.settings.look.bg}
+            />
+          </Match>
+        ))}
       </Switch>
     </span>
   );

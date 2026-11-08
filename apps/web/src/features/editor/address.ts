@@ -76,10 +76,17 @@ export function readSeedPage(id: string, params: ParamReader): SeedPage | null {
     parsed?.kind === "blob" && parsed.look.shape === null
       ? { ...parsed, look: { ...parsed.look, shape: blobShapeOf(seed) } }
       : parsed;
-  /* and it takes no soft, whatever its address says */
+  /* and it takes no soft, whatever its address says; an effect that takes steps of its own (the sandstone) reads
+     them into its look (parseEffect), never into the gradient's the editor keeps to give back */
+  const facts = effect ? EFFECT_KINDS[effect.kind] : null;
   const view = parseView(
-    effect && !EFFECT_KINDS[effect.kind].soft
-      ? { get: name => (name === "soft" ? null : params.get(name)) }
+    facts && (!facts.soft || facts.steps)
+      ? {
+          get: name =>
+            (name === "soft" && !facts.soft) || (name === "steps" && facts.steps)
+              ? null
+              : params.get(name)
+        }
       : params
   );
   return {

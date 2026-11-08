@@ -46,6 +46,9 @@ export interface PlayOptions {
   /** whether the reader asks for less motion, which holds the first frame: the caller's decision (the site's Settings,
       an embed's media query), read as it starts and on motion() */
   reduced?: () => boolean;
+  /** a canvas that keeps its alpha, premultiplied, for a kind whose ground may let what is under the canvas through
+      (the strings'); an opaque frame on it shows as on one that keeps none */
+  alpha?: boolean;
 }
 
 /** Plays a kind's drawing into a canvas the page sizes with CSS. `onFirstFrame` is told once the first frame is on the
@@ -61,7 +64,7 @@ export function playEffect<V extends PlayView>(
   const easing = options.ease === false ? 0 : EFFECT_EASE_S;
   if (knownSoftwareRenderer()) return null;
   const gl = canvas.getContext("webgl2", {
-    alpha: false,
+    alpha: options.alpha === true,
     antialias: false,
     depth: false,
     stencil: false,

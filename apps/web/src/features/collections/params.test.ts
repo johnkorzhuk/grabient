@@ -86,7 +86,7 @@ describe("a list's address", () => {
             kind: "blob",
             speed: 0.5,
             fps: 60,
-            look: { shape: null, frost: 1, bg: "#112233" }
+            look: { shape: null, frost: 1, bg: "#112233", steps: null }
           }
         },
         true

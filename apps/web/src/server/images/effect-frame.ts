@@ -2,7 +2,7 @@
    (/api/og?style=): drawn on the CPU (engine/fx-frame.ts), finished by the soft and the grain the address names as the
    site paints them (engine/fx-finish.ts finishPixels), three bytes a pixel where it covers the box. Its code comes
    with the first such picture an isolate draws. */
-import type { Effect, EffectFinish } from "@grabient/engine/effect.ts";
+import { type Effect, type EffectFinish, effectBare } from "@grabient/engine/effect.ts";
 import { effectUnderlay, finishPixels } from "@grabient/engine/fx-finish.ts";
 import { effectDrawn, rgbaOf } from "@grabient/engine/fx-frame.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
@@ -33,10 +33,11 @@ const opaque = (rgba: ArrayLike<number>) => {
 };
 
 /** An effect's first frame at a size, finished by the soft and the grain the address names: three bytes a pixel, or
-    four where the picture lets the page through (a blob's ground that does, or none), as a PNG takes it. Its soft
-    edges go to the palette's gradient under it, as the site's do; a blob with no ground that covers the box has none
-    under it, and thins toward the page, or on a card, which is opaque, toward the near-black or near-white it stands
-    on there. */
+    four where the picture lets the page through (engine/effect.ts effectBare: a blob's ground that does, or none, and
+    the strings' on a ground that does), as a PNG takes it. Its soft edges go to the palette's gradient under it, as
+    the site's do; a picture that lets the page through has none under it, and thins toward the page, or on a card,
+    which is opaque, toward what it stands on there: the blob's near-black or near-white, the strings' designed
+    ground. */
 export async function effectFrame(
   P: Palette,
   effect: Effect,
@@ -48,7 +49,11 @@ export async function effectFrame(
   const frame = await effectDrawn(P, effect, angle, size, options.card ?? false);
   const { soft, grain } = options.finish ?? {};
   if (!soft && !grain) {
-    if (frame.pixels.length === n * 3 || effect.kind === "blob")
+    if (
+      frame.pixels.length === n * 3 ||
+      effect.kind === "blob" ||
+      (!frame.backdrop && effectBare(effect.kind, effect.look))
+    )
       return frame.pixels as Uint8Array<ArrayBuffer>;
     return rgbOf(frame.pixels, n);
   }

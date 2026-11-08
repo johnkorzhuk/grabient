@@ -1,10 +1,15 @@
 import { decodePalette } from "@grabient/engine";
 import { toHex } from "@grabient/engine/color.ts";
 import { contrast, luminance } from "@grabient/engine/contrast.ts";
-import type { Effect } from "@grabient/engine/effect.ts";
+import { EFFECTS, type Effect, isVectorKind, type VectorKind } from "@grabient/engine/effect.ts";
 import { effectColors } from "@grabient/engine/effect-code.ts";
 import { effectRgba } from "@grabient/engine/fx-frame.ts";
 import { glassGeometry } from "@grabient/engine/glass.ts";
+import { kitColors } from "@grabient/engine/kit/colors.ts";
+import { isKitKind, KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
+import { kitEffect } from "@grabient/engine/kit/registry.ts";
+import { kitRender } from "@grabient/engine/kit/render.ts";
+import { kitScene } from "@grabient/engine/kit/scene.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { PAPERCUT_LOOP, papercutScene } from "@grabient/engine/papercut.ts";
 import { renderPapercut } from "@grabient/engine/papercut-render.ts";
@@ -13,8 +18,15 @@ import { renderRosette } from "@grabient/engine/rosette-render.ts";
 import { bakeDye, SILK_DESIGN, SILK_LOOP, silkDesign, silkScene } from "@grabient/engine/silk.ts";
 import { renderSilk } from "@grabient/engine/silk-render.ts";
 import { softSigma } from "@grabient/engine/soft.ts";
+import {
+  STRINGS_LOOK,
+  STRINGS_LOOP,
+  STRINGS_STOPS,
+  stringsScene
+} from "@grabient/engine/strings.ts";
+import { renderStrings } from "@grabient/engine/strings-render.ts";
 import type { Style } from "@grabient/engine/view.ts";
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
 import {
   colorsOfParts,
   colorsUnder,
@@ -23,9 +35,11 @@ import {
   groundOn,
   inkOn,
   lineSigma,
+  loadKitColors,
   mirrored,
   PAPERCUT_SHEETS,
   type Shown,
+  STRINGS,
   shownColors,
   THEME_GROUND,
   themeOn,
@@ -51,7 +65,7 @@ const blob = (bg: string | null): Effect => ({
   kind: "blob",
   speed: 1,
   fps: 60,
-  look: { shape: 1, frost: 1, bg }
+  look: { shape: 1, frost: 1, bg, steps: null }
 });
 
 describe("drawnColors", () => {
@@ -265,23 +279,24 @@ const real = (seed: string): Palette => {
   if (!P) throw new Error(`no palette ${seed}`);
   return P;
 };
-const fx = (
-  kind: "silk" | "rosette" | "papercut",
-  seed: string,
-  angle: number,
-  shape: number | null
-): Shown => ({
+const fx = (kind: VectorKind, seed: string, angle: number, shape: number | null): Shown => ({
   seed,
   palette: real(seed),
   view: { style: "linearGradient", steps: 7, angle },
-  effect: { kind, speed: 1, fps: 60, look: { shape, frost: 1, bg: null } }
+  effect: { kind, speed: 1, fps: 60, look: { shape, frost: 1, bg: null, steps: null } }
 });
 const rgbOf = (hex: string) => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16));
 
-describe("the silk, the rosette and the papercut", () => {
+/* every vector effect, as EFFECT_KINDS names them */
+const VECTOR_KINDS = EFFECTS.filter(isVectorKind);
+
+describe("the vector effects", () => {
+  /* the field effects' colors come with the page's data (paint.ts loadKitColors) */
+  beforeAll(loadKitColors);
+
   test("are drawn from their palette at six places, and the papercut from its twelve sheets, as the editor lists them", () => {
     const P = real(SEEDS[0]);
-    for (const kind of ["silk", "rosette", "papercut"] as const)
+    for (const kind of VECTOR_KINDS)
       expect(drawnColors(fx(kind, SEEDS[0], 90, null))).toEqual(
         effectColors(P, fx(kind, SEEDS[0], 90, null).effect as Effect)
       );
@@ -313,6 +328,47 @@ describe("the silk, the rosette and the papercut", () => {
     }
   });
 
+  test("the strings' colors are their ground and their lifted stops, as the engine makes them", () => {
+    expect(STRINGS).toEqual({
+      stops: STRINGS_STOPS,
+      lift: STRINGS_LOOK.lift,
+      dark: STRINGS_LOOK.dark,
+      depth: STRINGS_LOOK.depth,
+      chroma: STRINGS_LOOK.chroma
+    });
+    for (const seed of SEEDS) {
+      const m = stringsScene(
+        real(seed),
+        { angle: 90, shape: null, bg: null },
+        { width: 16, height: 9 }
+      );
+      const stops = Array.from({ length: STRINGS_STOPS }, (_, i) =>
+        toHex(m.stops.slice(3 * i, 3 * i + 3))
+      );
+      expect(new Set(shownColors(fx("strings", seed, 90, null)))).toEqual(
+        new Set([m.groundHex, ...stops])
+      );
+    }
+  });
+
+  test("a field effect's colors are its ground, its stops, its shadows at their deepest and its rims at their brightest, as the engine makes them", () => {
+    for (const seed of SEEDS)
+      for (const kind of KIT_KINDS) {
+        const P = real(seed);
+        const laid = new Set(shownColors(fx(kind, seed, 90, null)));
+        expect(laid).toEqual(new Set(kitColors(kind, P)));
+        const m = kitScene(
+          kitEffect(kind),
+          P,
+          { angle: 90, shape: null, steps: null },
+          { width: 9, height: 9 }
+        );
+        expect(laid).toContain(toHex(m.ground));
+        for (let i = 0; i < 16; i++)
+          expect(laid).toContain(toHex(Array.from(m.stops.subarray(3 * i, 3 * i + 3))));
+      }
+  });
+
   test("the rosette's colors reach as light and as dark as the engine's petals, heart and ground, whatever its shape", () => {
     for (const seed of SEEDS) {
       const mine = shownColors(fx("rosette", seed, 90, null)).map(luminance);
@@ -342,7 +398,7 @@ describe("the silk, the rosette and the papercut", () => {
       }))
     ];
     for (const [i, seed] of SEEDS.slice(0, 3).entries())
-      for (const kind of ["silk", "rosette", "papercut"] as const)
+      for (const kind of VECTOR_KINDS)
         for (const [shape, angle, aspect] of [
           [null, 90, 16 / 9],
           [7, 160, 0.6],
@@ -351,8 +407,13 @@ describe("the silk, the rosette and the papercut", () => {
           const s = fx(kind, seed, angle, shape);
           const box = size(aspect);
           const view = { angle, shape };
-          const draw =
-            kind === "silk"
+          const draw = isKitKind(kind)
+            ? (() => {
+                const def = kitEffect(kind);
+                const scene = kitScene(def, s.palette, view, box);
+                return (f: number) => kitRender(scene, f * def.loop);
+              })()
+            : kind === "silk"
               ? (() => {
                   const scene = silkScene(s.palette, view, box);
                   return (f: number) => renderSilk(scene, f * SILK_LOOP);
@@ -362,10 +423,15 @@ describe("the silk, the rosette and the papercut", () => {
                     const scene = rosetteScene(s.palette, view, box);
                     return (f: number) => renderRosette(scene, f);
                   })()
-                : (() => {
-                    const scene = papercutScene(s.palette, view, box);
-                    return (f: number) => renderPapercut(scene, f * PAPERCUT_LOOP);
-                  })();
+                : kind === "strings"
+                  ? (() => {
+                      const scene = stringsScene(s.palette, { ...view, bg: null }, box);
+                      return (f: number) => renderStrings(scene, f * STRINGS_LOOP);
+                    })()
+                  : (() => {
+                      const scene = papercutScene(s.palette, view, box);
+                      return (f: number) => renderPapercut(scene, f * PAPERCUT_LOOP);
+                    })();
           const colorsOf = colorsOfParts(s, box.width / box.height);
           const bounds = parts.map(part => {
             const within = colorsOf(part).map(rgbOf);
@@ -420,7 +486,7 @@ describe("the glass", () => {
           kind: "glass",
           speed: 1,
           fps: 60,
-          look: { shape: null, frost: 1, bg: null }
+          look: { shape: null, frost: 1, bg: null, steps: null }
         };
         const s: Shown = {
           seed,
@@ -487,7 +553,7 @@ describe("a soft look", () => {
             kind,
             speed: 1,
             fps: 60,
-            look: { shape: null, frost: 1, bg: null }
+            look: { shape: null, frost: 1, bg: null, steps: null }
           };
           const look = { ...s, effect };
           const px = await effectRgba(look.palette, effect, 45, box, soft || null);

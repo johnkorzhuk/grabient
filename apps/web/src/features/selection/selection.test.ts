@@ -107,7 +107,28 @@ test("a palette keeps its soft and grain and the effect it played, held still: i
     ...view,
     effect: { kind: "blob", ...EFFECT_PLAY, look: { shape: null, frost: 1.5, bg: "#102030" } }
   });
-  expect(blob?.effect?.look).toEqual({ shape: blobShapeOf(seed), frost: 1.5, bg: "#102030" });
+  expect(blob?.effect?.look).toEqual({
+    shape: blobShapeOf(seed),
+    frost: 1.5,
+    bg: "#102030",
+    steps: null
+  });
+  // the sandstone's steps draw its picture: a palette at 12 steps is a palette apart from one at its designed 28
+  const strata = (steps: number | null) =>
+    selectedPalette({
+      ...view,
+      effect: { kind: "strata", ...EFFECT_PLAY, look: { shape: null, frost: 1, bg: null, steps } }
+    });
+  expect(strata(12)?.effect?.look.steps).toBe(12);
+  expect(strata(12)?.id).toBe(`${seed}?style=strata&angle=30&steps=12`);
+  expect(strata(28)?.id).toBe(strata(null)?.id);
+  expect(strata(99)?.effect?.look.steps).toBe(40);
+  expect(
+    selectedPalette({
+      ...view,
+      effect: { kind: "zen", ...EFFECT_PLAY, look: { shape: null, frost: 1, bg: null, steps: 12 } }
+    })?.effect?.look.steps
+  ).toBeNull();
   expect(blob?.id).toBe(`${seed}?style=blob&frost=1.5&shape=${blobShapeOf(seed)}&bg=%23102030`);
   // nor a soft: a blob chosen with one is held with its grain alone, the same palette as with none
   const softBlob = selectedPalette({
@@ -119,6 +140,26 @@ test("a palette keeps its soft and grain and the effect it played, held still: i
   expect(softBlob?.soft).toBeUndefined();
   expect(softBlob?.grain).toBe(64);
   expect(softBlob?.id).toBe(`${seed}?style=blob&grain=64&shape=3`);
+  // the strings' ground draws their picture: a palette on a light ground is a palette apart from one on their own
+  const strings = (bg: string | null) =>
+    selectedPalette({
+      ...view,
+      effect: { kind: "strings", ...EFFECT_PLAY, look: { shape: null, frost: 1, bg, steps: null } }
+    });
+  expect(strings("#f4efe6")?.effect?.look.bg).toBe("#f4efe6");
+  expect(strings("#f4efe6")?.id).toBe(`${seed}?style=strings&angle=30&bg=%23f4efe6`);
+  expect(strings("#00000000")?.effect?.look.bg).toBe("#00000000");
+  expect(strings(null)?.id).toBe(`${seed}?style=strings&angle=30`);
+  expect(
+    selectedPalette({
+      ...view,
+      effect: {
+        kind: "silk",
+        ...EFFECT_PLAY,
+        look: { shape: null, frost: 1, bg: "#f4efe6", steps: null }
+      }
+    })?.effect?.look.bg
+  ).toBeNull();
   // what is no effect is none
   expect(heldEffect(seed, { kind: "mesh" })).toBeNull();
   expect(heldEffect(seed, "glass")).toBeNull();

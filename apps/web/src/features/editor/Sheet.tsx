@@ -1,5 +1,6 @@
 import { decodePalette } from "@grabient/engine";
 import { sampleStops } from "@grabient/engine/curve.ts";
+import { effectBare, isVectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { DEFAULT_SIZE, effectSoftShare } from "@grabient/engine/view.ts";
@@ -430,9 +431,9 @@ export function Sheet(props: {
       if (!kind || !P) return undefined;
       if (kind === "glass")
         return { stops: glassColors(P), style: "linearGradient" as const, angle: palette().angle };
-      /* the silk's dye and the papercut's sheets along their angle, the rosette's rings out from its heart: the
-         palette end to end */
-      if (kind === "silk" || kind === "rosette" || kind === "papercut")
+      /* the vector effects' palette end to end (fx-still.ts fxGlow, which this page's start leaves unloaded): along
+         their angle, the rosette's rings out from its heart */
+      if (isVectorKind(kind))
         return {
           stops: sampleStops(P, 6).map(s => s.hex),
           style: kind === "rosette" ? ("radialGradient" as const) : ("linearGradient" as const),
@@ -440,10 +441,14 @@ export function Sheet(props: {
         };
       return null;
     };
-    /* a blob with no ground of its own stands on the list with none. An accessor of its own, where a condition written
+    /* a picture that lets the list through (engine/effect.ts effectBare: a blob with no ground of its own, the strings
+       on a translucent or clear one) stands on the list with none. An accessor of its own, where a condition written
        in the prop is compiled to a memo made as the prop is read: the card reads it as a focus leaves, which may be
        inside Solid's commit, where a memo made has no owner (PRIMITIVE_IN_EFFECT_CALLBACK) */
-    const bare = () => playing() === "blob" && e.effects.settings("blob").look.bg === null;
+    const bare = () => {
+      const kind = playing();
+      return !!kind && effectBare(kind, e.effects.settings(kind).look);
+    };
     const pictureLabel = () => {
       const kind = playing();
       return kind

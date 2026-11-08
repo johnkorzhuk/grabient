@@ -29,13 +29,8 @@ import {
   papercutFrameSize,
   papercutScene
 } from "./papercut.ts";
+import { fitCubics as fit, svgNumber as fmt } from "./svg-fit.ts";
 import type { Size } from "./view.ts";
-
-const fmt = (v: number, places: number) => {
-  const k = 10 ** places;
-  const r = Math.round(v * k) / k;
-  return (Object.is(r, -0) ? 0 : r).toString().replace(/^(-?)0\./, "$1.");
-};
 
 interface Contour {
   /** points, px, closed (the last joins the first) */
@@ -351,124 +346,6 @@ const pathOf = (loops: readonly Loop[], places: number, dx = 0, dy = 0): string 
     .map(l => `M${fmt(l.x0 + dx, places)} ${fmt(l.y0 + dy, places)}`.replace(/ -/g, "-") + l.body)
     .join("");
 
-function fit(
-  xs: number[],
-  ys: number[],
-  tx: number[],
-  ty: number[],
-  i0: number,
-  i1: number,
-  how: Trace,
-  pen: { x: number; y: number },
-  out: string[]
-) {
-  const p = how.places;
-  const k = 10 ** p;
-  const rel = (x: number, y: number) => {
-    const dx = Math.round((x - pen.x) * k) / k;
-    const dy = Math.round((y - pen.y) * k) / k;
-    return [dx, dy] as const;
-  };
-  const x0 = xs[i0];
-  const y0 = ys[i0];
-  const x3 = xs[i1];
-  const y3 = ys[i1];
-  if (i1 - i0 < 2) {
-    const [dx, dy] = rel(x3, y3);
-    out.push(`l${fmt(dx, p)} ${fmt(dy, p)}`);
-    pen.x += dx;
-    pen.y += dy;
-    return;
-  }
-  /* chord-length parameters */
-  const u = [0];
-  for (let i = i0 + 1; i <= i1; i++)
-    u.push(u[u.length - 1] + Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]));
-  const total = u[u.length - 1] || 1;
-  for (let i = 0; i < u.length; i++) u[i] /= total;
-  const t0x = tx[i0];
-  const t0y = ty[i0];
-  const t1x = -tx[i1];
-  const t1y = -ty[i1];
-  let c11 = 0;
-  let c12 = 0;
-  let c22 = 0;
-  let r1 = 0;
-  let r2 = 0;
-  for (let j = 0; j < u.length; j++) {
-    const t = u[j];
-    const s = 1 - t;
-    const b0 = s * s * s;
-    const b1 = 3 * t * s * s;
-    const b2 = 3 * t * t * s;
-    const b3 = t * t * t;
-    const a1x = t0x * b1;
-    const a1y = t0y * b1;
-    const a2x = t1x * b2;
-    const a2y = t1y * b2;
-    c11 += a1x * a1x + a1y * a1y;
-    c12 += a1x * a2x + a1y * a2y;
-    c22 += a2x * a2x + a2y * a2y;
-    const px = xs[i0 + j] - (x0 * (b0 + b1) + x3 * (b2 + b3));
-    const py = ys[i0 + j] - (y0 * (b0 + b1) + y3 * (b2 + b3));
-    r1 += a1x * px + a1y * py;
-    r2 += a2x * px + a2y * py;
-  }
-  const det = c11 * c22 - c12 * c12;
-  const chord = Math.hypot(x3 - x0, y3 - y0);
-  let l1 = chord / 3;
-  let l2 = chord / 3;
-  if (Math.abs(det) > 1e-12) {
-    l1 = (r1 * c22 - r2 * c12) / det;
-    l2 = (c11 * r2 - c12 * r1) / det;
-  }
-  if (!(l1 > 1e-3 * chord) || !(l2 > 1e-3 * chord) || l1 > 2 * chord || l2 > 2 * chord) {
-    l1 = chord / 3;
-    l2 = chord / 3;
-  }
-  const x1 = x0 + t0x * l1;
-  const y1 = y0 + t0y * l1;
-  const x2 = x3 + t1x * l2;
-  const y2 = y3 + t1y * l2;
-  /* the worst point, against the curve at its parameter refined by Newton steps on the distance */
-  let worst = 0;
-  let at = -1;
-  for (let j = 1; j < u.length - 1; j++) {
-    let t = u[j];
-    const px = xs[i0 + j];
-    const py = ys[i0 + j];
-    for (let it = 0; it < 2; it++) {
-      const s = 1 - t;
-      const bx = s * s * s * x0 + 3 * s * s * t * x1 + 3 * s * t * t * x2 + t * t * t * x3;
-      const by = s * s * s * y0 + 3 * s * s * t * y1 + 3 * s * t * t * y2 + t * t * t * y3;
-      const dx1 = 3 * (s * s * (x1 - x0) + 2 * s * t * (x2 - x1) + t * t * (x3 - x2));
-      const dy1 = 3 * (s * s * (y1 - y0) + 2 * s * t * (y2 - y1) + t * t * (y3 - y2));
-      const dd = dx1 * dx1 + dy1 * dy1;
-      if (dd < 1e-12) break;
-      t = Math.min(1, Math.max(0, t - ((bx - px) * dx1 + (by - py) * dy1) / dd));
-    }
-    const s = 1 - t;
-    const bx = s * s * s * x0 + 3 * s * s * t * x1 + 3 * s * t * t * x2 + t * t * t * x3;
-    const by = s * s * s * y0 + 3 * s * s * t * y1 + 3 * s * t * t * y2 + t * t * t * y3;
-    const e = Math.hypot(bx - px, by - py);
-    if (e > worst) {
-      worst = e;
-      at = i0 + j;
-    }
-  }
-  if (worst > how.tolerance && at > i0 && at < i1) {
-    fit(xs, ys, tx, ty, i0, at, how, pen, out);
-    fit(xs, ys, tx, ty, at, i1, how, pen, out);
-    return;
-  }
-  const [ax, ay] = rel(x1, y1);
-  const [bx, by] = rel(x2, y2);
-  const [cx, cy] = rel(x3, y3);
-  out.push(`c${[ax, ay, bx, by, cx, cy].map(v => fmt(v, p)).join(" ")}`);
-  pen.x += cx;
-  pen.y += cy;
-}
-
 /** Each sheet's cut as its loops, sheet k at k - 1 (none where its level cuts nothing in the box), a step at a time:
     the contours', then each level's curves fitted. */
 function* cutLoopSteps(m: PapercutScene, how: Trace, t = 0): Generator<void, Loop[][]> {
@@ -620,29 +497,29 @@ function stillSheets(
 /** The file's sheets above the ground, each its three paths as the file lays them (the cut moved away from the light
     by its shadow's offset, the cut, and the cut moved toward it by the lit edge's width; evenodd), or null for a sheet
     no cut shows: what the file's SVG and Copy for Figma (figma-papercut.ts) both draw. */
-export const papercutFileCuts = (m: PapercutScene): (FileCut | null)[] => {
+export const papercutFileCuts = (m: PapercutScene, t = 0): (FileCut | null)[] => {
   const how = FILE_TRACE(m);
-  return atOnce(
-    kept(fileCuts, PAPERCUT_TRACES_KEPT.file, m, function* () {
-      const [lx, ly] = lightOf(m);
-      return (yield* cutLoopSteps(m, how)).map((loops, i) => {
-        if (!loops.length) return null;
-        const off = m.offset[i + 1];
-        return {
-          shadow: pathOf(loops, how.places, -off * lx, -off * ly),
-          cut: pathOf(loops, how.places),
-          face: pathOf(loops, how.places, -m.wall * lx, -m.wall * ly)
-        };
-      });
-    })
-  );
+  const trace = function* () {
+    const [lx, ly] = lightOf(m, t);
+    return (yield* cutLoopSteps(m, how, t)).map((loops, i) => {
+      if (!loops.length) return null;
+      const off = m.offset[i + 1];
+      return {
+        shadow: pathOf(loops, how.places, -off * lx, -off * ly),
+        cut: pathOf(loops, how.places),
+        face: pathOf(loops, how.places, -m.wall * lx, -m.wall * ly)
+      };
+    });
+  };
+  /* the first frame's are kept by the view; another time's are traced each time it is asked */
+  return atOnce(t ? trace() : kept(fileCuts, PAPERCUT_TRACES_KEPT.file, m, trace));
 };
 
-/** The file's drawing: its shadows' blurs (ids pc0, pc1, ...), for its defs, and its ground and layers. */
-function fileDrawing(m: PapercutScene): { filters: string; body: string } {
+/** The file's drawing at t: its shadows' blurs (ids pc0, pc1, ...), for its defs, and its ground and layers. */
+function fileDrawing(m: PapercutScene, t = 0): { filters: string; body: string } {
   const { width: W, height: H } = m;
   const how = FILE_TRACE(m);
-  const cuts = papercutFileCuts(m);
+  const cuts = papercutFileCuts(m, t);
   const margin = marginOf(m, how.reach);
   const region = `x="${-margin}" y="${-margin}" width="${W + 2 * margin}" height="${H + 2 * margin}" filterUnits="userSpaceOnUse"`;
   const blurs = new Map<number, string>();
@@ -684,9 +561,9 @@ function fileDrawing(m: PapercutScene): { filters: string; body: string } {
 /** The file's SVG: the shadows blurred, as the sketch drew them, for a browser and a design app alike. Every layer is
     a path of its own, its fill and its rule on it, its offset in its own first points, with no <use> and no transform
     for an importer to resolve: Figma's takes each as a vector, its blur as a layer blur. */
-export function papercutFileOf(m: PapercutScene): string {
+export function papercutFileOf(m: PapercutScene, t = 0): string {
   const { width: W, height: H } = m;
-  const { filters, body } = fileDrawing(m);
+  const { filters, body } = fileDrawing(m, t);
   return (
     `${svgOpen(m)}<defs>${filters}<clipPath id="pcbox"><rect width="${W}" height="${H}"/></clipPath></defs>` +
     `<g clip-path="url(#pcbox)">${body}</g></svg>`
@@ -699,3 +576,7 @@ export const papercutStillSvg = (P: Palette, view: PapercutView, size: Size): st
 /** The file's SVG of a palette and a view in a box. */
 export const papercutFileSvg = (P: Palette, view: PapercutView, size: Size): string =>
   papercutFileOf(papercutScene(P, view, size));
+/** The frame at t seconds of the loop at speed 1 as the file draws its first: the cuts, the light and the shadows
+    then. */
+export const papercutFrameSvg = (P: Palette, view: PapercutView, size: Size, t: number): string =>
+  papercutFileOf(papercutScene(P, view, size), t);

@@ -1,5 +1,6 @@
 import { decodePalette } from "@grabient/engine";
-import { EFFECTS, type Effect, parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECTS, type Effect, type EffectKind, parseEffect } from "@grabient/engine/effect.ts";
+import { KIT_WORDS } from "@grabient/engine/kit/names.ts";
 import { parseView, type View } from "@grabient/engine/view.ts";
 import {
   addCatalog,
@@ -553,13 +554,17 @@ describe("the line under a palette's name", () => {
 
 describe("a palette that plays an effect", () => {
   const SEED_PAGE = "/kS7Q8Yy5S_SChv0";
-  const WORDS = {
+  /* the words each effect stands by in a title: the field effects' as the kit names them (kit/names.ts), so a field
+     effect added there is titled by its own words here too */
+  const WORDS: Record<EffectKind, string> = {
     glass: "fluted glass",
     blob: "blob",
     silk: "silk",
     rosette: "rosette",
-    papercut: "papercut"
-  } as const;
+    papercut: "papercut",
+    strings: "strings",
+    ...KIT_WORDS
+  };
   const named = (address: string, facts: Facts = {}) => {
     const page = pageOf(address, facts);
     const meta = pageMeta(page, PRODUCTION_ORIGIN);
@@ -567,6 +572,7 @@ describe("a palette that plays an effect", () => {
     return {
       heading: heading(page),
       title: meta.title,
+      imageAlt: meta.imageAlt,
       line: paletteFacts(page as Extract<Page, { kind: "palette" }>),
       description: work?.description as string | undefined,
       alternateName: work?.alternateName as string | undefined
@@ -578,6 +584,9 @@ describe("a palette that plays an effect", () => {
     const plain = named(SEED_PAGE).heading.replace(/ linear gradient$/, "");
     expect(page.heading).toBe(`${plain} ${WORDS[kind]}`);
     expect(page.title).toBe(`${page.heading} | Grabient`);
+    /* its share card shows the effect, and its words say so, as the heading does; a gradient's card is its palette */
+    expect(page.imageAlt).toBe(page.heading);
+    expect(named(SEED_PAGE).imageAlt).toBe(`${plain} color palette`);
     expect(page.description).toMatch(new RegExp(`^${plain} ${WORDS[kind]} with 7 colors: `));
     for (const said of [page.heading, page.line, page.description])
       expect(said).not.toMatch(/gradient|swatches/i);

@@ -35,7 +35,7 @@ import { seedAddress } from "../editor/address.ts";
    palette's own (auto, As saved), the size a palette takes into the editor and the selection's files, and an effect
    every card plays in its gradient's place. It is the list's address (?style=…&steps=…&angle=…&size=…, or with an
    effect ?style=glass&angle=…&size=… or ?style=blob&size=…, which has no angle and no soft, and how it plays and
-   looks, as a palette's address writes them), so a change
+   looks, as a palette's address writes them, the sandstone's steps among them), so a change
    replaces the entry and Back leaves the page, and the tab remembers it for the next page that draws palettes, the
    editor's new palettes and the wordmark's way home.
 
@@ -53,9 +53,10 @@ export interface ListView {
   grain: number;
   size: SizeChoice | null;
   /** the effect every card plays over its gradient, which the names, the likes, the selection and the files keep: how
-      it plays and the blob's frost and ground, one for the list. Its shape is none: each card plays its own palette's
-      (cardEffect). The style is auto and the steps leave the address while one plays, the angle and the soft while
-      the blob does. */
+      it plays, the blob's frost and ground and the sandstone's steps, one for the list. Its shape is none: each card
+      plays its own palette's (cardEffect). The style is auto and the list's steps stay auto while one plays, its
+      address's `steps` the effect's own where it takes them (EFFECT_KINDS), the angle and the soft leaving while the
+      blob does. */
   effect: Effect | null;
 }
 /** Steps, an angle or how the effect plays being set, which the pictures draw before the route takes them. */
@@ -365,8 +366,17 @@ export function viewSince(own: ListView, left: ListView | undefined, now: ListVi
   const was = left && viewParams(left);
   const is = viewParams(now);
   const made = (...names: string[]) => !was || names.some(name => was[name] !== is[name]);
-  /* the style and the effect are one choice, as one `style` names either */
-  const look = made("style", "speed", "fps", "frost", "bg");
+  /* the style and the effect are one choice, as one `style` names either; an effect's steps are its look's, where it
+     takes them (the sandstone's), as its address writes them in the gradients' steps' place */
+  const playing = now.effect ?? own.effect;
+  const look = made(
+    "style",
+    "speed",
+    "fps",
+    "frost",
+    "bg",
+    ...(playing && EFFECT_KINDS[playing.kind].steps ? ["steps"] : [])
+  );
   return {
     style: look ? now.style : own.style,
     steps: made("steps") ? now.steps : own.steps,

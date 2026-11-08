@@ -1,4 +1,4 @@
-import type { Effect, VectorKind } from "@grabient/engine/effect.ts";
+import { EFFECTS, type Effect, isVectorKind, type VectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { Match, Switch } from "solid-js";
@@ -12,6 +12,9 @@ import { loadStill } from "../editor/glass-draw.ts";
 /* An effect's still on a list: the header's swatch, the Appearance menu's tiles and a searched palette's thumbnail.
    It loads with the menu or an effect a list plays, never with a list's start; each picture asks for its own still's
    code as it shows, so a list that plays one effect loads nothing of the other's. */
+
+/* every vector kind, as EFFECT_KINDS names them: each its own picture */
+const VECTOR_KINDS = EFFECTS.filter(isVectorKind);
 
 /** An effect's still as a small picture filling its box, the palette in its own shape. */
 export function EffectSwatch(props: {
@@ -29,6 +32,8 @@ export function EffectSwatch(props: {
       palette={props.palette}
       angle={props.angle}
       shape={props.effect.look.shape}
+      steps={props.effect.look.steps}
+      bg={props.effect.look.bg}
     />
   );
   return (
@@ -40,9 +45,9 @@ export function EffectSwatch(props: {
       <Match when={props.effect.kind === "blob"}>
         <BlobArt palette={props.palette} settings={props.effect} />
       </Match>
-      <Match when={props.effect.kind === "silk"}>{fx("silk")}</Match>
-      <Match when={props.effect.kind === "rosette"}>{fx("rosette")}</Match>
-      <Match when={props.effect.kind === "papercut"}>{fx("papercut")}</Match>
+      {VECTOR_KINDS.map(kind => (
+        <Match when={props.effect.kind === kind}>{fx(kind)}</Match>
+      ))}
     </Switch>
   );
 }

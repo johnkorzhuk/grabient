@@ -20,10 +20,14 @@ export const Route = createFileRoute("/$id/examples")({
       throw redirect({ to: "/$id/examples", params, search: {}, statusCode: 301 });
     const page = readSeedPage(params.id, searchReader({}));
     if (!page) throw notFound();
-    /* the hero's look, from a module of its own: the route's start carries none of the page; and the blur's code,
-       since the page's looks take soft finishes, which the server draws its first screen with (lib/picture.ts) */
+    /* the hero's look, from a module of its own: the route's start carries none of the page, and with it the field
+       effects' colors (paint.ts), which the parts' looks read as the page draws; and the blur's code, since the
+       page's looks take soft finishes, which the server draws its first screen with (lib/picture.ts) */
     const [{ heroOf }] = await Promise.all([
-      import("../../features/examples/hero.ts"),
+      import("../../features/examples/hero.ts").then(async hero => {
+        await hero.loadKitColors();
+        return hero;
+      }),
       loadSoft().catch(() => {})
     ]);
     const { view, effect } = heroOf(page.seed, page.palette);

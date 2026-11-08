@@ -1,3 +1,4 @@
+import { isEffect, isVectorKind } from "@grabient/engine/effect.ts";
 import { isPagePath } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { createFileRoute, notFound, redirect, useMatch, useParams } from "@tanstack/solid-router";
@@ -37,6 +38,9 @@ const CollectionRoute = lazy(() => import("../../features/collections/Collection
   export: "CollectionRoute"
 });
 
+/** Whether an address's style is a vector effect. */
+const isVectorStyle = (style: string | null) => isEffect(style) && isVectorKind(style);
+
 /** An old grabient.com seed the browser can read: `_` and 36 characters, or 44 with its globals. */
 const OLD_SEED = /^_[A-Za-z0-9_-]{36}(?:[A-Za-z0-9_-]{8})?$/;
 
@@ -71,11 +75,9 @@ export const Route = createFileRoute("/$id/")({
                   import("../../features/editor/BlobArt.tsx")
                 ])
               : null,
-            /* and the silk's, the rosette's or the papercut's, where the address names one (features/editor/fx-draw.ts,
-               FxLayer.tsx) */
-            /^(silk|rosette|papercut)$/.test(
-              new URLSearchParams(location.searchStr).get("style") ?? ""
-            )
+            /* and a vector effect's (effect.ts's EFFECT_KINDS), where the address names one
+               (features/editor/fx-draw.ts, FxLayer.tsx) */
+            isVectorStyle(new URLSearchParams(location.searchStr).get("style"))
               ? Promise.all([
                   import("../../features/editor/fx-draw.ts").then(m => m.loadFx()),
                   import("../../features/editor/FxLayer.tsx"),

@@ -2,6 +2,7 @@ import { encodePalette } from "@grabient/engine/codec.ts";
 import {
   EFFECT_KINDS,
   type EffectSettings,
+  effectBare,
   type FxLook,
   fxStillKey,
   type VectorKind
@@ -21,7 +22,7 @@ import {
 import styles from "./Editor.module.css";
 import { fxLookOf, fxStillBackground, loadFx, serverFxStill } from "./fx-draw.ts";
 
-/* A vector effect over the picture's gradient (silk, rosette, papercut): its still, the first frame as a background
+/* A vector effect over the picture's gradient (EFFECT_KINDS): its still, the first frame as a background
    covering the box, and the WebGL player over it once the page is live and the effect moves or changes, its canvas
    fading in over the still once its first frame, the still's own, is drawn, and out again to the still at speed 0. The still is
    the server's where it shows this palette and this look: the holder names them as the first screen's does
@@ -31,7 +32,11 @@ import { fxLookOf, fxStillBackground, loadFx, serverFxStill } from "./fx-draw.ts
    it, over a still picture too, and the still is drawn for the last one once they rest, under the canvas, which then
    fades back to it. The papercut's still stands in for its first frame (its shadows stepped), so its player comes at
    speed 0 too and its exact first frame stays over the still (FxStage.tsx): the still is then the first paint and
-   what a page without WebGL shows. */
+   what a page without WebGL shows. A ground that lets the page through (the strings' on a translucent or clear one:
+   engine/effect.ts effectBare) stands on the page's own, as the blob does, and its still and its canvas, both
+   translucent, never show together (two over each other thicken the ground): they change places in one frame where
+   they show the same frame (its first, and while the palette or the look changes), and cross-fade where they differ
+   (the effect stopping, or starting again), as the blob's do (BlobLayer.tsx). */
 
 /* the player is the browser's alone (the page stands live first): the server's build carries none of it */
 const FxStage = lazy(() =>
@@ -57,6 +62,17 @@ export function FxLayer(props: {
   const moving = () => props.settings.speed > 0 && !holdsStill();
   const look = (): FxLook => fxLookOf(props.settings, props.angle);
   const stepped = () => EFFECT_KINDS[props.kind].steppedStill;
+  const bare = () => effectBare(props.kind, props.settings.look);
+  /* the canvas and the still change places at once until the canvas has first shown, its first frame being the
+     still's own, where they never show together (a bare ground's) */
+  const [first, setFirst] = createSignal(true);
+  let settling = 0;
+  createEffect(covered, on => {
+    if (on && untrack(first))
+      settling = requestAnimationFrame(() => {
+        settling = requestAnimationFrame(() => setFirst(false));
+      });
+  });
   createEffect(
     () => moving() || stepped(),
     on => {
@@ -127,11 +143,18 @@ export function FxLayer(props: {
   onCleanup(() => {
     if (import.meta.env.SSR) return;
     cancelAnimationFrame(pending);
+    cancelAnimationFrame(settling);
     cancelAnimationFrame(letting);
     clearTimeout(resting);
   });
   return (
-    <div class={styles.fx} aria-hidden="true" data-covered={covered() ? "" : undefined}>
+    <div
+      class={styles.fx}
+      aria-hidden="true"
+      data-covered={covered() ? "" : undefined}
+      data-bare={bare() ? "" : undefined}
+      data-cut={bare() && (first() || (held() && !moving())) ? "" : undefined}
+    >
       <div
         ref={el => {
           holder = el;

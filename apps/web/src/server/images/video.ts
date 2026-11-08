@@ -1,8 +1,8 @@
-/* A palette's effect as an MP4, /{seed}.mp4?style=glass|blob|silk|rosette|papercut: whole loops of the fluted glass,
-   the blob, the silk, the rosette or the papercut, so a player that repeats it shows no seam, with the effect's address
-   (its angle, the soft and the grain, speed, fps, shape, frost, bg), its size (`w` and `h` or `size`, as its PNG reads
-   them) and `duration` in seconds, the speed nudged so whole loops fill it (engine/video.ts). An address that names no
-   style plays the glass, as a page does; the effects it plays are engine/video-kinds.ts's, which the editor reads.
+/* A palette's effect as an MP4, /{seed}.mp4?style=glass and the other effects engine/video-kinds.ts names (the blob,
+   the silk, the rosette, the papercut, the strings and the field effects): whole loops of it, so a player that repeats
+   it shows no seam, with the effect's address (its angle, the soft and the grain, speed, fps, shape, frost, bg), its
+   size (`w` and `h` or `size`, as its PNG reads them) and `duration` in seconds, the speed nudged so whole loops fill it
+   (engine/video.ts). An address that names no style plays the glass, as a page does; the editor reads the same list.
 
    A clip is drawn once and kept in R2 under videos/, its key every part of the address that moves its pixels, and
    answered from there to every player, a part of it to a player that asks for a range (Safari asks for nothing else).
@@ -21,6 +21,8 @@
    loads with the first of them an isolate is asked for. This answers a kept clip to a player without it. */
 
 import { type Effect, type EffectFinish, parseEffect } from "@grabient/engine/effect.ts";
+import { KIT_DRAWINGS } from "@grabient/engine/kit/gen/drawings.ts";
+import { isKitKind } from "@grabient/engine/kit/kinds.ts";
 import type { VideoPlan } from "@grabient/engine/video.ts";
 import { hasVideo, VIDEO_KINDS } from "@grabient/engine/video-kinds.ts";
 import type { Size } from "@grabient/engine/view.ts";
@@ -34,17 +36,19 @@ import { addressParams, fileName } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { failure, type Keep } from "./serve.ts";
-import { boundedSize, CLIP_BOUNDS, pictureSize } from "./size.ts";
+import { boundedSize, CLIP_BOUNDS, effectBounds, pictureSize } from "./size.ts";
 import type { VideoPartDrawn, VideoPartJob } from "./video-draw.ts";
 
 /** Draws a part of a clip in an invocation of its own (video-parts.ts). */
 export type VideoPartRunner = (job: VideoPartJob) => Promise<VideoPartDrawn>;
 
 /** The clips' drawing and coding, counted up by a change that moves their pixels or their bytes (engine/glass.ts,
-    glass-render.ts, blob.ts, silk.ts, rosette.ts, papercut.ts, papercut-render.ts, grain.ts, soft.ts, fx-finish.ts,
-    video-finish.ts, video.ts, video/video.c), so no clip coded before is answered for it; the coding's numbers
-    (videoQuality) are in the key besides. A module that draws the same bytes needs none: a drawing goes on only from a
-    state its own module kept (VIDEO_MODULE, video-make.ts). */
+    glass-render.ts, blob.ts, silk.ts, rosette.ts, papercut.ts, papercut-render.ts, strings.ts, grain.ts, soft.ts,
+    fx-finish.ts, video-finish.ts, video.ts, video/video.c), so no clip coded before is answered for it; the coding's
+    numbers (videoQuality) are in the key besides, and a field effect's drawing (engine/kit/gen/drawings.ts), which its
+    pictures share.
+    A module that draws the same bytes needs none: a drawing goes on only from a state its own module kept
+    (VIDEO_MODULE, video-make.ts). */
 export const VIDEO_DRAWING = "video-1";
 
 /** The most one part draws, its pixels across its frames weighed by its effect (engine/video.ts's videoWork): about
@@ -154,7 +158,11 @@ export async function seedMp4Answer(
   const whole = wide.size.width !== parted.size.width || wide.size.height !== parted.size.height;
   const { kind, angle, finish, duration, size, fps, plan } = whole ? wide : parted;
   const drawn = { kind, look: effect.look, finish };
-  const look = kind === "glass" ? { ...effect.look, shape: effect.look.shape ?? 0 } : effect.look;
+  /* the look its key names: the steps only where it names them (the sandstone's at other than its designed number),
+     so every other clip keeps the key it had before an effect took steps */
+  const { steps, ...stepless } = effect.look;
+  const keyed = steps === null ? stepless : effect.look;
+  const look = kind === "glass" ? { ...keyed, shape: keyed.shape ?? 0 } : keyed;
   const hash = await hashOf([
     VIDEO_DRAWING,
     videoQuality(drawn),
@@ -166,7 +174,8 @@ export async function seedMp4Answer(
     fps,
     plan,
     /* a clip with neither keeps the key it had before clips took them */
-    ...(finish.soft || finish.grain ? [finish] : [])
+    ...(finish.soft || finish.grain ? [finish] : []),
+    ...(isKitKind(kind) ? [KIT_DRAWINGS[kind]] : [])
   ]);
   const name = `videos/${hash}.mp4`;
   const store = env.DEPLOYMENT !== "preview" ? env.UPLOADS : undefined;
@@ -187,7 +196,7 @@ export async function seedMp4Answer(
     runs: whole ? [] : videoParts(drawn, plan, size, options.partWork ?? PART_WORK),
     size,
     whole,
-    poster: boundedSize(size.width, size.height, 1),
+    poster: boundedSize(size.width, size.height, 1, effectBounds(kind)),
     fps,
     plan,
     address: { origin, seed: found.seed, effect, angle, finish, duration }

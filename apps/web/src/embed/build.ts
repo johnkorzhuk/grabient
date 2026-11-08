@@ -1,17 +1,27 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import { build, type Plugin, type Rollup } from "vite";
 
-/* The effects' embeds (glass.ts, blob.ts, silk.ts, rosette.ts, papercut.ts), each as one classic script, which the
-   Worker serves at /{seed}.js (server/files/embed.ts). They are built with the site's own toolchain in builds of their
-   own, as the MCP view is, and written into the browser's build as files under /assets/ named by their contents, as
+/* The effects' embeds (glass.ts, blob.ts, silk.ts, rosette.ts, papercut.ts, strings.ts, and each field effect's on the
+   kit's mount, kit.ts), each as one classic script, which the Worker serves at /{seed}.js (server/files/embed.ts).
+   They are built with the site's own toolchain in builds of their own, as the MCP view is, and written into the browser's build as files under /assets/ named by their contents, as
    the precise color names are (scripts/color-names.ts): the Worker reads them through its ASSETS binding, so they are
    no part of its code.
    Their addresses reach the Worker as __EFFECT_EMBEDS__; `vite dev` answers them from memory. Run alone
    (`node src/embed/build.ts`), this module writes every script to standard output as JSON. */
 
-const KINDS = ["glass", "blob", "silk", "rosette", "papercut"] as const;
+/** Every effect with a script (effect.ts's EFFECT_KINDS, `embed`), which embed.test.ts holds this list to. */
+export const KINDS = [
+  "glass",
+  "blob",
+  "silk",
+  "rosette",
+  "papercut",
+  "strings",
+  ...KIT_KINDS
+] as const;
 type Scripts = Record<(typeof KINDS)[number], string>;
 
 async function buildOne(kind: (typeof KINDS)[number]): Promise<string> {

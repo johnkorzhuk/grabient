@@ -1,5 +1,5 @@
-/* What the effects' scripts share (glass.ts, blob.ts, silk.ts, rosette.ts, papercut.ts): a palette's effect behind any
-   page, set by the script's own address, which is the whole setting:
+/* What the effects' scripts share (glass.ts, blob.ts, silk.ts, rosette.ts, papercut.ts, strings.ts, kit.ts): a
+   palette's effect behind any page, set by the script's own address, which is the whole setting:
      <link rel="stylesheet" href="https://grabient.com/{seed}.css?style=glass">
      <script src="https://grabient.com/{seed}.js?style=glass" async></script>
    The script is the same for every palette. It reads the palette, the effect and its soft and grain from its address
@@ -7,7 +7,8 @@
    painted in the page's first paint (server/files/effect-files.ts), or the same rules in the page's own <style> (the
    editor's Copy HTML); where the page has neither, it adopts those rules itself as soon as it runs. The canvas shows
    once its first frame, the still's own, is drawn: the glass, the silk, the rosette and the papercut fading in over a
-   still the page painted, the blob (clear around itself) taking the still's place in one frame. The papercut's still
+   still the page painted, the blob (clear around itself) and the strings on a ground that lets the page through
+   (engine/effect.ts effectBare) taking the still's place in one frame. The papercut's still
    steps its shadows (engine/effect.ts steppedStill), so its canvas brings them soft, as the site's stage does, and
    comes for a reader who asks for less motion and held at speed 0 too, holding its first frame. The still goes once
    the canvas covers it, so a resize never draws it again under the canvas, and comes back if the canvas loses its
@@ -23,7 +24,8 @@ import {
   EFFECT_KINDS,
   type Effect,
   type EffectKind,
-  EMBED_PLAYING
+  EMBED_PLAYING,
+  effectBare
 } from "@grabient/engine/effect.ts";
 import { effectLayers } from "@grabient/engine/effect-code.ts";
 import { type EffectLayers, effectLayerCss } from "@grabient/engine/effect-embed.ts";
@@ -45,7 +47,8 @@ const MOUNTED = Symbol.for("grabient-effect");
 
 export interface EmbedEffect {
   kind: EffectKind;
-  /** the blob's ground written in other words than hex read to the hex the server answers it at (address.ts) */
+  /** a ground written in other words than hex read to the hex the server answers it at (address.ts): the blob's and
+      the strings' */
   ground?: GroundReader;
   /** the effect's first frame as a background, as the stylesheet paints it, at the address's angle, which the blob
       has none of: drawn at once, or a share at a time where that takes long (the papercut's) */
@@ -204,8 +207,10 @@ export function mount(embed: EmbedEffect): void {
       },
       { signal: ended.signal }
     );
-    /* the still goes once the canvas covers it: the blob's at once, an opaque canvas's once it has faded in */
+    /* the still goes once the canvas covers it: the blob's at once, and any canvas's whose ground lets the page
+       through, as two translucent pictures over each other thicken; an opaque canvas's once it has faded in */
     const covered = () => root.setAttribute(EMBED_PLAYING, "");
+    const cut = embed.kind === "blob" || effectBare(effect.kind, effect.look);
     player = embed.play(
       canvas,
       P,
@@ -214,7 +219,7 @@ export function mount(embed: EmbedEffect): void {
       () =>
         /* a frame after its first was drawn: a canvas shown in the frame it was first drawn in may not fade in */
         requestAnimationFrame(() => {
-          if (embed.kind !== "blob" && fade) {
+          if (!cut && fade) {
             box.transition = `opacity ${FADE_MS}ms ease-in-out`;
             layer.addEventListener("transitionend", covered, { once: true, signal: ended.signal });
           } else covered();

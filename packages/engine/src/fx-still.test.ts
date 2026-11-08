@@ -26,18 +26,18 @@ const effect = (kind: "silk" | "rosette", speed = 1): Effect => ({
   kind,
   speed,
   fps: 60,
-  look: { shape: 7, frost: 1, bg: null }
+  look: { shape: 7, frost: 1, bg: null, steps: null }
 });
 
 test("a still is drawn in the design square, and speed 0 is the still", () => {
   for (const kind of ["silk", "rosette"] as const) {
-    const still = fxStillSvg(kind, P, { angle: 90, shape: null });
+    const still = fxStillSvg(kind, P, { angle: 90, shape: null, steps: null, bg: null });
     expect(still).toContain(`width="${FX_STILL_SIDE}" height="${FX_STILL_SIDE}"`);
     const box = { width: 400, height: 200 };
-    expect(fxMovingSvg(kind, P, { angle: 30, shape: 3 }, box, 0)).toBe(
-      fxStillSvg(kind, P, { angle: 30, shape: 3 }, box)
+    expect(fxMovingSvg(kind, P, { angle: 30, shape: 3, steps: null, bg: null }, box, 0)).toBe(
+      fxStillSvg(kind, P, { angle: 30, shape: 3, steps: null, bg: null }, box)
     );
-    expect(fxLoop(kind, P, { angle: 90, shape: null })).toBeGreaterThan(0);
+    expect(fxLoop(kind, P, { angle: 90, shape: null, steps: null, bg: null })).toBeGreaterThan(0);
   }
 });
 
@@ -73,25 +73,27 @@ test("the silk's and the rosette's files: a moving SVG, a stylesheet, their colo
   }
 });
 
-test("the papercut's files: its stepped still covers a page, its SVG moves by its stills fading one into the next and holds the still blurred, the script that plays it", () => {
+test("the papercut's files: its stepped still covers a page, its SVG is its still blurred at any speed, the script that plays it", () => {
   const fx: Effect = {
     kind: "papercut",
     speed: 1,
     fps: 60,
-    look: { shape: 7, frost: 1, bg: null }
+    look: { shape: 7, frost: 1, bg: null, steps: null }
   };
   expect(hasEmbedScript("papercut")).toBe(true);
-  const still = fxStillSvg("papercut", P, { angle: 90, shape: null });
+  const still = fxStillSvg("papercut", P, { angle: 90, shape: null, steps: null, bg: null });
   expect(still).toContain(`width="${FX_STILL_SIDE}" height="${FX_STILL_SIDE}"`);
   expect(still).not.toContain("<filter");
   const box = { width: 640, height: 320 };
   /* held, its first frame with its shadows blurred, as a design app imports them */
-  const held = fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, 0);
+  const held = fxMovingSvg("papercut", P, { angle: 120, shape: 7, steps: null, bg: null }, box, 0);
   expect(held).toContain("<feGaussianBlur");
   /* moving or held, its file is its still: an SVG would follow its cuts as they change shape only in megabytes (its
      shaders, clips and script play it) */
   for (const speed of [1, 2, 8.05])
-    expect(fxMovingSvg("papercut", P, { angle: 120, shape: 7 }, box, speed)).toBe(held);
+    expect(
+      fxMovingSvg("papercut", P, { angle: 120, shape: 7, steps: null, bg: null }, box, speed)
+    ).toBe(held);
   expect(held).not.toContain("<animate");
   expect(held).not.toContain("@keyframes");
   const svg = effectSvg(P, SEED, fx, 120, box, "https://grabient.com");
@@ -100,7 +102,7 @@ test("the papercut's files: its stepped still covers a page, its SVG moves by it
   const css = effectStylesheet(P, SEED, fx, 120, "https://grabient.com");
   expect(css).toMatch(/50% 50% \/ cover no-repeat/);
   expect(effectColors(P, fx)).toHaveLength(12);
-  expect(fxLoop("papercut", P, { angle: 90, shape: null })).toBe(180);
+  expect(fxLoop("papercut", P, { angle: 90, shape: null, steps: null, bg: null })).toBe(180);
   expect(effectLinks("https://grabient.com", SEED, fx, 120, "/og").js).toBe(
     `https://grabient.com/${SEED}.js?style=papercut&angle=120&shape=7`
   );
@@ -132,7 +134,7 @@ test("the papercut's SVG finished: its drawing whole, blurred over its gradient,
     kind: "papercut",
     speed: 0,
     fps: 60,
-    look: { shape: 7, frost: 1, bg: null }
+    look: { shape: 7, frost: 1, bg: null, steps: null }
   };
   const box = { width: 400, height: 240 };
   const plain = effectSvg(P, SEED, fx, 120, box, "https://grabient.com");
@@ -196,7 +198,7 @@ test("the papercut's SVG finished: its drawing whole, blurred over its gradient,
 });
 
 test("a still drawn a step at a time is the still, the papercut's in a share of a millisecond or so a step", () => {
-  const look = { angle: 200, shape: 640 };
+  const look = { angle: 200, shape: 640, steps: null, bg: null };
   let steps = 0;
   const drawing = fxStillSteps("papercut", P, look);
   let step = drawing.next();

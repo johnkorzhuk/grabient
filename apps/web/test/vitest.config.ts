@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import solid from "@solidjs/vite-plugin";
 import { defineConfig } from "vitest/config";
+import { KINDS } from "../src/embed/build.ts";
 
 /* The Worker's integration tests, in workerd with the bindings local development has (test/cloudflare.config.ts): D1,
    KV, R2 and the RateLimiter Durable Object, all simulated. test/worker.ts stands in for the app's entry, so these
@@ -17,13 +18,7 @@ export default defineConfig({
     // the build's name, which the edge cache's keys carry (lib/build.ts)
     __BUILD_ID__: JSON.stringify("test"),
     // the effects' scripts are written by their own plugin (src/embed/build.ts); a static file stands in for each
-    __EFFECT_EMBEDS__: JSON.stringify({
-      glass: "/ads.txt",
-      blob: "/ads.txt",
-      silk: "/ads.txt",
-      rosette: "/ads.txt",
-      papercut: "/ads.txt"
-    }),
+    __EFFECT_EMBEDS__: JSON.stringify(Object.fromEntries(KINDS.map(kind => [kind, "/ads.txt"]))),
     // the grain's tiles are written by their own plugin (scripts/grain.ts)
     __GRAIN__: JSON.stringify("/assets/grain-test")
   },

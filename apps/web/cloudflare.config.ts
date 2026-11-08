@@ -41,7 +41,8 @@ const NEWSLETTER_FROM = "news@grabient.com";
 /* Staging's video container: clips past the Worker's work drawn whole, up to 4K, by 4 drawer threads feeding one
    encoder (container/, src/server/images/video-drawer.ts). Its image is built and pushed without Docker by
    `pnpm --filter web video:image`, which writes the tag below into container/image.json; a test holds that image to
-   today's drawing (VIDEO_DRAWING, VIDEO_MODULE) and the container's sources. standard-4 is 4 vCPUs and 12 GiB, and
+   today's drawing (VIDEO_DRAWING, VIDEO_MODULE) and to the code it carries (container/carried.ts: the container's and
+   the engine's it bundles, each field effect's definition among it). standard-4 is 4 vCPUs and 12 GiB, and
    is named because a rollout that named none fell back to lite (1/16 vCPU). Four at once caps what staging can spend
    drawing clips at a time. */
 const ACCOUNT_ID = "f846204052f664d57da7acde8f6803cd";

@@ -3,13 +3,16 @@
    them everywhere at once. It names the effects alone and loads nothing, so a page's start can read it: the drawing
    loads with the first clip asked for. */
 import type { EffectKind } from "./effect.ts";
+import { KIT_KINDS } from "./kit/kinds.ts";
 
 export const VIDEO_KINDS = [
   "glass",
   "blob",
   "silk",
   "rosette",
-  "papercut"
+  "papercut",
+  "strings",
+  ...KIT_KINDS
 ] as const satisfies readonly EffectKind[];
 export type VideoKind = (typeof VIDEO_KINDS)[number];
 

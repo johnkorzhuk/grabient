@@ -53,6 +53,9 @@ every time, and add a row when a new product word gets its translation.
 | Silk | 丝绸 | An effect: the palette dyed into satin that drapes in soft folds. The fabric's everyday name. |
 | Rosette | 团花 | An effect: petals on a golden spiral, like a dahlia seen from above. 团花 is the round flower ornament of paper-cuts and security printing, which is what a rosette is. |
 | Papercut | 剪纸 | An effect: the palette cut into sheets of paper stacked in layers, each casting a soft shadow on the one below. The craft's own name; designers call the layered look 剪纸风. |
+| strings (an effect) | 丝线 | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for threads (线绳). Not 琴弦 (musical strings) nor 字符串 (strings in code). |
+| zen garden (an effect) | 枯山水 | A raked sand garden seen from above, its grooves ringing a few stones: the dry garden's own name. Not 禅园 alone. |
+| sandstone (an effect) | 砂岩 | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name. Not 沙 (sand) alone. |
 | look (the examples page) | 风格 | One of the ways a palette is shown: another style, steps, angle or shape. Another look is 换一种风格, Swipe for another look 滑动换一种风格, 6 looks `6 种风格`. Not 外观 (Appearance) or 样式 (style). |
 | tag | 标签 | |
 | mood | 氛围 | In search hints: 颜色、氛围或主题. |

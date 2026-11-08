@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { EFFECT_WORDS, EFFECTS } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import { REGISTRY_NAME } from "../mcp/info.ts";
 import { aiCatalog, llmsText, type Mcp, serverCard } from "./agents.ts";
@@ -33,10 +34,29 @@ const MCP: Mcp = {
   registryName: REGISTRY_NAME
 };
 
-test("the guide and the whole reference are grabient.com's, byte for byte", () => {
+/* file snapshots: where the texts change on purpose (a new effect's words among them), `pnpm vitest run
+   apps/web/src/server/seo/agents.test.ts -u` writes them anew, and the diff shows what changed */
+test("the guide and the whole reference are grabient.com's, byte for byte", async () => {
   expect(MCP.tools).toHaveLength(13);
-  expect(llmsText(ORIGIN, MCP)).toBe(golden("llms.txt"));
-  expect(llmsText(`${ORIGIN}/`, MCP, true)).toBe(golden("llms-full.txt"));
+  await expect(llmsText(ORIGIN, MCP)).toMatchFileSnapshot("fixtures/llms.txt");
+  await expect(llmsText(`${ORIGIN}/`, MCP, true)).toMatchFileSnapshot("fixtures/llms-full.txt");
+});
+
+/* The MCP's skill (skills/grabient/SKILL.md, which server/mcp/skill.ts serves) is written by hand, where llms.txt writes
+   its lists from the effects: a new effect it leaves out fails here (kit/README.md step 5). */
+test("the MCP's skill names every effect: in the tags that play one behind a page, by its style, and on a list", () => {
+  const skill = readFileSync(
+    new URL("../../../../../skills/grabient/SKILL.md", import.meta.url),
+    "utf8"
+  );
+  const behind =
+    /To play a palette behind a whole page as ([^:]+?), put two tags/.exec(skill)?.[1] ?? "";
+  const list = /`style=glass`[^.]*? plays the effect on every card/.exec(skill)?.[0] ?? "";
+  for (const kind of EFFECTS) {
+    expect(behind, kind).toContain(EFFECT_WORDS[kind]);
+    expect(skill, kind).toContain(`\`style=${kind}\``);
+    expect(list, kind).toMatch(new RegExp(`\`(style=)?${kind}\``));
+  }
 });
 
 test("the server's card and the catalog that leads to it", () => {

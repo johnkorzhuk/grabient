@@ -8,48 +8,91 @@
    with the first picture of it, so the module holds none of them. The grain is laid by each, the server's from
    fx-finish's specks, the editor's with its canvas: the specks come from grain.ts, which every page starts with, and
    reading them here would put their code in every page's start. */
-import type { Effect } from "./effect.ts";
+import { type Effect, fxLookOf, isVectorKind } from "./effect.ts";
 import { blurOver, effectBlurSigma, effectUnderlay } from "./fx-finish.ts";
 import { glassColors } from "./glass-colors.ts";
+import { isKitKind } from "./kit/kinds.ts";
 import type { Palette } from "./palette.ts";
 import type { Size } from "./view.ts";
 
 /** A frame's pixels as its drawing gives them: four bytes a pixel, straight alpha, or three where the blob stands on a
-    ground that covers the box. They are opaque but for a blob whose ground lets the page through, or that has none. A
-    card, which cannot be clear, lays the blob on its near-black or near-white (blobBackdrop), which `backdrop` names. */
+    ground that covers the box. They are opaque but where the effect's picture lets the page through (effect.ts
+    effectBare): a blob whose ground does, or that has none, and the strings on a ground that does. A card, which cannot
+    be clear, lays such a picture over the ground a picture that cannot be clear takes, which `backdrop` names: the
+    blob on its near-black or near-white (blobBackdrop), the strings' ground over their designed one (stringsSolid). */
 export interface EffectDrawn {
   pixels: Uint8Array | Uint8ClampedArray;
   backdrop?: readonly number[];
 }
 
-/** An effect's first frame at a size, unfinished. */
+/** An effect's first frame at a size, unfinished; a vector effect's frame at `t` seconds of its loop at speed 1 where
+    one is asked (the glass and the blob draw their first alone). */
 export async function effectDrawn(
   P: Palette,
   effect: Effect,
   angle: number,
   size: Size,
-  card = false
+  card = false,
+  t = 0
 ): Promise<EffectDrawn> {
-  /* the silk, the rosette and the papercut by their CPU drawings: about 0.1 s for a card, 0.35 s for the largest
-     picture */
-  if (effect.kind === "silk" || effect.kind === "rosette" || effect.kind === "papercut") {
-    const look = { angle, shape: effect.look.shape };
-    if (effect.kind === "papercut") {
-      const [model, render] = await Promise.all([
-        import("./papercut.ts"),
-        import("./papercut-render.ts")
+  /* the vector effects by their CPU drawings: about 0.1 s for a card, 0.35 s for the largest picture (the strings'
+     about four times that). A field effect's card, coded, takes 0.21 to 0.46 s, 0.36 to 0.65 s soft and grained, in
+     an isolate that has written each one's still first, as one serving their pages has (kit/render.ts, 8 Nov 2026: the
+     sandstone's the least, the zen garden's the most); its picture is drawn within a card's pixels (apps/web
+     lib/picture-size.ts KIT_PICTURE_BOUNDS), where four cards' took the zen garden 1.8 to 2.4 s */
+  if (isVectorKind(effect.kind)) {
+    const look = fxLookOf(effect.look, angle);
+    if (isKitKind(effect.kind)) {
+      const [registry, scene, render] = await Promise.all([
+        import("./kit/registry.ts"),
+        import("./kit/scene.ts"),
+        import("./kit/render.ts")
       ]);
-      return { pixels: render.renderPapercut(model.papercutScene(P, look, size), 0) };
+      const def = registry.kitEffect(effect.kind);
+      return { pixels: render.kitRender(scene.kitScene(def, P, look, size), t) };
     }
-    if (effect.kind === "rosette") {
-      const [model, render] = await Promise.all([
-        import("./rosette.ts"),
-        import("./rosette-render.ts")
-      ]);
-      return { pixels: render.renderRosette(model.rosetteScene(P, look, size), 0, true) };
+    switch (effect.kind) {
+      case "papercut": {
+        const [model, render] = await Promise.all([
+          import("./papercut.ts"),
+          import("./papercut-render.ts")
+        ]);
+        return { pixels: render.renderPapercut(model.papercutScene(P, look, size), t) };
+      }
+      case "rosette": {
+        const [model, render] = await Promise.all([
+          import("./rosette.ts"),
+          import("./rosette-render.ts")
+        ]);
+        const sc = model.rosetteScene(P, look, size);
+        /* the first frame as the still holds its petals; any other with every petal a frame of the loop shows */
+        return {
+          pixels: t
+            ? render.renderRosette(sc, model.rosettePhase(sc, t))
+            : render.renderRosette(sc, 0, true)
+        };
+      }
+      case "strings": {
+        const [model, render] = await Promise.all([
+          import("./strings.ts"),
+          import("./strings-render.ts")
+        ]);
+        const scene = model.stringsScene(P, look, size);
+        if (!card || scene.alpha >= 1) return { pixels: render.renderStrings(scene, t) };
+        /* a card is never clear: its ground over the designed one, which its soft edges thin to */
+        return {
+          pixels: render.renderStrings(model.stringsSolid(scene), t),
+          backdrop: scene.backdrop.map(v => Math.round(v * 255))
+        };
+      }
+      case "silk": {
+        const [model, render] = await Promise.all([
+          import("./silk.ts"),
+          import("./silk-render.ts")
+        ]);
+        return { pixels: render.renderSilk(model.silkScene(P, look, size), t) };
+      }
     }
-    const [model, render] = await Promise.all([import("./silk.ts"), import("./silk-render.ts")]);
-    return { pixels: render.renderSilk(model.silkScene(P, look, size), 0) };
   }
   if (effect.kind === "blob") {
     const blob = await import("./blob.ts");

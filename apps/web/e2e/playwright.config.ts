@@ -28,6 +28,11 @@ const env = {
 };
 /* the workers sign a test account's session with it where there is no .dev.vars (journeys.spec.ts) */
 process.env.E2E_AUTH_SECRET ??= env.BETTER_AUTH_SECRET;
+/* E2E_SERVED=off leaves the served build and its project out, and with them every @served test: a run of specs that
+   have none (the vector, embed, video and examples specs a new effect is checked by) then waits on no build, and
+   starts where `vite preview` cannot, as on a machine without the Cloudflare token the video container's image is
+   pulled with (CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID: preview stops asking for them since 7f486b89). */
+const servedToo = process.env.E2E_SERVED !== "off";
 
 export default defineConfig({
   testDir: ".",
@@ -47,11 +52,15 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
       grepInvert: /@served/
     },
-    {
-      name: "served",
-      use: { ...devices["Desktop Chrome"], baseURL: served },
-      grep: /@served/
-    }
+    ...(servedToo
+      ? [
+          {
+            name: "served",
+            use: { ...devices["Desktop Chrome"], baseURL: served },
+            grep: /@served/
+          }
+        ]
+      : [])
   ],
   webServer: [
     {
@@ -61,12 +70,16 @@ export default defineConfig({
       timeout: 90_000,
       env
     },
-    {
-      command: `pnpm exec vite build --mode staging && pnpm exec vite preview --mode staging --port ${process.env.E2E_SERVED_PORT}`,
-      cwd: "..",
-      url: `${served}/api/build`,
-      timeout: 180_000,
-      env
-    }
+    ...(servedToo
+      ? [
+          {
+            command: `pnpm exec vite build --mode staging && pnpm exec vite preview --mode staging --port ${process.env.E2E_SERVED_PORT}`,
+            cwd: "..",
+            url: `${served}/api/build`,
+            timeout: 180_000,
+            env
+          }
+        ]
+      : [])
   ]
 });

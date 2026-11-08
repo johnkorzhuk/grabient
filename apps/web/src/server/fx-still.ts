@@ -1,4 +1,4 @@
-/* The vector effects' stills on a page (silk, rosette, papercut: engine/fx-still.ts), drawn by the server as the
+/* The vector effects' stills on a page (engine/effect.ts's EFFECT_KINDS, engine/fx-still.ts), drawn by the server as the
    blob's are (blob-still.ts). A palette's first screen (Boot.tsx) and a list's cards (FxArt.tsx) leave empty holders
    naming the still each shows (data-fx-still: the kind, the palette, the angle and the shape, all its first frame
    depends on); this writes each name's first frame into the head as a style, the one design covering whatever box

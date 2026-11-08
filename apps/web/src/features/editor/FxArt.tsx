@@ -1,5 +1,5 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
-import { fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
+import { type FxLook, fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { createEffect, createMemo, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./Editor.module.css";
@@ -62,7 +62,7 @@ function inTask(step: Steps): boolean {
   return performance.now() < taskEnd && until(step, taskEnd);
 }
 
-/** A vector effect's first frame (silk, rosette, papercut) as a small picture filling its box: the Appearance menu's
+/** A vector effect's first frame (EFFECT_KINDS) as a small picture filling its box: the Appearance menu's
     tile, the header's swatch and a list's card. It names the still it shows, so the server's still (server/fx-still.ts)
     paints it where it is that one, as it painted the first screen: nothing changes as the page comes live. Another
     still is drawn here once the stills' code has come. */
@@ -71,10 +71,19 @@ export function FxArt(props: {
   palette: Palette;
   angle: number;
   shape: number | null;
+  /** the look's steps, where the effect takes them (engine/effect.ts EffectLook): null as designed */
+  steps: number | null;
+  /** the look's ground, where the effect takes one (engine/effect.ts EffectLook): null as designed */
+  bg: string | null;
 }) {
   let el!: HTMLSpanElement;
   const code = createMemo(() => encodePalette(props.palette));
-  const look = () => ({ angle: props.angle, shape: props.shape });
+  const look = (): FxLook => ({
+    angle: props.angle,
+    shape: props.shape,
+    steps: props.steps,
+    bg: props.bg
+  });
   const keyOf = () => fxStillKey(props.kind, code(), look());
   const [shown, setShown] = createSignal<{ key: string; paint: string | null } | null>({
     key: untrack(keyOf),

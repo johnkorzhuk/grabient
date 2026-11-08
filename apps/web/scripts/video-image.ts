@@ -1,7 +1,8 @@
 /* Builds the video container's image without Docker and pushes it to Cloudflare's registry, then writes its tag into
    container/image.json, which cloudflare.config.ts names for staging (container/, src/server/images/video-drawer.ts).
-   Run it from apps/web after a change to container/, to the clips' drawing (VIDEO_DRAWING) or to video.wasm, which a
-   test (container/image.test.ts) holds image.json to:
+   Run it from apps/web after a change to what the image carries (container/carried.ts: the bundles of container/ and
+   the engine code they import, and video.wasm) or to the clips' drawing (VIDEO_DRAWING), which a test
+   (container/image.test.ts) holds image.json to:
 
      CRANE=/path/to/crane pnpm video:image
 
@@ -11,11 +12,10 @@
    sources make the same tag and a push of them changes nothing. */
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { build } from "esbuild";
-import { containerSources } from "../container/sources.ts";
+import { carriedHash, containerBundles, VIDEO_WASM } from "../container/carried.ts";
 
 const ACCOUNT_ID = "f846204052f664d57da7acde8f6803cd";
 const REPOSITORY = `registry.cloudflare.com/${ACCOUNT_ID}/grabient-video`;
@@ -23,24 +23,17 @@ const REPOSITORY = `registry.cloudflare.com/${ACCOUNT_ID}/grabient-video`;
 const BASE =
   "docker.io/library/node:24-slim@sha256:a43f7fc3e52e87d12a905f46eea0275def84ca8f2981a5b53fed44d7fb398ee0";
 const web = new URL("..", import.meta.url).pathname;
-const wasm = join(web, "../../packages/engine/src/video/video.wasm");
 const crane = process.env.CRANE ?? "crane";
 
 const work = mkdtempSync(join(tmpdir(), "grabient-video-image-"));
 try {
   const app = join(work, "layer/app");
   mkdirSync(app, { recursive: true });
-  await build({
-    entryPoints: ["server", "drawer", "encoder"].map(name => join(web, `container/${name}.ts`)),
-    bundle: true,
-    platform: "node",
-    format: "esm",
-    target: "node24",
-    outdir: app,
-    outExtension: { ".js": ".mjs" },
-    logLevel: "warning"
-  });
-  copyFileSync(wasm, join(app, "video.wasm"));
+  /* the bytes the test holds the image to, written as they were hashed */
+  const bundles = await containerBundles();
+  const wasm = readFileSync(VIDEO_WASM);
+  for (const [name, bytes] of bundles) writeFileSync(join(app, name), bytes);
+  writeFileSync(join(app, "video.wasm"), wasm);
   // the same files make the same bytes: no times, no owners
   const layer = join(work, "layer.tar");
   execFileSync("tar", [
@@ -116,10 +109,10 @@ try {
   const drawing = /VIDEO_DRAWING = "([^"]+)"/.exec(
     readFileSync(join(web, "src/server/images/video.ts"), "utf8")
   )?.[1];
-  const module = createHash("sha256").update(readFileSync(wasm)).digest("hex").slice(0, 12);
+  const module = createHash("sha256").update(wasm).digest("hex").slice(0, 12);
   writeFileSync(
     join(web, "container/image.json"),
-    `${JSON.stringify({ tag, drawing, module, sources: containerSources() }, null, 2)}\n`
+    `${JSON.stringify({ tag, drawing, module, carries: carriedHash(bundles, wasm) }, null, 2)}\n`
   );
   console.log(`pushed ${image}`);
 } finally {

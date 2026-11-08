@@ -12,7 +12,9 @@ import {
   type RosettePetal,
   type RosetteScene,
   type RosetteView,
+  rosetteGroupAt,
   rosettePetals,
+  rosettePhase,
   rosetteScene,
   type Size
 } from "./rosette.ts";
@@ -72,7 +74,7 @@ export function petalEl(p: RosettePetal): string {
   return `<use href="#l" transform="rotate(${n4((p.th * 180) / Math.PI)})scale(${n4(p.r)})" fill="url(#g${p.key})"/>`;
 }
 
-function body(sc: RosetteScene, petals: RosettePetal[], groupClass = ""): string {
+function body(sc: RosetteScene, petals: RosettePetal[], groupClass = "", groupAt = ""): string {
   const W = sc.box.width;
   const H = sc.box.height;
   const path = lensPath(sc);
@@ -81,9 +83,18 @@ function body(sc: RosetteScene, petals: RosettePetal[], groupClass = ""): string
     `<defs><path id="l" d="${path}"/>${gradientDefs(sc)}</defs>` +
     `<rect width="${W}" height="${H}" fill="${hex(sc.colors.ground)}"/>` +
     `<g transform="translate(${n2(W / 2)} ${n2(H / 2)})">` +
-    `<g${groupClass ? ` class="${groupClass}"` : ""}>${petals.map(petalEl).join("")}</g>` +
+    `<g${groupClass ? ` class="${groupClass}"` : ""}${groupAt ? ` transform="${groupAt}"` : ""}>${petals.map(petalEl).join("")}</g>` +
     `<circle r="${n2(heartR)}" fill="url(#h)"/></g>`
   );
+}
+
+/** The frame at t seconds of the loop at speed 1, as a still of its own: every petal any frame shows, the group
+    turned and zoomed about the heart as the moving drawing's keyframes have it then. */
+export function rosetteFrameSvg(sc: RosetteScene, t: number): string {
+  const W = sc.box.width;
+  const H = sc.box.height;
+  const g = rosetteGroupAt(sc, rosettePhase(sc, t));
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${body(sc, rosettePetals(sc, true), "", `rotate(${n6((g.turn * 180) / Math.PI)})scale(${n6(g.zoom)})`)}</svg>`;
 }
 
 /** The still: the petals as they stand at the loop's start. */

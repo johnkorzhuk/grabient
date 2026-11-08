@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
 import { BLOB_DEPTH, BLOB_DESIGN, BLOB_LOOP, blobFilter, blobFit, blobScene } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
-import { blobShapeOf, type Effect } from "./effect.ts";
+import { blobShapeOf, EFFECT_KINDS, type Effect } from "./effect.ts";
 import { FIGMA_BLOB, type FigmaBlobView, figmaBlobHtml, figmaBlobNodes } from "./figma-blob.ts";
 import { FIGMA_GLASS, figmaGlassHtml, figmaGlassNodes } from "./figma-glass.ts";
 import { figmaPapercutHtml, figmaPapercutNodes } from "./figma-papercut.ts";
@@ -10,17 +10,25 @@ import {
   FIGMA_FINISH,
   FIGMA_INTERNAL,
   FIGMA_PAGE,
+  type FigmaCubic,
   type FigmaFinish,
   type FigmaNode,
   figmaColor,
   figmaLinear,
   figmaNoise,
   figmaPathLoops,
+  figmaPathRuns,
   figmaVectorNetwork
 } from "./figma-paste.ts";
 import { figmaRosetteHtml, figmaRosetteNodes } from "./figma-rosette.ts";
 import { FIGMA_DEFS, FIGMA_SCHEMA, FIGMA_VERSION } from "./figma-schema.ts";
 import { type FigmaSilkView, figmaSilkHtml, figmaSilkNodes } from "./figma-silk.ts";
+import {
+  type FigmaStringsView,
+  figmaStringsHtml,
+  figmaStringsNodes,
+  figmaStringsOutline
+} from "./figma-strings.ts";
 import { effectBlurSigma, effectUnderlay } from "./fx-finish.ts";
 import {
   GLASS_DESIGN,
@@ -30,11 +38,16 @@ import {
   glassField,
   glassGeometry
 } from "./glass.ts";
+import { figmaKitNodes } from "./kit/figma.ts";
+import { kitRecord } from "./kit/kinds.ts";
+import { kitEffect } from "./kit/registry.ts";
 import { decodeKiwi, encodeKiwi } from "./kiwi.ts";
 import { papercutScene } from "./papercut.ts";
 import { HEART_STOPS, rosettePetals, rosetteScene } from "./rosette.ts";
 import { zoomKeys } from "./rosette-svg.ts";
 import { centresAt, SILK_LOOP, silkScene } from "./silk.ts";
+import { stringsHex, stringsScene } from "./strings.ts";
+import { stringsThreads } from "./strings-svg.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: a decoded paste, read by the paths each test expects it to hold
 type Node = Record<string, any>;
@@ -779,7 +792,7 @@ test("the playing rosette turns and zooms on Figma's timeline as its moving SVG 
 
 /* the soft and the grain, and the gradient the site lays under a soft effect */
 const underlayOf = (kind: Effect["kind"], angle: number, soft: number, bg: string | null = null) =>
-  effectUnderlay(palette, { kind, look: { shape: null, frost: 1, bg } }, angle, soft);
+  effectUnderlay(palette, { kind, look: { shape: null, frost: 1, bg, steps: null } }, angle, soft);
 /* the gradient a press makes for a view, for a soft one alone */
 const madeFor = (
   kind: Effect["kind"],
@@ -788,8 +801,17 @@ const madeFor = (
   bg: string | null = null
 ) => (finish?.soft ? underlayOf(kind, angle, finish.soft, bg) : null);
 const box = { width: 1200, height: 800 };
-/* each effect's paste in a box, finished or not, as the moving ones play: the papercut, a still at any pace, has its
-   own test */
+/* the strings, a still at any pace: as designed, a nest of closed loops in its middle and hairpins at either side */
+const stringsView: FigmaStringsView = {
+  palette,
+  angle: 90,
+  shape: null,
+  bg: null,
+  ...box,
+  name: "Navy and teal"
+};
+/* each effect's paste in a box, finished or not, as the moving ones play (the strings at any speed alike): the
+   papercut, a still at any pace, has its own test */
 const pastes: Record<
   Exclude<Effect["kind"], "papercut">,
   (finish?: FigmaFinish, speed?: number) => Node[]
@@ -826,9 +848,33 @@ const pastes: Record<
       speed,
       finish,
       underlay: madeFor("rosette", 60, finish)
-    }) as Node[]
+    }) as Node[],
+  strings: finish =>
+    figmaStringsNodes({ ...stringsView, finish, underlay: madeFor("strings", 90, finish) })
+      .nodes as Node[],
+  /* the field effects, each a still at any pace as the strings are (kit/figma.ts) */
+  ...kitRecord(
+    kind => (finish?: FigmaFinish) =>
+      figmaKitNodes(kitEffect(kind), {
+        ...stringsView,
+        angle: 210,
+        steps: null,
+        finish,
+        underlay: madeFor(kind, 210, finish)
+      }).nodes as Node[]
+  )
 };
-const angleOf = { glass: 135, blob: 90, silk: 135, rosette: 60 } as const;
+const angleOf: Record<keyof typeof pastes, number> = {
+  glass: 135,
+  blob: 90,
+  silk: 135,
+  rosette: 60,
+  strings: 90,
+  ...kitRecord(() => 210)
+};
+/* the kinds pasted so, every kind but the papercut, and those that move on Figma's timeline */
+const pasted = Object.keys(pastes) as (keyof typeof pastes)[];
+const playing = pasted.filter(kind => EFFECT_KINDS[kind].figma === "moving");
 /* a layer's children in their order */
 const kidsOf = (nodes: Node[], parent: Node) =>
   childrenOf(nodes, parent).sort((a, b) =>
@@ -881,7 +927,7 @@ test("a linear gradient runs along CSS's line: its start and end at the corners 
 });
 
 test("every effect's soft and grain wrap its drawing: the grain's noise over a masked group, the gradient under, the drawing blurred, itself masked to the box", () => {
-  for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
+  for (const kind of pasted) {
     const nodes = pastes[kind]({ soft: 50, grain: 50 });
     const plain = pastes[kind]();
     const [top] = nodes.filter(n => n.name === "Navy and teal");
@@ -930,7 +976,9 @@ test("every effect's soft and grain wrap its drawing: the grain's noise over a m
     const [clip, ...drawing] = kidsOf(nodes, picture);
     expect(clip).toMatchObject({ type: "RECTANGLE", mask: true, size });
     /* the drawing itself unchanged, the blob's ground a layer under it in the frame's place */
-    const own = drawing.filter(n => n.name !== "ground" || kind === "rosette");
+    const own = drawing.filter(
+      n => n.name !== "ground" || kind === "rosette" || kind === "strings"
+    );
     expect(own.map(n => shapeOf(nodes, n))).toEqual(
       kidsOf(plain, plain[2]).map(n => shapeOf(plain, n))
     );
@@ -945,7 +993,7 @@ test("every effect's soft and grain wrap its drawing: the grain's noise over a m
 });
 
 test("a grain alone lays the noise over the drawing, a soft alone blurs it with no noise, and neither leaves the paste as it was", () => {
-  for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
+  for (const kind of pasted) {
     const grained = pastes[kind]({ grain: 20 });
     const top = grained[2];
     const kids = kidsOf(grained, top);
@@ -1039,7 +1087,8 @@ test("a soft glass given no gradient blurs over nothing: its edges go clear", ()
 });
 
 test("a moving paste keeps its soft and grain still: the finish's groups take no track, the moving layers move inside them", () => {
-  for (const kind of ["glass", "blob", "silk", "rosette"] as const) {
+  expect(playing).toContain("glass");
+  for (const kind of playing) {
     const nodes = pastes[kind]({ soft: 60, grain: 40 }, 1);
     const byId = new Map(nodes.map(n => [n.guid.localID, n]));
     const finishGroups = nodes.filter(n =>
@@ -1134,6 +1183,23 @@ test("a path's loops as Figma's vector network: each segment's handles from its 
     [0.6, -0.5],
     [0.7, -0.4],
     [0.8, -0.3]
+  ]);
+  /* the same subpaths with whether a Z closes each, left open where none does */
+  const runs = figmaPathRuns("M10 10c0 5 5 10 10 10l5-5z M30 30L40 30 40 40");
+  expect(runs.map(r => [r.cubics.length, r.closed])).toEqual([
+    [2, true],
+    [2, false]
+  ]);
+  expect(runs[0].cubics).toEqual(loops[0].slice(0, 2));
+  /* h and v, relative and absolute, as the kit's box loop runs round (kit/trace.ts kitBoxLoop): each a line from where
+     the pen stands, the other coordinate held */
+  const line = (a: [number, number], b: [number, number]) => [a, a, b, b];
+  expect(figmaPathRuns("M-7-7h334v194h-334z M1 2H5V9")).toEqual([
+    {
+      cubics: [line([-7, -7], [327, -7]), line([327, -7], [327, 187]), line([327, 187], [-7, 187])],
+      closed: true
+    },
+    { cubics: [line([1, 2], [5, 2]), line([5, 2], [5, 9])], closed: false }
   ]);
   /* in the layout Figma's own clipboard writes (W/figma-clip samples/01): counts, then vertices, segments, regions */
   const bytes = figmaVectorNetwork(loops);
@@ -1233,7 +1299,7 @@ test("the papercut as Figma's layers: each sheet a group of its shadow, its cont
     finish: { soft: 50, grain: 50 },
     underlay: effectUnderlay(
       palette,
-      { kind: "papercut", look: { shape: 7, frost: 1, bg: null } },
+      { kind: "papercut", look: { shape: 7, frost: 1, bg: null, steps: null } },
       135,
       50
     )
@@ -1245,4 +1311,267 @@ test("the papercut as Figma's layers: each sheet a group of its shadow, its cont
     FIGMA_FINISH.blur * effectBlurSigma(50, { width: 1200, height: 800 }),
     2
   );
+});
+
+/* the strings */
+const bezier = (c: FigmaCubic, t: number): [number, number] => {
+  const s = 1 - t;
+  return [
+    s * s * s * c[0][0] + 3 * s * s * t * c[1][0] + 3 * s * t * t * c[2][0] + t * t * t * c[3][0],
+    s * s * s * c[0][1] + 3 * s * s * t * c[1][1] + 3 * s * t * t * c[2][1] + t * t * t * c[3][1]
+  ];
+};
+/* loops of cubics as closed polylines, each cubic in 16 lines */
+const flattened = (loops: readonly (readonly FigmaCubic[])[]) =>
+  loops.map(loop => loop.flatMap(c => Array.from({ length: 16 }, (_, i) => bezier(c, i / 16))));
+/* the area loops of cubics fill by the odd rule, and by the nonzero rule (everything any loop goes round), in rows a
+   twentieth of a pixel apart */
+function fills(loops: readonly (readonly FigmaCubic[])[]) {
+  const dy = 0.05;
+  const lines = flattened(loops).flatMap(p =>
+    p.map((a, i) => [...a, ...p[(i + 1) % p.length]] as [number, number, number, number])
+  );
+  const top = lines.reduce((t, l) => Math.min(t, l[1], l[3]), Infinity);
+  const rows: [number, number][][] = [];
+  for (const [ax, ay, bx, by] of lines)
+    for (let r = Math.max(0, Math.floor((Math.min(ay, by) - top) / dy - 0.5)); ; r++) {
+      const y = top + (r + 0.5) * dy;
+      if (y >= Math.max(ay, by)) break;
+      if (y < Math.min(ay, by)) continue;
+      rows[r] ??= [];
+      rows[r].push([ax + ((y - ay) / (by - ay)) * (bx - ax), by > ay ? 1 : -1]);
+    }
+  let odd = 0;
+  let nonzero = 0;
+  for (const row of rows) {
+    if (!row) continue;
+    row.sort((a, b) => a[0] - b[0]);
+    let w = 0;
+    for (let i = 0; i + 1 < row.length; i++) {
+      w += row[i][1];
+      if (i % 2 === 0) odd += row[i + 1][0] - row[i][0];
+      if (w !== 0) nonzero += row[i + 1][0] - row[i][0];
+    }
+  }
+  return { odd: odd * dy, nonzero: nonzero * dy };
+}
+/* whether loops of cubics fill a point by the odd rule: the lines a ray from it to its right crosses */
+function fillsPoint(loops: readonly (readonly FigmaCubic[])[], x: number, y: number) {
+  const lines = flattened(loops).flatMap(p => p.map((a, i) => [a, p[(i + 1) % p.length]]));
+  const crossed = lines.filter(
+    ([a, b]) => a[1] <= y !== b[1] <= y && a[0] + ((y - a[1]) / (b[1] - a[1])) * (b[0] - a[0]) > x
+  );
+  return crossed.length % 2 === 1;
+}
+/* a vector network's loops as cubics, read as Sketch's .fig reader reads one: each segment from its start and its
+   handle there to its end and its handle there, its region's loops naming them */
+function networkLoops(bytes: Uint8Array): FigmaCubic[][] {
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const vertices = v.getUint32(0, true);
+  const point = (i: number): [number, number] => [
+    v.getFloat32(12 + i * 12 + 4, true),
+    v.getFloat32(12 + i * 12 + 8, true)
+  ];
+  const cubic = (s: number): FigmaCubic => {
+    const at = 12 + vertices * 12 + s * 28;
+    const a = point(v.getUint32(at + 4, true));
+    const b = point(v.getUint32(at + 16, true));
+    return [
+      a,
+      [a[0] + v.getFloat32(at + 8, true), a[1] + v.getFloat32(at + 12, true)],
+      [b[0] + v.getFloat32(at + 20, true), b[1] + v.getFloat32(at + 24, true)],
+      b
+    ];
+  };
+  let at = 12 + vertices * 12 + v.getUint32(4, true) * 28;
+  const count = v.getUint32(at + 4, true);
+  at += 8;
+  const loops: FigmaCubic[][] = [];
+  for (let l = 0; l < count; l++) {
+    const n = v.getUint32(at, true);
+    loops.push(Array.from({ length: n }, (_, i) => cubic(v.getUint32(at + 4 + 4 * i, true))));
+    at += 4 + 4 * n;
+  }
+  return loops;
+}
+/* a path's length, each cubic in 64 lines, a closed subpath's step back to its start as well */
+const pathLength = (d: string) =>
+  figmaPathRuns(d).reduce((sum, { cubics, closed }) => {
+    const p: (readonly [number, number])[] = cubics.flatMap(c =>
+      Array.from({ length: 64 }, (_, i) => bezier(c, i / 64))
+    );
+    p.push(closed ? cubics[0][0] : cubics[cubics.length - 1][3]);
+    return sum + p.slice(1).reduce((s, q, i) => s + Math.hypot(q[0] - p[i][0], q[1] - p[i][1]), 0);
+  }, 0);
+
+test("the strings' paste is fig-kiwi, its frame selected, a still with nothing on Figma's timeline", () => {
+  const { blobs } = figmaStringsNodes(stringsView);
+  const pasted = read(figmaStringsHtml(stringsView, 3));
+  expect(pasted.signature).toBe("fig-kiwi");
+  expect(pasted.chunks[0]).toEqual(bytesOf(FIGMA_SCHEMA));
+  expect(pasted.meta).toMatchObject({ pasteID: 3, fileKey: "grabientPasteStrings001" });
+  const message = pasted.message;
+  const all = message.nodeChanges as Node[];
+  expect(all[2]).toMatchObject({ type: "FRAME", name: "Navy and teal", size: { x: 1200, y: 800 } });
+  expect(message.clipboardSelectionRegions[0].nodes).toEqual([all[2].guid]);
+  expect(
+    all.some(n => n.type === "KEYFRAME_TRACK" || n.parameterConsumptionMap || n.timelineDuration)
+  ).toBe(false);
+  /* the networks the vectors name, as they were made */
+  expect(message.blobs.map((b: { bytes: number[] }) => Uint8Array.from(b.bytes))).toEqual(blobs);
+  parentsFirst(all);
+});
+
+test("the strings as Figma's layers: the ground in its color, then a group of one vector a thread, filled in the thread's color where its stroke lies", () => {
+  const { nodes, blobs } = figmaStringsNodes(stringsView) as { nodes: Node[]; blobs: Uint8Array[] };
+  const m = stringsScene(palette, stringsView, box);
+  const threads = stringsThreads(m);
+  const [ground, group] = kidsOf(nodes, nodes[2]);
+  expect(ground).toMatchObject({ type: "RECTANGLE", name: "ground", size: { x: 1200, y: 800 } });
+  /* Figma keeps a color's channels as 32-bit floats: the same byte each */
+  const byte = (c: { r: number; g: number; b: number }) =>
+    [c.r, c.g, c.b].map(x => Math.round(x * 255));
+  expect(byte(ground.fillPaints[0].color)).toEqual(byte(figmaColor(m.groundHex)));
+  expect(group).toMatchObject({ type: "FRAME", name: "strings", resizeToFit: true });
+  const vectors = kidsOf(nodes, group);
+  const levels = [...threads.keys()].sort((a, b) => a - b);
+  /* the ribbons' levels, -(N - 1) to N - 1, most of them showing somewhere */
+  expect(levels.length).toBeGreaterThan(20);
+  expect(levels.length).toBeLessThanOrEqual(2 * m.n - 1);
+  expect(vectors.map(v => [v.type, v.name])).toEqual(levels.map(k => ["VECTOR", `thread ${k}`]));
+  for (const [i, vector] of vectors.entries()) {
+    const k = levels[i];
+    expect(byte(vector.fillPaints[0].color)).toEqual(byte(figmaColor(stringsHex(m, k))));
+    expect(vector.vectorData.normalizedSize).toEqual(vector.size);
+    /* its outline, on the frame, holds its thread's path and lies a half width past it at most, and the fit's
+       tolerance */
+    const ox = group.transform.m02 + vector.transform.m02;
+    const oy = group.transform.m12 + vector.transform.m12;
+    const bounds = (points: [number, number][]) =>
+      points.reduce(
+        (b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)],
+        [Infinity, Infinity, -Infinity, -Infinity]
+      );
+    const outline = bounds(
+      flattened(networkLoops(blobs[vector.vectorData.vectorNetworkBlob])).flatMap(p =>
+        p.map(([x, y]) => [x + ox, y + oy] as [number, number])
+      )
+    );
+    const path = bounds(
+      figmaPathRuns(threads.get(k)!).flatMap(({ cubics }) =>
+        cubics.flatMap(c => Array.from({ length: 9 }, (_, j) => bezier(c, j / 8)))
+      )
+    );
+    for (const [edge, out] of [-1, -1, 1, 1].entries()) {
+      expect(out * (outline[edge] - path[edge])).toBeGreaterThan(-1e-3);
+      expect(out * (outline[edge] - path[edge])).toBeLessThan(m.hw + 0.1);
+    }
+    /* one region by the odd rule, its vertices in the vector's own box */
+    const net = new DataView(blobs[vector.vectorData.vectorNetworkBlob].buffer);
+    expect(net.getUint32(8, true)).toBe(1);
+    expect(
+      net.getUint32(12 + net.getUint32(0, true) * 12 + net.getUint32(4, true) * 28, true)
+    ).toBe(0);
+    for (let v = 0; v < net.getUint32(0, true); v++) {
+      expect(net.getFloat32(12 + v * 12 + 4, true)).toBeGreaterThanOrEqual(-1e-3);
+      expect(net.getFloat32(12 + v * 12 + 8, true)).toBeLessThanOrEqual(vector.size.y + 1e-3);
+    }
+  }
+  parentsFirst(nodes);
+});
+
+test("the strings' paste lays their ground at its color and alpha, none where it is clear, and their threads in the colors it lifts", () => {
+  const byte = (c: { r: number; g: number; b: number }) =>
+    [c.r, c.g, c.b].map(x => Math.round(x * 255));
+  for (const bg of ["#f4efe6", "#10203080", "#00000000"]) {
+    const view = { ...stringsView, bg };
+    const { nodes } = figmaStringsNodes(view) as { nodes: Node[]; blobs: Uint8Array[] };
+    const m = stringsScene(palette, view, box);
+    const kids = kidsOf(nodes, nodes[2]);
+    const ground = kids.find(n => n.name === "ground");
+    if (m.alpha === 0) expect(ground, bg).toBeUndefined();
+    else {
+      expect(ground, bg).toMatchObject({ type: "RECTANGLE", size: { x: 1200, y: 800 } });
+      expect(byte(ground!.fillPaints[0].color)).toEqual(byte(figmaColor(bg.slice(0, 7))));
+      expect(ground!.fillPaints[0].opacity).toBeCloseTo(m.alpha, 6);
+    }
+    /* the threads' group follows it, or stands first where there is no ground */
+    const group = kids.find(n => n.name === "strings")!;
+    expect(kids.indexOf(group)).toBe(m.alpha === 0 ? 0 : 1);
+    const vectors = kidsOf(nodes, group);
+    for (const vector of vectors)
+      expect(byte(vector.fillPaints[0].color)).toEqual(
+        byte(figmaColor(stringsHex(m, Number(vector.name.slice(7)))))
+      );
+    parentsFirst(nodes);
+  }
+});
+
+test("each thread's outline fills by the odd rule all its loops go round, no overlap left a hole, and its length times its width", () => {
+  let rings = 0;
+  /* as designed, and a look whose hairpins' legs overlap: its sides, each carried a half width alone, overlap in 7
+     threads, leaving holes of up to 2.7 px2 (5 Nov 2026) */
+  for (const look of [{}, { angle: 135, shape: 464 }]) {
+    const view = { ...stringsView, ...look };
+    const { nodes, blobs } = figmaStringsNodes(view) as { nodes: Node[]; blobs: Uint8Array[] };
+    const m = stringsScene(palette, view, box);
+    const threads = stringsThreads(m);
+    for (const vector of nodes.filter(n => n.type === "VECTOR")) {
+      const loops = networkLoops(blobs[vector.vectorData.vectorNetworkBlob]);
+      const { odd, nonzero } = fills(loops);
+      /* the odd rule fills what the loops go round once: overlapping loops would leave a hole it fills not */
+      expect(Math.abs(odd - nonzero)).toBeLessThan(0.05);
+      /* a stroke's area is its length times its width, less where a hairpin's legs overlap, more at a round join (5
+         Nov 2026, 3750 threads of 44 looks at 1920 by 1080 and others: within 1.6%) */
+      const d = threads.get(Number(vector.name.slice(7)))!;
+      expect(Math.abs(odd / (pathLength(d) * m.lw) - 1)).toBeLessThan(0.03);
+      /* a closed thread's ring: its inner loop runs round the other way, a hole */
+      const turns = flattened(loops).map(p =>
+        p.reduce(
+          (a, q, i) => a + q[0] * p[(i + 1) % p.length][1] - p[(i + 1) % p.length][0] * q[1],
+          0
+        )
+      );
+      if (/z/i.test(d) && turns.some(a => a < 0)) rings++;
+      expect(turns.filter(a => a > 0).length).toBeGreaterThan(0);
+    }
+  }
+  expect(rings).toBeGreaterThan(0);
+});
+
+test("a thread bent tighter than half its width, its legs within a width to their ends, its tip overshot by the fit, or a ring too small for a hole: outlined as its stroke covers it, once", () => {
+  const hw = 1.5;
+  const once = (d: string) => {
+    const loops = figmaStringsOutline(d, hw);
+    const { odd, nonzero } = fills(loops);
+    expect(Math.abs(odd - nonzero)).toBeLessThan(0.05);
+    return { loops, area: odd };
+  };
+  /* a hairpin 0.6 px wide, its legs within a width of each other to their butt ends: the 3.6 px band they cover, the
+     longer leg's last 0.4 px, and the tip's half disc, 76.9 px2, where each leg's own outline would give 121.6 */
+  const hairpin = once("M-.3 20L-.3 0C-.3-.4 .3-.4 .3 0L.3 19.6");
+  expect(hairpin.loops).toHaveLength(1);
+  expect(
+    Math.abs(hairpin.area / (3.6 * 19.6 + 3 * 0.4 + (Math.PI * 1.8 ** 2) / 2) - 1)
+  ).toBeLessThan(0.01);
+  /* two sharp corners, each a round join outside and the legs' edges meeting inside */
+  once("M-6 15L-.1 0 .1 0 6 15");
+  /* a cubic the fit overshot at a hairpin's tip (5 Nov 2026, angle 210, shape 458): its stroke's round end stays */
+  const tip = once("M5.1 3.5L8.2 4.7C9.2 5.1 12 6.5 11.1 6L8 8.8C7 8.9 3 8.6 2 8.6");
+  expect(fillsPoint(tip.loops, 12.5, 6.1)).toBe(true);
+  expect(fillsPoint(tip.loops, 13, 6.1)).toBe(false);
+  /* a ring of radius 4 leaves a hole of 2.5; one of 0.8 none, its disc of 2.3 whole (within the fit's 0.08 px round
+     its 14 px, 7%) */
+  const circle = (r: number) => {
+    const k = 0.5523 * r;
+    return `M${r} 0C${r} ${k} ${k} ${r} 0 ${r}C${-k} ${r} ${-r} ${k} ${-r} 0C${-r} ${-k} ${-k} ${-r} 0 ${-r}C${k} ${-r} ${r} ${-k} ${r} 0z`;
+  };
+  const ring = once(circle(4));
+  expect(ring.loops).toHaveLength(2);
+  expect(Math.abs(ring.area / (Math.PI * (5.5 ** 2 - 2.5 ** 2)) - 1)).toBeLessThan(0.01);
+  expect(fillsPoint(ring.loops, 0, 0)).toBe(false);
+  const dot = once(circle(0.8));
+  expect(dot.loops).toHaveLength(1);
+  expect(Math.abs(dot.area / (Math.PI * 2.3 ** 2) - 1)).toBeLessThan(0.04);
+  expect(fillsPoint(dot.loops, 0, 0)).toBe(true);
 });

@@ -947,3 +947,36 @@ describe("a blob's ground written in other words than hex", () => {
     expect(location(await get("/kS7Q8Yy5S_SChv0?style=glass&bg=red"))).not.toContain("ff0000");
   });
 });
+
+describe("the strings' ground written in other words than hex", () => {
+  test.each([
+    ["/kS7Q8Yy5S_SChv0?style=strings&bg=navy", "/kS7Q8Yy5S_SChv0?style=strings&bg=%23000080"],
+    [
+      "/kS7Q8Yy5S_SChv0?style=strings&shape=7&bg=rgb(255%20255%20255%20/%2050%25)",
+      "/kS7Q8Yy5S_SChv0?style=strings&shape=7&bg=%23ffffff80"
+    ],
+    /* a clear one is a ground of theirs, their none being their designed one */
+    [
+      "/kS7Q8Yy5S_SChv0?style=strings&bg=transparent",
+      "/kS7Q8Yy5S_SChv0?style=strings&bg=%2300000000"
+    ],
+    ["/kS7Q8Yy5S_SChv0?style=strings&bg=nope", "/kS7Q8Yy5S_SChv0?style=strings"],
+    ["/kS7Q8Yy5S_SChv0?style=strings&bg=", "/kS7Q8Yy5S_SChv0?style=strings"],
+    [
+      "/kS7Q8Yy5S_SChv0.css?style=strings&bg=transparent",
+      "/kS7Q8Yy5S_SChv0.css?style=strings&bg=%2300000000"
+    ]
+  ])("%s is answered at %s", async (from, to) => {
+    const response = await get(from);
+    expect([response.status, location(response)]).toEqual([301, to]);
+    expect(asked).toEqual([]);
+  });
+
+  test("a ground in hex goes on as it came, and a clear one in other hex digits is the page's one clear ground", async () => {
+    expect((await get("/kS7Q8Yy5S_SChv0?style=strings&bg=%23f4efe6")).status).toBe(200);
+    expect((await get("/kS7Q8Yy5S_SChv0?style=strings&bg=%2300000000")).status).toBe(200);
+    expect(location(await get("/kS7Q8Yy5S_SChv0?style=strings&bg=%23ff000000"))).toBe(
+      "/kS7Q8Yy5S_SChv0?style=strings&bg=%2300000000"
+    );
+  });
+});

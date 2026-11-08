@@ -12,7 +12,15 @@
    No filters. The moving SVG adds one SMIL rotation to each ring: about the gather, eased to and fro by the same keys
    the CPU, the player and Figma read. */
 import type { Palette } from "./palette.ts";
-import { PROF_N, SILK_LOOP, type SilkScene, type SilkView, silkScene, type Track } from "./silk.ts";
+import {
+  PROF_N,
+  SILK_LOOP,
+  type SilkScene,
+  type SilkView,
+  silkScene,
+  type Track,
+  trackAt
+} from "./silk.ts";
 import type { Size } from "./view.ts";
 
 /** a number in short form: at most `p` decimals, no trailing zeros, no leading zero */
@@ -41,6 +49,8 @@ function spin(scene: SilkScene, i: number, track: Track, speed: number): string 
 export interface SvgOptions {
   /** 0 (or none): the still; else the moving SVG at this speed */
   speed?: number;
+  /** the still's time, seconds of the loop at speed 1: 0 (or none) its first frame */
+  t?: number;
 }
 
 export function silkSvg(scene: SilkScene, opts: SvgOptions = {}): string {
@@ -75,15 +85,16 @@ export function silkSvg(scene: SilkScene, opts: SvgOptions = {}): string {
         : `<circle r="${f.n + 0.5}" transform="${at}"/>`;
     })
     .join("");
-  /* the still is the frame at t = 0: each ring at its first key's turn about the gather, which moves its centre alone,
-     a ring and its gradient being round about it, so it is written as a translation with no rotation. An optimizer
-     such as SVGO folds a small rotation about the gather into one about a point millions of pixels off, its angle at
-     three decimals, which moved the folds tens of pixels */
+  /* the still is the frame at its time, t = 0 unless asked: each ring at its track's turn then about the gather, which
+     moves its centre alone, a ring and its gradient being round about it, so it is written as a translation with no
+     rotation. An optimizer such as SVGO folds a small rotation about the gather into one about a point millions of
+     pixels off, its angle at three decimals, which moved the folds tens of pixels */
+  const at = opts.t ?? 0;
   const still = speed
     ? rings
     : scene.folds
         .map(f => {
-          const turn = (f.track[0].v * Math.PI) / 180;
+          const turn = ((at ? trackAt(f.track, at) : f.track[0].v) * Math.PI) / 180;
           const dx = f.cx - scene.gx;
           const dy = f.cy - scene.gy;
           const x = scene.gx + dx * Math.cos(turn) - dy * Math.sin(turn);
@@ -111,6 +122,9 @@ export function silkSvg(scene: SilkScene, opts: SvgOptions = {}): string {
 /** The still, the frame at t = 0. */
 export const silkStillSvg = (P: Palette, view: SilkView, size: Size): string =>
   silkSvg(silkScene(P, view, size));
+/** The frame at t seconds of the loop at speed 1, as a still of its own. */
+export const silkFrameSvg = (P: Palette, view: SilkView, size: Size, t: number): string =>
+  silkSvg(silkScene(P, view, size), { t });
 /** The moving SVG at a speed (1 as designed; 0 the still): one SMIL rotation on each ring. */
 export const silkMovingSvg = (P: Palette, view: SilkView, size: Size, speed = 1): string =>
   silkSvg(silkScene(P, view, size), { speed });

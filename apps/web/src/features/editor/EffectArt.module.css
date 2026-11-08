@@ -29,8 +29,10 @@
   .art[data-fading] > .canvas {
     transition: opacity 0.3s ease-out;
   }
-  /* the blob's canvas is clear around the blob: it and its still change places in one frame */
-  .art[data-kind="blob"][data-covered] > :first-child {
+  /* the blob's canvas is clear around the blob, and a bare picture's about what it draws (the strings on a ground
+     that lets the list through): it and its still change places in one frame */
+  .art[data-kind="blob"][data-covered] > :first-child,
+  .art[data-bare][data-covered] > :first-child {
     opacity: 0;
   }
 }

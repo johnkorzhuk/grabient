@@ -3,6 +3,8 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import {
   blobStillKey,
+  effectBare,
+  fxLookOf,
   fxStillKey,
   isVectorKind,
   type VectorKind
@@ -46,6 +48,15 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
           view().style,
           view().angle
         );
+  /* a soft effect that lets the page through (engine/effect.ts effectBare: the strings on a translucent or clear
+     ground) stands on the page, as the editor lays it (Editor.tsx under): its edges go to the page's ground, not the
+     gradient */
+  const under = (wide: boolean) => {
+    const effect = props.page.effect;
+    return effect && view().soft && effectBare(effect.kind, effect.look)
+      ? "var(--color-bg)"
+      : art(wide);
+  };
   /* the fluted glass's still over the gradient, where the glass may play: an address that names it, or one that names
      no style, which takes the reader's own choice (effects.ts: the glass, unless this browser chose otherwise, when
      effectScript hides it before the first paint: data-choice, Editor.module.css). The holder names the still (its
@@ -78,19 +89,23 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
       )}
     </Show>
   );
-  /* a vector effect's still (silk, rosette, papercut), where the address names one: the holder names it (its kind,
-     palette, angle and shape), which the server's style in the head paints (server/fx-still.ts), as the editor's holder
-     does (FxLayer.tsx) */
+  /* a vector effect's still (EFFECT_KINDS), where the address names one: the holder names it (its kind,
+     palette, angle, shape, steps and ground), which the server's style in the head paints (server/fx-still.ts), as the
+     editor's holder does (FxLayer.tsx), on the page's own ground where its ground lets the page through */
   const fx = () => (
     <Show when={isVectorKind(props.page.effect?.kind) ? props.page.effect : null}>
       {effect => (
-        <div class={styles.fx}>
+        <div
+          class={styles.fx}
+          data-bare={effectBare(effect().kind, effect().look) ? "" : undefined}
+        >
           <div
             class={styles.glassStill}
-            data-fx-still={fxStillKey(effect().kind as VectorKind, props.page.seed, {
-              angle: props.page.view.angle,
-              shape: effect().look.shape
-            })}
+            data-fx-still={fxStillKey(
+              effect().kind as VectorKind,
+              props.page.seed,
+              fxLookOf(effect().look, props.page.view.angle)
+            )}
           />
         </div>
       )}
@@ -122,7 +137,7 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
   return (
     <div
       class={[styles.page, styles.boot]}
-      style={{ "--art": art(false), "--art-p3": art(true) }}
+      style={{ "--art": under(false), "--art-p3": under(true) }}
       /* inert: no key or pointer reaches it and no assistive technology reads it, the editor it stands for read once it
          comes. Not aria-hidden too, which inert makes needless: Chrome leaves what aria-hidden covers out of the largest
          contentful paint, and counted the editor drawing this same picture again, later, as the page's largest */

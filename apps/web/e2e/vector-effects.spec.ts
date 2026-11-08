@@ -1,9 +1,12 @@
+import { EFFECT_KINDS, EFFECTS, isVectorKind } from "@grabient/engine/effect.ts";
+import { isKitKind, KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
+import { KIT_LABELS } from "@grabient/engine/kit/names.ts";
 import { expect, type Page, test } from "@playwright/test";
 import { live } from "./live.ts";
 
-/* The silk, the rosette and the papercut: effects drawn by one drawing of their loop over a plain vector still
-   (engine/fx-still.ts), painted from the head in the first paint (server/fx-still.ts), chosen in the Appearance menu,
-   played on a list's cards, and served as files. */
+/* The vector effects (EFFECT_KINDS: the silk, the rosette, the papercut, the strings and the field effects): effects
+   drawn by one drawing of their loop over a plain vector still (engine/fx-still.ts), painted from the head in the first
+   paint (server/fx-still.ts), chosen in the Appearance menu, played on a list's cards, and served as files. */
 
 const SEED = "kS7CQ31Do6asvY-";
 
@@ -72,6 +75,8 @@ test("the editor stands while the menu's tiles under the pointer turn its pictur
     "Silk",
     "Radial bands",
     "Papercut",
+    "Strings",
+    ...KIT_KINDS.map(kind => KIT_LABELS[kind]),
     "Silk"
   ])
     await page.getByRole("button", { name: tile, exact: true }).hover();
@@ -85,8 +90,55 @@ test("the editor stands while the menu's tiles under the pointer turn its pictur
   await page.getByRole("button", { name: "Papercut", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=papercut&angle=45$`));
   await expect(page.locator('main [data-fx-still^="papercut|"]').first()).toBeAttached();
+  await page.getByRole("button", { name: "Strings", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=strings&angle=45$`));
+  await expect(page.locator('main [data-fx-still^="strings|"]').first()).toBeAttached();
+  /* each field effect a tile of its own, played as its own layer */
+  for (const kind of KIT_KINDS) {
+    await page.getByRole("button", { name: KIT_LABELS[kind], exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=${kind}&angle=45$`));
+    await expect(page.locator(`main [data-fx-still^="${kind}|"]`).first()).toBeAttached();
+  }
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
   expect(reports).toEqual([]);
+});
+
+test("the Appearance menu stands six cells across, the styles over their bands and the effects beside and beneath them, every name whole in the longest languages", async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const lang of ["de", "ru", "uk"]) {
+    await open(page, `/${lang}/${SEED}?style=strata`);
+    await page.locator('button[aria-controls="appearance-menu"]').first().click();
+    const tiles = page.locator("#appearance-menu [aria-pressed]");
+    await expect(tiles).toHaveCount(6 + EFFECTS.length);
+    const cells = await tiles.evaluateAll(all =>
+      all.map(tile => {
+        const box = tile.getBoundingClientRect();
+        /* the name, the tile's last part, as wide as its cell */
+        const name = tile.lastElementChild as HTMLElement;
+        return {
+          name: tile.textContent,
+          x: Math.round(box.x),
+          y: Math.round(box.y),
+          width: box.width,
+          clipped: name.scrollWidth > name.clientWidth
+        };
+      })
+    );
+    expect(
+      cells.filter(cell => cell.clipped).map(cell => cell.name),
+      lang
+    ).toEqual([]);
+    /* 88 px a cell, which the longest name (German's Papierschnitt, 83 px) fits */
+    for (const cell of cells) expect(cell.width, `${lang}: ${cell.name}`).toBeGreaterThan(87);
+    /* the first effect beside the last style, the seventh beneath the first style */
+    const [linear, , , , angular, , glass] = cells;
+    expect(glass.y).toBe(linear.y);
+    expect(glass.x).toBeGreaterThan(angular.x);
+    expect(cells[12].x).toBe(linear.x);
+    expect(cells[12].y).toBeGreaterThan(cells[1].y);
+  }
 });
 
 test("a papercut's page paints its stepped still from the head, and offers Copy for Figma", async ({
@@ -108,16 +160,18 @@ test("a papercut's page paints its stepped still from the head, and offers Copy 
   await expect(page.getByRole("button", { name: "Copy for Figma" })).toBeVisible();
 });
 
-test("Copy for Figma puts the silk, the rosette and the papercut on the clipboard as Figma's own layers", async ({
-  page,
-  context
-}) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  for (const kind of ["silk", "rosette", "papercut"]) {
+/* each vector effect a test of its own, so a new effect adds a test rather than seconds to one test's limit (all ten in
+   one test took 21.0 s of its 30, 8 Nov 2026) */
+for (const kind of EFFECTS.filter(isVectorKind))
+  test(`Copy for Figma puts the ${kind} on the clipboard as Figma's own layers`, async ({
+    page,
+    context
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await open(page, `/${SEED}?style=${kind}&angle=45`);
     const asked: string[] = [];
     page.on("request", r => {
-      if (/figma-/.test(r.url())) asked.push(r.url());
+      if (/figma/.test(r.url())) asked.push(r.url());
     });
     await page.evaluate(() => navigator.clipboard.writeText(""));
     await page.getByRole("button", { name: "Copy for Figma" }).click();
@@ -134,19 +188,24 @@ test("Copy for Figma puts the silk, the rosette and the papercut on the clipboar
       .toMatch(
         /\(figmeta\)[A-Za-z0-9+/=]+\(\/figmeta\)[\s\S]*\(figma\)ZmlnLWtpd2[A-Za-z0-9+/=]+\(\/figma\)/
       );
-    /* its own effect's layers load on the press */
-    expect(asked.some(url => url.includes(`figma-${kind}`))).toBe(true);
-  }
-});
+    /* its own effect's layers load on the press: a field effect's the kit's, which lays every one's */
+    expect(asked.some(url => url.includes(isKitKind(kind) ? "kit/figma" : `figma-${kind}`))).toBe(
+      true
+    );
+  });
 
-test("a list playing the silk or the papercut draws its cards' stills, each named for its kind", async ({
-  page,
-  request
-}) => {
-  for (const [kind, name] of [
-    ["silk", "Silk"],
-    ["papercut", "Papercut"]
-  ]) {
+/* the silk, the papercut, the strings and every field effect, each a test of its own, so a new effect adds a test
+   rather than seconds to one test's limit (all seven in one test took 27.2 s of its 30, 8 Nov 2026) */
+for (const [kind, name] of [
+  ["silk", "Silk"],
+  ["papercut", "Papercut"],
+  ["strings", "Strings"],
+  ...KIT_KINDS.map(kind => [kind, KIT_LABELS[kind]])
+])
+  test(`a list playing the ${kind} draws its cards' stills, each named for its kind`, async ({
+    page,
+    request
+  }) => {
     const sent = await request.get(`/palettes?style=${kind}`, { maxRedirects: 0 });
     expect(sent.status()).toBe(200);
     const html = await sent.text();
@@ -162,18 +221,158 @@ test("a list playing the silk or the papercut draws its cards' stills, each name
         .first()
         .getByRole("img", { name: new RegExp(`, ${name}$`) })
     ).toBeVisible();
-  }
-});
+  });
 
-test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, JSON, Markdown, script and clip", async ({
+test("the sandstone takes the view's steps, 8 to 40, where the zen garden takes none: its menu's Steps field redraws the stage and keeps its steps in the address", async ({
+  page,
   request
 }) => {
-  for (const kind of ["silk", "rosette", "papercut"]) {
+  const still = (html: string) => /data-fx-still="([^"]*)"/.exec(html)?.[1];
+  /* its page at its designed steps names none, at others names them, its still and its address alike */
+  expect(still(await (await request.get(`/${SEED}?style=strata`)).text())).toBe(
+    `strata|${SEED}|90|`
+  );
+  const at12 = await (await request.get(`/${SEED}?style=strata&steps=12`)).text();
+  expect(still(at12)).toBe(`strata|${SEED}|90||12`);
+  expect(/<style id="fx-still" data-key="([^"]*)">/.exec(at12)?.[1].split(" ")).toContain(
+    `strata|${SEED}|90||12`
+  );
+  /* the designed number leaves the address, one past the range comes within it, and every other effect leaves steps
+     out: the Worker's 301 */
+  const moved = async (address: string) =>
+    (await request.get(address, { maxRedirects: 0 }))
+      .headers()
+      .location?.replace(/^https?:\/\/[^/]+/, "");
+  expect(await moved(`/${SEED}?style=strata&steps=28`)).toBe(`/${SEED}?style=strata`);
+  expect(await moved(`/${SEED}?style=strata&steps=99`)).toBe(`/${SEED}?style=strata&steps=40`);
+  expect(await moved(`/${SEED}?style=strata&steps=3`)).toBe(`/${SEED}?style=strata&steps=8`);
+  expect(await moved(`/${SEED}?style=zen&steps=12`)).toBe(`/${SEED}?style=zen`);
+  /* a list's cards draw at its steps, and a list of another effect leaves them out */
+  const list = await request.get("/palettes?style=strata&steps=12", { maxRedirects: 0 });
+  expect(list.status()).toBe(200);
+  expect(/<span[^>]*data-fx-still="([^"]*)"/.exec(await list.text())?.[1]).toMatch(
+    /^strata\|.*\|12$/
+  );
+  expect(await moved("/palettes?style=zen&steps=12")).toBe("/palettes?style=zen");
+
+  /* held still, a change of steps draws the stage's still anew */
+  await open(page, `/${SEED}?style=strata&speed=0`);
+  const stage = page.locator('[elementtiming="effect-still"]');
+  await expect(stage).toHaveAttribute("data-fx-still", `strata|${SEED}|90|`);
+  const before = await stage.evaluate(el => getComputedStyle(el).backgroundImage);
+  expect(before).toContain("data:image/svg+xml");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  const steps = page.getByRole("spinbutton", { name: "Steps", exact: true });
+  await expect(steps).toHaveAttribute("aria-valuemin", "8");
+  await expect(steps).toHaveAttribute("aria-valuemax", "40");
+  await expect(steps).toHaveAttribute("aria-valuenow", "28");
+  await steps.focus();
+  await page.keyboard.type("12");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=strata&speed=0&steps=12$`));
+  await expect(stage).toHaveAttribute("data-fx-still", `strata|${SEED}|90||12`);
+  await expect
+    .poll(() => stage.evaluate(el => getComputedStyle(el).backgroundImage))
+    .not.toBe(before);
+  await expect(
+    page.getByRole("button", { name: /^Appearance: Sandstone, Off · 12 steps/ })
+  ).toBeVisible();
+  /* the zen garden's menu has no Steps, and the sandstone gives its own back */
+  await page.getByRole("button", { name: KIT_LABELS.zen, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=zen$`));
+  await expect(steps).toHaveCount(0);
+  await page.getByRole("button", { name: KIT_LABELS.strata, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=strata&speed=0&steps=12$`));
+  await expect(steps).toHaveAttribute("aria-valuenow", "12");
+});
+
+test("the strings take a ground: their menu's Background field lays the stage on it and keeps it in the address, a clear one shows the page's own, and its press gives their designed one back", async ({
+  page,
+  request
+}) => {
+  const still = (html: string) => /data-fx-still="([^"]*)"/.exec(html)?.[1];
+  /* a page on a ground names it in its still, which the head paints */
+  const light = await (await request.get(`/${SEED}?style=strings&bg=%23f4efe6`)).text();
+  expect(still(light)).toBe(`strings|${SEED}|90||#f4efe6`);
+  expect(/<style id="fx-still" data-key="([^"]*)">/.exec(light)?.[1].split(" ")).toContain(
+    `strings|${SEED}|90||#f4efe6`
+  );
+  /* a clear one stands the first screen on the page's own ground */
+  const clear = await (await request.get(`/${SEED}?style=strings&bg=%2300000000`)).text();
+  expect(clear).toMatch(
+    /<div[^>]*data-bare=""[^>]*>\s*<div[^>]*data-fx-still="strings\|[^"]*\|#00000000"/
+  );
+  /* the Worker's 301: words at their hex, a clear one kept as the one clear ground, and an effect that takes none
+     leaves it out */
+  const moved = async (address: string) =>
+    (await request.get(address, { maxRedirects: 0 }))
+      .headers()
+      .location?.replace(/^https?:\/\/[^/]+/, "");
+  expect(await moved(`/${SEED}?style=strings&bg=navy`)).toBe(`/${SEED}?style=strings&bg=%23000080`);
+  expect(await moved(`/${SEED}?style=strings&bg=transparent`)).toBe(
+    `/${SEED}?style=strings&bg=%2300000000`
+  );
+  expect(await moved(`/${SEED}?style=silk&bg=%23f4efe6`)).toBe(`/${SEED}?style=silk`);
+  /* a list's cards stand on its ground */
+  const list = await request.get("/palettes?style=strings&bg=%23f4efe6", { maxRedirects: 0 });
+  expect(list.status()).toBe(200);
+  expect(/<span[^>]*data-fx-still="([^"]*)"/.exec(await list.text())?.[1]).toMatch(
+    /^strings\|.*\|#f4efe6$/
+  );
+  /* its files: the SVG lays it, the JSON names it */
+  expect(await (await request.get(`/${SEED}.svg?style=strings&bg=%2310203080`)).text()).toContain(
+    'fill="#102030" fill-opacity=".502"'
+  );
+  expect(
+    JSON.parse(await (await request.get(`/${SEED}.json?style=strings&bg=%23f4efe6`)).text()).effect
+  ).toMatchObject({ style: "strings", bg: "#f4efe6" });
+
+  /* held still: the field reads Auto, a ground set redraws the stage's still and keeps it in the address */
+  await open(page, `/${SEED}?style=strings&speed=0`);
+  const stage = page.locator('[elementtiming="effect-still"]');
+  await expect(stage).toHaveAttribute("data-fx-still", `strings|${SEED}|90|`);
+  const before = await stage.evaluate(el => getComputedStyle(el).backgroundImage);
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  const field = page.getByRole("textbox", { name: "Background color" });
+  await expect(field).toHaveAttribute("placeholder", "Auto");
+  await field.click();
+  await page.keyboard.type("#f4efe6");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=strings&speed=0&bg=%23f4efe6$`));
+  await expect(stage).toHaveAttribute("data-fx-still", `strings|${SEED}|90||#f4efe6`);
+  await expect
+    .poll(() => stage.evaluate(el => getComputedStyle(el).backgroundImage))
+    .not.toBe(before);
+  await expect(stage.locator("..")).not.toHaveAttribute("data-bare", "");
+  /* a clear one: the stage stands on the page's own ground */
+  await field.click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("transparent");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=strings&speed=0&bg=%2300000000$`));
+  await expect(stage.locator("..")).toHaveAttribute("data-bare", "");
+  /* the press at the field's end gives the designed ground back */
+  await page.getByRole("button", { name: "Reset background" }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=strings&speed=0$`));
+  await expect(stage).toHaveAttribute("data-fx-still", `strings|${SEED}|90|`);
+  await expect(field).toHaveValue("");
+  /* the silk's menu has no Background field */
+  await page.getByRole("button", { name: "Silk", exact: true }).click();
+  await expect(field).toHaveCount(0);
+});
+
+/* each vector effect a test of its own, as the list's and the Figma copy's are */
+for (const kind of EFFECTS.filter(isVectorKind))
+  test(`the ${kind} as files: SVG, stylesheet, PNG, JSON, Markdown, script and clip`, async ({
+    request
+  }) => {
     const at = (extension: string) => request.get(`/${SEED}.${extension}?style=${kind}&shape=7`);
     const svg = await at("svg");
     expect(svg.headers()["content-type"]).toMatch(/^image\/svg\+xml/);
     const drawn = await svg.text();
     expect(drawn).toMatch(/^<svg[^>]*width="800" height="400"/);
+    /* one that moves no SVG (effect.ts's EFFECT_KINDS) is its still at any speed */
+    if (EFFECT_KINDS[kind].svgMotion === null) expect(drawn).not.toMatch(/<animate|@keyframes/);
     /* the papercut's is its still at any speed, its shadows blurred, which Figma's importer takes as layers */
     if (kind === "papercut") {
       expect(drawn).toContain("<feGaussianBlur");
@@ -195,8 +394,7 @@ test("the silk's, the rosette's and the papercut's files: SVG, stylesheet, PNG, 
     ]);
     const clip = await request.head(`/${SEED}.mp4?style=${kind}&shape=7`);
     expect([clip.status(), clip.headers()["content-type"]]).toEqual([200, "video/mp4"]);
-  }
-});
+  });
 
 test("a list turned to the papercut draws every card's still in turn, a frame's share at a time", async ({
   page

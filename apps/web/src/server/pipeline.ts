@@ -1,5 +1,5 @@
 import { isBands } from "@grabient/engine/bands.ts";
-import { groundHex, parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECT_KINDS, effectGround, isEffect, parseEffect } from "@grabient/engine/effect.ts";
 import {
   canonicalLocalePath,
   DEFAULT_LOCALE,
@@ -215,14 +215,17 @@ async function route(
   if (path.startsWith("//") || serverFunctionPath(path)) {
     return json({ error: msg("Not found") }, { status: 404 });
   }
-  /* a blob's ground written in other words than hex (bg=red, bg=rgb(0 0 0 / 50%), any CSS color): the same address
-     with the hex its pages and files read (engine/effect.ts's groundHex), canonical where it is a page, found by the
-     color reader, which loads for such an address alone (css-color.ts); a ground that is no color, or none, goes */
-  const ground =
-    read && url.searchParams.get("style") === "blob" ? url.searchParams.get("bg") : null;
-  if (ground !== null && groundHex(ground) === null) {
+  /* an effect's ground written in other words than hex (bg=red, bg=rgb(0 0 0 / 50%), any CSS color), the blob's or
+     the strings' (engine/effect.ts EFFECT_KINDS' `ground`): the same address with the hex its pages and files read
+     (effectGround), canonical where it is a page, found by the color reader, which loads for such an address alone
+     (css-color.ts); a ground that is no color, or none, goes, and a clear one goes for the blob, whose none is clear,
+     and stays as `#00000000` for the strings, whose none is their designed ground */
+  const style = url.searchParams.get("style");
+  const grounded = read && isEffect(style) && EFFECT_KINDS[style].ground ? style : null;
+  const ground = grounded ? url.searchParams.get("bg") : null;
+  if (grounded && ground !== null && effectGround(grounded, ground) === null) {
     const { cssColorText } = await import("@grabient/engine/css-color.ts");
-    const hex = cssColorText(ground);
+    const hex = cssColorText(ground, EFFECT_KINDS[grounded].ground === "designed");
     const fixed = new URL(url);
     if (hex) fixed.searchParams.set("bg", hex);
     else fixed.searchParams.delete("bg");

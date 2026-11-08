@@ -3,10 +3,17 @@
    turns its ribs (the blob has none: its palette lies from left to right), then how it plays: `speed` (the loop's pace, 1 as designed, 0 its
    first frame held with no motion) and `fps` (frames a second at most: 60 unless it says, up to 120 where a screen
    shows that many), then its look: `shape`, a number from 0 to 999 that picks the blobs' forms and wanderings or the
-   glass's ribs and the colors drifting behind them, and the blob's `frost` and `bg`, its ground: any CSS color, which
-   an address keeps as hex (the Worker writes any other spelling as hex, css-color.ts), none leaving it clear.
+   glass's ribs and the colors drifting behind them, the blob's `frost`, and `bg`, the ground of an effect that takes
+   one (EFFECT_KINDS' `ground`: the blob's and the strings'): any CSS color, which an address keeps as hex (the Worker
+   writes any other spelling as hex, css-color.ts), none leaving the blob clear and the strings on their designed
+   ground.
    The gradient's steps leave the address while an effect plays, so an address says only what its picture shows (the
-   editor keeps them to give back). */
+   editor keeps them to give back), but for an effect that takes steps of its own (EFFECT_KINDS' `steps`: the
+   sandstone's bands), whose `steps` are its look's, its range's, and none at its designed number. */
+import { KIT_STEPS } from "./kit/gen/kind-steps.ts";
+import { KIT_KINDS, type KitKind, kitRecord } from "./kit/kinds.ts";
+import { KIT_WORDS } from "./kit/names.ts";
+import type { KitSteps } from "./kit/types.ts";
 import { clamp } from "./math.ts";
 import { msg } from "./message.ts";
 import type { Palette } from "./palette.ts";
@@ -24,42 +31,178 @@ import {
     effect blurred over its palette's gradient and the grain over it (fx-finish.ts). */
 export type EffectFinish = Pick<View, "soft" | "grain">;
 
-export const EFFECTS = ["glass", "blob", "silk", "rosette", "papercut"] as const;
+/** Every effect: the six drawn by code of their own, then the field effects (kit/kinds.ts), each a file of the kit's. */
+export const EFFECTS = [
+  "glass",
+  "blob",
+  "silk",
+  "rosette",
+  "papercut",
+  "strings",
+  ...KIT_KINDS
+] as const;
 export type EffectKind = (typeof EFFECTS)[number];
 export const isEffect = (value: unknown): value is EffectKind =>
   typeof value === "string" && (EFFECTS as readonly string[]).includes(value);
 
-/** What each effect is, for the code that treats them alike: whether the view's angle turns it (the blob's palette
-    always lies left to right), whether the view's soft blurs it (the blob's frost softens it already), and whether its
-    picture is drawn by one drawing of its loop's time over a plain vector still (silk, rosette, papercut:
-    ui/effect-loop.ts plays them, and their still is an SVG with no filter), where the glass and the blob have players
-    and stills of their own. */
+/** The range of the view's steps an effect takes as its own (the sandstone's bands), least to most, and the number it
+    was designed at, which an address leaves out (kit/types.ts KitSteps). */
+export type EffectSteps = KitSteps;
+
+/** What an effect's look's `bg` is where its address names none: "clear", the page through it (the blob's), or
+    "designed", the ground it was designed on (the strings' deep ground, the palette's darkest color made deeper). */
+export type EffectGround = "clear" | "designed";
+
+/** The forms an effect can fall short in, each said why where it does (effect-why.ts). */
+export type EffectShortfall = "svgMotion" | "frameSvg" | "figma" | "video" | "embed" | "shader";
+
+/** What each effect is and what it hands over in each of Grabient's forms: the one table a new effect fills in, which
+    effect-conformance.test.ts holds every effect to, so an effect that hands over less says so here, and why in
+    effect-why.ts (apart, so no page carries the words), rather than by a branch missing somewhere. Whether the view's
+    angle turns it (the blob's palette always lies left to right), whether the view's soft blurs it (the blob's frost
+    softens it already), and whether its picture is drawn by one drawing of its loop's time over a plain vector still (silk,
+    rosette, papercut, strings: ui/effect-loop.ts plays them, and their still is an SVG with no filter), where the
+    glass and the blob have players and stills of their own. */
 export interface EffectKindFacts {
   angle: boolean;
   /** the view's soft blurs it; the grain goes over every effect */
   soft: boolean;
+  /** whether it takes a ground, `bg` in its address and its Appearance menu's Background field, and what none is
+      (EffectGround); null for one that takes none, whose address leaves `bg` out */
+  ground: EffectGround | null;
+  /** the range of steps it takes, the Appearance menu's Steps field and `steps=` in its address, as a gradient's style
+      takes them (the sandstone's: how many bands a sweep of the palette spans), its look's `steps`; null for one the
+      steps leave alone, whose address leaves them out */
+  steps: EffectSteps | null;
   /** drawn by ui/effect-loop.ts over a vector still */
   vector: boolean;
   /** its still stands in for its first frame rather than being it (the papercut's shadows stepped, for a list's cards
       and a page's first paint), so a page's stage shows the player's own first frame over it while the effect is
       held as well; the others' stills are that frame to within a level, which a held stage fades back to */
   steppedStill: boolean;
+  /** how its SVG file moves at a speed: by CSS animations, by SMIL, or not at all, its still at any speed */
+  svgMotion: "css" | "smil" | null;
+  /** whether any frame of its loop is written as a plain SVG and CSS of its own (fx-still.ts fxFrameSvg), which the
+      conformance suite draws and holds to its CPU frame at that time */
+  frameSvg: boolean;
+  /** what Copy for Figma pastes: layers that Figma's timeline plays, or its still */
+  figma: "moving" | "still";
+  /** whether its clips are drawn (video-kinds.ts names them) */
+  video: boolean;
+  /** whether a script plays it behind another site's page (/{seed}.js, apps/web/src/embed) */
+  embed: boolean;
+  /** whether the Shader tab offers its code (apps/web features/editor/effect-sources.ts) */
+  shader: boolean;
 }
-export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
-  glass: { angle: true, soft: true, vector: false, steppedStill: false },
-  blob: { angle: false, soft: false, vector: false, steppedStill: false },
-  silk: { angle: true, soft: true, vector: true, steppedStill: false },
-  rosette: { angle: true, soft: true, vector: true, steppedStill: false },
-  papercut: { angle: true, soft: true, vector: true, steppedStill: true }
+/** What every field effect is and hands over (kit/): drawn by one drawing of its loop's time over a vector still that
+    is its first frame, turned by the angle and blurred by the soft; its levels change shape as it moves, so its SVG and
+    its Figma paste are its first frame (effect-why.ts), and every other form plays it. Its steps are its file's
+    (kit/types.ts FieldEffect.steps, as kit:gen writes them: kit/gen/kind-steps.ts). */
+const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
+  angle: true,
+  soft: true,
+  ground: null,
+  vector: true,
+  steppedStill: false,
+  svgMotion: null,
+  frameSvg: true,
+  figma: "still",
+  video: true,
+  embed: true,
+  shader: true
 };
-/* the effects a script plays behind another site's page: every one since the papercut's, the list staying the one
-   switch for an effect that lands before its script, as the silk, the rosette and the papercut did */
-const SCRIPTED: readonly EffectKind[] = ["glass", "blob", "silk", "rosette", "papercut"];
+export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
+  glass: {
+    angle: true,
+    soft: true,
+    ground: null,
+    steps: null,
+    vector: false,
+    steppedStill: false,
+    svgMotion: "css",
+    frameSvg: false,
+    figma: "moving",
+    video: true,
+    embed: true,
+    shader: true
+  },
+  blob: {
+    angle: false,
+    soft: false,
+    ground: "clear",
+    steps: null,
+    vector: false,
+    steppedStill: false,
+    svgMotion: "css",
+    frameSvg: false,
+    figma: "moving",
+    video: true,
+    embed: true,
+    shader: true
+  },
+  silk: {
+    angle: true,
+    soft: true,
+    ground: null,
+    steps: null,
+    vector: true,
+    steppedStill: false,
+    svgMotion: "smil",
+    frameSvg: true,
+    figma: "moving",
+    video: true,
+    embed: true,
+    shader: true
+  },
+  rosette: {
+    angle: true,
+    soft: true,
+    ground: null,
+    steps: null,
+    vector: true,
+    steppedStill: false,
+    svgMotion: "css",
+    frameSvg: true,
+    figma: "moving",
+    video: true,
+    embed: true,
+    shader: true
+  },
+  papercut: {
+    angle: true,
+    soft: true,
+    ground: null,
+    steps: null,
+    vector: true,
+    steppedStill: true,
+    svgMotion: null,
+    frameSvg: true,
+    figma: "still",
+    video: true,
+    embed: true,
+    shader: true
+  },
+  strings: {
+    angle: true,
+    soft: true,
+    ground: "designed",
+    steps: null,
+    vector: true,
+    steppedStill: false,
+    svgMotion: null,
+    frameSvg: true,
+    figma: "still",
+    video: true,
+    embed: true,
+    shader: true
+  },
+  ...kitRecord(kind => ({ ...KIT_FACTS, steps: KIT_STEPS[kind] }))
+};
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
     without offers its stylesheet alone, which paints its still, in its strips, its tags and its Markdown. */
-export const hasEmbedScript = (kind: EffectKind): boolean => SCRIPTED.includes(kind);
+export const hasEmbedScript = (kind: EffectKind): boolean => EFFECT_KINDS[kind].embed;
 /** The effects drawn by one drawing of their loop's time over a vector still. */
-export type VectorKind = "silk" | "rosette" | "papercut";
+export type VectorKind = "silk" | "rosette" | "papercut" | "strings" | KitKind;
 export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>
   !!kind && EFFECT_KINDS[kind].vector;
 
@@ -84,7 +227,8 @@ export const EFFECT_PIXELS_MAX = 8_300_000;
 /** Milliseconds a canvas's new size settles before a player lays its drawing out again. */
 export const EFFECT_SETTLE_MS = 150;
 
-/** An effect's look: its shape, and the blob's frost and ground, which the glass leaves as they are. */
+/** An effect's look: its shape, the blob's frost, the ground of an effect that takes one and the steps of one that
+    takes them, each left as it is by an effect that takes none. */
 export interface EffectLook {
   /** a number from 0 to SHAPE_MAX that picks the shape: the blobs' forms, where they stand and how they wander, or
       the glass's ribs and the colors drifting behind them; null for the blob the palette's own numbers draw, and the
@@ -92,27 +236,52 @@ export interface EffectLook {
   shape: number | null;
   /** the blob's frost: 1 as designed, 0 none, BLOB_FROST_MAX twice */
   frost: number;
-  /** the blob's ground: #rrggbb, or #rrggbbaa where it lets what is behind it through; null for none, clear */
+  /** the ground of an effect that takes one (EFFECT_KINDS' `ground`): #rrggbb, or #rrggbbaa where it lets what is
+      behind it through, the strings' wholly clear one CLEAR_GROUND; null for none, the blob's clear and the strings'
+      as designed */
   bg: string | null;
+  /** an effect's steps where it takes them (EFFECT_KINDS' `steps`), within their range: null as designed, and for every
+      effect that takes none */
+  steps: number | null;
 }
-export const EFFECT_LOOK: EffectLook = { shape: null, frost: 1, bg: null };
+export const EFFECT_LOOK: EffectLook = { shape: null, frost: 1, bg: null, steps: null };
 export const BLOB_FROST_MAX = 2;
 /** The last shape number, the same for both effects: an address writes a shape in one to three digits. */
 export const SHAPE_MAX = 999;
 
+/** A wholly clear ground, as an effect whose none is its designed ground keeps one (the strings'): every clear color
+    is the one picture, the page through it. */
+export const CLEAR_GROUND = "#00000000";
+
 /** A ground as an address writes it: 3, 4, 6 or 8 hex digits, with or without `#`, as `#rrggbb`, or `#rrggbbaa` while
-    it lets something through; null for none, for one wholly clear and for anything else, which the Worker has
-    written as hex before a page or a file reads it (css-color.ts). */
-export function groundHex(raw: string | null | undefined): string | null {
+    it lets something through; null for none and for anything else, which the Worker has written as hex before a page
+    or a file reads it (css-color.ts); one wholly clear null too, or CLEAR_GROUND where `clear` keeps it. */
+export function groundHex(raw: string | null | undefined, clear = false): string | null {
   const digits = raw
     ? /^#?([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(raw.trim())?.[1]?.toLowerCase()
     : undefined;
   if (!digits) return null;
   const full = digits.length < 6 ? digits.replace(/./g, c => c + c) : digits;
   const alpha = full.slice(6);
-  if (alpha === "00") return null;
+  if (alpha === "00") return clear ? CLEAR_GROUND : null;
   return `#${alpha === "ff" ? full.slice(0, 6) : full}`;
 }
+
+/** The ground an effect's look keeps of one written (groundHex), as EFFECT_KINDS' `ground` says: a wholly clear one
+    kept where none is the designed ground (the strings'), and none where none is clear (the blob's) or for an effect
+    that takes no ground. */
+export const effectGround = (kind: EffectKind, raw: unknown): string | null => {
+  const ground = EFFECT_KINDS[kind].ground;
+  return ground && typeof raw === "string" ? groundHex(raw, ground === "designed") : null;
+};
+
+/** Whether an effect's picture lets what is behind it through: a ground under a whole alpha, or none where none is
+    clear (the blob's). Such a picture stands on the page with no gradient under its soft edges (fx-finish.ts
+    effectUnderlay), and on a picture that cannot be clear, over the ground that picture takes (a clip, a share card). */
+export const effectBare = (kind: EffectKind, look: Pick<EffectLook, "bg">): boolean => {
+  const ground = EFFECT_KINDS[kind].ground;
+  return !!ground && (look.bg ? groundParts(look.bg).alpha < 1 : ground === "clear");
+};
 
 /** A ground's color and its alpha, 0 to 1: what a picture paints under the effect. */
 export function groundParts(bg: string): { hex: string; alpha: number } {
@@ -141,16 +310,40 @@ export function readBlobStillKey(key: string): { seed: string; look: EffectLook 
   return blobStillKey(seed, look) === key ? { seed, look } : null;
 }
 
-/** What a vector effect's first frame depends on besides its palette: its turn and its shape. */
+/** What a vector effect's first frame depends on besides its palette: its turn, its shape, its steps and its ground. */
 export interface FxLook {
   angle: number;
   /** 0 or none: as designed */
   shape: number | null;
+  /** its look's steps where it takes them (EffectLook): null as designed, and for every effect that takes none */
+  steps: number | null;
+  /** its look's ground where it takes one (EffectLook): null as designed, and for every effect that takes none */
+  bg: string | null;
 }
 
-/** The name a still goes by on a page: its kind, its palette's seed, its angle and its shape. */
+/** A vector effect's FxLook: the view's angle and its look's shape, steps and ground. */
+export const fxLookOf = (
+  look: Pick<EffectLook, "shape" | "steps" | "bg">,
+  angle: number
+): FxLook => ({
+  angle,
+  shape: look.shape,
+  steps: look.steps,
+  bg: look.bg
+});
+
+/** The name a still goes by on a page: its kind, its palette's seed, its angle and its shape, its steps where its look
+    names them (an effect that takes steps, at any but its designed number) and its ground where it names one, its
+    `#` telling it from steps. */
 export const fxStillKey = (kind: VectorKind, seed: string, look: FxLook): string =>
-  [kind, seed, look.angle, look.shape ?? ""].join("|");
+  [
+    kind,
+    seed,
+    look.angle,
+    look.shape ?? "",
+    ...(look.steps === null ? [] : [look.steps]),
+    ...(look.bg === null ? [] : [look.bg])
+  ].join("|");
 
 /** The shape number a palette suggests for its blob: the same for the same palette, so a blob whose address names no
     shape is drawn alike by the server, the editor and every reload. */
@@ -170,8 +363,21 @@ export interface Effect extends EffectSettings {
   kind: EffectKind;
 }
 
-/** A look as stored or asked for: each part in its bounds. */
-export function effectLook(v: Partial<EffectLook> | null | undefined): EffectLook {
+/** An effect's steps as its look keeps them: a whole number within the range it takes (EFFECT_KINDS' `steps`), none
+    at its designed number, and none for anything that is no number or an effect that takes no steps. */
+export function effectSteps(kind: EffectKind, value: unknown): number | null {
+  const range = EFFECT_KINDS[kind].steps;
+  const n = typeof value === "number" || typeof value === "string" ? Number(value) : Number.NaN;
+  if (!range || value === "" || value === null || !Number.isFinite(n)) return null;
+  const kept = clamp(Math.round(n), range.least, range.most);
+  return kept === range.designed ? null : kept;
+}
+/** A look as stored or asked for: each part in its bounds, its steps and its ground those `kind` takes (effectSteps,
+    effectGround); where no kind is said, no steps, and a ground as the blob's, none where clear. */
+export function effectLook(
+  v: Partial<EffectLook> | null | undefined,
+  kind?: EffectKind
+): EffectLook {
   const frost = Number(v?.frost);
   const shape = Number(v?.shape);
   return {
@@ -180,7 +386,8 @@ export function effectLook(v: Partial<EffectLook> | null | undefined): EffectLoo
         ? null
         : clamp(Math.round(shape), 0, SHAPE_MAX),
     frost: Number.isFinite(frost) ? clamp(Math.round(frost * 100) / 100, 0, BLOB_FROST_MAX) : 1,
-    bg: typeof v?.bg === "string" ? groundHex(v.bg) : null
+    bg: kind ? effectGround(kind, v?.bg) : typeof v?.bg === "string" ? groundHex(v.bg) : null,
+    steps: kind ? effectSteps(kind, v?.steps) : null
   };
 }
 
@@ -206,7 +413,9 @@ export const EFFECT_WORDS: Readonly<Record<EffectKind, string>> = {
   blob: msg("blob"),
   silk: msg("silk"),
   rosette: msg("rosette"),
-  papercut: msg("papercut")
+  papercut: msg("papercut"),
+  strings: msg("strings"),
+  ...KIT_WORDS
 };
 /** The style and steps a palette's colors are read and named in while it plays an effect: an effect's address names
     neither, since it draws no gradient, so they are the ones an address that names none gives, whatever gradient the
@@ -218,13 +427,16 @@ export const effectView = (P: Palette): Pick<View, "style" | "steps"> => {
 
 /** The effect an address asks for, or null where its style is a gradient's or none. The glass reads its shape alone
     of the look, its shape 0 the glass as designed, as none is. A shape of one to three digits is read; a longer number
-    is no shape, as any word that is no number is, rather than another shape under a second address. */
+    is no shape, as any word that is no number is, rather than another shape under a second address. An effect that
+    takes steps reads `steps` of one to three digits too, clamped to its range, none at its designed number, and one
+    that takes a ground its `bg` (effectGround). */
 export function parseEffect(params: ParamReader): Effect | null {
   const kind = params.get("style");
   if (!isEffect(kind)) return null;
   const speed = params.get("speed");
   const shape = params.get("shape");
   const frost = params.get("frost");
+  const steps = params.get("steps");
   const shaped = shape !== null && /^\d{1,3}$/.test(shape) ? Number(shape) : null;
   return {
     kind,
@@ -237,7 +449,12 @@ export function parseEffect(params: ParamReader): Effect | null {
             shape: shaped,
             bg: params.get("bg")
           })
-        : { ...EFFECT_LOOK, shape: shaped || null }
+        : {
+            ...EFFECT_LOOK,
+            shape: shaped || null,
+            bg: effectGround(kind, params.get("bg")),
+            steps: steps !== null && /^\d{1,3}$/.test(steps) ? effectSteps(kind, steps) : null
+          }
   };
 }
 
@@ -245,17 +462,25 @@ const written = (parts: (string | false | null)[]): string[] =>
   parts.filter((part): part is string => Boolean(part));
 
 /** An effect's look as an address writes it, defaults left out: all its first frame depends on but its palette and
-    the glass's angle. The glass's is its shape alone; a ground is written with its `#` (escaped), so no color reads as a
-    number. */
+    the glass's angle. The glass's is its shape alone, the sandstone's its steps and its shape, the strings' their
+    shape and their ground; a ground is written with its `#` (escaped), so no color reads as a number. */
 export const effectLookParts = (effect: Effect): string[] => {
   const look = effect.look;
-  return effect.kind === "blob"
-    ? written([
-        look.frost !== 1 && `frost=${look.frost}`,
-        look.shape !== null && `shape=${look.shape}`,
-        look.bg && `bg=${look.bg.replace("#", "%23")}`
-      ])
-    : written([look.shape ? `shape=${look.shape}` : null]);
+  const kind = EFFECT_KINDS[effect.kind];
+  const bg = look.bg && kind.ground && `bg=${look.bg.replace("#", "%23")}`;
+  return written(
+    effect.kind === "blob"
+      ? [
+          look.frost !== 1 && `frost=${look.frost}`,
+          look.shape !== null && `shape=${look.shape}`,
+          bg
+        ]
+      : [
+          look.steps !== null && kind.steps !== null && `steps=${look.steps}`,
+          look.shape ? `shape=${look.shape}` : null,
+          bg
+        ]
+  );
 };
 
 /** The effect's parts of an address after its style and angle, defaults left out, in one order: how it plays, then
@@ -337,4 +562,5 @@ export const sameSettings = (a: EffectSettings, b: EffectSettings): boolean =>
   a.fps === b.fps &&
   a.look.frost === b.look.frost &&
   a.look.shape === b.look.shape &&
-  a.look.bg === b.look.bg;
+  a.look.bg === b.look.bg &&
+  a.look.steps === b.look.steps;

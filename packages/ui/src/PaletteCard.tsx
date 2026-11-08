@@ -132,8 +132,8 @@ export interface PaletteCardProps {
   picture?: (active: () => boolean) => Element;
   /** what a screen reader calls that picture */
   pictureLabel?: string;
-  /** the picture stands on the list with no ground of its own (a blob with none, or one the page shows through): no
-      glow under it */
+  /** the picture stands on the list with no ground of its own (a blob with none, or one the page shows through, the
+      strings on such a ground): no glow under it, and no gradient under its soft edges */
   bare?: boolean;
   /** what lights under the card where its picture is not its gradient: the colors the picture shows, or none */
   glow?: { stops: readonly string[]; style: Style; angle: number; at?: readonly number[] } | null;
@@ -274,8 +274,9 @@ export function PaletteCard(props: PaletteCardProps) {
         <div
           class={styles.paint}
           style={{
-            /* a blurred picture's edges go to the gradient */
-            background: props.picture && !props.peek && !props.blur ? undefined : art(),
+            /* a blurred picture's edges go to the gradient, unless it stands on the list with no ground */
+            background:
+              props.picture && !props.peek && !(props.blur && !props.bare) ? undefined : art(),
             "--fx-blur":
               props.picture && props.blur ? `blur(${(props.blur * 100).toFixed(3)}cqw)` : undefined
           }}

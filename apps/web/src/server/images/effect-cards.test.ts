@@ -118,6 +118,14 @@ describe("an effect's card", () => {
     expect([picture.width, picture.height, picture.channels]).toEqual([400, 300, 3]);
   });
 
+  test("a field effect's picture alone is drawn within a card's pixels, at the shape asked", async () => {
+    const { env, keep } = world();
+    const png = await seedPngAnswer(get(`/${SEED}.png?style=zen&w=2400&h=1260`), env, keep);
+    expect(png.status).toBe(200);
+    const picture = await decodePng(new Uint8Array(await png.arrayBuffer()));
+    expect([picture.width, picture.height]).toEqual([1200, 630]);
+  });
+
   test("its key is the look it draws: another shape is another card, another pace the same one", async () => {
     const { env, keep } = world();
     const tag = async (query: string) =>

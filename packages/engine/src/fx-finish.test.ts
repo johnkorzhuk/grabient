@@ -48,6 +48,18 @@ test("the gradient under a soft effect: the palette's, blurred alike, at its ang
   expect(effectUnderlay(P, blob(null), 30, 50)).toBeNull();
   expect(effectUnderlay(P, blob("#10182080"), 30, 50)).toBeNull();
   expect(effectUnderlay(P, blob("#101820ff"), 30, 50)).not.toBeNull();
+  /* the strings stand clear on a ground that lets the page through, as the blob does, and on a whole one or their
+     designed one over the gradient */
+  const strings = (bg: string | null): Effect => ({
+    kind: "strings",
+    speed: 1,
+    fps: 60,
+    look: { ...EFFECT_LOOK, bg }
+  });
+  expect(effectUnderlay(P, strings(null), 30, 50)?.angle).toBe(30);
+  expect(effectUnderlay(P, strings("#f4efe6"), 30, 50)).not.toBeNull();
+  expect(effectUnderlay(P, strings("#f4efe680"), 30, 50)).toBeNull();
+  expect(effectUnderlay(P, strings("#00000000"), 30, 50)).toBeNull();
   /* unsoftened, the plain stops evenly */
   const plain = effectUnderlay(P, silk, 90, 0)!;
   expect(plain.at).toBeUndefined();

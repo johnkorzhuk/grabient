@@ -1,30 +1,36 @@
 import { EFFECT_KINDS, type VectorKind } from "@grabient/engine/effect.ts";
+import { kitRecord } from "@grabient/engine/kit/kinds.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import type { EffectPlayer } from "@grabient/ui/effect-loop.ts";
+import type { EffectPlayer, PlayOptions } from "@grabient/ui/effect-loop.ts";
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from "solid-js";
-import type { FxPlay } from "./fx-draw.ts";
+import { type FxPlay, kitPlayer } from "./fx-draw.ts";
 import styles from "./GlassStage.module.css";
 import { holdGpu, stillPainted } from "./painted.ts";
 
-/* the players: their code alone, asked for as the stage plays one */
-const players = {
-  silk: () => import("@grabient/ui/silk-player.ts"),
-  rosette: () => import("@grabient/ui/rosette-player.ts"),
-  papercut: () => import("@grabient/ui/papercut-player.ts")
+/** A vector effect's player, as each kind's module names its own: they play alike (ui/effect-loop.ts). */
+type FxPlayer = (
+  canvas: HTMLCanvasElement,
+  palette: Palette,
+  view: FxPlay,
+  onFirstFrame?: () => void,
+  options?: PlayOptions
+) => EffectPlayer<FxPlay> | null;
+/* the players: their code alone, asked for as the stage plays one; every vector kind its own, so a kind left out is a
+   type error rather than another kind's player */
+const players: Record<VectorKind, () => Promise<FxPlayer>> = {
+  silk: async () => (await import("@grabient/ui/silk-player.ts")).playSilk,
+  rosette: async () => (await import("@grabient/ui/rosette-player.ts")).playRosette,
+  papercut: async () => (await import("@grabient/ui/papercut-player.ts")).playPapercut,
+  strings: async () => (await import("@grabient/ui/strings-player.ts")).playStrings,
+  ...kitRecord(kind => () => kitPlayer(kind))
 };
 /** The player of a kind. */
-async function fxPlayer(kind: VectorKind) {
-  return kind === "silk"
-    ? (await players.silk()).playSilk
-    : kind === "papercut"
-      ? (await players.papercut()).playPapercut
-      : (await players.rosette()).playRosette;
-}
+const fxPlayer = (kind: VectorKind): Promise<FxPlayer> => players[kind]();
 
 /** How long the canvas takes to fade in or out over the still (GlassStage.module.css). */
 const FADE_MS = 700;
 
-/* A vector effect playing (silk, rosette, papercut): its WebGL player over its still (FxLayer.tsx), loaded once the
+/* A vector effect playing (EFFECT_KINDS): its WebGL player over its still (FxLayer.tsx), loaded once the
    page is live, as the glass's is (GlassStage.tsx). Its first frame is the still's own, to about a level, and its
    canvas fades in only once that frame is drawn, so the still hands over without a seam; where WebGL is missing it
    shows nothing and the still stays. `still` (speed 0) fades it out to the still, and once it has faded the player goes

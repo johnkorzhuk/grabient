@@ -9,6 +9,7 @@ catalog:
   "@cloudflare/vite-plugin": 2.0.0-beta.sha-8c6014f9a
   "@cloudflare/vitest-plugin": 1.4.0
   "@cloudflare/workers-types": 5.20261013.1
+  "@resvg/resvg-wasm": 2.6.2
   "@solidjs/vite-plugin": 3.0.0-next.49
   "@solidjs/web": 2.0.0-rc.14
   "@tanstack/solid-query": 6.0.0-rc.5

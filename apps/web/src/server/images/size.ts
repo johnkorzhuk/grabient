@@ -10,6 +10,7 @@ import { boundedSize, CARD_SIZE, wholeSide } from "../../lib/picture-size.ts";
 export {
   boundedSize,
   CLIP_BOUNDS,
+  effectBounds,
   PIXELS_MAX,
   pictureSize,
   SIDE_MAX

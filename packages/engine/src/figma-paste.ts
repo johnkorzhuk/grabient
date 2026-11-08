@@ -57,12 +57,13 @@ export type FigmaCubic = readonly [
   readonly [number, number]
 ];
 
-/** An SVG path's closed loops as absolute cubics: M, C and L in either case and Z, as a tracer writes them (numbers
-    with no zero before a point, a minus sign their only separator). A line is a cubic whose handles stay on its ends. */
-export function figmaPathLoops(d: string): FigmaCubic[][] {
-  const tokens = d.match(/[MmCcLlZz]|-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/g) ?? [];
-  const loops: FigmaCubic[][] = [];
-  let loop: FigmaCubic[] = [];
+/** An SVG path's subpaths as absolute cubics, each with whether a Z closes it: M, C, L, H and V in either case and Z,
+    as a tracer writes them (numbers with no zero before a point, a minus sign their only separator; the kit's box loop,
+    trace.ts kitBoxLoop, runs round by h and v). A line is a cubic whose handles stay on its ends. */
+export function figmaPathRuns(d: string): { cubics: FigmaCubic[]; closed: boolean }[] {
+  const tokens = d.match(/[MmCcLlHhVvZz]|-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/g) ?? [];
+  const runs: { cubics: FigmaCubic[]; closed: boolean }[] = [];
+  let run: FigmaCubic[] = [];
   let x = 0;
   let y = 0;
   let sx = 0;
@@ -70,20 +71,9 @@ export function figmaPathLoops(d: string): FigmaCubic[][] {
   let command = "";
   let i = 0;
   const num = () => Number(tokens[i++]);
-  const close = () => {
-    if (!loop.length) return;
-    /* the loop's last point back onto its first, where a tracer ends it within its rounding */
-    if (Math.hypot(x - sx, y - sy) > 1e-3)
-      loop.push([
-        [x, y],
-        [x, y],
-        [sx, sy],
-        [sx, sy]
-      ]);
-    loops.push(loop);
-    loop = [];
-    x = sx;
-    y = sy;
+  const end = (closed: boolean) => {
+    if (run.length) runs.push({ cubics: run, closed });
+    run = [];
   };
   while (i < tokens.length) {
     if (/[A-Za-z]/.test(tokens[i])) command = tokens[i++];
@@ -92,7 +82,7 @@ export function figmaPathLoops(d: string): FigmaCubic[][] {
     const oy = rel ? y : 0;
     switch (command.toLowerCase()) {
       case "m": {
-        close();
+        end(false);
         x = ox + num();
         y = oy + num();
         sx = x;
@@ -104,27 +94,52 @@ export function figmaPathLoops(d: string): FigmaCubic[][] {
       case "c": {
         const c1: [number, number] = [ox + num(), oy + num()];
         const c2: [number, number] = [ox + num(), oy + num()];
-        const end: [number, number] = [ox + num(), oy + num()];
-        loop.push([[x, y], c1, c2, end]);
-        [x, y] = end;
+        const to: [number, number] = [ox + num(), oy + num()];
+        run.push([[x, y], c1, c2, to]);
+        [x, y] = to;
         break;
       }
-      case "l": {
-        const end: [number, number] = [ox + num(), oy + num()];
-        loop.push([[x, y], [x, y], end, end]);
-        [x, y] = end;
+      case "l":
+      case "h":
+      case "v": {
+        const h = command.toLowerCase();
+        const to: [number, number] =
+          h === "l" ? [ox + num(), oy + num()] : h === "h" ? [ox + num(), y] : [x, oy + num()];
+        run.push([[x, y], [x, y], to, to]);
+        [x, y] = to;
         break;
       }
       case "z":
-        close();
+        end(true);
+        x = sx;
+        y = sy;
         break;
       default:
         i++;
     }
   }
-  close();
-  return loops;
+  end(false);
+  return runs;
 }
+
+/** An SVG path's subpaths as closed loops of absolute cubics (figmaPathRuns), each closed where it is open. */
+export const figmaPathLoops = (d: string): FigmaCubic[][] =>
+  figmaPathRuns(d).map(({ cubics }) => {
+    const [sx, sy] = cubics[0][0];
+    const [x, y] = cubics[cubics.length - 1][3];
+    /* the loop's last point back onto its first, where a tracer ends it within its rounding */
+    return Math.hypot(x - sx, y - sy) > 1e-3
+      ? [
+          ...cubics,
+          [
+            [x, y],
+            [x, y],
+            [sx, sy],
+            [sx, sy]
+          ]
+        ]
+      : cubics;
+  });
 
 /** Loops as Figma's vector network, the binary a VECTOR's vectorData names among the paste's blobs, in the layout
     Figma's own clipboard writes (W/figma-clip samples/01, its rectangle and discs): the counts of vertices, segments

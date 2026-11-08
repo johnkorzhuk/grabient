@@ -2,24 +2,35 @@ import { expect, test } from "vitest";
 import {
   blobShapeOf,
   blobStillKey,
+  CLEAR_GROUND,
   EFFECT_FPS,
   EFFECT_KINDS,
+  EFFECTS,
   EMBED_PLAYING,
   effectAddressParts,
+  effectBare,
   effectFileAddress,
   effectFinish,
+  effectGround,
   effectLook,
+  effectSteps,
   effectStillParts,
+  fxLookOf,
+  fxStillKey,
   groundHex,
   groundParts,
   parseEffect,
   readBlobStillKey,
   SHAPE_MAX
 } from "./effect.ts";
+import { effectStepsShown } from "./effect-code.ts";
 import { effectEmbedHtml, effectLayerCss, effectRuleCss } from "./effect-embed.ts";
+import { readFxStillKey } from "./fx-still.ts";
 import { glassStillKey, readStillKey } from "./glass-colors.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
+/* a look with a ground, which an effect that takes none never writes */
+const EFFECT_LOOK_BG = { shape: null, frost: 1, bg: "#ffffff", steps: null };
 const effect = (query: string) => {
   const found = parseEffect(new URLSearchParams(query));
   if (!found) throw new Error(`no effect in ${query}`);
@@ -71,6 +82,56 @@ test("the blob takes no soft, its frost softening it: its address, its still's n
   ]);
 });
 
+test("the sandstone takes steps, 8 to 40, its look's, none at its designed 28; every other effect takes none", () => {
+  expect(EFFECT_KINDS.strata.steps).toEqual({ least: 8, most: 40, designed: 28 });
+  for (const kind of ["glass", "blob", "silk", "rosette", "papercut", "strings", "zen"] as const)
+    expect(EFFECT_KINDS[kind].steps, kind).toBeNull();
+  /* read from `steps`, clamped to its range; a longer number or a word is none, as a shape's */
+  expect(effect("style=strata&steps=12").look.steps).toBe(12);
+  expect(effect("style=strata&steps=28").look.steps).toBeNull();
+  expect(effect("style=strata&steps=3").look.steps).toBe(8);
+  expect(effect("style=strata&steps=400").look.steps).toBe(40);
+  expect(effect("style=strata&steps=1234").look.steps).toBeNull();
+  expect(effect("style=strata&steps=12.5").look.steps).toBeNull();
+  expect(effect("style=strata").look.steps).toBeNull();
+  expect(effect("style=zen&steps=12").look.steps).toBeNull();
+  expect(effect("style=blob&steps=12").look.steps).toBeNull();
+  /* written among its look's parts, before its shape, in its still's name and its files' */
+  expect(effectAddressParts(effect("style=strata&shape=7&steps=12&speed=2"), 45)).toEqual([
+    "style=strata",
+    "angle=45",
+    "speed=2",
+    "steps=12",
+    "shape=7"
+  ]);
+  expect(effectStillParts(effect("style=strata&steps=12&speed=2"), 90)).toEqual([
+    "style=strata",
+    "steps=12"
+  ]);
+  expect(
+    effectFileAddress("https://x.test", SEED, effect("style=strata&steps=40"), 90, "css")
+  ).toBe(`https://x.test/${SEED}.css?style=strata&steps=40`);
+  /* a look stored or asked, its steps those its kind takes */
+  expect(effectLook({ steps: 12 }, "strata").steps).toBe(12);
+  expect(effectLook({ steps: 28 }, "strata").steps).toBeNull();
+  expect(effectLook({ steps: 12 }, "zen").steps).toBeNull();
+  expect(effectLook({ steps: 12 }).steps).toBeNull();
+  expect(effectSteps("strata", "nonsense")).toBeNull();
+  expect(effectStepsShown("strata", { steps: null })).toBe(28);
+  expect(effectStepsShown("strata", { steps: 9 })).toBe(9);
+  expect(effectStepsShown("zen", { steps: null })).toBeNull();
+  /* a still is named by its steps where its look names them, as it was where it names none */
+  const look = { angle: 90, shape: null, steps: null, bg: null };
+  expect(fxStillKey("strata", SEED, look)).toBe(`strata|${SEED}|90|`);
+  expect(fxStillKey("strata", SEED, { ...look, steps: 12 })).toBe(`strata|${SEED}|90||12`);
+  expect(fxLookOf(effect("style=strata&steps=12&shape=3").look, 30)).toEqual({
+    angle: 30,
+    shape: 3,
+    steps: 12,
+    bg: null
+  });
+});
+
 test("a shape is a number from 0 to 999 for both effects: a longer one is none, a stored one comes into bounds", () => {
   expect(SHAPE_MAX).toBe(999);
   for (const kind of ["glass", "blob"]) {
@@ -109,6 +170,102 @@ test("a ground is hex, its alpha kept where it lets something through", () => {
   expect(groundParts("#ff0000")).toEqual({ hex: "#ff0000", alpha: 1 });
 });
 
+test("one fact says which effects take a ground and what none is: the blob's clear, the strings' their designed one", () => {
+  expect(EFFECT_KINDS.blob.ground).toBe("clear");
+  expect(EFFECT_KINDS.strings.ground).toBe("designed");
+  expect(EFFECTS.filter(kind => EFFECT_KINDS[kind].ground)).toEqual(["blob", "strings"]);
+  /* a ground written as hex, kept as an address keeps it; a clear one is the strings' own, and the blob's none */
+  expect(effectGround("strings", "F4EFE6")).toBe("#f4efe6");
+  expect(effectGround("strings", "#10203080")).toBe("#10203080");
+  expect(effectGround("strings", "#102030ff")).toBe("#102030");
+  expect(effectGround("strings", "#00000000")).toBe(CLEAR_GROUND);
+  expect(effectGround("strings", "#ff000000")).toBe(CLEAR_GROUND);
+  expect(effectGround("strings", "f000")).toBe(CLEAR_GROUND);
+  expect(effectGround("blob", "#ff000000")).toBeNull();
+  expect(effectGround("blob", "#ff000080")).toBe("#ff000080");
+  /* words are the Worker's to write as hex first (server/pipeline.ts), and an effect with no ground keeps none */
+  expect(effectGround("strings", "navy")).toBeNull();
+  expect(effectGround("strings", null)).toBeNull();
+  for (const kind of ["glass", "silk", "rosette", "papercut", "zen", "strata"] as const)
+    expect(effectGround(kind, "#ffffff")).toBeNull();
+});
+
+test("the strings' address takes their ground, after their shape, and reads it back; none is their designed one", () => {
+  expect(effect("style=strings").look.bg).toBeNull();
+  for (const [bg, kept] of [
+    ["%23f4efe6", "#f4efe6"],
+    ["%2310203080", "#10203080"],
+    ["%2300000000", CLEAR_GROUND],
+    ["%23ff000000", CLEAR_GROUND],
+    ["fff", "#ffffff"]
+  ] as const) {
+    const fx = effect(`style=strings&shape=12&bg=${bg}`);
+    expect(fx.look.bg, bg).toBe(kept);
+    const parts = effectAddressParts(fx, 135, { soft: 20 });
+    expect(parts).toEqual([
+      "style=strings",
+      "angle=135",
+      "soft=20",
+      "shape=12",
+      `bg=${kept.replace("#", "%23")}`
+    ]);
+    expect(effect(parts.join("&")).look).toEqual(fx.look);
+    /* the still, the files and the cards are named by it too */
+    expect(effectStillParts(fx, 135).at(-1)).toBe(`bg=${kept.replace("#", "%23")}`);
+  }
+  expect(effectAddressParts(effect("style=strings&bg=%23ffffff&speed=2"), 90)).toEqual([
+    "style=strings",
+    "speed=2",
+    "bg=%23ffffff"
+  ]);
+  /* an effect that takes no ground leaves one out, read and written */
+  for (const kind of ["glass", "silk", "rosette", "papercut", "zen", "strata"] as const) {
+    expect(effect(`style=${kind}&bg=%23ffffff`).look.bg, kind).toBeNull();
+    expect(
+      effectAddressParts({ ...effect(`style=${kind}`), look: { ...EFFECT_LOOK_BG } }, 90).join("&"),
+      kind
+    ).not.toContain("bg=");
+  }
+  /* a look stored or asked keeps the ground its kind takes */
+  expect(effectLook({ bg: "#00000000" }, "strings").bg).toBe(CLEAR_GROUND);
+  expect(effectLook({ bg: "#00000000" }, "blob").bg).toBeNull();
+  expect(effectLook({ bg: "#123456" }, "silk").bg).toBeNull();
+  expect(effectLook({ bg: "#00000000" }).bg).toBeNull();
+  expect(effectLook({ bg: "#12345680" }).bg).toBe("#12345680");
+});
+
+test("an effect stands bare where its ground lets the page through: the blob's none, a translucent or clear one", () => {
+  expect(effectBare("blob", { bg: null })).toBe(true);
+  expect(effectBare("blob", { bg: "#101014" })).toBe(false);
+  expect(effectBare("blob", { bg: "#10101480" })).toBe(true);
+  expect(effectBare("strings", { bg: null })).toBe(false);
+  expect(effectBare("strings", { bg: "#f4efe6" })).toBe(false);
+  expect(effectBare("strings", { bg: "#10203080" })).toBe(true);
+  expect(effectBare("strings", { bg: CLEAR_GROUND })).toBe(true);
+  expect(effectBare("silk", { bg: null })).toBe(false);
+});
+
+test("a vector effect's still is named by its ground where its look names one, and read back", () => {
+  const look = { angle: 90, shape: 7, steps: null, bg: null };
+  /* none: the name it had */
+  expect(fxStillKey("strings", SEED, look)).toBe(`strings|${SEED}|90|7`);
+  for (const bg of ["#f4efe6", "#10203080", CLEAR_GROUND]) {
+    const key = fxStillKey("strings", SEED, { ...look, bg });
+    expect(key).toBe(`strings|${SEED}|90|7|${bg}`);
+    expect(readFxStillKey(key)).toEqual({ kind: "strings", seed: SEED, look: { ...look, bg } });
+    expect(fxLookOf(effect(`style=strings&shape=7&bg=${bg.replace("#", "%23")}`).look, 90)).toEqual(
+      { ...look, bg }
+    );
+  }
+  /* a ground no kind of its takes, or written as no address writes it, names no still */
+  expect(readFxStillKey(`silk|${SEED}|90|7|#ffffff`)).toBeNull();
+  expect(readFxStillKey(`strings|${SEED}|90|7|ffffff`)).toBeNull();
+  expect(readFxStillKey(`strings|${SEED}|90|7|#ff000000`)).toBeNull();
+  /* steps then a ground: the sandstone's steps, which takes no ground */
+  expect(readFxStillKey(`strata|${SEED}|90||12`)?.look.steps).toBe(12);
+  expect(readFxStillKey(`strata|${SEED}|90||12|#ffffff`)).toBeNull();
+});
+
 test("a blob's still is named by its palette and its look, and read back", () => {
   const look = effect("style=blob&shape=7&bg=%2310101480&frost=0.5").look;
   const key = blobStillKey(SEED, look);
@@ -116,7 +273,7 @@ test("a blob's still is named by its palette and its look, and read back", () =>
   expect(readBlobStillKey(key)).toEqual({ seed: SEED, look });
   expect(readBlobStillKey(`${SEED}|1|7|`)).toEqual({
     seed: SEED,
-    look: { frost: 1, shape: 7, bg: null }
+    look: { frost: 1, shape: 7, bg: null, steps: null }
   });
   // a name that ends in an angle, as names did, names nothing
   expect(readBlobStillKey(`${SEED}|1|7||90`)).toBeNull();

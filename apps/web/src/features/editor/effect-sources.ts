@@ -21,6 +21,8 @@ import {
 } from "@grabient/engine/effect-code.ts";
 import { effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { effectUnderlay } from "@grabient/engine/fx-finish.ts";
+import { type KitKind, kitRecord } from "@grabient/engine/kit/kinds.ts";
+import { kitEffect } from "@grabient/engine/kit/registry.ts";
 import type { EffectShaderFinish } from "@grabient/engine/shader-finish.ts";
 import { SHADER_KINDS, type ShaderKind } from "@grabient/engine/shader-kinds.ts";
 import { finishOf } from "@grabient/engine/view.ts";
@@ -36,10 +38,10 @@ import { effectHtml, type Taken } from "./formats.ts";
    (code.ts), never with a palette's start. */
 
 /* an effect as shader code, each kind's module asked for once its spelling shows in the Shader tab: the WebGL page or
-   the GLSL it runs (engine/glass-webgl.ts, blob-webgl.ts, silk-webgl.ts, rosette-webgl.ts, papercut-webgl.ts), the
-   WebGPU page or its WGSL (glass-webgpu.ts, blob-webgpu.ts, silk-webgpu.ts, rosette-webgpu.ts, papercut-webgpu.ts),
-   each with the picture's soft and grain (shader-finish.ts). The effect's code carries only the tab's spellings, and
-   the Worker's build none of them: a server never writes a shader, and its ask waits for ever. */
+   the GLSL it runs (engine/{kind}-webgl.ts, a field effect's kit/webgl.ts), the WebGPU page or its WGSL
+   ({kind}-webgpu.ts, kit/webgpu.ts), each with the picture's soft and grain (shader-finish.ts), and a field effect's
+   kernel with them (kit/gen/<kind>.ts). The effect's code carries only the tab's spellings, and the Worker's build
+   none of them: a server never writes a shader, and its ask waits for ever. */
 type ShaderWriter = (
   kind: ShaderKind,
   P: Palette,
@@ -55,6 +57,34 @@ type ShaderPart = "webgl" | "webgpu";
 type EffectShaders = { passes: () => string } & Partial<
   Record<ShaderPart, () => Promise<ShaderWriter>>
 >;
+/* a field effect's passes, said from its recipe (kit/types.ts): its sheets and lines (the zen garden's sheets and its
+   stones' band), or its sheets alone with neither shadow nor rim (the sandstone's plain bands, 8 Nov 2026). A recipe
+   neither says, lines alone or sheets alone with a shadow or a rim, takes a note of its own here: code.test.ts holds
+   every field effect's recipe to its note and names one it says wrong */
+const kitPasses = (kind: KitKind): string =>
+  t(
+    kitEffect(kind).lines
+      ? msg("The field at each pixel, then its sheets and lines in turn, in one pass.")
+      : msg("The field at each pixel, then its plain sheets edge to edge, in one pass.")
+  );
+/* a field effect's kernel, its module asked for with its writer */
+const kernelOf = (kind: KitKind) =>
+  import("@grabient/engine/kit/kernels.ts").then(m => m.kitKernel(kind));
+/* a field effect's WebGL or WebGPU writer, its kernel loaded with it */
+const kitWriter = (kind: KitKind, part: ShaderPart): Promise<ShaderWriter> =>
+  import.meta.env.SSR
+    ? (new Promise(() => {}) as never)
+    : part === "webgl"
+      ? Promise.all([import("@grabient/engine/kit/webgl.ts"), kernelOf(kind)]).then(
+          ([m, kernel]): ShaderWriter =>
+            (shader, ...rest) =>
+              m.kitWebgl(kitEffect(kind), kernel, shader as "glsl" | "webgl", ...rest)
+        )
+      : Promise.all([import("@grabient/engine/kit/webgpu.ts"), kernelOf(kind)]).then(
+          ([m, kernel]): ShaderWriter =>
+            (shader, ...rest) =>
+              m.kitWebgpu(kitEffect(kind), kernel, shader as "wgsl" | "webgpu", ...rest)
+        );
 const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
   glass: {
     passes: () => t("The ribs, the colors' blur and the light, pass by pass."),
@@ -161,7 +191,36 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
           (kind, ...rest) =>
             m.papercutWebgpu(kind as "wgsl" | "webgpu", ...rest)
       )
-  }
+  },
+  strings: {
+    passes: () =>
+      t("The stirred field at each pixel, its two nearest threads over the ground, in one pass."),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/strings-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.stringsWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/strings-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.stringsWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  },
+  ...kitRecord(
+    (kind): EffectShaders => ({
+      passes: () => kitPasses(kind),
+      webgl: () => kitWriter(kind, "webgl"),
+      webgpu: () => kitWriter(kind, "webgpu")
+    })
+  )
 };
 const partOf = (kind: ShaderKind): ShaderPart =>
   kind === "glsl" || kind === "webgl" ? "webgl" : "webgpu";

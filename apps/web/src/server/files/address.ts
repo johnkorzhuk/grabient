@@ -38,21 +38,23 @@ export interface Saved {
 
 /** The view an address asks for: style, steps and angle from its query, each one it leaves out as saved, then as the
     defaults; steps never under the palette's keyframes; no soft where its style is an effect that takes none (the
-    blob), whatever it says. */
+    blob), whatever it says; and its steps as saved where its style is an effect that takes steps of its own (the
+    sandstone's, its look's: engine/effect.ts parseEffect), so the palette's own view stands beside the effect. */
 export function viewAt(
   params: URLSearchParams,
   keyframes: number,
   saved: Saved = {}
 ): Pick<View, "style" | "steps" | "angle" | "soft" | "grain"> {
+  const kind = params.get("style");
+  const stepped = isEffect(kind) && EFFECT_KINDS[kind].steps !== null;
   const reader: ParamReader = {
     get: key => {
-      if (params.has(key)) return params.get(key);
+      if (params.has(key) && !(stepped && key === "steps")) return params.get(key);
       const value = saved[key as keyof Saved];
       return value == null ? null : String(value);
     }
   };
   const { style, steps, angle, soft, grain } = parseView(reader);
-  const kind = params.get("style");
   return {
     style,
     steps: Math.max(steps, keyframes),

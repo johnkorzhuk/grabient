@@ -9,3 +9,11 @@ cd "$(dirname "$0")"
   -Wl,--no-entry -Wl,--strip-all -Wl,-z,stack-size=1048576 -o video.wasm video.c
 # zig writes its output executable; the module is data
 chmod 644 video.wasm
+# ../video.ts names the module by the first 12 hex digits of its sha256 (VIDEO_MODULE), which a clip's drawing is
+# kept under and the container's image is held to: written here, so no rebuild leaves it to be pasted by hand
+hash=$( (sha256sum video.wasm 2>/dev/null || shasum -a 256 video.wasm) | cut -c1-12)
+sed "s/^export const VIDEO_MODULE = \"[0-9a-f]*\";$/export const VIDEO_MODULE = \"$hash\";/" ../video.ts > ../video.ts.next
+mv ../video.ts.next ../video.ts
+grep -q "^export const VIDEO_MODULE = \"$hash\";$" ../video.ts ||
+  { echo "packages/engine/src/video.ts has no VIDEO_MODULE line to write $hash into" >&2; exit 1; }
+echo "video.wasm $hash: VIDEO_MODULE in packages/engine/src/video.ts"

@@ -3,15 +3,16 @@
    reads there, by WCAG 2's contrast: a gradient's are read off its geometry (the line, the cone or the circle the CSS
    draws, for a box of a given shape), the fluted glass's as all six of its colors, which its drifting discs carry
    anywhere in it, lit and shaded by its ribs, a blob's as all its colors over its ground, which the page's own is
-   where it has none, the silk's as its dye's line lit and
-   shaded by its folds, and the rosette's and the papercut's as every color they lay, which their motion carries
-   anywhere in them. A soft picture reads farther: a gradient's blur along its line, an effect's over the box and the
-   gradient under it, as far as the blur reaches. */
+   where it has none, the silk's as its dye's line lit and shaded by its folds, and the rosette's, the papercut's, the
+   strings' and a field effect's as every color they lay, which their motion carries anywhere in them. A soft picture
+   reads farther: a gradient's blur along its line, an effect's over the box and the gradient under it, as far as the
+   blur reaches. */
 import { hexToSrgb, lchToSrgb, srgbToLch, type Triple, toHex } from "@grabient/engine/color.ts";
 import { CONTRAST_LARGE, CONTRAST_TEXT, contrast } from "@grabient/engine/contrast.ts";
 import { sampleHex, sampleLCH, sampleSrgb, sampleStops } from "@grabient/engine/curve.ts";
 import { EFFECT_KINDS, type Effect, isVectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
+import { isKitKind, type KitKind } from "@grabient/engine/kit/kinds.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import {
   DEFAULT_ANGLE,
@@ -339,6 +340,63 @@ function papercutColors(P: Palette): string[] {
   return all;
 }
 
+/* The strings (engine/strings.ts) lay threads in the palette's colors on a ground, the palette's darkest color deeper
+   and greyer: each thread's color lies between two of the palette's stops, each lifted where it would sink into the
+   ground, and a pixel blends a thread or two with the ground, so every color they lay is a blend of the ground and the
+   stops. These are the strings' own numbers (STRINGS_LOOK, STRINGS_STOPS), held to the engine's by a test. */
+export const STRINGS = { stops: 16, lift: 0.42, dark: 0.16, depth: 0.35, chroma: 0.5 } as const;
+const stringsLaid = new WeakMap<Palette, string[]>();
+function stringsColors(P: Palette): string[] {
+  let all = stringsLaid.get(P);
+  if (!all) {
+    let darkest = sampleSrgb(P, 0);
+    let dl = 2;
+    for (let i = 0; i <= 16; i++) {
+      const c = sampleSrgb(P, i / 16);
+      const l = srgbToLch(c)[0];
+      if (l < dl) {
+        dl = l;
+        darkest = c;
+      }
+    }
+    const [Ld, Cd, Hd] = srgbToLch(darkest);
+    const ground = toHex(
+      lchToSrgb(Math.min(STRINGS.dark, Ld * STRINGS.depth), Cd * STRINGS.chroma, Hd)
+    );
+    const Lg = srgbToLch(hexToSrgb(ground) ?? [0, 0, 0])[0];
+    const stops = Array.from({ length: STRINGS.stops }, (_, i) => {
+      const c = sampleSrgb(P, i / (STRINGS.stops - 1));
+      const [L, C, H] = srgbToLch(c);
+      return toHex(L >= Lg + STRINGS.lift ? c : lchToSrgb(Lg + STRINGS.lift, C, H));
+    });
+    all = [...new Set([ground, ...stops])];
+    stringsLaid.set(P, all);
+  }
+  return all;
+}
+
+/* A field effect (engine/kit) lays sheets and lines in colors between two of its stops over its ground, with shadows
+   and lit rims, which its motion carries anywhere in it: every color it lays is a blend of its ground, its stops, its
+   shadows at their deepest and its rims at their brightest (kit/colors.ts), from its definition, which no page's start
+   carries: the examples route loads it with the page's data (loadKitColors), before any part reads a look's colors.
+   Until then, every color a picture can take stands in, the palette's and black and white, so no ink is said to read
+   where it may not. */
+let kitColorsOf: ((kind: KitKind, P: Palette) => string[]) | null = null;
+/** The field effects' colors' code, asked for once. */
+export const loadKitColors = async (): Promise<void> => {
+  kitColorsOf ??= (await import("@grabient/engine/kit/colors.ts")).kitColors;
+};
+const kitLaid = new WeakMap<Palette, Partial<Record<KitKind, string[]>>>();
+function kitColors(kind: KitKind, P: Palette): string[] {
+  if (!kitColorsOf)
+    return [...sampleStops(P, CURVE_PLACES).map(stop => stop.hex), "#000000", "#ffffff"];
+  const laid = kitLaid.get(P) ?? {};
+  kitLaid.set(P, laid);
+  const colors = laid[kind] ?? kitColorsOf(kind, P);
+  laid[kind] = colors;
+  return colors;
+}
+
 /** The whole of a box, as a part of it. */
 const WHOLE: Part = { x0: 0, y0: 0, x1: 1, y1: 1 };
 /** Every color a picture of the palette shows anywhere, those every color in it is a blend of: the colors it is drawn
@@ -474,18 +532,22 @@ export function colorsOfParts(s: Shown, aspect: number): (part: Part) => string[
 
 /** The colors under parts of an effect's picture, as colorsOfParts reads them before a soft. */
 function effectParts(s: Shown, effect: Effect, aspect: number): (part: Part) => string[] {
-  if (effect.kind === "blob") {
-    const all = blobColors(effect, drawnColors(s));
-    return () => all;
+  const everywhere = (all: string[]) => () => all;
+  if (isKitKind(effect.kind)) return everywhere(kitColors(effect.kind, s.palette));
+  switch (effect.kind) {
+    case "blob":
+      return everywhere(blobColors(effect, drawnColors(s)));
+    case "silk":
+      return silkParts(s, aspect);
+    case "rosette":
+      return everywhere(rosetteColors(s.palette));
+    case "papercut":
+      return everywhere(papercutColors(s.palette));
+    case "strings":
+      return everywhere(stringsColors(s.palette));
+    case "glass":
+      return everywhere(glassLit(s.palette));
   }
-  if (effect.kind === "silk") return silkParts(s, aspect);
-  const all =
-    effect.kind === "rosette"
-      ? rosetteColors(s.palette)
-      : effect.kind === "papercut"
-        ? papercutColors(s.palette)
-        : glassLit(s.palette);
-  return () => all;
 }
 
 /** The colors under parts of `colors` drawn in a style at an angle: each stretch of the line a part covers, widened by

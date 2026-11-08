@@ -77,14 +77,25 @@ describe("inLook", () => {
   test("is read back as the look it is", () => {
     for (const look of LOOKS) expect(lookOf(inLook(SEED, PALETTE, look, "part"))).toBe(look);
   });
+  test("lays the sandstone at its designed steps, and a look a reader turns to at steps of its own within its range", () => {
+    expect(inLook(SEED, PALETTE, "strata", "hero").effect?.look.steps).toBeNull();
+    const turned = Array.from(
+      { length: 12 },
+      (_, n) => inLook(SEED, PALETTE, "strata", "hero", 0, `strata~${n + 1}`).effect?.look.steps
+    );
+    for (const steps of turned) expect(steps == null || (steps >= 8 && steps <= 40)).toBe(true);
+    expect(new Set(turned).size).toBeGreaterThan(3);
+    /* every other effect, turned to, takes none */
+    expect(inLook(SEED, PALETTE, "zen", "hero", 0, "zen~1").effect?.look.steps).toBeNull();
+  });
 });
 
 describe("pickLook", () => {
-  test("takes the looks the parts before took least, so eleven parts show every look", () => {
+  test("takes the looks the parts before took least, so as many parts as there are looks show every look", () => {
     for (const seed of SEEDS) {
       const palette = decodePalette(seed) as Palette;
       const taken: Taken = new Map();
-      const looks = Array.from({ length: 11 }, (_, i) =>
+      const looks = Array.from({ length: LOOKS.length }, (_, i) =>
         lookOf(pickLook(seed, palette, `part${i}`, LOOKS, () => true, taken))
       );
       expect(new Set(looks).size).toBe(LOOKS.length);

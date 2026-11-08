@@ -14,6 +14,14 @@ test("a save keeps a look written canonically, beside its view, and only where i
   expect(keptLook(SEED, "style=blob&bg=%23101014&frost=0.5&shape=12", view)).toBe(
     "style=blob&frost=0.5&shape=12&bg=%23101014"
   );
+  // the strings' ground, and a clear one, which is no none of theirs
+  expect(keptLook(SEED, "style=strings&bg=%23f4efe6&shape=12", view)).toBe(
+    "style=strings&angle=30&shape=12&bg=%23f4efe6"
+  );
+  expect(keptLook(SEED, "style=strings&bg=transparent", view)).toBe("style=strings&angle=30");
+  expect(keptLook(SEED, "style=strings&bg=%2300000000", view)).toBe(
+    "style=strings&angle=30&bg=%2300000000"
+  );
   // a blob with no shape keeps the palette's own, which its address names
   expect(keptLook(SEED, "style=blob", view)).toBe(`style=blob&shape=${blobShapeOf(SEED)}`);
   // a leading ? and a whole address read as the query after the seed

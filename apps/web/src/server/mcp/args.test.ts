@@ -39,6 +39,23 @@ describe("an account tool's arguments", () => {
       seed: SEED,
       look: "style=blob&shape=12"
     });
+    // the sandstone's steps are its look's, within its range; another effect's address names none
+    expect(paletteNamed(`/${SEED}?steps=12&style=strata`)).toEqual({
+      seed: SEED,
+      look: "style=strata&steps=12"
+    });
+    expect(paletteNamed(`/${SEED}?style=strata&steps=99`)?.look).toBe("style=strata&steps=40");
+    expect(paletteNamed(`/${SEED}?style=strata&steps=28`)?.look).toBe("style=strata");
+    expect(paletteNamed(`/${SEED}?style=zen&steps=12`)?.look).toBe("style=zen");
+    // the strings' ground is their look's, a clear one too; another effect's address names none
+    expect(paletteNamed(`/${SEED}?bg=%23f4efe6&style=strings&shape=3`)).toEqual({
+      seed: SEED,
+      look: "style=strings&shape=3&bg=%23f4efe6"
+    });
+    expect(paletteNamed(`/${SEED}?style=strings&bg=%2300000000`)?.look).toBe(
+      "style=strings&bg=%2300000000"
+    );
+    expect(paletteNamed(`/${SEED}?style=silk&bg=%23f4efe6`)?.look).toBe("style=silk");
     // a gradient's address names its view, which is all it says
     expect(paletteNamed(`/${SEED}?style=radialGradient&angle=30`)).toEqual({
       seed: SEED,

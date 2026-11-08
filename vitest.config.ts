@@ -1,5 +1,6 @@
 import solid from "@solidjs/vite-plugin";
 import { defineConfig } from "vitest/config";
+import { variableImports } from "./packages/engine/scripts/vitest-cache.ts";
 
 /* Three kinds of test. Unit tests run in Node. Components render through Solid's server compiler, so they need its
    plugin. The Worker's integration tests run in workerd with D1, KV, R2 and the Durable Object
@@ -11,6 +12,8 @@ import { defineConfig } from "vitest/config";
 const limits = { testTimeout: 30_000, hookTimeout: 30_000 };
 /* the folder of the grain's tiles the web app's build writes (apps/web/scripts/grain.ts) */
 const define = { __GRAIN__: JSON.stringify("/assets/grain-test") };
+/* every project whose module cache is on transforms a module with a template's dynamic import anew each run, so a
+   file added to its pattern since is found (packages/engine/scripts/vitest-cache.ts) */
 
 export default defineConfig({
   test: {
@@ -18,10 +21,12 @@ export default defineConfig({
     projects: [
       {
         define,
+        plugins: [variableImports()],
         test: {
           name: "unit",
           include: [
             "packages/*/src/**/*.test.ts",
+            "packages/*/scripts/**/*.test.ts",
             "apps/*/src/**/*.test.ts",
             "apps/*/scripts/**/*.test.ts",
             "apps/*/container/**/*.test.ts"
@@ -30,7 +35,7 @@ export default defineConfig({
       },
       {
         define,
-        plugins: [solid({ ssr: true })],
+        plugins: [solid({ ssr: true }), variableImports()],
         test: {
           name: "components",
           // the server's renderer: Solid's plugin resolves its browser build for any other environment

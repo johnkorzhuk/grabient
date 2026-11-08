@@ -54,6 +54,9 @@ Other product words, kept the same everywhere:
 | Silk (an effect: the palette dyed into satin that drapes in soft folds) | シルク, the fabric's everyday name |
 | Rosette (an effect: petals on a golden spiral, like a dahlia seen from above) | ロゼット, the flower-shaped ornament |
 | Papercut (an effect: the palette cut into sheets of paper stacked in layers, each casting a soft shadow on the one below) | 切り絵, the craft's own name, which designers use for the layered paper look too (切り絵風); not the longer ペーパーカット |
+| Strings (an effect: threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops) | 糸, the plain word for thread; not 弦 (musical strings) nor 文字列 (strings in code), and not the loanword ストリングス |
+| Zen garden (an effect: a raked sand garden seen from above, its grooves ringing a few stones) | 枯山水, the dry garden's own name; not 庭園 alone |
+| Sandstone (an effect: the strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls) | 砂岩, the rock's own name; not 砂 (sand) |
 | look (one of the ways the examples page shows a palette: another style, steps, angle or shape) | 見た目; Another look 別の見た目, Swipe for another look スワイプで別の見た目へ, 6 looks 6通りの見た目. Not 外観, the Appearance menu |
 | Show / Hide (the panel, the color space) | 表示 / 非表示; パネルを表示, パネルを非表示, パネルの表示・非表示, 色空間を非表示 |
 | Full screen / Exit full screen | 全画面表示 / 全画面表示を終了 |

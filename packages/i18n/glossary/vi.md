@@ -33,6 +33,9 @@ time; add a row when a new product word gets its translation.
 | silk (an effect) | lụa | The animated style that dyes the palette into satin draped in soft folds, named as the fabric: "Lụa". |
 | rosette (an effect) | hoa thị | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament of Vietnamese decoration ("họa tiết hoa thị"). Not "hoa hồng", the rose. |
 | papercut (an effect) | giấy cắt lớp | The animated style that cuts the palette into sheets of paper stacked in layers, each casting a soft shadow on the one below, named as Vietnamese crafts name layered paper-cut art ("tranh giấy cắt lớp"): "Giấy cắt lớp". Not "Cắt giấy", which on the header's button reads as the act of cutting. |
+| strings (an effect) | Sợi chỉ | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for thread, as thread art names it (tranh chỉ). Not dây đàn (musical strings) nor chuỗi (strings in code). |
+| zen garden (an effect) | Vườn thiền | A raked sand garden seen from above, its grooves ringing a few stones: the name Vietnamese gives the Japanese dry garden. |
+| sandstone (an effect) | Đá sa thạch | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's name as Vietnamese says it. Not *cát* (sand). |
 | swatches, bands (the style) | sọc màu, sọc | Hard bands of the colors. "khối" is taken by the color solid, and "ô màu" reads as square tiles. "{count} hard bands" = "{count} sọc". |
 | Swatches (the strip's swatch files) | Mẫu màu | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Chuyển sang mẫu màu. |
 | style | kiểu | "Sai kiểu, số bước hoặc góc". |

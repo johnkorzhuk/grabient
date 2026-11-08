@@ -890,7 +890,8 @@ function palettePage(
       : paletteCard(seed, view),
     origin
   );
-  meta.imageAlt = t("{name} color palette", { name });
+  /* the card's words: an effect's card shows the effect, named as the title names it */
+  meta.imageAlt = page.effect ? heading(page) : t("{name} color palette", { name });
   meta.themeColor = hexes[0];
   /* the same page as Markdown: an effect's own, which names the effect, while one plays */
   meta.markdown = absolute(

@@ -1,6 +1,7 @@
+import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import { expect, test } from "vitest";
 import golden from "./fixtures/image-dimensions.json" with { type: "json" };
-import { cardSize, montageSize, PIXELS_MAX, pictureSize, SIDE_MAX } from "./size.ts";
+import { cardSize, effectBounds, montageSize, PIXELS_MAX, pictureSize, SIDE_MAX } from "./size.ts";
 
 const at = (query: string) => new URLSearchParams(query);
 const pair = ({ width, height }: { width: number; height: number }) => [width, height];
@@ -57,6 +58,18 @@ test("any size is 1 to 2400 a side and no more pixels than the ceiling, and keep
   expect(PIXELS_MAX).toBe(3_024_000);
   expect(pair(pictureSize(at("size=7000x7000")))).toEqual([1738, 1738]);
   expect(1739 * 1739).toBeGreaterThan(PIXELS_MAX);
+});
+
+test("a field effect's picture is drawn within a card's pixels at its shape, every other effect's within a picture's", () => {
+  for (const kind of KIT_KINDS) {
+    expect(pair(pictureSize(at("w=2400&h=1260"), effectBounds(kind)))).toEqual([1200, 630]);
+    expect(pair(pictureSize(at("size=600x600"), effectBounds(kind)))).toEqual([600, 600]);
+    const { width, height } = pictureSize(at("size=7000x7000"), effectBounds(kind));
+    expect(width * height).toBeLessThanOrEqual(1200 * 630);
+    expect(width).toBe(height);
+  }
+  for (const kind of ["glass", "papercut", "strings"])
+    expect(pair(pictureSize(at("w=2400&h=1260"), effectBounds(kind)))).toEqual([2400, 1260]);
 });
 
 test("a malformed size is no size, and a card ignores every size but its head", () => {

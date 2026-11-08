@@ -1,4 +1,5 @@
 import { createServer, type Server } from "node:http";
+import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import { expect, type Page, test } from "@playwright/test";
 
 /* A palette's effect behind another site's page (src/embed): the stylesheet of its address paints the first frame, the
@@ -197,6 +198,31 @@ test("the glass's still goes once its canvas has faded in over it, and comes bac
   expect(await still(page)).toContain("data:image/svg+xml");
 });
 
+test("the strings on a ground that lets the page through: its still lays the ground at its alpha, the script reads it in words, and its canvas, keeping its alpha, takes the still's place in one frame under a strict policy", async ({
+  page
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  /* the stylesheet's ground in words, which the server answers at its hex, and the script's, read in the browser */
+  await site(page, tags("style=strings&bg=rgb(255%20255%20255%20/%2050%25)"), true);
+  await expect.poll(() => painted(page), { timeout: 15_000 }).toContain("data:image/svg+xml");
+  expect(decodeURIComponent(await painted(page))).toMatch(/fill=.#ffffff. fill-opacity=..502./);
+  const html = page.locator("html");
+  await expect(html).toHaveAttribute("data-grabient-playing", "", { timeout: 15_000 });
+  /* no fade: two translucent pictures over each other would thicken the ground */
+  await expect(layer(page)).toHaveCSS("opacity", "1");
+  await expect(layer(page)).toHaveCSS("transition-duration", "0s");
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { gl: WebGL2RenderingContext }).gl.getContextAttributes()?.alpha
+    )
+  ).toBe(true);
+  expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
+    []
+  );
+  expect(errors).toEqual([]);
+});
+
 test("a reader who asks for less motion keeps the still, and no context is made", async ({
   page
 }) => {
@@ -255,6 +281,29 @@ test("a soft and grained silk paints its still blurred over its gradient and gra
   expect(await page.evaluate(() => (window as unknown as { refused: string[] }).refused)).toEqual(
     []
   );
+  expect(errors).toEqual([]);
+});
+
+test("each field effect embeds behind another site's page: its stylesheet paints its first frame, grained, and its own script plays it from there under a strict policy", async ({
+  page
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(String(error)));
+  for (const kind of KIT_KINDS) {
+    await site(page, tags(`style=${kind}&angle=30&grain=20&shape=7`), true, `-${kind}`);
+    expect(await painted(page), kind).toContain("data:image/svg+xml");
+    /* the opaque canvas fades in over the still, which gives way to the layer */
+    await expect(page.locator("html"), kind).toHaveAttribute("data-grabient-playing", "", {
+      timeout: 15_000
+    });
+    await expect(layer(page), kind).toHaveCSS("opacity", "1");
+    expect(await still(page), kind).toBe("none");
+    expect(await contexts(page), kind).toBe(1);
+    expect(
+      await page.evaluate(() => (window as unknown as { refused: string[] }).refused),
+      kind
+    ).toEqual([]);
+  }
   expect(errors).toEqual([]);
 });
 

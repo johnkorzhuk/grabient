@@ -39,6 +39,16 @@ async function start() {
      the server's pictures are claimed as they were drawn */
   if (Number(new URLSearchParams(location.search).get("soft")) > 0)
     await loadSoft().catch(() => {});
+  /* a palette's examples page reads the field effects' colors as it draws its parts' looks (features/examples/paint.ts),
+     with code no other page loads: asked for before it hydrates, as the server drew it with them, with the hero's module
+     that hands them to the page and not after it (budget.ts counts both) */
+  if (/\/examples\/?$/.test(location.pathname))
+    await Promise.all([
+      import("./features/examples/hero.ts"),
+      import("@grabient/engine/kit/colors.ts")
+    ])
+      .then(([hero]) => hero.loadKitColors())
+      .catch(() => {});
   watchBuild();
   const router = await hydrateStart();
   /* a page's boundary showing its fallback is the one failure the window never hears of: it is reported from here */

@@ -3,11 +3,14 @@ import { cssBlock } from "@grabient/engine/css.ts";
 import {
   EFFECT_LOOK,
   EFFECT_PLAY,
+  EFFECTS,
   type EffectKind,
+  isVectorKind,
   type VectorKind
 } from "@grabient/engine/effect.ts";
 import { type EffectLayers, effectEmbedHtml } from "@grabient/engine/effect-embed.ts";
 import { GRAIN_SIDE } from "@grabient/engine/grain-tiles.ts";
+import { kitRecord } from "@grabient/engine/kit/kinds.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
 import { localHref, t } from "@grabient/i18n";
@@ -221,7 +224,9 @@ const STILL_SHOWN: Readonly<Record<EffectKind, string>> = {
   blob: 'url("data:image/svg+xml,…") 50% 50% / 100% 100% no-repeat',
   silk: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
   rosette: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
-  papercut: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat'
+  papercut: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
+  strings: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
+  ...kitRecord(() => 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat')
 };
 
 /** The layers a soft or grained effect's first frame lies on behind a page, as the hero's code shows them: its blur,
@@ -237,8 +242,8 @@ function layersShown(s: Shown): EffectLayers {
   };
 }
 
-/** The effects drawn over a vector still, each its own layer in the hero. */
-const VECTOR_KINDS: readonly VectorKind[] = ["silk", "rosette", "papercut"];
+/** The effects drawn over a vector still, each its own layer in the hero, as EFFECT_KINDS names them. */
+const VECTOR_KINDS: readonly VectorKind[] = EFFECTS.filter(isVectorKind);
 
 /** The hero: the palette as a page's background, under the header, edge to edge. */
 function Hero(props: {

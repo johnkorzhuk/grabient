@@ -3,7 +3,16 @@ import { encodePalette } from "@grabient/engine/codec.ts";
 import { hexToSrgb, luminance } from "@grabient/engine/color.ts";
 import { gradientCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { blobShapeOf, blobStillKey, fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
+import {
+  blobShapeOf,
+  blobStillKey,
+  EFFECTS,
+  effectBare,
+  fxLookOf,
+  fxStillKey,
+  isVectorKind,
+  type VectorKind
+} from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
@@ -675,6 +684,17 @@ function Stage(
       e.angle()
     );
   };
+  /* a soft effect that lets the page through (engine/effect.ts effectBare: the strings on a translucent or clear
+     ground) stands on the page: its edges go to the page's ground, as a card's go clear and every file's
+     (engine/fx-finish.ts effectUnderlay), not to the gradient */
+  const onPage = () => {
+    const kind = e.shownEffect();
+    return !!kind && !!e.softIn(kind) && effectBare(kind, e.effects.settings(kind).look);
+  };
+  const under = () => (onPage() ? "var(--color-bg)" : art());
+  /* what the picture is to a screen reader: the gradient, or while an effect plays the page's own name for it, which
+     names the effect as its title and heading do ("Duotone beige to red zen garden") */
+  const label = () => (e.effect() ? props.name() : t("The gradient"));
   /* an effect's soft: its layer blurred by a share of the stage's longer side (engine/view.ts effectSoftShare), its
      edges going to the gradient under it rather than to the page */
   const fxBlur = () => {
@@ -856,7 +876,7 @@ function Stage(
       </Loading>
     </Show>
   );
-  /* a vector effect over the gradient while it plays (silk, rosette, papercut), its colors held by the flash guard as
+  /* a vector effect over the gradient while it plays (EFFECT_KINDS), its colors held by the flash guard as
      well; while its code comes, the still the first screen showed stands in its place (server/fx-still.ts). One layer
      a kind, each shown by a plain test as the glass's and the blob's are: a layer keeps the kind it was made for (its
      player plays that kind), so another kind is another layer, and nothing reads a kind its condition no longer holds
@@ -868,10 +888,11 @@ function Stage(
           <div class={styles.fx}>
             <div
               class={styles.glassStill}
-              data-fx-still={fxStillKey(kind, encodePalette(calmPalette()), {
-                angle: e.angle(),
-                shape: e.effects.settings(kind).look.shape
-              })}
+              data-fx-still={fxStillKey(
+                kind,
+                encodePalette(calmPalette()),
+                fxLookOf(e.effects.settings(kind).look, e.angle())
+              )}
             />
           </div>
         }
@@ -885,13 +906,8 @@ function Stage(
       </Loading>
     </Show>
   );
-  const fxLayer = () => (
-    <>
-      {fxLayerOf("silk")}
-      {fxLayerOf("rosette")}
-      {fxLayerOf("papercut")}
-    </>
-  );
+  /* every vector kind's layer, as EFFECT_KINDS names them */
+  const fxLayer = () => <>{EFFECTS.filter(isVectorKind).map(fxLayerOf)}</>;
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: a tap on the artwork shows its presses to a finger; a mouse and the keyboard have them anyway */
     <div
@@ -928,9 +944,9 @@ function Stage(
             <div
               class={styles.paint}
               role="img"
-              aria-label={t("The gradient")}
+              aria-label={label()}
               style={{
-                background: art(),
+                background: under(),
                 "--fx-blur": fxBlur()
               }}
             >
@@ -946,11 +962,11 @@ function Stage(
           <div
             class={styles.fitted}
             role="img"
-            aria-label={t("The gradient")}
+            aria-label={label()}
             style={{
               "--ar": String(size().width / size().height),
               "--w": `${size().width}px`,
-              background: art(),
+              background: under(),
               "--fx-blur": fxBlur()
             }}
           >

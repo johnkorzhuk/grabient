@@ -15,6 +15,8 @@
    (video-drawer.ts). */
 
 import { effectFileAddress, effectStillParts } from "@grabient/engine/effect.ts";
+import { kitRecord } from "@grabient/engine/kit/kinds.ts";
+import { kitEffect } from "@grabient/engine/kit/registry.ts";
 import type { Mp4Frame } from "@grabient/engine/mp4.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
 import type { VideoKind } from "@grabient/engine/video.ts";
@@ -416,7 +418,11 @@ const ABOUT: Record<VideoKind, string> = {
   rosette:
     "A looping video of a Grabient palette: a rosette of petals in its colors, rippling out from the heart.",
   papercut:
-    "A looping video of a Grabient palette: sheets of paper in its colors, cut and stacked, their shadows turning with the light."
+    "A looping video of a Grabient palette: sheets of paper in its colors, cut and stacked, their shadows turning with the light.",
+  strings:
+    "A looping video of a Grabient palette: threads in its colors, evenly spaced, stirred slowly into bundles and loops.",
+  /* a field effect's own words (kit/types.ts FieldAbout) */
+  ...kitRecord(kind => kitEffect(kind).about.video)
 };
 
 const attribute = (text: string) =>

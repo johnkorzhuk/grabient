@@ -283,20 +283,22 @@ export function parseCssColor(text: string): CssColor | null {
 }
 
 /** A color as the hex an address keeps: `#rrggbb`, or `#rrggbbaa` where it lets some of what is behind it through;
-    null for one wholly clear, which is no ground at all. */
-export function cssColorHex(color: CssColor): string | null {
+    null for one wholly clear, which is no ground at all, or `#00000000` where `clear` keeps it (a ground whose none is
+    its designed one, the strings': engine/effect.ts effectGround). */
+export function cssColorHex(color: CssColor, clear = false): string | null {
   const byte = (v: number) =>
     Math.round(Math.min(1, Math.max(0, v)) * 255)
       .toString(16)
       .padStart(2, "0");
   const a = Math.round(color.alpha * 255);
-  if (a === 0) return null;
+  if (a === 0) return clear ? "#00000000" : null;
   return `#${color.rgb.map(byte).join("")}${a < 255 ? byte(color.alpha) : ""}`;
 }
 
-/** Text as the hex an address keeps, `undefined` for text that is no color, and null for none or a wholly clear one. */
-export function cssColorText(text: string): string | null | undefined {
+/** Text as the hex an address keeps, `undefined` for text that is no color, and null for none or a wholly clear one,
+    which `clear` keeps as `#00000000` (cssColorHex). */
+export function cssColorText(text: string, clear = false): string | null | undefined {
   if (!text.trim()) return null;
   const color = parseCssColor(text);
-  return color ? cssColorHex(color) : undefined;
+  return color ? cssColorHex(color, clear) : undefined;
 }

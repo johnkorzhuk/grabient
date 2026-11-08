@@ -1,4 +1,4 @@
-/* A palette's effect (fluted glass, blob, silk, rosette, papercut) as files, which load with the first one asked for.
+/* A palette's effect (effect.ts's EFFECTS) as files, which load with the first one asked for.
    The page background is two files whose address is the whole setting:
      <link rel="stylesheet" href="https://grabient.com/{seed}.css?style=glass">
      <script src="https://grabient.com/{seed}.js?style=glass" async></script>
@@ -9,8 +9,17 @@
    opaque and fade in over it (the papercut's bringing the soft shadows its still steps), and the blob's is clear
    around the blob, so its still goes in the frame the canvas comes (the script marks the root). Both and the moving
    SVG are the engine's writing (engine/effect-code.ts), which the editor's copies are too. */
-import { type Effect, type EffectFinish, effectAddressParts } from "@grabient/engine/effect.ts";
+import {
+  CLEAR_GROUND,
+  EFFECT_KINDS,
+  type Effect,
+  type EffectFinish,
+  type EffectKind,
+  effectAddressParts
+} from "@grabient/engine/effect.ts";
 import { effectSize, effectStylesheet, effectSvg } from "@grabient/engine/effect-code.ts";
+import { kitRecord } from "@grabient/engine/kit/kinds.ts";
+import { kitEffect } from "@grabient/engine/kit/registry.ts";
 import { readingName, readPalette } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { resolveSize, type Size, type SizeChoice } from "@grabient/engine/view.ts";
@@ -18,6 +27,37 @@ import { ANIMATION, EMBEDDED } from "../../lib/cache.ts";
 import { effectCard } from "../../lib/page-meta.ts";
 import { isLinkPreview } from "../crawlers.ts";
 import { svgPreview } from "./preview.ts";
+
+/* what each effect's SVG shows, every kind its own; the strings' on their designed ground, `a dark ground`, which a
+   ground their address names takes the place of (svgAbout) */
+const SVG_SHOWS: Record<EffectKind, string> = {
+  glass: "fluted glass with its colors drifting behind the ribs",
+  blob: "a frosted blob of its colors, drifting",
+  silk: "its colors dyed into silk that drapes in soft folds, swaying",
+  rosette: "a rosette of petals in its colors, the rings rippling out from the heart",
+  papercut:
+    "its colors cut into sheets of paper stacked into a relief, each casting a soft shadow on the one below",
+  strings: "threads in its colors, evenly spaced on a dark ground, stirred into bundles and loops",
+  /* a field effect's own words (kit/types.ts FieldAbout) */
+  ...kitRecord(kind => kitEffect(kind).about.shows)
+};
+
+/** A link preview's words for an effect's SVG: what it shows, on the ground its address names where it takes one in
+    place of its designed one, and how it moves, as effect.ts's EFFECT_KINDS says. */
+const svgAbout = (effect: Effect): string => {
+  const { kind, look } = effect;
+  const motion = EFFECT_KINDS[kind].svgMotion;
+  const shows =
+    look.bg !== null && EFFECT_KINDS[kind].ground === "designed"
+      ? SVG_SHOWS[kind].replace(
+          "a dark ground",
+          look.bg === CLEAR_GROUND ? "a clear ground" : `a ground of ${look.bg}`
+        )
+      : SVG_SHOWS[kind];
+  return motion
+    ? `An animated SVG of a Grabient palette: ${shows}, moved by ${motion === "css" ? "CSS" : "SMIL"} alone.`
+    : `An SVG of a Grabient palette: ${shows}, its first frame; its script, clips and shaders play it.`;
+};
 
 /** /{seed}.css?style=: the effect's first frame behind the page, finished by the view's soft and grain, `grain` the
     grain's tile as a CSS image. */
@@ -49,21 +89,13 @@ export async function effectSvgAnswer(
 ): Promise<Response> {
   const size = resolveSize(asked, effectSize(effect));
   if (isLinkPreview(request)) {
+    /* what the file is, its motion as effect.ts's EFFECT_KINDS has it: moved by CSS, by SMIL, or its first frame */
     const sized = asked ? [`w=${size.width}`, `h=${size.height}`] : [];
     return svgPreview({
       address: `${origin}/${seed}.svg?${[...effectAddressParts(effect, angle, finish), ...sized].join("&")}`,
       card: `${origin}${effectCard(seed, effect, angle, finish)}`,
       title: `${readingName(readPalette(P))} · Grabient`,
-      about:
-        effect.kind === "glass"
-          ? "An animated SVG of a Grabient palette: fluted glass with its colors drifting behind the ribs, moved by CSS alone."
-          : effect.kind === "silk"
-            ? "An animated SVG of a Grabient palette: its colors dyed into silk that drapes in soft folds, swaying, moved by SMIL alone."
-            : effect.kind === "rosette"
-              ? "An animated SVG of a Grabient palette: a rosette of petals in its colors, the rings rippling out from the heart, moved by CSS alone."
-              : effect.kind === "papercut"
-                ? "An animated SVG of a Grabient palette: its colors cut into sheets of paper stacked into a drifting relief, each casting a soft shadow on the one below, moved by CSS alone."
-                : "An animated SVG of a Grabient palette: a frosted blob of its colors, drifting, moved by CSS alone."
+      about: svgAbout(effect)
     });
   }
   const image = grain ? await grain(size) : undefined;

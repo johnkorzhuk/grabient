@@ -58,7 +58,8 @@ test("an undo on the selection's screen walks only the steps made there", async 
 
 test("on a palette's page the export's Auto is the picture the reader sees", async ({ page }) => {
   await page.goto("/kS7CQ31Do6asvY-");
-  const picture = page.getByRole("img", { name: "The gradient" });
+  /* a new reader's page plays the fluted glass, its picture named as the page names it */
+  const picture = page.getByRole("img", { name: / fluted glass$/ });
   await expect(picture).toBeVisible();
   const box = await picture.boundingBox();
   const presses = page.getByRole("group", { name: "Palette actions" }).first();

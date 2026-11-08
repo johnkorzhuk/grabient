@@ -4,6 +4,7 @@ import {
   blobStillKey,
   EFFECT_PLAY,
   type EffectLook,
+  fxLookOf,
   fxStillKey,
   isVectorKind,
   type VectorKind
@@ -109,14 +110,11 @@ function Still(props: { page: SeedPage }) {
       swatchArt={
         <span
           class={styles.swatchStill}
-          data-fx-still={fxStillKey(kind, props.page.seed, {
-            angle: props.page.view.angle,
-            shape: look.shape
-          })}
+          data-fx-still={fxStillKey(kind, props.page.seed, fxLookOf(look, props.page.view.angle))}
         />
       }
       label={effectLabel(kind)}
-      summary={[effectSummary(props.page.effect ?? EFFECT_PLAY, null), finish()]
+      summary={[effectSummary(props.page.effect ?? EFFECT_PLAY, null, look.steps), finish()]
         .filter(Boolean)
         .join(" · ")}
       open={false}

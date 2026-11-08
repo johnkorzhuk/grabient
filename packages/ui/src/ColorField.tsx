@@ -11,10 +11,12 @@ import { tooltip } from "./Tooltip.tsx";
 /* A color written any way CSS writes one, its alpha too, as HexField draws a hex: its name at the start, the value in
    mono at the end, on the input recipe with the bar's rim. A swatch of the color over a checkerboard, which shows how
    much of what is behind it comes through, leads the box and pops the color picker up; the picker sets the color and
-   keeps its alpha. Once there is one, a press at the end clears it, and an empty field reads `empty`. Enter or leaving
-   commits what `read` makes of the text (the hex an address keeps); empty text clears it, and text that is no color
-   goes back to the color it had. Enter and Escape keep the keyboard on the field, read only and passing the page its
-   keys until a key that types takes it again. Left to right in every language. */
+   keeps its alpha, but a wholly clear one's, which a color picked makes whole. Once there is one, a press at the end
+   clears it, and an empty field reads `empty`; where none stands for a color of its own (`auto`: the strings' designed
+   ground), the swatch shows that one and the picker opens on it, and the press says it goes back to it (`clear`).
+   Enter or leaving commits what `read` makes of the text (the hex an address keeps); empty text clears it, and text
+   that is no color goes back to the color it had. Enter and Escape keep the keyboard on the field, read only and
+   passing the page its keys until a key that types takes it again. Left to right in every language. */
 export function ColorField(props: {
   /** its name */
   label: string;
@@ -22,6 +24,10 @@ export function ColorField(props: {
   value: string | null;
   /** what the field reads with no color */
   empty: string;
+  /** the color none stands for, #rrggbb, where it is one: shown in the swatch, and where the picker opens */
+  auto?: string;
+  /** the name of the press that takes the color away: Clear unless said */
+  clear?: string;
   /** typed text as the color it keeps: a hex, null for none, undefined for text that is no color */
   read: (text: string) => string | null | undefined;
   onCommit: (value: string | null) => void;
@@ -35,7 +41,8 @@ export function ColorField(props: {
   const [editing, setEditing] = createSignal(false);
   const [open, setOpen] = createSignal(false);
   const tip = tooltip(() => t("Color picker"));
-  const clearTip = tooltip(() => t("Clear"));
+  const clearName = () => props.clear ?? t("Clear");
+  const clearTip = tooltip(clearName);
   createEffect(
     () => [props.value, editing()] as const,
     ([value, typing]) => {
@@ -53,9 +60,11 @@ export function ColorField(props: {
     else input.value = props.value ?? "";
     setEditing(false);
   };
-  /* the picker's hex with the alpha the color has */
+  /* the picker's hex with the alpha the color has, a wholly clear one's made whole: a color picked is to be seen */
   const withAlpha = (hex: string) =>
-    `${hex.toLowerCase()}${props.value && props.value.length === 9 ? props.value.slice(7) : ""}`;
+    `${hex.toLowerCase()}${props.value?.length === 9 && !props.value.endsWith("00") ? props.value.slice(7) : ""}`;
+  /* what the swatch shows: the color, or the one none stands for */
+  const shown = () => props.value ?? props.auto ?? null;
   return (
     <div class={styles.host} dir="ltr">
       <BarRim />
@@ -80,8 +89,8 @@ export function ColorField(props: {
             <span
               class={[styles.chip, own.chip]}
               data-open={open() ? "" : undefined}
-              data-empty={props.value ? undefined : ""}
-              style={{ "--chip": props.value ?? "transparent" }}
+              data-empty={shown() ? undefined : ""}
+              style={{ "--chip": shown() ?? "transparent" }}
             />
           </button>
         </Show>
@@ -131,7 +140,7 @@ export function ColorField(props: {
             ref={el => clearTip(el)}
             type="button"
             class={own.press}
-            aria-label={t("Clear")}
+            aria-label={clearName()}
             onClick={() => {
               /* the field empty at once, its focus taken to type another */
               input.value = "";
@@ -146,7 +155,7 @@ export function ColorField(props: {
       <Show when={open() && props.onPick ? swatch() : undefined} keyed>
         {at => (
           <ColorPicker
-            value={(props.value ?? "#808080").slice(0, 7)}
+            value={(shown() ?? "#808080").slice(0, 7)}
             onInput={hex => props.onPick?.(withAlpha(hex))}
             onCommit={hex => props.onCommit(withAlpha(hex))}
             anchor={at}

@@ -6,7 +6,7 @@ import type { VideoParts } from "../../server/images/video-parts.ts";
 /* the Worker's own entrypoint, which draws a part of a clip in an invocation of its own */
 const loopback = exports as unknown as { VideoParts: Pick<VideoParts, "draw"> };
 
-// A palette's effect (the glass, the blob, the silk, the rosette or the papercut) as a looping MP4 beside its page.
+// A palette's effect (engine/video-kinds.ts's) as a looping MP4 beside its page.
 export const Route = createFileRoute("/{$seed}.mp4/")({
   server: {
     handlers: {

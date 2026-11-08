@@ -11,7 +11,7 @@ import { finishParts, parseView, type Size, sizeParam, viewSearch } from "@grabi
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
 import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montage-address.ts";
-import { CARD, cardSize, montageSize, pictureSize } from "../images/size.ts";
+import { CARD, cardSize, effectBounds, montageSize, pictureSize } from "../images/size.ts";
 import { oldFit } from "../seo/legacy-fit.ts";
 import { addressParams, fileName, svgSize, viewAt } from "./address.ts";
 import { resolvePalette } from "./resolve.ts";
@@ -187,7 +187,8 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
     );
     query.set("angle", String(view.angle));
     if (file.format === "css") return { path: `/${seed}.css`, query, acrossBuilds: false };
-    if (file.format === "png") return picture(`/${seed}.png`, query, pictureSize(params), false);
+    if (file.format === "png")
+      return picture(`/${seed}.png`, query, pictureSize(params, effectBounds(effect.kind)), false);
     query.set("seed", seed);
     return picture("/api/og", query, cardSize(params), false);
   }

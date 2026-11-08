@@ -1,9 +1,16 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { kitShadowRun } from "../scripts/kit-gen.ts";
 import { BLOB_LOOP, blobBackdrop, blobRenderer } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
-import { EFFECTS, type EffectFinish, type EffectLook, groundParts } from "./effect.ts";
+import {
+  CLEAR_GROUND,
+  EFFECTS,
+  type EffectFinish,
+  type EffectLook,
+  groundParts
+} from "./effect.ts";
 import {
   blurBoxes,
   blurRgba,
@@ -16,6 +23,14 @@ import {
 import { GLASS_LOOP, glassField } from "./glass.ts";
 import { glassColors } from "./glass-colors.ts";
 import { glassCover, glassRenderer } from "./glass-render.ts";
+import demo from "./kit/fields/demo.ts";
+import { KERNEL_COST } from "./kit/gen/demo.ts";
+import { KIT_KERNEL_COSTS, KIT_KERNEL_KINDS } from "./kit/gen/kernel-order.ts";
+import { isKitKind, KIT_KINDS } from "./kit/kinds.ts";
+import { kitEffect } from "./kit/registry.ts";
+import { kitRender } from "./kit/render.ts";
+import { kitScene } from "./kit/scene.ts";
+import type { FieldEffect } from "./kit/types.ts";
 import { mp4 } from "./mp4.ts";
 import { PAPERCUT_LOOP, papercutScene } from "./papercut.ts";
 import { renderPapercut } from "./papercut-render.ts";
@@ -23,10 +38,16 @@ import { rosetteDesign, rosetteScene } from "./rosette.ts";
 import { renderRosette } from "./rosette-render.ts";
 import { SILK_LOOP, silkScene } from "./silk.ts";
 import { renderSilk } from "./silk-render.ts";
+import { STRINGS_LOOP, stringsScene, stringsSolid } from "./strings.ts";
+import { stringsDesignedGround } from "./strings-ground.ts";
+import { renderStrings } from "./strings-render.ts";
 import {
+  kitVideoDrawer,
+  kitVideoWeight,
   VIDEO_LIMITS,
   VIDEO_MODULE,
   VIDEO_QUALITY,
+  VIDEO_WEIGHT,
   type VideoAsk,
   type VideoBlur,
   type VideoKind,
@@ -46,16 +67,18 @@ import {
 } from "./video.ts";
 import { videoBlur, videoFinish } from "./video-finish.ts";
 import { hasVideo, VIDEO_KINDS } from "./video-kinds.ts";
+import type { Size } from "./view.ts";
 
 /* Node's WebAssembly, as much of it as this names (the engine's lib knows no host, as video.ts says) */
 declare const WebAssembly: {
   Module: { new (bytes: Uint8Array): object; imports(module: object): unknown[] };
+  Instance: new (module: object, imports: object) => { readonly exports: object };
 };
 const wasmFile = readFileSync(new URL("./video/video.wasm", import.meta.url));
 const wasm = new WebAssembly.Module(wasmFile);
 const palette = decodePalette("kWnCIwwC47igfOklkTlShq44");
 if (!palette) throw new Error("the test's palette");
-const look = { shape: null, frost: 1, bg: null };
+const look = { shape: null, frost: 1, bg: null, steps: null };
 const glass = { kind: "glass", look } as const;
 const blob = { kind: "blob", look } as const;
 
@@ -73,6 +96,7 @@ describe("the clips' kinds", () => {
   it("are every effect, each drawn by the module, which the address and the editor read from one list", () => {
     expect(EFFECTS.filter(hasVideo)).toEqual([...VIDEO_KINDS]);
     expect(VIDEO_KINDS).toContain("papercut");
+    expect(VIDEO_KINDS).toContain("strings");
     const size = { width: 32, height: 24 };
     for (const kind of VIDEO_KINDS) {
       const ask: VideoAsk = { kind, palette, look, angle: 135, size, fps: 10 };
@@ -210,7 +234,7 @@ describe("videoQuality", () => {
     expect(videoQuality({ ...blob, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.blob);
     /* and a blob takes no soft */
     expect(videoQuality({ ...thin, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.blob);
-    for (const kind of ["glass", "silk", "rosette", "papercut"] as const)
+    for (const kind of ["glass", "silk", "rosette", "papercut", "strings"] as const)
       expect(videoQuality({ kind, look, finish: { soft: 40, grain: 30 } })).toEqual(
         VIDEO_QUALITY[kind]
       );
@@ -305,8 +329,8 @@ describe("the module's frames", () => {
   it("are the blob's, as blobRenderer draws it on its ground", () => {
     for (const blobLook of [
       look,
-      { shape: 3, frost: 2, bg: "#ffeeddaa" },
-      { shape: 999, frost: 0, bg: "#102030" }
+      { shape: 3, frost: 2, bg: "#ffeeddaa", steps: null },
+      { shape: 999, frost: 0, bg: "#102030", steps: null }
     ]) {
       const size = { width: 120, height: 96 };
       const ask: VideoAsk = { kind: "blob", palette, look: blobLook, angle: 90, size, fps: 30 };
@@ -367,13 +391,66 @@ describe("the module's frames", () => {
     }
   });
 
+  it("are the strings', as renderStrings draws them: their own arithmetic, the same bytes", () => {
+    /* the module computes as the CPU drawing does, in double precision, two pixels at a time, its cells past the
+       blob's ends the ground alone as the CPU drawing's are, its sin and cos V8's own: none of its bytes differs from
+       Node's (the strings' threads round right at a half wherever one covers a pixel whole in a color 100 levels off
+       its ground, which sin and cos merely within an ulp of V8's moved) */
+    for (const [size, angle, shape] of [
+      [{ width: 160, height: 90 }, 135, null],
+      [{ width: 96, height: 128 }, 20, 417],
+      [{ width: 202, height: 114 }, 300, 7],
+      [{ width: 18, height: 64 }, 90, 999],
+      [{ width: 320, height: 96 }, 0, 12]
+    ] as const) {
+      const ask: VideoAsk = {
+        kind: "strings",
+        palette,
+        look: { ...look, shape },
+        angle,
+        size,
+        fps: 30
+      };
+      const scene = stringsScene(palette, { angle, shape, bg: null }, size);
+      const drawn = compare(ask, (i, n) => renderStrings(scene, (i * STRINGS_LOOP) / n), 4);
+      expect(drawn, `${size.width}x${size.height} ${angle} ${shape}`).toEqual({
+        worst: 0,
+        share: 0
+      });
+    }
+  });
+
+  it("are the strings' on a ground, as renderStrings draws them where a picture cannot be clear: the same bytes", () => {
+    /* a clip is never clear: a ground that lets the page through laid over the designed one (stringsSolid), as the blob's
+       clips lay theirs over near black or near white; a whole one is its own */
+    for (const [bg, size, angle, shape] of [
+      ["#f4efe6", { width: 160, height: 90 }, 135, null],
+      ["#10203080", { width: 96, height: 128 }, 20, 417],
+      [CLEAR_GROUND, { width: 202, height: 114 }, 300, 7]
+    ] as const) {
+      const ask: VideoAsk = {
+        kind: "strings",
+        palette,
+        look: { ...look, shape, bg },
+        angle,
+        size,
+        fps: 30
+      };
+      const scene = stringsSolid(stringsScene(palette, { angle, shape, bg }, size));
+      expect(scene.alpha).toBe(1);
+      const drawn = compare(ask, (i, n) => renderStrings(scene, (i * STRINGS_LOOP) / n), 4);
+      expect(drawn, `${bg} ${size.width}x${size.height}`).toEqual({ worst: 0, share: 0 });
+    }
+  });
+
   it("loop: the frame a loop on is the first", () => {
     const most = (a: ArrayLike<number>, b: ArrayLike<number>) =>
       Array.from(a).reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
     const size = { width: 64, height: 48 };
-    /* the glass's, the silk's and the papercut's time runs on past the loop, so the module draws the frame after the
-       last: the papercut's is its first exactly, as its motions are whole cycles of its loop */
-    for (const kind of ["glass", "silk", "papercut"] as const) {
+    /* the glass's, the silk's, the papercut's and the strings' time runs on past the loop, so the module draws the
+       frame after the last: the papercut's and the strings' are their first exactly, as their motions are whole
+       cycles of their loops */
+    for (const kind of ["glass", "silk", "papercut", "strings"] as const) {
       const ask: VideoAsk = { kind, palette, look, angle: 135, size, fps: 30 };
       const plan = videoPlan(ask, 2.45, 30, null);
       const drawer = videoDrawer(wasm, ask, plan, VIDEO_QUALITY[kind], true);
@@ -395,6 +472,432 @@ describe("the module's frames", () => {
         `rosette ${shape}`
       ).toBeLessThanOrEqual(2);
     }
+  });
+});
+
+describe("a field effect's clips (kit/)", () => {
+  /* the kit's demo, never an effect of the site, drawn by the kit's own path as any field effect is before it is one:
+     the module's frames against kitRender's, which compute alike in double precision, the kernel kit-gen's C, and
+     every function of Math V8's own, so every byte is the CPU drawing's */
+  const frames = 120;
+  const plan: VideoPlan = {
+    frames,
+    loops: 1,
+    speed: (demo.loop * 30) / frames,
+    seconds: frames / 30
+  };
+  const apart = (
+    def: FieldEffect,
+    size: Size,
+    angle: number,
+    shape: number | null,
+    steps: number | null = null
+  ) => {
+    const ask = { palette, look: { ...look, shape, steps }, angle, size, fps: 30 };
+    const drawer = kitVideoDrawer(wasm, def, ask, plan, VIDEO_QUALITY.glass, true);
+    const scene = kitScene(def, palette, { angle, shape, steps }, size);
+    let worst = 0;
+    let off = 0;
+    for (const i of [0, 7, 61]) {
+      drawer.draw(i);
+      const ours = drawer.rgb();
+      const theirs = kitRender(scene, (i * def.loop) / frames);
+      for (let p = 0; p < size.width * size.height; p++)
+        for (let c = 0; c < 3; c++) {
+          const d = Math.abs(ours[3 * p + c] - theirs[4 * p + c]);
+          worst = Math.max(worst, d);
+          if (d) off++;
+        }
+    }
+    return { worst, off };
+  };
+
+  it("are kitRender's, its arithmetic in C: the same bytes at every size, angle and shape", () => {
+    for (const [size, angle, shape] of [
+      [{ width: 160, height: 90 }, 135, null],
+      [{ width: 96, height: 128 }, 20, 417],
+      [{ width: 202, height: 114 }, 300, 7],
+      [{ width: 18, height: 64 }, 90, 999]
+    ] as const) {
+      expect(
+        apart(demo, size, angle, shape),
+        `${size.width}x${size.height} ${angle} ${shape}`
+      ).toEqual({
+        worst: 0,
+        off: 0
+      });
+    }
+  });
+
+  it("hold every kernel kit-gen wrote, in its order: each kind's frames are kitRender's", () => {
+    /* a module built before `pnpm kit:gen` wrote a kernel draws another kind's in its place, or none */
+    for (const kind of KIT_KERNEL_KINDS)
+      expect(
+        apart(kind === "demo" ? demo : kitEffect(kind), { width: 64, height: 36 }, 135, null),
+        kind
+      ).toEqual({ worst: 0, off: 0 });
+  });
+
+  it("draw an effect the view's steps space at any steps as kitRender does: its levels and hops the scene's", () => {
+    /* the sandstone at its fewest and most steps, and the demo's stripes with a soft shadow and lines by maps, every
+       level the steps space (its sheets' step and hop, its lines', a soft shadow's rise), at both ends of its range */
+    const sheets = demo.sheets!;
+    const spaced: FieldEffect = {
+      ...demo,
+      sheets: {
+        ...sheets,
+        count: null,
+        colors: { hop: 0.13, offset: 0.2, wrap: "cycle" },
+        shadow: { ...sheets.shadow!, steps: 3, spread: 0.6 }
+      },
+      lines: { ...demo.lines!, colors: { hop: 0.21, offset: 0.1, wrap: "mirror" } },
+      steps: { least: 6, most: 30, designed: 12 }
+    };
+    for (const [def, steps] of [
+      [kitEffect("strata"), 8],
+      [kitEffect("strata"), 40],
+      [spaced, 6],
+      [spaced, 30]
+    ] as const)
+      for (const [size, angle, shape] of [
+        [{ width: 96, height: 54 }, 135, null],
+        [{ width: 48, height: 80 }, 20, 417]
+      ] as const)
+        expect(
+          apart(def, size, angle, shape, steps),
+          `${def.kind} ${steps} ${size.width}x${size.height}`
+        ).toEqual({ worst: 0, off: 0 });
+  });
+
+  it("are compiled before any macro of the module's, so a kernel keeps the names its author wrote", () => {
+    /* compile.ts lets a kernel's locals take names such as CS, L0 or INT32_MAX, which a macro of video.c's, of
+       minih264e.h's or of <stdint.h>'s (through <wasm_simd128.h>) defined above the kernels would rewrite, failing the
+       module's build far from the kernel */
+    const source = readFileSync(new URL("./video/video.c", import.meta.url), "utf8");
+    expect(source.match(/^#.*$/m)?.[0]).toBe('#include "kit-kernels.c"');
+  });
+
+  it("shade every recipe as kitRender does: soft and tinted shadows, lit rims, endless stripes, each map", () => {
+    /* a shadow cast up the field's slope (at 240 degrees, against the demo's ramp at these views) covers pixels by
+       many whole shadows, which kitShade runs past its window of sheets: in one product for the ink, each in turn for
+       the sheet below's color, the topmost sixteen */
+    const sheets = demo.sheets;
+    const lines = demo.lines;
+    if (!sheets?.shadow || !sheets.rim || !lines)
+      throw new Error("the demo's sheets, shadow, rim and lines");
+    const recipes: Record<string, Partial<FieldEffect>> = {
+      "soft shadow, endless stripes, cycle, darkest lines": {
+        sheets: {
+          ...sheets,
+          count: null,
+          colors: { hop: 0.13, offset: 0.2, wrap: "cycle" },
+          shadow: { ...sheets.shadow, alpha: 0.5, steps: 3, spread: 0.6 }
+        },
+        lines: { ...lines, colors: "darkest" }
+      },
+      "rim alone, mirror, lines by a map": {
+        sheets: { ...sheets, shadow: null, colors: { hop: 0.37, offset: -0.4, wrap: "mirror" } },
+        lines: {
+          base: 0.03,
+          step: 0.05,
+          half: 0.01,
+          colors: { hop: 0.21, offset: 0.1, wrap: "mirror" },
+          alpha: 0.8
+        }
+      },
+      "lines alone": {
+        sheets: null,
+        lines: {
+          base: 0,
+          step: 0.04,
+          half: 0.006,
+          colors: { hop: 0.09, offset: 0.5, wrap: "clamp" },
+          alpha: 1
+        }
+      },
+      "four layers of a long shadow, three sheets, no rim": {
+        sheets: {
+          ...sheets,
+          count: 3,
+          step: 0.3,
+          rim: null,
+          shadow: { angle: 200, distance: 0.03, alpha: 0.9, swing: 40, steps: 4, spread: 1 }
+        },
+        lines: null
+      },
+      "a light ground, lifted stops": {
+        ground: { pick: "lightest", lightness: 0.6, bound: 0.9, chroma: 0.5, lift: 0.15 },
+        sheets: { ...sheets, count: null, shadow: { ...sheets.shadow, steps: 2, spread: 0.3 } },
+        lines: { ...lines, colors: { hop: 0.5, offset: 0, wrap: "cycle" } }
+      },
+      "stripes and lines finer than a pixel, under whole shadows": {
+        sheets: {
+          ...sheets,
+          count: null,
+          step: 0.004,
+          shadow: { ...sheets.shadow, angle: 240, distance: 0.05, steps: 4, spread: 0.9 }
+        },
+        lines: { ...lines, step: 0.003, half: 0.001 }
+      },
+      "shadows the sheet below or the ground darkened, rims their sheet's own color lit": {
+        /* sheets from the field's middle up on a light ground, so the first sheet's shadow falls on the ground in the
+           ground's color darkened: the demo's first sheet covers the whole box at these views (its level -0.66, the
+           field's lowest -0.634 and -0.601), and a shadow on its near-black ground differs from none by a level or
+           two, on this one by up to 15 (8 Nov 2026: a module taking the ground undarkened, 1,285 channels off here) */
+        ground: { pick: "lightest", lightness: 0.6, bound: 0.9, chroma: 0.5, lift: 0.15 },
+        sheets: {
+          ...sheets,
+          base: 0,
+          step: 0.1,
+          count: 5,
+          shadow: { ...sheets.shadow, tint: "below", depth: 0.5 },
+          rim: { ...sheets.rim, tint: "own", lift: 0.3 }
+        }
+      },
+      "past sixteen whole shadows, each the sheet below darkened": {
+        /* levels from the field's middle, their colors cycling every 73 sheets: shadows then fall from sheets under 0
+           too, the sheet below each still a sheet's color by the map where no count ends the stack, and the sheets of
+           a run past sixteen each take their own, so only the topmost sixteen give kitRender's pixel. Under the demo's
+           base and map no sheet lies under 0 at these views and every one from 11 up takes the last stop (8 Nov 2026:
+           modules compositing the first sixteen, or casting the shadows of sheet 0 and those under it in the ground's
+           color, were exact there and 28,518 and 26,607 channels off here) */
+        sheets: {
+          ...sheets,
+          base: 0,
+          count: null,
+          step: 0.002,
+          colors: { hop: 0.0137, offset: 0.1, wrap: "cycle" },
+          shadow: {
+            ...sheets.shadow,
+            angle: 240,
+            distance: 0.1,
+            steps: 2,
+            spread: 0.5,
+            tint: "below"
+          },
+          rim: { ...sheets.rim, tint: "own" }
+        },
+        lines: null
+      }
+    };
+    for (const [name, recipe] of Object.entries(recipes))
+      for (const [size, angle, shape] of [
+        [{ width: 96, height: 54 }, 135, null],
+        [{ width: 62, height: 98 }, 17, 31]
+      ] as const)
+        expect(apart({ ...demo, ...recipe }, size, angle, shape), `${name} ${angle}`).toEqual({
+          worst: 0,
+          off: 0
+        });
+  });
+
+  it("loop: the frame a loop on is the first, its phases whole cycles of the loop", () => {
+    const ask = { palette, look, angle: 135, size: { width: 64, height: 48 }, fps: 30 };
+    const drawer = kitVideoDrawer(wasm, demo, ask, plan, VIDEO_QUALITY.glass, true);
+    drawer.draw(0);
+    const first = drawer.rgb().slice();
+    drawer.draw(frames);
+    expect(drawer.rgb()).toEqual(first);
+  });
+
+  it("are finished as finishPixels finishes kitRender's frame: the grain exactly, a soft within a level", () => {
+    /* a field effect takes the view's angle and stands opaque, as the strings do, whose underlay is the palette's
+       gradient at that angle; the soft at each resolution its blur runs at, and wide against a short side */
+    const effect = { kind: "strings" as const, look };
+    for (const [size, finish, scale] of [
+      [{ width: 96, height: 54 }, { grain: 60 }, 1],
+      [{ width: 160, height: 90 }, { soft: 60, grain: 30 }, 1],
+      [{ width: 160, height: 90 }, { soft: 100 }, 2],
+      [{ width: 320, height: 180 }, { soft: 100, grain: 100 }, 4],
+      [{ width: 1920, height: 16 }, { soft: 40, grain: 30 }, undefined],
+      [{ width: 18, height: 1080 }, { soft: 40 }, undefined]
+    ] as [Size, EffectFinish, VideoBlur["scale"] | undefined][]) {
+      const angle = 135;
+      const ask = {
+        palette,
+        look,
+        angle,
+        size,
+        fps: 30,
+        finish: videoFinish(palette, effect, angle, finish, size, scale)
+      };
+      const drawer = kitVideoDrawer(wasm, demo, ask, plan, VIDEO_QUALITY.glass, true);
+      const scene = kitScene(demo, palette, { angle, shape: null }, size);
+      const back = blobBackdrop(palette);
+      const underlay = effectUnderlay(palette, effect, angle, finish.soft);
+      let worst = 0;
+      for (const i of [0, 61]) {
+        drawer.draw(i);
+        const ours = drawer.rgb();
+        const done = finishPixels(
+          kitRender(scene, (i * demo.loop) / frames),
+          size,
+          finish,
+          underlay
+        );
+        for (let p = 0; p < size.width * size.height; p++) {
+          const a = done[4 * p + 3] / 255;
+          for (let c = 0; c < 3; c++) {
+            const theirs = Math.round(done[4 * p + c] * a + back[c] * (1 - a));
+            worst = Math.max(worst, Math.abs(ours[3 * p + c] - theirs));
+          }
+        }
+      }
+      expect(worst, `${size.width}x${size.height} ${JSON.stringify(finish)}`).toBeLessThanOrEqual(
+        finish.soft ? 1 : 0
+      );
+    }
+  });
+
+  it("draw none whose kernel the module lacks, or whose design it cannot hold", () => {
+    const ask = { palette, look, angle: 135, size: { width: 32, height: 24 }, fps: 30 };
+    expect(() =>
+      kitVideoDrawer(wasm, { ...demo, kind: "absent" }, ask, plan, VIDEO_QUALITY.glass)
+    ).toThrow(/no kernel for absent/);
+    /* the demo's 28 constants and 1,002 more, past the 1,024 the module keeps */
+    const more: FieldEffect = {
+      ...demo,
+      uniforms: { ...demo.uniforms, more: 1002 },
+      design: seed => {
+        const d = demo.design(seed);
+        return { ...d, U: { ...d.U, more: Array<number>(1002).fill(0) } };
+      }
+    };
+    expect(() => kitVideoDrawer(wasm, more, ask, plan, VIDEO_QUALITY.glass)).toThrow(
+      /reads 1030 constants and sets 7 phases, past the module's 1024 and 64/
+    );
+  });
+
+  it("weigh their kernel's reads and their shading, a shadow's run by the levels it crosses: the demo 49", () => {
+    const sheets = demo.sheets;
+    if (!sheets?.shadow || !sheets.rim) throw new Error("the demo's sheets, shadow and rim");
+    /* a recipe on the demo's kernel, its shadows' run worked out as kit-gen works it out for the weights in use */
+    const weigh = (def: FieldEffect) => kitVideoWeight(def, 112, kitShadowRun(def));
+    expect(KERNEL_COST).toBe(112);
+    expect(weigh(demo)).toBeCloseTo(48.96, 9);
+    /* no shadow and no rim: the kernel read once a pixel */
+    const bare = { ...sheets, shadow: null, rim: null };
+    expect(weigh({ ...demo, sheets: bare })).toBeCloseTo(24.32, 9);
+    /* the dearest recipe measured: four layers of a long shadow in the sheet below's color, rims lit in their own */
+    const shadow = { ...sheets.shadow, distance: 0.1, steps: 4, spread: 1, tint: "below" as const };
+    const dense = {
+      ...sheets,
+      count: null,
+      step: 0.002,
+      shadow,
+      rim: { ...sheets.rim, tint: "own" as const }
+    };
+    expect(weigh({ ...demo, sheets: dense })).toBeCloseTo(85.96, 9);
+    /* the run past kitShade's window is charged by the share of pixels whose shadow crosses more than four levels, its
+       length times the field's slope over the step: none for a shadow longer than the step over levels too far apart
+       on the screen to cross three, nearly all for a shorter one over a field twenty times as steep */
+    const sparse = { ...sheets, shadow: { ...sheets.shadow, distance: 0.13 } };
+    expect(weigh({ ...demo, sheets: sparse })).toBeCloseTo(48.96, 9);
+    const steep = weigh({
+      ...demo,
+      field: (x, y, U, F) => 20 * demo.field(x, y, U, F),
+      sheets: { ...sheets, shadow: { ...sheets.shadow, distance: 0.1 } }
+    });
+    expect(steep).toBeGreaterThan(48.96 + 0.9 * 6);
+    expect(steep).toBeLessThanOrEqual(48.96 + 6);
+  });
+
+  it("weigh each kind by the cost and the shadows' run kit-gen wrote at its place", () => {
+    /* VIDEO_WEIGHT reads kit/gen/kernel-order.ts by the kind's place, never working the run out as the module starts */
+    for (const kind of KIT_KINDS) {
+      const def = kitEffect(kind);
+      const cost = KIT_KERNEL_COSTS[KIT_KERNEL_KINDS.indexOf(kind)];
+      expect(VIDEO_WEIGHT[kind], `${kind}: pnpm kit:gen`).toBe(
+        kitVideoWeight(def, cost, kitShadowRun(def))
+      );
+    }
+  });
+
+  it("weigh a field effect as its file says it measured, while its kernel costs what it cost then", () => {
+    const measured = { ...demo, clipWeight: { weight: 30, cost: 112 } };
+    expect(kitVideoWeight(measured, 112, 0)).toBe(30);
+    /* a kernel changed since: its cost's estimate, until it is measured again */
+    expect(kitVideoWeight(measured, 113, 0)).toBe(kitVideoWeight(demo, 113, 0));
+    /* each site effect's measured weight is for its kernel as kit-gen wrote it, under what its costliest path says */
+    for (const kind of KIT_KINDS) {
+      const def = kitEffect(kind);
+      const cost = KIT_KERNEL_COSTS[KIT_KERNEL_KINDS.indexOf(kind)];
+      if (!def.clipWeight) continue;
+      expect(def.clipWeight.cost, `${kind}: measure again (test/kit-weight.ts)`).toBe(cost);
+      const estimate = kitVideoWeight({ ...def, clipWeight: undefined }, cost, kitShadowRun(def));
+      expect(VIDEO_WEIGHT[kind]).toBeLessThan(estimate);
+    }
+  });
+});
+
+describe("the kernels' Math (video.c's kit_ functions)", () => {
+  it("is V8's: sin, cos, tan, exp, log, atan2, min and max to the bit", () => {
+    /* through the module's kit_math, which applies one to the arguments in params: magnitudes across every exponent
+       (the trigonometric ones past 2^19 pi / 2 too, which V8 reduces by 2 / pi's bits), near the quarter turns, a
+       kernel's few radians, random bit patterns and the special values; 20 million each matched Node 24 and 25 when it
+       was written */
+    const m = new WebAssembly.Instance(wasm, {}).exports as unknown as {
+      memory: { buffer: ArrayBuffer };
+      params: () => number;
+      kit_math: (fn: number, n: number) => number;
+    };
+    let seed = 1;
+    const random = () => {
+      seed = (seed * 48271) % 2147483647;
+      return seed / 2147483647;
+    };
+    const bits = new Uint32Array(2);
+    const double = new Float64Array(bits.buffer);
+    const any = () => {
+      const r = random();
+      if (r < 0.3) return (random() * 2 - 1) * 30;
+      if (r < 0.5) return (random() < 0.5 ? -1 : 1) * Math.exp((random() * 2 - 1) * 700);
+      if (r < 0.7)
+        return ((Math.floor(random() * 2000) - 1000) * Math.PI) / 2 + (random() - 0.5) * 1e-9;
+      bits[0] = random() * 2 ** 32;
+      bits[1] = random() * 2 ** 32;
+      return double[0];
+    };
+    /* where V8's branches turn: the zeros, the infinities, NaN, the least double, exp's last finite and first 0, the
+       tiny arguments' 2^-28, tan's 0.6744, atan's 2^66, a quarter turn */
+    const special = `0 -0 Infinity -Infinity NaN 5e-324 1e-300 709.782712893384 -745.1332191019412
+      1.7976931348623157e308 3.725290298461914e-9 0.6744 73786976294838210000 1.5707963267948966`
+      .trim()
+      .split(/\s+/)
+      .map(Number);
+    const fns: [(...v: number[]) => number, number][] = [
+      [Math.sin, 1],
+      [Math.cos, 1],
+      [Math.tan, 1],
+      [Math.exp, 1],
+      [Math.log, 1],
+      [Math.atan2, 2],
+      [Math.min, 2],
+      [Math.max, 2]
+    ];
+    const params = () => new Float64Array(m.memory.buffer, m.params(), 4096);
+    const apart: string[] = [];
+    for (const [fn, [f, arity]] of fns.entries()) {
+      for (let round = 0; round < 12; round++) {
+        const n = arity === 1 ? 4096 : 2048;
+        const args = Array.from({ length: n * arity }, (_, i) =>
+          round === 0 && i < special.length * arity
+            ? special[Math.floor(i / arity) % special.length] * (i % arity ? -1 : 1)
+            : any()
+        );
+        params().set(args);
+        expect(m.kit_math(fn, n)).toBe(n);
+        const out = params();
+        for (let i = 0; i < n; i++) {
+          const want = arity === 1 ? f(args[i]) : f(args[2 * i], args[2 * i + 1]);
+          if (!Object.is(out[i], want) && !(Number.isNaN(out[i]) && Number.isNaN(want)))
+            apart.push(
+              `${f.name}(${args.slice(arity * i, arity * i + arity)}): ${out[i]}, not ${want}`
+            );
+        }
+      }
+    }
+    expect(apart.slice(0, 5)).toEqual([]);
   });
 });
 
@@ -433,11 +936,20 @@ function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: numbe
   } else if (kind === "rosette") {
     const scene = rosetteScene(P, { angle, shape: shown.shape }, size);
     rgba = opaque(renderRosette(scene, ((i * plan.loops) % plan.frames) / plan.frames), 4);
-  } else {
+  } else if (kind === "papercut") {
     const scene = papercutScene(P, { angle, shape: shown.shape }, size);
     rgba = opaque(renderPapercut(scene, (i * plan.loops * PAPERCUT_LOOP) / plan.frames), 4);
+  } else if (isKitKind(kind)) {
+    const def = kitEffect(kind);
+    const scene = kitScene(def, P, { angle, shape: shown.shape, steps: shown.steps }, size);
+    rgba = opaque(kitRender(scene, (i * plan.loops * def.loop) / plan.frames), 4);
+  } else {
+    /* the strings laid over their designed ground where theirs lets the page through, the clip's backdrop for them */
+    const scene = stringsSolid(stringsScene(P, { angle, shape: shown.shape, bg: shown.bg }, size));
+    rgba = opaque(renderStrings(scene, (i * plan.loops * STRINGS_LOOP) / plan.frames), 4);
   }
-  const back = blobBackdrop(P);
+  const back =
+    kind === "strings" ? stringsDesignedGround(P).map(v => Math.round(v * 255)) : blobBackdrop(P);
   const underlay = effectUnderlay(P, ask, angle, finish.soft);
   const sigma = effectBlurSigma(finish.soft, size);
   let done: ArrayLike<number>;
@@ -490,11 +1002,15 @@ describe("a clip's soft and grain", () => {
   const kinds: [VideoKind, EffectLook][] = [
     ["glass", look],
     ["blob", look],
-    ["blob", { shape: 3, frost: 2, bg: "#ffeeddaa" }],
-    ["blob", { shape: 999, frost: 0, bg: "#102030" }],
+    ["blob", { shape: 3, frost: 2, bg: "#ffeeddaa", steps: null }],
+    ["blob", { shape: 999, frost: 0, bg: "#102030", steps: null }],
     ["silk", { ...look, shape: 417 }],
     ["rosette", look],
-    ["papercut", { ...look, shape: 7 }]
+    ["papercut", { ...look, shape: 7 }],
+    ["strings", look],
+    ["strings", { ...look, bg: "#f4efe6" }],
+    ["strings", { ...look, shape: 417, bg: "#10203080" }],
+    ["strings", { ...look, bg: CLEAR_GROUND }]
   ];
 
   it("are the site's, as finishPixels finishes a frame: the grain alone within a level nearly everywhere", () => {
@@ -537,9 +1053,14 @@ describe("a clip's soft and grain", () => {
         );
         const at = `${kind} ${shown.bg ?? "clear"} ${size.width}x${size.height}`;
         expect(worst, at).toBeLessThanOrEqual(2);
-        /* a blob whose ground lets the page through stands clear as one with none does (fx-finish.ts effectUnderlay) */
+        /* a blob whose ground lets the page through stands clear as one with none does (fx-finish.ts effectUnderlay);
+           the strings on a ground of their own differ from the gradient under its soft edges as no effect's own colors
+           do, and where the blur is wider than the picture the whole picture is that edge: a light ground's channels
+           sit past a level at 1.8% there (18 by 1080, soft 40), within two as everywhere, and at 0.1% at 282 by 502
+           (8 Nov 2026) */
         const clear = kind === "blob" && !(shown.bg && groundParts(shown.bg).alpha === 1);
-        expect(past, at).toBeLessThan(clear ? 0.15 : 0.005);
+        const own = kind === "strings" && shown.bg !== null;
+        expect(past, at).toBeLessThan(clear ? 0.15 : own ? 0.03 : 0.005);
       }
     }
   });
@@ -594,10 +1115,18 @@ describe("videoBlur", () => {
   });
 });
 
-describe("the silk's, the rosette's and the papercut's clips", () => {
+describe("the silk's, the rosette's, the papercut's and the strings' clips", () => {
   it("play a loop of their design: the rosette's by its shape", () => {
     expect(videoLoop({ kind: "silk", look })).toBe(SILK_LOOP);
     expect(videoLoop({ kind: "papercut", look })).toBe(PAPERCUT_LOOP);
+    expect(videoLoop({ kind: "strings", look })).toBe(STRINGS_LOOP);
+    /* the strings' loop is a minute, so at speed 1 a clip is one whole loop, never nudged to fit */
+    expect(videoPlan({ kind: "strings", look }, 1, 30, null)).toEqual({
+      frames: 1800,
+      loops: 1,
+      speed: 1,
+      seconds: 60
+    });
     expect(videoLoop({ kind: "rosette", look })).toBe(rosetteDesign(null).loop);
     expect(videoLoop({ kind: "rosette", look: { ...look, shape: 417 } })).toBe(
       rosetteDesign(417).loop

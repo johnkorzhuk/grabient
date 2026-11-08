@@ -45,14 +45,23 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the color reader, as "/", took it from 291.2 to 293.5 on 3 Nov 2026 */
   /* it stood at 294.1 at the effects' finished SVG (d5cdb607, 3 Nov 2026), and papercut as an effect (its name and
      settings, as every page, and a card's strip offering the copies and links of the kind it plays) took it to 294.2 */
-  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 295 },
+  /* the sandstone's steps (8 Nov 2026, John: "what if we moved the density to steps"): which effects take the view's
+     steps and their range (engine/effect.ts EFFECT_KINDS, from kit/gen/kind-steps.ts), an effect's look's steps read
+     from its address and written back (parseEffect, effectSteps, effectLookParts), its still's name naming them, and a
+     list's summary and history taking a change of them (features/list/ListAppearance.tsx, appearance.ts viewSince),
+     took it past 295 to 295.16; the Steps field itself loads with the effect's fields (editor/GlassControls.tsx) */
+  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 296 },
   /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
      to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
   /* the silk and the rosette as effects (their names and settings, as every page) took it from 285.4 to 286.0 on
      2 Nov 2026 */
   /* soft and grain, as "/", took it from 286.3 to 288.1 on 2 Nov 2026 */
   /* the color reader, as "/", took it from 288.6 to 290.9 on 3 Nov 2026 */
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 292 },
+  /* the field effects, the zen garden and the sandstone (8 Nov 2026): their kinds, the facts they share and their
+     names (engine/kit/kinds.ts, names.ts), which every page's start carries, as engine/effect.ts reads them; their
+     definitions, drawing and players load as one shows. It stood at 292.0 with the strings, at the budget, and with
+     them and the sandstone's steps it stands at 292.6 */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 293 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look
      each palette was saved in, an effect and its settings (features/list/appearance.ts's lookEffect and cardPlays,
@@ -65,7 +74,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     /* the color reader, as "/", took it from 283.2 to 285.5 on 3 Nov 2026 */
     /* it stood at 286.1 at the effects' finished SVG (d5cdb607, 3 Nov 2026), and papercut, as /palettes, took it to
        286.2 */
-    budget: 287
+    /* the sandstone's steps, as /palettes (8 Nov 2026), took it past 287 to 287.18 */
+    budget: 288
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
@@ -122,16 +132,31 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      checks read for words on them (features/examples/paint.ts), took it from 297.5 to 299.9; soft and grain on its
      pictures' looks (the soft gradient and the grain's layer of lib/picture.ts, the gradient a soft effect's edges thin
      to, editor/effect-under.ts, and the reach of a soft picture's blur its checks read) to 301.3 */
-  "a palette's examples": { route: "src/routes/$id/examples.tsx", budget: 302 },
+  "a palette's examples": {
+    route: "src/routes/$id/examples.tsx",
+    /* what it awaits before it hydrates (client.tsx, 8 Nov 2026): the hero's module and the field effects' colors, their
+       definitions and scene with them (kit/colors.ts), which its checks read for words on them, asked for at once.
+       Counted here, with the zen garden's and the sandstone's definitions (kit/fields/zen.ts, strata.ts) and the
+       sandstone's steps, they take it from 291.2 to 296.8; it stood at 299.4 with two more field effects' definitions
+       the same day */
+    also: ["src/features/examples/hero.ts", "../../packages/engine/src/kit/colors.ts"],
+    budget: 302
+  },
   /* the silk and the rosette as effects took it from 224.7 to 225.1 on 2 Nov 2026, as every page; soft and grain (the
      view's parts in every address, the header's swatch) from 225.2 to 226.6 */
   /* the color reader, as "/", took it from 226.8 to 229.2 on 3 Nov 2026 */
-  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 230 },
+  /* the strings (5 Nov 2026) took it to 230.1, over, and the field effects with the sandstone's steps (8 Nov 2026), as
+     "/collections", to 230.7 */
+  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 231 },
   /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026, and over the effects (as /palettes)
      to 251.0 on 3 Nov 2026 */
   /* the color reader, as "/", took it from 251.0 to 253.4 on 3 Nov 2026; 253.99 at 7f486b89, and on 4 Nov 2026 the
      lists' edge times (features/gallery/load.ts), none of its code, renamed chunks it imports: 19 bytes more gzipped */
-  "/about": { route: "src/routes/about.tsx", budget: 255 }
+  /* the strings' ground (8 Nov 2026, John: "also strings needs a way to accept a bgc"): which effects take a ground
+     and what none is (engine/effect.ts EFFECT_KINDS' ground), and a ground read, kept and written for any effect that
+     takes one (effectGround, CLEAR_GROUND, effectBare, parseEffect, effectLook, effectLookParts, fxStillKey), 0.12 KB
+     of the start every page shares, took it past 255 to 255.13 */
+  "/about": { route: "src/routes/about.tsx", budget: 256 }
 };
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
 const EVERY_PAGE = ["src/app/tab-icon.ts"];
@@ -171,21 +196,43 @@ const BUDGETS = {
   // in, engine/effect-embed.ts effectRuleCss), and formats.ts drawing its PNGs without ui/figure.ts, which the bundler
   // now writes as a chunk of its own, took it from 1457.0 to 1458.2. The editor's PNG of a soft angular gradient drawn
   // as the canvas's own conic gradient (formats.ts gradientCanvas, 7 Nov 2026), about 0.2 of code and the rest its
-  // chunk's new name, took it from 1458.5 to 1459.0 to 1459.2, by the build
-  worker: 1460,
+  // chunk's new name, took it from 1458.5 to 1459.0 to 1459.2, by the build. The strings (5 Nov 2026): their model,
+  // CPU drawing, SVG tracer (engine/strings.ts, strings-render.ts, strings-svg.ts and svg-fit.ts) and clips' plan,
+  // which the Worker's SVG, CSS, PNG, cards and MP4 load with the first file of them asked for, took it to 1464.5. The
+  // field effects (8 Nov 2026: the zen garden and the sandstone): the kit's scene, shading, CPU drawing, tracer and
+  // SVG writers (engine/kit/scene.ts, shade.ts, render.ts, trace.ts, svg.ts), their definitions (kit/registry.ts,
+  // fields/), their colors for the examples page (kit/colors.ts) and the clips' kit path, which the Worker's SVG, CSS,
+  // PNG, cards, MP4 and examples page load with the first of them asked for, and their names and entries in the tables
+  // that take one for every effect, took it from 1464.7 to 1479.4; their kernels' GLSL and WGSL, which no server draws,
+  // stay out of it (kit/kernels.ts). With two more field effects the same day it stood at 1480.7 to 1482.4, by the
+  // build, past 1481, when this was raised by 2 to stand the builds' spread over it, and it was left so when they
+  // went
+  worker: 1483,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
   // (engine/video/video.wasm, 137 KB, 44.5 gzipped) is WebAssembly, which this counts no more than the Worker's.
-  // The papercut's clips put its scene in it too (engine/papercut.ts's levels, relief and colors): 21.9 KB on 3 Nov 2026
-  mp4Worker: 23,
+  // The papercut's clips put its scene in it too (engine/papercut.ts's levels, relief and colors): 21.9 KB on 3 Nov 2026.
+  // The strings' clips, their scene (engine/strings.ts's designs, colors and levels' span): 23.5 KB on 5 Nov 2026.
+  // The field effects' clips (8 Nov 2026): the kit's drawing of a frame through the module (engine/video.ts kitDraw,
+  // kit/scene.ts, the shadow's steps of kit/shade.ts), the definitions it draws and weighs a clip by (kit/registry.ts,
+  // fields/: the zen garden's and the sandstone's) and the sandstone's steps (a clip's levels as the view's steps space
+  // them, kit/scene.ts kitSteps and the scene's steps and hops, the soft shadow's rise from them, video.ts kitDraw, and
+  // an effect's steps read from its address, engine/effect.ts parseEffect, effectSteps): 27.5 KB. With two more field
+  // effects' definitions it stood at 30.003 the same day, past 30, when this was raised, and it was left so when they
+  // went
+  mp4Worker: 31,
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
   // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks. The
   // color reader (engine/written-color.ts), which the search, the pages' titles and the MCP read, took it from 237.5
   // to 239.7 on 3 Nov 2026. Titles naming the effect a palette plays in its style's place (engine/effect.ts's
   // EFFECT_WORDS and effectView, the pages' metadata, the MCP's cards and a collection's files) took it from 240.9 to
-  // 241.2 on 6 Nov 2026
-  workerStart: 242,
+  // 241.2 on 6 Nov 2026. What each effect hands over in each form (engine/effect.ts's EFFECT_KINDS, 5 Nov 2026,
+  // their reasons apart in effect-why.ts, which no start loads) and a sixth effect took it to 241.3. The field effects
+  // (8 Nov 2026: their kinds, the facts they share and their names, engine/kit/kinds.ts and names.ts, the steps the
+  // sandstone takes, and the tables that take an entry for each, the cards' drawings among them) took it from 241.8 to
+  // 242.7
+  workerStart: 243,
   // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
   // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026). Soft and
   // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders

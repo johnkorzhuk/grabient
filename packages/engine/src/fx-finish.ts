@@ -1,7 +1,8 @@
 /* An effect's soft and grain as every format draws them, the site's own picture the measure: the stage blurs an
    effect's layer by a Gaussian whose sigma is a share of the picture's longer side (view.ts effectSoftShare; Editor.tsx
    fxBlur, a CSS blur in cqmax), the blur reading clear past the picture's edges, so they go to the palette's gradient
-   laid under the layer (the blob takes no soft: effect.ts effectFinish), and lays the grain's tile over all of it, a
+   laid under the layer (the blob takes no soft: effect.ts effectFinish; none under a picture that lets the page
+   through, whose edges go clear), and lays the grain's tile over all of it, a
    speck a pixel from the picture's corner (grain.ts, lib/picture.ts). Here are the parts a file, a copy, a clip and a
    shader draw it from alike: the sigma, the gradient under, the blur of a picture's pixels and the grain over them,
    and the SVG that does the same with a filter a browser runs and Figma's importer reads as a layer blur, its grain as
@@ -9,7 +10,7 @@
    picture). */
 import { hexBytes } from "./color.ts";
 import { type Stop, sampleStops } from "./curve.ts";
-import { EFFECT_KINDS, type Effect, type EffectKind, groundParts } from "./effect.ts";
+import { EFFECT_KINDS, type Effect, type EffectKind, effectBare } from "./effect.ts";
 import { GRAIN_SIDE, grainAlpha, grainSpeck, grainSvg } from "./grain.ts";
 import type { Palette } from "./palette.ts";
 import { drawnStops } from "./soft.ts";
@@ -47,17 +48,17 @@ export interface Underlay {
   /** each stop's place along the line, where the soft placed them */
   at?: number[];
 }
-/** The gradient under an effect, or null where nothing is under it: a blob whose ground lets the page through, or
-    that has none, stands clear, as its files are clear. Laid under a ground that lets it through, the gradient would
-    show through the ground everywhere, where the site shows the page. */
+/** The gradient under an effect, or null where nothing is under it: a picture that lets the page through (effect.ts
+    effectBare: a blob whose ground does, or that has none, and the strings on a ground that does) stands clear, as its
+    files are clear, its soft edges thinning toward the page. Laid under a ground that lets it through, the gradient
+    would show through the ground everywhere, where the site shows the page. */
 export function effectUnderlay(
   P: Palette,
   effect: Pick<Effect, "kind" | "look">,
   angle: number,
   soft?: number | null
 ): Underlay | null {
-  if (effect.kind === "blob" && !(effect.look.bg && groundParts(effect.look.bg).alpha === 1))
-    return null;
+  if (effectBare(effect.kind, effect.look)) return null;
   const drawn = drawnStops(sampleStops(P, Math.max(DEFAULT_STEPS, P.anchors.length)), {
     style: "linearGradient",
     soft: soft ?? null

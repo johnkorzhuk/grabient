@@ -11,7 +11,8 @@ declare const __EFFECT_EMBEDS__: {
   readonly silk: string;
   readonly rosette: string;
   readonly papercut: string;
-};
+  readonly strings: string;
+} & Readonly<Record<import("@grabient/engine/kit/kinds.ts").KitKind, string>>;
 
 interface Window {
   /** the page's messages, asked for by the head as the document is read (routes/__root.tsx) */

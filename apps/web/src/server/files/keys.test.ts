@@ -162,9 +162,36 @@ test("an effect's card and picture are kept under its look, apart from the gradi
     key: `/${seed}.png?angle=90&bg=%23101014&h=300&style=blob&w=400`,
     acrossBuilds: false
   });
+  /* the strings' ground where their address names one, a clear one too; none keeps the key they had */
+  expect(written(`/${seed}.png?style=strings&bg=%23f4efe6&w=400&h=300`)?.key).toBe(
+    `/${seed}.png?angle=90&bg=%23f4efe6&h=300&style=strings&w=400`
+  );
+  expect(written(`/api/og?seed=${seed}&style=strings&bg=%2300000000`)?.key).toBe(
+    `/api/og?angle=90&bg=%2300000000&h=630&seed=${seed}&style=strings&w=1200`
+  );
+  expect(written(`/${seed}.css?style=strings&bg=%2310203080`)?.key).toBe(
+    `/${seed}.css?angle=90&bg=%2310203080&style=strings`
+  );
+  expect(written(`/${seed}.png?style=strings&w=400&h=300`)?.key).toBe(
+    `/${seed}.png?angle=90&h=300&style=strings&w=400`
+  );
+  /* an effect that takes no ground keeps none in its key */
+  expect(written(`/${seed}.css?style=silk&bg=%23f4efe6`)?.key).toBe(
+    `/${seed}.css?angle=90&style=silk`
+  );
   // the glass's shape draws other ribs and discs
   expect(written(`/api/og?seed=${seed}&style=glass&shape=12`)?.key).not.toBe(glass?.key);
   expect(written(`/${seed}.png?style=glass`)?.key).not.toBe(written(`/${seed}.png`)?.key);
+  // a field effect's picture within a card's pixels at the shape asked, a glass's at the size asked
+  expect(written(`/${seed}.png?style=zen&w=2400&h=1260`)?.key).toBe(
+    `/${seed}.png?angle=90&h=630&style=zen&w=1200`
+  );
+  expect(written(`/${seed}.png?style=strata&size=1000x1000`)?.key).toBe(
+    `/${seed}.png?angle=90&h=869&style=strata&w=869`
+  );
+  expect(written(`/${seed}.png?style=glass&w=2400&h=1260`)?.key).toBe(
+    `/${seed}.png?angle=90&h=1260&style=glass&w=2400`
+  );
 });
 
 test("an effect's script is one for every setting, its stylesheet one for every look", () => {
@@ -196,6 +223,37 @@ test("an effect's script is one for every setting, its stylesheet one for every 
   );
   expect(written(`/${seed}.png?style=blob&grain=20`)?.key).not.toBe(
     written(`/${seed}.png?style=blob`)?.key
+  );
+});
+
+test("the sandstone's files are kept under its steps, which are its look's, and another effect's under none", () => {
+  const seed = "kS7Q8Yy5S_SChv0";
+  for (const extension of ["css", "png", "svg", "md", "json"])
+    expect(written(`/${seed}.${extension}?style=strata&steps=12`)?.key, extension).toMatch(
+      /[?&]steps=12(&|$)/
+    );
+  expect(written(`/${seed}.css?style=strata&steps=12`)?.key).toBe(
+    `/${seed}.css?angle=90&steps=12&style=strata`
+  );
+  /* its designed steps are the steps none names, and one past the range the most */
+  expect(written(`/${seed}.css?style=strata&steps=28`)?.key).toBe(
+    written(`/${seed}.css?style=strata`)?.key
+  );
+  expect(written(`/${seed}.png?style=strata&steps=99`)?.key).toBe(
+    written(`/${seed}.png?style=strata&steps=40`)?.key
+  );
+  expect(written(`/api/og?seed=${seed}&style=strata&steps=12`)?.key).toMatch(/[?&]steps=12(&|$)/);
+  expect(written(`/api/og?seed=${seed}&style=strata&steps=28`)?.key).toBe(
+    written(`/api/og?seed=${seed}&style=strata`)?.key
+  );
+  /* the script reads them from its own address: one for every setting */
+  expect(written(`/${seed}.js?style=strata&steps=12`)?.key).toBe(`/${seed}.js?style=strata`);
+  /* the zen garden takes none: its files are the same whatever steps an address names */
+  expect(written(`/${seed}.css?style=zen&steps=12`)?.key).toBe(
+    written(`/${seed}.css?style=zen`)?.key
+  );
+  expect(written(`/${seed}.png?style=zen&steps=12`)?.key).toBe(
+    written(`/${seed}.png?style=zen`)?.key
   );
 });
 
@@ -261,6 +319,9 @@ test("a palette's Markdown and JSON are kept under the effect they name, how it 
     });
     expect(written(`/${seed}.${format}?style=blob&bg=%23101014`)?.key).toBe(
       `/${seed}.${format}?bg=%23101014&style=blob`
+    );
+    expect(written(`/${seed}.${format}?style=strings&bg=%23f4efe6`)?.key).toBe(
+      `/${seed}.${format}?bg=%23f4efe6&style=strings`
     );
     expect(written(`/${seed}.${format}?style=glass`)?.key).not.toBe(
       written(`/${seed}.${format}`)?.key

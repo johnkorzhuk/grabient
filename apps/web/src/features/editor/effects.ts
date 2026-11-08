@@ -39,11 +39,12 @@ const DEFAULT_KEPT: Kept = {
   settings: eachKind(() => DEFAULT_SETTINGS)
 };
 
-/** Settings as stored or set: each part in its bounds. Stored browser data is untrusted. */
-const sane = (v: Partial<EffectSettings> | null | undefined): EffectSettings => ({
+/** An effect's settings as stored or set: each part in its bounds, its steps those it takes. Stored browser data is
+    untrusted. */
+const sane = (kind: EffectKind, v: Partial<EffectSettings> | null | undefined): EffectSettings => ({
   speed: effectSpeed(v?.speed ?? 1),
   fps: effectFps(v?.fps),
-  look: effectLook(v?.look)
+  look: effectLook(v?.look, kind)
 });
 
 function readKept(): Kept {
@@ -52,7 +53,7 @@ function readKept(): Kept {
     if (!k) return DEFAULT_KEPT;
     return {
       kind: k.kind === null ? null : isEffect(k.kind) ? k.kind : "glass",
-      settings: eachKind(kind => sane(k.settings?.[kind]))
+      settings: eachKind(kind => sane(kind, k.settings?.[kind]))
     };
   } catch {
     return DEFAULT_KEPT;
@@ -80,7 +81,7 @@ export interface Effects {
   choose: (kind: EffectKind | null) => void;
   /** the reader changes how an effect plays */
   set: (kind: EffectKind, part: Partial<Omit<EffectSettings, "look">>) => void;
-  /** the reader changes an effect's look: its shape, the blob's frost and ground */
+  /** the reader changes an effect's look: its shape, the blob's frost and ground, the sandstone's steps */
   look: (kind: EffectKind, part: Partial<EffectLook>) => void;
   /** another shape for an effect, other than the one shown */
   shuffle: (kind: EffectKind) => void;
@@ -166,11 +167,11 @@ export function createEffects(
       commit({ ...now, kind: next });
     },
     set(k, part) {
-      commit(withSettings(k, sane({ ...now.settings[k], ...part })));
+      commit(withSettings(k, sane(k, { ...now.settings[k], ...part })));
     },
     look(k, part) {
       const s = now.settings[k];
-      commit(withSettings(k, sane({ ...s, look: { ...s.look, ...part } })));
+      commit(withSettings(k, sane(k, { ...s, look: { ...s.look, ...part } })));
     },
     shuffle(k) {
       const s = now.settings[k];

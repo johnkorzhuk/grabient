@@ -330,7 +330,11 @@ export function ListAppearance() {
     ];
     if (v.effect)
       return [
-        effectSummary(v.effect, v.effect.kind === "blob" || v.angle === "auto" ? null : v.angle),
+        effectSummary(
+          v.effect,
+          v.effect.kind === "blob" || v.angle === "auto" ? null : v.angle,
+          v.effect.look.steps
+        ),
         ...finish
       ]
         .filter(Boolean)

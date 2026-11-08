@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { createFileRoute } from "@tanstack/solid-router";
 
-// A palette's effect (fluted glass, blob, silk, rosette, papercut) as a script any page embeds; its answer loads with
+// A palette's effect (engine/effect.ts's EFFECTS) as a script any page embeds; its answer loads with
 // the first script asked for.
 export const Route = createFileRoute("/{$seed}.js/")({
   server: {

@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
 import { decodePalette } from "@grabient/engine/codec.ts";
+import { EFFECTS, isVectorKind } from "@grabient/engine/effect.ts";
+import { KIT_DRAWINGS } from "@grabient/engine/kit/gen/drawings.ts";
+import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
+import { kitEffect } from "@grabient/engine/kit/registry.ts";
 import { VIDEO_MODULE, VIDEO_QUALITY, videoFit, videoFrames } from "@grabient/engine/video.ts";
 import { videoFinish } from "@grabient/engine/video-finish.ts";
 import type { Env } from "@grabient/server/env.ts";
@@ -337,19 +341,25 @@ describe("a palette's MP4", () => {
       parts.run
     );
     expect(gradient.status).toBe(404);
-    /* every effect engine/video-kinds.ts lists, the papercut's among them */
+    /* every effect engine/video-kinds.ts lists, the papercut's and the strings' among them, then each field effect
+       (kit/kinds.ts), the last after "or" */
+    const styles = ["glass", "blob", "silk", "rosette", "papercut", "strings", ...KIT_KINDS].map(
+      kind => `style=${kind}`
+    );
     expect(await gradient.text()).toBe(
-      "An MP4 plays an effect: style=glass, style=blob, style=silk, style=rosette or style=papercut."
+      `An MP4 plays an effect: ${styles.slice(0, -1).join(", ")} or ${styles.at(-1)}.`
     );
     expect((await seedMp4Answer(get("/nothing.mp4"), env, keep, parts.run)).status).toBe(404);
     expect(parts.jobs.length).toBe(0);
   });
 
-  test("draws the silk, the rosette and the papercut, each its own clip", async () => {
-    const { env, keep } = world();
+  test("draws every vector effect, the field effects among them, each its own clip", async () => {
+    /* more clips than an address draws an hour (limits/config.ts videoRender): its window gone */
+    const { env, keep } = world({ windows: { videoRender: 0 } });
     const parts = runner();
     const tags = [];
-    for (const style of ["silk", "rosette", "papercut"]) {
+    const styles = EFFECTS.filter(isVectorKind);
+    for (const style of styles) {
       const answer = await seedMp4Answer(
         get(`/${SEED}.mp4?style=${style}&angle=135&size=64x48&fps=10&duration=2`),
         env,
@@ -360,8 +370,8 @@ describe("a palette's MP4", () => {
       expect(boxTypes(await bytes(answer))).toEqual(["ftyp", "moov", "mdat"]);
       tags.push(answer.headers.get("ETag"));
     }
-    expect(parts.jobs.map(job => job.kind)).toEqual(["silk", "rosette", "papercut"]);
-    expect(new Set([...tags, (await etagOf(env, keep, CLIP)) ?? ""]).size).toBe(4);
+    expect(parts.jobs.map(job => job.kind)).toEqual(styles);
+    expect(new Set([...tags, (await etagOf(env, keep, CLIP)) ?? ""]).size).toBe(styles.length + 1);
     const about = async (style: string) =>
       (
         await (
@@ -376,6 +386,8 @@ describe("a palette's MP4", () => {
     expect(await about("silk")).toContain("silk dyed in its colors");
     expect(await about("rosette")).toContain("a rosette of petals in its colors");
     expect(await about("papercut")).toContain("sheets of paper in its colors");
+    expect(await about("strings")).toContain("threads in its colors");
+    for (const kind of KIT_KINDS) expect(await about(kind)).toBe(kitEffect(kind).about.video);
   });
 
   test("names its soft and grain in its key, its drawing and its first frame, a clip with neither keeping its key", async () => {
@@ -392,10 +404,17 @@ describe("a palette's MP4", () => {
       );
       return `"video:${Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("")}"`;
     };
-    const fit = videoFit({ kind: "glass", look: { shape: 0, frost: 1, bg: null } }, 1, 10, 2, {
-      width: 64,
-      height: 48
-    });
+    const fit = videoFit(
+      { kind: "glass", look: { shape: 0, frost: 1, bg: null, steps: null } },
+      1,
+      10,
+      2,
+      {
+        width: 64,
+        height: 48
+      }
+    );
+    /* a look keyed as it was before an effect took steps: steps only where the look names them */
     const plain = [
       SEED,
       "glass",
@@ -407,7 +426,7 @@ describe("a palette's MP4", () => {
     ];
     expect(await etagOf(env, keep, CLIP)).toBe(await keyOf([VIDEO_QUALITY.glass, ...plain]));
     /* a blob takes no soft: its clip with one is the clip with none, keyed and coded as it was */
-    const blobLook = { shape: null, frost: 1, bg: null };
+    const blobLook = { shape: null, frost: 1, bg: null, steps: null };
     const blobFit = videoFit({ kind: "blob", look: blobLook }, 1, 10, 2, { width: 64, height: 48 });
     const blobKey = (quality: unknown, finish: unknown[]) =>
       keyOf([
@@ -415,7 +434,7 @@ describe("a palette's MP4", () => {
         SEED,
         "blob",
         90,
-        blobLook,
+        { shape: null, frost: 1, bg: null },
         blobFit.size,
         blobFit.fps,
         blobFit.plan,
@@ -426,6 +445,56 @@ describe("a palette's MP4", () => {
     expect(await etagOf(env, keep, `${blobClip}&soft=40`)).toBe(
       await blobKey(VIDEO_QUALITY.blob, [])
     );
+    /* a field effect's clip is kept under the kit's drawing too, as its cards and pictures are: a new pick or a change
+       to the kit's shading is a new clip */
+    const zenLook = { shape: null, frost: 1, bg: null, steps: null };
+    const zenFit = videoFit({ kind: "zen", look: zenLook }, 1, 10, 2, { width: 64, height: 48 });
+    expect(await etagOf(env, keep, `/${SEED}.mp4?style=zen&size=64x48&fps=10&duration=2`)).toBe(
+      await keyOf([
+        VIDEO_QUALITY.zen,
+        SEED,
+        "zen",
+        90,
+        { shape: null, frost: 1, bg: null },
+        zenFit.size,
+        zenFit.fps,
+        zenFit.plan,
+        KIT_DRAWINGS.zen
+      ])
+    );
+    /* the sandstone's clip at other than its designed steps is keyed by them, and at its designed steps as every other
+       effect's, and a zen garden asked steps it takes none of is the zen garden's clip */
+    const strataAt = (steps: string) =>
+      etagOf(env, keep, `/${SEED}.mp4?style=strata&size=64x48&fps=10&duration=2${steps}`);
+    const strataKey = (look: Record<string, unknown>) => {
+      const strataFit = videoFit(
+        { kind: "strata", look: { shape: null, frost: 1, bg: null, steps: null } },
+        1,
+        10,
+        2,
+        { width: 64, height: 48 }
+      );
+      return keyOf([
+        VIDEO_QUALITY.strata,
+        SEED,
+        "strata",
+        90,
+        look,
+        strataFit.size,
+        strataFit.fps,
+        strataFit.plan,
+        KIT_DRAWINGS.strata
+      ]);
+    };
+    expect(await strataAt("")).toBe(await strataKey({ shape: null, frost: 1, bg: null }));
+    expect(await strataAt("&steps=28")).toBe(await strataAt(""));
+    expect(await strataAt("&steps=12")).toBe(
+      await strataKey({ shape: null, frost: 1, bg: null, steps: 12 })
+    );
+    expect(await strataAt("&steps=12")).not.toBe(await strataAt("&steps=13"));
+    expect(
+      await etagOf(env, keep, `/${SEED}.mp4?style=zen&size=64x48&fps=10&duration=2&steps=12`)
+    ).toBe(await etagOf(env, keep, `/${SEED}.mp4?style=zen&size=64x48&fps=10&duration=2`));
     const still = new URL(
       (await seedMp4Answer(get(finished), env, keep, parts.run)).headers.get("Location") ?? ""
     );
@@ -444,7 +513,7 @@ describe("a palette's MP4", () => {
     expect(parts.jobs.map(job => job.finish)).toEqual([
       videoFinish(
         palette,
-        { kind: "glass", look: { shape: null, frost: 1, bg: null } },
+        { kind: "glass", look: { shape: null, frost: 1, bg: null, steps: null } },
         135,
         { soft: 40, grain: 30 },
         {

@@ -4,7 +4,14 @@
 import { bandsSearch, bandsStill, isBands, parseBands } from "@grabient/engine/bands.ts";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { hexBytes } from "@grabient/engine/color.ts";
-import { type Effect, type EffectFinish, parseEffect } from "@grabient/engine/effect.ts";
+import {
+  type Effect,
+  type EffectFinish,
+  type EffectKind,
+  parseEffect
+} from "@grabient/engine/effect.ts";
+import { KIT_DRAWINGS } from "@grabient/engine/kit/gen/drawings.ts";
+import { kitRecord } from "@grabient/engine/kit/kinds.ts";
 import { finishOf, viewSearch } from "@grabient/engine/view.ts";
 import { MARK_FIXED } from "@grabient/ui/mark.ts";
 import { type Saved, viewAt } from "../files/address.ts";
@@ -20,30 +27,42 @@ import {
 } from "./paint.ts";
 import { encodePng } from "./png.ts";
 import { answerPicture, type Keep, type PictureEnv } from "./serve.ts";
-import { cardSize, pictureSize } from "./size.ts";
+import { cardSize, effectBounds, pictureSize } from "./size.ts";
 
 /** The animated SVG's drawing, which a change to engine/bands.ts that moves its pixels counts up, so no card or picture
     drawn before is kept for it. */
 const BANDS_DRAWING = "bands-1";
 /** The effects' drawings, counted up as the bands' is by a change that moves their pixels (engine/glass.ts and
-    glass-render.ts, engine/blob.ts). */
+    glass-render.ts, engine/blob.ts); a field effect's its own, which kit:gen writes from what draws it
+    (engine/kit/gen/drawings.ts), so a new file for one is a new drawing of it alone. */
 const EFFECT_DRAWING = {
   glass: "glass-2",
   blob: "blob-3",
   silk: "silk-1",
   rosette: "rosette-1",
-  papercut: "papercut-1"
-} as const;
+  papercut: "papercut-1",
+  strings: "strings-1",
+  ...kitRecord(kind => `${kind}-${KIT_DRAWINGS[kind]}`)
+} as const satisfies Record<EffectKind, string>;
 /** The blob's picture alone, counted apart from its cards, which stay solid: it is clear where its ground lets the
     page through. */
 const BLOB_PICTURE = "clear-1";
 
 /** Everything an effect's first frame depends on: the glass's colors are its palette's, its ribs turn with the angle
-    and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and it has no angle. */
+    and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and it has no angle; an
+    effect that takes steps (the sandstone) its steps where its look names them, so one at its designed steps keeps
+    the key it had before it took them, and one that takes a ground (the strings) its ground where its look names one,
+    so one on its designed ground keeps its key too. */
 const effectParts = (effect: Effect, angle: number) =>
   effect.kind === "blob"
     ? [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg]
-    : [EFFECT_DRAWING[effect.kind], angle, effect.look.shape ?? 0];
+    : [
+        EFFECT_DRAWING[effect.kind],
+        angle,
+        effect.look.shape ?? 0,
+        ...(effect.look.steps === null ? [] : [`steps:${effect.look.steps}`]),
+        ...(effect.look.bg === null ? [] : [`bg:${effect.look.bg}`])
+      ];
 /** The finish over an effect's frame (engine/fx-finish.ts), counted up by a change to it that moves its pixels. */
 const EFFECT_FINISH = "fx-finish-1";
 /* A soft or grained effect's own part of its key: none for a plain one, whose key, and the pictures kept under it,
@@ -167,9 +186,10 @@ export function palettePicture(
   params: URLSearchParams,
   keep: Keep
 ): Promise<Response> {
-  const { width, height } = pictureSize(params);
-  // style=glass, blob, silk or rosette: the effect's first frame alone, soft and grained as the address asks
   const effect = parseEffect(params);
+  /* an effect's within its kind's bounds (a field effect's within a card's pixels), as the edge's key names it */
+  const { width, height } = pictureSize(params, effect ? effectBounds(effect.kind) : undefined);
+  // style=glass, blob, silk or rosette: the effect's first frame alone, soft and grained as the address asks
   if (effect) {
     const view = viewAt(params, found.palette.anchors.length);
     const finish = finishOf(view);

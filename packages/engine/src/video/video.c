@@ -1,17 +1,27 @@
 /* A palette's effect as H.264, in one module with no C library and no imports, for the Worker and the browser alike:
    the fluted glass's, the blob's, the silk's and the rosette's pixels (engine/glass-render.ts's glassRenderer,
    engine/blob.ts's blobRenderer, silk-render.ts's renderSilk and rosette-render.ts's renderRosette, their arithmetic in
-   single precision and wasm SIMD, within a level of theirs) and the papercut's (papercut-render.ts's renderPapercut,
-   its own double precision two pixels at a time, its bytes, its sin, cos and exp within an ulp of V8's), finished with
-   the soft and the grain as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn,
-   and minih264 (CC0, lieff/minih264, patched for the level, the Constrained Baseline flags and the colors' VUI; its
-   SSE2 code through emscripten's SSE headers) to code them.
+   single precision and wasm SIMD, within a level of theirs) and the papercut's and the strings' (papercut-render.ts's
+   renderPapercut and strings-render.ts's renderStrings, their own double precision two pixels at a time, their bytes,
+   the papercut's sin, cos and exp within an ulp of V8's and the strings' sin and cos V8's own), and any field
+   effect's (kit/render.ts's kitRender: its kernel, which kit-gen writes in C into kit-kernels.c, and the kit's shading
+   in double precision, Math's functions V8's own, its bytes), finished with the soft and the grain as fx-finish.ts's
+   finishPixels finishes a frame, BT.709 YUV 4:2:0 written as they are drawn, and minih264 (CC0, lieff/minih264,
+   patched for the level, the Constrained Baseline flags and the colors' VUI; its SSE2 code through emscripten's SSE
+   headers) to code them.
 
    JS says where an effect stands in each frame (the glass's discs, the blob's balls, the silk's folds, the rosette's
-   petals, the papercut's hills, waves and light: engine code, which moves them) and this draws it. One encoder an
-   instance: create(), a setup, the finish's setups where the clip has a soft or a grain, then per frame a draw and
-   frame(); or the draw in one instance and frame() in another made alike, which takes the drawn planes in (plane(),
-   stride()). */
+   petals, the papercut's hills, waves and light, the strings' shears', waves' and lumps' phases, a field effect's
+   phases and its shadow's and rim's moves: engine code, which moves them) and this draws it. One encoder an instance:
+   create(), a setup, the finish's setups where the clip has a soft or a grain, then per frame a draw and frame(); or
+   the draw in one instance and frame() in another made alike, which takes the drawn planes in (plane(), stride()). */
+
+/* Every field effect's kernel, as `pnpm kit:gen` writes them from kit/fields/<kind>.ts (kit/compile.ts), before any
+   macro is defined: a kernel's C keeps the names its author wrote, and an object-like macro above it would rewrite one
+   and fail the build far from the kernel (8 Nov 2026: locals named CS, L0 or MELT, which compile.ts accepts, by this
+   file's and minih264e.h's macros; INT32_MAX or SIZE_MAX by <stdint.h>'s, which <wasm_simd128.h> includes). What they
+   call (kit.h) is defined with the field effects' drawing, at the end. */
+#include "kit-kernels.c"
 #include <wasm_simd128.h>
 
 static int grabient_fps = 0;
@@ -1846,6 +1856,1449 @@ void papercut_frame(void) {
       }
       emitOpaque(x, y, n, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);
     }
+  }
+  if (fSoft) finishFrame();
+}
+
+/* ---------------------------------------------------------------- the strings (strings-render.ts's renderStrings) */
+
+/* strings.ts's shears, waves and lumps, its palette's stops and its top rank; strings-render.ts's pixels a cell of the
+   blob's samples each way */
+#define ST_SHEARS 4
+#define ST_WAVES 10
+#define ST_LUMPS 3
+#define ST_PHASES (ST_SHEARS + ST_WAVES + ST_LUMPS)
+#define ST_STOPS 16
+#define ST_TOP_RANK 30
+#define ST_Q 4
+
+/* the scene (strings.ts's StringsScene): its unit D in pixels, N (the field runs between -N and N) and the waves' value
+   at which it saturates, a thread's half width and the least spacing (px), how far each thread's spacing strays, how
+   far its end strays, the share of the stirring that moves the blob, the blob's half width and half height and its
+   lumps' height */
+static double stD, stN, stSat, stHw, stNeed, stJitter, stStagger, stShare, stBx, stBy, stLumps;
+/* stringsStep's need (1 - jitter / 2), which it takes times the slope, and stringsColor's 2 N */
+static double stLeast, stTwoN;
+/* each shear's, wave's and lump's direction, radians a D unit and reach or height (strings.ts's StringsWave), and the
+   products the CPU drawing takes of them: its reach or height times its k, its dx and its dy (a lump's height being
+   the scene's lumps', times its k alone) */
+static double stDx[ST_PHASES], stDy[ST_PHASES], stK[ST_PHASES], stA[ST_PHASES], stAk[ST_PHASES], stAdx[ST_PHASES],
+    stAdy[ST_PHASES];
+/* the ground and the stops' colors (0 to 1), and the ground's bytes as a pixel for `put` */
+static double stGround[3], stStops[3 * ST_STOPS];
+static v128_t stGroundBytes;
+/* each column's and row's middle in D units; the blob's field and its slope a pixel at each cell's corner, and
+   whether each cell is the ground alone */
+static double *stQx, *stQy, *stBlob, *stSteep;
+static unsigned char *stPlain;
+static int stCw, stCh;
+
+/* V8's sin and cos (its base/ieee754.cc, fdlibm's), which Node's Math.sin and Math.cos are to the bit (2 million
+   arguments of -30 to 30, none apart, 5 Nov 2026) where the papercut's sinCos, from msun's later kernels, differs in
+   the last bit at about 1% of them: the strings' field saturates and their pixels round right at a half wherever a
+   thread over its ground covers a pixel whole and their colors stand 100 apart in a channel, so a last bit there moved
+   bytes. The argument less the nearest whole number of quarter turns by __ieee754_rem_pio2 (for |x| up to 2^19 pi / 2:
+   the strings' are a few turns), then fdlibm's older __kernel_sin and __kernel_cos. */
+#define V8_S1 -1.66666666666666324348e-01
+#define V8_S2 8.33333333332248946124e-03
+#define V8_S3 -1.98412698298579493134e-04
+#define V8_S4 2.75573137070700676789e-06
+#define V8_S5 -2.50507602534068634195e-08
+#define V8_S6 1.58969099521155010221e-10
+#define V8_C1 4.16666666666666019037e-02
+#define V8_C2 -1.38888888888741095749e-03
+#define V8_C3 2.48015872894767294178e-05
+#define V8_C4 -2.75573143513906633035e-07
+#define V8_C5 2.08757232129817482790e-09
+#define V8_C6 -1.13596475577881948265e-11
+#define V8_INVPIO2 6.36619772367581382433e-01
+#define V8_PIO2_1 1.57079632673412561417e+00
+#define V8_PIO2_1T 6.07710050650619224932e-11
+#define V8_PIO2_2 6.07710050630396597660e-11
+#define V8_PIO2_2T 2.02226624879595063154e-21
+#define V8_PIO2_3 2.02226624871116645580e-21
+#define V8_PIO2_3T 8.47842766036889956997e-32
+
+static inline int highWord(double x) {
+  union {
+    double d;
+    unsigned long long u;
+  } b = {x};
+  return (int)(b.u >> 32);
+}
+static inline double withHighWord(int high) {
+  union {
+    unsigned long long u;
+    double d;
+  } b = {(unsigned long long)(unsigned)high << 32};
+  return b.d;
+}
+static double v8KernelSin(double x, double y, int iy) {
+  if ((highWord(x) & 0x7fffffff) < 0x3e400000 && (int)x == 0) return x;
+  double z = x * x, v = z * x, r = V8_S2 + z * (V8_S3 + z * (V8_S4 + z * (V8_S5 + z * V8_S6)));
+  return iy == 0 ? x + v * (V8_S1 + z * r) : x - ((z * (0.5 * y - v * r) - y) - v * V8_S1);
+}
+static double v8KernelCos(double x, double y) {
+  int ix = highWord(x) & 0x7fffffff;
+  if (ix < 0x3e400000 && (int)x == 0) return 1;
+  double z = x * x, r = z * (V8_C1 + z * (V8_C2 + z * (V8_C3 + z * (V8_C4 + z * (V8_C5 + z * V8_C6)))));
+  if (ix < 0x3fd33333) return 1 - (0.5 * z - (z * r - x * y));
+  double qx = ix > 0x3fe90000 ? 0.28125 : withHighWord(ix - 0x00200000);
+  double hz = 0.5 * z - qx, a = 1 - qx;
+  return a - (hz - (z * r - x * y));
+}
+static int v8RemPio2(double x, double *y) {
+  static const int npio2Hw[32] = {
+      0x3FF921FB, 0x400921FB, 0x4012D97C, 0x401921FB, 0x401F6A7A, 0x4022D97C, 0x4025FDBB, 0x402921FB,
+      0x402C463A, 0x402F6A7A, 0x4031475C, 0x4032D97C, 0x40346B9C, 0x4035FDBB, 0x40378FDB, 0x403921FB,
+      0x403AB41B, 0x403C463A, 0x403DD85A, 0x403F6A7A, 0x40407E4C, 0x4041475C, 0x4042106C, 0x4042D97C,
+      0x4043A28C, 0x40446B9C, 0x404534AC, 0x4045FDBB, 0x4046C6CB, 0x40478FDB, 0x404858EB, 0x404921FB};
+  int hx = highWord(x), ix = hx & 0x7fffffff;
+  if (ix < 0x4002d97c) {
+    /* |x| ~< 3 pi / 4: a quarter turn either way */
+    double z;
+    if (hx > 0) {
+      z = x - V8_PIO2_1;
+      if (ix != 0x3ff921fb) {
+        y[0] = z - V8_PIO2_1T;
+        y[1] = (z - y[0]) - V8_PIO2_1T;
+      } else {
+        z -= V8_PIO2_2;
+        y[0] = z - V8_PIO2_2T;
+        y[1] = (z - y[0]) - V8_PIO2_2T;
+      }
+      return 1;
+    }
+    z = x + V8_PIO2_1;
+    if (ix != 0x3ff921fb) {
+      y[0] = z + V8_PIO2_1T;
+      y[1] = (z - y[0]) + V8_PIO2_1T;
+    } else {
+      z += V8_PIO2_2;
+      y[0] = z + V8_PIO2_2T;
+      y[1] = (z - y[0]) + V8_PIO2_2T;
+    }
+    return -1;
+  }
+  double t = __builtin_fabs(x);
+  int n = (int)(t * V8_INVPIO2 + 0.5);
+  double fn = (double)n, r = t - fn * V8_PIO2_1, w = fn * V8_PIO2_1T;
+  if (n < 32 && ix != npio2Hw[n - 1])
+    y[0] = r - w;
+  else {
+    int j = ix >> 20;
+    y[0] = r - w;
+    int i = j - ((highWord(y[0]) >> 20) & 0x7ff);
+    if (i > 16) {
+      t = r;
+      w = fn * V8_PIO2_2;
+      r = t - w;
+      w = fn * V8_PIO2_2T - ((t - r) - w);
+      y[0] = r - w;
+      i = j - ((highWord(y[0]) >> 20) & 0x7ff);
+      if (i > 49) {
+        t = r;
+        w = fn * V8_PIO2_3;
+        r = t - w;
+        w = fn * V8_PIO2_3T - ((t - r) - w);
+        y[0] = r - w;
+      }
+    }
+  }
+  y[1] = (r - y[0]) - w;
+  if (hx < 0) {
+    y[0] = -y[0];
+    y[1] = -y[1];
+    return -n;
+  }
+  return n;
+}
+/* Math.sin(x) and Math.cos(x) as V8 computes them */
+static void v8SinCos(double x, double *s, double *c) {
+  if ((highWord(x) & 0x7fffffff) <= 0x3fe921fb) {
+    *s = v8KernelSin(x, 0, 0);
+    *c = v8KernelCos(x, 0);
+    return;
+  }
+  double y[2];
+  int n = v8RemPio2(x, y);
+  double ks = v8KernelSin(y[0], y[1], 1), kc = v8KernelCos(y[0], y[1]);
+  switch (n & 3) {
+  case 0:
+    *s = ks;
+    *c = kc;
+    break;
+  case 1:
+    *s = kc;
+    *c = -ks;
+    break;
+  case 2:
+    *s = -ks;
+    *c = -kc;
+    break;
+  default:
+    *s = -kc;
+    *c = ks;
+  }
+}
+
+/* sinCos2's numbers, each in both lanes. Kept in memory, which a pair is read from in one load, where a constant is
+   built afresh at each use. */
+/* The high words V8 tests, as the doubles they bound: |x| ~<= pi / 4 (high word at most 0x3fe921fb) is |x| at most
+   the last double of that high word; __kernel_cos's |x| < 0.3 (0x3fd33333) is |x| under the first, and its x >
+   0.78125 (0x3fe90000) is |x| past the last. */
+#define V8_PIO4_TOP 0x1.921fbffffffffp-1
+#define V8_COS_LOW 0x1.33333p-2
+#define V8_COS_HIGH 0x1.90000ffffffffp-1
+enum {
+  SC_INVPIO2, SC_HALF, SC_PIO2_1, SC_PIO2_1T, SC_ONE, SC_SHIFT, SC_SIGN, SC_LOW, SC_QX, SC_NEAR, SC_TINY, SC_FAR,
+  SC_PIO4_TOP, SC_COS_LOW, SC_COS_HIGH, SC_QUARTER, SC_HIGH_WORD,
+  SC_S1, SC_S2, SC_S3, SC_S4, SC_S5, SC_S6, SC_C1, SC_C2, SC_C3, SC_C4, SC_C5, SC_C6, SC_COUNT
+};
+static v128_t scK[SC_COUNT];
+static void sinCos2Setup(void) {
+  static const double k[SC_COUNT] = {
+      V8_INVPIO2, 0.5, V8_PIO2_1, V8_PIO2_1T, 1, 0x1.8p52, -0.0, 0, 0.28125, 0x1p-18, 0x1p-27, 32, V8_PIO4_TOP,
+      V8_COS_LOW, V8_COS_HIGH, 0.25, 0, V8_S1, V8_S2, V8_S3, V8_S4, V8_S5, V8_S6, V8_C1, V8_C2, V8_C3, V8_C4, V8_C5,
+      V8_C6};
+  for (int i = 0; i < SC_COUNT; i++) scK[i] = F2(k[i]);
+  scK[SC_LOW] = wasm_i64x2_splat(1);
+  scK[SC_HIGH_WORD] = wasm_i64x2_splat((long long)0xffffffff00000000ull);
+}
+/* v8SinCos for two angles, an angle a lane, each lane its to the bit: |x| of a quarter turn or less as itself, n 0
+   (sin's kernel then its first form), any other less its nearest quarter turns in one step as __ieee754_rem_pio2
+   takes them, which is all it takes but within 2^-18 of |x| of a quarter turn (or n of 32 or more, or |x| under 2^-27),
+   where both lanes are v8SinCos's own; the kernels lane by lane, their branches picked out by masks, the quarter turns
+   too */
+static inline void sinCos2(v128_t x, v128_t *s, v128_t *c) {
+  const v128_t *K = scK;
+  v128_t t = wasm_f64x2_abs(x), sign = wasm_v128_and(x, K[SC_SIGN]);
+  v128_t small = wasm_f64x2_le(t, K[SC_PIO4_TOP]);
+  v128_t n = wasm_v128_andnot(wasm_f64x2_floor(wasm_f64x2_add(wasm_f64x2_mul(t, K[SC_INVPIO2]), K[SC_HALF])), small);
+  /* where n is 0, y0 is |x| and y1 is 0 */
+  v128_t r = wasm_f64x2_sub(t, wasm_f64x2_mul(n, K[SC_PIO2_1])), w = wasm_f64x2_mul(n, K[SC_PIO2_1T]);
+  v128_t y0 = wasm_f64x2_sub(r, w), y1 = wasm_f64x2_sub(wasm_f64x2_sub(r, y0), w);
+  v128_t rare = wasm_v128_or(wasm_f64x2_lt(wasm_f64x2_abs(y0), wasm_f64x2_mul(t, K[SC_NEAR])),
+                             wasm_v128_or(wasm_f64x2_lt(t, K[SC_TINY]), wasm_f64x2_ge(n, K[SC_FAR])));
+  if (wasm_v128_any_true(rare)) {
+    double a[2], ss[2], cc[2];
+    wasm_v128_store(a, x);
+    v8SinCos(a[0], ss, cc);
+    v8SinCos(a[1], ss + 1, cc + 1);
+    *s = wasm_v128_load(ss);
+    *c = wasm_v128_load(cc);
+    return;
+  }
+  y0 = wasm_v128_xor(y0, sign);
+  y1 = wasm_v128_xor(y1, sign);
+  v128_t z = wasm_f64x2_mul(y0, y0), v = wasm_f64x2_mul(z, y0);
+  /* __kernel_sin, its second form where n is not 0, its first where it is */
+  v128_t rs = wasm_f64x2_add(K[SC_S5], wasm_f64x2_mul(z, K[SC_S6]));
+  rs = wasm_f64x2_add(K[SC_S4], wasm_f64x2_mul(z, rs));
+  rs = wasm_f64x2_add(K[SC_S3], wasm_f64x2_mul(z, rs));
+  rs = wasm_f64x2_add(K[SC_S2], wasm_f64x2_mul(z, rs));
+  v128_t sr = wasm_f64x2_sub(
+      y0, wasm_f64x2_sub(wasm_f64x2_sub(wasm_f64x2_mul(z, wasm_f64x2_sub(wasm_f64x2_mul(K[SC_HALF], y1), wasm_f64x2_mul(v, rs))),
+                                        y1),
+                         wasm_f64x2_mul(v, K[SC_S1])));
+  if (wasm_v128_any_true(small))
+    sr = wasm_v128_bitselect(wasm_f64x2_add(y0, wasm_f64x2_mul(v, wasm_f64x2_add(K[SC_S1], wasm_f64x2_mul(z, rs)))), sr, small);
+  /* __kernel_cos: qx 0 under |y0| 0.3, which its first form is; |y0| / 4 to its high word, or 0.28125 past 0.78125 */
+  v128_t rc = wasm_f64x2_add(K[SC_C5], wasm_f64x2_mul(z, K[SC_C6]));
+  rc = wasm_f64x2_add(K[SC_C4], wasm_f64x2_mul(z, rc));
+  rc = wasm_f64x2_add(K[SC_C3], wasm_f64x2_mul(z, rc));
+  rc = wasm_f64x2_add(K[SC_C2], wasm_f64x2_mul(z, rc));
+  rc = wasm_f64x2_mul(z, wasm_f64x2_add(K[SC_C1], wasm_f64x2_mul(z, rc)));
+  v128_t ay = wasm_f64x2_abs(y0);
+  v128_t qx = wasm_v128_and(wasm_f64x2_mul(ay, K[SC_QUARTER]), K[SC_HIGH_WORD]);
+  qx = wasm_v128_bitselect(K[SC_QX], qx, wasm_f64x2_gt(ay, K[SC_COS_HIGH]));
+  qx = wasm_v128_andnot(qx, wasm_f64x2_lt(ay, K[SC_COS_LOW]));
+  v128_t hz = wasm_f64x2_sub(wasm_f64x2_mul(K[SC_HALF], z), qx), a = wasm_f64x2_sub(K[SC_ONE], qx);
+  v128_t cr = wasm_f64x2_sub(a, wasm_f64x2_sub(hz, wasm_f64x2_sub(wasm_f64x2_mul(z, rc), wasm_f64x2_mul(y0, y1))));
+  /* the quarter turns: n's low bits, which n + 1.5 2^52 holds as its last bits, n negative where x is. An odd one
+     swaps the two; the sine turns negative in the second half turn and the cosine in the second and third quarters,
+     its sign bit flipped as V8's minus flips it */
+  v128_t q = wasm_f64x2_add(wasm_v128_xor(n, sign), K[SC_SHIFT]);
+  v128_t odd = wasm_i64x2_eq(wasm_v128_and(q, K[SC_LOW]), K[SC_LOW]);
+  v128_t sv = wasm_v128_bitselect(cr, sr, odd), cv = wasm_v128_bitselect(sr, cr, odd);
+  *s = wasm_v128_xor(sv, wasm_v128_and(wasm_i64x2_shl(q, 62), K[SC_SIGN]));
+  *c = wasm_v128_xor(cv, wasm_v128_and(wasm_i64x2_shl(wasm_i64x2_add(q, K[SC_LOW]), 62), K[SC_SIGN]));
+}
+
+/* The strings' scene for the box (strings.ts's stringsScene): its unit D (pixels), N and the saturation `sat`, a
+   thread's half width and the least spacing (px), the spacing's jitter, the ends' stagger, the blob's share of the
+   stirring, its half width and half height (bx, by) and its lumps' height; params hold each shear's, wave's and lump's
+   dx, dy, k and a (four each, the shears first, then the waves and the lumps, a lump's a unused; their directions
+   turned by the view's angle as the scene's design is), then the ground's color and the stops' (three each, 0 to 1).
+   1, or 0 where the memory is short. */
+EXPORT(strings_setup)
+int strings_setup(double D, double n, double sat, double hw, double need, double jitter, double stagger, double share,
+                  double bx, double by, double lumps) {
+  stD = D;
+  stN = n;
+  stSat = sat;
+  stHw = hw;
+  stNeed = need;
+  stJitter = jitter;
+  stStagger = stagger;
+  stShare = share;
+  stBx = bx;
+  stBy = by;
+  stLumps = lumps;
+  stLeast = need * (1 - jitter / 2);
+  stTwoN = 2 * n;
+  const double *p = params;
+  for (int i = 0; i < ST_PHASES; i++, p += 4) {
+    stDx[i] = p[0];
+    stDy[i] = p[1];
+    stK[i] = p[2];
+    stA[i] = p[3];
+    /* stringsWarp's and stringsField's v.a * v.k, stringsBlob's m.lumps * l.k */
+    stAk[i] = (i < ST_SHEARS + ST_WAVES ? p[3] : lumps) * p[2];
+    stAdx[i] = p[3] * p[0];
+    stAdy[i] = p[3] * p[1];
+  }
+  for (int i = 0; i < 3; i++) stGround[i] = p[i];
+  for (int i = 0; i < 3 * ST_STOPS; i++) stStops[i] = p[3 + i];
+  stGroundBytes = wasm_f32x4_make((float)jsRound(stGround[0] * 255), (float)jsRound(stGround[1] * 255),
+                                  (float)jsRound(stGround[2] * 255), 255.0f);
+  stCw = (W + ST_Q - 1) / ST_Q;
+  stCh = (H + ST_Q - 1) / ST_Q;
+  stQx = take(W * 8);
+  stQy = take(H * 8);
+  stBlob = take((stCw + 1) * (stCh + 1) * 8);
+  stSteep = take((stCw + 1) * (stCh + 1) * 8);
+  stPlain = take(stCw * stCh);
+  if (!stQx || !stQy || !stBlob || !stSteep || !stPlain) return 0;
+  for (int x = 0; x < W; x++) stQx[x] = (x + 0.5 - W / 2.0) / D;
+  for (int y = 0; y < H; y++) stQy[y] = (y + 0.5 - H / 2.0) / D;
+  sinCos2Setup();
+  return 1;
+}
+
+/* The pairs of points the warp is worked out for at once: a block's four pairs of pixels, or four pairs of the blob's
+   corners. Each shear waits on the one before, a chain of sines a pair alone leaves the processor idle through; the
+   pairs' steps taken side by side keep it busy, each pair's arithmetic its own. (The field's waves wait on none
+   another, so it takes a pair at a time, as fast.) */
+#define ST_PAIRS 4
+
+/* stringsWarp at ST_PAIRS pairs of points, a point a lane: each pair's stirred point and its Jacobian into o[p] (px,
+   py, j00, j01, j10, j11) */
+static inline void stWarp(const v128_t *qx, const v128_t *qy, const double *at, v128_t (*o)[6]) {
+#pragma clang loop unroll(full)
+  for (int p = 0; p < ST_PAIRS; p++) {
+    o[p][0] = qx[p];
+    o[p][1] = qy[p];
+    o[p][2] = o[p][5] = F2(1);
+    o[p][3] = o[p][4] = F2(0);
+  }
+  for (int i = 0; i < ST_SHEARS; i++) {
+    const v128_t dx = F2(stDx[i]), dy = F2(stDy[i]), k = F2(stK[i]), phase = F2(at[i]), ak = F2(stAk[i]);
+    const v128_t adx = F2(stAdx[i]), ady = F2(stAdy[i]);
+#pragma clang loop unroll(full)
+    for (int p = 0; p < ST_PAIRS; p++) {
+      v128_t *w = o[p], sn, cs;
+      sinCos2(wasm_f64x2_add(wasm_f64x2_mul(k, wasm_f64x2_add(wasm_f64x2_mul(dx, w[0]), wasm_f64x2_mul(dy, w[1]))), phase),
+              &sn, &cs);
+      v128_t c = wasm_f64x2_mul(ak, cs);
+      w[0] = wasm_f64x2_sub(w[0], wasm_f64x2_mul(ady, sn));
+      w[1] = wasm_f64x2_add(w[1], wasm_f64x2_mul(adx, sn));
+      v128_t r0 = wasm_f64x2_add(wasm_f64x2_mul(dx, w[2]), wasm_f64x2_mul(dy, w[4]));
+      v128_t r1 = wasm_f64x2_add(wasm_f64x2_mul(dx, w[3]), wasm_f64x2_mul(dy, w[5]));
+      v128_t cdy = wasm_f64x2_mul(c, dy), cdx = wasm_f64x2_mul(c, dx);
+      w[2] = wasm_f64x2_sub(w[2], wasm_f64x2_mul(cdy, r0));
+      w[3] = wasm_f64x2_sub(w[3], wasm_f64x2_mul(cdy, r1));
+      w[4] = wasm_f64x2_add(w[4], wasm_f64x2_mul(cdx, r0));
+      w[5] = wasm_f64x2_add(w[5], wasm_f64x2_mul(cdx, r1));
+    }
+  }
+}
+
+/* stringsField at ST_PAIRS pairs of stirred points, a point a lane, a pair at a time: each pair's waves g, saturated to
+   the field F = N x / sqrt(1 + x^2) of x = g / sat, in threads, into F[p], its slope's length a pixel, as stringsShade
+   takes it, into gpx[p], and the inverse of F's slope over the waves' (its g[3]) into flat[p]; the root is correctly
+   rounded here as in JS, so the field is its to the bit */
+static inline void stField(v128_t (*o)[6], const double *at, v128_t *F, v128_t *gpx, v128_t *flat) {
+  v128_t f[ST_PAIRS], gx[ST_PAIRS], gy[ST_PAIRS];
+  for (int p = 0; p < ST_PAIRS; p++) {
+    v128_t ff = F2(0), fx = F2(0), fy = F2(0);
+    for (int i = ST_SHEARS; i < ST_SHEARS + ST_WAVES; i++) {
+      const v128_t dx = F2(stDx[i]), dy = F2(stDy[i]);
+      v128_t sn, cs;
+      sinCos2(wasm_f64x2_add(wasm_f64x2_mul(F2(stK[i]), wasm_f64x2_add(wasm_f64x2_mul(dx, o[p][0]), wasm_f64x2_mul(dy, o[p][1]))),
+                             F2(at[i])),
+              &sn, &cs);
+      ff = wasm_f64x2_add(ff, wasm_f64x2_mul(F2(stA[i]), sn));
+      v128_t c = wasm_f64x2_mul(F2(stAk[i]), cs);
+      fx = wasm_f64x2_add(fx, wasm_f64x2_mul(c, dx));
+      fy = wasm_f64x2_add(fy, wasm_f64x2_mul(c, dy));
+    }
+    f[p] = ff;
+    gx[p] = fx;
+    gy[p] = fy;
+  }
+  const v128_t n = F2(stN), sat = F2(stSat);
+#pragma clang loop unroll(full)
+  for (int p = 0; p < ST_PAIRS; p++) {
+    v128_t x = wasm_f64x2_div(f[p], sat);
+    v128_t root = wasm_f64x2_sqrt(wasm_f64x2_add(F2(1), wasm_f64x2_mul(x, x)));
+    v128_t cube = wasm_f64x2_mul(wasm_f64x2_mul(wasm_f64x2_mul(sat, root), root), root);
+    v128_t slope = wasm_f64x2_div(n, cube);
+    flat[p] = wasm_f64x2_div(cube, n);
+    v128_t g1 = wasm_f64x2_mul(slope, wasm_f64x2_add(wasm_f64x2_mul(gx[p], o[p][2]), wasm_f64x2_mul(gy[p], o[p][4])));
+    v128_t g2 = wasm_f64x2_mul(slope, wasm_f64x2_add(wasm_f64x2_mul(gx[p], o[p][3]), wasm_f64x2_mul(gy[p], o[p][5])));
+    F[p] = wasm_f64x2_div(wasm_f64x2_mul(n, x), root);
+    gpx[p] = wasm_f64x2_pmax(
+        F2(1e-9), wasm_f64x2_div(wasm_f64x2_sqrt(wasm_f64x2_add(wasm_f64x2_mul(g1, g1), wasm_f64x2_mul(g2, g2))), F2(stD)));
+  }
+}
+
+/* stringsBlob at two points q, their stirred points o, a point a lane: the blob's field and its slope over q into b */
+static inline void stBlob2(v128_t qx, v128_t qy, const v128_t *o, const double *at, v128_t *b) {
+  v128_t s = F2(stShare), rest = F2(1 - stShare);
+  v128_t ux = wasm_f64x2_add(qx, wasm_f64x2_mul(s, wasm_f64x2_sub(o[0], qx)));
+  v128_t uy = wasm_f64x2_add(qy, wasm_f64x2_mul(s, wasm_f64x2_sub(o[1], qy)));
+  v128_t ex = wasm_f64x2_div(ux, F2(stBx)), ey = wasm_f64x2_div(uy, F2(stBy));
+  v128_t v = wasm_f64x2_sub(wasm_f64x2_sub(F2(1), wasm_f64x2_mul(ex, ex)), wasm_f64x2_mul(ey, ey));
+  v128_t gx = wasm_f64x2_div(wasm_f64x2_mul(F2(-2), ex), F2(stBx));
+  v128_t gy = wasm_f64x2_div(wasm_f64x2_mul(F2(-2), ey), F2(stBy));
+  for (int i = ST_SHEARS + ST_WAVES; i < ST_PHASES; i++) {
+    v128_t dx = F2(stDx[i]), dy = F2(stDy[i]), sn, cs;
+    sinCos2(wasm_f64x2_add(wasm_f64x2_mul(F2(stK[i]), wasm_f64x2_add(wasm_f64x2_mul(dx, ux), wasm_f64x2_mul(dy, uy))),
+                           F2(at[i])),
+            &sn, &cs);
+    v = wasm_f64x2_add(v, wasm_f64x2_mul(F2(stLumps), sn));
+    v128_t c = wasm_f64x2_mul(F2(stAk[i]), cs);
+    gx = wasm_f64x2_add(gx, wasm_f64x2_mul(c, dx));
+    gy = wasm_f64x2_add(gy, wasm_f64x2_mul(c, dy));
+  }
+  b[0] = v;
+  b[1] = wasm_f64x2_add(wasm_f64x2_mul(gx, wasm_f64x2_add(rest, wasm_f64x2_mul(s, o[2]))),
+                        wasm_f64x2_mul(wasm_f64x2_mul(gy, s), o[4]));
+  b[2] = wasm_f64x2_add(wasm_f64x2_mul(wasm_f64x2_mul(gx, s), o[3]),
+                        wasm_f64x2_mul(gy, wasm_f64x2_add(rest, wasm_f64x2_mul(s, o[5]))));
+}
+
+/* stringsHash's integers for four levels, a level an i32 lane: each one's hash times 1023, 0 to 1023 */
+static inline v128_t stHash4(v128_t k) {
+  v128_t h = wasm_i32x4_mul(wasm_i32x4_add(k, wasm_i32x4_splat(4096)), wasm_i32x4_splat((int)2654435761u));
+  return wasm_v128_and(wasm_u32x4_shr(h, 16), wasm_i32x4_splat(1023));
+}
+/* lanes 0 and 1, or 2 and 3, of four whole numbers as a pair of doubles */
+static inline v128_t stLow(v128_t i) { return wasm_f64x2_convert_low_i32x4(i); }
+static inline v128_t stHigh(v128_t i) { return wasm_f64x2_convert_low_i32x4(wasm_i32x4_shuffle(i, i, 2, 3, 2, 3)); }
+/* a pair of values clamped as Math.min(1, Math.max(0, v)) clamps them */
+static inline v128_t stUnit(v128_t v) { return wasm_f64x2_pmin(wasm_f64x2_pmax(v, F2(0)), F2(1)); }
+/* strings.ts's boxCover for a pair: the share of a pixel's width a thread covers, its middle d px from the pixel's */
+static inline v128_t stCover2(v128_t d) {
+  return wasm_f64x2_sub(wasm_f64x2_pmin(wasm_f64x2_add(d, F2(stHw)), F2(0.5)),
+                        wasm_f64x2_pmax(wasm_f64x2_sub(d, F2(stHw)), F2(-0.5)));
+}
+/* stringsNeed times the slope gpx for a pair of threads, h their hashes' integers (of 7 k + 3) */
+static inline v128_t stNeed2(v128_t h, v128_t gpx) {
+  v128_t share = wasm_f64x2_sub(wasm_f64x2_div(h, F2(1023)), F2(0.5));
+  return wasm_f64x2_mul(wasm_f64x2_mul(F2(stNeed), wasm_f64x2_add(F2(1), wasm_f64x2_mul(F2(stJitter), share))), gpx);
+}
+/* a pair of threads' covers past their ends on the blob's field (stringsEnd's, h their hashes' integers) as
+   stringsShade takes them: b the field, bpx its slope a pixel; none in a lane where the thread is not `on` */
+static inline v128_t stEnded(v128_t cover, v128_t h, v128_t b, v128_t bpx, v128_t on) {
+  v128_t end = wasm_f64x2_mul(F2(stStagger), wasm_f64x2_sub(wasm_f64x2_div(h, F2(1023)), F2(0.5)));
+  v128_t past = wasm_f64x2_add(wasm_f64x2_div(wasm_f64x2_sub(b, end), bpx), F2(0.5));
+  return wasm_v128_and(wasm_f64x2_mul(cover, stUnit(past)), on);
+}
+/* a pair of threads, levels kf (as doubles), over a pair of pixels' colors (rgb, a channel a pair) by `cover`, which
+   is 0 in a lane the thread does not cover and leaves it as it was: stringsShade's step for each of its two threads,
+   the color stringsColor's at the level, (k + N) / 2N of the stops, read for each lane apart */
+static inline void stOver2(v128_t *rgb, v128_t kf, v128_t cover) {
+  v128_t u = wasm_f64x2_mul(stUnit(wasm_f64x2_div(wasm_f64x2_add(kf, F2(stN)), F2(stTwoN))), F2(ST_STOPS - 1));
+  v128_t i = wasm_f64x2_pmin(F2(ST_STOPS - 2), wasm_f64x2_floor(u)), f = wasm_f64x2_sub(u, i);
+  v128_t at = wasm_i32x4_trunc_sat_f64x2_zero(i);
+  const double *s0 = stStops + 3 * wasm_i32x4_extract_lane(at, 0), *s1 = stStops + 3 * wasm_i32x4_extract_lane(at, 1);
+  for (int c = 0; c < 3; c++) {
+    v128_t from = wasm_f64x2_make(s0[c], s1[c]);
+    v128_t color = wasm_f64x2_add(from, wasm_f64x2_mul(wasm_f64x2_sub(wasm_f64x2_make(s0[c + 3], s1[c + 3]), from), f));
+    rgb[c] = wasm_f64x2_add(rgb[c], wasm_f64x2_mul(wasm_f64x2_sub(color, rgb[c]), cover));
+  }
+}
+
+/* stringsStep for a pair: the least power of two at least need (1 - jitter / 2) gpx, by the same doubling count (each
+   lane doubled while it is short, at most ST_TOP_RANK times) */
+static inline v128_t stStep2(v128_t gpx) {
+  v128_t least = wasm_f64x2_mul(F2(stLeast), gpx), step = F2(1);
+  for (int i = 0; i < ST_TOP_RANK; i++) {
+    v128_t more = wasm_f64x2_lt(step, least);
+    if (!wasm_v128_any_true(more)) break;
+    step = wasm_v128_bitselect(wasm_f64x2_add(step, step), step, more);
+  }
+  return step;
+}
+/* stringsLevelSlope for a pair: the slope levels kf have, threads a pixel, where the waves climb `climb` a pixel, its
+   (climb N) / sat worked out once a pair as `scale` */
+static inline v128_t stLevelSlope2(v128_t kf, v128_t scale) {
+  v128_t u = wasm_f64x2_div(kf, F2(stN));
+  v128_t w = wasm_f64x2_pmax(wasm_f64x2_sub(F2(1), wasm_f64x2_mul(u, u)), F2(0));
+  return wasm_f64x2_mul(wasm_f64x2_mul(scale, w), wasm_f64x2_sqrt(w));
+}
+/* whether each of four levels (an i32 lane each, a pair's two lo then its two hi) ends where it crowds, by the slopes
+   those levels have (lo's and hi's, threads a pixel): stringsShade's 2 ** stringsRank(k) < stringsNeed(m, k) *
+   stringsLevelSlope(m, k, climb), as an i32 mask a lane */
+static inline v128_t stCrowded4(v128_t ks, v128_t slopeLo, v128_t slopeHi) {
+  /* 2 ** stringsRank: each level's lowest bit, 2^30 at level 0 and at most */
+  const v128_t top = wasm_i32x4_splat(1 << ST_TOP_RANK);
+  v128_t low = wasm_u32x4_min(wasm_v128_and(ks, wasm_i32x4_neg(ks)), top);
+  low = wasm_v128_bitselect(top, low, wasm_i32x4_eq(ks, wasm_i32x4_splat(0)));
+  v128_t spread = stHash4(wasm_i32x4_add(wasm_i32x4_mul(ks, wasm_i32x4_splat(7)), wasm_i32x4_splat(3)));
+  v128_t a = wasm_f64x2_lt(stLow(low), stNeed2(stLow(spread), slopeLo));
+  v128_t b = wasm_f64x2_lt(stHigh(low), stNeed2(stHigh(spread), slopeHi));
+  return wasm_i32x4_shuffle(a, b, 0, 2, 4, 6);
+}
+
+/* A block's pixels of two rows from (x, y), `n` across (4, or 2 at a row's end, the last two the first's again), as
+   stringsShade shades them, each pair of a row a lane pair, their stirred points and fields side by side. Then each
+   pixel's two threads that show nearest it, one either side: lo and hi, the levels a step apart about the field
+   (stringsStep), each moved a step further out where its crowding by its own level's slope ends it, their levels as
+   doubles and as integer lanes (lo's two, then hi's, for their ranks and hashes, the integers' wrapping as JS's 32
+   bits wrap); the nearer k, the other k2, each by its cover, none for a level that is no thread; and where either
+   pixel of a pair is covered, the pair's blob field, which ends each, and both threads over the ground, the farther
+   first, a thread that covers no pixel laid over it by 0, which leaves it as it was. Into q as `put` takes them,
+   rounded as the CPU drawing's bytes are. */
+static void stBlock(int x, int y, int n, const double *at, v128_t *q) {
+  v128_t qx[ST_PAIRS], qy[ST_PAIRS], o[ST_PAIRS][6], F[ST_PAIRS], G[ST_PAIRS], flat[ST_PAIRS];
+  qx[0] = qx[2] = wasm_v128_load(stQx + x);
+  qx[1] = qx[3] = n == 4 ? wasm_v128_load(stQx + x + 2) : qx[0];
+  qy[0] = qy[1] = F2(stQy[y]);
+  qy[2] = qy[3] = F2(stQy[y + 1]);
+  stWarp(qx, qy, at, o);
+  stField(o, at, F, G, flat);
+  const v128_t zero = F2(0), half = F2(0.5);
+  for (int p = 0; p < ST_PAIRS; p++) {
+    if (n == 2 && (p & 1)) {
+      q[2 * p] = q[2 * p - 2];
+      q[2 * p + 1] = q[2 * p - 1];
+      continue;
+    }
+    v128_t f = F[p], gpx = G[p], step = stStep2(gpx);
+    /* stringsLevelSlope's (climb N) / sat, climb = gpx g[3] */
+    v128_t scale = wasm_f64x2_div(wasm_f64x2_mul(wasm_f64x2_mul(gpx, flat[p]), F2(stN)), F2(stSat));
+    v128_t lo = wasm_f64x2_mul(step, wasm_f64x2_floor(wasm_f64x2_div(f, step))), hi = wasm_f64x2_add(lo, step);
+    v128_t slopeLo = stLevelSlope2(lo, scale), slopeHi = stLevelSlope2(hi, scale);
+    v128_t steps = wasm_i32x4_trunc_sat_f64x2_zero(step);
+    v128_t ends = wasm_i32x4_shuffle(wasm_i32x4_trunc_sat_f64x2_zero(lo), wasm_i32x4_trunc_sat_f64x2_zero(hi), 0, 1, 4, 5);
+    v128_t crowded = stCrowded4(ends, slopeLo, slopeHi);
+    if (wasm_v128_any_true(crowded)) {
+      /* lo a step down, hi a step up, where each crowds, and the slopes of the levels moved to */
+      ends = wasm_i32x4_add(ends, wasm_v128_and(wasm_i32x4_shuffle(wasm_i32x4_neg(steps), steps, 0, 1, 4, 5), crowded));
+      lo = wasm_v128_bitselect(wasm_f64x2_sub(lo, step), lo, wasm_i32x4_shuffle(crowded, crowded, 0, 0, 1, 1));
+      hi = wasm_v128_bitselect(wasm_f64x2_add(hi, step), hi, wasm_i32x4_shuffle(crowded, crowded, 2, 2, 3, 3));
+      slopeLo = stLevelSlope2(lo, scale);
+      slopeHi = stLevelSlope2(hi, scale);
+    }
+    /* each thread's distance: the field's step over the mean of the pixel's slope and the level's */
+    v128_t dlo = wasm_f64x2_div(wasm_f64x2_sub(f, lo), wasm_f64x2_mul(half, wasm_f64x2_add(gpx, slopeLo)));
+    v128_t dhi = wasm_f64x2_div(wasm_f64x2_sub(hi, f), wasm_f64x2_mul(half, wasm_f64x2_add(gpx, slopeHi)));
+    /* the nearer last, over the farther */
+    v128_t near = wasm_f64x2_lt(dlo, dhi);
+    v128_t k = wasm_v128_bitselect(lo, hi, near), k2 = wasm_v128_bitselect(hi, lo, near);
+    /* stringsIsThread: a level past -(N - 1) or N - 1 covers nothing */
+    const v128_t top = F2(stN), bottom = F2(-stN);
+    v128_t c1 = wasm_v128_and(stCover2(wasm_v128_bitselect(dlo, dhi, near)),
+                              wasm_v128_and(wasm_f64x2_gt(k, bottom), wasm_f64x2_lt(k, top)));
+    v128_t c2 = wasm_v128_and(stCover2(wasm_v128_bitselect(dhi, dlo, near)),
+                              wasm_v128_and(wasm_f64x2_gt(k2, bottom), wasm_f64x2_lt(k2, top)));
+    v128_t ks = wasm_v128_bitselect(ends, wasm_i32x4_shuffle(ends, ends, 2, 3, 0, 1), wasm_i32x4_shuffle(near, near, 0, 2, 0, 2));
+    v128_t on1 = wasm_f64x2_gt(c1, zero), on2 = wasm_f64x2_gt(c2, zero);
+    if (!wasm_v128_any_true(wasm_v128_or(on1, on2))) {
+      q[2 * p] = q[2 * p + 1] = stGroundBytes;
+      continue;
+    }
+    v128_t b[3];
+    stBlob2(qx[p], qy[p], o[p], at, b);
+    v128_t bpx = wasm_f64x2_pmax(
+        F2(1e-9), wasm_f64x2_div(wasm_f64x2_sqrt(wasm_f64x2_add(wasm_f64x2_mul(b[1], b[1]), wasm_f64x2_mul(b[2], b[2]))), F2(stD)));
+    v128_t hashes = stHash4(ks);
+    v128_t rgb[3] = {F2(stGround[0]), F2(stGround[1]), F2(stGround[2])};
+    stOver2(rgb, k2, stEnded(c2, stHigh(hashes), b[0], bpx, on2));
+    stOver2(rgb, k, stEnded(c1, stLow(hashes), b[0], bpx, on1));
+    /* Math.round as floor(v + 0.5), which differs from it only within 2^-54 of a half below 1 */
+    v128_t v[3];
+    for (int c = 0; c < 3; c++)
+      v[c] = wasm_f32x4_demote_f64x2_zero(wasm_f64x2_floor(wasm_f64x2_add(wasm_f64x2_mul(rgb[c], F2(255)), half)));
+    v128_t t = wasm_i32x4_shuffle(v[0], v[1], 0, 4, 1, 5), u = wasm_i32x4_shuffle(v[2], wasm_f32x4_splat(255), 0, 4, 1, 5);
+    q[2 * p] = wasm_i32x4_shuffle(t, u, 0, 1, 4, 5);
+    q[2 * p + 1] = wasm_i32x4_shuffle(t, u, 2, 3, 6, 7);
+  }
+}
+
+/* The frame into the planes: params hold its shears', waves' and lumps' phases (strings.ts's stringsFrameAt). The
+   blob's field and its slope at every fourth pixel's corner each way, eight corners of a row at a time, then each
+   cell of four by four pixels: one lying past the blob's farthest end even at its corner most within it is the ground
+   alone, as renderStrings writes it, and any other's pixels are shaded four by two at a time. */
+EXPORT(strings_frame)
+void strings_frame(void) {
+  double at[ST_PHASES];
+  for (int i = 0; i < ST_PHASES; i++) at[i] = params[i];
+  const int row = stCw + 1;
+  for (int j = 0; j <= stCh; j++) {
+    v128_t qx[ST_PAIRS], qy[ST_PAIRS], o[ST_PAIRS][6], b[3];
+    for (int i0 = 0; i0 <= stCw; i0 += 2 * ST_PAIRS) {
+      for (int p = 0; p < ST_PAIRS; p++) {
+        /* past the last corner, the last again */
+        int i = i0 + 2 * p < stCw ? i0 + 2 * p : stCw;
+        qx[p] = wasm_f64x2_make((i * ST_Q - W / 2.0) / stD, ((i + 1 <= stCw ? i + 1 : i) * ST_Q - W / 2.0) / stD);
+        qy[p] = F2((j * ST_Q - H / 2.0) / stD);
+      }
+      stWarp(qx, qy, at, o);
+      for (int p = 0; p < ST_PAIRS && i0 + 2 * p <= stCw; p++) {
+        stBlob2(qx[p], qy[p], o[p], at, b);
+        double v[2], g[2];
+        wasm_v128_store(v, b[0]);
+        wasm_v128_store(g, wasm_f64x2_div(wasm_f64x2_sqrt(wasm_f64x2_add(wasm_f64x2_mul(b[1], b[1]), wasm_f64x2_mul(b[2], b[2]))),
+                                          F2(stD)));
+        for (int l = 0; l < 2 && i0 + 2 * p + l <= stCw; l++) {
+          stBlob[j * row + i0 + 2 * p + l] = v[l];
+          stSteep[j * row + i0 + 2 * p + l] = g[l];
+        }
+      }
+    }
+  }
+  /* no thread ends past this on the blob's field, and a pixel's end shades a half pixel past it */
+  const double farthest = -stStagger / 2;
+  for (int cj = 0; cj < stCh; cj++)
+    for (int ci = 0; ci < stCw; ci++) {
+      int o = cj * row + ci;
+      double near = dmax(dmax(stBlob[o], stBlob[o + 1]), dmax(stBlob[o + row], stBlob[o + row + 1]));
+      double steep = dmax(dmax(stSteep[o], stSteep[o + 1]), dmax(stSteep[o + row], stSteep[o + row + 1]));
+      stPlain[cj * stCw + ci] = near + (ST_Q + 0.5) * steep < farthest;
+    }
+  for (int y = 0; y < H; y += 2) {
+    const unsigned char *plain = stPlain + (y / ST_Q) * stCw;
+    for (int x = 0; x < W; x += 4) {
+      int n = W - x < 4 ? 2 : 4;
+      v128_t q[8];
+      if (plain[x / ST_Q])
+        for (int k = 0; k < 8; k++) q[k] = stGroundBytes;
+      else
+        stBlock(x, y, n, at, q);
+      emitOpaque(x, y, n, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);
+    }
+  }
+  if (fSoft) finishFrame();
+}
+
+/* ---------------------------------------------------------------- the field effects (kit/render.ts's kitRender) */
+
+/* What every field effect's kernel (kit-kernels.c, included first) calls (kit.h): Math's functions as V8 computes them,
+   so a kernel gives the number the effect's TypeScript kernel gives in Node to the bit; and kitShade, in the same
+   double precision, a frame's bytes as kitRender's. */
+
+static inline unsigned lowWord(double x) {
+  union {
+    double d;
+    unsigned long long u;
+  } b = {x};
+  return (unsigned)b.u;
+}
+/* x with its high word `high`, its low word kept */
+static inline double setHighWord(double x, int high) {
+  union {
+    double d;
+    unsigned long long u;
+  } b = {x};
+  b.u = (b.u & 0xffffffffull) | (unsigned long long)(unsigned)high << 32;
+  return b.d;
+}
+
+/* 2^n, for n of -1022 to 1023 */
+static inline double pow2(int n) { return withHighWord((int)((0x3ffu + n) << 20)); }
+
+/* fdlibm's __kernel_rem_pio2 as V8 calls it (53 bits: four terms of 2 / pi past those the argument needs, more where
+   the product cancels): x, the argument's three 24-bit pieces (nx of them, its exponent e0 past 2^23), times 2 / pi's
+   bits from where they matter, its whole quarter turns (mod 8) returned and its rest times pi / 2 in y[0] + y[1].
+   Built for size, as no kernel's argument reaches it: unrolled, it and kit_setup took 3.6 KB more of the module. */
+__attribute__((minsize, noinline)) static int kernelRemPio2(const double *x, double *y, int e0, int nx) {
+  static const int ipio2[66] = {
+      0xA2F983, 0x6E4E44, 0x1529FC, 0x2757D1, 0xF534DD, 0xC0DB62, 0x95993C, 0x439041, 0xFE5163, 0xABDEBB, 0xC561B7,
+      0x246E3A, 0x424DD2, 0xE00649, 0x2EEA09, 0xD1921C, 0xFE1DEB, 0x1CB129, 0xA73EE8, 0x8235F5, 0x2EBB44, 0x84E99C,
+      0x7026B4, 0x5F7E41, 0x3991D6, 0x398353, 0x39F49C, 0x845F8B, 0xBDF928, 0x3B1FF8, 0x97FFDE, 0x05980F, 0xEF2F11,
+      0x8B5A0A, 0x6D1F6D, 0x367ECF, 0x27CB09, 0xB74F46, 0x3F669E, 0x5FEA2D, 0x7527BA, 0xC7EBE5, 0xF17B3D, 0x0739F7,
+      0x8A5292, 0xEA6BFB, 0x5FB11F, 0x8D5D08, 0x560330, 0x46FC7B, 0x6BABF0, 0xCFBC20, 0x9AF436, 0x1DA9E3, 0x91615E,
+      0xE61B08, 0x659985, 0x5F14A0, 0x68408D, 0xFFD880, 0x4D7327, 0x310606, 0x1556CA, 0x73A8C9, 0x60E27B, 0xC08C6B};
+  static const double PIo2[8] = {1.57079625129699707031e+00, 7.54978941586159635335e-08, 5.39030252995776476554e-15,
+                                 3.28200341580791294123e-22, 1.27065575308067607349e-29, 1.22933308981111328932e-36,
+                                 2.73370053816464559624e-44, 2.16741683877804819444e-51};
+  const int jk = 4, jp = 4, jx = nx - 1;
+  int jz, jv, carry, n, iq[20], i, j, k, q0, ih;
+  double z, fw, f[20], fq[20], q[20];
+  jv = (e0 - 3) / 24;
+  if (jv < 0) jv = 0;
+  q0 = e0 - 24 * (jv + 1);
+  for (i = 0, j = jv - jx; i <= jx + jk; i++, j++) f[i] = j < 0 ? 0.0 : (double)ipio2[j];
+  for (i = 0; i <= jk; i++) {
+    for (j = 0, fw = 0.0; j <= jx; j++) fw += x[j] * f[jx + i - j];
+    q[i] = fw;
+  }
+  jz = jk;
+recompute:
+  /* q into 24-bit pieces, the last first */
+  for (i = 0, j = jz, z = q[jz]; j > 0; i++, j--) {
+    fw = (double)(int)(0x1p-24 * z);
+    iq[i] = (int)(z - 0x1p24 * fw);
+    z = q[j - 1] + fw;
+  }
+  /* the quarter turns, mod 8, and whether the rest is past a half */
+  z *= pow2(q0);
+  z -= 8.0 * __builtin_floor(z * 0.125);
+  n = (int)z;
+  z -= (double)n;
+  ih = 0;
+  if (q0 > 0) {
+    i = iq[jz - 1] >> (24 - q0);
+    n += i;
+    iq[jz - 1] -= i << (24 - q0);
+    ih = iq[jz - 1] >> (23 - q0);
+  } else if (q0 == 0)
+    ih = iq[jz - 1] >> 23;
+  else if (z >= 0.5)
+    ih = 2;
+  if (ih > 0) {
+    /* past a half: a quarter turn more, the rest 1 less it */
+    n += 1;
+    carry = 0;
+    for (i = 0; i < jz; i++) {
+      j = iq[i];
+      if (carry == 0) {
+        if (j != 0) {
+          carry = 1;
+          iq[i] = 0x1000000 - j;
+        }
+      } else
+        iq[i] = 0xffffff - j;
+    }
+    if (q0 == 1)
+      iq[jz - 1] &= 0x7fffff;
+    else if (q0 == 2)
+      iq[jz - 1] &= 0x3fffff;
+    if (ih == 2) {
+      z = 1.0 - z;
+      if (carry != 0) z -= pow2(q0);
+    }
+  }
+  if (z == 0.0) {
+    /* the rest cancelled: more terms of 2 / pi */
+    j = 0;
+    for (i = jz - 1; i >= jk; i--) j |= iq[i];
+    if (j == 0) {
+      for (k = 1; iq[jk - k] == 0; k++)
+        ;
+      for (i = jz + 1; i <= jz + k; i++) {
+        f[jx + i] = (double)ipio2[jv + i];
+        for (j = 0, fw = 0.0; j <= jx; j++) fw += x[j] * f[jx + i - j];
+        q[i] = fw;
+      }
+      jz += k;
+      goto recompute;
+    }
+  }
+  if (z == 0.0) {
+    jz -= 1;
+    q0 -= 24;
+    while (iq[jz] == 0) {
+      jz--;
+      q0 -= 24;
+    }
+  } else {
+    z *= pow2(-q0);
+    if (z >= 0x1p24) {
+      fw = (double)(int)(0x1p-24 * z);
+      iq[jz] = (int)(z - 0x1p24 * fw);
+      jz += 1;
+      q0 += 24;
+      iq[jz] = (int)fw;
+    } else
+      iq[jz] = (int)z;
+  }
+  /* the rest's pieces as doubles, times pi / 2's, summed into two */
+  fw = pow2(q0);
+  for (i = jz; i >= 0; i--) {
+    q[i] = fw * (double)iq[i];
+    fw *= 0x1p-24;
+  }
+  for (i = jz; i >= 0; i--) {
+    for (fw = 0.0, k = 0; k <= jp && k <= jz - i; k++) fw += PIo2[k] * q[i + k];
+    fq[jz - i] = fw;
+  }
+  fw = 0.0;
+  for (i = jz; i >= 0; i--) fw += fq[i];
+  y[0] = ih == 0 ? fw : -fw;
+  fw = fq[0] - fw;
+  for (i = 1; i <= jz; i++) fw += fq[i];
+  y[1] = ih == 0 ? fw : -fw;
+  return n & 7;
+}
+/* V8's __ieee754_rem_pio2: x less its nearest quarter turns into y[0] + y[1], their count returned; v8RemPio2's own
+   reduction within 2^19 pi / 2 of 0, and past it, x's exponent taken out and its 53 bits in three pieces of 24, the
+   reduction by 2 / pi's bits (kernelRemPio2). x neither infinite nor NaN. */
+static int kitRemPio2(double x, double *y) {
+  int hx = highWord(x), ix = hx & 0x7fffffff;
+  if (ix <= 0x413921fb) return v8RemPio2(x, y);
+  double tx[3];
+  int e0 = (ix >> 20) - 1046, nx = 3;
+  double z = setHighWord(x, ix - (int)((unsigned)e0 << 20));
+  for (int i = 0; i < 2; i++) {
+    tx[i] = (double)(int)z;
+    z = (z - tx[i]) * 0x1p24;
+  }
+  tx[2] = z;
+  while (tx[nx - 1] == 0) nx--;
+  int n = kernelRemPio2(tx, y, e0, nx);
+  if (hx < 0) {
+    y[0] = -y[0];
+    y[1] = -y[1];
+    return -n;
+  }
+  return n;
+}
+
+/* V8's sin, cos and tan (base/ieee754.cc, fdlibm's), each alone: the argument less its nearest quarter turns
+   (kitRemPio2), then the kernels */
+static double kit_sin(double x) {
+  int ix = highWord(x) & 0x7fffffff;
+  if (ix <= 0x3fe921fb) return v8KernelSin(x, 0, 0);
+  if (ix >= 0x7ff00000) return x - x;
+  double y[2];
+  switch (kitRemPio2(x, y) & 3) {
+  case 0:
+    return v8KernelSin(y[0], y[1], 1);
+  case 1:
+    return v8KernelCos(y[0], y[1]);
+  case 2:
+    return -v8KernelSin(y[0], y[1], 1);
+  default:
+    return -v8KernelCos(y[0], y[1]);
+  }
+}
+static double kit_cos(double x) {
+  int ix = highWord(x) & 0x7fffffff;
+  if (ix <= 0x3fe921fb) return v8KernelCos(x, 0);
+  if (ix >= 0x7ff00000) return x - x;
+  double y[2];
+  switch (kitRemPio2(x, y) & 3) {
+  case 0:
+    return v8KernelCos(y[0], y[1]);
+  case 1:
+    return -v8KernelSin(y[0], y[1], 1);
+  case 2:
+    return -v8KernelCos(y[0], y[1]);
+  default:
+    return v8KernelSin(y[0], y[1], 1);
+  }
+}
+/* fdlibm's __kernel_tan (its 2004 form): tan(x + y) for |x| within about pi / 4, or -1 / tan where iy is -1 */
+static double v8KernelTan(double x, double y, int iy) {
+  static const double T[] = {3.33333333333334091986e-01,  1.33333333333201242699e-01, 5.39682539762260521377e-02,
+                             2.18694882948595424599e-02,  8.86323982359930005737e-03, 3.59207910759131235356e-03,
+                             1.45620945432529025516e-03,  5.88041240820264096874e-04, 2.46463134818469906812e-04,
+                             7.81794442939557092300e-05,  7.14072491382608190305e-05, -1.85586374855275456654e-05,
+                             2.59073051863633712884e-05};
+  const double pio4 = 7.85398163397448278999e-01, pio4lo = 3.06161699786838301793e-17;
+  double z, r, v, w, s, a, t;
+  int hx = highWord(x), ix = hx & 0x7fffffff;
+  if (ix < 0x3e300000 && (int)x == 0) {
+    /* |x| under 2^-28 */
+    if (((ix | lowWord(x)) | (iy + 1)) == 0) return 1 / __builtin_fabs(x);
+    if (iy == 1) return x;
+    /* -1 / (x + y), carefully */
+    z = w = x + y;
+    z = withHighWord(highWord(z));
+    v = y - (z - x);
+    t = a = -1 / w;
+    t = withHighWord(highWord(t));
+    s = 1 + t * z;
+    return t + a * (s + t * v);
+  }
+  if (ix >= 0x3fe59428) {
+    /* |x| at least 0.6744: tan(pi / 4 - x) */
+    if (hx < 0) {
+      x = -x;
+      y = -y;
+    }
+    z = pio4 - x;
+    w = pio4lo - y;
+    x = z + w;
+    y = 0.0;
+  }
+  z = x * x;
+  w = z * z;
+  r = T[1] + w * (T[3] + w * (T[5] + w * (T[7] + w * (T[9] + w * T[11]))));
+  v = z * (T[2] + w * (T[4] + w * (T[6] + w * (T[8] + w * (T[10] + w * T[12])))));
+  s = z * x;
+  r = y + z * (s * (r + v) + y);
+  r += T[0] * s;
+  w = x + r;
+  if (ix >= 0x3fe59428) {
+    v = iy;
+    return (1 - ((hx >> 30) & 2)) * (v - 2.0 * (x - (w * w / (w + v) - r)));
+  }
+  if (iy == 1) return w;
+  /* -1 / (x + r), carefully */
+  z = withHighWord(highWord(w));
+  v = r - (z - x);
+  t = a = -1 / w;
+  t = withHighWord(highWord(t));
+  s = 1 + t * z;
+  return t + a * (s + t * v);
+}
+static double kit_tan(double x) {
+  int ix = highWord(x) & 0x7fffffff;
+  if (ix <= 0x3fe921fb) return v8KernelTan(x, 0, 1);
+  if (ix >= 0x7ff00000) return x - x;
+  double y[2];
+  int n = kitRemPio2(x, y);
+  return v8KernelTan(y[0], y[1], 1 - ((n & 1) << 1));
+}
+
+/* V8's exp (fdlibm's __ieee754_exp in FreeBSD's form, exp(1) Math.E): x less its nearest whole number k of ln 2's, in
+   two parts, the rest's exp from its rational approximation, times 2^k */
+static double kit_exp(double x) {
+  const double ln2hi = 6.93147180369123816490e-01, ln2lo = 1.90821492927058770002e-10,
+               invln2 = 1.44269504088896338700e+00, P1 = 1.66666666666666019037e-01,
+               P2 = -2.77777777770155933842e-03, P3 = 6.61375632143793436117e-05, P4 = -1.65339022054652515390e-06,
+               P5 = 4.13813679705723846039e-08, twom1000 = 9.33263618503218878990e-302,
+               two1023 = 8.988465674311579539e307;
+  double hi = 0, lo = 0, t;
+  int k = 0;
+  unsigned hx = (unsigned)highWord(x);
+  int xsb = hx >> 31;
+  hx &= 0x7fffffff;
+  if (hx >= 0x40862e42) {
+    /* |x| at least 709.78: NaN, the infinities, and past where it overflows or underflows */
+    if (hx >= 0x7ff00000) return ((hx & 0xfffff) | lowWord(x)) ? x + x : xsb ? 0.0 : x;
+    if (x > 7.09782712893383973096e+02) return __builtin_inf();
+    if (x < -7.45133219101941108420e+02) return 0;
+  }
+  if (hx > 0x3fd62e42) {
+    if (hx < 0x3ff0a2b2) {
+      if (x == 1.0) return 2.718281828459045;
+      hi = x - (xsb ? -ln2hi : ln2hi);
+      lo = xsb ? -ln2lo : ln2lo;
+      k = 1 - xsb - xsb;
+    } else {
+      k = (int)(invln2 * x + (xsb ? -0.5 : 0.5));
+      t = k;
+      hi = x - t * ln2hi;
+      lo = t * ln2lo;
+    }
+    x = hi - lo;
+  } else if (hx < 0x3e300000)
+    return 1 + x;
+  t = x * x;
+  double twopk = withHighWord((int)(0x3ff00000u + ((unsigned)(k >= -1021 ? k : k + 1000) << 20)));
+  double c = x - t * (P1 + t * (P2 + t * (P3 + t * (P4 + t * P5))));
+  if (k == 0) return 1 - ((x * c) / (c - 2.0) - x);
+  double y = 1 - ((lo - (x * c) / (2.0 - c)) - hi);
+  if (k >= -1021) return k == 1024 ? y * 2.0 * two1023 : y * twopk;
+  return y * twopk * twom1000;
+}
+
+/* V8's log (fdlibm's __ieee754_log): x as 2^k (1 + f), 1 + f between sqrt(2) / 2 and sqrt(2), log(1 + f) from
+   s = f / (2 + f) by its series in s^2 */
+static double kit_log(double x) {
+  const double ln2hi = 6.93147180369123816490e-01, ln2lo = 1.90821492927058770002e-10,
+               two54 = 1.80143985094819840000e+16, Lg1 = 6.666666666666735130e-01, Lg2 = 3.999999999940941908e-01,
+               Lg3 = 2.857142874366239149e-01, Lg4 = 2.222219843214978396e-01, Lg5 = 1.818357216161805012e-01,
+               Lg6 = 1.531383769920937332e-01, Lg7 = 1.479819860511658591e-01;
+  int hx = highWord(x), k = 0;
+  if (hx < 0x00100000) {
+    /* x under 2^-1022: 0 or less, or subnormal, scaled up */
+    if (((hx & 0x7fffffff) | lowWord(x)) == 0) return -__builtin_inf();
+    if (hx < 0) return __builtin_nan("");
+    k -= 54;
+    x *= two54;
+    hx = highWord(x);
+  }
+  if (hx >= 0x7ff00000) return x + x;
+  k += (hx >> 20) - 1023;
+  hx &= 0x000fffff;
+  int i = (hx + 0x95f64) & 0x100000;
+  x = setHighWord(x, hx | (i ^ 0x3ff00000));
+  k += i >> 20;
+  double f = x - 1.0, dk = k;
+  if ((0x000fffff & (2 + hx)) < 3) {
+    /* f within 2^-20 of 0 */
+    if (f == 0) return k == 0 ? 0 : dk * ln2hi + dk * ln2lo;
+    double R = f * f * (0.5 - 0.33333333333333333 * f);
+    return k == 0 ? f - R : dk * ln2hi - ((R - dk * ln2lo) - f);
+  }
+  double s = f / (2.0 + f), z = s * s, w = z * z;
+  int j = 0x6b851 - hx;
+  i = (hx - 0x6147a) | j;
+  double t1 = w * (Lg2 + w * (Lg4 + w * Lg6)), t2 = z * (Lg1 + w * (Lg3 + w * (Lg5 + w * Lg7))), R = t2 + t1;
+  if (i > 0) {
+    double hfsq = 0.5 * f * f;
+    return k == 0 ? f - (hfsq - s * (hfsq + R)) : dk * ln2hi - ((hfsq - (s * (hfsq + R) + dk * ln2lo)) - f);
+  }
+  return k == 0 ? f - s * (f - R) : dk * ln2hi - ((s * (f - R) - dk * ln2lo) - f);
+}
+
+/* V8's atan (fdlibm's): |x| moved near 0, 0.5, 1, 1.5 or infinity, whose atan is known in two parts, and the rest's
+   by its series in x^2, split odd and even */
+static double v8Atan(double x) {
+  static const double atanhi[] = {4.63647609000806093515e-01, 7.85398163397448278999e-01, 9.82793723247329054082e-01,
+                                  1.57079632679489655800e+00};
+  static const double atanlo[] = {2.26987774529616870924e-17, 3.06161699786838301793e-17, 1.39033110312309984516e-17,
+                                  6.12323399573676603587e-17};
+  static const double aT[] = {3.33333333333329318027e-01,  -1.99999999998764832476e-01, 1.42857142725034663711e-01,
+                              -1.11111104054623557880e-01, 9.09088713343650656196e-02,  -7.69187620504482999495e-02,
+                              6.66107313738753120669e-02,  -5.83357013379057348645e-02, 4.97687799461593236017e-02,
+                              -3.65315727442169155270e-02, 1.62858201153657823623e-02};
+  int hx = highWord(x), ix = hx & 0x7fffffff, id;
+  if (ix >= 0x44100000) {
+    /* |x| at least 2^66, or NaN */
+    if (ix > 0x7ff00000 || (ix == 0x7ff00000 && lowWord(x))) return x + x;
+    return hx > 0 ? atanhi[3] + atanlo[3] : -atanhi[3] - atanlo[3];
+  }
+  if (ix < 0x3fdc0000) {
+    /* |x| under 0.4375 */
+    if (ix < 0x3e400000) return x;
+    id = -1;
+  } else {
+    x = __builtin_fabs(x);
+    if (ix < 0x3ff30000) {
+      if (ix < 0x3fe60000) {
+        id = 0;
+        x = (2.0 * x - 1) / (2.0 + x);
+      } else {
+        id = 1;
+        x = (x - 1) / (x + 1);
+      }
+    } else if (ix < 0x40038000) {
+      id = 2;
+      x = (x - 1.5) / (1 + 1.5 * x);
+    } else {
+      id = 3;
+      x = -1.0 / x;
+    }
+  }
+  double z = x * x, w = z * z;
+  double s1 = z * (aT[0] + w * (aT[2] + w * (aT[4] + w * (aT[6] + w * (aT[8] + w * aT[10])))));
+  double s2 = w * (aT[1] + w * (aT[3] + w * (aT[5] + w * (aT[7] + w * aT[9]))));
+  if (id < 0) return x - x * (s1 + s2);
+  z = atanhi[id] - ((x * (s1 + s2) - atanlo[id]) - x);
+  return hx < 0 ? -z : z;
+}
+/* V8's atan2 (fdlibm's __ieee754_atan2): the zeros and infinities each as fdlibm says, else atan(|y / x|) turned into
+   x's and y's quadrant */
+static double kit_atan2(double y, double x) {
+  const double pi_o_4 = 7.8539816339744827900e-01, pi_o_2 = 1.5707963267948965580e+00, pi = 3.1415926535897931160e+00,
+               pi_lo = 1.2246467991473531772e-16, tiny = 1.0e-300;
+  int hx = highWord(x), ix = hx & 0x7fffffff, hy = highWord(y), iy = hy & 0x7fffffff;
+  unsigned lx = lowWord(x), ly = lowWord(y);
+  if ((ix | (int)((lx | (0u - lx)) >> 31)) > 0x7ff00000 || (iy | (int)((ly | (0u - ly)) >> 31)) > 0x7ff00000)
+    return x + y;
+  if (((hx - 0x3ff00000) | (int)lx) == 0) return v8Atan(y);
+  int m = ((hy >> 31) & 1) | ((hx >> 30) & 2);
+  if ((iy | (int)ly) == 0) return m < 2 ? y : m == 2 ? pi + tiny : -pi - tiny;
+  if ((ix | (int)lx) == 0) return hy < 0 ? -pi_o_2 - tiny : pi_o_2 + tiny;
+  if (ix == 0x7ff00000) {
+    if (iy == 0x7ff00000) {
+      switch (m) {
+      case 0:
+        return pi_o_4 + tiny;
+      case 1:
+        return -pi_o_4 - tiny;
+      case 2:
+        return 3.0 * pi_o_4 + tiny;
+      default:
+        return -3.0 * pi_o_4 - tiny;
+      }
+    }
+    switch (m) {
+    case 0:
+      return 0.0;
+    case 1:
+      return -0.0;
+    case 2:
+      return pi + tiny;
+    default:
+      return -pi - tiny;
+    }
+  }
+  if (iy == 0x7ff00000) return hy < 0 ? -pi_o_2 - tiny : pi_o_2 + tiny;
+  int k = (iy - ix) >> 20;
+  double z;
+  if (k > 60) {
+    /* |y / x| past 2^60 */
+    z = pi_o_2 + 0.5 * pi_lo;
+    m &= 1;
+  } else if (hx < 0 && k < -60)
+    z = 0.0;
+  else
+    z = v8Atan(__builtin_fabs(y / x));
+  switch (m) {
+  case 0:
+    return z;
+  case 1:
+    return -z;
+  case 2:
+    return pi - (z - pi_lo);
+  default:
+    return (z - pi_lo) - pi;
+  }
+}
+/* Math.min and Math.max: wasm's own, NaN where either is and -0 below 0, as JS's */
+static double kit_min(double a, double b) { return __builtin_wasm_min_f64(a, b); }
+static double kit_max(double a, double b) { return __builtin_wasm_max_f64(a, b); }
+
+/* Math's functions as the kernels call them, for a test to hold to Node's: params[i] becomes f(params[i]) for each
+   i under n where `fn` is 0 to 4 (sin, cos, tan, exp, log), f(params[2 i], params[2 i + 1]) where it is 5 to 7 (atan2,
+   min, max). n, or 0 for another fn or more than params hold. It keeps what no kernel calls yet in the module (tan, log
+   and atan2 on 8 Nov 2026: 3,069 of its 192,181 bytes, 1,482 of 65,076 gzipped), so a kernel that takes one up finds
+   it held to V8's already. */
+EXPORT(kit_math)
+int kit_math(int fn, int n) {
+  if (fn < 0 || fn > 7 || n < 0 || n > (fn < 5 ? 4096 : 2048)) return 0;
+  for (int i = 0; i < n; i++) {
+    const double a = params[fn < 5 ? i : 2 * i], b = fn < 5 ? 0 : params[2 * i + 1];
+    switch (fn) {
+    case 0:
+      params[i] = kit_sin(a);
+      break;
+    case 1:
+      params[i] = kit_cos(a);
+      break;
+    case 2:
+      params[i] = kit_tan(a);
+      break;
+    case 3:
+      params[i] = kit_exp(a);
+      break;
+    case 4:
+      params[i] = kit_log(a);
+      break;
+    case 5:
+      params[i] = kit_atan2(a, b);
+      break;
+    case 6:
+      params[i] = kit_min(a, b);
+      break;
+    default:
+      params[i] = kit_max(a, b);
+    }
+  }
+  return n;
+}
+
+/* kit/scene.ts's stops; kit/shade.ts's sheets drawn past the one covering a pixel whole, its whole shadows and a soft
+   shadow's layers, at most */
+#define KIT_STOPS 16
+#define KIT_EDGE 4
+#define KIT_SHADOWS 16
+#define KIT_SHADOW_STEPS 4
+/* kit/scene.ts's KIT_TIE, 2^-10: what every format adds to a channel before taking the byte below it, so a channel
+   exactly half a level between two (a sheet's color on a stop's midpoint) rounds up in each */
+#define KIT_TIE 0.0009765625
+/* the constants a kernel reads and the phases a frame sets, at most: far past any kernel within the kit's budget */
+#define KIT_U 1024
+#define KIT_F 64
+
+static kit_kernel kField;
+static int kTracks;
+/* the scene (kit/scene.ts's KitScene): the view's turn, the kernel's constants and the frame's phases; the ground's,
+   the stops', the shadow's and the lines' one color (0 to 1) */
+static double kCos, kSin, kU[KIT_U], kF[KIT_F];
+static double kGround[3], kStops[3 * KIT_STOPS], kShade[3], kLineRgb[3];
+/* the recipe (kit/types.ts's SheetsRecipe and LinesRecipe): whether each part is drawn; the sheets' levels, their
+   last (infinity for a run of them with no end), their colors' map (kitPlace's wrap: 0 clamp, 1 cycle, 2 mirror); the
+   shadow's layers, its alpha's share a layer and their rise, and whether its color is the sheet below it, darkened by
+   `depth`; the rim's alpha, and whether its color is its sheet's own, lifted toward white; the lines' levels, half
+   width, colors' map or one color, and alpha */
+static int kSheets, kCounted, kWrap, kShadow, kSteps, kShadowBelow, kRim, kRimOwn, kLines, kLineFixed, kLineWrap;
+static double kBase, kStep, kTop, kHop, kOffset, kShare, kRise, kDepth, kRimAlpha, kLift;
+static double kLBase, kLStep, kLHalf, kLHop, kLOffset, kLAlpha;
+/* what n whole shadows leave of what lies under them, multiplied out in kitShade's order, n at most KIT_SHADOWS: one
+   leaves kKeep[1] */
+static double kKeep[KIT_SHADOWS + 1];
+/* each column's and row's middle in D units, the grid's column and row past the box's included; three rows of the
+   field */
+static double *kQx, *kQy, *kRows;
+
+/* The scene for the box (kit/scene.ts's kitScene): the kernel at place `kernel` of KIT_KERNELS (its kind's in
+   kit/gen/kernel-order.ts), which reads `uniforms` constants and `tracks` phases, its unit D (pixels) and the view's
+   turn (cs, sn: the cosine and sine of angle - 90 degrees); params hold the constants (the effect's lists end to end,
+   in the order of its `uniforms`), the ground's, the stops' (KIT_STOPS), the shadow's and the lines' one color (three
+   each, 0 to 1), then the recipe: the sheets (drawn, base, step, counted, count, hop, offset, wrap), the shadow
+   (drawn, alpha, layers, rise, below, depth), the rim (drawn, alpha, own, lift), the lines (drawn, base, step, half,
+   one color, hop, offset, wrap, alpha). 1; -1 for a kernel the module lacks (built before `pnpm kit:gen` wrote it) or
+   more constants or phases than it keeps; 0 where the memory is short. */
+EXPORT(kit_setup)
+__attribute__((minsize)) int kit_setup(int kernel, int uniforms, int tracks, double D, double cs, double sn) {
+  if (kernel < 0 || kernel >= (int)(sizeof KIT_KERNELS / sizeof *KIT_KERNELS) || uniforms < 0 || uniforms > KIT_U ||
+      tracks < 0 || tracks > KIT_F)
+    return -1;
+  kField = KIT_KERNELS[kernel];
+  kTracks = tracks;
+  kCos = cs;
+  kSin = sn;
+  const double *p = params;
+  for (int i = 0; i < uniforms; i++) kU[i] = *p++;
+  for (int i = 0; i < 3; i++) kGround[i] = *p++;
+  for (int i = 0; i < 3 * KIT_STOPS; i++) kStops[i] = *p++;
+  for (int i = 0; i < 3; i++) kShade[i] = *p++;
+  for (int i = 0; i < 3; i++) kLineRgb[i] = *p++;
+  kSheets = p[0] != 0;
+  kBase = p[1];
+  kStep = p[2];
+  kCounted = p[3] != 0;
+  kTop = kCounted ? p[4] - 1 : __builtin_inf();
+  kHop = p[5];
+  kOffset = p[6];
+  kWrap = (int)p[7];
+  kShadow = kSheets && p[8] != 0;
+  kSteps = (int)p[10];
+  kShare = kShadow ? p[9] / kSteps : 0;
+  kRise = p[11];
+  kShadowBelow = p[12] != 0;
+  kDepth = p[13];
+  kRim = kSheets && p[14] != 0;
+  kRimAlpha = p[15];
+  kRimOwn = p[16] != 0;
+  kLift = p[17];
+  p += 18;
+  kLines = p[0] != 0;
+  kLBase = p[1];
+  kLStep = p[2];
+  kLHalf = p[3];
+  kLineFixed = p[4] != 0;
+  kLHop = p[5];
+  kLOffset = p[6];
+  kLineWrap = (int)p[7];
+  kLAlpha = p[8];
+  /* kitShade's `one`, a whole shadow's layers each keeping 1 - share, then n of them */
+  double one = 1;
+  for (int s = 0; s < KIT_SHADOW_STEPS; s++)
+    if (s < kSteps) one *= 1 - kShare;
+  kKeep[0] = 1;
+  for (int n = 1; n <= KIT_SHADOWS; n++) kKeep[n] = kKeep[n - 1] * one;
+  kQx = take((W + 1) * 8);
+  kQy = take((H + 1) * 8);
+  kRows = take(3 * (W + 1) * 8);
+  if (!kQx || !kQy || !kRows) return 0;
+  for (int x = 0; x <= W; x++) kQx[x] = (x + 0.5 - W / 2.0) / D;
+  for (int y = 0; y <= H; y++) kQy[y] = (y + 0.5 - H / 2.0) / D;
+  return 1;
+}
+
+/* where the field is at least `level`, the share of the pixel it covers (kit/shade.ts's kitCover) */
+static inline double kitCover(double f, double level, double g) {
+  return kit_min(1, kit_max(0, 0.5 + (f - level) / g));
+}
+
+/* level k's color into out: its place on the palette by its map (kit/scene.ts's kitPlace), the stops read there
+   (kitStop) */
+static void kitColor(double k, double hop, double offset, int wrap, double *out) {
+  double u = k * hop + offset, place;
+  if (wrap == 0)
+    place = kit_min(1, kit_max(0, u));
+  else if (wrap == 1)
+    place = u - __builtin_floor(u);
+  else {
+    double w = u - 2 * __builtin_floor(u / 2);
+    place = w <= 1 ? w : 2 - w;
+  }
+  double x = kit_min(1, kit_max(0, place)) * (KIT_STOPS - 1);
+  double at = kit_min(KIT_STOPS - 2, __builtin_floor(x)), f = x - at;
+  /* a NaN level reads the first stops, its share NaN leaving every channel NaN, as JS's read of no stop leaves it */
+  const double *s = kStops + 3 * (at >= 0 ? (int)at : 0);
+  out[0] = s[0] + (s[3] - s[0]) * f;
+  out[1] = s[1] + (s[4] - s[1]) * f;
+  out[2] = s[2] + (s[5] - s[2]) * f;
+}
+
+/* out toward a color by a */
+static inline void kitOver(double *out, const double *c, double a) {
+  out[0] += (c[0] - out[0]) * a;
+  out[1] += (c[1] - out[1]) * a;
+  out[2] += (c[2] - out[2]) * a;
+}
+
+/* sheet k's shadow's color into out (kit/shade.ts's kitShadowColor): the ink, or the sheet below it (the ground under
+   the first) darkened */
+static void kitShadowColor(double k, double *out) {
+  const double *c = kShade;
+  if (kShadowBelow) {
+    if (k - 1 >= 0 || !kCounted) {
+      kitColor(k - 1, kHop, kOffset, kWrap, out);
+      c = out;
+    } else
+      c = kGround;
+    out[0] = c[0] * kDepth;
+    out[1] = c[1] * kDepth;
+    out[2] = c[2] * kDepth;
+    return;
+  }
+  out[0] = c[0];
+  out[1] = c[1];
+  out[2] = c[2];
+}
+
+/* sheet k's rim's color into out (kitRimColor): white, or the sheet's own color lifted toward white */
+static void kitRimColor(double k, double *out) {
+  if (!kRimOwn) {
+    out[0] = out[1] = out[2] = 1;
+    return;
+  }
+  kitColor(k, kHop, kOffset, kWrap, out);
+  out[0] += (1 - out[0]) * kLift;
+  out[1] += (1 - out[1]) * kLift;
+  out[2] += (1 - out[2]) * kLift;
+}
+
+/* A pixel's color into out, 0 to 1 (kit/shade.ts's kitShade, line for line in its double precision, so its every
+   number is the CPU drawing's): f the field at its middle, g its change a pixel (at least 1e-9), fs and fr the field
+   where its shadow and its rim come from. */
+static void kitShade(double f, double g, double fs, double fr, double *out) {
+  double c[3];
+  out[0] = kGround[0];
+  out[1] = kGround[1];
+  out[2] = kGround[2];
+  if (kSheets) {
+    double half = 0.5 * g;
+    /* the highest sheet that covers the pixel whole, -1 where none does */
+    double k0 = __builtin_floor((f - half - kBase) / kStep);
+    if (kCounted) k0 = kit_min(kTop, kit_max(-1, k0));
+    if (k0 >= 0 || !kCounted) kitColor(k0, kHop, kOffset, kWrap, out);
+    for (int i = 1; i <= KIT_EDGE; i++) {
+      double k = k0 + i;
+      if (k > kTop) break;
+      double level = kBase + k * kStep;
+      if (kShadow) {
+        kitShadowColor(k, c);
+        for (int s = 0; s < kSteps; s++) kitOver(out, c, kShare * kitCover(fs, level + s * kRise, g));
+      }
+      if (kRim) {
+        double a = kRimAlpha * kitCover(fr, level, g);
+        if (a > 0) {
+          kitRimColor(k, c);
+          kitOver(out, c, a);
+        }
+      }
+      double a = kitCover(f, level, g);
+      if (a > 0) {
+        kitColor(k, kHop, kOffset, kWrap, c);
+        kitOver(out, c, a);
+      }
+    }
+    /* the shadows of the sheets past those: the whole ones at once, then the last two or three by their layers */
+    if (kShadow) {
+      double from = k0 + KIT_EDGE + 1;
+      double k1 = kit_min(kTop, __builtin_floor((fs + half - kBase) / kStep));
+      if (k1 >= from) {
+        double whole = kit_min(k1, __builtin_floor((fs - half - (kSteps - 1) * kRise - kBase) / kStep));
+        double n = whole - from + 1;
+        if (n > 0) {
+          if (kShadowBelow) {
+            /* each its own color, in turn: the topmost KIT_SHADOWS of them */
+            double start = kit_max(from, whole - KIT_SHADOWS + 1);
+            for (int i = 0; i < KIT_SHADOWS; i++) {
+              double k = start + i;
+              if (k > whole) break;
+              kitShadowColor(k, c);
+              out[0] = c[0] + (out[0] - c[0]) * kKeep[1];
+              out[1] = c[1] + (out[1] - c[1]) * kKeep[1];
+              out[2] = c[2] + (out[2] - c[2]) * kKeep[1];
+            }
+          } else {
+            double keep = kKeep[n < KIT_SHADOWS ? (int)n : KIT_SHADOWS];
+            out[0] = kShade[0] + (out[0] - kShade[0]) * keep;
+            out[1] = kShade[1] + (out[1] - kShade[1]) * keep;
+            out[2] = kShade[2] + (out[2] - kShade[2]) * keep;
+          }
+        }
+        double k2 = kit_max(from, whole + 1);
+        int partial = kSteps > 1 ? 3 : 2;
+        for (int i = 0; i < partial; i++) {
+          double k = k2 + i;
+          if (k > k1) break;
+          double level = kBase + k * kStep;
+          kitShadowColor(k, c);
+          for (int s = 0; s < kSteps; s++) kitOver(out, c, kShare * kitCover(fs, level + s * kRise, g));
+        }
+      }
+    }
+  }
+  if (kLines) {
+    /* the three lines nearest: j1 - 1, j1 and j1 + 1 */
+    double j1 = __builtin_floor((f - kLBase) / kLStep + 0.5);
+    for (int i = -1; i <= 1; i++) {
+      double j = j1 + i, level = kLBase + j * kLStep;
+      double a = kLAlpha * (kitCover(f, level - kLHalf, g) - kitCover(f, level + kLHalf, g));
+      if (a > 0) {
+        if (kLineFixed)
+          kitOver(out, kLineRgb, a);
+        else {
+          kitColor(j, kLHop, kLOffset, kLineWrap, c);
+          kitOver(out, c, a);
+        }
+      }
+    }
+  }
+}
+
+/* a channel 0 to 1 as kitRender stores it (kit/scene.ts's kitByte): floor(v * 255 + 0.5 + KIT_TIE), added in JS's
+   order, clamped to 0..255, NaN as 0 (a Uint8ClampedArray's) */
+static inline float kitByte(double v) {
+  double r = __builtin_floor(v * 255 + 0.5 + KIT_TIE);
+  return r > 0 ? (r < 255 ? (float)r : 255.0f) : 0.0f;
+}
+
+/* the field at the point q (D units, centered, y down) turned out of the view's angle (kit/scene.ts's kitTurnX and
+   kitTurnY) */
+static inline double kitField(double qx, double qy) {
+  return kField(kCos * qx + kSin * qy, -kSin * qx + kCos * qy, kU, kF);
+}
+
+/* row y of kitRender's grid: the field at every column's middle and at the column past the box */
+static void kitRow(double *row, int y) {
+  const double qy = kQy[y];
+  for (int x = 0; x <= W; x++) row[x] = kitField(kQx[x], qy);
+}
+
+/* The frame into the planes: params hold its phases, then the shadow's move and the rim's (x and y each, D units on the
+   screen), as kit/scene.ts's kitFrameAt lays them. The field at each pixel's middle a row ahead of the pixels, three
+   rows kept, then each pixel by kitShade from its own, its neighbours' to the right and below, and the field where its
+   shadow and its rim come from, as kitRender takes them. */
+EXPORT(kit_frame)
+void kit_frame(void) {
+  for (int i = 0; i < kTracks; i++) kF[i] = params[i];
+  const double sx = params[kTracks], sy = params[kTracks + 1], rx = params[kTracks + 2], ry = params[kTracks + 3];
+  double *rows[3] = {kRows, kRows + W + 1, kRows + 2 * (W + 1)};
+  kitRow(rows[0], 0);
+  for (int y = 0; y < H; y += 2) {
+    kitRow(rows[1], y + 1);
+    kitRow(rows[2], y + 2);
+    for (int x = 0; x < W; x += 4) {
+      int n = W - x < 4 ? 2 : 4;
+      v128_t q[8];
+      for (int k = 0; k < 8; k++) {
+        if ((k & 3) >= n) {
+          q[k] = q[k - 2];
+          continue;
+        }
+        int px = x + (k & 3), r = k >> 2;
+        double qx = kQx[px], qy = kQy[y + r], f = rows[r][px];
+        double gx = rows[r][px + 1] - f, gy = rows[r + 1][px] - f;
+        double g = kit_max(1e-9, __builtin_sqrt(gx * gx + gy * gy));
+        double fs = kShadow ? kitField(qx - sx, qy - sy) : f, fr = kRim ? kitField(qx - rx, qy - ry) : f;
+        double out[3];
+        kitShade(f, g, fs, fr, out);
+        q[k] = wasm_f32x4_make(kitByte(out[0]), kitByte(out[1]), kitByte(out[2]), 255.0f);
+      }
+      emitOpaque(x, y, n, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);
+    }
+    /* the next pair's first row is this pair's last */
+    double *last = rows[2];
+    rows[2] = rows[0];
+    rows[0] = last;
   }
   if (fSoft) finishFrame();
 }

@@ -165,7 +165,7 @@ describe("gallery addresses", () => {
           kind: "blob",
           speed: 0,
           fps: 60,
-          look: { shape: null, frost: 0.35, bg: "#10101480" }
+          look: { shape: null, frost: 0.35, bg: "#10101480", steps: null }
         }
       }
     ];

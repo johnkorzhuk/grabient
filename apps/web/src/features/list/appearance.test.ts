@@ -140,7 +140,7 @@ const BLOB: Effect = {
   kind: "blob",
   speed: 1,
   fps: 60,
-  look: { shape: null, frost: 1.5, bg: "#112233" }
+  look: { shape: null, frost: 1.5, bg: "#112233", steps: null }
 };
 
 test("an effect's style names it, with how it plays and looks, and the steps leave", () => {
@@ -159,8 +159,59 @@ test("an effect's style names it, with how it plays and looks, and the steps lea
     listViewOf(new URLSearchParams("style=blob&speed=99&fps=0&frost=7&bg=zz&style=glass"))
   ).toEqual({
     ...AS_SAVED,
-    effect: { kind: "blob", speed: 10, fps: 60, look: { shape: null, frost: 2, bg: null } }
+    effect: {
+      kind: "blob",
+      speed: 10,
+      fps: 60,
+      look: { shape: null, frost: 2, bg: null, steps: null }
+    }
   });
+});
+
+test("the sandstone's steps are its look's on a list, in the gradients' steps' place; another effect's address leaves them", () => {
+  const strata = readListView({ style: "strata", steps: 12, angle: 45 });
+  expect(strata.steps).toBe("auto");
+  expect(strata.effect?.look.steps).toBe(12);
+  /* written where a gradient's steps stand, right after the style, and read back */
+  expect(inView("/palettes", strata)).toBe("/palettes?style=strata&steps=12&angle=45");
+  expect(listViewOf(new URLSearchParams("style=strata&steps=12"))).toEqual(
+    readListView({ style: "strata", steps: 12 })
+  );
+  expect(inOrder({ q: "sea", angle: 45 }, viewParams({ effect: strata.effect }))).toEqual({
+    q: "sea",
+    style: "strata",
+    steps: 12,
+    angle: 45,
+    soft: undefined,
+    grain: undefined,
+    size: undefined,
+    speed: undefined,
+    fps: undefined,
+    frost: undefined,
+    bg: undefined,
+    selection: undefined
+  });
+  /* its designed steps leave the address; one past its range comes within it */
+  expect(readListView({ style: "strata", steps: 28 }).effect?.look.steps).toBeNull();
+  expect(readListView({ style: "strata", steps: 99 }).effect?.look.steps).toBe(40);
+  expect(inView("/palettes", readListView({ style: "strata", steps: 28 }))).toBe(
+    "/palettes?style=strata"
+  );
+  /* another effect takes none, and a gradient's steps stay the gradient's */
+  expect(readListView({ style: "zen", steps: 12 }).effect?.look.steps).toBeNull();
+  expect(inView("/palettes", readListView({ style: "zen", steps: 12 }))).toBe(
+    "/palettes?style=zen"
+  );
+  expect(inView("/palettes", readListView({ style: "linearSwatches", steps: 12 }))).toBe(
+    "/palettes?style=linearSwatches&steps=12"
+  );
+  /* turned from the sandstone to the zen garden, its steps leave with it */
+  expect(viewParams({ effect: readListView({ style: "zen" }).effect }).steps).toBeUndefined();
+  /* a card plays the list's steps, and a list returned to takes a change of them made since */
+  expect(cardEffect(strata.effect!, SEED).look.steps).toBe(12);
+  const at20 = readListView({ style: "strata", steps: 20 });
+  expect(viewSince(strata, strata, at20).effect?.look.steps).toBe(20);
+  expect(viewSince(strata, at20, at20).effect?.look.steps).toBe(12);
 });
 
 test("an effect is written in the style's place, then the angle and size, how it plays, its frost and ground", () => {
@@ -191,6 +242,26 @@ test("an effect is written in the style's place, then the angle and size, how it
     .filter(([, value]) => value !== undefined)
     .map(([name]) => name);
   expect(order).toEqual(["q", "style", "frost", "bg", "page", "selection"]);
+});
+
+test("the strings take the list's ground, every card on it: read, written after their look and read back", () => {
+  const strings = readListView({ style: "strings", angle: 30, bg: "#f4efe680", shape: 12 });
+  expect(strings.effect).toEqual({
+    kind: "strings",
+    speed: 1,
+    fps: 60,
+    look: { shape: null, frost: 1, bg: "#f4efe680", steps: null }
+  });
+  expect(inView("/palettes", strings)).toBe("/palettes?style=strings&angle=30&bg=%23f4efe680");
+  expect(listViewOf(new URLSearchParams("style=strings&angle=30&bg=%23f4efe680"))).toEqual(strings);
+  /* a clear one, and none, their designed one */
+  expect(readListView({ style: "strings", bg: "#00000000" }).effect?.look.bg).toBe("#00000000");
+  expect(readListView({ style: "strings" }).effect?.look.bg).toBeNull();
+  /* every card plays the list's ground, in its palette's own shape */
+  expect(cardEffect(strings.effect!, SEED).look.bg).toBe("#f4efe680");
+  /* turned to an effect that takes none, the ground leaves with it */
+  expect(readListView({ style: "silk", bg: "#f4efe6" }).effect?.look.bg).toBeNull();
+  expect(viewParams({ effect: readListView({ style: "silk" }).effect }).bg).toBeUndefined();
 });
 
 test("the blob has no angle: an address's angle is left while it plays, and the glass keeps its own", () => {

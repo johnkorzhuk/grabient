@@ -1,6 +1,6 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { EFFECT_KINDS, type Effect, groundParts } from "@grabient/engine/effect.ts";
+import { EFFECT_KINDS, type Effect, effectBare, isVectorKind } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { effectSoftShare } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
@@ -32,9 +32,11 @@ export async function readyCardEffects(kind: Effect["kind"]): Promise<void> {
   ]);
 }
 
-/** Whether an effect stands on the page with no ground of its own: a blob with none, or one the page shows through. */
+/** Whether an effect stands on the page with no ground of its own (engine/effect.ts effectBare): a blob with none, or
+    one the page shows through, the strings on such a ground. A soft one's edges go to the page, as its files' and the
+    stage's do (engine/fx-finish.ts effectUnderlay), with no gradient under them. */
 export const standsBare = (fx: Effect | null | undefined): boolean =>
-  fx?.kind === "blob" && !(fx.look.bg && groundParts(fx.look.bg).alpha === 1);
+  !!fx && effectBare(fx.kind, fx.look);
 
 /** A card's picture while its list plays an effect, as the editor's sheet draws its cards: the effect's still in its
     palette's own shape, moving while the card is lit (EffectArt.tsx), its name for a screen reader, the light under
@@ -99,9 +101,9 @@ export function createCardEffect(o: {
           style: "linearGradient" as const,
           angle: o.angle()
         };
-      /* the silk's dye and the papercut's sheets along their angle, the rosette's rings out from its heart: the
-         palette end to end */
-      if (fx.kind === "silk" || fx.kind === "rosette" || fx.kind === "papercut")
+      /* the vector effects' palette end to end (fx-still.ts fxGlow, which a list's start leaves unloaded): along
+         their angle, the rosette's rings out from its heart */
+      if (isVectorKind(fx.kind))
         return {
           stops: sampleStops(palette()!, 6).map(s => s.hex),
           style: fx.kind === "rosette" ? ("radialGradient" as const) : ("linearGradient" as const),

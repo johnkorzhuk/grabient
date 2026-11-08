@@ -36,4 +36,11 @@ test("none, a clear color and text that is no color", () => {
   expect(cssColorText("color(cmyk 1 0 0)")).toBeUndefined();
   expect(parseCssColor("rgb(300 -20 100)")).toEqual({ rgb: [1, 0, 100 / 255], alpha: 1 });
   expect(cssColorHex({ rgb: [1, 1, 1], alpha: 1 })).toBe("#ffffff");
+  /* a ground whose none is its designed one (the strings') keeps a clear color as the one clear ground */
+  expect(cssColorText("transparent", true)).toBe("#00000000");
+  expect(cssColorText("rgb(255 0 0 / 0%)", true)).toBe("#00000000");
+  expect(cssColorText("rgb(0 0 0 / 50%)", true)).toBe("#00000080");
+  expect(cssColorText("navy", true)).toBe("#000080");
+  expect(cssColorText("", true)).toBeNull();
+  expect(cssColorText("nope", true)).toBeUndefined();
 });
