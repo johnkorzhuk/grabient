@@ -211,9 +211,11 @@ const effectCss = async (p: Taken, effect: Effect) =>
     await grainImageOf(p)
   );
 /* an effect's SVG moves as the picture does: speed 0 is its first frame */
+/* a view's stops as its picture draws them: a soft view's blurred, at their places along the line */
+type DrawnStops = Awaited<ReturnType<typeof drawnSoon>>;
 /* the gradient's SVG: a soft view's blurred stops (lib/picture.ts), and its grain's image where `grain` brings it */
-async function gradientSvg(p: Taken, grain?: string): Promise<string> {
-  const d = await drawnSoon(p.stops, view(p));
+async function gradientSvg(p: Taken, grain?: string, drawn?: DrawnStops): Promise<string> {
+  const d = drawn ?? (await drawnSoon(p.stops, view(p)));
   return artworkSvg(d.stops, view(p), p.seed, origin(), p.pixels, {
     style: d.style,
     at: d.at,
@@ -275,6 +277,31 @@ async function svgCanvas(p: Taken, svg: string, grain?: number): Promise<HTMLCan
     grain
   );
 }
+/* The gradient's picture: its SVG painted, the grain's tile over it. A soft angular gradient is the canvas's own conic
+   gradient at its blurred stops' places, as the stage's CSS draws it and a card's PNG (ui/exportgrid.ts paintGrid):
+   the SVG's fan lays those stops a flat wedge a degree, and a seam the soft blurs over a few degrees showed its wedges
+   as steps (John, 7 Nov 2026: "just fix the png output"). The SVG file keeps its fan. */
+async function gradientCanvas(p: Taken): Promise<HTMLCanvasElement> {
+  const d = await drawnSoon(p.stops, view(p));
+  const at = d.at;
+  if (!at || d.style !== "angularGradient")
+    return svgCanvas(p, await gradientSvg(p, undefined, d), p.grain);
+  const { width, height } = p.pixels;
+  return grainedCanvas(
+    p,
+    context => {
+      const conic = context.createConicGradient(
+        ((p.angle - 90) * Math.PI) / 180,
+        width / 2,
+        height / 2
+      );
+      for (const [i, stop] of d.stops.entries()) conic.addColorStop(at[i], stop.hex);
+      context.fillStyle = conic;
+      context.fillRect(0, 0, width, height);
+    },
+    p.grain
+  );
+}
 /* the papercut's picture by its CPU drawing (papercut-png.ts), its code asked for with the first one taken: neither a
    page's start nor the Worker's build carries it */
 const papercutCanvasOf = async (p: Taken, effect: Effect): Promise<HTMLCanvasElement> =>
@@ -298,10 +325,10 @@ async function frameCanvas(p: Taken, effect: Effect): Promise<HTMLCanvasElement>
   );
 }
 /** The palette's picture at the pixels taken, standing still, as its PNG is drawn: the first frame of the effect it
-    plays, else its gradient (its SVG painted, the grain's tile over it), finished by its soft and grain. What Copy
-    PNG and Download PNG encode, and what the selection lays on its grid. */
+    plays, else its gradient (gradientCanvas), finished by its soft and grain. What Copy PNG and Download PNG encode,
+    and what the selection lays on its grid. */
 export async function pictureCanvas(p: Taken): Promise<HTMLCanvasElement> {
-  if (!p.effect) return svgCanvas(p, await gradientSvg(p), p.grain);
+  if (!p.effect) return gradientCanvas(p);
   if (p.effect.kind === "papercut") return papercutCanvasOf(p, p.effect);
   if (p.effect.kind !== "glass") return svgCanvas(p, await effectSvgOf(p, p.effect, false));
   return frameCanvas(p, p.effect);

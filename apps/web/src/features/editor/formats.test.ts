@@ -258,10 +258,13 @@ interface Canvas {
   drawn: string[];
   tiles: string[];
   filled?: number[];
+  /** every fill, what it was filled with and its box */
+  fills: { style: unknown; box: number[] }[];
+  conic?: { start: number; x: number; y: number; stops: [number, string][] };
 }
 const GRAIN_BYTES = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
 function stubCanvas(): Canvas {
-  const canvas: Canvas = { drawn: [], tiles: [] };
+  const canvas: Canvas = { drawn: [], tiles: [], fills: [] };
   vi.stubGlobal(
     "ImageData",
     class {
@@ -295,8 +298,17 @@ function stubCanvas(): Canvas {
       canvas.tiles.push(image.src);
       return "tile";
     },
+    createConicGradient(start: number, x: number, y: number) {
+      const conic = { start, x, y, stops: [] as [number, string][] };
+      canvas.conic = conic;
+      return {
+        conic,
+        addColorStop: (at: number, color: string) => void conic.stops.push([at, color])
+      };
+    },
     fillRect(...box: number[]) {
       canvas.filled = box;
+      canvas.fills.push({ style: context.fillStyle, box });
     }
   };
   vi.stubGlobal("document", {
@@ -362,6 +374,42 @@ test("the glass's PNG is its first frame drawn and blurred by the view's soft on
   await copyFormat("png", finished("style=glass&shape=5", 0, 0));
   expect(plain.put?.data).toEqual(await effectRgba(P, glass, 45, PIXELS, 0));
   expect([plain.tiles, plain.filled]).toEqual([[], undefined]);
+});
+
+test("a soft angular gradient's PNG is the canvas's own conic gradient at its blurred stops' places, the grain's tile over it", async () => {
+  const { drawnStops } = await import("@grabient/engine/soft.ts");
+  for (const style of ["angularGradient", "angularSwatches"] as const) {
+    const canvas = stubCanvas();
+    const p: Taken = { ...taken(""), style, pixels: PIXELS, soft: 20, grain: 40 };
+    await copyFormat("png", p);
+    /* a soft's swatches are drawn as their family's gradient, at the stops' places */
+    const d = drawnStops(p.stops, { style, soft: 20 });
+    expect(canvas.conic).toEqual({
+      start: ((45 - 90) * Math.PI) / 180,
+      x: 80,
+      y: 45,
+      stops: d.stops.map((stop, i) => [d.at?.[i], stop.hex])
+    });
+    expect(canvas.fills.map(fill => fill.box)).toEqual([
+      [0, 0, 160, 90],
+      [0, 0, 160, 90]
+    ]);
+    expect(canvas.fills[0].style).toMatchObject({ conic: canvas.conic });
+    expect(canvas.fills[1].style).toBe("tile");
+    expect(canvas.tiles).toEqual(["/assets/grain-test/40.png"]);
+    expect(canvas.drawn).toEqual([]);
+  }
+  /* a plain angular gradient and a soft linear one are their SVG painted, as before */
+  for (const [style, soft] of [
+    ["angularGradient", 0],
+    ["linearGradient", 20]
+  ] as const) {
+    const canvas = stubCanvas();
+    await copyFormat("png", { ...taken(""), style, pixels: PIXELS, ...(soft ? { soft } : {}) });
+    expect(canvas.conic).toBeUndefined();
+    expect(canvas.drawn).toHaveLength(1);
+    expect(canvas.drawn[0]).toMatch(/^data:image\/svg\+xml;charset=utf-8,/);
+  }
 });
 
 test("the silk's, the rosette's and the blob's PNG is their finished still SVG, its grain inside, drawn by the browser", async () => {

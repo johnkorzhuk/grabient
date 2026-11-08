@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { live } from "./live.ts";
 
@@ -120,6 +121,44 @@ test("a soft, grained palette draws its finish in its first paint, and its files
   const png = await file("png");
   expect(png.headers()["content-type"]).toBe("image/png");
   expect(JSON.parse(await (await file("json")).text())).toMatchObject({ soft: 40, grain: 20 });
+});
+
+test("a soft angular gradient's PNG blends its seam as its file does, where the SVG's wedges stepped it a degree at a time", async ({
+  page,
+  request
+}) => {
+  /* the palette John saw stepped (7 Nov 2026): the seam, where its last color meets its first, blurred over a few
+     degrees; the server's file is drawn a pixel at a time */
+  const seed = "kYWS-6SBg-maJvlzj65bITQM2TQ8";
+  const query = "style=angularGradient&steps=32&angle=225&soft=20&size=600x400";
+  await page.goto(`/${seed}?${query}`);
+  await live(page);
+  await page.getByRole("button", { name: "Copying. Switch to download" }).first().click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PNG" }).first().click();
+  const drawn = readFileSync(await (await download).path()).toString("base64");
+  const served = await request.get(`/${seed}.png?${query}`);
+  const file = Buffer.from(await served.body()).toString("base64");
+  /* the most a channel of a pixel differs between the two: the wedges' steps were up to 33 levels */
+  const most = await page.evaluate(
+    async pngs => {
+      const pixels = async (png: string) => {
+        const bytes = Uint8Array.from(atob(png), char => char.charCodeAt(0));
+        const image = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+        const canvas = new OffscreenCanvas(image.width, image.height);
+        const context = canvas.getContext("2d")!;
+        context.drawImage(image, 0, 0);
+        return context.getImageData(0, 0, image.width, image.height).data;
+      };
+      const [a, b] = await Promise.all(pngs.map(pixels));
+      if (a.length !== b.length) return Number.POSITIVE_INFINITY;
+      let off = 0;
+      for (let i = 0; i < a.length; i++) off = Math.max(off, Math.abs(a[i] - b[i]));
+      return off;
+    },
+    [drawn, file]
+  );
+  expect(most).toBeLessThanOrEqual(3);
 });
 
 test("an effect plays soft and grained: its address keeps both, its picture blurs over the gradient under the grain", async ({

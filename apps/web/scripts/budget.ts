@@ -169,8 +169,10 @@ const BUDGETS = {
   // to 1455.7, and soft and grain on its pictures' looks to 1456.8. The selection's looks (4 Nov 2026: the effect a
   // palette was chosen playing and its soft and grain in what the cards, the editor and a collection's Add all hand
   // in, engine/effect-embed.ts effectRuleCss), and formats.ts drawing its PNGs without ui/figure.ts, which the bundler
-  // now writes as a chunk of its own, took it from 1457.0 to 1458.2
-  worker: 1459,
+  // now writes as a chunk of its own, took it from 1457.0 to 1458.2. The editor's PNG of a soft angular gradient drawn
+  // as the canvas's own conic gradient (formats.ts gradientCanvas, 7 Nov 2026), about 0.2 of code and the rest its
+  // chunk's new name, took it from 1458.5 to 1459.0 to 1459.2, by the build
+  worker: 1460,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
