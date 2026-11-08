@@ -5,17 +5,17 @@
    color at its share of the alpha), its rim (its path moved toward the light, in its color at the rim's alpha) and
    itself, a sheet's shadow the ink or the sheet below it darkened and its rim white or its own color lit, as shade.ts's
    kitShadowColor and kitRimColor give them; then each line, the band between its two edges' levels, its upper edge's
-   loops run the other way, so the band fills alike by either rule (Figma's paste fills by the odd one). Where kitShade
-   covers a pixel by a ramp a pixel wide across an edge, a rasterizer covers it by the path's area: the same picture
-   wherever the levels lie a pixel apart or more. The loops depend on the effect, the view (its angle and shape), the
-   box and the time alone, never on the palette, so a still's and a file's are kept by these (KIT_TRACES_KEPT), and
-   each palette writes its colors about them.
+   loops run the other way, so the band fills alike by either rule, whichever a design app's importer takes. Where
+   kitShade covers a pixel by a ramp a pixel wide across an edge, a rasterizer covers it by the path's area: the same
+   picture wherever the levels lie a pixel apart or more. The loops depend on the effect, the view (its angle and
+   shape), the box and the time alone, never on the palette, so a still's and a file's are kept by these
+   (KIT_TRACES_KEPT), and each palette writes its colors about them.
    - The still (kitStillSvg, kitStillSteps): the frame at t = 0 in the design square, traced coarser, each sheet's path
      written once and its shadow and its rim a <use> of it moved, written a step at a time; what a list's card, a
      page's first paint and the stylesheet paint.
    - Any frame's SVG (kitFrameSvg) and the file's (kitFileSvg: the first frame, at any speed, as the papercut's and the
      strings' are), traced finer, every layer a path of its own with no <use>, no filter and no mask, which a design
-     app's importer takes as it is; their layers are what Copy for Figma pastes (kitFrameLayers, figma.ts). */
+     app's importer takes as it is, Figma's among them, which is how a field effect goes into Figma (kitFrameLayers). */
 import type { Palette } from "../palette.ts";
 import { type FitHow, svgNumber as fmt } from "../svg-fit.ts";
 import type { Size } from "../view.ts";
@@ -230,13 +230,13 @@ function* tracedSteps(m: KitScene, how: Trace, t: number): Generator<void, Trace
 }
 
 /** Traces kept by the scene's effect, view and box, the least lately used out first: a still's (a list's cards at one
-    angle and shape trace them once, each card writing its colors about them) and a file's first frame (its SVG and its
-    copy for Figma). The effect is told apart by the object it is, not its name alone, so a recipe tried in variants
-    under one name draws each its own. A still's are as many as a list's thirty cards and two more, and one for each
-    field effect besides, the Appearance menu's tile of each at the palette's look (apps/web Corner.tsx): with 32 alone,
-    40 field effects' tiles put out their own traces in one pass, so a palette changed while the menu stood open traced
-    every tile again, 1.6 to 2.4 s where 30 effects' took 12 to 16 ms (8 Nov 2026). A trace at the design square holds
-    about a still's background, 11 to 29 KiB (up to 23 at the sandstone's 40 steps). */
+    angle and shape trace them once, each card writing its colors about them) and a file's first frame (its SVG). The
+    effect is told apart by the object it is, not its name alone, so a recipe tried in variants under one name draws
+    each its own. A still's are as many as a list's thirty cards and two more, and one for each field effect besides,
+    the Appearance menu's tile of each at the palette's look (apps/web Corner.tsx): with 32 alone, 40 field effects'
+    tiles put out their own traces in one pass, so a palette changed while the menu stood open traced every tile again,
+    1.6 to 2.4 s where 30 effects' took 12 to 16 ms (8 Nov 2026). A trace at the design square holds about a still's
+    background, 11 to 29 KiB (up to 23 at the sandstone's 40 steps). */
 export const KIT_TRACES_KEPT = { still: 32 + KIT_KINDS.length, file: 4 } as const;
 const stillTraces = new Map<string, Traced>();
 const fileTraces = new Map<string, Traced>();
@@ -303,11 +303,10 @@ const rimHex = (m: KitScene, k: number) => {
 };
 const opacity = (alpha: number) => (alpha < 1 ? ` fill-opacity="${fmt(alpha, 3)}"` : "");
 
-/** A layer of a frame's drawing over its ground, as its SVG lays it and Copy for Figma pastes it: its path's data
-    (evenodd), its color and alpha, its name and its group's in Figma's layers ("sheet 1" and "line 1" the lowest the
-    frame shows, counted up from there), and the level it draws (its sheet's k or its line's j), which its color is
-    worked out from and no name shows: a periodic sheet's k runs below 0, and a stack's lowest sheets folded into the
-    ground leave its first shown at 3 or more. */
+/** A layer of a frame's drawing over its ground, as its SVG lays it: its path's data (evenodd), its color and alpha,
+    its name and its group's ("sheet 1" and "line 1" the lowest the frame shows, counted up from there), and the level
+    it draws (its sheet's k or its line's j), which its color is worked out from and no name shows: a periodic sheet's k
+    runs below 0, and a stack's lowest sheets folded into the ground leave its first shown at 3 or more. */
 export interface KitLayer {
   group: string;
   name: string;
@@ -460,7 +459,7 @@ export const kitStillSvg = (
 ): string => atOnce(stillSteps(kitScene(def, P, view, size)));
 
 /** The layers of a scene's frame at t (seconds of the loop at speed 1), traced as a frame is; the first frame's kept
-    by the view: what the file's SVG and Copy for Figma draw. */
+    by the view: what the file's SVG draws. */
 export const kitFrameLayers = (m: KitScene, t = 0): KitLayers =>
   layersOf(
     m,

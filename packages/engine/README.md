@@ -120,10 +120,11 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   `kit/registry.ts` and its words in `kit/names.ts`. The rest
   is the kit's, written once for every field effect: the scene and the pixel's shading (`kit/scene.ts`, `kit/shade.ts`),
   the CPU drawing (`kit/render.ts`), the compiler that writes each kernel in GLSL, WGSL and C (`kit/compile.ts`;
-  `pnpm kit:gen` writes `kit/gen/` and `video/kit-kernels.c`), the tracer, the stills, any frame's SVG and Copy for
-  Figma (`kit/trace.ts`, `kit/svg.ts`, `kit/figma.ts`), the player's pass (`kit/gl.ts`, `kit/wgsl.ts`) and the shader
-  pages (`kit/shader.ts`, `kit/webgl.ts`, `kit/webgpu.ts`, `kit/page.ts`). `kit/fields/demo.ts` is the kit's own
-  example, never an effect of the site.
+  `pnpm kit:gen` writes `kit/gen/` and `video/kit-kernels.c`), the tracer, the stills and any frame's SVG
+  (`kit/trace.ts`, `kit/svg.ts`), the player's pass (`kit/gl.ts`, `kit/wgsl.ts`) and the shader pages
+  (`kit/shader.ts`, `kit/webgl.ts`, `kit/webgpu.ts`, `kit/page.ts`). A field effect has no Copy for Figma: its levels
+  change shape as it moves, which Figma's timeline cannot, so its SVG is what goes into Figma. `kit/fields/demo.ts` is
+  the kit's own example, never an effect of the site.
 - What each effect hands over in each form, and why where it hands over less: `effect.ts`'s `EFFECT_KINDS`, which
   `effect-conformance.test.ts` holds every effect to. Any frame of a vector effect as an SVG and CSS of its own:
   `fx-still.ts`'s `fxFrameSvg` and `fxFrameCss`.

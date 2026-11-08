@@ -3,9 +3,11 @@
 A field effect is one file: a smooth field over the plane (its kernel), a seeded design, and a recipe for drawing the
 field's levels as a stack of sheets with shadows, rims and lines. The kit draws that file in every form the site
 has: the CPU's PNG files and link cards (render.ts), the still and any frame as an SVG of filled paths (svg.ts),
-Copy for Figma's layers (figma.ts), the player and the shader pages in GLSL and WGSL (gl.ts, wgsl.ts, page.ts,
-webgl.ts, webgpu.ts, shader.ts, packages/ui kit-player.ts), the clips in C (video/video.c, from kit-kernels.c), and
-the embed script (apps/web embed/kit.ts). An effect's author writes none of those. The zen garden and the sandstone
+the player and the shader pages in GLSL and WGSL (gl.ts, wgsl.ts, page.ts, webgl.ts, webgpu.ts, shader.ts,
+packages/ui kit-player.ts), the clips in C (video/video.c, from kit-kernels.c), and the embed script (apps/web
+embed/kit.ts). An effect's author writes none of those. It has no Copy for Figma: its levels change shape as it
+moves, which no layer on Figma's timeline can, so a paste could only be its still, and its SVG is that (John, 8 Nov
+2026: "we can just drop it and they can use svg"). The zen garden and the sandstone
 (8 Nov 2026) are the site's; `fields/demo.ts` is the kit's own example, which its tests draw in every format and a new
 effect starts from.
 
@@ -110,8 +112,8 @@ All after `source ~/.cache/grabient-final-work/tools/env.sh`, from the repositor
    nothing, a kernel that does not compile or costs past 160, and a new kind whose name a file holds already (the
    embed's own grain.ts or mount.ts, say). The app's tests that hold every effect take the field effects from the kit
    (kinds.ts, names.ts, registry.ts), so none of them is edited for a new kind: a page's title
-   (apps/web/src/lib/page-meta.test.ts), Copy for Figma (apps/web/src/features/editor/formats.test.ts), the clips'
-   address (apps/web/src/server/images/video.test.ts, which draws the new kind's clip once step 6 has rebuilt the
+   (apps/web/src/lib/page-meta.test.ts), the strips' formats (apps/web/src/features/editor/formats.test.ts), the
+   clips' address (apps/web/src/server/images/video.test.ts, which draws the new kind's clip once step 6 has rebuilt the
    clips' module) and the examples page's hero (apps/web/e2e/examples.spec.ts finds a seed for each kind).
 3. Its names in every language: `pnpm i18n extract`; a translator's note for each of the two new messages in
    packages/i18n/messages/en.json (what it is, where it shows, what it must not be confused with: no check reads the

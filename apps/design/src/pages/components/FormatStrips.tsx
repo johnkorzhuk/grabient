@@ -55,6 +55,17 @@ export function FormatStrips() {
             />
           </Cell>
           <Cell
+            caption="a list card's strip while the papercut, the strings or a field effect plays · no Figma: their shapes change as they move, which no layer on Figma's timeline can, so a paste could only stand still, and their SVG goes into Figma as it is"
+            art={ART}
+          >
+            <FormatStrip
+              copy={["url", "css", "svg", "png", "html"]}
+              download={["md", "css", "svg", "png"]}
+              swatches={SWATCH_CHIPS}
+              link={["md", "css", "svg", "png", "js"]}
+            />
+          </Cell>
+          <Cell
             caption="the editor's strip while an effect plays · as a card's, and Download adds MP4, its clip drawn and coded in the reader's browser; Copy link adds the clip's address where the server draws new clips for the reader (a preview: an admin on grabient.com, anyone on staging); MP4 shares HTML's place, the script Figma's"
             art={ART}
           >
@@ -95,6 +106,7 @@ export function FormatStrips() {
             "The mode is its glyph, a dot per mode over it on hover. Every strip on the page turns as one.",
             "Named by its mode; the mode press names the next one; the swatch book is Swatches or Back.",
             "A copy for another app is named for where it goes: Copy for Figma.",
+            "Copy for Figma only where Figma's timeline plays the effect (the glass, the blob, the silk, the rosette); for the others the SVG is the way into Figma.",
             "A download made as it is asked for, an effect's MP4, shows how far along it is on its own chip, a ring round its stop (MakingIcon), its tooltip Making MP4, 62%. Stop. Its name stays Making MP4. Stop until the file is made, so a screen reader is not told each percent, and is told Downloaded MP4 then. A press stops it, and so does the stage showing another clip; its check comes once the file is saved. Only the page that makes it loads the ring."
           ]}
         />

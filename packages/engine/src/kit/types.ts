@@ -3,7 +3,7 @@
    CPU drawing (render.ts), the player's GLSL, the WebGPU page's WGSL and the clips' C. Its picture is the field's
    levels drawn as a stack of sheets, each a palette color, each casting a shadow on the sheets below and showing a lit
    rim toward the light, with lines along other levels over them: shapes an SVG fills exactly, so any frame is a plain
-   SVG of its own and Copy for Figma pastes its layers. What an author writes is a FieldEffect; everything else is the
+   SVG of its own, which a design app takes as it is. What an author writes is a FieldEffect; everything else is the
    kit's. */
 
 /** A phase that swings about its rest: rest + swing * sin(2 pi cycles t / loop + psi), in radians, reduced to one turn

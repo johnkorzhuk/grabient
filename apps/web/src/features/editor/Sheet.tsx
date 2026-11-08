@@ -57,10 +57,10 @@ import {
   copyContrast,
   copyLink,
   copyOrSave,
+  effectCopyFormats,
   effectLinkFormats,
   NO_IMAGE_CLIPBOARD,
   STRIP_COPY,
-  STRIP_EFFECT_COPY,
   STRIP_FILES,
   saveContrast,
   saveFormat,
@@ -563,7 +563,7 @@ export function Sheet(props: {
           <FormatStrip
             size="sm"
             variant="art"
-            copy={playing() ? STRIP_EFFECT_COPY : STRIP_COPY}
+            copy={playing() ? effectCopyFormats(playing()!) : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={playing() ? effectLinkFormats(playing()!) : STRIP_FILES}

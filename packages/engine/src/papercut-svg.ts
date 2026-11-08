@@ -496,7 +496,7 @@ function stillSheets(
 
 /** The file's sheets above the ground, each its three paths as the file lays them (the cut moved away from the light
     by its shadow's offset, the cut, and the cut moved toward it by the lit edge's width; evenodd), or null for a sheet
-    no cut shows: what the file's SVG and Copy for Figma (figma-papercut.ts) both draw. */
+    no cut shows: what the file's SVG draws, which is how a papercut goes into Figma. */
 export const papercutFileCuts = (m: PapercutScene, t = 0): (FileCut | null)[] => {
   const how = FILE_TRACE(m);
   const trace = function* () {

@@ -85,8 +85,10 @@ export interface EffectKindFacts {
   /** whether any frame of its loop is written as a plain SVG and CSS of its own (fx-still.ts fxFrameSvg), which the
       conformance suite draws and holds to its CPU frame at that time */
   frameSvg: boolean;
-  /** what Copy for Figma pastes: layers that Figma's timeline plays, or its still */
-  figma: "moving" | "still";
+  /** what Copy for Figma pastes: layers that Figma's timeline plays; null where its layers could only stand still,
+      since a paste that is its still is what its SVG already hands over, so no strip offers Copy for Figma (John,
+      8 Nov 2026: "we can just drop it and they can use svg") */
+  figma: "moving" | null;
   /** whether its clips are drawn (video-kinds.ts names them) */
   video: boolean;
   /** whether a script plays it behind another site's page (/{seed}.js, apps/web/src/embed) */
@@ -95,8 +97,8 @@ export interface EffectKindFacts {
   shader: boolean;
 }
 /** What every field effect is and hands over (kit/): drawn by one drawing of its loop's time over a vector still that
-    is its first frame, turned by the angle and blurred by the soft; its levels change shape as it moves, so its SVG and
-    its Figma paste are its first frame (effect-why.ts), and every other form plays it. Its steps are its file's
+    is its first frame, turned by the angle and blurred by the soft; its levels change shape as it moves, so its SVG is
+    its first frame and it has no Copy for Figma (effect-why.ts), and every other form plays it. Its steps are its file's
     (kit/types.ts FieldEffect.steps, as kit:gen writes them: kit/gen/kind-steps.ts). */
 const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
   angle: true,
@@ -106,7 +108,7 @@ const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
   steppedStill: false,
   svgMotion: null,
   frameSvg: true,
-  figma: "still",
+  figma: null,
   video: true,
   embed: true,
   shader: true
@@ -177,7 +179,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     steppedStill: true,
     svgMotion: null,
     frameSvg: true,
-    figma: "still",
+    figma: null,
     video: true,
     embed: true,
     shader: true
@@ -191,7 +193,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     steppedStill: false,
     svgMotion: null,
     frameSvg: true,
-    figma: "still",
+    figma: null,
     video: true,
     embed: true,
     shader: true
@@ -205,6 +207,10 @@ export const hasEmbedScript = (kind: EffectKind): boolean => EFFECT_KINDS[kind].
 export type VectorKind = "silk" | "rosette" | "papercut" | "strings" | KitKind;
 export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>
   !!kind && EFFECT_KINDS[kind].vector;
+/** The effects Copy for Figma pastes, as layers that Figma's timeline plays (EFFECT_KINDS' figma); the others' strips
+    offer their SVG in its place. */
+export type FigmaKind = "glass" | "blob" | "silk" | "rosette";
+export const hasFigma = (kind: EffectKind): kind is FigmaKind => EFFECT_KINDS[kind].figma !== null;
 
 /** Speeds: 0 holds the first frame (the animation off), then from `slowest` to `max`. */
 export const EFFECT_SPEED = { min: 0, slowest: 0.1, max: 10 } as const;

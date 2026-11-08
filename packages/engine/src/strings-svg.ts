@@ -488,9 +488,6 @@ export const stringsStillOf = (m: StringsScene): string => atOnce(stringsStillSt
 /** The frame at t of a scene, traced as a file is. */
 export const stringsFrameOf = (m: StringsScene, t: number): string =>
   drawing(m, atOnce(threadSteps(m, FILE_TRACE(m), t)));
-/** Each thread of the frame at t as path data, keyed by level, traced as a file is: what Copy for Figma outlines. */
-export const stringsThreads = (m: StringsScene, t = 0): Map<number, string> =>
-  atOnce(threadSteps(m, FILE_TRACE(m), t));
 
 /** The still of a palette and a view in a box. */
 export const stringsStillSvg = (P: Palette, view: StringsView, size: Size): string =>

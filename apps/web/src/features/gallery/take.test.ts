@@ -1,6 +1,7 @@
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECTS, parseEffect } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import {
+  effectCopyFormats,
   effectLinkFormats,
   STRIP_COPY,
   STRIP_EFFECT_COPY,
@@ -34,21 +35,19 @@ test("a card's strip offers the formats the editor's strips offer, with an effec
     download: STRIP_FILES,
     link: STRIP_FILES
   });
-  for (const effect of ["glass", "blob"])
-    expect(card(effect).chips()).toEqual({
-      copy: STRIP_EFFECT_COPY,
+  /* every effect, on a card as in the editor: its script where one plays it, and Copy for Figma where Figma's
+     timeline plays its layers, the others' SVG going into Figma in its place */
+  for (const effect of EFFECTS)
+    expect(card(effect).chips(), effect).toEqual({
+      copy: effectCopyFormats(effect),
       download: STRIP_FILES,
-      link: STRIP_EFFECT_LINKS
+      link: effectLinkFormats(effect)
     });
-  /* the silk, the rosette and the papercut, each with the script that plays it, on a card as in the editor */
-  for (const effect of ["silk", "rosette", "papercut"] as const) {
-    expect(effectLinkFormats(effect)).toEqual(STRIP_EFFECT_LINKS);
-    expect(card(effect).chips()).toEqual({
-      copy: STRIP_EFFECT_COPY,
-      download: STRIP_FILES,
-      link: STRIP_EFFECT_LINKS
-    });
+  for (const effect of ["glass", "blob", "silk", "rosette"] as const)
+    expect(effectCopyFormats(effect)).toEqual(STRIP_EFFECT_COPY);
+  for (const effect of ["papercut", "strings", "zen", "strata"] as const) {
+    expect(effectCopyFormats(effect)).toEqual(STRIP_EFFECT_COPY.filter(f => f !== "figma"));
+    expect(effectCopyFormats(effect)).toContain("svg");
   }
-  /* every effect, the papercut too, has Copy for Figma */
-  expect(STRIP_EFFECT_COPY).toContain("figma");
+  expect(effectLinkFormats("silk")).toEqual(STRIP_EFFECT_LINKS);
 });

@@ -14,7 +14,9 @@ import {
   type EffectKind,
   type EffectShortfall,
   effectAddressParts,
+  type FigmaKind,
   hasEmbedScript,
+  hasFigma,
   isVectorKind,
   parseEffect,
   type VectorKind
@@ -120,7 +122,7 @@ function overPage(
 const SHORTFALLS: Record<EffectShortfall, (kind: EffectKind) => boolean> = {
   svgMotion: kind => EFFECT_KINDS[kind].svgMotion === null,
   frameSvg: kind => !EFFECT_KINDS[kind].frameSvg,
-  figma: kind => EFFECT_KINDS[kind].figma === "still",
+  figma: kind => EFFECT_KINDS[kind].figma === null,
   video: kind => !EFFECT_KINDS[kind].video,
   embed: kind => !EFFECT_KINDS[kind].embed,
   shader: kind => !EFFECT_KINDS[kind].shader
@@ -147,6 +149,9 @@ describe.each(EFFECTS)("the %s", kind => {
     expect(hasEmbedScript(kind)).toBe(facts.embed);
     expect(EFFECT_SVG_MOTION[kind]).toBe(facts.svgMotion);
     expect(isVectorKind(kind)).toBe(facts.vector);
+    /* FigmaKind, which the editor's Copy for Figma switches over, names the effects the table gives a paste */
+    const FIGMA_KINDS: readonly FigmaKind[] = ["glass", "blob", "silk", "rosette"];
+    expect(hasFigma(kind)).toBe(FIGMA_KINDS.includes(kind as FigmaKind));
   });
 
   it("reads its own address back", () => {

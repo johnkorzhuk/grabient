@@ -6,10 +6,10 @@ import {
   type Effect,
   type EffectKind,
   effectFileAddress,
-  hasEmbedScript
+  hasEmbedScript,
+  hasFigma
 } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
-import { isKitKind } from "@grabient/engine/kit/kinds.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { hasVideo } from "@grabient/engine/video-kinds.ts";
@@ -51,11 +51,15 @@ export { drawnSoon, grainDataUrl };
 export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
 export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
 /** While an effect plays, Copy also hands over the two tags that play it behind a page (HTML) and the effect as
-    Figma's own layers (engine/figma-{kind}.ts, figmaHtml), and Copy link the addresses of its files: the palette's
-    Markdown naming it, the stylesheet of its first frame, its moving SVG, its first frame as PNG, and the script that
-    plays it (server/files/effect-files.ts, embed.ts). */
+    Figma's own layers moving on Figma's timeline (engine/figma-{kind}.ts, figmaHtml), and Copy link the addresses of
+    its files: the palette's Markdown naming it, the stylesheet of its first frame, its moving SVG, its first frame as
+    PNG, and the script that plays it (server/files/effect-files.ts, embed.ts). */
 export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html", "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
+/** An effect's copies: Figma's layers where they move on its timeline (engine/effect.ts's hasFigma); an effect whose
+    paste could only stand still offers its SVG for Figma instead, which Figma takes as it is. */
+export const effectCopyFormats = (kind: EffectKind): readonly Format[] =>
+  hasFigma(kind) ? STRIP_EFFECT_COPY : STRIP_EFFECT_COPY.filter(f => f !== "figma");
 /** An effect's links: its script where one plays it behind a page (engine/effect.ts's hasEmbedScript). */
 export const effectLinkFormats = (kind: EffectKind): readonly Format[] =>
   hasEmbedScript(kind) ? STRIP_EFFECT_LINKS : STRIP_EFFECT_LINKS.filter(f => f !== "js");
@@ -350,8 +354,11 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
    as the picture moves (its speed), its first frame when held, with its soft and grain as the stage paints them
    (figma-paste.ts figmaFinish): a soft one's edges thin to the gradient its files lay under it, whose code comes for
    a soft view alone. Each effect's code comes on the press, and the Worker's build carries none of it. One branch an
-   effect, the switch over every kind, so an effect with none is the compiler's error rather than another's paste */
+   effect, the switch over every effect Figma's timeline plays (FigmaKind), so one with none is the compiler's error
+   rather than another's paste; no strip offers the others a press (effectCopyFormats) */
 const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
+  const { kind } = effect;
+  if (!hasFigma(kind)) throw new Error(`No Copy for Figma for ${kind}.`);
   const finish = finishOf(p);
   const frame = {
     width: p.pixels.width,
@@ -366,49 +373,7 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
         ).effectUnderlay(paletteOf(p), effect, p.angle, finish.soft)
       : null
   };
-  const { kind } = effect;
-  /* a field effect is its still at any pace, as the strings are (engine/kit/figma.ts), its definition with it */
-  if (isKitKind(kind)) {
-    const [{ figmaKitHtml }, { kitEffect }] = await (import.meta.env.SSR
-      ? (new Promise(() => {}) as never)
-      : Promise.all([
-          import("@grabient/engine/kit/figma.ts"),
-          import("@grabient/engine/kit/registry.ts")
-        ]));
-    return figmaKitHtml(kitEffect(kind), {
-      palette: decodePalette(p.seed)!,
-      angle: p.angle,
-      shape: effect.look.shape,
-      steps: effect.look.steps,
-      ...frame
-    });
-  }
   switch (kind) {
-    /* the papercut and the strings are their stills at any pace: their cuts and threads change shape as they move,
-       which no layer's track follows */
-    case "papercut": {
-      const { figmaPapercutHtml } = await (import.meta.env.SSR
-        ? (new Promise(() => {}) as never)
-        : import("@grabient/engine/figma-papercut.ts"));
-      return figmaPapercutHtml({
-        palette: decodePalette(p.seed)!,
-        angle: p.angle,
-        shape: effect.look.shape,
-        ...frame
-      });
-    }
-    case "strings": {
-      const { figmaStringsHtml } = await (import.meta.env.SSR
-        ? (new Promise(() => {}) as never)
-        : import("@grabient/engine/figma-strings.ts"));
-      return figmaStringsHtml({
-        palette: decodePalette(p.seed)!,
-        angle: p.angle,
-        shape: effect.look.shape,
-        bg: effect.look.bg,
-        ...frame
-      });
-    }
     case "silk": {
       const { figmaSilkHtml } = await (import.meta.env.SSR
         ? (new Promise(() => {}) as never)

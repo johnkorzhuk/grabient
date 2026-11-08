@@ -1,5 +1,5 @@
-import { EFFECT_KINDS, EFFECTS, isVectorKind } from "@grabient/engine/effect.ts";
-import { isKitKind, KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
+import { EFFECT_KINDS, EFFECTS, hasFigma, isVectorKind } from "@grabient/engine/effect.ts";
+import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import { KIT_LABELS } from "@grabient/engine/kit/names.ts";
 import { expect, type Page, test } from "@playwright/test";
 import { live } from "./live.ts";
@@ -141,7 +141,7 @@ test("the Appearance menu stands six cells across, the styles over their bands a
   }
 });
 
-test("a papercut's page paints its stepped still from the head, and offers Copy for Figma", async ({
+test("a papercut's page paints its stepped still from the head, and offers its SVG in Copy for Figma's place", async ({
   page,
   request
 }) => {
@@ -157,12 +157,21 @@ test("a papercut's page paints its stepped still from the head, and offers Copy 
   await open(page, `/${SEED}?style=papercut&angle=30&shape=7`);
   await expect(page.getByRole("button", { name: /Papercut/ }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Copy HTML" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Copy for Figma" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy SVG" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy for Figma" })).toHaveCount(0);
 });
 
 /* each vector effect a test of its own, so a new effect adds a test rather than seconds to one test's limit (all ten in
-   one test took 21.0 s of its 30, 8 Nov 2026) */
-for (const kind of EFFECTS.filter(isVectorKind))
+   one test took 21.0 s of its 30, 8 Nov 2026): Copy for Figma where Figma's timeline plays its layers (engine/effect.ts
+   hasFigma), its SVG alone where a paste could only stand still */
+for (const kind of EFFECTS.filter(isVectorKind).filter(k => !hasFigma(k)))
+  test(`the ${kind}'s strip offers its SVG for Figma, and no Copy for Figma`, async ({ page }) => {
+    await open(page, `/${SEED}?style=${kind}&angle=45`);
+    await expect(page.getByRole("button", { name: "Copy SVG" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy HTML" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy for Figma" })).toHaveCount(0);
+  });
+for (const kind of EFFECTS.filter(isVectorKind).filter(hasFigma))
   test(`Copy for Figma puts the ${kind} on the clipboard as Figma's own layers`, async ({
     page,
     context
@@ -188,10 +197,8 @@ for (const kind of EFFECTS.filter(isVectorKind))
       .toMatch(
         /\(figmeta\)[A-Za-z0-9+/=]+\(\/figmeta\)[\s\S]*\(figma\)ZmlnLWtpd2[A-Za-z0-9+/=]+\(\/figma\)/
       );
-    /* its own effect's layers load on the press: a field effect's the kit's, which lays every one's */
-    expect(asked.some(url => url.includes(isKitKind(kind) ? "kit/figma" : `figma-${kind}`))).toBe(
-      true
-    );
+    /* its own effect's layers load on the press */
+    expect(asked.some(url => url.includes(`figma-${kind}`))).toBe(true);
   });
 
 /* the silk, the papercut, the strings and every field effect, each a test of its own, so a new effect adds a test

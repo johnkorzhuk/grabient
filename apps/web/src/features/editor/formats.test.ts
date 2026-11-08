@@ -3,9 +3,10 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 import {
   EFFECTS,
   type Effect,
-  type EffectKind,
   effectFileAddress,
+  type FigmaKind,
   hasEmbedScript,
+  hasFigma,
   parseEffect
 } from "@grabient/engine/effect.ts";
 import {
@@ -20,6 +21,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   copyFormat,
   copyLink,
+  effectCopyFormats,
   STRIP_EFFECT_COPY,
   STRIP_FILES,
   stageFileFormats,
@@ -196,11 +198,6 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
   const { figmaRosetteHtml } = await import("@grabient/engine/figma-rosette.ts");
   const { figmaBlobHtml } = await import("@grabient/engine/figma-blob.ts");
   const { figmaGlassHtml } = await import("@grabient/engine/figma-glass.ts");
-  const { figmaPapercutHtml } = await import("@grabient/engine/figma-papercut.ts");
-  const { figmaStringsHtml } = await import("@grabient/engine/figma-strings.ts");
-  const { figmaKitHtml } = await import("@grabient/engine/kit/figma.ts");
-  const { kitEffect } = await import("@grabient/engine/kit/registry.ts");
-  const { KIT_KINDS, kitRecord } = await import("@grabient/engine/kit/kinds.ts");
   const { glassColors } = await import("@grabient/engine/glass-colors.ts");
   const { effectUnderlay } = await import("@grabient/engine/fx-finish.ts");
   /* a press in the browser, where each effect's code comes on it (the server's render never loads it) */
@@ -213,9 +210,8 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
     finish: { soft?: number; grain?: number };
     underlay: ReturnType<typeof effectUnderlay>;
   };
-  /* each kind's paste as its own module writes it: the papercut, the strings and the field effects their stills at
-     any pace */
-  const pastes: Record<EffectKind, (fx: Effect, view: View) => string> = {
+  /* each kind's paste as its own module writes it, every one moving on Figma's timeline */
+  const pastes: Record<FigmaKind, (fx: Effect, view: View) => string> = {
     glass: (fx, view) =>
       figmaGlassHtml(
         { colors: glassColors(P), angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
@@ -228,31 +224,9 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
       figmaRosetteHtml(
         { palette: P, angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
         id
-      ),
-    papercut: (fx, view) =>
-      figmaPapercutHtml({ palette: P, angle: 45, shape: fx.look.shape, ...view }, id),
-    strings: (fx, view) =>
-      figmaStringsHtml(
-        { palette: P, angle: 45, shape: fx.look.shape, bg: fx.look.bg, ...view },
-        id
-      ),
-    ...kitRecord(
-      kind => (fx: Effect, view: View) =>
-        figmaKitHtml(
-          kitEffect(kind),
-          { palette: P, angle: 45, shape: fx.look.shape, steps: fx.look.steps, ...view },
-          id
-        )
-    )
+      )
   };
   type Finish = { soft?: number; grain?: number };
-  /* each field effect (kit/kinds.ts) in one of these looks and finishes in turn: a shape soft and grained, held still
-     and grained, a shape at twice the pace and soft */
-  const kitLooks: readonly (readonly [string, Finish])[] = [
-    ["shape=7", { soft: 30, grain: 20 }],
-    ["speed=0", { grain: 30 }],
-    ["shape=12&speed=2", { soft: 40 }]
-  ];
   const queries: readonly (readonly [string, Finish])[] = [
     ["style=silk&shape=7&speed=0", { soft: 50, grain: 50 }],
     ["style=rosette&speed=1.5", { soft: 30 }],
@@ -260,18 +234,15 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
     ["style=blob&shape=3&bg=%23f0e6d240", { soft: 40 }],
     ["style=blob&shape=3", { soft: 40, grain: 10 }],
     ["style=glass&shape=12", { soft: 50, grain: 50 }],
-    ["style=glass&speed=0", { grain: 20 }],
-    ["style=papercut&shape=7", { soft: 40, grain: 30 }],
-    ["style=strings&shape=7&speed=2", { soft: 40, grain: 30 }],
-    ...KIT_KINDS.map((kind, i) => {
-      const [look, finish] = kitLooks[i % kitLooks.length];
-      return [`style=${kind}&${look}`, finish] as const;
-    })
+    ["style=glass&speed=0", { grain: 20 }]
   ];
-  /* every effect copied */
-  expect(new Set(queries.map(([query]) => effect(query).kind))).toEqual(new Set(EFFECTS));
+  /* every effect Figma's timeline plays copied */
+  expect(new Set(queries.map(([query]) => effect(query).kind))).toEqual(
+    new Set(EFFECTS.filter(hasFigma))
+  );
   for (const [query, finish] of queries) {
     const fx = effect(query);
+    if (!hasFigma(fx.kind)) throw new Error(fx.kind);
     pasted.length = 0;
     await copyFormat("figma", { ...taken(query), ...finish });
     const underlay = "soft" in finish ? effectUnderlay(P, fx, 45, finish.soft) : null;
@@ -280,6 +251,13 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
     /* a finished paste is no plain one: the blur and the noise ride in it */
     await copyFormat("figma", taken(query));
     expect(pasted[1]).not.toBe(html);
+  }
+  /* the others, whose paste could only stand still, have none: no strip offers it, and a press is refused */
+  for (const kind of EFFECTS.filter(k => !hasFigma(k))) {
+    expect(effectCopyFormats(kind)).not.toContain("figma");
+    pasted.length = 0;
+    await expect(copyFormat("figma", taken(`style=${kind}`))).rejects.toThrow(/No Copy for Figma/);
+    expect(pasted).toEqual([]);
   }
   vi.restoreAllMocks();
   vi.unstubAllEnvs();

@@ -1,7 +1,6 @@
-/* The levels' contours of a field over a box, which a field effect's SVG (svg.ts) and its copy for Figma (figma.ts) are
-   drawn from. The field is any function of the box's pixels (an effect's kernel over its scene and frame, as svg.ts
-   closes it), so the tracer knows no effect, and papercut-svg.ts's cuts and strings-svg.ts's threads are its two
-   ancestors:
+/* The levels' contours of a field over a box, which a field effect's SVG (svg.ts) is drawn from. The field is any
+   function of the box's pixels (an effect's kernel over its scene and frame, as svg.ts closes it), so the tracer knows
+   no effect, and papercut-svg.ts's cuts and strings-svg.ts's threads are its two ancestors:
    - one grid of the field's values over the box and a margin past it, every level traced from it;
    - marching squares at every level in one pass (a cell's corners straddle only the levels between its least and its
      greatest, the first found by halving), each segment run with the field above its level on its right, y down, and

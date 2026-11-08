@@ -7,9 +7,9 @@
    tie up. Then the tracer's own facts, on fields whose levels are known, and on fields that are not finite
    everywhere. */
 import { beforeAll, describe, expect, it } from "vitest";
+import { pathRuns } from "../../test/path-runs.ts";
 import { type FrameDiff, frameDiff, rasterize, resvgReady } from "../../test/raster.ts";
 import { decodePalette } from "../codec.ts";
-import { figmaPathRuns } from "../figma-paste.ts";
 import { FX_STILL_SIDE, fxCover } from "../fx-still.ts";
 import type { Size } from "../view.ts";
 import demo from "./fields/demo.ts";
@@ -379,7 +379,7 @@ describe("the still and the file", () => {
     }
   });
 
-  it("writes the file as its first frame at any speed, its layers what Copy for Figma pastes", () => {
+  it("writes the file as its first frame at any speed, its paths its frame's layers in painter's order", () => {
     const size = { width: 1200, height: 800 };
     expect(kitFileSvg(demo, P, LOOKS[1], size)).toBe(kitFrameSvg(demo, P, LOOKS[1], size, 0));
     const { ground, layers } = kitFrameLayers(kitScene(demo, P, LOOKS[1], size));
@@ -449,7 +449,7 @@ describe("the tracer", () => {
     const [ring] = trace(cone(90, 60), [-40]) as KitContour[][];
     /* a path's signed area, its cubics read at 64 points each: positive clockwise on the screen (y down) */
     const area = (d: string) =>
-      figmaPathRuns(d).reduce((sum, { cubics }) => {
+      pathRuns(d).reduce((sum, { cubics }) => {
         const p = cubics.flatMap(c =>
           Array.from({ length: 64 }, (_, i) => {
             const t = i / 64;

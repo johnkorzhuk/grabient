@@ -92,10 +92,10 @@ import {
   clipAddress,
   copyFormat,
   copyLink,
+  effectCopyFormats,
   NO_IMAGE_CLIPBOARD,
   NO_VIDEO_HERE,
   STRIP_COPY,
-  STRIP_EFFECT_COPY,
   STRIP_FILES,
   saveFormat,
   stageFileFormats,
@@ -1027,7 +1027,7 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={e.effect() ? STRIP_EFFECT_COPY : STRIP_COPY}
+            copy={e.effect() ? effectCopyFormats(e.effect()!.kind) : STRIP_COPY}
             download={e.effect() ? stageFileFormats(e.effect()!.kind) : STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={e.effect() ? stageLinkFormats(e.effect()!.kind) : STRIP_FILES}
