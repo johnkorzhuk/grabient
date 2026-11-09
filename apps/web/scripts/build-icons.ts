@@ -5,12 +5,15 @@
    - public/email/head-sheet.png and head-letter.png, the heads of the emails that wear no palette;
    - favicon.svg and favicon-dark.svg, the mark in the brand's gradient (also the design document's);
    - the icons a browser takes as raster files, drawn from the mark by Chromium. Wherever an icon may be transparent it
-     is the bar alone in the light scheme's colors: favicon.ico and its PNGs, for Safari, Google Search and tabs of a
-     file that names no icon, the manifest's icons, which an installed app shows on Windows and Linux and the MCP
-     server names, and apple-touch-icon.png, which favicon services hand to apps that show the site's icon on a tile
-     of their own (Claude's directory) and whose transparent pixels iOS fills with black itself. Where a platform cuts
-     its own shape from the square, the bar stands on the dark ground: the maskable icon (Android, macOS, ChromeOS).
-     favicon-tile.ico is the bar on a rounded tile of the dark ground (the design document shows it);
+     is the bar alone in the light scheme's colors. The two files Google Search reads carry the bar half way up their
+     square (MARK_HALF), because a result shows a site's icon in a circle on a ground of Google's own, white in its
+     dark theme, where the tab's bar is a sliver under an empty disc: favicon.ico and its PNGs (the sizes up to 48,
+     also Safari's tab and the tab of a file that names no icon) and apple-touch-icon.png (the larger sizes, also the
+     favicon services' copies, which Claude's directory draws, and a home screen, whose transparent pixels iOS fills
+     with black itself). Every other one keeps the tab's bar: the manifest's icons, which an installed app shows on
+     Windows and Linux and the MCP server names. Where a platform cuts its own shape from the square, the bar stands
+     on the dark ground: the maskable icon (Android, macOS, ChromeOS). favicon-tile.ico is the bar on a rounded tile
+     of the dark ground (the design document shows it);
    - public/about-1.png on, About's cards, one a day: a palette Random draws, in a view drawn at random, beside the
      Color space pane's scene of it (about-card.ts), by Chromium, from fixed seeds, and each logged;
    - public/settings.png, bindings.png, mcp-server.png and contact.png, the cards of the pages beside About in the side
@@ -21,7 +24,7 @@
 import { writeFile } from "node:fs/promises";
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { drawnView } from "@grabient/engine/view.ts";
-import { MARK_FIXED, markSvg, markTileSvg } from "@grabient/ui/mark.ts";
+import { MARK_FIXED, MARK_HALF, markSvg, markTileSvg } from "@grabient/ui/mark.ts";
 import { color } from "@grabient/ui/tokens.ts";
 import { chromium } from "@playwright/test";
 import { ABOUT_CARDS, DEFAULT_SEED } from "../src/lib/page-meta.ts";
@@ -89,6 +92,7 @@ try {
     });
   };
   const alone = markSvg(MARK_FIXED, "light");
+  const half = markSvg(MARK_FIXED, "light", MARK_HALF);
   const square = markTileSvg(color.dark.bg, MARK_FIXED, "square");
   for (const [name, svg, size] of [
     ["icon-192.png", alone, 192],
@@ -96,7 +100,7 @@ try {
     ["android-chrome-192x192.png", alone, 192],
     ["android-chrome-512x512.png", alone, 512],
     ["icon-maskable-512.png", square, 512],
-    ["apple-touch-icon.png", alone, 180]
+    ["apple-touch-icon.png", half, 180]
   ] as const) {
     await write(await draw(svg, size), name, web);
   }
@@ -105,7 +109,7 @@ try {
     for (const size of [16, 32, 48]) drawn.push({ size, png: await draw(svg, size) });
     return drawn;
   };
-  const tab = await frames(alone);
+  const tab = await frames(half);
   await write(ico(tab), "favicon.ico", web);
   await write(tab[0].png, "favicon-16x16.png", web);
   await write(tab[1].png, "favicon-32x32.png", web);
