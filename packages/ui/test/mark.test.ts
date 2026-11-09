@@ -6,6 +6,7 @@ import {
   legibleStops,
   MARK_BAR,
   MARK_FIXED,
+  MARK_HALF,
   MARK_VIEWBOX,
   MARK_WEEK,
   type MarkScheme,
@@ -68,4 +69,27 @@ test("the tab's mark: the week, its colors, legible on either strip, and the ico
   expect(svgDataUrl(markSvg(["#336699"]))).toBe(mark.svgDataUrl);
   expect(markTileSvg("#0c0c0e", MARK_FIXED, "tile")).toBe(mark.tile);
   expect(markTileSvg("#0c0c0e", MARK_FIXED, "square")).toBe(mark.square);
+});
+
+test("the mark Google Search reads: the bar half way up its square, as wide as the circle a result cuts from it", () => {
+  const svg = (body: string) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${body}</svg>`;
+  const stops = (id: string, first: string) =>
+    `<linearGradient id="${id}"><stop offset="0" stop-color="${first}"/><stop offset=".5" stop-color="#ff5f6d"/><stop offset="1" stop-color="#a17fff"/></linearGradient>`;
+  // the square's lower half: its top edge on the circle's widest line, a whole pixel at 16, 32, 48 and 180
+  expect(MARK_HALF).toEqual({ x: 0, y: 16, w: 32, h: 16 });
+  for (const side of [16, 32, 48, 180]) expect((side * MARK_HALF.y) % MARK_BAR.w).toBe(0);
+  // in a file, the light scheme's colors, as the tab's bar is drawn in one
+  expect(markSvg(MARK_FIXED, "light", MARK_HALF)).toBe(
+    svg(`${stops("b", "#f6c955")}<rect y="16" width="32" height="16" fill="url(#b)"/>`)
+  );
+  expect(markSvg(MARK_FIXED, "light")).toBe(
+    svg(`${stops("b", "#f6c955")}<rect y="24" width="32" height="8" fill="url(#b)"/>`)
+  );
+  // and by scheme where a browser reads it
+  expect(markSvg(MARK_FIXED, undefined, MARK_HALF)).toBe(
+    svg(
+      `<style>rect{fill:url(#l)}@media (prefers-color-scheme:dark){rect{fill:url(#d)}}</style>${stops("l", "#f6c955")}${stops("d", "#ffd25f")}<rect y="16" width="32" height="16"/>`
+    )
+  );
 });

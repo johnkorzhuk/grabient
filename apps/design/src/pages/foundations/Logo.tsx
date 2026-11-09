@@ -10,6 +10,7 @@ import { Logo as Wordmark } from "@grabient/ui/Logo.tsx";
 import { LOGO_BAR, LOGO_GLYPH, LOGO_PATH, LOGO_VIEWBOX } from "@grabient/ui/logo.data.ts";
 import {
   MARK_FIXED,
+  MARK_HALF,
   type MarkFill,
   type MarkScheme,
   markSvg,
@@ -28,7 +29,8 @@ import { art, hexes, POPULAR } from "../../samples.ts";
 import styles from "./Logo.module.css";
 
 /* The wordmark's construction and sizes, its bar filled, open and lit, the bar's four moves, the bar alone as the mark
-   on browsers' tab strips and in the weeks ahead, and the four ways never to treat it. */
+   on browsers' tab strips and in the weeks ahead, half way up its square where a search result frames it, and the four
+   ways never to treat it. */
 const STOPS = hexes(POPULAR[0].seed);
 
 /* the browsers' tab strips the mark stands on and the ink of their tabs' titles (Chrome's), at a tab's 16px, a dense
@@ -49,8 +51,15 @@ const MARKS = [
   { label: "a pale palette", src: drawn(["#fdfcfb", "#f3e7e9", "#e2d1c3", "#fbe9d7"]) },
   { label: "a near-black palette", src: drawn(["#0c0c0e", "#141e30", "#243b55", "#1f1c2c"]) },
   { label: "favicon-tile.ico", src: grounded("tile") },
-  { label: "home screen", src: grounded("square") }
+  { label: "Android home screen", src: grounded("square") }
 ];
+/* The bar half way up its square, as favicon.ico and apple-touch-icon.png hold it, and as their hosts frame it: Google
+   Search in a circle on a ground of its own by its theme, an iPhone's home screen under its corners on black. */
+const HALF = svgDataUrl(markSvg(MARK_FIXED, "light", MARK_HALF));
+const SEARCH: Record<MarkScheme, { "background-color": string; "outline-color": string }> = {
+  light: { "background-color": "#f3f5f6", "outline-color": "#d2d2d2" },
+  dark: { "background-color": "#ffffff", "outline-color": "#444746" }
+};
 const WEEKS = Array.from({ length: 10 }, (_, i) => markWeek(Date.now() + i * WEEK));
 const MOVED: Record<Move, string> = {
   sweep: "stops roll in turn",
@@ -241,6 +250,29 @@ export function Logo() {
           </For>
           <Text variant="mono">{`the weeks ahead · ${WEEKS[0]} to ${WEEKS[WEEKS.length - 1]}`}</Text>
         </figure>
+        <figure class={styles.mark}>
+          <For each={SCHEMES}>
+            {scheme => (
+              <span class={styles.tabs} style={STRIP[scheme]}>
+                <img src={HALF} width={16} height={16} alt="" />
+                <img src={HALF} width={32} height={32} alt="" />
+                <img
+                  class={styles.result}
+                  style={SEARCH[scheme]}
+                  src={HALF}
+                  width={28}
+                  height={28}
+                  alt=""
+                />
+                <img class={styles.home} src={HALF} width={64} height={64} alt="" />
+              </span>
+            )}
+          </For>
+          <Text variant="mono">
+            half way up · favicon.ico in a tab and in a search result's circle ·
+            apple-touch-icon.png on an iPhone
+          </Text>
+        </figure>
       </Block>
       <Block title="Tokens">
         <Tokens paths={["size.logo", "size.logoPhone", "color.holeRim", "motion.slow"]} />
@@ -270,7 +302,8 @@ export function Logo() {
           rules={[
             "The letterforms are the current ink, never a color or a gradient.",
             "The bar shows the palette in view, or a random one on a page with none.",
-            "The mark is the bar alone, as wide as its square: the palette's on its page, the week's elsewhere."
+            "The mark is the bar alone, as wide as its square: the palette's on its page, the week's elsewhere.",
+            "For Google Search, which frames a site's icon in a circle on a ground of its own, the bar stands half way up its square, as wide as the circle."
           ]}
         />
       </Block>

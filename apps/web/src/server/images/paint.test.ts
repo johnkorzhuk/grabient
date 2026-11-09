@@ -251,6 +251,35 @@ describe("the pictures the site serves as files", () => {
     }
   });
 
+  test("hold the icon Google Search reads as the bar half way up its square: favicon.ico's frames and apple-touch-icon.png are the bar over their lower half and clear above it, so the circle a result cuts shows the bar across its whole width", async () => {
+    const file = async (name: string) =>
+      new Uint8Array(await readFile(new URL(`../../../public/${name}`, import.meta.url)));
+    // an .ico's pictures: a count at 4, then sixteen bytes each, a picture's length at 8 and its place at 12
+    const ico = await file("favicon.ico");
+    const dir = new DataView(ico.buffer, ico.byteOffset, ico.byteLength);
+    const frames = Array.from({ length: dir.getUint16(4, true) }, (_, i) => {
+      const from = dir.getUint32(6 + 16 * i + 12, true);
+      return ico.slice(from, from + dir.getUint32(6 + 16 * i + 8, true));
+    });
+    const sides: number[] = [];
+    for (const png of [...frames, await file("apple-touch-icon.png")]) {
+      const icon = await decodePng(png);
+      expect([icon.width, icon.channels]).toEqual([icon.height, 4]);
+      // how many pixels of the upper half are painted at all, and of the lower half less than opaque
+      let painted = 0;
+      let clear = 0;
+      for (let y = 0; y < icon.height; y++)
+        for (let x = 0; x < icon.width; x++) {
+          const alpha = icon.pixels[(y * icon.width + x) * 4 + 3];
+          if (y < icon.height / 2) painted += alpha === 0 ? 0 : 1;
+          else clear += alpha === 255 ? 0 : 1;
+        }
+      expect([icon.width, painted, clear]).toEqual([icon.width, 0, 0]);
+      sides.push(icon.width);
+    }
+    expect(sides).toEqual([16, 32, 48, 180]);
+  });
+
   test("hold About's cards, which Chromium draws, one for each day of their round, at a share card's size", async () => {
     for (let n = 1; n <= ABOUT_CARDS; n++) {
       const about = await decodePng(

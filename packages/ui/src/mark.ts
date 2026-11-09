@@ -2,7 +2,9 @@
    as wide as the square and stands on its bottom edge, its colors left to right: a palette's on its page, a search's or
    a collection's on theirs, and the week's everywhere else (`weekMark`). A tab's icon sits on the browser's tab strip,
    which follows the browser's theme and not the site's, so the icon is drawn per browser scheme: a color too near the
-   strip's lightness moves to the nearest lightness clear of it, keeping its hue and chroma (`legibleStops`). */
+   strip's lightness moves to the nearest lightness clear of it, keeping its hue and chroma (`legibleStops`). A host that
+   frames a site's icon in a circle on a ground of its own (Google Search) is given the bar half way up its square
+   (`MARK_HALF`): the circle cuts the corners from the tab's bar and leaves a sliver under an empty disc. */
 import { hexToSrgb, lchToSrgb, srgbToLch, toHex } from "@grabient/engine/color.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 
@@ -10,6 +12,11 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 export const MARK_VIEWBOX = "0 0 32 32";
 /** The bar: 8 units tall, 4 pixels in a tab, where the wordmark's own proportions would give 3. */
 export const MARK_BAR = { x: 0, y: 24, w: 32, h: 8 } as const;
+/** The bar half way up its square, for the files Google Search reads: a result shows a site's icon in a circle on a
+    ground of Google's own, white in its dark theme, and the circle is widest at the square's middle, so there the bar
+    is as wide as the circle and shows every color it has, where the tab's bar is cut to a sliver at the circle's
+    foot. Its top edge is a whole pixel at every size an icon is drawn. */
+export const MARK_HALF = { x: 0, y: 16, w: 32, h: 16 } as const;
 export type MarkScheme = "light" | "dark";
 /** The colors of the icons that never change, and of a mark given none: the brand's gradient. */
 export const MARK_FIXED: readonly string[] = ["#ffd25f", "#ff5f6d", "#a17fff"];
@@ -134,18 +141,23 @@ function paired(
 
 /** The mark as an SVG document: the bar in the colors, made legible for each scheme, or in the brand's gradient where
     there are none. With a scheme it is that scheme's alone; without one, the light scheme's stands and the dark one's
-    applies under prefers-color-scheme: dark, so a browser that never says dark draws the light one. */
-export function markSvg(fill?: MarkFill | null, scheme?: MarkScheme): string {
+    applies under prefers-color-scheme: dark, so a browser that never says dark draws the light one. The bar is the
+    tab's unless the half one is asked for. */
+export function markSvg(
+  fill?: MarkFill | null,
+  scheme?: MarkScheme,
+  box: typeof MARK_BAR | typeof MARK_HALF = MARK_BAR
+): string {
   const both = paired(fill) ?? { light: MARK_FIXED, dark: MARK_FIXED };
-  if (scheme) return svg(bar(legibleStops(both[scheme], scheme)));
+  if (scheme) return svg(bar(legibleStops(both[scheme], scheme), box));
   const light = legibleStops(both.light, "light");
   const dark = legibleStops(both.dark, "dark");
-  if (light.join() === dark.join()) return svg(bar(light));
+  if (light.join() === dark.join()) return svg(bar(light, box));
   const paint = (colors: readonly string[], id: string) =>
     colors.length > 1 ? `url(#${id})` : colors[0];
   return svg(
     `<style>rect{fill:${paint(light, "l")}}@media (prefers-color-scheme:dark){rect{fill:${paint(dark, "d")}}}</style>` +
-      `${light.length > 1 ? gradient("l", light) : ""}${dark.length > 1 ? gradient("d", dark) : ""}${rect(MARK_BAR)}`
+      `${light.length > 1 ? gradient("l", light) : ""}${dark.length > 1 ? gradient("d", dark) : ""}${rect(box)}`
   );
 }
 

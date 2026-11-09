@@ -117,6 +117,17 @@
     outline: 1px dashed color-mix(in srgb, currentColor 35%, transparent);
   }
 }
+/* the half mark as its hosts frame it: a search result's circle, on Google's ground inside its ring, and an iPhone
+   home screen's corners, where iOS lays black under what an icon leaves clear */
+.tabs > .result {
+  border-radius: 50%;
+  outline-style: solid;
+}
+.tabs > .home {
+  border-radius: 22.37%;
+  outline-style: none;
+  background-color: #000;
+}
 
 /* the four misuses, drawn on the wordmark itself */
 .recolored {
