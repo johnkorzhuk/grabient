@@ -207,6 +207,7 @@ for (const [kind, name] of [
   ["silk", "Silk"],
   ["papercut", "Papercut"],
   ["strings", "Strings"],
+  ["dimple", "Dimple"],
   ...KIT_KINDS.map(kind => [kind, KIT_LABELS[kind]])
 ])
   test(`a list playing the ${kind} draws its cards' stills, each named for its kind`, async ({
@@ -402,7 +403,7 @@ test("the strings take a ground: their menu's Background field lays the stage on
 
 /* each vector effect a test of its own, as the list's and the Figma copy's are */
 for (const kind of EFFECTS.filter(isVectorKind))
-  test(`the ${kind} as files: SVG, stylesheet, PNG, JSON, Markdown, script and clip`, async ({
+  test(`the ${kind} as files: SVG, stylesheet, PNG, JSON, Markdown, script and ${EFFECT_KINDS[kind].video ? "clip" : "no clip"}`, async ({
     request
   }) => {
     const at = (extension: string) => request.get(`/${SEED}.${extension}?style=${kind}&shape=7`);
@@ -431,8 +432,12 @@ for (const kind of EFFECTS.filter(isVectorKind))
       200,
       "text/javascript; charset=utf-8"
     ]);
+    /* a clip where it has a loop of its own; one the pointer alone moves (the dimple) has none */
     const clip = await request.head(`/${SEED}.mp4?style=${kind}&shape=7`);
-    expect([clip.status(), clip.headers()["content-type"]]).toEqual([200, "video/mp4"]);
+    expect([clip.status(), clip.headers()["content-type"]]).toEqual(
+      EFFECT_KINDS[kind].video ? [200, "video/mp4"] : [404, "text/plain; charset=utf-8"]
+    );
+    expect(EFFECT_KINDS[kind].video).toBe(EFFECT_KINDS[kind].motion === "loop");
   });
 
 test("a list turned to the papercut draws every card's still in turn, a frame's share at a time", async ({

@@ -321,6 +321,11 @@ export const effectMarkdown =
             `${name} played as papercut: the palette ${colors} cut into sheets of paper stacked into a relief that drifts and breathes, each sheet casting a soft shadow on the one below as the light swings slowly round.`,
             `papercut, its sheets climbing toward ${angle} degrees, shape ${shape ?? 0}, ${play}`
           ];
+        case "dimple":
+          return [
+            `${name} played as a dimple: a sheet of round scales pressed in at one point, each disc running a little of the palette ${colors} toward the hollow, the darker end of the palette in it. Nothing in it moves by itself: the hollow follows the pointer and stays where the pointer left it.`,
+            `a dimple, its sheet and its light turned to ${angle} degrees, shape ${shape ?? 0}, ${effect.speed === 0 ? "its hollow held at its rest" : `its hollow following the pointer at speed ${effect.speed}, up to ${effect.fps} frames a second`}`
+          ];
         case "strings":
           return [
             `${name} played as strings: ribbons of threads on ${bg === null ? "a dark ground" : clear ? "a clear ground, the page through it" : `a ground of ${bg}`}, each running the palette ${colors} across it, folding and morphing in place into hairpins and loops.`,
@@ -339,7 +344,7 @@ export const effectMarkdown =
       drawn: `${drawn}${finished ? `, ${finished}` : ""}`,
       code: `## Behind a page
 
-${!scripted ? "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once." : kind === "papercut" ? "In the page's head, the stylesheet paints the first frame in the page's first paint, its shadows stepped, and the script plays it from there with WebGL, its shadows soft. Without WebGL the first frame stays, and for a reader who asks for less motion the script holds its own." : "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[softly, finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
+${!scripted ? "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once." : kind === "papercut" ? "In the page's head, the stylesheet paints the first frame in the page's first paint, its shadows stepped, and the script plays it from there with WebGL, its shadows soft. Without WebGL the first frame stays, and for a reader who asks for less motion the script holds its own." : kind === "dimple" ? "In the page's head, the stylesheet paints its still in the page's first paint, the hollow at its rest, and the script, with WebGL, then has the hollow follow the pointer over the page and stay where the pointer left it. Without WebGL, or for a reader who asks for less motion, the still stays." : "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[softly, finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
 
 \`\`\`html
 ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle, undefined, finish)}

@@ -31,7 +31,7 @@ import {
     effect blurred over its palette's gradient and the grain over it (fx-finish.ts). */
 export type EffectFinish = Pick<View, "soft" | "grain">;
 
-/** Every effect: the six drawn by code of their own, then the field effects (kit/kinds.ts), each a file of the kit's. */
+/** Every effect: the seven drawn by code of their own, then the field effects (kit/kinds.ts), each a file of the kit's. */
 export const EFFECTS = [
   "glass",
   "blob",
@@ -39,6 +39,7 @@ export const EFFECTS = [
   "rosette",
   "papercut",
   "strings",
+  "dimple",
   ...KIT_KINDS
 ] as const;
 export type EffectKind = (typeof EFFECTS)[number];
@@ -61,8 +62,8 @@ export type EffectShortfall = "svgMotion" | "frameSvg" | "figma" | "video" | "em
     effect-why.ts (apart, so no page carries the words), rather than by a branch missing somewhere. Whether the view's
     angle turns it (the blob's palette always lies left to right), whether the view's soft blurs it (the blob's frost
     softens it already), and whether its picture is drawn by one drawing of its loop's time over a plain vector still (silk,
-    rosette, papercut, strings: ui/effect-loop.ts plays them, and their still is an SVG with no filter), where the
-    glass and the blob have players and stills of their own. */
+    rosette, papercut, strings, dimple: ui/effect-loop.ts plays them, and their still is an SVG with no filter), where
+    the glass and the blob have players and stills of their own. */
 export interface EffectKindFacts {
   angle: boolean;
   /** the view's soft blurs it; the grain goes over every effect */
@@ -95,6 +96,11 @@ export interface EffectKindFacts {
   embed: boolean;
   /** whether the Shader tab offers its code (apps/web features/editor/effect-sources.ts) */
   shader: boolean;
+  /** what moves it: its own loop, which a clock plays, or the pointer alone, which its picture follows where a page
+      can know it (the dimple's hollow: its stage, its script and its shader pages). One the pointer moves has no
+      loop: nothing in it moves by itself, so its picture at any time is its first frame, its speed is how fast it
+      follows (0 not at all), and it has no moving SVG, no Figma timeline and no clip (effect-why.ts) */
+  motion: "loop" | "pointer";
 }
 /** What every field effect is and hands over (kit/): drawn by one drawing of its loop's time over a vector still that
     is its first frame, turned by the angle and blurred by the soft; its levels change shape as it moves, so its SVG is
@@ -111,7 +117,8 @@ const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
   figma: null,
   video: true,
   embed: true,
-  shader: true
+  shader: true,
+  motion: "loop"
 };
 export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   glass: {
@@ -126,7 +133,8 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     figma: "moving",
     video: true,
     embed: true,
-    shader: true
+    shader: true,
+    motion: "loop"
   },
   blob: {
     angle: false,
@@ -140,7 +148,8 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     figma: "moving",
     video: true,
     embed: true,
-    shader: true
+    shader: true,
+    motion: "loop"
   },
   silk: {
     angle: true,
@@ -154,7 +163,8 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     figma: "moving",
     video: true,
     embed: true,
-    shader: true
+    shader: true,
+    motion: "loop"
   },
   rosette: {
     angle: true,
@@ -168,7 +178,8 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     figma: "moving",
     video: true,
     embed: true,
-    shader: true
+    shader: true,
+    motion: "loop"
   },
   papercut: {
     angle: true,
@@ -182,7 +193,8 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     figma: null,
     video: true,
     embed: true,
-    shader: true
+    shader: true,
+    motion: "loop"
   },
   strings: {
     angle: true,
@@ -196,7 +208,23 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     figma: null,
     video: true,
     embed: true,
-    shader: true
+    shader: true,
+    motion: "loop"
+  },
+  dimple: {
+    angle: true,
+    soft: true,
+    ground: null,
+    steps: null,
+    vector: true,
+    steppedStill: false,
+    svgMotion: null,
+    frameSvg: true,
+    figma: null,
+    video: false,
+    embed: true,
+    shader: true,
+    motion: "pointer"
   },
   ...kitRecord(kind => ({ ...KIT_FACTS, steps: KIT_STEPS[kind] }))
 };
@@ -204,7 +232,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     without offers its stylesheet alone, which paints its still, in its strips, its tags and its Markdown. */
 export const hasEmbedScript = (kind: EffectKind): boolean => EFFECT_KINDS[kind].embed;
 /** The effects drawn by one drawing of their loop's time over a vector still. */
-export type VectorKind = "silk" | "rosette" | "papercut" | "strings" | KitKind;
+export type VectorKind = "silk" | "rosette" | "papercut" | "strings" | "dimple" | KitKind;
 export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>
   !!kind && EFFECT_KINDS[kind].vector;
 /** The effects Copy for Figma pastes, as layers that Figma's timeline plays (EFFECT_KINDS' figma); the others' strips
@@ -421,6 +449,7 @@ export const EFFECT_WORDS: Readonly<Record<EffectKind, string>> = {
   rosette: msg("rosette"),
   papercut: msg("papercut"),
   strings: msg("strings"),
+  dimple: msg("dimple"),
   ...KIT_WORDS
 };
 /** The style and steps a palette's colors are read and named in while it plays an effect: an effect's address names

@@ -38,7 +38,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      search alike, took it from 287.7 to 290.1. Round 2's effects (3 Nov 2026: a list's effect previews, the phone's
      Appearance menu, saved looks) took it to 291.0, and an open tooltip following its text (Tooltip.tsx, the MP4's
      percent as it is made) just past it */
-  "/": { route: "src/routes/index.tsx", budget: 292 },
+  /* the dimple (10 Nov 2026, John: "get this shader in staging"), as every page: its kind, what moves each effect
+     (engine/effect.ts EFFECT_KINDS' motion: its loop, or the pointer alone), its facts and its names, 0.08 KB of the
+     start every page shares, took it from 291.9 to 291.996, four bytes under */
+  "/": { route: "src/routes/index.tsx", budget: 293 },
   /* the same took it from 288.9 to 290.7; soft and grain over the effects (their pictures blurred over the gradient,
      the menu's fields beside an effect's, the summary naming them) and the editor's glass after a move (e3636f12) to
      291.2 on 3 Nov 2026 */
@@ -148,7 +151,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the color reader, as "/", took it from 226.8 to 229.2 on 3 Nov 2026 */
   /* the strings (5 Nov 2026) took it to 230.1, over, and the field effects with the sandstone's steps (8 Nov 2026), as
      "/collections", to 230.7 */
-  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 231 },
+  /* the dimple (10 Nov 2026), as "/", took it to 230.94 */
+  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 232 },
   /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026, and over the effects (as /palettes)
      to 251.0 on 3 Nov 2026 */
   /* the color reader, as "/", took it from 251.0 to 253.4 on 3 Nov 2026; 253.99 at 7f486b89, and on 4 Nov 2026 the
@@ -208,8 +212,13 @@ const BUDGETS = {
   // which no server draws, stay out of it (kit/kernels.ts). With two more field effects the same day it stood at
   // 1480.7 to 1482.4, by the build, past 1481, when this was raised by 2 to stand the builds' spread over it, and it
   // was left so when they went. It stood at 1481.2 on 10 Nov 2026, when the zen garden's definition and its entries
-  // left it at 1479.8 to 1480.1, by the build, the budget still that spread over it
-  worker: 1483,
+  // left it at 1479.8 to 1480.1, by the build, the budget still that spread over it. The dimple (10 Nov 2026): its
+  // model, CPU drawing and SVG writer (engine/dimple.ts, dimple-render.ts, dimple-svg.ts), which the Worker's SVG, CSS,
+  // PNG and cards load with the first file of it asked for, its colors for the examples page, the words its files say
+  // of it and its entries in the tables that take one for every effect took it to 1484.4; its shaders and their
+  // pages, which no server writes, stay out of it, and it has no clip. The budget stands the builds' spread and one
+  // more over it
+  worker: 1487,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
@@ -233,8 +242,10 @@ const BUDGETS = {
   // their reasons apart in effect-why.ts, which no start loads) and a sixth effect took it to 241.3. The field effects
   // (8 Nov 2026: their kinds, the facts they share and their names, engine/kit/kinds.ts and names.ts, the steps the
   // sandstone takes, and the tables that take an entry for each, the cards' drawings among them) took it from 241.8 to
-  // 242.7, where the zen garden's entries leaving (10 Nov 2026) left it: 242.6 to 242.7, by the build
-  workerStart: 243,
+  // 242.7, where the zen garden's entries leaving (10 Nov 2026) left it: 242.6 to 242.7, by the build. The dimple
+  // (10 Nov 2026: its kind, its facts, what moves each effect, its words and its card's drawing) took it to 242.87,
+  // within that spread of 243
+  workerStart: 244,
   // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
   // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026). Soft and
   // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders

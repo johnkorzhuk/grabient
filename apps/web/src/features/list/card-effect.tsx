@@ -102,11 +102,14 @@ export function createCardEffect(o: {
           angle: o.angle()
         };
       /* the vector effects' palette end to end (fx-still.ts fxGlow, which a list's start leaves unloaded): along
-         their angle, the rosette's rings out from its heart */
+         their angle, the rosette's rings out from its heart and the dimple's discs out from its hollow */
       if (isVectorKind(fx.kind))
         return {
           stops: sampleStops(palette()!, 6).map(s => s.hex),
-          style: fx.kind === "rosette" ? ("radialGradient" as const) : ("linearGradient" as const),
+          style:
+            fx.kind === "rosette" || fx.kind === "dimple"
+              ? ("radialGradient" as const)
+              : ("linearGradient" as const),
           angle: o.angle()
         };
       return null;

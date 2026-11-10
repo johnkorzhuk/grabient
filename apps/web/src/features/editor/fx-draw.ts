@@ -46,6 +46,18 @@ export function fxStillSteps(
   return fx ? fx.fxStillSteps(kind, P, look) : null;
 }
 
+/** An effect the pointer moves (engine/effect.ts EFFECT_KINDS' motion), as a background for a box of any size with
+    the pointer at a place in the design's square, 0 to 1 each way: what a card shows once its player has gone, so its
+    picture stays as the pointer left it. Null while its code loads. */
+export function fxPlacedBackground(
+  kind: VectorKind,
+  P: Palette,
+  look: FxLook,
+  at: readonly [number, number]
+): string | null {
+  return fx ? fx.fxFrameCss(kind, P, look, 0, at) : null;
+}
+
 /** How a vector effect plays: its look (its angle, shape, steps and ground), its pace and its frame rate. */
 export interface FxPlay {
   angle: number;

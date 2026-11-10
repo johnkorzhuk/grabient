@@ -253,7 +253,8 @@ const DRAWN_ALONE: Record<Exclude<VectorKind, KitKind>, string> = {
   silk: "Silk",
   rosette: "Rosette",
   papercut: "Papercut",
-  strings: "Strings"
+  strings: "Strings",
+  dimple: "Dimple"
 };
 /** A palette whose seed puts the kind first for its examples page's hero (features/examples/hero.ts: the look its
     seed's shuffle puts first): the first of a seeded run of palettes, found as the test runs, so a new effect, which

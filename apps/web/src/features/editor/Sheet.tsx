@@ -432,11 +432,14 @@ export function Sheet(props: {
       if (kind === "glass")
         return { stops: glassColors(P), style: "linearGradient" as const, angle: palette().angle };
       /* the vector effects' palette end to end (fx-still.ts fxGlow, which this page's start leaves unloaded): along
-         their angle, the rosette's rings out from its heart */
+         their angle, the rosette's rings out from its heart and the dimple's discs out from its hollow */
       if (isVectorKind(kind))
         return {
           stops: sampleStops(P, 6).map(s => s.hex),
-          style: kind === "rosette" ? ("radialGradient" as const) : ("linearGradient" as const),
+          style:
+            kind === "rosette" || kind === "dimple"
+              ? ("radialGradient" as const)
+              : ("linearGradient" as const),
           angle: palette().angle
         };
       return null;

@@ -42,6 +42,7 @@ const EFFECT_DRAWING = {
   rosette: "rosette-1",
   papercut: "papercut-1",
   strings: "strings-1",
+  dimple: "dimple-1",
   ...kitRecord(kind => `${kind}-${KIT_DRAWINGS[kind]}`)
 } as const satisfies Record<EffectKind, string>;
 /** The blob's picture alone, counted apart from its cards, which stay solid: it is clear where its ground lets the

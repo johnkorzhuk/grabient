@@ -12,6 +12,7 @@ declare const __EFFECT_EMBEDS__: {
   readonly rosette: string;
   readonly papercut: string;
   readonly strings: string;
+  readonly dimple: string;
 } & Readonly<Record<import("@grabient/engine/kit/kinds.ts").KitKind, string>>;
 
 interface Window {

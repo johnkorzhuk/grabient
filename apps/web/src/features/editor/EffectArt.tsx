@@ -35,6 +35,9 @@ interface Player {
   set(palette: Palette, view: unknown): void;
   rewind(): void;
   destroy(): void;
+  /** a kind the pointer leads (ui/effect-loop.ts): where it has been led to in its box, and it put there */
+  led?(): readonly [number, number] | null;
+  lead?(place: readonly [number, number] | null): void;
 }
 /* a player and the canvas it draws in: each player has a canvas of its own, since one it lets go takes its WebGL
    context with it, and a canvas never has another. It keeps what it plays: a player let go is held at that and kept
@@ -110,6 +113,10 @@ const players = {
     import.meta.env.SSR
       ? (new Promise(() => {}) as never)
       : import("@grabient/ui/strings-player.ts"),
+  dimple: () =>
+    import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/ui/dimple-player.ts"),
   ...kitPlayers
 } satisfies Record<EffectKind, () => Promise<unknown>>;
 type Code = Awaited<ReturnType<(typeof players)[EffectKind]>>;
@@ -159,6 +166,14 @@ function playWith(
       canvas,
       palette,
       view as Parameters<typeof code.playStrings>[2],
+      first,
+      options
+    );
+  if ("playDimple" in code)
+    return code.playDimple(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playDimple>[2],
       first,
       options
     );
@@ -292,6 +307,16 @@ export function EffectArt(props: {
           steps: props.settings.look.steps,
           bg: props.settings.look.bg
         };
+  /* where the pointer left a picture it moves (the dimple's hollow), in the box 0 to 1 each way: the still shows the
+     picture that way once the player has gone, and the next player takes over from there, so the card holds what
+     the pointer left; a picture turned to another kind starts from that kind's still */
+  const [held, setHeld] = createSignal<readonly [number, number] | null>(null);
+  createEffect(
+    () => props.kind,
+    () => {
+      setHeld(null);
+    }
+  );
   let session: Session | null = null;
   let leaving: (Session & { timer: ReturnType<typeof setTimeout> }) | null = null;
   /* a start whose code is still on its way when the card goes dark again makes no player */
@@ -324,6 +349,11 @@ export function EffectArt(props: {
     const going = session;
     session = null;
     if (!going) return;
+    /* where the pointer left it, which the still under the canvas now shows too */
+    if (!now) {
+      const at = going.player.led?.();
+      if (at) setHeld(at);
+    }
     /* a picture that lets the list through, as the blob's canvas does about its blobs: two translucent ones thicken */
     if (now || going.kind === "blob" || untrack(bare)) return end(going);
     /* the glass holds its frame and fades out to its still: two pictures that stand still meet, never a moving one */
@@ -366,6 +396,7 @@ export function EffectArt(props: {
     if (kept) {
       holder.append(kept.canvas);
       kept.player.rewind();
+      kept.player.lead?.(untrack(held));
       play(
         kept,
         untrack(() => props.palette),
@@ -406,6 +437,7 @@ export function EffectArt(props: {
     const player = playWith(code, canvas, P, v, firstFrame(first));
     /* where WebGL is missing the still stays */
     if (!player) return canvas.remove();
+    player.lead?.(untrack(held));
     made = { canvas, player, kind, palette: P, view: v, first };
     session = made;
   };
@@ -462,6 +494,7 @@ export function EffectArt(props: {
               shape={props.settings.look.shape}
               steps={props.settings.look.steps}
               bg={props.settings.look.bg}
+              at={held()}
             />
           </Match>
         ))}

@@ -6,6 +6,7 @@ import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import { kitEffect } from "@grabient/engine/kit/registry.ts";
 import { VIDEO_MODULE, VIDEO_QUALITY, videoFit, videoFrames } from "@grabient/engine/video.ts";
 import { videoFinish } from "@grabient/engine/video-finish.ts";
+import { hasVideo } from "@grabient/engine/video-kinds.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -358,7 +359,9 @@ describe("a palette's MP4", () => {
     const { env, keep } = world({ windows: { videoRender: 0 } });
     const parts = runner();
     const tags = [];
-    const styles = EFFECTS.filter(isVectorKind);
+    /* those with a loop of their own: one the pointer alone moves has no clip (engine/effect.ts EFFECT_KINDS) */
+    const styles = EFFECTS.filter(isVectorKind).filter(hasVideo);
+    expect(EFFECTS.filter(kind => !hasVideo(kind))).toEqual(["dimple"]);
     for (const style of styles) {
       const answer = await seedMp4Answer(
         get(`/${SEED}.mp4?style=${style}&angle=135&size=64x48&fps=10&duration=2`),
@@ -388,6 +391,22 @@ describe("a palette's MP4", () => {
     expect(await about("papercut")).toContain("sheets of paper in its colors");
     expect(await about("strings")).toContain("threads in its colors");
     for (const kind of KIT_KINDS) expect(await about(kind)).toBe(kitEffect(kind).about.video);
+  });
+
+  test("has no clip of an effect with no loop: the dimple's address names the effects that have one", async () => {
+    const { env, keep } = world({ off: ["videos"] });
+    const parts = runner();
+    const answer = await seedMp4Answer(
+      get(`/${SEED}.mp4?style=dimple&size=64x48&duration=2`),
+      env,
+      keep,
+      parts.run
+    );
+    expect(answer.status).toBe(404);
+    const said = await answer.text();
+    expect(said).toContain("style=glass");
+    expect(said).not.toContain("style=dimple");
+    expect(parts.jobs).toHaveLength(0);
   });
 
   test("names its soft and grain in its key, its drawing and its first frame, a clip with neither keeping its key", async () => {

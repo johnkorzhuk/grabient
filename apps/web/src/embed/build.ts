@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import { build, type Plugin, type Rollup } from "vite";
 
-/* The effects' embeds (glass.ts, blob.ts, silk.ts, rosette.ts, papercut.ts, strings.ts, and each field effect's on the
+/* The effects' embeds (glass.ts, blob.ts, silk.ts, rosette.ts, papercut.ts, strings.ts, dimple.ts, and each field effect's on the
    kit's mount, kit.ts), each as one classic script, which the Worker serves at /{seed}.js (server/files/embed.ts).
    They are built with the site's own toolchain in builds of their own, as the MCP view is, and written into the browser's build as files under /assets/ named by their contents, as
    the precise color names are (scripts/color-names.ts): the Worker reads them through its ASSETS binding, so they are
@@ -20,6 +20,7 @@ export const KINDS = [
   "rosette",
   "papercut",
   "strings",
+  "dimple",
   ...KIT_KINDS
 ] as const;
 type Scripts = Record<(typeof KINDS)[number], string>;

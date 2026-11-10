@@ -38,6 +38,8 @@ const SVG_SHOWS: Record<EffectKind, string> = {
   papercut:
     "its colors cut into sheets of paper stacked into a relief, each casting a soft shadow on the one below",
   strings: "threads in its colors, evenly spaced on a dark ground, stirred into bundles and loops",
+  dimple:
+    "a sheet of round scales in its colors pressed in at one point, the darker end of the palette in the hollow",
   /* a field effect's own words (kit/types.ts FieldAbout) */
   ...kitRecord(kind => kitEffect(kind).about.shows)
 };
@@ -54,8 +56,11 @@ const svgAbout = (effect: Effect): string => {
           look.bg === CLEAR_GROUND ? "a clear ground" : `a ground of ${look.bg}`
         )
       : SVG_SHOWS[kind];
-  return motion
-    ? `An animated SVG of a Grabient palette: ${shows}, moved by ${motion === "css" ? "CSS" : "SMIL"} alone.`
+  if (motion)
+    return `An animated SVG of a Grabient palette: ${shows}, moved by ${motion === "css" ? "CSS" : "SMIL"} alone.`;
+  /* one the pointer moves has no loop and no clip: its SVG is its still */
+  return EFFECT_KINDS[kind].motion === "pointer"
+    ? `An SVG of a Grabient palette: ${shows}, its still; on its page, and behind another by its script, its hollow follows the pointer.`
     : `An SVG of a Grabient palette: ${shows}, its first frame; its script, clips and shaders play it.`;
 };
 

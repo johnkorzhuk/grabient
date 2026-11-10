@@ -37,5 +37,13 @@ export const EFFECT_WHY: Readonly<
     figma:
       'its threads change shape as it moves, loops closing and bundles shedding threads, and Figma\'s timeline moves, turns, scales and fades layers but never changes a shape, so a paste could only be its still, which its SVG already is, its threads as strokes (John, 8 Nov 2026, of the sandstone and the papercut: "we can just drop it and they can use svg", then "same for strings.")'
   },
+  dimple: {
+    svgMotion:
+      'it has no loop, nothing in it moving by itself (John, 10 Nov 2026: "there should be no stationary animations for this one"): its hollow follows the pointer, and an SVG shown as a picture is given no pointer, so its file is its still',
+    figma:
+      'it has no loop, so Figma\'s timeline has nothing of it to play: a paste could only be its still, which its SVG already is (John, 8 Nov 2026, of the effects whose paste could only stand still: "we can just drop it and they can use svg")',
+    video:
+      'it has no loop, nothing in it moving by itself (John, 10 Nov 2026: "there should be no stationary animations for this one"): a clip of it would be its still for as long as it ran'
+  },
   ...kitRecord(() => KIT_WHY)
 };

@@ -4,7 +4,9 @@
    EFFECT_PIXELS_MAX), the first frame drawn at t = 0 (the still's own, so it takes over without a seam) and then the
    motion eased in from rest, frames at the address's rate at most (pace.ts), nothing drawn while the canvas is out of
    view or the page hidden, the first frame held for a reader who asks for less motion, and a new size laid out once it
-   has settled. Nothing is allocated a frame. A renderer on the processor plays nothing (gl-build.ts): the still stays. */
+   has settled. Nothing is allocated a frame. A renderer on the processor plays nothing (gl-build.ts): the still stays.
+   A kind with no loop of its own, which moves only as it is led (the dimple's hollow, after the pointer), says so by
+   its `lead`: its frames are drawn only as it moves, and none is asked for once it has come to rest. */
 import { EFFECT_EASE_S, EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { knownSoftwareRenderer, softwareContext } from "./gl-build.ts";
@@ -26,6 +28,17 @@ export interface EffectDrawing<V> {
   draw(t: number): void;
   /** frees what it made on the context */
   destroy(): void;
+  /** for a kind with no loop of its own, which moves only as it is led: told the seconds gone by at the view's speed
+      (it is not asked while it is held: at speed 0, out of view, for a reader who asks for less motion), it moves and
+      says whether it moved. The loop draws its frames only as it moves and asks for none once it rests, until
+      whatever leads it calls the `wake` it was made with */
+  lead?(seconds: number): boolean;
+  /** for such a kind: back to where its first frame has it */
+  home?(): void;
+  /** for such a kind: where it has been led to in its box, 0 to 1 each way, null at its rest; and it put there at
+      once, null back at its rest */
+  where?(): readonly [number, number] | null;
+  put?(place: readonly [number, number] | null): void;
 }
 
 export interface EffectPlayer<V> {
@@ -37,6 +50,11 @@ export interface EffectPlayer<V> {
   motion(): void;
   /** stop and let the context go */
   destroy(): void;
+  /** a kind that is led (EffectDrawing's lead): where it has been led to in its box, 0 to 1 each way, null at its
+      rest, so what stands in for the canvas once it goes can show that picture (a card's still, FxArt.tsx) */
+  led?(): readonly [number, number] | null;
+  /** and it put there at once, null back at its rest: a player taking over a picture left that way */
+  lead?(place: readonly [number, number] | null): void;
 }
 
 export interface PlayOptions {
@@ -57,7 +75,7 @@ export function playEffect<V extends PlayView>(
   canvas: HTMLCanvasElement,
   palette: Palette,
   view: V,
-  make: (gl: WebGL2RenderingContext) => EffectDrawing<V>,
+  make: (gl: WebGL2RenderingContext, wake: () => void) => EffectDrawing<V>,
   onFirstFrame?: () => void,
   options: PlayOptions = {}
 ): EffectPlayer<V> | null {
@@ -76,7 +94,9 @@ export function playEffect<V extends PlayView>(
     gl.getExtension("WEBGL_lose_context")?.loseContext();
     return null;
   }
-  const drawing = make(gl);
+  /* a led kind's drawing wakes the loop as it is led; the loop's own wake is made below */
+  let waker = () => {};
+  const drawing = make(gl, () => waker());
   let palette_ = palette;
   let view_ = view;
   let size = { w: 0, h: 0 };
@@ -114,6 +134,8 @@ export function playEffect<V extends PlayView>(
   let last = performance.now();
   let lastDrawn = -1;
   let changed = true;
+  /* a led kind has moved since its last frame, which a frame not yet due at the view's rate still owes */
+  let moved = false;
   let shown = true;
   let raf = 0;
   let first = true;
@@ -125,18 +147,25 @@ export function playEffect<V extends PlayView>(
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     const ready = size.w > 0 && drawing.built() === true;
+    let led = false;
     if (!playing() || view_.speed === 0) warm = 0;
     else if (ready && !first) {
-      warm = Math.min(easing, warm + dt);
-      const e = easing ? warm / easing : 1;
-      t += dt * view_.speed * e * e * (3 - 2 * e);
+      if (drawing.lead) {
+        led = drawing.lead(dt * view_.speed);
+        moved ||= led;
+      } else {
+        warm = Math.min(easing, warm + dt);
+        const e = easing ? warm / easing : 1;
+        t += dt * view_.speed * e * e * (3 - 2 * e);
+      }
     }
     if (ready) {
       const at = reduced ? 0 : t;
-      if (changed || (at !== lastDrawn && pace.due(now, view_.fps))) {
+      if (changed || ((drawing.lead ? moved : at !== lastDrawn) && pace.due(now, view_.fps))) {
         drawing.draw(at);
         lastDrawn = at;
         changed = false;
+        moved = false;
         if (first) {
           first = false;
           onFirstFrame?.();
@@ -144,14 +173,21 @@ export function playEffect<V extends PlayView>(
       }
     }
     /* held at speed 0, a frame comes only with a change, which wakes the loop (set, a size, the motion setting); while
-       the GPU builds the programs, each frame asks again, until it is done or they failed (the still stays) */
-    if ((playing() && view_.speed > 0) || drawing.built() === false)
+       the GPU builds the programs, each frame asks again, until it is done or they failed (the still stays). A led
+       kind asks for the next only while it moves, or owes a frame of having moved, or has its first still to draw */
+    if (
+      (playing() && view_.speed > 0 && (!drawing.lead || led || moved || first)) ||
+      drawing.built() === false
+    )
       raf = requestAnimationFrame(tick);
   };
   const wake = () => {
-    last = performance.now();
+    /* a led kind, woken at every move of the pointer, keeps its last tick while the loop runs, so the time between
+       its frames is counted whole */
+    if (!(drawing.lead && raf)) last = performance.now();
     if (!raf) raf = requestAnimationFrame(tick);
   };
+  waker = wake;
   /* the first size comes with the observer's first word, which the browser gives before the next paint */
   const sizes = new ResizeObserver(entries => {
     const box = entries[entries.length - 1]?.devicePixelContentBoxSize?.[0];
@@ -198,6 +234,7 @@ export function playEffect<V extends PlayView>(
     rewind() {
       t = 0;
       warm = 0;
+      drawing.home?.();
       changed = true;
       wake();
     },
@@ -206,6 +243,16 @@ export function playEffect<V extends PlayView>(
       changed = true;
       wake();
     },
+    ...(drawing.where && drawing.put
+      ? {
+          led: () => drawing.where?.() ?? null,
+          lead(place: readonly [number, number] | null) {
+            drawing.put?.(place);
+            changed = true;
+            wake();
+          }
+        }
+      : {}),
     destroy() {
       cancelAnimationFrame(raf);
       raf = 0;

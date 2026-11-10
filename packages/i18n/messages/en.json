@@ -135,7 +135,8 @@
     "refs": [
       "apps/web/src/app/AccountMenu.tsx:121",
       "apps/web/src/app/AccountMenu.tsx:132",
-      "apps/web/src/app/site.ts:37"
+      "apps/web/src/app/site.ts:37",
+      "apps/web/src/app/site.ts:80"
     ]
   },
   "About Grabient": {
@@ -908,7 +909,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:282",
-      "apps/web/src/features/editor/effect-sources.ts:364"
+      "apps/web/src/features/editor/effect-sources.ts:388"
     ]
   },
   "Columns": {
@@ -1064,7 +1065,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:341"
+      "apps/web/src/features/editor/effect-sources.ts:365"
     ]
   },
   "Copy link": {
@@ -1198,8 +1199,8 @@
       "apps/web/src/features/collections/take.ts:85",
       "apps/web/src/features/editor/Editor.tsx:766",
       "apps/web/src/features/editor/Editor.tsx:828",
-      "apps/web/src/features/editor/Sheet.tsx:574",
-      "apps/web/src/features/editor/Sheet.tsx:652",
+      "apps/web/src/features/editor/Sheet.tsx:577",
+      "apps/web/src/features/editor/Sheet.tsx:655",
       "apps/web/src/features/examples/Swatches.tsx:211",
       "apps/web/src/lib/files.ts:70"
     ]
@@ -1346,7 +1347,7 @@
       "apps/web/src/features/collections/CollectionPage.tsx:500",
       "apps/web/src/features/collections/ItemCard.tsx:132",
       "apps/web/src/features/collections/collect.ts:457",
-      "apps/web/src/features/editor/Sheet.tsx:538",
+      "apps/web/src/features/editor/Sheet.tsx:541",
       "apps/web/src/features/editor/save.ts:186",
       "apps/web/src/features/gallery/GalleryCard.tsx:114",
       "apps/web/src/server/account/sync.ts:126",
@@ -1502,6 +1503,12 @@
       "apps/web/src/features/examples/Wallpapers.tsx:161"
     ]
   },
+  "Dimple": {
+    "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it shows, that draws the palette as a dimple: a sheet of overlapping round discs, like scales or dimpled sheet metal, pressed in at one point, the palette's colors running out from that hollow. The hollow follows the pointer, and nothing in it moves by itself. A plain noun for a small hollow or dent pressed into a surface, as a designer would name the look; not a dimple in a cheek or a chin.",
+    "refs": [
+      "apps/web/src/features/editor/effect-page.ts:40"
+    ]
+  },
   "Disconnect": {
     "note": "Press: disconnects an app.",
     "refs": [
@@ -1645,7 +1652,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
       "apps/web/src/features/editor/Editor.tsx:1291",
-      "apps/web/src/features/examples/ExamplesPage.tsx:371",
+      "apps/web/src/features/examples/ExamplesPage.tsx:372",
       "packages/ui/src/KeyList.tsx:10"
     ]
   },
@@ -1767,7 +1774,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:31",
       "apps/web/src/features/examples/ExamplesLink.tsx:14",
-      "apps/web/src/features/examples/ExamplesPage.tsx:384",
+      "apps/web/src/features/examples/ExamplesPage.tsx:385",
       "packages/ui/src/KeyList.tsx:11"
     ]
   },
@@ -2284,7 +2291,7 @@
     "note": "Status line: the image could not go to the clipboard, so it was downloaded instead.",
     "refs": [
       "apps/web/src/features/collections/take.ts:74",
-      "apps/web/src/features/editor/Sheet.tsx:489",
+      "apps/web/src/features/editor/Sheet.tsx:492",
       "apps/web/src/features/gallery/take.ts:147",
       "apps/web/src/features/selection/ExportScreen.tsx:136",
       "apps/web/src/mcp-view/PaletteView.tsx:244"
@@ -2303,7 +2310,7 @@
   "In any CSS rule": {
     "note": "Short note under a code tab holding one CSS declaration: it can be pasted into any CSS rule. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:308"
+      "apps/web/src/features/examples/ExamplesPage.tsx:309"
     ]
   },
   "In the formula, <c>t</c> runs from 0 at the start of the gradient to 1 at the end. With <c>K</c> keyframes, keyframe <c>i</c> sits at <c>t = i / (K − 1)</c>, counting from 0. Each curve is a Catmull–Rom spline, and <c>gamut()</c> fits the color to the screen (section 6):": {
@@ -2315,9 +2322,9 @@
   "In the page's head": {
     "note": "Short note under a code tab holding tags for a web page's <head> element. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:289",
-      "apps/web/src/features/examples/ExamplesPage.tsx:301",
-      "apps/web/src/features/examples/ExamplesPage.tsx:313"
+      "apps/web/src/features/examples/ExamplesPage.tsx:290",
+      "apps/web/src/features/examples/ExamplesPage.tsx:302",
+      "apps/web/src/features/examples/ExamplesPage.tsx:314"
     ]
   },
   "In these collections": {
@@ -2655,7 +2662,7 @@
   "Linked": {
     "note": "Tab name of a code block on the examples page, beside 'HTML': the same tags, linking Grabient's stylesheet instead of holding the picture inline. One short word.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:292"
+      "apps/web/src/features/examples/ExamplesPage.tsx:293"
     ]
   },
   "Links and JSON can be up to 2,048 characters.": {
@@ -3272,7 +3279,7 @@
     "note": "Screen reader name of the tabs for a list's order (Popular, Rising, Saved).",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:657",
-      "apps/web/src/features/editor/Sheet.tsx:605",
+      "apps/web/src/features/editor/Sheet.tsx:608",
       "packages/ui/src/ListNav.tsx:102"
     ]
   },
@@ -3734,7 +3741,7 @@
   "Privacy": {
     "note": "Footer link to the Privacy Policy.",
     "refs": [
-      "apps/web/src/app/site.ts:74"
+      "apps/web/src/app/site.ts:77"
     ]
   },
   "Privacy policy": {
@@ -3817,7 +3824,7 @@
     "refs": [
       "apps/web/src/features/editor/Controls.tsx:347",
       "apps/web/src/features/editor/Controls.tsx:349",
-      "apps/web/src/features/examples/ExamplesPage.tsx:375"
+      "apps/web/src/features/examples/ExamplesPage.tsx:376"
     ]
   },
   "Random palette": {
@@ -4488,7 +4495,7 @@
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
       "apps/web/src/features/editor/code.ts:300",
-      "apps/web/src/features/editor/effect-sources.ts:299"
+      "apps/web/src/features/editor/effect-sources.ts:323"
     ]
   },
   "Shape": {
@@ -4728,7 +4735,7 @@
     "note": "Heading and link: palettes like the one shown. Also the tooltip of the magnifier beside a palette's Edit and at the editor picture's corner, which opens them.",
     "refs": [
       "apps/web/src/features/editor/Editor.tsx:997",
-      "apps/web/src/features/editor/Sheet.tsx:692",
+      "apps/web/src/features/editor/Sheet.tsx:695",
       "apps/web/src/features/editor/StaticPalette.tsx:148",
       "packages/ui/src/PaletteCard.tsx:347"
     ]
@@ -5032,7 +5039,7 @@
   "Terms": {
     "note": "Footer link to the Terms of Service.",
     "refs": [
-      "apps/web/src/app/site.ts:75"
+      "apps/web/src/app/site.ts:78"
     ]
   },
   "Terms of service": {
@@ -5142,7 +5149,7 @@
   "The code that paints it": {
     "note": "Read by screen readers only: the name of the code tabs at the top of a palette's examples page, the code that paints the palette as a page's background.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:392"
+      "apps/web/src/features/examples/ExamplesPage.tsx:393"
     ]
   },
   "The colors as design tokens.": {
@@ -5193,6 +5200,12 @@
       "apps/web/src/features/editor/Editor.tsx:697"
     ]
   },
+  "The ground about the hollow, then the discs over each pixel in their stack's order, in one pass.": {
+    "note": "Editor's code pane, Shader tab while the dimple shows: what its shader code draws, all in one pass: at each pixel, first the ground (a gradient around the hollow, the point where the sheet is pressed in), then the round discs that cover that pixel, laid one over another in the fixed order of their stack. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
+    "refs": [
+      "apps/web/src/features/editor/effect-sources.ts:215"
+    ]
+  },
   "The issue didn't pass its checks, so nothing changed.": {
     "note": "Admin Settings, the newsletter's send: heads the list of failed checks after preparing or arming a send.",
     "refs": [
@@ -5202,7 +5215,7 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:379"
+      "apps/web/src/features/editor/effect-sources.ts:403"
     ]
   },
   "The keyframes as JSON.": {
@@ -5262,20 +5275,20 @@
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:398"
+      "apps/web/src/features/editor/effect-sources.ts:422"
     ]
   },
   "The picture as an SVG file, moving by SMIL alone.": {
     "note": "Editor's code pane, SVG tab while the silk plays: the picture as an animated SVG file whose motion is SMIL (SVG's own animation elements), with no script. SMIL is a name, kept as it is.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:396"
+      "apps/web/src/features/editor/effect-sources.ts:420"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:340",
-      "apps/web/src/features/editor/effect-sources.ts:399"
+      "apps/web/src/features/editor/effect-sources.ts:423"
     ]
   },
   "The profile's code": {
@@ -5323,13 +5336,13 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:360"
+      "apps/web/src/features/editor/effect-sources.ts:384"
     ]
   },
   "The tag that paints its first frame behind a page, for the page's head.": {
     "note": "Editor, the code pane's HTML tab while an effect with no script yet plays (every effect has one now; one can come before its script): the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:337"
+      "apps/web/src/features/editor/effect-sources.ts:361"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5347,7 +5360,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:336"
+      "apps/web/src/features/editor/effect-sources.ts:360"
     ]
   },
   "The wallpapers' code": {
@@ -5380,19 +5393,19 @@
     "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
     "refs": [
       "apps/web/src/features/editor/code.ts:315",
-      "apps/web/src/features/editor/effect-sources.ts:316"
+      "apps/web/src/features/editor/effect-sources.ts:340"
     ]
   },
   "Then its soft and grain, as the site lays them over it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture has both soft and grain: the shader's last passes blur it and lay the grain over it, as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:312"
+      "apps/web/src/features/editor/effect-sources.ts:336"
     ]
   },
   "Then its soft, as the site blurs it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture is soft: the shader's last passes blur it as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:314"
+      "apps/web/src/features/editor/effect-sources.ts:338"
     ]
   },
   "This address isn't a palette or a page.": {
@@ -6212,7 +6225,7 @@
   "blob": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as an animated blob, a soft amorphous shape of its colors: \"Vivid navy and blue blob\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Blob\" does. The same words start the line under the palette's name, capitalized there (\"Blob, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:419"
+      "packages/engine/src/effect.ts:447"
     ]
   },
   "blue": {
@@ -6306,6 +6319,12 @@
       "packages/ui/src/solid.ts:560"
     ]
   },
+  "dimple": {
+    "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette drawn as a dimple, a sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow: \"Vivid navy and blue dimple\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Dimple\" does. The same words start the line under the palette's name, capitalized there (\"Dimple, 7 colors at 90°: …\"). A small hollow or dent pressed into a surface, not a dimple in a cheek.",
+    "refs": [
+      "packages/engine/src/effect.ts:452"
+    ]
+  },
   "duotone {colors}": {
     "note": "Palette name: two colors.",
     "refs": [
@@ -6347,7 +6366,7 @@
   "fluted glass": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as fluted (reeded) glass, its colors drifting behind a pane of curved ribs: \"Vivid navy and blue fluted glass\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Fluted glass\" does. The same words start the line under the palette's name, capitalized there (\"Fluted glass, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:418"
+      "packages/engine/src/effect.ts:446"
     ]
   },
   "frame\u00041w": {
@@ -6611,7 +6630,7 @@
     "note": "List order and its tab: the most liked first.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:115",
-      "apps/web/src/features/editor/Sheet.tsx:608",
+      "apps/web/src/features/editor/Sheet.tsx:611",
       "apps/web/src/features/gallery/Palettes.tsx:332",
       "packages/ui/src/ListNav.tsx:15"
     ]
@@ -6641,7 +6660,7 @@
   "papercut": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as papercut, its colors cut into sheets of paper stacked in a layered relief: \"Vivid navy and blue papercut\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Papercut\" does. The same words start the line under the palette's name, capitalized there (\"Papercut, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:422"
+      "packages/engine/src/effect.ts:450"
     ]
   },
   "pastel {colors}": {
@@ -6702,7 +6721,7 @@
   "rosette": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as a rosette, petals on a golden spiral like a dahlia seen from above: \"Vivid navy and blue rosette\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Rosette\" does. The same words start the line under the palette's name, capitalized there (\"Rosette, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:421"
+      "packages/engine/src/effect.ts:449"
     ]
   },
   "salmon": {
@@ -6733,7 +6752,7 @@
   "silk": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as silk, its colors dyed into satin that drapes in soft folds: \"Vivid navy and blue silk\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Silk\" does. The same words start the line under the palette's name, capitalized there (\"Silk, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:420"
+      "packages/engine/src/effect.ts:448"
     ]
   },
   "source\u0004Direct": {
@@ -6781,7 +6800,7 @@
   "strings": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as strings, many thin threads in its colors evenly spaced on a dark ground, stirred into bundles and loops: \"Vivid navy and blue strings\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Strings\" does. The same words start the line under the palette's name, capitalized there (\"Strings, 7 colors at 90°: …\"). Threads or string art, not musical strings, not text strings in code.",
     "refs": [
-      "packages/engine/src/effect.ts:423"
+      "packages/engine/src/effect.ts:451"
     ]
   },
   "tan": {
@@ -6891,7 +6910,7 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:296",
-      "apps/web/src/features/editor/effect-sources.ts:369"
+      "apps/web/src/features/editor/effect-sources.ts:393"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
@@ -7214,7 +7233,7 @@
   "{name}, {style}": {
     "note": "A palette card's picture while the editor plays an effect: what a screen reader calls it. {name} is the palette's name, {style} the effect's (Fluted glass, Blob).",
     "refs": [
-      "apps/web/src/features/editor/Sheet.tsx:455",
+      "apps/web/src/features/editor/Sheet.tsx:458",
       "apps/web/src/features/list/card-effect.tsx:93",
       "apps/web/src/features/selection/ExportScreen.tsx:47"
     ]

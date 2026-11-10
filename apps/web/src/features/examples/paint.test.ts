@@ -1,6 +1,8 @@
 import { decodePalette } from "@grabient/engine";
 import { toHex } from "@grabient/engine/color.ts";
 import { contrast, luminance } from "@grabient/engine/contrast.ts";
+import { dimpleScene } from "@grabient/engine/dimple.ts";
+import { renderDimple } from "@grabient/engine/dimple-render.ts";
 import { EFFECTS, type Effect, isVectorKind, type VectorKind } from "@grabient/engine/effect.ts";
 import { effectColors } from "@grabient/engine/effect-code.ts";
 import { effectRgba } from "@grabient/engine/fx-frame.ts";
@@ -428,10 +430,17 @@ describe("the vector effects", () => {
                       const scene = stringsScene(s.palette, { ...view, bg: null }, box);
                       return (f: number) => renderStrings(scene, f * STRINGS_LOOP);
                     })()
-                  : (() => {
-                      const scene = papercutScene(s.palette, view, box);
-                      return (f: number) => renderPapercut(scene, f * PAPERCUT_LOOP);
-                    })();
+                  : kind === "dimple"
+                    ? (() => {
+                        /* it has no loop: each "frame" is its hollow at another place across the box */
+                        const scene = dimpleScene(s.palette, view, box);
+                        return (f: number) =>
+                          renderDimple(scene, f ? [f * box.width, (1 - f) * box.height] : null);
+                      })()
+                    : (() => {
+                        const scene = papercutScene(s.palette, view, box);
+                        return (f: number) => renderPapercut(scene, f * PAPERCUT_LOOP);
+                      })();
           const colorsOf = colorsOfParts(s, box.width / box.height);
           const bounds = parts.map(part => {
             const within = colorsOf(part).map(rgbOf);

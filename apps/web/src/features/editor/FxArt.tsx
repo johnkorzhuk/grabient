@@ -3,7 +3,7 @@ import { type FxLook, fxStillKey, type VectorKind } from "@grabient/engine/effec
 import type { Palette } from "@grabient/engine/palette.ts";
 import { createEffect, createMemo, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./Editor.module.css";
-import { fxStillSteps, loadFx, serverFxStill } from "./fx-draw.ts";
+import { fxPlacedBackground, fxStillSteps, loadFx, serverFxStill } from "./fx-draw.ts";
 
 /** How often the small picture is drawn while its palette or look keeps changing (BlobArt.tsx): a change after a rest
     is drawn in the picture's turn; while the hand moves, at most once in this, and the last change once it rests. */
@@ -75,6 +75,10 @@ export function FxArt(props: {
   steps: number | null;
   /** the look's ground, where the effect takes one (engine/effect.ts EffectLook): null as designed */
   bg: string | null;
+  /** where the pointer left an effect it moves (the dimple's hollow), in this box 0 to 1 each way: the picture
+      drawn that way in its still's place, so a card whose player has gone holds it (John, 10 Nov 2026: "just have it
+      hold its last posisiion instead of resetting to the center"); none, its still */
+  at?: readonly [number, number] | null;
 }) {
   let el!: HTMLSpanElement;
   const code = createMemo(() => encodePalette(props.palette));
@@ -153,12 +157,39 @@ export function FxArt(props: {
     clearTimeout(timer);
     cancel?.();
   });
+  /* the picture as the pointer left it: the design is a square laid over the box as cover lays it, so a place in the
+     box is one in the square's middle band */
+  const [placed, setPlaced] = createSignal<string | null>(null);
+  createEffect(
+    () => ({
+      at: props.at ?? null,
+      ready: ready(),
+      kind: props.kind,
+      P: props.palette,
+      look: look()
+    }),
+    next => {
+      if (!next.at || !next.ready) {
+        setPlaced(null);
+        return;
+      }
+      const w = el.clientWidth || 1;
+      const h = el.clientHeight || 1;
+      const side = Math.max(w, h);
+      setPlaced(
+        fxPlacedBackground(next.kind, next.P, next.look, [
+          0.5 + ((next.at[0] - 0.5) * w) / side,
+          0.5 + ((next.at[1] - 0.5) * h) / side
+        ])
+      );
+    }
+  );
   return (
     <span
       ref={el}
       class={styles.glassArt}
-      data-fx-still={shown()?.key}
-      style={{ background: shown()?.paint ?? undefined }}
+      data-fx-still={placed() ? undefined : shown()?.key}
+      style={{ background: placed() ?? shown()?.paint ?? undefined }}
     />
   );
 }

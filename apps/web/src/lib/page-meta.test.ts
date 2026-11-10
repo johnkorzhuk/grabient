@@ -563,6 +563,7 @@ describe("a palette that plays an effect", () => {
     rosette: "rosette",
     papercut: "papercut",
     strings: "strings",
+    dimple: "dimple",
     ...KIT_WORDS
   };
   const named = (address: string, facts: Facts = {}) => {

@@ -113,6 +113,11 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   player's own pass in `strings-gl.ts`), the WGSL and its WebGPU page (`strings-webgpu.ts` over `strings-wgsl.ts`), the
   pages' script in `strings-page.ts`, played by the same clock. The papercut's and the strings' tracers write their
   curves with `svg-fit.ts`.
+- The dimple's (`dimple.ts`, its CPU drawing in `dimple-render.ts`, its still and its picture with the hollow anywhere
+  in `dimple-svg.ts`), every kind named in `dimple-shader.ts`: the GLSL and its WebGL page (`dimple-webgl.ts`, the
+  player's own pass in `dimple-gl.ts`), the WGSL and its WebGPU page (`dimple-webgpu.ts` over `dimple-wgsl.ts`), the
+  pages' script in `dimple-page.ts`. It has no loop (`EFFECT_KINDS`' `motion`), so no clock plays it: its pages'
+  hollow follows the pointer by their own script and stays where the pointer left it, as its player's does.
 - The field effects (`kit/`; the sandstone is the site's one): each is one file in `kit/fields/`, its kernel in the
   kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
   levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for

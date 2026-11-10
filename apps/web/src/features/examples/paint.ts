@@ -45,6 +45,9 @@ const BLOB_PLACES = 9;
 /** The places the silk's and the rosette's colors are read at along their palette, as the editor lists them
     (engine/effect-code.ts effectColors): end to end at six places. */
 const CURVE_PLACES = 6;
+/** The places along its curve the dimple's colors are read at: the stops its discs and its ground read between
+    (engine/dimple.ts DIMPLE_STOPS), so every pixel of it is a blend of these. */
+const DIMPLE_PLACES = 33;
 /** The papercut's sheets, each one of the palette's colors at even steps along it (engine/papercut.ts PAPERCUT_LOOK). */
 export const PAPERCUT_SHEETS = 12;
 
@@ -545,6 +548,9 @@ function effectParts(s: Shown, effect: Effect, aspect: number): (part: Part) => 
       return everywhere(papercutColors(s.palette));
     case "strings":
       return everywhere(stringsColors(s.palette));
+    /* every disc, and the ground under them, is the palette's own curve */
+    case "dimple":
+      return everywhere(sampleStops(s.palette, DIMPLE_PLACES).map(stop => stop.hex));
     case "glass":
       return everywhere(glassLit(s.palette));
   }

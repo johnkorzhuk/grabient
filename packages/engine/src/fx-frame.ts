@@ -26,14 +26,16 @@ export interface EffectDrawn {
 }
 
 /** An effect's first frame at a size, unfinished; a vector effect's frame at `t` seconds of its loop at speed 1 where
-    one is asked (the glass and the blob draw their first alone). */
+    one is asked (the glass and the blob draw their first alone), and an effect the pointer moves (the dimple) with
+    the pointer at `at`, in the box 0 to 1 each way, where one is said. */
 export async function effectDrawn(
   P: Palette,
   effect: Effect,
   angle: number,
   size: Size,
   card = false,
-  t = 0
+  t = 0,
+  at: readonly [number, number] | null = null
 ): Promise<EffectDrawn> {
   /* the vector effects by their CPU drawings: about 0.1 s for a card, 0.35 s for the largest picture (the strings'
      about four times that). A field effect's card, coded, takes 0.21 s, 0.36 to 0.37 s soft and grained, in an
@@ -84,6 +86,19 @@ export async function effectDrawn(
         return {
           pixels: render.renderStrings(model.stringsSolid(scene), t),
           backdrop: scene.backdrop.map(v => Math.round(v * 255))
+        };
+      }
+      case "dimple": {
+        /* a card of 1200 by 630 in 38 ms, the largest picture in 136 (dimple-render.ts, 10 Nov 2026) */
+        const [model, render] = await Promise.all([
+          import("./dimple.ts"),
+          import("./dimple-render.ts")
+        ]);
+        return {
+          pixels: render.renderDimple(
+            model.dimpleScene(P, look, size),
+            at && [at[0] * size.width, at[1] * size.height]
+          )
         };
       }
       case "silk": {

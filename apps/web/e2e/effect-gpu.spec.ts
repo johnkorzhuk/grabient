@@ -28,6 +28,7 @@ const WRITERS: Record<EffectKind, () => Promise<Writer>> = {
   rosette: async () => (await import("@grabient/engine/rosette-shader.ts")).rosetteShader,
   papercut: async () => (await import("@grabient/engine/papercut-shader.ts")).papercutShader,
   strings: async () => (await import("@grabient/engine/strings-shader.ts")).stringsShader,
+  dimple: async () => (await import("@grabient/engine/dimple-shader.ts")).dimpleShader,
   /* a field effect's, from its definition and its kernel (engine/kit/shader.ts) */
   ...kitRecord(kind => async (): Promise<Writer> => {
     const [{ kitShader }, { kitEffect }, { kitKernel }] = await Promise.all([

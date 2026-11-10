@@ -24,6 +24,7 @@ The product's words in Korean, as Korean designers meet them in Figma, Adobe and
 | Papercut | 페이퍼컷 | An effect, the palette cut into sheets of paper stacked in layers, each casting a soft shadow on the one below: the craft's name as Korean crafters and designers write it (페이퍼컷 아트, 페이퍼컷 일러스트), one word. Not 종이 오리기, a children's activity. |
 | strings (an effect) | 실 | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for thread. Not 현 (musical strings) nor 문자열 (strings in code), and not the loanword 스트링스. |
 | sandstone (an effect) | 사암 | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name. Not 모래 (sand), nor the loanword 샌드스톤 of tiles and paving. |
+| dimple (an effect) | 딤플 | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the loanword, as a golf ball's and a dimpled sheet's 딤플 are named. Not 보조개 (a dimple in a cheek). |
 | look (the examples page) | 모습 | One of the ways a palette is shown: another style, steps, angle or shape. Another look: 다른 모습 보기. Swipe for another look: 스와이프해서 다른 모습 보기. 6 looks: 모습 6가지. Not 모양, which is Appearance and Shape. |
 | Linear / Angular / Radial | 선형 / 원뿔형 / 방사형 | Angular is the conic gradient: 원뿔형, as Korean CSS writing calls conic-gradient. Not 각도, which is Angle. |
 | steps | 단계 | The Steps control, and a count of steps: 단계 7개. "7 colors" is 색상 7개. |

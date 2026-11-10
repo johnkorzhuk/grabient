@@ -78,6 +78,18 @@ export function FormatStrips() {
             />
           </Cell>
           <Cell
+            caption="the editor's strip while the dimple shows · no MP4 and no Figma: it has no loop, its hollow only following the pointer, so there is no clip to make and nothing for Figma's timeline to play; its SVG is its still"
+            art={ART}
+          >
+            <FormatStrip
+              size="lg"
+              copy={["url", "css", "svg", "png", "html"]}
+              download={["md", "css", "svg", "png"]}
+              swatches={SWATCH_CHIPS}
+              link={["md", "css", "svg", "png", "js"]}
+            />
+          </Cell>
+          <Cell
             caption="an MP4 being made, which shows in Download: turn a strip to it · its ring round as far as the clip is drawn, its square the stop a press makes, its tooltip how far along; its check comes once the file is saved"
             art={ART}
           >
@@ -107,6 +119,7 @@ export function FormatStrips() {
             "Named by its mode; the mode press names the next one; the swatch book is Swatches or Back.",
             "A copy for another app is named for where it goes: Copy for Figma.",
             "Copy for Figma only where Figma's timeline plays the effect (the glass, the blob, the silk, the rosette); for the others the SVG is the way into Figma.",
+            "MP4 only where an effect has a loop of its own: the dimple, which moves only as the pointer leads it, has none, so its strips offer no clip.",
             "A download made as it is asked for, an effect's MP4, shows how far along it is on its own chip, a ring round its stop (MakingIcon), its tooltip Making MP4, 62%. Stop. Its name stays Making MP4. Stop until the file is made, so a screen reader is not told each percent, and is told Downloaded MP4 then. A press stops it, and so does the stage showing another clip; its check comes once the file is saved. Only the page that makes it loads the ring."
           ]}
         />

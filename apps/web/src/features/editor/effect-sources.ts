@@ -210,6 +210,30 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
             m.stringsWebgpu(kind as "wgsl" | "webgpu", ...rest)
       )
   },
+  dimple: {
+    passes: () =>
+      t(
+        "The ground about the hollow, then the discs over each pixel in their stack's order, in one pass."
+      ),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/dimple-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.dimpleWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/dimple-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.dimpleWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  },
   ...kitRecord(
     (kind): EffectShaders => ({
       passes: kitPasses,

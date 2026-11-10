@@ -42,6 +42,7 @@ export const LOOKS: readonly Look[] = [
   "papercut",
   "blob",
   "strings",
+  "dimple",
   ...KIT_KINDS
 ];
 /** The looks a stylesheet draws alone, which a page's first screen paints at once. */

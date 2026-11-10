@@ -26,6 +26,7 @@ import { EFFECT_WHY } from "./effect-why.ts";
 import { effectDrawn } from "./fx-frame.ts";
 import {
   type FxLook,
+  type FxPointer,
   fxFrameCss,
   fxFrameSvg,
   fxLoop,
@@ -47,6 +48,8 @@ const PARITY_SIZE: Record<VectorKind, Size> = {
   rosette: SIZE,
   papercut: SIZE,
   strings: { width: 640, height: 360 },
+  /* the dimple's discs are 8 pixels in radius at 320 by 180, each edge a pixel wide */
+  dimple: SIZE,
   /* the field effects' at 320 by 180, where their levels lie a pixel apart or more (kit-check's crowding): the
      sandstone draws no line */
   ...kitRecord(() => SIZE)
@@ -80,6 +83,22 @@ const looksOf = (kind: EffectKind): readonly FxLook[] => {
 };
 /** Shares of the loop a frame is drawn at; swept, every twelfth. */
 const TIMES = DEEP ? Array.from({ length: 12 }, (_, i) => i / 12) : [0, 0.37, 0.71];
+/** Where the pointer is in the box, 0 to 1 each way, for an effect the pointer moves (EFFECT_KINDS' motion): nowhere,
+    its rest, then about the box; swept, by its middle (the designed look's rest is the middle itself), an edge and a
+    corner besides. */
+const POINTERS: readonly FxPointer[] = [
+  null,
+  [0.12, 0.2],
+  [0.9, 0.66],
+  ...(DEEP
+    ? ([
+        [0.5, 0.37],
+        [0.31, 0.77],
+        [0, 0.5],
+        [1, 1]
+      ] as const)
+    : [])
+];
 /** How far resvg's drawing of a frame's SVG may lie from the CPU's frame: a mean OKLab difference, and the 99th
     percentile of 3 by 3 neighbourhoods', in hundredths; and the share of neighbourhoods past 10 hundredths. Measured
     5 Nov 2026: the silk, the rosette and the papercut lie within a mean of 0.37, a p99 of 2.0 and none far; the
@@ -132,6 +151,14 @@ beforeAll(resvgReady);
 
 describe.each(EFFECTS)("the %s", kind => {
   const facts = EFFECT_KINDS[kind];
+
+  it("has no clip, no moving SVG and no Figma timeline where nothing in it moves by itself", () => {
+    /* an effect the pointer moves has no loop for a clip, an SVG's animation or Figma's timeline to play */
+    if (facts.motion !== "pointer") return;
+    expect(facts.video).toBe(false);
+    expect(facts.svgMotion).toBeNull();
+    expect(facts.figma).toBeNull();
+  });
 
   it("says why wherever it hands over less, and nowhere else", () => {
     for (const [form, short] of Object.entries(SHORTFALLS) as [
@@ -186,43 +213,87 @@ describe.each(EFFECTS)("the %s", kind => {
 
   if (!facts.frameSvg) return;
 
-  it.each(looksOf(kind))(
-    "is any frame as an SVG of its own, as the CPU draws it (angle $angle, shape $shape, steps $steps)",
-    async look => {
-      const loop = fxLoop(vector, P, look);
-      const seen: string[] = [];
-      for (const share of TIMES) {
-        const t = share * loop;
-        const svg = fxFrameSvg(vector, P, look, size, t);
-        seen.push(svg);
-        expect(svg).not.toMatch(/<script|<foreignObject|href="(?!#|data:)|@keyframes|<animate/);
-        const drawn = rasterize(svg, size.width);
-        const cpu = (
-          await effectDrawn(P, effectOf(kind, look.shape, look.steps), look.angle, size, false, t)
-        ).pixels;
-        const diff = frameDiff(drawn, cpu, size.width, size.height);
-        expect(diff, `${kind} at ${t.toFixed(1)} s`).toSatisfy(within);
-        /* and the limit tells frames apart: the CPU's frame a moment later is not this SVG */
-        const later = (
-          await effectDrawn(
-            P,
-            effectOf(kind, look.shape, look.steps),
-            look.angle,
-            size,
-            false,
-            t + 0.13 * loop
-          )
-        ).pixels;
-        expect(frameDiff(drawn, later, size.width, size.height), "a frame later").not.toSatisfy(
-          within
-        );
+  /* one the pointer moves has no loop: its picture is drawn with the pointer anywhere, and is the same at any time */
+  if (facts.motion === "pointer")
+    it.each(looksOf(kind))(
+      "is its picture with the pointer anywhere as an SVG of its own, as the CPU draws it, and the same at any time (angle $angle, shape $shape)",
+      async look => {
+        const effect = effectOf(kind, look.shape, look.steps);
+        const seen: string[] = [];
+        for (const at of POINTERS) {
+          const svg = fxFrameSvg(vector, P, look, size, 0, at);
+          seen.push(svg);
+          expect(svg).not.toMatch(/<script|<foreignObject|href="(?!#|data:)|@keyframes|<animate/);
+          const drawn = rasterize(svg, size.width);
+          const cpu = (await effectDrawn(P, effect, look.angle, size, false, 0, at)).pixels;
+          const where = at ? at.join(", ") : "its rest";
+          expect(frameDiff(drawn, cpu, size.width, size.height), `${kind} at ${where}`).toSatisfy(
+            within
+          );
+          /* and the limit tells places apart: the CPU's picture with the pointer elsewhere is not this SVG */
+          const elsewhere: FxPointer = at
+            ? [at[0] < 0.5 ? at[0] + 0.15 : at[0] - 0.15, at[1]]
+            : [0.15, 0.85];
+          const other = (await effectDrawn(P, effect, look.angle, size, false, 0, elsewhere))
+            .pixels;
+          expect(
+            frameDiff(drawn, other, size.width, size.height),
+            `${kind} at ${where}, the pointer elsewhere`
+          ).not.toSatisfy(within);
+        }
+        /* it follows the pointer: no two places are the one picture */
+        expect(new Set(seen).size).toBe(seen.length);
+        /* and nothing in it moves by itself: at any time it is the picture at its rest, to the byte */
+        const loop = fxLoop(vector, P, look);
+        const first = (await effectDrawn(P, effect, look.angle, size)).pixels;
+        for (const share of TIMES) {
+          expect(fxFrameSvg(vector, P, look, size, share * loop)).toBe(seen[0]);
+          const then = (await effectDrawn(P, effect, look.angle, size, false, share * loop)).pixels;
+          expect(
+            Buffer.compare(Buffer.from(then), Buffer.from(first)),
+            `at ${share} of a loop`
+          ).toBe(0);
+        }
       }
-      /* it moves: no two of its frames are the one picture */
-      expect(new Set(seen).size).toBe(seen.length);
-      /* and the same time writes the same SVG */
-      expect(fxFrameSvg(vector, P, look, size, TIMES[1] * loop)).toBe(seen[1]);
-    }
-  );
+    );
+  else
+    it.each(looksOf(kind))(
+      "is any frame as an SVG of its own, as the CPU draws it (angle $angle, shape $shape, steps $steps)",
+      async look => {
+        const loop = fxLoop(vector, P, look);
+        const seen: string[] = [];
+        for (const share of TIMES) {
+          const t = share * loop;
+          const svg = fxFrameSvg(vector, P, look, size, t);
+          seen.push(svg);
+          expect(svg).not.toMatch(/<script|<foreignObject|href="(?!#|data:)|@keyframes|<animate/);
+          const drawn = rasterize(svg, size.width);
+          const cpu = (
+            await effectDrawn(P, effectOf(kind, look.shape, look.steps), look.angle, size, false, t)
+          ).pixels;
+          const diff = frameDiff(drawn, cpu, size.width, size.height);
+          expect(diff, `${kind} at ${t.toFixed(1)} s`).toSatisfy(within);
+          /* and the limit tells frames apart: the CPU's frame a moment later is not this SVG */
+          const later = (
+            await effectDrawn(
+              P,
+              effectOf(kind, look.shape, look.steps),
+              look.angle,
+              size,
+              false,
+              t + 0.13 * loop
+            )
+          ).pixels;
+          expect(frameDiff(drawn, later, size.width, size.height), "a frame later").not.toSatisfy(
+            within
+          );
+        }
+        /* it moves: no two of its frames are the one picture */
+        expect(new Set(seen).size).toBe(seen.length);
+        /* and the same time writes the same SVG */
+        expect(fxFrameSvg(vector, P, look, size, TIMES[1] * loop)).toBe(seen[1]);
+      }
+    );
 
   /* a ground it takes, as its address names one: any frame's SVG lays it as the CPU does, over any page */
   if (facts.ground === "designed")
