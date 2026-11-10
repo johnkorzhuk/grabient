@@ -12,7 +12,8 @@ import { DATASETS } from "./usage.ts";
    campaign's link, a page loaded within the site or in a partner's frame, or something used or searched, and the
    lists by page, language, country, device, browser, system and landing are theirs. Google Analytics instead receives
    every visitor whose browser ran a page (visits.ts `checkedSession`, counted as the `ga4` event), a landing from
-   nowhere too. The rest are unconfirmed: every page a landing from nowhere with nothing after it, which programs passing
+   nowhere too, though one on the gallery's pages only over HTTP/3 or once its visitor used a palette or searched
+   (`goesOnceRan`, `overQuic`). The rest are unconfirmed: every page a landing from nowhere with nothing after it, which programs passing
    for browsers make by the thousand and a reader who only glances makes too. People are counted by their visitor's code, which is a day's alone: a reader on two days
    is two visitor-days, so a week's or a month's visitors are fewer than its visitor-days. A page in a partner's frame
    is a page the person saw. The window is whole UTC days, today's so far the last of them and marked partial. Each
@@ -43,7 +44,8 @@ export interface Day {
   partial?: true;
   /** visitors by their code, past the checks of what a request says, its network and its browser's version */
   visitors: number;
-  /** of them, those whose day showed a person; Google Analytics receives every visitor whose browser ran a page */
+  /** of them, those whose day showed a person; Google Analytics receives every visitor whose browser ran a page, a
+      landing from nowhere on the gallery's pages only over HTTP/3 or with a palette used or a search made after it */
   people: number;
   /** the rest: a landing from nowhere and nothing after it */
   unconfirmed: number;

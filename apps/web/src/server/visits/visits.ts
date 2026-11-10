@@ -242,6 +242,24 @@ export function pageVisit(
 export const showsPerson = (visit: Visit): boolean =>
   visit.what !== "landing" || !!(visit.referrer || visit.source || visit.medium || visit.campaign);
 
+/** The gallery's own pages, which a program walks from link to link: its lists and their searches, a palette's page
+    and a collection's. */
+const GALLERY = new Set(["search", "palettes", "rising", "collections", "collection", "palette"]);
+
+/** Whether a page's visit is a person's once its browser has run the page (`checkedSession`). A landing from nowhere
+    on one of the gallery's pages is not: a program that drives a browser loads those by their addresses and runs each
+    one, so it waits for more (`overQuic`, or a palette used or a search made on the page, which take a press or a key:
+    features/palette-use/use.ts, features/search/count.ts). The home page and the pages named by their first segment,
+    where people type, bookmark and follow an app's link to, go once run. */
+export const goesOnceRan = (visit: Visit): boolean =>
+  showsPerson(visit) || !GALLERY.has(visit.page);
+
+/** Whether a request came over HTTP/3, on a connection of the browser's own: the home connections a program borrows
+    to pass for people are proxies, which carry no QUIC. Of the 3,068 session checks the program's browsers made on
+    10 Nov 2026, 3 came over HTTP/3, people's each, where 55 to 78 in 100 of people's did that week. */
+export const overQuic = (request: Request): boolean =>
+  (request as { cf?: { httpProtocol?: unknown } }).cf?.httpProtocol === "HTTP/3";
+
 /** A palette used, a collection's page used once the reader is present (features/palette-use/use.ts), or a search
     made, as a visit to the page it was made on, or null for a program's. */
 export function actVisit(request: Request, what: "use" | "search"): Visit | null {
@@ -345,7 +363,8 @@ export async function countVisit(
      is, nothing is sent, as programs on old versions would pass for people), and a browser that ran the page (below).
      A landing from nowhere (typed, bookmarked, an app's link) goes too once its page has run: until 24 Oct 2026 it
      never went, as the scrapers' visits were all such landings, and Google Analytics left out every person who came
-     straight to the site */
+     straight to the site. On one of the gallery's pages it waits for more, unless it came over HTTP/3
+     (`goesOnceRan`, `overQuic`) */
   if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_API_SECRET) return;
   const lead = env.CACHE ? await dayLead(env.CACHE).catch(() => null) : null;
   if (!lead || tooOld(browser, lead)) return;
@@ -370,10 +389,10 @@ export async function countVisit(
   };
   const origin = new URL(request.url).origin;
   if (visit.what === "use" || visit.what === "search") {
-    // the page's own script made it: its browser ran the page, whose waiting visit goes first
-    if (headers.get("Sec-Fetch-Site") === "same-origin") await ranPage(env, origin, visitor);
+    // the page's own script made it at its reader's press: the page that waited for either goes first
+    if (headers.get("Sec-Fetch-Site") === "same-origin") await ranPage(env, origin, visitor, true);
     await sendHit(env, hit, now);
-  } else await sendOnceRan(env, origin, hit, now);
+  } else await sendOnceRan(env, origin, hit, now, !goesOnceRan(visit) && !overQuic(request));
 }
 
 /** Europe beyond the EU, whose visits go to Google's European endpoint too. */
@@ -389,9 +408,22 @@ const EUROPE = new Set(["GB", "CH", "NO", "IS", "LI"]);
    On 24 Oct 2026 a scraper on current Chrome versions, from home connections in Brazil, Bangladesh, Iraq and Türkiye,
    sent about 33,000 page loads in two hours with every header a person's click sends (a Referer on the site,
    Sec-Fetch-Site same-origin, Sec-Fetch-User), each from a new address, and made 94 session checks; people's browsers
-   made one for about every other page. Google Analytics counted each of its loads as a new person. */
+   made one for about every other page. Google Analytics counted each of its loads as a new person.
+
+   A landing from nowhere on one of the gallery's pages waits for more than its page's check (`goesOnceRan`), unless
+   it came over HTTP/3 (`overQuic`): for the check itself to come over HTTP/3, or for its visitor to use a palette or
+   search. Either is kept with the visitor as the check is, and sends its later pages at once. On 9 and 10 Nov 2026 a
+   program driving Chrome 154 through home connections, 677 networks in 103 countries and one page from each, loaded
+   searches and palettes by their addresses and ran every one, about 200 an hour, and nothing in its headers told it
+   from a person's Chrome: of its 2,099 visitors Google Analytics counted, one used a palette, and every page and
+   check of its own came over HTTP/2. In the week before, 95 of Google Analytics' 3,809 visitors were such a landing
+   with nothing after it; those of them on HTTP/2 throughout are left out with it. */
 const WAITS_SECONDS = 600;
 const RAN_SECONDS = 1800;
+/** What is kept of a visitor whose browser ran a page, and of one that showed more than a program's does: a check
+    over HTTP/3, a palette used or a search made. */
+const RAN = "1";
+const MORE = "2";
 
 const visitCache = () => (globalThis as { caches?: { default?: Cache } }).caches?.default;
 const waitingKey = (origin: string, visitor: string) =>
@@ -411,44 +443,74 @@ async function sendHit(env: Sends, hit: Ga4Hit, at: number): Promise<void> {
     countUsageUnder(env, hit.visitor, "ga4", hit.what, hit.country, hit.browser, hit.network ?? "");
 }
 
-/** A page's hit: sent when its visitor's browser has run a page, else kept until it does. */
-async function sendOnceRan(env: Sends, origin: string, hit: Ga4Hit, now: number): Promise<void> {
+/** What this data center keeps of a visitor: whether it showed more than its browser running a page, where it ran
+    one, or null where it keeps nothing. */
+async function moreOf(cache: Cache, origin: string, visitor: string): Promise<boolean | null> {
+  const ran = await cache.match(ranKey(origin, visitor));
+  return ran ? (await ran.text()) === MORE : null;
+}
+
+/** A page's hit: sent when its visitor's browser has run a page, or, where it `needsMore`, when its visitor has shown
+    more, else kept until then. */
+async function sendOnceRan(
+  env: Sends,
+  origin: string,
+  hit: Ga4Hit,
+  now: number,
+  needsMore: boolean
+): Promise<void> {
   const cache = visitCache();
   if (!cache) return;
   try {
-    if (await cache.match(ranKey(origin, hit.visitor))) {
+    const more = await moreOf(cache, origin, hit.visitor);
+    if (needsMore ? more : more !== null) {
       await sendHit(env, hit, now);
       return;
     }
     await cache.put(
       waitingKey(origin, hit.visitor),
-      kept(JSON.stringify({ hit, at: now }), WAITS_SECONDS)
+      kept(JSON.stringify({ hit, at: now, needsMore }), WAITS_SECONDS)
     );
-    // the page's check may have come between the two
-    if (await cache.match(ranKey(origin, hit.visitor)))
-      await release(env, cache, origin, hit.visitor);
+    // the page's check, or its reader's press, may have come between the two
+    const since = await moreOf(cache, origin, hit.visitor);
+    if (since !== null) await release(env, cache, origin, hit.visitor, since);
   } catch {
     // not sent: a cache that cannot be read or written leaves the visit in the counts here alone
   }
 }
 
-/** The visitor's browser ran a page: taken as one for half an hour, and its waiting page goes on. */
-async function ranPage(env: Sends, origin: string, visitor: string): Promise<void> {
+/** The visitor's browser ran a page, and showed `more` where its check came over HTTP/3 or its reader used a palette
+    or searched: taken as one for half an hour, and its waiting page goes on. A visitor that showed more stays one
+    through the page's later checks. */
+async function ranPage(env: Sends, origin: string, visitor: string, more: boolean): Promise<void> {
   const cache = visitCache();
   if (!cache) return;
   try {
-    await cache.put(ranKey(origin, visitor), kept("1", RAN_SECONDS));
-    await release(env, cache, origin, visitor);
+    const stands = more || (await moreOf(cache, origin, visitor)) === true;
+    await cache.put(ranKey(origin, visitor), kept(stands ? MORE : RAN, RAN_SECONDS));
+    await release(env, cache, origin, visitor, stands);
   } catch {
     // nothing sent
   }
 }
 
-/** The visitor's waiting page, sent once: only the call that deletes it sends it. */
-async function release(env: Sends, cache: Cache, origin: string, visitor: string): Promise<void> {
+/** The visitor's waiting page, sent once: only the call that deletes it sends it. One that waits for more stays
+    through a check that shows none. */
+async function release(
+  env: Sends,
+  cache: Cache,
+  origin: string,
+  visitor: string,
+  more: boolean
+): Promise<void> {
   const waiting = await cache.match(waitingKey(origin, visitor));
-  if (!waiting || !(await cache.delete(waitingKey(origin, visitor)))) return;
-  const { hit, at } = (await waiting.json()) as { hit: Ga4Hit; at: number };
+  if (!waiting) return;
+  const { hit, at, needsMore } = (await waiting.json()) as {
+    hit: Ga4Hit;
+    at: number;
+    needsMore?: boolean;
+  };
+  if ((needsMore && !more) || !(await cache.delete(waitingKey(origin, visitor)))) return;
   await sendHit(env, hit, at);
 }
 
@@ -468,7 +530,7 @@ export async function checkedSession(
     const key = await dayKey(env.CACHE, dayOf(now));
     if (!key) return;
     const visitor = await visitorOf(key, address, headers.get("User-Agent") ?? "");
-    await ranPage(env, new URL(request.url).origin, visitor);
+    await ranPage(env, new URL(request.url).origin, visitor, overQuic(request));
   } catch {
     // nothing sent
   }
