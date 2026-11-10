@@ -7,6 +7,7 @@ import {
   checkedSession,
   countVisit,
   deviceOf,
+  goesOnceRan,
   pageKind,
   pageVisit,
   showsPerson,
@@ -535,6 +536,93 @@ describe("a visit sent on to Google Analytics", () => {
     // the site's own counts still tell people by what a visit shows (mcp/admin/visits.ts)
     expect(showsPerson(nowhere)).toBe(false);
     expect(showsPerson({ ...nowhere, referrer: "news.ycombinator.com" })).toBe(true);
+  });
+  test("a landing from nowhere on one of the gallery's pages waits for HTTP/3, a palette used or a search: a program that runs the pages it loads through borrowed connections goes nowhere", async () => {
+    stubFetch();
+    stubCache();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    const names = () => sent.map(hit => (hit.body.events as { name: string }[]).at(-1)?.name);
+    const search = { what: "landing", page: "search", language: "en", path: "/palettes" } as const;
+    const palette = { ...search, page: "palette", path: "/kQAAAAAAA_4" } as const;
+    // as on 10 Nov 2026: a search or a palette loaded by its address through each home connection, over HTTP/2, and
+    // each one run
+    for (const [address, page] of [
+      ["198.51.100.1", search],
+      ["198.51.100.2", palette],
+      ["198.51.100.3", { ...search, page: "collection", path: "/blue-sky" }],
+      ["198.51.100.4", { ...search, page: "rising", path: "/palettes/rising" }]
+    ] as const) {
+      await countVisit(env as never, from(address), page, NOON);
+      await checkedSession(env as never, checking(address), NOON + 1_500);
+    }
+    expect(named(USAGE.points, "visit")).toHaveLength(4);
+    expect(sent).toEqual([]);
+    // a browser's own connection carries HTTP/3, which a borrowed one cannot: the same landing over it goes once its
+    // page has run, and one whose page's check comes over it goes then, with that visitor's next page
+    const quic = <T extends Request>(request: T) =>
+      Object.assign(request, { cf: { country: "US", asn: 7922, httpProtocol: "HTTP/3" } });
+    await countVisit(env as never, quic(from("203.0.113.40")), search, NOON);
+    expect(sent).toEqual([]);
+    await checkedSession(env as never, checking("203.0.113.40"), NOON + 1_000);
+    expect(sent).toHaveLength(1);
+    await countVisit(env as never, from("203.0.113.41"), palette, NOON);
+    await checkedSession(env as never, quic(checking("203.0.113.41")), NOON + 1_000);
+    expect(sent).toHaveLength(2);
+    await countVisit(env as never, from("203.0.113.41"), search, NOON + 60_000);
+    expect(names()).toEqual(["page_view", "page_view", "page_view"]);
+    sent.length = 0;
+    // a reader who came as the program did, over HTTP/2, and takes a palette: the page goes first, at its own time
+    await countVisit(env as never, from("203.0.113.9"), palette, NOON);
+    await checkedSession(env as never, checking("203.0.113.9"), NOON + 1_500);
+    expect(sent).toEqual([]);
+    const fetched = {
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Site": "same-origin"
+    };
+    const use = { what: "use", page: "palette", language: "en", path: "/kQAAAAAAA_4" } as const;
+    await countVisit(env as never, from("203.0.113.9", fetched), use, NOON + 90_000);
+    expect(names()).toEqual(["page_view", "use_palette"]);
+    expect(sent[0]!.body.timestamp_micros).toBe(NOON * 1000);
+    // from then on the reader's pages go at once, through the next page's own check too
+    await checkedSession(env as never, checking("203.0.113.9"), NOON + 120_000);
+    await countVisit(env as never, from("203.0.113.9"), search, NOON + 150_000);
+    expect(names()).toEqual(["page_view", "use_palette", "page_view"]);
+    // a browser that only ran a page, the home page's here, is no reader of the gallery's yet
+    const home = { what: "landing", page: "home", language: "en", path: "/" } as const;
+    await countVisit(env as never, from("203.0.113.20"), home, NOON);
+    await checkedSession(env as never, checking("203.0.113.20"), NOON + 1_000);
+    await countVisit(env as never, from("203.0.113.20"), search, NOON + 60_000);
+    await checkedSession(env as never, checking("203.0.113.20"), NOON + 61_000);
+    expect(sent).toHaveLength(4);
+    // a search made there says as much as a palette used
+    const made = { what: "search", page: "search", language: "en", path: "/palettes" } as const;
+    await countVisit(env as never, from("203.0.113.20", fetched), made, NOON + 70_000);
+    expect(names().slice(4)).toEqual(["page_view", "search"]);
+    // only a landing from nowhere on the gallery's pages waits so
+    const brought = [
+      { ...search, referrer: "www.google.com" },
+      { ...palette, source: "chatgpt.com" },
+      { ...search, what: "load" },
+      { ...palette, what: "framed" },
+      { ...search, page: "about", path: "/about" }
+    ] as const;
+    for (const visit of brought) expect(goesOnceRan(visit)).toBe(true);
+    for (const page of ["search", "palettes", "rising", "collections", "collection", "palette"])
+      expect(goesOnceRan({ what: "landing", page, language: "en" })).toBe(false);
+    await countVisit(env as never, from("203.0.113.30"), brought[0], NOON);
+    await checkedSession(env as never, checking("203.0.113.30"), NOON + 1_000);
+    expect(sent).toHaveLength(7);
   });
   test("sends nothing while Chrome's stable version is unknown, as programs on old versions would pass", async () => {
     stubFetch();
