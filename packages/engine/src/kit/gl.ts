@@ -22,21 +22,23 @@
    The pass rounds its own bytes as render.ts does (kitByte, KIT_BYTES_GLSL), never leaving it to the target's
    conversion, which breaks a half its own way: left to it, the RTX put 22% of the demo's pixels a level off the CPU's.
    A tie goes up by KIT_TIE, as every format's does: where a sheet's color lands on a stop's midpoint, float32 and the
-   CPU's doubles broke the half opposite ways, the zen garden's 8,799 pixels of 230,400 a level off on the RTX at 640
-   by 360 (palette kQ9hLj-wW4g, t 0, as its file stood at 03:16 on 8 Nov 2026, its kernel's cost 158); with the tie, 13
-   (21 at t 23.7), and the demo and its variants (shader.test.ts RECIPES) 6 to 33 of 57,600 at 320 by 180, a stack
-   whose every sheet lies on a stop's midpoint 5, each a level.
+   CPU's doubles broke the half opposite ways, 8,799 pixels of 230,400 a level off on the RTX at 640 by 360 in the zen
+   garden, a field effect the site played from 8 to 10 Nov 2026 (palette kQ9hLj-wW4g, t 0, as its file stood at 03:16
+   on 8 Nov 2026, its kernel's cost 158); with the tie, 13 (21 at t 23.7), and the demo and its variants
+   (shader.test.ts RECIPES) 6 to 33 of 57,600 at 320 by 180, a stack whose every sheet lies on a stop's midpoint 5,
+   each a level.
 
    Measured 8 Nov 2026 on the RTX 2080 Ti with no browser (a headless Chromium reaches only SwiftShader or llvmpipe):
    EGL surfaceless on Mesa's d3d12 driver, a GLES 3.1 context running the player's shaders with the player's
    uniforms, R draws then glFinish: the demo 0.48 ms a 3840 by 2160 frame, 0.15 at 1920 by 1080, with a soft shadow
    of three layers 0.50; the strings' pass by the same harness 0.44 (0.46 in Chrome, the skill's). The tints cost
-   nothing the RTX shows, within its rounds' spread (200 draws a round, six rounds, twelve for zen): the soft demo
-   tinted 0.46 to 0.50 ms, in ink 0.47 to 0.50; the zen garden as promoted (its kernel's cost 160, the same day, the
-   demo 0.46 to 0.72 in those runs) 0.75 to 1.07, with its tints swapped for the ink and white 0.87 to 1.04, and 0.85
-   to 1.08 in three later runs of twelve rounds (the demo 0.45 to 0.71 in them); the sandstone, plain sheets with
-   neither shadow nor rim and its steps' levels read from uLevels, 0.35 to 0.56 in three runs of twelve rounds the
-   same day (the demo 0.45 to 0.63 and the zen garden 0.74 to 1.09 in them). */
+   nothing the RTX shows, within its rounds' spread (200 draws a round, six rounds, twelve for the zen garden): the
+   soft demo tinted 0.46 to 0.50 ms, in ink 0.47 to 0.50; the zen garden as the site played it, a kernel at the kit's
+   budget of 160 under tinted shadows and rims (the same day, the demo 0.46 to 0.72 in those runs), 0.75 to 1.07, with
+   its tints swapped for the ink and white 0.87 to 1.04, and 0.85 to 1.08 in three later runs of twelve rounds (the
+   demo 0.45 to 0.71 in them); the sandstone, plain sheets with neither shadow nor rim and its steps' levels read from
+   uLevels, 0.35 to 0.56 in three runs of twelve rounds the same day (the demo 0.45 to 0.63 and the zen garden 0.74 to
+   1.09 in them). */
 import { KIT_EDGE, KIT_STOPS, KIT_TIE, type KitScene, kitFrameAt } from "./scene.ts";
 import { KIT_SHADOW_STEPS, KIT_SHADOWS, kitShadowSteps } from "./shade.ts";
 import { type ColorMap, type FieldEffect, kitFrameSize } from "./types.ts";

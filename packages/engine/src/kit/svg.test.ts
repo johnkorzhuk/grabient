@@ -67,18 +67,18 @@ const stripes: FieldEffect = {
   }
 };
 
-/** The demo in a tinted light, as the zen garden is lit: each sheet's soft shadow (three layers, as the stripes') the
-    sheet below it darkened to 0.35 of its color, the first sheet's the ground's, and each rim the sheet's own color
-    lifted 0.55 of the way to white, so every sheet's shadow and rim is a color of its own (shade.ts kitShadowColor,
-    kitRimColor); neither number is shade.ts's default (0.55 and 0.4), so a drawing that dropped one would draw other
-    colors. Measured 8 Nov 2026 against the CPU's frames at 320 by 180 and 640 by
-    360, two looks and three times: within a mean of 0.08, a p99 of 0.6 and none far. Its shadows and rims are thin, so
-    its frames keep within those limits in the ink and white too (a mean of 0.11 and a p99 of 1.2 from the tinted CPU's
-    at most, the same day): the test that reads each layer's fill holds the tints, not these. The zen garden's frames,
-    drawn by the SVG in the ink and white as it drew them before it took the tints, lie a mean of 1.3 to 2.5, a p99 of
-    8.9 to 10.7 and 0.6 to 1.5% far from its CPU's at the suite's size, looks and times; as promoted (8 Nov 2026, its
-    shadows' tint the sheet below's at a depth of 0.55, its rims' lift 0.5) within 0.24, 0.8 and none far there (a p99
-    of 0.9 at most over the suite's deep sweep). */
+/** The demo in a tinted light: each sheet's soft shadow (three layers, as the stripes') the sheet below it darkened to
+    0.35 of its color, the first sheet's the ground's, and each rim the sheet's own color lifted 0.55 of the way to
+    white, so every sheet's shadow and rim is a color of its own (shade.ts kitShadowColor, kitRimColor); neither number
+    is shade.ts's default (0.55 and 0.4), so a drawing that dropped one would draw other colors. Measured 8 Nov 2026
+    against the CPU's frames at 320 by 180 and 640 by 360, two looks and three times: within a mean of 0.08, a p99 of
+    0.6 and none far. Its shadows and rims are thin, so its frames keep within those limits in the ink and white too
+    (a mean of 0.11 and a p99 of 1.2 from the tinted CPU's at most, the same day): the test that reads each layer's
+    fill holds the tints, not these. Broad tinted shadows and rims would not: the frames of the zen garden, a field
+    effect the site played from 8 to 10 Nov 2026 so lit (its shadows' tint the sheet below's at a depth of 0.55, its
+    rims' lift 0.5), drawn by the SVG in the ink and white as it drew them before it took the tints, lay a mean of 1.3
+    to 2.5, a p99 of 8.9 to 10.7 and 0.6 to 1.5% far from its CPU's at the suite's size, looks and times, and with the
+    tints within 0.24, 0.8 and none far there (a p99 of 0.9 at most over the suite's deep sweep). */
 const tinted: FieldEffect = {
   ...demo,
   kind: "tinted",

@@ -5,6 +5,5 @@ import type { KitKind } from "../kinds.ts";
 import type { KitSteps } from "../types.ts";
 
 export const KIT_STEPS: Readonly<Record<KitKind, KitSteps | null>> = {
-  zen: null,
   strata: { least: 8, most: 40, designed: 28 }
 };

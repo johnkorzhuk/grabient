@@ -57,16 +57,12 @@ type ShaderPart = "webgl" | "webgpu";
 type EffectShaders = { passes: () => string } & Partial<
   Record<ShaderPart, () => Promise<ShaderWriter>>
 >;
-/* a field effect's passes, said from its recipe (kit/types.ts): its sheets and lines (the zen garden's sheets and its
-   stones' band), or its sheets alone with neither shadow nor rim (the sandstone's plain bands, 8 Nov 2026). A recipe
-   neither says, lines alone or sheets alone with a shadow or a rim, takes a note of its own here: code.test.ts holds
-   every field effect's recipe to its note and names one it says wrong */
-const kitPasses = (kind: KitKind): string =>
-  t(
-    kitEffect(kind).lines
-      ? msg("The field at each pixel, then its sheets and lines in turn, in one pass.")
-      : msg("The field at each pixel, then its plain sheets edge to edge, in one pass.")
-  );
+/* a field effect's passes, said from its recipe (kit/types.ts): its sheets alone with neither shadow nor rim (the
+   sandstone's plain bands, 8 Nov 2026), the one recipe the site's field effects have. A recipe it does not say, one
+   with lines, a shadow or a rim, takes a note of its own here, chosen by the recipe: code.test.ts holds every field
+   effect's recipe to its note and names one it says wrong */
+const kitPasses = (): string =>
+  t("The field at each pixel, then its plain sheets edge to edge, in one pass.");
 /* a field effect's kernel, its module asked for with its writer */
 const kernelOf = (kind: KitKind) =>
   import("@grabient/engine/kit/kernels.ts").then(m => m.kitKernel(kind));
@@ -216,7 +212,7 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
   },
   ...kitRecord(
     (kind): EffectShaders => ({
-      passes: () => kitPasses(kind),
+      passes: kitPasses,
       webgl: () => kitWriter(kind, "webgl"),
       webgpu: () => kitWriter(kind, "webgpu")
     })

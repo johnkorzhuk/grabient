@@ -229,13 +229,13 @@ test("every vector effect's Shader tab write each spelling with the engine's own
     papercut: "The relief, then each sheet's shadows, lit cut and face, pass by pass.",
     strings:
       "The stirred field at each pixel, its two nearest threads over the ground, in one pass.",
-    /* a field effect's by its recipe, each note true of it: the zen garden's sheets and its stones' band, and the
-       sandstone's plain sheets, with neither shadow nor rim. A recipe neither note says, lines alone or sheets alone
-       with a shadow or a rim, fails here until effect-sources.ts kitPasses gives it a note of its own */
+    /* a field effect's by its recipe, the note true of it: the sandstone's plain sheets, with neither shadow nor
+       rim. A recipe the note does not say, one with lines or with a shadow or a rim on its sheets, fails here until
+       effect-sources.ts kitPasses gives it a note of its own */
     ...kitRecord(kind => {
       const { sheets, lines } = kitEffect(kind);
       expect(sheets, `the ${kind}'s lines alone need a note of their own`).toBeTruthy();
-      if (lines) return "The field at each pixel, then its sheets and lines in turn, in one pass.";
+      expect(lines, `the ${kind}'s sheets and lines need a note of their own`).toBeNull();
       expect(
         !sheets?.shadow && !sheets?.rim,
         `the ${kind}'s sheets with a shadow or a rim need a note of their own`

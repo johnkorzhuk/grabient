@@ -36,10 +36,11 @@ export async function effectDrawn(
   t = 0
 ): Promise<EffectDrawn> {
   /* the vector effects by their CPU drawings: about 0.1 s for a card, 0.35 s for the largest picture (the strings'
-     about four times that). A field effect's card, coded, takes 0.21 to 0.46 s, 0.36 to 0.65 s soft and grained, in
-     an isolate that has written each one's still first, as one serving their pages has (kit/render.ts, 8 Nov 2026: the
-     sandstone's the least, the zen garden's the most); its picture is drawn within a card's pixels (apps/web
-     lib/picture-size.ts KIT_PICTURE_BOUNDS), where four cards' took the zen garden 1.8 to 2.4 s */
+     about four times that). A field effect's card, coded, takes 0.21 s, 0.36 to 0.37 s soft and grained, in an
+     isolate that has written its still first, as one serving its pages has (kit/render.ts, 8 Nov 2026: the
+     sandstone's, its kernel read once a pixel; a kernel at the kit's budget read three times a pixel, as the zen
+     garden's was while the site played it, 0.44 to 0.46 s and up to 0.65); its picture is drawn within a card's
+     pixels (apps/web lib/picture-size.ts KIT_PICTURE_BOUNDS), where four cards' took that kernel 1.8 to 2.4 s */
   if (isVectorKind(effect.kind)) {
     const look = fxLookOf(effect.look, angle);
     if (isKitKind(effect.kind)) {

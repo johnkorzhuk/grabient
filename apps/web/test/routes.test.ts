@@ -96,6 +96,24 @@ test("a script names an effect: a seed alone, or an old id, is no script", async
     ]);
 });
 
+/* The zen garden (style=zen) was a field effect on staging from 8 to 10 Nov 2026. A file whose address still names it
+   is answered as with any style that names neither a gradient nor an effect: the palette's own file, and no script
+   and no clip, which only an effect has. */
+test.each([
+  ["/kS7Q8Yy5S_SChv0.png?style=zen&shape=7", "/{$seed}.png/", "image/png", 200],
+  ["/kS7Q8Yy5S_SChv0.svg?style=zen&speed=2", "/{$seed}.svg/", "image/svg+xml; charset=utf-8", 200],
+  ["/kS7Q8Yy5S_SChv0.css?style=zen&grain=20", "/{$seed}.css/", "text/css; charset=utf-8", 200],
+  ["/kS7Q8Yy5S_SChv0.json?style=zen", "/{$name}.json/", "application/json", 200],
+  ["/kS7Q8Yy5S_SChv0.md?style=zen", "/{$name}.md/", "text/markdown; charset=utf-8", 200],
+  ["/kS7Q8Yy5S_SChv0.js?style=zen", "/{$seed}.js/", "application/json", 404],
+  ["/kS7Q8Yy5S_SChv0.mp4?style=zen", "/{$seed}.mp4/", "text/plain; charset=utf-8", 404]
+])(
+  "%s, naming an effect the site plays no more, reaches %s as %s, %i",
+  async (address, route, type, status) => {
+    expect(await reach(address)).toEqual({ route, type, status });
+  }
+);
+
 test("an address without a suffix is still its page's", () => {
   const page = (path: string) => router.getMatchedRoutes(path)[2]?.fullPath;
   expect(page("/kS7Q8Yy5S_SChv0")).toBe("/$id/");

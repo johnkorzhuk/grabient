@@ -50,7 +50,6 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | rosette (an effect) | โรเซตต์ | Petals on a golden spiral, like a dahlia seen from above: the flower-shaped ornament, its loanword spelled as พาเลตต์ is. Judgment: ลายดอกไม้ would read as any floral print, and กุหลาบ as a rose. |
 | papercut (an effect) | กระดาษตัด | The animated style that cuts the palette into sheets of paper stacked in layers, each casting a soft shadow on the one below, named as Thai crafters and designers name the craft (ศิลปะกระดาษตัด). Not ตัดกระดาษ, the act of cutting paper, and not กระดาษฉลุ, paper pierced into a lace pattern. |
 | strings (an effect) | เส้นด้าย | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for thread. Not สาย (musical strings) nor สตริง (strings in code). |
-| zen garden (an effect) | สวนเซน | A raked sand garden seen from above, its grooves ringing a few stones: the name Thai gives the Japanese dry garden. |
 | sandstone (an effect) | หินทราย | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name. Not ทราย (sand) alone. |
 | linear / angular / radial (style names) | เชิงเส้น / เชิงมุม / รัศมี | The usual Thai names for gradient types (เชิงเส้น, รัศมี); เชิงมุม follows Figma's Angular. In a phrase: ไล่เฉดสีเชิงเส้น, ไล่เฉดสีเชิงมุม, ไล่เฉดสีแบบรัศมี. |
 | swatches, bands | แถบสี | A palette drawn as hard bands: แถบสีเชิงเส้น, แถบสีเชิงมุม, แถบสีรัศมี. A single hard band is แถบ. |

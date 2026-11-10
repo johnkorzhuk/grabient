@@ -23,9 +23,13 @@ export interface PictureBounds {
 }
 export const PICTURE_BOUNDS: PictureBounds = { side: SIDE_MAX, pixels: PIXELS_MAX };
 /** A field effect's picture (engine/kit/), within a card's pixels: drawn on the CPU, its kernel read up to five times a
-    pixel (kit/render.ts), at four cards' pixels the zen garden's took 1.8 to 1.9 s here and 2.4 with a soft and a
-    grain, past the Worker's 3 s on Cloudflare's slower machines, up to three times as long, where a card's pixels take
-    it 0.44 to 0.65 s and the sandstone 0.21 to 0.37, coded (8 Nov 2026), which those finish within it. */
+    pixel (kit/render.ts). The costliest the site has played set the bound, the zen garden's while it was an effect (8
+    to 10 Nov 2026), its kernel at the kit's budget and read three times a pixel: at four cards' pixels it took 1.8 to
+    1.9 s here and 2.4 with a soft and a grain, past the Worker's 3 s on Cloudflare's slower machines, up to three
+    times as long, where a card's pixels took it 0.44 to 0.65 s, coded, which those finish within it. The sandstone,
+    whose plain bands read its kernel once a pixel, takes 0.21 to 0.37 s a card, coded (8 Nov 2026), and at four cards'
+    pixels 0.74 to 0.84 s to draw, 1.05 to 1.14 soft and grained, before it is coded (10 Nov 2026): soft and grained,
+    three times as long is past the Worker's 3 s too. */
 export const KIT_PICTURE_BOUNDS: PictureBounds = {
   side: SIDE_MAX,
   pixels: CARD_SIZE.width * CARD_SIZE.height

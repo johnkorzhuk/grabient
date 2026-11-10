@@ -45,7 +45,7 @@ test("a card's strip offers the formats the editor's strips offer, with an effec
     });
   for (const effect of ["glass", "blob", "silk", "rosette"] as const)
     expect(effectCopyFormats(effect)).toEqual(STRIP_EFFECT_COPY);
-  for (const effect of ["papercut", "strings", "zen", "strata"] as const) {
+  for (const effect of ["papercut", "strings", "strata"] as const) {
     expect(effectCopyFormats(effect)).toEqual(STRIP_EFFECT_COPY.filter(f => f !== "figma"));
     expect(effectCopyFormats(effect)).toContain("svg");
   }

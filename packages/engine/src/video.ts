@@ -183,10 +183,10 @@ export const VIDEO_WEIGHT: Record<VideoKind, number> = {
     clip's. A kernel of sines each read in the next (a sine of a sine), which the processor waits on in turn, costs up
     to 0.18 a unit, so up to 1.4 times this weight, within a part's margin for Cloudflare's slower machines
     (PART_WORK). The cost counts a kernel's costliest path, every branch's dearer side, where its pixels take the
-    cheaper too, and its operations by their kind alone: the zen garden's and the sandstone's frames measured 32.5 to
-    40.8 and 17.7 to 21.2 where this gives 73.8 and 28.6, which drew their clips 0.75 and 0.88 times the sides their
-    weights of 41 and 22 give (8 Nov 2026). So a field effect's own measured weight (FieldEffect.clipWeight) stands in
-    for this while its kernel costs what it did. */
+    cheaper too, and its operations by their kind alone: the sandstone's frames measured 17.7 to 21.2 where this gives
+    28.6, which drew its clips 0.88 times the sides its weight of 22 gives, and the zen garden's, while the site
+    played it, 32.5 to 40.8 where this gave 73.8, 0.75 times the sides of its 41 (8 Nov 2026). So a field effect's own
+    measured weight (FieldEffect.clipWeight) stands in for this while its kernel costs what it did. */
 export function kitVideoWeight(def: FieldEffect, cost: number, run: number): number {
   /* measured, for the kernel it was measured on */
   if (def.clipWeight?.cost === cost) return def.clipWeight.weight;
@@ -412,10 +412,10 @@ export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   papercut: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
   strings: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
   /* coded as the glass is (kitVideoDrawer): 5 seconds from the loop's start and from its middle at 640 by 360, 30
-     frames a second and speed 2.45, the designed view of two palettes (test/kit-checks.ts's vivid and dark), the zen
-     garden's broad sheets cost 0.43 to 0.54 Mbit/s, decoded at 42.1 to 43.2 dB of the planes drawn, and the sandstone's
-     plain bands 0.14 to 0.21 at 47.5 to 49.4, where the glass's cost 0.19 to 0.43 at 45.4 to 48.5 and the strings'
-     threads 5.7 to 9.0 at 40.1 to 41.4 (8 Nov 2026) */
+     frames a second and speed 2.45, the designed view of two palettes (test/kit-checks.ts's vivid and dark), the
+     sandstone's plain bands cost 0.14 to 0.21 Mbit/s, decoded at 47.5 to 49.4 dB of the planes drawn, where the glass's
+     cost 0.19 to 0.43 at 45.4 to 48.5 and the strings' threads 5.7 to 9.0 at 40.1 to 41.4; broad sheets with shadows
+     and rims, the zen garden's while the site played it, cost 0.43 to 0.54 at 42.1 to 43.2 (8 Nov 2026) */
   ...kitRecord(() => ({ qp: 24, keyQp: 12, ramp: 20, effort: 9 }))
 };
 
@@ -441,7 +441,7 @@ export const videoQuality = (effect: {
 /** The clips' module by its contents: the first 12 hex digits of video/video.wasm's SHA-256, which a test checks. An
     encoder's state holds pointers into the memory of the module that kept it, which another module lays out elsewhere
     (going on from one traps), so a drawing goes on only from a state the same module kept (video-make.ts). */
-export const VIDEO_MODULE = "c3a763e398e6";
+export const VIDEO_MODULE = "567516f37997";
 
 /** Frame i's quantizer in a clip of n frames. */
 export function videoQp(quality: VideoQuality, i: number, n: number): number {

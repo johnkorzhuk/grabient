@@ -183,8 +183,8 @@ test("an effect's card and picture are kept under its look, apart from the gradi
   expect(written(`/api/og?seed=${seed}&style=glass&shape=12`)?.key).not.toBe(glass?.key);
   expect(written(`/${seed}.png?style=glass`)?.key).not.toBe(written(`/${seed}.png`)?.key);
   // a field effect's picture within a card's pixels at the shape asked, a glass's at the size asked
-  expect(written(`/${seed}.png?style=zen&w=2400&h=1260`)?.key).toBe(
-    `/${seed}.png?angle=90&h=630&style=zen&w=1200`
+  expect(written(`/${seed}.png?style=strata&w=2400&h=1260`)?.key).toBe(
+    `/${seed}.png?angle=90&h=630&style=strata&w=1200`
   );
   expect(written(`/${seed}.png?style=strata&size=1000x1000`)?.key).toBe(
     `/${seed}.png?angle=90&h=869&style=strata&w=869`
@@ -248,13 +248,33 @@ test("the sandstone's files are kept under its steps, which are its look's, and 
   );
   /* the script reads them from its own address: one for every setting */
   expect(written(`/${seed}.js?style=strata&steps=12`)?.key).toBe(`/${seed}.js?style=strata`);
-  /* the zen garden takes none: its files are the same whatever steps an address names */
-  expect(written(`/${seed}.css?style=zen&steps=12`)?.key).toBe(
-    written(`/${seed}.css?style=zen`)?.key
+  /* the papercut takes none: its files are the same whatever steps an address names */
+  expect(written(`/${seed}.css?style=papercut&steps=12`)?.key).toBe(
+    `/${seed}.css?angle=90&style=papercut`
   );
-  expect(written(`/${seed}.png?style=zen&steps=12`)?.key).toBe(
-    written(`/${seed}.png?style=zen`)?.key
+  expect(written(`/${seed}.png?style=papercut&steps=12`)?.key).toBe(
+    written(`/${seed}.png?style=papercut`)?.key
   );
+});
+
+test("a file whose address names an effect the site plays no more is the palette's own, kept as any style that names nothing is", () => {
+  /* the zen garden (style=zen) was a field effect on staging from 8 to 10 Nov 2026: its files then are the
+     gradient's now, under the gradient's keys, whatever look the address goes on to say */
+  const seed = "kS7Q8Yy5S_SChv0";
+  for (const style of ["zen", "wobble"]) {
+    for (const extension of ["png", "svg", "css", "md", "json"])
+      expect(
+        written(`/${seed}.${extension}?style=${style}&shape=7&speed=2`)?.key,
+        `${style} ${extension}`
+      ).toBe(written(`/${seed}.${extension}`)?.key);
+    expect(written(`/api/og?seed=${seed}&style=${style}&shape=7`)?.key, style).toBe(
+      written(`/api/og?seed=${seed}`)?.key
+    );
+    /* the steps and the angle it names are the gradient's */
+    expect(written(`/${seed}.png?style=${style}&steps=12&angle=30`)?.key, style).toBe(
+      written(`/${seed}.png?steps=12&angle=30`)?.key
+    );
+  }
 });
 
 test("an effect's moving SVG is kept under its pace and size as well as its look", () => {

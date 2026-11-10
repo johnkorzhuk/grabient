@@ -123,12 +123,24 @@ test("a palette keeps its soft and grain and the effect it played, held still: i
   expect(strata(12)?.id).toBe(`${seed}?style=strata&angle=30&steps=12`);
   expect(strata(28)?.id).toBe(strata(null)?.id);
   expect(strata(99)?.effect?.look.steps).toBe(40);
-  expect(
-    selectedPalette({
-      ...view,
-      effect: { kind: "zen", ...EFFECT_PLAY, look: { shape: null, frost: 1, bg: null, steps: 12 } }
-    })?.effect?.look.steps
-  ).toBeNull();
+  const papercut = selectedPalette({
+    ...view,
+    effect: {
+      kind: "papercut",
+      ...EFFECT_PLAY,
+      look: { shape: null, frost: 1, bg: null, steps: 12 }
+    }
+  });
+  expect(papercut?.effect?.kind).toBe("papercut");
+  expect(papercut?.effect?.look.steps).toBeNull();
+  // a kind that is no effect's holds none: a selection kept while the site played one it plays no more (the zen
+  // garden, style=zen, 8 to 10 Nov 2026) is read as its palette in its view
+  const gone = selectedPalette({
+    ...view,
+    grain: 64,
+    effect: { kind: "zen", ...EFFECT_PLAY, look: { shape: 7, frost: 1, bg: null, steps: 12 } }
+  });
+  expect(gone).toEqual({ id: `${seed}:radialSwatches:6:30:0:64`, ...view, grain: 64 });
   expect(blob?.id).toBe(`${seed}?style=blob&frost=1.5&shape=${blobShapeOf(seed)}&bg=%23102030`);
   // nor a soft: a blob chosen with one is held with its grain alone, the same palette as with none
   const softBlob = selectedPalette({

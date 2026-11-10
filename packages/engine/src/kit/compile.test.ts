@@ -29,7 +29,7 @@ import {
 } from "./compile.ts";
 import demo from "./fields/demo.ts";
 import { kitRng } from "./scene.ts";
-import type { FieldKernel } from "./types.ts";
+import type { FieldEffect, FieldKernel } from "./types.ts";
 
 const SRC = fileURLToPath(ENGINE_SRC);
 const options: KernelOptions = { name: "k", kind: "test", uniforms: { a: 8, b: 3 }, tracks: 2 };
@@ -737,6 +737,17 @@ test("the generated files are what pnpm kit:gen writes now", () => {
     gen.filter(path => !files.has(path)),
     "not generated: run pnpm kit:gen"
   ).toEqual([]);
+});
+
+test("kind-steps.ts says the steps an effect's file gives it, and null for an effect that takes none", () => {
+  /* the demo's file under definitions that are not the demo's own, which the table leaves out: one with no steps, as
+     an effect the view's steps leave alone, and one with a range, as the sandstone's file gives it one */
+  const table = (def: FieldEffect) => kitGenerated([def]).get("kit/gen/kind-steps.ts");
+  expect(table({ ...demo })).toContain("\n  demo: null\n};");
+  expect(table({ ...demo, steps: { least: 3, most: 9, designed: 5 } })).toContain(
+    "\n  demo: { least: 3, most: 9, designed: 5 }\n};"
+  );
+  expect(table(demo)).not.toContain("demo:");
 });
 
 test("each field effect's drawing is its own, a hash of its file, the kit's drawing and its kernel's C", () => {

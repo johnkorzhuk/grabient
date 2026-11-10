@@ -22,64 +22,6 @@ static double kfield_demo(double x, double y, const double *U, const double *F) 
   return f;
 }
 
-/* kit/fields/zen.ts: zenField, cost 160 */
-static double k_zen_zenOval(double dx, double dy, double xx, double yy, double xy) {
-  return dx * (dx * xx + dy * xy) + dy * dy * yy;
-}
-
-static double k_zen_zenLump(double dx, double dy, double ax, double ay, double q) {
-  const double p = ax * dx + ay * dy;
-  return p * p * p / (q + 0.000001);
-}
-
-static double k_zen_zenUnion(double d, double r, double k0, double k1) {
-  const double m = kit_min(d, r);
-  const double k = k0 + k1 * m;
-  const double h = kit_max(0.0, k - __builtin_fabs(d - r));
-  return m - h * h / (4.0 * k);
-}
-
-static double kfield_zen(double x, double y, const double *U, const double *F) {
-  const double v = U[0] * x + U[1] * y + U[2];
-  const double slow = kit_cos(F[1]) - U[16];
-  double d = __builtin_sqrt(v * v + U[3]) + U[4] + U[15] * slow;
-  const double swell = kit_cos(F[2]);
-  double dx = x - U[17];
-  double dy = y - U[18];
-  double q = k_zen_zenOval(dx, dy, U[20], U[21], U[22]);
-  double ring = __builtin_sqrt(q) - U[19];
-  double core = ring + k_zen_zenLump(dx, dy, U[23], U[24], q);
-  double slope = U[25];
-  double top = U[26];
-  d = k_zen_zenUnion(d, ring - U[27] * swell, U[5], U[6]);
-  dx = x - U[28];
-  dy = y - U[29];
-  q = k_zen_zenOval(dx, dy, U[31], U[32], U[33]);
-  ring = __builtin_sqrt(q) - U[30];
-  double e = ring + k_zen_zenLump(dx, dy, U[34], U[35], q);
-  if (e < core) {
-    core = e;
-    slope = U[36];
-    top = U[37];
-  }
-  d = k_zen_zenUnion(d, ring - U[38] * swell, U[5], U[6]);
-  dx = x - U[39];
-  dy = y - U[40];
-  q = k_zen_zenOval(dx, dy, U[42], U[43], U[44]);
-  ring = __builtin_sqrt(q) - U[41];
-  e = ring + k_zen_zenLump(dx, dy, U[45], U[46], q);
-  if (e < core) {
-    core = e;
-    slope = U[47];
-    top = U[48];
-  }
-  d = k_zen_zenUnion(d, ring - U[49] * slow, U[5], U[6]);
-  const double out_v = kit_max(0.0, d);
-  const double f = kit_max(U[7], U[8] - U[9] * out_v) + U[10] * kit_cos(U[11] * out_v + F[0]);
-  const double g = kit_min(kit_min(U[12] - U[13] * core, U[14]), top - slope * core);
-  return kit_max(f, g);
-}
-
 /* kit/fields/strata.ts: strataField, cost 151 */
 static double kfield_strata(double x, double y, const double *U, const double *F) {
   const double w = kit_sin(U[2] * (U[0] * x + U[1] * y) + F[0]) * U[3];
@@ -106,4 +48,4 @@ static double kfield_strata(double x, double y, const double *U, const double *F
 }
 
 /* every kernel, by its kind's place in kit/gen/kernel-order.ts */
-static const kit_kernel KIT_KERNELS[] = {kfield_demo, kfield_zen, kfield_strata};
+static const kit_kernel KIT_KERNELS[] = {kfield_demo, kfield_strata};

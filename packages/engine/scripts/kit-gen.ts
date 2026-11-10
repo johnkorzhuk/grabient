@@ -78,11 +78,12 @@ ${numberList("export const KIT_SHADOW_RUNS: readonly number[]", runs)}
     square, jittered so a tiled design cannot beat with them, the designed shape at three times of its loop: worked out
     here once and written into kernel-order.ts, where video.ts worked it out for every effect each time it started, 1.2
     to 3.4 ms an effect with a shadow in a fresh process, most of it its kernel's first compiling, 0.4 to 0.8 ms after
-    (8 Nov 2026: the demo and the zen garden; the sandstone, with none, 0.1), so the clips' start grew with every
-    effect. The shadow's length against the step alone (a D unit against a field's) missed the zen garden over levels
-    0.12 apart, whose shadows kitShade ran past its window at 29% of its pixels, and charged a shadow of 0.13 over the
-    demo's levels 0.12 apart, of whose pixels it ran none so (8 Nov 2026). Sheets finer than a pixel take the run
-    besides, a pixel spanning more than a level: no effect is drawn so. */
+    (8 Nov 2026: the demo and the zen garden, a field effect the site played until 10 Nov 2026; the sandstone, with
+    none, 0.1), so the clips' start grew with every effect. The shadow's length against the step alone (a D unit
+    against a field's) missed the zen garden as it then stood, over levels 0.12 apart, whose shadows kitShade ran past
+    its window at 29% of its pixels, and charged a shadow of 0.13 over the demo's levels 0.12 apart, of whose pixels it
+    ran none so (8 Nov 2026). Sheets finer than a pixel take the run besides, a pixel spanning more than a level: no
+    effect is drawn so. */
 export function kitShadowRun(def: FieldEffect): number {
   const S = def.sheets;
   const shadow = S?.shadow;

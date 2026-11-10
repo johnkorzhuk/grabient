@@ -446,24 +446,8 @@ describe("a palette's MP4", () => {
       await blobKey(VIDEO_QUALITY.blob, [])
     );
     /* a field effect's clip is kept under the kit's drawing too, as its cards and pictures are: a new pick or a change
-       to the kit's shading is a new clip */
-    const zenLook = { shape: null, frost: 1, bg: null, steps: null };
-    const zenFit = videoFit({ kind: "zen", look: zenLook }, 1, 10, 2, { width: 64, height: 48 });
-    expect(await etagOf(env, keep, `/${SEED}.mp4?style=zen&size=64x48&fps=10&duration=2`)).toBe(
-      await keyOf([
-        VIDEO_QUALITY.zen,
-        SEED,
-        "zen",
-        90,
-        { shape: null, frost: 1, bg: null },
-        zenFit.size,
-        zenFit.fps,
-        zenFit.plan,
-        KIT_DRAWINGS.zen
-      ])
-    );
-    /* the sandstone's clip at other than its designed steps is keyed by them, and at its designed steps as every other
-       effect's, and a zen garden asked steps it takes none of is the zen garden's clip */
+       to the kit's shading is a new clip. The sandstone's at other than its designed steps is keyed by them as well,
+       and at its designed steps by its look as every other effect's */
     const strataAt = (steps: string) =>
       etagOf(env, keep, `/${SEED}.mp4?style=strata&size=64x48&fps=10&duration=2${steps}`);
     const strataKey = (look: Record<string, unknown>) => {
@@ -492,9 +476,26 @@ describe("a palette's MP4", () => {
       await strataKey({ shape: null, frost: 1, bg: null, steps: 12 })
     );
     expect(await strataAt("&steps=12")).not.toBe(await strataAt("&steps=13"));
-    expect(
-      await etagOf(env, keep, `/${SEED}.mp4?style=zen&size=64x48&fps=10&duration=2&steps=12`)
-    ).toBe(await etagOf(env, keep, `/${SEED}.mp4?style=zen&size=64x48&fps=10&duration=2`));
+    /* an effect asked steps it takes none of draws the clip it draws with none: the papercut's, keyed as it was
+       before an effect took steps, and under no drawing of the kit's */
+    const cutLook = { shape: null, frost: 1, bg: null, steps: null };
+    const cutFit = videoFit({ kind: "papercut", look: cutLook }, 1, 10, 2, {
+      width: 64,
+      height: 48
+    });
+    const cutClip = `/${SEED}.mp4?style=papercut&size=64x48&fps=10&duration=2`;
+    const cutKey = await keyOf([
+      VIDEO_QUALITY.papercut,
+      SEED,
+      "papercut",
+      90,
+      { shape: null, frost: 1, bg: null },
+      cutFit.size,
+      cutFit.fps,
+      cutFit.plan
+    ]);
+    expect(await etagOf(env, keep, cutClip)).toBe(cutKey);
+    expect(await etagOf(env, keep, `${cutClip}&steps=12`)).toBe(cutKey);
     const still = new URL(
       (await seedMp4Answer(get(finished), env, keep, parts.run)).headers.get("Location") ?? ""
     );

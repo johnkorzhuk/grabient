@@ -36,7 +36,7 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
       `strata|${SEED}|90||99`,
       `strata|${SEED}|90||3`,
       `strata|${SEED}|90||x`,
-      `zen|${SEED}|90||12`
+      `papercut|${SEED}|90||12`
     ])
       expect(readFxStillKey(key), key).toBeNull();
     /* and the server paints it as it paints any */
@@ -56,7 +56,9 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
       `silk|${SEED}|090|`,
       `rosette|${SEED}|90|1000`,
       `rosette|<b>|90|`,
-      `paper|${SEED}|90|`
+      `paper|${SEED}|90|`,
+      /* an effect the site plays no more (the zen garden, 8 to 10 Nov 2026), as a page kept from then names it */
+      `zen|${SEED}|90|`
     ])
       expect(readFxStillKey(key)).toBeNull();
   });

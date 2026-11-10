@@ -4,6 +4,5 @@
 import type { KitKind } from "../kinds.ts";
 
 export const KIT_DRAWINGS: Readonly<Record<KitKind, string>> = {
-  zen: "02cedcccc209",
-  strata: "04ec5441b7b0"
+  strata: "a2b34118ff97"
 };

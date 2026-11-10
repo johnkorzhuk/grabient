@@ -120,7 +120,7 @@ describe("an effect's card", () => {
 
   test("a field effect's picture alone is drawn within a card's pixels, at the shape asked", async () => {
     const { env, keep } = world();
-    const png = await seedPngAnswer(get(`/${SEED}.png?style=zen&w=2400&h=1260`), env, keep);
+    const png = await seedPngAnswer(get(`/${SEED}.png?style=strata&w=2400&h=1260`), env, keep);
     expect(png.status).toBe(200);
     const picture = await decodePng(new Uint8Array(await png.arrayBuffer()));
     expect([picture.width, picture.height]).toEqual([1200, 630]);

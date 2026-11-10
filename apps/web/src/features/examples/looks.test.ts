@@ -1,4 +1,5 @@
 import { decodePalette } from "@grabient/engine";
+import { EFFECTS } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { describe, expect, test } from "vitest";
 import {
@@ -86,7 +87,11 @@ describe("inLook", () => {
     for (const steps of turned) expect(steps == null || (steps >= 8 && steps <= 40)).toBe(true);
     expect(new Set(turned).size).toBeGreaterThan(3);
     /* every other effect, turned to, takes none */
-    expect(inLook(SEED, PALETTE, "zen", "hero", 0, "zen~1").effect?.look.steps).toBeNull();
+    for (const kind of EFFECTS.filter(other => other !== "strata"))
+      expect(
+        inLook(SEED, PALETTE, kind, "hero", 0, `${kind}~1`).effect?.look.steps,
+        kind
+      ).toBeNull();
   });
 });
 

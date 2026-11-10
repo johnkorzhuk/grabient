@@ -94,9 +94,10 @@ const bytes = (rgb: readonly number[]) => rgb.map(byte);
 
 /** What every format adds before it takes a pixel's channel to a byte (kitByte): a sheet whose color map lands on a
     stop's midpoint is two bytes' mean, exactly half a level, which double precision (the CPU, the SVG's fills, the
-    clips) and a GPU's float32 rounded opposite ways, a level apart on a whole sheet (8 Nov 2026: 8,799 of the zen
-    garden's 230,400 pixels at 640 by 360 on the RTX, kit/gl.ts). Raised by 2^-10, a tie rounds up in each, far past
-    float32's error at 255 (about 2^-16), and a channel moves only where it lay within 2^-10 under a half. */
+    clips) and a GPU's float32 rounded opposite ways, a level apart on a whole sheet (8 Nov 2026: 8,799 of 230,400
+    pixels at 640 by 360 on the RTX in the zen garden, a field effect the site played then, kit/gl.ts). Raised by
+    2^-10, a tie rounds up in each, far past float32's error at 255 (about 2^-16), and a channel moves only where it
+    lay within 2^-10 under a half. */
 export const KIT_TIE = 2 ** -10;
 /** A channel 0..1 to its byte as every format writes it: the nearest, a tie up (KIT_TIE). */
 export const kitByte = (v: number): number =>

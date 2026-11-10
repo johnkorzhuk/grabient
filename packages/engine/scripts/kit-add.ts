@@ -1,9 +1,9 @@
-/* `pnpm kit:add <file> label="Zen garden" words="zen garden"`: a chosen field effect made one of the site's
+/* `pnpm kit:add <file> label="Sandstone" words="sandstone"`: a chosen field effect made one of the site's
    (kit/README.md, step 2 from a candidate to a site effect). It copies the file to kit/fields/<kind>.ts, the kind its
    default export's, its imports of the engine made relative from there, refusing any absolute path left, and drops its
    about's `label` and `words` once they are found to be the names given, since kit/names.ts holds those in every
    language. A kind not yet registered then takes its place in kit/kinds.ts, its line in kit/registry.ts, its two names
-   in kit/names.ts and its embed script's entry, apps/web/src/embed/<kind>.ts, written as zen.ts is, refused where a
+   in kit/names.ts and its embed script's entry, apps/web/src/embed/<kind>.ts, written as strata.ts is, refused where a
    file its name makes is there already (KIND_MAKES: the embed's own grain.ts, say); a kind already
    registered has its file replaced and nothing else. Every file it writes is formatted by biome as `pnpm format`
    would, and nothing is written unless every one of them can be and the effect's kernel compiles within the budget
@@ -12,7 +12,7 @@
    `pnpm kit:gen` and prints what is left (the app's tests take a new kind from the kit, so none is among it).
 
      pnpm kit:add W/kit/picks/lava/lava.ts label="Lava lamp" words="lava lamp"
-     pnpm kit:add W/kit/picks/zen/zen.ts
+     pnpm kit:add W/kit/picks/strata/strata.ts
 
    file: a module whose default export is a FieldEffect with its about (types.ts FieldAbout), found from where pnpm
    was run, as root is; label: its name on the Appearance menu's tile; words: what stands in a gradient's style's place
@@ -219,7 +219,7 @@ function withEntry(text: string, kind: string): string {
   );
 }
 
-/** An effect's embed script's entry, as zen.ts is written. */
+/** An effect's embed script's entry, as strata.ts is written. */
 export const embedText = (kind: string, words: string): string =>
   `/* The ${words} behind any page: \`<script src="https://grabient.com/{seed}.js?style=${kind}" async></script>\` (kit.ts).
    Built into one classic script by build.ts, which the Worker serves at /{seed}.js?style=${kind}. */
@@ -321,7 +321,7 @@ function left({ kind, added, label, words }: KitAdded): string {
       ? `3. Its names in every language: pnpm i18n extract, a note for translators on "${label}" and "${words}" in packages/i18n/messages/en.json (what each is, where it shows, what it must not be confused with), each language's translations through pnpm i18n merge, and a row each in packages/i18n/glossary (ja's effect table two columns, the others three).`
       : "3. Its names stay as they were.",
     `4. Its example page: ${added ? `its entry in PAGE_OF in apps/web/scripts/examples-kit.ts (kind "${kind}": a seed, its query, title, h1 "This page sits on <its words with their article>." and lead; pnpm typecheck names it until it is written), then ` : ""}pnpm --filter web examples:kit, which writes its still anew.`,
-    `5. The words: pnpm vitest run apps/web/src/server/seo/agents.test.ts -u (the -u last) for the llms texts${added ? `; skills/grabient/SKILL.md by hand (its words where an effect plays behind a page, a sentence for style=${kind}, and ${kind} in a list's styles); then grep -rnw zen apps packages skills --exclude-dir=fixtures --exclude-dir=node_modules for any other hand list of effects` : ""}.`,
+    `5. The words: pnpm vitest run apps/web/src/server/seo/agents.test.ts -u (the -u last) for the llms texts${added ? `; skills/grabient/SKILL.md by hand (its words where an effect plays behind a page, a sentence for style=${kind}, and ${kind} in a list's styles); then grep -rnw strata apps packages skills --exclude-dir=fixtures --exclude-dir=node_modules for any other hand list of effects` : ""}.`,
     `6. The clips' module: ZIG=~/.local/zig/zig sh packages/engine/src/video/build.sh, which writes VIDEO_MODULE in packages/engine/src/video.ts (the container's image is then pushed by its owner, pnpm --filter web video:image); its clips' weight, node packages/engine/test/kit-weight.ts kind=${kind} three or four times on a quiet machine, the most rounded up written as clipWeight: { weight, cost } in its file; its gate for the gallery, node packages/engine/test/kit-check.ts def=packages/engine/src/kit/fields/${kind}.ts palettes=all json=~/.cache/grabient-final-work/kit/checks/site-${kind}.json. Then every check: pnpm check on Node 24, CONFORMANCE=deep pnpm vitest run --project unit packages/engine/src/effect-conformance.test.ts -t "the ${kind}", pnpm --filter web e2e:gpu, E2E_SERVED=off pnpm --filter web e2e -g "vector|embed|video|examples", pnpm i18n check --strict, and pnpm build && pnpm --filter web budget (a new effect adds about 0.8 KB to the MP4 worker and 0.7 KiB to the Worker: raise them with a dated reason).`
   ];
   return `Left (kit/README.md, from a candidate to a site effect):\n${steps.join("\n")}`;

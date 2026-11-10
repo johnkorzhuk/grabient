@@ -1,4 +1,4 @@
-/* A field effect behind any page (engine/kit): what each kit effect's script (zen.ts, strata.ts) mounts, its
+/* A field effect behind any page (engine/kit): what each kit effect's script (strata.ts) mounts, its
    definition and its kernel's GLSL handed in, so each script carries its own kind and no other. Its still is the
    stylesheet's (engine/fx-still.ts fxStillBackground), drawn by the kit's writer (engine/kit/svg.ts); the canvas fades
    in over it, the player's first frame (ui/kit-player.ts). Where the page paints no still, the script draws it a

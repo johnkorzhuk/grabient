@@ -48,7 +48,7 @@ export type KitLevel = KitContour[] | "all" | "none";
 
 /** Rows of the grid a step takes, its field's or its cells', and the points a step polishes (four reads of the field
     each) or fits, each about a millisecond of a costly kernel's: a still's 18 rows of 247 cells take the sandstone's
-    0.6 to 1.1 ms, the zen garden's 0.4 to 0.9 (8 Nov 2026). */
+    0.6 to 1.1 ms (8 Nov 2026, when the zen garden's, which the site then played, took 0.4 to 0.9). */
 const ROWS = 18;
 const POLISHED = 256;
 const FITTED = 2048;

@@ -2,7 +2,7 @@
    registered effect to, run on one file, a line each with its numbers, PASS or FAIL, and exit 1 on any failure.
 
      node packages/engine/test/kit-check.ts def=W/kit/candidates/<slug>/<slug>.ts
-     node packages/engine/test/kit-check.ts def=packages/engine/src/kit/fields/zen.ts palettes=all json=zen.json
+     node packages/engine/test/kit-check.ts def=packages/engine/src/kit/fields/strata.ts palettes=all json=strata.json
 
    def: a module whose default export is a FieldEffect, its kernel in that file (a candidate importing the kit by
    absolute path, or a registered kit/fields/<kind>.ts); palettes: names of kit-checks.ts's KIT_PALETTES or palettes'
@@ -96,7 +96,7 @@ const toLimit = (d: FrameDiff) =>
 const STILL_BYTES = 40 * 1024;
 /** The stills a list's first screen names, each traced at its own palette's shape (apps/web server/stills.ts
     FIRST_SCREEN_STILLS), which the server draws into the page: 16 stills of the strings took 1.1 s here, the
-    sandstone's 0.7 to 0.9, the zen garden's 0.6, the papercut's 0.2 (8 Nov 2026). Held to no limit: reported. */
+    sandstone's 0.7 to 0.9, the papercut's 0.2 (8 Nov 2026). Held to no limit: reported. */
 const FIRST_SCREEN = 16;
 /** Two frames whose mean OKLab difference is under this are the one picture, as the suite's loop's end reads them. */
 const ALIKE = 0.05;
@@ -487,11 +487,11 @@ export function crowdingCheck(def: FieldEffect, P: Palette): KitFound {
 
 /** How many times the demo's a card's drawing may take, drawn in turn with it: the demo draws a card's pixels in 0.48
     to 0.57 s here (630 to 757 ns a pixel at 480 by 270, 8 Nov 2026), so a card within 1.5 of it is drawn in 0.86 s at
-    most, and coded with a soft and a grain (0.13 to 0.19 s more, the zen garden's) in about 1 s: the Worker's 3 s on
+    most, and coded with a soft and a grain (0.13 to 0.19 s more a card) in about 1 s: the Worker's 3 s on
     Cloudflare's slower machines, up to three times as long, as apps/web lib/picture-size.ts KIT_PICTURE_BOUNDS
-    reasons. The site's: the sandstone 0.4 of the demo's, the zen garden 0.9 to 1.0. Timed against the demo,
-    where ns alone ran up to 1.6 times as long with five candidates gated at once (coral 1,419 ns a pixel there,
-    about 900 quiet). */
+    reasons. The site's, the sandstone, 0.4 of the demo's; the costliest it has played, the zen garden (8 to 10 Nov
+    2026), 0.9 to 1.0. Timed against the demo, where ns alone ran up to 1.6 times as long with five candidates gated
+    at once (coral 1,419 ns a pixel there, about 900 quiet). */
 export const KIT_CARD_DEMOS = 1.5;
 const CARD_PIXELS = 1200 * 630;
 

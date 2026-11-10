@@ -15,7 +15,6 @@ word gets its Turkish.
 | Rosette (an animated style) | Rozet | The flower-shaped ornament of architecture and decoration (rozet motifi), not a lapel badge. |
 | Papercut (an animated style) | Kâğıt kesme | Paper cut into sheets stacked in layers, each casting a shadow on the one below: the craft as crafters and designers name it (kâğıt kesme sanatı), with TDK's circumflex. Not kâğıt oyma, the name of the traditional kaatı. |
 | strings (an effect) | İplikler | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for threads, as string art names them (ip sanatı). Not teller (musical strings) nor dizgeler (strings in code). |
-| zen garden (an effect) | Zen bahçesi | A raked sand garden seen from above, its grooves ringing a few stones: the name Turkish gives the Japanese dry garden. Title words *zen bahçesi*. |
 | sandstone (an effect) | Kumtaşı | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name, one word as TDK writes it. Title words *kumtaşı*. Not *kum* (sand). |
 | Soft (the Appearance menu's field) | Yumuşaklık | A blur along the style's line, from Kapalı to 100; the header's summary says "Yumuşaklık {value}". |
 | Grain (the Appearance menu's field) | Gren | Film grain, the photographers' word (film greni); the summary says "Gren {value}". Kept apart from the blob's Frost (Buzlu). |

@@ -3,11 +3,12 @@
    definition among it, engine/video.ts reading kit/registry.ts), and the clips' module, video.wasm. image.json records
    the hash of those bytes when the image is pushed, and a test holds the image to it (image.test.ts). It held the image
    to this folder's own sources alone, so a field effect's file replaced by kit:add, which leaves the module as it was,
-   passed every check while the image went on drawing whole clips by the old file: its zen garden's frame 7 at 320 by
-   180, the shadow's alpha changed from 0.24 to 0.3, differed in 47,941 of 172,800 bytes, by up to 11 levels
-   (8 Nov 2026). The bundles are written with their whitespace minified, which drops their comments (esbuild keeps a
-   comment inside a statement or an object otherwise), so a comment or a line's layout changed anywhere bundles to
-   the same bytes and asks for no push; names and code stay as written. */
+   passed every check while the image went on drawing whole clips by the old file: frame 7 at 320 by 180 of the zen
+   garden's, a field effect the site played from 8 to 10 Nov 2026, the shadow's alpha changed from 0.24 to 0.3,
+   differed in 47,941 of 172,800 bytes, by up to 11 levels (8 Nov 2026). The bundles are written with their whitespace
+   minified, which drops their comments (esbuild keeps a comment inside a statement or an object otherwise), so a
+   comment or a line's layout changed anywhere bundles to the same bytes and asks for no push; names and code stay as
+   written. */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";

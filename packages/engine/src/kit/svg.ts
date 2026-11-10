@@ -70,13 +70,13 @@ interface Trace extends FitHow {
     past kit-check's 8; their lines in halves of a pixel, 5.2 to 5.4 and 0.02 to 0.05% (4.4 at most in the six other
     palettes), their background 25.4 to 33.5 KiB over 30 shapes and four angles where whole pixels wrote 19.9 to 26.2 (a
     decimal took the p99 to 4.5 and the background to 39.9 KiB; a grid of 360 or 480 cells changed neither). A sheet's
-    edge keeps its whole pixel: the next level's color lies a step of the palette away, and the zen garden's and the
-    sandstone's stills lie within a p99 of 2.1 and 1.0 of their first frames there. The demo's still at the design
-    square takes 25 to 36 ms a view no still has kept (15 to 20 on 180 cells), 98 thousand reads of its field, in some
-    100 steps of 1.4 ms at most; over 30 shapes and four angles the zen garden's 29 to 51 ms in 153 to 173 steps, and
-    the sandstone's 27 to 51 in 146 to 192 (35 to 71 in 197 to 260 at its 40 steps), 32 and 33 at the median, each
-    still's longest step 1.4 ms at the median (8 Nov 2026). Kept by the view, a list of cards at one look traces
-    once. */
+    edge keeps its whole pixel: the next level's color lies a step of the palette away, and the sandstone's still lies
+    within a p99 of 1.0 of its first frame there (2.1 for the zen garden's, a field effect the site played from 8 to
+    10 Nov 2026). The demo's still at the design square takes 25 to 36 ms a view no still has kept (15 to 20 on 180
+    cells), 98 thousand reads of its field, in some 100 steps of 1.4 ms at most; over 30 shapes and four angles the
+    sandstone's 27 to 51 ms in 146 to 192 steps (35 to 71 in 197 to 260 at its 40 steps), 33 at the median, and the
+    zen garden's took 29 to 51 in 153 to 173, 32 at the median, each still's longest step 1.4 ms at the median (8 Nov
+    2026). Kept by the view, a list of cards at one look traces once. */
 const STILL_TRACE = (m: KitScene): Trace => {
   const side = Math.max(m.width, m.height);
   /* a still drawn in a box under the design square's keeps a whole pixel of that square, a tenth of one at 320 by
@@ -236,7 +236,7 @@ function* tracedSteps(m: KitScene, how: Trace, t: number): Generator<void, Trace
     the Appearance menu's tile of each at the palette's look (apps/web Corner.tsx): with 32 alone, 40 field effects'
     tiles put out their own traces in one pass, so a palette changed while the menu stood open traced every tile again,
     1.6 to 2.4 s where 30 effects' took 12 to 16 ms (8 Nov 2026). A trace at the design square holds about a still's
-    background, 11 to 29 KiB (up to 23 at the sandstone's 40 steps). */
+    background, the sandstone's 11 to 16 KiB (up to 23 at its 40 steps). */
 export const KIT_TRACES_KEPT = { still: 32 + KIT_KINDS.length, file: 4 } as const;
 const stillTraces = new Map<string, Traced>();
 const fileTraces = new Map<string, Traced>();
@@ -276,8 +276,9 @@ function atOnce<T>(steps: Generator<void, T>): T {
 const svgOpen = ({ width: W, height: H }: KitScene) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
 /* each color written into a Float64Array, as kitShade writes them a pixel: a plain array handed to the same writers
-   left every later call of theirs in the isolate slower, a zen garden's still for a page's head taking another field
-   effect's card that followed (kitRender at 1200 by 630) from 0.82 s to 1.9 s (8 Nov 2026) */
+   left every later call of theirs in the isolate slower, a still for a page's head (the zen garden's, which the site
+   then played) taking another field effect's card that followed (kitRender at 1200 by 630) from 0.82 s to 1.9 s (8
+   Nov 2026) */
 const sheetHex = (m: KitScene, k: number) => {
   const c = kitScratch();
   kitSheetColor(m, k, c);
@@ -388,10 +389,11 @@ function frameOf(m: KitScene, { ground, layers }: KitLayers): string {
     Measured at the design square over the conformance suite's four looks and test/kit-checks.ts's seven palettes
     (8 Nov 2026, on 240 cells, the lines in half pixels; each the same in every palette, a fill being seven characters
     whatever its color): the demo's background 10.4 to 11.4 KiB, where the same still with every layer a path of its
-    own is 13.1 to 15.0 (each sheet's path written three times); the zen garden's 26.4 to 27.7, where it would be 69.3
-    to 73.2. The sandstone's sheets, with neither shadow nor rim, have no layer to share a path with: each is a path and
-    a <use> of it. A tinted shadow costs nothing, each <use> writing its fill already, and a tinted rim three bytes a
-    sheet past white's #fff: the zen garden's 42 bytes more than in the ink and white. */
+    own is 13.1 to 15.0 (each sheet's path written three times); the zen garden's, which the site then played, 26.4 to
+    27.7, where it would have been 69.3 to 73.2. The sandstone's sheets, with neither shadow nor rim, have no layer to
+    share a path with: each is a path and a <use> of it. A tinted shadow costs nothing, each <use> writing its fill
+    already, and a tinted rim three bytes a sheet past white's #fff: 42 bytes more on the zen garden's than in the ink
+    and white. */
 function stillOf(m: KitScene, d: Traced): string {
   const S = m.def.sheets;
   const L = m.def.lines;

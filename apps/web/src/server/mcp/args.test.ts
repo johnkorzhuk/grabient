@@ -46,7 +46,7 @@ describe("an account tool's arguments", () => {
     });
     expect(paletteNamed(`/${SEED}?style=strata&steps=99`)?.look).toBe("style=strata&steps=40");
     expect(paletteNamed(`/${SEED}?style=strata&steps=28`)?.look).toBe("style=strata");
-    expect(paletteNamed(`/${SEED}?style=zen&steps=12`)?.look).toBe("style=zen");
+    expect(paletteNamed(`/${SEED}?style=papercut&steps=12`)?.look).toBe("style=papercut");
     // the strings' ground is their look's, a clear one too; another effect's address names none
     expect(paletteNamed(`/${SEED}?bg=%23f4efe6&style=strings&shape=3`)).toEqual({
       seed: SEED,
@@ -63,6 +63,15 @@ describe("an account tool's arguments", () => {
       steps: 7,
       angle: 30
     });
+    // so does one whose style is no gradient's and no effect's, an effect the site plays no more among them (the zen
+    // garden, style=zen, 8 to 10 Nov 2026): the palette in the default style, with what else the address says
+    for (const style of ["zen", "wobble"])
+      expect(paletteNamed(`/${SEED}?style=${style}&steps=12&shape=7&speed=2`), style).toEqual({
+        seed: SEED,
+        style: "linearGradient",
+        steps: 12,
+        angle: 90
+      });
   });
 
   it("name a palette by its old grabient.com id, alone or in its old address", () => {

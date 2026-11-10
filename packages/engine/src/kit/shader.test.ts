@@ -60,9 +60,9 @@ const sheets = demo.sheets as SheetsRecipe;
    the CPU's bytes at all but 6 to 33 of 57,600 pixels at 320 by 180, each a level off (the stripes' 133 before every
    format broke a tie up, kitByte); on SwiftShader, over 18 frames each (three palettes, two looks, three times), the
    tinted one's channels at most 0.02 levels off on average and 0.19% of its pixels more than a level. Those frames of
-   the tinted one, like zen's, never take the tinted run of whole shadows past the edge window, which deep
-   takes at 20% of its pixels (3.4% past KIT_SHADOWS): its channels at most 0.01 levels off, 0.014% of its pixels more
-   than a level; ground lays its first sheet's shadow on the ground at 0.8% of its pixels: 0.021 and 0.26% */
+   the tinted one never take the tinted run of whole shadows past the edge window, which deep takes at 20% of its
+   pixels (3.4% past KIT_SHADOWS): its channels at most 0.01 levels off, 0.014% of its pixels more than a level;
+   ground lays its first sheet's shadow on the ground at 0.8% of its pixels: 0.021 and 0.26% */
 const RECIPES: FieldEffect[] = [
   demo,
   { ...demo, sheets: { ...sheets, shadow: { ...sheets.shadow!, steps: 3, spread: 0.6 } } },

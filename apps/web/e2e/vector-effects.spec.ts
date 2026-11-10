@@ -230,7 +230,7 @@ for (const [kind, name] of [
     ).toBeVisible();
   });
 
-test("the sandstone takes the view's steps, 8 to 40, where the zen garden takes none: its menu's Steps field redraws the stage and keeps its steps in the address", async ({
+test("the sandstone takes the view's steps, 8 to 40, where the papercut takes none: its menu's Steps field redraws the stage and keeps its steps in the address", async ({
   page,
   request
 }) => {
@@ -253,14 +253,14 @@ test("the sandstone takes the view's steps, 8 to 40, where the zen garden takes 
   expect(await moved(`/${SEED}?style=strata&steps=28`)).toBe(`/${SEED}?style=strata`);
   expect(await moved(`/${SEED}?style=strata&steps=99`)).toBe(`/${SEED}?style=strata&steps=40`);
   expect(await moved(`/${SEED}?style=strata&steps=3`)).toBe(`/${SEED}?style=strata&steps=8`);
-  expect(await moved(`/${SEED}?style=zen&steps=12`)).toBe(`/${SEED}?style=zen`);
+  expect(await moved(`/${SEED}?style=papercut&steps=12`)).toBe(`/${SEED}?style=papercut`);
   /* a list's cards draw at its steps, and a list of another effect leaves them out */
   const list = await request.get("/palettes?style=strata&steps=12", { maxRedirects: 0 });
   expect(list.status()).toBe(200);
   expect(/<span[^>]*data-fx-still="([^"]*)"/.exec(await list.text())?.[1]).toMatch(
     /^strata\|.*\|12$/
   );
-  expect(await moved("/palettes?style=zen&steps=12")).toBe("/palettes?style=zen");
+  expect(await moved("/palettes?style=papercut&steps=12")).toBe("/palettes?style=papercut");
 
   /* held still, a change of steps draws the stage's still anew */
   await open(page, `/${SEED}?style=strata&speed=0`);
@@ -284,13 +284,45 @@ test("the sandstone takes the view's steps, 8 to 40, where the zen garden takes 
   await expect(
     page.getByRole("button", { name: /^Appearance: Sandstone, Off · 12 steps/ })
   ).toBeVisible();
-  /* the zen garden's menu has no Steps, and the sandstone gives its own back */
-  await page.getByRole("button", { name: KIT_LABELS.zen, exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=zen$`));
+  /* the papercut's menu has no Steps, and the sandstone gives its own back */
+  await page.getByRole("button", { name: "Papercut", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=papercut$`));
   await expect(steps).toHaveCount(0);
   await page.getByRole("button", { name: KIT_LABELS.strata, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=strata&speed=0&steps=12$`));
   await expect(steps).toHaveAttribute("aria-valuenow", "12");
+});
+
+test("an address that still names an effect the site plays no more is the palette's or the list's own, and its files the palette's", async ({
+  request
+}) => {
+  /* a page and four files under vite dev, beside the other tests' */
+  test.slow();
+  /* the zen garden (style=zen) was a field effect on staging from 8 to 10 Nov 2026: its address is read as any style
+     that names neither a gradient nor an effect (features/editor/address.test.ts, server/pipeline.test.ts) */
+  const moved = async (address: string) => {
+    const answer = await request.get(address, { maxRedirects: 0 });
+    return [answer.status(), answer.headers().location?.replace(/^https?:\/\/[^/]+/, "")];
+  };
+  expect(await moved(`/${SEED}?style=zen&shape=7&speed=2`)).toEqual([301, `/${SEED}`]);
+  expect(await moved("/palettes?style=zen&steps=12")).toEqual([301, "/palettes?steps=12"]);
+  const page = await request.get(`/${SEED}?style=zen`);
+  expect([page.status(), new URL(page.url()).pathname + new URL(page.url()).search]).toEqual([
+    200,
+    `/${SEED}`
+  ]);
+  for (const [file, type] of [
+    ["png", "image/png"],
+    ["svg", "image/svg+xml; charset=utf-8"],
+    ["css", "text/css; charset=utf-8"],
+    ["json", "application/json"]
+  ]) {
+    const answer = await request.get(`/${SEED}.${file}?style=zen&shape=7`);
+    expect([file, answer.status(), answer.headers()["content-type"]]).toEqual([file, 200, type]);
+  }
+  /* a script and a clip are an effect's alone */
+  for (const file of ["js", "mp4"])
+    expect([file, (await request.get(`/${SEED}.${file}?style=zen`)).status()]).toEqual([file, 404]);
 });
 
 test("the strings take a ground: their menu's Background field lays the stage on it and keeps it in the address, a clear one shows the page's own, and its press gives their designed one back", async ({

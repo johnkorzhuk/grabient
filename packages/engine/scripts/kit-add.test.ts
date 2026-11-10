@@ -1,6 +1,6 @@
 /* `pnpm kit:add` (kit-add.ts) on a copy of the files it edits: a new kind takes its place in kinds.ts, registry.ts and
    names.ts, every other line of theirs as it was and each list read back as it was with the kind last, however biome
-   lays it out (a list too long for a line goes a name a line), its embed script's entry is written as zen.ts is, and
+   lays it out (a list too long for a line goes a name a line), its embed script's entry is written as strata.ts is, and
    its file is the candidate's with the kit imported relatively and its about's names and their type gone; a second run
    with a newer file replaces that file and nothing else; and what it refuses, writing nothing. The candidate is the
    demo under a kind no effect has, so the test holds however many kinds the site registers, written as a designer

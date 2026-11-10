@@ -113,7 +113,7 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   player's own pass in `strings-gl.ts`), the WGSL and its WebGPU page (`strings-webgpu.ts` over `strings-wgsl.ts`), the
   pages' script in `strings-page.ts`, played by the same clock. The papercut's and the strings' tracers write their
   curves with `svg-fit.ts`.
-- The field effects (`kit/`, the zen garden and the sandstone): each is one file in `kit/fields/`, its kernel in the
+- The field effects (`kit/`; the sandstone is the site's one): each is one file in `kit/fields/`, its kernel in the
   kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
   levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for
   `effect.ts`'s `EFFECT_KINDS`) and what the site says of it, with its kind in `kit/kinds.ts`, its line in

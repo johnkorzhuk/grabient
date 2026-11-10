@@ -204,7 +204,7 @@ describe("an effect's script", () => {
     expect(embedAsk(at("style=strata&steps=12"))?.effect.look.steps).toBe(12);
     expect(embedAsk(at("style=strata&steps=99"))?.effect.look.steps).toBe(40);
     expect(embedAsk(at("style=strata"))?.effect.look.steps).toBeNull();
-    expect(embedAsk(at("style=zen&steps=12"))?.effect.look.steps).toBeNull();
+    expect(embedAsk(at("style=papercut&steps=12"))?.effect.look.steps).toBeNull();
     expect(embedAsk(at("style=linearGradient"))).toBeNull();
     // a blob's ground in other words than hex, at the hex the server's redirect answers it at; words that are no color go
     const ground = (query: string) => embedAsk(at(query), cssColorText)?.effect.look.bg;

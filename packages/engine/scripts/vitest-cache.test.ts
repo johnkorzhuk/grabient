@@ -33,7 +33,7 @@ test("a module with a template's dynamic import is never cached, so a file its p
   for (const path of variable) expect(keyOf(readFileSync(path, "utf8")), path).toBe(false);
   /* any other module keeps the key Vitest gives it */
   expect(keyOf(readFileSync(join(REPO, "packages/engine/src/effect.ts"), "utf8"))).toBeUndefined();
-  expect(keyOf("const m = await import(`./gen/zen.ts`);")).toBeUndefined();
+  expect(keyOf("const m = await import(`./gen/strata.ts`);")).toBeUndefined();
   expect(keyOf(`const m = await import(\`./gen/\${kind}.ts\`);`)).toBe(false);
   expect(keyOf(`const m = await import(\n  \`./\${kind}.ts\`\n);`)).toBe(false);
 });

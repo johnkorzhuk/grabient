@@ -1,12 +1,12 @@
 /* `pnpm --filter web examples:kit`: each field effect's example page, public/examples/background-<kind>.html, whose
    own background plays the effect from the two tags in its head. Each is written from the strings' page
-   (background-strings.html), as the zen garden's and the sandstone's first were (8 Nov 2026): the still and the grain
-   as the Worker's stylesheet paints them (effect-code.ts effectStill and effectLayers, effect-embed.ts
-   effectLayerCss), the script's tag, the heading and its lead, the snippet with the pictures' data cut short, the
-   stylesheet's and the palette's links, and the text in white or near black, whichever reads better on every color
-   the picture lays (kit/colors.ts). Then every example page's footer links every other, by its heading's words, in
-   EFFECTS' order. A new field effect is one entry in PAGE_OF, which holds one for every kind of the kit's (KitKind),
-   so `pnpm typecheck` names a kind with none; a changed still is a run.
+   (background-strings.html), as the sandstone's first was (8 Nov 2026): the still and the grain as the Worker's
+   stylesheet paints them (effect-code.ts effectStill and effectLayers, effect-embed.ts effectLayerCss), the script's
+   tag, the heading and its lead, the snippet with the pictures' data cut short, the stylesheet's and the palette's
+   links, and the text in white or near black, whichever reads better on every color the picture lays
+   (kit/colors.ts). Then every example page's footer links every other, by its heading's words, in EFFECTS' order. A
+   new field effect is one entry in PAGE_OF, which holds one for every kind of the kit's (KitKind), so `pnpm
+   typecheck` names a kind with none; a changed still is a run.
 
      pnpm --filter web examples:kit
      pnpm --filter web examples:kit out=<dir>     (the pages written to another folder, to compare)
@@ -26,8 +26,8 @@ import { KIT_KINDS, type KitKind } from "@grabient/engine/kit/kinds.ts";
 
 /** A field effect's page: the palette it plays (picked by looking at the effect in it), the query after its style
     (its tags', its links'), its tab's title, its heading, "This page sits on " and the effect's words with their
-    article and a full stop ("This page sits on a zen garden.", "This page sits on sandstone."), whose words name it
-    in every page's footer (nameOf), and the paragraph under it. */
+    article and a full stop ("This page sits on sandstone.", as the rosette's is "This page sits on a rosette."), whose
+    words name it in every page's footer (nameOf), and the paragraph under it. */
 interface KitPage {
   kind: KitKind;
   seed: string;
@@ -39,13 +39,6 @@ interface KitPage {
 
 /* every field effect's page, by its kind: one for each, or the type says which is missing */
 const PAGE_OF: Readonly<Record<KitKind, Omit<KitPage, "kind">>> = {
-  zen: {
-    seed: "kYNh-6rw818GUvVJB75wwtTjQcvy",
-    query: "grain=20",
-    title: "Zen garden background",
-    h1: "This page sits on a zen garden.",
-    lead: "The background is a Grabient palette playing as a zen garden, sand raked in its colors round a group of stones, the rings round them swelling and drawing back while the raked lines drift slowly, with film grain over it. Two tags in the head put it there."
-  },
   strata: {
     seed: "kW4j4y3y-8Uy2O-9obqrBo6I",
     query: "grain=20",
@@ -156,7 +149,7 @@ async function kitPage(template: string, page: KitPage): Promise<string> {
   return html;
 }
 
-/** The words a page's heading names its effect by, as its footer's link to it says them: "A zen garden". */
+/** The words a page's heading names its effect by, as its footer's link to it says them: "A rosette". */
 function nameOf(html: string, file: string): string {
   const said = /<h1>This page sits on ([^<]+)\.<\/h1>/.exec(html)?.[1];
   if (!said) throw new Error(`${file}: no heading "This page sits on …."`);

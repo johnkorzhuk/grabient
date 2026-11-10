@@ -980,3 +980,38 @@ describe("the strings' ground written in other words than hex", () => {
     );
   });
 });
+
+describe("an address that names an effect the site plays no more", () => {
+  /* the zen garden (style=zen) was a field effect on staging from 8 to 10 Nov 2026: an address that still names it is
+     read as any style that names neither a gradient nor an effect, and nothing fails */
+  test.each([
+    ["/kS7Q8Yy5S_SChv0?style=zen", "/kS7Q8Yy5S_SChv0"],
+    [
+      "/kS7Q8Yy5S_SChv0?style=zen&angle=30&grain=20&speed=2&shape=7",
+      "/kS7Q8Yy5S_SChv0?angle=30&grain=20"
+    ],
+    ["/ja/kS7Q8Yy5S_SChv0?style=zen&steps=12", "/ja/kS7Q8Yy5S_SChv0?steps=12"],
+    ["/palettes?style=zen&steps=12", "/palettes?steps=12"],
+    ["/kS7Q8Yy5S_SChv0?style=wobble", "/kS7Q8Yy5S_SChv0"]
+  ])("%s is answered at %s, the palette's or the list's own address", async (from, to) => {
+    const response = await get(from);
+    expect([response.status, location(response)]).toEqual([301, to]);
+    expect(asked).toEqual([]);
+  });
+
+  test("its files go on to their routes as they came (test/routes.test.ts holds what each answers)", async () => {
+    for (const file of [
+      "/kS7Q8Yy5S_SChv0.png?style=zen",
+      "/kS7Q8Yy5S_SChv0.css?style=zen&shape=7",
+      "/kS7Q8Yy5S_SChv0.svg?style=zen"
+    ]) {
+      const response = await get(file);
+      expect([file, response.status, location(response)]).toEqual([file, 200, undefined]);
+    }
+    expect(asked.map(request => new URL(request.url).pathname)).toEqual([
+      "/kS7Q8Yy5S_SChv0.png",
+      "/kS7Q8Yy5S_SChv0.css",
+      "/kS7Q8Yy5S_SChv0.svg"
+    ]);
+  });
+});

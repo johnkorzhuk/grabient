@@ -11,6 +11,7 @@ import {
   inView,
   type ListView,
   listViewOf,
+  lookEffect,
   lookFinish,
   readListView,
   shownEffect,
@@ -198,20 +199,40 @@ test("the sandstone's steps are its look's on a list, in the gradients' steps' p
     "/palettes?style=strata"
   );
   /* another effect takes none, and a gradient's steps stay the gradient's */
-  expect(readListView({ style: "zen", steps: 12 }).effect?.look.steps).toBeNull();
-  expect(inView("/palettes", readListView({ style: "zen", steps: 12 }))).toBe(
-    "/palettes?style=zen"
+  expect(readListView({ style: "papercut", steps: 12 }).effect?.look.steps).toBeNull();
+  expect(inView("/palettes", readListView({ style: "papercut", steps: 12 }))).toBe(
+    "/palettes?style=papercut"
   );
   expect(inView("/palettes", readListView({ style: "linearSwatches", steps: 12 }))).toBe(
     "/palettes?style=linearSwatches&steps=12"
   );
-  /* turned from the sandstone to the zen garden, its steps leave with it */
-  expect(viewParams({ effect: readListView({ style: "zen" }).effect }).steps).toBeUndefined();
+  /* turned from the sandstone to the papercut, its steps leave with it */
+  const papercut = readListView({ style: "papercut" }).effect;
+  expect(papercut?.kind).toBe("papercut");
+  expect(viewParams({ effect: papercut }).steps).toBeUndefined();
   /* a card plays the list's steps, and a list returned to takes a change of them made since */
   expect(cardEffect(strata.effect!, SEED).look.steps).toBe(12);
   const at20 = readListView({ style: "strata", steps: 20 });
   expect(viewSince(strata, strata, at20).effect?.look.steps).toBe(20);
   expect(viewSince(strata, at20, at20).effect?.look.steps).toBe(12);
+});
+
+test("a list's address, or a card's saved look, that names an effect the site plays no more plays none, as any word that is no style", () => {
+  /* the zen garden (style=zen) was a field effect on staging from 8 to 10 Nov 2026 */
+  for (const style of ["zen", "wobble"]) {
+    /* the list draws every palette as saved, but for what else its address says, read as a gradient's */
+    expect(readListView({ style, steps: 12, angle: 45, speed: 2 }), style).toEqual({
+      ...AS_SAVED,
+      steps: 12,
+      angle: 45
+    });
+    expect(inView("/palettes", readListView({ style, steps: 12 })), style).toBe(
+      "/palettes?steps=12"
+    );
+    /* a card whose save kept it draws its palette's gradient, with the soft and the grain the save kept */
+    expect(lookEffect(SEED, `style=${style}&angle=45&shape=7`), style).toBeNull();
+    expect(lookFinish(`style=${style}&soft=30&grain=20`), style).toEqual({ soft: 30, grain: 20 });
+  }
 });
 
 test("an effect is written in the style's place, then the angle and size, how it plays, its frost and ground", () => {

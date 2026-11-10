@@ -93,7 +93,7 @@ test("the sandstone keeps its steps in its address and its look, 8 to 40, none a
       `/${SEED}?style=strata&shape=7&speed=2&steps=12&angle=30&soft=20`,
       `/${SEED}?style=strata&angle=30&soft=20&speed=2&steps=12&shape=7`
     ],
-    [`/${SEED}?style=zen&steps=12`, `/${SEED}?style=zen`],
+    [`/${SEED}?style=papercut&steps=12`, `/${SEED}?style=papercut`],
     [`/${SEED}?style=glass&steps=12&shape=3`, `/${SEED}?style=glass&shape=3`]
   ])
     expect(canonicalSeedAddress(address), address).toBe(canonical);
@@ -104,7 +104,7 @@ test("the sandstone keeps its steps in its address and its look, 8 to 40, none a
   expect(seedSearch(page)).toEqual({ style: "strata", steps: 12 });
   expect(readSeedPage(SEED, new URLSearchParams("style=strata"))?.effect?.look.steps).toBeNull();
   expect(
-    readSeedPage(SEED, new URLSearchParams("style=zen&steps=12"))?.effect?.look.steps
+    readSeedPage(SEED, new URLSearchParams("style=papercut&steps=12"))?.effect?.look.steps
   ).toBeNull();
   /* a save keeps them in its look, and reads them back */
   expect(lookQuery(page.view, page.effect ?? null)).toBe("style=strata&steps=12");
@@ -113,6 +113,21 @@ test("the sandstone keeps its steps in its address and its look, 8 to 40, none a
   expect(readSeedPage(SEED, new URLSearchParams("style=linearSwatches&steps=12"))?.view.steps).toBe(
     12
   );
+});
+
+test("a style that names no gradient and no effect is none, an effect the site plays no more as any other word: the address is the palette's own", () => {
+  /* the zen garden (style=zen) was a field effect on staging from 8 to 10 Nov 2026: an address that still names it
+     plays nothing, and what else it says is read as a gradient's address reads it */
+  for (const style of ["zen", "wobble"]) {
+    const page = readSeedPage(SEED, new URLSearchParams(`style=${style}&shape=7&speed=2`));
+    expect(page?.effect, style).toBeNull();
+    expect(page?.view, style).toEqual({ style: "linearGradient", steps: 7, angle: 90 });
+    expect(canonicalSeedAddress(`/${SEED}?style=${style}`), style).toBe(`/${SEED}`);
+    expect(
+      canonicalSeedAddress(`/${SEED}?style=${style}&steps=12&angle=30&grain=20&shape=7&speed=2`),
+      style
+    ).toBe(`/${SEED}?steps=12&angle=30&grain=20`);
+  }
 });
 
 test("soft and grain stand in the router's search as numbers, which the router writes bare", () => {

@@ -47,8 +47,8 @@ const PARITY_SIZE: Record<VectorKind, Size> = {
   rosette: SIZE,
   papercut: SIZE,
   strings: { width: 640, height: 360 },
-  /* the field effects' finest line, the zen garden's stones' band, is 3.1 pixels wide at the least at 320 by 180 (the
-     sandstone draws none) */
+  /* the field effects' at 320 by 180, where their levels lie a pixel apart or more (kit-check's crowding): the
+     sandstone draws no line */
   ...kitRecord(() => SIZE)
 };
 /** Whether the suite sweeps every look and time (CONFORMANCE=deep), as whoever designs or changes an effect runs it:

@@ -2,6 +2,6 @@
    video/kit-kernels.c, so a kind's place here is its kernel's there; each kernel's cost an evaluation (kit/compile.ts)
    and the share of its effect's pixels whose shadow runs past the shading's window (kitShadowRun in
    scripts/kit-gen.ts), which its clips' weight is worked out from (video.ts kitVideoWeight). */
-export const KIT_KERNEL_KINDS = ["demo", "zen", "strata"] as const;
-export const KIT_KERNEL_COSTS: readonly number[] = [112, 160, 151];
-export const KIT_SHADOW_RUNS: readonly number[] = [0, 0, 0];
+export const KIT_KERNEL_KINDS = ["demo", "strata"] as const;
+export const KIT_KERNEL_COSTS: readonly number[] = [112, 151];
+export const KIT_SHADOW_RUNS: readonly number[] = [0, 0];

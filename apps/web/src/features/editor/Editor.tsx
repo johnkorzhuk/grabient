@@ -693,7 +693,7 @@ function Stage(
   };
   const under = () => (onPage() ? "var(--color-bg)" : art());
   /* what the picture is to a screen reader: the gradient, or while an effect plays the page's own name for it, which
-     names the effect as its title and heading do ("Duotone beige to red zen garden") */
+     names the effect as its title and heading do ("Duotone beige to red sandstone") */
   const label = () => (e.effect() ? props.name() : t("The gradient"));
   /* an effect's soft: its layer blurred by a share of the stage's longer side (engine/view.ts effectSoftShare), its
      edges going to the gradient under it rather than to the page */

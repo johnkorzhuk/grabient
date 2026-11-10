@@ -908,7 +908,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:282",
-      "apps/web/src/features/editor/effect-sources.ts:368"
+      "apps/web/src/features/editor/effect-sources.ts:364"
     ]
   },
   "Columns": {
@@ -1064,7 +1064,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:345"
+      "apps/web/src/features/editor/effect-sources.ts:341"
     ]
   },
   "Copy link": {
@@ -1138,8 +1138,8 @@
       "apps/web/src/features/editor/Sheet.tsx:152",
       "apps/web/src/features/examples/Swatches.tsx:204",
       "apps/web/src/features/examples/Swatches.tsx:214",
-      "apps/web/src/features/gallery/take.ts:150",
-      "apps/web/src/features/gallery/take.ts:172"
+      "apps/web/src/features/gallery/take.ts:151",
+      "apps/web/src/features/gallery/take.ts:173"
     ]
   },
   "Couldn't copy the selection.": {
@@ -1207,7 +1207,7 @@
   "Couldn't download the palette.": {
     "note": "Error line after a failed download of a palette.",
     "refs": [
-      "apps/web/src/features/gallery/take.ts:159"
+      "apps/web/src/features/gallery/take.ts:160"
     ]
   },
   "Couldn't download the selection.": {
@@ -2150,7 +2150,7 @@
     "note": "Title of the link in the page's head to llms.txt.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:987",
-      "apps/web/src/routes/__root.tsx:98"
+      "apps/web/src/routes/__root.tsx:99"
     ]
   },
   "Harbor Hall": {
@@ -2285,7 +2285,7 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:74",
       "apps/web/src/features/editor/Sheet.tsx:489",
-      "apps/web/src/features/gallery/take.ts:146",
+      "apps/web/src/features/gallery/take.ts:147",
       "apps/web/src/features/selection/ExportScreen.tsx:136",
       "apps/web/src/mcp-view/PaletteView.tsx:244"
     ]
@@ -4131,7 +4131,7 @@
   "Sandstone": {
     "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as sandstone: the strata of a slot canyon's sandstone wall seen up close, plain bands of its colors meeting edge to edge, each band a step along the palette, swept round two swirls that slowly drift and reshape the sweep. Name the layered rock of a canyon wall as your language names it; not sand, not a single stone, and not sandstone as a building material or a color.",
     "refs": [
-      "packages/engine/src/kit/names.ts:10"
+      "packages/engine/src/kit/names.ts:9"
     ]
   },
   "Saturation and brightness": {
@@ -4488,7 +4488,7 @@
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
       "apps/web/src/features/editor/code.ts:300",
-      "apps/web/src/features/editor/effect-sources.ts:303"
+      "apps/web/src/features/editor/effect-sources.ts:299"
     ]
   },
   "Shape": {
@@ -5124,7 +5124,7 @@
   "The balls, their melt and the frost, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the blob plays: what its shader code draws, a pass at a time: the palette's balls, their melt (a blur that runs them together into blobs) and the frost over them, a grain that scatters the edges. The code is GLSL, WGSL or a WebGL or WebGPU page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:112"
+      "apps/web/src/features/editor/effect-sources.ts:108"
     ]
   },
   "The browser uses that key.": {
@@ -5160,7 +5160,7 @@
   "The dye, its folds' shade and light, in one pass.": {
     "note": "Editor's code pane, Shader tab while the silk plays: what its shader code draws in a single pass: the palette dyed along the cloth, and over it each fold's shade and its light. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:133"
+      "apps/web/src/features/editor/effect-sources.ts:129"
     ]
   },
   "The email has no unsubscribe link.": {
@@ -5176,15 +5176,9 @@
     ]
   },
   "The field at each pixel, then its plain sheets edge to edge, in one pass.": {
-    "note": "Editor's code pane, Shader tab while the sandstone plays: what its shader code draws, all in one pass: at each pixel, a smooth field (a height over the plane), then the sheets it is cut into along its levels, plain bands of color meeting edge to edge, with no shadow and no lit rim. Say \"sheets\" as the zen garden's note says it (\"its sheets and lines in turn\": the layers the field is cut into). The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
+    "note": "Editor's code pane, Shader tab while the sandstone plays: what its shader code draws, all in one pass: at each pixel, a smooth field (a height over the plane), then the sheets it is cut into along its levels, plain bands of color meeting edge to edge, with no shadow and no lit rim. \"Sheets\" are the layers the field is cut into. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:68"
-    ]
-  },
-  "The field at each pixel, then its sheets and lines in turn, in one pass.": {
-    "note": "Editor's code pane, Shader tab while an effect made of a field's sheets and lines plays: what its shader code draws, all in one pass: at each pixel, a smooth field (a height over the plane), then the sheets it is cut into along its levels and the lines along other levels over them, in turn. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
-    "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:67"
+      "apps/web/src/features/editor/effect-sources.ts:65"
     ]
   },
   "The first frame": {
@@ -5208,7 +5202,7 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:383"
+      "apps/web/src/features/editor/effect-sources.ts:379"
     ]
   },
   "The keyframes as JSON.": {
@@ -5262,26 +5256,26 @@
   "The petals ring by ring, the ground and the heart's glow, in one pass.": {
     "note": "Editor's code pane, Shader tab while the rosette plays: what its shader code draws in a single pass: the flower's petals, a ring of the palette at a time, the ground showing between them and the glow at the flower's heart. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:154"
+      "apps/web/src/features/editor/effect-sources.ts:150"
     ]
   },
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:402"
+      "apps/web/src/features/editor/effect-sources.ts:398"
     ]
   },
   "The picture as an SVG file, moving by SMIL alone.": {
     "note": "Editor's code pane, SVG tab while the silk plays: the picture as an animated SVG file whose motion is SMIL (SVG's own animation elements), with no script. SMIL is a name, kept as it is.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:400"
+      "apps/web/src/features/editor/effect-sources.ts:396"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:340",
-      "apps/web/src/features/editor/effect-sources.ts:403"
+      "apps/web/src/features/editor/effect-sources.ts:399"
     ]
   },
   "The profile's code": {
@@ -5293,13 +5287,13 @@
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the papercut plays: what its shader code draws, one pass after another: first the relief (the smooth field of hills and hollows the paper is cut from), then for each pixel the sheets of paper about it, each with its shadows, the thin lit edge where it is cut and its face. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:175"
+      "apps/web/src/features/editor/effect-sources.ts:171"
     ]
   },
   "The ribs, the colors' blur and the light, pass by pass.": {
     "note": "Editor's code pane, Shader tab while the fluted glass plays: what its shader code draws, a pass at a time: the glass's ribs, its colors blurred behind them, and the light on the ribs. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:90"
+      "apps/web/src/features/editor/effect-sources.ts:86"
     ]
   },
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": {
@@ -5317,7 +5311,7 @@
   "The stirred field at each pixel, its two nearest threads over the ground, in one pass.": {
     "note": "Editor's code pane, Shader tab while the strings play: what its shader code draws, all in one pass: at each pixel, the smooth field whose level lines are the threads, after the plane has been stirred (warped) by slow waves, then the two threads nearest that pixel laid over the dark ground. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:197"
+      "apps/web/src/features/editor/effect-sources.ts:193"
     ]
   },
   "The stops blurred along the line, at their places, blended in sRGB.": {
@@ -5329,13 +5323,13 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:364"
+      "apps/web/src/features/editor/effect-sources.ts:360"
     ]
   },
   "The tag that paints its first frame behind a page, for the page's head.": {
     "note": "Editor, the code pane's HTML tab while an effect with no script yet plays (every effect has one now; one can come before its script): the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:341"
+      "apps/web/src/features/editor/effect-sources.ts:337"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5353,7 +5347,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:340"
+      "apps/web/src/features/editor/effect-sources.ts:336"
     ]
   },
   "The wallpapers' code": {
@@ -5386,19 +5380,19 @@
     "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
     "refs": [
       "apps/web/src/features/editor/code.ts:315",
-      "apps/web/src/features/editor/effect-sources.ts:320"
+      "apps/web/src/features/editor/effect-sources.ts:316"
     ]
   },
   "Then its soft and grain, as the site lays them over it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture has both soft and grain: the shader's last passes blur it and lay the grain over it, as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:316"
+      "apps/web/src/features/editor/effect-sources.ts:312"
     ]
   },
   "Then its soft, as the site blurs it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture is soft: the shader's last passes blur it as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:318"
+      "apps/web/src/features/editor/effect-sources.ts:314"
     ]
   },
   "This address isn't a palette or a page.": {
@@ -6173,12 +6167,6 @@
       "apps/web/src/lib/page-meta.ts:489"
     ]
   },
-  "Zen garden": {
-    "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as a zen garden: a raked sand garden seen from above (a Japanese dry garden, karesansui), the rake's grooves ringing a group of two or three stones and running on as waves, each groove a step along the palette. Name the garden as your language names a Japanese rock garden; not a garden of plants, not meditation.",
-    "refs": [
-      "packages/engine/src/kit/names.ts:9"
-    ]
-  },
   "agent": {
     "note": "Admin view: the word for a seeding agent with no name.",
     "refs": [
@@ -6224,7 +6212,7 @@
   "blob": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as an animated blob, a soft amorphous shape of its colors: \"Vivid navy and blue blob\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Blob\" does. The same words start the line under the palette's name, capitalized there (\"Blob, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:413"
+      "packages/engine/src/effect.ts:419"
     ]
   },
   "blue": {
@@ -6359,7 +6347,7 @@
   "fluted glass": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as fluted (reeded) glass, its colors drifting behind a pane of curved ribs: \"Vivid navy and blue fluted glass\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Fluted glass\" does. The same words start the line under the palette's name, capitalized there (\"Fluted glass, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:412"
+      "packages/engine/src/effect.ts:418"
     ]
   },
   "frame\u00041w": {
@@ -6653,7 +6641,7 @@
   "papercut": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as papercut, its colors cut into sheets of paper stacked in a layered relief: \"Vivid navy and blue papercut\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Papercut\" does. The same words start the line under the palette's name, capitalized there (\"Papercut, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:416"
+      "packages/engine/src/effect.ts:422"
     ]
   },
   "pastel {colors}": {
@@ -6714,7 +6702,7 @@
   "rosette": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as a rosette, petals on a golden spiral like a dahlia seen from above: \"Vivid navy and blue rosette\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Rosette\" does. The same words start the line under the palette's name, capitalized there (\"Rosette, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:415"
+      "packages/engine/src/effect.ts:421"
     ]
   },
   "salmon": {
@@ -6733,7 +6721,7 @@
   "sandstone": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as sandstone, the strata of a canyon's sandstone wall swept round two swirls: \"Vivid navy and blue sandstone\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Sandstone\" does. The same words start the line under the palette's name, capitalized there (\"Sandstone, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/kit/names.ts:15"
+      "packages/engine/src/kit/names.ts:13"
     ]
   },
   "seamless {colors}": {
@@ -6745,7 +6733,7 @@
   "silk": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as silk, its colors dyed into satin that drapes in soft folds: \"Vivid navy and blue silk\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Silk\" does. The same words start the line under the palette's name, capitalized there (\"Silk, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:414"
+      "packages/engine/src/effect.ts:420"
     ]
   },
   "source\u0004Direct": {
@@ -6793,7 +6781,7 @@
   "strings": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as strings, many thin threads in its colors evenly spaced on a dark ground, stirred into bundles and loops: \"Vivid navy and blue strings\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Strings\" does. The same words start the line under the palette's name, capitalized there (\"Strings, 7 colors at 90°: …\"). Threads or string art, not musical strings, not text strings in code.",
     "refs": [
-      "packages/engine/src/effect.ts:417"
+      "packages/engine/src/effect.ts:423"
     ]
   },
   "tan": {
@@ -6857,12 +6845,6 @@
       "packages/engine/src/name.ts:514"
     ]
   },
-  "zen garden": {
-    "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as a zen garden, a raked sand garden seen from above, its grooves ringing a few stones: \"Vivid navy and blue zen garden\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Zen garden\" does. The same words start the line under the palette's name, capitalized there (\"Zen garden, 7 colors at 90°: …\").",
-    "refs": [
-      "packages/engine/src/kit/names.ts:14"
-    ]
-  },
   "{app}'s guide": {
     "note": "MCP page: link to an app's own setup guide.",
     "refs": [
@@ -6909,7 +6891,7 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:296",
-      "apps/web/src/features/editor/effect-sources.ts:373"
+      "apps/web/src/features/editor/effect-sources.ts:369"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {

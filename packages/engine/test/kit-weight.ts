@@ -4,7 +4,7 @@
    machine's other work weighs on both alike (process CPU time). Its kernel must be in the clips' module (`pnpm
    kit:gen`, then video/build.sh). Run it on a quiet machine: under load the same frames measured 39 and 47.
 
-     node packages/engine/test/kit-weight.ts kind=zen
+     node packages/engine/test/kit-weight.ts kind=strata
 
    kind: demo or a kit effect (demo); seeds: palettes' seeds (three); frames: frames drawn a box (10); steps: the
    view's steps, for an effect that takes them (its designed number unless said: the clipWeight a file writes is

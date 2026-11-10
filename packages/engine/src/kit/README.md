@@ -7,9 +7,8 @@ the player and the shader pages in GLSL and WGSL (gl.ts, wgsl.ts, page.ts, webgl
 packages/ui kit-player.ts), the clips in C (video/video.c, from kit-kernels.c), and the embed script (apps/web
 embed/kit.ts). An effect's author writes none of those. It has no Copy for Figma: its levels change shape as it
 moves, which no layer on Figma's timeline can, so a paste could only be its still, and its SVG is that (John, 8 Nov
-2026: "we can just drop it and they can use svg"). The zen garden and the sandstone
-(8 Nov 2026) are the site's; `fields/demo.ts` is the kit's own example, which its tests draw in every format and a new
-effect starts from.
+2026: "we can just drop it and they can use svg"). The sandstone (8 Nov 2026) is the site's; `fields/demo.ts` is the
+kit's own example, which its tests draw in every format and a new effect starts from.
 
 ## An effect's file (`fields/<kind>.ts`, types.ts FieldEffect)
 
@@ -104,7 +103,7 @@ All after `source ~/.cache/grabient-final-work/tools/env.sh`, from the repositor
 ## From a candidate to a site effect
 
 1. The candidate passes `kit-check.ts` and has been chosen.
-2. `pnpm kit:add <file> label="Zen garden" words="zen garden"` copies it to `fields/<kind>.ts` (imports relative),
+2. `pnpm kit:add <file> label="Sandstone" words="sandstone"` copies it to `fields/<kind>.ts` (imports relative),
    adds its kind to kinds.ts, its line to registry.ts, its two names to names.ts, its embed entry
    (apps/web/src/embed/<kind>.ts), and runs `pnpm kit:gen`. Run it again with a newer file to replace one: kit:gen
    then gives it a new drawing (gen/drawings.ts), so nothing kept of the old file is answered for it. The file needs
@@ -120,20 +119,21 @@ All after `source ~/.cache/grabient-final-work/tools/env.sh`, from the repositor
    notes, so none fails without one); each of the 15 languages' translations through `pnpm i18n merge <tag> <file>`;
    and a row in each of the 15 packages/i18n/glossary/<tag>.md, after its last effect's row and in its table's shape
    (ja's effect table has two columns, the others three, their third English). The Shader tab says what an effect's
-   passes draw from its recipe (apps/web features/editor/effect-sources.ts kitPasses): sheets and lines, or plain
-   sheets with neither shadow nor rim. A recipe neither says (lines alone, or sheets alone with a shadow or a rim) takes
-   a note of its own there, a third new message, and code.test.ts fails until it has one.
+   passes draw from its recipe (apps/web features/editor/effect-sources.ts kitPasses): plain sheets with neither
+   shadow nor rim, the sandstone's, the one recipe it has words for. Any other (lines, or sheets with a shadow or a
+   rim) takes a note of its own there, chosen by the recipe, a third new message, and code.test.ts fails until it
+   has one.
 4. Its example page: its entry in `PAGE_OF` in apps/web/scripts/examples-kit.ts (a palette picked by looking at the
    effect in it, its query, its tab's title, its heading "This page sits on " and the effect's words with their article
-   and a full stop, "This page sits on a zen garden.", and its lead; `pnpm typecheck` names a kind with none), then
-   `pnpm --filter web examples:kit`.
+   and a full stop, "This page sits on sandstone." (as the rosette's page says "on a rosette."), and its lead; `pnpm
+   typecheck` names a kind with none), then `pnpm --filter web examples:kit`.
 5. The words: `pnpm vitest run apps/web/src/server/seo/agents.test.ts -u` rewrites the llms texts' fixtures (`-u`
    last: it takes a value, and before the file it takes the file's name and updates every test's snapshots); the MCP's
    skill, skills/grabient/SKILL.md, is written by hand: the new kind's words in the sentence that plays an effect
    behind a page, a sentence of its own (`style=<kind>`, what it is, what its `.svg` is) beside the other field
    effects', and `<kind>` in the list's styles (agents.test.ts names a kind it leaves out). Then search for any other
-   hand list of effects, by an effect's kind: `grep -rnw zen apps packages skills --exclude-dir=fixtures
-   --exclude-dir=node_modules` (`-w`: the skill writes kinds in backticks, which a search for `"zen"` misses).
+   hand list of effects, by an effect's kind: `grep -rnw strata apps packages skills --exclude-dir=fixtures
+   --exclude-dir=node_modules` (`-w`: the skill writes kinds in backticks, which a search for `"strata"` misses).
 6. The clips' module (Tools above: build.sh writes VIDEO_MODULE), its clips' weight (kit-weight.ts, Tools above,
    written as `clipWeight`), and its gate for the gallery, which shows a built effect's gate from this file:
    `node packages/engine/test/kit-check.ts def=packages/engine/src/kit/fields/<kind>.ts palettes=all
@@ -148,36 +148,41 @@ All after `source ~/.cache/grabient-final-work/tools/env.sh`, from the repositor
      `E2E_SERVED=off` leaves out the served build, which can't start on a machine without the Cloudflare token the
      container's image is pulled with);
    - `pnpm i18n check --strict`;
-   - `pnpm build && pnpm --filter web budget`. Each field effect adds 0.8 to 1.3 KB to the MP4 worker (27.5 of 31
-     with two), 0.9 to 1.5 KiB to the Worker's modules (1479.4 of 1483) and 0.8 to 1.3 KB to a palette's examples
-     page's start (296.8 of 302), by its file's size (8 Nov 2026), its definition loaded with the others
+   - `pnpm build && pnpm --filter web budget`. Each field effect adds 0.8 to 1.5 KB to the MP4 worker (26.2 of 31
+     with one), 0.9 to 1.5 KiB to the Worker's modules (1479.8 to 1480.1 of 1483, by the build) and 0.8 to 1.6 KB to
+     a palette's examples page's start (295.3 of 302), by its file's size (8 Nov 2026; the zen garden's, the largest,
+     took 1.5, 1.1 to 1.4 and 1.6 off as it left on 10 Nov), its definition loaded with the others
      (kit/registry.ts), so expect to raise the first two with promotions, each with its dated reason beside it.
 
 ## Costs (8 Nov 2026)
 
-- CPU: kitRender 240 to 650 ns a pixel at 480 by 270 (the sandstone to the zen garden): a 1200 by 630 card 0.21 to
-  0.46 s, coded, and 0.36 to 0.65 s soft and grained; a picture is drawn within a card's pixels (apps/web
-  lib/picture-size.ts KIT_PICTURE_BOUNDS), so a PNG asked at 1920 by 1080 comes at 1159 by 652, where the other
-  effects' come whole up to 2,400 a side and 3 million pixels.
-- Stills: 11 to 29 KiB at the design square over 30 shapes and four angles each (the sandstone's 16 to 23 at its 40
-  steps), traced in 27 to 51 ms (35 to 71); a list's first screen, 16 stills the server traces, 0.6 s (zen) to 0.7 to
-  0.9 s (strata), the strings' 1.1 s, the papercut's 0.2.
-- Clips: the zen garden's kernel read three times a pixel (the pixel, the shadow's point, the rim's), the sandstone's
-  once; measured weights 41 and 22 against the strings' 17, where kitVideoWeight's estimate gives 73.8 and 28.6. Each
-  shadow or rim a recipe leaves out saves a kernel read in the CPU and the clips. The Worker draws a clip within its
-  work (VIDEO_LIMITS, 1.6e9), which at those weights is a thumbnail: at its defaults (60 frames a second, the loop up
-  to 60 s) the zen garden's comes at 142 by 74 and the sandstone's 196 by 102 (the rosette's 726 by 380, the strings'
-  222 by 116), at 30 frames a second 202 by 106 and 276 by 144, and asking 1920 by 1080 changes nothing; the editor's
-  Download MP4 is the same clip, drawn in the reader's browser. Only staging's container draws them whole (up to 3840
-  by 2160). Coded at the glass's quantizer: the zen garden 0.43 to 0.54 Mbit/s at 640 by 360 (42.1 to 43.2 dB), the
-  sandstone 0.14 to 0.21 (47.5 to 49.4), where the strings' threads cost 5.7 to 9.0 (video.ts VIDEO_QUALITY).
-- GPU (RTX 2080 Ti, 3840 by 2160): 0.35 to 0.56 ms a frame (the sandstone) to 0.74 to 1.09 (the zen garden) (gl.ts).
-- Embed scripts: about 21 KiB gzipped each (the sandstone's 20.6, the zen garden's 21.6).
+The sandstone's, the site's one field effect. The costliest the site has played was the zen garden (8 to 10 Nov 2026),
+a kernel at the budget read three times a pixel: where its numbers set a limit or told of a fix, the code beside it
+keeps them (apps/web lib/picture-size.ts's bound, video.ts's weights, kit-check.ts's card, gl.ts and svg.ts).
+
+- CPU: kitRender 240 to 390 ns a pixel at 480 by 270, its kernel read once a pixel (the demo, read at the pixel, its
+  shadow's point and its rim's, 630 to 757): a 1200 by 630 card 0.21 s, coded, and 0.36 to 0.37 s soft and grained; a
+  picture is drawn within a card's pixels (apps/web lib/picture-size.ts KIT_PICTURE_BOUNDS), so a PNG asked at 1920
+  by 1080 comes at 1159 by 652, where the other effects' come whole up to 2,400 a side and 3 million pixels.
+- Stills: 11 to 16 KiB at the design square over 30 shapes and four angles each (16 to 23 at its 40 steps), traced in
+  27 to 51 ms (35 to 71); a list's first screen, 16 stills the server traces, 0.7 to 0.9 s, the strings' 1.1 s, the
+  papercut's 0.2.
+- Clips: its kernel read once a pixel, where a recipe with a shadow and a rim reads it three times (the pixel, the
+  shadow's point, the rim's); its measured weight 22 against the strings' 17, where kitVideoWeight's estimate gives
+  28.6. Each shadow or rim a recipe leaves out saves a kernel read in the CPU and the clips. The Worker draws a clip
+  within its work (VIDEO_LIMITS, 1.6e9), which at that weight is a thumbnail: at its defaults (60 frames a second, the
+  loop up to 60 s) it comes at 196 by 102 (the rosette's 726 by 380, the strings' 222 by 116), at 30 frames a second
+  276 by 144, and asking 1920 by 1080 changes nothing; the editor's Download MP4 is the same clip, drawn in the
+  reader's browser. Only staging's container draws them whole (up to 3840 by 2160). Coded at the glass's quantizer:
+  0.14 to 0.21 Mbit/s at 640 by 360 (47.5 to 49.4 dB), where the strings' threads cost 5.7 to 9.0 (video.ts
+  VIDEO_QUALITY).
+- GPU (RTX 2080 Ti, 3840 by 2160): 0.35 to 0.56 ms a frame, the demo 0.45 to 0.63 in the same runs (gl.ts).
+- Embed script: 20.7 KiB gzipped (10 Nov 2026).
 
 ## What looked good (round one, 8 Nov 2026)
 
-Twelve directions were tried and three built, of which the site keeps the zen garden (the sandstone came of later
-rounds). What the critiques kept finding:
+Twelve directions were tried and three built, of which the site kept the zen garden until 10 Nov 2026, when John had
+it removed (the sandstone came of later rounds). What the critiques kept finding:
 - Ink shadows muddy pastel and dark palettes: shadows in the color of the sheet below (`tint: "below"`) keep them
   clean; rims in the sheet's own color lit (`tint: "own"`) read as material where white rims read as plastic.
 - A face that is one flat level reads as a tile or vector clip-art; a material needs a crown (a raised sheet in the

@@ -1,9 +1,28 @@
 import { blobShapeOf } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import { LOOK_MAX } from "./address.ts";
-import { keptLook, readLook, savedLook } from "./look.ts";
+import { keptLook, lookKind, readLook, savedLook } from "./look.ts";
 
 const SEED = "kS7Q8Yy5S_SChv0";
+
+test("a look a save kept of an effect the site plays no more is read as no effect, as any style that names none", () => {
+  /* the zen garden (style=zen) was a field effect on staging from 8 to 10 Nov 2026, and a like or a collection's
+     palette saved while it played kept "style=zen" and its settings in its look */
+  const view = { style: "linearGradient", steps: 7, angle: 30 } as const;
+  for (const style of ["zen", "wobble"]) {
+    expect(lookKind(`style=${style}&angle=30&shape=7`), style).toBeNull();
+    expect(readLook(SEED, `style=${style}&angle=30&shape=7`), style).toEqual({
+      view: { ...view },
+      effect: null
+    });
+    /* it says no more than its row's view, so the row reads as a plain palette in that view */
+    expect(keptLook(SEED, `style=${style}&angle=30&speed=2&shape=7`, view), style).toBeNull();
+    /* but for a soft or a grain saved with it, which stay the gradient's */
+    expect(keptLook(SEED, `style=${style}&angle=30&grain=20&shape=7`, view), style).toBe(
+      "angle=30&grain=20"
+    );
+  }
+});
 
 test("a save keeps a look written canonically, beside its view, and only where it says more than the view", () => {
   const view = { style: "linearGradient", steps: 7, angle: 30 } as const;
