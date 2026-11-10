@@ -933,6 +933,8 @@
   "Your display name on palettes": "نام نمایشی شما روی پالت‌ها",
   "Your image": "تصویر شما",
   "Your saved Grabient palettes.": "پالت‌های ذخیره‌شده شما در Grabient.",
+  "Zoom": "بزرگ‌نمایی",
+  "Zoom {value}": "بزرگ‌نمایی {value}",
   "agent": "عامل",
   "analogous {colors}": "{colors} (همجوار)",
   "angular gradient": "گرادیان زاویه‌ای",

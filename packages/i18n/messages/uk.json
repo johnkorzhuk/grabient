@@ -933,6 +933,8 @@
   "Your display name on palettes": "Ваше відображуване ім’я на палітрах",
   "Your image": "Ваше зображення",
   "Your saved Grabient palettes.": "Ваші збережені палітри Grabient.",
+  "Zoom": "Масштаб",
+  "Zoom {value}": "Масштаб {value}",
   "agent": "агент",
   "analogous {colors}": "{colors}, аналогова гама",
   "angular gradient": "кутовий градієнт",

@@ -3,7 +3,8 @@
    turns its ribs (the blob has none: its palette lies from left to right), then how it plays: `speed` (the loop's pace, 1 as designed, 0 its
    first frame held with no motion) and `fps` (frames a second at most: 60 unless it says, up to 120 where a screen
    shows that many), then its look: `shape`, a number from 0 to 999 that picks the blobs' forms and wanderings or the
-   glass's ribs and the colors drifting behind them, the blob's `frost`, and `bg`, the ground of an effect that takes
+   glass's ribs and the colors drifting behind them (the dimple has none, and `zoom` in its place: how much larger
+   than designed it is drawn, 1 to 4, none as designed), the blob's `frost`, and `bg`, the ground of an effect that takes
    one (EFFECT_KINDS' `ground`: the blob's and the strings'): any CSS color, which an address keeps as hex (the Worker
    writes any other spelling as hex, css-color.ts), none leaving the blob clear and the strings on their designed
    ground.
@@ -50,6 +51,14 @@ export const isEffect = (value: unknown): value is EffectKind =>
     was designed at, which an address leaves out (kit/types.ts KitSteps). */
 export type EffectSteps = KitSteps;
 
+/** The range of zoom an effect takes (the dimple's), least to most, and the zoom it was designed at, which an address
+    leaves out: how much larger than designed its picture is drawn, kept to two decimals. */
+export interface EffectZoom {
+  least: number;
+  most: number;
+  designed: number;
+}
+
 /** What an effect's look's `bg` is where its address names none: "clear", the page through it (the blob's), or
     "designed", the ground it was designed on (the strings' deep ground, the palette's darkest color made deeper). */
 export type EffectGround = "clear" | "designed";
@@ -75,6 +84,12 @@ export interface EffectKindFacts {
       takes them (the sandstone's: how many bands a sweep of the palette spans), its look's `steps`; null for one the
       steps leave alone, whose address leaves them out */
   steps: EffectSteps | null;
+  /** the range of zoom it takes in its shape's place, the Appearance menu's Zoom field and `zoom=` in its address, its
+      look's `zoom` (the dimple's: how large its discs and its hollow are drawn), which has one design and no shape
+      (John, 10 Nov 2026, of its shapes: "theres barely any difference", then "lets repalce shape with a zoom option
+      for this style"); null for one a number 0 to 999 picks the shape of (its look's `shape`, `shape=` in its address
+      and the editor's Shape field), whose address leaves `zoom` out */
+  zoom: EffectZoom | null;
   /** drawn by ui/effect-loop.ts over a vector still */
   vector: boolean;
   /** its still stands in for its first frame rather than being it (the papercut's shadows stepped, for a list's cards
@@ -110,6 +125,7 @@ const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
   angle: true,
   soft: true,
   ground: null,
+  zoom: null,
   vector: true,
   steppedStill: false,
   svgMotion: null,
@@ -126,6 +142,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     soft: true,
     ground: null,
     steps: null,
+    zoom: null,
     vector: false,
     steppedStill: false,
     svgMotion: "css",
@@ -141,6 +158,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     soft: false,
     ground: "clear",
     steps: null,
+    zoom: null,
     vector: false,
     steppedStill: false,
     svgMotion: "css",
@@ -156,6 +174,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     soft: true,
     ground: null,
     steps: null,
+    zoom: null,
     vector: true,
     steppedStill: false,
     svgMotion: "smil",
@@ -171,6 +190,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     soft: true,
     ground: null,
     steps: null,
+    zoom: null,
     vector: true,
     steppedStill: false,
     svgMotion: "css",
@@ -186,6 +206,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     soft: true,
     ground: null,
     steps: null,
+    zoom: null,
     vector: true,
     steppedStill: true,
     svgMotion: null,
@@ -201,6 +222,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     soft: true,
     ground: "designed",
     steps: null,
+    zoom: null,
     vector: true,
     steppedStill: false,
     svgMotion: null,
@@ -216,6 +238,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     soft: true,
     ground: null,
     steps: null,
+    zoom: { least: 1, most: 4, designed: 1 },
     vector: true,
     steppedStill: false,
     svgMotion: null,
@@ -228,6 +251,10 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   ...kitRecord(kind => ({ ...KIT_FACTS, steps: KIT_STEPS[kind] }))
 };
+/** Whether a number 0 to 999 picks an effect's shape: every effect's but one that takes a zoom in its shape's place
+    (EFFECT_KINDS' `zoom`: the dimple, whose zoom runs from its design, which draws as many discs as its still may
+    weigh, to four times as large). */
+export const takesShape = (kind: EffectKind): boolean => !EFFECT_KINDS[kind].zoom;
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
     without offers its stylesheet alone, which paints its still, in its strips, its tags and its Markdown. */
 export const hasEmbedScript = (kind: EffectKind): boolean => EFFECT_KINDS[kind].embed;
@@ -261,12 +288,12 @@ export const EFFECT_PIXELS_MAX = 8_300_000;
 /** Milliseconds a canvas's new size settles before a player lays its drawing out again. */
 export const EFFECT_SETTLE_MS = 150;
 
-/** An effect's look: its shape, the blob's frost, the ground of an effect that takes one and the steps of one that
-    takes them, each left as it is by an effect that takes none. */
+/** An effect's look: its shape, the blob's frost, the ground of an effect that takes one, the steps of one that takes
+    them and the zoom of one that takes one, each left as it is by an effect that takes none. */
 export interface EffectLook {
   /** a number from 0 to SHAPE_MAX that picks the shape: the blobs' forms, where they stand and how they wander, or
       the glass's ribs and the colors drifting behind them; null for the blob the palette's own numbers draw, and the
-      glass as designed, which shape 0 is too */
+      glass as designed, which shape 0 is too, and for an effect that takes no shape (EFFECT_KINDS' `shape`) */
   shape: number | null;
   /** the blob's frost: 1 as designed, 0 none, BLOB_FROST_MAX twice */
   frost: number;
@@ -277,8 +304,11 @@ export interface EffectLook {
   /** an effect's steps where it takes them (EFFECT_KINDS' `steps`), within their range: null as designed, and for every
       effect that takes none */
   steps: number | null;
+  /** an effect's zoom where it takes one (EFFECT_KINDS' `zoom`), within its range: null as designed, and for every
+      effect that takes none */
+  zoom: number | null;
 }
-export const EFFECT_LOOK: EffectLook = { shape: null, frost: 1, bg: null, steps: null };
+export const EFFECT_LOOK: EffectLook = { shape: null, frost: 1, bg: null, steps: null, zoom: null };
 export const BLOB_FROST_MAX = 2;
 /** The last shape number, the same for both effects: an address writes a shape in one to three digits. */
 export const SHAPE_MAX = 999;
@@ -344,31 +374,35 @@ export function readBlobStillKey(key: string): { seed: string; look: EffectLook 
   return blobStillKey(seed, look) === key ? { seed, look } : null;
 }
 
-/** What a vector effect's first frame depends on besides its palette: its turn, its shape, its steps and its ground. */
+/** What a vector effect's first frame depends on besides its palette: its turn, its shape, its steps, its zoom and its
+    ground. */
 export interface FxLook {
   angle: number;
   /** 0 or none: as designed */
   shape: number | null;
   /** its look's steps where it takes them (EffectLook): null as designed, and for every effect that takes none */
   steps: number | null;
+  /** its look's zoom where it takes one (EffectLook): null as designed, and for every effect that takes none */
+  zoom: number | null;
   /** its look's ground where it takes one (EffectLook): null as designed, and for every effect that takes none */
   bg: string | null;
 }
 
-/** A vector effect's FxLook: the view's angle and its look's shape, steps and ground. */
+/** A vector effect's FxLook: the view's angle and its look's shape, steps, zoom and ground. */
 export const fxLookOf = (
-  look: Pick<EffectLook, "shape" | "steps" | "bg">,
+  look: Pick<EffectLook, "shape" | "steps" | "zoom" | "bg">,
   angle: number
 ): FxLook => ({
   angle,
   shape: look.shape,
   steps: look.steps,
+  zoom: look.zoom,
   bg: look.bg
 });
 
 /** The name a still goes by on a page: its kind, its palette's seed, its angle and its shape, its steps where its look
-    names them (an effect that takes steps, at any but its designed number) and its ground where it names one, its
-    `#` telling it from steps. */
+    names them (an effect that takes steps, at any but its designed number), its zoom where it names one, its `x`
+    telling it from steps, and its ground where it names one, its `#` telling it from both. */
 export const fxStillKey = (kind: VectorKind, seed: string, look: FxLook): string =>
   [
     kind,
@@ -376,6 +410,7 @@ export const fxStillKey = (kind: VectorKind, seed: string, look: FxLook): string
     look.angle,
     look.shape ?? "",
     ...(look.steps === null ? [] : [look.steps]),
+    ...(look.zoom === null ? [] : [`${look.zoom}x`]),
     ...(look.bg === null ? [] : [look.bg])
   ].join("|");
 
@@ -399,15 +434,23 @@ export interface Effect extends EffectSettings {
 
 /** An effect's steps as its look keeps them: a whole number within the range it takes (EFFECT_KINDS' `steps`), none
     at its designed number, and none for anything that is no number or an effect that takes no steps. */
-export function effectSteps(kind: EffectKind, value: unknown): number | null {
-  const range = EFFECT_KINDS[kind].steps;
+export const effectSteps = (kind: EffectKind, value: unknown): number | null =>
+  inRange(EFFECT_KINDS[kind].steps, value, 1);
+/** An effect's zoom as its look keeps it: two decimals within the range it takes (EFFECT_KINDS' `zoom`), none at its
+    designed zoom, and none for anything that is no number or an effect that takes no zoom. */
+export const effectZoom = (kind: EffectKind, value: unknown): number | null =>
+  inRange(EFFECT_KINDS[kind].zoom, value, 100);
+/* a number kept to `grain` a unit within a range, none at its designed value, and none for anything that is no number
+   or a range that is none */
+function inRange(range: EffectZoom | null, value: unknown, grain: number): number | null {
   const n = typeof value === "number" || typeof value === "string" ? Number(value) : Number.NaN;
   if (!range || value === "" || value === null || !Number.isFinite(n)) return null;
-  const kept = clamp(Math.round(n), range.least, range.most);
+  const kept = clamp(Math.round(n * grain) / grain, range.least, range.most);
   return kept === range.designed ? null : kept;
 }
-/** A look as stored or asked for: each part in its bounds, its steps and its ground those `kind` takes (effectSteps,
-    effectGround); where no kind is said, no steps, and a ground as the blob's, none where clear. */
+/** A look as stored or asked for: each part in its bounds, its steps, its zoom and its ground those `kind` takes
+    (effectSteps, effectZoom, effectGround) and its shape where it takes one; where no kind is said, no steps and no
+    zoom, and a ground as the blob's, none where clear. */
 export function effectLook(
   v: Partial<EffectLook> | null | undefined,
   kind?: EffectKind
@@ -416,12 +459,16 @@ export function effectLook(
   const shape = Number(v?.shape);
   return {
     shape:
-      v?.shape === null || v?.shape === undefined || !Number.isFinite(shape)
+      (kind && !takesShape(kind)) ||
+      v?.shape === null ||
+      v?.shape === undefined ||
+      !Number.isFinite(shape)
         ? null
         : clamp(Math.round(shape), 0, SHAPE_MAX),
     frost: Number.isFinite(frost) ? clamp(Math.round(frost * 100) / 100, 0, BLOB_FROST_MAX) : 1,
     bg: kind ? effectGround(kind, v?.bg) : typeof v?.bg === "string" ? groundHex(v.bg) : null,
-    steps: kind ? effectSteps(kind, v?.steps) : null
+    steps: kind ? effectSteps(kind, v?.steps) : null,
+    zoom: kind ? effectZoom(kind, v?.zoom) : null
   };
 }
 
@@ -463,8 +510,9 @@ export const effectView = (P: Palette): Pick<View, "style" | "steps"> => {
 /** The effect an address asks for, or null where its style is a gradient's or none. The glass reads its shape alone
     of the look, its shape 0 the glass as designed, as none is. A shape of one to three digits is read; a longer number
     is no shape, as any word that is no number is, rather than another shape under a second address. An effect that
-    takes steps reads `steps` of one to three digits too, clamped to its range, none at its designed number, and one
-    that takes a ground its `bg` (effectGround). */
+    takes no shape reads none (EFFECT_KINDS' `shape`). An effect that takes steps reads `steps` of one to three digits
+    too, clamped to its range, none at its designed number; one that takes a zoom reads `zoom`, a number kept to two
+    decimals within its range, none at its designed zoom; and one that takes a ground its `bg` (effectGround). */
 export function parseEffect(params: ParamReader): Effect | null {
   const kind = params.get("style");
   if (!isEffect(kind)) return null;
@@ -472,7 +520,8 @@ export function parseEffect(params: ParamReader): Effect | null {
   const shape = params.get("shape");
   const frost = params.get("frost");
   const steps = params.get("steps");
-  const shaped = shape !== null && /^\d{1,3}$/.test(shape) ? Number(shape) : null;
+  const shaped =
+    takesShape(kind) && shape !== null && /^\d{1,3}$/.test(shape) ? Number(shape) : null;
   return {
     kind,
     speed: speed === null ? 1 : effectSpeed(speed),
@@ -488,7 +537,8 @@ export function parseEffect(params: ParamReader): Effect | null {
             ...EFFECT_LOOK,
             shape: shaped || null,
             bg: effectGround(kind, params.get("bg")),
-            steps: steps !== null && /^\d{1,3}$/.test(steps) ? effectSteps(kind, steps) : null
+            steps: steps !== null && /^\d{1,3}$/.test(steps) ? effectSteps(kind, steps) : null,
+            zoom: effectZoom(kind, params.get("zoom"))
           }
   };
 }
@@ -498,7 +548,8 @@ const written = (parts: (string | false | null)[]): string[] =>
 
 /** An effect's look as an address writes it, defaults left out: all its first frame depends on but its palette and
     the glass's angle. The glass's is its shape alone, the sandstone's its steps and its shape, the strings' their
-    shape and their ground; a ground is written with its `#` (escaped), so no color reads as a number. */
+    shape and their ground, the dimple's its zoom; a ground is written with its `#` (escaped), so no color reads as a
+    number. */
 export const effectLookParts = (effect: Effect): string[] => {
   const look = effect.look;
   const kind = EFFECT_KINDS[effect.kind];
@@ -512,7 +563,8 @@ export const effectLookParts = (effect: Effect): string[] => {
         ]
       : [
           look.steps !== null && kind.steps !== null && `steps=${look.steps}`,
-          look.shape ? `shape=${look.shape}` : null,
+          look.zoom !== null && kind.zoom !== null && `zoom=${look.zoom}`,
+          look.shape && !kind.zoom ? `shape=${look.shape}` : null,
           bg
         ]
   );
@@ -598,4 +650,5 @@ export const sameSettings = (a: EffectSettings, b: EffectSettings): boolean =>
   a.look.frost === b.look.frost &&
   a.look.shape === b.look.shape &&
   a.look.bg === b.look.bg &&
-  a.look.steps === b.look.steps;
+  a.look.steps === b.look.steps &&
+  a.look.zoom === b.look.zoom;

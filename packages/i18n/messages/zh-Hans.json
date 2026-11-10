@@ -933,6 +933,8 @@
   "Your display name on palettes": "你在调色板上的显示名称",
   "Your image": "你的图片",
   "Your saved Grabient palettes.": "你在 Grabient 上保存的调色板。",
+  "Zoom": "缩放",
+  "Zoom {value}": "缩放 {value}",
   "agent": "智能体",
   "analogous {colors}": "邻近色的{colors}",
   "angular gradient": "角度渐变",

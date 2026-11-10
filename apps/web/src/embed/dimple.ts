@@ -15,7 +15,7 @@ mount({
     fxCover(
       dimpleStillSvg(
         P,
-        { angle, shape: effect.look.shape },
+        { angle, zoom: effect.look.zoom },
         { width: FX_STILL_SIDE, height: FX_STILL_SIDE }
       )
     ),
@@ -23,7 +23,7 @@ mount({
     playDimple(
       canvas,
       P,
-      { angle, shape: effect.look.shape, speed: effect.speed, fps: effect.fps },
+      { angle, zoom: effect.look.zoom, speed: effect.speed, fps: effect.fps },
       drawn,
       { reduced }
     )

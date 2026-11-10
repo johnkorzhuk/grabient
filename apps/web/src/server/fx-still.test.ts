@@ -12,9 +12,9 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
   test("its name reads back as the kind, the palette and the look it was written for", () => {
     for (const kind of ["silk", "rosette", "papercut"] as const)
       for (const look of [
-        { angle: 90, shape: null, steps: null, bg: null },
-        { angle: 0, shape: 0, steps: null, bg: null },
-        { angle: 315, shape: 999, steps: null, bg: null }
+        { angle: 90, shape: null, steps: null, zoom: null, bg: null },
+        { angle: 0, shape: 0, steps: null, zoom: null, bg: null },
+        { angle: 315, shape: 999, steps: null, zoom: null, bg: null }
       ]) {
         const key = fxStillKey(kind, SEED, look);
         expect(readFxStillKey(key)).toEqual({ kind, seed: SEED, look });
@@ -23,13 +23,13 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
 
   test("the sandstone's names its steps where its look names them, and reads them back; any other spelling names nothing", () => {
     for (const steps of [null, 8, 12, 40]) {
-      const look = { angle: 135, shape: 7, steps, bg: null };
+      const look = { angle: 135, shape: 7, steps, zoom: null, bg: null };
       const key = fxStillKey("strata", SEED, look);
       expect(readFxStillKey(key)).toEqual({ kind: "strata", seed: SEED, look });
     }
-    expect(fxStillKey("strata", SEED, { angle: 90, shape: null, steps: 12, bg: null })).toBe(
-      `strata|${SEED}|90||12`
-    );
+    expect(
+      fxStillKey("strata", SEED, { angle: 90, shape: null, steps: 12, zoom: null, bg: null })
+    ).toBe(`strata|${SEED}|90||12`);
     /* its designed steps written out, steps past its range, and steps for an effect that takes none */
     for (const key of [
       `strata|${SEED}|90||28`,
@@ -40,7 +40,13 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
     ])
       expect(readFxStillKey(key), key).toBeNull();
     /* and the server paints it as it paints any */
-    const key = fxStillKey("strata", SEED, { angle: 90, shape: null, steps: 12, bg: null });
+    const key = fxStillKey("strata", SEED, {
+      angle: 90,
+      shape: null,
+      steps: 12,
+      zoom: null,
+      bg: null
+    });
     expect(/<style id="fx-still" data-key="([^"]*)">/.exec(fxStills(page(key)))?.[1]).toBe(key);
   });
 
@@ -64,7 +70,13 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
   });
 
   test("the server writes the still into the head, a style for the holder's name, and nothing else", () => {
-    const key = fxStillKey("rosette", SEED, { angle: 120, shape: 7, steps: null, bg: null });
+    const key = fxStillKey("rosette", SEED, {
+      angle: 120,
+      shape: 7,
+      steps: null,
+      zoom: null,
+      bg: null
+    });
     const html = fxStills(page(key));
     const style = /<style id="fx-still" data-key="([^"]*)">([^<]*)<\/style><\/head>/.exec(html);
     expect(style?.[1]).toBe(key);
@@ -81,7 +93,13 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
   });
 
   test("the papercut's still in the head is its stepped one, its shadows strokes, no blur", () => {
-    const key = fxStillKey("papercut", SEED, { angle: 30, shape: 7, steps: null, bg: null });
+    const key = fxStillKey("papercut", SEED, {
+      angle: 30,
+      shape: 7,
+      steps: null,
+      zoom: null,
+      bg: null
+    });
     const html = fxStills(page(key));
     const style = /<style id="fx-still" data-key="([^"]*)">([^<]*)<\/style><\/head>/.exec(html);
     expect(style?.[1]).toBe(key);
@@ -94,7 +112,7 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
     const cards = (keys: string[]) =>
       `<html><head></head><body>${keys.map(k => `<span class="c" data-fx-still="${k}"></span>`).join("")}</body></html>`;
     const keys = [3, 45, 3, 10].map(shape =>
-      fxStillKey("silk", SEED, { angle: 90, shape, steps: null, bg: null })
+      fxStillKey("silk", SEED, { angle: 90, shape, steps: null, zoom: null, bg: null })
     );
     const html = fxStills(cards(keys));
     expect(/<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1]).toBe(
@@ -102,7 +120,7 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
     );
     expect(html.match(/\]\{background:/g)).toHaveLength(3);
     const many = Array.from({ length: FIRST_SCREEN_STILLS + 5 }, (_, shape) =>
-      fxStillKey("rosette", SEED, { angle: 90, shape, steps: null, bg: null })
+      fxStillKey("rosette", SEED, { angle: 90, shape, steps: null, zoom: null, bg: null })
     );
     const capped = fxStills(cards(many));
     expect(capped.match(/\]\{background:/g)).toHaveLength(FIRST_SCREEN_STILLS);

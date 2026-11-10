@@ -67,7 +67,7 @@ const blob = (bg: string | null): Effect => ({
   kind: "blob",
   speed: 1,
   fps: 60,
-  look: { shape: 1, frost: 1, bg, steps: null }
+  look: { shape: 1, frost: 1, bg, steps: null, zoom: null }
 });
 
 describe("drawnColors", () => {
@@ -285,7 +285,7 @@ const fx = (kind: VectorKind, seed: string, angle: number, shape: number | null)
   seed,
   palette: real(seed),
   view: { style: "linearGradient", steps: 7, angle },
-  effect: { kind, speed: 1, fps: 60, look: { shape, frost: 1, bg: null, steps: null } }
+  effect: { kind, speed: 1, fps: 60, look: { shape, frost: 1, bg: null, steps: null, zoom: null } }
 });
 const rgbOf = (hex: string) => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16));
 
@@ -432,8 +432,10 @@ describe("the vector effects", () => {
                     })()
                   : kind === "dimple"
                     ? (() => {
-                        /* it has no loop: each "frame" is its hollow at another place across the box */
-                        const scene = dimpleScene(s.palette, view, box);
+                        /* it has no loop: each "frame" is its hollow at another place across the box;
+                           it takes no shape, and a zoom in its place */
+                        const zoom = shape === null ? null : shape === 7 ? 2.5 : 4;
+                        const scene = dimpleScene(s.palette, { angle, zoom }, box);
                         return (f: number) =>
                           renderDimple(scene, f ? [f * box.width, (1 - f) * box.height] : null);
                       })()
@@ -495,7 +497,7 @@ describe("the glass", () => {
           kind: "glass",
           speed: 1,
           fps: 60,
-          look: { shape: null, frost: 1, bg: null, steps: null }
+          look: { shape: null, frost: 1, bg: null, steps: null, zoom: null }
         };
         const s: Shown = {
           seed,
@@ -562,7 +564,7 @@ describe("a soft look", () => {
             kind,
             speed: 1,
             fps: 60,
-            look: { shape: null, frost: 1, bg: null, steps: null }
+            look: { shape: null, frost: 1, bg: null, steps: null, zoom: null }
           };
           const look = { ...s, effect };
           const px = await effectRgba(look.palette, effect, 45, box, soft || null);

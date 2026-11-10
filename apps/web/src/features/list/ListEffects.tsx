@@ -33,6 +33,7 @@ export function EffectSwatch(props: {
       angle={props.angle}
       shape={props.effect.look.shape}
       steps={props.effect.look.steps}
+      zoom={props.effect.look.zoom}
       bg={props.effect.look.bg}
     />
   );

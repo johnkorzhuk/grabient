@@ -774,7 +774,12 @@ test("the playing rosette turns and zooms on Figma's timeline as its moving SVG 
 
 /* the soft and the grain, and the gradient the site lays under a soft effect */
 const underlayOf = (kind: Effect["kind"], angle: number, soft: number, bg: string | null = null) =>
-  effectUnderlay(palette, { kind, look: { shape: null, frost: 1, bg, steps: null } }, angle, soft);
+  effectUnderlay(
+    palette,
+    { kind, look: { shape: null, frost: 1, bg, steps: null, zoom: null } },
+    angle,
+    soft
+  );
 /* the gradient a press makes for a view, for a soft one alone */
 const madeFor = (
   kind: Effect["kind"],

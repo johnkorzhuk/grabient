@@ -36,6 +36,7 @@ time; add a row when a new product word gets its translation.
 | strings (an effect) | Sợi chỉ | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for thread, as thread art names it (tranh chỉ). Not dây đàn (musical strings) nor chuỗi (strings in code). |
 | sandstone (an effect) | Đá sa thạch | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's name as Vietnamese says it. Not *cát* (sand). |
 | dimple (an effect) | Vết lõm | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the plain word for a dent pressed into a surface. Not *lúm đồng tiền* (a dimple in a cheek). |
+| zoom (the dimple's Zoom field) | Thu phóng | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. As Figma and Photoshop VI name it. |
 | swatches, bands (the style) | sọc màu, sọc | Hard bands of the colors. "khối" is taken by the color solid, and "ô màu" reads as square tiles. "{count} hard bands" = "{count} sọc". |
 | Swatches (the strip's swatch files) | Mẫu màu | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Chuyển sang mẫu màu. |
 | style | kiểu | "Sai kiểu, số bước hoặc góc". |

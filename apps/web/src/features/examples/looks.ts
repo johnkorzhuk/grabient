@@ -20,8 +20,10 @@ import {
   type EffectKind,
   effectFinish,
   effectSteps,
+  effectZoom,
   isEffect,
-  SHAPE_MAX
+  SHAPE_MAX,
+  takesShape
 } from "@grabient/engine/effect.ts";
 import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
@@ -185,8 +187,9 @@ export function finished(s: Shown, name: string): Shown {
 /** The palette in a look as a part named `name` shows it: a gradient as smooth as it needs, bands as many as the seed
     picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings and the blob,
     which have none, at the default's. An effect lies at the page's one angle for it, as designed, and the blob in its
-    palette's shape; or, given `own`, in a shape of its own, at an angle of its own too, and in steps of its own where
-    it takes them (the sandstone's bands, within their range), as a look a reader turns to is. */
+    palette's shape; or, given `own`, in a shape of its own (a zoom of its own where it takes one in its shape's place:
+    the dimple's), at an angle of its own too, and in steps of its own where it takes them (the sandstone's bands,
+    within their range), as a look a reader turns to is. */
 export function inLook(
   seed: string,
   palette: Palette,
@@ -199,10 +202,22 @@ export function inLook(
   const angleFor = (of: string, on = 0) =>
     ANGLES[(Math.floor(seeded(seed, `${of}:angle`) * ANGLES.length) + on) % ANGLES.length];
   if (isEffect(look)) {
-    const shape = own
-      ? Math.floor(seeded(seed, `${own}:shape`) * (SHAPE_MAX + 1))
-      : look === "blob"
-        ? blobShapeOf(seed)
+    const shape = !takesShape(look)
+      ? null
+      : own
+        ? Math.floor(seeded(seed, `${own}:shape`) * (SHAPE_MAX + 1))
+        : look === "blob"
+          ? blobShapeOf(seed)
+          : null;
+    /* a zoom in a tenth's steps, as the menu's arrows step it */
+    const zooms = EFFECT_KINDS[look].zoom;
+    const zoom =
+      own && zooms
+        ? effectZoom(
+            look,
+            zooms.least +
+              Math.floor(seeded(seed, `${own}:zoom`) * ((zooms.most - zooms.least) * 10 + 1)) / 10
+          )
         : null;
     const range = EFFECT_KINDS[look].steps;
     const steps =
@@ -220,7 +235,7 @@ export function inLook(
         steps: Math.max(DEFAULT_STEPS, keyframes),
         angle: look === "blob" ? DEFAULT_ANGLE : angleFor(own ?? look)
       },
-      effect: { kind: look, ...EFFECT_PLAY, look: { ...EFFECT_LOOK, shape, steps } }
+      effect: { kind: look, ...EFFECT_PLAY, look: { ...EFFECT_LOOK, shape, steps, zoom } }
     };
   }
   const bands =
@@ -316,7 +331,8 @@ export function pickLook(
 
 /** How many looks a reader turns a part through before they come round again, at most. */
 const MOST_LOOKS = 24;
-/** What tells two looks apart: the look, its steps, its angle, an effect's shape and steps, and its soft and grain. */
+/** What tells two looks apart: the look, its steps, its angle, an effect's shape, steps and zoom, and its soft and
+    grain. */
 const lookKey = (s: Shown) =>
   [
     lookOf(s),
@@ -324,6 +340,7 @@ const lookKey = (s: Shown) =>
     s.view.angle,
     s.effect?.look.shape ?? "",
     s.effect?.look.steps ?? "",
+    s.effect?.look.zoom ?? "",
     s.view.soft ?? 0,
     s.view.grain ?? 0
   ].join("|");

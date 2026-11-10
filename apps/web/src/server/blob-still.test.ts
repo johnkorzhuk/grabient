@@ -4,7 +4,7 @@ import { blobStills } from "./blob-still.ts";
 import { FIRST_SCREEN_STILLS } from "./stills.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
-const LOOK = { frost: 1, shape: 424, bg: null, steps: null } as const;
+const LOOK = { frost: 1, shape: 424, bg: null, steps: null, zoom: null } as const;
 const page = (key: string) =>
   `<html><head><title>t</title></head><body><div class="b"><div class="s" data-blob-still="${key}"></div></div></body></html>`;
 

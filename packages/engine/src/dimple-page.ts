@@ -1,6 +1,6 @@
 /* The dimple as a page that plays it, as the site's player does (ui/dimple-player.ts): its design and its arithmetic
    in plain JavaScript, each expression as engine/dimple.ts and dimple-gl.ts write it, so a page's numbers are the
-   player's to the last bit (dimple-shader.test.ts holds the two together): the design a shape draws, turned by the
+   player's to the last bit (dimple-shader.test.ts holds the two together): the design at its zoom, turned by the
    angle, the uniforms, and the ground about the hollow wherever it is. The WebGL page runs the player's own pass
    (dimple-gl.ts), the WebGPU page the same pass in WGSL (dimple-wgsl.ts). It has no loop, so no clock plays it: the
    page's hollow follows the pointer over its canvas and stays where the pointer left it, as the player's does
@@ -8,14 +8,15 @@
    edit. Loaded with the Shader tab's WebGL and WebGPU spellings, never with a page. */
 import { toHex } from "./color.ts";
 import {
-  DIMPLE_DESIGNED,
+  DIMPLE_ACROSS,
   DIMPLE_EASE_S,
   DIMPLE_GROUND_STEPS,
   DIMPLE_LOOK,
+  DIMPLE_REACH_ZOOM,
   DIMPLE_STOPS,
   dimpleStops
 } from "./dimple.ts";
-import { EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS, type Effect } from "./effect.ts";
+import { EFFECT_KINDS, EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS, type Effect } from "./effect.ts";
 import { EFFECT_PACE } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
 
@@ -57,6 +58,9 @@ export function dimpleTextHead(
     .join("\n");
 }
 
+/** The dimple's zoom's range (effect.ts EFFECT_KINDS). */
+const ZOOMS = EFFECT_KINDS.dimple.zoom!;
+
 /** A number as JavaScript source that reads back as the same double, -0 kept. */
 const jsNumber = (n: number): string => (Object.is(n, -0) ? "-0" : String(n));
 
@@ -64,14 +68,17 @@ const jsNumber = (n: number): string => (Object.is(n, -0) ? "-0" : String(n));
     and where the hollow is, and nothing that touches the page. */
 export function dimpleModel(): string {
   const L = DIMPLE_LOOK;
-  const D = DIMPLE_DESIGNED;
   return `// The design, as the site draws it: lengths are shares of D, the canvas's longer side, so every canvas shows the one
 // design its longer side frames, centered. A sheet of round scales, a hexagonal packing of discs a pitch apart, pressed
 // in at one point, the hollow: the discs are drawn in toward it and overlap, each is filled with a short run of the
 // palette along its line toward the hollow, the palette runs from the hollow out, and the wall facing the light is lit.
 // The discs lie in one stack, the nearer the hollow's rest the higher (the pass reads it there), so none changes places
-// with its neighbour as the hollow moves. The rest is on a disc's middle: that disc lies over all six about it.
+// with its neighbour as the hollow moves. The rest is on a disc's middle, the canvas's: that disc lies over all six
+// about it. A zoom draws it larger: ACROSS pitches cross D at zoom 1, ACROSS / zoom at any other, the palette's reach
+// growing with it up to REACH_ZOOM, where the palette's far end comes to a 16:9 canvas's corner, and no further.
 const GROUND_STEPS = ${DIMPLE_GROUND_STEPS};
+const ACROSS = ${DIMPLE_ACROSS};
+const REACH_ZOOM = ${DIMPLE_REACH_ZOOM};
 const RADIUS = ${L.radius};
 const RUN = ${L.run};
 const FLOOR = ${L.floor};
@@ -81,43 +88,16 @@ const PINCH_OVER = ${L.pinchOver};
 const LIT_AT = ${L.litAt};
 const HEART = ${L.heart};
 const GROUND_BACK = ${L.under};
-const round = (v, step) => Math.round(v / step) * step;
-
-// mulberry32: the design's random numbers, the same everywhere.
-function rng(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-// A shape's design: where the hollow rests from the canvas's middle (in D), how many pitches cross D, and the scale
-// of the palette's reach and of the pinch. Shape 0 is the design as drawn.
-function design(shape) {
-  if (!shape) return { x: ${jsNumber(D.x)}, y: ${jsNumber(D.y)}, across: ${D.across}, reach: ${D.reach}, pinch: ${D.pinch} };
-  const r = rng(Math.imul(shape, 2654435761));
-  return {
-    x: round((r() - 0.5) * 0.24, 1e-4),
-    y: round((r() - 0.5) * 0.2, 1e-4),
-    across: round(12.8 + 6.4 * r(), 1e-3),
-    reach: round(0.8 + 0.5 * r(), 1e-3),
-    pinch: round(0.6 + 0.8 * r(), 1e-3)
-  };
-}
 
 const bytes = hex => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16) / 255);
 const byte = v => Math.floor(Math.min(1, Math.max(0, v)) * 255 + 0.5) / 255;
 
-// The dimple in a canvas of W by H pixels at ANGLE and SHAPE: the pitch and a disc's radius, the lattice's two steps
+// The dimple in a canvas of W by H pixels at ANGLE and ZOOM: the pitch and a disc's radius, the lattice's two steps
 // (turned by ANGLE - 90 degrees, as the light is) and the way back from a point to lattice steps, the hollow's rest,
 // which lattice place (0, 0) lies on, the bowl, and the stops.
-function dimpleScene(angle, shape, width, height) {
+function dimpleScene(angle, zoom, width, height) {
   const D = Math.max(width, height);
-  const d = design(shape);
-  const p = D / d.across;
+  const p = (D * zoom) / ACROSS;
   const turn = (angle - 90) * (Math.PI / 180);
   const cs = Math.cos(turn);
   const sn = Math.sin(turn);
@@ -136,14 +116,14 @@ function dimpleScene(angle, shape, width, height) {
     a1y,
     a2x,
     a2y,
-    ox: width / 2 + d.x * D,
-    oy: height / 2 + d.y * D,
+    ox: width / 2,
+    oy: height / 2,
     m00: a2y / det,
     m01: -a2x / det,
     m10: -a1y / det,
     m11: a1x / det,
-    reach: REACH * d.reach * D,
-    pinch: PINCH * d.pinch,
+    reach: REACH * Math.min(zoom, REACH_ZOOM) * D,
+    pinch: PINCH,
     pinchOver: PINCH_OVER * p,
     litAt: LIT_AT * p,
     heart: HEART * p,
@@ -196,7 +176,7 @@ function hollowUniforms(m, cx, cy, ground) {
 }`;
 }
 
-/** The settings a reader edits, the page's first script: the stops, the angle, the shape, how fast the hollow
+/** The settings a reader edits, the page's first script: the stops, the angle, the zoom, how fast the hollow
     follows, the frame rate and the follow's ease. */
 export function dimpleSettings(P: Palette, effect: Effect, angle: number): string {
   const stops = dimpleColors(P);
@@ -211,12 +191,12 @@ export function dimpleSettings(P: Palette, effect: Effect, angle: number): strin
 const STOPS = [
 ${rows.map(row => `  ${row}`).join(",\n")}
 ];
-// The angle the sheet and its light are turned to (90 as designed), its shape (0 as designed, up to 999: where the
-// hollow rests, how many discs cross the canvas, how far the palette reaches and how hard the sheet is pressed), how
-// fast the hollow follows the pointer (1 as designed; 0 holds it at its rest), frames a second at most, and the
-// seconds the hollow takes to come most of the way to the pointer at speed 1.
+// The angle the sheet and its light are turned to (90 as designed), its zoom (1 as designed, up to
+// ${ZOOMS.most}: how much larger its discs and its hollow are drawn), how fast the hollow follows the pointer (1
+// as designed; 0 holds it at its rest), frames a second at most, and the seconds the hollow takes to come most of the
+// way to the pointer at speed 1.
 const ANGLE = ${angle};
-const SHAPE = ${effect.look.shape ?? 0};
+const ZOOM = ${jsNumber(effect.look.zoom ?? ZOOMS.designed)};
 const SPEED = ${jsNumber(effect.speed)};
 const FPS = ${jsNumber(effect.fps)};
 const EASE = ${jsNumber(DIMPLE_EASE_S)};`;

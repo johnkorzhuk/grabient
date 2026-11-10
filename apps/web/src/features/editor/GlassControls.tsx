@@ -7,6 +7,7 @@ import {
   type EffectKind,
   type EffectPlay,
   type EffectSteps,
+  type EffectZoom,
   SHAPE_MAX
 } from "@grabient/engine/effect.ts";
 import { stringsDesignedGround } from "@grabient/engine/strings-ground.ts";
@@ -25,12 +26,14 @@ import { screenFps } from "./refresh.ts";
    where it takes them (EFFECT_KINDS' `steps`: the sandstone's bands, their range its own), the glass's Angle, the
    view's, which turns its ribs (Auto, the palette's own, under 0; the blob has none, its palette lying from left to
    right), the effect's pace (0, Off, holds its first frame), its frames a second (60 unless set, up to what the screen
-   shows), and in the editor its shape, a number with a press inside its box for another. Two to a row: the glass's
-   angle beside its pace, its frames a second beside its shape; the sandstone's steps beside its angle, its pace beside
-   its frames a second, then its shape; the blob's pace beside its frames a second, then its frost (BlobControls.tsx)
-   beside its shape, and its ground, each pair sharing a row where both show whole (EffectFields.module.css); the
-   strings' as the glass's, then their ground (GroundField.tsx), their designed one where none is set. A list's
-   menu sets the same fields for every card (features/list), so they read and write whatever holds them. Above them,
+   shows), and in the editor its shape, a number with a press inside its box for another, or, for an effect that takes
+   a zoom in its shape's place (EFFECT_KINDS' `zoom`: the dimple's), its zoom, in a list's menu too. Two to a row: the
+   glass's angle beside its pace, its frames a second beside its shape; the sandstone's steps beside its angle, its
+   pace beside its frames a second, then its shape; the blob's pace beside its frames a second, then its frost
+   (BlobControls.tsx) beside its shape, and its ground, each pair sharing a row where both show whole
+   (EffectFields.module.css); the strings' as the glass's, then their ground (GroundField.tsx), their designed one
+   where none is set; the dimple's as the glass's, its zoom in its shape's place. A list's menu sets the same fields
+   for every card (features/list), so they read and write whatever holds them. Above them,
    while the site moves less, the reader's Reduce motion says why no pace moves anything, and turns it off. */
 
 const times = (v: number) => (v === 0 ? t("Off") : `${Number(v.toFixed(2))}×`);
@@ -88,8 +91,33 @@ export function StepsField(props: {
   );
 }
 
+/** An effect's zoom, where it takes one (EFFECT_KINDS' `zoom`: the dimple's), in its shape's place: how much larger
+    than designed its picture is drawn, within its range, its designed zoom where its look names none. */
+export function ZoomField(props: {
+  range: EffectZoom;
+  zoom: number | null;
+  onZoom: (zoom: number) => void;
+}) {
+  return (
+    <div class={fields.pairs}>
+      <Scrub
+        label={t("Zoom")}
+        min={props.range.least}
+        max={props.range.most}
+        step={0.1}
+        grain={0.05}
+        def={props.range.designed}
+        fmt={v => `${Number(v.toFixed(2))}×`}
+        value={props.zoom ?? props.range.designed}
+        onInput={v => props.onZoom(Math.round(v * 100) / 100)}
+      />
+    </div>
+  );
+}
+
 /** The fields every effect has: its own `steps` where it takes them (StepsField), the glass's angle (none without
-    `onAngle`: the blob has none), its pace and its frames a second, then `extra`, and the editor's `shape`. */
+    `onAngle`: the blob has none), its pace and its frames a second, then `extra`, and `dial`, the field that picks
+    its design: the editor's shape, or an effect's zoom in its place (ZoomField). */
 export function PlayFields(props: {
   steps?: Element;
   angle?: number | "auto";
@@ -97,7 +125,7 @@ export function PlayFields(props: {
   play: EffectPlay;
   onPlay: (part: Partial<EffectPlay>) => void;
   extra?: Element;
-  shape?: Element;
+  dial?: Element;
 }) {
   return (
     <>
@@ -127,9 +155,9 @@ export function PlayFields(props: {
         fmt={times}
         onInput={speed => props.onPlay({ speed: speed < 0.05 ? 0 : speed })}
       />
-      {/* the glass's frames a second share their row with its shape, as the blob's frost does; beside its steps, an
-          effect's pace and its frames a second share theirs */}
-      <div class={props.extra || !props.shape || props.steps ? undefined : fields.pairs}>
+      {/* the glass's frames a second share their row with its shape (the dimple's with its zoom), as the blob's frost
+          does; beside its steps, an effect's pace and its frames a second share theirs */}
+      <div class={props.extra || !props.dial || props.steps ? undefined : fields.pairs}>
         <Scrub
           label={t("FPS")}
           value={props.play.fps}
@@ -143,7 +171,7 @@ export function PlayFields(props: {
         />
       </div>
       {props.extra}
-      {props.shape}
+      {props.dial}
     </>
   );
 }
@@ -156,6 +184,8 @@ export function EffectFields(props: { editor: PaletteEditor; kind: EffectKind; e
   const shape = () => play().look.shape ?? own();
   /* the effect's own steps, where it takes them: its look's, kept while another style shows */
   const range = () => EFFECT_KINDS[props.kind].steps;
+  /* its zoom, where it takes one in its shape's place */
+  const zoom = () => EFFECT_KINDS[props.kind].zoom;
   /* a ground whose none is the effect's designed one (the strings'), which the field's swatch shows; the blob's comes
      with its frost (BlobControls.tsx) */
   const grounded = () => EFFECT_KINDS[props.kind].ground === "designed";
@@ -180,26 +210,34 @@ export function EffectFields(props: { editor: PaletteEditor; kind: EffectKind; e
         play={play()}
         onPlay={part => e.effects.set(props.kind, part)}
         extra={props.extra}
-        shape={
-          <div class={fields.pairs}>
-            <Scrub
-              label={t("Shape")}
-              value={shape()}
-              min={0}
-              max={SHAPE_MAX}
-              step={1}
-              grain={1}
-              def={own()}
-              fmt={x => String(Math.round(x))}
-              onInput={value => e.effects.look(props.kind, { shape: Math.round(value) })}
-              action={{
-                icon: "dice",
-                label: t("New shape"),
-                onPress: () => e.effects.shuffle(props.kind),
-                class: press.press
-              }}
+        dial={
+          zoom() ? (
+            <ZoomField
+              range={zoom()!}
+              zoom={play().look.zoom}
+              onZoom={zoom => e.effects.look(props.kind, { zoom })}
             />
-          </div>
+          ) : (
+            <div class={fields.pairs}>
+              <Scrub
+                label={t("Shape")}
+                value={shape()}
+                min={0}
+                max={SHAPE_MAX}
+                step={1}
+                grain={1}
+                def={own()}
+                fmt={x => String(Math.round(x))}
+                onInput={value => e.effects.look(props.kind, { shape: Math.round(value) })}
+                action={{
+                  icon: "dice",
+                  label: t("New shape"),
+                  onPress: () => e.effects.shuffle(props.kind),
+                  class: press.press
+                }}
+              />
+            </div>
+          )
         }
       />
       <Show when={grounded()}>

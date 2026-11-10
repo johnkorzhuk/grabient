@@ -294,6 +294,68 @@ test("the sandstone takes the view's steps, 8 to 40, where the papercut takes no
   await expect(steps).toHaveAttribute("aria-valuenow", "12");
 });
 
+test("the dimple takes a zoom, 1 to 4, in its shape's place: its menu's Zoom field redraws the stage and keeps its zoom in the address, and it has no Shape", async ({
+  page,
+  request
+}) => {
+  const still = (html: string) => /data-fx-still="([^"]*)"/.exec(html)?.[1];
+  /* its page as designed names no zoom, at another names it, its still and its address alike */
+  expect(still(await (await request.get(`/${SEED}?style=dimple`)).text())).toBe(
+    `dimple|${SEED}|90|`
+  );
+  const at25 = await (await request.get(`/${SEED}?style=dimple&zoom=2.5`)).text();
+  expect(still(at25)).toBe(`dimple|${SEED}|90||2.5x`);
+  /* the designed zoom leaves the address, one past the range comes within it, two decimals are kept, a shape leaves
+     the dimple's address and a zoom every other effect's: the Worker's 301 */
+  const moved = async (address: string) =>
+    (await request.get(address, { maxRedirects: 0 }))
+      .headers()
+      .location?.replace(/^https?:\/\/[^/]+/, "");
+  expect(await moved(`/${SEED}?style=dimple&zoom=1`)).toBe(`/${SEED}?style=dimple`);
+  expect(await moved(`/${SEED}?style=dimple&zoom=9`)).toBe(`/${SEED}?style=dimple&zoom=4`);
+  expect(await moved(`/${SEED}?style=dimple&zoom=2.456`)).toBe(`/${SEED}?style=dimple&zoom=2.46`);
+  expect(await moved(`/${SEED}?style=dimple&shape=417`)).toBe(`/${SEED}?style=dimple`);
+  expect(await moved(`/${SEED}?style=papercut&zoom=2`)).toBe(`/${SEED}?style=papercut`);
+  /* a list's cards draw at its zoom */
+  const list = await request.get("/palettes?style=dimple&zoom=3", { maxRedirects: 0 });
+  expect(list.status()).toBe(200);
+  expect(/<span[^>]*data-fx-still="([^"]*)"/.exec(await list.text())?.[1]).toMatch(
+    /^dimple\|.*\|3x$/
+  );
+
+  /* held still, a change of zoom draws the stage's still anew */
+  await open(page, `/${SEED}?style=dimple&speed=0`);
+  const stage = page.locator('[elementtiming="effect-still"]');
+  await expect(stage).toHaveAttribute("data-fx-still", `dimple|${SEED}|90|`);
+  const before = await stage.evaluate(el => getComputedStyle(el).backgroundImage);
+  expect(before).toContain("data:image/svg+xml");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  const zoom = page.getByRole("spinbutton", { name: "Zoom", exact: true });
+  await expect(zoom).toHaveAttribute("aria-valuemin", "1");
+  await expect(zoom).toHaveAttribute("aria-valuemax", "4");
+  await expect(zoom).toHaveAttribute("aria-valuenow", "1");
+  await expect(page.getByRole("spinbutton", { name: "Shape", exact: true })).toHaveCount(0);
+  await zoom.focus();
+  await page.keyboard.type("2.5");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=dimple&speed=0&zoom=2\\.5$`));
+  await expect(stage).toHaveAttribute("data-fx-still", `dimple|${SEED}|90||2.5x`);
+  await expect
+    .poll(() => stage.evaluate(el => getComputedStyle(el).backgroundImage))
+    .not.toBe(before);
+  await expect(
+    page.getByRole("button", { name: /^Appearance: Dimple, Off · Zoom 2\.5×/ })
+  ).toBeVisible();
+  /* the papercut's menu has a Shape and no Zoom, and the dimple gives its own back */
+  await page.getByRole("button", { name: "Papercut", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=papercut$`));
+  await expect(zoom).toHaveCount(0);
+  await expect(page.getByRole("spinbutton", { name: "Shape", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Dimple", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=dimple&speed=0&zoom=2\\.5$`));
+  await expect(zoom).toHaveAttribute("aria-valuenow", "2.5");
+});
+
 test("an address that still names an effect the site plays no more is the palette's or the list's own, and its files the palette's", async ({
   request
 }) => {
@@ -406,7 +468,10 @@ for (const kind of EFFECTS.filter(isVectorKind))
   test(`the ${kind} as files: SVG, stylesheet, PNG, JSON, Markdown, script and ${EFFECT_KINDS[kind].video ? "clip" : "no clip"}`, async ({
     request
   }) => {
-    const at = (extension: string) => request.get(`/${SEED}.${extension}?style=${kind}&shape=7`);
+    /* its look: a shape, or a zoom in its place (the dimple's) */
+    const zoomed = EFFECT_KINDS[kind].zoom !== null;
+    const at = (extension: string) =>
+      request.get(`/${SEED}.${extension}?style=${kind}&${zoomed ? "zoom=2.5" : "shape=7"}`);
     const svg = await at("svg");
     expect(svg.headers()["content-type"]).toMatch(/^image\/svg\+xml/);
     const drawn = await svg.text();
@@ -425,7 +490,8 @@ for (const kind of EFFECTS.filter(isVectorKind))
     const png = await at("png");
     expect(png.headers()["content-type"]).toBe("image/png");
     const json = JSON.parse(await (await at("json")).text());
-    expect(json.effect).toMatchObject({ style: kind, shape: 7 });
+    expect(json.effect).toMatchObject({ style: kind, ...(zoomed ? { zoom: 2.5 } : { shape: 7 }) });
+    if (zoomed) expect(json.effect).not.toHaveProperty("shape");
     expect(await (await at("md")).text()).toContain(kind);
     const script = await at("js");
     expect([script.status(), script.headers()["content-type"]]).toEqual([

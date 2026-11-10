@@ -35,7 +35,7 @@ import { seedAddress } from "../editor/address.ts";
    palette's own (auto, As saved), the size a palette takes into the editor and the selection's files, and an effect
    every card plays in its gradient's place. It is the list's address (?style=…&steps=…&angle=…&size=…, or with an
    effect ?style=glass&angle=…&size=… or ?style=blob&size=…, which has no angle and no soft, and how it plays and
-   looks, as a palette's address writes them, the sandstone's steps among them), so a change
+   looks, as a palette's address writes them, the sandstone's steps and the dimple's zoom among them), so a change
    replaces the entry and Back leaves the page, and the tab remembers it for the next page that draws palettes, the
    editor's new palettes and the wordmark's way home.
 
@@ -53,10 +53,10 @@ export interface ListView {
   grain: number;
   size: SizeChoice | null;
   /** the effect every card plays over its gradient, which the names, the likes, the selection and the files keep: how
-      it plays, the blob's frost and ground and the sandstone's steps, one for the list. Its shape is none: each card
-      plays its own palette's (cardEffect). The style is auto and the list's steps stay auto while one plays, its
-      address's `steps` the effect's own where it takes them (EFFECT_KINDS), the angle and the soft leaving while the
-      blob does. */
+      it plays, the blob's frost and ground, the sandstone's steps and the dimple's zoom, one for the list. Its shape
+      is none: each card plays its own palette's (cardEffect). The style is auto and the list's steps stay auto while
+      one plays, its address's `steps` the effect's own where it takes them (EFFECT_KINDS), the angle and the soft
+      leaving while the blob does. */
   effect: Effect | null;
 }
 /** Steps, an angle or how the effect plays being set, which the pictures draw before the route takes them. */
@@ -88,6 +88,7 @@ const VIEW_PARAMS = [
   "size",
   "speed",
   "fps",
+  "zoom",
   "frost",
   "bg"
 ];
@@ -140,6 +141,7 @@ function effectParams(effect: Effect | null): Record<string, string | number | u
   const out: Record<string, string | number | undefined> = {
     speed: undefined,
     fps: undefined,
+    zoom: undefined,
     frost: undefined,
     bg: undefined
   };
@@ -175,11 +177,38 @@ export function inOrder(
   search: Readonly<Record<string, unknown>>,
   change: Readonly<Record<string, unknown>>
 ): Record<string, unknown> {
-  const { q, style, steps, angle, soft, grain, size, speed, fps, frost, bg, selection, ...rest } = {
-    ...search,
-    ...change
+  const {
+    q,
+    style,
+    steps,
+    angle,
+    soft,
+    grain,
+    size,
+    speed,
+    fps,
+    zoom,
+    frost,
+    bg,
+    selection,
+    ...rest
+  } = { ...search, ...change };
+  return {
+    q,
+    style,
+    steps,
+    angle,
+    soft,
+    grain,
+    size,
+    speed,
+    fps,
+    zoom,
+    frost,
+    bg,
+    ...rest,
+    selection
   };
-  return { q, style, steps, angle, soft, grain, size, speed, fps, frost, bg, ...rest, selection };
 }
 
 /** The effect a save kept in a palette's look (editor/look.ts's lookQuery), as the palette's address reads it: a
@@ -373,6 +402,7 @@ export function viewSince(own: ListView, left: ListView | undefined, now: ListVi
     "style",
     "speed",
     "fps",
+    "zoom",
     "frost",
     "bg",
     ...(playing && EFFECT_KINDS[playing.kind].steps ? ["steps"] : [])

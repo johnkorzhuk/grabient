@@ -117,7 +117,9 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   in `dimple-svg.ts`), every kind named in `dimple-shader.ts`: the GLSL and its WebGL page (`dimple-webgl.ts`, the
   player's own pass in `dimple-gl.ts`), the WGSL and its WebGPU page (`dimple-webgpu.ts` over `dimple-wgsl.ts`), the
   pages' script in `dimple-page.ts`. It has no loop (`EFFECT_KINDS`' `motion`), so no clock plays it: its pages'
-  hollow follows the pointer by their own script and stays where the pointer left it, as its player's does.
+  hollow follows the pointer by their own script and stays where the pointer left it, as its player's does. It has one
+  design and no shape (`EFFECT_KINDS`' `shape`), and takes a zoom in its shape's place (`zoom`, 1 to 4), which draws
+  its discs and its hollow larger.
 - The field effects (`kit/`; the sandstone is the site's one): each is one file in `kit/fields/`, its kernel in the
   kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
   levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for

@@ -5,6 +5,7 @@ import {
   CLEAR_GROUND,
   EFFECT_FPS,
   EFFECT_KINDS,
+  EFFECT_LOOK,
   EFFECTS,
   EMBED_PLAYING,
   effectAddressParts,
@@ -15,6 +16,7 @@ import {
   effectLook,
   effectSteps,
   effectStillParts,
+  effectZoom,
   fxLookOf,
   fxStillKey,
   groundHex,
@@ -22,7 +24,8 @@ import {
   isEffect,
   parseEffect,
   readBlobStillKey,
-  SHAPE_MAX
+  SHAPE_MAX,
+  takesShape
 } from "./effect.ts";
 import { effectStepsShown } from "./effect-code.ts";
 import { effectEmbedHtml, effectLayerCss, effectRuleCss } from "./effect-embed.ts";
@@ -31,7 +34,7 @@ import { glassStillKey, readStillKey } from "./glass-colors.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 /* a look with a ground, which an effect that takes none never writes */
-const EFFECT_LOOK_BG = { shape: null, frost: 1, bg: "#ffffff", steps: null };
+const EFFECT_LOOK_BG = { shape: null, frost: 1, bg: "#ffffff", steps: null, zoom: null };
 const effect = (query: string) => {
   const found = parseEffect(new URLSearchParams(query));
   if (!found) throw new Error(`no effect in ${query}`);
@@ -136,15 +139,71 @@ test("the sandstone takes steps, 8 to 40, its look's, none at its designed 28; e
   expect(effectStepsShown("strata", { steps: 9 })).toBe(9);
   expect(effectStepsShown("papercut", { steps: null })).toBeNull();
   /* a still is named by its steps where its look names them, as it was where it names none */
-  const look = { angle: 90, shape: null, steps: null, bg: null };
+  const look = { angle: 90, shape: null, steps: null, zoom: null, bg: null };
   expect(fxStillKey("strata", SEED, look)).toBe(`strata|${SEED}|90|`);
-  expect(fxStillKey("strata", SEED, { ...look, steps: 12 })).toBe(`strata|${SEED}|90||12`);
+  expect(fxStillKey("strata", SEED, { ...look, steps: 12, zoom: null })).toBe(
+    `strata|${SEED}|90||12`
+  );
   expect(fxLookOf(effect("style=strata&steps=12&shape=3").look, 30)).toEqual({
     angle: 30,
     shape: 3,
     steps: 12,
+    zoom: null,
     bg: null
   });
+});
+
+test("the dimple takes a zoom in its shape's place, 1 to 4, none as designed; every other effect a shape and no zoom", () => {
+  /* John, 10 Nov 2026, of its shapes 0 to 999: "theres barely any difference", then "lets repalce shape with a zoom
+     option for this style" */
+  expect(EFFECT_KINDS.dimple.zoom).toEqual({ least: 1, most: 4, designed: 1 });
+  expect(takesShape("dimple")).toBe(false);
+  for (const kind of EFFECTS.filter(other => other !== "dimple")) {
+    expect(EFFECT_KINDS[kind].zoom, kind).toBeNull();
+    expect(takesShape(kind), kind).toBe(true);
+  }
+  /* read from `zoom`, two decimals, clamped to its range; a word is none */
+  expect(effect("style=dimple&zoom=2.5").look.zoom).toBe(2.5);
+  expect(effect("style=dimple&zoom=2.456").look.zoom).toBe(2.46);
+  expect(effect("style=dimple&zoom=1").look.zoom).toBeNull();
+  expect(effect("style=dimple&zoom=1.00").look.zoom).toBeNull();
+  expect(effect("style=dimple&zoom=0.5").look.zoom).toBeNull();
+  expect(effect("style=dimple&zoom=9").look.zoom).toBe(4);
+  expect(effect("style=dimple&zoom=big").look.zoom).toBeNull();
+  expect(effect("style=dimple&zoom=-2").look.zoom).toBeNull();
+  expect(effect("style=dimple").look.zoom).toBeNull();
+  expect(effect("style=papercut&zoom=2").look.zoom).toBeNull();
+  expect(effect("style=blob&zoom=2").look.zoom).toBeNull();
+  /* its shape is none, whatever an address or a save says */
+  expect(effect("style=dimple&shape=417").look.shape).toBeNull();
+  expect(effectLook({ shape: 417, zoom: 3 }, "dimple")).toEqual({ ...EFFECT_LOOK, zoom: 3 });
+  /* written among its look's parts in its shape's place, in its still's name and its files' */
+  expect(effectAddressParts(effect("style=dimple&shape=7&zoom=2.5&speed=2"), 45)).toEqual([
+    "style=dimple",
+    "angle=45",
+    "speed=2",
+    "zoom=2.5"
+  ]);
+  expect(effectStillParts(effect("style=dimple&zoom=4&speed=2"), 90)).toEqual([
+    "style=dimple",
+    "zoom=4"
+  ]);
+  expect(effectFileAddress("https://x.test", SEED, effect("style=dimple&zoom=3"), 90, "svg")).toBe(
+    `https://x.test/${SEED}.svg?style=dimple&zoom=3`
+  );
+  /* a look stored or asked, its zoom one its kind takes */
+  expect(effectLook({ zoom: 2.5 }, "dimple").zoom).toBe(2.5);
+  expect(effectLook({ zoom: 1 }, "dimple").zoom).toBeNull();
+  expect(effectLook({ zoom: 2.5 }, "papercut").zoom).toBeNull();
+  expect(effectLook({ zoom: 2.5 }).zoom).toBeNull();
+  expect(effectZoom("dimple", "nonsense")).toBeNull();
+  /* a still is named by its zoom where its look names one, and read back */
+  const look = { angle: 90, shape: null, steps: null, zoom: 2.5, bg: null };
+  expect(fxStillKey("dimple", SEED, look)).toBe(`dimple|${SEED}|90||2.5x`);
+  expect(readFxStillKey(`dimple|${SEED}|90||2.5x`)?.look).toEqual(look);
+  expect(readFxStillKey(`dimple|${SEED}|90||9x`)).toBeNull();
+  expect(readFxStillKey(`papercut|${SEED}|90||2.5x`)).toBeNull();
+  expect(fxStillKey("dimple", SEED, { ...look, zoom: null })).toBe(`dimple|${SEED}|90|`);
 });
 
 test("a shape is a number from 0 to 999 for both effects: a longer one is none, a stored one comes into bounds", () => {
@@ -261,7 +320,7 @@ test("an effect stands bare where its ground lets the page through: the blob's n
 });
 
 test("a vector effect's still is named by its ground where its look names one, and read back", () => {
-  const look = { angle: 90, shape: 7, steps: null, bg: null };
+  const look = { angle: 90, shape: 7, steps: null, zoom: null, bg: null };
   /* none: the name it had */
   expect(fxStillKey("strings", SEED, look)).toBe(`strings|${SEED}|90|7`);
   for (const bg of ["#f4efe6", "#10203080", CLEAR_GROUND]) {
@@ -288,7 +347,7 @@ test("a blob's still is named by its palette and its look, and read back", () =>
   expect(readBlobStillKey(key)).toEqual({ seed: SEED, look });
   expect(readBlobStillKey(`${SEED}|1|7|`)).toEqual({
     seed: SEED,
-    look: { frost: 1, shape: 7, bg: null, steps: null }
+    look: { frost: 1, shape: 7, bg: null, steps: null, zoom: null }
   });
   // a name that ends in an angle, as names did, names nothing
   expect(readBlobStillKey(`${SEED}|1|7||90`)).toBeNull();

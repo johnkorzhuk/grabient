@@ -87,7 +87,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
           effectSummary(
             fx.settings(kind),
             kind !== "blob" && set().angle ? e.angle() : null,
-            fx.settings(kind).look.steps
+            fx.settings(kind).look
           ),
           ...(e.softIn(kind) ? [t("Soft {value}", { value: e.softIn(kind) })] : []),
           ...(e.grain() ? [t("Grain {value}", { value: e.grain() })] : [])
@@ -129,6 +129,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
         angle={e.angle()}
         shape={fx.settings(kind).look.shape}
         steps={fx.settings(kind).look.steps}
+        zoom={fx.settings(kind).look.zoom}
         bg={fx.settings(kind).look.bg}
       />
     </Loading>

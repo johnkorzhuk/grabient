@@ -53,7 +53,7 @@ const ORIGIN = "https://grabient.com";
 
 type Scene = { width: number; height: number; ox: number; oy: number };
 type Model = {
-  dimpleScene: (angle: number, shape: number, w: number, h: number) => Scene;
+  dimpleScene: (angle: number, zoom: number, w: number, h: number) => Scene;
   sceneUniforms: (scene: Scene) => ReturnType<typeof dimpleSceneUniforms>;
   hollowUniforms: (scene: Scene, cx: number, cy: number, ground: Float32Array) => number;
 };
@@ -63,17 +63,19 @@ const modelOf = (P: Palette, effect: Effect, angle: number): Model =>
     `${dimpleSettings(P, effect, angle)}\n${dimpleModel()}\nreturn { dimpleScene, sceneUniforms, hollowUniforms };`
   )() as Model;
 
-test("the pages lay the dimple out as the player does, to the last bit, for any palette, angle, shape, canvas and place of the hollow", () => {
+test("the pages lay the dimple out as the player does, to the last bit, for any palette, angle, zoom, canvas and place of the hollow", () => {
   for (const [s, seed] of SEEDS.entries())
     for (const angle of [90, 0, 137, 300])
-      for (const shape of [null, 7, 999]) {
+      for (const zoom of [null, 1.37, 2.5, 4]) {
         const P = decodePalette(seed) as Palette;
-        const { effect } = read(`style=dimple${shape === null ? "" : `&shape=${shape}`}`);
+        const { effect } = read(`style=dimple${zoom === null ? "" : `&zoom=${zoom}`}`);
+        expect(effect.look.zoom).toBe(zoom);
         const model = modelOf(P, effect, angle);
         for (const [w, h] of SIZES.filter((_, i) => (i + s) % 2 === 0 || i === 3)) {
-          const site = dimpleScene(P, { angle, shape }, { width: w, height: h });
-          const page = model.dimpleScene(angle, shape ?? 0, w, h);
-          const what = `${seed} ${w}x${h} ${angle} ${shape}`;
+          const site = dimpleScene(P, { angle, zoom }, { width: w, height: h });
+          /* the page's own ZOOM, as its settings write it */
+          const page = model.dimpleScene(angle, zoom ?? 1, w, h);
+          const what = `${seed} ${w}x${h} ${angle} ${zoom}`;
           expect(model.sceneUniforms(page), what).toEqual(dimpleSceneUniforms(site));
           expect([page.ox, page.oy], what).toEqual([site.ox, site.oy]);
           for (const [u, v] of PLACES) {
@@ -95,23 +97,24 @@ test("a page's colors are the site's, its darker end first, and a reader's own a
   expect(stops).toHaveLength(DIMPLE_STOPS);
   const settings = dimpleSettings(P, read("style=dimple").effect, 90);
   for (const hex of stops) expect(settings).toContain(`"${hex}"`);
-  const site = dimpleScene(P, { angle: 90, shape: null }, { width: 9, height: 9 });
+  const site = dimpleScene(P, { angle: 90, zoom: null }, { width: 9, height: 9 });
   const page = new Function(
-    `${settings}\n${dimpleModel()}\nreturn dimpleScene(90, 0, 9, 9);`
+    `${settings}\n${dimpleModel()}\nreturn dimpleScene(90, ZOOM, 9, 9);`
   )() as { stops: number[] };
   expect(page.stops).toEqual(site.stops);
   const edited = new Function(
-    `${settings.replace(`"${stops[0]}"`, '"#102030"')}\n${dimpleModel()}\nreturn dimpleScene(90, 0, 9, 9);`
+    `${settings.replace(`"${stops[0]}"`, '"#102030"')}\n${dimpleModel()}\nreturn dimpleScene(90, ZOOM, 9, 9);`
   )() as { stops: number[] };
   expect(edited.stops.slice(0, 3)).toEqual([16 / 255, 32 / 255, 48 / 255]);
 });
 
-test("a page's settings are its address's: the angle, the shape, how fast the hollow follows and its frames", () => {
+test("a page's settings are its address's: the angle, the zoom, how fast the hollow follows and its frames", () => {
   const P = decodePalette(SEEDS[0]) as Palette;
-  const { effect, angle } = read("style=dimple&angle=137&speed=3&fps=24&shape=7");
+  const { effect, angle } = read("style=dimple&angle=137&speed=3&fps=24&zoom=2.5");
   const settings = dimpleSettings(P, effect, angle);
   expect(settings).toContain("const ANGLE = 137;");
-  expect(settings).toContain("const SHAPE = 7;");
+  expect(settings).toContain("const ZOOM = 2.5;");
+  expect(dimpleSettings(P, read("style=dimple").effect, 90)).toContain("const ZOOM = 1;");
   expect(settings).toContain("const SPEED = 3;");
   expect(settings).toContain("const FPS = 24;");
   expect(settings).toContain(`const EASE = ${DIMPLE_EASE_S};`);
@@ -121,11 +124,13 @@ test("a page's settings are its address's: the angle, the shape, how fast the ho
 test("each text credits the seed, the effect's address and what it is", () => {
   const SEED = SEEDS[0];
   const P = decodePalette(SEED) as Palette;
-  const { effect, angle } = read("style=dimple&angle=137&speed=3&fps=24&shape=7");
+  const { effect, angle } = read("style=dimple&angle=137&speed=3&fps=24&zoom=2.5");
   for (const kind of DIMPLE_SHADER_KINDS) {
     const text = dimpleShader(kind, P, effect, angle, SEED, ORIGIN);
     expect(text, kind).toContain(`grabient ${SEED}`);
-    expect(text, kind).toContain(`${ORIGIN}/${SEED}?style=dimple&angle=137&speed=3&fps=24&shape=7`);
+    expect(text, kind).toContain(
+      `${ORIGIN}/${SEED}?style=dimple&angle=137&speed=3&fps=24&zoom=2.5`
+    );
     expect(text, kind).toContain("the dimple, the palette as a sheet of round scales");
   }
   expect(DIMPLE_SHADER_KINDS).toEqual(SHADER_KINDS.map(([kind]) => kind));

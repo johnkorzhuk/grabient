@@ -19,7 +19,8 @@ import {
   effectSpeed,
   isEffect,
   SHAPE_MAX,
-  sameSettings
+  sameSettings,
+  takesShape
 } from "@grabient/engine/effect.ts";
 import { createSignal, untrack } from "solid-js";
 import { EFFECT_KEY } from "./effect-page.ts";
@@ -81,9 +82,10 @@ export interface Effects {
   choose: (kind: EffectKind | null) => void;
   /** the reader changes how an effect plays */
   set: (kind: EffectKind, part: Partial<Omit<EffectSettings, "look">>) => void;
-  /** the reader changes an effect's look: its shape, the blob's frost and ground, the sandstone's steps */
+  /** the reader changes an effect's look: its shape, the blob's frost and ground, the sandstone's steps, the
+      dimple's zoom */
   look: (kind: EffectKind, part: Partial<EffectLook>) => void;
-  /** another shape for an effect, other than the one shown */
+  /** another shape for an effect, other than the one shown; none for one that takes no shape */
   shuffle: (kind: EffectKind) => void;
   /** an address landed: the effect it names, or, where it names no style, the reader's own choice */
   arrive: (effect: Effect | null, styled: boolean) => void;
@@ -174,6 +176,7 @@ export function createEffects(
       commit(withSettings(k, sane(k, { ...s, look: { ...s.look, ...part } })));
     },
     shuffle(k) {
+      if (!takesShape(k)) return;
       const s = now.settings[k];
       const was = s.look.shape ?? 0;
       let next = was;

@@ -183,7 +183,7 @@ const play = (
 ): EffectSettings => ({
   speed,
   fps,
-  look: { shape, frost: 1, bg: null, steps }
+  look: { shape, frost: 1, bg: null, steps, zoom: null }
 });
 
 type Scene = { width: number; height: number };

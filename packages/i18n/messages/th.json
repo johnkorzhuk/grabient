@@ -933,6 +933,8 @@
   "Your display name on palettes": "ชื่อที่แสดงของคุณบนพาเลตต์",
   "Your image": "ภาพของคุณ",
   "Your saved Grabient palettes.": "พาเลตต์ Grabient ที่คุณบันทึกไว้",
+  "Zoom": "ซูม",
+  "Zoom {value}": "ซูม {value}",
   "agent": "เอเจนต์",
   "analogous {colors}": "{colors} (สีข้างเคียง)",
   "angular gradient": "ไล่เฉดสีเชิงมุม",

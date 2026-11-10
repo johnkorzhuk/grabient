@@ -933,6 +933,8 @@
   "Your display name on palettes": "Tên hiển thị của bạn trên bảng màu",
   "Your image": "Ảnh của bạn",
   "Your saved Grabient palettes.": "Các bảng màu bạn đã lưu trên Grabient.",
+  "Zoom": "Thu phóng",
+  "Zoom {value}": "Thu phóng {value}",
   "agent": "tác nhân",
   "analogous {colors}": "{colors} (tương đồng)",
   "angular gradient": "gradient hình nón",

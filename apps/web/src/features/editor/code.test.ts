@@ -4,7 +4,13 @@ import { blobWebgpu } from "@grabient/engine/blob-webgpu.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { dimpleWebgl } from "@grabient/engine/dimple-webgl.ts";
 import { dimpleWebgpu } from "@grabient/engine/dimple-webgpu.ts";
-import { EFFECTS, isVectorKind, parseEffect, type VectorKind } from "@grabient/engine/effect.ts";
+import {
+  EFFECT_KINDS,
+  EFFECTS,
+  isVectorKind,
+  parseEffect,
+  type VectorKind
+} from "@grabient/engine/effect.ts";
 import {
   effectColors,
   effectLayers,
@@ -249,7 +255,9 @@ test("every vector effect's Shader tab write each spelling with the engine's own
     })
   };
   for (const kind of EFFECTS.filter(isVectorKind)) {
-    const query = `style=${kind}&shape=12&speed=2`;
+    /* its look: a shape, or a zoom in its place (the dimple's) */
+    const look = EFFECT_KINDS[kind].zoom ? "zoom=2.5" : "shape=12";
+    const query = `style=${kind}&${look}&speed=2`;
     const effect = parseEffect(new URLSearchParams(query))!;
     const [webgl, webgpu] = writers[kind];
     const shader = () => effectSource(query, "shader")!;
@@ -268,7 +276,7 @@ test("every vector effect's Shader tab write each spelling with the engine's own
       );
     /* the editor's angle turns them, as it turns the glass */
     expect(shader().text("webgl")).toContain(
-      `${ORIGIN}/${SEED}?style=${kind}&angle=45&speed=2&shape=12`
+      `${ORIGIN}/${SEED}?style=${kind}&angle=45&speed=2&${look}`
     );
     expect(shader().note?.()).toBe(notes[kind]);
   }
@@ -287,7 +295,8 @@ test("a soft, grained vector effect's Shader tab writes every spelling with its 
     ...(await kitWriters())
   };
   for (const kind of EFFECTS.filter(isVectorKind)) {
-    const query = `style=${kind}&shape=12`;
+    const look = EFFECT_KINDS[kind].zoom ? "zoom=2.5" : "shape=12";
+    const query = `style=${kind}&${look}`;
     const effect = parseEffect(new URLSearchParams(query))!;
     const finish = { soft: 40, grain: 30, underlay: effectUnderlay(P, effect, 45, 40) };
     const [webgl, webgpu] = writers[kind];
@@ -311,7 +320,7 @@ test("a soft, grained vector effect's Shader tab writes every spelling with its 
       webgpu("wgsl", P, effect, 45, SEED, ORIGIN, finish)
     );
     expect(shader().text("webgl")).toContain(
-      `${ORIGIN}/${SEED}?style=${kind}&angle=45&soft=40&grain=30&shape=12`
+      `${ORIGIN}/${SEED}?style=${kind}&angle=45&soft=40&grain=30&${look}`
     );
     expect(shader().note?.()).toMatch(
       / (?:in one pass|pass by pass)\. Then its soft and grain, as the site lays them over it\.$/

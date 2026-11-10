@@ -73,6 +73,8 @@ export function FxArt(props: {
   shape: number | null;
   /** the look's steps, where the effect takes them (engine/effect.ts EffectLook): null as designed */
   steps: number | null;
+  /** the look's zoom, where the effect takes one (engine/effect.ts EffectLook): null as designed */
+  zoom: number | null;
   /** the look's ground, where the effect takes one (engine/effect.ts EffectLook): null as designed */
   bg: string | null;
   /** where the pointer left an effect it moves (the dimple's hollow), in this box 0 to 1 each way: the picture
@@ -86,6 +88,7 @@ export function FxArt(props: {
     angle: props.angle,
     shape: props.shape,
     steps: props.steps,
+    zoom: props.zoom,
     bg: props.bg
   });
   const keyOf = () => fxStillKey(props.kind, code(), look());

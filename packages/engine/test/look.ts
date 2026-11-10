@@ -42,7 +42,7 @@ for (const seed of seeds)
         kind,
         speed: 1,
         fps: 60,
-        look: { shape: shape || null, frost: 1, bg: null, steps: null }
+        look: { shape: shape || null, frost: 1, bg: null, steps: null, zoom: null }
       };
       const size = { width: W, height: H };
       const cpu = async () => {
@@ -55,7 +55,13 @@ for (const seed of seeds)
       const svg = () =>
         isVectorKind(kind)
           ? rasterize(
-              fxFrameSvg(kind, P, { angle, shape: shape || null, steps: null, bg: null }, size, t),
+              fxFrameSvg(
+                kind,
+                P,
+                { angle, shape: shape || null, steps: null, zoom: null, bg: null },
+                size,
+                t
+              ),
               W
             )
           : new Uint8Array(W * H * 4);

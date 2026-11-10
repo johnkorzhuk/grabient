@@ -52,8 +52,9 @@ const BLOB_PICTURE = "clear-1";
 /** Everything an effect's first frame depends on: the glass's colors are its palette's, its ribs turn with the angle
     and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and it has no angle; an
     effect that takes steps (the sandstone) its steps where its look names them, so one at its designed steps keeps
-    the key it had before it took them, and one that takes a ground (the strings) its ground where its look names one,
-    so one on its designed ground keeps its key too. */
+    the key it had before it took them, one that takes a zoom (the dimple) its zoom where its look names one, so one as
+    designed keeps its key, and one that takes a ground (the strings) its ground where its look names one, so one on
+    its designed ground keeps its key too. */
 const effectParts = (effect: Effect, angle: number) =>
   effect.kind === "blob"
     ? [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg]
@@ -62,6 +63,7 @@ const effectParts = (effect: Effect, angle: number) =>
         angle,
         effect.look.shape ?? 0,
         ...(effect.look.steps === null ? [] : [`steps:${effect.look.steps}`]),
+        ...(effect.look.zoom === null ? [] : [`zoom:${effect.look.zoom}`]),
         ...(effect.look.bg === null ? [] : [`bg:${effect.look.bg}`])
       ];
 /** The finish over an effect's frame (engine/fx-finish.ts), counted up by a change to it that moves its pixels. */

@@ -110,7 +110,7 @@ function play() {
       canvas.width = w;
       canvas.height = h;
     }${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : grain ? "\n    grainScale = grainScaleOf(w);" : ""}
-    scene = dimpleScene(ANGLE, SHAPE, w, h);
+    scene = dimpleScene(ANGLE, ZOOM, w, h);
     sent = false;
   };
 

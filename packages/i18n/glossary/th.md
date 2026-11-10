@@ -52,6 +52,7 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | strings (an effect) | เส้นด้าย | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for thread. Not สาย (musical strings) nor สตริง (strings in code). |
 | sandstone (an effect) | หินทราย | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name. Not ทราย (sand) alone. |
 | dimple (an effect) | รอยบุ๋ม | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the plain word for a small hollow pressed into a surface. Not ลักยิ้ม (a dimple in a cheek). |
+| zoom (the dimple's Zoom field) | ซูม | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. The word Thai design tools use. |
 | linear / angular / radial (style names) | เชิงเส้น / เชิงมุม / รัศมี | The usual Thai names for gradient types (เชิงเส้น, รัศมี); เชิงมุม follows Figma's Angular. In a phrase: ไล่เฉดสีเชิงเส้น, ไล่เฉดสีเชิงมุม, ไล่เฉดสีแบบรัศมี. |
 | swatches, bands | แถบสี | A palette drawn as hard bands: แถบสีเชิงเส้น, แถบสีเชิงมุม, แถบสีรัศมี. A single hard band is แถบ. |
 | Swatches (the strip's swatch files) | ตัวอย่างสี | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": เปลี่ยนเป็นตัวอย่างสี. |

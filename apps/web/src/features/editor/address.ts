@@ -139,6 +139,7 @@ export const NUMBERS = new Set([
   "grain",
   "speed",
   "fps",
+  "zoom",
   "frost",
   "shape"
 ]);

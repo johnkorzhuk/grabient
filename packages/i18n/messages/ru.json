@@ -933,6 +933,8 @@
   "Your display name on palettes": "Ваше отображаемое имя на палитрах",
   "Your image": "Ваше изображение",
   "Your saved Grabient palettes.": "Ваши сохранённые палитры Grabient.",
+  "Zoom": "Масштаб",
+  "Zoom {value}": "Масштаб {value}",
   "agent": "агент",
   "analogous {colors}": "{colors}, аналоговая гамма",
   "angular gradient": "угловой градиент",

@@ -305,6 +305,7 @@ export function EffectArt(props: {
           angle: props.angle,
           shape: props.settings.look.shape,
           steps: props.settings.look.steps,
+          zoom: props.settings.look.zoom,
           bg: props.settings.look.bg
         };
   /* where the pointer left a picture it moves (the dimple's hollow), in the box 0 to 1 each way: the still shows the
@@ -493,6 +494,7 @@ export function EffectArt(props: {
               angle={props.angle}
               shape={props.settings.look.shape}
               steps={props.settings.look.steps}
+              zoom={props.settings.look.zoom}
               bg={props.settings.look.bg}
               at={held()}
             />

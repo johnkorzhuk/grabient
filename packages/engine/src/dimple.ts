@@ -21,20 +21,23 @@
    itself read along its line (at so many places along the palette, a whole disc changed color at once).
 
    Lengths are shares of D, the box's longer side, so every box shows the one design its longer side frames,
-   centered, and a still drawn in a square covers any box (fx-still.ts). The arithmetic is plain, a line for each of
-   the shader's (dimple-gl.ts, dimple-wgsl.ts) and the pages' (dimple-page.ts). */
+   centered, and a still drawn in a square covers any box (fx-still.ts). It has one design, which its zoom draws
+   larger (John, 10 Nov 2026, of its shapes 0 to 999: "theres barely any difference", then "lets repalce shape with a
+   zoom option for this style"): its discs and its hollow, and the palette's reach with them until the palette's far
+   end comes to a 16:9 box's corner, so the whole palette shows however large its discs are. The arithmetic is plain, a
+   line for each of the shader's (dimple-gl.ts, dimple-wgsl.ts) and the pages' (dimple-page.ts). */
 import { srgbToLch } from "./color.ts";
 import { sampleSrgb } from "./curve.ts";
 import { DEG } from "./math.ts";
 import type { Palette } from "./palette.ts";
 import type { Size } from "./view.ts";
 
-/** What a dimple's picture depends on besides its palette and where its hollow is: its turn and its shape. */
+/** What a dimple's picture depends on besides its palette and where its hollow is: its turn and its zoom. */
 export interface DimpleView {
   /** 90 as designed: the columns of discs upright and the light from above; the sheet and its light turn with it */
   angle: number;
-  /** 0 or none: as designed */
-  shape: number | null;
+  /** how much larger than designed it is drawn, from 1 to EFFECT_KINDS' `zoom.most` (effect.ts); none: as designed */
+  zoom: number | null;
 }
 
 /** Where the hollow is, in the box's pixels; null at its rest. */
@@ -77,49 +80,13 @@ export const DIMPLE_LOOK = {
   under: 0.03
 } as const;
 
-/** A shape's design. */
-export interface DimpleDesign {
-  /** the hollow's rest from the box's middle, in D: within what a box five times as wide as it is tall shows */
-  x: number;
-  y: number;
-  /** pitches across D: never more than the designed look's, whose still is as heavy as a list's card may be
-      (dimple-svg.ts) */
-  across: number;
-  /** the reach's and the pinch's scale */
-  reach: number;
-  pinch: number;
-}
-
-/** The designed look, shape 0: the hollow in the box's middle, 10.8 discs up a 16:9 box as John's cards have them. */
-export const DIMPLE_DESIGNED: DimpleDesign = { x: 0, y: 0, across: 19.2, reach: 1, pinch: 1 };
-
-const round = (v: number, step: number) => Math.round(v / step) * step;
-
-/** mulberry32: a design's random numbers, the same everywhere. */
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** A shape's design: where the hollow rests, how many discs cross the box, how far the palette reaches and how
-    hard the sheet is pressed. */
-export function dimpleDesign(shape: number | null): DimpleDesign {
-  if (!shape) return DIMPLE_DESIGNED;
-  const r = rng(Math.imul(shape, 2654435761));
-  return {
-    x: round((r() - 0.5) * 0.24, 1e-4),
-    y: round((r() - 0.5) * 0.2, 1e-4),
-    across: round(12.8 + 6.4 * r(), 1e-3),
-    reach: round(0.8 + 0.5 * r(), 1e-3),
-    pinch: round(0.6 + 0.8 * r(), 1e-3)
-  };
-}
+/** Pitches across D as designed, at zoom 1: 10.8 discs up a 16:9 box as John's cards have them. No zoom draws more,
+    since the still as designed is as heavy as a list's card may be (dimple-svg.ts); a zoom draws D·zoom / this a
+    pitch, its hollow as many pitches across. */
+export const DIMPLE_ACROSS = 19.2;
+/** The zoom past which the palette's reach stays put: there its far end comes to a 16:9 box's corner, so every box up
+    to that wide shows the whole palette, from the hollow's floor to its far end, at any zoom. */
+export const DIMPLE_REACH_ZOOM = 1.5;
 
 /** All a picture is drawn from, plain numbers. */
 export interface DimpleScene {
@@ -377,13 +344,13 @@ export function dimpleShade(
   }
 }
 
-/** The dimple in a box: the design a shape draws, turned by the angle, the palette's colors and the stack. */
+/** The dimple in a box: its design at its zoom, turned by the angle, the palette's colors and the stack. */
 export function dimpleScene(P: Palette, view: DimpleView, size: Size): DimpleScene {
   const L = DIMPLE_LOOK;
   const { width, height } = size;
   const D = Math.max(width, height);
-  const d = dimpleDesign(view.shape);
-  const p = D / d.across;
+  const zoom = view.zoom ?? 1;
+  const p = (D * zoom) / DIMPLE_ACROSS;
   /* the view's angle turns the lattice and the light: 90 as designed */
   const turn = (view.angle - 90) * DEG;
   const cs = Math.cos(turn);
@@ -403,14 +370,14 @@ export function dimpleScene(P: Palette, view: DimpleView, size: Size): DimpleSce
     a1y,
     a2x,
     a2y,
-    ox: width / 2 + d.x * D,
-    oy: height / 2 + d.y * D,
+    ox: width / 2,
+    oy: height / 2,
     m00: a2y / det,
     m01: -a2x / det,
     m10: -a1y / det,
     m11: a1x / det,
-    reach: L.reach * d.reach * D,
-    pinch: L.pinch * d.pinch,
+    reach: L.reach * Math.min(zoom, DIMPLE_REACH_ZOOM) * D,
+    pinch: L.pinch,
     pinchOver: L.pinchOver * p,
     litAt: L.litAt * p,
     heart: L.heart * p,

@@ -180,7 +180,7 @@ describe("looksFor", () => {
     expect(looks.length).toBeGreaterThan(6);
     expect(looks.length).toBeLessThanOrEqual(24);
     const keys = looks.map(s =>
-      [lookOf(s), s.view.steps, s.view.angle, s.effect?.look.shape].join()
+      [lookOf(s), s.view.steps, s.view.angle, s.effect?.look.shape, s.effect?.look.zoom].join()
     );
     expect(new Set(keys).size).toBe(keys.length);
     expect(new Set(looks.map(lookOf)).size).toBe(LOOKS.length);

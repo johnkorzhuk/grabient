@@ -933,6 +933,8 @@
   "Your display name on palettes": "パレットでの表示名",
   "Your image": "選んだ画像",
   "Your saved Grabient palettes.": "Grabient で保存したパレットです。",
+  "Zoom": "ズーム",
+  "Zoom {value}": "ズーム {value}",
   "agent": "エージェント",
   "analogous {colors}": "類似色の{colors}",
   "angular gradient": "円錐グラデーション",

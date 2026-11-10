@@ -65,7 +65,13 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      reads them; their definitions, drawing and players load as one shows. It stood at 292.0 with the strings, at the
      budget, and with them and the sandstone's steps at 292.6; on 10 Nov 2026 at 292.8, with the zen garden's kind and
      names and without them */
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 293 },
+  /* the dimple's zoom in its shape's place (10 Nov 2026, John: "lets repalce shape with a zoom option for this
+     style"): which effects take a zoom and its range (engine/effect.ts EFFECT_KINDS), an effect's look's zoom read from
+     its address and written back (parseEffect, effectZoom, effectLookParts), its still's name naming it, the button's
+     summary saying it and a list's address and history keeping it (features/list/appearance.ts), 0.18 KB of the start
+     every page shares, took it from 292.874 to 293.056, by the build; the Zoom field itself loads with the effect's
+     fields (editor/GlassControls.tsx) */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 294 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look
      each palette was saved in, an effect and its settings (features/list/appearance.ts's lookEffect and cardPlays,

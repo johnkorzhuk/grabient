@@ -16,6 +16,7 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | strings (an effect) | Fios | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for threads, as string art names them ("arte com fios"). Not "cordas" (musical strings) nor "strings" (code). Masculine: "os fios". |
 | sandstone (an effect) | Arenito | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name. Title words *arenito*. Not *areia* (sand). |
 | dimple (an effect) | Covinha | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the word for a small hollow, as a golf ball's are *covinhas*. Title words *covinha*. Not *amassado* (a dent from damage). |
+| zoom (the dimple's Zoom field) | Zoom | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. As Figma PT-BR names it. |
 | swatches | amostras | "linear swatches" = "amostras lineares", "{name} swatches" = "Amostras {name}". |
 | Swatches (the strip's swatch files) | Amostras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Mudar para amostras. |
 | bands (style labels) | faixas | "Linear bands" = "Faixas lineares"; "hard band" = "faixa sólida"; a band of flat color is "uma faixa de cor sólida" (Photoshop's "Cor sólida"). |

@@ -933,6 +933,8 @@
   "Your display name on palettes": "Votre nom d’affichage sur les palettes",
   "Your image": "Votre image",
   "Your saved Grabient palettes.": "Vos palettes Grabient enregistrées.",
+  "Zoom": "Zoom",
+  "Zoom {value}": "Zoom {value}",
   "agent": "agent",
   "analogous {colors}": "{colors} (analogues)",
   "angular gradient": "dégradé angulaire",

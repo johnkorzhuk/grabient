@@ -61,25 +61,33 @@ const DEEP = process.env.CONFORMANCE === "deep";
 /** The looks each frame is drawn in: as designed, and a shape at another angle; swept, two more. An effect that takes
     steps is drawn at both ends of their range besides (looksOf). */
 const LOOKS: readonly FxLook[] = [
-  { angle: 90, shape: null, steps: null, bg: null },
-  { angle: 210, shape: 417, steps: null, bg: null },
+  { angle: 90, shape: null, steps: null, zoom: null, bg: null },
+  { angle: 210, shape: 417, steps: null, zoom: null, bg: null },
   ...(DEEP
     ? [
-        { angle: 0, shape: 7, steps: null, bg: null },
-        { angle: 137, shape: 999, steps: null, bg: null }
+        { angle: 0, shape: 7, steps: null, zoom: null, bg: null },
+        { angle: 137, shape: 999, steps: null, zoom: null, bg: null }
       ]
     : [])
 ];
-/** An effect's looks: LOOKS, and where it takes steps its fewest as designed and its most at a shape and an angle. */
+/** An effect's looks: LOOKS, and where it takes steps its fewest as designed and its most at a shape and an angle,
+    and where it takes a zoom one between and its most at an angle. */
 const looksOf = (kind: EffectKind): readonly FxLook[] => {
   const range = EFFECT_KINDS[kind].steps;
+  const zoom = EFFECT_KINDS[kind].zoom;
   return range
     ? [
         ...LOOKS,
-        { angle: 90, shape: null, steps: range.least, bg: null },
-        { angle: 210, shape: 417, steps: range.most, bg: null }
+        { angle: 90, shape: null, steps: range.least, zoom: null, bg: null },
+        { angle: 210, shape: 417, steps: range.most, zoom: null, bg: null }
       ]
-    : LOOKS;
+    : zoom
+      ? [
+          ...LOOKS,
+          { angle: 90, shape: null, steps: null, zoom: 2.35, bg: null },
+          { angle: 210, shape: null, steps: null, zoom: zoom.most, bg: null }
+        ]
+      : LOOKS;
 };
 /** Shares of the loop a frame is drawn at; swept, every twelfth. */
 const TIMES = DEEP ? Array.from({ length: 12 }, (_, i) => i / 12) : [0, 0.37, 0.71];
@@ -113,12 +121,13 @@ const effectOf = (
   kind: EffectKind,
   shape: number | null,
   steps: number | null = null,
-  bg: string | null = null
+  bg: string | null = null,
+  zoom: number | null = null
 ): Effect => ({
   kind,
   speed: 1,
   fps: 60,
-  look: { shape, frost: 1, bg, steps }
+  look: { shape, frost: 1, bg, steps, zoom }
 });
 /** The grounds an effect whose none is its designed ground is held to drawing as the CPU draws them: a light one, one
     half clear and a clear one. */
@@ -182,20 +191,32 @@ describe.each(EFFECTS)("the %s", kind => {
   });
 
   it("reads its own address back", () => {
-    /* its steps, where it takes them, at each end of their range */
+    /* its steps, where it takes them, at each end of their range; its zoom, where it takes one, at its most and between;
+       its shape where it takes one, and none where it takes a zoom in its place */
     const range = facts.steps;
+    const zooms = facts.zoom;
     for (const effect of [
       effectOf(kind, null),
-      { ...effectOf(kind, 417, range?.least ?? null), speed: 2.5, fps: 30 },
-      { ...effectOf(kind, 7, range?.most ?? null), speed: 0 }
+      {
+        ...effectOf(kind, 417, range?.least ?? null),
+        speed: 2.5,
+        fps: 30,
+        ...(zooms && { look: { ...effectOf(kind, null).look, zoom: 2.35 } })
+      },
+      {
+        ...effectOf(kind, 7, range?.most ?? null),
+        speed: 0,
+        ...(zooms && { look: { ...effectOf(kind, null).look, zoom: zooms.most } })
+      }
     ]) {
       const parts = new URLSearchParams(effectAddressParts(effect, 210).join("&"));
       const back = parseEffect(parts);
       expect(back?.kind).toBe(kind);
       expect(back?.speed).toBe(effect.speed);
       expect(back?.fps).toBe(effect.fps);
-      expect(back?.look.shape).toBe(effect.look.shape);
+      expect(back?.look.shape).toBe(facts.zoom ? null : effect.look.shape);
       expect(back?.look.steps).toBe(effect.look.steps);
+      expect(back?.look.zoom).toBe(effect.look.zoom);
     }
   });
 
@@ -216,9 +237,9 @@ describe.each(EFFECTS)("the %s", kind => {
   /* one the pointer moves has no loop: its picture is drawn with the pointer anywhere, and is the same at any time */
   if (facts.motion === "pointer")
     it.each(looksOf(kind))(
-      "is its picture with the pointer anywhere as an SVG of its own, as the CPU draws it, and the same at any time (angle $angle, shape $shape)",
+      "is its picture with the pointer anywhere as an SVG of its own, as the CPU draws it, and the same at any time (angle $angle, shape $shape, zoom $zoom)",
       async look => {
-        const effect = effectOf(kind, look.shape, look.steps);
+        const effect = effectOf(kind, look.shape, look.steps, null, look.zoom);
         const seen: string[] = [];
         for (const at of POINTERS) {
           const svg = fxFrameSvg(vector, P, look, size, 0, at);
@@ -258,7 +279,7 @@ describe.each(EFFECTS)("the %s", kind => {
     );
   else
     it.each(looksOf(kind))(
-      "is any frame as an SVG of its own, as the CPU draws it (angle $angle, shape $shape, steps $steps)",
+      "is any frame as an SVG of its own, as the CPU draws it (angle $angle, shape $shape, steps $steps, zoom $zoom)",
       async look => {
         const loop = fxLoop(vector, P, look);
         const seen: string[] = [];
@@ -269,7 +290,14 @@ describe.each(EFFECTS)("the %s", kind => {
           expect(svg).not.toMatch(/<script|<foreignObject|href="(?!#|data:)|@keyframes|<animate/);
           const drawn = rasterize(svg, size.width);
           const cpu = (
-            await effectDrawn(P, effectOf(kind, look.shape, look.steps), look.angle, size, false, t)
+            await effectDrawn(
+              P,
+              effectOf(kind, look.shape, look.steps, null, look.zoom),
+              look.angle,
+              size,
+              false,
+              t
+            )
           ).pixels;
           const diff = frameDiff(drawn, cpu, size.width, size.height);
           expect(diff, `${kind} at ${t.toFixed(1)} s`).toSatisfy(within);
@@ -277,7 +305,7 @@ describe.each(EFFECTS)("the %s", kind => {
           const later = (
             await effectDrawn(
               P,
-              effectOf(kind, look.shape, look.steps),
+              effectOf(kind, look.shape, look.steps, null, look.zoom),
               look.angle,
               size,
               false,
@@ -353,9 +381,9 @@ describe.each(EFFECTS)("the %s", kind => {
     for (const look of [
       LOOKS[0],
       LOOKS[1],
-      { angle: 0, shape: 7, steps: null, bg: null },
+      { angle: 0, shape: 7, steps: null, zoom: null, bg: null },
       /* an effect that takes steps at its most, its levels closest */
-      ...(range ? [{ angle: 90, shape: null, steps: range.most, bg: null }] : [])
+      ...(range ? [{ angle: 90, shape: null, steps: range.most, zoom: null, bg: null }] : [])
     ])
       expect(
         fxStillBackground(vector, P, look).length,

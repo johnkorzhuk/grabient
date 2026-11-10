@@ -111,7 +111,8 @@ test("a palette keeps its soft and grain and the effect it played, held still: i
     shape: blobShapeOf(seed),
     frost: 1.5,
     bg: "#102030",
-    steps: null
+    steps: null,
+    zoom: null
   });
   // the sandstone's steps draw its picture: a palette at 12 steps is a palette apart from one at its designed 28
   const strata = (steps: number | null) =>
@@ -133,6 +134,21 @@ test("a palette keeps its soft and grain and the effect it played, held still: i
   });
   expect(papercut?.effect?.kind).toBe("papercut");
   expect(papercut?.effect?.look.steps).toBeNull();
+  // the dimple's zoom draws its picture in its shape's place: a palette at another zoom is a palette apart, and a
+  // shape it takes no more leaves it as it is
+  const dimple = (zoom: number | null, shape: number | null = null) =>
+    selectedPalette({
+      ...view,
+      effect: {
+        kind: "dimple",
+        ...EFFECT_PLAY,
+        look: { shape, frost: 1, bg: null, steps: null, zoom }
+      }
+    });
+  expect(dimple(2.5)?.effect?.look.zoom).toBe(2.5);
+  expect(dimple(2.5)?.id).toBe(`${seed}?style=dimple&angle=30&zoom=2.5`);
+  expect(dimple(2.5, 417)?.id).toBe(dimple(2.5)?.id);
+  expect(dimple(1)?.id).toBe(dimple(null)?.id);
   // a kind that is no effect's holds none: a selection kept while the site played one it plays no more (the zen
   // garden, style=zen, 8 to 10 Nov 2026) is read as its palette in its view
   const gone = selectedPalette({

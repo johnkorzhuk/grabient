@@ -56,6 +56,7 @@ every time, and add a row when a new product word gets its translation.
 | strings (an effect) | 丝线 | Threads in the palette's colors, evenly spaced on a dark ground, slowly stirred into bundles, hairpins and loops: the plain word for threads (线绳). Not 琴弦 (musical strings) nor 字符串 (strings in code). |
 | sandstone (an effect) | 砂岩 | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name. Not 沙 (sand) alone. |
 | dimple (an effect) | 凹痕 | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the plain word for a dent pressed into a surface. Not 酒窝 (a dimple in a cheek). |
+| zoom (the dimple's Zoom field) | 缩放 | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. As Figma and Photoshop zh-Hans name it. |
 | look (the examples page) | 风格 | One of the ways a palette is shown: another style, steps, angle or shape. Another look is 换一种风格, Swipe for another look 滑动换一种风格, 6 looks `6 种风格`. Not 外观 (Appearance) or 样式 (style). |
 | tag | 标签 | |
 | mood | 氛围 | In search hints: 颜色、氛围或主题. |

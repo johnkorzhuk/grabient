@@ -141,7 +141,7 @@ const BLOB: Effect = {
   kind: "blob",
   speed: 1,
   fps: 60,
-  look: { shape: null, frost: 1.5, bg: "#112233", steps: null }
+  look: { shape: null, frost: 1.5, bg: "#112233", steps: null, zoom: null }
 };
 
 test("an effect's style names it, with how it plays and looks, and the steps leave", () => {
@@ -164,7 +164,7 @@ test("an effect's style names it, with how it plays and looks, and the steps lea
       kind: "blob",
       speed: 10,
       fps: 60,
-      look: { shape: null, frost: 2, bg: null, steps: null }
+      look: { shape: null, frost: 2, bg: null, steps: null, zoom: null }
     }
   });
 });
@@ -271,7 +271,7 @@ test("the strings take the list's ground, every card on it: read, written after 
     kind: "strings",
     speed: 1,
     fps: 60,
-    look: { shape: null, frost: 1, bg: "#f4efe680", steps: null }
+    look: { shape: null, frost: 1, bg: "#f4efe680", steps: null, zoom: null }
   });
   expect(inView("/palettes", strings)).toBe("/palettes?style=strings&angle=30&bg=%23f4efe680");
   expect(listViewOf(new URLSearchParams("style=strings&angle=30&bg=%23f4efe680"))).toEqual(strings);

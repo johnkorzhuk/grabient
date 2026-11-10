@@ -46,7 +46,13 @@ const cpu = () => {
   return (u.user + u.system) / 1000;
 };
 /* at its designed steps, where it takes any, unless asked: the look's none */
-const look = { shape: null, frost: 1, bg: null, steps: args.steps ? Number(args.steps) : null };
+const look = {
+  shape: null,
+  frost: 1,
+  bg: null,
+  steps: args.steps ? Number(args.steps) : null,
+  zoom: null
+};
 const speed = 2.45;
 const weights: number[] = [];
 for (const seed of seeds) {

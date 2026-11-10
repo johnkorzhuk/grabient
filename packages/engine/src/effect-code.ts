@@ -191,12 +191,14 @@ export function effectColors(P: Palette, effect: Effect): string[] {
 /** An effect's settings as its address names them, defaults written out: the glass's shape 0 is the glass as designed,
     and a blob's null shape the one its palette's own numbers draw. The blob has no angle and no soft. A soft and a
     grain stand where the view has them, as a gradient's document writes them; the steps where the effect takes them,
-    its designed number where its look names none; the strings' ground where their look names one, none being their
-    designed ground (the blob's `bg` always stands, none being clear). */
+    its designed number where its look names none; a zoom where the effect takes one in its shape's place (the
+    dimple's), its designed zoom where its look names none; the strings' ground where their look names one, none being
+    their designed ground (the blob's `bg` always stands, none being clear). */
 function effectSettings(effect: Effect, angle: number, finish: EffectFinish = {}) {
   const { kind, speed, fps, look } = effect;
   const kept = effectFinish(kind, finish);
   const steps = effectStepsShown(kind, look);
+  const zoom = EFFECT_KINDS[kind].zoom;
   return kind !== "blob"
     ? {
         style: kind,
@@ -205,7 +207,7 @@ function effectSettings(effect: Effect, angle: number, finish: EffectFinish = {}
         ...kept,
         speed,
         fps,
-        shape: look.shape ?? 0,
+        ...(zoom ? { zoom: look.zoom ?? zoom.designed } : { shape: look.shape ?? 0 }),
         ...(look.bg !== null && EFFECT_KINDS[kind].ground ? { bg: look.bg } : {})
       }
     : { style: kind, ...kept, speed, fps, shape: look.shape, frost: look.frost, bg: look.bg };
@@ -324,7 +326,7 @@ export const effectMarkdown =
         case "dimple":
           return [
             `${name} played as a dimple: a sheet of round scales pressed in at one point, each disc running a little of the palette ${colors} toward the hollow, the darker end of the palette in it. Nothing in it moves by itself: the hollow follows the pointer and stays where the pointer left it.`,
-            `a dimple, its sheet and its light turned to ${angle} degrees, shape ${shape ?? 0}, ${effect.speed === 0 ? "its hollow held at its rest" : `its hollow following the pointer at speed ${effect.speed}, up to ${effect.fps} frames a second`}`
+            `a dimple, its sheet and its light turned to ${angle} degrees, zoom ${effect.look.zoom ?? 1}, ${effect.speed === 0 ? "its hollow held at its rest" : `its hollow following the pointer at speed ${effect.speed}, up to ${effect.fps} frames a second`}`
           ];
         case "strings":
           return [

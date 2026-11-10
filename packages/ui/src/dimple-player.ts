@@ -23,12 +23,12 @@ import {
 } from "./effect-loop.ts";
 import { buildPrograms } from "./gl-build.ts";
 
-/** The dimple as it plays: the angle its sheet and its light are turned to (90 as designed), its shape (0 or none as
+/** The dimple as it plays: the angle its sheet and its light are turned to (90 as designed), its zoom (none as
     designed), how fast its hollow follows the pointer (1 as designed, 0 not at all: its still) and its frames a
     second at most. */
 export interface DimplePlay {
   angle: number;
-  shape: number | null;
+  zoom: number | null;
   speed: number;
   fps: number;
 }
@@ -100,11 +100,7 @@ export function createDimpleDrawing(
   }
   return {
     layout(palette, view, w, h) {
-      scene = dimpleScene(
-        palette,
-        { angle: view.angle, shape: view.shape },
-        { width: w, height: h }
-      );
+      scene = dimpleScene(palette, { angle: view.angle, zoom: view.zoom }, { width: w, height: h });
       sent = false;
     },
     built: () => programs.built(),

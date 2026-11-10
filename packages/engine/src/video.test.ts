@@ -78,7 +78,7 @@ const wasmFile = readFileSync(new URL("./video/video.wasm", import.meta.url));
 const wasm = new WebAssembly.Module(wasmFile);
 const palette = decodePalette("kWnCIwwC47igfOklkTlShq44");
 if (!palette) throw new Error("the test's palette");
-const look = { shape: null, frost: 1, bg: null, steps: null };
+const look = { shape: null, frost: 1, bg: null, steps: null, zoom: null };
 const glass = { kind: "glass", look } as const;
 const blob = { kind: "blob", look } as const;
 
@@ -329,8 +329,8 @@ describe("the module's frames", () => {
   it("are the blob's, as blobRenderer draws it on its ground", () => {
     for (const blobLook of [
       look,
-      { shape: 3, frost: 2, bg: "#ffeeddaa", steps: null },
-      { shape: 999, frost: 0, bg: "#102030", steps: null }
+      { shape: 3, frost: 2, bg: "#ffeeddaa", steps: null, zoom: null },
+      { shape: 999, frost: 0, bg: "#102030", steps: null, zoom: null }
     ]) {
       const size = { width: 120, height: 96 };
       const ask: VideoAsk = { kind: "blob", palette, look: blobLook, angle: 90, size, fps: 30 };
@@ -1002,8 +1002,8 @@ describe("a clip's soft and grain", () => {
   const kinds: [VideoKind, EffectLook][] = [
     ["glass", look],
     ["blob", look],
-    ["blob", { shape: 3, frost: 2, bg: "#ffeeddaa", steps: null }],
-    ["blob", { shape: 999, frost: 0, bg: "#102030", steps: null }],
+    ["blob", { shape: 3, frost: 2, bg: "#ffeeddaa", steps: null, zoom: null }],
+    ["blob", { shape: 999, frost: 0, bg: "#102030", steps: null, zoom: null }],
     ["silk", { ...look, shape: 417 }],
     ["rosette", look],
     ["papercut", { ...look, shape: 7 }],

@@ -933,6 +933,8 @@
   "Your display name on palettes": "Paletlerde görünen adınız",
   "Your image": "Görseliniz",
   "Your saved Grabient palettes.": "Grabient'te kaydettiğiniz paletler.",
+  "Zoom": "Yakınlaştırma",
+  "Zoom {value}": "Yakınlaştırma {value}",
   "agent": "ajan",
   "analogous {colors}": "komşu renklerde {colors}",
   "angular gradient": "açısal gradyan",

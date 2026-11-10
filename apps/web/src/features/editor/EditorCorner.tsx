@@ -114,7 +114,7 @@ function Still(props: { page: SeedPage }) {
         />
       }
       label={effectLabel(kind)}
-      summary={[effectSummary(props.page.effect ?? EFFECT_PLAY, null, look.steps), finish()]
+      summary={[effectSummary(props.page.effect ?? EFFECT_PLAY, null, look), finish()]
         .filter(Boolean)
         .join(" · ")}
       open={false}

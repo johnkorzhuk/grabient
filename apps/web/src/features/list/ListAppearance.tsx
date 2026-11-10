@@ -333,7 +333,7 @@ export function ListAppearance() {
         effectSummary(
           v.effect,
           v.effect.kind === "blob" || v.angle === "auto" ? null : v.angle,
-          v.effect.look.steps
+          v.effect.look
         ),
         ...finish
       ]

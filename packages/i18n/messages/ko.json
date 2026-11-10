@@ -933,6 +933,8 @@
   "Your display name on palettes": "팔레트에 보이는 표시 이름",
   "Your image": "내 이미지",
   "Your saved Grabient palettes.": "Grabient에 저장한 팔레트예요.",
+  "Zoom": "확대",
+  "Zoom {value}": "확대 {value}",
   "agent": "에이전트",
   "analogous {colors}": "유사색 {colors}",
   "angular gradient": "원뿔형 그라데이션",

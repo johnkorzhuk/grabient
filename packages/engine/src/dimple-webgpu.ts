@@ -94,7 +94,7 @@ function play() {
       canvas.width = w;
       canvas.height = h;
     }${finish ? "\n    finish.layout(w, h, grainScaleOf(w));" : grain ? "\n    gpu.queue.writeBuffer(grainScale, 0, new Float32Array([grainScaleOf(w)]));" : ""}
-    scene = dimpleScene(ANGLE, SHAPE, w, h);
+    scene = dimpleScene(ANGLE, ZOOM, w, h);
     const u = sceneUniforms(scene);
     F.set([scene.width, scene.height]);
     F.set(u.rest, ${U.rest / 4});

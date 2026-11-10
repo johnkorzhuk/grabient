@@ -45,33 +45,46 @@ const WRITERS: Record<EffectKind, () => Promise<Writer>> = {
 const SEED = "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ";
 const P = decodePalette(SEED) as Palette;
 const SIZE = { width: 320, height: 180 };
-type Look = { angle: number; shape: number | null; steps: number | null; bg: string | null };
+type Look = {
+  angle: number;
+  shape: number | null;
+  steps: number | null;
+  zoom: number | null;
+  bg: string | null;
+};
 const LOOKS: readonly Look[] = [
-  { angle: 90, shape: null, steps: null, bg: null },
-  { angle: 210, shape: 417, steps: null, bg: null }
+  { angle: 90, shape: null, steps: null, zoom: null, bg: null },
+  { angle: 210, shape: 417, steps: null, zoom: null, bg: null }
 ];
 /** An effect's looks: LOOKS, and where it takes the view's steps (the sandstone), its fewest as designed and its most at
-    a shape and an angle, its levels uniforms the scene sets; where it takes a ground whose none is its designed one
-    (the strings), a light one, one half clear and a clear one, which its canvas lays premultiplied over the page's
-    white. */
+    a shape and an angle, its levels uniforms the scene sets; where it takes a zoom in its shape's place (the dimple),
+    a zoom between and its most at an angle; where it takes a ground whose none is its designed one (the strings), a
+    light one, one half clear and a clear one, which its canvas lays premultiplied over the page's white. */
 const looksOf = (kind: EffectKind): readonly Look[] => {
   const range = EFFECT_KINDS[kind].steps;
+  const zoom = EFFECT_KINDS[kind].zoom;
   const grounds: Look[] =
     EFFECT_KINDS[kind].ground === "designed"
       ? [
-          { angle: 210, shape: 417, steps: null, bg: "#f4efe6" },
-          { angle: 90, shape: null, steps: null, bg: "#10203080" },
-          { angle: 90, shape: 7, steps: null, bg: "#00000000" }
+          { angle: 210, shape: 417, steps: null, zoom: null, bg: "#f4efe6" },
+          { angle: 90, shape: null, steps: null, zoom: null, bg: "#10203080" },
+          { angle: 90, shape: 7, steps: null, zoom: null, bg: "#00000000" }
         ]
       : [];
+  const zooms: Look[] = zoom
+    ? [
+        { angle: 90, shape: null, steps: null, zoom: 2.35, bg: null },
+        { angle: 210, shape: null, steps: null, zoom: zoom.most, bg: null }
+      ]
+    : [];
   return range
     ? [
         ...LOOKS,
-        { angle: 90, shape: null, steps: range.least, bg: null },
-        { angle: 210, shape: 417, steps: range.most, bg: null },
+        { angle: 90, shape: null, steps: range.least, zoom: null, bg: null },
+        { angle: 210, shape: 417, steps: range.most, zoom: null, bg: null },
         ...grounds
       ]
-    : [...LOOKS, ...grounds];
+    : [...LOOKS, ...zooms, ...grounds];
 };
 /* the conformance suite's limits (engine effect-conformance.test.ts): a mean OKLab difference in hundredths, and the
    99th percentile of 3 by 3 neighbourhoods'. The blob's frost is noise in every pixel, which its WebGL page draws
@@ -241,9 +254,9 @@ for (const kind of EFFECTS.filter(k => EFFECT_KINDS[k].shader))
         kind,
         speed: 0,
         fps: 60,
-        look: { shape: look.shape, frost: 1, bg: look.bg, steps: look.steps }
+        look: { shape: look.shape, frost: 1, bg: look.bg, steps: look.steps, zoom: look.zoom }
       };
-      const named = `angle ${look.angle}, shape ${look.shape}${look.steps === null ? "" : `, ${look.steps} steps`}${look.bg === null ? "" : `, on ${look.bg}`}`;
+      const named = `angle ${look.angle}, shape ${look.shape}${look.steps === null ? "" : `, ${look.steps} steps`}${look.zoom === null ? "" : `, zoom ${look.zoom}`}${look.bg === null ? "" : `, on ${look.bg}`}`;
       test(`its WebGL page draws its first frame as the CPU does (${named})`, async ({ page }) => {
         const write = await WRITERS[kind]();
         const errors = await serve(page, write("webgl", P, effect, look.angle, SEED));
@@ -291,7 +304,7 @@ for (const kind of EFFECTS.filter(k => EFFECT_KINDS[k].shader))
         kind,
         speed: 0,
         fps: 60,
-        look: { shape: null, frost: 1, bg: null, steps: null }
+        look: { shape: null, frost: 1, bg: null, steps: null, zoom: null }
       };
       const html = write("webgpu", P, effect, 90, SEED);
       const modules = [

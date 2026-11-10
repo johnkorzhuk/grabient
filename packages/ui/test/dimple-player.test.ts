@@ -11,7 +11,7 @@ import { playDimple } from "../src/dimple-player.ts";
    the pointer's moves told to the window's listeners. */
 
 const P = decodePalette("kS7CQ31Do6asvY-") as Palette;
-const VIEW = { speed: 1, fps: 60, angle: 90, shape: null };
+const VIEW = { speed: 1, fps: 60, angle: 90, zoom: null };
 
 let draws = 0;
 let sizes: ((entries: unknown[]) => void)[] = [];

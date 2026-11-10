@@ -14,6 +14,7 @@ import { dimpleFileSvg, dimpleFrameSvg, dimpleStillSvg } from "./dimple-svg.ts";
 import {
   effectGround,
   effectSteps,
+  effectZoom,
   type FxLook,
   fxStillKey,
   isEffect,
@@ -56,25 +57,28 @@ export const FX_STILL_SIDE = 1000;
 const SQUARE: Size = { width: FX_STILL_SIDE, height: FX_STILL_SIDE };
 
 /** A still's name read back, or null for one no page wrote: its steps, where it names them, those its kind takes at
-    any but their designed number (effect.ts effectSteps), and its ground, where it names one, one its kind takes
-    (effectGround), as fxStillKey writes them. */
+    any but their designed number (effect.ts effectSteps), its zoom, where it names one, one its kind takes
+    (effectZoom), and its ground, where it names one, one its kind takes (effectGround), as fxStillKey writes them. */
 export function readFxStillKey(
   key: string
 ): { kind: VectorKind; seed: string; look: FxLook } | null {
   const parts = key.split("|");
-  if (parts.length < 4 || parts.length > 6) return null;
+  if (parts.length < 4 || parts.length > 7) return null;
   const [kind, seed, angle, shape, ...rest] = parts;
   if (!isEffect(kind) || !isVectorKind(kind)) return null;
   if (!/^[\w-]{2,}$/.test(seed)) return null;
   if (!/^\d{1,3}$/.test(angle) || Number(angle) > 360) return null;
   if (shape !== "" && !/^\d{1,3}$/.test(shape)) return null;
   const steps = rest[0] !== undefined && /^\d{1,3}$/.test(rest[0]) ? rest.shift() : undefined;
+  const zoom =
+    rest[0] !== undefined && /^\d(\.\d{1,2})?x$/.test(rest[0]) ? rest.shift() : undefined;
   const bg = rest.shift();
   if (rest.length || (bg !== undefined && !bg.startsWith("#"))) return null;
   const look = {
     angle: Number(angle),
     shape: shape === "" ? null : Number(shape),
     steps: steps === undefined ? null : effectSteps(kind, steps),
+    zoom: zoom === undefined ? null : effectZoom(kind, zoom.slice(0, -1)),
     bg: bg === undefined ? null : effectGround(kind, bg)
   };
   return fxStillKey(kind, seed, look) === key ? { kind, seed, look } : null;

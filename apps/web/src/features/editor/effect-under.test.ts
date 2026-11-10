@@ -17,7 +17,7 @@ test("the stage lays under a soft effect the gradient its files lay there: the p
   ] as const) {
     const u = effectUnderlay(
       P,
-      { kind, look: { shape: null, frost: 1, bg: "#f0e6d2", steps: null } },
+      { kind, look: { shape: null, frost: 1, bg: "#f0e6d2", steps: null, zoom: null } },
       angle,
       50
     )!;
