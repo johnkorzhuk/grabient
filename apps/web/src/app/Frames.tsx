@@ -16,9 +16,9 @@ import { type FramePage, footerLinks, navLinks, siteFacts } from "./site.ts";
    footer (PageFrame). Both end in the language menu. The header, the water and the keys are the shell's and stay as
    pages change. */
 
-type FooterPage = "privacy" | "terms" | "mcp";
+type FooterPage = "privacy" | "terms" | "mcp" | "about";
 const footerPage = (page: string | undefined): FooterPage | null =>
-  page === "privacy" || page === "terms" || page === "mcp" ? page : null;
+  page === "privacy" || page === "terms" || page === "mcp" || page === "about" ? page : null;
 
 /** The language menu as a frame draws it: this page in every language, which the shell knows. A page that draws its
     own PageFrame (MCP, an app's consent) takes it from here. */
