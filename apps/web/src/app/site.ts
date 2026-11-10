@@ -58,9 +58,12 @@ export function navLinks(
   ]);
 }
 
-/** The footer's links, the page on screen marked: the legal pages, how an AI app is connected, then the code. */
+/** The footer's links, the page on screen marked: the legal pages, how an AI app is connected, what Grabient is, then
+    the code. About stands here because the account's menu, its only other way from a list, is drawn when a reader
+    opens it: the footer is a plain link on every page, which a search engine reads when it picks the links it shows
+    under the site's result. */
 export function footerLinks(
-  current: "privacy" | "terms" | "mcp" | null,
+  current: "privacy" | "terms" | "mcp" | "about" | null,
   stars: number | null,
   href: (to: string) => string
 ): FrameLink[] {
@@ -74,6 +77,7 @@ export function footerLinks(
     own("/privacy", t("Privacy"), current === "privacy"),
     own("/terms", t("Terms"), current === "terms"),
     own("/mcp-server", "MCP", current === "mcp"),
+    own("/about", t("About"), current === "about"),
     codeLink(stars)
   ]);
 }

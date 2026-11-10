@@ -71,6 +71,23 @@ test("the footer's Privacy and Terms are followed in English and nofollow in ano
   ]);
 });
 
+test("every page's footer links About in plain words, followed in every language, so a crawler finds it from a list", async ({
+  request
+}) => {
+  /* the account's menu, a list's other way to About, is drawn when a reader opens it: no crawler reads its rows */
+  const footer = (html: string) => /<footer\b[\s\S]*?<\/footer>/.exec(html)?.[0] ?? "";
+  const words = (html: string, href: string) =>
+    new RegExp(`<a\\b[^>]*\\shref="${href}"[^>]*>([^<]*)</a>`).exec(html)?.[1];
+  for (const path of ["/", "/palettes", "/collections", "/privacy"]) {
+    const foot = footer(await (await request.get(path)).text());
+    expect([path, links(foot, /^\/about$/).map(link => link.rel)]).toEqual([path, [undefined]]);
+    expect([path, words(foot, "/about")]).toEqual([path, "About"]);
+  }
+  const japanese = footer(await (await request.get("/ja")).text());
+  expect(links(japanese, /^\/ja\/about$/).map(link => link.rel)).toEqual([undefined]);
+  expect(words(japanese, "/ja/about")).toBe("概要");
+});
+
 test("every palette link of a list has words, the ones its label says", async ({ request }) => {
   const html = await (await request.get("/palettes")).text();
   const plain = (s: string) =>
