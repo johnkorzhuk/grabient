@@ -56,19 +56,20 @@ test("a collection's tags search palettes, followed from its page and nofollow f
   expect(links(html, new RegExp(`^/${slug}$`)).map(link => link.rel)).toContain(undefined);
 });
 
-test("the footer's Privacy and Terms are followed in English and nofollow in another language", async ({
+test("the footer's Privacy is followed in English and nofollow in another language, and the Terms stand on the sign-in page alone", async ({
   request
 }) => {
   const english = await (await request.get("/about")).text();
   const japanese = await (await request.get("/ja/about")).text();
-  expect(links(english, /^\/(?:privacy|terms)$/).map(link => link.rel)).toEqual([
-    undefined,
-    undefined
-  ]);
-  expect(links(japanese, /^\/ja\/(?:privacy|terms)$/).map(link => link.rel)).toEqual([
-    "nofollow",
-    "nofollow"
-  ]);
+  expect(links(english, /^\/privacy$/).map(link => link.rel)).toEqual([undefined]);
+  expect(links(japanese, /^\/ja\/privacy$/).map(link => link.rel)).toEqual(["nofollow"]);
+  /* the Terms are linked where they are agreed to: a list, a brand page and the privacy policy carry no link to them */
+  for (const path of ["/", "/about", "/privacy"]) {
+    const html = await (await request.get(path)).text();
+    expect([path, links(html, /^\/terms$/)]).toEqual([path, []]);
+  }
+  const signIn = await (await request.get("/login")).text();
+  expect(links(signIn, /^\/terms$/).map(link => link.rel)).toEqual([undefined]);
 });
 
 test("every page's footer links About in plain words, followed in every language, so a crawler finds it from a list", async ({
