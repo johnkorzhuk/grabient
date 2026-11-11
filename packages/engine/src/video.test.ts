@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { kitShadowRun } from "../scripts/kit-gen.ts";
+import { AURORA_LOOP, auroraPoint, auroraRange, auroraScene, auroraSolid } from "./aurora.ts";
+import { renderAurora } from "./aurora-render.ts";
 import { BLOB_LOOP, blobBackdrop, blobRenderer } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
 import {
@@ -9,6 +11,7 @@ import {
   EFFECTS,
   type EffectFinish,
   type EffectLook,
+  effectBare,
   groundParts
 } from "./effect.ts";
 import {
@@ -42,6 +45,8 @@ import { STRINGS_LOOP, stringsScene, stringsSolid } from "./strings.ts";
 import { stringsDesignedGround } from "./strings-ground.ts";
 import { renderStrings } from "./strings-render.ts";
 import {
+  AURORA_WEIGHT,
+  auroraVideoWeight,
   kitVideoDrawer,
   kitVideoWeight,
   VIDEO_LIMITS,
@@ -63,6 +68,7 @@ import {
   videoPlan,
   videoQp,
   videoQuality,
+  videoWeight,
   videoWork
 } from "./video.ts";
 import { videoBlur, videoFinish } from "./video-finish.ts";
@@ -234,7 +240,7 @@ describe("videoQuality", () => {
     expect(videoQuality({ ...blob, finish: { grain: 30 } })).toEqual(VIDEO_QUALITY.blob);
     /* and a blob takes no soft */
     expect(videoQuality({ ...thin, finish: { soft: 40 } })).toEqual(VIDEO_QUALITY.blob);
-    for (const kind of ["glass", "silk", "rosette", "papercut", "strings"] as const)
+    for (const kind of ["glass", "silk", "rosette", "papercut", "strings", "aurora"] as const)
       expect(videoQuality({ kind, look, finish: { soft: 40, grain: 30 } })).toEqual(
         VIDEO_QUALITY[kind]
       );
@@ -443,14 +449,46 @@ describe("the module's frames", () => {
     }
   });
 
+  it("are the aurora's, as renderAurora draws it behind a range that is never clear, within a level", () => {
+    /* the module draws four pixels at once in single precision from what the engine kept of each (its place on the
+       fan, its height over the range, how much of the light shows), where renderAurora works each out in double
+       precision: a channel differs, by one level, where its value lies within a hair of a rounding's half (0.002% to
+       0.017% of them, 11 Nov 2026). A range that lets the page through is laid over the blob's backdrop, as a
+       card's */
+    const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
+    for (const [size, angle, path, bg] of [
+      [{ width: 160, height: 90 }, 90, null, null],
+      [{ width: 96, height: 128 }, 20, walled, "#140b19"],
+      [{ width: 200, height: 200 }, 45, "line,25,25,curve,45,60,45,25,line,25,40,25", null],
+      [{ width: 130, height: 74 }, 135, "curve,30,55,35,60,30", "#10203080"]
+    ] as const) {
+      const ask: VideoAsk = {
+        kind: "aurora",
+        palette,
+        look: { ...look, path, bg },
+        angle,
+        size,
+        fps: 30
+      };
+      const scene = auroraSolid(
+        auroraScene(palette, { angle, path, bg }, size),
+        blobBackdrop(palette)
+      );
+      expect(scene.cover).toBe(1);
+      const drawn = compare(ask, (i, n) => renderAurora(scene, (i * AURORA_LOOP) / n), 4);
+      expect(drawn.worst, `${path} ${size.width}x${size.height}`).toBeLessThanOrEqual(1);
+      expect(drawn.share, `${path} ${size.width}x${size.height}`).toBeLessThan(0.001);
+    }
+  });
+
   it("loop: the frame a loop on is the first", () => {
     const most = (a: ArrayLike<number>, b: ArrayLike<number>) =>
       Array.from(a).reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
     const size = { width: 64, height: 48 };
     /* the glass's, the silk's, the papercut's and the strings' time runs on past the loop, so the module draws the
        frame after the last: the papercut's and the strings' are their first exactly, as their motions are whole
-       cycles of their loops */
-    for (const kind of ["glass", "silk", "papercut", "strings"] as const) {
+       cycles of their loops; the aurora's drawer wraps its time, every sheet sliding whole tiles a loop */
+    for (const kind of ["glass", "silk", "papercut", "strings", "aurora"] as const) {
       const ask: VideoAsk = { kind, palette, look, angle: 135, size, fps: 30 };
       const plan = videoPlan(ask, 2.45, 30, null);
       const drawer = videoDrawer(wasm, ask, plan, VIDEO_QUALITY[kind], true);
@@ -943,6 +981,13 @@ function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: numbe
     const def = kitEffect(kind);
     const scene = kitScene(def, P, { angle, shape: shown.shape, steps: shown.steps }, size);
     rgba = opaque(kitRender(scene, (i * plan.loops * def.loop) / plan.frames), 4);
+  } else if (kind === "aurora") {
+    /* the aurora's range laid over the blob's backdrop where it lets the page through, the clip's backdrop for it */
+    const scene = auroraSolid(
+      auroraScene(P, { angle, path: shown.path, bg: shown.bg }, size),
+      blobBackdrop(P)
+    );
+    rgba = opaque(renderAurora(scene, (i * plan.loops * AURORA_LOOP) / plan.frames), 4);
   } else {
     /* the strings laid over their designed ground where theirs lets the page through, the clip's backdrop for them */
     const scene = stringsSolid(stringsScene(P, { angle, shape: shown.shape, bg: shown.bg }, size));
@@ -1010,7 +1055,10 @@ describe("a clip's soft and grain", () => {
     ["strings", look],
     ["strings", { ...look, bg: "#f4efe6" }],
     ["strings", { ...look, shape: 417, bg: "#10203080" }],
-    ["strings", { ...look, bg: CLEAR_GROUND }]
+    ["strings", { ...look, bg: CLEAR_GROUND }],
+    ["aurora", look],
+    ["aurora", { ...look, path: "line,0:30,20:30,20:55,35:55,35:38,100:38", bg: "#140b19" }],
+    ["aurora", { ...look, path: "curve,30,55,35,60,30", bg: "#10203080" }]
   ];
 
   it("are the site's, as finishPixels finishes a frame: the grain alone within a level nearly everywhere", () => {
@@ -1060,7 +1108,14 @@ describe("a clip's soft and grain", () => {
            (8 Nov 2026) */
         const clear = kind === "blob" && !(shown.bg && groundParts(shown.bg).alpha === 1);
         const own = kind === "strings" && shown.bg !== null;
-        expect(past, at).toBeLessThan(clear ? 0.15 : own ? 0.03 : 0.005);
+        /* the aurora behind a range that lets the page through lies on the clip's backdrop with no gradient under
+           it, as a clear blob does, and its light stands bright to the box's very rim, where the strings' picture
+           is their ground: where the blur is wider than the picture all of it is the edge thinning to that
+           backdrop, and its channels sit past a level at 7.3% to 9.4% (18 by 1080, soft 40) and 1.8% to 2.1% (1920
+           by 16), within two as everywhere, and at 0.1% at 282 by 502; behind a range of a whole color, its
+           gradient under it, none does (11 Nov 2026) */
+        const bare = kind === "aurora" && effectBare(kind, shown);
+        expect(past, at).toBeLessThan(clear ? 0.15 : bare ? 0.1 : own ? 0.03 : 0.005);
       }
     }
   });
@@ -1080,7 +1135,11 @@ describe("a clip's soft and grain", () => {
           scale
         );
         expect(worst, `${kind} at 1/${scale}`).toBeLessThanOrEqual(2);
-        expect(past, `${kind} at 1/${scale}`).toBeLessThan(0.01);
+        /* the aurora behind a range that lets the page through, its light bright at the box's rim where the blur
+           thins it to the clip's backdrop (as above): 0.9% to 1.2% past a level at a half, 0.1% at a quarter and at
+           its own; behind a range of a whole color, none (11 Nov 2026) */
+        const bare = kind === "aurora" && effectBare(kind, shown);
+        expect(past, `${kind} at 1/${scale}`).toBeLessThan(bare ? 0.015 : 0.01);
       }
     }
   });
@@ -1120,6 +1179,7 @@ describe("the silk's, the rosette's, the papercut's and the strings' clips", () 
     expect(videoLoop({ kind: "silk", look })).toBe(SILK_LOOP);
     expect(videoLoop({ kind: "papercut", look })).toBe(PAPERCUT_LOOP);
     expect(videoLoop({ kind: "strings", look })).toBe(STRINGS_LOOP);
+    expect(videoLoop({ kind: "aurora", look })).toBe(AURORA_LOOP);
     /* the strings' loop is a minute, so at speed 1 a clip is one whole loop, never nudged to fit */
     expect(videoPlan({ kind: "strings", look }, 1, 30, null)).toEqual({
       frames: 1800,
@@ -1258,5 +1318,94 @@ describe("videoFrames", () => {
       fps: 10
     };
     expect(() => videoFrames(wasm, ask, videoPlan(blob, 1, 10, 2), 5, 10)).toThrow();
+  });
+});
+
+describe("the aurora's clips", () => {
+  const wide = { width: 1920, height: 1080 };
+  const behind = (path: string | null) => ({ ...look, path });
+  const skyline =
+    "line,0:26.4,11.1:26.4,11.1:45,21.5:45,21.5:33,32.9:33,32.9:43,43.1:43,43.1:32,53.3:32,53.3:26.4,62.4:26.4,62.4:58,72.1:58,72.1:63,80:63,80:30,100:30";
+
+  it("are weighed by their range: no light shows under its lowest height, and a clip costs by the light it shows", () => {
+    const weight = (path: string | null, size = wide) => auroraVideoWeight(behind(path), size);
+    /* the designed range in a wide box, whose clips' frames measured 2.5 to 2.9 */
+    expect(weight(null)).toBeCloseTo(3.45, 1);
+    /* a range all of whose light shows weighs the most the aurora does, and none weighs more */
+    expect(weight("line,0,0")).toBe(VIDEO_WEIGHT.aurora);
+    expect(weight("line,4,4")).toBe(VIDEO_WEIGHT.aurora);
+    expect(VIDEO_WEIGHT.aurora).toBe(AURORA_WEIGHT.base + AURORA_WEIGHT.lit);
+    /* a higher range weighs less, down to half a box's light, which no range in the box's upper half shows more
+       than */
+    const falling = ["line,20,20", "line,35,35", "line,50,50", "line,80,80"].map(path =>
+      weight(path)
+    );
+    expect(falling).toEqual([...falling].sort((a, b) => b - a));
+    expect(weight("line,80,80")).toBeCloseTo(AURORA_WEIGHT.base + AURORA_WEIGHT.lit * 0.51, 6);
+    expect(weight("line,95,95")).toBe(weight("line,80,80"));
+    /* by its lowest height, wherever along it that is */
+    expect(weight("line,80,80,20,80,80")).toBeCloseTo(weight("line,20,20"), 6);
+    expect(weight(skyline)).toBeCloseTo(weight("line,26.4,26.4"), 6);
+    /* by a box's shape alone, never its size or which way up it is: a clip drawn smaller weighs the same */
+    expect(weight(null, { width: 640, height: 360 })).toBeCloseTo(weight(null), 6);
+    expect(weight(null, { width: 1080, height: 1920 })).toBeCloseTo(weight(null), 6);
+    expect(weight(null, { width: 1080, height: 1080 })).toBeLessThan(weight(null));
+    /* it is what a clip is fitted by, its soft's and its grain's cost over it */
+    expect(videoWeight({ kind: "aurora", look: behind(null) }, wide)).toBe(weight(null));
+    expect(
+      videoWeight({ kind: "aurora", look: behind(null), finish: { grain: 30 } }, wide)
+    ).toBeCloseTo(weight(null) + 0.3, 6);
+    /* so a clip behind a higher range is drawn larger, within the same work */
+    const fit = (path: string | null) =>
+      videoFit({ kind: "aurora", look: behind(path) }, 1, 60, null, wide);
+    expect(fit("line,80,80").size.width).toBeGreaterThan(fit(null).size.width);
+    expect(fit(null).size.width).toBeGreaterThan(fit("line,4,4").size.width);
+    for (const path of [null, "line,4,4", "line,80,80"]) {
+      const { size, plan } = fit(path);
+      expect(
+        videoWork({ kind: "aurora", look: behind(path) }, size, plan.frames)
+      ).toBeLessThanOrEqual(VIDEO_LIMITS.work);
+    }
+  });
+
+  it("show light in no more of a box than their weight counts, whatever the box and the angle", () => {
+    /* the share of a box's pixels that show any light (auroraRange), counted at every pixel of a small box of the
+       same shape, against the share the weight takes */
+    const at = new Float64Array(2);
+    for (const path of [
+      null,
+      "line,4,4",
+      "line,20,20",
+      "line,50,50",
+      "line,80,80",
+      "line,10,90",
+      "curve,30,55,35,60,30",
+      "curve,80,20,80,20,80",
+      skyline
+    ])
+      for (const [width, height] of [
+        [192, 108],
+        [108, 192],
+        [144, 144],
+        [240, 100],
+        [100, 240]
+      ])
+        for (const angle of [90, 0, 20, 45, 135, 180, 270]) {
+          const size = { width, height };
+          const scene = auroraScene(palette, { angle, path, bg: null }, size);
+          let lit = 0;
+          for (let y = 0; y < height; y++)
+            for (let x = 0; x < width; x++) {
+              auroraPoint(scene, x + 0.5, y + 0.5, at);
+              auroraRange(scene, at[0], at[1], at);
+              if (at[0] > 0) lit++;
+            }
+          const counted =
+            (auroraVideoWeight(behind(path), size) - AURORA_WEIGHT.base) / AURORA_WEIGHT.lit;
+          expect(
+            lit / (width * height),
+            `${path} ${width}x${height} at ${angle}`
+          ).toBeLessThanOrEqual(counted);
+        }
   });
 });

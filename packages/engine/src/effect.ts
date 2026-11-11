@@ -283,7 +283,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     svgMotion: null,
     frameSvg: true,
     figma: null,
-    video: false,
+    video: true,
     embed: false,
     shader: false,
     motion: "loop"

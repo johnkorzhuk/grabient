@@ -12,6 +12,7 @@ export const VIDEO_KINDS = [
   "rosette",
   "papercut",
   "strings",
+  "aurora",
   ...KIT_KINDS
 ] as const satisfies readonly EffectKind[];
 export type VideoKind = (typeof VIDEO_KINDS)[number];

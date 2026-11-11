@@ -2485,6 +2485,358 @@ void strings_frame(void) {
   if (fSoft) finishFrame();
 }
 
+/* ---------------------------------------------------------------- the aurora (aurora-render.ts's renderAurora) */
+
+/* The aurora's light behind its range, within a level of renderAurora's. Nothing about where a pixel stands changes
+   with a frame, so the engine's own code works it out once (video.ts's auroraDraw, with aurora.ts's auroraPoint and
+   auroraRange) and this keeps it, four numbers a pixel, each in a plane of its own: its angle across the fan and its
+   way out along its ray, its height over the line the light rises from, and how much of the light the range lets
+   show. What a height does to the light (its rise, the haze and what is left of the hot spots: three exponentials)
+   is kept by height, the nodes on the rise's corners, and read between two. So a frame is the tiles read, seven
+   times a pixel that shows any light, and the arithmetic between: four pixels of a row at once, in single
+   precision, as the glass's and the silk's are drawn. A pixel's own arithmetic is some four hundred operations,
+   each waiting on the one before, more than a processor looks ahead over, so pixels drawn one at a time, in double
+   precision, waited on each other: 124 to 153 ns a pixel of light on a 3.6 GHz core (11 Nov 2026), where four at
+   once take 41 to 45. Four pixels the range covers whole are the range's color alone, as renderAurora's are.
+   The tiles are kept as numbers, each texel beside what its right neighbour adds, and the two channels read at one
+   place side by side, so a reading across is one load and no texel is turned from a byte as it is read. */
+#define AU_N 256
+#define AU_MASK (AU_N - 1)
+#define AU_RAMP 128
+/* the heights the table holds (video.ts's AURORA_NODES) */
+#define AU_NODES 4100
+
+typedef struct {
+  float v, d;
+} AuOne;
+typedef struct {
+  float a, da, b, db;
+} AuTwo;
+
+/* what the engine fills: the two tiles' bytes, the table by height (three numbers a node) and the pixels' four
+   planes */
+static unsigned char *auBytes;
+static double *auLift;
+static float *auPixel;
+/* the broad sheets' two readings: the sharp tile's first channel beside the soft tile's, and their second; the fine
+   shafts' (the sharp tile's third), the two hot sheets' (its fourth and its first), and the soft tile's third, which
+   the gathering reads */
+static AuTwo *auBroadA, *auBroadB;
+static AuOne *auFine, *auHot, *auHot2, *auGather;
+/* the gathering's row for a frame: it is read by angle alone, so every pixel reads the same two rows of its tile */
+static AuOne auRow[AU_N];
+/* the table by height and the ramp as this reads them: a node's three numbers, a color's three channels, side by
+   side */
+static v128_t *auNode, auColor[AU_RAMP];
+/* the sheets, each its tiles a radian across and a unit along, where it starts and what it slides a loop: the two
+   broad ones, the fine one, the two hot ones, the gathering */
+static double auSheet[6][6];
+/* each step of the light's (shaft, halo, fine, hot, the second hot sheet's, gather): where it starts, in a byte's
+   units, and one over its width in them, so a reading goes into it as it is read */
+static float auStep[6][2];
+static float auHalos, auShafts, auFines, auHots;
+static v128_t auRangeColor, auRangeBytes;
+static double auCs, auSn, auPer;
+static float auFirst, auNodesPer;
+
+/* The room the engine fills, as the clip's size asks: the two tiles (AU_N by AU_N, four bytes a texel, the sharp one
+   then the soft), the table by height and the pixels' four planes (each W by H numbers, a row's last four read two
+   past its end), their addresses left in params; and the tiles, the table and the ramp as this reads them. 1, or 0
+   where the memory is short. */
+EXPORT(aurora_setup)
+int aurora_setup(void) {
+  const int texels = AU_N * AU_N;
+  auBytes = take(2 * texels * 4);
+  auLift = take(AU_NODES * 3 * 8);
+  auPixel = take(4 * W * H * 4 + 16);
+  auBroadA = take(texels * sizeof(AuTwo));
+  auBroadB = take(texels * sizeof(AuTwo));
+  auFine = take(texels * sizeof(AuOne));
+  auHot = take(texels * sizeof(AuOne));
+  auHot2 = take(texels * sizeof(AuOne));
+  auGather = take(texels * sizeof(AuOne));
+  auNode = take(AU_NODES * sizeof(v128_t));
+  if (!auBytes || !auLift || !auPixel || !auBroadA || !auBroadB || !auFine || !auHot || !auHot2 || !auGather || !auNode)
+    return 0;
+  params[0] = (double)(unsigned)auBytes;
+  params[1] = (double)(unsigned)auLift;
+  params[2] = (double)(unsigned)auPixel;
+  return 1;
+}
+
+/* Once the engine has filled that room: params hold the six sheets (six numbers each), the light's six steps (two
+   each), what the halos, the shafts, the fine shafts and the hot spots add, the range's color (0 to 1), the angle's
+   cosine and sine and the picture's height in pixels, the table's first height and its step, then the ramp. */
+EXPORT(aurora_ready)
+int aurora_ready(void) {
+  const double *p = params;
+  for (int s = 0; s < 6; s++)
+    for (int k = 0; k < 6; k++) auSheet[s][k] = *p++;
+  for (int s = 0; s < 6; s++, p += 2) {
+    auStep[s][0] = (float)(255 * p[0]);
+    auStep[s][1] = (float)(1 / (255 * (p[1] - p[0])));
+  }
+  auHalos = (float)*p++;
+  auShafts = (float)*p++;
+  auFines = (float)*p++;
+  auHots = (float)*p++;
+  /* the range's color, and the range alone as renderAurora rounds it */
+  auRangeColor = wasm_f32x4_make((float)p[0], (float)p[1], (float)p[2], 1.0f);
+  auRangeBytes = wasm_f32x4_make((float)__builtin_floor(p[0] * 255 + 0.5), (float)__builtin_floor(p[1] * 255 + 0.5),
+                                 (float)__builtin_floor(p[2] * 255 + 0.5), 255.0f);
+  p += 3;
+  auCs = *p++;
+  auSn = *p++;
+  auPer = 1 / *p++;
+  auFirst = (float)*p++;
+  auNodesPer = (float)(1 / *p++);
+  for (int k = 0; k < AU_RAMP; k++, p += 3) auColor[k] = wasm_f32x4_make((float)p[0], (float)p[1], (float)p[2], 1.0f);
+  for (int k = 0; k < AU_NODES; k++)
+    auNode[k] = wasm_f32x4_make((float)auLift[3 * k], (float)auLift[3 * k + 1], (float)auLift[3 * k + 2], 0.0f);
+  const unsigned char *sharp = auBytes, *soft = auBytes + AU_N * AU_N * 4;
+  for (int y = 0; y < AU_N; y++)
+    for (int x = 0; x < AU_N; x++) {
+      const int i = y * AU_N + x, at = 4 * i, next = 4 * (y * AU_N + ((x + 1) & AU_MASK));
+      auBroadA[i] = (AuTwo){sharp[at], sharp[next] - sharp[at], soft[at], soft[next] - soft[at]};
+      auBroadB[i] = (AuTwo){sharp[at + 1], sharp[next + 1] - sharp[at + 1], soft[at + 1], soft[next + 1] - soft[at + 1]};
+      auFine[i] = (AuOne){sharp[at + 2], sharp[next + 2] - sharp[at + 2]};
+      auHot[i] = (AuOne){sharp[at + 3], sharp[next + 3] - sharp[at + 3]};
+      auHot2[i] = (AuOne){sharp[at], sharp[next] - sharp[at]};
+      auGather[i] = (AuOne){soft[at + 2], soft[next + 2] - soft[at + 2]};
+    }
+  return 1;
+}
+
+/* every part of a pixel's drawing in the one loop that draws it: left to itself the compiler keeps a reading called
+   from three places a function, its four pixels handed over through memory (a hot spot's reading cost twice a broad
+   sheet's two, 11 Nov 2026) */
+#define AU_INLINE static inline __attribute__((always_inline))
+#define AU4(x) wasm_f32x4_splat((float)(x))
+#define AU_LANE(v, l) wasm_i32x4_extract_lane(v, l)
+#define AU_ALL(v, l) wasm_i32x4_shuffle(v, v, l, l, l, l)
+
+AU_INLINE v128_t auLerp(v128_t a, v128_t b, v128_t t) { return wasm_f32x4_add(a, wasm_f32x4_mul(wasm_f32x4_sub(b, a), t)); }
+
+/* a whole number held in a double as an int: one instruction, where C's own cast is a test and a branch before
+   it in a module that may not trap */
+AU_INLINE int auInt(double x) { return wasm_i32x4_extract_lane(wasm_i32x4_trunc_sat_f64x2_zero(wasm_f64x2_splat(x)), 0); }
+
+/* Where four places (u, v), in tiles, fall in a tile, as aurora.ts's `read` finds one: each one's texel at its upper
+   left and the one under it, and its shares past them across and down. A texel's place is masked into the tile, so
+   a row's last four, whose last two are no pixels, read inside it whatever numbers they hold. */
+AU_INLINE void auPlace(v128_t u, v128_t v, v128_t *over, v128_t *under, v128_t *fx, v128_t *fy) {
+  const v128_t side = AU4(AU_N), half = AU4(0.5), mask = wasm_i32x4_splat(AU_MASK);
+  const v128_t x = wasm_f32x4_sub(wasm_f32x4_mul(wasm_f32x4_sub(u, wasm_f32x4_floor(u)), side), half);
+  const v128_t y = wasm_f32x4_sub(wasm_f32x4_mul(wasm_f32x4_sub(v, wasm_f32x4_floor(v)), side), half);
+  const v128_t x0 = wasm_f32x4_floor(x), y0 = wasm_f32x4_floor(y);
+  *fx = wasm_f32x4_sub(x, x0);
+  *fy = wasm_f32x4_sub(y, y0);
+  const v128_t xa = wasm_v128_and(wasm_i32x4_trunc_sat_f32x4(x0), mask), ya = wasm_i32x4_trunc_sat_f32x4(y0);
+  *over = wasm_i32x4_add(wasm_i32x4_shl(wasm_v128_and(ya, mask), 8), xa);
+  *under = wasm_i32x4_add(wasm_i32x4_shl(wasm_v128_and(wasm_i32x4_add(ya, wasm_i32x4_splat(1)), mask), 8), xa);
+}
+
+/* four texels' one channel, each read across by its share */
+AU_INLINE v128_t auAcross(const AuOne *t, v128_t at, v128_t fx) {
+  const v128_t low = wasm_i32x4_shuffle(wasm_v128_load64_zero(t + AU_LANE(at, 0)), wasm_v128_load64_zero(t + AU_LANE(at, 1)), 0, 4, 1, 5);
+  const v128_t high = wasm_i32x4_shuffle(wasm_v128_load64_zero(t + AU_LANE(at, 2)), wasm_v128_load64_zero(t + AU_LANE(at, 3)), 0, 4, 1, 5);
+  return wasm_f32x4_add(wasm_i32x4_shuffle(low, high, 0, 1, 4, 5), wasm_f32x4_mul(wasm_i32x4_shuffle(low, high, 2, 3, 6, 7), fx));
+}
+
+/* a tile's one channel at four places, in a byte's units */
+AU_INLINE v128_t auOne(const AuOne *t, v128_t u, v128_t v) {
+  v128_t over, under, fx, fy;
+  auPlace(u, v, &over, &under, &fx, &fy);
+  return auLerp(auAcross(t, over, fx), auAcross(t, under, fx), fy);
+}
+
+/* four texels' two channels, each read across by its share */
+AU_INLINE void auAcross2(const AuTwo *t, v128_t at, v128_t fx, v128_t *a, v128_t *b) {
+  const v128_t t0 = wasm_v128_load(t + AU_LANE(at, 0)), t1 = wasm_v128_load(t + AU_LANE(at, 1));
+  const v128_t t2 = wasm_v128_load(t + AU_LANE(at, 2)), t3 = wasm_v128_load(t + AU_LANE(at, 3));
+  const v128_t a01 = wasm_i32x4_shuffle(t0, t1, 0, 4, 1, 5), a23 = wasm_i32x4_shuffle(t2, t3, 0, 4, 1, 5);
+  const v128_t b01 = wasm_i32x4_shuffle(t0, t1, 2, 6, 3, 7), b23 = wasm_i32x4_shuffle(t2, t3, 2, 6, 3, 7);
+  *a = wasm_f32x4_add(wasm_i32x4_shuffle(a01, a23, 0, 1, 4, 5), wasm_f32x4_mul(wasm_i32x4_shuffle(a01, a23, 2, 3, 6, 7), fx));
+  *b = wasm_f32x4_add(wasm_i32x4_shuffle(b01, b23, 0, 1, 4, 5), wasm_f32x4_mul(wasm_i32x4_shuffle(b01, b23, 2, 3, 6, 7), fx));
+}
+
+/* a tile's two channels at four places, in a byte's units */
+AU_INLINE void auTwo(const AuTwo *t, v128_t u, v128_t v, v128_t *a, v128_t *b) {
+  v128_t over, under, fx, fy, pa, pb, qa, qb;
+  auPlace(u, v, &over, &under, &fx, &fy);
+  auAcross2(t, over, fx, &pa, &pb);
+  auAcross2(t, under, fx, &qa, &qb);
+  *a = auLerp(pa, qa, fy);
+  *b = auLerp(pb, qb, fy);
+}
+
+/* aurora.ts's `smooth` of four readings in a byte's units: from `from`, `per` of a step a unit */
+AU_INLINE v128_t auSmooth(v128_t n, v128_t from, v128_t per) {
+  v128_t x = wasm_f32x4_mul(wasm_f32x4_sub(n, from), per);
+  x = wasm_f32x4_pmin(wasm_f32x4_pmax(x, AU4(0)), AU4(1));
+  return wasm_f32x4_mul(wasm_f32x4_mul(x, x), wasm_f32x4_sub(AU4(3), wasm_f32x4_add(x, x)));
+}
+
+/* A frame's numbers, each read once: where each sheet has slid to, the picture's turn, and the clip's own (its
+   steps, its shares, its tiles, its planes), which stand in the module's memory, where a drawing writes, so a
+   number read from there in the pixels' loop would be read again for every four. */
+typedef struct {
+  v128_t across[6], along[6], u[6], v[6];
+  v128_t from[6], per[6];
+  v128_t halos, shafts, fines, hots, range, covered, first, nodesPer;
+  float xx, xy, yx, yy;
+  const AuTwo *broadA, *broadB;
+  const AuOne *fine, *hot, *hot2;
+  const v128_t *node;
+  const float *angle, *out, *height, *show;
+  int width;
+  double cx, cy;
+} AuFrame;
+
+/* Four pixels of a row from (x, y), into q: their light through the ramp and the range in front, as renderAurora
+   rounds them. */
+AU_INLINE void auFour(const AuFrame *f, int x, int y, v128_t *q) {
+  const int at = y * f->width + x;
+  const v128_t show = wasm_v128_load(f->show + at);
+  if (wasm_i32x4_all_true(wasm_f32x4_le(show, AU4(0)))) {
+    q[0] = q[1] = q[2] = q[3] = f->covered;
+    return;
+  }
+  const v128_t ang = wasm_v128_load(f->angle + at), r = wasm_v128_load(f->out + at);
+  const v128_t h = wasm_v128_load(f->height + at);
+  /* the pixels' middles in the picture, as auroraPoint places them: the hot sheets lie over the picture itself */
+  const v128_t dx = wasm_f32x4_add(wasm_f32x4_make(0.5f, 1.5f, 2.5f, 3.5f), AU4(x - f->cx));
+  const float dy = (float)(y + 0.5 - f->cy);
+  const v128_t X = wasm_f32x4_add(wasm_f32x4_mul(dx, AU4(f->xx)), AU4(dy * f->xy));
+  const v128_t Y = wasm_f32x4_add(wasm_f32x4_mul(dx, AU4(f->yx)), AU4(0.5f + dy * f->yy));
+#define AU_U(s, of) wasm_f32x4_add(wasm_f32x4_mul(of, f->across[s]), f->u[s])
+#define AU_V(s, of) wasm_f32x4_add(wasm_f32x4_mul(of, f->along[s]), f->v[s])
+  v128_t sharpA, softA, sharpB, softB;
+#define AU_STEP(n, s) auSmooth(n, f->from[s], f->per[s])
+  auTwo(f->broadA, AU_U(0, ang), AU_V(0, r), &sharpA, &softA);
+  auTwo(f->broadB, AU_U(1, ang), AU_V(1, r), &sharpB, &softB);
+  const v128_t most = AU4(0.6), least = AU4(0.4);
+  const v128_t shaft = wasm_f32x4_mul(AU_STEP(sharpA, 0), wasm_f32x4_add(least, wasm_f32x4_mul(most, AU_STEP(sharpB, 0))));
+  const v128_t halo = wasm_f32x4_mul(AU_STEP(softA, 1), wasm_f32x4_add(least, wasm_f32x4_mul(most, AU_STEP(softB, 1))));
+  const v128_t fine = AU_STEP(auOne(f->fine, AU_U(2, ang), AU_V(2, r)), 2);
+  const v128_t hot = wasm_f32x4_mul(AU_STEP(auOne(f->hot, AU_U(3, X), AU_V(3, Y)), 3), AU_STEP(auOne(f->hot2, AU_U(4, X), AU_V(4, Y)), 4));
+  /* the gathering, across its row */
+  const v128_t gu = AU_U(5, ang);
+  const v128_t gx = wasm_f32x4_sub(wasm_f32x4_mul(wasm_f32x4_sub(gu, wasm_f32x4_floor(gu)), AU4(AU_N)), AU4(0.5));
+  const v128_t gx0 = wasm_f32x4_floor(gx);
+  const v128_t gather = wasm_f32x4_add(
+      AU4(0.7),
+      wasm_f32x4_mul(AU4(0.3), AU_STEP(auAcross(auRow, wasm_v128_and(wasm_i32x4_trunc_sat_f32x4(gx0), wasm_i32x4_splat(AU_MASK)),
+                                                 wasm_f32x4_sub(gx, gx0)),
+                                        5)));
+  /* what each one's height does to its light, between two nodes: its rise, the haze, what is left of the hot spots */
+  const v128_t node = wasm_f32x4_pmin(wasm_f32x4_pmax(wasm_f32x4_mul(wasm_f32x4_sub(h, f->first), f->nodesPer), AU4(0)), AU4(AU_NODES - 1));
+  const v128_t low = wasm_i32x4_min(wasm_i32x4_max(wasm_i32x4_trunc_sat_f32x4(node), wasm_i32x4_splat(0)), wasm_i32x4_splat(AU_NODES - 2));
+  const v128_t past = wasm_f32x4_sub(node, wasm_f32x4_convert_i32x4(low));
+  v128_t n0, n1, n2, n3;
+#define AU_NODE(l) auLerp(f->node[AU_LANE(low, l)], f->node[AU_LANE(low, l) + 1], AU_ALL(past, l))
+  n0 = AU_NODE(0);
+  n1 = AU_NODE(1);
+  n2 = AU_NODE(2);
+  n3 = AU_NODE(3);
+  const v128_t n01 = wasm_i32x4_shuffle(n0, n1, 0, 4, 1, 5), n23 = wasm_i32x4_shuffle(n2, n3, 0, 4, 1, 5);
+  const v128_t lift = wasm_i32x4_shuffle(n01, n23, 0, 1, 4, 5), haze = wasm_i32x4_shuffle(n01, n23, 2, 3, 6, 7);
+  const v128_t left = wasm_i32x4_shuffle(wasm_i32x4_shuffle(n0, n1, 2, 6, 2, 6), wasm_i32x4_shuffle(n2, n3, 2, 6, 2, 6), 0, 1, 4, 5);
+  const v128_t parts = wasm_f32x4_add(
+      wasm_f32x4_add(wasm_f32x4_mul(f->halos, halo),
+                     wasm_f32x4_mul(wasm_f32x4_mul(f->shafts, shaft), wasm_f32x4_add(AU4(0.7), wasm_f32x4_mul(AU4(0.3), fine)))),
+      wasm_f32x4_add(wasm_f32x4_mul(wasm_f32x4_mul(f->fines, fine), halo),
+                     wasm_f32x4_mul(wasm_f32x4_mul(wasm_f32x4_mul(f->hots, hot), wasm_f32x4_add(least, wasm_f32x4_mul(most, halo))), left)));
+  const v128_t light = wasm_f32x4_add(haze, wasm_f32x4_mul(wasm_f32x4_mul(lift, gather), parts));
+  /* through the ramp, then the range in front, its edge soft */
+  const v128_t v = wasm_f32x4_mul(wasm_f32x4_pmin(light, AU4(0.9999)), AU4(AU_RAMP - 1));
+  const v128_t j = wasm_i32x4_min(wasm_i32x4_max(wasm_i32x4_trunc_sat_f32x4(v), wasm_i32x4_splat(0)), wasm_i32x4_splat(AU_RAMP - 2));
+  const v128_t share = wasm_f32x4_sub(v, wasm_f32x4_convert_i32x4(j));
+  const v128_t cover = wasm_f32x4_sub(AU4(1), show);
+  const v128_t byte = AU4(255), up = AU4(0.5);
+#define AU_PIXEL(l)                                                                                                    \
+  wasm_f32x4_replace_lane(                                                                                             \
+      wasm_f32x4_floor(wasm_f32x4_add(                                                                                 \
+          wasm_f32x4_mul(wasm_f32x4_add(wasm_f32x4_mul(auLerp(auColor[AU_LANE(j, l)], auColor[AU_LANE(j, l) + 1], AU_ALL(share, l)), \
+                                                       AU_ALL(show, l)),                                               \
+                                        wasm_f32x4_mul(f->range, AU_ALL(cover, l))),                                   \
+                         byte),                                                                                        \
+          up)),                                                                                                        \
+      3, 255.0f)
+  q[0] = AU_PIXEL(0);
+  q[1] = AU_PIXEL(1);
+  q[2] = AU_PIXEL(2);
+  q[3] = AU_PIXEL(3);
+}
+
+/* The frame into the planes: params[0] is the share of the loop gone by (aurora.ts's auroraTime). */
+EXPORT(aurora_frame)
+void aurora_frame(void) {
+  const double T = params[0];
+  AuFrame f;
+  for (int s = 0; s < 6; s++) {
+    f.across[s] = AU4(auSheet[s][0]);
+    f.along[s] = AU4(auSheet[s][1]);
+    f.u[s] = AU4(auSheet[s][2] + auSheet[s][4] * T);
+    f.v[s] = AU4(auSheet[s][3] + auSheet[s][5] * T);
+    f.from[s] = AU4(auStep[s][0]);
+    f.per[s] = AU4(auStep[s][1]);
+  }
+  f.halos = AU4(auHalos);
+  f.shafts = AU4(auShafts);
+  f.fines = AU4(auFines);
+  f.hots = AU4(auHots);
+  f.range = auRangeColor;
+  f.covered = auRangeBytes;
+  f.first = AU4(auFirst);
+  f.nodesPer = AU4(auNodesPer);
+  f.broadA = auBroadA;
+  f.broadB = auBroadB;
+  f.fine = auFine;
+  f.hot = auHot;
+  f.hot2 = auHot2;
+  f.node = auNode;
+  f.width = W;
+  f.cx = W / 2.0;
+  f.cy = H / 2.0;
+  f.angle = auPixel;
+  f.out = auPixel + W * H;
+  f.height = auPixel + 2 * W * H;
+  f.show = auPixel + 3 * W * H;
+  /* a pixel's middle, dx across and dy down from the box's, is at (dx cs + dy sn) / ext across the picture and
+     0.5 + (dx sn - dy cs) / ext up it */
+  f.xx = (float)(auCs * auPer);
+  f.xy = (float)(auSn * auPer);
+  f.yx = (float)(auSn * auPer);
+  f.yy = (float)(-auCs * auPer);
+  {
+    /* the gathering's two rows, read down once for every pixel of the frame */
+    const double at = auSheet[5][3] + auSheet[5][5] * T;
+    const double y = (at - __builtin_floor(at)) * AU_N - 0.5, y0 = __builtin_floor(y), fy = y - y0;
+    const AuOne *over = auGather + (auInt(y0) & AU_MASK) * AU_N, *under = auGather + ((auInt(y0) + 1) & AU_MASK) * AU_N;
+    for (int x = 0; x < AU_N; x++) {
+      auRow[x].v = (float)(over[x].v + (under[x].v - over[x].v) * fy);
+      auRow[x].d = (float)(over[x].d + (under[x].d - over[x].d) * fy);
+    }
+  }
+  const int wide = W, tall = H;
+  for (int y = 0; y < tall; y += 2)
+    for (int x = 0; x < wide; x += 4) {
+      const int n = wide - x < 4 ? 2 : 4;
+      v128_t q[8];
+      auFour(&f, x, y, q);
+      auFour(&f, x, y + 1, q + 4);
+      if (n < 4) {
+        q[2] = q[0];
+        q[3] = q[1];
+        q[6] = q[4];
+        q[7] = q[5];
+      }
+      emitOpaque(x, y, n, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);
+    }
+  if (fSoft) finishFrame();
+}
+
 /* ---------------------------------------------------------------- the field effects (kit/render.ts's kitRender) */
 
 /* What every field effect's kernel (kit-kernels.c, included first) calls (kit.h): Math's functions as V8 computes them,

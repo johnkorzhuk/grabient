@@ -678,15 +678,12 @@ for (const kind of EFFECTS.filter(isVectorKind))
     expect([script.status(), script.headers()["content-type"]]).toEqual(
       hasEmbedScript(kind) ? [200, "text/javascript; charset=utf-8"] : [404, "application/json"]
     );
-    /* a clip where it has a loop of its own; one the pointer alone moves (the dimple) has none, and the aurora's
-       are not drawn yet (engine/effect-why.ts) */
+    /* a clip where it has a loop of its own; one the pointer alone moves (the dimple) has none */
     const clip = await request.head(`/${SEED}.mp4?style=${kind}&shape=7`);
     expect([clip.status(), clip.headers()["content-type"]]).toEqual(
       EFFECT_KINDS[kind].video ? [200, "video/mp4"] : [404, "text/plain; charset=utf-8"]
     );
-    expect(EFFECT_KINDS[kind].video).toBe(
-      EFFECT_KINDS[kind].motion === "loop" && kind !== "aurora"
-    );
+    expect(EFFECT_KINDS[kind].video).toBe(EFFECT_KINDS[kind].motion === "loop");
   });
 
 test("a list turned to the papercut draws every card's still in turn, a frame's share at a time", async ({

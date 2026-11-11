@@ -246,9 +246,12 @@ const BUDGETS = {
   // aurora-render.ts, aurora-svg.ts), which the Worker's SVG, CSS, PNG and cards load with the first file of it asked
   // for, the paths made from a number for the examples page (aurora-path-kinds.ts), its colors there, the words its
   // files and the guide say of it and of how a path is written, and its entries in the tables that take one for
-  // every effect took it from 1486.6 to 1497.1 to 1497.3, by the build; it has no clip, no script and no shader
-  // pages yet. The budget stands the builds' spread over it
-  worker: 1499,
+  // every effect took it from 1486.6 to 1497.1 to 1497.3, by the build; it has no script and no shader pages yet.
+  // Its clips (11 Nov 2026, John: "werre missing hte mp4 download"): what the engine keeps of each pixel for the
+  // module (engine/video.ts auroraDraw: its place on the fan, its height over the range, what that height does to
+  // the light), the clip's weight by its range and its words took it to 1497.2 to 1498.2, by the build. The budget
+  // stands the builds' spread and one more over it
+  worker: 1501,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
@@ -261,8 +264,11 @@ const BUDGETS = {
   // view's steps space them, kit/scene.ts kitSteps and the scene's steps and hops, the soft shadow's rise from them,
   // video.ts kitDraw, and an effect's steps read from its address, engine/effect.ts parseEffect, effectSteps): 27.5 KB.
   // With two more field effects' definitions it stood at 30.003 the same day, past 30, when this was raised, and it
-  // was left so when they went. With the sandstone's definition alone it stands at 26.2, from 27.7 (10 Nov 2026)
-  mp4Worker: 31,
+  // was left so when they went. With the sandstone's definition alone it stands at 26.2, from 27.7 (10 Nov 2026).
+  // The aurora's clips (11 Nov 2026): its scene, the maker of its two tiles, its range's pieces and the path's reader
+  // (engine/aurora.ts, aurora-path.ts) and what its drawing keeps of each pixel (video.ts auroraDraw) took it from
+  // 27.2 to 30.5
+  mp4Worker: 32,
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
   // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks. The
   // color reader (engine/written-color.ts), which the search, the pages' titles and the MCP read, took it from 237.5

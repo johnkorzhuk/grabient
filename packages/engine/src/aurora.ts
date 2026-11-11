@@ -394,6 +394,20 @@ export function auroraHeight(segA: Float32Array, segB: Float32Array, i: number, 
   );
 }
 
+/** The lowest the range's edge comes across the picture (0 its bottom, 1 its top), read at eight places a piece:
+    no light shows under it, which a clip's cost is weighed by (video.ts auroraVideoWeight). */
+export function auroraLowest(path: string): number {
+  const { segs, segA, segB } = auroraPieces(path);
+  let lowest = 1;
+  for (let i = 0; i < segs; i++) {
+    const x0 = segA[i * 4];
+    const wide = segA[i * 4 + 1] - x0;
+    for (let k = 0; k <= 8; k++)
+      lowest = Math.min(lowest, auroraHeight(segA, segB, i, x0 + (wide * k) / 8));
+  }
+  return lowest;
+}
+
 /* the last path's pieces: a list draws one path over and over */
 let kept: { path: string; pieces: AuroraPieces } | null = null;
 /** A path's pieces; the designed range's for anything that is no path. */
@@ -502,6 +516,17 @@ export function auroraSolid(m: AuroraScene, backdrop: readonly number[]): Aurora
       Math.floor(Math.floor(v * 255 + 0.5) * m.cover + backdrop[i] * (1 - m.cover) + 0.5) / 255
   );
   return { ...m, range, cover: 1 };
+}
+
+/** What a point's height over the line the light rises from (auroraRange) does to its light, into out: the shafts'
+    share, up in a short rise and then thinning away; the haze; and how much of the hot spots is left. auroraLight's
+    own three numbers by height, which change with no frame: a clip keeps them by height (video.ts auroraDraw), and
+    its frames are held to renderAurora's, so the two stay one. */
+export function auroraLift(h: number, out: Float64Array | number[]) {
+  const up = Math.max(h, 0);
+  out[0] = smooth(-0.02, L.rise, h) * Math.exp(-Math.max(h - L.rise, 0) / L.fall);
+  out[1] = L.haze * Math.exp(-up / L.hazeFall);
+  out[2] = Math.exp(-up / L.hotFall);
 }
 
 /** A time (seconds of the loop at speed 1) as the share of the loop the drawings take: 0 up to 1. */

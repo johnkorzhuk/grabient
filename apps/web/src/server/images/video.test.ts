@@ -342,11 +342,18 @@ describe("a palette's MP4", () => {
       parts.run
     );
     expect(gradient.status).toBe(404);
-    /* every effect engine/video-kinds.ts lists, the papercut's and the strings' among them, then each field effect
-       (kit/kinds.ts), the last after "or" */
-    const styles = ["glass", "blob", "silk", "rosette", "papercut", "strings", ...KIT_KINDS].map(
-      kind => `style=${kind}`
-    );
+    /* every effect engine/video-kinds.ts lists, the papercut's, the strings' and the aurora's among them, then each
+       field effect (kit/kinds.ts), the last after "or" */
+    const styles = [
+      "glass",
+      "blob",
+      "silk",
+      "rosette",
+      "papercut",
+      "strings",
+      "aurora",
+      ...KIT_KINDS
+    ].map(kind => `style=${kind}`);
     expect(await gradient.text()).toBe(
       `An MP4 plays an effect: ${styles.slice(0, -1).join(", ")} or ${styles.at(-1)}.`
     );
@@ -359,10 +366,9 @@ describe("a palette's MP4", () => {
     const { env, keep } = world({ windows: { videoRender: 0 } });
     const parts = runner();
     const tags = [];
-    /* those with a loop of their own whose clips are drawn: one the pointer alone moves has no clip, and the
-       aurora's are not drawn yet (engine/effect.ts EFFECT_KINDS, effect-why.ts) */
+    /* those with a loop of their own: one the pointer alone moves has no clip (engine/effect.ts EFFECT_KINDS) */
     const styles = EFFECTS.filter(isVectorKind).filter(hasVideo);
-    expect(EFFECTS.filter(kind => !hasVideo(kind))).toEqual(["dimple", "aurora"]);
+    expect(EFFECTS.filter(kind => !hasVideo(kind))).toEqual(["dimple"]);
     for (const style of styles) {
       const answer = await seedMp4Answer(
         get(`/${SEED}.mp4?style=${style}&angle=135&size=64x48&fps=10&duration=2`),

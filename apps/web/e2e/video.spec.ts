@@ -64,6 +64,37 @@ test("Download MP4 makes the effect's clip in the browser, a file that plays at 
   expect(Buffer.from(await served.body()).equals(bytes)).toBe(true);
 });
 
+test("Download MP4 makes the aurora's clip behind the range its address writes, the server's clip at its link byte for byte", async ({
+  page,
+  context,
+  request,
+  baseURL
+}) => {
+  test.slow();
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  /* a block from 20 to 35 across on ground that steps, on a range of a whole color */
+  const range = "path=line,0:30,20:30,20:55,35:55,35:38,100:38&bg=%23140b19";
+  await page.goto(`/${SEED}?style=aurora&speed=10&size=320x180&${range}`);
+  await live(page);
+  await page.getByRole("button", { name: "Copying. Switch to download" }).first().click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download MP4" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe(`grabient-${SEED}-aurora.mp4`);
+  const bytes = readFileSync(await file.path());
+  await expect(page.locator("[data-announce]")).toHaveText("Downloaded MP4");
+  /* the aurora's loop of 48 seconds at speed 10, at 60 frames a second, at the size the stage shows */
+  expect(await played(page, bytes)).toEqual({ width: 320, height: 180, seconds: 4.8 });
+
+  await page.getByRole("button", { name: "Downloading. Switch to links" }).first().click();
+  await page.getByRole("button", { name: "Copy MP4 link" }).click();
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+  expect(link).toBe(`${baseURL}/${SEED}.mp4?style=aurora&speed=10&${range}&w=320&h=180`);
+  const served = await request.get(link);
+  expect(served.headers()["content-type"]).toBe("video/mp4");
+  expect(Buffer.from(await served.body()).equals(bytes)).toBe(true);
+});
+
 test("an MP4 being made stops at a press on it, or once the stage shows another clip: its worker goes, no file comes, and its chip downloads again", async ({
   page
 }) => {

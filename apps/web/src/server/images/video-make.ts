@@ -421,6 +421,8 @@ const ABOUT: Record<VideoKind, string> = {
     "A looping video of a Grabient palette: sheets of paper in its colors, cut and stacked, their shadows turning with the light.",
   strings:
     "A looping video of a Grabient palette: threads in its colors, evenly spaced, stirred slowly into bundles and loops.",
+  aurora:
+    "A looping video of a Grabient palette: light in its colors rising in curtains behind a still range.",
   /* a field effect's own words (kit/types.ts FieldAbout) */
   ...kitRecord(kind => kitEffect(kind).about.video)
 };

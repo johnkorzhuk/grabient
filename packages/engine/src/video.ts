@@ -1,12 +1,29 @@
-/* A palette's effect as a video: the fluted glass, the blob, the silk, the rosette, the papercut, the strings or a
-   field effect (kit/) playing whole loops, so the clip loops without a seam, drawn and coded by video/video.wasm (C:
-   the pixels of glassRenderer, blobRenderer, renderSilk and renderRosette within a level or two of theirs and
-   renderPapercut's, renderStrings' and kitRender's own, finished with the view's soft and grain as fx-finish.ts's
-   finishPixels finishes a frame, BT.709 YUV 4:2:0, and minih264's H.264), in an MP4 (mp4.ts). The engine's own code
-   says where the glass's discs, the blob's balls, the silk's folds, the rosette's petals, the papercut's hills, waves
-   and light, the strings' shears, waves and lumps and a field effect's phases and light stand in each frame; the module
-   draws them. The caller hands over the module, compiled: a Worker imports it, the editor's download fetches it into a
+/* A palette's effect as a video: the fluted glass, the blob, the silk, the rosette, the papercut, the strings, the
+   aurora or a field effect (kit/) playing whole loops, so the clip loops without a seam, drawn and coded by
+   video/video.wasm (C: the pixels of glassRenderer, blobRenderer, renderSilk, renderRosette and renderAurora within a
+   level or two of theirs and renderPapercut's, renderStrings' and kitRender's own, finished with the view's soft and
+   grain as fx-finish.ts's finishPixels finishes a frame, BT.709 YUV 4:2:0, and minih264's H.264), in an MP4 (mp4.ts).
+   The engine's own code says where the glass's discs, the blob's balls, the silk's folds, the rosette's petals, the
+   papercut's hills, waves and light, the strings' shears, waves and lumps and a field effect's phases and light stand
+   in each frame, and where every pixel of the aurora stands on its fan and over its range; the module draws them. The caller hands over the module, compiled: a Worker imports it, the editor's download fetches it into a
    Web Worker of the reader's browser, a test reads its file. */
+import {
+  AURORA_FAN,
+  AURORA_HALF,
+  AURORA_LIGHT,
+  AURORA_LOOP,
+  AURORA_RAMP,
+  AURORA_SOFT,
+  AURORA_TILE,
+  auroraLift,
+  auroraLowest,
+  auroraPoint,
+  auroraRange,
+  auroraScene,
+  auroraSolid,
+  auroraTime
+} from "./aurora.ts";
+import { AURORA_DESIGNED_PATH } from "./aurora-path.ts";
 import { BLOB_DESIGN, BLOB_LOOP, blobBackdrop, blobFit, blobFrame, blobScene } from "./blob.ts";
 import { hexBytes } from "./color.ts";
 import {
@@ -158,6 +175,9 @@ export const VIDEO_WEIGHT: Record<VideoKind, number> = {
   rosette: 1.6,
   papercut: 3,
   strings: 17,
+  /* the most the aurora's weighs, all of a picture its light: its clips are weighed by their range
+     (auroraVideoWeight) */
+  aurora: 4.5,
   /* a field effect's as its file says it measured (FieldEffect.clipWeight), else from its kernel's cost, its shadows'
      run (each as kit-gen wrote it, by the kind's place in kit/gen/kernel-order.ts) and its recipe (kitVideoWeight) */
   ...kitRecord(kind => {
@@ -202,6 +222,27 @@ export function kitVideoWeight(def: FieldEffect, cost: number, run: number): num
   );
 }
 
+/** What a pixel of the aurora's clip costs, by its range: the module draws the light where any shows and the range's
+    color alone under it, so a clip costs by the share of its pixels that show light, measured as VIDEO_WEIGHT is
+    (11 Nov 2026: frames from a loop's middle at about the sizes clips fit to, 30 frames a second, seven ranges from
+    a line at 4 of 100 to one at 80, wide, tall and square boxes at four angles, against a pixel of the glass's
+    longest clip): 0.66 and 3.58 times that share, 0.18 over that line at most; a light all over the picture cost 4.1
+    to 4.2, the designed range's 2.5 to 2.9. The share is taken at the most any box of the clip's shape shows at any
+    angle: none shows under the range's lowest height, and of a box turned any way about the picture's middle the
+    part over a level line under that middle is at most a half and the line's depth under the middle times the box's
+    longest chord over its area (a soft edge's half-width further down, and a hundredth for the corners it rounds).
+    So the designed range in a wide box weighs 3.45, where its clips' frames cost 2.9 at most. */
+export const AURORA_WEIGHT = { base: 0.9, lit: 3.6 } as const;
+export function auroraVideoWeight(look: Pick<EffectLook, "path">, size: Size): number {
+  const lowest = auroraLowest(look.path ?? AURORA_DESIGNED_PATH);
+  /* the box's half sides in the picture's units: the longer is the picture's half width */
+  const a = AURORA_HALF;
+  const b = (AURORA_HALF * Math.min(size.width, size.height)) / Math.max(size.width, size.height);
+  const under = Math.max(0, 0.5 - lowest + AURORA_SOFT);
+  const lit = Math.min(1, 0.51 + (under * Math.hypot(a, b)) / (2 * a * b));
+  return AURORA_WEIGHT.base + AURORA_WEIGHT.lit * lit;
+}
+
 /** What a soft adds to a pixel's cost, by the resolution its blur runs at (videoBlur), measured as VIDEO_WEIGHT is: at
     the frame's own, about what the glass costs (0.7 to 0.95); at a half or a quarter, its passes a quarter or a
     sixteenth of that, the averaging, the reading back up and the laying over the rest (0.3 to 0.4, 0.2 to 0.35). The
@@ -223,7 +264,9 @@ export function videoWeight(effect: VideoEffect, size: Size): number {
   const soft = effect.finish?.soft
     ? VIDEO_SOFT_WEIGHT[videoBlurScale(videoSoftSigma(effect.finish.soft, size))]
     : 0;
-  return VIDEO_WEIGHT[effect.kind] + soft + (effect.finish?.grain ? VIDEO_GRAIN_WEIGHT : 0);
+  const own =
+    effect.kind === "aurora" ? auroraVideoWeight(effect.look, size) : VIDEO_WEIGHT[effect.kind];
+  return own + soft + (effect.finish?.grain ? VIDEO_GRAIN_WEIGHT : 0);
 }
 
 /** A clip's work: its pixels across its frames, weighed by what it draws. */
@@ -246,6 +289,8 @@ export function videoLoop(effect: Pick<VideoEffect, "kind" | "look">): number {
       return PAPERCUT_LOOP;
     case "strings":
       return STRINGS_LOOP;
+    case "aurora":
+      return AURORA_LOOP;
   }
 }
 
@@ -397,7 +442,12 @@ export function videoParts(
     second, the designed view of two palettes: 5.6 to 6.9 Mbit/s at 640 by 360 where the glass is 0.27 to 0.40, 13.2
     to 16.8 at 1280 by 720 where it is 0.84 to 1.04; from a loop's middle at 640 by 360, decoded at 40.0 dB of the
     frames drawn where the glass is at 48.5, and at qp 28 4.9 Mbit/s and 36.3 dB, specks gathering about the
-    threads). */
+    threads). The aurora's light boils where it stands, which costs H.264 four times the glass and far less than the
+    strings, so it is coded as the glass is (11 Nov 2026, 5 seconds from a loop's start and from its middle at 640 by
+    360, 30 frames a second and speed 2.45, two palettes: 0.97 to 2.08 Mbit/s behind its designed range, decoded at
+    44.4 to 46.4 dB of the luma drawn, and 1.22 to 2.55 at 43.3 to 45.1 with light all over the picture, where the
+    glass was 0.26 to 0.50 at 45.5 to 48.3 and the strings 5.9 to 8.2 at 40.3 to 40.6; at qp 28 it kept 2 dB less
+    for 0.6 of the bytes). */
 export interface VideoQuality {
   qp: number;
   keyQp: number;
@@ -411,6 +461,7 @@ export const VIDEO_QUALITY: Record<VideoKind, VideoQuality> = {
   rosette: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
   papercut: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
   strings: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
+  aurora: { qp: 24, keyQp: 12, ramp: 20, effort: 9 },
   /* coded as the glass is (kitVideoDrawer): 5 seconds from the loop's start and from its middle at 640 by 360, 30
      frames a second and speed 2.45, the designed view of two palettes (test/kit-checks.ts's vivid and dark), the
      sandstone's plain bands cost 0.14 to 0.21 Mbit/s, decoded at 47.5 to 49.4 dB of the planes drawn, where the glass's
@@ -441,7 +492,7 @@ export const videoQuality = (effect: {
 /** The clips' module by its contents: the first 12 hex digits of video/video.wasm's SHA-256, which a test checks. An
     encoder's state holds pointers into the memory of the module that kept it, which another module lays out elsewhere
     (going on from one traps), so a drawing goes on only from a state the same module kept (video-make.ts). */
-export const VIDEO_MODULE = "567516f37997";
+export const VIDEO_MODULE = "695b2e2fd4e4";
 
 /** Frame i's quantizer in a clip of n frames. */
 export function videoQp(quality: VideoQuality, i: number, n: number): number {
@@ -548,6 +599,9 @@ interface VideoModule {
     lumps: number
   ) => number;
   strings_frame: () => void;
+  aurora_setup: () => number;
+  aurora_ready: () => number;
+  aurora_frame: () => void;
   kit_setup: (
     kernel: number,
     uniforms: number,
@@ -660,6 +714,8 @@ function kindDraw(
       return papercutDraw(m, params, ask, plan);
     case "strings":
       return stringsDraw(m, params, ask, plan);
+    case "aurora":
+      return auroraDraw(m, params, ask, plan);
   }
 }
 
@@ -937,6 +993,91 @@ function stringsDraw(
     stringsFrameAt(scene, plan.loops ? (i * plan.loops * STRINGS_LOOP) / plan.frames : 0, at);
     params().set(at);
     m.strings_frame();
+  };
+}
+
+/* The heights the module keeps the aurora's rise, haze and hot spots by (video.c's AU_NODES): this many, from the
+   first, a step apart, so the rise's corners (-0.02, 0 and its top at AURORA_LIGHT.rise) stand on nodes and the
+   straight line between two nodes strays from the light by nothing that shows; under the first, nothing rises and
+   the haze stands whole, as at it. */
+const AURORA_NODES = 4100;
+const AURORA_FIRST = -0.05;
+const AURORA_STEP = 0.0005;
+
+/* The aurora, its range never clear in a clip: one that lets the page through laid over the blob's backdrop
+   (auroraSolid), as its card's is. No frame changes where a pixel stands, so the engine's own code works out, once,
+   each pixel's angle across the fan and its way out along its ray (auroraLight's), its height over the line the
+   light rises from and how much of the light the range lets show (auroraRange), and what each height does to the
+   light (auroraLift), and the module keeps them: a frame is then the tiles read, seven times a pixel, and the
+   arithmetic between, in double precision, within a level of renderAurora's (the kept numbers are single precision,
+   and the rise is read between its nodes). */
+function auroraDraw(
+  m: VideoModule,
+  params: () => Float64Array,
+  ask: VideoAsk,
+  plan: VideoPlan
+): (i: number) => void {
+  const scene = auroraSolid(
+    auroraScene(ask.palette, { angle: ask.angle, path: ask.look.path, bg: ask.look.bg }, ask.size),
+    blobBackdrop(ask.palette)
+  );
+  /* the module's room for the tiles, the heights' table and the pixels: their addresses in params */
+  if (!m.aurora_setup()) throw new Error("video: out of memory");
+  const [tilesAt, liftAt, pixelsAt] = params();
+  const { width: W, height: H } = ask.size;
+  const texels = AURORA_TILE * AURORA_TILE * 4;
+  const tiles = new Uint8Array(m.memory.buffer, tilesAt, 2 * texels);
+  tiles.set(scene.noise);
+  tiles.set(scene.soft, texels);
+  const lift = new Float64Array(m.memory.buffer, liftAt, 3 * AURORA_NODES);
+  const three = [0, 0, 0];
+  for (let k = 0; k < AURORA_NODES; k++) {
+    auroraLift(AURORA_FIRST + k * AURORA_STEP, three);
+    lift.set(three, 3 * k);
+  }
+  /* a plane of each: the angle, the way out, the height, the share that shows */
+  const plane = W * H;
+  const pixels = new Float32Array(m.memory.buffer, pixelsAt, 4 * plane);
+  const at = new Float64Array(2);
+  for (let y = 0, i = 0; y < H; y++)
+    for (let x = 0; x < W; x++, i++) {
+      auroraPoint(scene, x + 0.5, y + 0.5, at);
+      const ex = at[0] - AURORA_FAN.x;
+      const ey = at[1] - AURORA_FAN.y;
+      auroraRange(scene, at[0], at[1], at);
+      pixels[i] = Math.atan2(ex, ey);
+      pixels[plane + i] = Math.sqrt(ex * ex + ey * ey);
+      pixels[2 * plane + i] = at[1];
+      pixels[3 * plane + i] = at[0];
+    }
+  const L = AURORA_LIGHT;
+  /* in aurora_ready's order */
+  params().set([
+    ...[L.a, L.b, L.c, L.h1, L.h2, L.g].flatMap(s => [s.across, s.along, s.u0, s.v0, s.du, s.dv]),
+    ...L.shaft,
+    ...L.halo,
+    ...L.fine,
+    ...L.hot,
+    L.hot[0] - 0.15,
+    L.hot[1],
+    ...L.gather,
+    L.halos,
+    L.shafts,
+    L.fines,
+    L.hots,
+    ...scene.range,
+    scene.cs,
+    scene.sn,
+    scene.ext,
+    AURORA_FIRST,
+    AURORA_STEP,
+    ...scene.ramp
+  ]);
+  if (scene.ramp.length !== 3 * AURORA_RAMP || !m.aurora_ready())
+    throw new Error("video: an aurora the module cannot draw");
+  return i => {
+    params()[0] = plan.loops ? auroraTime((i * plan.loops * AURORA_LOOP) / plan.frames) : 0;
+    m.aurora_frame();
   };
 }
 

@@ -128,8 +128,10 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   range is a path its address carries (`aurora-path.ts` reads and writes it, apart from the model so `effect.ts`
   loads no drawing; `aurora-path-kinds.ts` makes paths of a kind from a number, by `aurora-hash.ts`, with no model
   beside it), in its shape's place (`EFFECT_KINDS`' `path`), and the range's color is its ground, none leaving it
-  clear. Its SVG is a frame of it, which never moves, and its still stands in for its first frame. It has no shader
-  pages, no clip and no script (`effect-why.ts`).
+  clear. Its SVG is a frame of it, which never moves, and its still stands in for its first frame. Its clips are
+  drawn four pixels at a time from what the engine keeps of each pixel (`video.ts` auroraDraw: its place on the fan,
+  its height over the range, how much of the light shows), and weighed by how much of a picture its range leaves
+  lit (auroraVideoWeight). It has no shader pages and no script yet (`effect-why.ts`).
 - The field effects (`kit/`; the sandstone is the site's one): each is one file in `kit/fields/`, its kernel in the
   kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
   levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for
