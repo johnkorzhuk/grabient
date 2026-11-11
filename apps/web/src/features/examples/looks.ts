@@ -250,7 +250,8 @@ export function inLook(
       view: {
         style: "linearGradient",
         steps: Math.max(DEFAULT_STEPS, keyframes),
-        angle: look === "blob" ? DEFAULT_ANGLE : angleFor(own ?? look)
+        /* the blob has no angle, and an effect that stands upright (the aurora) is turned by none here */
+        angle: look === "blob" || EFFECT_KINDS[look].upright ? DEFAULT_ANGLE : angleFor(own ?? look)
       },
       effect: { kind: look, ...EFFECT_PLAY, look: { ...EFFECT_LOOK, shape, steps, zoom, path } }
     };

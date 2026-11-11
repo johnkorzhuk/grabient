@@ -667,12 +667,14 @@ function Stage(
   const art = () => {
     const kind = e.shownEffect();
     const soft = e.softIn(kind);
-    if (kind && soft) return effectUnderCss(calmPalette(), kind, e.angle(), soft, e.wide());
+    /* at the angle of what shows: an effect's own where it stands upright, the page's under a gradient */
+    const angle = e.angleIn(kind);
+    if (kind && soft) return effectUnderCss(calmPalette(), kind, angle, soft, e.wide());
     if (!soft)
       return gradientCss(
         calm().map(s => s.paint ?? s.hex),
         e.shownStyle(),
-        e.angle()
+        angle
       );
     const P = calmPalette();
     return pictureCss(
@@ -681,7 +683,7 @@ function Stage(
         { style: e.shownStyle(), soft },
         e.wide()
       ),
-      e.angle()
+      angle
     );
   };
   /* a soft effect that lets the page through (engine/effect.ts effectBare: the strings on a translucent or clear
@@ -847,7 +849,7 @@ function Stage(
         view={{
           speed: e.effects.settings("glass").speed,
           fps: e.effects.settings("glass").fps,
-          angle: e.angle(),
+          angle: e.angleIn("glass"),
           shape: e.effects.settings("glass").look.shape
         }}
       />
@@ -891,7 +893,7 @@ function Stage(
               data-fx-still={fxStillKey(
                 kind,
                 encodePalette(calmPalette()),
-                fxLookOf(e.effects.settings(kind).look, e.angle())
+                fxLookOf(e.effects.settings(kind).look, e.angleIn(kind))
               )}
             />
           </div>
@@ -901,7 +903,7 @@ function Stage(
           kind={kind}
           palette={calmPalette()}
           settings={e.effects.settings(kind)}
-          angle={e.angle()}
+          angle={e.angleIn(kind)}
         />
       </Loading>
     </Show>

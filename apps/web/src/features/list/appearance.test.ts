@@ -285,6 +285,24 @@ test("the strings take the list's ground, every card on it: read, written after 
   expect(viewParams({ effect: readListView({ style: "silk" }).effect }).bg).toBeUndefined();
 });
 
+test("a list's aurora stands upright on every card where the list sets no angle, and at the angle it sets", () => {
+  /* a palette saved at 45 degrees: a list that leaves the angle to each palette turns its gradient and every other
+     effect by it, and plays the aurora at 90 (John, 11 Nov 2026: "make auto 90 deg for this one") */
+  const own = { seed: SEED, style: "linearGradient", steps: 7, angle: 45 } as const;
+  const playing = (query: Record<string, unknown>) => readListView(query);
+  expect(drawnIn(own, playing({ style: "aurora" })).angle).toBe(90);
+  expect(drawnIn(own, playing({ style: "silk" })).angle).toBe(45);
+  expect(drawnIn(own, playing({})).angle).toBe(45);
+  /* an angle the list sets turns the aurora as any other effect */
+  expect(drawnIn(own, playing({ style: "aurora", angle: 30 })).angle).toBe(30);
+  /* while the menu sets the list's effect or its angle, the cards draw it at once */
+  const aurora = playing({ style: "aurora" }).effect;
+  expect(drawnIn(own, playing({}), { effect: aurora }).angle).toBe(90);
+  expect(drawnIn(own, playing({ style: "aurora" }), { effect: null }).angle).toBe(45);
+  expect(drawnIn(own, playing({ style: "aurora" }), { angle: 200 }).angle).toBe(200);
+  expect(drawnIn(own, playing({ style: "aurora", angle: 30 }), { angle: "auto" }).angle).toBe(90);
+});
+
 test("the aurora takes the list's path, every card behind it: read, written among its look as a word, and read back", () => {
   const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
   const aurora = readListView({

@@ -193,6 +193,23 @@ describe("looksFor", () => {
       looks.map(s => s.view.angle)
     );
   });
+  test("stands the aurora upright in every part, whatever angle the seed picks for the others", () => {
+    for (const seed of SEEDS)
+      for (const own of [undefined, "a", "b", "c", "d"]) {
+        const palette = decodePalette(seed)!;
+        expect(inLook(seed, palette, "aurora", "hero", 0, own).view.angle, `${seed} ${own}`).toBe(
+          90
+        );
+      }
+    /* where another effect's part is turned as the seed picks */
+    const turned = SEEDS.flatMap(seed =>
+      ["a", "b", "c", "d"].map(
+        own => inLook(seed, decodePalette(seed)!, "silk", "hero", 0, own).view.angle
+      )
+    );
+    expect(new Set(turned).size).toBeGreaterThan(1);
+  });
+
   test("turns an effect to angles and shapes of its own, where the page's are one a page", () => {
     const hero = inLook(SEED, PALETTE, "blob", "hero");
     const blobs = looksFor(hero, "hero", ["glass", "blob"], () => true).filter(s => s.effect);

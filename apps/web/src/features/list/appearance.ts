@@ -3,6 +3,7 @@ import {
   blobShapeOf,
   EFFECT_KINDS,
   type Effect,
+  effectAutoAngle,
   effectFinish,
   effectParts,
   parseEffect
@@ -281,26 +282,33 @@ function keyframesOf(seed: string): number {
 }
 
 /** A palette as a list draws it: the list's view over the palette's own, a draft over both, and never fewer steps
-    than keyframes. The soft and the grain are the list's or the draft's; where the list draws every palette as saved
-    (no style, no effect and none of either set), the ones its save kept (`kept`, lookFinish), as the card plays the
-    effect it kept (cardPlays). */
+    than keyframes. Where the list sets no angle, each palette's own turns its card, but under an effect of the
+    list's that stands upright (engine/effect.ts effectAutoAngle: the aurora), which every card then plays at 90,
+    as its page does. The soft and the grain are the list's or the draft's; where the list draws every palette as
+    saved (no style, no effect and none of either set), the ones its save kept (`kept`, lookFinish), as the card
+    plays the effect it kept (cardPlays). */
 export function drawnIn(
   own: Drawn,
   view: ListView,
   draft?: ViewDraft | null,
   kept?: Pick<Drawn, "soft" | "grain">
 ): Drawn {
+  const angle = draft?.angle ?? view.angle;
   const v = effectiveView(own, {
     style: view.style,
     steps: draft?.steps ?? view.steps,
-    angle: draft?.angle ?? view.angle
+    angle
   });
+  /* the effect every card plays: the list's, or the one being set in its menu */
+  const playing = draft && "effect" in draft ? draft.effect : view.effect;
+  const turned = playing && angle === "auto" ? effectAutoAngle(playing.kind, v.angle) : v.angle;
   const asSaved = view.style === "auto" && !view.effect && !(draft && "effect" in draft);
   const soft = draft?.soft ?? (view.soft || (asSaved ? (kept?.soft ?? 0) : 0));
   const grain = draft?.grain ?? (view.grain || (asSaved ? (kept?.grain ?? 0) : 0));
   return {
     seed: own.seed,
     ...v,
+    angle: turned,
     steps: Math.max(v.steps, keyframesOf(own.seed)),
     ...(soft ? { soft } : {}),
     ...(grain ? { grain } : {})

@@ -11,6 +11,7 @@ import {
   EFFECTS,
   EMBED_PLAYING,
   effectAddressParts,
+  effectAutoAngle,
   effectBare,
   effectFileAddress,
   effectFinish,
@@ -255,6 +256,19 @@ test("the dimple roams where its address says roam=1, the one effect the pointer
   expect(pastesToFigma(effect("style=dimple&roam=1"))).toBe(true);
   expect(pastesToFigma(effect("style=silk"))).toBe(true);
   expect(pastesToFigma(effect("style=papercut"))).toBe(false);
+});
+
+test("the aurora stands upright where no angle is set for it, at 90, where every other effect is turned by its palette's own", () => {
+  /* John, 11 Nov 2026, of the aurora lying on its side at a palette's own angle: "make auto 90 deg for this one" */
+  expect(EFFECTS.filter(kind => EFFECT_KINDS[kind].upright)).toEqual(["aurora"]);
+  expect(effectAutoAngle("aurora", 45)).toBe(90);
+  expect(effectAutoAngle("aurora", 0)).toBe(90);
+  for (const kind of EFFECTS.filter(other => other !== "aurora"))
+    expect(effectAutoAngle(kind, 45), kind).toBe(45);
+  /* an angle set for it turns it as any other, and its address names it; at 90 it names none */
+  expect(effect("style=aurora&angle=45")).not.toBeNull();
+  expect(effectAddressParts(effect("style=aurora"), 45)).toEqual(["style=aurora", "angle=45"]);
+  expect(effectAddressParts(effect("style=aurora"), 90)).toEqual(["style=aurora"]);
 });
 
 test("the aurora takes a path in its shape's place, none as designed; every other effect none", () => {

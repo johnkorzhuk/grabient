@@ -78,6 +78,12 @@ export type EffectShortfall = "svgMotion" | "frameSvg" | "figma" | "video" | "em
     but the aurora's one blur), where the glass and the blob have players and stills of their own. */
 export interface EffectKindFacts {
   angle: boolean;
+  /** whether it stands as designed, at 90, wherever no angle is set for it (the Appearance menu's Auto, a list's
+      cards, a part of a palette's examples page): the aurora, whose light rises from its range, and which a
+      palette's own angle laid on its side (John, 11 Nov 2026, of the aurora at a palette's own angle: "make auto 90
+      deg for this one"). Every other is turned there by its palette's own angle, as its gradient is. An angle the
+      reader sets turns it as any other */
+  upright: boolean;
   /** the view's soft blurs it; the grain goes over every effect */
   soft: boolean;
   /** whether it takes a ground, `bg` in its address and its Appearance menu's Background field, and what none is
@@ -137,6 +143,7 @@ export interface EffectKindFacts {
     (kit/types.ts FieldEffect.steps, as kit:gen writes them: kit/gen/kind-steps.ts). */
 const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
   angle: true,
+  upright: false,
   soft: true,
   ground: null,
   zoom: null,
@@ -154,6 +161,7 @@ const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
 export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   glass: {
     angle: true,
+    upright: false,
     soft: true,
     ground: null,
     steps: null,
@@ -171,6 +179,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   blob: {
     angle: false,
+    upright: false,
     soft: false,
     ground: "clear",
     steps: null,
@@ -188,6 +197,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   silk: {
     angle: true,
+    upright: false,
     soft: true,
     ground: null,
     steps: null,
@@ -205,6 +215,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   rosette: {
     angle: true,
+    upright: false,
     soft: true,
     ground: null,
     steps: null,
@@ -222,6 +233,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   papercut: {
     angle: true,
+    upright: false,
     soft: true,
     ground: null,
     steps: null,
@@ -239,6 +251,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   strings: {
     angle: true,
+    upright: false,
     soft: true,
     ground: "designed",
     steps: null,
@@ -256,6 +269,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   dimple: {
     angle: true,
+    upright: false,
     soft: true,
     ground: null,
     steps: null,
@@ -273,6 +287,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   aurora: {
     angle: true,
+    upright: true,
     soft: true,
     ground: "clear",
     steps: null,
@@ -290,6 +305,10 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
   },
   ...kitRecord(kind => ({ ...KIT_FACTS, steps: KIT_STEPS[kind] }))
 };
+/** The angle an effect is drawn at where none is set for it: its palette's own (`own`), which turns it as it turns the
+    palette's gradient, or 90 for one that stands upright (EFFECT_KINDS' `upright`: the aurora). */
+export const effectAutoAngle = (kind: EffectKind, own: number): number =>
+  EFFECT_KINDS[kind].upright ? DEFAULT_ANGLE : own;
 /** Whether a number 0 to 999 picks an effect's shape: every effect's but one that takes a zoom in its shape's place
     (EFFECT_KINDS' `zoom`: the dimple, whose zoom runs from its design, which draws as many discs as its still may
     weigh, to four times as large) and one that takes a path there (EFFECT_KINDS' `path`: the aurora, whose range is

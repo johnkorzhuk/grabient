@@ -2,7 +2,12 @@ import { type Axis, canonical, decodePalette, encodePalette, type Palette } from
 import { hexToSrgb, lchToP3, lchToSrgb, toCssP3, toHex } from "@grabient/engine/color.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { addKeyframe, anchorHueWalls, type Lock, removeKeyframes } from "@grabient/engine/edits.ts";
-import { EFFECT_KINDS, type Effect, type EffectKind } from "@grabient/engine/effect.ts";
+import {
+  EFFECT_KINDS,
+  type Effect,
+  type EffectKind,
+  effectAutoAngle
+} from "@grabient/engine/effect.ts";
 import { clamp } from "@grabient/engine/math.ts";
 import { hexAnchor } from "@grabient/engine/spec.ts";
 import {
@@ -126,6 +131,16 @@ export function createPaletteEditor(
     /* an effect the reader picks goes for the lists as a style does, each card in its own palette's shape */
     effect => remember({ effect: effect && { ...effect, look: { ...effect.look, shape: null } } })
   );
+  /* The angle the picture takes while `kind` shows, none for a gradient. One the reader set is theirs, whatever
+     shows. With none set (the menu's Auto) it is the page's own, as it opened, which turns the palette's gradient
+     and every effect an angle turns, but an effect that stands upright (engine/effect.ts effectAutoAngle: the
+     aurora), which is at 90 until the reader turns it (John, 11 Nov 2026, of the aurora lying on its side at a
+     palette's own angle: "make auto 90 deg for this one"); a gradient shown after it has the page's own again. */
+  const angleIn = (kind: EffectKind | null): number => {
+    const page = opened();
+    if (page.set.angle) return angle();
+    return kind ? effectAutoAngle(kind, page.angle) : page.angle;
+  };
   /* the palette the page opened on, which an admin's Save replaces and a copy counts as used: its entry keeps it, so a
      reload of an edited palette still knows where it began */
   const [openedSeed, setOpenedSeed] = createSignal(seedIn(saved?.edits) ?? start.seed);
@@ -334,7 +349,11 @@ export function createPaletteEditor(
     K,
     steps,
     style,
-    angle,
+    /** The angle of what the page plays, which its address, its files, its saves and its name take. */
+    angle: (): number => angleIn(effects.kind()),
+    /** The angle the picture takes while `kind` shows, none for a gradient: a layer, a tile or a swatch of a kind
+        draws at its own, so a tile under the pointer shows the aurora upright over a page turned another way. */
+    angleIn,
     soft,
     /** The soft the picture takes while `kind` shows: the reader's, none for an effect that takes none (the blob,
         whose frost softens it), the reader's kept to give back. */
@@ -649,6 +668,9 @@ function openedOf(page: SeedPage, kept: unknown): Opened {
     angle: choice(k?.chosen?.angle, isAngle) ?? (base.set.angle ? "auto" : tab.angle),
     effect: effect === undefined ? tab.effect : effect
   };
+  /* the angle the page stands at with none set: its own, or 90 while its address plays an effect that stands
+     upright (the aurora), whose address then names no angle; one it names is the reader's */
+  const auto = page.effect ? effectAutoAngle(page.effect.kind, base.angle) : base.angle;
   /* a view that is no longer what the page opened with was chosen since, here or on a page since */
   return {
     ...base,
@@ -657,7 +679,7 @@ function openedOf(page: SeedPage, kept: unknown): Opened {
       style: base.set.style || page.view.style !== base.style,
       steps:
         base.set.steps || page.view.steps !== Math.max(base.steps, page.palette.anchors.length),
-      angle: base.set.angle || page.view.angle !== base.angle
+      angle: base.set.angle || page.view.angle !== auto
     }
   };
 }

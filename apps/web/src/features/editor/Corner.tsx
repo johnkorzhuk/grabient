@@ -61,9 +61,9 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
     e.soft() || e.grain()
       ? pictureCss(
           pictureOf(e.stopsTaken(), { style, soft: e.soft(), grain: e.grain() }, e.wide()),
-          e.angle()
+          e.angleIn(null)
         )
-      : gradientCss(paint(), style, e.angle());
+      : gradientCss(paint(), style, e.angleIn(null));
   const set = () => e.opened().set;
   const summary = () =>
     [
@@ -102,7 +102,9 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
   };
   /* the effects' pictures, made once: the swatches and the menu's tiles */
   const glassShape = () => fx.settings("glass").look.shape;
-  const glassSwatch = <GlassArt colors={colors()} angle={e.angle()} shape={glassShape()} />;
+  const glassSwatch = (
+    <GlassArt colors={colors()} angle={e.angleIn("glass")} shape={glassShape()} />
+  );
   /* while the blob's picture loads, the server's still stands in its place, as on the first screen (EditorCorner.tsx) */
   const blobHeld = () => (
     <span class={styles.swatchStill} data-blob-still={blobStillKey(e.seed(), blob().look)} />
@@ -119,14 +121,18 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       fallback={
         <span
           class={styles.swatchStill}
-          data-fx-still={fxStillKey(kind, e.seed(), fxLookOf(fx.settings(kind).look, e.angle()))}
+          data-fx-still={fxStillKey(
+            kind,
+            e.seed(),
+            fxLookOf(fx.settings(kind).look, e.angleIn(kind))
+          )}
         />
       }
     >
       <FxArt
         kind={kind}
         palette={e.palette()}
-        angle={e.angle()}
+        angle={e.angleIn(kind)}
         shape={fx.settings(kind).look.shape}
         steps={fx.settings(kind).look.steps}
         zoom={fx.settings(kind).look.zoom}
@@ -152,7 +158,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
     {
       key: "glass",
       label: t("Fluted glass"),
-      art: <GlassArt colors={colors()} angle={e.angle()} shape={glassShape()} />,
+      art: <GlassArt colors={colors()} angle={e.angleIn("glass")} shape={glassShape()} />,
       get chosen() {
         return fx.kind() === "glass";
       },

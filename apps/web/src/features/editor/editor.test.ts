@@ -73,3 +73,69 @@ test("a gradient chosen in the editor leaves the lists' effect, the style let go
   expect(tab.effect).toBeNull();
   expect(tab.style).toBe("auto");
 });
+
+test("the aurora stands at 90 while no angle is set, whatever the page's own, which a gradient shown after it has again", () => {
+  /* John, 11 Nov 2026, of the aurora lying on its side at a palette's own angle: "make auto 90 deg for this one" */
+  opened("angle=45", e => {
+    expect([e.angle(), e.opened().set.angle]).toEqual([45, false]);
+    e.effects.choose("aurora");
+    flush();
+    /* the page plays it upright, and so its address, its files and its saves take it; the menu's Angle reads Auto */
+    expect([e.angle(), e.opened().set.angle]).toEqual([90, false]);
+    /* a tile or a layer of a kind is drawn at that kind's: the gradient's and every other effect's the page's own */
+    expect([e.angleIn("aurora"), e.angleIn("silk"), e.angleIn(null)]).toEqual([90, 45, 45]);
+    /* a gradient, or an effect its angle turns, has the page's own again */
+    e.effects.choose("silk");
+    flush();
+    expect(e.angle()).toBe(45);
+    e.effects.choose(null);
+    flush();
+    expect(e.angle()).toBe(45);
+    /* an angle the reader sets turns the aurora as any other, and Auto stands it up again */
+    e.effects.choose("aurora");
+    e.setAngle(30);
+    flush();
+    expect([e.angle(), e.angleIn("aurora"), e.opened().set.angle]).toEqual([30, 30, true]);
+    e.letViewGo("angle");
+    flush();
+    expect([e.angle(), e.angleIn(null), e.opened().set.angle]).toEqual([90, 45, false]);
+  });
+});
+
+test("an aurora's page opens at Auto where its address names no angle, and at the reader's where it names one", () => {
+  opened("style=aurora", e => {
+    expect([e.angle(), e.opened().set.angle]).toEqual([90, false]);
+  });
+  /* an angle in its address is one a reader set: the aurora's own is 90, which an address leaves out */
+  opened("style=aurora&angle=45", e => {
+    expect([e.angle(), e.opened().set.angle]).toEqual([45, true]);
+    e.letViewGo("angle");
+    flush();
+    expect([e.angle(), e.opened().set.angle]).toEqual([90, false]);
+  });
+  /* another effect's page at an angle is at Auto there, as it was */
+  opened("style=silk&angle=45", e => {
+    expect([e.angle(), e.opened().set.angle]).toEqual([45, false]);
+  });
+});
+
+test("an aurora's page that opened from a palette's own angle keeps it for the gradient", () => {
+  /* its entry's record, as a card hands it or a reload finds it: the page's own angle 45, none set */
+  createRoot(dispose => {
+    const page = readSeedPage(SEED, new URLSearchParams("style=aurora"))!;
+    const e = createPaletteEditor(page, {
+      opened: {
+        style: "linearGradient",
+        steps: 7,
+        angle: 45,
+        set: { style: true, steps: false, angle: false }
+      }
+    });
+    flush();
+    expect([e.angle(), e.opened().set.angle]).toEqual([90, false]);
+    e.effects.choose(null);
+    flush();
+    expect(e.angle()).toBe(45);
+    dispose();
+  });
+});

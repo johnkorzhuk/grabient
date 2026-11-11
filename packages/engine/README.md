@@ -131,7 +131,8 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   clear. Its SVG is a frame of it, which never moves, and its still stands in for its first frame. Its clips are
   drawn four pixels at a time from what the engine keeps of each pixel (`video.ts` auroraDraw: its place on the fan,
   its height over the range, how much of the light shows), and weighed by how much of a picture its range leaves
-  lit (auroraVideoWeight). It has no shader pages and no script yet (`effect-why.ts`).
+  lit (auroraVideoWeight). Where no angle is set for it it stands at 90, whatever its palette's own (`EFFECT_KINDS`'
+  `upright`, `effectAutoAngle`). It has no shader pages and no script yet (`effect-why.ts`).
 - The field effects (`kit/`; the sandstone is the site's one): each is one file in `kit/fields/`, its kernel in the
   kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
   levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for

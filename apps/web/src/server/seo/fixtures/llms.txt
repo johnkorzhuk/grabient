@@ -41,7 +41,7 @@ Every palette route takes `style`, `steps` and `angle`, and `soft` and `grain` (
 - [The home page as JSON](https://grabient.com/api/hot?page=1): the Hot feed, palettes and collections in one, by what was liked lately and what is new
 - [The gallery as JSON](https://grabient.com/api/palettes?sort=popular&page=1&limit=24): the most liked first, or `sort` rising or newest
 
-A list's page for a person (the home page, `/palettes`, a search, `/collections`, a collection's page) draws every card in the view its address names, `style`, `steps` and `angle`, or plays an effect on every card, each in its palette's own shape: `style=glass`, `blob`, `silk`, `rosette`, `papercut`, `strings`, `dimple`, `aurora` or `strata`, with `speed`, `fps`, `angle` (all but the blob), the sandstone's `steps`, the aurora's `path`, the blob's `frost` and the blob's, the strings' and the aurora's `bg`. Pattern: `https://grabient.com/palettes?q={query}&style=glass`
+A list's page for a person (the home page, `/palettes`, a search, `/collections`, a collection's page) draws every card in the view its address names, `style`, `steps` and `angle`, or plays an effect on every card, each in its palette's own shape: `style=glass`, `blob`, `silk`, `rosette`, `papercut`, `strings`, `dimple`, `aurora` or `strata`, with `speed`, `fps`, `angle` (all but the blob; where none is set each palette's own turns its card, but the aurora's, which stands upright), the sandstone's `steps`, the aurora's `path`, the blob's `frost` and the blob's, the strings' and the aurora's `bg`. Pattern: `https://grabient.com/palettes?q={query}&style=glass`
 
 ## Collections
 

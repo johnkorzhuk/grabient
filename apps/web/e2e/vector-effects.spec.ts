@@ -473,6 +473,50 @@ test("the aurora takes a path in its shape's place: its menu's Shape field names
   await expect(shape).toHaveAttribute("aria-valuetext", "Range");
 });
 
+test("the aurora stands upright where no angle is set for it: on a list's cards whatever each palette's own, and in the editor at Auto, where an angle set turns it", async ({
+  page,
+  request
+}) => {
+  /* John, 11 Nov 2026, of the aurora lying on its side at a palette's own angle: "make auto 90 deg for this one" */
+  const stills = async (path: string) =>
+    [
+      ...(await (await request.get(path)).text()).matchAll(/<span[^>]*data-fx-still="([^"]*)"/g)
+    ].map(found => found[1]);
+  /* a list that sets no angle plays the aurora at 90 on every card, where the silk's turn with their palettes */
+  const auroras = await stills("/palettes?style=aurora");
+  expect(auroras.length).toBeGreaterThan(8);
+  for (const key of auroras) expect(key).toMatch(/^aurora\|[^|]+\|90\|$/);
+  const silks = await stills("/palettes?style=silk");
+  expect(new Set(silks.map(key => key.split("|")[2])).size).toBeGreaterThan(1);
+  /* an angle the list sets turns every card's */
+  const turned = await stills("/palettes?style=aurora&angle=30");
+  expect(turned.length).toBeGreaterThan(8);
+  for (const key of turned) expect(key).toMatch(/^aurora\|[^|]+\|30\|$/);
+
+  /* a palette's page whose gradient lies at 45: the aurora chosen there stands at 90, its address naming no angle
+     and its menu's Angle at Auto, and the gradient chosen again has the page's angle */
+  await open(page, `/${SEED}?angle=45`);
+  const said = () => decodeURIComponent(new URL(page.url()).search);
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Aurora", exact: true }).click();
+  await expect.poll(said).toBe("?style=aurora");
+  const stage = page.locator('main [data-fx-still^="aurora|"]').first();
+  await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90|`);
+  const angle = page.getByRole("spinbutton", { name: "Angle", exact: true });
+  await expect(angle).toHaveAttribute("aria-valuetext", "Auto");
+  await page.getByRole("button", { name: "Linear", exact: true }).click();
+  await expect.poll(said).toBe("?angle=45");
+  /* an angle the reader sets turns it as any other effect, and its address names it */
+  await page.getByRole("button", { name: "Aurora", exact: true }).click();
+  await expect.poll(said).toBe("?style=aurora");
+  await angle.focus();
+  await page.keyboard.type("30");
+  await page.keyboard.press("Enter");
+  await expect.poll(said).toBe("?style=aurora&angle=30");
+  await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|30|`);
+  await expect(angle).toHaveAttribute("aria-valuetext", "30°");
+});
+
 test("the dimple roams where its menu's Roam is on: its address says roam=1, its stage plays by itself, its strip gains Copy for Figma, and turned off it follows the pointer again", async ({
   page,
   request

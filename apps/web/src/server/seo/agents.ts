@@ -101,6 +101,15 @@ const PATH_NAMED = listed(
   PATHED.map(kind => `the ${EFFECT_WORDS[kind]}'s \`path\``),
   "and"
 );
+/** The effects that stand upright where no angle is set for them (effect.ts's EFFECT_KINDS `upright`: the aurora),
+    as a list's sentence says them beside its `angle`; none where none does. */
+const UPRIGHT = EFFECTS.filter(kind => EFFECT_KINDS[kind].upright);
+const UPRIGHT_SAID = UPRIGHT.length
+  ? `; where none is set each palette's own turns its card, but ${listed(
+      UPRIGHT.map(kind => `the ${EFFECT_WORDS[kind]}'s`),
+      "and"
+    )}, which ${UPRIGHT.length > 1 ? "stand" : "stands"} upright`
+  : "";
 /** The effects the pointer moves, which roam instead where their address says (effect.ts canRoam: the dimple), as a
     sentence; none where none does. */
 const ROAMERS = EFFECTS.filter(canRoam);
@@ -174,7 +183,7 @@ Every palette route takes \`style\`, \`steps\` and \`angle\`, and \`soft\` and \
 - [The home page as JSON](${base}/api/hot?page=1): the Hot feed, palettes and collections in one, by what was liked lately and what is new
 - [The gallery as JSON](${base}/api/palettes?sort=popular&page=1&limit=24): the most liked first, or \`sort\` rising or newest
 
-A list's page for a person (the home page, \`/palettes\`, a search, \`/collections\`, a collection's page) draws every card in the view its address names, \`style\`, \`steps\` and \`angle\`, or plays an effect on every card, each in its palette's own shape: ${EFFECT_STYLES}, with \`speed\`, \`fps\`, \`angle\` (all but the blob)${STEPPED.length ? `, ${STEPS_NAMED}` : ""}${PATHED.length ? `, ${PATH_NAMED}` : ""}, the blob's \`frost\` and the blob's, the strings' and the aurora's \`bg\`. Pattern: \`${base}/palettes?q={query}&style=glass\`
+A list's page for a person (the home page, \`/palettes\`, a search, \`/collections\`, a collection's page) draws every card in the view its address names, \`style\`, \`steps\` and \`angle\`, or plays an effect on every card, each in its palette's own shape: ${EFFECT_STYLES}, with \`speed\`, \`fps\`, \`angle\` (all but the blob${UPRIGHT_SAID})${STEPPED.length ? `, ${STEPS_NAMED}` : ""}${PATHED.length ? `, ${PATH_NAMED}` : ""}, the blob's \`frost\` and the blob's, the strings' and the aurora's \`bg\`. Pattern: \`${base}/palettes?q={query}&style=glass\`
 
 ## Collections
 
