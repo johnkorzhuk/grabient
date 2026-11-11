@@ -70,7 +70,11 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      its address and written back (parseEffect, effectZoom, effectLookParts), its still's name naming it, the button's
      summary saying it and a list's address and history keeping it (features/list/appearance.ts), 0.18 KB of the start
      every page shares, took it from 292.874 to 293.056, by the build; the Zoom field itself loads with the effect's
-     fields (editor/GlassControls.tsx) */
+     fields (editor/GlassControls.tsx). Its roam (11 Nov 2026, John: "a toggle for making this style do a subtle
+     animation as if the cursor was roaming around"): `roam` read from an address and written back, which effects
+     roam and which Figma's timeline plays as they play (engine/effect.ts canRoam, loops, pastesToFigma), the button's
+     summary saying it and a list's address keeping it, 0.1 KB, took it to 293.159; the switch, the roam's path and
+     its Figma layers load with the effect's fields, its player and the press that copies them */
   "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 294 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look

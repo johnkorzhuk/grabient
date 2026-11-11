@@ -3,6 +3,7 @@ import {
   blobShapeOf,
   blobStillKey,
   CLEAR_GROUND,
+  canRoam,
   EFFECT_FPS,
   EFFECT_KINDS,
   EFFECT_LOOK,
@@ -21,8 +22,11 @@ import {
   fxStillKey,
   groundHex,
   groundParts,
+  hasFigma,
   isEffect,
+  loops,
   parseEffect,
+  pastesToFigma,
   readBlobStillKey,
   SHAPE_MAX,
   takesShape
@@ -204,6 +208,45 @@ test("the dimple takes a zoom in its shape's place, 1 to 4, none as designed; ev
   expect(readFxStillKey(`dimple|${SEED}|90||9x`)).toBeNull();
   expect(readFxStillKey(`papercut|${SEED}|90||2.5x`)).toBeNull();
   expect(fxStillKey("dimple", SEED, { ...look, zoom: null })).toBe(`dimple|${SEED}|90|`);
+});
+
+test("the dimple roams where its address says roam=1, the one effect the pointer moves; while it roams it has a loop, and Figma's timeline plays it", () => {
+  /* John, 11 Nov 2026: "a toggle for making this style do a subtle animation as if the cursor was roaming around on
+     the on canvas isntead of static + follows cursor? Try to get something that can be exported as a figma clipboard
+     copy" */
+  expect(EFFECTS.filter(canRoam)).toEqual(["dimple"]);
+  expect(effect("style=dimple").roam).toBeUndefined();
+  expect(effect("style=dimple&roam=1").roam).toBe(true);
+  /* only 1 turns it on, and only for an effect the pointer moves */
+  for (const said of ["0", "true", "yes", "2", ""])
+    expect(effect(`style=dimple&roam=${said}`).roam, said).toBeUndefined();
+  for (const kind of EFFECTS.filter(other => !canRoam(other)))
+    expect(effect(`style=${kind}&roam=1`).roam, kind).toBeUndefined();
+  /* written after how it plays and before its look; no part of its still's name, which the roam's first frame is */
+  expect(effectAddressParts(effect("style=dimple&zoom=2&roam=1&speed=2&fps=30"), 45)).toEqual([
+    "style=dimple",
+    "angle=45",
+    "speed=2",
+    "fps=30",
+    "roam=1",
+    "zoom=2"
+  ]);
+  expect(effectStillParts(effect("style=dimple&roam=1&zoom=2"), 90)).toEqual([
+    "style=dimple",
+    "zoom=2"
+  ]);
+  expect(effectAddressParts(effect("style=papercut&roam=1"), 90)).toEqual(["style=papercut"]);
+  /* what plays by itself: every effect with a loop, and the dimple only while it roams */
+  for (const kind of EFFECTS.filter(other => !canRoam(other)))
+    expect(loops(effect(`style=${kind}`)), kind).toBe(true);
+  expect(loops(effect("style=dimple"))).toBe(false);
+  expect(loops(effect("style=dimple&roam=1"))).toBe(true);
+  /* Copy for Figma, where Figma's timeline plays the effect: the dimple's only while it roams */
+  expect(hasFigma("dimple")).toBe(true);
+  expect(pastesToFigma(effect("style=dimple"))).toBe(false);
+  expect(pastesToFigma(effect("style=dimple&roam=1"))).toBe(true);
+  expect(pastesToFigma(effect("style=silk"))).toBe(true);
+  expect(pastesToFigma(effect("style=papercut"))).toBe(false);
 });
 
 test("a shape is a number from 0 to 999 for both effects: a longer one is none, a stored one comes into bounds", () => {

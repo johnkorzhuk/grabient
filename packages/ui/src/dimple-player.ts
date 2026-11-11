@@ -5,8 +5,15 @@
    center"); before any pointer it is at its rest, the still's own picture, so the canvas takes over the still without
    a seam. The pointer is read from the window, so a canvas under a page's content (an embed's, a card's under its
    link) follows it all the same. The scene's uniforms are set once a palette, a view or a size changes, and a frame
-   sets where the hollow is and the ground about it, with nothing allocated. */
-import { DIMPLE_EASE_S, type DimpleScene, dimpleScene } from "@grabient/engine/dimple.ts";
+   sets where the hollow is and the ground about it, with nothing allocated. Asked to roam (its view's `roam`), the
+   hollow goes round its loop by the clock instead (engine/dimple.ts dimpleRoamAt), the pointer left alone: effect-
+   loop.ts plays it as it plays every loop, eased in from its first frame, the still's. */
+import {
+  DIMPLE_EASE_S,
+  type DimpleScene,
+  dimpleRoamAt,
+  dimpleScene
+} from "@grabient/engine/dimple.ts";
 import {
   DIMPLE_FS,
   DIMPLE_GROUND_SIZE,
@@ -25,12 +32,13 @@ import { buildPrograms } from "./gl-build.ts";
 
 /** The dimple as it plays: the angle its sheet and its light are turned to (90 as designed), its zoom (none as
     designed), how fast its hollow follows the pointer (1 as designed, 0 not at all: its still) and its frames a
-    second at most. */
+    second at most; or, roaming, its hollow going round its loop by itself, its speed the loop's pace. */
 export interface DimplePlay {
   angle: number;
   zoom: number | null;
   speed: number;
   fps: number;
+  roam?: boolean;
 }
 
 const NAMES = [
@@ -75,10 +83,13 @@ export function createDimpleDrawing(
   let hv = 0;
   let gu = 0;
   let gv = 0;
+  /* roaming: the hollow goes round its loop by the clock, and no pointer leads it */
+  let roam = false;
+  const at: [number, number] = [0, 0];
   const canvas = gl.canvas;
   const point = (event: PointerEvent) => {
     /* a canvas on the page: one off it (an OffscreenCanvas) has no box for a pointer to be over */
-    if (!scene || !("getBoundingClientRect" in canvas)) return;
+    if (roam || !scene || !("getBoundingClientRect" in canvas)) return;
     const box = canvas.getBoundingClientRect();
     if (!box.width || !box.height) return;
     const u = (event.clientX - box.left) / box.width;
@@ -102,8 +113,12 @@ export function createDimpleDrawing(
     layout(palette, view, w, h) {
       scene = dimpleScene(palette, { angle: view.angle, zoom: view.zoom }, { width: w, height: h });
       sent = false;
+      /* turned to roaming or back, it starts from its rest: the loop's first frame, and the still's */
+      if (roam !== !!view.roam) led = false;
+      roam = !!view.roam;
     },
     built: () => programs.built(),
+    leads: () => !roam,
     lead(seconds) {
       if (!scene || !led) return false;
       const du = gu - hu;
@@ -119,15 +134,16 @@ export function createDimpleDrawing(
     home() {
       led = false;
     },
-    where: () => (led ? [hu, hv] : null),
+    where: () => (led && !roam ? [hu, hv] : null),
     put(place) {
+      if (roam) return;
       led = place !== null;
       if (place) {
         hu = gu = place[0];
         hv = gv = place[1];
       }
     },
-    draw() {
+    draw(t) {
       if (!scene || programs.built() !== true) return;
       U ??= Object.fromEntries(NAMES.map(n => [n, gl.getUniformLocation(program, n)])) as Locations;
       gl.bindVertexArray(vao);
@@ -143,8 +159,9 @@ export function createDimpleDrawing(
         gl.uniform3fv(U.uStops, u.stops);
         sent = true;
       }
-      const cx = led ? hu * scene.width : scene.ox;
-      const cy = led ? hv * scene.height : scene.oy;
+      if (roam) dimpleRoamAt(scene, t, at);
+      const cx = roam ? at[0] : led ? hu * scene.width : scene.ox;
+      const cy = roam ? at[1] : led ? hv * scene.height : scene.oy;
       gl.uniform2f(U.uHollow, cx, cy);
       gl.uniform1f(U.uFar, dimpleHollowUniforms(scene, cx, cy, ground));
       gl.uniform3fv(U.uGround, ground);

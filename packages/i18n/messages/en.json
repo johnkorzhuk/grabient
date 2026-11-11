@@ -136,7 +136,7 @@
       "apps/web/src/app/AccountMenu.tsx:121",
       "apps/web/src/app/AccountMenu.tsx:132",
       "apps/web/src/app/site.ts:37",
-      "apps/web/src/app/site.ts:80"
+      "apps/web/src/app/site.ts:81"
     ]
   },
   "About Grabient": {
@@ -359,7 +359,7 @@
   "Angle": {
     "note": "Field: the gradient's angle in degrees.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:136",
+      "apps/web/src/features/editor/GlassControls.tsx:167",
       "packages/ui/src/Appearance.tsx:244",
       "packages/ui/src/Curation.tsx:271"
     ]
@@ -467,7 +467,7 @@
   "Auto": {
     "note": "A value chosen by the app: size, steps, angle or columns follow the content. Also the strings' Background field with no color: their ground is the palette's own, its darkest color made deeper.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:142",
+      "apps/web/src/features/editor/GlassControls.tsx:173",
       "apps/web/src/features/editor/GroundField.tsx:44",
       "packages/ui/src/Appearance.tsx:238",
       "packages/ui/src/Appearance.tsx:250",
@@ -548,7 +548,7 @@
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:166",
       "apps/web/src/features/editor/EditorCorner.tsx:98",
-      "apps/web/src/features/editor/effect-page.ts:41"
+      "apps/web/src/features/editor/effect-page.ts:42"
     ]
   },
   "Both strips end on the same color. Top: hue 210° to 330°. Bottom: 210° to 690°, one more lap.": {
@@ -1139,8 +1139,8 @@
       "apps/web/src/features/editor/Sheet.tsx:152",
       "apps/web/src/features/examples/Swatches.tsx:204",
       "apps/web/src/features/examples/Swatches.tsx:214",
-      "apps/web/src/features/gallery/take.ts:151",
-      "apps/web/src/features/gallery/take.ts:173"
+      "apps/web/src/features/gallery/take.ts:161",
+      "apps/web/src/features/gallery/take.ts:183"
     ]
   },
   "Couldn't copy the selection.": {
@@ -1208,7 +1208,7 @@
   "Couldn't download the palette.": {
     "note": "Error line after a failed download of a palette.",
     "refs": [
-      "apps/web/src/features/gallery/take.ts:160"
+      "apps/web/src/features/gallery/take.ts:170"
     ]
   },
   "Couldn't download the selection.": {
@@ -1506,7 +1506,7 @@
   "Dimple": {
     "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it shows, that draws the palette as a dimple: a sheet of overlapping round discs, like scales or dimpled sheet metal, pressed in at one point, the palette's colors running out from that hollow. The hollow follows the pointer, and nothing in it moves by itself. A plain noun for a small hollow or dent pressed into a surface, as a designer would name the look; not a dimple in a cheek or a chin.",
     "refs": [
-      "apps/web/src/features/editor/effect-page.ts:46"
+      "apps/web/src/features/editor/effect-page.ts:47"
     ]
   },
   "Disconnect": {
@@ -1659,13 +1659,13 @@
   "Effects hold still.": {
     "note": "Appearance menu, beside the Reduce motion switch while it is on: the fluted glass and the blob are held on their first frame, so their speed moves nothing.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:56"
+      "apps/web/src/features/editor/GlassControls.tsx:57"
     ]
   },
   "Effects play.": {
     "note": "Appearance menu, beside the Reduce motion switch once the reader turned it off there: the fluted glass and the blob move again.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:56"
+      "apps/web/src/features/editor/GlassControls.tsx:57"
     ]
   },
   "Email": {
@@ -1833,7 +1833,7 @@
   "FPS": {
     "note": "Editor side, the blob: a short number field, frames a second the blob plays at (and its GIF is made at); it reads Auto, the screen's own pace, under 1. Keep it as short as FPS: it shares a row with Speed.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:162"
+      "apps/web/src/features/editor/GlassControls.tsx:193"
     ]
   },
   "Fewer or more steps": {
@@ -1880,7 +1880,7 @@
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:153",
       "apps/web/src/features/editor/EditorCorner.tsx:83",
-      "apps/web/src/features/editor/effect-page.ts:40"
+      "apps/web/src/features/editor/effect-page.ts:41"
     ]
   },
   "Follow": {
@@ -2292,7 +2292,7 @@
     "refs": [
       "apps/web/src/features/collections/take.ts:74",
       "apps/web/src/features/editor/Sheet.tsx:492",
-      "apps/web/src/features/gallery/take.ts:147",
+      "apps/web/src/features/gallery/take.ts:157",
       "apps/web/src/features/selection/ExportScreen.tsx:136",
       "apps/web/src/mcp-view/PaletteView.tsx:244"
     ]
@@ -2900,7 +2900,7 @@
   "New shape": {
     "note": "Editor, the Appearance menu's blob fields: a press (a die) that picks another shape number at random. Its tooltip and its name.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:234"
+      "apps/web/src/features/editor/GlassControls.tsx:266"
     ]
   },
   "Newsletter": {
@@ -3097,7 +3097,7 @@
     "note": "A switch that is off.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:43",
-      "apps/web/src/features/editor/GlassControls.tsx:39",
+      "apps/web/src/features/editor/GlassControls.tsx:40",
       "apps/web/src/features/editor/effect-page.ts:29",
       "packages/ui/src/Appearance.tsx:269",
       "packages/ui/src/Appearance.tsx:281",
@@ -3446,7 +3446,7 @@
   "Papercut": {
     "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as papercut: its colors cut into sheets of paper stacked into a layered relief, each casting a soft shadow on the one below, like a layered paper-cut artwork. Name the craft, as a designer would.",
     "refs": [
-      "apps/web/src/features/editor/effect-page.ts:44"
+      "apps/web/src/features/editor/effect-page.ts:45"
     ]
   },
   "Passes through a color that spoils it": {
@@ -3741,7 +3741,7 @@
   "Privacy": {
     "note": "Footer link to the Privacy Policy.",
     "refs": [
-      "apps/web/src/app/site.ts:77"
+      "apps/web/src/app/site.ts:79"
     ]
   },
   "Privacy policy": {
@@ -3849,7 +3849,7 @@
     "note": "The reduce motion setting: its name in Settings, and above an effect's fields in the Appearance menu, beside its switch.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:169",
-      "apps/web/src/features/editor/GlassControls.tsx:53"
+      "apps/web/src/features/editor/GlassControls.tsx:54"
     ]
   },
   "Reduce motion: {state}": {
@@ -4123,10 +4123,17 @@
       "packages/ui/src/ListNav.tsx:21"
     ]
   },
+  "Roam": {
+    "note": "Appearance menu, a switch of the dimple (a sheet of round discs pressed in at one point, whose hollow follows the pointer): on, the hollow wanders round the picture by itself in a slow loop, as if a pointer were roaming over it; off, it follows the reader's pointer. Also one word in the Appearance button's summary while it is on. A verb used as a setting's name, like Loop or Autoplay; not roaming charges on a phone.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:83",
+      "apps/web/src/features/editor/effect-page.ts:31"
+    ]
+  },
   "Rosette": {
     "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as a rosette: petals on a golden spiral, like a dahlia seen from above, its rings of color rippling out from the heart. Name the flower-shaped ornament, as a designer would.",
     "refs": [
-      "apps/web/src/features/editor/effect-page.ts:43"
+      "apps/web/src/features/editor/effect-page.ts:44"
     ]
   },
   "Rotate 15°": {
@@ -4501,7 +4508,7 @@
   "Shape": {
     "note": "Editor, the Appearance menu's blob fields: a number field, which of many shapes the blob takes; each number is another shape.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:223"
+      "apps/web/src/features/editor/GlassControls.tsx:255"
     ]
   },
   "Share images": {
@@ -4728,7 +4735,7 @@
   "Silk": {
     "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as silk: its colors dyed into satin that drapes in soft folds, each fold swaying slowly. Name the fabric, as a dressmaker would.",
     "refs": [
-      "apps/web/src/features/editor/effect-page.ts:42"
+      "apps/web/src/features/editor/effect-page.ts:43"
     ]
   },
   "Similar palettes": {
@@ -4870,7 +4877,7 @@
   "Speed": {
     "note": "Editor side, the blob: a number field, how fast the blob moves, written like 1×.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:148"
+      "apps/web/src/features/editor/GlassControls.tsx:179"
     ]
   },
   "Square": {
@@ -4914,7 +4921,7 @@
     "note": "Field: how many evenly spaced colors the gradient is drawn with.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:143",
-      "apps/web/src/features/editor/GlassControls.tsx:81",
+      "apps/web/src/features/editor/GlassControls.tsx:107",
       "packages/ui/src/Appearance.tsx:232",
       "packages/ui/src/Curation.tsx:262"
     ]
@@ -4953,7 +4960,7 @@
   "Strings": {
     "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as strings: many thin threads in its colors, evenly spaced on a dark ground, slowly stirred into flowing bundles, hairpin bends and loops, like threads or fine string art. A plain noun for threads or string, as a designer would name the look; not musical strings, not text strings in code.",
     "refs": [
-      "apps/web/src/features/editor/effect-page.ts:45"
+      "apps/web/src/features/editor/effect-page.ts:46"
     ]
   },
   "Style": {
@@ -5198,6 +5205,18 @@
     "note": "Editor's code pane, Shader tab while the dimple shows: what its shader code draws, all in one pass: at each pixel, first the ground (a gradient around the hollow, the point where the sheet is pressed in), then the round discs that cover that pixel, laid one over another in the fixed order of their stack. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run.",
     "refs": [
       "apps/web/src/features/editor/effect-sources.ts:215"
+    ]
+  },
+  "The hollow follows the pointer.": {
+    "note": "Appearance menu, beside the dimple's Roam switch while it is off: the pressed-in point of the sheet of discs goes to wherever the reader's pointer (mouse cursor) is over the picture and stays where the pointer left it.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:86"
+    ]
+  },
+  "The hollow wanders by itself.": {
+    "note": "Appearance menu, beside the dimple's Roam switch while it is on: the pressed-in point of the sheet of discs moves round a slow loop on its own, and no pointer moves it. The hollow is the dent, the place the sheet is pressed in.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:86"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5521,7 +5540,7 @@
   "This palette can't be exported.": {
     "note": "Error.",
     "refs": [
-      "apps/web/src/features/gallery/take.ts:33",
+      "apps/web/src/features/gallery/take.ts:38",
       "apps/web/src/lib/files.ts:25"
     ]
   },
@@ -6177,13 +6196,13 @@
   "Zoom": {
     "note": "Appearance menu, a field of the dimple (a sheet of round discs pressed in at one point) in place of the other effects' Shape: how much larger than designed its discs and its hollow are drawn, from 1x to 4x, shown as 1.5× and so on. A camera's or a map's zoom, the picture drawn closer; not a browser's page zoom, and not a size in pixels.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:104"
+      "apps/web/src/features/editor/GlassControls.tsx:130"
     ]
   },
   "Zoom {value}": {
     "note": "The Appearance button's summary while the dimple is zoomed: the Zoom field's name and its value, such as 2.5×, after the speed, separated by a middle dot. Keep {value} as it is.",
     "refs": [
-      "apps/web/src/features/editor/effect-page.ts:34"
+      "apps/web/src/features/editor/effect-page.ts:35"
     ]
   },
   "agent": {
@@ -6231,7 +6250,7 @@
   "blob": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as an animated blob, a soft amorphous shape of its colors: \"Vivid navy and blue blob\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Blob\" does. The same words start the line under the palette's name, capitalized there (\"Blob, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:494"
+      "packages/engine/src/effect.ts:511"
     ]
   },
   "blue": {
@@ -6328,7 +6347,7 @@
   "dimple": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette drawn as a dimple, a sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow: \"Vivid navy and blue dimple\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Dimple\" does. The same words start the line under the palette's name, capitalized there (\"Dimple, 7 colors at 90°: …\"). A small hollow or dent pressed into a surface, not a dimple in a cheek.",
     "refs": [
-      "packages/engine/src/effect.ts:499"
+      "packages/engine/src/effect.ts:516"
     ]
   },
   "duotone {colors}": {
@@ -6372,7 +6391,7 @@
   "fluted glass": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as fluted (reeded) glass, its colors drifting behind a pane of curved ribs: \"Vivid navy and blue fluted glass\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Fluted glass\" does. The same words start the line under the palette's name, capitalized there (\"Fluted glass, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:493"
+      "packages/engine/src/effect.ts:510"
     ]
   },
   "frame\u00041w": {
@@ -6666,7 +6685,7 @@
   "papercut": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as papercut, its colors cut into sheets of paper stacked in a layered relief: \"Vivid navy and blue papercut\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Papercut\" does. The same words start the line under the palette's name, capitalized there (\"Papercut, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:497"
+      "packages/engine/src/effect.ts:514"
     ]
   },
   "pastel {colors}": {
@@ -6727,7 +6746,7 @@
   "rosette": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as a rosette, petals on a golden spiral like a dahlia seen from above: \"Vivid navy and blue rosette\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Rosette\" does. The same words start the line under the palette's name, capitalized there (\"Rosette, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:496"
+      "packages/engine/src/effect.ts:513"
     ]
   },
   "salmon": {
@@ -6758,7 +6777,7 @@
   "silk": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as silk, its colors dyed into satin that drapes in soft folds: \"Vivid navy and blue silk\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Silk\" does. The same words start the line under the palette's name, capitalized there (\"Silk, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:495"
+      "packages/engine/src/effect.ts:512"
     ]
   },
   "source\u0004Direct": {
@@ -6806,7 +6825,7 @@
   "strings": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as strings, many thin threads in its colors evenly spaced on a dark ground, stirred into bundles and loops: \"Vivid navy and blue strings\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Strings\" does. The same words start the line under the palette's name, capitalized there (\"Strings, 7 colors at 90°: …\"). Threads or string art, not musical strings, not text strings in code.",
     "refs": [
-      "packages/engine/src/effect.ts:498"
+      "packages/engine/src/effect.ts:515"
     ]
   },
   "tan": {
@@ -7013,7 +7032,7 @@
     "note": "A count of steps: the evenly spaced colors a palette is drawn with.",
     "refs": [
       "apps/web/src/features/editor/Corner.tsx:71",
-      "apps/web/src/features/editor/effect-page.ts:32",
+      "apps/web/src/features/editor/effect-page.ts:33",
       "apps/web/src/features/examples/Chart.tsx:171",
       "apps/web/src/features/examples/shared.ts:146",
       "apps/web/src/features/examples/shared.ts:59",

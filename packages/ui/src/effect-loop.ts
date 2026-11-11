@@ -6,7 +6,9 @@
    view or the page hidden, the first frame held for a reader who asks for less motion, and a new size laid out once it
    has settled. Nothing is allocated a frame. A renderer on the processor plays nothing (gl-build.ts): the still stays.
    A kind with no loop of its own, which moves only as it is led (the dimple's hollow, after the pointer), says so by
-   its `lead`: its frames are drawn only as it moves, and none is asked for once it has come to rest. */
+   its `lead`: its frames are drawn only as it moves, and none is asked for once it has come to rest. Such a kind may
+   go round a loop of its own while its view says so (the dimple roaming): its `leads` then says no, and the clock
+   plays it as any other. */
 import { EFFECT_EASE_S, EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS } from "@grabient/engine/effect.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { knownSoftwareRenderer, softwareContext } from "./gl-build.ts";
@@ -33,6 +35,9 @@ export interface EffectDrawing<V> {
       says whether it moved. The loop draws its frames only as it moves and asks for none once it rests, until
       whatever leads it calls the `wake` it was made with */
   lead?(seconds: number): boolean;
+  /** for such a kind: whether it is led as its view stands (true where it does not say), or plays by the clock, a
+      loop of its own (the dimple while it roams) */
+  leads?(): boolean;
   /** for such a kind: back to where its first frame has it */
   home?(): void;
   /** for such a kind: where it has been led to in its box, 0 to 1 each way, null at its rest; and it put there at
@@ -141,6 +146,8 @@ export function playEffect<V extends PlayView>(
   let first = true;
   let settle = 0;
   const playing = () => shown && !document.hidden && !reduced;
+  /* whether the drawing is led as its view stands, rather than clocked */
+  const isLed = () => !!drawing.lead && (drawing.leads?.() ?? true);
   const pace = createPace();
   const tick = (now: number) => {
     raf = 0;
@@ -150,7 +157,7 @@ export function playEffect<V extends PlayView>(
     let led = false;
     if (!playing() || view_.speed === 0) warm = 0;
     else if (ready && !first) {
-      if (drawing.lead) {
+      if (drawing.lead && isLed()) {
         led = drawing.lead(dt * view_.speed);
         moved ||= led;
       } else {
@@ -161,7 +168,7 @@ export function playEffect<V extends PlayView>(
     }
     if (ready) {
       const at = reduced ? 0 : t;
-      if (changed || ((drawing.lead ? moved : at !== lastDrawn) && pace.due(now, view_.fps))) {
+      if (changed || ((isLed() ? moved : at !== lastDrawn) && pace.due(now, view_.fps))) {
         drawing.draw(at);
         lastDrawn = at;
         changed = false;
@@ -176,7 +183,7 @@ export function playEffect<V extends PlayView>(
        the GPU builds the programs, each frame asks again, until it is done or they failed (the still stays). A led
        kind asks for the next only while it moves, or owes a frame of having moved, or has its first still to draw */
     if (
-      (playing() && view_.speed > 0 && (!drawing.lead || led || moved || first)) ||
+      (playing() && view_.speed > 0 && (!isLed() || led || moved || first)) ||
       drawing.built() === false
     )
       raf = requestAnimationFrame(tick);
@@ -184,7 +191,7 @@ export function playEffect<V extends PlayView>(
   const wake = () => {
     /* a led kind, woken at every move of the pointer, keeps its last tick while the loop runs, so the time between
        its frames is counted whole */
-    if (!(drawing.lead && raf)) last = performance.now();
+    if (!(isLed() && raf)) last = performance.now();
     if (!raf) raf = requestAnimationFrame(tick);
   };
   waker = wake;

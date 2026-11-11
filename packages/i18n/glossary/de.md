@@ -41,6 +41,7 @@ How German says Grabient's words. Read `README.md` for what each word means here
 | sandstone (an effect) | Sandstein | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name, as a canyon's walls are named. Not „Sand“, nor Sandstein as a building stone. |
 | dimple (an effect) | Delle | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the plain word for a dent pressed into sheet metal. Not „Grübchen“ (a dimple in a cheek). |
 | zoom (the dimple's Zoom field) | Zoom | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. As Figma and Photoshop DE name it. |
+| roam (the dimple's Roam switch) | Umherwandern | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow moving about by itself; the dimple is „Delle“, the pointer „Zeiger“. |
 | swatches | Farbfelder | Adobe's own word. „{name} swatches“ is „Farbfelder {name}“; „linear swatches“ is „lineare Farbfelder“. |
 | Swatches (the strip's swatch files) | Farbfelder | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Auf Farbfelder umschalten. |
 | bands (the style names „Linear bands“ …) | gestuft; a band is a Stufe | „Linear gestuft“, „Konisch gestuft“, „Radial gestuft“; „gestufte Stile“; „# harte Stufen“ in the code notes. Short enough for the style tiles on a phone. |

@@ -4,8 +4,10 @@
    angle, the uniforms, and the ground about the hollow wherever it is. The WebGL page runs the player's own pass
    (dimple-gl.ts), the WebGPU page the same pass in WGSL (dimple-wgsl.ts). It has no loop, so no clock plays it: the
    page's hollow follows the pointer over its canvas and stays where the pointer left it, as the player's does
-   (DIMPLE_FOLLOW), and a frame is drawn only while it moves. The palette comes in as its stops, which a reader may
-   edit. Loaded with the Shader tab's WebGL and WebGPU spellings, never with a page. */
+   (DIMPLE_FOLLOW), and a frame is drawn only while it moves; a page whose address roams (ROAM) moves the hollow
+   round its loop by a clock instead, eased in from its first frame as the site's player eases it. The palette comes
+   in as its stops, which a reader may edit. Loaded with the Shader tab's WebGL and WebGPU spellings, never with a
+   page. */
 import { toHex } from "./color.ts";
 import {
   DIMPLE_ACROSS,
@@ -13,10 +15,17 @@ import {
   DIMPLE_GROUND_STEPS,
   DIMPLE_LOOK,
   DIMPLE_REACH_ZOOM,
+  DIMPLE_ROAM_S,
   DIMPLE_STOPS,
   dimpleStops
 } from "./dimple.ts";
-import { EFFECT_KINDS, EFFECT_PIXELS_MAX, EFFECT_SETTLE_MS, type Effect } from "./effect.ts";
+import {
+  EFFECT_EASE_S,
+  EFFECT_KINDS,
+  EFFECT_PIXELS_MAX,
+  EFFECT_SETTLE_MS,
+  type Effect
+} from "./effect.ts";
 import { EFFECT_PACE } from "./effect-page.ts";
 import type { Palette } from "./palette.ts";
 
@@ -88,6 +97,7 @@ const PINCH_OVER = ${L.pinchOver};
 const LIT_AT = ${L.litAt};
 const HEART = ${L.heart};
 const GROUND_BACK = ${L.under};
+const ROAM_S = ${DIMPLE_ROAM_S};
 
 const bytes = hex => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16) / 255);
 const byte = v => Math.floor(Math.min(1, Math.max(0, v)) * 255 + 0.5) / 255;
@@ -131,6 +141,18 @@ function dimpleScene(angle, zoom, width, height) {
     ly: -cs,
     stops: STOPS.flatMap(bytes)
   };
+}
+
+// Where the roaming hollow is t seconds into its loop at speed 1, in the canvas's pixels: round a slow eight with
+// unequal lobes, from its rest and back to it, the path turned as the sheet and its light are.
+function roamAt(m, t) {
+  const u = t / ROAM_S;
+  const a = (u - Math.floor(u)) * 2 * Math.PI;
+  const fx = 0.17 * (0.8 * Math.sin(a) - 0.2 * Math.sin(3 * a));
+  const fy = 0.1 * (0.75 * Math.sin(2 * a) + 0.25 * Math.sin(a));
+  const cs = -m.ly;
+  const sn = m.lx;
+  return [m.ox + m.D * (fx * cs - fy * sn), m.oy + m.D * (fx * sn + fy * cs)];
 }
 
 // The pass's uniforms that hold for a canvas, as the player sets them once a palette, a view or a canvas changes.
@@ -192,11 +214,13 @@ const STOPS = [
 ${rows.map(row => `  ${row}`).join(",\n")}
 ];
 // The angle the sheet and its light are turned to (90 as designed), its zoom (1 as designed, up to
-// ${ZOOMS.most}: how much larger its discs and its hollow are drawn), how fast the hollow follows the pointer (1
-// as designed; 0 holds it at its rest), frames a second at most, and the seconds the hollow takes to come most of the
-// way to the pointer at speed 1.
+// ${ZOOMS.most}: how much larger its discs and its hollow are drawn), whether the hollow roams (round a loop of ${DIMPLE_ROAM_S}
+// seconds by itself, the pointer left alone) or follows the pointer, how fast it does either (1 as designed; 0 holds
+// it at its rest), frames a second at most, and the seconds the hollow takes to come most of the way to the pointer
+// at speed 1.
 const ANGLE = ${angle};
 const ZOOM = ${jsNumber(effect.look.zoom ?? ZOOMS.designed)};
+const ROAM = ${effect.roam === true};
 const SPEED = ${jsNumber(effect.speed)};
 const FPS = ${jsNumber(effect.fps)};
 const EASE = ${jsNumber(DIMPLE_EASE_S)};`;
@@ -231,7 +255,8 @@ const resize = () => {
 // at its rest until a pointer has been over the canvas; then it goes to where the pointer last was there, EASE seconds
 // for most of what is left at SPEED 1, and stays where the pointer left it. Nothing moves by itself: a picture is
 // drawn when something changed, or while the hollow moves and one is due at FPS. A reader who asks for less motion
-// sees the hollow stay where it is.
+// sees the hollow stay where it is. Where ROAM is set, a clock moves the hollow round its loop instead, eased in from
+// rest over EASE_IN seconds, and the pointer is left alone.
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 let lost = false;
 const following = () => !document.hidden && !reduced.matches && !lost && SPEED > 0;
@@ -245,6 +270,9 @@ let changed = true;
 let moved = false;
 let raf = 0;
 let settle = 0;
+const EASE_IN = ${EFFECT_EASE_S};
+let clock = 0;
+let warm = 0;
 ${EFFECT_PACE}
 const tick = now => {
   raf = 0;
@@ -252,7 +280,16 @@ const tick = now => {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   let going = false;
-  if (laidOut && led && following()) {
+  if (ROAM) {
+    if (!following()) warm = 0;
+    else if (laidOut) {
+      warm = Math.min(EASE_IN, warm + dt);
+      const e = warm / EASE_IN;
+      clock += dt * SPEED * e * e * (3 - 2 * e);
+      going = true;
+      moved = true;
+    }
+  } else if (laidOut && led && following()) {
     const du = gu - hu;
     const dv = gv - hv;
     // how far it has to go, in the canvas's pixels: within a twentieth of one it is there
@@ -266,7 +303,10 @@ const tick = now => {
     }
   }
   if (laidOut && (changed || (moved && due(now)))) {
-    draw(led ? hu * scene.width : scene.ox, led ? hv * scene.height : scene.oy);
+    if (ROAM) {
+      const at = roamAt(scene, clock);
+      draw(at[0], at[1]);
+    } else draw(led ? hu * scene.width : scene.ox, led ? hv * scene.height : scene.oy);
     changed = false;
     moved = false;
   }
@@ -280,7 +320,7 @@ const wake = () => {
 // The pointer, wherever it is over the canvas, whatever lies over that: off the canvas it is not followed, so the
 // hollow keeps the last place it was given.
 const point = event => {
-  if (!laidOut) return;
+  if (ROAM || !laidOut) return;
   const box = canvas.getBoundingClientRect();
   if (!box.width || !box.height) return;
   const u = (event.clientX - box.left) / box.width;

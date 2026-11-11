@@ -58,8 +58,10 @@ export function fxPlacedBackground(
   return fx ? fx.fxFrameCss(kind, P, look, 0, at) : null;
 }
 
-/** How a vector effect plays: its look (its angle, shape, steps, zoom and ground), its pace and its frame rate. */
+/** How a vector effect plays: its look (its angle, shape, steps, zoom and ground), its pace and its frame rate, and
+    whether one the pointer moves roams instead (the dimple). */
 export interface FxPlay {
+  roam?: boolean;
   angle: number;
   shape: number | null;
   steps: number | null;

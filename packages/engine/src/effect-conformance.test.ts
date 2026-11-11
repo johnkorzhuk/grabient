@@ -8,6 +8,7 @@ import { type FrameDiff, frameDiff, rasterize, resvgReady } from "../test/raster
 import { decodePalette } from "./codec.ts";
 import {
   CLEAR_GROUND,
+  canRoam,
   EFFECT_KINDS,
   EFFECTS,
   type Effect,
@@ -18,7 +19,9 @@ import {
   hasEmbedScript,
   hasFigma,
   isVectorKind,
+  loops,
   parseEffect,
+  pastesToFigma,
   type VectorKind
 } from "./effect.ts";
 import { EFFECT_SVG_MOTION, effectStylesheet, effectSvg } from "./effect-code.ts";
@@ -161,12 +164,18 @@ beforeAll(resvgReady);
 describe.each(EFFECTS)("the %s", kind => {
   const facts = EFFECT_KINDS[kind];
 
-  it("has no clip, no moving SVG and no Figma timeline where nothing in it moves by itself", () => {
-    /* an effect the pointer moves has no loop for a clip, an SVG's animation or Figma's timeline to play */
+  it("has no clip and no moving SVG where nothing in it moves by itself, and Figma's timeline only for its roam", () => {
+    /* an effect the pointer moves has no loop for a clip or an SVG's animation to play; asked to roam it has one, which
+       its Copy for Figma pastes and no strip offers otherwise */
     if (facts.motion !== "pointer") return;
     expect(facts.video).toBe(false);
     expect(facts.svgMotion).toBeNull();
-    expect(facts.figma).toBeNull();
+    expect(canRoam(kind)).toBe(true);
+    const still = effectOf(kind, null);
+    expect(loops(still)).toBe(false);
+    expect(pastesToFigma(still)).toBe(false);
+    expect(loops({ ...still, roam: true })).toBe(true);
+    expect(pastesToFigma({ ...still, roam: true })).toBe(facts.figma !== null);
   });
 
   it("says why wherever it hands over less, and nowhere else", () => {
@@ -186,7 +195,7 @@ describe.each(EFFECTS)("the %s", kind => {
     expect(EFFECT_SVG_MOTION[kind]).toBe(facts.svgMotion);
     expect(isVectorKind(kind)).toBe(facts.vector);
     /* FigmaKind, which the editor's Copy for Figma switches over, names the effects the table gives a paste */
-    const FIGMA_KINDS: readonly FigmaKind[] = ["glass", "blob", "silk", "rosette"];
+    const FIGMA_KINDS: readonly FigmaKind[] = ["glass", "blob", "silk", "rosette", "dimple"];
     expect(hasFigma(kind)).toBe(FIGMA_KINDS.includes(kind as FigmaKind));
   });
 

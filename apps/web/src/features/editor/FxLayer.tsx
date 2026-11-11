@@ -169,7 +169,12 @@ export function FxLayer(props: {
           <FxStage
             kind={props.kind}
             palette={props.palette}
-            view={{ ...look(), speed: props.settings.speed, fps: props.settings.fps }}
+            view={{
+              ...look(),
+              speed: props.settings.speed,
+              fps: props.settings.fps,
+              roam: props.settings.roam === true
+            }}
             still={!moving()}
             held={held()}
             reduced={holdsStill()}

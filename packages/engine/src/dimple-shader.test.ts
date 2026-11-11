@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { decodePalette } from "./codec.ts";
-import { DIMPLE_EASE_S, DIMPLE_STOPS, dimpleScene } from "./dimple.ts";
+import { DIMPLE_EASE_S, DIMPLE_ROAM_S, DIMPLE_STOPS, dimpleRoamAt, dimpleScene } from "./dimple.ts";
 import {
   DIMPLE_FS,
   DIMPLE_GROUND_SIZE,
@@ -11,7 +11,7 @@ import {
 import { DIMPLE_FOLLOW, dimpleColors, dimpleModel, dimpleSettings } from "./dimple-page.ts";
 import { DIMPLE_SHADER_KINDS, dimpleShader } from "./dimple-shader.ts";
 import { DIMPLE_WGSL, DIMPLE_WGSL_UNIFORMS } from "./dimple-wgsl.ts";
-import { type Effect, parseEffect } from "./effect.ts";
+import { EFFECT_EASE_S, type Effect, parseEffect } from "./effect.ts";
 import type { Palette } from "./palette.ts";
 import {
   FINISH_GLSL_SECTIONS,
@@ -56,11 +56,12 @@ type Model = {
   dimpleScene: (angle: number, zoom: number, w: number, h: number) => Scene;
   sceneUniforms: (scene: Scene) => ReturnType<typeof dimpleSceneUniforms>;
   hollowUniforms: (scene: Scene, cx: number, cy: number, ground: Float32Array) => number;
+  roamAt: (scene: Scene, t: number) => [number, number];
 };
 /* the pages' JavaScript, run as a page runs it */
 const modelOf = (P: Palette, effect: Effect, angle: number): Model =>
   new Function(
-    `${dimpleSettings(P, effect, angle)}\n${dimpleModel()}\nreturn { dimpleScene, sceneUniforms, hollowUniforms };`
+    `${dimpleSettings(P, effect, angle)}\n${dimpleModel()}\nreturn { dimpleScene, sceneUniforms, hollowUniforms, roamAt };`
   )() as Model;
 
 test("the pages lay the dimple out as the player does, to the last bit, for any palette, angle, zoom, canvas and place of the hollow", () => {
@@ -78,6 +79,9 @@ test("the pages lay the dimple out as the player does, to the last bit, for any 
           const what = `${seed} ${w}x${h} ${angle} ${zoom}`;
           expect(model.sceneUniforms(page), what).toEqual(dimpleSceneUniforms(site));
           expect([page.ox, page.oy], what).toEqual([site.ox, site.oy]);
+          /* and the roam: where the hollow is at a time of its loop, a loop on too */
+          for (const t of [0, 1.37, 7.5, 23.9, 31])
+            expect(model.roamAt(page, t), `${what} roaming at ${t}`).toEqual(dimpleRoamAt(site, t));
           for (const [u, v] of PLACES) {
             const [a, b] = [
               new Float32Array(DIMPLE_GROUND_SIZE),
@@ -119,6 +123,9 @@ test("a page's settings are its address's: the angle, the zoom, how fast the hol
   expect(settings).toContain("const FPS = 24;");
   expect(settings).toContain(`const EASE = ${DIMPLE_EASE_S};`);
   expect(dimpleSettings(P, read("style=dimple&speed=0").effect, 90)).toContain("const SPEED = 0;");
+  /* and whether its hollow roams */
+  expect(settings).toContain("const ROAM = false;");
+  expect(dimpleSettings(P, read("style=dimple&roam=1").effect, 90)).toContain("const ROAM = true;");
 });
 
 test("each text credits the seed, the effect's address and what it is", () => {
@@ -179,7 +186,24 @@ test("the GLSL is the player's own pass, the WGSL its line for line, and the pag
   expect(DIMPLE_WGSL_UNIFORMS.bytes % 16).toBe(0);
 });
 
-test("the pages have no clock: the hollow follows the pointer, stays where it is left, and a frame comes only as it moves", () => {
+test("a page whose address roams moves the hollow round its loop by a clock, eased in from rest, the pointer left alone", () => {
+  const P = decodePalette(SEEDS[1]) as Palette;
+  const { effect, angle } = read("style=dimple&roam=1&speed=2");
+  for (const kind of ["webgl", "webgpu"] as const) {
+    const page = dimpleShader(kind, P, effect, angle, SEEDS[1]);
+    expect(page, kind).toContain("const ROAM = true;");
+    expect(page, kind).toContain(`const ROAM_S = ${DIMPLE_ROAM_S};`);
+    /* the clock: eased in over the players' own seconds, at the address's speed; the hollow where the roam has it */
+    expect(page, kind).toContain(`const EASE_IN = ${EFFECT_EASE_S};`);
+    expect(page, kind).toContain("clock += dt * SPEED * e * e * (3 - 2 * e);");
+    expect(page, kind).toContain("const at = roamAt(scene, clock);");
+    expect(page, kind).toContain("if (ROAM || !laidOut) return;");
+    /* one loop asks for its frames, as the following page's does */
+    expect(page.match(/requestAnimationFrame\(tick\)/g), kind).toHaveLength(2);
+  }
+});
+
+test("the pages have no clock unless they roam: the hollow follows the pointer, stays where it is left, and a frame comes only as it moves", () => {
   const P = decodePalette(SEEDS[1]) as Palette;
   const { effect, angle } = read("style=dimple");
   for (const kind of ["webgl", "webgpu"] as const) {
@@ -200,13 +224,23 @@ test("every page's script is one script: no name of the dimple's is the finish's
   /* a page's scripts share one scope, the settings', the model's and the finish's: a name declared twice stops the
      page before it draws (the model's ground once took the finish's UNDER) */
   const P = decodePalette(SEEDS[1]) as Palette;
-  const { effect, angle } = read("style=dimple");
+  const { angle } = read("style=dimple");
   const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (
     code: string
   ) => unknown;
   for (const kind of ["webgl", "webgpu"] as const)
-    for (const finish of [{}, { grain: 30 }, { soft: 40 }, { soft: 40, grain: 30 }]) {
-      const page = dimpleShader(kind, P, effect, angle, SEEDS[1], ORIGIN, finish);
+    for (const finish of [{}, { grain: 30 }, { soft: 40 }, { soft: 40, grain: 30 }, { roam: 1 }]) {
+      /* following the pointer in every finish, and roaming */
+      const { effect } = read("roam" in finish ? "style=dimple&roam=1" : "style=dimple");
+      const page = dimpleShader(
+        kind,
+        P,
+        effect,
+        angle,
+        SEEDS[1],
+        ORIGIN,
+        "roam" in finish ? {} : finish
+      );
       const scripts = [...page.matchAll(/<script(?: type="module")?>([\s\S]*?)<\/script>/g)].map(
         m => m[1]
       );

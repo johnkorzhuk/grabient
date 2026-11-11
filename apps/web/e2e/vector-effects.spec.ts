@@ -1,4 +1,4 @@
-import { EFFECT_KINDS, EFFECTS, hasFigma, isVectorKind } from "@grabient/engine/effect.ts";
+import { canRoam, EFFECT_KINDS, EFFECTS, hasFigma, isVectorKind } from "@grabient/engine/effect.ts";
 import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import { KIT_LABELS } from "@grabient/engine/kit/names.ts";
 import { expect, type Page, test } from "@playwright/test";
@@ -164,7 +164,8 @@ test("a papercut's page paints its stepped still from the head, and offers its S
 /* each vector effect a test of its own, so a new effect adds a test rather than seconds to one test's limit (all ten in
    one test took 21.0 s of its 30, 8 Nov 2026): Copy for Figma where Figma's timeline plays its layers (engine/effect.ts
    hasFigma), its SVG alone where a paste could only stand still */
-for (const kind of EFFECTS.filter(isVectorKind).filter(k => !hasFigma(k)))
+/* one the pointer moves (the dimple) is among those whose strip offers none until it roams (canRoam, pastesToFigma) */
+for (const kind of EFFECTS.filter(isVectorKind).filter(k => !hasFigma(k) || canRoam(k)))
   test(`the ${kind}'s strip offers its SVG for Figma, and no Copy for Figma`, async ({ page }) => {
     await open(page, `/${SEED}?style=${kind}&angle=45`);
     await expect(page.getByRole("button", { name: "Copy SVG" }).first()).toBeVisible();
@@ -177,7 +178,8 @@ for (const kind of EFFECTS.filter(isVectorKind).filter(hasFigma))
     context
   }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    await open(page, `/${SEED}?style=${kind}&angle=45`);
+    /* an effect the pointer moves pastes its roam, which its address asks for */
+    await open(page, `/${SEED}?style=${kind}&angle=45${canRoam(kind) ? "&roam=1" : ""}`);
     const asked: string[] = [];
     page.on("request", r => {
       if (/figma/.test(r.url())) asked.push(r.url());
@@ -354,6 +356,64 @@ test("the dimple takes a zoom, 1 to 4, in its shape's place: its menu's Zoom fie
   await page.getByRole("button", { name: "Dimple", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=dimple&speed=0&zoom=2\\.5$`));
   await expect(zoom).toHaveAttribute("aria-valuenow", "2.5");
+});
+
+test("the dimple roams where its menu's Roam is on: its address says roam=1, its stage plays by itself, its strip gains Copy for Figma, and turned off it follows the pointer again", async ({
+  page,
+  request
+}) => {
+  /* John, 11 Nov 2026: "a toggle for making this style do a subtle animation as if the cursor was roaming around on
+     the on canvas isntead of static + follows cursor? Try to get something that can be exported as a figma clipboard
+     copy" */
+  const moved = async (address: string) =>
+    (await request.get(address, { maxRedirects: 0 }))
+      .headers()
+      .location?.replace(/^https?:\/\/[^/]+/, "");
+  /* only roam=1 is the roam, only the dimple takes it, and it stands after how the effect plays: the Worker's 301 */
+  expect((await request.get(`/${SEED}?style=dimple&roam=1`, { maxRedirects: 0 })).status()).toBe(
+    200
+  );
+  expect(await moved(`/${SEED}?style=dimple&roam=0`)).toBe(`/${SEED}?style=dimple`);
+  expect(await moved(`/${SEED}?style=dimple&roam=1&speed=2`)).toBe(
+    `/${SEED}?style=dimple&speed=2&roam=1`
+  );
+  expect(await moved(`/${SEED}?style=papercut&roam=1`)).toBe(`/${SEED}?style=papercut`);
+  /* its still is the roam's first frame, named as the dimple's that follows the pointer */
+  const still = (html: string) => /data-fx-still="([^"]*)"/.exec(html)?.[1];
+  expect(still(await (await request.get(`/${SEED}?style=dimple&roam=1`)).text())).toBe(
+    `dimple|${SEED}|90|`
+  );
+  /* a list roams every card's alike */
+  expect((await request.get("/palettes?style=dimple&roam=1", { maxRedirects: 0 })).status()).toBe(
+    200
+  );
+  /* its files say so: its JSON's roam, its Markdown's words */
+  const json = JSON.parse(await (await request.get(`/${SEED}.json?style=dimple&roam=1`)).text());
+  expect(json.effect).toMatchObject({ style: "dimple", roam: true });
+  expect(await (await request.get(`/${SEED}.md?style=dimple&roam=1`)).text()).toContain(
+    "its hollow roaming its loop"
+  );
+
+  await open(page, `/${SEED}?style=dimple`);
+  await expect(page.getByRole("button", { name: "Copy for Figma" })).toHaveCount(0);
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  const roam = page.getByRole("switch", { name: "Roam" });
+  await expect(roam).toHaveAttribute("aria-checked", "false");
+  await expect(page.getByText("The hollow follows the pointer.")).toBeVisible();
+  await roam.click();
+  await expect(roam).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByText("The hollow wanders by itself.")).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=dimple&roam=1$`));
+  await expect(page.getByRole("button", { name: /^Appearance: Dimple, 1× · Roam/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy for Figma" })).toBeVisible();
+  /* no other effect's menu has the switch, and the dimple keeps its own */
+  await page.getByRole("button", { name: "Papercut", exact: true }).click();
+  await expect(roam).toHaveCount(0);
+  await page.getByRole("button", { name: "Dimple", exact: true }).click();
+  await expect(roam).toHaveAttribute("aria-checked", "true");
+  await roam.click();
+  await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=dimple$`));
+  await expect(page.getByRole("button", { name: "Copy for Figma" })).toHaveCount(0);
 });
 
 test("an address that still names an effect the site plays no more is the palette's or the list's own, and its files the palette's", async ({

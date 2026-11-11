@@ -7,6 +7,7 @@
    has a shape number, so a drag that recolors the palette keeps the blob it is looking at. */
 import {
   blobShapeOf,
+  canRoam,
   EFFECT_LOOK,
   EFFECT_PLAY,
   EFFECTS,
@@ -45,6 +46,7 @@ const DEFAULT_KEPT: Kept = {
 const sane = (kind: EffectKind, v: Partial<EffectSettings> | null | undefined): EffectSettings => ({
   speed: effectSpeed(v?.speed ?? 1),
   fps: effectFps(v?.fps),
+  ...(canRoam(kind) && v?.roam === true ? { roam: true } : {}),
   look: effectLook(v?.look, kind)
 });
 
@@ -64,6 +66,7 @@ function readKept(): Kept {
 const settingsOf = (effect: Effect): EffectSettings => ({
   speed: effect.speed,
   fps: effect.fps,
+  ...(effect.roam ? { roam: true } : {}),
   look: effect.look
 });
 const sameEffect = (a: Effect | null, b: Effect | null) =>

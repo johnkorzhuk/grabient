@@ -498,13 +498,8 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(text);
 }
 
-/** The clipboard's text/html for a scene (figmaScene), which a paste into Figma reads as its layers, the scene's top
-    frame selected. `fileKey` names the file the paste says it comes from. */
-export function figmaPasteHtml(
-  scene: readonly FigmaNode[],
-  pasteID: number,
-  fileKey: string
-): string {
+/* the message a paste carries: the scene's nodes, its top frame selected */
+function pasteMessage(scene: readonly FigmaNode[], pasteID: number, fileKey: string): Uint8Array {
   const message = {
     type: "NODE_CHANGES",
     sessionID: 0,
@@ -529,8 +524,12 @@ export function figmaPasteHtml(
     nodeChangeOrder: "GUID",
     nodeChanges: scene
   };
+  return encodeKiwi(FIGMA_DEFS, "Message", message);
+}
+
+/* the paste's text/html around a message's deflated bytes */
+function pasteHtml(body: Uint8Array, pasteID: number, fileKey: string): string {
   const schema = fromBase64(FIGMA_SCHEMA);
-  const body = stored(encodeKiwi(FIGMA_DEFS, "Message", message));
   const buffer = new Uint8Array(12 + 4 + schema.length + 4 + body.length);
   const view32 = new DataView(buffer.buffer);
   buffer.set(new TextEncoder().encode("fig-kiwi"), 0);
@@ -543,4 +542,33 @@ export function figmaPasteHtml(
     `${JSON.stringify({ fileKey, pasteID, dataType: "scene", editorType: "design" })}\n`
   );
   return `<meta charset="utf-8"><span data-metadata="<!--(figmeta)${meta}(/figmeta)-->"></span><span data-buffer="<!--(figma)${toBase64(buffer)}(/figma)-->"></span><span style="white-space:pre-wrap;"></span>`;
+}
+
+/** The clipboard's text/html for a scene (figmaScene), which a paste into Figma reads as its layers, the scene's top
+    frame selected. `fileKey` names the file the paste says it comes from. */
+export function figmaPasteHtml(
+  scene: readonly FigmaNode[],
+  pasteID: number,
+  fileKey: string
+): string {
+  return pasteHtml(stored(pasteMessage(scene, pasteID, fileKey)), pasteID, fileKey);
+}
+
+/* the platform's streams, in a browser, a Worker and Node alike */
+declare const CompressionStream: new (format: "deflate-raw") => unknown;
+declare const Blob: new (
+  parts: Uint8Array[]
+) => { stream(): { pipeThrough(through: unknown): unknown } };
+declare const Response: new (body: unknown) => { arrayBuffer(): Promise<ArrayBuffer> };
+
+/** The same text/html with its message deflated for real: for a paste of thousands of layers and keyframes (the
+    dimple's roam, a megabyte stored and a fifth of it deflated), made before the press that copies it. */
+export async function figmaPasteHtmlPacked(
+  scene: readonly FigmaNode[],
+  pasteID: number,
+  fileKey: string
+): Promise<string> {
+  const message = pasteMessage(scene, pasteID, fileKey);
+  const packed = new Blob([message]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  return pasteHtml(new Uint8Array(await new Response(packed).arrayBuffer()), pasteID, fileKey);
 }

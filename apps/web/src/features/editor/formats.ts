@@ -7,7 +7,8 @@ import {
   type EffectKind,
   effectFileAddress,
   hasEmbedScript,
-  hasFigma
+  hasFigma,
+  pastesToFigma
 } from "@grabient/engine/effect.ts";
 import { glassColors } from "@grabient/engine/glass-colors.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
@@ -56,10 +57,11 @@ export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
     PNG, and the script that plays it (server/files/effect-files.ts, embed.ts). */
 export const STRIP_EFFECT_COPY: readonly Format[] = ["url", "css", "svg", "png", "html", "figma"];
 export const STRIP_EFFECT_LINKS: readonly Format[] = ["md", "css", "svg", "png", "js"];
-/** An effect's copies: Figma's layers where they move on its timeline (engine/effect.ts's hasFigma); an effect whose
-    paste could only stand still offers its SVG for Figma instead, which Figma takes as it is. */
-export const effectCopyFormats = (kind: EffectKind): readonly Format[] =>
-  hasFigma(kind) ? STRIP_EFFECT_COPY : STRIP_EFFECT_COPY.filter(f => f !== "figma");
+/** An effect's copies as it plays: Figma's layers where they move on its timeline (engine/effect.ts's pastesToFigma:
+    an effect the pointer moves only while it roams); an effect whose paste could only stand still offers its SVG for
+    Figma instead, which Figma takes as it is. */
+export const effectCopyFormats = (effect: Pick<Effect, "kind" | "roam">): readonly Format[] =>
+  pastesToFigma(effect) ? STRIP_EFFECT_COPY : STRIP_EFFECT_COPY.filter(f => f !== "figma");
 /** An effect's links: its script where one plays it behind a page (engine/effect.ts's hasEmbedScript). */
 export const effectLinkFormats = (kind: EffectKind): readonly Format[] =>
   hasEmbedScript(kind) ? STRIP_EFFECT_LINKS : STRIP_EFFECT_LINKS.filter(f => f !== "js");
@@ -407,6 +409,20 @@ const figmaHtml = async (p: Taken, effect: Effect): Promise<string> => {
         ...effect.look,
         ...frame,
         speed: effect.speed
+      });
+    }
+    case "dimple": {
+      /* its roam, on Figma's timeline: a paste of a dimple that follows the pointer would be its still, which no
+         strip offers (effectCopyFormats) */
+      const { figmaDimpleHtml } = await (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/figma-dimple.ts"));
+      return figmaDimpleHtml({
+        palette: decodePalette(p.seed)!,
+        angle: p.angle,
+        zoom: effect.look.zoom,
+        ...frame,
+        speed: effect.roam ? effect.speed : 0
       });
     }
     case "glass": {

@@ -26,6 +26,7 @@ The product's words in Korean, as Korean designers meet them in Figma, Adobe and
 | sandstone (an effect) | 사암 | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name. Not 모래 (sand), nor the loanword 샌드스톤 of tiles and paving. |
 | dimple (an effect) | 딤플 | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the loanword, as a golf ball's and a dimpled sheet's 딤플 are named. Not 보조개 (a dimple in a cheek). |
 | zoom (the dimple's Zoom field) | 확대 | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. The picture drawn larger, 1× to 4×; Figma KO says 확대/축소 for both ways. |
+| roam (the dimple's Roam switch) | 자동 이동 | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow moving on its own. |
 | look (the examples page) | 모습 | One of the ways a palette is shown: another style, steps, angle or shape. Another look: 다른 모습 보기. Swipe for another look: 스와이프해서 다른 모습 보기. 6 looks: 모습 6가지. Not 모양, which is Appearance and Shape. |
 | Linear / Angular / Radial | 선형 / 원뿔형 / 방사형 | Angular is the conic gradient: 원뿔형, as Korean CSS writing calls conic-gradient. Not 각도, which is Angle. |
 | steps | 단계 | The Steps control, and a count of steps: 단계 7개. "7 colors" is 색상 7개. |

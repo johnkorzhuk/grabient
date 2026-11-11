@@ -118,8 +118,11 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   player's own pass in `dimple-gl.ts`), the WGSL and its WebGPU page (`dimple-webgpu.ts` over `dimple-wgsl.ts`), the
   pages' script in `dimple-page.ts`. It has no loop (`EFFECT_KINDS`' `motion`), so no clock plays it: its pages'
   hollow follows the pointer by their own script and stays where the pointer left it, as its player's does. It has one
-  design and no shape (`EFFECT_KINDS`' `shape`), and takes a zoom in its shape's place (`zoom`, 1 to 4), which draws
-  its discs and its hollow larger.
+  design and no shape, and takes a zoom in its shape's place (`EFFECT_KINDS`' `zoom`, 1 to 4), which draws its discs
+  and its hollow larger. Its address's `roam` has the hollow go round a loop of its own instead of following the
+  pointer (`dimpleRoam`, 24 s at speed 1, from its rest and back): the players and the pages then clock it as any
+  loop, and Copy for Figma pastes it as layers keyed on Figma's timeline (`figma-dimple.ts`: a disc a mask over a
+  strip of the palette that slides and turns).
 - The field effects (`kit/`; the sandstone is the site's one): each is one file in `kit/fields/`, its kernel in the
   kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
   levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for

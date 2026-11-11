@@ -1027,7 +1027,7 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={e.effect() ? effectCopyFormats(e.effect()!.kind) : STRIP_COPY}
+            copy={e.effect() ? effectCopyFormats(e.effect()!) : STRIP_COPY}
             download={e.effect() ? stageFileFormats(e.effect()!.kind) : STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={e.effect() ? stageLinkFormats(e.effect()!.kind) : STRIP_FILES}

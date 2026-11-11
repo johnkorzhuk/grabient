@@ -18,6 +18,7 @@ word gets its Turkish.
 | sandstone (an effect) | Kumtaşı | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name, one word as TDK writes it. Title words *kumtaşı*. Not *kum* (sand). |
 | dimple (an effect) | Çukur | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the plain word for a hollow. Title words *çukur*. Not *gamze* (a dimple in a cheek), nor *göçük* (a dent from damage). |
 | zoom (the dimple's Zoom field) | Yakınlaştırma | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. As Figma and Photoshop TR name it. |
+| roam (the dimple's Roam switch) | Gezinme | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow wandering by itself; „imleç“ is the pointer. |
 | Soft (the Appearance menu's field) | Yumuşaklık | A blur along the style's line, from Kapalı to 100; the header's summary says "Yumuşaklık {value}". |
 | Grain (the Appearance menu's field) | Gren | Film grain, the photographers' word (film greni); the summary says "Gren {value}". Kept apart from the blob's Frost (Buzlu). |
 | swatches / bands | şerit (şeritler) | One word for the hard-band styles: "Doğrusal şeritler", "linear swatches" = "doğrusal şeritler". |

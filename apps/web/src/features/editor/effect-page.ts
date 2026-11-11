@@ -18,8 +18,8 @@ export const EFFECT_KEY = "grabient-effect";
 export const effectScript = `(function(){try{if(/[?&]style=/.test(location.search))return;var k=JSON.parse(localStorage.getItem(${JSON.stringify(EFFECT_KEY)})||"null");if(k&&k.kind!=="glass")document.documentElement.dataset.glass="off"}catch(e){}})();`;
 
 /** What the Appearance button reads while an effect plays: its pace (Off at 0), its frames a second where they are
-    not the 60 every effect plays at, its steps and its zoom where its look names them (an effect that takes them, at
-    other than as designed), and the angle where the reader set one. */
+    not the 60 every effect plays at, its roam where it roams, its steps and its zoom where its look names them (an
+    effect that takes them, at other than as designed), and the angle where the reader set one. */
 export const effectSummary = (
   play: EffectPlay,
   angle: number | null,
@@ -28,6 +28,7 @@ export const effectSummary = (
   [
     play.speed === 0 ? t("Off") : `${Number(play.speed.toFixed(2))}×`,
     ...(play.fps !== EFFECT_FPS.default && play.speed > 0 ? [`${play.fps} FPS`] : []),
+    ...(play.roam ? [t("Roam")] : []),
     ...(look?.steps != null
       ? [t("{count, plural, one {# step} other {# steps}}", { count: look.steps })]
       : []),

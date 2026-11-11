@@ -19,6 +19,7 @@ and add a row when a new product word gets its translation. Persian reads right 
 | sandstone (an effect) | ماسه‌سنگ | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name, its two parts joined by a zero-width non-joiner. Not ماسه (sand) nor سنگ alone. |
 | dimple (an effect) | فرورفتگی | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the plain word for a hollow pressed into a surface. Not چال گونه (a dimple in a cheek). |
 | zoom (the dimple's Zoom field) | بزرگ‌نمایی | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. The picture drawn larger, as Persian design tools say it. |
+| roam (the dimple's Roam switch) | گردش | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow moving about by itself. |
 | Soft (the Appearance menu's field) | نرمی | A blur along the style's line, from خاموش to 100: `نرمی {value}` in the header's summary. |
 | Grain (the Appearance menu's field) | دانه | Film grain, as photographers say it (دانه فیلم): `دانه {value}`. Kept apart from seed (بذر) and the blob's Frost (مات). |
 | swatches | نوارهای رنگی | Judgment: نمونه‌رنگ is a swatch in a design tool's swatch panel, not a palette drawn as hard bands. The style menu's "bands" is the same word: نوارهای خطی، نوارهای زاویه‌ای، نوارهای شعاعی. |

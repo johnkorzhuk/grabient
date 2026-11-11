@@ -78,7 +78,7 @@ export function FormatStrips() {
             />
           </Cell>
           <Cell
-            caption="the editor's strip while the dimple shows · no MP4 and no Figma: it has no loop, its hollow only following the pointer, so there is no clip to make and nothing for Figma's timeline to play; its SVG is its still"
+            caption="the editor's strip while the dimple follows the pointer · no MP4 and no Figma: it has no loop, so there is no clip to make and nothing for Figma's timeline to play; its SVG is its still. Roaming (its menu's Roam), it gains Copy for Figma, its discs keyed on Figma's timeline"
             art={ART}
           >
             <FormatStrip
@@ -118,7 +118,7 @@ export function FormatStrips() {
             "The mode is its glyph, a dot per mode over it on hover. Every strip on the page turns as one.",
             "Named by its mode; the mode press names the next one; the swatch book is Swatches or Back.",
             "A copy for another app is named for where it goes: Copy for Figma.",
-            "Copy for Figma only where Figma's timeline plays the effect (the glass, the blob, the silk, the rosette); for the others the SVG is the way into Figma.",
+            "Copy for Figma only where Figma's timeline plays the effect (the glass, the blob, the silk, the rosette, and the dimple while it roams); for the others the SVG is the way into Figma.",
             "MP4 only where an effect has a loop of its own: the dimple, which moves only as the pointer leads it, has none, so its strips offer no clip.",
             "A download made as it is asked for, an effect's MP4, shows how far along it is on its own chip, a ring round its stop (MakingIcon), its tooltip Making MP4, 62%. Stop. Its name stays Making MP4. Stop until the file is made, so a screen reader is not told each percent, and is told Downloaded MP4 then. A press stops it, and so does the stage showing another clip; its check comes once the file is saved. Only the page that makes it loads the ring."
           ]}

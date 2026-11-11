@@ -88,6 +88,7 @@ const VIEW_PARAMS = [
   "size",
   "speed",
   "fps",
+  "roam",
   "zoom",
   "frost",
   "bg"
@@ -141,6 +142,7 @@ function effectParams(effect: Effect | null): Record<string, string | number | u
   const out: Record<string, string | number | undefined> = {
     speed: undefined,
     fps: undefined,
+    roam: undefined,
     zoom: undefined,
     frost: undefined,
     bg: undefined
@@ -187,6 +189,7 @@ export function inOrder(
     size,
     speed,
     fps,
+    roam,
     zoom,
     frost,
     bg,
@@ -203,6 +206,7 @@ export function inOrder(
     size,
     speed,
     fps,
+    roam,
     zoom,
     frost,
     bg,
@@ -402,6 +406,7 @@ export function viewSince(own: ListView, left: ListView | undefined, now: ListVi
     "style",
     "speed",
     "fps",
+    "roam",
     "zoom",
     "frost",
     "bg",

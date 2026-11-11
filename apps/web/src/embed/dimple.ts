@@ -23,7 +23,13 @@ mount({
     playDimple(
       canvas,
       P,
-      { angle, zoom: effect.look.zoom, speed: effect.speed, fps: effect.fps },
+      {
+        angle,
+        zoom: effect.look.zoom,
+        speed: effect.speed,
+        fps: effect.fps,
+        roam: effect.roam === true
+      },
       drawn,
       { reduced }
     )

@@ -9,7 +9,8 @@
    its picture has no time, only where the hollow is. The hollow goes to the pointer where a page can know it ("what
    if we did a simple animation the follows the users cursor") and stays where the pointer left it ("just have it hold
    its last posisiion instead of resetting to the center"); until a pointer comes it is at its rest, which is what
-   every still, file and card draws.
+   every still, file and card draws. Asked to roam (its address's `roam`, a toggle he asked for on 11 Nov 2026), the
+   hollow goes round a path by itself instead (dimpleRoam): a loop, whose first frame is the same still.
 
    The discs lie in one stack, the nearer the hollow's rest the higher, and keep it wherever the hollow goes: ordered
    by the hollow itself, the discs about the pointer changed places as it moved ("the z index of the area around the
@@ -300,6 +301,41 @@ export function dimpleCell(
   const sx = cx + qx * k - m.ox;
   const sy = cy + qy * k - m.oy;
   return [Math.floor(m.m00 * sx + m.m01 * sy), Math.floor(m.m10 * sx + m.m11 * sy)];
+}
+
+/** Seconds the hollow takes round its roam at speed 1. */
+export const DIMPLE_ROAM_S = 24;
+
+/** The roam: where the hollow is at a share of its loop (0 to 1), from its rest, in shares of D, before the sheet's
+    turn. With `roam` in its address the hollow goes round this path by itself, "as if the cursor was roaming around
+    on the canvas" (John, 11 Nov 2026, who asked for it as a toggle beside "static + follows cursor"): a slow eight
+    with unequal lobes, from the rest and back to it, so the loop's first frame is the still, never stopping (its
+    slowest pace 0.62 of its fastest) and a little over D long. */
+export function dimpleRoam(u: number): [number, number] {
+  const a = u * 2 * Math.PI;
+  return [
+    0.17 * (0.8 * Math.sin(a) - 0.2 * Math.sin(3 * a)),
+    0.1 * (0.75 * Math.sin(2 * a) + 0.25 * Math.sin(a))
+  ];
+}
+
+/** Where the roaming hollow is `t` seconds into its loop at speed 1, in the box's pixels, written into `out`: the
+    path turned as the sheet and its light are. */
+export function dimpleRoamAt(
+  m: DimpleScene,
+  t: number,
+  out: [number, number] = [0, 0]
+): [number, number] {
+  const u = t / DIMPLE_ROAM_S;
+  const a = (u - Math.floor(u)) * 2 * Math.PI;
+  const fx = 0.17 * (0.8 * Math.sin(a) - 0.2 * Math.sin(3 * a));
+  const fy = 0.1 * (0.75 * Math.sin(2 * a) + 0.25 * Math.sin(a));
+  /* the turn's cosine and sine, as the light keeps them */
+  const cs = -m.ly;
+  const sn = m.lx;
+  out[0] = m.ox + m.D * (fx * cs - fy * sn);
+  out[1] = m.oy + m.D * (fx * sn + fy * cs);
+  return out;
 }
 
 /** Where the hollow is: where a pointer last put it, else its rest. */

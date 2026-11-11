@@ -1,4 +1,5 @@
 import {
+  canRoam,
   EFFECT_KINDS,
   type Effect,
   type EffectLook,
@@ -28,6 +29,7 @@ export function EffectFields(props: {
   const zoom = () => EFFECT_KINDS[props.effect.kind].zoom;
   const fields = (frost?: Element) => (
     <PlayFields
+      roams={canRoam(props.effect.kind)}
       steps={
         range() ? (
           <StepsField

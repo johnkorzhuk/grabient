@@ -4,12 +4,15 @@ import { srgbToLch } from "./color.ts";
 import {
   DIMPLE_ACROSS,
   DIMPLE_REACH_ZOOM,
+  DIMPLE_ROAM_S,
   DIMPLE_STOPS,
   type DimpleAt,
   type DimpleScene,
   dimpleGround,
   dimpleHollow,
   dimpleRank,
+  dimpleRoam,
+  dimpleRoamAt,
   dimpleScene,
   dimpleShade,
   dimpleStops
@@ -94,6 +97,59 @@ describe("the dimple's design", () => {
       expect(apart, `zoom ${zoom}`).toBeLessThanOrEqual(1);
       expect(unlike, `zoom ${zoom}`).toBeLessThan(200 * 114 * 3 * 0.001);
     }
+  });
+});
+
+describe("the dimple's roam", () => {
+  it("goes round a closed path from the hollow's rest and back, never far from it and never standing still", () => {
+    /* John, 11 Nov 2026: "a subtle animation as if the cursor was roaming around on the on canvas" */
+    expect(dimpleRoam(0)).toEqual([0, 0]);
+    expect(dimpleRoam(1)[0]).toBeCloseTo(0, 12);
+    expect(dimpleRoam(1)[1]).toBeCloseTo(0, 12);
+    let slowest = Infinity;
+    let fastest = 0;
+    let length = 0;
+    for (let i = 0; i < 720; i++) {
+      const [x, y] = dimpleRoam(i / 720);
+      const [nx, ny] = dimpleRoam((i + 1) / 720);
+      /* within the middle of any box: a third of the longer side across, a fifth up and down */
+      expect(Math.abs(x)).toBeLessThanOrEqual(0.17 + 1e-9);
+      expect(Math.abs(y)).toBeLessThanOrEqual(0.1 + 1e-9);
+      const step = Math.hypot(nx - x, ny - y);
+      slowest = Math.min(slowest, step);
+      fastest = Math.max(fastest, step);
+      length += step;
+    }
+    expect(slowest / fastest).toBeGreaterThan(0.6);
+    expect(length).toBeGreaterThan(0.9);
+    expect(length).toBeLessThan(1.1);
+  });
+
+  it("is where the hollow is at a time of its loop, in the box, turned with the sheet, the same a loop on", () => {
+    const m = scene(null, 90, 640, 360);
+    expect(dimpleRoamAt(m, 0)).toEqual([m.ox, m.oy]);
+    const [x, y] = dimpleRoamAt(m, 5);
+    const [fx, fy] = dimpleRoam(5 / DIMPLE_ROAM_S);
+    expect(x).toBeCloseTo(320 + 640 * fx, 9);
+    expect(y).toBeCloseTo(180 + 640 * fy, 9);
+    const again = dimpleRoamAt(m, 5 + DIMPLE_ROAM_S);
+    expect(again[0]).toBeCloseTo(x, 6);
+    expect(again[1]).toBeCloseTo(y, 6);
+    /* a quarter turn of the sheet turns the path with it */
+    const turned = scene(null, 180, 640, 360);
+    const [tx, ty] = dimpleRoamAt(turned, 5);
+    expect(tx).toBeCloseTo(320 - 640 * fy, 9);
+    expect(ty).toBeCloseTo(180 + 640 * fx, 9);
+    /* written into the array given, so a frame makes none */
+    const out: [number, number] = [0, 0];
+    expect(dimpleRoamAt(m, 5, out)).toBe(out);
+    expect(out).toEqual([x, y]);
+    /* any frame of the roam is the dimple with its hollow there */
+    const still = renderDimple(m);
+    expect(
+      Buffer.compare(Buffer.from(renderDimple(m, dimpleRoamAt(m, 0))), Buffer.from(still))
+    ).toBe(0);
+    expect(Buffer.compare(Buffer.from(renderDimple(m, [x, y])), Buffer.from(still))).not.toBe(0);
   });
 });
 

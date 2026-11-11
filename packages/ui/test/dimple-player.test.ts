@@ -1,5 +1,5 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { DIMPLE_EASE_S } from "@grabient/engine/dimple.ts";
+import { DIMPLE_EASE_S, dimpleRoamAt, dimpleScene } from "@grabient/engine/dimple.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { playDimple } from "../src/dimple-player.ts";
@@ -14,6 +14,8 @@ const P = decodePalette("kS7CQ31Do6asvY-") as Palette;
 const VIEW = { speed: 1, fps: 60, angle: 90, zoom: null };
 
 let draws = 0;
+/* every pair of numbers a frame sets: the box's size, then where the hollow is, the last before a draw */
+let pairs: [number, number][] = [];
 let sizes: ((entries: unknown[]) => void)[] = [];
 let listeners: Record<string, ((event: unknown) => void)[]> = {};
 /** A canvas 300 by 200 at the page's top left, on a WebGL 2 context that draws nothing and counts its draws. */
@@ -30,6 +32,9 @@ function stage() {
     getProgramParameter: () => true,
     drawArrays: () => {
       draws++;
+    },
+    uniform2f: (_at: unknown, x: number, y: number) => {
+      pairs.push([x, y]);
     }
   };
   const canvas = {
@@ -64,6 +69,7 @@ const frames = (n: number) => vi.advanceTimersByTime(16 * n);
 beforeEach(() => {
   vi.useFakeTimers();
   draws = 0;
+  pairs = [];
   sizes = [];
   listeners = {};
   Object.assign(globalThis, {
@@ -234,4 +240,62 @@ test("goes back to its rest when rewound, is put where a card left it, and lets 
   player?.destroy();
   expect(listeners.pointermove).toHaveLength(0);
   expect(listeners.pointerdown).toHaveLength(0);
+});
+
+test("roaming, it plays its loop by the clock from its rest and no pointer leads it; turned back, it is at its rest and still again", () => {
+  /* John, 11 Nov 2026: "a toggle for making this style do a subtle animation as if the cursor was roaming around
+     on the on canvas isntead of static + follows cursor" */
+  const player = playDimple(stage(), P, { ...VIEW, roam: true }, undefined, { ease: false });
+  sized();
+  frames(4);
+  /* its first frame is the still's: the box's size, then the hollow at its rest, the box's middle */
+  expect(pairs.slice(0, 2)).toEqual([
+    [300, 200],
+    [150, 100]
+  ]);
+  const first = draws;
+  frames(60);
+  /* a second on it has drawn a frame a tick, the hollow on its path */
+  expect(draws).toBeGreaterThan(first + 40);
+  const [x, y] = pairs[pairs.length - 1];
+  expect([x, y]).not.toEqual([150, 100]);
+  const scene = dimpleScene(P, { angle: 90, zoom: null }, { width: 300, height: 200 });
+  let nearest = Infinity;
+  for (let t = 0.5; t <= 1.5; t += 0.001) {
+    const [px, py] = dimpleRoamAt(scene, t);
+    nearest = Math.min(nearest, Math.hypot(px - x, py - y));
+  }
+  expect(nearest).toBeLessThan(0.02);
+  /* the pointer over the canvas leads nothing, and nothing is held for a card to show */
+  pointer(20, 20);
+  frames(3);
+  expect(player?.led?.()).toBeNull();
+  const [x2, y2] = pairs[pairs.length - 1];
+  expect(Math.hypot(x2 - 20, y2 - 20)).toBeGreaterThan(50);
+  /* following again: at its rest, and no frame once it is drawn */
+  player?.set(P, VIEW);
+  frames(4);
+  expect(pairs[pairs.length - 1]).toEqual([150, 100]);
+  const still = draws;
+  vi.advanceTimersByTime(5000);
+  expect(draws).toBe(still);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test("a reader who asks for less motion, or speed 0, sees the roam held on its first frame", () => {
+  for (const [view, reduced] of [
+    [{ ...VIEW, roam: true }, true],
+    [{ ...VIEW, roam: true, speed: 0 }, false]
+  ] as const) {
+    draws = 0;
+    pairs = [];
+    sizes = [];
+    const player = playDimple(stage(), P, view, undefined, { reduced: () => reduced });
+    sized();
+    frames(4);
+    vi.advanceTimersByTime(3000);
+    expect(draws).toBe(1);
+    expect(pairs[pairs.length - 1]).toEqual([150, 100]);
+    player?.destroy();
+  }
 });

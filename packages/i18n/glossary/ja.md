@@ -58,6 +58,7 @@ Other product words, kept the same everywhere:
 | Sandstone (an effect: the strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls) | 砂岩, the rock's own name; not 砂 (sand) |
 | Dimple (an effect: a sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer) | くぼみ, the plain word for a hollow pressed into a surface; not えくぼ (a dimple in a cheek) |
 | zoom (the dimple's Zoom field: how much larger than designed it is drawn, 1× to 4×, in its Shape field's place) | ズーム, as Figma and Photoshop JA name it |
+| roam (the dimple's Roam switch: its hollow going round a slow loop by itself rather than following the pointer) | 自動で動く; The hollow moving on its own; plain and short, as the menus' switches are. |
 | look (one of the ways the examples page shows a palette: another style, steps, angle or shape) | 見た目; Another look 別の見た目, Swipe for another look スワイプで別の見た目へ, 6 looks 6通りの見た目. Not 外観, the Appearance menu |
 | Show / Hide (the panel, the color space) | 表示 / 非表示; パネルを表示, パネルを非表示, パネルの表示・非表示, 色空間を非表示 |
 | Full screen / Exit full screen | 全画面表示 / 全画面表示を終了 |

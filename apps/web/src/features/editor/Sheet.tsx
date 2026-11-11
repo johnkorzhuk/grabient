@@ -566,7 +566,7 @@ export function Sheet(props: {
           <FormatStrip
             size="sm"
             variant="art"
-            copy={playing() ? effectCopyFormats(playing()!) : STRIP_COPY}
+            copy={played() ? effectCopyFormats(played()!) : STRIP_COPY}
             download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
             link={playing() ? effectLinkFormats(playing()!) : STRIP_FILES}

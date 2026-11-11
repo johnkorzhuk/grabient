@@ -71,6 +71,7 @@ around it: يتراوح عدد أحرفه بين 1 و{max}، ما لا يزيد 
 | sandstone (an effect) | حجر رملي | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's plain name (الحجر الرملي). No article on its tile, as حرير has none. Not رمل (sand), nor a building stone. |
 | dimple (an effect) | نقرة | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the word for a small pit pressed into a surface, as a golf ball's are نقرات. No article on its tile, as حرير has none. Not غمازة (a dimple in a cheek). |
 | zoom (the dimple's Zoom field) | التكبير | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. The picture drawn larger, as Arabic design tools say it. |
+| roam (the dimple's Roam switch) | تجوّل | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow wandering by itself. |
 | Soft (the Appearance menu's field) | النعومة | A blur along the style's line, from إيقاف to 100; the header's summary says النعومة {value}. |
 | Grain (the Appearance menu's field) | الحبيبات | Film grain, as photographers say it (حبيبات الفيلم); the summary says الحبيبات {value}. Kept apart from صقيع, the blob's Frost. |
 | linear / angular / radial gradient | تدرج خطي / تدرج زاوي / تدرج شعاعي | Adobe's Arabic words for the three gradient types. |

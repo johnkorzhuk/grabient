@@ -114,7 +114,11 @@ export interface EffectKindFacts {
   /** what moves it: its own loop, which a clock plays, or the pointer alone, which its picture follows where a page
       can know it (the dimple's hollow: its stage, its script and its shader pages). One the pointer moves has no
       loop: nothing in it moves by itself, so its picture at any time is its first frame, its speed is how fast it
-      follows (0 not at all), and it has no moving SVG, no Figma timeline and no clip (effect-why.ts) */
+      follows (0 not at all), and it has no moving SVG and no clip (effect-why.ts). Its address's `roam` (EffectPlay)
+      has it go round a loop of its own instead, the pointer left alone (John, 11 Nov 2026: "a toggle for making this
+      style do a subtle animation as if the cursor was roaming around on the on canvas isntead of static + follows
+      cursor"): the same first frame, its speed the loop's pace, and what its Copy for Figma pastes on Figma's
+      timeline, which is offered only while it roams (hasFigma) */
   motion: "loop" | "pointer";
 }
 /** What every field effect is and hands over (kit/): drawn by one drawing of its loop's time over a vector still that
@@ -243,7 +247,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     steppedStill: false,
     svgMotion: null,
     frameSvg: true,
-    figma: null,
+    figma: "moving",
     video: false,
     embed: true,
     shader: true,
@@ -264,8 +268,18 @@ export const isVectorKind = (kind: EffectKind | null | undefined): kind is Vecto
   !!kind && EFFECT_KINDS[kind].vector;
 /** The effects Copy for Figma pastes, as layers that Figma's timeline plays (EFFECT_KINDS' figma); the others' strips
     offer their SVG in its place. */
-export type FigmaKind = "glass" | "blob" | "silk" | "rosette";
+export type FigmaKind = "glass" | "blob" | "silk" | "rosette" | "dimple";
 export const hasFigma = (kind: EffectKind): kind is FigmaKind => EFFECT_KINDS[kind].figma !== null;
+/** Whether an effect's `roam` means anything: one the pointer moves (EFFECT_KINDS' motion: the dimple). */
+export const canRoam = (kind: EffectKind): boolean => EFFECT_KINDS[kind].motion === "pointer";
+/** Whether an effect as it plays goes round a loop of its own: every effect but one the pointer moves, which does
+    only while it roams. What Figma's timeline, a clock and a card under the pointer play. */
+export const loops = (effect: Pick<Effect, "kind" | "roam">): boolean =>
+  EFFECT_KINDS[effect.kind].motion === "loop" || effect.roam === true;
+/** Whether Copy for Figma is offered for an effect as it plays: where Figma's timeline plays it (hasFigma), and for
+    one the pointer moves only while it roams, since a pointer's following is nothing a timeline holds. */
+export const pastesToFigma = (effect: Pick<Effect, "kind" | "roam">): boolean =>
+  hasFigma(effect.kind) && loops(effect);
 
 /** Speeds: 0 holds the first frame (the animation off), then from `slowest` to `max`. */
 export const EFFECT_SPEED = { min: 0, slowest: 0.1, max: 10 } as const;
@@ -278,6 +292,9 @@ export interface EffectPlay {
   speed: number;
   /** frames a second at most: a screen slower than this shows its own */
   fps: number;
+  /** an effect the pointer moves (EFFECT_KINDS' motion) going round a loop of its own instead, `roam=1` in its
+      address: true while it roams, left out otherwise and by every effect with a loop */
+  roam?: boolean;
 }
 export const EFFECT_PLAY: EffectPlay = { speed: 1, fps: EFFECT_FPS.default };
 /** Seconds a player's motion takes from rest to its pace, as it starts and as it resumes, so a still picture comes
@@ -526,6 +543,7 @@ export function parseEffect(params: ParamReader): Effect | null {
     kind,
     speed: speed === null ? 1 : effectSpeed(speed),
     fps: effectFps(params.get("fps")),
+    ...(canRoam(kind) && params.get("roam") === "1" ? { roam: true } : {}),
     look:
       kind === "blob"
         ? effectLook({
@@ -575,7 +593,8 @@ export const effectLookParts = (effect: Effect): string[] => {
 export const effectParts = (effect: Effect): string[] => [
   ...written([
     effect.speed !== 1 && `speed=${effect.speed}`,
-    effect.fps !== EFFECT_FPS.default && `fps=${effect.fps}`
+    effect.fps !== EFFECT_FPS.default && `fps=${effect.fps}`,
+    effect.roam === true && canRoam(effect.kind) && "roam=1"
   ]),
   ...effectLookParts(effect)
 ];
@@ -647,6 +666,7 @@ export const EMBED_PLAYING = "data-grabient-playing";
 export const sameSettings = (a: EffectSettings, b: EffectSettings): boolean =>
   a.speed === b.speed &&
   a.fps === b.fps &&
+  !a.roam === !b.roam &&
   a.look.frost === b.look.frost &&
   a.look.shape === b.look.shape &&
   a.look.bg === b.look.bg &&

@@ -39,15 +39,22 @@ test("a card's strip offers the formats the editor's strips offer, with an effec
      timeline plays its layers, the others' SVG going into Figma in its place */
   for (const effect of EFFECTS)
     expect(card(effect).chips(), effect).toEqual({
-      copy: effectCopyFormats(effect),
+      copy: effectCopyFormats({ kind: effect }),
       download: STRIP_FILES,
       link: effectLinkFormats(effect)
     });
   for (const effect of ["glass", "blob", "silk", "rosette"] as const)
-    expect(effectCopyFormats(effect)).toEqual(STRIP_EFFECT_COPY);
+    expect(effectCopyFormats({ kind: effect })).toEqual(STRIP_EFFECT_COPY);
   for (const effect of ["papercut", "strings", "strata"] as const) {
-    expect(effectCopyFormats(effect)).toEqual(STRIP_EFFECT_COPY.filter(f => f !== "figma"));
-    expect(effectCopyFormats(effect)).toContain("svg");
+    expect(effectCopyFormats({ kind: effect })).toEqual(
+      STRIP_EFFECT_COPY.filter(f => f !== "figma")
+    );
+    expect(effectCopyFormats({ kind: effect })).toContain("svg");
   }
+  /* the dimple, which the pointer moves: Figma's timeline plays it only while it roams */
+  expect(effectCopyFormats({ kind: "dimple" })).not.toContain("figma");
+  expect(effectCopyFormats({ kind: "dimple", roam: true })).toEqual(STRIP_EFFECT_COPY);
+  expect(card("dimple&roam=1").chips().copy).toEqual(STRIP_EFFECT_COPY);
+  expect(card("dimple").chips().copy).not.toContain("figma");
   expect(effectLinkFormats("silk")).toEqual(STRIP_EFFECT_LINKS);
 });

@@ -198,6 +198,7 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
   const { figmaRosetteHtml } = await import("@grabient/engine/figma-rosette.ts");
   const { figmaBlobHtml } = await import("@grabient/engine/figma-blob.ts");
   const { figmaGlassHtml } = await import("@grabient/engine/figma-glass.ts");
+  const { figmaDimpleHtml } = await import("@grabient/engine/figma-dimple.ts");
   const { glassColors } = await import("@grabient/engine/glass-colors.ts");
   const { effectUnderlay } = await import("@grabient/engine/fx-finish.ts");
   /* a press in the browser, where each effect's code comes on it (the server's render never loads it) */
@@ -211,7 +212,7 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
     underlay: ReturnType<typeof effectUnderlay>;
   };
   /* each kind's paste as its own module writes it, every one moving on Figma's timeline */
-  const pastes: Record<FigmaKind, (fx: Effect, view: View) => string> = {
+  const pastes: Record<FigmaKind, (fx: Effect, view: View) => string | Promise<string>> = {
     glass: (fx, view) =>
       figmaGlassHtml(
         { colors: glassColors(P), angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
@@ -224,6 +225,12 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
       figmaRosetteHtml(
         { palette: P, angle: 45, shape: fx.look.shape, ...view, speed: fx.speed },
         id
+      ),
+    /* the dimple's roam: its layers moving at the roam's pace */
+    dimple: (fx, view) =>
+      figmaDimpleHtml(
+        { palette: P, angle: 45, zoom: fx.look.zoom, ...view, speed: fx.roam ? fx.speed : 0 },
+        id
       )
   };
   type Finish = { soft?: number; grain?: number };
@@ -234,7 +241,8 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
     ["style=blob&shape=3&bg=%23f0e6d240", { soft: 40 }],
     ["style=blob&shape=3", { soft: 40, grain: 10 }],
     ["style=glass&shape=12", { soft: 50, grain: 50 }],
-    ["style=glass&speed=0", { grain: 20 }]
+    ["style=glass&speed=0", { grain: 20 }],
+    ["style=dimple&roam=1&zoom=3&speed=2", { soft: 30, grain: 20 }]
   ];
   /* every effect Figma's timeline plays copied */
   expect(new Set(queries.map(([query]) => effect(query).kind))).toEqual(
@@ -246,7 +254,7 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
     pasted.length = 0;
     await copyFormat("figma", { ...taken(query), ...finish });
     const underlay = "soft" in finish ? effectUnderlay(P, fx, 45, finish.soft) : null;
-    const html = pastes[fx.kind](fx, { ...size, finish, underlay });
+    const html = await pastes[fx.kind](fx, { ...size, finish, underlay });
     expect(pasted).toEqual([html]);
     /* a finished paste is no plain one: the blur and the noise ride in it */
     await copyFormat("figma", taken(query));
@@ -254,11 +262,15 @@ test("Copy for Figma pastes the effect with the view's soft and grain, over the 
   }
   /* the others, whose paste could only stand still, have none: no strip offers it, and a press is refused */
   for (const kind of EFFECTS.filter(k => !hasFigma(k))) {
-    expect(effectCopyFormats(kind)).not.toContain("figma");
+    expect(effectCopyFormats({ kind })).not.toContain("figma");
     pasted.length = 0;
     await expect(copyFormat("figma", taken(`style=${kind}`))).rejects.toThrow(/No Copy for Figma/);
     expect(pasted).toEqual([]);
   }
+  /* the dimple that follows the pointer has nothing for Figma's timeline: its strip offers the chip only while it
+     roams */
+  expect(effectCopyFormats(effect("style=dimple"))).not.toContain("figma");
+  expect(effectCopyFormats(effect("style=dimple&roam=1"))).toContain("figma");
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });

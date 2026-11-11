@@ -59,7 +59,18 @@ export function readLink(raw: string): { words: string; view: URLSearchParams } 
   }
   if (!grabientHost(url.hostname) || url.username || url.password) return null;
   const view = new URLSearchParams();
-  for (const name of ["style", "steps", "angle", "size", "speed", "fps", "zoom", "frost", "bg"]) {
+  for (const name of [
+    "style",
+    "steps",
+    "angle",
+    "size",
+    "speed",
+    "fps",
+    "roam",
+    "zoom",
+    "frost",
+    "bg"
+  ]) {
     const said = url.searchParams.get(name);
     if (said) view.set(name, said);
   }

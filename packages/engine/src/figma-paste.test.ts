@@ -1,9 +1,19 @@
+import { inflateRawSync } from "node:zlib";
 import { expect, test } from "vitest";
 import { golden } from "../test/support.ts";
 import { BLOB_DEPTH, BLOB_DESIGN, BLOB_LOOP, blobFilter, blobFit, blobScene } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
+import {
+  DIMPLE_GROUND_STEPS,
+  DIMPLE_ROAM_S,
+  DIMPLE_STOPS,
+  dimpleRoamAt,
+  dimpleScene
+} from "./dimple.ts";
+import { renderDimple } from "./dimple-render.ts";
 import { blobShapeOf, type Effect, type FigmaKind } from "./effect.ts";
 import { FIGMA_BLOB, type FigmaBlobView, figmaBlobHtml, figmaBlobNodes } from "./figma-blob.ts";
+import { dimpleLayers, dimpleTrackAt, figmaDimpleHtml, figmaDimpleNodes } from "./figma-dimple.ts";
 import { FIGMA_GLASS, figmaGlassHtml, figmaGlassNodes } from "./figma-glass.ts";
 import {
   FIGMA_FINISH,
@@ -772,6 +782,194 @@ test("the playing rosette turns and zooms on Figma's timeline as its moving SVG 
   }
 });
 
+/* the dimple roaming: a disc a group of a mask and a rotor, its strip the palette */
+const dimpleView = { palette, angle: 60, zoom: 3, width: 800, height: 450, name: "Navy and teal" };
+const fieldsOf = (n: Node): string[] =>
+  (n.parameterConsumptionMap?.entries ?? []).map((e: Node) => e.variableField);
+
+test("the dimple's roam pastes a disc as a mask over a rotor that turns toward the hollow, its strip sliding along the palette; its still takes no track", () => {
+  const still = figmaDimpleNodes({ ...dimpleView, speed: 0 }) as Node[];
+  expect(still.some(n => n.type === "KEYFRAME_TRACK" || n.parameterConsumptionMap)).toBe(false);
+  expect(still[2].timelineDuration).toBeUndefined();
+  const nodes = figmaDimpleNodes({ ...dimpleView, speed: 2 }) as Node[];
+  parentsFirst(nodes);
+  const top = nodes[2];
+  expect(top).toMatchObject({
+    type: "FRAME",
+    name: "Navy and teal",
+    size: { x: 800, y: 450 },
+    frameMaskDisabled: false
+  });
+  /* the loop at twice its pace, in microseconds */
+  expect(top.timelineDuration).toBe((DIMPLE_ROAM_S / 2) * 1e6);
+  const layers = dimpleLayers(palette, dimpleView, { width: 800, height: 450 }, 2);
+  const [ground, ...discs] = kidsOf(nodes, top);
+  expect(ground).toMatchObject({ type: "ELLIPSE", name: "under the discs" });
+  expect(ground.fillPaints[0].type).toBe("GRADIENT_RADIAL");
+  expect(ground.fillPaints[0].stops).toHaveLength(DIMPLE_GROUND_STEPS + 1);
+  expect(fieldsOf(ground)).toEqual(["MOTION_TRANSLATION_X", "MOTION_TRANSLATION_Y"]);
+  expect(discs).toHaveLength(layers.discs.length);
+  expect(discs.length).toBeGreaterThan(40);
+  const within = (fields: string[], of: string[]) => fields.every(f => of.includes(f));
+  let turning = 0;
+  let sliding = 0;
+  for (const [i, disc] of discs.entries()) {
+    const d = layers.discs[i];
+    expect(disc).toMatchObject({ type: "FRAME", resizeToFit: true, name: `disc ${i + 1}` });
+    const [clip, rotor, ...more] = kidsOf(nodes, disc);
+    expect(more).toEqual([]);
+    expect(clip).toMatchObject({ type: "ELLIPSE", name: "clip", mask: true, maskType: "ALPHA" });
+    expect(clip.size.x).toBeCloseTo(2 * layers.r, 4);
+    /* the clip's middle is the disc's at rest, and the rotor's middle lies on it, turned as the layers say */
+    const mid = (n: Node) => [
+      disc.transform.m02 +
+        n.transform.m02 +
+        (n.transform.m00 * n.size.x + n.transform.m01 * n.size.y) / 2,
+      disc.transform.m12 +
+        n.transform.m12 +
+        (n.transform.m10 * n.size.x + n.transform.m11 * n.size.y) / 2
+    ];
+    expect(mid(clip)[0]).toBeCloseTo(d.x, 3);
+    expect(mid(clip)[1]).toBeCloseTo(d.y, 3);
+    expect(mid(rotor)[0]).toBeCloseTo(d.x, 3);
+    expect(mid(rotor)[1]).toBeCloseTo(d.y, 3);
+    expect(rotor).toMatchObject({ type: "FRAME", resizeToFit: true, name: "toward the hollow" });
+    expect(Math.atan2(rotor.transform.m10, rotor.transform.m00)).toBeCloseTo(
+      Math.atan2(Math.sin(d.turn), Math.cos(d.turn)),
+      6
+    );
+    const [pivot, strip] = kidsOf(nodes, rotor);
+    expect(pivot).toMatchObject({ type: "RECTANGLE", name: "pivot" });
+    expect(pivot.fillPaints[0].opacity).toBe(0);
+    expect(pivot.size).toEqual(rotor.size);
+    expect(strip).toMatchObject({ type: "RECTANGLE", name: "palette" });
+    expect(strip.fillPaints[0].type).toBe("GRADIENT_LINEAR");
+    expect(strip.fillPaints[0].stops).toHaveLength(DIMPLE_STOPS);
+    /* the strip never leaves the pivot, whose box is the rotor's */
+    expect(strip.transform.m02).toBeGreaterThanOrEqual(-1e-6);
+    expect(strip.transform.m02 + strip.size.x).toBeLessThanOrEqual(pivot.size.x + 1e-6);
+    /* each layer moves only as its part does */
+    expect(within(fieldsOf(disc), ["MOTION_TRANSLATION_X", "MOTION_TRANSLATION_Y"])).toBe(true);
+    expect(within(fieldsOf(rotor), ["MOTION_ROTATION", "MOTION_SCALE_XY"])).toBe(true);
+    expect(within(fieldsOf(strip), ["MOTION_TRANSLATION_X"])).toBe(true);
+    expect(fieldsOf(clip)).toEqual([]);
+    expect(fieldsOf(pivot)).toEqual([]);
+    if (fieldsOf(rotor).includes("MOTION_ROTATION")) turning++;
+    if (fieldsOf(strip).length) sliding++;
+  }
+  expect(turning).toBe(discs.length);
+  expect(sliding).toBeGreaterThan(discs.length / 2);
+  /* every track's keyframes rise in time from the loop's start to its end, eased but for the first */
+  const tracks = nodes.filter(n => n.type === "KEYFRAME_TRACK");
+  expect(tracks.length).toBe(nodes.flatMap(fieldsOf).length);
+  for (const track of tracks) {
+    const keys = kidsOf(nodes, { guid: track.guid } as Node).filter(n => n.type === "KEYFRAME");
+    const times = nodes
+      .filter(n => n.type === "KEYFRAME" && n.parentIndex.guid.localID === track.guid.localID)
+      .map(n => Number(n.timelinePosition ?? 0));
+    expect(keys.length).toBe(times.length);
+    expect(times.length).toBeGreaterThan(1);
+    expect(times[0]).toBe(0);
+    expect(times[times.length - 1]).toBe((DIMPLE_ROAM_S / 2) * 1e6);
+    for (let i = 1; i < times.length; i++) expect(times[i]).toBeGreaterThan(times[i - 1]);
+  }
+});
+
+test("the dimple's layers, played as Figma plays them, are its own drawing with the hollow where the roam has it", () => {
+  /* Figma's timeline eases each stretch between keyframes; drawn so (dimpleTrackAt), the layers lie from the CPU's
+     drawing by under a level and a half on average at any time of the loop (11 Nov 2026: 0.5 to 0.7 at 800 by 450,
+     and Figma's own video of them 2.2 to 2.7, its coding included) */
+  const size = { width: 320, height: 180 };
+  const view = { angle: 90, zoom: 2 };
+  const layers = dimpleLayers(palette, view, size, 1);
+  const m = dimpleScene(palette, view, size);
+  const rgb = (hex: string) => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16));
+  const stops = layers.stops.map(rgb);
+  const ground = layers.ground.stops.map(rgb);
+  const span = layers.strip.w * (layers.strip.to - layers.strip.from);
+  let worst = 0;
+  for (const share of [0, 0.137, 0.31, 0.52, 0.731, 0.9]) {
+    const t = share * layers.loop;
+    const cpu = renderDimple(m, dimpleRoamAt(m, t));
+    const px = new Float64Array(size.width * size.height * 3);
+    const gx = layers.ground.x + dimpleTrackAt(layers.ground.mx, t);
+    const gy = layers.ground.y + dimpleTrackAt(layers.ground.my, t);
+    for (let y = 0; y < size.height; y++)
+      for (let x = 0; x < size.width; x++) {
+        const d = Math.min(1, Math.hypot(x + 0.5 - gx, y + 0.5 - gy) / layers.ground.r);
+        const at = d * (ground.length - 1);
+        const i = Math.min(ground.length - 2, Math.floor(at));
+        for (let q = 0; q < 3; q++)
+          px[(y * size.width + x) * 3 + q] =
+            ground[i][q] + (ground[i + 1][q] - ground[i][q]) * (at - i);
+      }
+    for (const d of layers.discs) {
+      const cx = d.x + dimpleTrackAt(d.mx, t);
+      const cy = d.y + dimpleTrackAt(d.my, t);
+      const a = d.turn + dimpleTrackAt(d.rot, t);
+      const scale = d.scale * dimpleTrackAt(d.sc, t, 1);
+      const along = (d.slide0 + dimpleTrackAt(d.slide, t)) * scale;
+      const sx = cx + along * Math.cos(a);
+      const sy = cy + along * Math.sin(a);
+      for (
+        let y = Math.max(0, Math.floor(cy - layers.r - 1));
+        y <= Math.min(size.height - 1, cy + layers.r + 1);
+        y++
+      )
+        for (
+          let x = Math.max(0, Math.floor(cx - layers.r - 1));
+          x <= Math.min(size.width - 1, cx + layers.r + 1);
+          x++
+        ) {
+          const cover = Math.min(
+            1,
+            Math.max(0, layers.r - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + 0.5)
+          );
+          if (cover <= 0) continue;
+          const xi = (x + 0.5 - sx) * Math.cos(a) + (y + 0.5 - sy) * Math.sin(a);
+          const place = Math.min(1, Math.max(0, 0.5 + xi / (span * scale))) * (stops.length - 1);
+          const i = Math.min(stops.length - 2, Math.floor(place));
+          for (let q = 0; q < 3; q++) {
+            const c = stops[i][q] + (stops[i + 1][q] - stops[i][q]) * (place - i);
+            const o = (y * size.width + x) * 3 + q;
+            px[o] += (c - px[o]) * cover;
+          }
+        }
+    }
+    let sum = 0;
+    for (let i = 0, j = 0; i < px.length; i += 3, j += 4)
+      sum += Math.max(
+        Math.abs(px[i] - cpu[j]),
+        Math.abs(px[i + 1] - cpu[j + 1]),
+        Math.abs(px[i + 2] - cpu[j + 2])
+      );
+    worst = Math.max(worst, sum / (px.length / 3));
+  }
+  expect(worst).toBeLessThan(1.5);
+  /* the loop's first frame is the still: the layers at rest are the dimple at its rest */
+  expect(dimpleRoamAt(m, 0)).toEqual([m.ox, m.oy]);
+});
+
+test("the dimple's paste is fig-kiwi with its message deflated for real, and reads back whole", async () => {
+  const html = await figmaDimpleHtml({ ...dimpleView, speed: 1 }, 21);
+  const meta = JSON.parse(atob(/\(figmeta\)([^(]*)\(\/figmeta\)/.exec(html)![1]));
+  expect(meta).toMatchObject({ pasteID: 21, dataType: "scene", editorType: "design" });
+  const buffer = bytesOf(/\(figma\)([^(]*)\(\/figma\)/.exec(html)![1]);
+  const data = new DataView(buffer.buffer);
+  expect(new TextDecoder().decode(buffer.subarray(0, 8))).toBe("fig-kiwi");
+  expect(data.getUint32(8, true)).toBe(FIGMA_VERSION);
+  const schema = data.getUint32(12, true);
+  const body = buffer.subarray(20 + schema, 20 + schema + data.getUint32(16 + schema, true));
+  /* not stored blocks: a deflated stream, a few times smaller than its message */
+  const message = new Uint8Array(inflateRawSync(body));
+  expect(body.length).toBeLessThan(message.length / 3);
+  const nodes = (decodeKiwi(FIGMA_DEFS, "Message", message) as Node).nodeChanges as Node[];
+  const made = figmaDimpleNodes({ ...dimpleView, speed: 1 }) as Node[];
+  expect(nodes).toHaveLength(made.length);
+  expect(nodes.filter(n => n.type === "KEYFRAME_TRACK").length).toBeGreaterThan(100);
+  expect(nodes[2]).toMatchObject({ type: "FRAME", name: "Navy and teal" });
+});
+
 /* the soft and the grain, and the gradient the site lays under a soft effect */
 const underlayOf = (kind: Effect["kind"], angle: number, soft: number, bg: string | null = null) =>
   effectUnderlay(
@@ -822,9 +1020,27 @@ const pastes: Record<FigmaKind, (finish?: FigmaFinish, speed?: number) => Node[]
       speed,
       finish,
       underlay: madeFor("rosette", 60, finish)
+    }) as Node[],
+  /* the dimple roaming, larger than designed so the tests weigh a tenth of its discs */
+  dimple: (finish, speed = 0) =>
+    figmaDimpleNodes({
+      palette,
+      ...box,
+      angle: 60,
+      zoom: 3,
+      name: "Navy and teal",
+      speed,
+      finish,
+      underlay: madeFor("dimple", 60, finish)
     }) as Node[]
 };
-const angleOf: Record<FigmaKind, number> = { glass: 135, blob: 90, silk: 135, rosette: 60 };
+const angleOf: Record<FigmaKind, number> = {
+  glass: 135,
+  blob: 90,
+  silk: 135,
+  rosette: 60,
+  dimple: 60
+};
 /* the kinds pasted, every one moving on Figma's timeline as it plays */
 const pasted = Object.keys(pastes) as FigmaKind[];
 /* a layer's children in their order */

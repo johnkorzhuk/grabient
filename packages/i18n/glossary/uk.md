@@ -17,6 +17,7 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | sandstone (an effect) | Пісковик | The strata of a slot canyon's sandstone wall, plain bands of the palette's colors swept round two slow swirls: the rock's own name. Not «пісок» (sand). |
 | dimple (an effect) | Вм’ятина | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the word for a dent pressed into sheet metal, with the apostrophe ’ the catalog writes. Not «ямочка» (a dimple in a cheek). |
 | zoom (the dimple's Zoom field) | Масштаб | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. As Figma and Photoshop UK name the zoom. |
+| roam (the dimple's Roam switch) | Блукання | The dimple's hollow going round a slow loop by itself rather than following the pointer. A noun, as the menus' fields are; the hollow wandering by itself. |
 | color palette | палітра кольорів | The phrase Ukrainian searchers type; used in titles and descriptions. |
 | swatches | зразки | As Photoshop's Swatches panel is Зразки. Style names: лінійні / кутові / радіальні зразки. The style menu's "bands" is смуги (Лінійні смуги). |
 | Swatches (the strip's swatch files) | Зразки | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Перемкнути на зразки. |

@@ -1,7 +1,12 @@
 import { decodePalette } from "@grabient/engine";
 import { cssLine } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
-import { type Effect, type EffectKind, hasEmbedScript, hasFigma } from "@grabient/engine/effect.ts";
+import {
+  type Effect,
+  type EffectKind,
+  hasEmbedScript,
+  pastesToFigma
+} from "@grabient/engine/effect.ts";
 import { paletteSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { DEFAULT_SIZE, resolveSize, type SizeChoice, viewSearch } from "@grabient/engine/view.ts";
@@ -95,10 +100,10 @@ const FILES: readonly Format[] = ["md", "css", "svg", "png"];
 const CHIPS = { copy: COPY, download: FILES, link: FILES };
 const EFFECT_COPY: readonly Format[] = [...COPY, "html", "figma"];
 const EFFECT_LINKS: readonly Format[] = [...FILES, "js"];
-/** The chips of a card playing an effect of `kind`: Figma's layers where they move on its timeline, its script where
-    one plays it behind a page. */
-const effectChips = (kind: EffectKind): typeof CHIPS => ({
-  copy: hasFigma(kind) ? EFFECT_COPY : EFFECT_COPY.filter(f => f !== "figma"),
+/** The chips of a card playing an effect of `kind`: Figma's layers where they move on its timeline (`figma`: as it
+    plays, engine/effect.ts pastesToFigma), its script where one plays it behind a page. */
+const effectChips = (kind: EffectKind, figma: boolean): typeof CHIPS => ({
+  copy: figma ? EFFECT_COPY : EFFECT_COPY.filter(f => f !== "figma"),
   download: FILES,
   link: hasEmbedScript(kind) ? EFFECT_LINKS : FILES
 });
@@ -126,9 +131,14 @@ export function cardTakings(card: {
   /* the chips follow the kind of effect the card plays, never the view it plays it in: a list's view taken by the
      address would otherwise lay out every card's strip again */
   const playing = createMemo(() => played()?.effect.kind ?? null);
+  /* and whether Figma's timeline plays it as it plays: an effect the pointer moves only while it roams */
+  const pasted = createMemo(() => {
+    const fx = played()?.effect;
+    return !!fx && pastesToFigma(fx);
+  });
   const chips = createMemo(() => {
     const kind = playing();
-    return kind ? effectChips(kind) : CHIPS;
+    return kind ? effectChips(kind, pasted()) : CHIPS;
   });
   const taken = (fx: { effect: Effect; size: SizeChoice | null }) =>
     playedTaken(card.palette(), fx.effect, fx.size, card.name?.());

@@ -1,6 +1,7 @@
 import { toHex } from "@grabient/engine/color.ts";
 import {
   blobShapeOf,
+  canRoam,
   EFFECT_FPS,
   EFFECT_KINDS,
   EFFECT_SPEED,
@@ -69,6 +70,31 @@ function MotionRow() {
   );
 }
 
+/** The roam of an effect the pointer moves (engine/effect.ts canRoam: the dimple), a row of the fields' height as the
+    site's Reduce motion is: its name, what its hollow does, then its switch. On, the hollow goes round its loop by
+    itself, its Speed the loop's pace; off, it follows the pointer and stays where the pointer left it (John, 11 Nov
+    2026: "a toggle for making this style do a subtle animation as if the cursor was roaming around on the on canvas
+    isntead of static + follows cursor"). */
+function RoamRow(props: { on: boolean; onChange: (on: boolean) => void }) {
+  const id = createUniqueId();
+  return (
+    <div class={fields.motion}>
+      <span id={`${id}-label`} class={fields.motionLabel}>
+        {t("Roam")}
+      </span>
+      <span id={`${id}-line`} class={fields.motionLine}>
+        {props.on ? t("The hollow wanders by itself.") : t("The hollow follows the pointer.")}
+      </span>
+      <Switch
+        checked={props.on}
+        aria-labelledby={`${id}-label`}
+        aria-describedby={`${id}-line`}
+        onChange={props.onChange}
+      />
+    </div>
+  );
+}
+
 /** An effect's own steps, where it takes them (EFFECT_KINDS' `steps`: the sandstone's bands), as the gradients' Steps
     field sets theirs: within its range, its designed number where its look names none. */
 export function StepsField(props: {
@@ -115,10 +141,12 @@ export function ZoomField(props: {
   );
 }
 
-/** The fields every effect has: its own `steps` where it takes them (StepsField), the glass's angle (none without
-    `onAngle`: the blob has none), its pace and its frames a second, then `extra`, and `dial`, the field that picks
-    its design: the editor's shape, or an effect's zoom in its place (ZoomField). */
+/** The fields every effect has: its roam where the pointer moves it (`roams`, RoamRow), its own `steps` where it
+    takes them (StepsField), the glass's angle (none without `onAngle`: the blob has none), its pace and its frames a
+    second, then `extra`, and `dial`, the field that picks its design: the editor's shape, or an effect's zoom in its
+    place (ZoomField). */
 export function PlayFields(props: {
+  roams?: boolean;
   steps?: Element;
   angle?: number | "auto";
   onAngle?: (angle: number | "auto") => void;
@@ -130,6 +158,9 @@ export function PlayFields(props: {
   return (
     <>
       <MotionRow />
+      <Show when={props.roams}>
+        <RoamRow on={props.play.roam === true} onChange={roam => props.onPlay({ roam })} />
+      </Show>
       {props.steps}
       <Show when={props.onAngle}>
         <Scrub
@@ -192,6 +223,7 @@ export function EffectFields(props: { editor: PaletteEditor; kind: EffectKind; e
   return (
     <>
       <PlayFields
+        roams={canRoam(props.kind)}
         steps={
           range() ? (
             <StepsField

@@ -302,6 +302,7 @@ export function EffectArt(props: {
       : {
           speed: props.settings.speed,
           fps: props.settings.fps,
+          roam: props.settings.roam === true,
           angle: props.angle,
           shape: props.settings.look.shape,
           steps: props.settings.look.steps,

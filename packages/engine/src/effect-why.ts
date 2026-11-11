@@ -39,11 +39,9 @@ export const EFFECT_WHY: Readonly<
   },
   dimple: {
     svgMotion:
-      'it has no loop, nothing in it moving by itself (John, 10 Nov 2026: "there should be no stationary animations for this one"): its hollow follows the pointer, and an SVG shown as a picture is given no pointer, so its file is its still',
-    figma:
-      'it has no loop, so Figma\'s timeline has nothing of it to play: a paste could only be its still, which its SVG already is (John, 8 Nov 2026, of the effects whose paste could only stand still: "we can just drop it and they can use svg")',
+      'it has no loop, nothing in it moving by itself (John, 10 Nov 2026: "there should be no stationary animations for this one"): its hollow follows the pointer, and an SVG shown as a picture is given no pointer, so its file is its still; roaming (its `roam`, 11 Nov 2026), every disc slides, turns and changes its place along the palette by tracks of its own, a thousand of them, which its Copy for Figma writes for Figma\'s timeline and no SVG animation holds lightly, so its file is its still then too',
     video:
-      'it has no loop, nothing in it moving by itself (John, 10 Nov 2026: "there should be no stationary animations for this one"): a clip of it would be its still for as long as it ran'
+      'it has no loop, nothing in it moving by itself (John, 10 Nov 2026: "there should be no stationary animations for this one"): a clip of it would be its still for as long as it ran; roaming (its `roam`, 11 Nov 2026) it has one, which the clips\' module does not draw yet'
   },
   ...kitRecord(() => KIT_WHY)
 };
