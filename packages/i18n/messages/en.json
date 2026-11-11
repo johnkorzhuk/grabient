@@ -5036,12 +5036,6 @@
       "apps/web/src/features/connect/McpServer.tsx:62"
     ]
   },
-  "Terms": {
-    "note": "Footer link to the Terms of Service.",
-    "refs": [
-      "apps/web/src/app/site.ts:78"
-    ]
-  },
   "Terms of service": {
     "note": "Title of the Terms of Service page.",
     "refs": [

@@ -16,9 +16,9 @@ import { type FramePage, footerLinks, navLinks, siteFacts } from "./site.ts";
    footer (PageFrame). Both end in the language menu. The header, the water and the keys are the shell's and stay as
    pages change. */
 
-type FooterPage = "privacy" | "terms" | "mcp" | "about";
+type FooterPage = "privacy" | "mcp" | "about";
 const footerPage = (page: string | undefined): FooterPage | null =>
-  page === "privacy" || page === "terms" || page === "mcp" || page === "about" ? page : null;
+  page === "privacy" || page === "mcp" || page === "about" ? page : null;
 
 /** The language menu as a frame draws it: this page in every language, which the shell knows. A page that draws its
     own PageFrame (MCP, an app's consent) takes it from here. */
@@ -79,9 +79,9 @@ export const homeLink = (): FrameLink =>
 
 /** A brand page's frame: the navigation with `page` marked, the way home over it, the pane, and the footer with the
     language menu. `login` is the sign-in sheet's frame, `open` a page of its own sheets, `note` a line beneath the
-    footer. */
+    footer. The Terms' page marks nothing: no navigation and no footer links it. */
 export function BrandFrame(props: {
-  page?: FramePage | FooterPage | "privacy" | "terms";
+  page?: FramePage | FooterPage | "terms";
   login?: boolean;
   open?: boolean;
   note?: Element;

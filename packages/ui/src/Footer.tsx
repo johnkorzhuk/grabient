@@ -6,12 +6,12 @@ import { t } from "./i18n.ts";
 import type { FrameLink } from "./PageFrame.tsx";
 import { Stars } from "./Stars.tsx";
 
-/** The links at the foot of every page: the legal pages, then the pages and sites that are not the site's own lists,
-    then the language menu. In a full-height column it falls to the bottom of the screen when the content is short and
-    follows the content when it is long. A link to another site opens in a new tab, the external glyph leading it. A
-    note (the sign-in sheet's terms) is a line of its own beneath, so a line that wraps on a phone pushes nothing into
-    the language menu. On a page that floats presses at a phone's foot (`floats`) it leaves them room under it, so at
-    the page's end they cover none of its links. */
+/** The links at the foot of every page: the privacy policy, then the pages and sites that are not the site's own
+    lists, then the language menu. In a full-height column it falls to the bottom of the screen when the content is
+    short and follows the content when it is long. A link to another site opens in a new tab, the external glyph
+    leading it. A note (the sign-in sheet's terms) is a line of its own beneath, so a line that wraps on a phone
+    pushes nothing into the language menu. On a page that floats presses at a phone's foot (`floats`) it leaves them
+    room under it, so at the page's end they cover none of its links. */
 export function Footer(props: {
   links: readonly FrameLink[];
   /** the language menu, last in the row */

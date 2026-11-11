@@ -14,11 +14,11 @@ describe("the brand pages' navigation", () => {
 });
 
 describe("the footer's links", () => {
-  test("are the legal pages, MCP, About and the code, in that order, on every page", () => {
+  test("are the privacy policy, MCP, About and the code, in that order, on every page, and never the Terms", () => {
     const links = footerLinks(null, 2014, href);
+    // the Terms are linked where they are agreed to, on the sign-in page
     expect(links.map(link => [link.href, link.label])).toEqual([
       ["/privacy", "Privacy"],
-      ["/terms", "Terms"],
       ["/mcp-server", "MCP"],
       ["/about", "About"],
       ["https://github.com/johnkorzhuk/grabient", "GitHub"]
@@ -28,15 +28,13 @@ describe("the footer's links", () => {
       [false, null],
       [false, null],
       [false, null],
-      [false, null],
       [true, 2014]
     ]);
   });
 
-  test("mark the page on screen, About's as the legal pages' and MCP's", () => {
+  test("mark the page on screen, About's as the privacy policy's and MCP's", () => {
     for (const [page, at] of [
       ["privacy", "/privacy"],
-      ["terms", "/terms"],
       ["mcp", "/mcp-server"],
       ["about", "/about"]
     ] as const) {
@@ -46,11 +44,10 @@ describe("the footer's links", () => {
     expect(footerLinks(null, null, href).some(link => link.current)).toBe(false);
   });
 
-  test("lead a crawler to About in every language, whose copies are indexed, and to the legal pages in English alone", () => {
+  test("lead a crawler to About in every language, whose copies are indexed, and to the privacy policy in English alone", () => {
     const english = footerLinks(null, null, href);
     expect(english.map(link => [link.href, link.rel])).toEqual([
       ["/privacy", undefined],
-      ["/terms", undefined],
       ["/mcp-server", undefined],
       ["/about", undefined],
       ["https://github.com/johnkorzhuk/grabient", undefined]
@@ -58,7 +55,6 @@ describe("the footer's links", () => {
     const japanese = footerLinks(null, null, to => `/ja${to}`);
     expect(japanese.map(link => [link.href, link.rel])).toEqual([
       ["/ja/privacy", "nofollow"],
-      ["/ja/terms", "nofollow"],
       ["/ja/mcp-server", undefined],
       ["/ja/about", undefined],
       ["https://github.com/johnkorzhuk/grabient", undefined]

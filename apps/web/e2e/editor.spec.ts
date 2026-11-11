@@ -516,10 +516,10 @@ test("a press that leads to another entry lands the edit still waiting in the en
   await open(page);
   const presses = page.getByRole("group", { name: "Palette actions" }).first();
   await presses.getByRole("button", { name: "Add to selection" }).click();
-  const terms = page.getByRole("link", { name: "Terms" });
+  const privacy = page.getByRole("link", { name: "Privacy", exact: true });
   for (const leave of [
     () => presses.getByRole("button", { name: /^Selection/ }).click(),
-    () => terms.click()
+    () => privacy.click()
   ]) {
     await page.keyboard.press("i");
     await expect.poll(() => here(page)).not.toContain("kS7CQ31Do6asvY-");
