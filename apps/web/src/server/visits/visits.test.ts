@@ -607,6 +607,65 @@ describe("a visit sent on to Google Analytics", () => {
     await checkedSession(env as never, checking("203.0.113.30"), NOON + 1_000);
     expect(sent).toHaveLength(7);
   });
+  test("a Chromium four or five versions behind waits so on every page it lands on from nowhere, where one that keeps up goes once run", async () => {
+    stubFetch();
+    stubCache();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    const names = () => sent.map(hit => (hit.body.events as { name: string }[]).at(-1)?.name);
+    const chrome = (version: number) => ({
+      "User-Agent": CHROME.replace("Chrome/155", `Chrome/${version}`),
+      "Sec-CH-UA": `"Chromium";v="${version}", "Google Chrome";v="${version}"`
+    });
+    const home = { what: "landing", page: "home", language: "en", path: "/" } as const;
+    const contact = { ...home, page: "contact", path: "/contact" } as const;
+    // as on 11 Nov 2026: the home page and a named one loaded by their addresses over HTTP/2, each run
+    await countVisit(env as never, from("198.51.100.1", chrome(151)), home, NOON);
+    await checkedSession(env as never, checking("198.51.100.1", chrome(151)), NOON + 1_500);
+    await countVisit(env as never, from("198.51.100.2", chrome(150)), contact, NOON);
+    await checkedSession(env as never, checking("198.51.100.2", chrome(150)), NOON + 1_500);
+    expect(named(USAGE.points, "visit")).toHaveLength(2);
+    expect(sent).toEqual([]);
+    // three behind is where people's keep: its home page goes once run
+    await countVisit(env as never, from("198.51.100.3", chrome(152)), home, NOON);
+    await checkedSession(env as never, checking("198.51.100.3", chrome(152)), NOON + 1_500);
+    expect(sent).toHaveLength(1);
+    // the lagging browser's own connection, and the site that sent it, say what they say of any
+    const quic = <T extends Request>(request: T) =>
+      Object.assign(request, { cf: { country: "US", asn: 7922, httpProtocol: "HTTP/3" } });
+    await countVisit(env as never, quic(from("198.51.100.4", chrome(151))), home, NOON);
+    await checkedSession(env as never, checking("198.51.100.4", chrome(151)), NOON + 1_500);
+    const referred = { ...home, referrer: "www.google.com" };
+    await countVisit(env as never, from("198.51.100.5", chrome(151)), referred, NOON);
+    await checkedSession(env as never, checking("198.51.100.5", chrome(151)), NOON + 1_500);
+    expect(sent).toHaveLength(3);
+    // and its reader's use sends the page that waited, then the use
+    const fetched = {
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Site": "same-origin"
+    };
+    const use = { what: "use", page: "home", language: "en", path: "/" } as const;
+    await countVisit(
+      env as never,
+      from("198.51.100.1", { ...chrome(151), ...fetched }),
+      use,
+      NOON + 60_000
+    );
+    expect(names().slice(3)).toEqual(["page_view", "use_palette"]);
+    expect(goesOnceRan(home, true)).toBe(false);
+    expect(goesOnceRan(referred, true)).toBe(true);
+    expect(goesOnceRan(home)).toBe(true);
+  });
   test("sends nothing while Chrome's stable version is unknown, as programs on old versions would pass", async () => {
     stubFetch();
     const CACHE = memoryKV();
