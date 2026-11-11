@@ -66,12 +66,13 @@ export function listPlace(
   };
 }
 
-/** What a list hands the frame: the first two palettes of each of its first collections, as its cards draw them. */
+/** What a list hands the frame: the first two palettes of each of its first collections, in the list's view, each
+    at its palette's own angle where the list sets none (gallery/drawing.ts paintOf). */
 export const listPaint = (items: CollectionPage["items"], view: ListView) =>
   items
     .flatMap(collection => collection.preview.slice(0, 2))
     .slice(0, PAINTED)
-    .map(palette => drawnIn(inputOf(palette), view));
+    .map(palette => drawnIn(inputOf(palette), view, null, undefined, null));
 
 /** A public list's loader: its page, its tags and the frames Rising offers in the cache. A frame turned off leads to
     the week's, with the selection still open where the address opened it, and a page past the end renders its line and
@@ -187,7 +188,7 @@ export async function loadCollection(
       palettes: ordered.map(item => paletteAddress(item.kseed, item)),
       paint: ordered
         .slice(0, PAINTED)
-        .map(item => drawnIn(inputOf(item), viewOf(params), null, lookFinish(item.look)))
+        .map(item => drawnIn(inputOf(item), viewOf(params), null, lookFinish(item.look), null))
     };
   }
   if (here) return { status: 404, robots: "noindex,follow", signedOut: noSession() };

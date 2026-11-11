@@ -163,6 +163,31 @@ test("a card hands on the parts its page set, over the palette's own view", () =
   });
 });
 
+test("a card under an effect that stands upright hands on the palette's own angle, which its address cannot say", () => {
+  /* a list that plays the aurora and sets no angle opens a palette at /{seed}?style=aurora, upright: handed its own
+     angle over the view that address reads, the palette's page gives it back to a gradient chosen there */
+  const saved = { style: "radialGradient", steps: 9, angle: 180 } as const;
+  const none = { style: "auto", steps: "auto", angle: "auto" } as const;
+  const aurora = readSeedPage(SEED, new URLSearchParams("style=aurora"))!;
+  const silk = readSeedPage(SEED, new URLSearchParams("style=silk"))!.effect;
+  expect(openedFrom(saved, { ...none, effect: aurora.effect })).toEqual({
+    opened: {
+      style: aurora.view.style,
+      steps: aurora.view.steps,
+      angle: 180,
+      set: { style: false, steps: false, angle: false }
+    }
+  });
+  /* nothing where the effect lies at the palette's own, which its address then names, or the palette lies at the
+     effect's Auto already */
+  expect(openedFrom(saved, { ...none, effect: silk })).toBeUndefined();
+  expect(openedFrom({ ...saved, angle: 90 }, { ...none, effect: aurora.effect })).toBeUndefined();
+  /* a part the page set is handed as ever, over the palette's own view */
+  expect(openedFrom(saved, { ...none, angle: 30, effect: aurora.effect })).toEqual({
+    opened: { ...saved, set: { style: false, steps: false, angle: true } }
+  });
+});
+
 /* An effect's address says only what its picture shows: its style, the angle, the size, how it plays and its look,
    never the gradient's steps; a speed of 0 holds its first frame and stays, and 60 frames a second is no setting. */
 test.each([

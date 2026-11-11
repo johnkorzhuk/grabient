@@ -624,10 +624,14 @@ export function CollectionPage(props: {
     )
   });
   /* after the selection's own, so this one stands: the selection while its screen is shown, else the page's first
-     palettes; with none of its own yet, whatever the loader read */
-  shell.paint(() =>
-    sel.open() ? selection() : palettes().length ? palettes().slice(0, PAINTED) : null
+     palettes, each at its own angle where the page sets none, as every list hands them (gallery/drawing.ts
+     paintOf); with none of its own yet, whatever the loader read */
+  const painted = createMemo(() =>
+    ordered()
+      .slice(0, PAINTED)
+      .map(item => drawnIn(inputOf(item), props.view, null, lookFinish(item.look), null))
   );
+  shell.paint(() => (sel.open() ? selection() : painted().length ? painted() : null));
 
   /* a tag's colors, as a read of the collection brought them: the account's copy and a write's answer bring none, so a
      tag they show takes the colors a read gave the same words */

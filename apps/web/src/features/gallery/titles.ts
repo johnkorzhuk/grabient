@@ -60,7 +60,7 @@ export function searchedTitle(
       : made[0];
   if (!item) return null;
   const shown = drawnIn(ownOf(item), params);
-  const drawn = picturedAs(ownOf(item), params, draft, peek);
+  const drawn = picturedAs(ownOf(item), params, draft, peek, undefined, peeked ?? undefined);
   const effect = shownEffect(params, draft, peek, peeked);
   return {
     seed: item.kseed,

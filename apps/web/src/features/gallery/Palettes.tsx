@@ -524,12 +524,15 @@ export function Palettes(props: { place: ListPlace }) {
                                 description={collection().description}
                                 palettes={collection().preview.map(preview => {
                                   /* the list's style, and while it plays an effect the palettes' gradients: an
-                                     effect would take a still of every tile, up to 96 on this offer */
+                                     effect would take a still of every tile, up to 96 on this offer. A gradient
+                                     lies at its palette's own angle, whatever effect the list plays */
                                   const drawn = picturedAs(
                                     preview,
                                     params(),
                                     look.draft(),
-                                    look.peek()
+                                    look.peek(),
+                                    undefined,
+                                    null
                                   );
                                   return {
                                     stops: hexesOf(drawn),

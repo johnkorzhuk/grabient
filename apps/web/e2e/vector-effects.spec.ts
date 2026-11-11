@@ -517,6 +517,81 @@ test("the aurora stands upright where no angle is set for it: on a list's cards 
   await expect(angle).toHaveAttribute("aria-valuetext", "30°");
 });
 
+test("a list shows the aurora upright before it is chosen, on its menu's tile and on the cards while the tile is rested on, and a palette opened from a list that plays it has its own angle back as a gradient", async ({
+  page,
+  request
+}) => {
+  /* John, 11 Nov 2026, of the aurora's Auto on staging: "i dont see it in staging". A list that played no aurora
+     drew it at each palette's own angle on its menu's tile and on every card while the pointer rested on the tile,
+     on its side for a palette saved at 0 or 180, and stood it upright only once it was chosen */
+  const stills = async (path: string) =>
+    [
+      ...(await (await request.get(path)).text()).matchAll(/<span[^>]*data-fx-still="([^"]*)"/g)
+    ].map(found => found[1]!.split("|"));
+  /* the list's first palette, which its menu's tiles draw, and the first of its palettes saved at another angle
+     than the aurora's 90: the silk turns with each */
+  const silks = await stills("/palettes?style=silk");
+  const [, first, firstOwn] = silks[0]!;
+  const [, seed, own] = silks.find(([, , angle]) => angle !== "90")!;
+  expect(Number(own)).not.toBe(90);
+
+  await open(page, "/palettes");
+  const card = page.locator(`main [data-fx-still*="|${seed}|"]`).first();
+  await page.locator(`main a[href*="/${seed}"]`).first().scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  const aurora = page.getByRole("button", { name: "Aurora", exact: true });
+  const silk = page.getByRole("button", { name: "Silk", exact: true });
+  /* the tiles draw the list's first palette: the aurora's upright, the silk's at the palette's own */
+  await expect(aurora.locator("[data-fx-still]")).toHaveAttribute(
+    "data-fx-still",
+    `aurora|${first}|90|`
+  );
+  await expect(silk.locator("[data-fx-still]")).toHaveAttribute(
+    "data-fx-still",
+    `silk|${first}|${firstOwn}|`
+  );
+  /* rested on, each plays on the cards as it will once chosen */
+  await aurora.hover();
+  await expect(card).toHaveAttribute("data-fx-still", `aurora|${seed}|90|`);
+  await silk.hover();
+  await expect(card).toHaveAttribute("data-fx-still", `silk|${seed}|${own}|`);
+  /* chosen, the aurora stands as it was previewed; the silk rested on then still turns with the palette, and its
+     tile with the first */
+  await aurora.click();
+  await expect(page).toHaveURL(/\/palettes\?style=aurora$/);
+  await expect(card).toHaveAttribute("data-fx-still", `aurora|${seed}|90|`);
+  await expect(silk.locator("[data-fx-still]")).toHaveAttribute(
+    "data-fx-still",
+    `silk|${first}|${firstOwn}|`
+  );
+  await silk.hover();
+  await expect(card).toHaveAttribute("data-fx-still", `silk|${seed}|${own}|`);
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveAttribute("data-fx-still", `aurora|${seed}|90|`);
+
+  /* the card opens its palette upright, its address naming no angle; the gradient chosen there lies as the palette
+     was saved, which the card handed on */
+  const edit = page.locator(`main a[href*="/${seed}"]`).first();
+  await expect(edit).toHaveAttribute("href", `/${seed}?style=aurora`);
+  await edit.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/${seed}\\?style=aurora$`));
+  /* the palette's page stands, its own menu in the header: the list's cards name stills of the aurora too, and its
+     menu's button would take a press made before the page changed */
+  await expect(page.getByRole("button", { name: "Random", exact: true })).toBeVisible();
+  await expect(page.locator('main [data-fx-still^="aurora|"]').first()).toHaveAttribute(
+    "data-fx-still",
+    `aurora|${seed}|90|`
+  );
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await expect(page.getByRole("spinbutton", { name: "Angle", exact: true })).toHaveAttribute(
+    "aria-valuetext",
+    "Auto"
+  );
+  await page.getByRole("button", { name: "Linear", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/${seed}\\?angle=${own}$`));
+});
+
 test("the dimple roams where its menu's Roam is on: its address says roam=1, its stage plays by itself, its strip gains Copy for Figma, and turned off it follows the pointer again", async ({
   page,
   request

@@ -76,7 +76,14 @@ export function ItemCard(props: {
   const sight = createSight();
   const picture = createMemo(() =>
     sight.inSight()
-      ? picturedAs(props.own, props.view, look.draft(), look.peek(), finish())
+      ? picturedAs(
+          props.own,
+          props.view,
+          look.draft(),
+          look.peek(),
+          finish(),
+          look.peekedEffect() ?? undefined
+        )
       : picturedAs(props.own, props.view, null, null, finish())
   );
   const seed = () => props.own.seed;

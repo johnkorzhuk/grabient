@@ -64,7 +64,14 @@ export function GalleryCard(props: {
   const sight = createSight();
   const picture = createMemo(() =>
     sight.inSight()
-      ? picturedAs(ownOf(props.item), page.params(), look.draft(), look.peek(), finish())
+      ? picturedAs(
+          ownOf(props.item),
+          page.params(),
+          look.draft(),
+          look.peek(),
+          finish(),
+          look.peekedEffect() ?? undefined
+        )
       : picturedAs(ownOf(props.item), page.params(), null, null, finish())
   );
   /* the whole look the palette's save kept, which the card plays while the list draws every palette as saved */

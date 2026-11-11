@@ -7,7 +7,8 @@ import {
   EFFECT_PLAY,
   EFFECTS,
   type Effect,
-  type EffectKind
+  type EffectKind,
+  effectAutoAngle
 } from "@grabient/engine/effect.ts";
 import { STEPS_MIN, type Style } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
@@ -228,12 +229,13 @@ export function ListAppearance() {
       effect: kept.effects[kind] ?? { kind, ...EFFECT_PLAY, look: EFFECT_LOOK }
     });
   };
-  /* the page's first palette as the list draws it; until the page has one, the resting colors at the chosen angle */
+  /* the page's first palette in the list's view, at its own angle where the list sets none (angleUnder turns each
+     picture of it); until the page has one, the resting colors at the chosen angle */
   const paint = () => {
     const first = look.first();
     const v = shown();
     if (first) {
-      const drawn = drawnIn(first, view(), look.draft());
+      const drawn = drawnIn(first, view(), look.draft(), undefined, null);
       const P = decodePalette(drawn.seed);
       if (P)
         return {
@@ -259,6 +261,13 @@ export function ListAppearance() {
       ? pictureCss(pictureOf(p.stops, { style, soft: p.soft, grain: p.grain }), p.angle)
       : gradientCss(RESTING, style, p.angle);
   };
+  /* the angle that palette lies at while it plays an effect: the list's where it sets one, else the palette's own,
+     which an effect that stands upright leaves for its own (engine/effect.ts effectAutoAngle: the aurora's tile and
+     the header's swatch of it upright on any list, as its cards are once it is chosen) */
+  const angleUnder = (effect: Effect) => {
+    const angle = paint().angle;
+    return shown().angle === "auto" ? effectAutoAngle(effect.kind, angle) : angle;
+  };
   /* the effect the cards show, and the page's first palette playing it in its own shape, or until the page has one
      the resting colors': the header's swatch and the effects' tiles, each made once and following what it shows */
   const playing = () => shownEffect(view(), look.draft(), look.peek(), look.peekedEffect());
@@ -268,15 +277,15 @@ export function ListAppearance() {
         const seed = look.first()?.seed ?? BRAND_SUPPLY[0]!;
         const P = decodePalette(seed);
         const fx = effect();
-        return P && fx ? { palette: P, effect: cardEffect(fx, seed) } : null;
+        return P && fx ? { palette: P, effect: cardEffect(fx, seed), angle: angleUnder(fx) } : null;
       })()}
     >
-      {shown => (
+      {art => (
         <Loading>
           <EffectSwatch
-            effect={shown().effect}
-            palette={shown().palette}
-            angle={paint().angle}
+            effect={art().effect}
+            palette={art().palette}
+            angle={art().angle}
             gpu={gpu}
           />
         </Loading>

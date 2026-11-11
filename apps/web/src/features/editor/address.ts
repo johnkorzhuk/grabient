@@ -9,11 +9,14 @@ import {
   EFFECT_KINDS,
   type Effect,
   effectAngleParts,
+  effectAutoAngle,
   effectFinish,
   effectParts,
   parseEffect
 } from "@grabient/engine/effect.ts";
 import {
+  DEFAULT_STEPS,
+  DEFAULT_STYLE,
   finishParts,
   type ParamReader,
   parseView,
@@ -202,17 +205,28 @@ export interface Opened {
 /** What a card hands the editor as it opens a palette in place, the new entry's state (`navigate({ href, state })`):
     the palette's own view, and the parts the page it stood on set over it. Its address already draws it that way;
     this says the parts are the reader's, so the palette's page reads them as set and Reset returns it to its own.
-    Nothing where the page set none. */
+    Nothing where the page set none, since the address then says the palette's own view. But for a page that plays
+    an effect standing at another angle than the palette's own (engine/effect.ts effectAutoAngle: the aurora,
+    upright), whose address names no angle and so would lose the palette's: handed here over the view such an
+    address reads (the gradient's defaults, which an effect's address never names), so a gradient chosen on the
+    palette's page lies as the palette was saved. */
 export function openedFrom(
   own: Pick<View, "style" | "steps" | "angle">,
-  view: { style: StyleChoice; steps: number | "auto"; angle: number | "auto" }
+  view: {
+    style: StyleChoice;
+    steps: number | "auto";
+    angle: number | "auto";
+    effect?: Effect | null;
+  }
 ): (HistoryState & { opened: Opened }) | undefined {
   const set = {
     style: view.style !== "auto",
     steps: view.steps !== "auto",
     angle: view.angle !== "auto"
   };
-  return set.style || set.steps || set.angle
-    ? { opened: { style: own.style, steps: own.steps, angle: own.angle, set } }
+  if (set.style || set.steps || set.angle)
+    return { opened: { style: own.style, steps: own.steps, angle: own.angle, set } };
+  return view.effect && effectAutoAngle(view.effect.kind, own.angle) !== own.angle
+    ? { opened: { style: DEFAULT_STYLE, steps: DEFAULT_STEPS, angle: own.angle, set } }
     : undefined;
 }

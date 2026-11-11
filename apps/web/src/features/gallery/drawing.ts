@@ -29,29 +29,38 @@ export const ownOf = (item: Pick<PaletteItem, "kseed" | "style" | "steps" | "ang
 
 /** A palette's picture while the header's control sets the list's view: the steps and angle on their way to the
     address at once, and the style a tile previews. Its link, name and selection keep the address's view. `kept` is
-    the soft and grain its save kept (list/appearance.ts lookFinish). */
+    the soft and grain its save kept (list/appearance.ts lookFinish). `shows` is the effect the picture shows where
+    it is not the list's own (drawnIn): one a tile previews, or null for a picture that never plays one. What is
+    previewed lies as it will once chosen: a style's gradient at the palette's own angle whatever the list plays,
+    an effect at its own Auto. */
 export function picturedAs(
   own: Drawn,
   view: ListView,
   draft: ViewDraft | null,
   peek: Style | null,
-  kept?: Pick<Drawn, "soft" | "grain">
+  kept?: Pick<Drawn, "soft" | "grain">,
+  shows?: Effect | null
 ): Drawn {
-  const drawn = drawnIn(own, view, draft, kept);
+  const drawn = drawnIn(own, view, draft, kept, peek ? null : shows);
   return peek ? { ...drawn, style: peek } : drawn;
 }
 
 /** The frame reads at most this many of a page's palettes. */
 const PAINTED = 8;
 
-/** The palettes a list has on screen first, as the list draws them: what the frame paints. */
+/** The palettes a list has on screen first, in the list's view: what the frame paints. Each is at its palette's
+    own angle where the list sets none, whatever effect the list plays: the frame paints by their colors, and the
+    list's menu draws the first of them in every style and effect, each lying as it would once chosen
+    (list/ListAppearance.tsx). */
 export const paintOf = (
   items: readonly (Pick<PaletteItem, "kseed" | "style" | "steps" | "angle"> & {
     look?: string | null;
   })[],
   view: ListView
 ): Drawn[] =>
-  items.slice(0, PAINTED).map(item => drawnIn(ownOf(item), view, null, lookFinish(item.look)));
+  items
+    .slice(0, PAINTED)
+    .map(item => drawnIn(ownOf(item), view, null, lookFinish(item.look), null));
 
 /** The home's: its head's palettes, then the first two of each collection, as a searched home may hold no head. */
 export const homePaint = (

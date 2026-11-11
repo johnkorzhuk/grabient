@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import * as v from "valibot";
 import { expect, test } from "vitest";
 import { hexesOf } from "../../lib/palette.ts";
-import { AS_SAVED, drawnIn } from "../list/appearance.ts";
+import { AS_SAVED, drawnIn, readListView } from "../list/appearance.ts";
 import {
   homePaint,
   madeItems,
@@ -131,6 +131,28 @@ test("a picture draws what the control is setting over the address's view, and t
   expect(picturedAs(own, view, { angle: "auto" }, null)).toMatchObject({ steps: 9, angle: 90 });
 });
 
+test("a picture of what a tile previews lies as it will once chosen: the aurora upright, a style's gradient at the palette's own", () => {
+  /* John, 11 Nov 2026: "i dont see it in staging": the aurora previewed on a list's cards lay at each palette's own
+     angle until it was chosen */
+  const own = { seed: "kS7Q8Yy5S_SChv0", style: "linearGradient" as const, steps: 7, angle: 180 };
+  const aurora = readListView({ style: "aurora" }).effect;
+  const silk = readListView({ style: "silk" }).effect;
+  expect(picturedAs(own, AS_SAVED, null, null, undefined, aurora).angle).toBe(90);
+  expect(picturedAs(own, AS_SAVED, null, null, undefined, silk).angle).toBe(180);
+  /* on a list that plays the aurora: its own cards upright, another effect previewed and a style previewed at the
+     palette's own, and a picture that is always the palette's gradient (a collection's tiles) at its own too */
+  const upright = readListView({ style: "aurora" });
+  expect(picturedAs(own, upright, null, null).angle).toBe(90);
+  expect(picturedAs(own, upright, null, null, undefined, silk).angle).toBe(180);
+  expect(picturedAs(own, upright, null, "radialGradient", undefined, aurora)).toMatchObject({
+    style: "radialGradient",
+    angle: 180
+  });
+  expect(picturedAs(own, upright, null, null, undefined, null).angle).toBe(180);
+  /* an angle the list sets is every picture's */
+  expect(picturedAs(own, { ...AS_SAVED, angle: 30 }, null, null, undefined, aurora).angle).toBe(30);
+});
+
 test("the frame paints a list's first palettes as the list draws them, and the home's head before its groups", () => {
   const item = (n: number) => ({
     kseed: `kS7Q8Yy5S_SChv${n}`,
@@ -145,6 +167,12 @@ test("the frame paints a list's first palettes as the list draws them, and the h
   const painted = paintOf(items, view);
   expect(painted).toHaveLength(8);
   expect(painted[0]).toEqual(drawnIn(ownOf(items[0]!), view));
+  /* each at its palette's own angle where the list sets none, whatever the list plays: its menu draws the first in
+     every style and effect, each turned as it would lie (the aurora's tile upright, the others with the palette) */
+  const turned = [{ ...item(0), angle: 180 }];
+  expect(paintOf(turned, readListView({ style: "aurora" }))[0]?.angle).toBe(180);
+  expect(drawnIn(ownOf(turned[0]!), readListView({ style: "aurora" })).angle).toBe(90);
+  expect(paintOf(turned, readListView({ style: "aurora", angle: 30 }))[0]?.angle).toBe(30);
   const group = (seeds: number[]) => ({
     preview: seeds.map(n => ({ seed: item(n).kseed, style: item(n).style, steps: 7, angle: 90 }))
   });
