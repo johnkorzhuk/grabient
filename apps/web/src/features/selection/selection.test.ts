@@ -112,7 +112,8 @@ test("a palette keeps its soft and grain and the effect it played, held still: i
     frost: 1.5,
     bg: "#102030",
     steps: null,
-    zoom: null
+    zoom: null,
+    path: null
   });
   // the sandstone's steps draw its picture: a palette at 12 steps is a palette apart from one at its designed 28
   const strata = (steps: number | null) =>
@@ -149,6 +150,23 @@ test("a palette keeps its soft and grain and the effect it played, held still: i
   expect(dimple(2.5)?.id).toBe(`${seed}?style=dimple&angle=30&zoom=2.5`);
   expect(dimple(2.5, 417)?.id).toBe(dimple(2.5)?.id);
   expect(dimple(1)?.id).toBe(dimple(null)?.id);
+  // the aurora's path draws its picture in its shape's place: a palette behind another range is a palette apart,
+  // a path in another spelling the same palette, and a shape it takes no more leaves it as it is
+  const aurora = (path: string | null, shape: number | null = null) =>
+    selectedPalette({
+      ...view,
+      effect: {
+        kind: "aurora",
+        ...EFFECT_PLAY,
+        look: { shape, frost: 1, bg: null, steps: null, zoom: null, path }
+      }
+    });
+  expect(aurora("line,33,33")?.effect?.look.path).toBe("line,33,33");
+  expect(aurora("line,33,33")?.id).toBe(`${seed}?style=aurora&angle=30&path=line,33,33`);
+  expect(aurora("line,33,33", 417)?.id).toBe(aurora("line,33,33")?.id);
+  expect(aurora("line,33.0,33")?.id).toBe(aurora("line,33,33")?.id);
+  expect(aurora(null)?.id).toBe(`${seed}?style=aurora&angle=30`);
+  expect(aurora("mountains")?.id).toBe(aurora(null)?.id);
   // a kind that is no effect's holds none: a selection kept while the site played one it plays no more (the zen
   // garden, style=zen, 8 to 10 Nov 2026) is read as its palette in its view
   const gone = selectedPalette({

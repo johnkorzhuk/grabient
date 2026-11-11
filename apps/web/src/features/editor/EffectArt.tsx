@@ -117,6 +117,10 @@ const players = {
     import.meta.env.SSR
       ? (new Promise(() => {}) as never)
       : import("@grabient/ui/dimple-player.ts"),
+  aurora: () =>
+    import.meta.env.SSR
+      ? (new Promise(() => {}) as never)
+      : import("@grabient/ui/aurora-player.ts"),
   ...kitPlayers
 } satisfies Record<EffectKind, () => Promise<unknown>>;
 type Code = Awaited<ReturnType<(typeof players)[EffectKind]>>;
@@ -174,6 +178,14 @@ function playWith(
       canvas,
       palette,
       view as Parameters<typeof code.playDimple>[2],
+      first,
+      options
+    );
+  if ("playAurora" in code)
+    return code.playAurora(
+      canvas,
+      palette,
+      view as Parameters<typeof code.playAurora>[2],
       first,
       options
     );
@@ -307,6 +319,7 @@ export function EffectArt(props: {
           shape: props.settings.look.shape,
           steps: props.settings.look.steps,
           zoom: props.settings.look.zoom,
+          path: props.settings.look.path,
           bg: props.settings.look.bg
         };
   /* where the pointer left a picture it moves (the dimple's hollow), in the box 0 to 1 each way: the still shows the
@@ -496,6 +509,7 @@ export function EffectArt(props: {
               shape={props.settings.look.shape}
               steps={props.settings.look.steps}
               zoom={props.settings.look.zoom}
+              path={props.settings.look.path}
               bg={props.settings.look.bg}
               at={held()}
             />

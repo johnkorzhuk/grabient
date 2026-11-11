@@ -51,7 +51,8 @@ const look = {
   frost: 1,
   bg: null,
   steps: args.steps ? Number(args.steps) : null,
-  zoom: null
+  zoom: null,
+  path: null
 };
 const speed = 2.45;
 const weights: number[] = [];

@@ -141,7 +141,7 @@ const BLOB: Effect = {
   kind: "blob",
   speed: 1,
   fps: 60,
-  look: { shape: null, frost: 1.5, bg: "#112233", steps: null, zoom: null }
+  look: { shape: null, frost: 1.5, bg: "#112233", steps: null, zoom: null, path: null }
 };
 
 test("an effect's style names it, with how it plays and looks, and the steps leave", () => {
@@ -164,7 +164,7 @@ test("an effect's style names it, with how it plays and looks, and the steps lea
       kind: "blob",
       speed: 10,
       fps: 60,
-      look: { shape: null, frost: 2, bg: null, steps: null, zoom: null }
+      look: { shape: null, frost: 2, bg: null, steps: null, zoom: null, path: null }
     }
   });
 });
@@ -271,7 +271,7 @@ test("the strings take the list's ground, every card on it: read, written after 
     kind: "strings",
     speed: 1,
     fps: 60,
-    look: { shape: null, frost: 1, bg: "#f4efe680", steps: null, zoom: null }
+    look: { shape: null, frost: 1, bg: "#f4efe680", steps: null, zoom: null, path: null }
   });
   expect(inView("/palettes", strings)).toBe("/palettes?style=strings&angle=30&bg=%23f4efe680");
   expect(listViewOf(new URLSearchParams("style=strings&angle=30&bg=%23f4efe680"))).toEqual(strings);
@@ -283,6 +283,55 @@ test("the strings take the list's ground, every card on it: read, written after 
   /* turned to an effect that takes none, the ground leaves with it */
   expect(readListView({ style: "silk", bg: "#f4efe6" }).effect?.look.bg).toBeNull();
   expect(viewParams({ effect: readListView({ style: "silk" }).effect }).bg).toBeUndefined();
+});
+
+test("the aurora takes the list's path, every card behind it: read, written among its look as a word, and read back", () => {
+  const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
+  const aurora = readListView({
+    style: "aurora",
+    angle: 30,
+    path: walled,
+    bg: "#102030",
+    shape: 12
+  });
+  expect(aurora.effect).toEqual({
+    kind: "aurora",
+    speed: 1,
+    fps: 60,
+    look: { shape: null, frost: 1, bg: "#102030", steps: null, zoom: null, path: walled }
+  });
+  /* a path in another spelling is kept in its one spelling; the designed range and words that are no path are none */
+  expect(readListView({ style: "aurora", path: "line,33.0,33" }).effect?.look.path).toBe(
+    "line,33,33"
+  );
+  expect(readListView({ style: "aurora", path: "mountains" }).effect?.look.path).toBeNull();
+  expect(readListView({ style: "aurora" }).effect?.look.path).toBeNull();
+  /* written as a word, its commas and colons as they are, after how it plays and before its ground */
+  expect(viewParams({ effect: aurora.effect })).toMatchObject({
+    style: "aurora",
+    path: walled,
+    bg: "#102030"
+  });
+  const order = Object.entries(
+    inOrder({ q: "sea", page: 2 }, viewParams({ style: "auto", effect: aurora.effect }))
+  )
+    .filter(([, value]) => value !== undefined)
+    .map(([name]) => name);
+  expect(order).toEqual(["q", "style", "path", "bg", "page"]);
+  expect(inView("/palettes", aurora)).toBe(
+    `/palettes?style=aurora&angle=30&path=${encodeURIComponent(walled)}&bg=%23102030`
+  );
+  expect(
+    listViewOf(new URLSearchParams(`style=aurora&angle=30&path=${walled}&bg=%23102030`))
+  ).toEqual(aurora);
+  /* every card plays behind the list's path */
+  expect(cardEffect(aurora.effect!, SEED).look.path).toBe(walled);
+  /* a change of path alone is a choice of the list's look */
+  const other = readListView({ style: "aurora", angle: 30, path: "line,33,33", bg: "#102030" });
+  expect(viewSince(AS_SAVED, aurora, other).effect?.look.path).toBe("line,33,33");
+  /* turned to an effect that takes none, the path leaves with it */
+  expect(readListView({ style: "silk", path: walled }).effect?.look.path).toBeNull();
+  expect(viewParams({ effect: readListView({ style: "silk" }).effect }).path).toBeUndefined();
 });
 
 test("the blob has no angle: an address's angle is left while it plays, and the glass keeps its own", () => {

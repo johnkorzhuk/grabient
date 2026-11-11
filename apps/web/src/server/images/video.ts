@@ -159,13 +159,14 @@ export async function seedMp4Answer(
   const { kind, angle, finish, duration, size, fps, plan } = whole ? wide : parted;
   const drawn = { kind, look: effect.look, finish };
   /* the look its key names: the steps only where it names them (the sandstone's at other than its designed number),
-     and the zoom too (no effect a clip is drawn of takes one), so every other clip keeps the key it had before an
-     effect took steps or a zoom */
-  const { steps, zoom, ...plain } = effect.look;
+     and the zoom and the path too (no effect a clip is drawn of takes either), so every other clip keeps the key it
+     had before an effect took steps, a zoom or a path */
+  const { steps, zoom, path, ...plain } = effect.look;
   const keyed = {
     ...plain,
     ...(steps === null ? {} : { steps }),
-    ...(zoom === null ? {} : { zoom })
+    ...(zoom === null ? {} : { zoom }),
+    ...(path === null ? {} : { path })
   };
   const look = kind === "glass" ? { ...keyed, shape: keyed.shape ?? 0 } : keyed;
   const hash = await hashOf([

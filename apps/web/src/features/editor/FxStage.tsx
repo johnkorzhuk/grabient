@@ -23,6 +23,7 @@ const players: Record<VectorKind, () => Promise<FxPlayer>> = {
   papercut: async () => (await import("@grabient/ui/papercut-player.ts")).playPapercut,
   strings: async () => (await import("@grabient/ui/strings-player.ts")).playStrings,
   dimple: async () => (await import("@grabient/ui/dimple-player.ts")).playDimple,
+  aurora: async () => (await import("@grabient/ui/aurora-player.ts")).playAurora,
   ...kitRecord(kind => () => kitPlayer(kind))
 };
 /** The player of a kind. */

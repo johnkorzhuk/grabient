@@ -4,13 +4,15 @@
    first frame held with no motion) and `fps` (frames a second at most: 60 unless it says, up to 120 where a screen
    shows that many), then its look: `shape`, a number from 0 to 999 that picks the blobs' forms and wanderings or the
    glass's ribs and the colors drifting behind them (the dimple has none, and `zoom` in its place: how much larger
-   than designed it is drawn, 1 to 4, none as designed), the blob's `frost`, and `bg`, the ground of an effect that takes
-   one (EFFECT_KINDS' `ground`: the blob's and the strings'): any CSS color, which an address keeps as hex (the Worker
-   writes any other spelling as hex, css-color.ts), none leaving the blob clear and the strings on their designed
-   ground.
+   than designed it is drawn, 1 to 4, none as designed; the aurora has none, and `path` in its place: its range's
+   outline, written as aurora-path.ts says, none as designed), the blob's `frost`, and `bg`, the ground of an effect
+   that takes one (EFFECT_KINDS' `ground`: the blob's, the strings' and the aurora's range): any CSS color, which an
+   address keeps as hex (the Worker writes any other spelling as hex, css-color.ts), none leaving the blob and the
+   aurora's range clear and the strings on their designed ground.
    The gradient's steps leave the address while an effect plays, so an address says only what its picture shows (the
    editor keeps them to give back), but for an effect that takes steps of its own (EFFECT_KINDS' `steps`: the
    sandstone's bands), whose `steps` are its look's, its range's, and none at its designed number. */
+import { auroraPath } from "./aurora-path.ts";
 import { KIT_STEPS } from "./kit/gen/kind-steps.ts";
 import { KIT_KINDS, type KitKind, kitRecord } from "./kit/kinds.ts";
 import { KIT_WORDS } from "./kit/names.ts";
@@ -32,7 +34,7 @@ import {
     effect blurred over its palette's gradient and the grain over it (fx-finish.ts). */
 export type EffectFinish = Pick<View, "soft" | "grain">;
 
-/** Every effect: the seven drawn by code of their own, then the field effects (kit/kinds.ts), each a file of the kit's. */
+/** Every effect: the eight drawn by code of their own, then the field effects (kit/kinds.ts), each a file of the kit's. */
 export const EFFECTS = [
   "glass",
   "blob",
@@ -41,6 +43,7 @@ export const EFFECTS = [
   "papercut",
   "strings",
   "dimple",
+  "aurora",
   ...KIT_KINDS
 ] as const;
 export type EffectKind = (typeof EFFECTS)[number];
@@ -71,8 +74,8 @@ export type EffectShortfall = "svgMotion" | "frameSvg" | "figma" | "video" | "em
     effect-why.ts (apart, so no page carries the words), rather than by a branch missing somewhere. Whether the view's
     angle turns it (the blob's palette always lies left to right), whether the view's soft blurs it (the blob's frost
     softens it already), and whether its picture is drawn by one drawing of its loop's time over a plain vector still (silk,
-    rosette, papercut, strings, dimple: ui/effect-loop.ts plays them, and their still is an SVG with no filter), where
-    the glass and the blob have players and stills of their own. */
+    rosette, papercut, strings, dimple, aurora: ui/effect-loop.ts plays them, and their still is an SVG with no filter
+    but the aurora's one blur), where the glass and the blob have players and stills of their own. */
 export interface EffectKindFacts {
   angle: boolean;
   /** the view's soft blurs it; the grain goes over every effect */
@@ -90,11 +93,18 @@ export interface EffectKindFacts {
       for this style"); null for one a number 0 to 999 picks the shape of (its look's `shape`, `shape=` in its address
       and the editor's Shape field), whose address leaves `zoom` out */
   zoom: EffectZoom | null;
+  /** whether it takes a path in its shape's place, `path=` in its address, its look's `path` (the aurora's: the
+      outline of its range, heights from the box's left edge to its right joined by lines or curves, as aurora-path.ts
+      reads and writes it; John, 10 Nov 2026: "what if we made the path that cuts off the aura effect url encodable?",
+      then "the idea was for LLMs to be able to create thieir custom path"); false for one a number 0 to 999 picks the
+      shape of, whose address leaves `path` out */
+  path: boolean;
   /** drawn by ui/effect-loop.ts over a vector still */
   vector: boolean;
-  /** its still stands in for its first frame rather than being it (the papercut's shadows stepped, for a list's cards
-      and a page's first paint), so a page's stage shows the player's own first frame over it while the effect is
-      held as well; the others' stills are that frame to within a level, which a held stage fades back to */
+  /** its still stands in for its first frame rather than being it (the papercut's shadows stepped, the aurora's light
+      in broad wedges under a blur, for a list's cards and a page's first paint), so a page's stage shows the player's
+      own first frame over it while the effect is held as well; the others' stills are that frame to within a level,
+      which a held stage fades back to */
   steppedStill: boolean;
   /** how its SVG file moves at a speed: by CSS animations, by SMIL, or not at all, its still at any speed */
   svgMotion: "css" | "smil" | null;
@@ -130,6 +140,7 @@ const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
   soft: true,
   ground: null,
   zoom: null,
+  path: false,
   vector: true,
   steppedStill: false,
   svgMotion: null,
@@ -147,6 +158,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     ground: null,
     steps: null,
     zoom: null,
+    path: false,
     vector: false,
     steppedStill: false,
     svgMotion: "css",
@@ -163,6 +175,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     ground: "clear",
     steps: null,
     zoom: null,
+    path: false,
     vector: false,
     steppedStill: false,
     svgMotion: "css",
@@ -179,6 +192,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     ground: null,
     steps: null,
     zoom: null,
+    path: false,
     vector: true,
     steppedStill: false,
     svgMotion: "smil",
@@ -195,6 +209,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     ground: null,
     steps: null,
     zoom: null,
+    path: false,
     vector: true,
     steppedStill: false,
     svgMotion: "css",
@@ -211,6 +226,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     ground: null,
     steps: null,
     zoom: null,
+    path: false,
     vector: true,
     steppedStill: true,
     svgMotion: null,
@@ -227,6 +243,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     ground: "designed",
     steps: null,
     zoom: null,
+    path: false,
     vector: true,
     steppedStill: false,
     svgMotion: null,
@@ -243,6 +260,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     ground: null,
     steps: null,
     zoom: { least: 1, most: 4, designed: 1 },
+    path: false,
     vector: true,
     steppedStill: false,
     svgMotion: null,
@@ -253,17 +271,43 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     shader: true,
     motion: "pointer"
   },
+  aurora: {
+    angle: true,
+    soft: true,
+    ground: "clear",
+    steps: null,
+    zoom: null,
+    path: true,
+    vector: true,
+    steppedStill: true,
+    svgMotion: null,
+    frameSvg: true,
+    figma: null,
+    video: false,
+    embed: false,
+    shader: false,
+    motion: "loop"
+  },
   ...kitRecord(kind => ({ ...KIT_FACTS, steps: KIT_STEPS[kind] }))
 };
 /** Whether a number 0 to 999 picks an effect's shape: every effect's but one that takes a zoom in its shape's place
     (EFFECT_KINDS' `zoom`: the dimple, whose zoom runs from its design, which draws as many discs as its still may
-    weigh, to four times as large). */
-export const takesShape = (kind: EffectKind): boolean => !EFFECT_KINDS[kind].zoom;
+    weigh, to four times as large) and one that takes a path there (EFFECT_KINDS' `path`: the aurora, whose range is
+    any outline its address writes). */
+export const takesShape = (kind: EffectKind): boolean =>
+  !EFFECT_KINDS[kind].zoom && !EFFECT_KINDS[kind].path;
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
     without offers its stylesheet alone, which paints its still, in its strips, its tags and its Markdown. */
 export const hasEmbedScript = (kind: EffectKind): boolean => EFFECT_KINDS[kind].embed;
 /** The effects drawn by one drawing of their loop's time over a vector still. */
-export type VectorKind = "silk" | "rosette" | "papercut" | "strings" | "dimple" | KitKind;
+export type VectorKind =
+  | "silk"
+  | "rosette"
+  | "papercut"
+  | "strings"
+  | "dimple"
+  | "aurora"
+  | KitKind;
 export const isVectorKind = (kind: EffectKind | null | undefined): kind is VectorKind =>
   !!kind && EFFECT_KINDS[kind].vector;
 /** The effects Copy for Figma pastes, as layers that Figma's timeline plays (EFFECT_KINDS' figma); the others' strips
@@ -306,11 +350,12 @@ export const EFFECT_PIXELS_MAX = 8_300_000;
 export const EFFECT_SETTLE_MS = 150;
 
 /** An effect's look: its shape, the blob's frost, the ground of an effect that takes one, the steps of one that takes
-    them and the zoom of one that takes one, each left as it is by an effect that takes none. */
+    them, the zoom of one that takes one and the path of one that takes one, each left as it is by an effect that
+    takes none. */
 export interface EffectLook {
   /** a number from 0 to SHAPE_MAX that picks the shape: the blobs' forms, where they stand and how they wander, or
       the glass's ribs and the colors drifting behind them; null for the blob the palette's own numbers draw, and the
-      glass as designed, which shape 0 is too, and for an effect that takes no shape (EFFECT_KINDS' `shape`) */
+      glass as designed, which shape 0 is too, and for an effect that takes no shape (takesShape) */
   shape: number | null;
   /** the blob's frost: 1 as designed, 0 none, BLOB_FROST_MAX twice */
   frost: number;
@@ -324,8 +369,18 @@ export interface EffectLook {
   /** an effect's zoom where it takes one (EFFECT_KINDS' `zoom`), within its range: null as designed, and for every
       effect that takes none */
   zoom: number | null;
+  /** an effect's path where it takes one (EFFECT_KINDS' `path`), in its one spelling (aurora-path.ts): null as
+      designed, and for every effect that takes none */
+  path: string | null;
 }
-export const EFFECT_LOOK: EffectLook = { shape: null, frost: 1, bg: null, steps: null, zoom: null };
+export const EFFECT_LOOK: EffectLook = {
+  shape: null,
+  frost: 1,
+  bg: null,
+  steps: null,
+  zoom: null,
+  path: null
+};
 export const BLOB_FROST_MAX = 2;
 /** The last shape number, the same for both effects: an address writes a shape in one to three digits. */
 export const SHAPE_MAX = 999;
@@ -391,8 +446,8 @@ export function readBlobStillKey(key: string): { seed: string; look: EffectLook 
   return blobStillKey(seed, look) === key ? { seed, look } : null;
 }
 
-/** What a vector effect's first frame depends on besides its palette: its turn, its shape, its steps, its zoom and its
-    ground. */
+/** What a vector effect's first frame depends on besides its palette: its turn, its shape, its steps, its zoom, its
+    path and its ground. */
 export interface FxLook {
   angle: number;
   /** 0 or none: as designed */
@@ -401,25 +456,29 @@ export interface FxLook {
   steps: number | null;
   /** its look's zoom where it takes one (EffectLook): null as designed, and for every effect that takes none */
   zoom: number | null;
+  /** its look's path where it takes one (EffectLook): null as designed, and for every effect that takes none */
+  path: string | null;
   /** its look's ground where it takes one (EffectLook): null as designed, and for every effect that takes none */
   bg: string | null;
 }
 
-/** A vector effect's FxLook: the view's angle and its look's shape, steps, zoom and ground. */
+/** A vector effect's FxLook: the view's angle and its look's shape, steps, zoom, path and ground. */
 export const fxLookOf = (
-  look: Pick<EffectLook, "shape" | "steps" | "zoom" | "bg">,
+  look: Pick<EffectLook, "shape" | "steps" | "zoom" | "path" | "bg">,
   angle: number
 ): FxLook => ({
   angle,
   shape: look.shape,
   steps: look.steps,
   zoom: look.zoom,
+  path: look.path,
   bg: look.bg
 });
 
 /** The name a still goes by on a page: its kind, its palette's seed, its angle and its shape, its steps where its look
     names them (an effect that takes steps, at any but its designed number), its zoom where it names one, its `x`
-    telling it from steps, and its ground where it names one, its `#` telling it from both. */
+    telling it from steps, its path where it names one, the word it starts with telling it from both, and its ground
+    where it names one, its `#` telling it from them all. */
 export const fxStillKey = (kind: VectorKind, seed: string, look: FxLook): string =>
   [
     kind,
@@ -428,6 +487,7 @@ export const fxStillKey = (kind: VectorKind, seed: string, look: FxLook): string
     look.shape ?? "",
     ...(look.steps === null ? [] : [look.steps]),
     ...(look.zoom === null ? [] : [`${look.zoom}x`]),
+    ...(look.path === null ? [] : [look.path]),
     ...(look.bg === null ? [] : [look.bg])
   ].join("|");
 
@@ -457,6 +517,10 @@ export const effectSteps = (kind: EffectKind, value: unknown): number | null =>
     designed zoom, and none for anything that is no number or an effect that takes no zoom. */
 export const effectZoom = (kind: EffectKind, value: unknown): number | null =>
   inRange(EFFECT_KINDS[kind].zoom, value, 100);
+/** An effect's path as its look keeps it: in its one spelling where the effect takes one (EFFECT_KINDS' `path`), none
+    for its designed path, and none for anything that is no path or an effect that takes none. */
+export const effectPath = (kind: EffectKind, value: unknown): string | null =>
+  EFFECT_KINDS[kind].path ? auroraPath(value) : null;
 /* a number kept to `grain` a unit within a range, none at its designed value, and none for anything that is no number
    or a range that is none */
 function inRange(range: EffectZoom | null, value: unknown, grain: number): number | null {
@@ -465,9 +529,9 @@ function inRange(range: EffectZoom | null, value: unknown, grain: number): numbe
   const kept = clamp(Math.round(n * grain) / grain, range.least, range.most);
   return kept === range.designed ? null : kept;
 }
-/** A look as stored or asked for: each part in its bounds, its steps, its zoom and its ground those `kind` takes
-    (effectSteps, effectZoom, effectGround) and its shape where it takes one; where no kind is said, no steps and no
-    zoom, and a ground as the blob's, none where clear. */
+/** A look as stored or asked for: each part in its bounds, its steps, its zoom, its path and its ground those `kind`
+    takes (effectSteps, effectZoom, effectPath, effectGround) and its shape where it takes one; where no kind is said,
+    no steps, no zoom and no path, and a ground as the blob's, none where clear. */
 export function effectLook(
   v: Partial<EffectLook> | null | undefined,
   kind?: EffectKind
@@ -485,7 +549,8 @@ export function effectLook(
     frost: Number.isFinite(frost) ? clamp(Math.round(frost * 100) / 100, 0, BLOB_FROST_MAX) : 1,
     bg: kind ? effectGround(kind, v?.bg) : typeof v?.bg === "string" ? groundHex(v.bg) : null,
     steps: kind ? effectSteps(kind, v?.steps) : null,
-    zoom: kind ? effectZoom(kind, v?.zoom) : null
+    zoom: kind ? effectZoom(kind, v?.zoom) : null,
+    path: kind ? effectPath(kind, v?.path) : null
   };
 }
 
@@ -514,6 +579,7 @@ export const EFFECT_WORDS: Readonly<Record<EffectKind, string>> = {
   papercut: msg("papercut"),
   strings: msg("strings"),
   dimple: msg("dimple"),
+  aurora: msg("aurora"),
   ...KIT_WORDS
 };
 /** The style and steps a palette's colors are read and named in while it plays an effect: an effect's address names
@@ -527,9 +593,11 @@ export const effectView = (P: Palette): Pick<View, "style" | "steps"> => {
 /** The effect an address asks for, or null where its style is a gradient's or none. The glass reads its shape alone
     of the look, its shape 0 the glass as designed, as none is. A shape of one to three digits is read; a longer number
     is no shape, as any word that is no number is, rather than another shape under a second address. An effect that
-    takes no shape reads none (EFFECT_KINDS' `shape`). An effect that takes steps reads `steps` of one to three digits
-    too, clamped to its range, none at its designed number; one that takes a zoom reads `zoom`, a number kept to two
-    decimals within its range, none at its designed zoom; and one that takes a ground its `bg` (effectGround). */
+    takes no shape reads none (takesShape). An effect that takes steps reads `steps` of one to three digits too,
+    clamped to its range, none at its designed number; one that takes a zoom reads `zoom`, a number kept to two
+    decimals within its range, none at its designed zoom; one that takes a path reads `path`, kept in its one spelling,
+    none at its designed path and for anything that is no path (effectPath); and one that takes a ground its `bg`
+    (effectGround). */
 export function parseEffect(params: ParamReader): Effect | null {
   const kind = params.get("style");
   if (!isEffect(kind)) return null;
@@ -556,7 +624,8 @@ export function parseEffect(params: ParamReader): Effect | null {
             shape: shaped || null,
             bg: effectGround(kind, params.get("bg")),
             steps: steps !== null && /^\d{1,3}$/.test(steps) ? effectSteps(kind, steps) : null,
-            zoom: effectZoom(kind, params.get("zoom"))
+            zoom: effectZoom(kind, params.get("zoom")),
+            path: effectPath(kind, params.get("path"))
           }
   };
 }
@@ -566,8 +635,9 @@ const written = (parts: (string | false | null)[]): string[] =>
 
 /** An effect's look as an address writes it, defaults left out: all its first frame depends on but its palette and
     the glass's angle. The glass's is its shape alone, the sandstone's its steps and its shape, the strings' their
-    shape and their ground, the dimple's its zoom; a ground is written with its `#` (escaped), so no color reads as a
-    number. */
+    shape and their ground, the dimple's its zoom, the aurora's its path and its range's ground; a path is written
+    with its commas and colons as they are, as the locks' words are, and a ground with its `#` (escaped), so no color
+    reads as a number. */
 export const effectLookParts = (effect: Effect): string[] => {
   const look = effect.look;
   const kind = EFFECT_KINDS[effect.kind];
@@ -582,7 +652,8 @@ export const effectLookParts = (effect: Effect): string[] => {
       : [
           look.steps !== null && kind.steps !== null && `steps=${look.steps}`,
           look.zoom !== null && kind.zoom !== null && `zoom=${look.zoom}`,
-          look.shape && !kind.zoom ? `shape=${look.shape}` : null,
+          look.shape && takesShape(effect.kind) ? `shape=${look.shape}` : null,
+          look.path !== null && kind.path && `path=${look.path}`,
           bg
         ]
   );
@@ -671,4 +742,5 @@ export const sameSettings = (a: EffectSettings, b: EffectSettings): boolean =>
   a.look.shape === b.look.shape &&
   a.look.bg === b.look.bg &&
   a.look.steps === b.look.steps &&
-  a.look.zoom === b.look.zoom;
+  a.look.zoom === b.look.zoom &&
+  a.look.path === b.look.path;

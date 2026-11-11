@@ -224,15 +224,17 @@ test("every vector effect's Shader tab write each spelling with the engine's own
   vi.stubEnv("SSR", false);
   await tabsIn();
   const P = decodePalette(SEED)!;
-  const writers: Record<VectorKind, Writers> = {
+  /* none for an effect with no shader pages (EFFECT_KINDS' `shader`: the aurora), which has no Shader tab */
+  const writers: Record<VectorKind, Writers | null> = {
     silk: [silkWebgl, silkWebgpu],
     rosette: [rosetteWebgl, rosetteWebgpu],
     papercut: [papercutWebgl, papercutWebgpu],
     strings: [stringsWebgl, stringsWebgpu],
     dimple: [dimpleWebgl, dimpleWebgpu],
+    aurora: null,
     ...(await kitWriters())
   };
-  const notes: Record<VectorKind, string> = {
+  const notes: Record<VectorKind, string | null> = {
     silk: "The dye, its folds' shade and light, in one pass.",
     rosette: "The petals ring by ring, the ground and the heart's glow, in one pass.",
     papercut: "The relief, then each sheet's shadows, lit cut and face, pass by pass.",
@@ -240,6 +242,7 @@ test("every vector effect's Shader tab write each spelling with the engine's own
       "The stirred field at each pixel, its two nearest threads over the ground, in one pass.",
     dimple:
       "The ground about the hollow, then the discs over each pixel in their stack's order, in one pass.",
+    aurora: null,
     /* a field effect's by its recipe, the note true of it: the sandstone's plain sheets, with neither shadow nor
        rim. A recipe the note does not say, one with lines or with a shadow or a rim on its sheets, fails here until
        effect-sources.ts kitPasses gives it a note of its own */
@@ -255,11 +258,23 @@ test("every vector effect's Shader tab write each spelling with the engine's own
     })
   };
   for (const kind of EFFECTS.filter(isVectorKind)) {
-    /* its look: a shape, or a zoom in its place (the dimple's) */
-    const look = EFFECT_KINDS[kind].zoom ? "zoom=2.5" : "shape=12";
+    /* its look: a shape, or a zoom (the dimple's) or a path (the aurora's) in its place */
+    const look = EFFECT_KINDS[kind].zoom
+      ? "zoom=2.5"
+      : EFFECT_KINDS[kind].path
+        ? "path=line,33,33"
+        : "shape=12";
     const query = `style=${kind}&${look}&speed=2`;
     const effect = parseEffect(new URLSearchParams(query))!;
-    const [webgl, webgpu] = writers[kind];
+    const written = writers[kind];
+    /* an effect has a Shader tab where the table says it has shader pages, and nowhere else */
+    expect(written !== null, kind).toBe(EFFECT_KINDS[kind].shader);
+    expect(effectSource(query, "shader") !== undefined, kind).toBe(EFFECT_KINDS[kind].shader);
+    if (!written) {
+      expect(notes[kind], kind).toBeNull();
+      continue;
+    }
+    const [webgl, webgpu] = written;
     const shader = () => effectSource(query, "shader")!;
     expect(
       shader().spellings?.map(s => s.id),
@@ -286,20 +301,28 @@ test("a soft, grained vector effect's Shader tab writes every spelling with its 
   vi.stubEnv("SSR", false);
   await tabsIn();
   const P = decodePalette(SEED)!;
-  const writers: Record<VectorKind, Writers> = {
+  const writers: Record<VectorKind, Writers | null> = {
     silk: [silkWebgl, silkWebgpu],
     rosette: [rosetteWebgl, rosetteWebgpu],
     papercut: [papercutWebgl, papercutWebgpu],
     strings: [stringsWebgl, stringsWebgpu],
     dimple: [dimpleWebgl, dimpleWebgpu],
+    aurora: null,
     ...(await kitWriters())
   };
   for (const kind of EFFECTS.filter(isVectorKind)) {
-    const look = EFFECT_KINDS[kind].zoom ? "zoom=2.5" : "shape=12";
+    const look = EFFECT_KINDS[kind].zoom
+      ? "zoom=2.5"
+      : EFFECT_KINDS[kind].path
+        ? "path=line,33,33"
+        : "shape=12";
     const query = `style=${kind}&${look}`;
     const effect = parseEffect(new URLSearchParams(query))!;
     const finish = { soft: 40, grain: 30, underlay: effectUnderlay(P, effect, 45, 40) };
-    const [webgl, webgpu] = writers[kind];
+    const written = writers[kind];
+    expect(written !== null, kind).toBe(EFFECT_KINDS[kind].shader);
+    if (!written) continue;
+    const [webgl, webgpu] = written;
     const shader = () =>
       codeSources(
         P,

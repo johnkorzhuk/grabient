@@ -72,6 +72,9 @@ around it: يتراوح عدد أحرفه بين 1 و{max}، ما لا يزيد 
 | dimple (an effect) | نقرة | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the word for a small pit pressed into a surface, as a golf ball's are نقرات. No article on its tile, as حرير has none. Not غمازة (a dimple in a cheek). |
 | zoom (the dimple's Zoom field) | التكبير | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. The picture drawn larger, as Arabic design tools say it. |
 | roam (the dimple's Roam switch) | تجوّل | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow wandering by itself. |
+| aurora (an effect) | شفق قطبي | Curtains of light in the palette's colors rising behind a still outline. الشفق القطبي, the northern lights; not فجر (dawn). |
+| path (the aurora's Path field) | المسار | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. A vector path as design apps name it; not a file's path. |
+| range, line, curve, mix, skyline (the aurora's Shape values) | سلسلة جبال، خط مستقيم، منحنى، مزيج، أفق المدينة | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | Soft (the Appearance menu's field) | النعومة | A blur along the style's line, from إيقاف to 100; the header's summary says النعومة {value}. |
 | Grain (the Appearance menu's field) | الحبيبات | Film grain, as photographers say it (حبيبات الفيلم); the summary says الحبيبات {value}. Kept apart from صقيع, the blob's Frost. |
 | linear / angular / radial gradient | تدرج خطي / تدرج زاوي / تدرج شعاعي | Adobe's Arabic words for the three gradient types. |

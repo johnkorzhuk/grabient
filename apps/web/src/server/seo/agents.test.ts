@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { EFFECT_WORDS, EFFECTS } from "@grabient/engine/effect.ts";
+import { EFFECT_WORDS, EFFECTS, hasEmbedScript } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import { REGISTRY_NAME } from "../mcp/info.ts";
 import { aiCatalog, llmsText, type Mcp, serverCard } from "./agents.ts";
@@ -43,8 +43,10 @@ test("the guide and the whole reference are grabient.com's, byte for byte", asyn
 });
 
 /* The MCP's skill (skills/grabient/SKILL.md, which server/mcp/skill.ts serves) is written by hand, where llms.txt writes
-   its lists from the effects: a new effect it leaves out fails here (kit/README.md step 5). */
-test("the MCP's skill names every effect: in the tags that play one behind a page, by its style, and on a list", () => {
+   its lists from the effects: a new effect it leaves out fails here (kit/README.md step 5). The two tags play an
+   effect that has a script (engine/effect.ts hasEmbedScript); one with none yet (the aurora) is not said to play
+   behind a page by them. */
+test("the MCP's skill names every effect: in the tags that play one behind a page where it has a script, by its style, and on a list", () => {
   const skill = readFileSync(
     new URL("../../../../../skills/grabient/SKILL.md", import.meta.url),
     "utf8"
@@ -53,7 +55,8 @@ test("the MCP's skill names every effect: in the tags that play one behind a pag
     /To play a palette behind a whole page as ([^:]+?), put two tags/.exec(skill)?.[1] ?? "";
   const list = /`style=glass`[^.]*? plays the effect on every card/.exec(skill)?.[0] ?? "";
   for (const kind of EFFECTS) {
-    expect(behind, kind).toContain(EFFECT_WORDS[kind]);
+    if (hasEmbedScript(kind)) expect(behind, kind).toContain(EFFECT_WORDS[kind]);
+    else expect(behind, kind).not.toContain(EFFECT_WORDS[kind]);
     expect(skill, kind).toContain(`\`style=${kind}\``);
     expect(list, kind).toMatch(new RegExp(`\`(style=)?${kind}\``));
   }

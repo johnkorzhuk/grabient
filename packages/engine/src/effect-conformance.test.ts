@@ -22,6 +22,7 @@ import {
   loops,
   parseEffect,
   pastesToFigma,
+  takesShape,
   type VectorKind
 } from "./effect.ts";
 import { EFFECT_SVG_MOTION, effectStylesheet, effectSvg } from "./effect-code.ts";
@@ -53,6 +54,10 @@ const PARITY_SIZE: Record<VectorKind, Size> = {
   strings: { width: 640, height: 360 },
   /* the dimple's discs are 8 pixels in radius at 320 by 180, each edge a pixel wide */
   dimple: SIZE,
+  /* the aurora draws no line: its frame is cut into wedges 4 pixels wide at any size, as wide as its fine shafts
+     at 320 by 180, the hardest size for it (swept there, a mean of 1.0 and a 99th percentile of 7.4 at worst, 0.5
+     and 3.2 at 640 by 360) */
+  aurora: SIZE,
   /* the field effects' at 320 by 180, where their levels lie a pixel apart or more (kit-check's crowding): the
      sandstone draws no line */
   ...kitRecord(() => SIZE)
@@ -64,31 +69,50 @@ const DEEP = process.env.CONFORMANCE === "deep";
 /** The looks each frame is drawn in: as designed, and a shape at another angle; swept, two more. An effect that takes
     steps is drawn at both ends of their range besides (looksOf). */
 const LOOKS: readonly FxLook[] = [
-  { angle: 90, shape: null, steps: null, zoom: null, bg: null },
-  { angle: 210, shape: 417, steps: null, zoom: null, bg: null },
+  { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null },
+  { angle: 210, shape: 417, steps: null, zoom: null, path: null, bg: null },
   ...(DEEP
     ? [
-        { angle: 0, shape: 7, steps: null, zoom: null, bg: null },
-        { angle: 137, shape: 999, steps: null, zoom: null, bg: null }
+        { angle: 0, shape: 7, steps: null, zoom: null, path: null, bg: null },
+        { angle: 137, shape: 999, steps: null, zoom: null, path: null, bg: null }
       ]
     : [])
 ];
+/** Paths an effect that takes one is drawn and read back with (aurora-path.ts), each in its one spelling: a block
+    with upright walls on ground that steps, a smooth hill between straight pieces, and the most walls a path holds,
+    low, so the most of the picture is light. */
+const WALLED = "line,0:30,20:30,20:55,35:55,35:38,100:38";
+const MIXED = "line,25,25,curve,45,60,45,25,line,25,40,25";
+const CROWDED = `line,${Array.from({ length: 32 }, (_, i) => {
+  const place = Math.round((i * 1000) / 31) / 10;
+  return `${place}:${i % 2 ? 12 : 4},${place}:${i % 2 ? 4 : 12}`;
+})
+  .join(",")
+  .replace(/^0:4,/, "")
+  .replace(/,100:\d+$/, "")}`;
 /** An effect's looks: LOOKS, and where it takes steps its fewest as designed and its most at a shape and an angle,
-    and where it takes a zoom one between and its most at an angle. */
+    where it takes a zoom one between and its most at an angle, and where it takes a path one with walls and one of
+    lines and a curve at an angle. */
 const looksOf = (kind: EffectKind): readonly FxLook[] => {
   const range = EFFECT_KINDS[kind].steps;
   const zoom = EFFECT_KINDS[kind].zoom;
+  if (EFFECT_KINDS[kind].path)
+    return [
+      ...LOOKS,
+      { angle: 90, shape: null, steps: null, zoom: null, path: WALLED, bg: null },
+      { angle: 210, shape: null, steps: null, zoom: null, path: MIXED, bg: null }
+    ];
   return range
     ? [
         ...LOOKS,
-        { angle: 90, shape: null, steps: range.least, zoom: null, bg: null },
-        { angle: 210, shape: 417, steps: range.most, zoom: null, bg: null }
+        { angle: 90, shape: null, steps: range.least, zoom: null, path: null, bg: null },
+        { angle: 210, shape: 417, steps: range.most, zoom: null, path: null, bg: null }
       ]
     : zoom
       ? [
           ...LOOKS,
-          { angle: 90, shape: null, steps: null, zoom: 2.35, bg: null },
-          { angle: 210, shape: null, steps: null, zoom: zoom.most, bg: null }
+          { angle: 90, shape: null, steps: null, zoom: 2.35, path: null, bg: null },
+          { angle: 210, shape: null, steps: null, zoom: zoom.most, path: null, bg: null }
         ]
       : LOOKS;
 };
@@ -125,16 +149,22 @@ const effectOf = (
   shape: number | null,
   steps: number | null = null,
   bg: string | null = null,
-  zoom: number | null = null
+  zoom: number | null = null,
+  path: string | null = null
 ): Effect => ({
   kind,
   speed: 1,
   fps: 60,
-  look: { shape, frost: 1, bg, steps, zoom }
+  look: { shape, frost: 1, bg, steps, zoom, path }
 });
-/** The grounds an effect whose none is its designed ground is held to drawing as the CPU draws them: a light one, one
-    half clear and a clear one. */
+/** The grounds an effect that takes one is held to drawing as the CPU draws them: a light one and one half clear, and
+    a clear one where its none is its designed ground (where its none is clear, a clear one is none). */
 const GROUNDS = ["#f4efe6", "#10203080", CLEAR_GROUND] as const;
+/** The pages a picture that lets the page through is held over: a light one and a dark one. */
+const PAGES: readonly (readonly number[])[] = [
+  [255, 255, 255],
+  [12, 12, 14]
+];
 /** A frame laid over a page of one color, three bytes a pixel: straight alpha (the CPU's) or premultiplied (resvg's). */
 function overPage(
   rgba: Uint8Array | Uint8ClampedArray,
@@ -163,6 +193,19 @@ beforeAll(resvgReady);
 
 describe.each(EFFECTS)("the %s", kind => {
   const facts = EFFECT_KINDS[kind];
+  /* How far resvg's drawing of a frame's SVG lies from the CPU's frame. A picture whose none is clear (EFFECT_KINDS'
+     ground) carries its alpha two ways, the CPU's straight and resvg's premultiplied, and frameDiff reads colors
+     alone: the two are laid over a light page and a dark one, and measured over each. */
+  const apart = (
+    drawn: Uint8Array,
+    cpu: Uint8Array | Uint8ClampedArray,
+    { width, height }: Size
+  ): FrameDiff[] =>
+    facts.ground === "clear"
+      ? PAGES.map(page =>
+          frameDiff(overPage(drawn, page, true), overPage(cpu, page, false), width, height)
+        )
+      : [frameDiff(drawn, cpu, width, height)];
 
   it("has no clip and no moving SVG where nothing in it moves by itself, and Figma's timeline only for its roam", () => {
     /* an effect the pointer moves has no loop for a clip or an SVG's animation to play; asked to roam it has one, which
@@ -201,7 +244,8 @@ describe.each(EFFECTS)("the %s", kind => {
 
   it("reads its own address back", () => {
     /* its steps, where it takes them, at each end of their range; its zoom, where it takes one, at its most and between;
-       its shape where it takes one, and none where it takes a zoom in its place */
+       its path, where it takes one, with walls and with a curve; its shape where it takes one, and none where it takes
+       a zoom or a path in its place */
     const range = facts.steps;
     const zooms = facts.zoom;
     for (const effect of [
@@ -210,12 +254,14 @@ describe.each(EFFECTS)("the %s", kind => {
         ...effectOf(kind, 417, range?.least ?? null),
         speed: 2.5,
         fps: 30,
-        ...(zooms && { look: { ...effectOf(kind, null).look, zoom: 2.35 } })
+        ...(zooms && { look: { ...effectOf(kind, null).look, zoom: 2.35 } }),
+        ...(facts.path && { look: { ...effectOf(kind, null).look, path: WALLED } })
       },
       {
         ...effectOf(kind, 7, range?.most ?? null),
         speed: 0,
-        ...(zooms && { look: { ...effectOf(kind, null).look, zoom: zooms.most } })
+        ...(zooms && { look: { ...effectOf(kind, null).look, zoom: zooms.most } }),
+        ...(facts.path && { look: { ...effectOf(kind, null).look, path: MIXED } })
       }
     ]) {
       const parts = new URLSearchParams(effectAddressParts(effect, 210).join("&"));
@@ -223,9 +269,10 @@ describe.each(EFFECTS)("the %s", kind => {
       expect(back?.kind).toBe(kind);
       expect(back?.speed).toBe(effect.speed);
       expect(back?.fps).toBe(effect.fps);
-      expect(back?.look.shape).toBe(facts.zoom ? null : effect.look.shape);
+      expect(back?.look.shape).toBe(takesShape(kind) ? effect.look.shape : null);
       expect(back?.look.steps).toBe(effect.look.steps);
       expect(back?.look.zoom).toBe(effect.look.zoom);
+      expect(back?.look.path).toBe(effect.look.path);
     }
   });
 
@@ -288,7 +335,7 @@ describe.each(EFFECTS)("the %s", kind => {
     );
   else
     it.each(looksOf(kind))(
-      "is any frame as an SVG of its own, as the CPU draws it (angle $angle, shape $shape, steps $steps, zoom $zoom)",
+      "is any frame as an SVG of its own, as the CPU draws it (angle $angle, shape $shape, steps $steps, zoom $zoom, path $path)",
       async look => {
         const loop = fxLoop(vector, P, look);
         const seen: string[] = [];
@@ -298,32 +345,15 @@ describe.each(EFFECTS)("the %s", kind => {
           seen.push(svg);
           expect(svg).not.toMatch(/<script|<foreignObject|href="(?!#|data:)|@keyframes|<animate/);
           const drawn = rasterize(svg, size.width);
-          const cpu = (
-            await effectDrawn(
-              P,
-              effectOf(kind, look.shape, look.steps, null, look.zoom),
-              look.angle,
-              size,
-              false,
-              t
-            )
-          ).pixels;
-          const diff = frameDiff(drawn, cpu, size.width, size.height);
-          expect(diff, `${kind} at ${t.toFixed(1)} s`).toSatisfy(within);
+          const effect = effectOf(kind, look.shape, look.steps, null, look.zoom, look.path);
+          const cpu = (await effectDrawn(P, effect, look.angle, size, false, t)).pixels;
+          for (const diff of apart(drawn, cpu, size))
+            expect(diff, `${kind} at ${t.toFixed(1)} s`).toSatisfy(within);
           /* and the limit tells frames apart: the CPU's frame a moment later is not this SVG */
-          const later = (
-            await effectDrawn(
-              P,
-              effectOf(kind, look.shape, look.steps, null, look.zoom),
-              look.angle,
-              size,
-              false,
-              t + 0.13 * loop
-            )
-          ).pixels;
-          expect(frameDiff(drawn, later, size.width, size.height), "a frame later").not.toSatisfy(
-            within
-          );
+          const later = (await effectDrawn(P, effect, look.angle, size, false, t + 0.13 * loop))
+            .pixels;
+          for (const diff of apart(drawn, later, size))
+            expect(diff, "a frame later").not.toSatisfy(within);
         }
         /* it moves: no two of its frames are the one picture */
         expect(new Set(seen).size).toBe(seen.length);
@@ -333,8 +363,8 @@ describe.each(EFFECTS)("the %s", kind => {
     );
 
   /* a ground it takes, as its address names one: any frame's SVG lays it as the CPU does, over any page */
-  if (facts.ground === "designed")
-    it.each(GROUNDS)(
+  if (facts.ground)
+    it.each(GROUNDS.filter(bg => facts.ground === "designed" || bg !== CLEAR_GROUND))(
       "draws a ground it is given as the CPU draws it, over a light page and a dark one (%s)",
       async bg => {
         const look = { ...LOOKS[1], bg };
@@ -346,10 +376,7 @@ describe.each(EFFECTS)("the %s", kind => {
             await effectDrawn(P, effectOf(kind, look.shape, null, bg), look.angle, size, false, t)
           ).pixels;
           expect(cpu.length).toBe(size.width * size.height * 4);
-          for (const page of [
-            [255, 255, 255],
-            [12, 12, 14]
-          ]) {
+          for (const page of PAGES) {
             const diff = frameDiff(
               overPage(drawn, page, true),
               overPage(cpu, page, false),
@@ -390,13 +417,22 @@ describe.each(EFFECTS)("the %s", kind => {
     for (const look of [
       LOOKS[0],
       LOOKS[1],
-      { angle: 0, shape: 7, steps: null, zoom: null, bg: null },
+      { angle: 0, shape: 7, steps: null, zoom: null, path: null, bg: null },
       /* an effect that takes steps at its most, its levels closest */
-      ...(range ? [{ angle: 90, shape: null, steps: range.most, zoom: null, bg: null }] : [])
+      ...(range
+        ? [{ angle: 90, shape: null, steps: range.most, zoom: null, path: null, bg: null }]
+        : []),
+      /* an effect that takes a path with the most walls one holds, as designed and at an angle */
+      ...(facts.path
+        ? [
+            { angle: 90, shape: null, steps: null, zoom: null, path: CROWDED, bg: null },
+            { angle: 210, shape: null, steps: null, zoom: null, path: CROWDED, bg: null }
+          ]
+        : [])
     ])
       expect(
         fxStillBackground(vector, P, look).length,
-        `${look.angle} ${look.shape} ${look.steps}`
+        `${look.angle} ${look.shape} ${look.steps} ${look.path}`
       ).toBeLessThan(STILL_BYTES);
   });
 

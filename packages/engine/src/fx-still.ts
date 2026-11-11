@@ -1,18 +1,23 @@
 /* What the vector effects (effect.ts's EFFECT_KINDS) give the code that treats them alike:
-   their still, the frame at t = 0 drawn as a plain SVG of shapes and gradients with no filter, so a list of them is
-   cheap and a page's first paint has it; the name a page gives a still (fxStillKey), which the server paints from the
+   their still, the frame at t = 0 drawn as a plain SVG of shapes and gradients with no filter (but the aurora's,
+   whose broad wedges lie under one blur), so a list of them is cheap and a page's first paint has it; the name a
+   page gives a still (fxStillKey), which the server paints from the
    head as the glass's and the blob's stills are painted (apps/web server/fx-still.ts); their SVG file, moving where
    it can, their loop, and the colors a card's glow takes.
 
    A still is the one design drawn in a square and laid over any box as CSS's cover lays it, centered: each kind lays
-   its picture out from the box's longer side (ROSETTE_SPAN, SILK_SPAN, PAPERCUT_SPAN, a field effect's span), so the
+   its picture out from the box's longer side (ROSETTE_SPAN, SILK_SPAN, PAPERCUT_SPAN, AURORA_SPAN, a field effect's
+   span), so the
    square's middle is the box's picture exactly, and the player, laying out the box itself, starts on that frame. The
    field effects (kit/) are one branch of each switch, their definitions read here at once (kit/registry.ts). */
+import { AURORA_LOOP } from "./aurora.ts";
+import { auroraFileSvg, auroraFrameSvg, auroraStillSteps, auroraStillSvg } from "./aurora-svg.ts";
 import { svgUrl } from "./css.ts";
 import { sampleStops } from "./curve.ts";
 import { dimpleFileSvg, dimpleFrameSvg, dimpleStillSvg } from "./dimple-svg.ts";
 import {
   effectGround,
+  effectPath,
   effectSteps,
   effectZoom,
   type FxLook,
@@ -58,12 +63,13 @@ const SQUARE: Size = { width: FX_STILL_SIDE, height: FX_STILL_SIDE };
 
 /** A still's name read back, or null for one no page wrote: its steps, where it names them, those its kind takes at
     any but their designed number (effect.ts effectSteps), its zoom, where it names one, one its kind takes
-    (effectZoom), and its ground, where it names one, one its kind takes (effectGround), as fxStillKey writes them. */
+    (effectZoom), its path, where it names one, one its kind takes (effectPath), and its ground, where it names one,
+    one its kind takes (effectGround), as fxStillKey writes them. */
 export function readFxStillKey(
   key: string
 ): { kind: VectorKind; seed: string; look: FxLook } | null {
   const parts = key.split("|");
-  if (parts.length < 4 || parts.length > 7) return null;
+  if (parts.length < 4 || parts.length > 8) return null;
   const [kind, seed, angle, shape, ...rest] = parts;
   if (!isEffect(kind) || !isVectorKind(kind)) return null;
   if (!/^[\w-]{2,}$/.test(seed)) return null;
@@ -72,6 +78,7 @@ export function readFxStillKey(
   const steps = rest[0] !== undefined && /^\d{1,3}$/.test(rest[0]) ? rest.shift() : undefined;
   const zoom =
     rest[0] !== undefined && /^\d(\.\d{1,2})?x$/.test(rest[0]) ? rest.shift() : undefined;
+  const path = rest[0] !== undefined && /^(line|curve),/.test(rest[0]) ? rest.shift() : undefined;
   const bg = rest.shift();
   if (rest.length || (bg !== undefined && !bg.startsWith("#"))) return null;
   const look = {
@@ -79,13 +86,14 @@ export function readFxStillKey(
     shape: shape === "" ? null : Number(shape),
     steps: steps === undefined ? null : effectSteps(kind, steps),
     zoom: zoom === undefined ? null : effectZoom(kind, zoom.slice(0, -1)),
+    path: path === undefined ? null : effectPath(kind, path),
     bg: bg === undefined ? null : effectGround(kind, bg)
   };
   return fxStillKey(kind, seed, look) === key ? { kind, seed, look } : null;
 }
 
 /** The still as an SVG document of a size (the design square unless said): the papercut's with its shadows stepped,
-    no blur (papercut-svg.ts). */
+    no blur (papercut-svg.ts), the aurora's with its light in broad wedges under one (aurora-svg.ts). */
 export function fxStillSvg(
   kind: VectorKind,
   P: Palette,
@@ -102,6 +110,8 @@ export function fxStillSvg(
       return stringsStillSvg(P, look, size);
     case "dimple":
       return dimpleStillSvg(P, look, size);
+    case "aurora":
+      return auroraStillSvg(P, look, size);
     case "silk":
       return silkStillSvg(P, look, size);
   }
@@ -118,9 +128,10 @@ export const fxStillBackground = (kind: VectorKind, P: Palette, look: FxLook): s
 /** The same background drawn a step at a time, each under a millisecond on a desktop: the papercut's levels are found
     and its cuts traced from its field, some 10 ms for a view no still has shown yet (papercut.ts and papercut-svg.ts
     keep them by the view), the strings' threads traced, some 30 ms (strings-svg.ts keeps them by the view), and a
-    field effect's levels traced, 25 to 80 ms (kit/svg.ts keeps them by the view), where the silk's and the rosette's
-    are written in tenths of one, in one step, and the dimple's in under one. A page drawing a list of them gives each
-    frame its share of the steps. */
+    field effect's levels traced, 25 to 80 ms (kit/svg.ts keeps them by the view), and the aurora's noise made, once a
+    page, then its light read a few wedges at a time (aurora-svg.ts), where the silk's and the rosette's are written in
+    tenths of one, in one step, and the dimple's in under one. A page drawing a list of them gives each frame its share
+    of the steps. */
 export function* fxStillSteps(kind: VectorKind, P: Palette, look: FxLook): Generator<void, string> {
   if (isKitKind(kind)) return fxCover(yield* kitStillSteps(kitEffect(kind), P, look));
   switch (kind) {
@@ -130,6 +141,8 @@ export function* fxStillSteps(kind: VectorKind, P: Palette, look: FxLook): Gener
     }
     case "strings":
       return fxCover(yield* stringsStillSteps(stringsScene(P, look, SQUARE)));
+    case "aurora":
+      return fxCover(yield* auroraStillSteps(P, look, SQUARE));
     case "silk":
     case "rosette":
     case "dimple":
@@ -142,8 +155,9 @@ export function* fxStillSteps(kind: VectorKind, P: Palette, look: FxLook): Gener
     surfacing and parting, which an SVG follows only by stills fading into each other or outlines morphing, each some
     megabytes; its still is its first frame with its shadows blurred as the CPU draws them, which Figma's importer
     takes as layer blurs. Its shaders, clips and script play it. The strings' and every field effect's are their first
-    frame at any speed, as their threads and levels change shape as they move (effect.ts's EFFECT_KINDS), and the
-    dimple's is its still, as it has no loop and a picture is given no pointer. */
+    frame at any speed, as their threads and levels change shape as they move (effect.ts's EFFECT_KINDS), the
+    aurora's its first frame as shapes, as its light is turbulence no fixed shape follows, and the dimple's is its
+    still, as it has no loop and a picture is given no pointer. */
 export function fxMovingSvg(
   kind: VectorKind,
   P: Palette,
@@ -159,6 +173,8 @@ export function fxMovingSvg(
       return stringsFileSvg(P, look, size);
     case "dimple":
       return dimpleFileSvg(P, look, size);
+    case "aurora":
+      return auroraFileSvg(P, look, size);
     case "rosette":
       return speed <= 0
         ? fxStillSvg(kind, P, look, size)
@@ -191,6 +207,8 @@ export function fxFrameSvg(
       return stringsFrameSvg(P, look, size, t);
     case "dimple":
       return dimpleFrameSvg(P, look, size, at && [at[0] * size.width, at[1] * size.height]);
+    case "aurora":
+      return auroraFrameSvg(P, look, size, t);
     case "silk":
       return silkFrameSvg(P, look, size, t);
   }
@@ -219,6 +237,8 @@ export function fxLoop(kind: VectorKind, P: Palette, look: FxLook): number {
       return STRINGS_LOOP;
     case "dimple":
       return 1;
+    case "aurora":
+      return AURORA_LOOP;
     case "silk":
       return SILK_LOOP;
   }

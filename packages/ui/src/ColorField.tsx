@@ -16,10 +16,14 @@ import { tooltip } from "./Tooltip.tsx";
    ground), the swatch shows that one and the picker opens on it, and the press says it goes back to it (`clear`).
    Enter or leaving commits what `read` makes of the text (the hex an address keeps); empty text clears it, and text
    that is no color goes back to the color it had. Enter and Escape keep the keyboard on the field, read only and
-   passing the page its keys until a key that types takes it again. Left to right in every language. */
+   passing the page its keys until a key that types takes it again. Left to right in every language.
+   With no picker (`onPick`) it has no swatch, and is a field for any words `read` keeps in one spelling: the
+   Appearance menu's Path (the aurora's range as its address writes it), which says its own name aloud (`name`). */
 export function ColorField(props: {
   /** its name */
   label: string;
+  /** its name aloud, where it holds no color: the label's own words */
+  name?: string;
   /** the color as #rrggbb or #rrggbbaa, or null for none */
   value: string | null;
   /** what the field reads with no color */
@@ -104,7 +108,7 @@ export function ColorField(props: {
           spellcheck="false"
           autocomplete="off"
           placeholder={props.empty}
-          aria-label={t("{label} color", { label: props.label })}
+          aria-label={props.name ?? t("{label} color", { label: props.label })}
           defaultValue={props.value ?? ""}
           onPointerDown={e => {
             finger = e.pointerType === "touch";

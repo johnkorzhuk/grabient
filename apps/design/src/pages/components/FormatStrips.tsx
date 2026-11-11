@@ -119,7 +119,7 @@ export function FormatStrips() {
             "Named by its mode; the mode press names the next one; the swatch book is Swatches or Back.",
             "A copy for another app is named for where it goes: Copy for Figma.",
             "Copy for Figma only where Figma's timeline plays the effect (the glass, the blob, the silk, the rosette, and the dimple while it roams); for the others the SVG is the way into Figma.",
-            "MP4 only where an effect has a loop of its own: the dimple, which moves only as the pointer leads it, has none, so its strips offer no clip.",
+            "MP4 only where an effect has a loop of its own: the dimple, which moves only as the pointer leads it, has none, so its strips offer no clip. The aurora's clips are not drawn yet and its script is not written, so its strips offer neither for now.",
             "A download made as it is asked for, an effect's MP4, shows how far along it is on its own chip, a ring round its stop (MakingIcon), its tooltip Making MP4, 62%. Stop. Its name stays Making MP4. Stop until the file is made, so a screen reader is not told each percent, and is told Downloaded MP4 then. A press stops it, and so does the stage showing another clip; its check comes once the file is saved. Only the page that makes it loads the ring."
           ]}
         />

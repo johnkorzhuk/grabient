@@ -11,6 +11,7 @@
    server to write and the browser to draw; the blob has no angle, its palette lying from left to right. A part that
    shows a picture of the palette (the hero, the cards' media, the profile and the wallpapers) finishes its looks as
    the seed picks, soft, grained, both or neither (finished). */
+import { AURORA_PATH_KINDS, auroraMadePath } from "@grabient/engine/aurora-path-kinds.ts";
 import { sampleLCH } from "@grabient/engine/curve.ts";
 import {
   blobShapeOf,
@@ -19,6 +20,7 @@ import {
   EFFECT_PLAY,
   type EffectKind,
   effectFinish,
+  effectPath,
   effectSteps,
   effectZoom,
   isEffect,
@@ -45,6 +47,7 @@ export const LOOKS: readonly Look[] = [
   "blob",
   "strings",
   "dimple",
+  "aurora",
   ...KIT_KINDS
 ];
 /** The looks a stylesheet draws alone, which a page's first screen paints at once. */
@@ -188,8 +191,9 @@ export function finished(s: Shown, name: string): Shown {
     picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings and the blob,
     which have none, at the default's. An effect lies at the page's one angle for it, as designed, and the blob in its
     palette's shape; or, given `own`, in a shape of its own (a zoom of its own where it takes one in its shape's place:
-    the dimple's), at an angle of its own too, and in steps of its own where it takes them (the sandstone's bands,
-    within their range), as a look a reader turns to is. */
+    the dimple's; a path of its own where it takes one there: the aurora's range, of a kind and a number the seed
+    picks), at an angle of its own too, and in steps of its own where it takes them (the sandstone's bands, within
+    their range), as a look a reader turns to is. */
 export function inLook(
   seed: string,
   palette: Palette,
@@ -219,6 +223,19 @@ export function inLook(
               Math.floor(seeded(seed, `${own}:zoom`) * ((zooms.most - zooms.least) * 10 + 1)) / 10
           )
         : null;
+    /* a range of a kind and a number, as the menu's press makes one */
+    const path =
+      own && EFFECT_KINDS[look].path
+        ? effectPath(
+            look,
+            auroraMadePath(
+              AURORA_PATH_KINDS[
+                Math.floor(seeded(seed, `${own}:path-kind`) * AURORA_PATH_KINDS.length)
+              ],
+              1 + Math.floor(seeded(seed, `${own}:path`) * 999)
+            )
+          )
+        : null;
     const range = EFFECT_KINDS[look].steps;
     const steps =
       own && range
@@ -235,7 +252,7 @@ export function inLook(
         steps: Math.max(DEFAULT_STEPS, keyframes),
         angle: look === "blob" ? DEFAULT_ANGLE : angleFor(own ?? look)
       },
-      effect: { kind: look, ...EFFECT_PLAY, look: { ...EFFECT_LOOK, shape, steps, zoom } }
+      effect: { kind: look, ...EFFECT_PLAY, look: { ...EFFECT_LOOK, shape, steps, zoom, path } }
     };
   }
   const bands =
@@ -331,8 +348,8 @@ export function pickLook(
 
 /** How many looks a reader turns a part through before they come round again, at most. */
 const MOST_LOOKS = 24;
-/** What tells two looks apart: the look, its steps, its angle, an effect's shape, steps and zoom, and its soft and
-    grain. */
+/** What tells two looks apart: the look, its steps, its angle, an effect's shape, steps, zoom and path, and its soft
+    and grain. */
 const lookKey = (s: Shown) =>
   [
     lookOf(s),
@@ -341,6 +358,7 @@ const lookKey = (s: Shown) =>
     s.effect?.look.shape ?? "",
     s.effect?.look.steps ?? "",
     s.effect?.look.zoom ?? "",
+    s.effect?.look.path ?? "",
     s.view.soft ?? 0,
     s.view.grain ?? 0
   ].join("|");

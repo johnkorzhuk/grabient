@@ -35,7 +35,8 @@ import { seedAddress } from "../editor/address.ts";
    palette's own (auto, As saved), the size a palette takes into the editor and the selection's files, and an effect
    every card plays in its gradient's place. It is the list's address (?style=…&steps=…&angle=…&size=…, or with an
    effect ?style=glass&angle=…&size=… or ?style=blob&size=…, which has no angle and no soft, and how it plays and
-   looks, as a palette's address writes them, the sandstone's steps and the dimple's zoom among them), so a change
+   looks, as a palette's address writes them, the sandstone's steps, the dimple's zoom and the aurora's path among
+   them), so a change
    replaces the entry and Back leaves the page, and the tab remembers it for the next page that draws palettes, the
    editor's new palettes and the wordmark's way home.
 
@@ -53,10 +54,10 @@ export interface ListView {
   grain: number;
   size: SizeChoice | null;
   /** the effect every card plays over its gradient, which the names, the likes, the selection and the files keep: how
-      it plays, the blob's frost and ground, the sandstone's steps and the dimple's zoom, one for the list. Its shape
-      is none: each card plays its own palette's (cardEffect). The style is auto and the list's steps stay auto while
-      one plays, its address's `steps` the effect's own where it takes them (EFFECT_KINDS), the angle and the soft
-      leaving while the blob does. */
+      it plays, the blob's frost and ground, the sandstone's steps, the dimple's zoom and the aurora's path, one for
+      the list. Its shape is none: each card plays its own palette's (cardEffect). The style is auto and the list's
+      steps stay auto while one plays, its address's `steps` the effect's own where it takes them (EFFECT_KINDS), the
+      angle and the soft leaving while the blob does. */
   effect: Effect | null;
 }
 /** Steps, an angle or how the effect plays being set, which the pictures draw before the route takes them. */
@@ -91,6 +92,7 @@ const VIEW_PARAMS = [
   "roam",
   "zoom",
   "frost",
+  "path",
   "bg"
 ];
 
@@ -145,11 +147,13 @@ function effectParams(effect: Effect | null): Record<string, string | number | u
     roam: undefined,
     zoom: undefined,
     frost: undefined,
+    path: undefined,
     bg: undefined
   };
   for (const part of effect ? effectParts(effect) : []) {
     const [name, value] = part.split("=");
-    out[name] = name === "bg" ? decodeURIComponent(value) : Number(value);
+    /* a ground and a path are words (a path is written as it is, its commas and colons unescaped) */
+    out[name] = name === "bg" ? decodeURIComponent(value) : name === "path" ? value : Number(value);
   }
   return out;
 }
@@ -192,6 +196,7 @@ export function inOrder(
     roam,
     zoom,
     frost,
+    path,
     bg,
     selection,
     ...rest
@@ -209,6 +214,7 @@ export function inOrder(
     roam,
     zoom,
     frost,
+    path,
     bg,
     ...rest,
     selection
@@ -409,6 +415,7 @@ export function viewSince(own: ListView, left: ListView | undefined, now: ListVi
     "roam",
     "zoom",
     "frost",
+    "path",
     "bg",
     ...(playing && EFFECT_KINDS[playing.kind].steps ? ["steps"] : [])
   );

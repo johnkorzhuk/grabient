@@ -16,8 +16,10 @@ import type { ShaderKind } from "@grabient/engine/shader-kinds.ts";
 import { expect, type Page, test } from "@playwright/test";
 
 type Writer = (kind: ShaderKind, P: Palette, effect: Effect, angle: number, seed: string) => string;
-/* each effect's writer of every kind of its shader code, so an effect with shaders and none here is a type error */
-const WRITERS: Record<EffectKind, () => Promise<Writer>> = {
+/* each effect's writer of every kind of its shader code, so an effect with shaders and none here is a type error;
+   none for an effect with no shader pages (EFFECT_KINDS' `shader`: the aurora, engine/effect-why.ts), which no test
+   below asks for */
+const WRITERS: Record<EffectKind, (() => Promise<Writer>) | null> = {
   glass: async () => (await import("@grabient/engine/glass-shader.ts")).glassShader,
   /* the blob has no angle */
   blob: async () => {
@@ -29,6 +31,7 @@ const WRITERS: Record<EffectKind, () => Promise<Writer>> = {
   papercut: async () => (await import("@grabient/engine/papercut-shader.ts")).papercutShader,
   strings: async () => (await import("@grabient/engine/strings-shader.ts")).stringsShader,
   dimple: async () => (await import("@grabient/engine/dimple-shader.ts")).dimpleShader,
+  aurora: null,
   /* a field effect's, from its definition and its kernel (engine/kit/shader.ts) */
   ...kitRecord(kind => async (): Promise<Writer> => {
     const [{ kitShader }, { kitEffect }, { kitKernel }] = await Promise.all([
@@ -42,6 +45,13 @@ const WRITERS: Record<EffectKind, () => Promise<Writer>> = {
   })
 };
 
+/* an effect's writer; the table says an effect has shader pages, so one with none here is a fault of this file */
+const writerOf = (kind: EffectKind): Promise<Writer> => {
+  const load = WRITERS[kind];
+  if (!load) throw new Error(`the ${kind} has shader pages (EFFECT_KINDS) and no writer here`);
+  return load();
+};
+
 const SEED = "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ";
 const P = decodePalette(SEED) as Palette;
 const SIZE = { width: 320, height: 180 };
@@ -50,11 +60,12 @@ type Look = {
   shape: number | null;
   steps: number | null;
   zoom: number | null;
+  path: string | null;
   bg: string | null;
 };
 const LOOKS: readonly Look[] = [
-  { angle: 90, shape: null, steps: null, zoom: null, bg: null },
-  { angle: 210, shape: 417, steps: null, zoom: null, bg: null }
+  { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null },
+  { angle: 210, shape: 417, steps: null, zoom: null, path: null, bg: null }
 ];
 /** An effect's looks: LOOKS, and where it takes the view's steps (the sandstone), its fewest as designed and its most at
     a shape and an angle, its levels uniforms the scene sets; where it takes a zoom in its shape's place (the dimple),
@@ -66,22 +77,22 @@ const looksOf = (kind: EffectKind): readonly Look[] => {
   const grounds: Look[] =
     EFFECT_KINDS[kind].ground === "designed"
       ? [
-          { angle: 210, shape: 417, steps: null, zoom: null, bg: "#f4efe6" },
-          { angle: 90, shape: null, steps: null, zoom: null, bg: "#10203080" },
-          { angle: 90, shape: 7, steps: null, zoom: null, bg: "#00000000" }
+          { angle: 210, shape: 417, steps: null, zoom: null, path: null, bg: "#f4efe6" },
+          { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: "#10203080" },
+          { angle: 90, shape: 7, steps: null, zoom: null, path: null, bg: "#00000000" }
         ]
       : [];
   const zooms: Look[] = zoom
     ? [
-        { angle: 90, shape: null, steps: null, zoom: 2.35, bg: null },
-        { angle: 210, shape: null, steps: null, zoom: zoom.most, bg: null }
+        { angle: 90, shape: null, steps: null, zoom: 2.35, path: null, bg: null },
+        { angle: 210, shape: null, steps: null, zoom: zoom.most, path: null, bg: null }
       ]
     : [];
   return range
     ? [
         ...LOOKS,
-        { angle: 90, shape: null, steps: range.least, zoom: null, bg: null },
-        { angle: 210, shape: 417, steps: range.most, zoom: null, bg: null },
+        { angle: 90, shape: null, steps: range.least, zoom: null, path: null, bg: null },
+        { angle: 210, shape: 417, steps: range.most, zoom: null, path: null, bg: null },
         ...grounds
       ]
     : [...LOOKS, ...zooms, ...grounds];
@@ -254,11 +265,18 @@ for (const kind of EFFECTS.filter(k => EFFECT_KINDS[k].shader))
         kind,
         speed: 0,
         fps: 60,
-        look: { shape: look.shape, frost: 1, bg: look.bg, steps: look.steps, zoom: look.zoom }
+        look: {
+          shape: look.shape,
+          frost: 1,
+          bg: look.bg,
+          steps: look.steps,
+          zoom: look.zoom,
+          path: look.path
+        }
       };
       const named = `angle ${look.angle}, shape ${look.shape}${look.steps === null ? "" : `, ${look.steps} steps`}${look.zoom === null ? "" : `, zoom ${look.zoom}`}${look.bg === null ? "" : `, on ${look.bg}`}`;
       test(`its WebGL page draws its first frame as the CPU does (${named})`, async ({ page }) => {
-        const write = await WRITERS[kind]();
+        const write = await writerOf(kind);
         const errors = await serve(page, write("webgl", P, effect, look.angle, SEED));
         await page.waitForTimeout(1500);
         expect(errors).toEqual([]);
@@ -281,7 +299,7 @@ for (const kind of EFFECTS.filter(k => EFFECT_KINDS[k].shader))
         page,
         context
       }) => {
-        const write = await WRITERS[kind]();
+        const write = await writerOf(kind);
         const errors = await serve(page, write("webgpu", P, effect, look.angle, SEED), holdFrame);
         const frame = await drawnFrame(page);
         const gl = await context.newPage();
@@ -299,12 +317,12 @@ for (const kind of EFFECTS.filter(k => EFFECT_KINDS[k].shader))
     }
 
     test("its WebGPU page's modules compile with no error", async ({ page }) => {
-      const write = await WRITERS[kind]();
+      const write = await writerOf(kind);
       const effect: Effect = {
         kind,
         speed: 0,
         fps: 60,
-        look: { shape: null, frost: 1, bg: null, steps: null, zoom: null }
+        look: { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null }
       };
       const html = write("webgpu", P, effect, 90, SEED);
       const modules = [

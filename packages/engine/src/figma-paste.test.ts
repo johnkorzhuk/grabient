@@ -974,7 +974,7 @@ test("the dimple's paste is fig-kiwi with its message deflated for real, and rea
 const underlayOf = (kind: Effect["kind"], angle: number, soft: number, bg: string | null = null) =>
   effectUnderlay(
     palette,
-    { kind, look: { shape: null, frost: 1, bg, steps: null, zoom: null } },
+    { kind, look: { shape: null, frost: 1, bg, steps: null, zoom: null, path: null } },
     angle,
     soft
   );

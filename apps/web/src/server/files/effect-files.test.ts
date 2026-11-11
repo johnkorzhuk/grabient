@@ -1,5 +1,5 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
-import { parseEffect } from "@grabient/engine/effect.ts";
+import { EFFECT_KINDS, EFFECTS, parseEffect } from "@grabient/engine/effect.ts";
 import { effectStylesheet, effectSvg } from "@grabient/engine/effect-code.ts";
 import { expect, test } from "vitest";
 import { effectCssAnswer, effectSvgAnswer } from "./effect-files.ts";
@@ -69,4 +69,45 @@ test("an effect's SVG is the engine's at the size asked, and a link preview read
   expect(await grained.text()).toContain(
     '<image id="gfx-grain" width="640" height="360" xlink:href="data:image/png;base64,AAAA"'
   );
+});
+
+test("a link preview's words say how an effect's SVG moves, and what plays one that holds its first frame, as the effects' table says", async () => {
+  const words = async (query: string) => {
+    const preview = await effectSvgAnswer(
+      new Request(`${ORIGIN}/${SEED}.svg?${query}`, {
+        headers: { "User-Agent": "Slackbot-LinkExpanding 1.0" }
+      }),
+      ORIGIN,
+      SEED,
+      P,
+      effect(query),
+      90,
+      null
+    );
+    return /<meta name="description" content="([^"]*)"/.exec(await preview.text())?.[1] ?? "";
+  };
+  expect(await words("style=glass")).toMatch(
+    /^An animated SVG of a Grabient palette: fluted glass .*, moved by CSS alone\.$/
+  );
+  expect(await words("style=silk")).toMatch(/, moved by SMIL alone\.$/);
+  expect(await words("style=papercut")).toMatch(
+    /, its first frame; its script, clips and shaders play it\.$/
+  );
+  expect(await words("style=dimple")).toMatch(
+    /, its still; on its page, and behind another by its script, its hollow follows the pointer\.$/
+  );
+  /* the aurora has no script, no clip and no shader pages yet (engine/effect-why.ts): its page alone plays it */
+  expect(await words("style=aurora")).toBe(
+    "An SVG of a Grabient palette: light in its colors, from the palette's darker end to its lighter, rising in curtains behind a still range, its first frame; its page plays it."
+  );
+  /* every effect whose SVG holds its first frame names only what the table says plays it */
+  for (const kind of EFFECTS) {
+    const { svgMotion, motion, embed, video, shader } = EFFECT_KINDS[kind];
+    if (svgMotion || motion === "pointer") continue;
+    const said = await words(`style=${kind}`);
+    expect(said.includes("script"), kind).toBe(embed);
+    expect(said.includes("clips"), kind).toBe(video);
+    expect(said.includes("shaders"), kind).toBe(shader);
+    expect(said.includes("its page plays it"), kind).toBe(!embed && !video && !shader);
+  }
 });

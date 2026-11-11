@@ -47,7 +47,7 @@ test("a choice marks the page and is kept at once, not one change late", () => {
 });
 
 test("an editor a navigation opens marks its own effect over the mark the page before left", () => {
-  const look = { shape: null, frost: 1, bg: null, steps: null, zoom: null };
+  const look = { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null };
   // a page whose address named no style hid the glass for a reader who chose the gradient
   root.dataset.glass = "off";
   createEffects({ kind: "glass", speed: 1, fps: 60, look }, true, () => SEED);
@@ -103,7 +103,7 @@ test("Reset gives back the effect the page opened with, marked and kept", () => 
       kind: "glass",
       speed: 1,
       fps: 60,
-      look: { frost: 1, shape: null, bg: null, steps: null, zoom: null }
+      look: { frost: 1, shape: null, bg: null, steps: null, zoom: null, path: null }
     },
     true,
     () => SEED
@@ -164,7 +164,7 @@ test("the reader's choices are told for the lists, an address landing and Reset 
       kind: "blob",
       speed: 1,
       fps: 60,
-      look: { shape: 3, frost: 1, bg: null, steps: null, zoom: null }
+      look: { shape: 3, frost: 1, bg: null, steps: null, zoom: null, path: null }
     },
     true
   );

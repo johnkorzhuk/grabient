@@ -384,6 +384,19 @@ function stringsColors(P: Palette): string[] {
    carries: the examples route loads it with the page's data (loadKitColors), before any part reads a look's colors.
    Until then, every color a picture can take stands in, the palette's and black and white, so no ink is said to read
    where it may not. */
+/* The aurora (engine/aurora.ts) reads its light through the palette's whole curve, its hottest light lifted past the
+   palette's lightest color toward white, behind a range in the color its look names, or clear: the page shows
+   through it, as through the blob's ground. So every color it shows is a blend of the curve's, white and its
+   range's. */
+function auroraColors(P: Palette, effect: Effect): string[] {
+  const ground = effect.look.bg?.slice(0, 7);
+  return [
+    ...sampleStops(P, CURVE_PLACES).map(stop => stop.hex),
+    "#ffffff",
+    ...(ground ? [ground] : [THEME_GROUND.dark, THEME_GROUND.light])
+  ];
+}
+
 let kitColorsOf: ((kind: KitKind, P: Palette) => string[]) | null = null;
 /** The field effects' colors' code, asked for once. */
 export const loadKitColors = async (): Promise<void> => {
@@ -551,6 +564,8 @@ function effectParts(s: Shown, effect: Effect, aspect: number): (part: Part) => 
     /* every disc, and the ground under them, is the palette's own curve */
     case "dimple":
       return everywhere(sampleStops(s.palette, DIMPLE_PLACES).map(stop => stop.hex));
+    case "aurora":
+      return everywhere(auroraColors(s.palette, effect));
     case "glass":
       return everywhere(glassLit(s.palette));
   }

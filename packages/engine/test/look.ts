@@ -7,11 +7,11 @@
 
    kind: an effect (strings); shapes: shape numbers, 0 as designed (0); times: seconds of the loop at speed 1 (0);
    seeds: palettes' seeds (one vivid palette); angle: 90; size: a cell's pixels (480x270); mode: cpu, svg or diff
-   (cpu); cols: cells a row (3). */
+   (cpu); cols: cells a row (3); path: the range of an effect that takes one, as its address writes it (none). */
 import { writeFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
 import { decodePalette } from "../src/codec.ts";
-import { type Effect, isEffect, isVectorKind } from "../src/effect.ts";
+import { type Effect, effectLook, effectPath, isEffect, isVectorKind } from "../src/effect.ts";
 import { effectDrawn } from "../src/fx-frame.ts";
 import { fxFrameSvg } from "../src/fx-still.ts";
 import { frameDiff, rasterize, resvgReady } from "./raster.ts";
@@ -26,6 +26,7 @@ const shapes = list(args.shapes, "0").map(Number);
 const times = list(args.times, "0").map(Number);
 const seeds = list(args.seeds, "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ");
 const angle = Number(args.angle ?? 90);
+const path = args.path ?? null;
 const [W, H] = (args.size ?? "480x270").split("x").map(Number);
 const mode = args.mode ?? "cpu";
 if (mode !== "cpu" && !isVectorKind(kind)) throw new Error(`${kind} has no frame SVG`);
@@ -42,27 +43,42 @@ for (const seed of seeds)
         kind,
         speed: 1,
         fps: 60,
-        look: { shape: shape || null, frost: 1, bg: null, steps: null, zoom: null }
+        look: effectLook({ shape: shape || null, path }, kind)
       };
       const size = { width: W, height: H };
+      /* a picture that lets the page through is laid over white: the CPU's pixels carry their alpha straight,
+         resvg's carry it in their colors already */
       const cpu = async () => {
         const px = (await effectDrawn(P, effect, angle, size, false, t)).pixels;
         const step = px.length / (W * H);
-        return Uint8Array.from({ length: W * H * 4 }, (_, i) =>
-          i % 4 === 3 ? 255 : px[step * Math.floor(i / 4) + (i % 4)]
-        );
+        return Uint8Array.from({ length: W * H * 4 }, (_, i) => {
+          const o = step * Math.floor(i / 4);
+          const a = step === 4 ? px[o + 3] / 255 : 1;
+          return i % 4 === 3 ? 255 : Math.round(px[o + (i % 4)] * a + 255 * (1 - a));
+        });
       };
+      const overWhite = (px: Uint8Array) =>
+        px.map((v, i) => (i % 4 === 3 ? 255 : v + 255 - px[i - (i % 4) + 3]));
       const svg = () =>
         isVectorKind(kind)
-          ? rasterize(
-              fxFrameSvg(
-                kind,
-                P,
-                { angle, shape: shape || null, steps: null, zoom: null, bg: null },
-                size,
-                t
-              ),
-              W
+          ? overWhite(
+              rasterize(
+                fxFrameSvg(
+                  kind,
+                  P,
+                  {
+                    angle,
+                    shape: shape || null,
+                    steps: null,
+                    zoom: null,
+                    path: effectPath(kind, path),
+                    bg: null
+                  },
+                  size,
+                  t
+                ),
+                W
+              )
             )
           : new Uint8Array(W * H * 4);
       if (mode === "cpu") cells.push(await cpu());

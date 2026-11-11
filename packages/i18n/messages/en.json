@@ -359,7 +359,7 @@
   "Angle": {
     "note": "Field: the gradient's angle in degrees.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:167",
+      "apps/web/src/features/editor/GlassControls.tsx:248",
       "packages/ui/src/Appearance.tsx:244",
       "packages/ui/src/Curation.tsx:271"
     ]
@@ -464,10 +464,17 @@
       "packages/ui/src/Appearance.tsx:42"
     ]
   },
-  "Auto": {
-    "note": "A value chosen by the app: size, steps, angle or columns follow the content. Also the strings' Background field with no color: their ground is the palette's own, its darkest color made deeper.",
+  "Aurora": {
+    "note": "Editor and lists, the Appearance menu: the name of a style tile, and of the header's button while it shows, that draws the palette as an aurora: curtains of light in the palette's colors, rising and flickering behind a still outline such as a mountain range. The northern lights (aurora borealis), as a designer would name the look; not dawn and not a person's name.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:173",
+      "apps/web/src/features/editor/effect-page.ts:48"
+    ]
+  },
+  "Auto": {
+    "note": "A value chosen by the app: size, steps, angle or columns follow the content. Also the strings' Background field with no color: their ground is the palette's own, its darkest color made deeper. And the aurora's Path field with no path: its outline is the designed one.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:216",
+      "apps/web/src/features/editor/GlassControls.tsx:254",
       "apps/web/src/features/editor/GroundField.tsx:44",
       "packages/ui/src/Appearance.tsx:238",
       "packages/ui/src/Appearance.tsx:250",
@@ -546,7 +553,7 @@
   "Blob": {
     "note": "Editor, the Appearance menu: the name of a style tile, and of the header's button while it plays, that plays the palette as an animated blob, a soft amorphous shape of its colors.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:166",
+      "apps/web/src/features/editor/Corner.tsx:167",
       "apps/web/src/features/editor/EditorCorner.tsx:98",
       "apps/web/src/features/editor/effect-page.ts:42"
     ]
@@ -735,7 +742,7 @@
   "Clear": {
     "note": "Press beside the selection count: empties the selection.",
     "refs": [
-      "packages/ui/src/ColorField.tsx:44",
+      "packages/ui/src/ColorField.tsx:48",
       "packages/ui/src/ExportPanel.tsx:170"
     ]
   },
@@ -880,8 +887,8 @@
   "Color picker": {
     "note": "Name of the floating color picker (a saturation and brightness square, a hue slider, a hex field), and of the swatch beside a hex field that opens it. Also that swatch's tooltip.",
     "refs": [
-      "packages/ui/src/ColorField.tsx:43",
-      "packages/ui/src/ColorField.tsx:84",
+      "packages/ui/src/ColorField.tsx:47",
+      "packages/ui/src/ColorField.tsx:88",
       "packages/ui/src/ColorPicker.tsx:394",
       "packages/ui/src/HexField.tsx:33",
       "packages/ui/src/HexField.tsx:71"
@@ -909,7 +916,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:282",
-      "apps/web/src/features/editor/effect-sources.ts:388"
+      "apps/web/src/features/editor/effect-sources.ts:391"
     ]
   },
   "Columns": {
@@ -1065,7 +1072,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:365"
+      "apps/web/src/features/editor/effect-sources.ts:368"
     ]
   },
   "Copy link": {
@@ -1428,6 +1435,12 @@
       "apps/web/src/features/examples/Cards.tsx:699"
     ]
   },
+  "Curve": {
+    "note": "Appearance menu, a value of the Shape field of the aurora (curtains of light in the palette's colors rising behind a still outline): the outline is a smooth curve, like rounded hills. One of the field's five values: Range, Line, Curve, Mix, Skyline.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:158"
+    ]
+  },
   "Custom": {
     "note": "Size menu: the size matches no preset.",
     "refs": [
@@ -1652,20 +1665,20 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:30",
       "apps/web/src/features/editor/Editor.tsx:1291",
-      "apps/web/src/features/examples/ExamplesPage.tsx:372",
+      "apps/web/src/features/examples/ExamplesPage.tsx:373",
       "packages/ui/src/KeyList.tsx:10"
     ]
   },
   "Effects hold still.": {
     "note": "Appearance menu, beside the Reduce motion switch while it is on: the fluted glass and the blob are held on their first frame, so their speed moves nothing.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:57"
+      "apps/web/src/features/editor/GlassControls.tsx:67"
     ]
   },
   "Effects play.": {
     "note": "Appearance menu, beside the Reduce motion switch once the reader turned it off there: the fluted glass and the blob move again.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:57"
+      "apps/web/src/features/editor/GlassControls.tsx:67"
     ]
   },
   "Email": {
@@ -1774,7 +1787,7 @@
     "refs": [
       "apps/web/src/features/bindings/BindingsPage.tsx:31",
       "apps/web/src/features/examples/ExamplesLink.tsx:14",
-      "apps/web/src/features/examples/ExamplesPage.tsx:385",
+      "apps/web/src/features/examples/ExamplesPage.tsx:386",
       "packages/ui/src/KeyList.tsx:11"
     ]
   },
@@ -1833,7 +1846,7 @@
   "FPS": {
     "note": "Editor side, the blob: a short number field, frames a second the blob plays at (and its GIF is made at); it reads Auto, the screen's own pace, under 1. Keep it as short as FPS: it shares a row with Speed.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:193"
+      "apps/web/src/features/editor/GlassControls.tsx:274"
     ]
   },
   "Fewer or more steps": {
@@ -1878,7 +1891,7 @@
   "Fluted glass": {
     "note": "Editor side: the switch that plays the palette behind fluted (reeded) glass in the picture, colors drifting behind a pane of curved ribs. Name it as the language's interior designers name ribbed decorative glass; also the picture's label for screen readers.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:153",
+      "apps/web/src/features/editor/Corner.tsx:154",
       "apps/web/src/features/editor/EditorCorner.tsx:83",
       "apps/web/src/features/editor/effect-page.ts:41"
     ]
@@ -2208,7 +2221,7 @@
   "Hide panel": {
     "note": "Press: hides the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:201",
+      "apps/web/src/features/editor/Corner.tsx:202",
       "apps/web/src/features/editor/EditorCorner.tsx:146"
     ]
   },
@@ -2310,7 +2323,7 @@
   "In any CSS rule": {
     "note": "Short note under a code tab holding one CSS declaration: it can be pasted into any CSS rule. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:309"
+      "apps/web/src/features/examples/ExamplesPage.tsx:310"
     ]
   },
   "In the formula, <c>t</c> runs from 0 at the start of the gradient to 1 at the end. With <c>K</c> keyframes, keyframe <c>i</c> sits at <c>t = i / (K − 1)</c>, counting from 0. Each curve is a Catmull–Rom spline, and <c>gamut()</c> fits the color to the screen (section 6):": {
@@ -2322,9 +2335,9 @@
   "In the page's head": {
     "note": "Short note under a code tab holding tags for a web page's <head> element. 2-5 words.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:290",
-      "apps/web/src/features/examples/ExamplesPage.tsx:302",
-      "apps/web/src/features/examples/ExamplesPage.tsx:314"
+      "apps/web/src/features/examples/ExamplesPage.tsx:291",
+      "apps/web/src/features/examples/ExamplesPage.tsx:303",
+      "apps/web/src/features/examples/ExamplesPage.tsx:315"
     ]
   },
   "In these collections": {
@@ -2647,6 +2660,12 @@
       "apps/web/src/features/gallery/curate.tsx:62"
     ]
   },
+  "Line": {
+    "note": "Appearance menu, a value of the Shape field of the aurora (curtains of light in the palette's colors rising behind a still outline): the outline is one straight line, level or leaning, like a flat horizon. One of the field's five values: Range, Line, Curve, Mix, Skyline.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:157"
+    ]
+  },
   "Linear": {
     "note": "Style name: a linear gradient.",
     "refs": [
@@ -2662,7 +2681,7 @@
   "Linked": {
     "note": "Tab name of a code block on the examples page, beside 'HTML': the same tags, linking Grabient's stylesheet instead of holding the picture inline. One short word.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:293"
+      "apps/web/src/features/examples/ExamplesPage.tsx:294"
     ]
   },
   "Links and JSON can be up to 2,048 characters.": {
@@ -2835,6 +2854,12 @@
       "apps/web/src/features/examples/Profile.tsx:32"
     ]
   },
+  "Mix": {
+    "note": "Appearance menu, a value of the Shape field of the aurora (curtains of light in the palette's colors rising behind a still outline): the outline is a mix of straight and curved pieces, crags and rounded hills by turns. One of the field's five values: Range, Line, Curve, Mix, Skyline. A noun, a mixture of the two; not mixing sound or a drink.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:159"
+    ]
+  },
   "More collections": {
     "note": "Press at the end of a list: loads more collections.",
     "refs": [
@@ -2898,9 +2923,10 @@
     ]
   },
   "New shape": {
-    "note": "Editor, the Appearance menu's blob fields: a press (a die) that picks another shape number at random. Its tooltip and its name.",
+    "note": "Editor, the Appearance menu's blob fields: a press (a die) that picks another shape number at random. Its tooltip and its name. For the aurora (light rising behind a still outline), it draws another outline of the kind shown.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:266"
+      "apps/web/src/features/editor/GlassControls.tsx:205",
+      "apps/web/src/features/editor/GlassControls.tsx:354"
     ]
   },
   "Newsletter": {
@@ -3097,7 +3123,7 @@
     "note": "A switch that is off.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:43",
-      "apps/web/src/features/editor/GlassControls.tsx:40",
+      "apps/web/src/features/editor/GlassControls.tsx:50",
       "apps/web/src/features/editor/effect-page.ts:29",
       "packages/ui/src/Appearance.tsx:269",
       "packages/ui/src/Appearance.tsx:281",
@@ -3480,6 +3506,13 @@
       "apps/web/src/features/about/AboutPage.tsx:265"
     ]
   },
+  "Path": {
+    "note": "Appearance menu, a text field of the aurora (curtains of light in the palette's colors rising behind a still outline): the outline itself, written as a short code of words and numbers (line,33,33) that a reader copies, pastes or types. Also the field's name read aloud. A path as a drawing app means it, the line a shape follows; not a file's path on a disk and not a route on a map.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:213",
+      "apps/web/src/features/editor/GlassControls.tsx:214"
+    ]
+  },
   "Pause": {
     "note": "Admin Settings, the newsletter's send: button that holds a send.",
     "refs": [
@@ -3824,13 +3857,19 @@
     "refs": [
       "apps/web/src/features/editor/Controls.tsx:347",
       "apps/web/src/features/editor/Controls.tsx:349",
-      "apps/web/src/features/examples/ExamplesPage.tsx:376"
+      "apps/web/src/features/examples/ExamplesPage.tsx:377"
     ]
   },
   "Random palette": {
     "note": "Shortcut list entry: a new random palette, keeping held keyframes.",
     "refs": [
       "packages/ui/src/keymap.ts:24"
+    ]
+  },
+  "Range": {
+    "note": "Appearance menu, a value of the Shape field of the aurora (curtains of light in the palette's colors rising behind a still outline): the outline is a jagged mountain range, a row of peaks. One of the field's five values: Range, Line, Curve, Mix, Skyline. A mountain range; not a range of numbers.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:156"
     ]
   },
   "Reasons": {
@@ -3849,7 +3888,7 @@
     "note": "The reduce motion setting: its name in Settings, and above an effect's fields in the Appearance menu, beside its switch.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:169",
-      "apps/web/src/features/editor/GlassControls.tsx:54"
+      "apps/web/src/features/editor/GlassControls.tsx:64"
     ]
   },
   "Reduce motion: {state}": {
@@ -4126,7 +4165,7 @@
   "Roam": {
     "note": "Appearance menu, a switch of the dimple (a sheet of round discs pressed in at one point, whose hollow follows the pointer): on, the hollow wanders round the picture by itself in a slow loop, as if a pointer were roaming over it; off, it follows the reader's pointer. Also one word in the Appearance button's summary while it is on. A verb used as a setting's name, like Loop or Autoplay; not roaming charges on a phone.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:83",
+      "apps/web/src/features/editor/GlassControls.tsx:93",
       "apps/web/src/features/editor/effect-page.ts:31"
     ]
   },
@@ -4502,13 +4541,14 @@
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
       "apps/web/src/features/editor/code.ts:300",
-      "apps/web/src/features/editor/effect-sources.ts:323"
+      "apps/web/src/features/editor/effect-sources.ts:326"
     ]
   },
   "Shape": {
-    "note": "Editor, the Appearance menu's blob fields: a number field, which of many shapes the blob takes; each number is another shape.",
+    "note": "Editor, the Appearance menu's blob fields: a number field, which of many shapes the blob takes; each number is another shape. Also the aurora's field of that name, whose values are words, the kind of outline its light rises behind: Range, Line, Curve, Mix, Skyline.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:255"
+      "apps/web/src/features/editor/GlassControls.tsx:191",
+      "apps/web/src/features/editor/GlassControls.tsx:343"
     ]
   },
   "Share images": {
@@ -4570,7 +4610,7 @@
   "Show panel": {
     "note": "Press: shows the editor's side panel. Also its tooltip, before its key.",
     "refs": [
-      "apps/web/src/features/editor/Corner.tsx:201",
+      "apps/web/src/features/editor/Corner.tsx:202",
       "apps/web/src/features/editor/Editor.tsx:225"
     ]
   },
@@ -4791,6 +4831,12 @@
       "packages/ui/src/SkipLink.tsx:44"
     ]
   },
+  "Skyline": {
+    "note": "Appearance menu, a value of the Shape field of the aurora (curtains of light in the palette's colors rising behind a still outline): the outline is a city's skyline, blocks of different heights with upright walls, like buildings against the sky. One of the field's five values: Range, Line, Curve, Mix, Skyline.",
+    "refs": [
+      "apps/web/src/features/editor/GlassControls.tsx:160"
+    ]
+  },
   "Social post": {
     "note": "Read by screen readers: the name of one tile, an image post for a social network, with a quote on it.",
     "refs": [
@@ -4877,7 +4923,7 @@
   "Speed": {
     "note": "Editor side, the blob: a number field, how fast the blob moves, written like 1×.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:179"
+      "apps/web/src/features/editor/GlassControls.tsx:260"
     ]
   },
   "Square": {
@@ -4921,7 +4967,7 @@
     "note": "Field: how many evenly spaced colors the gradient is drawn with.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:143",
-      "apps/web/src/features/editor/GlassControls.tsx:107",
+      "apps/web/src/features/editor/GlassControls.tsx:117",
       "packages/ui/src/Appearance.tsx:232",
       "packages/ui/src/Curation.tsx:262"
     ]
@@ -5150,7 +5196,7 @@
   "The code that paints it": {
     "note": "Read by screen readers only: the name of the code tabs at the top of a palette's examples page, the code that paints the palette as a page's background.",
     "refs": [
-      "apps/web/src/features/examples/ExamplesPage.tsx:393"
+      "apps/web/src/features/examples/ExamplesPage.tsx:394"
     ]
   },
   "The colors as design tokens.": {
@@ -5210,13 +5256,13 @@
   "The hollow follows the pointer.": {
     "note": "Appearance menu, beside the dimple's Roam switch while it is off: the pressed-in point of the sheet of discs goes to wherever the reader's pointer (mouse cursor) is over the picture and stays where the pointer left it.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:86"
+      "apps/web/src/features/editor/GlassControls.tsx:96"
     ]
   },
   "The hollow wanders by itself.": {
     "note": "Appearance menu, beside the dimple's Roam switch while it is on: the pressed-in point of the sheet of discs moves round a slow loop on its own, and no pointer moves it. The hollow is the dent, the place the sheet is pressed in.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:86"
+      "apps/web/src/features/editor/GlassControls.tsx:96"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5228,7 +5274,7 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:403"
+      "apps/web/src/features/editor/effect-sources.ts:406"
     ]
   },
   "The keyframes as JSON.": {
@@ -5288,20 +5334,20 @@
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:422"
+      "apps/web/src/features/editor/effect-sources.ts:425"
     ]
   },
   "The picture as an SVG file, moving by SMIL alone.": {
     "note": "Editor's code pane, SVG tab while the silk plays: the picture as an animated SVG file whose motion is SMIL (SVG's own animation elements), with no script. SMIL is a name, kept as it is.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:420"
+      "apps/web/src/features/editor/effect-sources.ts:423"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:340",
-      "apps/web/src/features/editor/effect-sources.ts:423"
+      "apps/web/src/features/editor/effect-sources.ts:426"
     ]
   },
   "The profile's code": {
@@ -5349,13 +5395,13 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:384"
+      "apps/web/src/features/editor/effect-sources.ts:387"
     ]
   },
   "The tag that paints its first frame behind a page, for the page's head.": {
     "note": "Editor, the code pane's HTML tab while an effect with no script yet plays (every effect has one now; one can come before its script): the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:361"
+      "apps/web/src/features/editor/effect-sources.ts:364"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5373,7 +5419,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:360"
+      "apps/web/src/features/editor/effect-sources.ts:363"
     ]
   },
   "The wallpapers' code": {
@@ -5406,19 +5452,19 @@
     "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
     "refs": [
       "apps/web/src/features/editor/code.ts:315",
-      "apps/web/src/features/editor/effect-sources.ts:340"
+      "apps/web/src/features/editor/effect-sources.ts:343"
     ]
   },
   "Then its soft and grain, as the site lays them over it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture has both soft and grain: the shader's last passes blur it and lay the grain over it, as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:336"
+      "apps/web/src/features/editor/effect-sources.ts:339"
     ]
   },
   "Then its soft, as the site blurs it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture is soft: the shader's last passes blur it as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:338"
+      "apps/web/src/features/editor/effect-sources.ts:341"
     ]
   },
   "This address isn't a palette or a page.": {
@@ -6196,7 +6242,7 @@
   "Zoom": {
     "note": "Appearance menu, a field of the dimple (a sheet of round discs pressed in at one point) in place of the other effects' Shape: how much larger than designed its discs and its hollow are drawn, from 1x to 4x, shown as 1.5× and so on. A camera's or a map's zoom, the picture drawn closer; not a browser's page zoom, and not a size in pixels.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:130"
+      "apps/web/src/features/editor/GlassControls.tsx:140"
     ]
   },
   "Zoom {value}": {
@@ -6235,6 +6281,12 @@
       "apps/web/src/features/connect/ConnectedApps.tsx:75"
     ]
   },
+  "aurora": {
+    "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette drawn as an aurora, curtains of light in its colors rising behind a still outline such as a mountain range: \"Vivid navy and blue aurora\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Aurora\" does. The same words start the line under the palette's name, capitalized there (\"Aurora, 7 colors at 90°: …\"). The northern lights, not dawn and not a person's name.",
+    "refs": [
+      "packages/engine/src/effect.ts:582"
+    ]
+  },
   "beige": {
     "note": "Color name, as in a palette name: \"navy, blue and lavender\".",
     "refs": [
@@ -6250,7 +6302,7 @@
   "blob": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as an animated blob, a soft amorphous shape of its colors: \"Vivid navy and blue blob\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Blob\" does. The same words start the line under the palette's name, capitalized there (\"Blob, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:511"
+      "packages/engine/src/effect.ts:576"
     ]
   },
   "blue": {
@@ -6347,7 +6399,7 @@
   "dimple": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette drawn as a dimple, a sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow: \"Vivid navy and blue dimple\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Dimple\" does. The same words start the line under the palette's name, capitalized there (\"Dimple, 7 colors at 90°: …\"). A small hollow or dent pressed into a surface, not a dimple in a cheek.",
     "refs": [
-      "packages/engine/src/effect.ts:516"
+      "packages/engine/src/effect.ts:581"
     ]
   },
   "duotone {colors}": {
@@ -6391,7 +6443,7 @@
   "fluted glass": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as fluted (reeded) glass, its colors drifting behind a pane of curved ribs: \"Vivid navy and blue fluted glass\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Fluted glass\" does. The same words start the line under the palette's name, capitalized there (\"Fluted glass, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:510"
+      "packages/engine/src/effect.ts:575"
     ]
   },
   "frame\u00041w": {
@@ -6685,7 +6737,7 @@
   "papercut": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as papercut, its colors cut into sheets of paper stacked in a layered relief: \"Vivid navy and blue papercut\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Papercut\" does. The same words start the line under the palette's name, capitalized there (\"Papercut, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:514"
+      "packages/engine/src/effect.ts:579"
     ]
   },
   "pastel {colors}": {
@@ -6746,7 +6798,7 @@
   "rosette": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as a rosette, petals on a golden spiral like a dahlia seen from above: \"Vivid navy and blue rosette\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Rosette\" does. The same words start the line under the palette's name, capitalized there (\"Rosette, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:513"
+      "packages/engine/src/effect.ts:578"
     ]
   },
   "salmon": {
@@ -6777,7 +6829,7 @@
   "silk": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as silk, its colors dyed into satin that drapes in soft folds: \"Vivid navy and blue silk\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Silk\" does. The same words start the line under the palette's name, capitalized there (\"Silk, 7 colors at 90°: …\").",
     "refs": [
-      "packages/engine/src/effect.ts:512"
+      "packages/engine/src/effect.ts:577"
     ]
   },
   "source\u0004Direct": {
@@ -6825,7 +6877,7 @@
   "strings": {
     "note": "Effect words in a palette's title, in the style words' place (\"linear gradient\"), for a palette played as strings, many thin threads in its colors evenly spaced on a dark ground, stirred into bundles and loops: \"Vivid navy and blue strings\". Write them as your language writes \"linear gradient\" in that title (its case, and after the title's own words around {style}), and name the effect as the Appearance menu's \"Strings\" does. The same words start the line under the palette's name, capitalized there (\"Strings, 7 colors at 90°: …\"). Threads or string art, not musical strings, not text strings in code.",
     "refs": [
-      "packages/engine/src/effect.ts:515"
+      "packages/engine/src/effect.ts:580"
     ]
   },
   "tan": {
@@ -6935,7 +6987,7 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:296",
-      "apps/web/src/features/editor/effect-sources.ts:393"
+      "apps/web/src/features/editor/effect-sources.ts:396"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {
@@ -7086,7 +7138,7 @@
   "{count, plural, one {The selection holds up to {max} palettes. The oldest was removed. Undo with {key}.} other {The selection holds up to {max} palettes. The # oldest were removed. Undo with {key}.}}": {
     "note": "Status: adding to a full selection removed its oldest palettes; {key} is the undo key.",
     "refs": [
-      "apps/web/src/features/selection/selection.ts:305"
+      "apps/web/src/features/selection/selection.ts:306"
     ]
   },
   "{count, plural, one {visit} other {visits}}": {
@@ -7159,7 +7211,7 @@
   "{label} color": {
     "note": "Screen reader name of a color field, with its label.",
     "refs": [
-      "packages/ui/src/ColorField.tsx:107",
+      "packages/ui/src/ColorField.tsx:111",
       "packages/ui/src/HexField.tsx:92"
     ]
   },

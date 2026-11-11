@@ -3,6 +3,7 @@
    first frame behind a page, its SVG, the colors it draws, its settings beside the palette's keyframes, and what the
    palette's Markdown and JSON say of it. It holds both effects' drawings, so a page or an isolate loads it with the
    first effect it hands over, never at its start. */
+import { AURORA_DESIGNED_PATH } from "./aurora-path.ts";
 import { BLOB_DESIGN, BLOB_SIZE, blobScene, blobStillBackground, blobSvg } from "./blob.ts";
 import { gradientCss } from "./css.ts";
 import { sampleStops } from "./curve.ts";
@@ -192,13 +193,15 @@ export function effectColors(P: Palette, effect: Effect): string[] {
     and a blob's null shape the one its palette's own numbers draw. The blob has no angle and no soft. A soft and a
     grain stand where the view has them, as a gradient's document writes them; the steps where the effect takes them,
     its designed number where its look names none; a zoom where the effect takes one in its shape's place (the
-    dimple's), its designed zoom where its look names none, and its `roam` while it roams; the strings' ground where
-    their look names one, none being their designed ground (the blob's `bg` always stands, none being clear). */
+    dimple's), its designed zoom where its look names none, and its `roam` while it roams; a path where the effect
+    takes one there (the aurora's), its designed path where its look names none; the strings' ground and the
+    aurora's range's where their look names one, none being the strings' designed ground and the aurora's clear
+    range (the blob's `bg` always stands, none being clear). */
 function effectSettings(effect: Effect, angle: number, finish: EffectFinish = {}) {
   const { kind, speed, fps, look } = effect;
   const kept = effectFinish(kind, finish);
   const steps = effectStepsShown(kind, look);
-  const zoom = EFFECT_KINDS[kind].zoom;
+  const { zoom, path } = EFFECT_KINDS[kind];
   return kind !== "blob"
     ? {
         style: kind,
@@ -208,7 +211,11 @@ function effectSettings(effect: Effect, angle: number, finish: EffectFinish = {}
         speed,
         fps,
         ...(effect.roam ? { roam: true } : {}),
-        ...(zoom ? { zoom: look.zoom ?? zoom.designed } : { shape: look.shape ?? 0 }),
+        ...(zoom
+          ? { zoom: look.zoom ?? zoom.designed }
+          : path
+            ? { path: look.path ?? AURORA_DESIGNED_PATH }
+            : { shape: look.shape ?? 0 }),
         ...(look.bg !== null && EFFECT_KINDS[kind].ground ? { bg: look.bg } : {})
       }
     : { style: kind, ...kept, speed, fps, shape: look.shape, frost: look.frost, bg: look.bg };
@@ -329,6 +336,11 @@ export const effectMarkdown =
             `${name} played as a dimple: a sheet of round scales pressed in at one point, each disc running a little of the palette ${colors} toward the hollow, the darker end of the palette in it. ${effect.roam ? "The hollow roams: it goes round a slow loop by itself, from the middle and back to it." : "Nothing in it moves by itself: the hollow follows the pointer and stays where the pointer left it."}`,
             `a dimple, its sheet and its light turned to ${angle} degrees, zoom ${effect.look.zoom ?? 1}, ${effect.speed === 0 ? "its hollow held at its rest" : `its hollow ${effect.roam ? "roaming its loop" : "following the pointer"} at speed ${effect.speed}, up to ${effect.fps} frames a second`}`
           ];
+        case "aurora":
+          return [
+            `${name} played as an aurora: the palette ${colors} as light boiling up behind a still range, its darker end the night and its lighter end the hottest light, the range ${bg === null ? "clear, the page through it" : `filled with ${bg}`}.`,
+            `an aurora, turned to ${angle} degrees, its range ${effect.look.path === null ? "as designed" : `the path ${effect.look.path}`}${bg === null ? ", clear" : `, filled with ${bg}`}, ${play}`
+          ];
         case "strings":
           return [
             `${name} played as strings: ribbons of threads on ${bg === null ? "a dark ground" : clear ? "a clear ground, the page through it" : `a ground of ${bg}`}, each running the palette ${colors} across it, folding and morphing in place into hairpins and loops.`,
@@ -343,11 +355,11 @@ export const effectMarkdown =
     })();
     return {
       called: `${name} ${EFFECT_WORDS[kind]}`,
-      lead: `${lead} Two tags play it behind any page.`,
+      lead: `${lead} ${scripted ? "Two tags play it" : "One tag paints its still"} behind any page.`,
       drawn: `${drawn}${finished ? `, ${finished}` : ""}`,
       code: `## Behind a page
 
-${!scripted ? "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once." : kind === "papercut" ? "In the page's head, the stylesheet paints the first frame in the page's first paint, its shadows stepped, and the script plays it from there with WebGL, its shadows soft. Without WebGL the first frame stays, and for a reader who asks for less motion the script holds its own." : kind === "dimple" ? "In the page's head, the stylesheet paints its still in the page's first paint, the hollow at its rest, and the script, with WebGL, then has the hollow follow the pointer over the page and stay where the pointer left it. Without WebGL, or for a reader who asks for less motion, the still stays." : "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[softly, finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
+${kind === "aurora" ? "In the page's head, the stylesheet paints its still in the page's first paint: its first frame's light in broad wedges under a blur behind its range, a plain SVG, which every browser paints at once." : !scripted ? "In the page's head, the stylesheet paints its first frame in the page's first paint: a plain SVG, which every browser paints at once." : kind === "papercut" ? "In the page's head, the stylesheet paints the first frame in the page's first paint, its shadows stepped, and the script plays it from there with WebGL, its shadows soft. Without WebGL the first frame stays, and for a reader who asks for less motion the script holds its own." : kind === "dimple" ? "In the page's head, the stylesheet paints its still in the page's first paint, the hollow at its rest, and the script, with WebGL, then has the hollow follow the pointer over the page and stay where the pointer left it. Without WebGL, or for a reader who asks for less motion, the still stays." : "In the page's head, the stylesheet paints the first frame in the page's first paint, and the script plays it from there with WebGL. Without WebGL, or for a reader who asks for less motion, the first frame stays."}${glass ? " The stylesheet's first frame is an SVG filter, light to send, which Firefox takes about a second of the page's thread to draw; the editor's Copy HTML writes it into the page as a WebP instead, which every browser paints at once." : ""}${finished ? ` Its ${[softly, finish.grain ? "grain lies over it" : ""].filter(Boolean).join(" and its ")}, in the first frame${scripted ? " and as it plays" : ""}.` : ""}
 
 \`\`\`html
 ${effectEmbedHtml(origin.replace(/\/$/, ""), seed, effect, angle, undefined, finish)}

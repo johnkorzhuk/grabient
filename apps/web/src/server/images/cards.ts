@@ -43,6 +43,7 @@ const EFFECT_DRAWING = {
   papercut: "papercut-1",
   strings: "strings-1",
   dimple: "dimple-1",
+  aurora: "aurora-1",
   ...kitRecord(kind => `${kind}-${KIT_DRAWINGS[kind]}`)
 } as const satisfies Record<EffectKind, string>;
 /** The blob's picture alone, counted apart from its cards, which stay solid: it is clear where its ground lets the
@@ -53,8 +54,9 @@ const BLOB_PICTURE = "clear-1";
     and its shape draws them and the discs; the blob's look, all but its pace, shapes it, and it has no angle; an
     effect that takes steps (the sandstone) its steps where its look names them, so one at its designed steps keeps
     the key it had before it took them, one that takes a zoom (the dimple) its zoom where its look names one, so one as
-    designed keeps its key, and one that takes a ground (the strings) its ground where its look names one, so one on
-    its designed ground keeps its key too. */
+    designed keeps its key, one that takes a path (the aurora) its path where its look names one, and one that takes a
+    ground (the strings, the aurora's range) its ground where its look names one, so one on its designed ground keeps
+    its key too. */
 const effectParts = (effect: Effect, angle: number) =>
   effect.kind === "blob"
     ? [EFFECT_DRAWING.blob, effect.look.frost, effect.look.shape, effect.look.bg]
@@ -64,6 +66,7 @@ const effectParts = (effect: Effect, angle: number) =>
         effect.look.shape ?? 0,
         ...(effect.look.steps === null ? [] : [`steps:${effect.look.steps}`]),
         ...(effect.look.zoom === null ? [] : [`zoom:${effect.look.zoom}`]),
+        ...(effect.look.path === null ? [] : [`path:${effect.look.path}`]),
         ...(effect.look.bg === null ? [] : [`bg:${effect.look.bg}`])
       ];
 /** The finish over an effect's frame (engine/fx-finish.ts), counted up by a change to it that moves its pixels. */

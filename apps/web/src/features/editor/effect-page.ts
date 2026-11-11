@@ -45,6 +45,7 @@ const LABELS: Record<EffectKind, string> = {
   papercut: msg("Papercut"),
   strings: msg("Strings"),
   dimple: msg("Dimple"),
+  aurora: msg("Aurora"),
   ...KIT_LABELS
 };
 

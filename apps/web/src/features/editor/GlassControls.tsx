@@ -1,3 +1,10 @@
+import { AURORA_DESIGNED_PATH, auroraPath, auroraPathParts } from "@grabient/engine/aurora-path.ts";
+import {
+  AURORA_PATH_KINDS,
+  type AuroraPathKind,
+  auroraMadePath,
+  auroraPathKind
+} from "@grabient/engine/aurora-path-kinds.ts";
 import { toHex } from "@grabient/engine/color.ts";
 import {
   blobShapeOf,
@@ -12,8 +19,9 @@ import {
   SHAPE_MAX
 } from "@grabient/engine/effect.ts";
 import { stringsDesignedGround } from "@grabient/engine/strings-ground.ts";
-import { t } from "@grabient/i18n";
+import { msg, t } from "@grabient/i18n";
 import press from "@grabient/ui/ColorField.module.css";
+import { ColorField } from "@grabient/ui/ColorField.tsx";
 import { deviceReducesMotion, reducedMotion, setMotionChoice } from "@grabient/ui/motion.ts";
 import { Scrub } from "@grabient/ui/Scrub.tsx";
 import { Switch } from "@grabient/ui/Switch.tsx";
@@ -33,9 +41,11 @@ import { screenFps } from "./refresh.ts";
    pace beside its frames a second, then its shape; the blob's pace beside its frames a second, then its frost
    (BlobControls.tsx) beside its shape, and its ground, each pair sharing a row where both show whole
    (EffectFields.module.css); the strings' as the glass's, then their ground (GroundField.tsx), their designed one
-   where none is set; the dimple's as the glass's, its zoom in its shape's place. A list's menu sets the same fields
-   for every card (features/list), so they read and write whatever holds them. Above them,
-   while the site moves less, the reader's Reduce motion says why no pace moves anything, and turns it off. */
+   where none is set; the dimple's as the glass's, its zoom in its shape's place; the aurora's as the glass's, the
+   kind of range it stands behind in its shape's place, then the range's path, which takes a row, and its ground,
+   none clear. A list's menu sets the same fields for every card (features/list), so they read and write whatever
+   holds them. Above them, while the site moves less, the reader's Reduce motion says why no pace moves anything, and
+   turns it off. */
 
 const times = (v: number) => (v === 0 ? t("Off") : `${Number(v.toFixed(2))}×`);
 
@@ -141,10 +151,91 @@ export function ZoomField(props: {
   );
 }
 
+/* the kinds of range a path is made as (engine/aurora-path-kinds.ts), as the Shape field names them */
+const PATH_KINDS: Record<AuroraPathKind, string> = {
+  range: msg("Range"),
+  line: msg("Line"),
+  curve: msg("Curve"),
+  mix: msg("Mix"),
+  skyline: msg("Skyline")
+};
+/* the number each kind is made from as the Shape field steps to it, picked by eye among its first eight: the range's
+   0 is the designed one, the line leans a little, the curve is two hills, the mix a rounded hill between crags, the
+   skyline blocks of every height; the press beside it then draws any other */
+const FIRST_MADE: Record<AuroraPathKind, number> = {
+  range: 0,
+  line: 1,
+  curve: 1,
+  mix: 2,
+  skyline: 2
+};
+
+/* A path as typed or pasted: itself, or the one a link or a query names (`path=`), escaped or not, in capitals or
+   not, with spaces or not. Null for none (the designed range), undefined for words that are no path. */
+function typedPath(text: string): string | null | undefined {
+  let said = text.trim();
+  if (!said) return null;
+  const named = /(?:^|[?&])path=([^&#]*)/.exec(said);
+  if (named) said = named[1];
+  try {
+    said = decodeURIComponent(said);
+  } catch {}
+  said = said.toLowerCase().replace(/\s+/g, "");
+  return auroraPathParts(said) ? auroraPath(said) : undefined;
+}
+
+/** An effect's path, where it takes one in its shape's place (EFFECT_KINDS' `path`: the aurora's range): the kind of
+    outline it is (a jagged range, a line, a curve, a mix of the two, a skyline of blocks), which the Shape field
+    sets, its press making another of that kind; and the path itself as its address writes it, to read, copy and
+    paste, or to write by hand (John, 10 Nov 2026: "the idea was for LLMs to be able to create thieir custom path").
+    Words that are no path go back to the path it had; none, and the press at its end, give the designed range
+    back. */
+export function PathFields(props: { path: string | null; onPath: (path: string | null) => void }) {
+  const kind = () => auroraPathKind(props.path ?? AURORA_DESIGNED_PATH);
+  /* a range of a kind made from a number: the range of number 0 is the designed one, which a look keeps as none */
+  const made = (of: AuroraPathKind, n: number) => props.onPath(auroraPath(auroraMadePath(of, n)));
+  return (
+    <>
+      <div class={fields.pairs}>
+        <Scrub
+          label={t("Shape")}
+          value={AURORA_PATH_KINDS.indexOf(kind())}
+          min={0}
+          max={AURORA_PATH_KINDS.length - 1}
+          step={1}
+          grain={1}
+          def={0}
+          fmt={v => t(PATH_KINDS[AURORA_PATH_KINDS[Math.round(v)] ?? "range"])}
+          onInput={v => {
+            const next = AURORA_PATH_KINDS[Math.round(v)];
+            if (next && next !== kind()) made(next, FIRST_MADE[next]);
+          }}
+          action={{
+            icon: "dice",
+            label: t("New shape"),
+            onPress: () => made(kind(), 1 + Math.floor(Math.random() * 999)),
+            class: press.press
+          }}
+        />
+      </div>
+      <div class={fields.whole}>
+        <ColorField
+          label={t("Path")}
+          name={t("Path")}
+          value={props.path}
+          empty={t("Auto")}
+          read={typedPath}
+          onCommit={props.onPath}
+        />
+      </div>
+    </>
+  );
+}
+
 /** The fields every effect has: its roam where the pointer moves it (`roams`, RoamRow), its own `steps` where it
     takes them (StepsField), the glass's angle (none without `onAngle`: the blob has none), its pace and its frames a
-    second, then `extra`, and `dial`, the field that picks its design: the editor's shape, or an effect's zoom in its
-    place (ZoomField). */
+    second, then `extra`, and `dial`, the field that picks its design: the editor's shape, or an effect's zoom
+    (ZoomField) or its path (PathFields) in its place. */
 export function PlayFields(props: {
   roams?: boolean;
   steps?: Element;
@@ -215,11 +306,13 @@ export function EffectFields(props: { editor: PaletteEditor; kind: EffectKind; e
   const shape = () => play().look.shape ?? own();
   /* the effect's own steps, where it takes them: its look's, kept while another style shows */
   const range = () => EFFECT_KINDS[props.kind].steps;
-  /* its zoom, where it takes one in its shape's place */
+  /* its zoom, where it takes one in its shape's place, or its path */
   const zoom = () => EFFECT_KINDS[props.kind].zoom;
-  /* a ground whose none is the effect's designed one (the strings'), which the field's swatch shows; the blob's comes
-     with its frost (BlobControls.tsx) */
-  const grounded = () => EFFECT_KINDS[props.kind].ground === "designed";
+  const path = () => EFFECT_KINDS[props.kind].path;
+  /* a ground with a field of its own here: one whose none is the effect's designed ground (the strings'), which the
+     field's swatch shows, and one whose none is clear (the aurora's range); the blob's comes with its frost
+     (BlobControls.tsx) */
+  const ground = () => (props.kind === "blob" ? null : EFFECT_KINDS[props.kind].ground);
   return (
     <>
       <PlayFields
@@ -249,6 +342,11 @@ export function EffectFields(props: { editor: PaletteEditor; kind: EffectKind; e
               zoom={play().look.zoom}
               onZoom={zoom => e.effects.look(props.kind, { zoom })}
             />
+          ) : path() ? (
+            <PathFields
+              path={play().look.path}
+              onPath={path => e.effects.look(props.kind, { path })}
+            />
           ) : (
             <div class={fields.pairs}>
               <Scrub
@@ -272,11 +370,11 @@ export function EffectFields(props: { editor: PaletteEditor; kind: EffectKind; e
           )
         }
       />
-      <Show when={grounded()}>
+      <Show when={ground()}>
         <GroundField
           kind={props.kind}
           bg={play().look.bg}
-          auto={toHex(stringsDesignedGround(e.palette()))}
+          auto={ground() === "designed" ? toHex(stringsDesignedGround(e.palette())) : undefined}
           onBg={bg => e.effects.look(props.kind, { bg })}
         />
       </Show>

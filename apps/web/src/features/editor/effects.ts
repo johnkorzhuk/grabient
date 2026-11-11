@@ -86,9 +86,10 @@ export interface Effects {
   /** the reader changes how an effect plays */
   set: (kind: EffectKind, part: Partial<Omit<EffectSettings, "look">>) => void;
   /** the reader changes an effect's look: its shape, the blob's frost and ground, the sandstone's steps, the
-      dimple's zoom */
+      dimple's zoom, the aurora's path and its range's ground */
   look: (kind: EffectKind, part: Partial<EffectLook>) => void;
-  /** another shape for an effect, other than the one shown; none for one that takes no shape */
+  /** another shape for an effect, other than the one shown; none for one that takes no shape (the aurora's
+      menu makes its paths itself, GlassControls.tsx PathFields) */
   shuffle: (kind: EffectKind) => void;
   /** an address landed: the effect it names, or, where it names no style, the reader's own choice */
   arrive: (effect: Effect | null, styled: boolean) => void;

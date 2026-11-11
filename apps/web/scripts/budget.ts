@@ -41,7 +41,14 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the dimple (10 Nov 2026, John: "get this shader in staging"), as every page: its kind, what moves each effect
      (engine/effect.ts EFFECT_KINDS' motion: its loop, or the pointer alone), its facts and its names, 0.08 KB of the
      start every page shares, took it from 291.9 to 291.996, four bytes under */
-  "/": { route: "src/routes/index.tsx", budget: 293 },
+  /* the aurora (11 Nov 2026, John: "get this in staging"): its kind, its facts and its names, as every effect's, and
+     the reader and writer of its range's path (engine/aurora-path.ts, 1.1 KB gzipped alone), which every address
+     and every kept look is read through, so that a path has one spelling wherever a look is kept (John, 10 Nov
+     2026: "the idea was for LLMs to be able to create thieir custom path"), took it from 292.3 to 293.4; its model,
+     its drawing, its stills, its player and the menu's Path field load as one shows. It is the most an effect has
+     put on every page's start: the reader could load with the first address that names a path, a look keeping a
+     path as written until then, which would give about 1 KB back on every page */
+  "/": { route: "src/routes/index.tsx", budget: 294 },
   /* the same took it from 288.9 to 290.7; soft and grain over the effects (their pictures blurred over the gradient,
      the menu's fields beside an effect's, the summary naming them) and the editor's glass after a move (e3636f12) to
      291.2 on 3 Nov 2026 */
@@ -53,7 +60,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      from its address and written back (parseEffect, effectSteps, effectLookParts), its still's name naming them, and a
      list's summary and history taking a change of them (features/list/ListAppearance.tsx, appearance.ts viewSince),
      took it past 295 to 295.16; the Steps field itself loads with the effect's fields (editor/GlassControls.tsx) */
-  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 296 },
+  /* the aurora, as "/", and a list's address and history keeping its path (features/list/appearance.ts), took it
+     from 295.7 to 296.9 on 11 Nov 2026 */
+  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 298 },
   /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
      to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
   /* the silk and the rosette as effects (their names and settings, as every page) took it from 285.4 to 286.0 on
@@ -75,7 +84,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      roam and which Figma's timeline plays as they play (engine/effect.ts canRoam, loops, pastesToFigma), the button's
      summary saying it and a list's address keeping it, 0.1 KB, took it to 293.159; the switch, the roam's path and
      its Figma layers load with the effect's fields, its player and the press that copies them */
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 294 },
+  /* the aurora, as /palettes, took it from 293.2 to 294.3 on 11 Nov 2026 */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 295 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look
      each palette was saved in, an effect and its settings (features/list/appearance.ts's lookEffect and cardPlays,
@@ -89,7 +99,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     /* it stood at 286.1 at the effects' finished SVG (d5cdb607, 3 Nov 2026), and papercut, as /palettes, took it to
        286.2 */
     /* the sandstone's steps, as /palettes (8 Nov 2026), took it past 287 to 287.18 */
-    budget: 288
+    /* the aurora, as /palettes, took it from 287.8 to 288.9 on 11 Nov 2026 */
+    budget: 290
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
@@ -162,7 +173,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the strings (5 Nov 2026) took it to 230.1, over, and the field effects with the sandstone's steps (8 Nov 2026), as
      "/collections", to 230.7 */
   /* the dimple (10 Nov 2026), as "/", took it to 230.94 */
-  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 232 },
+  /* the aurora, as "/", took it from 231.2 to 232.3 on 11 Nov 2026 */
+  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 233 },
   /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026, and over the effects (as /palettes)
      to 251.0 on 3 Nov 2026 */
   /* the color reader, as "/", took it from 251.0 to 253.4 on 3 Nov 2026; 253.99 at 7f486b89, and on 4 Nov 2026 the
@@ -171,7 +183,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      and what none is (engine/effect.ts EFFECT_KINDS' ground), and a ground read, kept and written for any effect that
      takes one (effectGround, CLEAR_GROUND, effectBare, parseEffect, effectLook, effectLookParts, fxStillKey), 0.12 KB
      of the start every page shares, took it past 255 to 255.13 */
-  "/about": { route: "src/routes/about.tsx", budget: 256 }
+  /* the aurora, as "/", took it from 255.6 to 256.6 on 11 Nov 2026 */
+  "/about": { route: "src/routes/about.tsx", budget: 257.5 }
 };
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
 const EVERY_PAGE = ["src/app/tab-icon.ts"];
@@ -184,8 +197,10 @@ const BUDGETS = {
   stylesheet: 37,
   // the glass's Shadertoy text took the largest from 11.4 KB to 13.6 on 1 Nov 2026, until the Shadertoy spelling went
   // (3 Nov 2026); its GLSL and WebGL page and its WGSL and WebGPU page load apart, 4.0 and 6.7 KB, beside the pages'
-  // design, 5.7
-  onDemand: 14,
+  // design, 5.7. The aurora (11 Nov 2026): its model and its SVG writer (engine/aurora.ts, aurora-svg.ts), which
+  // the vector effects' stills load with, as each of theirs does (engine/fx-still.ts, loaded as a page first draws
+  // a still the server did not), took that chunk from 11.9 KB to 14.5, the largest a press loads
+  onDemand: 15.5,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,
   // mcp/admin/visits.ts: 5 KiB). It starts with no language's messages and no old address's map: it reads a language's
@@ -227,8 +242,13 @@ const BUDGETS = {
   // PNG and cards load with the first file of it asked for, its colors for the examples page, the words its files say
   // of it and its entries in the tables that take one for every effect took it to 1484.4; its shaders and their
   // pages, which no server writes, stay out of it, and it has no clip. The budget stands the builds' spread and one
-  // more over it
-  worker: 1487,
+  // more over it. The aurora (11 Nov 2026): its model, CPU drawing and SVG writers (engine/aurora.ts,
+  // aurora-render.ts, aurora-svg.ts), which the Worker's SVG, CSS, PNG and cards load with the first file of it asked
+  // for, the paths made from a number for the examples page (aurora-path-kinds.ts), its colors there, the words its
+  // files and the guide say of it and of how a path is written, and its entries in the tables that take one for
+  // every effect took it from 1486.6 to 1497.1 to 1497.3, by the build; it has no clip, no script and no shader
+  // pages yet. The budget stands the builds' spread over it
+  worker: 1499,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
@@ -254,8 +274,10 @@ const BUDGETS = {
   // sandstone takes, and the tables that take an entry for each, the cards' drawings among them) took it from 241.8 to
   // 242.7, where the zen garden's entries leaving (10 Nov 2026) left it: 242.6 to 242.7, by the build. The dimple
   // (10 Nov 2026: its kind, its facts, what moves each effect, its words and its card's drawing) took it to 242.87,
-  // within that spread of 243
-  workerStart: 244,
+  // within that spread of 243. The aurora (11 Nov 2026: its kind, its facts, its words, its card's drawing and the
+  // reader and writer of its range's path, engine/aurora-path.ts, which every address the Worker reads and redirects
+  // goes through) took it from 243.2 to 244.5
+  workerStart: 245.5,
   // the palette files' writers (files/palette-files.ts) load with the router rather than with the Worker's start, since
   // the cache keys read an SVG's size from files/address.ts: 6.5 KiB off the start, 5.6 on here (24 Oct 2026). Soft and
   // grain took it from 172.1 to 175.3 on 2 Nov 2026: the pages' Appearance fields and pictures as the server renders

@@ -130,6 +130,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
         shape={fx.settings(kind).look.shape}
         steps={fx.settings(kind).look.steps}
         zoom={fx.settings(kind).look.zoom}
+        path={fx.settings(kind).look.path}
         bg={fx.settings(kind).look.bg}
       />
     </Loading>

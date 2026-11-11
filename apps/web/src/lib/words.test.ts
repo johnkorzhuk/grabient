@@ -20,6 +20,13 @@ test("a link to a palette on any of Grabient's hosts is that palette, however it
     words: SEED,
     view: new URLSearchParams("style=radialSwatches&steps=12")
   });
+  /* an effect's link keeps its look, the aurora's path among it, its commas written either way */
+  for (const path of ["line,33,33", "line%2C33%2C33"])
+    expect(
+      readLink(`https://grabient.com/${SEED}?style=aurora&path=${path}&bg=%23102030`)?.view.get(
+        "path"
+      )
+    ).toBe("line,33,33");
 });
 
 test("a link to a search is its words, and a link off the site or to neither is nothing", () => {

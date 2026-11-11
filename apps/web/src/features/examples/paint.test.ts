@@ -67,7 +67,7 @@ const blob = (bg: string | null): Effect => ({
   kind: "blob",
   speed: 1,
   fps: 60,
-  look: { shape: 1, frost: 1, bg, steps: null, zoom: null }
+  look: { shape: 1, frost: 1, bg, steps: null, zoom: null, path: null }
 });
 
 describe("drawnColors", () => {
@@ -285,7 +285,12 @@ const fx = (kind: VectorKind, seed: string, angle: number, shape: number | null)
   seed,
   palette: real(seed),
   view: { style: "linearGradient", steps: 7, angle },
-  effect: { kind, speed: 1, fps: 60, look: { shape, frost: 1, bg: null, steps: null, zoom: null } }
+  effect: {
+    kind,
+    speed: 1,
+    fps: 60,
+    look: { shape, frost: 1, bg: null, steps: null, zoom: null, path: null }
+  }
 });
 const rgbOf = (hex: string) => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16));
 
@@ -497,7 +502,7 @@ describe("the glass", () => {
           kind: "glass",
           speed: 1,
           fps: 60,
-          look: { shape: null, frost: 1, bg: null, steps: null, zoom: null }
+          look: { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null }
         };
         const s: Shown = {
           seed,
@@ -564,7 +569,7 @@ describe("a soft look", () => {
             kind,
             speed: 1,
             fps: 60,
-            look: { shape: null, frost: 1, bg: null, steps: null, zoom: null }
+            look: { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null }
           };
           const look = { ...s, effect };
           const px = await effectRgba(look.palette, effect, 45, box, soft || null);

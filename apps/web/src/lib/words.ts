@@ -69,6 +69,7 @@ export function readLink(raw: string): { words: string; view: URLSearchParams } 
     "roam",
     "zoom",
     "frost",
+    "path",
     "bg"
   ]) {
     const said = url.searchParams.get(name);

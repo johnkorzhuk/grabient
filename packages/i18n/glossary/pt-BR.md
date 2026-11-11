@@ -18,6 +18,9 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | dimple (an effect) | Covinha | A sheet of overlapping round discs pressed in at one point, the palette's colors running out from the hollow, which follows the pointer: the word for a small hollow, as a golf ball's are *covinhas*. Title words *covinha*. Not *amassado* (a dent from damage). |
 | zoom (the dimple's Zoom field) | Zoom | How much larger than designed the dimple is drawn, 1× to 4×, in its Shape field's place. As Figma PT-BR names it. |
 | roam (the dimple's Roam switch) | Vagar | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow wandering by itself. |
+| aurora (an effect) | Aurora boreal | Curtains of light in the palette's colors rising behind a still outline. The northern lights said whole: „aurora“ alone is also dawn. |
+| path (the aurora's Path field) | Traçado | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. As Illustrator PT-BR names a vector path; not „caminho“ (a file's path). |
+| range, line, curve, mix, skyline (the aurora's Shape values) | Cordilheira, Linha, Curva, Mistura, Horizonte urbano | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | swatches | amostras | "linear swatches" = "amostras lineares", "{name} swatches" = "Amostras {name}". |
 | Swatches (the strip's swatch files) | Amostras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Mudar para amostras. |
 | bands (style labels) | faixas | "Linear bands" = "Faixas lineares"; "hard band" = "faixa sólida"; a band of flat color is "uma faixa de cor sólida" (Photoshop's "Cor sólida"). |

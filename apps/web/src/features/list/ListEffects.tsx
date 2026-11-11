@@ -34,6 +34,7 @@ export function EffectSwatch(props: {
       shape={props.effect.look.shape}
       steps={props.effect.look.steps}
       zoom={props.effect.look.zoom}
+      path={props.effect.look.path}
       bg={props.effect.look.bg}
     />
   );

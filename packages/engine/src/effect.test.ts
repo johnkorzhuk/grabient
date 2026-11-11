@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { AURORA_DESIGNED_PATH } from "./aurora-path.ts";
 import {
   blobShapeOf,
   blobStillKey,
@@ -15,6 +16,7 @@ import {
   effectFinish,
   effectGround,
   effectLook,
+  effectPath,
   effectSteps,
   effectStillParts,
   effectZoom,
@@ -38,7 +40,14 @@ import { glassStillKey, readStillKey } from "./glass-colors.ts";
 
 const SEED = "kWTATrcQ7MeMxv1MwbbLKq84";
 /* a look with a ground, which an effect that takes none never writes */
-const EFFECT_LOOK_BG = { shape: null, frost: 1, bg: "#ffffff", steps: null, zoom: null };
+const EFFECT_LOOK_BG = {
+  shape: null,
+  frost: 1,
+  bg: "#ffffff",
+  steps: null,
+  zoom: null,
+  path: null
+};
 const effect = (query: string) => {
   const found = parseEffect(new URLSearchParams(query));
   if (!found) throw new Error(`no effect in ${query}`);
@@ -143,28 +152,27 @@ test("the sandstone takes steps, 8 to 40, its look's, none at its designed 28; e
   expect(effectStepsShown("strata", { steps: 9 })).toBe(9);
   expect(effectStepsShown("papercut", { steps: null })).toBeNull();
   /* a still is named by its steps where its look names them, as it was where it names none */
-  const look = { angle: 90, shape: null, steps: null, zoom: null, bg: null };
+  const look = { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null };
   expect(fxStillKey("strata", SEED, look)).toBe(`strata|${SEED}|90|`);
-  expect(fxStillKey("strata", SEED, { ...look, steps: 12, zoom: null })).toBe(
-    `strata|${SEED}|90||12`
-  );
+  expect(fxStillKey("strata", SEED, { ...look, steps: 12 })).toBe(`strata|${SEED}|90||12`);
   expect(fxLookOf(effect("style=strata&steps=12&shape=3").look, 30)).toEqual({
     angle: 30,
     shape: 3,
     steps: 12,
     zoom: null,
+    path: null,
     bg: null
   });
 });
 
-test("the dimple takes a zoom in its shape's place, 1 to 4, none as designed; every other effect a shape and no zoom", () => {
+test("the dimple takes a zoom in its shape's place, 1 to 4, none as designed; every other effect no zoom, and a shape unless it takes a path", () => {
   /* John, 10 Nov 2026, of its shapes 0 to 999: "theres barely any difference", then "lets repalce shape with a zoom
      option for this style" */
   expect(EFFECT_KINDS.dimple.zoom).toEqual({ least: 1, most: 4, designed: 1 });
   expect(takesShape("dimple")).toBe(false);
   for (const kind of EFFECTS.filter(other => other !== "dimple")) {
     expect(EFFECT_KINDS[kind].zoom, kind).toBeNull();
-    expect(takesShape(kind), kind).toBe(true);
+    expect(takesShape(kind), kind).toBe(!EFFECT_KINDS[kind].path);
   }
   /* read from `zoom`, two decimals, clamped to its range; a word is none */
   expect(effect("style=dimple&zoom=2.5").look.zoom).toBe(2.5);
@@ -202,7 +210,7 @@ test("the dimple takes a zoom in its shape's place, 1 to 4, none as designed; ev
   expect(effectLook({ zoom: 2.5 }).zoom).toBeNull();
   expect(effectZoom("dimple", "nonsense")).toBeNull();
   /* a still is named by its zoom where its look names one, and read back */
-  const look = { angle: 90, shape: null, steps: null, zoom: 2.5, bg: null };
+  const look = { angle: 90, shape: null, steps: null, zoom: 2.5, path: null, bg: null };
   expect(fxStillKey("dimple", SEED, look)).toBe(`dimple|${SEED}|90||2.5x`);
   expect(readFxStillKey(`dimple|${SEED}|90||2.5x`)?.look).toEqual(look);
   expect(readFxStillKey(`dimple|${SEED}|90||9x`)).toBeNull();
@@ -249,6 +257,75 @@ test("the dimple roams where its address says roam=1, the one effect the pointer
   expect(pastesToFigma(effect("style=papercut"))).toBe(false);
 });
 
+test("the aurora takes a path in its shape's place, none as designed; every other effect none", () => {
+  /* John, 10 Nov 2026: "what if we made the path that cuts off the aura effect url encodable?" */
+  expect(EFFECT_KINDS.aurora.path).toBe(true);
+  expect(takesShape("aurora")).toBe(false);
+  for (const kind of EFFECTS.filter(other => other !== "aurora"))
+    expect(EFFECT_KINDS[kind].path, kind).toBe(false);
+  /* read from `path`, its commas and colons as they are or escaped */
+  const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
+  expect(effect(`style=aurora&path=${walled}`).look.path).toBe(walled);
+  expect(effect(`style=aurora&path=${encodeURIComponent(walled)}`).look.path).toBe(walled);
+  /* kept in its one spelling: no ".0", a word only where the joining changes, places only where they are not the
+     even spacing's */
+  expect(effect("style=aurora&path=line,33.0,33").look.path).toBe("line,33,33");
+  expect(effect("style=aurora&path=line,25,25,line,40").look.path).toBe("line,25,25,40");
+  expect(effect("style=aurora&path=line,0:10,50:20,100:30").look.path).toBe("line,10,20,30");
+  expect(effect("style=aurora&path=curve,30,55,35,60,30").look.path).toBe("curve,30,55,35,60,30");
+  /* the designed range is none, and so is anything that is no path */
+  expect(effect(`style=aurora&path=${AURORA_DESIGNED_PATH}`).look.path).toBeNull();
+  expect(effect("style=aurora&path=mountains").look.path).toBeNull();
+  expect(effect("style=aurora&path=line,33").look.path).toBeNull();
+  expect(effect("style=aurora&path=").look.path).toBeNull();
+  expect(effect("style=aurora").look.path).toBeNull();
+  expect(effect(`style=papercut&path=${walled}`).look.path).toBeNull();
+  expect(effect(`style=blob&path=${walled}`).look.path).toBeNull();
+  /* its shape is none, whatever an address or a save says */
+  expect(effect("style=aurora&shape=417").look.shape).toBeNull();
+  expect(effectLook({ shape: 417, path: walled }, "aurora")).toEqual({
+    ...EFFECT_LOOK,
+    path: walled
+  });
+  /* written among its look's parts in its shape's place, before its ground, in its still's name and its files' */
+  expect(
+    effectAddressParts(effect(`style=aurora&bg=%23102030&path=${walled}&shape=7&speed=2`), 45)
+  ).toEqual(["style=aurora", "angle=45", "speed=2", `path=${walled}`, "bg=%23102030"]);
+  expect(effectStillParts(effect(`style=aurora&path=${walled}&speed=2`), 90)).toEqual([
+    "style=aurora",
+    `path=${walled}`
+  ]);
+  expect(
+    effectFileAddress("https://x.test", SEED, effect(`style=aurora&path=${walled}`), 90, "svg")
+  ).toBe(`https://x.test/${SEED}.svg?style=aurora&path=${walled}`);
+  /* a look stored or asked, its path one its kind takes */
+  expect(effectLook({ path: walled }, "aurora").path).toBe(walled);
+  expect(effectLook({ path: "line,33.0,33" }, "aurora").path).toBe("line,33,33");
+  expect(effectLook({ path: AURORA_DESIGNED_PATH }, "aurora").path).toBeNull();
+  expect(effectLook({ path: walled }, "papercut").path).toBeNull();
+  expect(effectLook({ path: walled }).path).toBeNull();
+  expect(effectPath("aurora", 12)).toBeNull();
+  /* a still is named by its path where its look names one, before its ground, and read back */
+  const look = { angle: 90, shape: null, steps: null, zoom: null, path: walled, bg: "#10203080" };
+  expect(fxStillKey("aurora", SEED, look)).toBe(`aurora|${SEED}|90||${walled}|#10203080`);
+  expect(readFxStillKey(`aurora|${SEED}|90||${walled}|#10203080`)?.look).toEqual(look);
+  expect(readFxStillKey(`aurora|${SEED}|90||${walled}`)?.look).toEqual({ ...look, bg: null });
+  expect(readFxStillKey(`aurora|${SEED}|90||#10203080`)?.look).toEqual({ ...look, path: null });
+  expect(fxStillKey("aurora", SEED, { ...look, path: null, bg: null })).toBe(`aurora|${SEED}|90|`);
+  /* no page wrote a name whose path is another spelling, the designed range, no path, or another kind's */
+  expect(readFxStillKey(`aurora|${SEED}|90||line,33.0,33`)).toBeNull();
+  expect(readFxStillKey(`aurora|${SEED}|90||${AURORA_DESIGNED_PATH}`)).toBeNull();
+  expect(readFxStillKey(`aurora|${SEED}|90||line,33`)).toBeNull();
+  expect(readFxStillKey(`papercut|${SEED}|90||${walled}`)).toBeNull();
+  /* its range's ground is as the blob's: none is clear, the page through it, and so is a wholly clear one */
+  expect(EFFECT_KINDS.aurora.ground).toBe("clear");
+  expect(effect("style=aurora&bg=%23ffffff80").look.bg).toBe("#ffffff80");
+  expect(effect("style=aurora&bg=00000000").look.bg).toBeNull();
+  expect(effectBare("aurora", effect("style=aurora").look)).toBe(true);
+  expect(effectBare("aurora", effect("style=aurora&bg=%23ffffff80").look)).toBe(true);
+  expect(effectBare("aurora", effect("style=aurora&bg=%23ffffff").look)).toBe(false);
+});
+
 test("a shape is a number from 0 to 999 for both effects: a longer one is none, a stored one comes into bounds", () => {
   expect(SHAPE_MAX).toBe(999);
   for (const kind of ["glass", "blob"]) {
@@ -287,10 +364,11 @@ test("a ground is hex, its alpha kept where it lets something through", () => {
   expect(groundParts("#ff0000")).toEqual({ hex: "#ff0000", alpha: 1 });
 });
 
-test("one fact says which effects take a ground and what none is: the blob's clear, the strings' their designed one", () => {
+test("one fact says which effects take a ground and what none is: the blob's and the aurora's range's clear, the strings' their designed one", () => {
   expect(EFFECT_KINDS.blob.ground).toBe("clear");
   expect(EFFECT_KINDS.strings.ground).toBe("designed");
-  expect(EFFECTS.filter(kind => EFFECT_KINDS[kind].ground)).toEqual(["blob", "strings"]);
+  expect(EFFECT_KINDS.aurora.ground).toBe("clear");
+  expect(EFFECTS.filter(kind => EFFECT_KINDS[kind].ground)).toEqual(["blob", "strings", "aurora"]);
   /* a ground written as hex, kept as an address keeps it; a clear one is the strings' own, and the blob's none */
   expect(effectGround("strings", "F4EFE6")).toBe("#f4efe6");
   expect(effectGround("strings", "#10203080")).toBe("#10203080");
@@ -300,6 +378,8 @@ test("one fact says which effects take a ground and what none is: the blob's cle
   expect(effectGround("strings", "f000")).toBe(CLEAR_GROUND);
   expect(effectGround("blob", "#ff000000")).toBeNull();
   expect(effectGround("blob", "#ff000080")).toBe("#ff000080");
+  expect(effectGround("aurora", "#ff000000")).toBeNull();
+  expect(effectGround("aurora", "#ff000080")).toBe("#ff000080");
   /* words are the Worker's to write as hex first (server/pipeline.ts), and an effect with no ground keeps none */
   expect(effectGround("strings", "navy")).toBeNull();
   expect(effectGround("strings", null)).toBeNull();
@@ -363,7 +443,7 @@ test("an effect stands bare where its ground lets the page through: the blob's n
 });
 
 test("a vector effect's still is named by its ground where its look names one, and read back", () => {
-  const look = { angle: 90, shape: 7, steps: null, zoom: null, bg: null };
+  const look = { angle: 90, shape: 7, steps: null, zoom: null, path: null, bg: null };
   /* none: the name it had */
   expect(fxStillKey("strings", SEED, look)).toBe(`strings|${SEED}|90|7`);
   for (const bg of ["#f4efe6", "#10203080", CLEAR_GROUND]) {
@@ -390,7 +470,7 @@ test("a blob's still is named by its palette and its look, and read back", () =>
   expect(readBlobStillKey(key)).toEqual({ seed: SEED, look });
   expect(readBlobStillKey(`${SEED}|1|7|`)).toEqual({
     seed: SEED,
-    look: { frost: 1, shape: 7, bg: null, steps: null, zoom: null }
+    look: { frost: 1, shape: 7, bg: null, steps: null, zoom: null, path: null }
   });
   // a name that ends in an angle, as names did, names nothing
   expect(readBlobStillKey(`${SEED}|1|7||90`)).toBeNull();

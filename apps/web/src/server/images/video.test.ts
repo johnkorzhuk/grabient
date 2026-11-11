@@ -359,9 +359,10 @@ describe("a palette's MP4", () => {
     const { env, keep } = world({ windows: { videoRender: 0 } });
     const parts = runner();
     const tags = [];
-    /* those with a loop of their own: one the pointer alone moves has no clip (engine/effect.ts EFFECT_KINDS) */
+    /* those with a loop of their own whose clips are drawn: one the pointer alone moves has no clip, and the
+       aurora's are not drawn yet (engine/effect.ts EFFECT_KINDS, effect-why.ts) */
     const styles = EFFECTS.filter(isVectorKind).filter(hasVideo);
-    expect(EFFECTS.filter(kind => !hasVideo(kind))).toEqual(["dimple"]);
+    expect(EFFECTS.filter(kind => !hasVideo(kind))).toEqual(["dimple", "aurora"]);
     for (const style of styles) {
       const answer = await seedMp4Answer(
         get(`/${SEED}.mp4?style=${style}&angle=135&size=64x48&fps=10&duration=2`),
@@ -424,7 +425,10 @@ describe("a palette's MP4", () => {
       return `"video:${Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("")}"`;
     };
     const fit = videoFit(
-      { kind: "glass", look: { shape: 0, frost: 1, bg: null, steps: null, zoom: null } },
+      {
+        kind: "glass",
+        look: { shape: 0, frost: 1, bg: null, steps: null, zoom: null, path: null }
+      },
       1,
       10,
       2,
@@ -445,7 +449,7 @@ describe("a palette's MP4", () => {
     ];
     expect(await etagOf(env, keep, CLIP)).toBe(await keyOf([VIDEO_QUALITY.glass, ...plain]));
     /* a blob takes no soft: its clip with one is the clip with none, keyed and coded as it was */
-    const blobLook = { shape: null, frost: 1, bg: null, steps: null, zoom: null };
+    const blobLook = { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null };
     const blobFit = videoFit({ kind: "blob", look: blobLook }, 1, 10, 2, { width: 64, height: 48 });
     const blobKey = (quality: unknown, finish: unknown[]) =>
       keyOf([
@@ -471,7 +475,10 @@ describe("a palette's MP4", () => {
       etagOf(env, keep, `/${SEED}.mp4?style=strata&size=64x48&fps=10&duration=2${steps}`);
     const strataKey = (look: Record<string, unknown>) => {
       const strataFit = videoFit(
-        { kind: "strata", look: { shape: null, frost: 1, bg: null, steps: null, zoom: null } },
+        {
+          kind: "strata",
+          look: { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null }
+        },
         1,
         10,
         2,
@@ -497,7 +504,7 @@ describe("a palette's MP4", () => {
     expect(await strataAt("&steps=12")).not.toBe(await strataAt("&steps=13"));
     /* an effect asked steps it takes none of draws the clip it draws with none: the papercut's, keyed as it was
        before an effect took steps, and under no drawing of the kit's */
-    const cutLook = { shape: null, frost: 1, bg: null, steps: null, zoom: null };
+    const cutLook = { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null };
     const cutFit = videoFit({ kind: "papercut", look: cutLook }, 1, 10, 2, {
       width: 64,
       height: 48
@@ -533,7 +540,10 @@ describe("a palette's MP4", () => {
     expect(parts.jobs.map(job => job.finish)).toEqual([
       videoFinish(
         palette,
-        { kind: "glass", look: { shape: null, frost: 1, bg: null, steps: null, zoom: null } },
+        {
+          kind: "glass",
+          look: { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null }
+        },
         135,
         { soft: 40, grain: 30 },
         {

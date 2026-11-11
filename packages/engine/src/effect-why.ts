@@ -9,6 +9,9 @@ import { kitRecord } from "./kit/kinds.ts";
 const FIGMA_DROPPED =
   'John, 8 Nov 2026: "in the cases of sandstone and papercut where theres no svg animation to embed with the figma copy button, we can just drop it and they can use svg"';
 
+/* John's word on the aurora, whose stage, cards and files came first and whose other forms follow */
+const STAGED = 'it came to staging first (John, 11 Nov 2026: "get this in staging")';
+
 const NO_FRAME_SVG =
   "its SVG is drawn by filters and moved by CSS keyframes from its first frame; no writer yet puts a frame at t into an SVG of its own";
 
@@ -42,6 +45,15 @@ export const EFFECT_WHY: Readonly<
       'it has no loop, nothing in it moving by itself (John, 10 Nov 2026: "there should be no stationary animations for this one"): its hollow follows the pointer, and an SVG shown as a picture is given no pointer, so its file is its still; roaming (its `roam`, 11 Nov 2026), every disc slides, turns and changes its place along the palette by tracks of its own, a thousand of them, which its Copy for Figma writes for Figma\'s timeline and no SVG animation holds lightly, so its file is its still then too',
     video:
       'it has no loop, nothing in it moving by itself (John, 10 Nov 2026: "there should be no stationary animations for this one"): a clip of it would be its still for as long as it ran; roaming (its `roam`, 11 Nov 2026) it has one, which the clips\' module does not draw yet'
+  },
+  aurora: {
+    svgMotion:
+      'its light is turbulence read through the palette, sheets of noise sliding past one another along a fan\'s rays so that its flames boil where they stand, which no slide, turn or scale of a fixed shape gives, so its SVG is a frame of it as shapes (John, 10 Nov 2026: "can this shader be represented as an svg?")',
+    figma:
+      "Figma's timeline moves, turns, scales and fades layers and nothing on it reads a light through a palette: in Figma it moves only as a shader fill, which a paste cannot carry, so its strips offer its SVG",
+    video: `its clips are not drawn yet: ${STAGED}`,
+    embed: `no script plays it behind another site's page yet, and its stylesheet paints its still there: ${STAGED}`,
+    shader: `its shader pages are not written yet: ${STAGED}`
   },
   ...kitRecord(() => KIT_WHY)
 };

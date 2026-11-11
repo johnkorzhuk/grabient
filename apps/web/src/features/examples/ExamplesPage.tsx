@@ -227,6 +227,7 @@ const STILL_SHOWN: Readonly<Record<EffectKind, string>> = {
   papercut: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
   strings: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
   dimple: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
+  aurora: 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat',
   ...kitRecord(() => 'url("data:image/svg+xml,…") 50% 50% / cover no-repeat')
 };
 

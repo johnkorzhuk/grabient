@@ -32,6 +32,11 @@
      second and its shape, the blob's frost, its shape and its ground, two to a row where both show whole, and each
      takes the row where they would not, by the width of the menu's fields (Appearance.module.css): 452px under a
      mouse, 612px under a finger, whose words are larger */
+  /* a field that takes the row at every width: the aurora's path, which is long */
+  .whole {
+    min-width: 0;
+    grid-column: 1 / -1;
+  }
   .pairs {
     min-width: 0;
     grid-column: 1 / -1;

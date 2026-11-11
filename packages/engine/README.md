@@ -123,6 +123,13 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   pointer (`dimpleRoam`, 24 s at speed 1, from its rest and back): the players and the pages then clock it as any
   loop, and Copy for Figma pastes it as layers keyed on Figma's timeline (`figma-dimple.ts`: a disc a mask over a
   strip of the palette that slides and turns).
+- The aurora's (`aurora.ts`, its CPU drawing in `aurora-render.ts`, any frame as an SVG of shapes and its still in
+  `aurora-svg.ts`, the player's own pass in `aurora-gl.ts`): light read through the palette behind a still range. Its
+  range is a path its address carries (`aurora-path.ts` reads and writes it, apart from the model so `effect.ts`
+  loads no drawing; `aurora-path-kinds.ts` makes paths of a kind from a number, by `aurora-hash.ts`, with no model
+  beside it), in its shape's place (`EFFECT_KINDS`' `path`), and the range's color is its ground, none leaving it
+  clear. Its SVG is a frame of it, which never moves, and its still stands in for its first frame. It has no shader
+  pages, no clip and no script (`effect-why.ts`).
 - The field effects (`kit/`; the sandstone is the site's one): each is one file in `kit/fields/`, its kernel in the
   kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
   levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for

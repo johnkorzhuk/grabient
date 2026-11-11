@@ -40,6 +40,8 @@ const SVG_SHOWS: Record<EffectKind, string> = {
   strings: "threads in its colors, evenly spaced on a dark ground, stirred into bundles and loops",
   dimple:
     "a sheet of round scales in its colors pressed in at one point, the darker end of the palette in the hollow",
+  aurora:
+    "light in its colors, from the palette's darker end to its lighter, rising in curtains behind a still range",
   /* a field effect's own words (kit/types.ts FieldAbout) */
   ...kitRecord(kind => kitEffect(kind).about.shows)
 };
@@ -59,9 +61,17 @@ const svgAbout = (effect: Effect): string => {
   if (motion)
     return `An animated SVG of a Grabient palette: ${shows}, moved by ${motion === "css" ? "CSS" : "SMIL"} alone.`;
   /* one the pointer moves has no loop and no clip: its SVG is its still */
-  return EFFECT_KINDS[kind].motion === "pointer"
-    ? `An SVG of a Grabient palette: ${shows}, its still; on its page, and behind another by its script, its hollow follows the pointer.`
-    : `An SVG of a Grabient palette: ${shows}, its first frame; its script, clips and shaders play it.`;
+  if (EFFECT_KINDS[kind].motion === "pointer")
+    return `An SVG of a Grabient palette: ${shows}, its still; on its page, and behind another by its script, its hollow follows the pointer.`;
+  /* what plays one whose SVG holds its first frame, as the table says: its script, its clips and its shaders, each
+     where it has them, and its page alone where it has none yet (the aurora) */
+  const { embed, video, shader } = EFFECT_KINDS[kind];
+  const by = [embed ? "script" : "", video ? "clips" : "", shader ? "shaders" : ""].filter(Boolean);
+  const plays =
+    by.length === 0
+      ? "its page plays it"
+      : `its ${by.length === 1 ? by[0] : `${by.slice(0, -1).join(", ")} and ${by[by.length - 1]}`} ${by.length === 1 && by[0] === "script" ? "plays" : "play"} it`;
+  return `An SVG of a Grabient palette: ${shows}, its first frame; ${plays}.`;
 };
 
 /** /{seed}.css?style=: the effect's first frame behind the page, finished by the view's soft and grain, `grain` the

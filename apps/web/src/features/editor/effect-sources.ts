@@ -234,6 +234,9 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
             m.dimpleWebgpu(kind as "wgsl" | "webgpu", ...rest)
       )
   },
+  /* the aurora has no shader pages yet (engine/effect-why.ts): its light reads two tiles of noise a page would
+     have to carry or make */
+  aurora: null,
   ...kitRecord(
     (kind): EffectShaders => ({
       passes: kitPasses,

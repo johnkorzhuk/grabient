@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { AURORA_DESIGNED_PATH } from "./aurora-path.ts";
 import { decodePalette } from "./codec.ts";
 import { EMBED_PLAYING, effectFileAddress, parseEffect } from "./effect.ts";
 import {
@@ -309,4 +310,69 @@ test("the palette's Markdown at an effect's address says what plays and how, and
   const gradient = paletteMarkdown(SEED, ORIGIN, { angle: 45 }, null, [])!;
   expect(gradient).toContain("## CSS");
   expect(gradient).not.toContain("- [Script]");
+});
+
+test("the aurora's code names its path, paints its still with one tag and writes its first frame as shapes", () => {
+  const aurora = effect("style=aurora");
+  const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
+  /* its JSON names its path in a shape's place, the designed one where its address names none, and its range's
+     ground where it names one, none being clear */
+  const json = JSON.parse(effectSpecJson(P, aurora, 45));
+  expect(fromSpec(json)).toEqual(P);
+  expect(json).toMatchObject({
+    style: "aurora",
+    angle: 45,
+    speed: 1,
+    fps: 60,
+    path: AURORA_DESIGNED_PATH
+  });
+  expect(json).not.toHaveProperty("shape");
+  expect(json).not.toHaveProperty("bg");
+  expect(
+    JSON.parse(effectSpecJson(P, effect(`style=aurora&path=${walled}&bg=%2310203080`), 45))
+  ).toMatchObject({ path: walled, bg: "#10203080" });
+  /* no script plays it behind a page: its tags are its stylesheet's alone, and its files name no script */
+  const doc = effectDocument(P, ORIGIN, SEED, aurora, 90, `${ORIGIN}/api/og`);
+  expect(doc.links.js).toBeNull();
+  expect(doc.html).toBe(`<link rel="stylesheet" href="${ORIGIN}/${SEED}.css?style=aurora">`);
+  expect(effectStylesheet(P, SEED, aurora, 90, ORIGIN)).toContain(
+    `background: ${effectStill(P, aurora, 90)};`
+  );
+  /* its SVG is its first frame at any speed, shapes alone: no animation, no picture, no filter, at its size,
+     credited by how it plays */
+  const box = { width: 320, height: 180 };
+  const drawn = (query: string) => effectSvg(P, SEED, effect(query), 90, box, ORIGIN);
+  const moving = drawn("style=aurora&speed=2");
+  expect(moving).toMatch(/^<svg [^>]*width="320" height="180"/);
+  expect(moving).toContain(`<!-- ${ORIGIN}/${SEED}?style=aurora&speed=2 -->`);
+  expect(moving).not.toMatch(/@keyframes|<animate|<image|<filter/);
+  const uncredited = (svg: string) => svg.replace(/<!--.*?-->/, "");
+  expect(uncredited(moving)).toBe(uncredited(drawn("style=aurora&speed=0")));
+  expect(uncredited(drawn(`style=aurora&path=${walled}`))).not.toBe(uncredited(moving));
+  /* its Markdown says its range, its ground and that one tag paints its still */
+  const text = (query: string, soft = false) =>
+    paletteMarkdown(
+      SEED,
+      ORIGIN,
+      { angle: 45, ...(soft ? { soft: 30 } : {}) },
+      null,
+      [],
+      null,
+      effectMarkdown(ORIGIN, SEED, effect(query), `${ORIGIN}/api/og`)
+    )!;
+  expect(text("style=aurora")).toMatch(/^# .+ aurora\n/);
+  expect(text("style=aurora")).toContain("the range clear, the page through it");
+  expect(text("style=aurora")).toContain("One tag paints its still behind any page.");
+  expect(text("style=aurora")).toContain(
+    "- Drawn as: an aurora, turned to 45 degrees, its range as designed, clear, speed 1, up to 60 frames a second"
+  );
+  expect(text("style=aurora")).not.toContain("- [Script]");
+  expect(text(`style=aurora&path=${walled}&bg=%23101014`)).toContain(
+    `its range the path ${walled}, filled with #101014, speed 1`
+  );
+  /* a soft one with a range that lets the page through has no gradient under its blur */
+  expect(text("style=aurora", true)).toContain("soft blurs it with its edges going clear");
+  expect(text("style=aurora&bg=%23101014", true)).toContain(
+    "soft blurs it over the palette's gradient"
+  );
 });

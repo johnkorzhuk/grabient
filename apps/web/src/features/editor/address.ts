@@ -128,8 +128,10 @@ export function seedAddress(page: Addressed): string {
   return `/${page.seed}?${parts.join("&")}`;
 }
 
-/** The longest look a save reads: far past any that lookQuery writes. */
-export const LOOK_MAX = 400;
+/** The longest look a save reads: past any that lookQuery writes, the longest of which is the aurora's behind a
+    path of the most heights it takes (64), each at a place, joined by a line and a curve by turns, every other
+    setting off its default: 1,061 characters (look.test.ts holds the two together). */
+export const LOOK_MAX = 1200;
 
 /** The parameters the router keeps as numbers: a number-like string would be written quoted. */
 export const NUMBERS = new Set([

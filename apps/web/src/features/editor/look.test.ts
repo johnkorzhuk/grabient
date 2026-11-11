@@ -1,3 +1,4 @@
+import { AURORA_PATH_MOST } from "@grabient/engine/aurora-path.ts";
 import { blobShapeOf } from "@grabient/engine/effect.ts";
 import { expect, test } from "vitest";
 import { LOOK_MAX } from "./address.ts";
@@ -75,4 +76,28 @@ test("a save keeps a look written canonically, beside its view, and only where i
     "style=glass&angle=30&soft=30&grain=20&speed=0&shape=3"
   );
   expect(savedLook(SEED, { ...view, grain: 40 }, null)).toMatch(/grain=40/);
+});
+
+test("the longest look an address writes is one a save keeps: the aurora behind a path of the most heights, each at a place, joined by a line and a curve by turns", () => {
+  const view = { style: "linearGradient", steps: 7, angle: 359 } as const;
+  /* every height with a decimal at a place with one, and the joining changing at every piece, so no word and no
+     place leaves the path's one spelling */
+  const path = Array.from(
+    { length: AURORA_PATH_MOST },
+    (_, i) => `${i % 2 ? "curve" : "line"},${(1.1 + i * 1.5).toFixed(1)}:${i % 2 ? "89.9" : "10.1"}`
+  ).join(",");
+  const sent = `style=aurora&angle=359&soft=100&grain=100&speed=0.25&fps=119&path=${path}&bg=%2310203080`;
+  const kept = keptLook(SEED, sent, view);
+  /* the first word is the first piece's joining, as a path's one spelling writes it */
+  expect(kept).toContain("&path=curve,1.1:10.1,2.6:89.9,line,4.1:10.1,curve,5.6:89.9,");
+  expect(kept).toMatch(/&bg=%2310203080$/);
+  /* as long as a look gets, and under what a save reads */
+  expect(kept?.length).toBe(1061);
+  expect(sent.length).toBeLessThanOrEqual(LOOK_MAX);
+  /* kept again, it is the same look: what the server writes, it reads */
+  expect(keptLook(SEED, kept, view)).toBe(kept);
+  /* a path of a height more is no path, and its look the aurora's as designed */
+  expect(keptLook(SEED, `style=aurora&path=${path},line,99:50`, view)).toBe(
+    "style=aurora&angle=359"
+  );
 });

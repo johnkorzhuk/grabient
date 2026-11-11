@@ -17,9 +17,10 @@ import type { Size } from "./view.ts";
 
 /** A frame's pixels as its drawing gives them: four bytes a pixel, straight alpha, or three where the blob stands on a
     ground that covers the box. They are opaque but where the effect's picture lets the page through (effect.ts
-    effectBare): a blob whose ground does, or that has none, and the strings on a ground that does. A card, which cannot
-    be clear, lays such a picture over the ground a picture that cannot be clear takes, which `backdrop` names: the
-    blob on its near-black or near-white (blobBackdrop), the strings' ground over their designed one (stringsSolid). */
+    effectBare): a blob whose ground does, or that has none, the strings on a ground that does, and the aurora whose
+    range does, or has no color. A card, which cannot be clear, lays such a picture over the ground a picture that
+    cannot be clear takes, which `backdrop` names: the blob on its near-black or near-white (blobBackdrop), the
+    strings' ground over their designed one (stringsSolid), the aurora's range over the blob's (auroraSolid). */
 export interface EffectDrawn {
   pixels: Uint8Array | Uint8ClampedArray;
   backdrop?: readonly number[];
@@ -100,6 +101,20 @@ export async function effectDrawn(
             at && [at[0] * size.width, at[1] * size.height]
           )
         };
+      }
+      case "aurora": {
+        /* a card of 1200 by 630 in 0.23 s, the largest picture in 1.0 (aurora-render.ts): 0.31 to 0.34
+           microseconds a pixel */
+        const [model, render] = await Promise.all([
+          import("./aurora.ts"),
+          import("./aurora-render.ts")
+        ]);
+        const scene = model.auroraScene(P, look, size);
+        if (!card || scene.cover >= 1) return { pixels: render.renderAurora(scene, t) };
+        /* a card is never clear: its range over the ground a blob's card takes, the page's own near-black or
+           near-white */
+        const backdrop = (await import("./blob.ts")).blobBackdrop(P);
+        return { pixels: render.renderAurora(model.auroraSolid(scene, backdrop), t), backdrop };
       }
       case "silk": {
         const [model, render] = await Promise.all([

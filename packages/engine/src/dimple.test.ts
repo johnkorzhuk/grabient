@@ -321,6 +321,7 @@ describe("the dimple's SVG", () => {
           shape: null,
           steps: null,
           zoom: zoom === 1 ? null : zoom,
+          path: null,
           bg: null
         }).length;
         most = Math.max(most, bytes);
