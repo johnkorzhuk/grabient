@@ -26,6 +26,11 @@ const CHROMIUMS = ["Chrome", "Edge", "WebView"];
 /** How many versions behind the leading one a browser may be and still be a person's. People's Chrome keeps within
     two or three of the stable one, where a program can pin an older build. */
 export const BEHIND = 5;
+/** How many versions behind the leading one people's Chromiums keep as they update themselves. One further behind,
+    four or five, is a person's still, and is what a program pins: on 10 and 11 Nov 2026 a program's Chrome 154, four
+    behind the stable 158, was 10 of the 21 visitors on a Chromium 153 to 155 that Google Analytics received in thirteen
+    hours, each a single landing from nowhere. */
+export const KEPT_UP = 3;
 /** How far behind Chrome's stable version a Firefox may be: it updates itself every four weeks as Chrome does, a version
     ahead of it, and its extended support release, a year behind at most, is still a person's. */
 const FIREFOX_BEHIND = 17;
@@ -91,6 +96,14 @@ function oldest(name: string, lead: number, slack = 0): number | null {
   if (name === "Firefox") return lead - FIREFOX_BEHIND - slack;
   if (name === "Safari") return SAFARI_OLDEST;
   return null;
+}
+
+/** Whether a browser label is a Chromium further behind `lead` than people's keep (`KEPT_UP`), which shows less by
+    running a page than a current one does (visits.ts `goesOnceRan`). */
+export function lags(browser: string, lead: number | null): boolean {
+  if (!lead) return false;
+  const version = versionOf(browser);
+  return !!version && CHROMIUMS.includes(version.name) && version.major < lead - KEPT_UP;
 }
 
 /** Whether a browser label is older than a person's would be, against `lead`, Chrome's stable version: a Chromium

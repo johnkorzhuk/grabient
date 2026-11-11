@@ -6,7 +6,7 @@ import { isSeed } from "../../features/editor/address.ts";
 import { isCrawler } from "../crawlers.ts";
 import { type Ga4Hit, sendToGa4 } from "./ga4.ts";
 import { dayOf, hex, keyName, leadName } from "./keys.ts";
-import { HOSTING, tooOld } from "./rules.ts";
+import { HOSTING, lags, tooOld } from "./rules.ts";
 
 /* Visits, counted by the Worker from what a browser asks for anyway: a page it loads, and the palette uses and searches
    a page already reports (/api/used, /api/searched). Nothing is stored on or read from the reader's device for them and
@@ -252,9 +252,11 @@ const GALLERY = new Set(["search", "palettes", "rising", "collections", "collect
     on one of the gallery's pages is not: a program that drives a browser loads those by their addresses and runs each
     one, so it waits for more (`overQuic`, or a palette used or a search made on the page, which take a press or a key:
     features/palette-use/use.ts, features/search/count.ts). The home page and the pages named by their first segment,
-    where people type, bookmark and follow an app's link to, go once run. */
-export const goesOnceRan = (visit: Visit): boolean =>
-  showsPerson(visit) || !GALLERY.has(visit.page);
+    where people type, bookmark and follow an app's link to, go once run, unless the browser `lagging` behind its
+    updates brought them (rules.ts `lags`): the program follows the gallery's links there too, once in every few
+    hundred pages. */
+export const goesOnceRan = (visit: Visit, lagging = false): boolean =>
+  showsPerson(visit) || !(lagging || GALLERY.has(visit.page));
 
 /** Whether a request came over HTTP/3, on a connection of the browser's own: the home connections a program borrows
     to pass for people are proxies, which carry no QUIC. Of the 3,068 session checks the program's browsers made on
@@ -365,8 +367,8 @@ export async function countVisit(
      is, nothing is sent, as programs on old versions would pass for people), and a browser that ran the page (below).
      A landing from nowhere (typed, bookmarked, an app's link) goes too once its page has run: until 24 Oct 2026 it
      never went, as the scrapers' visits were all such landings, and Google Analytics left out every person who came
-     straight to the site. On one of the gallery's pages it waits for more, unless it came over HTTP/3
-     (`goesOnceRan`, `overQuic`) */
+     straight to the site. On one of the gallery's pages, or from a Chromium lagging behind its updates, it waits for
+     more, unless it came over HTTP/3 (`goesOnceRan`, `overQuic`) */
   if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_API_SECRET) return;
   const lead = env.CACHE ? await dayLead(env.CACHE).catch(() => null) : null;
   if (!lead || tooOld(browser, lead)) return;
@@ -394,7 +396,10 @@ export async function countVisit(
     // the page's own script made it at its reader's press: the page that waited for either goes first
     if (headers.get("Sec-Fetch-Site") === "same-origin") await ranPage(env, origin, visitor, true);
     await sendHit(env, hit, now);
-  } else await sendOnceRan(env, origin, hit, now, !goesOnceRan(visit) && !overQuic(request));
+  } else {
+    const waits = !goesOnceRan(visit, lags(browser, lead)) && !overQuic(request);
+    await sendOnceRan(env, origin, hit, now, waits);
+  }
 }
 
 /** Europe beyond the EU, whose visits go to Google's European endpoint too. */
@@ -419,7 +424,13 @@ const EUROPE = new Set(["GB", "CH", "NO", "IS", "LI"]);
    searches and palettes by their addresses and ran every one, about 200 an hour, and nothing in its headers told it
    from a person's Chrome: of its 2,099 visitors Google Analytics counted, one used a palette, and every page and
    check of its own came over HTTP/2. In the week before, 95 of Google Analytics' 3,809 visitors were such a landing
-   with nothing after it; those of them on HTTP/2 throughout are left out with it. */
+   with nothing after it; those of them on HTTP/2 throughout are left out with it.
+
+   A Chromium lagging behind its updates (rules.ts `lags`) waits so on every page it lands on from nowhere. In the
+   thirteen hours after that rule went live the program made 2,522 single landings on the gallery's pages, of which
+   one went on, over HTTP/3, and 10 on the home page, the contact page and the bindings', which all did: every single
+   landing from nowhere on those pages that Google Analytics received from a Chromium three to five versions behind,
+   where the 195 visitors on the three newest versions made 16. */
 const WAITS_SECONDS = 600;
 const RAN_SECONDS = 1800;
 /** What is kept of a visitor whose browser ran a page, and of one that showed more than a program's does: a check

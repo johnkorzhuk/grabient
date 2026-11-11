@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { behind, tooOld } from "../../visits/rules.ts";
+import { behind, lags, tooOld } from "../../visits/rules.ts";
 import { readVisits } from "./visits.ts";
 
 test("a Chromium more than five versions behind the one its people lead with is a program's", () => {
@@ -29,6 +29,19 @@ test("a Chromium more than five versions behind the one its people lead with is 
     leading: { Chrome: 156, Edge: 156 },
     old: ["Chrome 149", "Chrome 145", "Chrome 99", "Firefox 120"]
   });
+});
+
+test("a Chromium four or five versions behind lags where people's keep within three, and no other browser does", () => {
+  expect(lags("Chrome 153", 156)).toBe(false);
+  expect(lags("Chrome 152", 156)).toBe(true);
+  expect(lags("Edge 151", 156)).toBe(true);
+  expect(lags("WebView 152", 156)).toBe(true);
+  expect(lags("Chrome 157", 156)).toBe(false);
+  expect(lags("Firefox 140", 156)).toBe(false);
+  expect(lags("Safari 17", 156)).toBe(false);
+  expect(lags("other", 156)).toBe(false);
+  // nor without Chrome's version
+  expect(lags("Chrome 152", null)).toBe(false);
 });
 
 test("a browser is too old for a person's against Chrome's stable version, each by its own line", () => {
