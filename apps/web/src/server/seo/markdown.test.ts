@@ -142,7 +142,7 @@ describe("a palette as Markdown", () => {
       reads()
     );
     const text = await response.text();
-    expect(text.startsWith("# Analogous gray, brown and maroon radial swatches\n")).toBe(true);
+    expect(text.startsWith("# Analogous gray, brown and maroon radial palette\n")).toBe(true);
     expect(text).toContain("- Drawn as: radial swatches, 9 steps, 90 degrees");
     expect(Object.fromEntries(response.headers)).toMatchObject({
       link: '<https://grabient.com/kS7Q8Yy5S_SChv0>; rel="alternate"; type="text/html"',
@@ -199,7 +199,7 @@ describe("a palette as Markdown", () => {
       ).text();
     const glass = await at("style=glass&angle=45&shape=12&speed=2");
     const base = `${files.origin}/${files.seed}`;
-    expect(glass).toMatch(/^# .+ fluted glass\n/);
+    expect(glass).toMatch(/^# .+ fluted glass gradient\n/);
     expect(glass).toContain(`- Page: ${base}?style=glass&angle=45&speed=2&shape=12`);
     expect(glass).toContain(
       "- Drawn as: fluted glass, its ribs at 45 degrees, shape 12, speed 2, up to 60 frames a second"
@@ -233,7 +233,7 @@ describe("a palette as Markdown", () => {
       `<${base}?style=glass&angle=45&speed=2&shape=12>; rel="alternate"; type="text/html"`
     );
     const blob = await at("style=blob&speed=0&bg=%23101014&frost=0.5");
-    expect(blob).toMatch(/^# .+ blob\n/);
+    expect(blob).toMatch(/^# .+ blob gradient\n/);
     expect(blob).not.toContain("WebP");
     expect(blob).toContain(
       "- Drawn as: a blob, the palette across it from left to right, frost 0.5, on #101014, held on its first frame"
@@ -268,7 +268,7 @@ describe("a palette as Markdown", () => {
     );
     const text = await written.text();
     expect(text.startsWith("# Dusk over the mesa\n\nWarm browns settle into maroon.\n")).toBe(true);
-    expect(text).toMatch(/\n- Also called: .+ linear gradient\n/);
+    expect(text).toMatch(/\n- Also called: .+ gradient\n/);
     expect(text).toContain("- [Ocean gradients](https://grabient.com/ocean-gradients)");
     // drawn another way than it was saved, its colors name it alone
     const other = await (
@@ -282,7 +282,7 @@ describe("a palette as Markdown", () => {
     expect(other).not.toContain("Dusk over the mesa");
     expect(other).not.toContain("Warm browns");
     expect(other).not.toContain("Also called");
-    expect(other).toMatch(/^# .+ radial swatches\n/);
+    expect(other).toMatch(/^# .+ radial palette\n/);
     expect(other).toContain("- [Ocean gradients](https://grabient.com/ocean-gradients)");
     const failed = await markdownFile(
       "kS7Q8Yy5S_SChv0",

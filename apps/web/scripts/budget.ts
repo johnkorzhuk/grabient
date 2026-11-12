@@ -100,7 +100,11 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
        286.2 */
     /* the sandstone's steps, as /palettes (8 Nov 2026), took it past 287 to 287.18 */
     /* the aurora, as /palettes, took it from 287.8 to 288.9 on 11 Nov 2026 */
-    budget: 290
+    /* the list of every palette's hex codes under a public collection's cards (features/collections/HexCodes.tsx:
+       its rows, the press that copies a code and the arrows that walk the codes), with the words a title says a
+       style and a collection's codes by (engine/name.ts's titleWords, lib/page-meta.ts), took it from 289.1 to 290.1
+       on 12 Nov 2026: the codes are the page's words for a search of a theme's colors, which the cards alone drew */
+    budget: 291
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:

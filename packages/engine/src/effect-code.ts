@@ -34,11 +34,12 @@ import { GRAIN_SIDE } from "./grain.ts";
 import { isKitKind } from "./kit/kinds.ts";
 import { kitEffect } from "./kit/registry.ts";
 import type { MarkdownEffect } from "./markdown.ts";
+import { titleWords } from "./name.ts";
 import type { Palette } from "./palette.ts";
 import { PAPERCUT_LOOK } from "./papercut.ts";
 import { toSpec } from "./spec.ts";
 import { svgComment } from "./svg-comment.ts";
-import { DEFAULT_SIZE, effectSoftShare, type Size } from "./view.ts";
+import { DEFAULT_SIZE, DEFAULT_STYLE, effectSoftShare, type Size } from "./view.ts";
 
 /** The steps an effect draws at, which its document and its Markdown name: its look's, its designed number where the
     look names none; null for an effect that takes no steps. Here, where those are written, so no page's start carries
@@ -354,7 +355,7 @@ export const effectMarkdown =
       }
     })();
     return {
-      called: `${name} ${EFFECT_WORDS[kind]}`,
+      called: `${name} ${titleWords(DEFAULT_STYLE, kind)}`,
       lead: `${lead} ${scripted ? "Two tags play it" : "One tag paints its still"} behind any page.`,
       drawn: `${drawn}${finished ? `, ${finished}` : ""}`,
       code: `## Behind a page

@@ -71,6 +71,10 @@ export const CollectionItemSchema = v.object({
   rising: v.optional(v.number()),
   title: v.optional(v.string()),
   description: v.optional(v.string()),
+  /** the title written for the palette itself, where the collection gives it none and the view it saved it in bears
+      the words out: what the page's list of hex codes calls it. The reads a public collection's page is drawn from
+      bring it; the account's copy and a write's answer bring none */
+  written: v.optional(v.string()),
   /** the whole look the collection saved it in, where it saved more than its view (CollectionPreviewSchema's look) */
   look: v.optional(v.nullable(v.string()))
 });

@@ -56,7 +56,7 @@ import {
 } from "../account/collections.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { accountView, onAccountChange, syncStatus } from "../account/state.ts";
-import { minuteOf, relativeAge } from "../gallery/drawing.ts";
+import { minuteOf, nameOf, paletteHref, relativeAge } from "../gallery/drawing.ts";
 import {
   cardPlays,
   drawnIn,
@@ -84,6 +84,7 @@ import { createChecklists, failedWrite } from "./collect.ts";
 import styles from "./collections.module.css";
 import { createDeletable } from "./deletable.ts";
 import { Heading } from "./Heading.tsx";
+import { type CodeRow, HexCodes } from "./HexCodes.tsx";
 import { ItemCard } from "./ItemCard.tsx";
 import { Notes } from "./Notes.tsx";
 import { listBack, recallList, rememberOrder } from "./navigation.ts";
@@ -400,6 +401,22 @@ export function CollectionPage(props: {
     const gone = [...removals().values()].map(r => r.item).filter(item => !held.has(keyOf(item)));
     return gone.length ? sortCollectionItems([...ordered(), ...gone], props.order) : ordered();
   });
+  /* the collection's palettes as its list of hex codes says them, in the page's order: each by the name its card
+     gives it (the collection's own, else the one written for it, else its colors'), linked to its page in the view
+     the collection saved it in, with its own colors, one to a keyframe, as the sheet's chips are */
+  const codeRows = createMemo((): CodeRow[] =>
+    ordered().map(item => {
+      const own = inputOf(item);
+      const href = paletteHref(own, null);
+      return {
+        key: keyOf(item),
+        name: item.title ?? item.written ?? nameOf(own),
+        href,
+        rel: relTo(href),
+        hexes: hexesOf({ seed: item.kseed, steps: 0 })
+      };
+    })
+  );
   const removedKey = (item: CollectionItem) => {
     const key = keyOf(item);
     return removals().has(key) && !doc()?.items.some(i => keyOf(i) === key) ? key : null;
@@ -995,6 +1012,7 @@ export function CollectionPage(props: {
                         </a>
                       </div>
                     </section>
+                    <HexCodes rows={codeRows()} onCopied={() => say(t("Copied"))} />
                   </div>
                 </Show>
               </div>

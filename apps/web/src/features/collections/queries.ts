@@ -9,6 +9,7 @@ import { untrack } from "solid-js";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
 import { attempt, type Failed, failed, freshFor, getJson } from "../../lib/query.ts";
+import { withWritten } from "../../server/collections/files.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
 import {
@@ -74,13 +75,15 @@ export interface Found {
 const readCollection = createIsomorphicFn()
   .server(async (slug: string, _signal?: AbortSignal): Promise<Found | Failed> => {
     const db = { DB: replica(env) };
-    const doc = await collectionBySlug(db, slug);
-    if (!doc)
+    const found = await collectionBySlug(db, slug);
+    if (!found)
       return {
         doc: null,
         private: (await collectionVisibility(db, slug)) === "private",
         fetchedAt: Date.now()
       };
+    // each palette's own written title, which the page's list of hex codes calls it by
+    const doc = await withWritten(db, found);
     // the colors are read from the tags as written, which a translation keeps in their order
     const [{ doc: shown, languages }, colors] = await Promise.all([
       localizeDocument(db, asked(), doc),

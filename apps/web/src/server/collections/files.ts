@@ -4,6 +4,7 @@ import { titleFaults } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { asSaved, isStyle, type Style, type View } from "@grabient/engine/view.ts";
 import { all, first } from "@grabient/server/db/d1.ts";
+import type { CollectionDocument } from "../../features/collections/types.ts";
 import { lookKind } from "../../features/editor/look.ts";
 import { collectionBySlug, collectionsHolding, type Reader } from "./read.ts";
 
@@ -104,6 +105,35 @@ export function heldWords(
 ): { title: string; embed: string } | null {
   const words = writtenWords(text, palette);
   return words && palette && asSaved(palette, view, words.view) ? words : null;
+}
+
+/** A public collection with the title written for each of its palettes that has none of the collection's own, where
+    the view the collection saved it in bears the words out (heldWords), which a look that plays an effect never does:
+    what its page's list of hex codes calls each palette, as its files do. One read for the collection's seeds; none
+    where every palette has the collection's own title. */
+export async function withWritten<T extends Pick<CollectionDocument, "items">>(
+  env: Reader,
+  doc: T
+): Promise<T> {
+  const bare = doc.items.filter(item => !item.title && !lookKind(item.look));
+  if (!bare.length) return doc;
+  const written = new Map(
+    (
+      await texts(
+        env,
+        bare.map(item => item.kseed)
+      )
+    ).map(text => [text.seed, text])
+  );
+  if (!written.size) return doc;
+  return {
+    ...doc,
+    items: doc.items.map(item => {
+      if (item.title || lookKind(item.look)) return item;
+      const title = heldWords(written.get(item.kseed), decodePalette(item.kseed), item)?.title;
+      return title ? { ...item, written: title } : item;
+    })
+  };
 }
 
 /** The public collection at `slug`, as its files write it; null for a private one or none. */

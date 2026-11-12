@@ -10,12 +10,14 @@ import {
   readingName,
   readingPhrase,
   readPalette,
+  STYLE_TITLE_WORDS,
   seedName,
   seedReading,
-  titleFaults
+  titleFaults,
+  titleWords
 } from "./name.ts";
 import type { Palette } from "./palette.ts";
-import type { Style } from "./view.ts";
+import { STYLES, type Style } from "./view.ts";
 
 interface Reading extends PaletteReading {
   name: string;
@@ -40,10 +42,43 @@ test("a palette that plays an effect is titled as the effect, in its style's pla
   const seed = names.entries[0].seed;
   const r = readPalette(decodePalette(seed) as Palette, "linearGradient", 7);
   const name = readingName(r);
-  expect(paletteTitle(r, "linearGradient")).toBe(`${name} linear gradient`);
-  expect(paletteTitle(r, "linearGradient", ENGLISH, "glass")).toBe(`${name} fluted glass`);
-  expect(paletteTitle(r, "radialSwatches", ENGLISH, "rosette")).toBe(`${name} rosette`);
-  expect(paletteTitle(r, "linearGradient", ENGLISH, null)).toBe(`${name} linear gradient`);
+  expect(paletteTitle(r, "linearGradient")).toBe(`${name} gradient`);
+  expect(paletteTitle(r, "linearGradient", ENGLISH, "glass")).toBe(`${name} fluted glass gradient`);
+  expect(paletteTitle(r, "radialSwatches", ENGLISH, "rosette")).toBe(`${name} rosette gradient`);
+  expect(paletteTitle(r, "linearGradient", ENGLISH, null)).toBe(`${name} gradient`);
+});
+
+test("a title says a style in the words a palette is searched by, and an effect as the gradient it is", () => {
+  /* a blend along a line is the gradient a search means, and bands are its color palette; a ring or a sweep keeps
+     the word that tells it apart */
+  expect(STYLES.map(style => titleWords(style))).toEqual([
+    "gradient",
+    "color palette",
+    "angular gradient",
+    "angular palette",
+    "radial gradient",
+    "radial palette"
+  ]);
+  expect(titleWords("linearSwatches", "aurora")).toBe("aurora gradient");
+  expect(titleWords("radialGradient", "strata")).toBe("sandstone gradient");
+  /* a language says both in its own words, the effect's inside the title's */
+  const other: Language = {
+    locale: "fr",
+    t: (message, params = {}) =>
+      message === "{effect} gradient"
+        ? `dégradé ${params.effect}`
+        : message === "silk"
+          ? "soie"
+          : message === "gradient"
+            ? "dégradé linéaire"
+            : message
+  };
+  expect(titleWords("linearGradient", null, other)).toBe("dégradé linéaire");
+  expect(titleWords("linearGradient", "silk", other)).toBe("dégradé soie");
+  /* every title leaves its name the room a result's title link has: the words are what the room is measured with */
+  for (const e of names.entries.slice(0, 40))
+    for (const style of STYLES)
+      expect(e.readings[style].title.endsWith(` ${STYLE_TITLE_WORDS[style]}`), e.id).toBe(true);
 });
 
 test("every palette's reading, name, phrase and title in every style are as before", () => {

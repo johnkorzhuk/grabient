@@ -191,6 +191,81 @@
     gap: var(--space-s4);
     font-size: var(--font-fs3);
   }
+  /* a public collection's hex codes, under its files: a row a palette, its name a link to its page, then a code a
+     keyframe, the color a coin before it as the site's coins are. Out of sight it is laid out by nobody */
+  .codes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    content-visibility: auto;
+    contain-intrinsic-size: auto 600px;
+  }
+  /* two columns the rows share, so every palette's codes start on one line down the page; a narrow page stands a
+     palette's codes under its name */
+  .codeList {
+    display: grid;
+    grid-template-columns: fit-content(28rem) minmax(0, 1fr);
+    gap: var(--space-s3) var(--space-s6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-ui);
+    @container page (max-width: 700px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .codeRow {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: center;
+    row-gap: var(--space-s2);
+  }
+  /* left to right in every language, as a palette's colors run; on a page that reads right to left they start
+     beside their palette's name, at their column's right */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s2) var(--space-s4);
+    direction: ltr;
+    &:dir(rtl) {
+      justify-content: flex-end;
+    }
+    color: var(--color-ink2);
+    font-family: var(--font-system);
+    font-variant-numeric: tabular-nums;
+    & button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-s2);
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      &::before {
+        content: "";
+        /* a palette's colors are the content: forced colors leave them as they are */
+        forced-color-adjust: none;
+        flex-shrink: 0;
+        width: var(--space-s3);
+        height: var(--space-s3);
+        border-radius: var(--radius-circle);
+        background: var(--c);
+        box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
+      }
+      &:hover {
+        color: var(--color-ink);
+      }
+      &:focus-visible {
+        outline: 1px solid var(--color-ring);
+        outline-offset: 2px;
+      }
+    }
+  }
   /* a collection's line, under its cards */
   .line {
     display: flex;

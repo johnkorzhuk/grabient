@@ -11,7 +11,7 @@ import { EFFECT_WORDS, type EffectKind } from "./effect.ts";
 import { onWheel } from "./math.ts";
 import { ENGLISH, type Language, msg, sentence } from "./message.ts";
 import type { Palette } from "./palette.ts";
-import { isSwatchStyle, type Style, styleWords, type View } from "./view.ts";
+import { isSwatchStyle, type Style, type View } from "./view.ts";
 
 export type Kind =
   | "dark to light"
@@ -462,6 +462,26 @@ function pathOf(S: readonly Sample[], swatch: boolean, loops: boolean) {
   return { list, first: a.name, last: b.name };
 }
 
+/** A style as a palette's title says it after the palette's name, in the words people search a palette by: "Navy to
+    lavender gradient", "Navy, gold and cream color palette". A blend along a line is the gradient a search means, so
+    its title says no "linear" (in the US, Nov 2026, "blue gradient" was searched some 4,400 times a month and "blue
+    linear gradient" 30), and hard bands are what a search calls a color palette ("blue color palette" 12,100, "blue
+    swatches" 1,000, and those mostly for paint); a ring or a sweep keeps the word that tells it apart, and its bands are
+    its palette, said in the fewest words: a palette's name is held to the room its title's words leave (room, below),
+    and a longer "radial color palette" cost one palette in eight of that style a word of its name, "pastel" among
+    them, which more people search by than by any style. English as written: a page says them in its reader's language,
+    where a language may keep its own word for the line. What the style is, said plainly, stays view.ts's styleWords:
+    a page's facts and a file's "Drawn as". Here and not in view.ts, which the video container bundles: these are
+    words, and no drawing reads them. */
+export const STYLE_TITLE_WORDS: Readonly<Record<Style, string>> = {
+  linearGradient: msg("gradient"),
+  linearSwatches: msg("color palette"),
+  angularGradient: msg("angular gradient"),
+  angularSwatches: msg("angular palette"),
+  radialGradient: msg("radial gradient"),
+  radialSwatches: msg("radial palette")
+};
+
 /* A search result's title link is cut at about 580px of Arial at 20px, so a name is held to what that leaves after its
    style's words and the site's name (the page title is "{name} {style words} | Grabient"). Arial's advance widths per
    1000 units, a to z and A to Z. */
@@ -491,7 +511,7 @@ function linkWidth(text: string): number {
   return w / 50;
 }
 const LINK = 580;
-const room = (style: Style) => LINK - linkWidth(` ${styleWords(style)} | Grabient`);
+const room = (style: Style) => LINK - linkWidth(` ${STYLE_TITLE_WORDS[style]} | Grabient`);
 /** A list of names as English says it, to measure. */
 const say = (names: readonly string[], ends: boolean) =>
   names.length < 2
@@ -819,8 +839,20 @@ export function seedName(
   const reading = seedReading(seed, style, steps);
   return reading ? readingName(reading, language) : "";
 }
-/** The palette's title without the site's name: "Vivid navy, blue and lavender linear gradient", or with the effect it
-    plays in its style's place: "Vivid navy, blue and lavender fluted glass". */
+/** What a palette is drawn as, as its title says it after its name: its style's title words ("gradient", "color
+    palette", "radial gradient"), or the effect it plays in its style's place as the gradient it is ("fluted glass
+    gradient", "aurora gradient": what a search for such a look calls it). English says "{effect} gradient"; a
+    language says the effect as its own words name it. */
+export const titleWords = (
+  style: Style,
+  effect?: EffectKind | null,
+  language: Language = ENGLISH
+): string =>
+  effect
+    ? language.t(msg("{effect} gradient"), { effect: language.t(EFFECT_WORDS[effect]) })
+    : language.t(STYLE_TITLE_WORDS[style]);
+/** The palette's title without the site's name: "Vivid navy, blue and lavender gradient", or with the effect it
+    plays in its style's place: "Vivid navy, blue and lavender fluted glass gradient". */
 export const paletteTitle = (
   reading: PaletteReading,
   style: Style,
@@ -829,7 +861,7 @@ export const paletteTitle = (
 ): string =>
   language.t(msg("{name} {style}"), {
     name: readingName(reading, language),
-    style: effect ? language.t(EFFECT_WORDS[effect]) : styleWords(style)
+    style: titleWords(style, effect, language)
   });
 /** What a search result shows under the title: the name, the style, and the colors as hex. */
 export const paletteDescription = (
@@ -844,7 +876,7 @@ export const paletteDescription = (
     ),
     {
       name: readingName(reading, language),
-      style: styleWords(view.style),
+      style: titleWords(view.style, null, language),
       steps: view.steps,
       hexes: hexes.join(", ")
     }

@@ -248,7 +248,7 @@ test("the palette's Markdown at an effect's address says what plays and how, and
       `${ORIGIN}/api/og?seed=${SEED}&v=k4&style=blob&bg=%23101014`
     )
   )!;
-  expect(text).toMatch(/^# .+ blob\n/);
+  expect(text).toMatch(/^# .+ blob gradient\n/);
   expect(text).toContain(
     "- Drawn as: a blob, the palette across it from left to right, frost 1, on #101014, held on its first frame"
   );
@@ -360,7 +360,7 @@ test("the aurora's code names its path, paints its still with one tag and writes
       null,
       effectMarkdown(ORIGIN, SEED, effect(query), `${ORIGIN}/api/og`)
     )!;
-  expect(text("style=aurora")).toMatch(/^# .+ aurora\n/);
+  expect(text("style=aurora")).toMatch(/^# .+ aurora gradient\n/);
   expect(text("style=aurora")).toContain("the range clear, the page through it");
   expect(text("style=aurora")).toContain("One tag paints its still behind any page.");
   expect(text("style=aurora")).toContain(

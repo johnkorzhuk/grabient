@@ -35,8 +35,8 @@ test("a rosette's page paints its still from the head, and its menu chooses the 
   await open(page, `/${SEED}?style=rosette&angle=120`);
   /* named as the rosette it plays, never as the gradient under it */
   const heading = page.getByRole("heading", { level: 1 });
-  await expect(page).toHaveTitle(/\S rosette \| Grabient$/);
-  await expect(heading).toHaveText(/\S rosette$/);
+  await expect(page).toHaveTitle(/\S rosette gradient \| Grabient$/);
+  await expect(heading).toHaveText(/\S rosette gradient$/);
   const button = page.getByRole("button", { name: /Rosette/ }).first();
   await expect(button).toBeVisible();
   await button.click();
@@ -44,8 +44,8 @@ test("a rosette's page paints its still from the head, and its menu chooses the 
   await expect(page.getByRole("button", { name: "Rosette", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Silk", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/${SEED}\\?style=silk&angle=120$`));
-  await expect(page).toHaveTitle(/\S silk \| Grabient$/);
-  await expect(heading).toHaveText(/\S silk$/);
+  await expect(page).toHaveTitle(/\S silk gradient \| Grabient$/);
+  await expect(heading).toHaveText(/\S silk gradient$/);
 });
 
 test("a palette turned from bands to an effect is named as the effect's own page names it", async ({
@@ -55,12 +55,12 @@ test("a palette turned from bands to an effect is named as the effect's own page
   const BANDS = "kWip242Lq_i9tQBYszteSW_Y";
   await open(page, `/${BANDS}?style=angularSwatches`);
   const heading = page.getByRole("heading", { level: 1 });
-  await expect(heading).toHaveText("Monochrome blue and light blue angular swatches");
+  await expect(heading).toHaveText("Monochrome blue and light blue angular palette");
   await page.getByRole("button", { name: /^Appearance/ }).click();
   await page.getByRole("button", { name: "Rosette", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/${BANDS}\\?style=rosette$`));
-  await expect(heading).toHaveText("Monochrome blue to light blue rosette");
-  await expect(page).toHaveTitle("Monochrome blue to light blue rosette | Grabient");
+  await expect(heading).toHaveText("Monochrome blue to light blue rosette gradient");
+  await expect(page).toHaveTitle("Monochrome blue to light blue rosette gradient | Grabient");
 });
 
 test("the editor stands while the menu's tiles under the pointer turn its picture to other styles and back, and a kind chosen plays that kind", async ({

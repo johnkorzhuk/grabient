@@ -362,8 +362,9 @@ describe("descriptions", () => {
     expect(by("/cyan-gradients")).toBe(
       "#00ffff, rgb(0 255 255). Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients."
     );
+    /* in English a public collection's description says its palettes come with their hex codes, which its page lists */
     expect(by("/liminal-hours")).toBe(
-      "Twenty gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain. 21 color palettes and CSS gradients."
+      "Twenty gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain. 21 color palettes with hex codes and CSS gradients."
     );
     expect(by("/ocean-gradients")).toBe(
       "Ocean gradients: 25 color palettes and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG."
@@ -412,6 +413,69 @@ describe("descriptions", () => {
     }
   });
 
+  test("a public collection's title says its palettes come with their hex codes, after its own words, in English", () => {
+    const title = (slug: string, name: string, count = 15, more: Record<string, unknown> = {}) =>
+      pageMeta(
+        pageOf(`/${slug}`, {
+          collection: { ...collection("", count, name).collection!, ...more }
+        }),
+        PRODUCTION_ORIGIN
+      ).title;
+    /* the collection's own words first, as its page ranks under them, then what the page holds */
+    expect(title("gta-6-gradients", "GTA 6 gradients")).toBe(
+      "GTA 6 gradients: 15 color palettes with hex codes | Grabient"
+    );
+    expect(title("ocean-gradients", "Ocean gradients", 1)).toBe(
+      "Ocean gradients: 1 color palette with hex codes | Grabient"
+    );
+    /* a title that says palette itself is not told so twice */
+    expect(title("soft-summer-color-palette", "Soft summer color palette", 18)).toBe(
+      "Soft summer color palette: 18 palettes with hex codes | Grabient"
+    );
+    expect(title("wedding-color-palettes", "Wedding color palettes", 20)).toBe(
+      "Wedding color palettes: 20 palettes with hex codes | Grabient"
+    );
+    /* where the count has no room, the codes alone; where neither has, the title as it was */
+    expect(title("mid-century-modern-color-palette", "Mid century modern color palette", 16)).toBe(
+      "Mid century modern color palette with hex codes | Grabient"
+    );
+    expect(title("colors-that-go-with-navy-blue", "Colors that go with navy blue", 17)).toBe(
+      "Colors that go with navy blue: 17 color palettes | Grabient"
+    );
+    const long = "Sun bleached pool tiles of a motel in the high desert at noon";
+    expect(title("sun-bleached", long)).toBe(
+      "Sun bleached pool tiles of a motel in the high desert at… | Grabient"
+    );
+    /* a result shows every one of them whole */
+    for (const [slug, name] of [
+      ["gta-6-gradients", "GTA 6 gradients"],
+      ["soft-summer-color-palette", "Soft summer color palette"],
+      ["dark-academia-color-palette", "Dark academia color palette"],
+      ["shades-of-blue", "Shades of blue"]
+    ])
+      expect(title(slug, name, 24).length, name).toBeLessThanOrEqual(65);
+    /* a collection of one color says the color's own hex after its title, which leaves the count no room; a private
+       collection's page lists no codes; an empty one has none to list; and another language keeps the title it has */
+    expect(title("burgundy-swatches", "Burgundy swatches", 11)).toBe(
+      "Burgundy swatches (#900020): 11 color palettes | Grabient"
+    );
+    expect(title("burgundy-swatches", "Burgundy color palette", 11)).toBe(
+      "Burgundy color palette (#900020) with hex codes | Grabient"
+    );
+    expect(title("mine", "Mine", 15, { unlisted: true })).toBe(
+      "Mine: 15 color palettes | Grabient"
+    );
+    expect(title("ocean-gradients", "Ocean gradients", 0)).toBe("Ocean gradients | Grabient");
+    current = "de";
+    expect(title("gta-6-gradients", "GTA 6 gradients")).toBe(
+      "GTA 6 gradients: 15 Farbpaletten | Grabient"
+    );
+    current = "ja";
+    expect(title("gta-6-gradients", "GTA 6 gradients")).toBe(
+      "GTA 6 gradients：カラーパレット15件 | Grabient"
+    );
+  });
+
   test("a list's later pages each say which page they are", () => {
     expect(describe("/palettes?page=2")).toBe(`${describe("/palettes")} Page 2.`);
     expect(describe("/collections/rising")).not.toBe(describe("/collections"));
@@ -457,7 +521,7 @@ describe("a palette's written words", () => {
       heading: "Pastel candy vertical bands",
       title: "Pastel candy vertical bands | Grabient",
       name: "Pastel candy vertical bands",
-      alternateName: expect.stringMatching(/^\S.* linear swatches$/)
+      alternateName: expect.stringMatching(/^\S.* color palette$/)
     });
     expect(own.description).toMatch(/^Soft candy colors stand in vertical bands/);
   });
@@ -581,18 +645,26 @@ describe("a palette that plays an effect", () => {
     };
   };
 
-  test.each(EFFECTS)("is titled as the %s it plays, never as a gradient", kind => {
-    const page = named(`${SEED_PAGE}?style=${kind}&angle=30`);
-    const plain = named(SEED_PAGE).heading.replace(/ linear gradient$/, "");
-    expect(page.heading).toBe(`${plain} ${WORDS[kind]}`);
-    expect(page.title).toBe(`${page.heading} | Grabient`);
-    /* its share card shows the effect, and its words say so, as the heading does; a gradient's card is its palette */
-    expect(page.imageAlt).toBe(page.heading);
-    expect(named(SEED_PAGE).imageAlt).toBe(`${plain} color palette`);
-    expect(page.description).toMatch(new RegExp(`^${plain} ${WORDS[kind]} with 7 colors: `));
-    for (const said of [page.heading, page.line, page.description])
-      expect(said).not.toMatch(/gradient|swatches/i);
-  });
+  test.each(EFFECTS)(
+    "is titled as the %s it plays, the gradient it is, never by its palette's own style",
+    kind => {
+      const page = named(`${SEED_PAGE}?style=${kind}&angle=30`);
+      const plain = named(SEED_PAGE).heading.replace(/ gradient$/, "");
+      /* the effect in the style's place, as the gradient a search for such a look calls it */
+      expect(page.heading).toBe(`${plain} ${WORDS[kind]} gradient`);
+      expect(page.title).toBe(`${page.heading} | Grabient`);
+      /* its share card shows the effect, and its words say so, as the heading does; a gradient's card is its palette */
+      expect(page.imageAlt).toBe(page.heading);
+      expect(named(SEED_PAGE).imageAlt).toBe(`${plain} color palette`);
+      expect(page.description).toMatch(
+        new RegExp(`^${plain} ${WORDS[kind]} gradient with 7 colors: `)
+      );
+      /* the style its editor keeps under the effect is never said, and the line under its name says the effect alone */
+      for (const said of [page.heading, page.description])
+        expect(said).not.toMatch(/linear|angular|radial|swatches|color palette/i);
+      expect(page.line).not.toMatch(/gradient|swatches/i);
+    }
+  );
 
   test("says the effect in the line under its name, with the angle that turns it, the blob's none", () => {
     const hex = "#[0-9a-f]{6}";
@@ -612,11 +684,11 @@ describe("a palette that plays an effect", () => {
       title: "Pastel candy vertical bands | Grabient",
       saved: { style: "linearGradient", steps: 7, angle: 90 }
     };
-    const plain = named(SEED_PAGE).heading.replace(/ linear gradient$/, "");
+    const plain = named(SEED_PAGE).heading.replace(/ gradient$/, "");
     expect(named(`${SEED_PAGE}?angle=90`, facts).heading).toBe("Pastel candy vertical bands");
     const silk = named(`${SEED_PAGE}?style=silk&angle=90`, facts);
-    expect(silk.heading).toBe(`${plain} silk`);
-    expect(silk.title).toBe(`${plain} silk | Grabient`);
+    expect(silk.heading).toBe(`${plain} silk gradient`);
+    expect(silk.title).toBe(`${plain} silk gradient | Grabient`);
     expect(silk.alternateName).toBeUndefined();
   });
 
@@ -626,9 +698,9 @@ describe("a palette that plays an effect", () => {
     const kept = { ...page, view: { ...page.view, style: "angularSwatches" as const } };
     // the gradient the editor keeps reads its colors otherwise
     expect(heading(pageOf(`${BANDS}?style=angularSwatches`))).toBe(
-      "Monochrome blue and light blue angular swatches"
+      "Monochrome blue and light blue angular palette"
     );
-    expect(heading(page)).toBe("Monochrome blue to light blue rosette");
+    expect(heading(page)).toBe("Monochrome blue to light blue rosette gradient");
     expect(heading(kept)).toBe(heading(page));
     expect(paletteFacts(kept)).toBe(paletteFacts(page));
     expect(pageMeta(kept, PRODUCTION_ORIGIN).title).toBe(pageMeta(page, PRODUCTION_ORIGIN).title);

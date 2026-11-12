@@ -90,7 +90,7 @@ test("the silk's and the rosette's files: a moving SVG, a stylesheet, their colo
       angle: 120,
       colors: effectColors(P, fx)
     } as never);
-    expect(md.called).toBe(`Navy and teal ${kind}`);
+    expect(md.called).toBe(`Navy and teal ${kind} gradient`);
     expect(md.files).toHaveProperty("script");
   }
 });
@@ -161,7 +161,7 @@ test("the papercut's files: its stepped still covers a page, its SVG is its stil
     angle: 120,
     colors: effectColors(P, fx)
   } as never);
-  expect(md.called).toBe("Navy and teal papercut");
+  expect(md.called).toBe("Navy and teal papercut gradient");
   expect(md.drawn).toContain("papercut, its sheets climbing toward 120 degrees, shape 7");
   expect(md.lead).toContain("Two tags play it behind any page.");
   /* its stylesheet steps the shadows the script draws soft, held for a reader who asks for less motion */

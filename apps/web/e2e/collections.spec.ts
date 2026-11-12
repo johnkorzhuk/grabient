@@ -1423,3 +1423,89 @@ for (const [width, words] of [
       expect(at!.y).toBe(after!.y);
     }
   });
+
+test("a public collection lists every palette's hex codes under its files: each by its name and a link to its page, a press copies a code, and the arrows walk the codes from one Tab stop", async ({
+  page,
+  context
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  const OTHER = "kS7Q8Yy5S_SChv0";
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      route.fulfill({
+        json: {
+          ...words,
+          itemCount: 3,
+          items: [
+            // the collection's own title, the title written for the palette, and neither: its colors' name
+            { kseed: SEED, ...preview[0], seed: undefined, title: "Violet hour" },
+            {
+              kseed: OTHER,
+              style: "linearSwatches",
+              steps: 5,
+              angle: 90,
+              likes: 0,
+              createdAt: 1,
+              position: 1,
+              written: "Dusk over the mesa"
+            },
+            {
+              kseed: "kQAAAAfwA_4",
+              style: "radialSwatches",
+              steps: 5,
+              angle: 0,
+              likes: 0,
+              createdAt: 1,
+              position: 2
+            }
+          ]
+        }
+      })
+  );
+  await page.goto("/collections");
+  await live(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const codes = page.getByRole("region", { name: "Hex codes" });
+  await expect(codes.getByRole("heading", { level: 2, name: "Hex codes" })).toBeVisible();
+  const rows = codes.getByRole("listitem");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(0).getByRole("link")).toHaveText("Violet hour");
+  await expect(rows.nth(1).getByRole("link")).toHaveText("Dusk over the mesa");
+  // a palette no one titled goes by what its colors are called, as its card does
+  await expect(rows.nth(2).getByRole("link")).toHaveText(/\S/);
+  await expect(rows.nth(2).getByRole("link")).not.toHaveText(/Violet|Dusk/);
+  // each name leads to the palette's page in the view the collection saved it in
+  await expect(rows.nth(1).getByRole("link")).toHaveAttribute(
+    "href",
+    `/${OTHER}?style=linearSwatches&steps=5`
+  );
+  // its own colors, one to a keyframe, each a code
+  const first = rows.nth(0).getByRole("button");
+  const count = await first.count();
+  expect(count).toBeGreaterThanOrEqual(2);
+  for (const text of await first.allTextContents()) expect(text).toMatch(/^#[0-9a-f]{6}$/);
+  // a press copies the code and the page's line says so
+  const code = (await first.nth(0).textContent()) ?? "";
+  await first.nth(0).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(code);
+  await expect(page.getByRole("status").filter({ hasText: "Copied" })).toBeVisible();
+  // one Tab stop however many codes: the arrows walk them, down a palette at a time, End to the last
+  await expect(codes.locator('button[tabindex="0"]')).toHaveCount(1);
+  await first.nth(0).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(first.nth(1)).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(rows.nth(1).getByRole("button").nth(1)).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(rows.nth(2).getByRole("button").last()).toBeFocused();
+  await expect(codes.locator('button[tabindex="0"]')).toHaveCount(1);
+  await page.keyboard.press("Home");
+  await expect(first.nth(0)).toBeFocused();
+});

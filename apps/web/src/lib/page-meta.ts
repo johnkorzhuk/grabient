@@ -10,7 +10,7 @@ import {
   effectView
 } from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
-import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
+import { readingName, readingPhrase, readPalette, titleWords } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
 import {
   asSaved,
@@ -323,7 +323,7 @@ function fitted(words: string, forms: readonly ((words: string) => string)[]): s
   return first(words) ?? first(clipWords(words, Math.max(0, room), 20)) ?? clipWords(last(""));
 }
 
-/** A style as a title says it after a palette's name: "Light yellow to pink linear gradient". */
+/** A style as a palette's facts say it, plainly: "Linear swatches, 5 colors at 90°". */
 const STYLE_WORDS: Record<Style, string> = {
   linearGradient: msg("linear gradient"),
   linearSwatches: msg("linear swatches"),
@@ -332,18 +332,22 @@ const STYLE_WORDS: Record<Style, string> = {
   radialGradient: msg("radial gradient"),
   radialSwatches: msg("radial swatches")
 };
-/** What a palette is drawn as, in the reader's language: its style's words, or the effect's that plays in its place,
-    since an effect draws no gradient. */
+/** What a palette is drawn as, said plainly in the reader's language: its style's words, or the effect's that plays
+    in its place, since an effect draws no gradient. */
 const drawnWords = (style: Style, effect?: EffectKind | null) =>
   t(effect ? EFFECT_WORDS[effect] : STYLE_WORDS[style]);
+/** What a palette is drawn as, as its title says it after its name in the reader's language: the words a search
+    names it by (the engine's titleWords), "gradient", "color palette", "radial gradient", "aurora gradient". */
+const titledAs = (style: Style, effect?: EffectKind | null) =>
+  titleWords(style, effect, language());
 /** A palette by what its colors are called in the reader's language: "Vivid navy, blue and lavender". */
 export const paletteName = (P: Palette, view?: Partial<Pick<View, "style" | "steps">>) =>
   readingName(readPalette(P, view?.style, view?.steps), language());
 /** That name as a title says it, with the palette's style or the effect it plays: "Vivid navy, blue and lavender
-    linear gradient", "… rosette". A page whose palette has a title of other words says it under that title, and so
-    does a card's tooltip. */
+    gradient", "… color palette", "… rosette gradient". A page whose palette has a title of other words says it under
+    that title, and so does a card's tooltip. */
 export const styledName = (name: string, style: Style, effect?: EffectKind | null) =>
-  t("{name} {style}", { name, style: drawnWords(style, effect) });
+  t("{name} {style}", { name, style: titledAs(style, effect) });
 /** The same name inside a sentence: "Palettes like navy to lavender". */
 const paletteInline = (P: Palette) => readingPhrase(readPalette(P), language());
 /** A search's subject as a title says it: its words without the nouns the title adds itself, from a capital, unless
@@ -556,6 +560,9 @@ const pagedTitle = (title: string, page = 1) =>
   page > 1 ? t("{title}, page {page}", { title, page }) : title;
 /** The longest title a result shows whole, the site's name included. */
 const TITLE_MAX = 70;
+/** A collection's title with what its page holds after its own words, at most: a result's title link is cut at about
+    580px, which 65 characters of these words stay within. */
+const CODED_TITLE_MAX = 65;
 /** A list's title: its name, the page past the first and the site's name, the name cut at a word to the room when the
     words someone typed run longer, so the page and the site's name stay. */
 function listTitle(name: string, page = 1): string {
@@ -878,7 +885,7 @@ function palettePage(
   const view = readView(page);
   const reading = readPalette(P, view.style, view.steps);
   const name = readingName(reading, language());
-  const style = drawnWords(view.style, page.effect?.kind);
+  const style = titledAs(view.style, page.effect?.kind);
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
   const written = ownWords(page);
   const path = paletteAddress(seed, page.saved);
@@ -964,16 +971,51 @@ function collectionPage(
   /* a collection of one color, by its address, says the color's hex after its title */
   const color = namedColor(page.slug);
   const title = color ? `${c.title} (${color.hex})` : c.title;
-  const counted = titled(
-    t("{title}: {count, plural, one {# color palette} other {# color palettes}}", {
-      title,
-      count: c.count
-    })
-  );
-  meta.title = c.count > 0 && counted.length <= 62 ? counted : listTitle(title);
   const count = c.count;
+  const counted = titled(
+    t("{title}: {count, plural, one {# color palette} other {# color palettes}}", { title, count })
+  );
+  /* A public collection's page lists every palette's hex codes under its cards (HexCodes.tsx), and its title says so
+     in English, the language the searches were read in (US, Nov 2026: the pages that lead a search for a theme's
+     colors show its codes, and people add "hex codes" to the search): the fullest of its forms that a result shows
+     whole, the collection's own words first as its page ranks under them. A title that says palette itself is not
+     told so twice. The other languages keep the title they have until theirs are read. */
+  const listsCodes = locale() === DEFAULT_LOCALE && count > 0 && !c.unlisted;
+  const palettes = /\bpalettes?\b/i.test(c.title);
+  const withCodes = listsCodes
+    ? [
+        palettes
+          ? t("{title}: {count, plural, one {# palette} other {# palettes}} with hex codes", {
+              title,
+              count
+            })
+          : t(
+              "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes",
+              { title, count }
+            ),
+        ...(palettes ? [t("{title} with hex codes", { title })] : [])
+      ]
+        .map(titled)
+        .find(text => text.length <= CODED_TITLE_MAX)
+    : undefined;
+  meta.title = withCodes ?? (count > 0 && counted.length <= 62 ? counted : listTitle(title));
+  /* a collection of one color leads its description with the color's own codes (coded, below), which take the room */
   meta.description = c.description
     ? fitted(c.description, [
+        ...(listsCodes && !color
+          ? [
+              (words: string) =>
+                t(
+                  "{words} {count, plural, one {# color palette} other {# color palettes}} with hex codes and CSS gradients.",
+                  { words, count }
+                ),
+              (words: string) =>
+                t(
+                  "{words} {count, plural, one {# color palette} other {# color palettes}} with hex codes.",
+                  { words, count }
+                )
+            ]
+          : []),
         words =>
           t(
             "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients. Open any palette to edit and export it.",

@@ -668,7 +668,7 @@ describe("the tools", () => {
       steps: 8
     });
     // drawn another way, it goes by its colors, as its page does
-    expect((await from({ style: "radialSwatches" })).title).toMatch(/ radial swatches$/);
+    expect((await from({ style: "radialSwatches" })).title).toMatch(/ radial palette$/);
   });
 
   it("show palettes as tiles: the view's data for an app that draws it, each picture's address for one that does not", async () => {
@@ -2306,9 +2306,9 @@ describe("a palette's look in an account's saves", () => {
     }[];
     // a card is titled as what its look plays: the effect in its style's place
     const titled = Object.fromEntries(listed.map(({ seed, title }) => [seed, title]));
-    expect(titled[glass]).toMatch(/\S fluted glass$/);
-    expect(titled[blob]).toMatch(/\S blob$/);
-    expect(titled[plain]).toMatch(/\S linear swatches$/);
+    expect(titled[glass]).toMatch(/\S fluted glass gradient$/);
+    expect(titled[blob]).toMatch(/\S blob gradient$/);
+    expect(titled[plain]).toMatch(/\S color palette$/);
     // saved within a millisecond, two likes are listed by seed: compared as a set
     const bySeed = (a: { seed: string }, b: { seed: string }) => (a.seed < b.seed ? -1 : 1);
     expect(listed.map(({ seed, url, look }) => ({ seed, url, look })).sort(bySeed)).toEqual(
