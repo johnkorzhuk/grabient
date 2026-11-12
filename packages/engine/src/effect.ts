@@ -588,8 +588,9 @@ export const effectFps = (value: unknown): number => {
     : EFFECT_FPS.default;
 };
 
-/** An effect as a palette's title says it after the palette's name, in a gradient's style's place, since it draws no
-    gradient: "Pastel pink and blue rosette". English as written; a page says it in its reader's language. */
+/** An effect as a palette's title says it after the palette's name, in a style's place: "Pastel pink and blue
+    rosette", and where the effect blends the palette's colors, as the gradient it is, "Pastel pink and blue silk
+    gradient" (name.ts's titleWords). English as written; a page says it in its reader's language. */
 export const EFFECT_WORDS: Readonly<Record<EffectKind, string>> = {
   glass: msg("fluted glass"),
   blob: msg("blob"),

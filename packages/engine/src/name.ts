@@ -11,7 +11,7 @@ import { EFFECT_WORDS, type EffectKind } from "./effect.ts";
 import { onWheel } from "./math.ts";
 import { ENGLISH, type Language, msg, sentence } from "./message.ts";
 import type { Palette } from "./palette.ts";
-import { isSwatchStyle, type Style, type View } from "./view.ts";
+import { isSwatchStyle, type Style, styleWords, type View } from "./view.ts";
 
 export type Kind =
   | "dark to light"
@@ -466,13 +466,14 @@ function pathOf(S: readonly Sample[], swatch: boolean, loops: boolean) {
     lavender gradient", "Navy, gold and cream color palette". A blend along a line is the gradient a search means, so
     its title says no "linear" (in the US, Nov 2026, "blue gradient" was searched some 4,400 times a month and "blue
     linear gradient" 30), and hard bands are what a search calls a color palette ("blue color palette" 12,100, "blue
-    swatches" 1,000, and those mostly for paint); a ring or a sweep keeps the word that tells it apart, and its bands are
-    its palette, said in the fewest words: a palette's name is held to the room its title's words leave (room, below),
-    and a longer "radial color palette" cost one palette in eight of that style a word of its name, "pastel" among
-    them, which more people search by than by any style. English as written: a page says them in its reader's language,
-    where a language may keep its own word for the line. What the style is, said plainly, stays view.ts's styleWords:
-    a page's facts and a file's "Drawn as". Here and not in view.ts, which the video container bundles: these are
-    words, and no drawing reads them. */
+    swatches" 1,000, and those mostly for paint); a ring or a sweep keeps the word that tells it apart, and its bands
+    are its palette. None is wider in a result's title link than the plain words it stands for (view.ts's
+    styleWords), which a name's room is measured with (room, below): so a title in these words never runs past the
+    link, and no palette's name changed when its title took them. "Radial color palette" would be wider than "radial
+    swatches", which is why those two say "palette" alone. English as written: a page says them in its reader's
+    language, where a language may keep its own word for the line. What the style is, said plainly, stays
+    styleWords: a page's facts and a file's "Drawn as". Here and not in view.ts, which the video container bundles:
+    these are words, and no drawing reads them. */
 export const STYLE_TITLE_WORDS: Readonly<Record<Style, string>> = {
   linearGradient: msg("gradient"),
   linearSwatches: msg("color palette"),
@@ -493,7 +494,11 @@ const UPPER = [
   667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667,
   611, 722, 667, 944, 667, 667, 611
 ];
-function linkWidth(text: string): number {
+/** How wide a search result's title link draws `text`, in pixels of Arial at 20px: letters by their own widths, a
+    digit and # as wide as the digits are, a hyphen and a parenthesis a third of an em, the bar, and a space, a comma
+    or a colon at 278. A letter with an accent, or of another script, counts as a wide one, so a title is never
+    measured narrower than it is. A palette's name holds no digit, so its room is what it was. */
+export function linkWidth(text: string): number {
   let w = 0;
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i);
@@ -502,16 +507,27 @@ function linkWidth(text: string): number {
         ? LOWER[c - 97]
         : c >= 65 && c <= 90
           ? UPPER[c - 65]
-          : c === 45
-            ? 333
-            : c === 124
-              ? 260
-              : 278;
+          : (c >= 48 && c <= 57) || c === 35 || c > 126
+            ? 556
+            : c === 45 || c === 40 || c === 41
+              ? 333
+              : c === 124
+                ? 260
+                : 278;
   }
   return w / 50;
 }
-const LINK = 580;
-const room = (style: Style) => LINK - linkWidth(` ${STYLE_TITLE_WORDS[style]} | Grabient`);
+/** The width a search result's title link is cut at, about. */
+export const TITLE_LINK = 580;
+const LINK = TITLE_LINK;
+/* measured with the style's plain words, the widest a title of it says (STYLE_TITLE_WORDS are never wider), so a
+   palette is named alike whichever words its title says its style by. An effect's title is not held to it: "fluted
+   glass gradient" is wider than any style's words, and its page's canonical address is its palette's own, so no
+   result shows its title */
+const room = (style: Style) => LINK - linkWidth(` ${styleWords(style)} | Grabient`);
+/** Whether a style's title words fit the room its plain words are measured with: a title in them stays in the link. */
+export const titleWordsFit = (style: Style): boolean =>
+  linkWidth(STYLE_TITLE_WORDS[style]) <= linkWidth(styleWords(style));
 /** A list of names as English says it, to measure. */
 const say = (names: readonly string[], ends: boolean) =>
   names.length < 2
@@ -839,20 +855,28 @@ export function seedName(
   const reading = seedReading(seed, style, steps);
   return reading ? readingName(reading, language) : "";
 }
+/** The effects whose picture blends the palette's colors into one another, which a title calls the gradient it is:
+    "fluted glass gradient", "blob gradient", "silk gradient", "aurora gradient", as a search for such a look says it.
+    The others draw the palette as shapes of one color each (a rosette's petals, cut sheets of paper, strings, discs,
+    bands of sandstone) and are no gradient: their title says their own word alone, as an effect new to the site
+    does until it is listed here. */
+const BLENDS: ReadonlySet<EffectKind> = new Set<EffectKind>(["glass", "blob", "silk", "aurora"]);
 /** What a palette is drawn as, as its title says it after its name: its style's title words ("gradient", "color
-    palette", "radial gradient"), or the effect it plays in its style's place as the gradient it is ("fluted glass
-    gradient", "aurora gradient": what a search for such a look calls it). English says "{effect} gradient"; a
+    palette", "radial gradient"), or the effect it plays in its style's place, by the effect's own word ("rosette")
+    or, where the effect blends, as the gradient it is ("aurora gradient"). English says "{effect} gradient"; a
     language says the effect as its own words name it. */
 export const titleWords = (
   style: Style,
   effect?: EffectKind | null,
   language: Language = ENGLISH
 ): string =>
-  effect
-    ? language.t(msg("{effect} gradient"), { effect: language.t(EFFECT_WORDS[effect]) })
-    : language.t(STYLE_TITLE_WORDS[style]);
+  !effect
+    ? language.t(STYLE_TITLE_WORDS[style])
+    : BLENDS.has(effect)
+      ? language.t(msg("{effect} gradient"), { effect: language.t(EFFECT_WORDS[effect]) })
+      : language.t(EFFECT_WORDS[effect]);
 /** The palette's title without the site's name: "Vivid navy, blue and lavender gradient", or with the effect it
-    plays in its style's place: "Vivid navy, blue and lavender fluted glass gradient". */
+    plays in its style's place: "Vivid navy, blue and lavender fluted glass gradient", "… rosette". */
 export const paletteTitle = (
   reading: PaletteReading,
   style: Style,

@@ -35,8 +35,8 @@ test("a rosette's page paints its still from the head, and its menu chooses the 
   await open(page, `/${SEED}?style=rosette&angle=120`);
   /* named as the rosette it plays, never as the gradient under it */
   const heading = page.getByRole("heading", { level: 1 });
-  await expect(page).toHaveTitle(/\S rosette gradient \| Grabient$/);
-  await expect(heading).toHaveText(/\S rosette gradient$/);
+  await expect(page).toHaveTitle(/\S rosette \| Grabient$/);
+  await expect(heading).toHaveText(/\S rosette$/);
   const button = page.getByRole("button", { name: /Rosette/ }).first();
   await expect(button).toBeVisible();
   await button.click();
@@ -59,8 +59,8 @@ test("a palette turned from bands to an effect is named as the effect's own page
   await page.getByRole("button", { name: /^Appearance/ }).click();
   await page.getByRole("button", { name: "Rosette", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/${BANDS}\\?style=rosette$`));
-  await expect(heading).toHaveText("Monochrome blue to light blue rosette gradient");
-  await expect(page).toHaveTitle("Monochrome blue to light blue rosette gradient | Grabient");
+  await expect(heading).toHaveText("Monochrome blue to light blue rosette");
+  await expect(page).toHaveTitle("Monochrome blue to light blue rosette | Grabient");
 });
 
 test("the editor stands while the menu's tiles under the pointer turn its picture to other styles and back, and a kind chosen plays that kind", async ({

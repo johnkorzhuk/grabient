@@ -1,6 +1,7 @@
 import { decodePalette } from "@grabient/engine";
 import { EFFECTS, type Effect, type EffectKind, parseEffect } from "@grabient/engine/effect.ts";
 import { KIT_WORDS } from "@grabient/engine/kit/names.ts";
+import { linkWidth, TITLE_LINK } from "@grabient/engine/name.ts";
 import { parseView, type View } from "@grabient/engine/view.ts";
 import {
   addCatalog,
@@ -362,10 +363,23 @@ describe("descriptions", () => {
     expect(by("/cyan-gradients")).toBe(
       "#00ffff, rgb(0 255 255). Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients."
     );
-    /* in English a public collection's description says its palettes come with their hex codes, which its page lists */
+    /* in English a public collection's description says its palettes come with their hex codes, which its page
+       lists, in the sentence that says its gradients; where that has no room it says what it said, and a collection
+       of gradients goes on saying so; its own words alone where they leave no room for either */
     expect(by("/liminal-hours")).toBe(
       "Twenty gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain. 21 color palettes with hex codes and CSS gradients."
     );
+    const told = (words: string, count = 25) =>
+      describe("/cyber-monday-gradients", collection(words, count, "Cyber Monday gradients"));
+    const short = "Electric blue and violet deals.";
+    expect(told(short)).toBe(
+      `${short} 25 color palettes with hex codes and CSS gradients. Open any palette to edit and export it.`
+    );
+    const long = `${"Neon blue, violet and magenta run into black, ".repeat(2)}with teal and lime stops.`;
+    expect(long.length).toBeGreaterThan(108);
+    expect(told(long)).toBe(`${long} 25 color palettes and CSS gradients.`);
+    const whole = `${"Neon blue, violet and magenta run into black, ".repeat(3)}and stop.`;
+    expect(told(whole)).toBe(whole);
     expect(by("/ocean-gradients")).toBe(
       "Ocean gradients: 25 color palettes and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG."
     );
@@ -446,14 +460,36 @@ describe("descriptions", () => {
     expect(title("sun-bleached", long)).toBe(
       "Sun bleached pool tiles of a motel in the high desert at… | Grabient"
     );
-    /* a result shows every one of them whole */
+    /* a result's title link shows every one of them whole: each is measured as the link draws it, digits and all,
+       so a title of wide letters keeps the form that fits ("Gummy candy swatches: 25 color palettes with hex codes"
+       is 65 characters and 607px) */
+    expect(title("gummy-candy-swatches", "Gummy candy swatches", 25)).toBe(
+      "Gummy candy swatches: 25 color palettes | Grabient"
+    );
+    expect(title("dark-academia-color-palette", "Dark academia color palette", 24)).toBe(
+      "Dark academia color palette with hex codes | Grabient"
+    );
     for (const [slug, name] of [
       ["gta-6-gradients", "GTA 6 gradients"],
       ["soft-summer-color-palette", "Soft summer color palette"],
       ["dark-academia-color-palette", "Dark academia color palette"],
+      ["gummy-candy-swatches", "Gummy candy swatches"],
+      ["loden-wool-and-amber", "Loden wool and amber"],
+      ["hunger-games-color-palette", "Hunger Games color palette"],
+      ["wgsn-2027-swatches", "WGSN 2027 swatches"],
       ["shades-of-blue", "Shades of blue"]
     ])
-      expect(title(slug, name, 24).length, name).toBeLessThanOrEqual(65);
+      for (const count of [1, 9, 15, 24, 25, 100])
+        expect(linkWidth(title(slug, name, count)), `${name} ${count}`).toBeLessThanOrEqual(
+          TITLE_LINK
+        );
+    /* a title that says hex codes itself is not told so again */
+    expect(title("gta-6-hex-codes", "GTA 6 hex codes")).toBe(
+      "GTA 6 hex codes: 15 color palettes | Grabient"
+    );
+    expect(title("sunset-palettes-with-hex-codes", "Sunset palettes with hex codes")).toBe(
+      "Sunset palettes with hex codes: 15 color palettes | Grabient"
+    );
     /* a collection of one color says the color's own hex after its title, which leaves the count no room; a private
        collection's page lists no codes; an empty one has none to list; and another language keeps the title it has */
     expect(title("burgundy-swatches", "Burgundy swatches", 11)).toBe(
@@ -631,6 +667,8 @@ describe("a palette that plays an effect", () => {
     aurora: "aurora",
     ...KIT_WORDS
   };
+  /* the effects whose picture blends the palette's colors (engine/name.ts) */
+  const BLENDS: readonly EffectKind[] = ["glass", "blob", "silk", "aurora"];
   const named = (address: string, facts: Facts = {}) => {
     const page = pageOf(address, facts);
     const meta = pageMeta(page, PRODUCTION_ORIGIN);
@@ -645,26 +683,23 @@ describe("a palette that plays an effect", () => {
     };
   };
 
-  test.each(EFFECTS)(
-    "is titled as the %s it plays, the gradient it is, never by its palette's own style",
-    kind => {
-      const page = named(`${SEED_PAGE}?style=${kind}&angle=30`);
-      const plain = named(SEED_PAGE).heading.replace(/ gradient$/, "");
-      /* the effect in the style's place, as the gradient a search for such a look calls it */
-      expect(page.heading).toBe(`${plain} ${WORDS[kind]} gradient`);
-      expect(page.title).toBe(`${page.heading} | Grabient`);
-      /* its share card shows the effect, and its words say so, as the heading does; a gradient's card is its palette */
-      expect(page.imageAlt).toBe(page.heading);
-      expect(named(SEED_PAGE).imageAlt).toBe(`${plain} color palette`);
-      expect(page.description).toMatch(
-        new RegExp(`^${plain} ${WORDS[kind]} gradient with 7 colors: `)
-      );
-      /* the style its editor keeps under the effect is never said, and the line under its name says the effect alone */
-      for (const said of [page.heading, page.description])
-        expect(said).not.toMatch(/linear|angular|radial|swatches|color palette/i);
-      expect(page.line).not.toMatch(/gradient|swatches/i);
-    }
-  );
+  test.each(EFFECTS)("is titled as the %s it plays, never by its palette's own style", kind => {
+    const page = named(`${SEED_PAGE}?style=${kind}&angle=30`);
+    const plain = named(SEED_PAGE).heading.replace(/ gradient$/, "");
+    /* the effect in the style's place: one that blends the palette's colors as the gradient a search for such a
+         look calls it, one that draws it as shapes of one color each by its own word alone */
+    const words = BLENDS.includes(kind) ? `${WORDS[kind]} gradient` : WORDS[kind];
+    expect(page.heading).toBe(`${plain} ${words}`);
+    expect(page.title).toBe(`${page.heading} | Grabient`);
+    /* its share card shows the effect, and its words say so, as the heading does; a gradient's card is its palette */
+    expect(page.imageAlt).toBe(page.heading);
+    expect(named(SEED_PAGE).imageAlt).toBe(`${plain} color palette`);
+    expect(page.description).toMatch(new RegExp(`^${plain} ${words} with 7 colors: `));
+    /* the style its editor keeps under the effect is never said, and the line under its name says the effect alone */
+    for (const said of [page.heading, page.description])
+      expect(said).not.toMatch(/linear|angular|radial|swatches|color palette/i);
+    expect(page.line).not.toMatch(/gradient|swatches/i);
+  });
 
   test("says the effect in the line under its name, with the angle that turns it, the blob's none", () => {
     const hex = "#[0-9a-f]{6}";
@@ -700,7 +735,7 @@ describe("a palette that plays an effect", () => {
     expect(heading(pageOf(`${BANDS}?style=angularSwatches`))).toBe(
       "Monochrome blue and light blue angular palette"
     );
-    expect(heading(page)).toBe("Monochrome blue to light blue rosette gradient");
+    expect(heading(page)).toBe("Monochrome blue to light blue rosette");
     expect(heading(kept)).toBe(heading(page));
     expect(paletteFacts(kept)).toBe(paletteFacts(page));
     expect(pageMeta(kept, PRODUCTION_ORIGIN).title).toBe(pageMeta(page, PRODUCTION_ORIGIN).title);

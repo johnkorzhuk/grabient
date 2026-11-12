@@ -192,13 +192,12 @@
     font-size: var(--font-fs3);
   }
   /* a public collection's hex codes, under its files: a row a palette, its name a link to its page, then a code a
-     keyframe, the color a coin before it as the site's coins are. Out of sight it is laid out by nobody */
+     keyframe, the color a coin before it as the site's coins are. It is laid out with the page: a placeholder's
+     height in its place would send Back and a reload to another place than the reader left */
   .codes {
     display: flex;
     flex-direction: column;
     gap: var(--space-s4);
-    content-visibility: auto;
-    contain-intrinsic-size: auto 600px;
   }
   /* two columns the rows share, so every palette's codes start on one line down the page; a narrow page stands a
      palette's codes under its name */
@@ -263,6 +262,27 @@
       &:focus-visible {
         outline: 1px solid var(--color-ring);
         outline-offset: 2px;
+      }
+      /* a copied code says so over itself for a moment, as a tooltip is drawn, and nothing beside it moves */
+      &[data-said] {
+        position: relative;
+        &::after {
+          content: attr(data-said);
+          position: absolute;
+          bottom: calc(100% + var(--space-s1));
+          left: 0;
+          z-index: 1;
+          padding: var(--space-s1) var(--space-s2);
+          border-radius: var(--radius-tight);
+          background-color: var(--color-ink);
+          color: var(--color-on-ink);
+          font-family: var(--font-sans);
+          font-weight: var(--font-medium);
+          font-size: var(--font-fs2);
+          line-height: var(--font-lh-ui);
+          white-space: nowrap;
+          pointer-events: none;
+        }
       }
     }
   }

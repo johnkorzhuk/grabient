@@ -1,6 +1,7 @@
 import { decodePalette } from "@grabient/engine";
+import { effectView } from "@grabient/engine/effect.ts";
 import { namedColor } from "@grabient/engine/named-colors.ts";
-import { localHref, msg, rich, t } from "@grabient/i18n";
+import { DEFAULT_LOCALE, locale, localHref, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Curation } from "@grabient/ui/Curation.tsx";
 import { Fit, type FitVote } from "@grabient/ui/Fit.tsx";
@@ -401,16 +402,44 @@ export function CollectionPage(props: {
     const gone = [...removals().values()].map(r => r.item).filter(item => !held.has(keyOf(item)));
     return gone.length ? sortCollectionItems([...ordered(), ...gone], props.order) : ordered();
   });
-  /* the collection's palettes as its list of hex codes says them, in the page's order: each by the name its card
-     gives it (the collection's own, else the one written for it, else its colors'), linked to its page in the view
-     the collection saved it in, with its own colors, one to a keyframe, as the sheet's chips are */
+  /* the collection's palettes as its list of hex codes says them, in the page's order. Each row is its card in
+     words: linked where the card's Edit leads (the palette in the page's view over the one the collection saved it
+     in, playing the look the collection keeps it in while the page draws every palette as saved) and named as the
+     card is, by the collection's own title, else, on the English page while it is drawn as it was saved and plays no
+     effect, the title written for it, else what its colors call it, read as an effect's page reads them where it
+     plays one. Its codes are its own colors, one to a keyframe, as the sheet's chips are */
+  /* the titles written for the collection's palettes, in English, as its public read brought them: an admin's and an
+     owner's page is drawn from another read of the same collection, which brings none, and its list names its
+     palettes as every reader's does. None on a page in another language, which names its palettes in its own */
+  const written = createMemo(
+    () =>
+      new Map(
+        locale() === DEFAULT_LOCALE
+          ? (data()?.doc?.items ?? []).flatMap(item =>
+              item.written ? [[keyOf(item), item.written] as const] : []
+            )
+          : []
+      )
+  );
   const codeRows = createMemo((): CodeRow[] =>
     ordered().map(item => {
       const own = inputOf(item);
-      const href = paletteHref(own, null);
+      const shown = drawnIn(own, props.view, null, lookFinish(item.look));
+      const plays = cardPlays(
+        props.view,
+        null,
+        item.kseed,
+        item.look ? lookEffect(item.kseed, item.look) : null
+      );
+      const palette = plays ? decodePalette(item.kseed) : null;
+      const asSaved = !plays && shown.style === own.style && shown.steps === own.steps;
+      const href = paletteHref(shown, props.view.size, plays, true);
       return {
         key: keyOf(item),
-        name: item.title ?? item.written ?? nameOf(own),
+        name:
+          item.title ??
+          (asSaved ? (item.written ?? written().get(keyOf(item))) : undefined) ??
+          nameOf(palette ? { ...shown, ...effectView(palette) } : shown),
         href,
         rel: relTo(href),
         hexes: hexesOf({ seed: item.kseed, steps: 0 })
@@ -1012,7 +1041,7 @@ export function CollectionPage(props: {
                         </a>
                       </div>
                     </section>
-                    <HexCodes rows={codeRows()} onCopied={() => say(t("Copied"))} />
+                    <HexCodes rows={codeRows()} />
                   </div>
                 </Show>
               </div>

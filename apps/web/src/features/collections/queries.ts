@@ -82,8 +82,10 @@ const readCollection = createIsomorphicFn()
         private: (await collectionVisibility(db, slug)) === "private",
         fetchedAt: Date.now()
       };
-    // each palette's own written title, which the page's list of hex codes calls it by
-    const doc = await withWritten(db, found);
+    /* each palette's own written title, which the page's list of hex codes calls it by: on the English page alone,
+       since the titles are written in English and a page in another language names its palettes in its own, as its
+       cards do. The page stands without them: a read that fails leaves each palette to its colors' name */
+    const doc = asked() ? found : await withWritten(db, found).catch(() => found);
     // the colors are read from the tags as written, which a translation keeps in their order
     const [{ doc: shown, languages }, colors] = await Promise.all([
       localizeDocument(db, asked(), doc),

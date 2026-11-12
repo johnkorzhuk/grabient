@@ -1424,7 +1424,7 @@ for (const [width, words] of [
     }
   });
 
-test("a public collection lists every palette's hex codes under its files: each by its name and a link to its page, a press copies a code, and the arrows walk the codes from one Tab stop", async ({
+test("a public collection lists every palette's hex codes under its files: each by its name and a link where its card leads, a press copies a code and says so over it, and the arrows walk the codes from one Tab stop", async ({
   page,
   context
 }) => {
@@ -1441,7 +1441,7 @@ test("a public collection lists every palette's hex codes under its files: each 
       route.fulfill({
         json: {
           ...words,
-          itemCount: 3,
+          itemCount: 4,
           items: [
             // the collection's own title, the title written for the palette, and neither: its colors' name
             { kseed: SEED, ...preview[0], seed: undefined, title: "Violet hour" },
@@ -1463,6 +1463,18 @@ test("a public collection lists every palette's hex codes under its files: each 
               likes: 0,
               createdAt: 1,
               position: 2
+            },
+            // one the collection keeps playing an effect: its row leads where its card does, named by its colors
+            {
+              kseed: "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
+              style: "linearGradient",
+              steps: 8,
+              angle: 45,
+              likes: 0,
+              createdAt: 1,
+              position: 3,
+              look: "style=silk",
+              written: "Never said of a look"
             }
           ]
         }
@@ -1475,7 +1487,7 @@ test("a public collection lists every palette's hex codes under its files: each 
   const codes = page.getByRole("region", { name: "Hex codes" });
   await expect(codes.getByRole("heading", { level: 2, name: "Hex codes" })).toBeVisible();
   const rows = codes.getByRole("listitem");
-  await expect(rows).toHaveCount(3);
+  await expect(rows).toHaveCount(4);
   await expect(rows.nth(0).getByRole("link")).toHaveText("Violet hour");
   await expect(rows.nth(1).getByRole("link")).toHaveText("Dusk over the mesa");
   // a palette no one titled goes by what its colors are called, as its card does
@@ -1486,26 +1498,94 @@ test("a public collection lists every palette's hex codes under its files: each 
     "href",
     `/${OTHER}?style=linearSwatches&steps=5`
   );
+  // a palette kept in a look is linked as its card links it, and the title written for its gradient is not its name
+  await expect(rows.nth(3).getByRole("link")).toHaveAttribute(
+    "href",
+    /^\/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g\?style=silk/
+  );
+  await expect(rows.nth(3).getByRole("link")).not.toHaveText("Never said of a look");
   // its own colors, one to a keyframe, each a code
   const first = rows.nth(0).getByRole("button");
   const count = await first.count();
   expect(count).toBeGreaterThanOrEqual(2);
   for (const text of await first.allTextContents()) expect(text).toMatch(/^#[0-9a-f]{6}$/);
-  // a press copies the code and the page's line says so
+  // a press copies the code, which says so over itself for a moment and stands where it stood
   const code = (await first.nth(0).textContent()) ?? "";
+  await first.nth(0).scrollIntoViewIfNeeded();
+  const stood = await first.nth(0).boundingBox();
   await first.nth(0).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(code);
-  await expect(page.getByRole("status").filter({ hasText: "Copied" })).toBeVisible();
-  // one Tab stop however many codes: the arrows walk them, down a palette at a time, End to the last
-  await expect(codes.locator('button[tabindex="0"]')).toHaveCount(1);
-  await first.nth(0).focus();
+  await expect(first.nth(0)).toHaveAttribute("data-said", "Copied");
+  expect(await first.nth(0).boundingBox()).toEqual(stood);
+  await expect(first.nth(0)).not.toHaveAttribute("data-said", "Copied");
+  // one Tab stop however many codes, on the code focused last: a press moves it, and so do the arrows, down a palette
+  // at a time, End to the last, Home to the first
+  const stops = codes.locator('button[tabindex="0"]');
+  await expect(stops).toHaveCount(1);
+  await expect(first.nth(0)).toHaveAttribute("tabindex", "0");
   await page.keyboard.press("ArrowRight");
   await expect(first.nth(1)).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(rows.nth(1).getByRole("button").nth(1)).toBeFocused();
+  await expect(stops).toHaveCount(1);
+  await rows.nth(2).getByRole("button").first().click();
+  await page.keyboard.press("ArrowUp");
+  await expect(rows.nth(1).getByRole("button").first()).toBeFocused();
+  await expect(stops).toHaveCount(1);
+  await expect(rows.nth(1).getByRole("button").first()).toHaveAttribute("tabindex", "0");
   await page.keyboard.press("End");
-  await expect(rows.nth(2).getByRole("button").last()).toBeFocused();
-  await expect(codes.locator('button[tabindex="0"]')).toHaveCount(1);
+  await expect(rows.nth(3).getByRole("button").last()).toBeFocused();
+  // a key held with Alt is the browser's own
+  await page.keyboard.press("Alt+ArrowLeft");
+  await expect(rows.nth(3).getByRole("button").last()).toBeFocused();
   await page.keyboard.press("Home");
   await expect(first.nth(0)).toBeFocused();
+  await expect(stops).toHaveCount(1);
+});
+
+test("an admin's page of a public collection names its hex codes' palettes as every reader's does, once the read of the collection as an admin sees it lands", async ({
+  page
+}) => {
+  await signIn(page, "admin", true);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  const item = { kseed: SEED, ...preview[0], seed: undefined };
+  // the public read brings the title written for the palette; the admin's own read of the collection brings none
+  await page.route(`**/api/collections/${SLUG}`, route =>
+    route.fulfill({ json: { ...words, items: [{ ...item, written: "Dusk over the mesa" }] } })
+  );
+  let asked = 0;
+  await page.route(`**/api/me/collections/${SLUG}/state*`, route => {
+    asked++;
+    return route.fulfill({
+      json: {
+        owned: false,
+        canCurate: true,
+        canDelete: true,
+        copy: null,
+        votes: {},
+        notes: [],
+        collection: { ...words, items: [item] }
+      }
+    });
+  });
+  await page.route("**/api/me/palettes?*", route => route.fulfill({ json: { liked: [] } }));
+  await page.goto("/collections");
+  await live(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const name = page
+    .getByRole("region", { name: "Hex codes" })
+    .getByRole("listitem")
+    .getByRole("link");
+  await expect(name).toHaveText("Dusk over the mesa");
+  // the admin's read has landed: the card offers its curation, and the row is named as it was
+  await expect(
+    page.locator("main article").first().getByRole("button", { name: "Set view" })
+  ).toBeEnabled();
+  expect(asked).toBeGreaterThan(0);
+  await expect(name).toHaveText("Dusk over the mesa");
 });

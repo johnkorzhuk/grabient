@@ -10,7 +10,14 @@ import {
   effectView
 } from "@grabient/engine/effect.ts";
 import { sentence } from "@grabient/engine/message.ts";
-import { readingName, readingPhrase, readPalette, titleWords } from "@grabient/engine/name.ts";
+import {
+  linkWidth,
+  readingName,
+  readingPhrase,
+  readPalette,
+  TITLE_LINK,
+  titleWords
+} from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
 import {
   asSaved,
@@ -560,9 +567,6 @@ const pagedTitle = (title: string, page = 1) =>
   page > 1 ? t("{title}, page {page}", { title, page }) : title;
 /** The longest title a result shows whole, the site's name included. */
 const TITLE_MAX = 70;
-/** A collection's title with what its page holds after its own words, at most: a result's title link is cut at about
-    580px, which 65 characters of these words stay within. */
-const CODED_TITLE_MAX = 65;
 /** A list's title: its name, the page past the first and the site's name, the name cut at a word to the room when the
     words someone typed run longer, so the page and the site's name stay. */
 function listTitle(name: string, page = 1): string {
@@ -977,10 +981,12 @@ function collectionPage(
   );
   /* A public collection's page lists every palette's hex codes under its cards (HexCodes.tsx), and its title says so
      in English, the language the searches were read in (US, Nov 2026: the pages that lead a search for a theme's
-     colors show its codes, and people add "hex codes" to the search): the fullest of its forms that a result shows
-     whole, the collection's own words first as its page ranks under them. A title that says palette itself is not
-     told so twice. The other languages keep the title they have until theirs are read. */
-  const listsCodes = locale() === DEFAULT_LOCALE && count > 0 && !c.unlisted;
+     colors show its codes, and people add "hex codes" to the search): the fullest of its forms that a result's title
+     link shows whole, measured as the link draws it, the collection's own words first as its page ranks under them.
+     A title that says palette itself is not told so twice, nor one that says hex. The other languages keep the title
+     they have until theirs are read. */
+  const listsCodes =
+    locale() === DEFAULT_LOCALE && count > 0 && !c.unlisted && !/\bhex\b/i.test(c.title);
   const palettes = /\bpalettes?\b/i.test(c.title);
   const withCodes = listsCodes
     ? [
@@ -996,22 +1002,24 @@ function collectionPage(
         ...(palettes ? [t("{title} with hex codes", { title })] : [])
       ]
         .map(titled)
-        .find(text => text.length <= CODED_TITLE_MAX)
+        .find(text => linkWidth(text) <= TITLE_LINK)
     : undefined;
   meta.title = withCodes ?? (count > 0 && counted.length <= 62 ? counted : listTitle(title));
-  /* a collection of one color leads its description with the color's own codes (coded, below), which take the room */
+  /* what its page holds, said after its own words where there is room: with its hex codes in English, as its title
+     says, in the same sentence as its gradients, so a collection of gradients goes on saying so. A collection of one
+     color leads its description with the color's own codes (coded, below), which take the room */
   meta.description = c.description
     ? fitted(c.description, [
         ...(listsCodes && !color
           ? [
               (words: string) =>
                 t(
-                  "{words} {count, plural, one {# color palette} other {# color palettes}} with hex codes and CSS gradients.",
+                  "{words} {count, plural, one {# color palette} other {# color palettes}} with hex codes and CSS gradients. Open any palette to edit and export it.",
                   { words, count }
                 ),
               (words: string) =>
                 t(
-                  "{words} {count, plural, one {# color palette} other {# color palettes}} with hex codes.",
+                  "{words} {count, plural, one {# color palette} other {# color palettes}} with hex codes and CSS gradients.",
                   { words, count }
                 )
             ]

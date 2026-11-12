@@ -109,8 +109,8 @@ export function heldWords(
 
 /** A public collection with the title written for each of its palettes that has none of the collection's own, where
     the view the collection saved it in bears the words out (heldWords), which a look that plays an effect never does:
-    what its page's list of hex codes calls each palette, as its files do. One read for the collection's seeds; none
-    where every palette has the collection's own title. */
+    what its English page's list of hex codes calls each palette, as its files do. One read for the collection's
+    seeds; none where every palette has the collection's own title. Its callers go on without it where it fails. */
 export async function withWritten<T extends Pick<CollectionDocument, "items">>(
   env: Reader,
   doc: T
