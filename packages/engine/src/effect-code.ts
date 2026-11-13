@@ -195,7 +195,7 @@ export function effectColors(P: Palette, effect: Effect): string[] {
     grain stand where the view has them, as a gradient's document writes them; the steps where the effect takes them,
     its designed number where its look names none; a zoom where the effect takes one in its shape's place (the
     dimple's), its designed zoom where its look names none, and its `roam` while it roams; a path where the effect
-    takes one there (the aurora's), its designed path where its look names none; the strings' ground and the
+    takes one beside its shape (the aurora's), its designed path where its look names none; the strings' ground and the
     aurora's range's where their look names one, none being the strings' designed ground and the aurora's clear
     range (the blob's `bg` always stands, none being clear). */
 function effectSettings(effect: Effect, angle: number, finish: EffectFinish = {}) {
@@ -212,11 +212,8 @@ function effectSettings(effect: Effect, angle: number, finish: EffectFinish = {}
         speed,
         fps,
         ...(effect.roam ? { roam: true } : {}),
-        ...(zoom
-          ? { zoom: look.zoom ?? zoom.designed }
-          : path
-            ? { path: look.path ?? AURORA_DESIGNED_PATH }
-            : { shape: look.shape ?? 0 }),
+        ...(zoom ? { zoom: look.zoom ?? zoom.designed } : { shape: look.shape ?? 0 }),
+        ...(path ? { path: look.path ?? AURORA_DESIGNED_PATH } : {}),
         ...(look.bg !== null && EFFECT_KINDS[kind].ground ? { bg: look.bg } : {})
       }
     : { style: kind, ...kept, speed, fps, shape: look.shape, frost: look.frost, bg: look.bg };
@@ -340,7 +337,7 @@ export const effectMarkdown =
         case "aurora":
           return [
             `${name} played as an aurora: the palette ${colors} as light boiling up behind a still range, its darker end the night and its lighter end the hottest light, the range ${bg === null ? "clear, the page through it" : `filled with ${bg}`}.`,
-            `an aurora, turned to ${angle} degrees, its range ${effect.look.path === null ? "as designed" : `the path ${effect.look.path}`}${bg === null ? ", clear" : `, filled with ${bg}`}, ${play}`
+            `an aurora, turned to ${angle} degrees, shape ${shape ?? 0}, its range ${effect.look.path === null ? "as designed" : `the path ${effect.look.path}`}${bg === null ? ", clear" : `, filled with ${bg}`}, ${play}`
           ];
         case "strings":
           return [

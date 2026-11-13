@@ -20,7 +20,6 @@ How Grabient says its own words in Ukrainian. Read `README.md` first; use the wo
 | roam (the dimple's Roam switch) | Блукання | The dimple's hollow going round a slow loop by itself rather than following the pointer. A noun, as the menus' fields are; the hollow wandering by itself. |
 | aurora (an effect) | Полярне сяйво | Curtains of light in the palette's colors rising behind a still outline. The northern lights; not «аврора» (a name) and not «світанок» (dawn). |
 | path (the aurora's Path field) | Контур | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. As design apps name a vector path; not «шлях» (a file's path). |
-| range, line, curve, mix, skyline (the aurora's Shape values) | Гори, Лінія, Крива, Суміш, Силует міста | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | color palette | палітра кольорів | The phrase Ukrainian searchers type; used in titles and descriptions. |
 | swatches | зразки | As Photoshop's Swatches panel is Зразки. Style names: лінійні / кутові / радіальні зразки. The style menu's "bands" is смуги (Лінійні смуги). |
 | Swatches (the strip's swatch files) | Зразки | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Перемкнути на зразки. |

@@ -56,7 +56,6 @@ time: the same control is never คัดลอก on one page and ทำสำ�
 | roam (the dimple's Roam switch) | เคลื่อนเอง | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow moving by itself; no full stop, as Thai lines here have none. |
 | aurora (an effect) | แสงเหนือ | Curtains of light in the palette's colors rising behind a still outline. The northern lights; not รุ่งอรุณ (dawn). |
 | path (the aurora's Path field) | พาธ | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. As Illustrator TH names a vector path; not เส้นทาง (a route). |
-| range, line, curve, mix, skyline (the aurora's Shape values) | ทิวเขา, เส้นตรง, เส้นโค้ง, ผสม, เส้นขอบฟ้าเมือง | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | linear / angular / radial (style names) | เชิงเส้น / เชิงมุม / รัศมี | The usual Thai names for gradient types (เชิงเส้น, รัศมี); เชิงมุม follows Figma's Angular. In a phrase: ไล่เฉดสีเชิงเส้น, ไล่เฉดสีเชิงมุม, ไล่เฉดสีแบบรัศมี. |
 | swatches, bands | แถบสี | A palette drawn as hard bands: แถบสีเชิงเส้น, แถบสีเชิงมุม, แถบสีรัศมี. A single hard band is แถบ. |
 | Swatches (the strip's swatch files) | ตัวอย่างสี | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": เปลี่ยนเป็นตัวอย่างสี. |

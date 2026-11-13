@@ -30,8 +30,8 @@
     font-weight: var(--font-medium);
     opacity: 1;
   }
-  /* a press inside a field's box at its end, quiet until the pointer is on it: this field's clear, and a number
-     field's own (Scrub's action, the shape's dice) */
+  /* a press inside a field's box at its end, quiet until the pointer is on it: this field's clear and its action
+     (the Path's dice), and a number field's own (Scrub's action, the shape's dice) */
   .press {
     display: grid;
     flex-shrink: 0;
@@ -55,6 +55,10 @@
     @media (pointer: coarse) {
       width: 32px;
       height: 32px;
+    }
+    /* a second press beside the first (the Path's dice after its clear) stands a step from it, not the box's gap */
+    & + & {
+      margin-inline-start: calc(-1 * var(--space-s1));
     }
   }
 }

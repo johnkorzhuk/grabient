@@ -166,14 +166,14 @@ test("the sandstone takes steps, 8 to 40, its look's, none at its designed 28; e
   });
 });
 
-test("the dimple takes a zoom in its shape's place, 1 to 4, none as designed; every other effect no zoom, and a shape unless it takes a path", () => {
+test("the dimple takes a zoom in its shape's place, 1 to 4, none as designed; every other effect no zoom, and a shape", () => {
   /* John, 10 Nov 2026, of its shapes 0 to 999: "theres barely any difference", then "lets repalce shape with a zoom
      option for this style" */
   expect(EFFECT_KINDS.dimple.zoom).toEqual({ least: 1, most: 4, designed: 1 });
   expect(takesShape("dimple")).toBe(false);
   for (const kind of EFFECTS.filter(other => other !== "dimple")) {
     expect(EFFECT_KINDS[kind].zoom, kind).toBeNull();
-    expect(takesShape(kind), kind).toBe(!EFFECT_KINDS[kind].path);
+    expect(takesShape(kind), kind).toBe(true);
   }
   /* read from `zoom`, two decimals, clamped to its range; a word is none */
   expect(effect("style=dimple&zoom=2.5").look.zoom).toBe(2.5);
@@ -271,10 +271,11 @@ test("the aurora stands upright where no angle is set for it, at 90, where every
   expect(effectAddressParts(effect("style=aurora"), 90)).toEqual(["style=aurora"]);
 });
 
-test("the aurora takes a path in its shape's place, none as designed; every other effect none", () => {
-  /* John, 10 Nov 2026: "what if we made the path that cuts off the aura effect url encodable?" */
+test("the aurora takes a path beside its shape, none as designed; every other effect none", () => {
+  /* John, 10 Nov 2026: "what if we made the path that cuts off the aura effect url encodable?"; and of its shape, 13
+     Nov 2026: "making it a normal 0-999 seed like the others" */
   expect(EFFECT_KINDS.aurora.path).toBe(true);
-  expect(takesShape("aurora")).toBe(false);
+  expect(takesShape("aurora")).toBe(true);
   for (const kind of EFFECTS.filter(other => other !== "aurora"))
     expect(EFFECT_KINDS[kind].path, kind).toBe(false);
   /* read from `path`, its commas and colons as they are or escaped */
@@ -295,18 +296,26 @@ test("the aurora takes a path in its shape's place, none as designed; every othe
   expect(effect("style=aurora").look.path).toBeNull();
   expect(effect(`style=papercut&path=${walled}`).look.path).toBeNull();
   expect(effect(`style=blob&path=${walled}`).look.path).toBeNull();
-  /* its shape is none, whatever an address or a save says */
-  expect(effect("style=aurora&shape=417").look.shape).toBeNull();
+  /* its shape is a number 0 to 999 as every other effect's, 0 as designed, which none is too */
+  expect(effect("style=aurora&shape=417").look.shape).toBe(417);
+  expect(effect("style=aurora&shape=0").look.shape).toBeNull();
+  expect(effect("style=aurora&shape=1000").look.shape).toBeNull();
   expect(effectLook({ shape: 417, path: walled }, "aurora")).toEqual({
     ...EFFECT_LOOK,
+    shape: 417,
     path: walled
   });
-  /* written among its look's parts in its shape's place, before its ground, in its still's name and its files' */
+  /* written among its look's parts after its shape, before its ground, in its still's name and its files' */
   expect(
     effectAddressParts(effect(`style=aurora&bg=%23102030&path=${walled}&shape=7&speed=2`), 45)
-  ).toEqual(["style=aurora", "angle=45", "speed=2", `path=${walled}`, "bg=%23102030"]);
+  ).toEqual(["style=aurora", "angle=45", "speed=2", "shape=7", `path=${walled}`, "bg=%23102030"]);
   expect(effectStillParts(effect(`style=aurora&path=${walled}&speed=2`), 90)).toEqual([
     "style=aurora",
+    `path=${walled}`
+  ]);
+  expect(effectStillParts(effect(`style=aurora&shape=417&path=${walled}&speed=2`), 90)).toEqual([
+    "style=aurora",
+    "shape=417",
     `path=${walled}`
   ]);
   expect(
@@ -326,6 +335,13 @@ test("the aurora takes a path in its shape's place, none as designed; every othe
   expect(readFxStillKey(`aurora|${SEED}|90||${walled}`)?.look).toEqual({ ...look, bg: null });
   expect(readFxStillKey(`aurora|${SEED}|90||#10203080`)?.look).toEqual({ ...look, path: null });
   expect(fxStillKey("aurora", SEED, { ...look, path: null, bg: null })).toBe(`aurora|${SEED}|90|`);
+  expect(fxStillKey("aurora", SEED, { ...look, shape: 417 })).toBe(
+    `aurora|${SEED}|90|417|${walled}|#10203080`
+  );
+  expect(readFxStillKey(`aurora|${SEED}|90|417|${walled}|#10203080`)?.look).toEqual({
+    ...look,
+    shape: 417
+  });
   /* no page wrote a name whose path is another spelling, the designed range, no path, or another kind's */
   expect(readFxStillKey(`aurora|${SEED}|90||line,33.0,33`)).toBeNull();
   expect(readFxStillKey(`aurora|${SEED}|90||${AURORA_DESIGNED_PATH}`)).toBeNull();

@@ -11,7 +11,7 @@ import { type AuroraPlay, createAuroraDrawing, playAurora } from "../src/aurora-
    and at speed 0 its first frame and no more until its look changes. */
 
 const P = decodePalette("kS7CQ31Do6asvY-") as Palette;
-const VIEW: AuroraPlay = { angle: 90, path: null, bg: null, speed: 1, fps: 60 };
+const VIEW: AuroraPlay = { angle: 90, shape: null, path: null, bg: null, speed: 1, fps: 60 };
 
 interface Sent {
   draws: number;
@@ -44,6 +44,7 @@ function recordingGl(sent: Sent, canvas?: HTMLCanvasElement) {
     uniform1i: uniform,
     uniform1f: uniform,
     uniform2f: uniform,
+    uniform2fv: uniform,
     uniform3fv: uniform,
     uniform4fv: uniform,
     texImage2D: (...args: unknown[]) => {
@@ -181,6 +182,8 @@ test("sends the table and the scene's uniforms once a layout, and a frame sets t
     uFrame: Array.from(u.frame),
     uPath: Array.from(u.path),
     uRange: Array.from(u.range),
+    uFan: Array.from(u.fan),
+    uSheets: Array.from(u.sheets),
     uTime: [0]
   });
   expect(tablesOf(sent).map(p => [p.height, p.data])).toEqual([
@@ -194,7 +197,7 @@ test("sends the table and the scene's uniforms once a layout, and a frame sets t
   expect([sent.draws, tablesOf(sent).length, tilesOf(sent).length]).toEqual([4, 1, 2]);
 });
 
-test("sends the scene again when the look's path, its angle or its ground changes, and never the tiles", () => {
+test("sends the scene again when the look's shape, its path, its angle or its ground changes, and never the tiles", () => {
   const sent = nothingSent();
   const drawing = createAuroraDrawing(recordingGl(sent));
   drawing.layout(P, VIEW, 320, 180);
@@ -203,7 +206,8 @@ test("sends the scene again when the look's path, its angle or its ground change
   const looks: AuroraPlay[] = [
     { ...VIEW, path: "line,20,80,35" },
     { ...VIEW, path: "line,20,80,35", angle: 215 },
-    { ...VIEW, path: "line,20,80,35", angle: 215, bg: "#140b19" }
+    { ...VIEW, path: "line,20,80,35", angle: 215, bg: "#140b19" },
+    { ...VIEW, path: "line,20,80,35", angle: 215, bg: "#140b19", shape: 417 }
   ];
   let before = auroraScene(P, VIEW, { width: 320, height: 180 });
   for (const look of looks) {
@@ -216,10 +220,12 @@ test("sends the scene again when the look's path, its angle or its ground change
     const u = auroraSceneUniforms(scene);
     /* the look differs from the last in what the pass reads */
     const was = auroraSceneUniforms(before);
-    expect([u.frame, u.path, u.range, auroraTable(scene)]).not.toEqual([
+    expect([u.frame, u.path, u.range, u.fan, u.sheets, auroraTable(scene)]).not.toEqual([
       was.frame,
       was.path,
       was.range,
+      was.fan,
+      was.sheets,
       auroraTable(before)
     ]);
     expect(sent.pictures.map(p => [p.width, p.height, p.data])).toEqual([
@@ -228,6 +234,8 @@ test("sends the scene again when the look's path, its angle or its ground change
     expect(named(sent, "uFrame").map(s => s.data)).toEqual([Array.from(u.frame)]);
     expect(named(sent, "uPath").map(s => s.data)).toEqual([Array.from(u.path)]);
     expect(named(sent, "uRange").map(s => s.data)).toEqual([Array.from(u.range)]);
+    expect(named(sent, "uFan").map(s => s.data)).toEqual([Array.from(u.fan)]);
+    expect(named(sent, "uSheets").map(s => s.data)).toEqual([Array.from(u.sheets)]);
     expect(named(sent, "uTime")).toHaveLength(2);
     before = scene;
   }

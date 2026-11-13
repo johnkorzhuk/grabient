@@ -45,7 +45,6 @@ time, and add a row when a new product word gets its translation.
 | roam (the dimple's Roam switch) | Jelajah | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow moving about by itself; „penunjuk“ is the pointer. |
 | aurora (an effect) | Aurora | Curtains of light in the palette's colors rising behind a still outline. The northern lights, as Indonesian names them; not fajar (dawn). |
 | path (the aurora's Path field) | Jalur | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. A vector path, the line a shape follows; not a file's path. |
-| range, line, curve, mix, skyline (the aurora's Shape values) | Pegunungan, Garis, Kurva, Campuran, Siluet kota | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | swatches (style) | pita warna | Judgment: the style draws hard bands, and the English menu itself says "bands". Pita is the band of pita frekuensi; blok warna would suggest squares. Menu: Pita linear, Pita angular, Pita radial. In titles: pita warna linear. |
 | Swatches (the strip's swatch files) | Swatch | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Beralih ke mode swatch. |
 | style | gaya | Canva's word. Linear, Angular, Radial stay as Figma names them (gradien linear, gradien angular, gradien radial). |

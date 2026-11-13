@@ -315,8 +315,8 @@ test("the palette's Markdown at an effect's address says what plays and how, and
 test("the aurora's code names its path, paints its still with one tag and writes its first frame as shapes", () => {
   const aurora = effect("style=aurora");
   const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
-  /* its JSON names its path in a shape's place, the designed one where its address names none, and its range's
-     ground where it names one, none being clear */
+  /* its JSON names its shape, 0 as designed, and its path beside it, the designed one where its address names
+     none, and its range's ground where it names one, none being clear */
   const json = JSON.parse(effectSpecJson(P, aurora, 45));
   expect(fromSpec(json)).toEqual(P);
   expect(json).toMatchObject({
@@ -324,13 +324,15 @@ test("the aurora's code names its path, paints its still with one tag and writes
     angle: 45,
     speed: 1,
     fps: 60,
+    shape: 0,
     path: AURORA_DESIGNED_PATH
   });
-  expect(json).not.toHaveProperty("shape");
   expect(json).not.toHaveProperty("bg");
   expect(
-    JSON.parse(effectSpecJson(P, effect(`style=aurora&path=${walled}&bg=%2310203080`), 45))
-  ).toMatchObject({ path: walled, bg: "#10203080" });
+    JSON.parse(
+      effectSpecJson(P, effect(`style=aurora&shape=417&path=${walled}&bg=%2310203080`), 45)
+    )
+  ).toMatchObject({ shape: 417, path: walled, bg: "#10203080" });
   /* no script plays it behind a page: its tags are its stylesheet's alone, and its files name no script */
   const doc = effectDocument(P, ORIGIN, SEED, aurora, 90, `${ORIGIN}/api/og`);
   expect(doc.links.js).toBeNull();
@@ -364,7 +366,7 @@ test("the aurora's code names its path, paints its still with one tag and writes
   expect(text("style=aurora")).toContain("the range clear, the page through it");
   expect(text("style=aurora")).toContain("One tag paints its still behind any page.");
   expect(text("style=aurora")).toContain(
-    "- Drawn as: an aurora, turned to 45 degrees, its range as designed, clear, speed 1, up to 60 frames a second"
+    "- Drawn as: an aurora, turned to 45 degrees, shape 0, its range as designed, clear, speed 1, up to 60 frames a second"
   );
   expect(text("style=aurora")).not.toContain("- [Script]");
   expect(text(`style=aurora&path=${walled}&bg=%23101014`)).toContain(

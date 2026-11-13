@@ -28,17 +28,29 @@ import {
 } from "./effect-loop.ts";
 import { buildPrograms } from "./gl-build.ts";
 
-/** The aurora as it plays: the angle its picture is turned to (90 as designed), its range's path (none as designed)
-    and color (none clear), its pace and its frames a second at most. */
+/** The aurora as it plays: the angle its picture is turned to (90 as designed), its light's shape (none as designed),
+    its range's path (none as designed) and color (none clear), its pace and its frames a second at most. */
 export interface AuroraPlay {
   angle: number;
+  shape: number | null;
   path: string | null;
   bg: string | null;
   speed: number;
   fps: number;
 }
 
-const NAMES = ["uSize", "uFrame", "uPath", "uRange", "uTime", "uTable", "uNoise", "uSoft"] as const;
+const NAMES = [
+  "uSize",
+  "uFrame",
+  "uPath",
+  "uRange",
+  "uFan",
+  "uSheets",
+  "uTime",
+  "uTable",
+  "uNoise",
+  "uSoft"
+] as const;
 type Locations = Record<(typeof NAMES)[number], WebGLUniformLocation | null>;
 
 /** How long the tiles are worked at each time the loop asks whether the drawing is built, twice a frame. */
@@ -122,6 +134,8 @@ export function createAuroraDrawing(gl: WebGL2RenderingContext): EffectDrawing<A
         gl.uniform3fv(U.uFrame, u.frame);
         gl.uniform3fv(U.uPath, u.path);
         gl.uniform4fv(U.uRange, u.range);
+        gl.uniform2fv(U.uFan, u.fan);
+        gl.uniform4fv(U.uSheets, u.sheets);
         gl.activeTexture(gl.TEXTURE0);
         gl.texImage2D(
           gl.TEXTURE_2D,

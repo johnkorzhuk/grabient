@@ -29,7 +29,6 @@ The product's words in Korean, as Korean designers meet them in Figma, Adobe and
 | roam (the dimple's Roam switch) | 자동 이동 | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow moving on its own. |
 | aurora (an effect) | 오로라 | Curtains of light in the palette's colors rising behind a still outline. The northern lights, as Korean names them; not 새벽 (dawn). |
 | path (the aurora's Path field) | 패스 | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. As Illustrator and Figma KO name a vector path; not 경로 (a file's path). |
-| range, line, curve, mix, skyline (the aurora's Shape values) | 산맥, 직선, 곡선, 혼합, 스카이라인 | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | look (the examples page) | 모습 | One of the ways a palette is shown: another style, steps, angle or shape. Another look: 다른 모습 보기. Swipe for another look: 스와이프해서 다른 모습 보기. 6 looks: 모습 6가지. Not 모양, which is Appearance and Shape. |
 | Linear / Angular / Radial | 선형 / 원뿔형 / 방사형 | Angular is the conic gradient: 원뿔형, as Korean CSS writing calls conic-gradient. Not 각도, which is Angle. |
 | steps | 단계 | The Steps control, and a count of steps: 단계 7개. "7 colors" is 색상 7개. |

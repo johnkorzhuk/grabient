@@ -3,7 +3,7 @@ import { BarRim } from "./BarRim.tsx";
 import own from "./ColorField.module.css";
 import { ColorPicker } from "./ColorPicker.tsx";
 import styles from "./HexField.module.css";
-import { Icon } from "./Icon.tsx";
+import { Icon, type IconName } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import { composing } from "./keys.ts";
 import { tooltip } from "./Tooltip.tsx";
@@ -18,7 +18,9 @@ import { tooltip } from "./Tooltip.tsx";
    that is no color goes back to the color it had. Enter and Escape keep the keyboard on the field, read only and
    passing the page its keys until a key that types takes it again. Left to right in every language.
    With no picker (`onPick`) it has no swatch, and is a field for any words `read` keeps in one spelling: the
-   Appearance menu's Path (the aurora's range as its address writes it), which says its own name aloud (`name`). */
+   Appearance menu's Path (the aurora's range as its address writes it), which says its own name aloud (`name`).
+   With `action`, a press stands at the box's very end, after the clear, which no typing starts from: the Path's dice,
+   which makes another path. */
 export function ColorField(props: {
   /** its name */
   label: string;
@@ -39,6 +41,8 @@ export function ColorField(props: {
   onPick?: (value: string) => void;
   /** the panel the field stands in: the picker stands beside it, toward the line's start */
   beside?: () => HTMLElement | undefined;
+  /** a press at the box's end, after the clear: its icon, its name, which its tip says too, and what it does */
+  action?: { icon: IconName; label: string; onPress: () => void };
 }) {
   let input!: HTMLInputElement;
   const [swatch, setSwatch] = createSignal<HTMLButtonElement>();
@@ -47,6 +51,7 @@ export function ColorField(props: {
   const tip = tooltip(() => t("Color picker"));
   const clearName = () => props.clear ?? t("Clear");
   const clearTip = tooltip(clearName);
+  const actionTip = tooltip(() => props.action?.label);
   createEffect(
     () => [props.value, editing()] as const,
     ([value, typing]) => {
@@ -154,6 +159,19 @@ export function ColorField(props: {
           >
             <Icon name="close" size={12} />
           </button>
+        </Show>
+        <Show when={props.action}>
+          {action => (
+            <button
+              ref={el => actionTip(el)}
+              type="button"
+              class={own.press}
+              aria-label={action().label}
+              onClick={() => action().onPress()}
+            >
+              <Icon name={action().icon} size={14} />
+            </button>
+          )}
         </Show>
       </div>
       <Show when={open() && props.onPick ? swatch() : undefined} keyed>

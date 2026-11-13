@@ -1,28 +1,14 @@
 /* The kinds of path made for the aurora's range from a number (aurora-path.ts writes them): a jagged range, a line, a
    curve, a mix of straight and curved pieces, and a skyline of blocks with upright walls. The same kind and number
-   make the same path, so a control that steps through numbers steps through ranges. It loads without the aurora's
-   model: the Appearance menu's fields make paths, and draw none. */
+   make the same path. The Appearance menu's Path field has a press that makes one of a kind picked at random (John,
+   13 Nov 2026: "add a random button to the path input that randomizes it", "the shape randomizer chooses between
+   those options"), and a palette's examples page one by its seed. It loads without the aurora's model: the fields
+   make paths, and draw none. */
 import { auroraHash } from "./aurora-hash.ts";
-import { auroraPathOf, auroraPathParts } from "./aurora-path.ts";
+import { auroraPathOf } from "./aurora-path.ts";
 
 export const AURORA_PATH_KINDS = ["range", "line", "curve", "mix", "skyline"] as const;
 export type AuroraPathKind = (typeof AURORA_PATH_KINDS)[number];
-
-/** The kind a path is: a skyline where it has an upright wall, a curve or a line by how its pieces are joined, a mix
-    where they are joined both ways, a line where it is two heights, else a range. */
-export function auroraPathKind(path: string): AuroraPathKind {
-  const P = auroraPathParts(path);
-  if (!P) return "range";
-  if (P.places.some((x, i) => i > 0 && x === P.places[i - 1])) return "skyline";
-  const curves = P.curved.filter(Boolean).length;
-  return curves === P.curved.length
-    ? "curve"
-    : curves
-      ? "mix"
-      : P.heights.length === 2
-        ? "line"
-        : "range";
-}
 
 const TAU = Math.PI * 2;
 /* a seeded stream of numbers for a design */
@@ -139,4 +125,11 @@ export function auroraMadePath(kind: AuroraPathKind, n: number): string {
       );
     })
   );
+}
+
+/** A path made of a kind and a number `random` picks (0 up to 1, as Math.random gives one): every kind as likely, and
+    a number from 1 to 999, so never the designed range, which is none and the Path field's clear gives back. */
+export function auroraRandomPath(random: () => number = Math.random): string {
+  const kind = AURORA_PATH_KINDS[Math.floor(random() * AURORA_PATH_KINDS.length)] ?? "range";
+  return auroraMadePath(kind, 1 + Math.floor(random() * 999));
 }

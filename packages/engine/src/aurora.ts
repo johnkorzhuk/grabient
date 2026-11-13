@@ -6,7 +6,7 @@
    the same for every aurora), read between its pixels by straight lines, so the CPU and the shader read the same
    numbers. Every sheet slides a whole number of tiles a loop, so the loop's last frame is its first. The light is
    read through the whole palette, no color of it left out and none made up but the white-hot tip past its last
-   (TONE below).
+   (TONE below). The look's shape picks the fan the light rises in and where its sheets start (auroraDesign).
    In front stands the range, still. Its outline is a path the address carries (aurora-path.ts). Its color is the
    look's ground, as the blob's is: none leaves the range clear, the page through it; a color fills it, wholly or in
    part.
@@ -28,6 +28,9 @@ import type { Size } from "./view.ts";
 
 export interface AuroraView {
   angle: number;
+  /** the light's shape, a number from 0 to 999 (effect.ts EffectLook's `shape`): where the rays fan from and how the
+      sheets of noise lie along them (auroraDesign); none or 0 as designed */
+  shape: number | null;
   /** the range's path (aurora-path.ts); none as designed */
   path: string | null;
   /** the range's color (effect.ts EffectLook's `bg`): #rrggbb, or #rrggbbaa where it lets the page through; none
@@ -47,8 +50,8 @@ export const AURORA_TILE = 256;
 const CELLS = 24;
 /** The ramp the light is read through: this many colors from the least light to the hottest. */
 export const AURORA_RAMP = 128;
-/** The noise tile's number: the one the designed look was picked with, and every aurora's (a path changes the range
-    and nothing of the light behind it). */
+/** The noise tile's number: the one the designed look was picked with, and every aurora's (a shape reads the tile
+    from other places, and a path changes the range and nothing of the light behind it). */
 const TILE_SEED = 100;
 /* TONE: where the palette stands along the light. Measured over the loop, the same at 16:9, 1:1 and 9:16: no pixel's
    light is under 0.09 (the haze at the picture's top), 55% are under 0.30, 83% under 0.50, 97% under 0.75. Read
@@ -102,6 +105,85 @@ export const AURORA_LIGHT = {
   fines: 0.14,
   hots: 0.6
 } as const satisfies Record<string, AuroraSheet | readonly number[] | number>;
+
+/** What a shape draws the light by: the point the rays fan from and the six sheets. */
+export interface AuroraDesign {
+  fan: { x: number; y: number };
+  a: AuroraSheet;
+  b: AuroraSheet;
+  c: AuroraSheet;
+  h1: AuroraSheet;
+  h2: AuroraSheet;
+  g: AuroraSheet;
+}
+/** The light as designed: shape 0's, and none's. */
+export const AURORA_DESIGNED: AuroraDesign = {
+  fan: AURORA_FAN,
+  a: AURORA_LIGHT.a,
+  b: AURORA_LIGHT.b,
+  c: AURORA_LIGHT.c,
+  h1: AURORA_LIGHT.h1,
+  h2: AURORA_LIGHT.h2,
+  g: AURORA_LIGHT.g
+};
+/** What a shape may change, each from its least to its most: how far under the picture the rays fan from (as
+    designed 0.7: nearer, they spread like a burst; farther, they stand nearly upright), how far to one side (they lean
+    away from it), how wide the shafts are on the picture (1 as designed), and how many tiles of the slow sheet the
+    light gathers by span a radian on the picture as designed (0.42: fewer, it gathers in one or two broad places;
+    more, in several). Picked by eye on 13 Nov 2026 from montages of random shapes in Neon candy and Electric blue
+    (W/aurora-shape): past these the broadest shafts turn to blobs and the nearest fan to a sunburst. The narrowest
+    shafts and the deepest fan are kept where any frame's SVG keeps to its CPU frame (the conformance suite's limits,
+    a 99th percentile of 8 and 0.6% far, at 320 by 180, its hardest size): with shafts to 0.75 and fans to 1.15 deep,
+    one of all 999 shapes came to 8.3, the narrowest and deepest, as the 99th percentile climbs as the shafts narrow
+    (the mean of each fifth of the shapes by width, 6.7 at 0.8 to 6.1 at 1.2) and as the fan deepens. Within these,
+    all 999 at 90 degrees came within 7.80, and the thirty hardest at four angles and six times within 7.94 and
+    0.58%, where the light as designed comes within 7.40 and 0.39% (13 Nov 2026). */
+export const AURORA_SHAPES = {
+  depth: [0.5, 1.05],
+  lean: [-0.25, 0.25],
+  wide: [0.85, 1.3],
+  gather: [0.25, 0.75]
+} as const;
+/* the height in the picture (0 its bottom, 1 its top) at which the shafts stand as wide whatever the fan's depth:
+   just over the designed range, which stands about 0.37 high, where the light is brightest */
+const KEEP_AT = 0.4;
+/* a design's number to four decimals: the same in every engine that works it out */
+const kept4 = (v: number) => Math.floor(v * 10000 + 0.5) / 10000;
+/** The light a shape draws: as designed for none and 0, and for any other number from 1 to 999 a fan of its own
+    (AURORA_SHAPES) and every sheet starting at a place of its own in the tile, so that the same loop plays other
+    flames. The sheets slide as designed, whole tiles a loop, so every shape's loop closes and keeps the designed
+    pace; the shafts are spread over the fan by how far it reaches, so that they stand as wide on the picture at its
+    middle height as `wide` says whatever its depth, and the fine shafts as wide as designed (the finest detail an SVG
+    of a frame draws, which the narrowest shafts would otherwise make finer still). */
+export function auroraDesign(shape: number | null): AuroraDesign {
+  if (!shape) return AURORA_DESIGNED;
+  let i = 0;
+  const r = () => auroraHash(i++, shape * 104729 + 5);
+  const between = ([least, most]: readonly number[]) => least + (most - least) * r();
+  const S = AURORA_SHAPES;
+  const depth = between(S.depth);
+  const lean = between(S.lean);
+  const wide = between(S.wide);
+  const gather = between(S.gather);
+  /* sheets a radian across: as many more as the rays reach farther to the picture's middle */
+  const keep = (depth + KEEP_AT) / (-AURORA_FAN.y + KEEP_AT);
+  const start = (s: AuroraSheet, across: number): AuroraSheet => ({
+    ...s,
+    across: kept4(across),
+    u0: kept4(r()),
+    v0: kept4(r())
+  });
+  const D = AURORA_DESIGNED;
+  return {
+    fan: { x: kept4(lean), y: kept4(-depth) },
+    a: start(D.a, (D.a.across * keep) / wide),
+    b: start(D.b, (D.b.across * keep) / wide),
+    c: start(D.c, D.c.across * keep),
+    h1: start(D.h1, D.h1.across),
+    h2: start(D.h2, D.h2.across),
+    g: start(D.g, gather * keep)
+  };
+}
 /** How wide the range's edge blurs, half of it, in the picture's height: up and down across the path, and as far to
     each side of an upright wall. */
 export const AURORA_SOFT = 0.014;
@@ -485,6 +567,8 @@ export interface AuroraScene extends AuroraPieces {
   soft: Uint8Array;
   /** the range's path */
   path: string;
+  /** what the light is drawn by: the shape's (auroraDesign) */
+  design: AuroraDesign;
 }
 
 /** The scene a palette and a view draw in a box. */
@@ -503,7 +587,8 @@ export function auroraScene(P: Palette, view: AuroraView, size: Size): AuroraSce
     cover: view.bg ? (view.bg.length === 9 ? parseInt(view.bg.slice(7), 16) / 255 : 1) : 0,
     ...auroraTiles(),
     path,
-    ...auroraPieces(path)
+    ...auroraPieces(path),
+    design: auroraDesign(view.shape)
   };
 }
 
@@ -619,14 +704,15 @@ export function auroraLight(
   out: Float64Array | number[]
 ) {
   const { noise, soft } = m;
-  const ex = X - AURORA_FAN.x;
-  const ey = Y - AURORA_FAN.y;
+  const D = m.design;
+  const ex = X - D.fan.x;
+  const ey = Y - D.fan.y;
   const ang = Math.atan2(ex, ey);
   const r = Math.sqrt(ex * ex + ey * ey);
-  const ua = ang * L.a.across + L.a.u0 + L.a.du * T;
-  const va = r * L.a.along + L.a.v0 + L.a.dv * T;
-  const ub = ang * L.b.across + L.b.u0 + L.b.du * T;
-  const vb = r * L.b.along + L.b.v0 + L.b.dv * T;
+  const ua = ang * D.a.across + D.a.u0 + D.a.du * T;
+  const va = r * D.a.along + D.a.v0 + D.a.dv * T;
+  const ub = ang * D.b.across + D.b.u0 + D.b.du * T;
+  const vb = r * D.b.along + D.b.v0 + D.b.dv * T;
   const shaft =
     smooth(L.shaft[0], L.shaft[1], read(noise, ua, va, 0)) *
     (0.4 + 0.6 * smooth(L.shaft[0], L.shaft[1], read(noise, ub, vb, 1)));
@@ -636,7 +722,7 @@ export function auroraLight(
   const fine = smooth(
     L.fine[0],
     L.fine[1],
-    read(noise, ang * L.c.across + L.c.u0 + L.c.du * T, r * L.c.along + L.c.v0 + L.c.dv * T, 2)
+    read(noise, ang * D.c.across + D.c.u0 + D.c.du * T, r * D.c.along + D.c.v0 + D.c.dv * T, 2)
   );
   const hot =
     smooth(
@@ -644,8 +730,8 @@ export function auroraLight(
       L.hot[1],
       read(
         noise,
-        X * L.h1.across + L.h1.u0 + L.h1.du * T,
-        Y * L.h1.along + L.h1.v0 + L.h1.dv * T,
+        X * D.h1.across + D.h1.u0 + D.h1.du * T,
+        Y * D.h1.along + D.h1.v0 + D.h1.dv * T,
         3
       )
     ) *
@@ -654,8 +740,8 @@ export function auroraLight(
       L.hot[1],
       read(
         noise,
-        X * L.h2.across + L.h2.u0 + L.h2.du * T,
-        Y * L.h2.along + L.h2.v0 + L.h2.dv * T,
+        X * D.h2.across + D.h2.u0 + D.h2.du * T,
+        Y * D.h2.along + D.h2.v0 + D.h2.dv * T,
         0
       )
     );
@@ -667,7 +753,7 @@ export function auroraLight(
       smooth(
         L.gather[0],
         L.gather[1],
-        read(soft, ang * L.g.across + L.g.u0 + L.g.du * T, L.g.v0 + L.g.dv * T, 2)
+        read(soft, ang * D.g.across + D.g.u0 + D.g.du * T, D.g.v0 + D.g.dv * T, 2)
       );
   const light =
     L.haze * Math.exp(-up / L.hazeFall) +

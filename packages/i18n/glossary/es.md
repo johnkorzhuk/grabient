@@ -21,7 +21,6 @@ The reader is addressed as **tú**. Read the English list in `README.md` first; 
 | roam (the dimple's Roam switch) | Vagar | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow wandering by itself; an infinitive, as the menus' actions are. |
 | aurora (an effect) | Aurora boreal | Curtains of light in the palette's colors rising behind a still outline. The northern lights said whole: „aurora“ alone is also dawn. |
 | path (the aurora's Path field) | Trazado | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. As Illustrator ES names a vector path; not „ruta“ (a file's path or a route). |
-| range, line, curve, mix, skyline (the aurora's Shape values) | Cordillera, Línea, Curva, Mezcla, Horizonte urbano | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | swatches | muestras | Only where the English says swatches ("muestras lineales" in page titles, "Muestras {name}"). |
 | Swatches (the strip's swatch files) | Muestras | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Cambiar a muestras. |
 | bands / hard bands (the swatch styles) | franjas / franjas nítidas | The style names: "Franjas lineales", "Franjas angulares", "Franjas radiales". Kept apart from "Bandas", the curation fault (banding). |

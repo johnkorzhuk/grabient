@@ -1,5 +1,11 @@
 import { AURORA_PATH_MOST } from "@grabient/engine/aurora-path.ts";
-import { canRoam, EFFECT_KINDS, EFFECT_WORDS, EFFECTS } from "@grabient/engine/effect.ts";
+import {
+  canRoam,
+  EFFECT_KINDS,
+  EFFECT_WORDS,
+  EFFECTS,
+  takesShape
+} from "@grabient/engine/effect.ts";
 import { KIT_KINDS } from "@grabient/engine/kit/kinds.ts";
 import { kitEffect } from "@grabient/engine/kit/registry.ts";
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
@@ -84,14 +90,14 @@ const ZOOM_SAID = ZOOMED.length
       "and"
     ).replace(/^t/, "T")}.`
   : "";
-/** The effects that take a path in their shape's place (effect.ts's EFFECT_KINDS `path`: the aurora), as a sentence
-    that says how one is written, so that a model writes one (engine/aurora-path.ts); none where none does. */
+/** The effects that take a path beside their shape (effect.ts's EFFECT_KINDS `path`: the aurora), as a sentence that
+    says how one is written, so that a model writes one (engine/aurora-path.ts); none where none does. */
 const PATHED = EFFECTS.filter(kind => EFFECT_KINDS[kind].path);
 const PATH_SAID = PATHED.length
   ? ` ${listed(
       PATHED.map(
         kind =>
-          `the ${EFFECT_WORDS[kind]} takes \`path\` in its place, the outline of the range its light rises behind, plain enough to write by hand: \`line\` or \`curve\`, how the heights after it are joined, then 2 to ${AURORA_PATH_MOST} heights from the left edge to the right, each from 0 (the bottom) to 100 (the top), a tenth at the finest, with commas between (\`path=line,33,33\` is a level line a third of the way up, \`path=curve,30,55,35,60,30\` two hills); either word again changes the joining from there (\`path=line,25,25,curve,45,60,45,25,line,25,40,25\`: level ground, a smooth hill, a sharp peak); or every height is written \`place:height\`, the place from 0 (the left edge) to 100 (the right) and never falling, two heights at one place an upright wall (\`path=line,0:30,20:30,20:55,35:55,35:38,100:38\`: a block from 20 to 35 across); none is its designed range`
+          `the ${EFFECT_WORDS[kind]} also takes \`path\`, the outline of the range its light rises behind, plain enough to write by hand: \`line\` or \`curve\`, how the heights after it are joined, then 2 to ${AURORA_PATH_MOST} heights from the left edge to the right, each from 0 (the bottom) to 100 (the top), a tenth at the finest, with commas between (\`path=line,33,33\` is a level line a third of the way up, \`path=curve,30,55,35,60,30\` two hills); either word again changes the joining from there (\`path=line,25,25,curve,45,60,45,25,line,25,40,25\`: level ground, a smooth hill, a sharp peak); or every height is written \`place:height\`, the place from 0 (the left edge) to 100 (the right) and never falling, two heights at one place an upright wall (\`path=line,0:30,20:30,20:55,35:55,35:38,100:38\`: a block from 20 to 35 across); none is its designed range`
       ),
       "and"
     ).replace(/^t/, "T")}.`
@@ -122,15 +128,14 @@ const ROAM_SAID = ROAMERS.length
       "and"
     ).replace(/^t/, "T")}.`
   : "";
-/** The effects that take no shape, as the sentence that lists those taking one says: " all but the dimple and the
-    aurora". */
-const UNSHAPED =
-  ZOOMED.length + PATHED.length
-    ? ` all but ${listed(
-        [...ZOOMED, ...PATHED].map(kind => `the ${EFFECT_WORDS[kind]}`),
-        "and"
-      )}`
-    : "";
+/** The effects that take no shape, as the sentence that lists those taking one says: " all but the dimple". */
+const SHAPELESS = EFFECTS.filter(kind => !takesShape(kind));
+const UNSHAPED = SHAPELESS.length
+  ? ` all but ${listed(
+      SHAPELESS.map(kind => `the ${EFFECT_WORDS[kind]}`),
+      "and"
+    )}`
+  : "";
 /** The same effects' steps as a list's or a document's fields name them: "the sandstone's `steps`". */
 const STEPS_NAMED = listed(
   STEPPED.map(kind => `the ${EFFECT_WORDS[kind]}'s \`steps\``),

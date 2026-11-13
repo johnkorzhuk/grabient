@@ -60,7 +60,6 @@ every time, and add a row when a new product word gets its translation.
 | roam (the dimple's Roam switch) | 漫游 | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow wandering by itself. |
 | aurora (an effect) | 极光 | Curtains of light in the palette's colors rising behind a still outline. The northern lights; not 曙光 (dawn). |
 | path (the aurora's Path field) | 路径 | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. As Figma and Illustrator name a vector path. |
-| range, line, curve, mix, skyline (the aurora's Shape values) | 山脉、直线、曲线、混合、天际线 | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | look (the examples page) | 风格 | One of the ways a palette is shown: another style, steps, angle or shape. Another look is 换一种风格, Swipe for another look 滑动换一种风格, 6 looks `6 种风格`. Not 外观 (Appearance) or 样式 (style). |
 | tag | 标签 | |
 | mood | 氛围 | In search hints: 颜色、氛围或主题. |

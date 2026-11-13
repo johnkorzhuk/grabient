@@ -191,9 +191,9 @@ export function finished(s: Shown, name: string): Shown {
     picks, each at an angle the seed picks for the part, or `turn` eighths of a turn on from it; rings and the blob,
     which have none, at the default's. An effect lies at the page's one angle for it, as designed, and the blob in its
     palette's shape; or, given `own`, in a shape of its own (a zoom of its own where it takes one in its shape's place:
-    the dimple's; a path of its own where it takes one there: the aurora's range, of a kind and a number the seed
-    picks), at an angle of its own too, and in steps of its own where it takes them (the sandstone's bands, within
-    their range), as a look a reader turns to is. */
+    the dimple's), with a path of its own where it takes one beside its shape (the aurora's range, of a kind and a
+    number the seed picks), at an angle of its own too, and in steps of its own where it takes them (the sandstone's
+    bands, within their range), as a look a reader turns to is. */
 export function inLook(
   seed: string,
   palette: Palette,

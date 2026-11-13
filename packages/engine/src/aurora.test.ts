@@ -1,12 +1,17 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { rasterize, resvgReady } from "../test/raster.ts";
 import {
+  AURORA_DESIGNED,
+  AURORA_FAN,
   AURORA_HALF,
+  AURORA_LIGHT,
   AURORA_LOOP,
   AURORA_RAMP,
+  AURORA_SHAPES,
   AURORA_SLOTS,
   AURORA_SOFT,
   AURORA_TILE,
+  auroraDesign,
   auroraHash,
   auroraLight,
   auroraPieces,
@@ -21,6 +26,7 @@ import {
 } from "./aurora.ts";
 import {
   AURORA_FS,
+  AURORA_SHEETS,
   AURORA_TABLE,
   AURORA_VS,
   auroraSceneUniforms,
@@ -33,7 +39,7 @@ import {
   auroraPathOf,
   auroraPathParts
 } from "./aurora-path.ts";
-import { AURORA_PATH_KINDS, auroraMadePath, auroraPathKind } from "./aurora-path-kinds.ts";
+import { AURORA_PATH_KINDS, type AuroraPathKind, auroraMadePath } from "./aurora-path-kinds.ts";
 import { renderAurora } from "./aurora-render.ts";
 import { auroraFileSvg, auroraFrameSvg, auroraStillSteps, auroraStillSvg } from "./aurora-svg.ts";
 import { blobBackdrop } from "./blob.ts";
@@ -49,11 +55,32 @@ const P = decodePalette(SEED) as Palette;
 const BOX = { width: 320, height: 180 };
 /* a block with upright walls on ground that steps, as aurora-path.ts writes one */
 const BLOCK = "line,0:30,20:30,20:55,35:55,35:38,100:38";
-const view = (path: string | null = null, bg: string | null = null, angle = 90) => ({
+const view = (
+  path: string | null = null,
+  bg: string | null = null,
+  angle = 90,
+  shape: number | null = null
+) => ({
   angle,
+  shape,
   path,
   bg
 });
+/* the kind a path is: a skyline where it has an upright wall, a curve or a line by how its pieces are joined, a mix
+   where they are joined both ways, a line where it is two heights, else a range */
+function kindOf(path: string): AuroraPathKind {
+  const P = auroraPathParts(path);
+  if (!P) return "range";
+  if (P.places.some((x, i) => i > 0 && x === P.places[i - 1])) return "skyline";
+  const curves = P.curved.filter(Boolean).length;
+  return curves === P.curved.length
+    ? "curve"
+    : curves
+      ? "mix"
+      : P.heights.length === 2
+        ? "line"
+        : "range";
+}
 const fnv = (bytes: Uint8Array) => {
   let h = 0x811c9dc5;
   for (const b of bytes) h = Math.imul(h ^ b, 0x01000193);
@@ -229,14 +256,14 @@ describe("the aurora's path", () => {
     for (const kind of AURORA_PATH_KINDS)
       for (let n = 1; n <= 40; n++) {
         const path = auroraMadePath(kind, n);
-        expect(auroraPathKind(path), `${kind} ${n}`).toBe(kind);
+        expect(kindOf(path), `${kind} ${n}`).toBe(kind);
         expect(auroraPath(path), `${kind} ${n}`).toBe(path);
         expect(auroraMadePath(kind, n)).toBe(path);
       }
     expect(auroraMadePath("range", 1)).not.toBe(auroraMadePath("range", 2));
-    expect(auroraPathKind(BLOCK)).toBe("skyline");
-    expect(auroraPathKind("line,25,25,curve,45,60,45,25,line,25,40,25")).toBe("mix");
-    expect(auroraPathKind("line,20,45")).toBe("line");
+    expect(kindOf(BLOCK)).toBe("skyline");
+    expect(kindOf("line,25,25,curve,45,60,45,25,line,25,40,25")).toBe("mix");
+    expect(kindOf("line,20,45")).toBe("line");
   });
 });
 
@@ -411,7 +438,7 @@ describe("the aurora's design", () => {
     }
   });
 
-  it("ends its loop on its first frame, every sheet having slid whole tiles", () => {
+  it("ends its loop on its first frame, every sheet having slid whole tiles, in every shape", () => {
     expect(auroraTime(0)).toBe(0);
     expect(auroraTime(AURORA_LOOP)).toBe(0);
     expect(auroraTime(12)).toBe(0.25);
@@ -419,13 +446,16 @@ describe("the aurora's design", () => {
     const m = auroraScene(P, view(), BOX);
     const a = [0, 0, 0];
     const b = [0, 0, 0];
-    for (let k = 0; k < 200; k++) {
-      const X = (auroraHash(k, 1) * 2 - 1) * m.half;
-      const Y = auroraHash(k, 2);
-      const T = auroraHash(k, 3);
-      auroraLight(m, T, X, Y, Y - 0.4, a);
-      auroraLight(m, T + 1, X, Y, Y - 0.4, b);
-      for (let c = 0; c < 3; c++) expect(b[c]).toBeCloseTo(a[c], 9);
+    for (const shape of [null, 7, 417, 999]) {
+      const s = auroraScene(P, view(null, null, 90, shape), BOX);
+      for (let k = 0; k < 200; k++) {
+        const X = (auroraHash(k, 1) * 2 - 1) * s.half;
+        const Y = auroraHash(k, 2);
+        const T = auroraHash(k, 3);
+        auroraLight(s, T, X, Y, Y - 0.4, a);
+        auroraLight(s, T + 1, X, Y, Y - 0.4, b);
+        for (let c = 0; c < 3; c++) expect(b[c], `shape ${shape}`).toBeCloseTo(a[c], 9);
+      }
     }
     /* and it moves between: a frame a third of a loop on is another picture */
     const first = renderAurora(m, 5);
@@ -436,6 +466,78 @@ describe("the aurora's design", () => {
     const later = renderAurora(m, 5 + AURORA_LOOP / 3);
     for (let i = 0; i < first.length; i++) if (Math.abs(first[i] - later[i]) > 8) moved++;
     expect(moved).toBeGreaterThan(first.length / 20);
+  });
+
+  it("takes a shape from 0 to 999: none and 0 the light as designed, every other a fan and sheets of its own", () => {
+    expect(auroraDesign(null)).toBe(AURORA_DESIGNED);
+    expect(auroraDesign(0)).toBe(AURORA_DESIGNED);
+    expect(AURORA_DESIGNED.fan).toEqual(AURORA_FAN);
+    expect(auroraScene(P, view(), BOX).design).toBe(AURORA_DESIGNED);
+    const S = AURORA_SHAPES;
+    const fans = new Set<string>();
+    for (let shape = 1; shape <= 999; shape++) {
+      const D = auroraDesign(shape);
+      /* the same number, the same design: a page, its still and its clip draw one light */
+      expect(auroraDesign(shape), `${shape}`).toEqual(D);
+      expect(-D.fan.y, `${shape}`).toBeGreaterThanOrEqual(S.depth[0]);
+      expect(-D.fan.y, `${shape}`).toBeLessThanOrEqual(S.depth[1]);
+      expect(D.fan.x, `${shape}`).toBeGreaterThanOrEqual(S.lean[0]);
+      expect(D.fan.x, `${shape}`).toBeLessThanOrEqual(S.lean[1]);
+      for (const name of AURORA_SHEETS) {
+        const sheet = D[name];
+        const designed = AURORA_LIGHT[name];
+        /* every sheet slides as designed, whole tiles a loop, so the loop closes and keeps its pace */
+        expect([sheet.du, sheet.dv, sheet.along], `${shape} ${name}`).toEqual([
+          designed.du,
+          designed.dv,
+          designed.along
+        ]);
+        expect(sheet.u0, `${shape} ${name}`).toBeGreaterThanOrEqual(0);
+        expect(sheet.u0, `${shape} ${name}`).toBeLessThanOrEqual(1);
+        expect(sheet.v0, `${shape} ${name}`).toBeGreaterThanOrEqual(0);
+        expect(sheet.v0, `${shape} ${name}`).toBeLessThanOrEqual(1);
+        /* four decimals, the same in every engine */
+        for (const v of [sheet.across, sheet.u0, sheet.v0])
+          expect(Math.abs(v * 10000 - Math.round(v * 10000)), `${shape} ${name}`).toBeLessThan(
+            1e-6
+          );
+      }
+      /* the shafts stand as wide on the picture at its middle height as their width says, whatever the fan's depth,
+         and the fine ones as designed */
+      const reach = (fan: { y: number }) => -fan.y + 0.4;
+      const wide = (D.a.across * reach(AURORA_FAN)) / (AURORA_LIGHT.a.across * reach(D.fan));
+      expect(1 / wide, `${shape}`).toBeGreaterThan(S.wide[0] - 0.001);
+      expect(1 / wide, `${shape}`).toBeLessThan(S.wide[1] + 0.001);
+      expect(D.b.across / D.a.across).toBeCloseTo(AURORA_LIGHT.b.across / AURORA_LIGHT.a.across, 3);
+      expect(D.c.across / reach(D.fan)).toBeCloseTo(AURORA_LIGHT.c.across / reach(AURORA_FAN), 3);
+      fans.add(`${D.fan.x},${D.fan.y}`);
+    }
+    expect(fans.size).toBe(999);
+    /* spread over the whole of each range */
+    const depths = Array.from({ length: 999 }, (_, i) => -auroraDesign(i + 1).fan.y);
+    expect(Math.min(...depths)).toBeLessThan(S.depth[0] + 0.01);
+    expect(Math.max(...depths)).toBeGreaterThan(S.depth[1] - 0.01);
+  });
+
+  it("draws another light in another shape, behind the same range, and the light as designed in shape 0", () => {
+    const at = (shape: number | null, t: number) =>
+      renderAurora(auroraScene(P, view(null, "#140b19", 90, shape), BOX), t);
+    expect(Buffer.compare(Buffer.from(at(0, 5)), Buffer.from(at(null, 5)))).toBe(0);
+    const designed = at(null, 5);
+    for (const shape of [7, 417, 999]) {
+      const other = at(shape, 5);
+      let moved = 0;
+      let range = 0;
+      for (let i = 0; i < designed.length; i += 4) {
+        const same = [0, 1, 2].every(c => designed[i + c] === other[i + c]);
+        /* the range is where both draw its color alone */
+        if (same && designed[i] === 20 && designed[i + 1] === 11 && designed[i + 2] === 25) range++;
+        else if (!same && [0, 1, 2].some(c => Math.abs(designed[i + c] - other[i + c]) > 16))
+          moved++;
+      }
+      expect(moved, `shape ${shape}`).toBeGreaterThan(designed.length / 4 / 5);
+      expect(range, `shape ${shape}`).toBeGreaterThan(designed.length / 4 / 4);
+    }
   });
 });
 
@@ -629,14 +731,19 @@ describe("the aurora's SVGs", () => {
     }
     expect(step.value).toBe(still);
     expect(count).toBeGreaterThan(8);
-    /* the most light a box holds, in a palette of many colors, at any angle: cut coarser, never over the weight */
+    /* the most light a box holds, in a palette of many colors, at any angle and in any shape: cut coarser, never over
+       the weight */
     const many = decodePalette("kWKxfe1GRDVfIxNzPsjbDZKA") as Palette;
     const weights: number[] = [];
     for (const path of [null, "line,0,0", auroraMadePath("skyline", 3)])
-      for (const angle of [90, 45, 210]) {
-        const heavy = auroraStillSvg(many, view(path, null, angle), { width: 1000, height: 1000 });
-        weights.push(`${svgUrl(heavy)} 50% 50% / cover no-repeat`.length);
-      }
+      for (const angle of [90, 45, 210])
+        for (const shape of [null, 417, 999]) {
+          const heavy = auroraStillSvg(many, view(path, null, angle, shape), {
+            width: 1000,
+            height: 1000
+          });
+          weights.push(`${svgUrl(heavy)} 50% 50% / cover no-repeat`.length);
+        }
     expect(Math.max(...weights)).toBeLessThan(40 * 1024);
     expect(Math.min(...weights)).toBeGreaterThan(20 * 1024);
   });
@@ -660,8 +767,19 @@ describe("the aurora's pass", () => {
       "fixed"
     ])
       expect(AURORA_FS, word).not.toMatch(new RegExp(`\\b(float|int|vec[234])\\s+${word}\\b`));
-    for (const name of ["uSize", "uFrame", "uPath", "uRange", "uTime", "uTable", "uNoise", "uSoft"])
+    for (const name of [
+      "uSize",
+      "uFrame",
+      "uPath",
+      "uRange",
+      "uFan",
+      "uTime",
+      "uTable",
+      "uNoise",
+      "uSoft"
+    ])
       expect(AURORA_FS).toMatch(new RegExp(`uniform \\w+ ${name};`));
+    expect(AURORA_FS).toContain(`uniform vec4 uSheets[${AURORA_SHEETS.length}];`);
   });
 
   it("takes the scene's numbers as one table of floats and a few plain uniforms", () => {
@@ -687,5 +805,16 @@ describe("the aurora's pass", () => {
       [(16 / 255) * cover, (32 / 255) * cover, (48 / 255) * cover, cover].map(Math.fround)
     );
     expect([...auroraSceneUniforms(auroraScene(P, view(), BOX)).range]).toEqual([0, 0, 0, 0]);
+    /* the shape's fan and sheets: each sheet's spans across and along, then its starts */
+    expect([...u.fan]).toEqual([AURORA_FAN.x, AURORA_FAN.y].map(Math.fround));
+    const shaped = auroraScene(P, view(null, null, 90, 417), BOX);
+    const D = shaped.design;
+    const v = auroraSceneUniforms(shaped);
+    expect([...v.fan]).toEqual([D.fan.x, D.fan.y].map(Math.fround));
+    expect([...v.sheets]).toEqual(
+      AURORA_SHEETS.flatMap(name => [D[name].across, D[name].along, D[name].u0, D[name].v0]).map(
+        Math.fround
+      )
+    );
   });
 });

@@ -21,7 +21,6 @@
    light in wedges five times as broad or more under one blur, since the frame itself as shapes weighs hundreds of
    kilobytes where a still may weigh 40. */
 import {
-  AURORA_FAN,
   AURORA_SOFT,
   type AuroraScene,
   type AuroraView,
@@ -210,8 +209,8 @@ function fanOf(m: AuroraScene, cut: Cut): Fan {
     ][i >> 6];
     const dx = x - W / 2;
     const dy = y - H / 2;
-    const X = (dx * cs + dy * sn) / ext - AURORA_FAN.x;
-    const Y = 0.5 - (-dx * sn + dy * cs) / ext - AURORA_FAN.y;
+    const X = (dx * cs + dy * sn) / ext - m.design.fan.x;
+    const Y = 0.5 - (-dx * sn + dy * cs) / ext - m.design.fan.y;
     const a = Math.atan2(X, Y);
     const r = Math.hypot(X, Y);
     a0 = Math.min(a0, a);
@@ -247,6 +246,7 @@ function readWedge(
   cols: Float64Array
 ): [number, number] | null {
   const { width: W, height: H } = m;
+  const { x: fx, y: fy } = m.design.fan;
   const mid = fan.a0 + (i + 0.5) * fan.step;
   const where = new Float64Array(2);
   const c = new Float64Array(3);
@@ -257,8 +257,8 @@ function readWedge(
     let shows = false;
     if (light) cols[k * 3] = cols[k * 3 + 1] = cols[k * 3 + 2] = 0;
     for (const o of [-0.33, 0, 0.33]) {
-      const X = AURORA_FAN.x + r * Math.sin(mid + o * fan.step);
-      const Y = AURORA_FAN.y + r * Math.cos(mid + o * fan.step);
+      const X = fx + r * Math.sin(mid + o * fan.step);
+      const Y = fy + r * Math.cos(mid + o * fan.step);
       auroraRange(m, X, Y, where);
       if (light) {
         auroraLight(m, T, X, Y, where[1], c);
@@ -329,7 +329,7 @@ export function auroraFrameSvg(P: Palette, view: AuroraView, size: Size, t: numb
   const T = auroraTime(t);
   const fan = fanOf(m, FRAME);
   const at = (r: number, a: number) =>
-    pixelOf(m, AURORA_FAN.x + r * Math.sin(a), AURORA_FAN.y + r * Math.cos(a));
+    pixelOf(m, m.design.fan.x + r * Math.sin(a), m.design.fan.y + r * Math.cos(a));
   const corner = (r: number, a: number) => at(r, a).map(n2).join(" ");
   const cols = new Float64Array((fan.reads + 1) * 3);
   let defs = "";
@@ -435,7 +435,7 @@ export function* auroraStillSteps(
       `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs>${R.defs}` +
       `<filter id="f" filterUnits="userSpaceOnUse" x="${-pad}" y="${-pad}" width="${W + 2 * pad}" height="${H + 2 * pad}"><feGaussianBlur stdDeviation="${n2(sigma)}"/></filter>` +
       `<linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="${n4(fan.r0)}" x2="0" y2="${n4(fan.r1)}"/><path id="p" d="${wedge}"/>` +
-      `${stops}</defs>${R.under}<g mask="url(#m)"><g filter="url(#f)"><g transform="${placeOf(m)}translate(${AURORA_FAN.x} ${AURORA_FAN.y})">${uses}</g></g></g></svg>`;
+      `${stops}</defs>${R.under}<g mask="url(#m)"><g filter="url(#f)"><g transform="${placeOf(m)}translate(${n4(m.design.fan.x)} ${n4(m.design.fan.y)})">${uses}</g></g></g></svg>`;
     /* the cut that fills the weight: the wedges weigh as one over their width, the rest weighs what it weighs */
     const wedges = cssWeight(stops + uses);
     const weight = cssWeight(svg);

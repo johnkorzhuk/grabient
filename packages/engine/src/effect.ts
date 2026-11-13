@@ -2,13 +2,13 @@
    An effect rides the palette's address as `style=glass` or `style=blob`, then for the glass the view's `angle`, which
    turns its ribs (the blob has none: its palette lies from left to right), then how it plays: `speed` (the loop's pace, 1 as designed, 0 its
    first frame held with no motion) and `fps` (frames a second at most: 60 unless it says, up to 120 where a screen
-   shows that many), then its look: `shape`, a number from 0 to 999 that picks the blobs' forms and wanderings or the
-   glass's ribs and the colors drifting behind them (the dimple has none, and `zoom` in its place: how much larger
-   than designed it is drawn, 1 to 4, none as designed; the aurora has none, and `path` in its place: its range's
-   outline, written as aurora-path.ts says, none as designed), the blob's `frost`, and `bg`, the ground of an effect
-   that takes one (EFFECT_KINDS' `ground`: the blob's, the strings' and the aurora's range): any CSS color, which an
-   address keeps as hex (the Worker writes any other spelling as hex, css-color.ts), none leaving the blob and the
-   aurora's range clear and the strings on their designed ground.
+   shows that many), then its look: `shape`, a number from 0 to 999 that picks the blobs' forms and wanderings, the
+   glass's ribs and the colors drifting behind them, or the aurora's fan of light (the dimple has none, and `zoom` in
+   its place: how much larger than designed it is drawn, 1 to 4, none as designed), the aurora's `path` beside its
+   shape (its range's outline, written as aurora-path.ts says, none as designed), the blob's `frost`, and `bg`, the
+   ground of an effect that takes one (EFFECT_KINDS' `ground`: the blob's, the strings' and the aurora's range): any
+   CSS color, which an address keeps as hex (the Worker writes any other spelling as hex, css-color.ts), none leaving
+   the blob and the aurora's range clear and the strings on their designed ground.
    The gradient's steps leave the address while an effect plays, so an address says only what its picture shows (the
    editor keeps them to give back), but for an effect that takes steps of its own (EFFECT_KINDS' `steps`: the
    sandstone's bands), whose `steps` are its look's, its range's, and none at its designed number. */
@@ -99,11 +99,12 @@ export interface EffectKindFacts {
       for this style"); null for one a number 0 to 999 picks the shape of (its look's `shape`, `shape=` in its address
       and the editor's Shape field), whose address leaves `zoom` out */
   zoom: EffectZoom | null;
-  /** whether it takes a path in its shape's place, `path=` in its address, its look's `path` (the aurora's: the
-      outline of its range, heights from the box's left edge to its right joined by lines or curves, as aurora-path.ts
-      reads and writes it; John, 10 Nov 2026: "what if we made the path that cuts off the aura effect url encodable?",
-      then "the idea was for LLMs to be able to create thieir custom path"); false for one a number 0 to 999 picks the
-      shape of, whose address leaves `path` out */
+  /** whether it takes a path beside its shape, `path=` in its address, its look's `path` (the aurora's: the outline
+      of its range, heights from the box's left edge to its right joined by lines or curves, as aurora-path.ts reads
+      and writes it; John, 10 Nov 2026: "what if we made the path that cuts off the aura effect url encodable?", then
+      "the idea was for LLMs to be able to create thieir custom path"; its shape, 0 to 999, picks its light since 13
+      Nov 2026: "making it a normal 0-999 seed like the others"); false for every other, whose address leaves `path`
+      out */
   path: boolean;
   /** drawn by ui/effect-loop.ts over a vector still */
   vector: boolean;
@@ -311,10 +312,8 @@ export const effectAutoAngle = (kind: EffectKind, own: number): number =>
   EFFECT_KINDS[kind].upright ? DEFAULT_ANGLE : own;
 /** Whether a number 0 to 999 picks an effect's shape: every effect's but one that takes a zoom in its shape's place
     (EFFECT_KINDS' `zoom`: the dimple, whose zoom runs from its design, which draws as many discs as its still may
-    weigh, to four times as large) and one that takes a path there (EFFECT_KINDS' `path`: the aurora, whose range is
-    any outline its address writes). */
-export const takesShape = (kind: EffectKind): boolean =>
-  !EFFECT_KINDS[kind].zoom && !EFFECT_KINDS[kind].path;
+    weigh, to four times as large). The aurora's picks its light, and its path its range. */
+export const takesShape = (kind: EffectKind): boolean => !EFFECT_KINDS[kind].zoom;
 /** Whether an effect has a script that plays it behind another site's page (/{seed}.js, apps/web/src/embed); one
     without offers its stylesheet alone, which paints its still, in its strips, its tags and its Markdown. */
 export const hasEmbedScript = (kind: EffectKind): boolean => EFFECT_KINDS[kind].embed;
@@ -372,9 +371,10 @@ export const EFFECT_SETTLE_MS = 150;
     them, the zoom of one that takes one and the path of one that takes one, each left as it is by an effect that
     takes none. */
 export interface EffectLook {
-  /** a number from 0 to SHAPE_MAX that picks the shape: the blobs' forms, where they stand and how they wander, or
-      the glass's ribs and the colors drifting behind them; null for the blob the palette's own numbers draw, and the
-      glass as designed, which shape 0 is too, and for an effect that takes no shape (takesShape) */
+  /** a number from 0 to SHAPE_MAX that picks the shape: the blobs' forms, where they stand and how they wander, the
+      glass's ribs and the colors drifting behind them, or the aurora's fan of light; null for the blob the palette's
+      own numbers draw, and the glass as designed, which shape 0 is too, and for an effect that takes no shape
+      (takesShape) */
   shape: number | null;
   /** the blob's frost: 1 as designed, 0 none, BLOB_FROST_MAX twice */
   frost: number;
@@ -655,9 +655,9 @@ const written = (parts: (string | false | null)[]): string[] =>
 
 /** An effect's look as an address writes it, defaults left out: all its first frame depends on but its palette and
     the glass's angle. The glass's is its shape alone, the sandstone's its steps and its shape, the strings' their
-    shape and their ground, the dimple's its zoom, the aurora's its path and its range's ground; a path is written
-    with its commas and colons as they are, as the locks' words are, and a ground with its `#` (escaped), so no color
-    reads as a number. */
+    shape and their ground, the dimple's its zoom, the aurora's its shape, its path and its range's ground; a path is
+    written with its commas and colons as they are, as the locks' words are, and a ground with its `#` (escaped), so
+    no color reads as a number. */
 export const effectLookParts = (effect: Effect): string[] => {
   const look = effect.look;
   const kind = EFFECT_KINDS[effect.kind];

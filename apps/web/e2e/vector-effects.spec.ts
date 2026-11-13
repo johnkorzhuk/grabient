@@ -366,7 +366,7 @@ test("the dimple takes a zoom, 1 to 4, in its shape's place: its menu's Zoom fie
   await expect(zoom).toHaveAttribute("aria-valuenow", "2.5");
 });
 
-test("the aurora takes a path in its shape's place: its menu's Shape field names the kind of its range and makes another, its Path field takes one written by hand, and its address keeps it", async ({
+test("the aurora takes a shape and a path: its menu's Shape field is a number that draws another light, its Path field takes one written by hand and its press writes another, and its address keeps both", async ({
   page,
   request
 }) => {
@@ -379,8 +379,14 @@ test("the aurora takes a path in its shape's place: its menu's Shape field names
   expect(still(await (await request.get(`/${SEED}?style=aurora&path=${walled}`)).text())).toBe(
     `aurora|${SEED}|90||${walled}`
   );
+  /* its shape picks its light, as every other effect's picks its design: kept beside its path (John, 13 Nov 2026:
+     "making it a normal 0-999 seed like the others") */
+  expect(
+    still(await (await request.get(`/${SEED}?style=aurora&shape=417&path=${walled}`)).text())
+  ).toBe(`aurora|${SEED}|90|417|${walled}`);
   /* a path in another spelling comes to its one spelling, written with its commas as they are; words that are no
-     path leave the address, a shape leaves the aurora's and a path every other effect's: the Worker's 301 */
+     path leave the address, a shape of 0 leaves it as every effect's does and a path every other effect's: the
+     Worker's 301 */
   const moved = async (address: string) =>
     (await request.get(address, { maxRedirects: 0 }))
       .headers()
@@ -392,7 +398,10 @@ test("the aurora takes a path in its shape's place: its menu's Shape field names
     `/${SEED}?style=aurora&path=line,25,25,40`
   );
   expect(await moved(`/${SEED}?style=aurora&path=mountains`)).toBe(`/${SEED}?style=aurora`);
-  expect(await moved(`/${SEED}?style=aurora&shape=417`)).toBe(`/${SEED}?style=aurora`);
+  expect(await moved(`/${SEED}?style=aurora&shape=0`)).toBe(`/${SEED}?style=aurora`);
+  expect(await moved(`/${SEED}?style=aurora&path=${walled}&shape=417`)).toBe(
+    `/${SEED}?style=aurora&shape=417&path=${walled}`
+  );
   expect(await moved(`/${SEED}?style=papercut&path=line,33,33`)).toBe(`/${SEED}?style=papercut`);
   /* a list's cards stand behind its path, which a list's address writes as the router does */
   const list = await request.get("/palettes?style=aurora&path=line%2C33%2C33", {
@@ -411,11 +420,11 @@ test("the aurora takes a path in its shape's place: its menu's Shape field names
   const before = await stage.evaluate(el => getComputedStyle(el).backgroundImage);
   expect(before).toContain("data:image/svg+xml");
   await page.getByRole("button", { name: /^Appearance/ }).click();
-  /* its Shape is the kind of its range, a word, where the papercut's is a number; its Path is none as designed */
+  /* its Shape is a number from 0 to 999, as the papercut's is, 0 as designed; its Path is none as designed */
   const shape = page.getByRole("spinbutton", { name: "Shape", exact: true });
-  await expect(shape).toHaveAttribute("aria-valuetext", "Range");
+  await expect(shape).toHaveAttribute("aria-valuenow", "0");
   await expect(shape).toHaveAttribute("aria-valuemin", "0");
-  await expect(shape).toHaveAttribute("aria-valuemax", "4");
+  await expect(shape).toHaveAttribute("aria-valuemax", "999");
   const path = page.getByRole("textbox", { name: "Path", exact: true });
   await expect(path).toHaveValue("");
   /* a path written by hand, in capitals and with a decimal it need not have, is kept in its one spelling */
@@ -424,7 +433,7 @@ test("the aurora takes a path in its shape's place: its menu's Shape field names
   await page.keyboard.press("Enter");
   await expect.poll(said).toBe("?style=aurora&speed=0&path=curve,30,55,35,60,30");
   await expect(path).toHaveValue("curve,30,55,35,60,30");
-  await expect(shape).toHaveAttribute("aria-valuetext", "Curve");
+  await expect(shape).toHaveAttribute("aria-valuenow", "0");
   await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90||curve,30,55,35,60,30`);
   await expect
     .poll(() => stage.evaluate(el => getComputedStyle(el).backgroundImage))
@@ -440,28 +449,40 @@ test("the aurora takes a path in its shape's place: its menu's Shape field names
   await path.fill(`https://grabient.com/${SEED}?style=aurora&path=${walled}&bg=%23102030`);
   await page.keyboard.press("Enter");
   await expect(path).toHaveValue(walled);
-  await expect(shape).toHaveAttribute("aria-valuetext", "Skyline");
   await expect.poll(said).toBe(`?style=aurora&speed=0&path=${walled}`);
-  /* the press in the Shape field makes another range of the kind shown */
+  /* the press in the Shape field draws another light behind the same range, its number in the address before the
+     path */
   await page.getByRole("button", { name: "New shape", exact: true }).click();
+  await expect
+    .poll(said)
+    .toMatch(new RegExp(`^\\?style=aurora&speed=0&shape=\\d+&path=${walled}$`));
+  const drawn = Number(new URLSearchParams(new URL(page.url()).search).get("shape"));
+  expect(drawn).toBeGreaterThan(0);
+  await expect(shape).toHaveAttribute("aria-valuenow", String(drawn));
+  await expect(path).toHaveValue(walled);
+  await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90|${drawn}|${walled}`);
+  /* the press in the Path field writes another range, of any kind, and leaves the light's shape as it was */
+  await page.getByRole("button", { name: "New path", exact: true }).click();
   await expect(path).not.toHaveValue(walled);
-  await expect(shape).toHaveAttribute("aria-valuetext", "Skyline");
-  await expect.poll(said).toMatch(/^\?style=aurora&speed=0&path=line,0:/);
-  /* the field's own press gives the designed range back */
+  await expect
+    .poll(said)
+    .toMatch(new RegExp(`^\\?style=aurora&speed=0&shape=${drawn}&path=(line|curve),`));
+  await expect(shape).toHaveAttribute("aria-valuenow", String(drawn));
+  /* the field's own clear gives the designed range back, the light's shape kept */
   await page
     .locator("#appearance-menu")
     .getByRole("button", { name: "Clear", exact: true })
     .click();
-  await expect.poll(said).toBe("?style=aurora&speed=0");
-  await expect(shape).toHaveAttribute("aria-valuetext", "Range");
-  await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90|`);
+  await expect.poll(said).toBe(`?style=aurora&speed=0&shape=${drawn}`);
+  await expect(path).toHaveValue("");
+  await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90|${drawn}`);
   /* its range's color is its ground, none clear: a color named any way CSS names one is kept at its hex */
   const ground = page.getByRole("textbox", { name: "Background color", exact: true });
   await ground.click();
   await ground.fill("navy");
   await page.keyboard.press("Enter");
-  await expect.poll(said).toBe("?style=aurora&speed=0&bg=#000080");
-  await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90||#000080`);
+  await expect.poll(said).toBe(`?style=aurora&speed=0&shape=${drawn}&bg=#000080`);
+  await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90|${drawn}|#000080`);
   /* the papercut's menu has a number for its Shape and no Path, each effect at its own pace, and the aurora gives
      its own back */
   await page.getByRole("button", { name: "Papercut", exact: true }).click();
@@ -469,8 +490,8 @@ test("the aurora takes a path in its shape's place: its menu's Shape field names
   await expect(path).toHaveCount(0);
   await expect(shape).toHaveAttribute("aria-valuemax", "999");
   await page.getByRole("button", { name: "Aurora", exact: true }).click();
-  await expect.poll(said).toBe("?style=aurora&speed=0&bg=#000080");
-  await expect(shape).toHaveAttribute("aria-valuetext", "Range");
+  await expect.poll(said).toBe(`?style=aurora&speed=0&shape=${drawn}&bg=#000080`);
+  await expect(shape).toHaveAttribute("aria-valuenow", String(drawn));
 });
 
 test("the aurora stands upright where no angle is set for it: on a list's cards whatever each palette's own, and in the editor at Auto, where an angle set turns it", async ({
@@ -762,10 +783,10 @@ for (const kind of EFFECTS.filter(isVectorKind))
   test(`the ${kind} as files: SVG, stylesheet, PNG, JSON, Markdown, ${hasEmbedScript(kind) ? "script" : "no script"} and ${EFFECT_KINDS[kind].video ? "clip" : "no clip"}`, async ({
     request
   }) => {
-    /* its look: a shape, or a zoom (the dimple's) or a path (the aurora's) in its place */
+    /* its look: a shape, the aurora's with its path beside it, or a zoom in its place (the dimple's) */
     const zoomed = EFFECT_KINDS[kind].zoom !== null;
     const pathed = EFFECT_KINDS[kind].path;
-    const look = zoomed ? "zoom=2.5" : pathed ? "path=line,33,33" : "shape=7";
+    const look = zoomed ? "zoom=2.5" : pathed ? "shape=7&path=line,33,33" : "shape=7";
     const at = (extension: string) => request.get(`/${SEED}.${extension}?style=${kind}&${look}`);
     const svg = await at("svg");
     expect(svg.headers()["content-type"]).toMatch(/^image\/svg\+xml/);
@@ -787,9 +808,10 @@ for (const kind of EFFECTS.filter(isVectorKind))
     const json = JSON.parse(await (await at("json")).text());
     expect(json.effect).toMatchObject({
       style: kind,
-      ...(zoomed ? { zoom: 2.5 } : pathed ? { path: "line,33,33" } : { shape: 7 })
+      ...(zoomed ? { zoom: 2.5 } : { shape: 7 }),
+      ...(pathed ? { path: "line,33,33" } : {})
     });
-    if (zoomed || pathed) expect(json.effect).not.toHaveProperty("shape");
+    if (zoomed) expect(json.effect).not.toHaveProperty("shape");
     expect(await (await at("md")).text()).toContain(kind);
     /* its script where one plays it behind a page (engine/effect.ts hasEmbedScript); one with none yet (the aurora)
        answers that its style names no script */

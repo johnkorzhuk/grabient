@@ -456,22 +456,22 @@ describe("the module's frames", () => {
        0.017% of them, 11 Nov 2026). A range that lets the page through is laid over the blob's backdrop, as a
        card's */
     const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
-    for (const [size, angle, path, bg] of [
-      [{ width: 160, height: 90 }, 90, null, null],
-      [{ width: 96, height: 128 }, 20, walled, "#140b19"],
-      [{ width: 200, height: 200 }, 45, "line,25,25,curve,45,60,45,25,line,25,40,25", null],
-      [{ width: 130, height: 74 }, 135, "curve,30,55,35,60,30", "#10203080"]
+    for (const [size, angle, path, bg, shape] of [
+      [{ width: 160, height: 90 }, 90, null, null, null],
+      [{ width: 96, height: 128 }, 20, walled, "#140b19", 417],
+      [{ width: 200, height: 200 }, 45, "line,25,25,curve,45,60,45,25,line,25,40,25", null, 999],
+      [{ width: 130, height: 74 }, 135, "curve,30,55,35,60,30", "#10203080", 7]
     ] as const) {
       const ask: VideoAsk = {
         kind: "aurora",
         palette,
-        look: { ...look, path, bg },
+        look: { ...look, shape, path, bg },
         angle,
         size,
         fps: 30
       };
       const scene = auroraSolid(
-        auroraScene(palette, { angle, path, bg }, size),
+        auroraScene(palette, { angle, shape, path, bg }, size),
         blobBackdrop(palette)
       );
       expect(scene.cover).toBe(1);
@@ -984,7 +984,7 @@ function finished(ask: VideoAsk, finish: EffectFinish, plan: VideoPlan, i: numbe
   } else if (kind === "aurora") {
     /* the aurora's range laid over the blob's backdrop where it lets the page through, the clip's backdrop for it */
     const scene = auroraSolid(
-      auroraScene(P, { angle, path: shown.path, bg: shown.bg }, size),
+      auroraScene(P, { angle, shape: shown.shape, path: shown.path, bg: shown.bg }, size),
       blobBackdrop(P)
     );
     rgba = opaque(renderAurora(scene, (i * plan.loops * AURORA_LOOP) / plan.frames), 4);
@@ -1392,7 +1392,7 @@ describe("the aurora's clips", () => {
       ])
         for (const angle of [90, 0, 20, 45, 135, 180, 270]) {
           const size = { width, height };
-          const scene = auroraScene(palette, { angle, path, bg: null }, size);
+          const scene = auroraScene(palette, { angle, shape: null, path, bg: null }, size);
           let lit = 0;
           for (let y = 0; y < height; y++)
             for (let x = 0; x < width; x++) {

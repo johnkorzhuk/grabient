@@ -5,15 +5,14 @@
    texel (auroraTable: the ramp, the path's pieces, the slots they are looked up by and the line the light rises
    from) and the noise in two textures of bytes read between their pixels by straight lines, repeating (aurora.ts
    auroraTiles), so the pass reads the numbers the CPU reads. The uniforms are plain numbers: the scene's once a
-   palette, a view or a box changes (auroraSceneUniforms), and the loop's share a frame (aurora.ts auroraTime). */
+   palette, a view or a box changes (auroraSceneUniforms), the shape's fan and sheets among them (aurora.ts
+   auroraDesign), and the loop's share a frame (aurora.ts auroraTime). */
 import {
-  AURORA_FAN,
   AURORA_LIGHT,
   AURORA_RAMP,
   AURORA_SLOTS,
   AURORA_SOFT,
-  type AuroraScene,
-  type AuroraSheet
+  type AuroraScene
 } from "./aurora.ts";
 
 const L = AURORA_LIGHT;
@@ -28,22 +27,31 @@ void main() {
 
 /** The pass's uniforms: the box; the angle's cosine and sine and the picture's height in pixels; half the picture's
     width, how many pieces the path has and whether it has an upright wall; the range's color premultiplied by its
-    cover, the cover last; the loop's share, 0 up to 1; and the table and the two noise tiles. */
+    cover, the cover last; the point the rays fan from and the six sheets, each how many tiles it spans across and
+    along and where it starts (AURORA_SHEETS' order); the loop's share, 0 up to 1; and the table and the two noise
+    tiles. */
 export const AURORA_UNIFORMS = `
 uniform vec2 uSize;
 uniform vec3 uFrame;
 uniform vec3 uPath;
 uniform vec4 uRange;
+uniform vec2 uFan;
+uniform vec4 uSheets[6];
 uniform float uTime;
 uniform sampler2D uTable;
 uniform sampler2D uNoise;
 uniform sampler2D uSoft;`;
 
+/** The sheets in the order the pass reads them from uSheets. */
+export const AURORA_SHEETS = ["a", "b", "c", "h1", "h2", "g"] as const;
+type SheetName = (typeof AURORA_SHEETS)[number];
+/* a sheet's spans and start, from uSheets, and how far it slides a loop, the same for every shape */
+const spans = (name: SheetName) => `uSheets[${AURORA_SHEETS.indexOf(name)}]`;
 /* where a sheet is read: along the fan, or over the picture itself */
-const fanned = (s: AuroraSheet) =>
-  `vec2(ang * ${f(s.across)} + ${f(s.u0)} + ${f(s.du)} * uTime, r * ${f(s.along)} + ${f(s.v0)} + ${f(s.dv)} * uTime)`;
-const level = (s: AuroraSheet) =>
-  `vec2(p.x * ${f(s.across)} + ${f(s.u0)} + ${f(s.du)} * uTime, p.y * ${f(s.along)} + ${f(s.v0)} + ${f(s.dv)} * uTime)`;
+const fanned = (name: SheetName) =>
+  `vec2(ang * ${spans(name)}.x + ${spans(name)}.z + ${f(L[name].du)} * uTime, r * ${spans(name)}.y + ${spans(name)}.w + ${f(L[name].dv)} * uTime)`;
+const level = (name: SheetName) =>
+  `vec2(p.x * ${spans(name)}.x + ${spans(name)}.z + ${f(L[name].du)} * uTime, p.y * ${spans(name)}.y + ${spans(name)}.w + ${f(L[name].dv)} * uTime)`;
 const step = ([lo, hi]: readonly number[], v: string) => `smoothstep(${f(lo)}, ${f(hi)}, ${v})`;
 
 /** A pixel's color, premultiplied, as aurora.ts's auroraRange and auroraLight work it out: px is the pixel's place
@@ -90,14 +98,14 @@ vec4 shade(vec2 px) {
   }
   float h = p.y - base;
   /* along the fan: the angle from straight up, and the way out along the ray */
-  vec2 e = p - vec2(${f(AURORA_FAN.x)}, ${f(AURORA_FAN.y)});
+  vec2 e = p - uFan;
   float ang = atan(e.x, e.y);
   float r = length(e);
-  float shaft = ${step(L.shaft, `texture(uNoise, ${fanned(L.a)}).r`)} * (0.4 + 0.6 * ${step(L.shaft, `texture(uNoise, ${fanned(L.b)}).g`)});
-  float halo = ${step(L.halo, `texture(uSoft, ${fanned(L.a)}).r`)} * (0.4 + 0.6 * ${step(L.halo, `texture(uSoft, ${fanned(L.b)}).g`)});
-  float fine = ${step(L.fine, `texture(uNoise, ${fanned(L.c)}).b`)};
-  float hot = ${step(L.hot, `texture(uNoise, ${level(L.h1)}).a`)} * ${step([L.hot[0] - 0.15, L.hot[1]], `texture(uNoise, ${level(L.h2)}).r`)};
-  float gather = 0.7 + 0.3 * ${step(L.gather, `texture(uSoft, vec2(ang * ${f(L.g.across)} + ${f(L.g.u0)} + ${f(L.g.du)} * uTime, ${f(L.g.v0)} + ${f(L.g.dv)} * uTime)).b`)};
+  float shaft = ${step(L.shaft, `texture(uNoise, ${fanned("a")}).r`)} * (0.4 + 0.6 * ${step(L.shaft, `texture(uNoise, ${fanned("b")}).g`)});
+  float halo = ${step(L.halo, `texture(uSoft, ${fanned("a")}).r`)} * (0.4 + 0.6 * ${step(L.halo, `texture(uSoft, ${fanned("b")}).g`)});
+  float fine = ${step(L.fine, `texture(uNoise, ${fanned("c")}).b`)};
+  float hot = ${step(L.hot, `texture(uNoise, ${level("h1")}).a`)} * ${step([L.hot[0] - 0.15, L.hot[1]], `texture(uNoise, ${level("h2")}).r`)};
+  float gather = 0.7 + 0.3 * ${step(L.gather, `texture(uSoft, vec2(ang * ${spans("g")}.x + ${spans("g")}.z + ${f(L.g.du)} * uTime, ${spans("g")}.w + ${f(L.g.dv)} * uTime)).b`)};
   /* how the light stands by height over the range: up in a short rise, then thinning away */
   float up = max(h, 0.0);
   float lift = smoothstep(-0.02, ${f(L.rise)}, h) * exp(-max(h - ${f(L.rise)}, 0.0) / ${f(L.fall)});
@@ -144,17 +152,25 @@ export function auroraTable(m: AuroraScene): Float32Array {
 
 /** What the pass takes for a scene, set once a palette, a view or a box changes: the frame (the angle's cosine and
     sine, the picture's height in pixels), the path (half the picture's width, how many pieces, 1 where it has an
-    upright wall) and the range's color premultiplied by its cover, the cover last. */
+    upright wall), the range's color premultiplied by its cover, the cover last, the point the rays fan from, and the
+    sheets (each how many tiles it spans across and along, then where it starts across and along). */
 export interface AuroraSceneUniforms {
   frame: Float32Array;
   path: Float32Array;
   range: Float32Array;
+  fan: Float32Array;
+  sheets: Float32Array;
 }
 
 export function auroraSceneUniforms(m: AuroraScene): AuroraSceneUniforms {
+  const D = m.design;
   return {
     frame: Float32Array.of(m.cs, m.sn, m.ext),
     path: Float32Array.of(m.half, m.segs, m.walls ? 1 : 0),
-    range: Float32Array.of(...m.range.map(v => v * m.cover), m.cover)
+    range: Float32Array.of(...m.range.map(v => v * m.cover), m.cover),
+    fan: Float32Array.of(D.fan.x, D.fan.y),
+    sheets: Float32Array.from(
+      AURORA_SHEETS.flatMap(name => [D[name].across, D[name].along, D[name].u0, D[name].v0])
+    )
   };
 }

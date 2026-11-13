@@ -21,7 +21,6 @@ word gets its Turkish.
 | roam (the dimple's Roam switch) | Gezinme | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow wandering by itself; „imleç“ is the pointer. |
 | aurora (an effect) | Kutup ışıkları | Curtains of light in the palette's colors rising behind a still outline. The northern lights, as Turkish names them; not „şafak“ (dawn). |
 | path (the aurora's Path field) | Yol | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. As Illustrator TR names a vector path; not „dosya yolu“. |
-| range, line, curve, mix, skyline (the aurora's Shape values) | Sıradağlar, Çizgi, Eğri, Karışık, Şehir silueti | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | Soft (the Appearance menu's field) | Yumuşaklık | A blur along the style's line, from Kapalı to 100; the header's summary says "Yumuşaklık {value}". |
 | Grain (the Appearance menu's field) | Gren | Film grain, the photographers' word (film greni); the summary says "Gren {value}". Kept apart from the blob's Frost (Buzlu). |
 | swatches / bands | şerit (şeritler) | One word for the hard-band styles: "Doğrusal şeritler", "linear swatches" = "doğrusal şeritler". |

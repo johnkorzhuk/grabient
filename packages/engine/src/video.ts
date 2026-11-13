@@ -8,7 +8,6 @@
    in each frame, and where every pixel of the aurora stands on its fan and over its range; the module draws them. The caller hands over the module, compiled: a Worker imports it, the editor's download fetches it into a
    Web Worker of the reader's browser, a test reads its file. */
 import {
-  AURORA_FAN,
   AURORA_HALF,
   AURORA_LIGHT,
   AURORA_LOOP,
@@ -1018,7 +1017,11 @@ function auroraDraw(
   plan: VideoPlan
 ): (i: number) => void {
   const scene = auroraSolid(
-    auroraScene(ask.palette, { angle: ask.angle, path: ask.look.path, bg: ask.look.bg }, ask.size),
+    auroraScene(
+      ask.palette,
+      { angle: ask.angle, shape: ask.look.shape, path: ask.look.path, bg: ask.look.bg },
+      ask.size
+    ),
     blobBackdrop(ask.palette)
   );
   /* the module's room for the tiles, the heights' table and the pixels: their addresses in params */
@@ -1039,11 +1042,12 @@ function auroraDraw(
   const plane = W * H;
   const pixels = new Float32Array(m.memory.buffer, pixelsAt, 4 * plane);
   const at = new Float64Array(2);
+  const D = scene.design;
   for (let y = 0, i = 0; y < H; y++)
     for (let x = 0; x < W; x++, i++) {
       auroraPoint(scene, x + 0.5, y + 0.5, at);
-      const ex = at[0] - AURORA_FAN.x;
-      const ey = at[1] - AURORA_FAN.y;
+      const ex = at[0] - D.fan.x;
+      const ey = at[1] - D.fan.y;
       auroraRange(scene, at[0], at[1], at);
       pixels[i] = Math.atan2(ex, ey);
       pixels[plane + i] = Math.sqrt(ex * ex + ey * ey);
@@ -1051,9 +1055,9 @@ function auroraDraw(
       pixels[3 * plane + i] = at[0];
     }
   const L = AURORA_LIGHT;
-  /* in aurora_ready's order */
+  /* in aurora_ready's order: the shape's sheets, then the light's steps and parts, the same for every shape */
   params().set([
-    ...[L.a, L.b, L.c, L.h1, L.h2, L.g].flatMap(s => [s.across, s.along, s.u0, s.v0, s.du, s.dv]),
+    ...[D.a, D.b, D.c, D.h1, D.h2, D.g].flatMap(s => [s.across, s.along, s.u0, s.v0, s.du, s.dv]),
     ...L.shaft,
     ...L.halo,
     ...L.fine,

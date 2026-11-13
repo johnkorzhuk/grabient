@@ -40,7 +40,6 @@ time; add a row when a new product word gets its translation.
 | roam (the dimple's Roam switch) | Tự di chuyển | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow moving by itself; „con trỏ“ is the pointer. |
 | aurora (an effect) | Cực quang | Curtains of light in the palette's colors rising behind a still outline. The northern lights; not „bình minh“ (dawn). |
 | path (the aurora's Path field) | Đường nét | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. As Inkscape VI names a vector path; not „đường dẫn“ (a file's path). |
-| range, line, curve, mix, skyline (the aurora's Shape values) | Dãy núi, Đường thẳng, Đường cong, Kết hợp, Đường chân trời | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | swatches, bands (the style) | sọc màu, sọc | Hard bands of the colors. "khối" is taken by the color solid, and "ô màu" reads as square tiles. "{count} hard bands" = "{count} sọc". |
 | Swatches (the strip's swatch files) | Mẫu màu | The files design apps import (Tokens, ASE, GPL, GRD), named as a design app's Swatches panel is, not the hard-band style. "Switch to swatches": Chuyển sang mẫu màu. |
 | style | kiểu | "Sai kiểu, số bước hoặc góc". |

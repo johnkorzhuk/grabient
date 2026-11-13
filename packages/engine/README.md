@@ -127,8 +127,11 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   `aurora-svg.ts`, the player's own pass in `aurora-gl.ts`): light read through the palette behind a still range. Its
   range is a path its address carries (`aurora-path.ts` reads and writes it, apart from the model so `effect.ts`
   loads no drawing; `aurora-path-kinds.ts` makes paths of a kind from a number, by `aurora-hash.ts`, with no model
-  beside it), in its shape's place (`EFFECT_KINDS`' `path`), and the range's color is its ground, none leaving it
-  clear. Its SVG is a frame of it, which never moves, and its still stands in for its first frame. Its clips are
+  beside it), beside its shape (`EFFECT_KINDS`' `path`), and the range's color is its ground, none leaving it clear.
+  Its shape, 0 to 999, picks its light (`auroraDesign`): the point its rays fan from, how wide its shafts are, where
+  its light gathers and where every sheet of its noise starts, each sheet sliding as designed, so every shape's loop
+  closes at the designed pace. Its SVG is a frame of it, which never moves, and its still stands in for its first
+  frame. Its clips are
   drawn four pixels at a time from what the engine keeps of each pixel (`video.ts` auroraDraw: its place on the fan,
   its height over the range, how much of the light shows), and weighed by how much of a picture its range leaves
   lit (auroraVideoWeight). Where no angle is set for it it stands at 90, whatever its palette's own (`EFFECT_KINDS`'

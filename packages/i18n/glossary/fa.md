@@ -22,7 +22,6 @@ and add a row when a new product word gets its translation. Persian reads right 
 | roam (the dimple's Roam switch) | گردش | The dimple's hollow going round a slow loop by itself rather than following the pointer. The hollow moving about by itself. |
 | aurora (an effect) | شفق قطبی | Curtains of light in the palette's colors rising behind a still outline. The northern lights; not سپیده‌دم (dawn). |
 | path (the aurora's Path field) | مسیر | The outline the aurora's light rises behind, written as a short code (line,33,33) a reader copies or types. A vector path as design apps name it; not a file's path. |
-| range, line, curve, mix, skyline (the aurora's Shape values) | رشته‌کوه، خط، منحنی، ترکیبی، خط آسمان | The kind of outline the aurora's light rises behind: a mountain range (not a range of numbers), a straight line, a smooth curve, a mix of straight and curved pieces, a city's skyline. |
 | Soft (the Appearance menu's field) | نرمی | A blur along the style's line, from خاموش to 100: `نرمی {value}` in the header's summary. |
 | Grain (the Appearance menu's field) | دانه | Film grain, as photographers say it (دانه فیلم): `دانه {value}`. Kept apart from seed (بذر) and the blob's Frost (مات). |
 | swatches | نوارهای رنگی | Judgment: نمونه‌رنگ is a swatch in a design tool's swatch panel, not a palette drawn as hard bands. The style menu's "bands" is the same word: نوارهای خطی، نوارهای زاویه‌ای، نوارهای شعاعی. |
