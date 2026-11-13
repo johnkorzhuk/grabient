@@ -682,7 +682,7 @@ describe("an issue's lead", () => {
     }
   });
 
-  it("names a palette by its colors where the issue draws it otherwise than its title was written for", async () => {
+  it("names a palette by its written title where the issue draws it otherwise than it was saved", async () => {
     const env = newsletterEnv();
     const admin = await makeAdmin(env);
     const held = october?.write(ORIGIN).picks?.[2];
@@ -706,8 +706,7 @@ describe("an issue's lead", () => {
       const sheet = await bodyOf<{ options: { id: string; name: string }[] }>(
         await read(env, "issue=1", admin.cookie)
       );
-      expect(sheet.options[2].name).not.toBe("Ember Sunset Bloom");
-      expect(sheet.options[2].name.length).toBeGreaterThan(0);
+      expect(sheet.options[2].name).toBe("Ember Sunset Bloom");
     } finally {
       await run(env.DB, "DELETE FROM k_palette_texts WHERE seed = ? AND embed = ''", picks[2]);
       await run(env.DB, "DELETE FROM k_palettes WHERE seed = ? AND created_at = 0", picks[2]);

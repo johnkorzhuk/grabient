@@ -1,6 +1,6 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { type EffectKind, effectView } from "@grabient/engine/effect.ts";
-import { paletteTitle, readPalette } from "@grabient/engine/name.ts";
+import { paletteTitle, readPalette, writtenTitle } from "@grabient/engine/name.ts";
 import { colorFacts, namedColor } from "@grabient/engine/named-colors.ts";
 import {
   GRAIN_MAX,
@@ -32,7 +32,7 @@ import type { CollectionSummary } from "../../../features/collections/types.ts";
 import { keptLook, lookKind } from "../../../features/editor/look.ts";
 import type { Credit } from "../../../features/gallery/credit.ts";
 import { SHEET_MAX } from "../../../mcp-view/tiles.ts";
-import { heldWords, texts as paletteTexts } from "../../collections/files.ts";
+import { texts as paletteTexts, writtenWords } from "../../collections/files.ts";
 import {
   collectionBySlug,
   collectionRecord,
@@ -110,16 +110,14 @@ import { viewData } from "../view.ts";
 const place = (c: ToolContext, path: string) => `${c.origin}/${path}`;
 const savedPage = (c: ToolContext) => place(c, "palettes/saved");
 type PaletteText = Awaited<ReturnType<typeof paletteTexts>>[number];
-/** What a palette is called: its written title where its colors bear it out and it is drawn as it was saved, or what
-    its colors call it in its view. Played as the effect a kept look plays, which is never as it was saved, it is
-    named as the effect's page names it: its colors read as that page reads them, and the effect in its style's place. */
+/** What a palette is called: its written title where its colors bear it out, in whatever view it is drawn, or what
+    its colors call it in its view. Played as the effect a kept look plays, it is named as the effect's page names it:
+    its written title, else its colors read as that page reads them, and the effect in its style's place. */
 function titleOf(s: Shown, written?: PaletteText, effect?: EffectKind | null): string {
-  if (!effect)
-    return (
-      heldWords(written, s.palette, s)?.title ??
-      paletteTitle(readPalette(s.palette, s.style, s.steps), s.style)
-    );
+  const own = writtenWords(written, s.palette)?.title;
+  if (!effect) return own ?? paletteTitle(readPalette(s.palette, s.style, s.steps), s.style);
   const read = effectView(s.palette);
+  if (own) return writtenTitle(own, read.style, effect);
   return paletteTitle(
     readPalette(s.palette, read.style, read.steps),
     read.style,
@@ -780,7 +778,7 @@ export const accountTools: readonly Tool[] = [
         }
       }
       const tiles = placed.map(({ s, title }, i) => {
-        const own = title ?? heldWords(written.get(s.seed), s.palette, s)?.title;
+        const own = title ?? writtenWords(written.get(s.seed), s.palette)?.title;
         return {
           tile: i + 1,
           ...card(c.origin, s, own ?? titleOf(s)),

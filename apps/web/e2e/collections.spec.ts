@@ -1464,7 +1464,7 @@ test("a public collection lists every palette's hex codes under its files: each 
               createdAt: 1,
               position: 2
             },
-            // one the collection keeps playing an effect: its row leads where its card does, named by its colors
+            // one the collection keeps playing an effect: its row leads where its card does, by its written title too
             {
               kseed: "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
               style: "linearGradient",
@@ -1474,7 +1474,7 @@ test("a public collection lists every palette's hex codes under its files: each 
               createdAt: 1,
               position: 3,
               look: "style=silk",
-              written: "Never said of a look"
+              written: "Silk harbor at dusk"
             }
           ]
         }
@@ -1498,12 +1498,12 @@ test("a public collection lists every palette's hex codes under its files: each 
     "href",
     `/${OTHER}?style=linearSwatches&steps=5`
   );
-  // a palette kept in a look is linked as its card links it, and the title written for its gradient is not its name
+  // a palette kept in a look is linked as its card links it, and keeps the title written for it: it is its name
   await expect(rows.nth(3).getByRole("link")).toHaveAttribute(
     "href",
     /^\/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g\?style=silk/
   );
-  await expect(rows.nth(3).getByRole("link")).not.toHaveText("Never said of a look");
+  await expect(rows.nth(3).getByRole("link")).toHaveText("Silk harbor at dusk");
   // its own colors, one to a keyframe, each a code
   const first = rows.nth(0).getByRole("button");
   const count = await first.count();

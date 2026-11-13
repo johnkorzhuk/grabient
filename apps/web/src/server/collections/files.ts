@@ -2,10 +2,9 @@ import { decodePalette } from "@grabient/engine";
 import { MARKDOWN_LEAD, type PaletteWords } from "@grabient/engine/markdown.ts";
 import { titleFaults } from "@grabient/engine/name.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { asSaved, isStyle, type Style, type View } from "@grabient/engine/view.ts";
+import { isStyle, type Style, type View } from "@grabient/engine/view.ts";
 import { all, first } from "@grabient/server/db/d1.ts";
 import type { CollectionDocument } from "../../features/collections/types.ts";
-import { lookKind } from "../../features/editor/look.ts";
 import { collectionBySlug, collectionsHolding, type Reader } from "./read.ts";
 
 export { isCollectionSlug } from "../../features/collections/address.ts";
@@ -14,8 +13,8 @@ export { isCollectionSlug } from "../../features/collections/address.ts";
    the files area writes them. Agents read them, so they stay in English. */
 
 /** A public collection as its files write it: each palette in the collection's own order, with the title written for
-    it where its colors bear the title out and the collection holds it in the view it was saved in, and the whole look
-    the collection keeps it in where it keeps one. */
+    it where its colors bear the title out, in whatever view or look the collection holds it, and the whole look the
+    collection keeps it in where it keeps one. */
 export interface CollectionForFiles {
   slug: string;
   title: string;
@@ -82,8 +81,9 @@ export const texts = async (env: Reader, seeds: readonly string[]) =>
       )
     : [];
 
-/** A palette's written words where its colors bear the title out, with the view it was saved in, which they describe:
-    the description only where it holds too. None for a palette nothing saved. */
+/** A palette's written words where its colors bear the title out, with the view it was saved in, which the description
+    describes: the description only where it holds too. The title is the palette's name in every view (John, 12 Nov
+    2026: "palettes with an ai generated title use that title"). None for a palette nothing saved. */
 export function writtenWords(
   text: TextRow | undefined,
   palette: Palette | null
@@ -97,25 +97,15 @@ export function writtenWords(
   };
 }
 
-/** A palette's written words as a reader is shown them in `view`: only while it is drawn as it was saved. */
-export function heldWords(
-  text: TextRow | undefined,
-  palette: Palette | null,
-  view: Partial<View>
-): { title: string; embed: string } | null {
-  const words = writtenWords(text, palette);
-  return words && palette && asSaved(palette, view, words.view) ? words : null;
-}
-
-/** A public collection with the title written for each of its palettes that has none of the collection's own, where
-    the view the collection saved it in bears the words out (heldWords), which a look that plays an effect never does:
-    what its English page's list of hex codes calls each palette, as its files do. One read for the collection's
-    seeds; none where every palette has the collection's own title. Its callers go on without it where it fails. */
+/** A public collection with the title written for each of its palettes that has none of the collection's own, in
+    whatever view or look the collection holds it: what its English page's list of hex codes calls each palette, as
+    its files do. One read for the collection's seeds; none where every palette has the collection's own title. Its
+    callers go on without it where it fails. */
 export async function withWritten<T extends Pick<CollectionDocument, "items">>(
   env: Reader,
   doc: T
 ): Promise<T> {
-  const bare = doc.items.filter(item => !item.title && !lookKind(item.look));
+  const bare = doc.items.filter(item => !item.title);
   if (!bare.length) return doc;
   const written = new Map(
     (
@@ -129,8 +119,8 @@ export async function withWritten<T extends Pick<CollectionDocument, "items">>(
   return {
     ...doc,
     items: doc.items.map(item => {
-      if (item.title || lookKind(item.look)) return item;
-      const title = heldWords(written.get(item.kseed), decodePalette(item.kseed), item)?.title;
+      if (item.title) return item;
+      const title = writtenWords(written.get(item.kseed), decodePalette(item.kseed))?.title;
       return title ? { ...item, written: title } : item;
     })
   };
@@ -162,14 +152,11 @@ export async function collectionForFiles(
         ? "Grabient"
         : doc.owner.display || doc.owner.name || "a Grabient account",
     updatedAt: doc.updatedAt,
-    // a palette is named as its collection names it, else by the words written for it that its view bears out, which a
-    // look that plays an effect never does
+    // a palette is named as its collection names it, else by the title written for it, in whatever view or look the
+    // collection holds it
     items: doc.items.map(item => {
       const title =
-        item.title ??
-        (lookKind(item.look)
-          ? undefined
-          : heldWords(written.get(item.kseed), decodePalette(item.kseed), item)?.title);
+        item.title ?? writtenWords(written.get(item.kseed), decodePalette(item.kseed))?.title;
       return {
         seed: item.kseed,
         style: item.style,

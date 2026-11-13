@@ -644,7 +644,7 @@ describe("the tools", () => {
     ).toEqual([addressAt(a), addressAt(b)]);
   });
 
-  it("name the palette a change starts from as its lists do: its written title while drawn as saved", async () => {
+  it("name the palette a change starts from as its lists do: by its written title, however it is drawn", async () => {
     const env = testEnv();
     const { token } = await connected(env);
     const seed = fresh();
@@ -667,8 +667,8 @@ describe("the tools", () => {
       style: "linearGradient",
       steps: 8
     });
-    // drawn another way, it goes by its colors, as its page does
-    expect((await from({ style: "radialSwatches" })).title).toMatch(/ radial palette$/);
+    // drawn another way, it keeps the title: it is the palette's name
+    expect((await from({ style: "radialSwatches" })).title).toBe("Study 42");
   });
 
   it("show palettes as tiles: the view's data for an app that draws it, each picture's address for one that does not", async () => {

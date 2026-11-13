@@ -8,7 +8,7 @@ import { decodePalette } from "./codec.ts";
 import { oklchOf } from "./css.ts";
 import { sampleStops } from "./curve.ts";
 import { type PaletteJson, paletteJson } from "./document.ts";
-import { paletteDescription, paletteTitle, readingName, seedReading } from "./name.ts";
+import { bareTitle, paletteDescription, paletteTitle, readingName, seedReading } from "./name.ts";
 import type { Palette } from "./palette.ts";
 import type { Namer } from "./precise-names.ts";
 import { toSpec } from "./spec.ts";
@@ -61,13 +61,17 @@ export function paletteMarkdown(
   if (!P || !doc || !reading) return null;
   const base = origin.replace(/\/$/, "");
   const stops = sampleStops(P, doc.steps);
-  const plays = effect?.(P, readingName(reading), doc);
-  /* drawn as it was saved, its written words name and describe it, and what its colors call it stays beside them for a
-     reader or a program that looks for the colors; in any other view, an effect among them, its colors name it alone */
-  const own = !plays && written && asSaved(P, doc, written.view) ? written : null;
+  /* its written title names it in whatever view or effect it is drawn, and what its colors call it stays beside the
+     title for a reader or a program that looks for the colors; an effect's file says the effect after the name, as
+     its page does. Its written description is of the one view it was saved in, and leads the file there alone */
+  const plays = effect?.(P, written ? bareTitle(written.title) : readingName(reading), doc);
+  const own = !plays && written ? written : null;
   const called = plays?.called ?? paletteTitle(reading, doc.style);
   const title = own?.title ?? called;
-  const lead = plays?.lead ?? (own?.lead || paletteDescription(reading, doc, doc.colors));
+  const lead =
+    plays?.lead ??
+    ((own && asSaved(P, doc, own.view) && own.lead) ||
+      paletteDescription(reading, doc, doc.colors));
   const files = plays?.files ?? { ...doc.links, page: doc.url };
   const colors = stops.map((stop, i) => {
     const ink = doc.contrast.text[i] === "#ffffff" ? "white" : "black";

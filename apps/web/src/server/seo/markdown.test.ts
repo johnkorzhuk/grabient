@@ -270,7 +270,7 @@ describe("a palette as Markdown", () => {
     expect(text.startsWith("# Dusk over the mesa\n\nWarm browns settle into maroon.\n")).toBe(true);
     expect(text).toMatch(/\n- Also called: .+ gradient\n/);
     expect(text).toContain("- [Ocean gradients](https://grabient.com/ocean-gradients)");
-    // drawn another way than it was saved, its colors name it alone
+    // drawn another way than it was saved, it keeps its title, and its colors describe it
     const other = await (
       await markdownFile(
         "kS7Q8Yy5S_SChv0",
@@ -279,10 +279,9 @@ describe("a palette as Markdown", () => {
         words
       )
     ).text();
-    expect(other).not.toContain("Dusk over the mesa");
+    expect(other.startsWith("# Dusk over the mesa\n")).toBe(true);
     expect(other).not.toContain("Warm browns");
-    expect(other).not.toContain("Also called");
-    expect(other).toMatch(/^# .+ radial palette\n/);
+    expect(other).toMatch(/\n- Also called: .+ radial palette\n/);
     expect(other).toContain("- [Ocean gradients](https://grabient.com/ocean-gradients)");
     const failed = await markdownFile(
       "kS7Q8Yy5S_SChv0",

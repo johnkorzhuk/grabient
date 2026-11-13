@@ -11,7 +11,7 @@ import type { Palette } from "./palette.ts";
 import type { Namer } from "./precise-names.ts";
 import { samples, structure } from "./shape.ts";
 import { toSpec } from "./spec.ts";
-import { asSaved, drawnView, type View, viewSearch } from "./view.ts";
+import { drawnView, type View, viewSearch } from "./view.ts";
 
 export const PALETTE_MODEL = "oklch-keyframes-v1";
 
@@ -71,8 +71,8 @@ const BLACK = [0, 0, 0];
 /* a contrast to one place, never rounded up: 4.47 is 4.4, which does not pass at 4.5 */
 const tenths = (ratio: number) => Math.floor(ratio * 10) / 10;
 
-/** A palette's JSON: its document, then its title where one is written for it that its colors bear out and it is
-    drawn as it was saved, its name (what its colors call it) and each color's (its precise name where `names` holds
+/** A palette's JSON: its document, then its title where one is written for it that its colors bear out, in whatever
+    view it is drawn, its name (what its colors call it) and each color's (its precise name where `names` holds
     them, precise-names.ts), its kinds, how its hues relate, the text color that reads on each color with its contrast,
     and whether a wide-gamut screen shows more of it. English. Null for a seed that is no palette. */
 export function paletteJson(
@@ -87,8 +87,8 @@ export function paletteJson(
   const doc = paletteDocument(seed, P, origin, input);
   const reading = seedReading(seed, doc.style, doc.steps);
   if (!reading) return null;
-  /* a written title describes the palette in the view it was saved in, and names it there alone */
-  const title = written && asSaved(P, doc, written.view) ? written.title : null;
+  /* a written title is the palette's name, whatever it is drawn as */
+  const title = written?.title ?? null;
   const stops = sampleStops(P, doc.steps);
   const lums = stops.map(s => luminance(s.rgb));
   const onWhite = lums.map(l => contrastOf(l, luminance(WHITE)));

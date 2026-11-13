@@ -405,9 +405,9 @@ export function CollectionPage(props: {
   /* the collection's palettes as its list of hex codes says them, in the page's order. Each row is its card in
      words: linked where the card's Edit leads (the palette in the page's view over the one the collection saved it
      in, playing the look the collection keeps it in while the page draws every palette as saved) and named as the
-     card is, by the collection's own title, else, on the English page while it is drawn as it was saved and plays no
-     effect, the title written for it, else what its colors call it, read as an effect's page reads them where it
-     plays one. Its codes are its own colors, one to a keyframe, as the sheet's chips are */
+     card is, by the collection's own title, else, on the English page, the title written for it, whatever view or
+     effect the page draws it in, else what its colors call it, read as an effect's page reads them where it plays
+     one. Its codes are its own colors, one to a keyframe, as the sheet's chips are */
   /* the titles written for the collection's palettes, in English, as its public read brought them: an admin's and an
      owner's page is drawn from another read of the same collection, which brings none, and its list names its
      palettes as every reader's does. None on a page in another language, which names its palettes in its own */
@@ -432,13 +432,13 @@ export function CollectionPage(props: {
         item.look ? lookEffect(item.kseed, item.look) : null
       );
       const palette = plays ? decodePalette(item.kseed) : null;
-      const asSaved = !plays && shown.style === own.style && shown.steps === own.steps;
       const href = paletteHref(shown, props.view.size, plays, true);
       return {
         key: keyOf(item),
         name:
           item.title ??
-          (asSaved ? (item.written ?? written().get(keyOf(item))) : undefined) ??
+          item.written ??
+          written().get(keyOf(item)) ??
           nameOf(palette ? { ...shown, ...effectView(palette) } : shown),
         href,
         rel: relTo(href),

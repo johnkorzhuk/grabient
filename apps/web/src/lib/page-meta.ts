@@ -16,7 +16,8 @@ import {
   readingPhrase,
   readPalette,
   TITLE_LINK,
-  titleWords
+  titleWords,
+  writtenTitle
 } from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
 import {
@@ -593,8 +594,14 @@ function coded(hex: string, description: string): string {
     `${LOCALE_INFO[locale()].dir === "rtl" ? `\u2068${codes}\u2069` : codes} ${description}`
   );
 }
-/** The words written for a palette as its page wears them: in English, and while it is drawn as it was saved, the one
-    view they describe, which an effect playing in its place never is. Drawn any other way, its colors name it. */
+/** The title written for a palette, which its page wears in English in whatever view or effect it is drawn: it is the
+    palette's name (John, 12 Nov 2026: "palettes with an ai generated title use that title"), and what the page draws
+    it as follows it as it follows the name its colors give it (name.ts writtenTitle). A page in another language is
+    named by its colors in its own. */
+const ownTitle = (page: Extract<Page, { kind: "palette" }>) =>
+  locale() === DEFAULT_LOCALE ? page.written?.title : undefined;
+/** The description written for a palette as its page wears it: in English, and while it is drawn as it was saved, the
+    one view it describes, which an effect playing in its place never is. */
 const ownWords = (page: Extract<Page, { kind: "palette" }>) =>
   locale() === DEFAULT_LOCALE &&
   page.written &&
@@ -608,8 +615,8 @@ const readView = (page: Extract<Page, { kind: "palette" }>) =>
   page.effect ? { ...page.view, ...effectView(page.palette) } : page.view;
 
 /** A page's heading, for a reader who listens and for a crawler: what its title says, without the site's name. A
-    palette's is its written title in English while it is drawn as it was saved, else what its colors are called in
-    its style or the effect it plays. */
+    palette's is its written title in English, else what its colors are called, either with its style or the effect
+    it plays. */
 export function heading(page: Page): string {
   const query = "query" in page ? page.query : undefined;
   const like = query ? decodePalette(query) : null;
@@ -628,11 +635,12 @@ export function heading(page: Page): string {
       );
     case "list":
       return t(LISTS[page.order].paged);
-    case "palette":
-      return (
-        ownWords(page)?.title ||
-        styledName(paletteName(page.palette, readView(page)), page.view.style, page.effect?.kind)
-      );
+    case "palette": {
+      const own = ownTitle(page);
+      return own
+        ? writtenTitle(own, page.view.style, page.effect?.kind)
+        : styledName(paletteName(page.palette, readView(page)), page.view.style, page.effect?.kind);
+    }
     case "search":
       return say(msg("Palettes like {name}"), msg("{subject} gradients and color palettes"), "");
     case "saved":
@@ -877,8 +885,8 @@ export function paletteFacts(page: Extract<Page, { kind: "palette" }>): string {
   return written ? `${clipWords(written)} ${said}` : said;
 }
 
-/** A palette's page: titled by its written words in English while it is drawn as it was saved, else by what its colors
-    are called, and described by them with its colors, which no other palette shares, so two palettes described alike
+/** A palette's page: titled by its written title in English, else by what its colors are called, and described by its
+    written words while it is drawn as it was saved, else by its colors' name, with its colors, which no other palette shares, so two palettes described alike
     still read apart. */
 function palettePage(
   page: Extract<Page, { kind: "palette" }>,
@@ -891,7 +899,7 @@ function palettePage(
   const name = readingName(reading, language());
   const style = titledAs(view.style, page.effect?.kind);
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
-  const written = ownWords(page);
+  const written = ownTitle(page);
   const path = paletteAddress(seed, page.saved);
   meta.title = titled(heading(page));
   meta.description = describe(page, name, hexes);
@@ -914,7 +922,7 @@ function palettePage(
   const title = untitled(meta.title);
   const held = page.heldBy ?? [];
   /* a written title is the page's name; what its colors call it stays beside it, for a search in colors */
-  const called = written?.title
+  const called = written
     ? t("{name} {style}", { name: paletteName(page.palette, page.view), style })
     : undefined;
   meta.structuredData.push(
