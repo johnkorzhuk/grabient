@@ -9,7 +9,10 @@
    its picture out from the box's longer side (ROSETTE_SPAN, SILK_SPAN, PAPERCUT_SPAN, AURORA_SPAN, a field effect's
    span), so the
    square's middle is the box's picture exactly, and the player, laying out the box itself, starts on that frame. The
-   field effects (kit/) are one branch of each switch, their definitions read here at once (kit/registry.ts). */
+   field effects (kit/) are one branch of each switch, their definitions read here at once (kit/registry.ts). Where the
+   server draws an effect's still as a picture (EFFECT_KINDS' picture: the aurora's, fx-picture.ts), a page's first
+   screen and a list's cards show the picture in the vector still's place; the editor's own pictures, whose palette an
+   edit changes, keep the vector still. */
 import { AURORA_LOOP } from "./aurora.ts";
 import { auroraFileSvg, auroraFrameSvg, auroraStillSteps, auroraStillSvg } from "./aurora-svg.ts";
 import { svgUrl } from "./css.ts";
@@ -46,10 +49,13 @@ import { SILK_LOOP } from "./silk.ts";
 import { silkFrameSvg, silkMovingSvg, silkStillSvg } from "./silk-svg.ts";
 import { STRINGS_LOOP, stringsScene } from "./strings.ts";
 import {
+  keepStringsTrace,
+  type StringsTraceAsk,
   stringsFileSvg,
   stringsFrameSvg,
   stringsStillSteps,
-  stringsStillSvg
+  stringsStillSvg,
+  stringsTraceAsk
 } from "./strings-svg.ts";
 import type { Size, Style } from "./view.ts";
 
@@ -149,6 +155,20 @@ export function* fxStillSteps(kind: VectorKind, P: Palette, look: FxLook): Gener
       return fxStillBackground(kind, P, look);
   }
 }
+
+/** The part of a still's drawing a page hands a Web Worker (apps/web features/editor/still-worker.ts), where its steps
+    would hold the page however finely they are cut: the strings' threads at a view no still has traced yet, which
+    the worker traces (strings-svg.ts stringsTrace) while the page scrolls. */
+export type FxTraceAsk = StringsTraceAsk;
+
+/** What a page hands its worker before it writes a still (fxStillSteps), or null where the still is written on the
+    page in short steps: every kind but the strings, and the strings at a view whose threads are kept. */
+export const fxTraceAsk = (kind: VectorKind, P: Palette, look: FxLook): FxTraceAsk | null =>
+  kind === "strings" ? stringsTraceAsk(P, look, SQUARE) : null;
+
+/** The worker's answer kept, so the still it was asked for, and every other at its view, is written from it. */
+export const fxKeepTrace = (ask: FxTraceAsk, threads: readonly (readonly [number, string])[]) =>
+  keepStringsTrace(ask, threads);
 
 /** The SVG file of a size at a speed (1 as designed): each moving, 0 its still. The papercut's is its still at any
     speed (John, 3 Nov 2026: "we just dont do animations with svg"): its cuts change shape as it moves, islands

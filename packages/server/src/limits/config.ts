@@ -80,6 +80,11 @@ export const LIMITS = {
   // showed. Five thousand keep a day of them under about twenty cents however it is pressed; past them a page shows
   // the still's colors alone until the glass plays.
   stillRenderDaily: { requests: 5000, window: 86400, site: true, lease: 20 },
+  // A vector effect's still as a picture no cache held (apps/web/src/server/images/fx-picture.ts: the aurora's), which a
+  // page's first screen and a list's cards show: about half a second of CPU each, drawn once a palette and look and
+  // kept, so a day is the new ones the lists showed. Ten thousand keep a day of them under about eleven cents however
+  // it is pressed; past them a card shows nothing under it until the day turns.
+  fxStillRenderDaily: { requests: 10000, window: 86400, site: true, lease: 20 },
   // A palette's clip no cache holds, drawn in parts (apps/web/src/server/images/video.ts): up to about 25 seconds of
   // CPU here, perhaps twice that on Cloudflare's machines. Clips are a preview: production draws them for admins
   // alone, and staging for anyone, though only the few people its owner links to use it, so an address has five an

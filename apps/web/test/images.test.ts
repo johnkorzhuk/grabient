@@ -1,5 +1,7 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
+import { fxStillKey } from "@grabient/engine/effect.ts";
+import { FX_PICTURE_SIDE, fxPictureAddress } from "@grabient/engine/fx-picture.ts";
 import { glassStillKey } from "@grabient/engine/glass-colors.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
@@ -15,6 +17,7 @@ import {
   seedPngAnswer
 } from "../src/server/images/answers.ts";
 import golden from "../src/server/images/fixtures/pictures.json" with { type: "json" };
+import { fxPictureAnswer } from "../src/server/images/fx-picture.ts";
 import { stillAnswer } from "../src/server/images/still.ts";
 import { get, testEnv, unique, watchLimits } from "./helpers.ts";
 import { decodePng, pixelHash } from "./png.ts";
@@ -496,6 +499,75 @@ describe("the glass's still", () => {
       "90-0-fae4c3-ffb999-zzzzzz"
     ])
       expect((await stillAnswer(get(`/api/still?k=${k}&v=1`), env, keep)).status, k).toBe(404);
+  });
+});
+
+describe("a vector effect's still as a picture", () => {
+  /** An aurora's still no other test asks for, so it is drawn here first: a shape of its own. */
+  const freshKey = () =>
+    fxStillKey("aurora", SEED, {
+      angle: 90,
+      shape: 1 + Math.floor(Math.random() * 999),
+      steps: null,
+      zoom: null,
+      path: null,
+      bg: null
+    });
+
+  it("is the aurora's first frame its key names, as a WebP at 1024 with its clear range, kept in R2 under cards/ and read from there", async () => {
+    const key = freshKey();
+    const first = isolate();
+    const answer = await fxPictureAnswer(get(fxPictureAddress(key)), first.env, first.keep);
+    expect([
+      answer.status,
+      answer.headers.get("Content-Type"),
+      answer.headers.get("X-Cache")
+    ]).toEqual([200, "image/webp", "MISS"]);
+    expect(answer.headers.get("X-Robots-Tag")).toBe("noindex");
+    expect(answer.headers.get("CDN-Cache-Control")).toBe("max-age=604800");
+    const webp = new Uint8Array(await answer.arrayBuffer());
+    const text = (from: number, to: number) => String.fromCharCode(...webp.subarray(from, to));
+    /* an extended file: its range lets the page through, so the picture has an alpha */
+    expect([text(0, 4), text(8, 16)]).toEqual(["RIFF", "WEBPVP8X"]);
+    const side = (at: number) => (webp[at] | (webp[at + 1] << 8) | (webp[at + 2] << 16)) + 1;
+    expect([side(24), side(27)]).toEqual([FX_PICTURE_SIDE, FX_PICTURE_SIDE]);
+    expect(webp.length).toBeLessThan(48_000);
+    await first.settled();
+    const hash = answer.headers.get("ETag")?.slice('"image:k4:'.length, -1);
+    const object = await first.env.UPLOADS?.get(`cards/k4/${hash}.webp`);
+    expect(object?.httpMetadata?.contentType).toBe("image/webp");
+    const again = isolate();
+    const read = await fxPictureAnswer(get(fxPictureAddress(key)), again.env, again.keep);
+    expect([read.headers.get("X-Cache"), new Uint8Array(await read.arrayBuffer())]).toEqual([
+      "HIT",
+      webp
+    ]);
+  });
+
+  it("counts against its own day, not the glass's or a large picture's, and is nothing while drawing is off", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    const { keep } = isolate(env);
+    expect((await fxPictureAnswer(get(fxPictureAddress(freshKey())), env, keep)).status).toBe(200);
+    expect(asked).toEqual(["fxStillRenderDaily"]);
+    const off = isolate();
+    await setFlag(off.env, "share-images", false, unique("admin"));
+    const refused = await fxPictureAnswer(get(fxPictureAddress(freshKey())), off.env, off.keep);
+    expect([refused.status, refused.headers.get("Cache-Control")]).toEqual([503, "no-store"]);
+  });
+
+  it("is no picture for a key no page writes, or a kind whose still is its vector one", async () => {
+    const { env, keep } = isolate();
+    const look = { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null };
+    for (const k of [
+      "",
+      "aurora",
+      `aurora|${SEED}|90|007`,
+      `aurora|${SEED}|361|`,
+      `aurora|kNOT_A_SEED|90|`,
+      fxStillKey("silk", SEED, look),
+      fxStillKey("strings", SEED, look)
+    ])
+      expect((await fxPictureAnswer(get(fxPictureAddress(k)), env, keep)).status, k).toBe(404);
   });
 });
 

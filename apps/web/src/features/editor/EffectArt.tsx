@@ -269,6 +269,9 @@ export function EffectArt(props: {
   active: boolean;
   /** a picture that never moves (the selection's): its still alone, no player made or its code asked for */
   still?: boolean;
+  /** its palette stands, as a list's card's does: its still is the server's picture where its kind has one
+      (EFFECT_KINDS' picture, FxArt.tsx) */
+  picture?: boolean;
 }) {
   let holder!: HTMLSpanElement;
   /* the player's frame covers the still */
@@ -512,6 +515,7 @@ export function EffectArt(props: {
               path={props.settings.look.path}
               bg={props.settings.look.bg}
               at={held()}
+              picture={props.picture}
             />
           </Match>
         ))}

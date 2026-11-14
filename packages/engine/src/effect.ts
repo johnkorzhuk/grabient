@@ -108,11 +108,19 @@ export interface EffectKindFacts {
   path: boolean;
   /** drawn by ui/effect-loop.ts over a vector still */
   vector: boolean;
-  /** its still stands in for its first frame rather than being it (the papercut's shadows stepped, the aurora's light
-      in broad wedges under a blur, for a list's cards and a page's first paint), so a page's stage shows the player's
-      own first frame over it while the effect is held as well; the others' stills are that frame to within a level,
-      which a held stage fades back to */
+  /** its still stands in for its first frame rather than being it (the papercut's shadows stepped for a list's cards
+      and a page's first paint, the aurora's light in broad wedges under a blur where no picture of it stands:
+      `picture`), so a page's stage shows the player's own first frame over it while the effect is held as well; the
+      others' stills are that frame to within a level, which a held stage fades back to */
   steppedStill: boolean;
+  /** whether the server draws its still as a picture, its first frame at FX_PICTURE_SIDE coded as WebP
+      (fx-picture.ts, apps/web server/images/fx-picture.ts), which a page's first screen and a list's cards show in
+      place of its vector still: the aurora's, whose light no vector still within a list's budget draws sharp (John,
+      13 Nov 2026, of its cards: "why does the preview look blurrier than it actually is when hovered?"). A picture is
+      drawn once for a palette and look and kept, so where the palette changes as it is edited (the editor's own
+      pictures), its vector still stands. The others' vector stills are their first frame to within a level, or a
+      stand-in light enough for a list (steppedStill) */
+  picture: boolean;
   /** how its SVG file moves at a speed: by CSS animations, by SMIL, or not at all, its still at any speed */
   svgMotion: "css" | "smil" | null;
   /** whether any frame of its loop is written as a plain SVG and CSS of its own (fx-still.ts fxFrameSvg), which the
@@ -151,6 +159,7 @@ const KIT_FACTS: Omit<EffectKindFacts, "steps"> = {
   path: false,
   vector: true,
   steppedStill: false,
+  picture: false,
   svgMotion: null,
   frameSvg: true,
   figma: null,
@@ -170,6 +179,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     path: false,
     vector: false,
     steppedStill: false,
+    picture: false,
     svgMotion: "css",
     frameSvg: false,
     figma: "moving",
@@ -188,6 +198,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     path: false,
     vector: false,
     steppedStill: false,
+    picture: false,
     svgMotion: "css",
     frameSvg: false,
     figma: "moving",
@@ -206,6 +217,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     path: false,
     vector: true,
     steppedStill: false,
+    picture: false,
     svgMotion: "smil",
     frameSvg: true,
     figma: "moving",
@@ -224,6 +236,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     path: false,
     vector: true,
     steppedStill: false,
+    picture: false,
     svgMotion: "css",
     frameSvg: true,
     figma: "moving",
@@ -242,6 +255,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     path: false,
     vector: true,
     steppedStill: true,
+    picture: false,
     svgMotion: null,
     frameSvg: true,
     figma: null,
@@ -260,6 +274,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     path: false,
     vector: true,
     steppedStill: false,
+    picture: false,
     svgMotion: null,
     frameSvg: true,
     figma: null,
@@ -278,6 +293,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     path: false,
     vector: true,
     steppedStill: false,
+    picture: false,
     svgMotion: null,
     frameSvg: true,
     figma: "moving",
@@ -296,6 +312,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     path: true,
     vector: true,
     steppedStill: true,
+    picture: true,
     svgMotion: null,
     frameSvg: true,
     figma: null,
@@ -332,6 +349,9 @@ export const isVectorKind = (kind: EffectKind | null | undefined): kind is Vecto
     offer their SVG in its place. */
 export type FigmaKind = "glass" | "blob" | "silk" | "rosette" | "dimple";
 export const hasFigma = (kind: EffectKind): kind is FigmaKind => EFFECT_KINDS[kind].figma !== null;
+/** The effects whose still the server draws as a picture (EFFECT_KINDS' picture). */
+export type PictureKind = "aurora";
+export const hasPicture = (kind: EffectKind): kind is PictureKind => EFFECT_KINDS[kind].picture;
 /** Whether an effect's `roam` means anything: one the pointer moves (EFFECT_KINDS' motion: the dimple). */
 export const canRoam = (kind: EffectKind): boolean => EFFECT_KINDS[kind].motion === "pointer";
 /** Whether an effect as it plays goes round a loop of its own: every effect but one the pointer moves, which does

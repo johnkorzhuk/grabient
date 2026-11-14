@@ -37,6 +37,7 @@ import { Route as ApiBuildRouteImport } from './routes/api/build'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as ApiFramesRouteImport } from './routes/api/frames'
+import { Route as ApiFxStillRouteImport } from './routes/api/fx-still'
 import { Route as ApiHotRouteImport } from './routes/api/hot'
 import { Route as ApiLikeCountsRouteImport } from './routes/api/like-counts'
 import { Route as ApiNewsletterRouteImport } from './routes/api/newsletter'
@@ -268,6 +269,11 @@ const ApiContactRoute = ApiContactRouteImport.update({
 const ApiFramesRoute = ApiFramesRouteImport.update({
   id: '/api/frames',
   path: '/api/frames',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFxStillRoute = ApiFxStillRouteImport.update({
+  id: '/api/fx-still',
+  path: '/api/fx-still',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHotRoute = ApiHotRouteImport.update({
@@ -793,6 +799,7 @@ export interface FileRoutesByFullPath {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/contact': typeof ApiContactRoute
   '/api/frames': typeof ApiFramesRoute
+  '/api/fx-still': typeof ApiFxStillRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
@@ -914,6 +921,7 @@ export interface FileRoutesByTo {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/contact': typeof ApiContactRoute
   '/api/frames': typeof ApiFramesRoute
+  '/api/fx-still': typeof ApiFxStillRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
@@ -1036,6 +1044,7 @@ export interface FileRoutesById {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/contact': typeof ApiContactRoute
   '/api/frames': typeof ApiFramesRoute
+  '/api/fx-still': typeof ApiFxStillRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
@@ -1159,6 +1168,7 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/contact'
     | '/api/frames'
+    | '/api/fx-still'
     | '/api/hot'
     | '/api/like-counts'
     | '/api/newsletter'
@@ -1280,6 +1290,7 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/contact'
     | '/api/frames'
+    | '/api/fx-still'
     | '/api/hot'
     | '/api/like-counts'
     | '/api/newsletter'
@@ -1401,6 +1412,7 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/contact'
     | '/api/frames'
+    | '/api/fx-still'
     | '/api/hot'
     | '/api/like-counts'
     | '/api/newsletter'
@@ -1523,6 +1535,7 @@ export interface RootRouteChildren {
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiContactRoute: typeof ApiContactRoute
   ApiFramesRoute: typeof ApiFramesRoute
+  ApiFxStillRoute: typeof ApiFxStillRoute
   ApiHotRoute: typeof ApiHotRoute
   ApiLikeCountsRoute: typeof ApiLikeCountsRoute
   ApiNewsletterRoute: typeof ApiNewsletterRoute
@@ -1813,6 +1826,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/frames'
       fullPath: '/api/frames'
       preLoaderRoute: typeof ApiFramesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/fx-still': {
+      id: '/api/fx-still'
+      path: '/api/fx-still'
+      fullPath: '/api/fx-still'
+      preLoaderRoute: typeof ApiFxStillRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/hot': {
@@ -2483,6 +2503,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiContactRoute: ApiContactRoute,
   ApiFramesRoute: ApiFramesRoute,
+  ApiFxStillRoute: ApiFxStillRoute,
   ApiHotRoute: ApiHotRoute,
   ApiLikeCountsRoute: ApiLikeCountsRoute,
   ApiNewsletterRoute: ApiNewsletterRoute,

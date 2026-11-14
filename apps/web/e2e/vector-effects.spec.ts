@@ -418,7 +418,9 @@ test("the aurora takes a shape and a path: its menu's Shape field is a number th
   const stage = page.locator('[elementtiming="effect-still"]');
   await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90|`);
   const before = await stage.evaluate(el => getComputedStyle(el).backgroundImage);
-  expect(before).toContain("data:image/svg+xml");
+  /* its first screen's still is the server's picture of it (EFFECT_KINDS' picture); the editor draws its vector one
+     as the look changes, whose palette or look an edit may change at every rest */
+  expect(before).toContain("/api/fx-still?k=aurora%7C");
   await page.getByRole("button", { name: /^Appearance/ }).click();
   /* its Shape is a number from 0 to 999, as the papercut's is, 0 as designed; its Path is none as designed */
   const shape = page.getByRole("spinbutton", { name: "Shape", exact: true });
@@ -848,6 +850,95 @@ test("a list turned to the papercut draws every card's still in turn, a frame's 
       { timeout: 15_000 }
     )
     .toBe(true);
+});
+
+/* the stills' worker's file, as the dev server and a build name it (features/editor/still-worker.ts) */
+const STILL_WORKER = /\/still-worker(-[\w-]+)?\.[jt]s(\?|$)/;
+/* a strings list's cards, none of whose stills was in the head (which painted the gradients): every one drawn, its
+   threads traced where the page says, all of them painted with an SVG */
+const stringsCardsDrawn = async (page: Page) => {
+  await open(page, "/palettes?style=linearGradient");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Strings", exact: true }).click();
+  await expect(page).toHaveURL(/\/palettes\?style=strings$/);
+  const cards = page.locator('main article [data-fx-still^="strings|"]');
+  await expect(cards.first()).toBeAttached();
+  await expect
+    .poll(
+      () =>
+        cards.evaluateAll(
+          all =>
+            all.filter(e => (e as HTMLElement).style.background.includes("data:image/svg+xml"))
+              .length === all.length
+        ),
+      { timeout: 15_000 }
+    )
+    .toBe(true);
+};
+
+test("a list turned to the strings draws every card's still, each new angle's threads traced in a worker of the page's own", async ({
+  page
+}) => {
+  const workers: string[] = [];
+  page.on("worker", worker => workers.push(worker.url()));
+  await stringsCardsDrawn(page);
+  expect(workers.filter(url => STILL_WORKER.test(url))).toHaveLength(1);
+});
+
+test("where the stills' worker does not load, a strings list's cards trace their threads on the page", async ({
+  page
+}) => {
+  await page.route(STILL_WORKER, route => route.abort());
+  await stringsCardsDrawn(page);
+});
+
+/* a list turned to the aurora in the browser, none of whose cards' stills was in the head: every card's still as the
+   `paint` reads it */
+const auroraCardsPainted = async (page: Page, paint: (background: string) => boolean) => {
+  await open(page, "/palettes?style=linearGradient");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Aurora", exact: true }).click();
+  await expect(page).toHaveURL(/\/palettes\?style=aurora$/);
+  const cards = page.locator('main article [data-fx-still^="aurora|"]');
+  await expect(cards.first()).toBeAttached();
+  await expect
+    .poll(
+      async () =>
+        (await cards.evaluateAll(all => all.map(e => (e as HTMLElement).style.background))).every(
+          paint
+        ),
+      { timeout: 15_000 }
+    )
+    .toBe(true);
+};
+
+test("a list playing the aurora shows each card's still as the server's picture, the head's first screen and every card drawn later", async ({
+  page,
+  request
+}) => {
+  const html = await (await request.get("/palettes?style=aurora")).text();
+  const rules = /<style id="fx-still" data-key="[^"]*">([^<]*)<\/style>/.exec(html)?.[1] ?? "";
+  expect(rules).toContain('{background:url("/api/fx-still?k=aurora%7C');
+  expect(rules).not.toContain("data:image/svg+xml");
+  /* the first asked for from the head */
+  expect(html).toMatch(
+    /<link rel="preload" as="image" href="\/api\/fx-still\?k=aurora%7C[^"]*&amp;v=\d+" fetchpriority="high">/
+  );
+  const first = /url\("([^"]+)"\)/.exec(rules)?.[1] ?? "";
+  const answer = await request.get(first);
+  expect([answer.status(), answer.headers()["content-type"]]).toEqual([200, "image/webp"]);
+  await auroraCardsPainted(page, background =>
+    background.includes('url("/api/fx-still?k=aurora%7C')
+  );
+});
+
+test("where the aurora's pictures are refused, a list's cards draw their vector stills", async ({
+  page
+}) => {
+  await page.route(/\/api\/fx-still\?/, route =>
+    route.fulfill({ status: 503, body: "Image temporarily unavailable" })
+  );
+  await auroraCardsPainted(page, background => background.includes("data:image/svg+xml"));
 });
 
 test("the papercut's stage keeps its player at speed 0, its exact first frame over the stepped still, where the silk's stage keeps its still", async ({

@@ -14,12 +14,18 @@ import type { Palette } from "@grabient/engine/palette.ts";
 export const FX_STILL_STYLE = "fx-still";
 
 let fx: typeof import("@grabient/engine/fx-still.ts") | null = null;
+let trace: typeof import("./fx-trace.ts") | null = null;
 let loading: Promise<void> | null = null;
 
-/** The stills' code, asked for once. */
+/** The stills' code, asked for once, with what hands a still's trace to a worker (fx-trace.ts), which a server's build
+    never loads and so never carries. */
 export const loadFx = (): Promise<void> =>
-  (loading ??= import("@grabient/engine/fx-still.ts").then(m => {
+  (loading ??= Promise.all([
+    import("@grabient/engine/fx-still.ts"),
+    import.meta.env.SSR ? null : import("./fx-trace.ts")
+  ]).then(([m, t]) => {
     fx = m;
+    trace = t;
   }));
 
 /** Whether the server drew the still `key` names into the page's head, which paints every holder naming it: its
@@ -34,6 +40,22 @@ export const fxLookOf = (s: EffectSettings, angle: number): FxLook => engineLook
 /** The still as a background for a box of any size, or null while its code loads. */
 export function fxStillBackground(kind: VectorKind, P: Palette, look: FxLook): string | null {
   return fx ? fx.fxStillBackground(kind, P, look) : null;
+}
+
+/** A still's trace handed to the page's worker before its steps run (fx-trace.ts): the strings' threads at a view none
+    has traced yet. The card is told (`tell`) once they are kept, or once the worker has failed; the function returned
+    forgets the card. Null where the still's steps need no worker, or none takes it, so they run on the page. */
+export function fxTraceAway(
+  kind: VectorKind,
+  P: Palette,
+  look: FxLook,
+  tell: () => void
+): (() => void) | null {
+  const stills = fx;
+  const ask = stills?.fxTraceAsk(kind, P, look);
+  return ask && stills && trace
+    ? trace.traceAway(ask, threads => stills.fxKeepTrace(ask, threads), tell)
+    : null;
 }
 
 /** The same background drawn a step at a time (a papercut's cuts traced a level at a time, where no still has shown

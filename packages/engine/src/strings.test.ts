@@ -19,7 +19,14 @@ import {
 } from "./strings.ts";
 import { stringsDesignedGround } from "./strings-ground.ts";
 import { renderStrings } from "./strings-render.ts";
-import { stringsFrameOf, stringsStillOf, stringsStillSteps } from "./strings-svg.ts";
+import {
+  keepStringsTrace,
+  stringsFrameOf,
+  stringsStillOf,
+  stringsStillSteps,
+  stringsTrace,
+  stringsTraceAsk
+} from "./strings-svg.ts";
 
 const P = decodePalette("kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ")!;
 /* a dark navy palette, whose threads would sink into a ground of its own darkest color unlifted */
@@ -312,5 +319,30 @@ describe("the strings' SVG", () => {
     expect(count).toBeGreaterThan(5);
     expect(step.value).toBe(stringsStillOf({ ...m, view: null }));
     expect(stringsStillOf(m)).toBe(step.value);
+  });
+
+  it("hands a view's trace to a worker, whose threads write every palette's still there as the page's own trace does", () => {
+    const box = { width: 300, height: 300 };
+    const view = { angle: 133, shape: 77, bg: null };
+    /* the still the page traces itself, at a view no other test keeps */
+    const own = stringsStillOf({ ...stringsScene(P, view, box), view: null });
+    const ask = stringsTraceAsk(P, view, box);
+    expect(ask).toMatchObject({ kind: "strings", key: "133|77|300|300", view, size: box });
+    /* the ask crosses to the worker and back as data: structured clone keeps it whole */
+    const threads = stringsTrace(structuredClone(ask!));
+    expect(threads.length).toBeGreaterThan(20);
+    keepStringsTrace(ask!, structuredClone(threads));
+    /* kept: no palette at that view and box asks again, and each still is one step, the same as traced on the page */
+    expect(stringsTraceAsk(NAVY, { ...view, bg: "#f4efe6" }, box)).toBeNull();
+    const steps = stringsStillSteps(stringsScene(P, view, box));
+    const step = steps.next();
+    expect(step.done).toBe(true);
+    expect(step.value).toBe(own);
+    expect(stringsStillOf(stringsScene(NAVY, view, box))).toBe(
+      stringsStillOf({ ...stringsScene(NAVY, view, box), view: null })
+    );
+    /* another box or shape is another trace */
+    expect(stringsTraceAsk(P, view, { width: 301, height: 300 })?.key).toBe("133|77|301|300");
+    expect(stringsTraceAsk(P, { ...view, shape: 78 }, box)?.key).toBe("133|78|300|300");
   });
 });

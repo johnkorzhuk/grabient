@@ -430,6 +430,61 @@ function pathOf(runs: readonly Run[], how: FitHow): string {
 export const STRINGS_TRACES_KEPT = 32;
 const stillThreads = new Map<string, Map<number, string>>();
 
+/** The name a scene's still threads are kept by, its view and its box; null where its look is not the designed one,
+    whose threads are never kept. */
+const threadsKey = (m: StringsScene): string | null =>
+  m.view === null ? null : `${m.view}|${m.width}|${m.height}`;
+
+/** Threads kept for a name, the least lately used let go past STRINGS_TRACES_KEPT. */
+function keep(key: string, threads: Map<number, string>) {
+  stillThreads.delete(key);
+  if (stillThreads.size >= STRINGS_TRACES_KEPT)
+    stillThreads.delete(stillThreads.keys().next().value as string);
+  stillThreads.set(key, threads);
+}
+
+/** A still's threads to trace away from the page's thread (apps/web features/editor/still-worker.ts, a Web Worker):
+    the palette, the view and the box its scene is made from, and the name they are kept by. A view's trace takes some
+    85 to 150 ms on a desktop and four times that on a phone, its last step fitting every thread's curves at once, so
+    a page's cards hand it over; each card then writes its still from the threads kept, in under a millisecond. */
+export interface StringsTraceAsk {
+  kind: "strings";
+  key: string;
+  palette: Palette;
+  view: StringsView;
+  size: Size;
+}
+
+/** The ask for a still's threads where writing it would trace them, none being kept for its view and box; null where
+    they are kept, or where its look keeps none. */
+export function stringsTraceAsk(P: Palette, view: StringsView, size: Size): StringsTraceAsk | null {
+  const key = threadsKey(stringsScene(P, view, size));
+  return key === null || stillThreads.has(key)
+    ? null
+    : {
+        kind: "strings",
+        key,
+        palette: P,
+        view: { angle: view.angle, shape: view.shape, bg: view.bg },
+        size: { width: size.width, height: size.height }
+      };
+}
+
+/** The threads an ask names traced at once, each level and its path data, as the still's own trace makes them. */
+export function stringsTrace(ask: StringsTraceAsk): [number, string][] {
+  const m = stringsScene(ask.palette, ask.view, ask.size);
+  return [...atOnce(threadSteps(m, STILL_TRACE(m), 0))];
+}
+
+/** Threads traced for an ask elsewhere (stringsTrace, in a worker) kept as the still's own trace keeps them, so every
+    still at its view and box is written from them. */
+export function keepStringsTrace(
+  ask: StringsTraceAsk,
+  threads: readonly (readonly [number, string])[]
+) {
+  keep(ask.key, new Map(threads));
+}
+
 /** The ground as an SVG rectangle covering a box: at its alpha where it lets the page through, none where clear. */
 export function stringsGroundRect(m: StringsScene): string {
   if (m.alpha <= 0) return "";
@@ -463,16 +518,11 @@ function* threadSteps(
 /** The still written a step at a time, each a few milliseconds at most (the grid's rows, then a level's threads),
     unless its view's threads are kept; it returns the still. */
 export function* stringsStillSteps(m: StringsScene): Generator<void, string> {
-  const key = m.view === null ? null : `${m.view}|${m.width}|${m.height}`;
-  let threads = key === null ? undefined : stillThreads.get(key);
-  if (key !== null && threads) stillThreads.delete(key);
-  if (!threads) threads = yield* threadSteps(m, STILL_TRACE(m), 0);
-  if (key !== null) {
-    stillThreads.delete(key);
-    if (stillThreads.size >= STRINGS_TRACES_KEPT)
-      stillThreads.delete(stillThreads.keys().next().value as string);
-    stillThreads.set(key, threads);
-  }
+  const key = threadsKey(m);
+  const threads =
+    (key === null ? undefined : stillThreads.get(key)) ??
+    (yield* threadSteps(m, STILL_TRACE(m), 0));
+  if (key !== null) keep(key, threads);
   return drawing(m, threads);
 }
 

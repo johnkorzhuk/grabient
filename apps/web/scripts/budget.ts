@@ -255,8 +255,12 @@ const BUDGETS = {
   // Its clips (11 Nov 2026, John: "werre missing hte mp4 download"): what the engine keeps of each pixel for the
   // module (engine/video.ts auroraDraw: its place on the fan, its height over the range, what that height does to
   // the light), the clip's weight by its range and its words took it to 1497.2 to 1498.2, by the build. The budget
-  // stands the builds' spread and one more over it
-  worker: 1501,
+  // stands the builds' spread and one more over it. The aurora's still as a picture (14 Nov 2026, John of its cards:
+  // "why does the preview look blurrier than it actually is when hovered?"): its route, its answer and the drawing of
+  // its pixels (server/images/fx-picture.ts, engine/fx-picture-draw.ts), which load with the first picture an isolate
+  // is asked for, and the strings' trace a page's worker asks for (engine/strings-svg.ts), took it from 1499.4 to
+  // 1499.8 to 1501.0, by the build. The budget stands the builds' spread and one more over it
+  worker: 1503,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
@@ -274,6 +278,11 @@ const BUDGETS = {
   // (engine/aurora.ts, aurora-path.ts) and what its drawing keeps of each pixel (video.ts auroraDraw) took it from
   // 27.2 to 30.5
   mp4Worker: 32,
+  // The worker a page starts with the first strings card at an angle and shape no still has traced
+  // (features/editor/still-worker.ts, 14 Nov 2026): an asset of the chunk that starts it (fx-trace.ts), measured
+  // apart as the MP4 worker is. It carries the strings' model and tracer (engine/strings.ts, strings-svg.ts,
+  // svg-fit.ts) and the colors they read: 5.9 KB
+  stillWorker: 7,
   // soft and grain (2 Nov 2026): the view's two parts in every address the Worker reads and redirects, and the CSS
   // writer's grain, took it from 236.5 to 237.3; the blur and the grain's tile load with the first file that asks. The
   // color reader (engine/written-color.ts), which the search, the pages' titles and the MCP read, took it from 237.5
@@ -376,6 +385,16 @@ rows.push({
   name: "the MP4 worker",
   size: clientGzip(mp4Worker),
   budget: BUDGETS.mp4Worker,
+  unit: KB
+});
+const stillWorker = client["src/features/editor/fx-trace.ts"]?.assets?.find(file =>
+  /\/still-worker-[\w-]+\.js$/.test(file)
+);
+if (!stillWorker) throw new Error("The build wrote no stills' worker: update budget.ts");
+rows.push({
+  name: "the stills' worker",
+  size: clientGzip(stillWorker),
+  budget: BUDGETS.stillWorker,
   unit: KB
 });
 

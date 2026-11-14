@@ -50,6 +50,8 @@ export interface Picture {
   svg?: string;
   /** Everything the pixels depend on, in order: the key is their hash, so one picture has one key. */
   parts: readonly unknown[];
+  /** What a drawing that failed is logged as, where it is not the glass's still or a palette's PNG. */
+  failed?: string;
   width: number;
   height: number;
   draw: () => Promise<Uint8Array<ArrayBuffer>>;
@@ -183,7 +185,8 @@ export async function answerPicture(
   } catch (error) {
     countUsage(env, "image", picture.kind, "failed");
     console.error(
-      picture.kind === "still" ? "Glass still render failed" : "Palette PNG render failed",
+      picture.failed ??
+        (picture.kind === "still" ? "Glass still render failed" : "Palette PNG render failed"),
       error
     );
     return unavailable();

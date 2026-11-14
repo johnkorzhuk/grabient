@@ -1,5 +1,5 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
-import { EFFECTS, isVectorKind, type VectorKind } from "@grabient/engine/effect.ts";
+import { EFFECTS, hasPicture, isVectorKind, type VectorKind } from "@grabient/engine/effect.ts";
 import { isKitKind, type KitKind } from "@grabient/engine/kit/kinds.ts";
 import { KIT_LABELS } from "@grabient/engine/kit/names.ts";
 import { kitRng } from "@grabient/engine/kit/scene.ts";
@@ -290,8 +290,9 @@ for (const kind of EFFECTS.filter(isVectorKind))
     );
     const still = page.locator(`[data-look="hero"] [data-fx-still="${named}"]`);
     await expect(still).toHaveCount(1);
+    /* the server's picture of it where its kind has one (EFFECT_KINDS' picture), else its vector still */
     expect(await still.evaluate(el => getComputedStyle(el).backgroundImage)).toContain(
-      "data:image/svg+xml"
+      hasPicture(kind) ? "/api/fx-still?k=" : "data:image/svg+xml"
     );
   });
 

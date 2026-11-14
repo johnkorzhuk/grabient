@@ -100,17 +100,19 @@ async function encoderOf(wasm: WebAssembly.Module): Promise<Encoder> {
   return encoder;
 }
 
-/** RGBA pixels, `width` by `height`, as a lossy WebP file at `quality` (0 to 100). */
+/** RGBA pixels, `width` by `height`, as a lossy WebP file at `quality` (0 to 100), by libwebp's `method` (0 the
+    fastest to 6 the smallest; its default 4). */
 export async function encodeWebp(
   wasm: WebAssembly.Module,
   rgba: Uint8Array<ArrayBuffer> | Uint8ClampedArray<ArrayBuffer>,
   width: number,
   height: number,
-  quality: number
+  quality: number,
+  method = DEFAULTS.method
 ): Promise<Uint8Array<ArrayBuffer>> {
   if (rgba.length !== width * height * 4) throw new Error("webp: pixels and size disagree");
   const encoder = await encoderOf(wasm);
-  const file = encoder.encode(rgba, width, height, { ...DEFAULTS, quality });
+  const file = encoder.encode(rgba, width, height, { ...DEFAULTS, quality, method });
   if (!file) throw new Error("webp: libwebp coded nothing");
   return new Uint8Array(file);
 }

@@ -112,7 +112,10 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   `strings-svg.ts`), every kind named in `strings-shader.ts`: the GLSL and its WebGL page (`strings-webgl.ts`, the
   player's own pass in `strings-gl.ts`), the WGSL and its WebGPU page (`strings-webgpu.ts` over `strings-wgsl.ts`), the
   pages' script in `strings-page.ts`, played by the same clock. The papercut's and the strings' tracers write their
-  curves with `svg-fit.ts`.
+  curves with `svg-fit.ts`. A still's threads depend on its angle, shape and box alone, never on the palette, so they
+  are kept by the view; a page hands a view's trace, some 85 to 150 ms, to a Web Worker of its own
+  (`stringsTraceAsk`, `stringsTrace`, `keepStringsTrace`; `fx-still.ts`'s `fxTraceAsk`, the app's
+  `features/editor/still-worker.ts`), and each card colors the threads kept in under a millisecond.
 - The dimple's (`dimple.ts`, its CPU drawing in `dimple-render.ts`, its still and its picture with the hollow anywhere
   in `dimple-svg.ts`), every kind named in `dimple-shader.ts`: the GLSL and its WebGL page (`dimple-webgl.ts`, the
   player's own pass in `dimple-gl.ts`), the WGSL and its WebGPU page (`dimple-webgpu.ts` over `dimple-wgsl.ts`), the
@@ -131,7 +134,10 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   Its shape, 0 to 999, picks its light (`auroraDesign`): the point its rays fan from, how wide its shafts are, where
   its light gathers and where every sheet of its noise starts, each sheet sliding as designed, so every shape's loop
   closes at the designed pace. Its SVG is a frame of it, which never moves, and its still stands in for its first
-  frame. Its clips are drawn four pixels at a time from what the engine keeps of each pixel (`video.ts` auroraDraw:
+  frame, its light in broad wedges under a blur; a page's first screen and a list's cards show its first frame itself
+  in its place, a picture the server draws by its CPU drawing and codes as WebP (`EFFECT_KINDS`' `picture`,
+  `fx-picture.ts` for its address and version, `fx-picture-draw.ts` for its pixels). Its clips are drawn four pixels at
+  a time from what the engine keeps of each pixel (`video.ts` auroraDraw:
   its place on the fan, its height over the range, how much of the light shows), and weighed by how much of a picture
   its range leaves lit (auroraVideoWeight). Where no angle is set for it it stands at 90, whatever its palette's own
   (`EFFECT_KINDS`' `upright`, `effectAutoAngle`). Every kind of its shader code is named in `aurora-shader.ts`: the

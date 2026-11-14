@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { decodePalette } from "./codec.ts";
 import type { Effect } from "./effect.ts";
-import { hasEmbedScript } from "./effect.ts";
+import { EFFECTS, hasEmbedScript, isVectorKind } from "./effect.ts";
 import {
   effectColors,
   effectLinks,
@@ -13,12 +13,17 @@ import { effectEmbedHtml } from "./effect-embed.ts";
 import { effectBlurSigma } from "./fx-finish.ts";
 import {
   FX_STILL_SIDE,
+  fxCover,
+  fxKeepTrace,
   fxLoop,
   fxMovingSvg,
   fxStillBackground,
   fxStillSteps,
-  fxStillSvg
+  fxStillSvg,
+  fxTraceAsk
 } from "./fx-still.ts";
+import { stringsScene } from "./strings.ts";
+import { stringsStillOf, stringsTrace } from "./strings-svg.ts";
 
 const SEED = "kUMzO5Na871ukuyhHUJA";
 const P = decodePalette(SEED)!;
@@ -260,4 +265,24 @@ test("a still drawn a step at a time is the still, the papercut's in a share of 
     expect(one.done).toBe(true);
     expect(one.value).toBe(fxStillBackground(kind, P, look));
   }
+});
+
+test("only the strings hand their still's trace to a page's worker, at a view none has traced, then write it in a step", () => {
+  const look = { angle: 251, shape: 404, steps: null, zoom: null, path: null, bg: null };
+  for (const kind of EFFECTS.filter(isVectorKind))
+    if (kind !== "strings") expect(fxTraceAsk(kind, P, look)).toBeNull();
+  const ask = fxTraceAsk("strings", P, look);
+  expect(ask).toMatchObject({
+    kind: "strings",
+    key: `251|404|${FX_STILL_SIDE}|${FX_STILL_SIDE}`,
+    size: { width: FX_STILL_SIDE, height: FX_STILL_SIDE }
+  });
+  /* what the worker answers, kept, writes the still the page would have traced, in one step */
+  fxKeepTrace(ask!, stringsTrace(ask!));
+  expect(fxTraceAsk("strings", P, look)).toBeNull();
+  const one = fxStillSteps("strings", P, look).next();
+  expect(one.done).toBe(true);
+  expect(one.value).toBe(
+    fxCover(stringsStillOf({ ...stringsScene(P, look, ask!.size), view: null }))
+  );
 });

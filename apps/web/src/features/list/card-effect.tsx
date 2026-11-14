@@ -77,6 +77,7 @@ export function createCardEffect(o: {
                 settings={played()!}
                 angle={o.angle()}
                 active={active()}
+                picture
               />
             </Loading>
           )

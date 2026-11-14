@@ -1,9 +1,10 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
-import { type FxLook, fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
+import { type FxLook, fxStillKey, hasPicture, type VectorKind } from "@grabient/engine/effect.ts";
+import { fxPictureAddress, fxPictureBackground } from "@grabient/engine/fx-picture.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { createEffect, createMemo, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./Editor.module.css";
-import { fxPlacedBackground, fxStillSteps, loadFx, serverFxStill } from "./fx-draw.ts";
+import { fxPlacedBackground, fxStillSteps, fxTraceAway, loadFx, serverFxStill } from "./fx-draw.ts";
 
 /** How often the small picture is drawn while its palette or look keeps changing (BlobArt.tsx): a change after a rest
     is drawn in the picture's turn; while the hand moves, at most once in this, and the last change once it rests. */
@@ -15,7 +16,9 @@ const AWAY_MS = 300;
     papercut keeps its cuts by the view, engine/papercut-svg.ts), the silk's and the rosette's too, so they show from
     the frame they come in. A papercut's still at a new view takes some 10 ms on a desktop and 4 times that at
     Lighthouse's phone, its cuts traced from its field: it is drawn in steps of under a millisecond on a desktop
-    (engine/fx-still.ts fxStillSteps), a frame's share at a time, so no task holds the page. */
+    (engine/fx-still.ts fxStillSteps), a frame's share at a time, so no task holds the page. The strings' threads at a
+    new view, some 85 to 150 ms, whose last step fits every curve at once, are traced in a worker (fx-trace.ts), and
+    the still waits out of turn until they are kept. */
 const SHARE_MS = 6;
 
 /* A drawing of a still, a step a call: true once it is drawn. */
@@ -65,7 +68,8 @@ function inTask(step: Steps): boolean {
 /** A vector effect's first frame (EFFECT_KINDS) as a small picture filling its box: the Appearance menu's
     tile, the header's swatch and a list's card. It names the still it shows, so the server's still (server/fx-still.ts)
     paints it where it is that one, as it painted the first screen: nothing changes as the page comes live. Another
-    still is drawn here once the stills' code has come. */
+    still is drawn here once the stills' code has come, or, on a list's card of a kind whose still the server draws as
+    a picture (EFFECT_KINDS' picture: the aurora's), is that picture, with no code of its own. */
 export function FxArt(props: {
   kind: VectorKind;
   palette: Palette;
@@ -83,6 +87,10 @@ export function FxArt(props: {
       drawn that way in its still's place, so a card whose player has gone holds it (John, 10 Nov 2026: "just have it
       hold its last posisiion instead of resetting to the center"); none, its still */
   at?: readonly [number, number] | null;
+  /** its palette stands, as a list's card's does: its still is the server's picture where its kind has one
+      (EFFECT_KINDS' picture: the aurora's, sharp where its vector still is a stand-in under a blur), drawn once a
+      palette and look and kept, so a picture whose palette an edit changes (the editor's own) keeps its vector still */
+  picture?: boolean;
 }) {
   let el!: HTMLSpanElement;
   const code = createMemo(() => encodePalette(props.palette));
@@ -101,8 +109,13 @@ export function FxArt(props: {
   });
   const [ready, setReady] = createSignal(false);
   const [inView, setInView] = createSignal(true);
+  /* the server's picture of its still, where its kind has one and its palette stands; one that did not load (drawing
+     paused, or the day's pictures spent) gives way to the vector still, drawn here */
+  const pictured = () => !!props.picture && hasPicture(props.kind);
+  const [refused, setRefused] = createSignal<string | null>(null);
+  const load = () => void loadFx().then(() => setReady(true));
   onSettled(() => {
-    void loadFx().then(() => setReady(true));
+    if (!untrack(pictured)) load();
     const view = new IntersectionObserver(entries =>
       setInView(entries[entries.length - 1].isIntersecting)
     );
@@ -113,6 +126,55 @@ export function FxArt(props: {
   let cancel: (() => void) | undefined;
   const self = {};
   let drawnAt = Number.NEGATIVE_INFINITY;
+  /* whether the head paints the still a key names, as the server drew it: not a picture of it that did not load */
+  const painted = (key: string) => serverFxStill(key) && untrack(refused) !== key;
+  /* a still as the server's picture: the head's where it painted it, at once where nothing shows yet, else once it has
+     loaded, so a card never stands empty between two looks. It returns what forgets it. */
+  const picture = (key: string, now: { key: string; paint: string | null } | null) => {
+    if (painted(key)) {
+      setShown({ key, paint: null });
+      return undefined;
+    }
+    const paint = fxPictureBackground(key);
+    if (!now || (now.paint === null && !painted(now.key))) {
+      setShown({ key, paint });
+      return undefined;
+    }
+    let gone = false;
+    const next = new Image();
+    /* shown once loaded, or once it failed, which the picture's own check below then refuses */
+    next.onload = next.onerror = () => {
+      if (!gone) setShown({ key, paint });
+    };
+    next.src = fxPictureAddress(key);
+    return () => {
+      gone = true;
+    };
+  };
+  /* a picture shown, the head's or the card's, that did not load (drawing paused, or the day's pictures spent) gives way
+     to the vector still, drawn here: asked for once more by an image of its own, which the browser answers from the
+     request the background made */
+  createEffect(
+    () => {
+      const key = shown()?.key;
+      return key && pictured() && refused() !== key ? key : null;
+    },
+    key => {
+      if (!key) return;
+      let gone = false;
+      const check = new Image();
+      check.onerror = () => {
+        if (gone) return;
+        setRefused(key);
+        setShown({ key, paint: null });
+        load();
+      };
+      check.src = fxPictureAddress(key);
+      return () => {
+        gone = true;
+      };
+    }
+  );
   createEffect(
     () => ({
       key: keyOf(),
@@ -120,19 +182,44 @@ export function FxArt(props: {
       kind: props.kind,
       P: props.palette,
       look: look(),
-      seen: inView()
+      seen: inView(),
+      picture: pictured() && refused() !== keyOf()
     }),
     next => {
       clearTimeout(timer);
       cancel?.();
       const now = untrack(shown);
-      if (now?.key === next.key && (now.paint !== null || serverFxStill(next.key))) return;
+      if (now?.key === next.key && (now.paint !== null || painted(next.key))) return;
+      if (next.picture) {
+        cancel = picture(next.key, now);
+        return;
+      }
       if (!next.ready) return;
       let steps: Iterator<void, string> | null = null;
+      /* the part of its drawing a worker takes, asked for once before its steps (the strings' threads at a view none
+         has traced: fx-trace.ts): the still waits out of turn until it is kept, then is drawn in turn */
+      let asked = false;
+      let away: (() => void) | null = null;
+      let gone = false;
+      let unturn: (() => void) | undefined;
+      cancel = () => {
+        gone = true;
+        unturn?.();
+        away?.();
+      };
       const step: Steps = () => {
-        if (serverFxStill(next.key)) {
+        if (gone) return true;
+        if (painted(next.key)) {
           setShown({ key: next.key, paint: null });
           return true;
+        }
+        if (!asked) {
+          asked = true;
+          away = fxTraceAway(next.kind, next.P, next.look, () => {
+            away = null;
+            if (!gone) turn();
+          });
+          if (away) return true;
         }
         steps ??= fxStillSteps(next.kind, next.P, next.look);
         const drawn = steps?.next();
@@ -144,11 +231,11 @@ export function FxArt(props: {
         return true;
       };
       const turn = () => {
-        cancel = inTurn(self, step);
+        unturn = inTurn(self, step);
       };
       /* the first still: at once while the task has time for it, else in turn, one out of the window once it has
          been away a while */
-      if (!now || (now.paint === null && !serverFxStill(now.key))) {
+      if (!now || (now.paint === null && !painted(now.key))) {
         if (!next.seen) timer = setTimeout(turn, AWAY_MS);
         else if (!inTask(step)) turn();
         return;
