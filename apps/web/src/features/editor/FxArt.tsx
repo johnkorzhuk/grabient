@@ -23,8 +23,6 @@ const SHARE_MS = 6;
 
 /* A drawing of a still, a step a call: true once it is drawn. */
 type Steps = () => boolean;
-/* The server's picture of a still (engine/fx-picture.ts fxPictureOf): its address and the background it paints. */
-type Picture = { address: string; paint: string };
 /* The still a picture shows: its name, the background it paints (none where the head's style paints it), and the
    address of the server's picture where it is one. */
 type Shown = { key: string; paint: string | null; address?: string };
@@ -114,10 +112,11 @@ export function FxArt(props: {
   const [ready, setReady] = createSignal(false);
   const [inView, setInView] = createSignal(true);
   /* the server's picture of its still, where its palette stands and its look is one drawn as a picture
-     (engine/fx-picture.ts fxPictureOf); one that did not load (drawing paused, or the day's pictures spent) gives way
-     to the vector still, drawn here */
+     (engine/fx-picture.ts fxPictureOf): shown in place of the vector still once it has loaded, the vector still first,
+     the head's or drawn here, so the card is never empty while it comes (John, 14 Nov 2026: "The idea a user using the
+     effect would get a vector to load first, so that something is visible as soon as the page loads"); one that does
+     not load (drawing paused, or the day's pictures spent) leaves the vector still */
   const pictureNow = () => (props.picture ? fxPictureOf(props.kind, code(), look()) : null);
-  const [refused, setRefused] = createSignal<string | null>(null);
   const load = () => void loadFx().then(() => setReady(true));
   onSettled(() => {
     if (!untrack(pictureNow)) load();
@@ -131,79 +130,45 @@ export function FxArt(props: {
   let cancel: (() => void) | undefined;
   const self = {};
   let drawnAt = Number.NEGATIVE_INFINITY;
-  /* whether the head paints the still a key names, as the server drew it: not a picture of it that did not load */
-  const painted = (key: string) => serverFxStill(key) && untrack(refused) !== key;
-  /* a still as the server's picture: the head's where it painted it, at once where nothing shows yet or the picture
-     shown is the same one (another ground, which lies under it as a color), else once it has loaded, so a card never
-     stands empty between two looks. It returns what forgets it. */
-  const picture = (key: string, drawn: Picture, now: Shown | null) => {
-    if (painted(key)) {
-      setShown({ key, paint: null, address: drawn.address });
-      return undefined;
-    }
-    const next = { key, paint: drawn.paint, address: drawn.address };
-    if (!now || (now.paint === null && !painted(now.key)) || now.address === drawn.address) {
-      setShown(next);
-      return undefined;
-    }
-    let gone = false;
-    const image = new Image();
-    /* shown once loaded, or once it failed, which the picture's own check below then refuses */
-    image.onload = image.onerror = () => {
-      if (!gone) setShown(next);
-    };
-    image.src = drawn.address;
-    return () => {
-      gone = true;
-    };
-  };
-  /* a picture shown, the head's or the card's, that did not load (drawing paused, or the day's pictures spent) gives way
-     to the vector still, drawn here: asked for once more by an image of its own, which the browser answers from the
-     request the background made */
   createEffect(
-    () => {
-      const now = shown();
-      return now?.address && refused() !== now.key ? { key: now.key, address: now.address } : null;
-    },
-    asked => {
-      if (!asked) return;
-      let gone = false;
-      const check = new Image();
-      check.onerror = () => {
-        if (gone) return;
-        setRefused(asked.key);
-        setShown({ key: asked.key, paint: null });
-        load();
-      };
-      check.src = asked.address;
-      return () => {
-        gone = true;
-      };
-    }
-  );
-  createEffect(
-    () => {
-      const drawn = pictureNow();
-      return {
-        key: keyOf(),
-        ready: ready(),
-        kind: props.kind,
-        P: props.palette,
-        look: look(),
-        seen: inView(),
-        picture: drawn && refused() !== keyOf() ? drawn : null
-      };
-    },
+    () => ({
+      key: keyOf(),
+      ready: ready(),
+      kind: props.kind,
+      P: props.palette,
+      look: look(),
+      seen: inView(),
+      picture: pictureNow()
+    }),
     next => {
       clearTimeout(timer);
       cancel?.();
       const now = untrack(shown);
-      if (now?.key === next.key && (now.paint !== null || painted(next.key))) return;
-      if (next.picture) {
-        cancel = picture(next.key, next.picture, now);
-        return;
+      /* its picture shows already */
+      if (now?.key === next.key && now.address) return;
+      let gone = false;
+      let unturn: (() => void) | undefined;
+      let away: (() => void) | null = null;
+      let image: HTMLImageElement | null = null;
+      cancel = () => {
+        gone = true;
+        unturn?.();
+        away?.();
+        if (image) image.onload = null;
+      };
+      /* the picture, once loaded, in place of whatever still shows, its drawing here stopped */
+      const drawn = next.picture;
+      if (drawn) {
+        image = new Image();
+        image.onload = () => {
+          if (gone) return;
+          cancel?.();
+          setShown({ key: next.key, paint: drawn.paint, address: drawn.address });
+        };
+        image.src = drawn.address;
       }
-      /* the stills' code, which a picture needs none of, asked for once a look needs it */
+      if (now?.key === next.key && (now.paint !== null || serverFxStill(next.key))) return;
+      /* the stills' code, asked for once a still is drawn here */
       if (!next.ready) {
         load();
         return;
@@ -212,17 +177,9 @@ export function FxArt(props: {
       /* the part of its drawing a worker takes, asked for once before its steps (the strings' threads at a view none
          has traced: fx-trace.ts): the still waits out of turn until it is kept, then is drawn in turn */
       let asked = false;
-      let away: (() => void) | null = null;
-      let gone = false;
-      let unturn: (() => void) | undefined;
-      cancel = () => {
-        gone = true;
-        unturn?.();
-        away?.();
-      };
       const step: Steps = () => {
         if (gone) return true;
-        if (painted(next.key)) {
+        if (serverFxStill(next.key)) {
           setShown({ key: next.key, paint: null });
           return true;
         }
@@ -248,7 +205,7 @@ export function FxArt(props: {
       };
       /* the first still: at once while the task has time for it, else in turn, one out of the window once it has
          been away a while */
-      if (!now || (now.paint === null && !painted(now.key))) {
+      if (!now || (now.paint === null && !serverFxStill(now.key))) {
         if (!next.seen) timer = setTimeout(turn, AWAY_MS);
         else if (!inTask(step)) turn();
         return;

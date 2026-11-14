@@ -418,10 +418,18 @@ test("the aurora takes a shape and a path: its menu's Shape field is a number th
   const said = () => decodeURIComponent(new URL(page.url()).search);
   const stage = page.locator('[elementtiming="effect-still"]');
   await expect(stage).toHaveAttribute("data-fx-still", `aurora|${SEED}|90|`);
+  /* its first screen's still is its vector one, which the server's picture of it then takes the place of (EFFECT_KINDS'
+     picture); the editor draws its vector one as the look changes, whose palette or look an edit may change at every
+     rest */
+  expect(
+    /<style id="fx-still"[^>]*>([^<]*)</.exec(
+      await (await request.get(`/${SEED}?style=aurora&speed=0`)).text()
+    )?.[1]
+  ).toContain(`[data-fx-still="aurora|${SEED}|90|"]{background:url("data:image/svg+xml,`);
+  await expect
+    .poll(() => stage.evaluate(el => getComputedStyle(el).backgroundImage), { timeout: 15_000 })
+    .toContain("/api/fx-still?k=aurora%7C");
   const before = await stage.evaluate(el => getComputedStyle(el).backgroundImage);
-  /* its first screen's still is the server's picture of it (EFFECT_KINDS' picture); the editor draws its vector one
-     as the look changes, whose palette or look an edit may change at every rest */
-  expect(before).toContain("/api/fx-still?k=aurora%7C");
   await page.getByRole("button", { name: /^Appearance/ }).click();
   /* its Shape is a number from 0 to 999, as the papercut's is, 0 as designed; its Path is none as designed */
   const shape = page.getByRole("spinbutton", { name: "Shape", exact: true });
@@ -957,21 +965,32 @@ const auroraCardsPainted = async (page: Page, paint: (background: string) => boo
     .toBe(true);
 };
 
-test("a list playing the aurora shows each card's still as the server's picture, the head's first screen and every card drawn later", async ({
+test("a list playing the aurora paints each card's vector still first, then lays the server's picture in its place, the head's first screen and every card drawn later", async ({
   page,
   request
 }) => {
+  /* John, 14 Nov 2026, of a gradient flashing before the aurora: "The idea a user using the effect would get a vector
+     to load first, so that something is visible as soon as the page loads while the shader picks up" */
   const html = await (await request.get("/palettes?style=aurora")).text();
   const rules = /<style id="fx-still" data-key="[^"]*">([^<]*)<\/style>/.exec(html)?.[1] ?? "";
-  expect(rules).toContain('{background:url("/api/fx-still?k=aurora%7C');
-  expect(rules).not.toContain("data:image/svg+xml");
-  /* the first asked for from the head */
-  expect(html).toMatch(
-    /<link rel="preload" as="image" href="\/api\/fx-still\?k=aurora%7C[^"]*&amp;v=\d+" fetchpriority="high">/
-  );
-  const first = /url\("([^"]+)"\)/.exec(rules)?.[1] ?? "";
-  const answer = await request.get(first);
+  expect(rules).toContain('{background:url("data:image/svg+xml,');
+  expect(rules).not.toContain("/api/fx-still");
+  /* the pictures asked for from the head after the page's own work */
+  const preloads = [
+    ...html.matchAll(
+      /<link rel="preload" as="image" href="(\/api\/fx-still\?k=aurora%7C[^"]*)" fetchpriority="low">/g
+    )
+  ].map(found => found[1].replaceAll("&amp;", "&"));
+  expect(preloads.length).toBeGreaterThan(3);
+  const answer = await request.get(preloads[0]);
   expect([answer.status(), answer.headers()["content-type"]]).toEqual([200, "image/webp"]);
+  /* the cards the head painted take their pictures once they have come */
+  await open(page, "/palettes?style=aurora");
+  const head = page.locator('main article [data-fx-still^="aurora|"]').first();
+  await expect
+    .poll(() => head.evaluate(el => (el as HTMLElement).style.background), { timeout: 15_000 })
+    .toContain('url("/api/fx-still?k=aurora%7C');
+  /* and every card a list turned to the aurora draws */
   await auroraCardsPainted(page, background =>
     background.includes('url("/api/fx-still?k=aurora%7C')
   );

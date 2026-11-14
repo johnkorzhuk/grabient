@@ -48,7 +48,11 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      its drawing, its stills, its player and the menu's Path field load as one shows. It is the most an effect has
      put on every page's start: the reader could load with the first address that names a path, a look keeping a
      path as written until then, which would give about 1 KB back on every page */
-  "/": { route: "src/routes/index.tsx", budget: 294 },
+  /* a list's card laying the server's picture of its still in the vector still's place once it has come
+     (editor/FxArt.tsx, engine/fx-picture.ts fxPictureOf, 14 Nov 2026: John of the aurora's cards, "why does the
+     preview look blurrier than it actually is when hovered?", then "The idea a user using the effect would get a
+     vector to load first") took it from 293.9 to 294.0, a few bytes past */
+  "/": { route: "src/routes/index.tsx", budget: 294.5 },
   /* the same took it from 288.9 to 290.7; soft and grain over the effects (their pictures blurred over the gradient,
      the menu's fields beside an effect's, the summary naming them) and the editor's glass after a move (e3636f12) to
      291.2 on 3 Nov 2026 */

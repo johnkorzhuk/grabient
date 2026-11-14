@@ -145,7 +145,9 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
     expect(capped).not.toContain(`[data-fx-still="${many[FIRST_SCREEN_STILLS]}"]`);
   });
 
-  test("the aurora's still in the head is its picture's address where its look is drawn as one, the first preloaded, and no drawing", () => {
+  test("the aurora's still in the head is its vector still, the first paint, and the picture a page lays in its place is asked for at a low priority", () => {
+    /* John, 14 Nov 2026: "The idea a user using the effect would get a vector to load first, so that something is
+       visible as soon as the page loads while the shader picks up" */
     const look = (angle: number, shape: number | null, bg: string | null) => ({
       angle,
       shape,
@@ -158,7 +160,7 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
       fxStillKey("aurora", SEED, look(90, null, null)),
       /* a ground is the same picture, its color under it */
       fxStillKey("aurora", SEED, look(90, null, "#0b0b10")),
-      /* a turned one and a shaped one are their vector stills, drawn here */
+      /* a turned one and a shaped one have no picture */
       fxStillKey("aurora", SEED, look(30, null, null)),
       fxStillKey("aurora", SEED, look(90, 417, null)),
       fxStillKey("silk", SEED, look(90, 3, null))
@@ -167,27 +169,15 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
       `<html><head></head><body>${keys.map(k => `<span data-fx-still="${k}"></span>`).join("")}</body></html>`
     );
     expect(/<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1]).toBe(keys.join(" "));
-    const address = fxPictureAddress(keys[0]);
-    expect(html).toContain(
-      `[data-fx-still="${keys[0]}"]{background:url("${address}") 50% 50% / cover no-repeat}`
-    );
-    expect(html).toContain(
-      `[data-fx-still="${keys[1]}"]{background:url("${address}") 50% 50% / cover no-repeat, #0b0b10}`
-    );
-    for (const key of keys.slice(2))
+    for (const key of keys)
       expect(html).toContain(`[data-fx-still="${key}"]{background:url("data:image/svg+xml,`);
-    expect(html.match(/\/api\/fx-still\?/g)).toHaveLength(3);
-    /* the first still, a picture, asked for from the head */
-    expect(html.match(/<link rel="preload"[^>]*>/g)).toEqual([
-      `<link rel="preload" as="image" href="${address.replaceAll("&", "&amp;")}" fetchpriority="high">`
-    ]);
+    const address = fxPictureAddress(keys[0]);
     expect(address).toContain(`v=${FX_PICTURE_VERSION}`);
-    /* a page whose first still is no picture asks for none from its head */
-    const later = fxStills(
-      `<html><head></head><body>${[keys[2], keys[0]].map(k => `<span data-fx-still="${k}"></span>`).join("")}</body></html>`
-    );
-    expect(later).toContain(`[data-fx-still="${keys[0]}"]{background:url("/api/fx-still?`);
-    expect(later).not.toContain('<link rel="preload"');
+    /* one picture for the two grounds, asked for once, after the page's own work */
+    expect(html.match(/<link rel="preload"[^>]*>/g)).toEqual([
+      `<link rel="preload" as="image" href="${address.replaceAll("&", "&amp;")}" fetchpriority="low">`
+    ]);
+    expect(html.replace(/<link rel="preload"[^>]*>/g, "")).not.toContain("/api/fx-still");
   });
 
   test("a page without a holder, or naming no still, is left as it was", () => {

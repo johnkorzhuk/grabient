@@ -7,6 +7,7 @@ import {
   fxStillKey,
   type VectorKind
 } from "@grabient/engine/effect.ts";
+import { fxPictureOf } from "@grabient/engine/fx-picture.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { holdsStill } from "@grabient/ui/motion.ts";
 import {
@@ -85,7 +86,10 @@ export function FxLayer(props: {
     setLive(true);
   });
   const keyOf = (kind: VectorKind, P: Palette, l: FxLook) => fxStillKey(kind, encodePalette(P), l);
-  /* the still the holder shows: the server's where the head holds it, else drawn here once the code has come */
+  /* the still the holder shows: the server's where the head holds it, else drawn here once the code has come. The
+     server's, where its look is drawn as a picture too (engine/fx-picture.ts fxPictureOf: the aurora's as designed),
+     gives way to the picture once it has come, sharp where the vector still is a stand-in under a blur, until the
+     player picks up; a still drawn here, for a palette or a look an edit made, keeps its vector still */
   let shown = "";
   const still = (kind: VectorKind, P: Palette, l: FxLook) => {
     const key = keyOf(kind, P, l);
@@ -94,6 +98,14 @@ export function FxLayer(props: {
       shown = key;
       holder.dataset.fxStill = key;
       holder.style.background = "";
+      const drawn = fxPictureOf(kind, encodePalette(P), l);
+      if (drawn) {
+        const image = new Image();
+        image.onload = () => {
+          if (shown === key) holder.style.background = drawn.paint;
+        };
+        image.src = drawn.address;
+      }
       return;
     }
     const paint = fxStillBackground(kind, P, l);

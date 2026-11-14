@@ -5,11 +5,14 @@
    holds it. The editor's holder (FxLayer.tsx) and a card's take the same rule, so the still stands through both and
    the player picks up from it without a seam. A still is a plain SVG of shapes and gradients, no filter: about 1.5 KB
    in the compressed page (the papercut's, its cut paths, about 3) and a few milliseconds to paint, so a page names as
-   many as its first screen shows (stills.ts). Where the effect's still is a picture the server draws (EFFECT_KINDS'
-   picture: the aurora's) and its look is one drawn as a picture (engine/fx-picture.ts fxPictureOf: as designed, upright,
-   any ground, which lies under it as a color), the rule names the picture's address in place of the drawing, and the
-   first is asked for from the head with a preload, so it is there for the first paint where it can be: no still is
-   drawn here, where the aurora's took some 12 ms and 34 KiB each. It loads with the first page that has a holder. */
+   many as its first screen shows (stills.ts). Where a look is drawn as a picture too (engine/fx-picture.ts
+   fxPictureOf: the aurora's, as designed, upright, any ground), the vector still is still the first paint, so the
+   page shows the effect as soon as it loads (John, 14 Nov 2026, of a gradient flashing before the aurora: "The idea a
+   user using the effect would get a vector to load first, so that something is visible as soon as the page loads
+   while the shader picks up"), and the picture is asked for from the head at a low priority, which the page lays in
+   the vector still's place once it has come (FxArt.tsx, FxLayer.tsx). Never the two at once: under the picture's soft
+   edge, which lets what is under it through, the vector still showed 20 levels off. It loads with the first page that
+   has a holder. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { fxPictureOf } from "@grabient/engine/fx-picture.ts";
 import { fxStillBackground, readFxStillKey } from "@grabient/engine/fx-still.ts";
@@ -22,43 +25,45 @@ import { FIRST_SCREEN_STILLS, holderNames, intoHead } from "./stills.ts";
 const KEPT = 128;
 const drawn = new Map<string, string>();
 
-/** A still's background by its name, drawn once while it is kept, or its picture's where its look is drawn as one
-    (engine/fx-picture.ts fxPictureOf), with the picture's address; null for a name no page wrote. */
+/** A still's background by its name, drawn once while it is kept, and the address of its picture where its look is
+    drawn as one too (engine/fx-picture.ts fxPictureOf); null for a name no page wrote. */
 function stillOf(key: string): { paint: string; picture: string | null } | null {
-  const kept = drawn.get(key);
-  if (kept !== undefined) return { paint: kept, picture: null };
   const named = readFxStillKey(key);
+  const picture = named ? (fxPictureOf(named.kind, named.seed, named.look)?.address ?? null) : null;
+  const kept = drawn.get(key);
+  if (kept !== undefined) return { paint: kept, picture };
   const P = named ? decodePalette(named.seed) : null;
   if (!named || !P) return null;
-  const picture = fxPictureOf(named.kind, named.seed, named.look);
-  if (picture) return { paint: picture.paint, picture: picture.address };
   const paint = fxStillBackground(named.kind, P, named.look);
   drawn.set(key, paint);
   if (drawn.size > KEPT) drawn.delete(drawn.keys().next().value as string);
-  return { paint, picture: null };
+  return { paint, picture };
 }
 
-/** The page with the stills its holders name in its head, the names it paints on the style, and a preload of the first
-    where it is a picture. */
+/** The page with the stills its holders name in its head, the names it paints on the style, and a preload at a low
+    priority of each picture its holders lay in their stills' place (one a picture, which grounds share). */
 export function fxStills(html: string): string {
   const rules: string[] = [];
   const painted: string[] = [];
-  let preload = "";
+  const pictures = new Set<string>();
   for (const key of holderNames(html, "data-fx-still")) {
     if (painted.length === FIRST_SCREEN_STILLS) break;
     const still = stillOf(key);
     if (still === null) continue;
-    /* the page's first still, a list's first card or a palette's stage, asked for at once where it is a picture: the
-       largest paint of its first screen, often */
-    if (still.picture && !painted.length)
-      preload = `<link rel="preload" as="image" href="${still.picture.replaceAll("&", "&amp;")}" fetchpriority="high">`;
+    if (still.picture) pictures.add(still.picture);
     rules.push(`[data-fx-still="${key}"]{background:${still.paint}}`);
     painted.push(key);
   }
+  const preloads = [...pictures]
+    .map(
+      address =>
+        `<link rel="preload" as="image" href="${address.replaceAll("&", "&amp;")}" fetchpriority="low">`
+    )
+    .join("");
   return rules.length
     ? intoHead(
         html,
-        `${preload}<style id="${FX_STILL_STYLE}" data-key="${painted.join(" ")}">${rules.join("")}</style>`
+        `${preloads}<style id="${FX_STILL_STYLE}" data-key="${painted.join(" ")}">${rules.join("")}</style>`
       )
     : html;
 }

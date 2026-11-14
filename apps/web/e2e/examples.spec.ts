@@ -290,10 +290,12 @@ for (const kind of EFFECTS.filter(isVectorKind))
     );
     const still = page.locator(`[data-look="hero"] [data-fx-still="${named}"]`);
     await expect(still).toHaveCount(1);
-    /* the server's picture of it where its kind has one (EFFECT_KINDS' picture), else its vector still */
-    expect(await still.evaluate(el => getComputedStyle(el).backgroundImage)).toContain(
-      hasPicture(kind) ? "/api/fx-still?k=" : "data:image/svg+xml"
-    );
+    /* its vector still first, which the server's picture of it then takes the place of where its look is drawn as one
+       (EFFECT_KINDS' picture: the aurora's) */
+    expect(html).toContain(`[data-fx-still="${named}"]{background:url("data:image/svg+xml,`);
+    await expect
+      .poll(() => still.evaluate(el => getComputedStyle(el).backgroundImage), { timeout: 15_000 })
+      .toContain(hasPicture(kind) ? "/api/fx-still?k=" : "data:image/svg+xml");
   });
 
 test("soft and grained looks are drawn as the server drew them, none drawn plain a moment while the blur's code comes", async ({
