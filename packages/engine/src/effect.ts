@@ -364,10 +364,10 @@ export const pastesToFigma = (effect: Pick<Effect, "kind" | "roam">): boolean =>
   hasFigma(effect.kind) && loops(effect);
 
 /** Speeds: 0 holds the first frame (the animation off), then from `slowest` to `max`. The Speed field runs to `field`,
-    so its middle is the designed pace, 1x (John, 14 Nov 2026, of a field that ran to 10, its middle 5x: "the middle
-    value should be a reasonable speed and currently it feels way too fast"); an address may ask up to `max`, which
-    stretches the field to it. */
-export const EFFECT_SPEED = { min: 0, slowest: 0.1, field: 2, max: 10 } as const;
+    the designed pace, 1x, a third of the way along and 1.5x its middle (John, 14 Nov 2026, of a field that ran to 10,
+    its middle 5x: "the middle value should be a reasonable speed and currently it feels way too fast", then of one
+    that ran to 2: "i thin kwe can go up to 3x"); an address may ask up to `max`, which stretches the field to it. */
+export const EFFECT_SPEED = { min: 0, slowest: 0.1, field: 3, max: 10 } as const;
 /** Frames a second: `default` unless an address says, up to `max` where the screen shows that many. */
 export const EFFECT_FPS = { min: 1, default: 60, max: 120 } as const;
 
