@@ -46,6 +46,7 @@ import { blobBackdrop } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
 import { srgbToLch } from "./color.ts";
 import { svgUrl } from "./css.ts";
+import { sampleSrgb } from "./curve.ts";
 import { type Effect, parseEffect } from "./effect.ts";
 import { effectDrawn } from "./fx-frame.ts";
 import type { Palette } from "./palette.ts";
@@ -290,22 +291,43 @@ describe("the aurora's design", () => {
     expect(fnv(tiles.soft)).toBe("b050f7cf");
   });
 
-  it("reads the light through the whole palette, its darker end first, and on to a tip as light as any of it", () => {
+  it("reads the light through the whole palette, its darker end first, and draws no color the palette does not have", () => {
+    /* John, 13 Nov 2026, of a white-hot tip past the palette's last color: "i dont like how aura is adding white that
+       isnt actually in the palette. the colors should be as faithful to the decoded seed colors as possible" */
     const light = (ramp: Float32Array, i: number) =>
       srgbToLch([ramp[i * 3], ramp[i * 3 + 1], ramp[i * 3 + 2]])[0];
-    for (const seed of [SEED, "kWKxfe1GRDVfIxNzPsjbDZKA", "kYAABnAAA_wAAQEAAD8kpHAR6VwS"]) {
+    for (const seed of [
+      SEED,
+      "kWKxfe1GRDVfIxNzPsjbDZKA",
+      "kYAABnAAA_wAAQEAAD8kpHAR6VwS",
+      "ka-QARYTk7tb5PCkQDlVnHG2K-Q7_AFBg",
+      /* his, from his screenshot: black, teals, black */
+      "kIQAAA0AUmQQB0fhAGFdEAJh0AAAf8"
+    ]) {
       const palette = decodePalette(seed) as Palette;
       const ramp = auroraRamp(palette);
       expect(ramp).toHaveLength(AURORA_RAMP * 3);
-      /* the least light is the palette's darker end, whichever way the palette runs */
-      const ends = [0, 1].map(t => light(auroraRamp(palette), t * (AURORA_RAMP - 1)));
-      expect(ends[0], seed).toBeLessThan(ends[1]);
-      /* the hottest light is as light as every color before it, or as near white as the tip goes, and all of it
-         is a color */
-      const tip = light(ramp, AURORA_RAMP - 1);
-      for (let i = 0; i < AURORA_RAMP - 1; i++)
-        expect(Math.min(light(ramp, i), 0.98), `${seed} ${i}`).toBeLessThanOrEqual(tip);
       expect(ramp.every(v => v >= 0 && v <= 1)).toBe(true);
+      /* the least light is the palette's darker end and the hottest its other, whichever way the palette runs */
+      const [start, end] = [0, 1].map(t => sampleSrgb(palette, t));
+      const [first, last] = srgbToLch(start)[0] > srgbToLch(end)[0] ? [end, start] : [start, end];
+      const at = (i: number) => [...ramp.subarray(i * 3, i * 3 + 3)];
+      for (const [i, color] of [
+        [0, first],
+        [AURORA_RAMP - 1, last]
+      ] as const)
+        for (let k = 0; k < 3; k++)
+          expect(Math.abs(at(i)[k] - color[k]) * 255, `${seed} ${i}`).toBeLessThanOrEqual(0.5);
+      expect(light(ramp, 0), seed).toBeLessThanOrEqual(light(ramp, AURORA_RAMP - 1));
+      /* every color of it is one along the palette's own curve, within a few levels of 255 (the straight lines
+         between its stops cut the curve's tightest bends by 6.8 at most, 13 Nov 2026): none made up */
+      const curve = Array.from({ length: 2049 }, (_, i) => sampleSrgb(palette, i / 2048));
+      for (let i = 0; i < AURORA_RAMP; i++) {
+        let near = 255;
+        for (const c of curve)
+          near = Math.min(near, Math.max(...c.map((v, k) => Math.abs(v - at(i)[k]) * 255)));
+        expect(near, `${seed} ${i}`).toBeLessThan(8);
+      }
     }
   });
 
@@ -544,7 +566,7 @@ describe("the aurora's design", () => {
 describe("the aurora's CPU drawing", () => {
   it("is the picture it was designed as: these pixels, on a range of a whole color", () => {
     /* the design's own drawing of these looks at 320 by 180, a few pixels each (x, y, then red, green, blue): the
-       night at the top, the flames, the white-hot light over the range, and the range */
+       night at the top, the flames, the hottest light over the range, the palette's own last color, and the range */
     for (const { path, bg, t, pixels } of [
       {
         path: null,
@@ -557,7 +579,7 @@ describe("the aurora's CPU drawing", () => {
           [90, 70, 255, 144, 119],
           [228, 88, 255, 219, 160],
           [40, 100, 255, 122, 110],
-          [160, 104, 252, 253, 229],
+          [160, 104, 254, 255, 210],
           [275, 96, 254, 251, 177],
           [120, 118, 20, 11, 25],
           [10, 170, 20, 11, 25],
@@ -595,7 +617,7 @@ describe("the aurora's CPU drawing", () => {
           [90, 70, 254, 254, 184],
           [228, 88, 244, 239, 230],
           [40, 100, 251, 184, 163],
-          [160, 104, 251, 252, 236],
+          [160, 104, 254, 255, 210],
           [275, 96, 244, 239, 230],
           [120, 118, 244, 239, 230],
           [10, 170, 244, 239, 230],

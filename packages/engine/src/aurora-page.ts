@@ -125,7 +125,6 @@ const SHEETS = {
 ${sheetsJs()}
 };
 const SHEET_ORDER = ${JSON.stringify(AURORA_SHEETS)};
-const DEG = Math.PI / 180;
 const clamp01 = v => Math.min(1, Math.max(0, v));
 const smooth = (a, b, v) => {
   const x = clamp01((v - a) / (b - a));
@@ -219,89 +218,38 @@ function auroraTiles() {
   return { noise, soft };
 }
 
-// Color: sRGB to OKLCH and back, by OKLab (Bjorn Ottosson's conversion), as the site converts.
+// A color's lightness, OKLab's L (Bjorn Ottosson's conversion), as the site works it out: which end of the palette is
+// the darker.
 const toLinear = v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-const toEncoded = v => (v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055);
-function srgbToLch(rgb) {
+function lightnessOf(rgb) {
   const r = toLinear(rgb[0]);
   const g = toLinear(rgb[1]);
   const b = toLinear(rgb[2]);
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
   const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
-  const A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s;
-  const B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
-  return [L, Math.hypot(A, B), Math.atan2(B, A) / DEG];
+  return 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
 }
-function oklabToLinear(L, a, b) {
-  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
-  return [
-    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s
-  ];
-}
-const inGamut = rgb => rgb.every(v => v >= -1e-4 && v <= 1 + 1e-4);
-// OKLCH to sRGB, its chroma lowered at constant lightness and hue until the color fits.
-function lchToSrgb(L, C, H) {
-  L = clamp01(L);
-  let c = Math.max(0, C);
-  const ca = Math.cos(H * DEG);
-  const sa = Math.sin(H * DEG);
-  if (!inGamut(oklabToLinear(L, c * ca, c * sa))) {
-    let lo = 0;
-    let hi = 1;
-    for (let i = 0; i < 24; i++) {
-      const m = (lo + hi) / 2;
-      if (inGamut(oklabToLinear(L, c * m * ca, c * m * sa))) lo = m;
-      else hi = m;
-    }
-    c *= lo;
-  }
-  return oklabToLinear(L, c * Math.cos(H * DEG), c * Math.sin(H * DEG)).map(v => clamp01(toEncoded(clamp01(v))));
-}
-const byte = v => Math.floor(clamp01(v) * 255 + 0.5) / 255;
 const colorOf = hex => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16) / 255);
 
 // The ramp the light is read through, RAMP colors from the least light to the hottest: the palette's stops from its
-// darker end to its lighter, every one of them as it is, its later colors taking more of the light (LOW, TIP and
-// BEND), then on past its last toward white.
+// darker end to its other, every one of them as it is and no color the palette does not have, its later colors
+// taking more of the light (LOW, TIP and BEND), the hottest light its last color held.
 function auroraRamp() {
   const n = STOPS.length;
   const stops = new Float64Array(n * 3);
-  const light = new Float64Array(n);
-  let lMax = -1;
-  for (let i = 0; i < n; i++) {
-    const c = colorOf(STOPS[i]);
-    stops.set(c, i * 3);
-    light[i] = srgbToLch(c)[0];
-    lMax = Math.max(lMax, light[i]);
-  }
-  const flip = light[0] > light[n - 1];
+  for (let i = 0; i < n; i++) stops.set(colorOf(STOPS[i]), i * 3);
+  const flip = lightnessOf(colorOf(STOPS[0])) > lightnessOf(colorOf(STOPS[n - 1]));
   const at = v => {
     const x = clamp01(flip ? 1 - v : v) * (n - 1);
     const i = Math.min(n - 2, Math.floor(x));
     const f = x - i;
     return [0, 1, 2].map(k => stops[i * 3 + k] + (stops[i * 3 + 3 + k] - stops[i * 3 + k]) * f);
   };
-  const end = at(1);
-  const [Ll, Cl, Hl] = srgbToLch(end);
-  const hot = lchToSrgb(
-    Math.min(0.985, Math.max(Ll + 0.14, Ll * 1.18, lMax + 0.05)),
-    Math.min(Cl * 0.35, 0.04),
-    Hl
-  ).map(byte);
   const ramp = new Float32Array(RAMP * 3);
   for (let i = 0; i < RAMP; i++) {
     const l = i / (RAMP - 1);
-    if (l <= TIP) ramp.set(at(1 - (1 - clamp01((l - LOW) / (TIP - LOW))) ** BEND), i * 3);
-    else {
-      const f = (l - TIP) / (1 - TIP);
-      ramp.set(end.map((v, k) => v + (hot[k] - v) * f), i * 3);
-    }
+    ramp.set(at(1 - (1 - clamp01((l - LOW) / (TIP - LOW))) ** BEND), i * 3);
   }
   return ramp;
 }
@@ -560,7 +508,7 @@ export function auroraSettings(P: Palette, effect: Effect, angle: number): strin
   );
   const bg = effect.look.bg;
   return `// The palette, ${stops.length} colors along its curve from its start to its end, as the site reads it: the light runs through them
-// from the darker end to the lighter, each taking its share, then on past the last toward white. And the range's
+// from the darker end to the other, each taking its share, the hottest light the last; no other color. And the range's
 // color: "#rrggbb", or "#rrggbbaa" to let the page through (over which the canvas lays itself), or null for a clear
 // range.
 const STOPS = [

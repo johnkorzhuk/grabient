@@ -5,8 +5,7 @@
    drifts; over them finer shafts, and hot spots where two slow sheets agree. The noise is one small picture (a tile,
    the same for every aurora), read between its pixels by straight lines, so the CPU and the shader read the same
    numbers. Every sheet slides a whole number of tiles a loop, so the loop's last frame is its first. The light is
-   read through the whole palette, no color of it left out and none made up but the white-hot tip past its last
-   (TONE below). The look's shape picks the fan the light rises in and where its sheets start (auroraDesign).
+   read through the whole palette, no color of it left out and none made up (TONE below). The look's shape picks the fan the light rises in and where its sheets start (auroraDesign).
    In front stands the range, still. Its outline is a path the address carries (aurora-path.ts). Its color is the
    look's ground, as the blob's is: none leaves the range clear, the page through it; a color fills it, wholly or in
    part.
@@ -20,7 +19,7 @@
    pixel alike, and the SVGs (aurora-svg.ts) read the same light along the fan's rays. */
 import { auroraHash } from "./aurora-hash.ts";
 import { AURORA_DESIGNED_PATH, type AuroraPathParts, auroraPathParts } from "./aurora-path.ts";
-import { hexBytes, lchToSrgb, srgbToLch } from "./color.ts";
+import { hexBytes, srgbToLch } from "./color.ts";
 import { sampleSrgb } from "./curve.ts";
 import { clamp01 } from "./math.ts";
 import type { Palette } from "./palette.ts";
@@ -57,8 +56,10 @@ const TILE_SEED = 100;
    light is under 0.09 (the haze at the picture's top), 55% are under 0.30, 83% under 0.50, 97% under 0.75. Read
    straight, light 0 to 1 as the palette's start to its end, the palette's first color took 0.4% of the light and its
    last 2.7%. So the palette runs from the least light a frame holds (LOW) to TIP, bent (BEND) so its later colors
-   take more: of five colors 15%, 38%, 25%, 15% and 5% of the light, and the white-hot tip past the last the 2.3%
-   above TIP. */
+   take more: of five colors 15%, 38%, 25%, 15% and 5% of the light, and the 2.3% above TIP its last color held,
+   never a color the palette does not have (it once rose past the last toward white, until John, 13 Nov 2026: "i
+   dont like how aura is adding white that isnt actually in the palette. the colors should be as faithful to the
+   decoded seed colors as possible"). */
 const LOW = 0.1;
 const TIP = 0.85;
 const BEND = 1.4;
@@ -510,44 +511,24 @@ export const auroraStops = (P: Palette): number[][] =>
   Array.from({ length: STOPS }, (_, i) => sampleSrgb(P, i / (STOPS - 1)).map(byte));
 
 /** The ramp the light is read through, AURORA_RAMP colors of three channels, 0 to 1: the whole palette from its
-    darker end to its lighter, every color of it as it is (TONE), then on to the hottest light, its last color lifted
-    past the palette's lightest toward white. */
+    darker end to its other, every color of it as it is and none it does not have (TONE), the hottest light its last
+    color held. */
 export function auroraRamp(P: Palette): Float32Array {
   const stops = new Float64Array(STOPS * 3);
-  const light = new Float64Array(STOPS);
   const colors = auroraStops(P);
-  let lMax = -1;
-  for (let i = 0; i < STOPS; i++) {
-    const c = colors[i];
-    stops.set(c, i * 3);
-    light[i] = srgbToLch(c)[0];
-    lMax = Math.max(lMax, light[i]);
-  }
-  const flip = light[0] > light[STOPS - 1];
+  for (let i = 0; i < STOPS; i++) stops.set(colors[i], i * 3);
+  /* the darker end first, whichever way the palette runs */
+  const flip = srgbToLch(colors[0])[0] > srgbToLch(colors[STOPS - 1])[0];
   const at = (v: number): number[] => {
     const x = clamp01(flip ? 1 - v : v) * (STOPS - 1);
     const i = Math.min(STOPS - 2, Math.floor(x));
     const f = x - i;
     return [0, 1, 2].map(k => stops[i * 3 + k] + (stops[i * 3 + 3 + k] - stops[i * 3 + k]) * f);
   };
-  const end = at(1);
-  const [Ll, Cl, Hl] = srgbToLch(end);
-  const hot = lchToSrgb(
-    Math.min(0.985, Math.max(Ll + 0.14, Ll * 1.18, lMax + 0.05)),
-    Math.min(Cl * 0.35, 0.04),
-    Hl
-  ).map(byte);
   const ramp = new Float32Array(AURORA_RAMP * 3);
   for (let i = 0; i < AURORA_RAMP; i++) {
     const l = i / (AURORA_RAMP - 1);
-    if (l <= TIP) ramp.set(at(1 - (1 - clamp01((l - LOW) / (TIP - LOW))) ** BEND), i * 3);
-    else {
-      const f = (l - TIP) / (1 - TIP);
-      ramp.set(
-        end.map((v, k) => v + (hot[k] - v) * f),
-        i * 3
-      );
-    }
+    ramp.set(at(1 - (1 - clamp01((l - LOW) / (TIP - LOW))) ** BEND), i * 3);
   }
   return ramp;
 }
