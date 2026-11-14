@@ -1,14 +1,36 @@
 /* The kinds of path made for the aurora's range from a number (aurora-path.ts writes them): a jagged range, a line, a
-   curve, a mix of straight and curved pieces, and a skyline of blocks with upright walls. The same kind and number
-   make the same path. The Appearance menu's Path field has a press that makes one of a kind picked at random (John,
-   13 Nov 2026: "add a random button to the path input that randomizes it", "the shape randomizer chooses between
-   those options"), and a palette's examples page one by its seed. It loads without the aurora's model: the fields
-   make paths, and draw none. */
+   curve, a mix of straight and curved pieces, a skyline of blocks with upright walls, and a bend, one or two long, low
+   swells. The same kind and number make the same path. The Appearance menu's Path field has a press that makes one of
+   a kind picked at random (John, 13 Nov 2026: "add a random button to the path input that randomizes it", "the shape
+   randomizer chooses between those options"), the bends the likeliest (AURORA_PATH_ODDS), and a palette's examples
+   page one by its seed, at the same odds. It loads without the aurora's model: the fields make paths, and draw
+   none. */
 import { auroraHash } from "./aurora-hash.ts";
 import { auroraPathOf } from "./aurora-path.ts";
 
-export const AURORA_PATH_KINDS = ["range", "line", "curve", "mix", "skyline"] as const;
+export const AURORA_PATH_KINDS = ["range", "line", "curve", "mix", "skyline", "bend"] as const;
 export type AuroraPathKind = (typeof AURORA_PATH_KINDS)[number];
+
+/** How often a press makes each kind: the subtle long bends four times in ten, every other kind about one in eight
+    (John, 14 Nov 2026: "make it so subtle long bends are more common in the shape params"). */
+export const AURORA_PATH_ODDS: Readonly<Record<AuroraPathKind, number>> = {
+  bend: 0.4,
+  range: 0.12,
+  line: 0.12,
+  curve: 0.12,
+  mix: 0.12,
+  skyline: 0.12
+};
+
+/** The kind a number from 0 up to 1 picks at AURORA_PATH_ODDS. */
+export function auroraPathKindAt(u: number): AuroraPathKind {
+  let left = u;
+  for (const kind of AURORA_PATH_KINDS) {
+    left -= AURORA_PATH_ODDS[kind];
+    if (left < 0) return kind;
+  }
+  return "bend";
+}
 
 const TAU = Math.PI * 2;
 /* a seeded stream of numbers for a design */
@@ -77,6 +99,21 @@ export function auroraMadePath(kind: AuroraPathKind, n: number): string {
       Math.round((y + lean / 2) * 100) / 100
     ]);
   }
+  if (kind === "bend") {
+    /* subtle long bends: three or four heights across the whole width, by turns a little over and under one level,
+       joined smoothly, so the range rolls in one or two long, low swells, never a hill */
+    const count = 3 + Math.floor(r() * 2);
+    const y = 0.27 + 0.16 * r();
+    const swell = 0.02 + 0.04 * r();
+    const up = r() < 0.5 ? 1 : -1;
+    return auroraPathOf(
+      true,
+      Array.from(
+        { length: count },
+        (_, i) => Math.round((y + up * (i % 2 ? 1 : -1) * swell * (0.6 + 0.4 * r())) * 100) / 100
+      )
+    );
+  }
   if (kind === "curve") {
     /* a curve: a few heights joined smoothly */
     const count = 4 + Math.floor(r() * 4);
@@ -127,9 +164,10 @@ export function auroraMadePath(kind: AuroraPathKind, n: number): string {
   );
 }
 
-/** A path made of a kind and a number `random` picks (0 up to 1, as Math.random gives one): every kind as likely, and
-    a number from 1 to 999, so never the designed range, which is none and the Path field's clear gives back. */
+/** A path made of a kind and a number `random` picks (0 up to 1, as Math.random gives one): the kind at
+    AURORA_PATH_ODDS, and a number from 1 to 999, so never the designed range, which is none and the Path field's clear
+    gives back. */
 export function auroraRandomPath(random: () => number = Math.random): string {
-  const kind = AURORA_PATH_KINDS[Math.floor(random() * AURORA_PATH_KINDS.length)] ?? "range";
+  const kind = auroraPathKindAt(random());
   return auroraMadePath(kind, 1 + Math.floor(random() * 999));
 }

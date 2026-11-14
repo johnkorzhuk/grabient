@@ -39,7 +39,14 @@ import {
   auroraPathOf,
   auroraPathParts
 } from "./aurora-path.ts";
-import { AURORA_PATH_KINDS, type AuroraPathKind, auroraMadePath } from "./aurora-path-kinds.ts";
+import {
+  AURORA_PATH_KINDS,
+  AURORA_PATH_ODDS,
+  type AuroraPathKind,
+  auroraMadePath,
+  auroraPathKindAt,
+  auroraRandomPath
+} from "./aurora-path-kinds.ts";
 import { renderAurora } from "./aurora-render.ts";
 import { auroraFileSvg, auroraFrameSvg, auroraStillSteps, auroraStillSvg } from "./aurora-svg.ts";
 import { blobBackdrop } from "./blob.ts";
@@ -213,7 +220,8 @@ describe("the aurora's path", () => {
 
   it("reads back every path made and many written at random, and never throws on what is none", () => {
     const paths: string[] = [];
-    for (let n = 1; n <= 400; n++) paths.push(auroraMadePath(AURORA_PATH_KINDS[n % 5], n));
+    for (let n = 1; n <= 400; n++)
+      paths.push(auroraMadePath(AURORA_PATH_KINDS[n % AURORA_PATH_KINDS.length], n));
     /* placed paths: places rising by random steps (some none: a wall), words dropped in at random */
     for (let n = 0; n < 600; n++) {
       const r = (k: number) => auroraHash(k, n * 97 + 5);
@@ -257,14 +265,43 @@ describe("the aurora's path", () => {
     for (const kind of AURORA_PATH_KINDS)
       for (let n = 1; n <= 40; n++) {
         const path = auroraMadePath(kind, n);
-        expect(kindOf(path), `${kind} ${n}`).toBe(kind);
+        /* a bend is a curve of its own: three or four heights by turns over and under one level, a few apart */
+        expect(kindOf(path), `${kind} ${n}`).toBe(kind === "bend" ? "curve" : kind);
         expect(auroraPath(path), `${kind} ${n}`).toBe(path);
         expect(auroraMadePath(kind, n)).toBe(path);
+        if (kind !== "bend") continue;
+        const heights = auroraPathParts(path)?.heights ?? [];
+        expect(heights.length, path).toBeGreaterThanOrEqual(3);
+        expect(heights.length, path).toBeLessThanOrEqual(4);
+        expect(Math.max(...heights) - Math.min(...heights), path).toBeLessThanOrEqual(0.12);
+        for (let i = 2; i < heights.length; i++)
+          expect(Math.sign(heights[i] - heights[i - 1]), path).not.toBe(
+            Math.sign(heights[i - 1] - heights[i - 2])
+          );
       }
     expect(auroraMadePath("range", 1)).not.toBe(auroraMadePath("range", 2));
     expect(kindOf(BLOCK)).toBe("skyline");
     expect(kindOf("line,25,25,curve,45,60,45,25,line,25,40,25")).toBe("mix");
     expect(kindOf("line,20,45")).toBe("line");
+  });
+
+  it("is a bend four presses in ten, every other kind about one in eight, never the designed range", () => {
+    /* John, 14 Nov 2026: "make it so subtle long bends are more common in the shape params" */
+    const made = new Map<AuroraPathKind, number>();
+    const steps = 1000;
+    for (let i = 0; i < steps; i++) {
+      const kind = auroraPathKindAt((i + 0.5) / steps);
+      made.set(kind, (made.get(kind) ?? 0) + 1);
+    }
+    expect(made.get("bend")).toBe(400);
+    for (const kind of AURORA_PATH_KINDS)
+      if (kind !== "bend") expect(made.get(kind), kind).toBe(120);
+    expect(Object.values(AURORA_PATH_ODDS).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
+    /* a press: its kind by the first number, its path by the second, never number 0 */
+    const asked = [0.7, 0];
+    const press = auroraRandomPath(() => asked.shift() ?? 0);
+    expect(press).toBe(auroraMadePath("bend", 1));
+    expect(press).not.toBe(AURORA_DESIGNED_PATH);
   });
 });
 

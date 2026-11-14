@@ -11,7 +11,7 @@
    server to write and the browser to draw; the blob has no angle, its palette lying from left to right. A part that
    shows a picture of the palette (the hero, the cards' media, the profile and the wallpapers) finishes its looks as
    the seed picks, soft, grained, both or neither (finished). */
-import { AURORA_PATH_KINDS, auroraMadePath } from "@grabient/engine/aurora-path-kinds.ts";
+import { auroraMadePath, auroraPathKindAt } from "@grabient/engine/aurora-path-kinds.ts";
 import { sampleLCH } from "@grabient/engine/curve.ts";
 import {
   blobShapeOf,
@@ -223,15 +223,13 @@ export function inLook(
               Math.floor(seeded(seed, `${own}:zoom`) * ((zooms.most - zooms.least) * 10 + 1)) / 10
           )
         : null;
-    /* a range of a kind and a number, as the menu's press makes one */
+    /* a range of a kind and a number, as the menu's press makes one, at its odds */
     const path =
       own && EFFECT_KINDS[look].path
         ? effectPath(
             look,
             auroraMadePath(
-              AURORA_PATH_KINDS[
-                Math.floor(seeded(seed, `${own}:path-kind`) * AURORA_PATH_KINDS.length)
-              ],
+              auroraPathKindAt(seeded(seed, `${own}:path-kind`)),
               1 + Math.floor(seeded(seed, `${own}:path`) * 999)
             )
           )
