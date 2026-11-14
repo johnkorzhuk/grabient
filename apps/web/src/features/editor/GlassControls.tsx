@@ -164,8 +164,9 @@ function typedPath(text: string): string | null | undefined {
     to be able to create thieir custom path"), and a press at its end that makes another, a jagged range, a line, a
     curve, a mix of the two or a skyline of blocks, the kind at random too (John, 13 Nov 2026: "add a random button
     to the path input that randomizes it", "the shape randomizer chooses between those options"). Words that are no
-    path go back to the path it had; none, and the field's clear, give the designed range back. */
-export function PathFields(props: { path: string | null; onPath: (path: string | null) => void }) {
+    path go back to the path it had; none, and the field's clear, give the designed range back. The editor's alone: a
+    list's cards stand behind the designed range (John, 14 Nov 2026: "it should only be for the editor"). */
+function PathFields(props: { path: string | null; onPath: (path: string | null) => void }) {
   return (
     <div class={fields.whole}>
       <ColorField

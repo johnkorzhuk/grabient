@@ -10,6 +10,7 @@ import {
   inOrder,
   inView,
   type ListView,
+  listEffect,
   listViewOf,
   lookEffect,
   lookFinish,
@@ -331,7 +332,8 @@ test("a picture lies as what it shows lies: an effect a tile previews at its own
   expect(drawnIn(own, playing({ style: "aurora" }), null, undefined, undefined).angle).toBe(90);
 });
 
-test("the aurora takes the list's path, every card behind it: read, written among its look as a word, and read back", () => {
+test("the aurora's path is the editor's alone: a list reads none and writes none, every card behind the designed range", () => {
+  /* John, 14 Nov 2026: "hide the shape options for aurora on the list routes. it should only be for the editor" */
   const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
   const aurora = readListView({
     style: "aurora",
@@ -344,40 +346,30 @@ test("the aurora takes the list's path, every card behind it: read, written amon
     kind: "aurora",
     speed: 1,
     fps: 60,
-    look: { shape: null, frost: 1, bg: "#102030", steps: null, zoom: null, path: walled }
+    look: { shape: null, frost: 1, bg: "#102030", steps: null, zoom: null, path: null }
   });
-  /* a path in another spelling is kept in its one spelling; the designed range and words that are no path are none */
-  expect(readListView({ style: "aurora", path: "line,33.0,33" }).effect?.look.path).toBe(
-    "line,33,33"
-  );
-  expect(readListView({ style: "aurora", path: "mountains" }).effect?.look.path).toBeNull();
-  expect(readListView({ style: "aurora" }).effect?.look.path).toBeNull();
-  /* written as a word, its commas and colons as they are, after how it plays and before its ground */
-  expect(viewParams({ effect: aurora.effect })).toMatchObject({
-    style: "aurora",
-    path: walled,
-    bg: "#102030"
-  });
-  const order = Object.entries(
-    inOrder({ q: "sea", page: 2 }, viewParams({ style: "auto", effect: aurora.effect }))
-  )
-    .filter(([, value]) => value !== undefined)
-    .map(([name]) => name);
-  expect(order).toEqual(["q", "style", "path", "bg", "page"]);
-  expect(inView("/palettes", aurora)).toBe(
-    `/palettes?style=aurora&angle=30&path=${encodeURIComponent(walled)}&bg=%23102030`
-  );
   expect(
     listViewOf(new URLSearchParams(`style=aurora&angle=30&path=${walled}&bg=%23102030`))
   ).toEqual(aurora);
-  /* every card plays behind the list's path */
-  expect(cardEffect(aurora.effect!, SEED).look.path).toBe(walled);
-  /* a change of path alone is a choice of the list's look */
-  const other = readListView({ style: "aurora", angle: 30, path: "line,33,33", bg: "#102030" });
-  expect(viewSince(AS_SAVED, aurora, other).effect?.look.path).toBe("line,33,33");
-  /* turned to an effect that takes none, the path leaves with it */
-  expect(readListView({ style: "silk", path: walled }).effect?.look.path).toBeNull();
-  expect(viewParams({ effect: readListView({ style: "silk" }).effect }).path).toBeUndefined();
+  /* its address keeps its ground and leaves the path out, so a list's address that names one is another of its own */
+  expect(viewParams({ effect: aurora.effect })).toMatchObject({
+    style: "aurora",
+    path: undefined,
+    bg: "#102030"
+  });
+  expect(inView("/palettes", aurora)).toBe("/palettes?style=aurora&angle=30&bg=%23102030");
+  /* every card plays its own palette's shape behind the designed range */
+  expect(cardEffect(aurora.effect!, SEED).look).toMatchObject({ shape: null, path: null });
+  /* an effect the editor hands the lists, a path and all, leaves both with it */
+  expect(
+    listEffect({
+      kind: "aurora",
+      speed: 0.5,
+      fps: 30,
+      look: { shape: 417, frost: 1, bg: null, steps: null, zoom: null, path: walled }
+    })?.look
+  ).toMatchObject({ shape: null, path: null });
+  expect(listEffect(null)).toBeNull();
 });
 
 test("the blob has no angle: an address's angle is left while it plays, and the glass keeps its own", () => {

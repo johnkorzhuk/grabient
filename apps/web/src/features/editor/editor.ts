@@ -37,6 +37,7 @@ import {
 } from "../../app/undo.ts";
 import {
   type ListView,
+  listEffect,
   readListView,
   rememberedNow,
   rememberView,
@@ -128,8 +129,9 @@ export function createPaletteEditor(
     start.styled ?? false,
     () => encodePalette(palette()),
     own,
-    /* an effect the reader picks goes for the lists as a style does, each card in its own palette's shape */
-    effect => remember({ effect: effect && { ...effect, look: { ...effect.look, shape: null } } })
+    /* an effect the reader picks goes for the lists as a style does, each card in its own palette's shape behind the
+       designed range */
+    effect => remember({ effect: listEffect(effect) })
   );
   /* The angle the picture takes while `kind` shows, none for a gradient. One the reader set is theirs, whatever
      shows. With none set (the menu's Auto) it is the page's own, as it opened, which turns the palette's gradient

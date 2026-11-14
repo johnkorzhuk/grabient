@@ -403,14 +403,15 @@ test("the aurora takes a shape and a path: its menu's Shape field is a number th
     `/${SEED}?style=aurora&shape=417&path=${walled}`
   );
   expect(await moved(`/${SEED}?style=papercut&path=line,33,33`)).toBe(`/${SEED}?style=papercut`);
-  /* a list's cards stand behind its path, which a list's address writes as the router does */
-  const list = await request.get("/palettes?style=aurora&path=line%2C33%2C33", {
-    maxRedirects: 0
-  });
-  expect(list.status()).toBe(200);
-  expect(/<span[^>]*data-fx-still="([^"]*)"/.exec(await list.text())?.[1]).toMatch(
-    /^aurora\|.*\|line,33,33$/
-  );
+  /* the path is the editor's alone (John, 14 Nov 2026: "hide the shape options for aurora on the list routes. it
+     should only be for the editor"): a list's address that names one is its own without it, every card behind the
+     designed range */
+  expect(await moved("/palettes?style=aurora&path=line%2C33%2C33")).toBe("/palettes?style=aurora");
+  expect(
+    /<span[^>]*data-fx-still="([^"]*)"/.exec(
+      await (await request.get("/palettes?style=aurora")).text()
+    )?.[1]
+  ).toMatch(/^aurora\|[^|]+\|90\|$/);
 
   /* held still, a change of path draws the stage's still anew */
   await open(page, `/${SEED}?style=aurora&speed=0`);
@@ -494,6 +495,19 @@ test("the aurora takes a shape and a path: its menu's Shape field is a number th
   await page.getByRole("button", { name: "Aurora", exact: true }).click();
   await expect.poll(said).toBe(`?style=aurora&speed=0&shape=${drawn}&bg=#000080`);
   await expect(shape).toHaveAttribute("aria-valuenow", String(drawn));
+});
+
+test("a list's Appearance menu for the aurora has no Shape and no Path, which the editor alone picks, and keeps its range's color", async ({
+  page
+}) => {
+  await open(page, "/palettes?style=aurora");
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  const menu = page.locator("#appearance-menu");
+  await expect(menu.getByRole("textbox", { name: "Background color", exact: true })).toBeVisible();
+  await expect(menu.getByRole("spinbutton", { name: "Speed", exact: true })).toBeVisible();
+  await expect(menu.getByRole("textbox", { name: "Path", exact: true })).toHaveCount(0);
+  await expect(menu.getByRole("button", { name: "New path", exact: true })).toHaveCount(0);
+  await expect(menu.getByRole("spinbutton", { name: "Shape", exact: true })).toHaveCount(0);
 });
 
 test("the aurora stands upright where no angle is set for it: on a list's cards whatever each palette's own, and in the editor at Auto, where an angle set turns it", async ({

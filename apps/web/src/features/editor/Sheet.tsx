@@ -46,7 +46,7 @@ import { framesQuery } from "../gallery/queries.ts";
 import { similarHref } from "../gallery/similar.ts";
 import { sortSearch } from "../gallery/sort.ts";
 import { cardWords } from "../gallery/words.ts";
-import { drawnIn, type ListView, viewParams } from "../list/appearance.ts";
+import { drawnIn, type ListView, listEffect, viewParams } from "../list/appearance.ts";
 import { useOpened, useTaken } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { openedFrom, seedAddress } from "./address.ts";
@@ -359,8 +359,8 @@ export function Sheet(props: {
       soft: e.softIn(effect?.kind ?? null),
       grain: e.grain(),
       size: e.size(),
-      /* the list these lead to plays the effect too, each card in its own palette's shape */
-      effect: effect && { ...effect, look: { ...effect.look, shape: null } }
+      /* the list these lead to plays the effect too, each card in its own palette's shape behind the designed range */
+      effect: listEffect(effect)
     };
   };
   const likeHref = () => {

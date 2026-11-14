@@ -36,8 +36,8 @@ import { seedAddress } from "../editor/address.ts";
    palette's own (auto, As saved), the size a palette takes into the editor and the selection's files, and an effect
    every card plays in its gradient's place. It is the list's address (?style=…&steps=…&angle=…&size=…, or with an
    effect ?style=glass&angle=…&size=… or ?style=blob&size=…, which has no angle and no soft, and how it plays and
-   looks, as a palette's address writes them, the sandstone's steps, the dimple's zoom and the aurora's path among
-   them), so a change
+   looks, as a palette's address writes them, the sandstone's steps and the dimple's zoom among them, but the shape
+   and the aurora's path, which are the editor's alone), so a change
    replaces the entry and Back leaves the page, and the tab remembers it for the next page that draws palettes, the
    editor's new palettes and the wordmark's way home.
 
@@ -55,8 +55,10 @@ export interface ListView {
   grain: number;
   size: SizeChoice | null;
   /** the effect every card plays over its gradient, which the names, the likes, the selection and the files keep: how
-      it plays, the blob's frost and ground, the sandstone's steps, the dimple's zoom and the aurora's path, one for
-      the list. Its shape is none: each card plays its own palette's (cardEffect). The style is auto and the list's
+      it plays, the blob's frost and ground, the sandstone's steps and the dimple's zoom, one for the list (listEffect).
+      Its shape is none: each card plays its own palette's (cardEffect). Its path is none, every card behind the
+      aurora's designed range: the path is the editor's alone (John, 14 Nov 2026: "hide the shape options for aurora on
+      the list routes. it should only be for the editor"). The style is auto and the list's
       steps stay auto while one plays, its address's `steps` the effect's own where it takes them (EFFECT_KINDS), the
       angle and the soft leaving while the blob does. */
   effect: Effect | null;
@@ -93,12 +95,17 @@ const VIEW_PARAMS = [
   "roam",
   "zoom",
   "frost",
-  "path",
   "bg"
 ];
 
+/** An effect as a list plays it: its shape and its path left to each card, which plays its own palette's shape behind
+    the designed range. */
+export const listEffect = (effect: Effect | null): Effect | null =>
+  effect && { ...effect, look: { ...effect.look, shape: null, path: null } };
+
 /** The view a list's address names; what it leaves out or cannot read is auto. Steps under three are three. An
-    effect's style names it, read as a palette's address reads it (engine/effect.ts), less its shape. */
+    effect's style names it, read as a palette's address reads it (engine/effect.ts), less its shape and its path
+    (listEffect). */
 export function readListView(search: Readonly<Record<string, unknown>>): ListView {
   const said = (name: string) => {
     const value = search[name];
@@ -115,7 +122,7 @@ export function readListView(search: Readonly<Record<string, unknown>>): ListVie
     soft: effect && !EFFECT_KINDS[effect.kind].soft ? 0 : (whole(search.soft, 1, SOFT_MAX) ?? 0),
     grain: whole(search.grain, 1, GRAIN_MAX) ?? 0,
     size: typeof search.size === "string" ? parseSize(search.size) : null,
-    effect: effect && { ...effect, look: { ...effect.look, shape: null } }
+    effect: listEffect(effect)
   };
 }
 
