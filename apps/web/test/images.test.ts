@@ -1,8 +1,9 @@
-import { decodePalette } from "@grabient/engine/codec.ts";
+import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { fxStillKey } from "@grabient/engine/effect.ts";
 import { FX_PICTURE_SIDE, fxPictureAddress } from "@grabient/engine/fx-picture.ts";
 import { glassStillKey } from "@grabient/engine/glass-colors.ts";
+import { randomPalette } from "@grabient/engine/random.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
@@ -503,16 +504,10 @@ describe("the glass's still", () => {
 });
 
 describe("a vector effect's still as a picture", () => {
-  /** An aurora's still no other test asks for, so it is drawn here first: a shape of its own. */
-  const freshKey = () =>
-    fxStillKey("aurora", SEED, {
-      angle: 90,
-      shape: 1 + Math.floor(Math.random() * 999),
-      steps: null,
-      zoom: null,
-      path: null,
-      bg: null
-    });
+  const DESIGNED = { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null };
+  /** An aurora's still no other test asks for, so it is drawn here first: a palette of its own, as designed, the one
+      look drawn as a picture. */
+  const freshKey = () => fxStillKey("aurora", encodePalette(randomPalette()), DESIGNED);
 
   it("is the aurora's first frame its key names, as a WebP at 1024 with its clear range, kept in R2 under cards/ and read from there", async () => {
     const key = freshKey();
@@ -555,17 +550,21 @@ describe("a vector effect's still as a picture", () => {
     expect([refused.status, refused.headers.get("Cache-Control")]).toEqual([503, "no-store"]);
   });
 
-  it("is no picture for a key no page writes, or a kind whose still is its vector one", async () => {
+  it("is no picture for a key no page writes, a kind whose still is its vector one, or a look drawn on the page", async () => {
     const { env, keep } = isolate();
-    const look = { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null };
     for (const k of [
       "",
       "aurora",
       `aurora|${SEED}|90|007`,
       `aurora|${SEED}|361|`,
       `aurora|kNOT_A_SEED|90|`,
-      fxStillKey("silk", SEED, look),
-      fxStillKey("strings", SEED, look)
+      fxStillKey("silk", SEED, DESIGNED),
+      fxStillKey("strings", SEED, DESIGNED),
+      /* its ground lies under the picture as a color, and an angle, a shape or a path is its vector still */
+      fxStillKey("aurora", SEED, { ...DESIGNED, bg: "#0b0b10" }),
+      fxStillKey("aurora", SEED, { ...DESIGNED, angle: 30 }),
+      fxStillKey("aurora", SEED, { ...DESIGNED, shape: 417 }),
+      fxStillKey("aurora", SEED, { ...DESIGNED, path: "line,33,33" })
     ])
       expect((await fxPictureAnswer(get(fxPictureAddress(k)), env, keep)).status, k).toBe(404);
   });

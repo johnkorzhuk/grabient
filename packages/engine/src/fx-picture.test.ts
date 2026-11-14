@@ -6,7 +6,7 @@ import {
   FX_PICTURE_SIDE,
   FX_PICTURE_VERSION,
   fxPictureAddress,
-  fxPictureBackground
+  fxPictureOf
 } from "./fx-picture.ts";
 import { fxPicturePixels } from "./fx-picture-draw.ts";
 import { readFxStillKey } from "./fx-still.ts";
@@ -36,23 +36,31 @@ describe("a vector effect's still as a picture", () => {
     );
   });
 
-  test("has an address that names the still a holder names, and covers any box as a vector still does", () => {
-    const key = fxStillKey("aurora", "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", {
-      ...look,
-      path: "line,25,25,curve,45,60,45,25",
-      bg: "#0b0b1080"
+  test("is drawn for a look a list's cards all share, any ground laid under it as a color, and none for any other", () => {
+    const SEED = "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ";
+    const designed = { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null };
+    const bare = fxPictureOf("aurora", SEED, designed);
+    const key = fxStillKey("aurora", SEED, designed);
+    expect(bare).toEqual({
+      address: fxPictureAddress(key),
+      paint: `url("${fxPictureAddress(key)}") 50% 50% / cover no-repeat`
     });
-    const address = new URL(fxPictureAddress(key), "https://grabient.test");
+    const address = new URL(bare!.address, "https://grabient.test");
     expect(address.pathname).toBe("/api/fx-still");
-    expect(readFxStillKey(address.searchParams.get("k") ?? "")?.look).toMatchObject({
-      shape: 417,
-      path: "line,25,25,curve,45,60,45,25",
-      bg: "#0b0b1080"
-    });
+    expect(readFxStillKey(address.searchParams.get("k") ?? "")?.look).toEqual(designed);
     expect(address.searchParams.get("v")).toBe(String(FX_PICTURE_VERSION));
-    expect(fxPictureBackground(key)).toBe(
-      `url("${fxPictureAddress(key)}") 50% 50% / cover no-repeat`
-    );
+    /* a ground is the same picture, the color under it: the range is clear in the picture, and lies over its ground
+       as the CPU lays it */
+    expect(fxPictureOf("aurora", SEED, { ...designed, bg: "#0b0b1080" })).toEqual({
+      address: bare!.address,
+      paint: `${bare!.paint}, #0b0b1080`
+    });
+    expect(fxPictureOf("aurora", SEED, { ...designed, shape: 0 })).toEqual(bare);
+    /* any other look is its vector still: an angle a list sets, a shape or a path the editor picks, another effect */
+    expect(fxPictureOf("aurora", SEED, { ...designed, angle: 30 })).toBeNull();
+    expect(fxPictureOf("aurora", SEED, { ...designed, shape: 417 })).toBeNull();
+    expect(fxPictureOf("aurora", SEED, { ...designed, path: "line,33,33" })).toBeNull();
+    expect(fxPictureOf("silk", SEED, designed)).toBeNull();
     expect(FX_PICTURE_SIDE).toBe(1024);
   });
 });

@@ -497,17 +497,48 @@ test("the aurora takes a shape and a path: its menu's Shape field is a number th
   await expect(shape).toHaveAttribute("aria-valuenow", String(drawn));
 });
 
-test("a list's Appearance menu for the aurora has no Shape and no Path, which the editor alone picks, and keeps its range's color", async ({
-  page
+test("a list's Appearance menu for the aurora has no Shape, no Path and no Background, its range the editor's alone, and a turn of the list's angle asks the server for no picture", async ({
+  page,
+  request
 }) => {
+  /* John, 14 Nov 2026: "hide the shape options for aurora on the list routes. it should only be for the editor", then
+     of its background, after the zone's rate limit blocked his browser as a list asked for a picture a card at every
+     color: "maybe lets make that another setting that isnt visible on the list pages" */
+  const moved = async (address: string) =>
+    (await request.get(address, { maxRedirects: 0 }))
+      .headers()
+      .location?.replace(/^https?:\/\/[^/]+/, "");
+  expect(await moved("/palettes?style=aurora&bg=%23c91b6d")).toBe("/palettes?style=aurora");
+  const asked: string[] = [];
+  page.on("request", r => {
+    if (r.url().includes("/api/fx-still?")) asked.push(r.url());
+  });
   await open(page, "/palettes?style=aurora");
   await page.getByRole("button", { name: /^Appearance/ }).click();
   const menu = page.locator("#appearance-menu");
-  await expect(menu.getByRole("textbox", { name: "Background color", exact: true })).toBeVisible();
-  await expect(menu.getByRole("spinbutton", { name: "Speed", exact: true })).toBeVisible();
+  await expect(menu.getByRole("spinbutton", { name: /^Speed/ })).toBeVisible();
+  await expect(menu.getByRole("textbox", { name: "Background color", exact: true })).toHaveCount(0);
   await expect(menu.getByRole("textbox", { name: "Path", exact: true })).toHaveCount(0);
   await expect(menu.getByRole("button", { name: "New path", exact: true })).toHaveCount(0);
   await expect(menu.getByRole("spinbutton", { name: "Shape", exact: true })).toHaveCount(0);
+  /* turned, every card draws its vector still on the page, and nothing more is asked of the server */
+  const before = asked.length;
+  const angle = menu.getByRole("spinbutton", { name: /^Angle/ });
+  await angle.focus();
+  /* Auto stands under 0: twelve steps up from it are 11, which the address takes once the field rests */
+  for (let i = 0; i < 12; i++) await page.keyboard.press("ArrowUp");
+  await expect(page).toHaveURL(/\/palettes\?style=aurora&angle=11$/);
+  const cards = page.locator('main article [data-fx-still^="aurora|"]');
+  await expect
+    .poll(
+      () =>
+        cards.evaluateAll(all =>
+          all.every(e => (e as HTMLElement).style.background.includes("data:image/svg+xml"))
+        ),
+      { timeout: 15_000 }
+    )
+    .toBe(true);
+  expect(asked.slice(before)).toEqual([]);
 });
 
 test("the aurora stands upright where no angle is set for it: on a list's cards whatever each palette's own, and in the editor at Auto, where an angle set turns it", async ({

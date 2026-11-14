@@ -145,43 +145,49 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
     expect(capped).not.toContain(`[data-fx-still="${many[FIRST_SCREEN_STILLS]}"]`);
   });
 
-  test("the aurora's still in the head is its picture's address, the first preloaded, and no drawing", () => {
-    const look = (shape: number | null, path: string | null, bg: string | null) => ({
-      angle: 90,
+  test("the aurora's still in the head is its picture's address where its look is drawn as one, the first preloaded, and no drawing", () => {
+    const look = (angle: number, shape: number | null, bg: string | null) => ({
+      angle,
       shape,
       steps: null,
       zoom: null,
-      path,
+      path: null,
       bg
     });
     const keys = [
-      fxStillKey("aurora", SEED, look(null, null, null)),
-      fxStillKey("aurora", SEED, look(417, "line,25,25,curve,45,60,45,25", "#0b0b10")),
-      fxStillKey("silk", SEED, look(3, null, null))
+      fxStillKey("aurora", SEED, look(90, null, null)),
+      /* a ground is the same picture, its color under it */
+      fxStillKey("aurora", SEED, look(90, null, "#0b0b10")),
+      /* a turned one and a shaped one are their vector stills, drawn here */
+      fxStillKey("aurora", SEED, look(30, null, null)),
+      fxStillKey("aurora", SEED, look(90, 417, null)),
+      fxStillKey("silk", SEED, look(90, 3, null))
     ];
     const html = fxStills(
       `<html><head></head><body>${keys.map(k => `<span data-fx-still="${k}"></span>`).join("")}</body></html>`
     );
     expect(/<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1]).toBe(keys.join(" "));
-    for (const key of keys.slice(0, 2))
-      expect(html).toContain(
-        `[data-fx-still="${key}"]{background:url("/api/fx-still?k=${encodeURIComponent(key)}&v=${FX_PICTURE_VERSION}") 50% 50% / cover no-repeat}`
-      );
-    /* the silk's as ever, a plain SVG */
-    expect(html).toContain(`[data-fx-still="${keys[2]}"]{background:url("data:image/svg+xml,`);
-    /* the first picture asked for from the head, the second as its card is laid out */
+    const address = fxPictureAddress(keys[0]);
+    expect(html).toContain(
+      `[data-fx-still="${keys[0]}"]{background:url("${address}") 50% 50% / cover no-repeat}`
+    );
+    expect(html).toContain(
+      `[data-fx-still="${keys[1]}"]{background:url("${address}") 50% 50% / cover no-repeat, #0b0b10}`
+    );
+    for (const key of keys.slice(2))
+      expect(html).toContain(`[data-fx-still="${key}"]{background:url("data:image/svg+xml,`);
+    expect(html.match(/\/api\/fx-still\?/g)).toHaveLength(3);
+    /* the first still, a picture, asked for from the head */
     expect(html.match(/<link rel="preload"[^>]*>/g)).toEqual([
-      `<link rel="preload" as="image" href="/api/fx-still?k=${encodeURIComponent(keys[0])}&amp;v=${FX_PICTURE_VERSION}" fetchpriority="high">`
+      `<link rel="preload" as="image" href="${address.replaceAll("&", "&amp;")}" fetchpriority="high">`
     ]);
+    expect(address).toContain(`v=${FX_PICTURE_VERSION}`);
     /* a page whose first still is no picture asks for none from its head */
     const later = fxStills(
       `<html><head></head><body>${[keys[2], keys[0]].map(k => `<span data-fx-still="${k}"></span>`).join("")}</body></html>`
     );
     expect(later).toContain(`[data-fx-still="${keys[0]}"]{background:url("/api/fx-still?`);
     expect(later).not.toContain('<link rel="preload"');
-    /* the address reads back as the holder's name */
-    const k = new URL(fxPictureAddress(keys[1]), "https://grabient.test").searchParams.get("k");
-    expect(k).toBe(keys[1]);
   });
 
   test("a page without a holder, or naming no still, is left as it was", () => {

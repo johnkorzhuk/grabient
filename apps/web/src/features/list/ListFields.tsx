@@ -14,10 +14,11 @@ import { GroundField } from "../editor/GroundField.tsx";
    and written to the list's view. They load as they show, never with a list's start or its swatch. */
 
 /** The effect's fields for every card: the sandstone's steps, the glass's angle, how it plays, the dimple's zoom, the
-    blob's frost and ground, the strings' ground, none their designed one, each card's own palette's (so the field's
-    swatch shows none), and the aurora's range's, none clear. No shape and no path: each card plays its own palette's
-    shape behind the designed range, and the editor alone picks them (John, 14 Nov 2026: "hide the shape options for
-    aurora on the list routes. it should only be for the editor"). */
+    blob's frost and ground, and the strings' ground, none their designed one, each card's own palette's (so the
+    field's swatch shows none). No shape and no aurora's range, its path or its color: each card plays its own
+    palette's shape behind the designed range, and the editor alone picks them (John, 14 Nov 2026: "hide the shape
+    options for aurora on the list routes. it should only be for the editor", then of the range's color: "maybe lets
+    make that another setting that isnt visible on the list pages"). */
 export function EffectFields(props: {
   effect: Effect;
   angle: number | "auto";
@@ -57,9 +58,12 @@ export function EffectFields(props: {
       }
     />
   );
-  /* a ground with a field of its own here: the strings' and the aurora's range's; the blob's comes with its frost */
+  /* a ground with a field of its own here: the strings'; the blob's comes with its frost, and the aurora's range's is
+     the editor's with its path (appearance.ts listEffect) */
   const grounded = () =>
-    props.effect.kind !== "blob" && EFFECT_KINDS[props.effect.kind].ground !== null;
+    props.effect.kind !== "blob" &&
+    EFFECT_KINDS[props.effect.kind].ground !== null &&
+    !EFFECT_KINDS[props.effect.kind].path;
   return (
     <Show
       when={props.effect.kind === "blob"}

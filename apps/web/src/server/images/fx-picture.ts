@@ -11,14 +11,18 @@ import {
   FX_PICTURE_METHOD,
   FX_PICTURE_QUALITY,
   FX_PICTURE_SIDE,
-  FX_PICTURE_VERSION
+  FX_PICTURE_VERSION,
+  fxPictureAddress,
+  fxPictureOf
 } from "@grabient/engine/fx-picture.ts";
 import { readFxStillKey } from "@grabient/engine/fx-still.ts";
 import wasm from "@jsquash/webp/codec/enc/webp_enc_simd.wasm";
 import { answerPicture, failure, type Keep, type PictureEnv } from "./serve.ts";
 import { encodeWebp } from "./webp.ts";
 
-/** /api/fx-still?k=: the picture of the still its key names, as WebP. */
+/** /api/fx-still?k=: the picture of the still its key names, as WebP: a look drawn as a picture
+    (engine/fx-picture.ts fxPictureOf), its ground none, which a page lays under it as a color. Any other look is no
+    picture, so the pictures the server draws and keeps are one a palette. */
 export async function fxPictureAnswer(
   request: Request,
   env: PictureEnv,
@@ -27,7 +31,9 @@ export async function fxPictureAnswer(
   const key = new URL(request.url).searchParams.get("k") ?? "";
   const named = readFxStillKey(key);
   const P = named && hasPicture(named.kind) ? decodePalette(named.seed) : null;
-  if (!named || !hasPicture(named.kind) || !P) return failure(404, "No such still");
+  const drawn = named && fxPictureOf(named.kind, named.seed, named.look);
+  if (!named || !hasPicture(named.kind) || !P || drawn?.address !== fxPictureAddress(key))
+    return failure(404, "No such still");
   const { kind, look } = named;
   const answer = await answerPicture(
     request,

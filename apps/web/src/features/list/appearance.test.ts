@@ -332,8 +332,9 @@ test("a picture lies as what it shows lies: an effect a tile previews at its own
   expect(drawnIn(own, playing({ style: "aurora" }), null, undefined, undefined).angle).toBe(90);
 });
 
-test("the aurora's path is the editor's alone: a list reads none and writes none, every card behind the designed range", () => {
-  /* John, 14 Nov 2026: "hide the shape options for aurora on the list routes. it should only be for the editor" */
+test("the aurora's range is the editor's alone, its path and its color: a list reads none and writes none, every card behind the designed range", () => {
+  /* John, 14 Nov 2026: "hide the shape options for aurora on the list routes. it should only be for the editor", then
+     of its background: "maybe lets make that another setting that isnt visible on the list pages" */
   const walled = "line,0:30,20:30,20:55,35:55,35:38,100:38";
   const aurora = readListView({
     style: "aurora",
@@ -346,30 +347,37 @@ test("the aurora's path is the editor's alone: a list reads none and writes none
     kind: "aurora",
     speed: 1,
     fps: 60,
-    look: { shape: null, frost: 1, bg: "#102030", steps: null, zoom: null, path: null }
+    look: { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null }
   });
   expect(
     listViewOf(new URLSearchParams(`style=aurora&angle=30&path=${walled}&bg=%23102030`))
   ).toEqual(aurora);
-  /* its address keeps its ground and leaves the path out, so a list's address that names one is another of its own */
+  /* its address leaves both out, so a list's address that names either is another of its own */
   expect(viewParams({ effect: aurora.effect })).toMatchObject({
     style: "aurora",
     path: undefined,
-    bg: "#102030"
+    bg: undefined
   });
-  expect(inView("/palettes", aurora)).toBe("/palettes?style=aurora&angle=30&bg=%23102030");
+  expect(inView("/palettes", aurora)).toBe("/palettes?style=aurora&angle=30");
   /* every card plays its own palette's shape behind the designed range */
-  expect(cardEffect(aurora.effect!, SEED).look).toMatchObject({ shape: null, path: null });
-  /* an effect the editor hands the lists, a path and all, leaves both with it */
+  expect(cardEffect(aurora.effect!, SEED).look).toMatchObject({
+    shape: null,
+    path: null,
+    bg: null
+  });
+  /* an effect the editor hands the lists, a range and all, leaves them with it */
   expect(
     listEffect({
       kind: "aurora",
       speed: 0.5,
       fps: 30,
-      look: { shape: 417, frost: 1, bg: null, steps: null, zoom: null, path: walled }
+      look: { shape: 417, frost: 1, bg: "#102030", steps: null, zoom: null, path: walled }
     })?.look
-  ).toMatchObject({ shape: null, path: null });
+  ).toMatchObject({ shape: null, path: null, bg: null });
   expect(listEffect(null)).toBeNull();
+  /* a ground that is no range's stays a list's: the strings' and the blob's */
+  expect(readListView({ style: "strings", bg: "#f4efe6" }).effect?.look.bg).toBe("#f4efe6");
+  expect(readListView({ style: "blob", bg: "#112233" }).effect?.look.bg).toBe("#112233");
 });
 
 test("the blob has no angle: an address's angle is left while it plays, and the glass keeps its own", () => {

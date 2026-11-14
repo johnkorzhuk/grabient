@@ -1,6 +1,6 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
-import { type FxLook, fxStillKey, hasPicture, type VectorKind } from "@grabient/engine/effect.ts";
-import { fxPictureAddress, fxPictureBackground } from "@grabient/engine/fx-picture.ts";
+import { type FxLook, fxStillKey, type VectorKind } from "@grabient/engine/effect.ts";
+import { fxPictureOf } from "@grabient/engine/fx-picture.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
 import { createEffect, createMemo, createSignal, onCleanup, onSettled, untrack } from "solid-js";
 import styles from "./Editor.module.css";
@@ -23,6 +23,11 @@ const SHARE_MS = 6;
 
 /* A drawing of a still, a step a call: true once it is drawn. */
 type Steps = () => boolean;
+/* The server's picture of a still (engine/fx-picture.ts fxPictureOf): its address and the background it paints. */
+type Picture = { address: string; paint: string };
+/* The still a picture shows: its name, the background it paints (none where the head's style paints it), and the
+   address of the server's picture where it is one. */
+type Shown = { key: string; paint: string | null; address?: string };
 
 /* the stills in turn, each picture with its latest, drawn for a frame's share at a time; one not done by then goes on
    first in the next frame */
@@ -103,19 +108,19 @@ export function FxArt(props: {
     bg: props.bg
   });
   const keyOf = () => fxStillKey(props.kind, code(), look());
-  const [shown, setShown] = createSignal<{ key: string; paint: string | null } | null>({
-    key: untrack(keyOf),
-    paint: null
-  });
+  /* the still shown: its name, the background this picture paints (none where the head's style does), and the address
+     of the server's picture it shows, where it is one */
+  const [shown, setShown] = createSignal<Shown | null>({ key: untrack(keyOf), paint: null });
   const [ready, setReady] = createSignal(false);
   const [inView, setInView] = createSignal(true);
-  /* the server's picture of its still, where its kind has one and its palette stands; one that did not load (drawing
-     paused, or the day's pictures spent) gives way to the vector still, drawn here */
-  const pictured = () => !!props.picture && hasPicture(props.kind);
+  /* the server's picture of its still, where its palette stands and its look is one drawn as a picture
+     (engine/fx-picture.ts fxPictureOf); one that did not load (drawing paused, or the day's pictures spent) gives way
+     to the vector still, drawn here */
+  const pictureNow = () => (props.picture ? fxPictureOf(props.kind, code(), look()) : null);
   const [refused, setRefused] = createSignal<string | null>(null);
   const load = () => void loadFx().then(() => setReady(true));
   onSettled(() => {
-    if (!untrack(pictured)) load();
+    if (!untrack(pictureNow)) load();
     const view = new IntersectionObserver(entries =>
       setInView(entries[entries.length - 1].isIntersecting)
     );
@@ -128,25 +133,26 @@ export function FxArt(props: {
   let drawnAt = Number.NEGATIVE_INFINITY;
   /* whether the head paints the still a key names, as the server drew it: not a picture of it that did not load */
   const painted = (key: string) => serverFxStill(key) && untrack(refused) !== key;
-  /* a still as the server's picture: the head's where it painted it, at once where nothing shows yet, else once it has
-     loaded, so a card never stands empty between two looks. It returns what forgets it. */
-  const picture = (key: string, now: { key: string; paint: string | null } | null) => {
+  /* a still as the server's picture: the head's where it painted it, at once where nothing shows yet or the picture
+     shown is the same one (another ground, which lies under it as a color), else once it has loaded, so a card never
+     stands empty between two looks. It returns what forgets it. */
+  const picture = (key: string, drawn: Picture, now: Shown | null) => {
     if (painted(key)) {
-      setShown({ key, paint: null });
+      setShown({ key, paint: null, address: drawn.address });
       return undefined;
     }
-    const paint = fxPictureBackground(key);
-    if (!now || (now.paint === null && !painted(now.key))) {
-      setShown({ key, paint });
+    const next = { key, paint: drawn.paint, address: drawn.address };
+    if (!now || (now.paint === null && !painted(now.key)) || now.address === drawn.address) {
+      setShown(next);
       return undefined;
     }
     let gone = false;
-    const next = new Image();
+    const image = new Image();
     /* shown once loaded, or once it failed, which the picture's own check below then refuses */
-    next.onload = next.onerror = () => {
-      if (!gone) setShown({ key, paint });
+    image.onload = image.onerror = () => {
+      if (!gone) setShown(next);
     };
-    next.src = fxPictureAddress(key);
+    image.src = drawn.address;
     return () => {
       gone = true;
     };
@@ -156,45 +162,52 @@ export function FxArt(props: {
      request the background made */
   createEffect(
     () => {
-      const key = shown()?.key;
-      return key && pictured() && refused() !== key ? key : null;
+      const now = shown();
+      return now?.address && refused() !== now.key ? { key: now.key, address: now.address } : null;
     },
-    key => {
-      if (!key) return;
+    asked => {
+      if (!asked) return;
       let gone = false;
       const check = new Image();
       check.onerror = () => {
         if (gone) return;
-        setRefused(key);
-        setShown({ key, paint: null });
+        setRefused(asked.key);
+        setShown({ key: asked.key, paint: null });
         load();
       };
-      check.src = fxPictureAddress(key);
+      check.src = asked.address;
       return () => {
         gone = true;
       };
     }
   );
   createEffect(
-    () => ({
-      key: keyOf(),
-      ready: ready(),
-      kind: props.kind,
-      P: props.palette,
-      look: look(),
-      seen: inView(),
-      picture: pictured() && refused() !== keyOf()
-    }),
+    () => {
+      const drawn = pictureNow();
+      return {
+        key: keyOf(),
+        ready: ready(),
+        kind: props.kind,
+        P: props.palette,
+        look: look(),
+        seen: inView(),
+        picture: drawn && refused() !== keyOf() ? drawn : null
+      };
+    },
     next => {
       clearTimeout(timer);
       cancel?.();
       const now = untrack(shown);
       if (now?.key === next.key && (now.paint !== null || painted(next.key))) return;
       if (next.picture) {
-        cancel = picture(next.key, now);
+        cancel = picture(next.key, next.picture, now);
         return;
       }
-      if (!next.ready) return;
+      /* the stills' code, which a picture needs none of, asked for once a look needs it */
+      if (!next.ready) {
+        load();
+        return;
+      }
       let steps: Iterator<void, string> | null = null;
       /* the part of its drawing a worker takes, asked for once before its steps (the strings' threads at a view none
          has traced: fx-trace.ts): the still waits out of turn until it is kept, then is drawn in turn */

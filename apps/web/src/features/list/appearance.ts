@@ -37,7 +37,7 @@ import { seedAddress } from "../editor/address.ts";
    every card plays in its gradient's place. It is the list's address (?style=…&steps=…&angle=…&size=…, or with an
    effect ?style=glass&angle=…&size=… or ?style=blob&size=…, which has no angle and no soft, and how it plays and
    looks, as a palette's address writes them, the sandstone's steps and the dimple's zoom among them, but the shape
-   and the aurora's path, which are the editor's alone), so a change
+   and the aurora's range, its path and its color, which are the editor's alone), so a change
    replaces the entry and Back leaves the page, and the tab remembers it for the next page that draws palettes, the
    editor's new palettes and the wordmark's way home.
 
@@ -56,9 +56,9 @@ export interface ListView {
   size: SizeChoice | null;
   /** the effect every card plays over its gradient, which the names, the likes, the selection and the files keep: how
       it plays, the blob's frost and ground, the sandstone's steps and the dimple's zoom, one for the list (listEffect).
-      Its shape is none: each card plays its own palette's (cardEffect). Its path is none, every card behind the
-      aurora's designed range: the path is the editor's alone (John, 14 Nov 2026: "hide the shape options for aurora on
-      the list routes. it should only be for the editor"). The style is auto and the list's
+      Its shape is none: each card plays its own palette's (cardEffect). Its path and the aurora's range's color are
+      none, every card behind the designed range: the range is the editor's alone (listEffect). The style is auto and
+      the list's
       steps stay auto while one plays, its address's `steps` the effect's own where it takes them (EFFECT_KINDS), the
       angle and the soft leaving while the blob does. */
   effect: Effect | null;
@@ -99,9 +99,20 @@ const VIEW_PARAMS = [
 ];
 
 /** An effect as a list plays it: its shape and its path left to each card, which plays its own palette's shape behind
-    the designed range. */
+    the designed range, and the aurora's range's color too, which goes with the range (EFFECT_KINDS' path): the range
+    is the editor's alone (John, 14 Nov 2026: "hide the shape options for aurora on the list routes. it should only be
+    for the editor", then of its background: "maybe lets make that another setting that isnt visible on the list
+    pages"). */
 export const listEffect = (effect: Effect | null): Effect | null =>
-  effect && { ...effect, look: { ...effect.look, shape: null, path: null } };
+  effect && {
+    ...effect,
+    look: {
+      ...effect.look,
+      shape: null,
+      path: null,
+      bg: EFFECT_KINDS[effect.kind].path ? null : effect.look.bg
+    }
+  };
 
 /** The view a list's address names; what it leaves out or cannot read is auto. Steps under three are three. An
     effect's style names it, read as a palette's address reads it (engine/effect.ts), less its shape and its path
