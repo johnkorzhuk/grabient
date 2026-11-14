@@ -1,4 +1,6 @@
 import { decodePalette } from "@grabient/engine";
+import { auroraWebgl } from "@grabient/engine/aurora-webgl.ts";
+import { auroraWebgpu } from "@grabient/engine/aurora-webgpu.ts";
 import { blobWebgl } from "@grabient/engine/blob-webgl.ts";
 import { blobWebgpu } from "@grabient/engine/blob-webgpu.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
@@ -224,14 +226,14 @@ test("every vector effect's Shader tab write each spelling with the engine's own
   vi.stubEnv("SSR", false);
   await tabsIn();
   const P = decodePalette(SEED)!;
-  /* none for an effect with no shader pages (EFFECT_KINDS' `shader`: the aurora), which has no Shader tab */
+  /* none for an effect with no shader pages (EFFECT_KINDS' `shader`), which has no Shader tab */
   const writers: Record<VectorKind, Writers | null> = {
     silk: [silkWebgl, silkWebgpu],
     rosette: [rosetteWebgl, rosetteWebgpu],
     papercut: [papercutWebgl, papercutWebgpu],
     strings: [stringsWebgl, stringsWebgpu],
     dimple: [dimpleWebgl, dimpleWebgpu],
-    aurora: null,
+    aurora: [auroraWebgl, auroraWebgpu],
     ...(await kitWriters())
   };
   const notes: Record<VectorKind, string | null> = {
@@ -242,7 +244,8 @@ test("every vector effect's Shader tab write each spelling with the engine's own
       "The stirred field at each pixel, its two nearest threads over the ground, in one pass.",
     dimple:
       "The ground about the hollow, then the discs over each pixel in their stack's order, in one pass.",
-    aurora: null,
+    aurora:
+      "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.",
     /* a field effect's by its recipe, the note true of it: the sandstone's plain sheets, with neither shadow nor
        rim. A recipe the note does not say, one with lines or with a shadow or a rim on its sheets, fails here until
        effect-sources.ts kitPasses gives it a note of its own */
@@ -258,11 +261,11 @@ test("every vector effect's Shader tab write each spelling with the engine's own
     })
   };
   for (const kind of EFFECTS.filter(isVectorKind)) {
-    /* its look: a shape, or a zoom (the dimple's) or a path (the aurora's) in its place */
+    /* its look: a shape, the aurora's with its path beside it, or a zoom in its place (the dimple's) */
     const look = EFFECT_KINDS[kind].zoom
       ? "zoom=2.5"
       : EFFECT_KINDS[kind].path
-        ? "path=line,33,33"
+        ? "shape=12&path=line,33,33"
         : "shape=12";
     const query = `style=${kind}&${look}&speed=2`;
     const effect = parseEffect(new URLSearchParams(query))!;
@@ -307,7 +310,7 @@ test("a soft, grained vector effect's Shader tab writes every spelling with its 
     papercut: [papercutWebgl, papercutWebgpu],
     strings: [stringsWebgl, stringsWebgpu],
     dimple: [dimpleWebgl, dimpleWebgpu],
-    aurora: null,
+    aurora: [auroraWebgl, auroraWebgpu],
     ...(await kitWriters())
   };
   for (const kind of EFFECTS.filter(isVectorKind)) {

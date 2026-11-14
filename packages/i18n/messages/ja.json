@@ -800,6 +800,7 @@
   "The picture as an SVG file, moving by SMIL alone.": "画像を、SMIL だけで動く SVG ファイルで表したものです。",
   "The picture as an SVG file.": "画像を SVG ファイルで表したものです。",
   "The profile's code": "プロフィールのコード",
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": "ピクセルごとに山並みの縁を求め、その後ろの光を、扇に沿って読んだノイズの層をパレットに通して、1パスで描きます。",
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": "起伏を描き、続いて紙ごとに影、光の当たる切り口、表面をパスごとに描きます。",
   "The ribs, the colors' blur and the light, pass by pass.": "リブ、色のぼかし、光をパスごとに描きます。",
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": "同じパレットを{count}色で表したものです。点はキーフレームを示します。",

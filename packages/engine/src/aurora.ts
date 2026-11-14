@@ -504,6 +504,10 @@ export function auroraPieces(path: string): AuroraPieces {
 const byte = (v: number) => Math.floor(clamp01(v) * 255 + 0.5) / 255;
 /** The palette's colors the ramp is read from, bytes, with straight lines between. */
 const STOPS = 33;
+/** Those colors, STOPS of them along the palette's curve from its start to its end, each in whole bytes (0 to 1): what
+    a shader page carries as the palette (aurora-page.ts). */
+export const auroraStops = (P: Palette): number[][] =>
+  Array.from({ length: STOPS }, (_, i) => sampleSrgb(P, i / (STOPS - 1)).map(byte));
 
 /** The ramp the light is read through, AURORA_RAMP colors of three channels, 0 to 1: the whole palette from its
     darker end to its lighter, every color of it as it is (TONE), then on to the hottest light, its last color lifted
@@ -511,9 +515,10 @@ const STOPS = 33;
 export function auroraRamp(P: Palette): Float32Array {
   const stops = new Float64Array(STOPS * 3);
   const light = new Float64Array(STOPS);
+  const colors = auroraStops(P);
   let lMax = -1;
   for (let i = 0; i < STOPS; i++) {
-    const c = sampleSrgb(P, i / (STOPS - 1)).map(byte);
+    const c = colors[i];
     stops.set(c, i * 3);
     light[i] = srgbToLch(c)[0];
     lMax = Math.max(lMax, light[i]);
@@ -771,3 +776,19 @@ export function auroraLight(
   out[1] = R[j * 3 + 1] + (R[j * 3 + 4] - R[j * 3 + 1]) * f;
   out[2] = R[j * 3 + 2] + (R[j * 3 + 5] - R[j * 3 + 2]) * f;
 }
+
+/** The model's own numbers a shader page carries (aurora-page.ts writes them into the page's script, so the page and
+    the site stay one): the noise's coarsest lattice and its tile's number, the tone, the walls' easing and the
+    averaging of the line the light rises from, how many stops of the palette the ramp is read from, and the height
+    the shafts are kept as wide at. */
+export const AURORA_PAGE_NUMBERS = {
+  cells: CELLS,
+  tileSeed: TILE_SEED,
+  low: LOW,
+  tip: TIP,
+  bend: BEND,
+  wallEase: EASE,
+  ridge: RIDGE,
+  stops: STOPS,
+  keepAt: KEEP_AT
+} as const;

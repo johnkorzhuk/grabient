@@ -64,7 +64,7 @@ const svgAbout = (effect: Effect): string => {
   if (EFFECT_KINDS[kind].motion === "pointer")
     return `An SVG of a Grabient palette: ${shows}, its still; on its page, and behind another by its script, its hollow follows the pointer.`;
   /* what plays one whose SVG holds its first frame, as the table says: its script, its clips and its shaders, each
-     where it has them (the aurora's clips alone, for now), and its page alone where it has none */
+     where it has them (the aurora's clips and shaders, with no script yet), and its page alone where it has none */
   const { embed, video, shader } = EFFECT_KINDS[kind];
   const by = [embed ? "script" : "", video ? "clips" : "", shader ? "shaders" : ""].filter(Boolean);
   const plays =

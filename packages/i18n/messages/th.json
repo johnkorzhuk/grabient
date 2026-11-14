@@ -800,6 +800,7 @@
   "The picture as an SVG file, moving by SMIL alone.": "ภาพในรูปแบบไฟล์ SVG ที่เคลื่อนไหวด้วย SMIL อย่างเดียว",
   "The picture as an SVG file.": "ภาพในรูปแบบไฟล์ SVG",
   "The profile's code": "โค้ดของโปรไฟล์",
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": "ขอบของทิวเขาในแต่ละพิกเซล แล้วจึงแสงที่อยู่ด้านหลัง ชั้นของนอยส์ที่อ่านไปตามรูปพัดผ่านพาเลต ในพาสเดียว",
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": "ระดับนูนต่ำสูง แล้วจึงเงา ขอบรอยตัดที่รับแสง และผิวหน้าของกระดาษแต่ละแผ่น ทีละพาส",
   "The ribs, the colors' blur and the light, pass by pass.": "ริ้วกระจก ความเบลอของสี และแสง ทีละพาส",
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": "พาเลตต์เดียวกันแบบ {count, plural, other {# สี}} จุดแสดงตำแหน่งคีย์เฟรม",

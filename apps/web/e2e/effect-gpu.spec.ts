@@ -17,8 +17,8 @@ import { expect, type Page, test } from "@playwright/test";
 
 type Writer = (kind: ShaderKind, P: Palette, effect: Effect, angle: number, seed: string) => string;
 /* each effect's writer of every kind of its shader code, so an effect with shaders and none here is a type error;
-   none for an effect with no shader pages (EFFECT_KINDS' `shader`: the aurora, engine/effect-why.ts), which no test
-   below asks for */
+   none for an effect with no shader pages (EFFECT_KINDS' `shader`, engine/effect-why.ts), which no test below asks
+   for */
 const WRITERS: Record<EffectKind, (() => Promise<Writer>) | null> = {
   glass: async () => (await import("@grabient/engine/glass-shader.ts")).glassShader,
   /* the blob has no angle */
@@ -31,7 +31,7 @@ const WRITERS: Record<EffectKind, (() => Promise<Writer>) | null> = {
   papercut: async () => (await import("@grabient/engine/papercut-shader.ts")).papercutShader,
   strings: async () => (await import("@grabient/engine/strings-shader.ts")).stringsShader,
   dimple: async () => (await import("@grabient/engine/dimple-shader.ts")).dimpleShader,
-  aurora: null,
+  aurora: async () => (await import("@grabient/engine/aurora-shader.ts")).auroraShader,
   /* a field effect's, from its definition and its kernel (engine/kit/shader.ts) */
   ...kitRecord(kind => async (): Promise<Writer> => {
     const [{ kitShader }, { kitEffect }, { kitKernel }] = await Promise.all([
@@ -70,10 +70,32 @@ const LOOKS: readonly Look[] = [
 /** An effect's looks: LOOKS, and where it takes the view's steps (the sandstone), its fewest as designed and its most at
     a shape and an angle, its levels uniforms the scene sets; where it takes a zoom in its shape's place (the dimple),
     a zoom between and its most at an angle; where it takes a ground whose none is its designed one (the strings), a
-    light one, one half clear and a clear one, which its canvas lays premultiplied over the page's white. */
+    light one, one half clear and a clear one, which its canvas lays premultiplied over the page's white; and where it
+    takes a path (the aurora), a block with upright walls on a range half clear and one of lines and a curve at a shape
+    and an angle, on a range of a whole color, as the conformance suite draws them. */
 const looksOf = (kind: EffectKind): readonly Look[] => {
   const range = EFFECT_KINDS[kind].steps;
   const zoom = EFFECT_KINDS[kind].zoom;
+  const paths: Look[] = EFFECT_KINDS[kind].path
+    ? [
+        {
+          angle: 90,
+          shape: null,
+          steps: null,
+          zoom: null,
+          path: "line,0:30,20:30,20:55,35:55,35:38,100:38",
+          bg: "#10203080"
+        },
+        {
+          angle: 210,
+          shape: 7,
+          steps: null,
+          zoom: null,
+          path: "line,25,25,curve,45,60,45,25,line,25,40,25",
+          bg: "#140b19"
+        }
+      ]
+    : [];
   const grounds: Look[] =
     EFFECT_KINDS[kind].ground === "designed"
       ? [
@@ -95,7 +117,7 @@ const looksOf = (kind: EffectKind): readonly Look[] => {
         { angle: 210, shape: 417, steps: range.most, zoom: null, path: null, bg: null },
         ...grounds
       ]
-    : [...LOOKS, ...zooms, ...grounds];
+    : [...LOOKS, ...zooms, ...grounds, ...paths];
 };
 /* the conformance suite's limits (engine effect-conformance.test.ts): a mean OKLab difference in hundredths, and the
    99th percentile of 3 by 3 neighbourhoods'. The blob's frost is noise in every pixel, which its WebGL page draws
@@ -274,7 +296,7 @@ for (const kind of EFFECTS.filter(k => EFFECT_KINDS[k].shader))
           path: look.path
         }
       };
-      const named = `angle ${look.angle}, shape ${look.shape}${look.steps === null ? "" : `, ${look.steps} steps`}${look.zoom === null ? "" : `, zoom ${look.zoom}`}${look.bg === null ? "" : `, on ${look.bg}`}`;
+      const named = `angle ${look.angle}, shape ${look.shape}${look.steps === null ? "" : `, ${look.steps} steps`}${look.zoom === null ? "" : `, zoom ${look.zoom}`}${look.path === null ? "" : `, path ${look.path}`}${look.bg === null ? "" : `, on ${look.bg}`}`;
       test(`its WebGL page draws its first frame as the CPU does (${named})`, async ({ page }) => {
         const write = await writerOf(kind);
         const errors = await serve(page, write("webgl", P, effect, look.angle, SEED));

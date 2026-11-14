@@ -800,6 +800,7 @@
   "The picture as an SVG file, moving by SMIL alone.": "Gambar sebagai file SVG, bergerak hanya dengan SMIL.",
   "The picture as an SVG file.": "Gambar sebagai file SVG.",
   "The profile's code": "Kode profil",
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": "Tepi pegunungan di tiap piksel, lalu cahaya di belakangnya, lapisan derau yang dibaca sepanjang kipas melalui palet, dalam satu pass.",
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": "Relief, lalu bayangan tiap lembar, tepi potongannya yang terkena cahaya, dan permukaannya, pass demi pass.",
   "The ribs, the colors' blur and the light, pass by pass.": "Alur kaca, warna yang diburamkan, dan cahaya, pass demi pass.",
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": "Palet yang sama dalam {count, plural, other {# langkah}}. Titik-titik menandai keyframe.",

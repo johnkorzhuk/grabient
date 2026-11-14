@@ -131,11 +131,13 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   Its shape, 0 to 999, picks its light (`auroraDesign`): the point its rays fan from, how wide its shafts are, where
   its light gathers and where every sheet of its noise starts, each sheet sliding as designed, so every shape's loop
   closes at the designed pace. Its SVG is a frame of it, which never moves, and its still stands in for its first
-  frame. Its clips are
-  drawn four pixels at a time from what the engine keeps of each pixel (`video.ts` auroraDraw: its place on the fan,
-  its height over the range, how much of the light shows), and weighed by how much of a picture its range leaves
-  lit (auroraVideoWeight). Where no angle is set for it it stands at 90, whatever its palette's own (`EFFECT_KINDS`'
-  `upright`, `effectAutoAngle`). It has no shader pages and no script yet (`effect-why.ts`).
+  frame. Its clips are drawn four pixels at a time from what the engine keeps of each pixel (`video.ts` auroraDraw:
+  its place on the fan, its height over the range, how much of the light shows), and weighed by how much of a picture
+  its range leaves lit (auroraVideoWeight). Where no angle is set for it it stands at 90, whatever its palette's own
+  (`EFFECT_KINDS`' `upright`, `effectAutoAngle`). Every kind of its shader code is named in `aurora-shader.ts`: the
+  GLSL and its WebGL page (`aurora-webgl.ts`, the player's own pass), the WGSL and its WebGPU page (`aurora-webgpu.ts`
+  over `aurora-wgsl.ts`), the pages' script in `aurora-page.ts`, which makes the two tiles of noise, the palette's ramp
+  and the range's pieces as the player does, played by the same clock. It has no script yet (`effect-why.ts`).
 - The field effects (`kit/`; the sandstone is the site's one): each is one file in `kit/fields/`, its kernel in the
   kernel subset, its seeded design, its recipe of sheets and lines, the range of the view's steps it takes as its
   levels' density where it takes any (the sandstone's 8 to 40, which `kit:gen` writes into `kit/gen/kind-steps.ts` for

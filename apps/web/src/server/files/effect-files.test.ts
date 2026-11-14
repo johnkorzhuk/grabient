@@ -96,9 +96,9 @@ test("a link preview's words say how an effect's SVG moves, and what plays one t
   expect(await words("style=dimple")).toMatch(
     /, its still; on its page, and behind another by its script, its hollow follows the pointer\.$/
   );
-  /* the aurora has no script and no shader pages yet (engine/effect-why.ts): its clips alone are said to play it */
+  /* the aurora has no script yet (engine/effect-why.ts): its clips and its shaders are said to play it */
   expect(await words("style=aurora")).toBe(
-    "An SVG of a Grabient palette: light in its colors, from the palette's darker end to its lighter, rising in curtains behind a still range, its first frame; its clips play it."
+    "An SVG of a Grabient palette: light in its colors, from the palette's darker end to its lighter, rising in curtains behind a still range, its first frame; its clips and shaders play it."
   );
   /* every effect whose SVG holds its first frame names only what the table says plays it */
   for (const kind of EFFECTS) {

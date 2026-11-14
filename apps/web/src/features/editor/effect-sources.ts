@@ -234,9 +234,31 @@ const SHADER_PARTS: Record<EffectKind, EffectShaders | null> = {
             m.dimpleWebgpu(kind as "wgsl" | "webgpu", ...rest)
       )
   },
-  /* the aurora has no shader pages yet (engine/effect-why.ts): its light reads two tiles of noise a page would
-     have to carry or make */
-  aurora: null,
+  /* the aurora's pages make its two tiles of noise as the player does, at their start */
+  aurora: {
+    passes: () =>
+      t(
+        "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass."
+      ),
+    webgl: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/aurora-webgl.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.auroraWebgl(kind as "glsl" | "webgl", ...rest)
+      ),
+    webgpu: () =>
+      (import.meta.env.SSR
+        ? (new Promise(() => {}) as never)
+        : import("@grabient/engine/aurora-webgpu.ts")
+      ).then(
+        (m): ShaderWriter =>
+          (kind, ...rest) =>
+            m.auroraWebgpu(kind as "wgsl" | "webgpu", ...rest)
+      )
+  },
   ...kitRecord(
     (kind): EffectShaders => ({
       passes: kitPasses,

@@ -800,6 +800,7 @@
   "The picture as an SVG file, moving by SMIL alone.": "Das Bild als SVG-Datei, allein durch SMIL animiert.",
   "The picture as an SVG file.": "Das Bild als SVG-Datei.",
   "The profile's code": "Der Code des Profils",
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": "Der Rand des Gebirges an jedem Pixel, dann das Licht dahinter, Schichten aus Rauschen entlang eines Fächers durch die Palette gelesen, in einem Durchgang.",
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": "Das Relief, dann für jedes Blatt seine Schatten, die beleuchtete Schnittkante und die Fläche, Durchgang für Durchgang.",
   "The ribs, the colors' blur and the light, pass by pass.": "Die Rippen, die Unschärfe der Farben und das Licht, Durchgang für Durchgang.",
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": "Dieselbe Palette in {count, plural, one {# Stufe} other {# Stufen}}. Punkte markieren die Keyframes.",

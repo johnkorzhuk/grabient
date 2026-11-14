@@ -800,6 +800,7 @@
   "The picture as an SVG file, moving by SMIL alone.": "Изображение в виде файла SVG с анимацией только на SMIL.",
   "The picture as an SVG file.": "Изображение в виде файла SVG.",
   "The profile's code": "Код профиля",
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": "Край гор в каждом пикселе, затем свет за ним — слои шума, прочитанные вдоль веера через палитру, за один проход.",
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": "Рельеф, затем тени каждого листа, освещённый срез и лицевая сторона, проход за проходом.",
   "The ribs, the colors' blur and the light, pass by pass.": "Рёбра, размытие цветов и свет, проход за проходом.",
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": "Та же палитра в {count, plural, one {# шаг} few {# шага} many {# шагов} other {# шага}}. Маркеры отмечают ключевые точки.",

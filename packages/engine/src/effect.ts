@@ -301,7 +301,7 @@ export const EFFECT_KINDS: Readonly<Record<EffectKind, EffectKindFacts>> = {
     figma: null,
     video: true,
     embed: false,
-    shader: false,
+    shader: true,
     motion: "loop"
   },
   ...kitRecord(kind => ({ ...KIT_FACTS, steps: KIT_STEPS[kind] }))

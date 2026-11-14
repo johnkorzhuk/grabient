@@ -800,6 +800,7 @@
   "The picture as an SVG file, moving by SMIL alone.": "以 SVG 文件表示的图像，仅用 SMIL 实现动画。",
   "The picture as an SVG file.": "以 SVG 文件表示的图像。",
   "The profile's code": "个人主页代码",
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": "在每个像素求出山脉的边缘，再画出其后的光：沿扇形读取的噪声层经调色板着色，一遍完成。",
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": "起伏，然后是每张纸的阴影、受光的切口和纸面，逐遍绘制。",
   "The ribs, the colors' blur and the light, pass by pass.": "棱纹、颜色的模糊和光线，逐遍绘制。",
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": "同一个调色板，以 {count, plural, other {# 步}}绘制。圆点标出关键帧。",

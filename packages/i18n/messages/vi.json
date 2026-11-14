@@ -800,6 +800,7 @@
   "The picture as an SVG file, moving by SMIL alone.": "Ảnh dạng tệp SVG, chuyển động chỉ bằng SMIL.",
   "The picture as an SVG file.": "Ảnh dạng tệp SVG.",
   "The profile's code": "Mã của hồ sơ",
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": "Mép của dãy núi tại từng điểm ảnh, rồi ánh sáng phía sau, các lớp nhiễu đọc dọc theo một hình quạt qua bảng màu, trong một pass.",
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": "Địa hình nổi, rồi bóng của từng tờ giấy, mép cắt được chiếu sáng và mặt giấy, từng pass một.",
   "The ribs, the colors' blur and the light, pass by pass.": "Các gân kính, lớp màu làm mờ và ánh sáng, từng pass một.",
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": "Cùng bảng màu đó với {count, plural, other {# bước}}. Các chấm đánh dấu keyframe.",

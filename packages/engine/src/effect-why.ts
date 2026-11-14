@@ -10,7 +10,8 @@ const FIGMA_DROPPED =
   'John, 8 Nov 2026: "in the cases of sandstone and papercut where theres no svg animation to embed with the figma copy button, we can just drop it and they can use svg"';
 
 /* John's word on the aurora, whose stage, cards and files came first, its clips later the same day (his "werre
-   missing hte mp4 download"), and whose script and shader pages follow */
+   missing hte mp4 download"), its shader pages on 13 Nov 2026 (his "aura is missing shader code"), and whose script
+   follows */
 const STAGED = 'it came to staging first (John, 11 Nov 2026: "get this in staging")';
 
 const NO_FRAME_SVG =
@@ -52,8 +53,7 @@ export const EFFECT_WHY: Readonly<
       'its light is turbulence read through the palette, sheets of noise sliding past one another along a fan\'s rays so that its flames boil where they stand, which no slide, turn or scale of a fixed shape gives, so its SVG is a frame of it as shapes (John, 10 Nov 2026: "can this shader be represented as an svg?")',
     figma:
       "Figma's timeline moves, turns, scales and fades layers and nothing on it reads a light through a palette: in Figma it moves only as a shader fill, which a paste cannot carry, so its strips offer its SVG",
-    embed: `no script plays it behind another site's page yet, and its stylesheet paints its still there: ${STAGED}`,
-    shader: `its shader pages are not written yet: ${STAGED}`
+    embed: `no script plays it behind another site's page yet, and its stylesheet paints its still there: ${STAGED}`
   },
   ...kitRecord(() => KIT_WHY)
 };

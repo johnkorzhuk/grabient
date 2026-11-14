@@ -359,7 +359,7 @@
   "Angle": {
     "note": "Field: the gradient's angle in degrees.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:212",
+      "apps/web/src/features/editor/GlassControls.tsx:211",
       "packages/ui/src/Appearance.tsx:244",
       "packages/ui/src/Curation.tsx:271"
     ]
@@ -473,8 +473,8 @@
   "Auto": {
     "note": "A value chosen by the app: size, steps, angle or columns follow the content. Also the strings' Background field with no color: their ground is the palette's own, its darkest color made deeper. And the aurora's Path field with no path: its outline is the designed one.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:176",
-      "apps/web/src/features/editor/GlassControls.tsx:218",
+      "apps/web/src/features/editor/GlassControls.tsx:175",
+      "apps/web/src/features/editor/GlassControls.tsx:217",
       "apps/web/src/features/editor/GroundField.tsx:44",
       "packages/ui/src/Appearance.tsx:238",
       "packages/ui/src/Appearance.tsx:250",
@@ -916,7 +916,7 @@
     "note": "Code pane tab: the palette's colors, one per line.",
     "refs": [
       "apps/web/src/features/editor/code.ts:282",
-      "apps/web/src/features/editor/effect-sources.ts:391"
+      "apps/web/src/features/editor/effect-sources.ts:413"
     ]
   },
   "Columns": {
@@ -1074,7 +1074,7 @@
   "Copy includes the whole first frame.": {
     "note": "Editor's code pane, HTML tab while the fluted glass plays: the Copy button copies the tags with the effect's whole first frame (a picture) inside them, which the code shown here cuts short.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:368"
+      "apps/web/src/features/editor/effect-sources.ts:390"
     ]
   },
   "Copy link": {
@@ -1670,13 +1670,13 @@
   "Effects hold still.": {
     "note": "Appearance menu, beside the Reduce motion switch while it is on: the fluted glass and the blob are held on their first frame, so their speed moves nothing.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:62"
+      "apps/web/src/features/editor/GlassControls.tsx:61"
     ]
   },
   "Effects play.": {
     "note": "Appearance menu, beside the Reduce motion switch once the reader turned it off there: the fluted glass and the blob move again.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:62"
+      "apps/web/src/features/editor/GlassControls.tsx:61"
     ]
   },
   "Email": {
@@ -1844,7 +1844,7 @@
   "FPS": {
     "note": "Editor side, the blob: a short number field, frames a second the blob plays at (and its GIF is made at); it reads Auto, the screen's own pace, under 1. Keep it as short as FPS: it shares a row with Speed.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:238"
+      "apps/web/src/features/editor/GlassControls.tsx:237"
     ]
   },
   "Fewer or more steps": {
@@ -2917,13 +2917,13 @@
   "New path": {
     "note": "Appearance menu, a press (a die) at the end of the aurora's Path field (curtains of light in the palette's colors rising behind a still outline): it writes another outline at random, a jagged range, a line, a curve, a mix of them or a skyline of blocks. Its tooltip and its name. A path as a drawing app means it, the line a shape follows; not a file's path and not a route on a map. Said like the Shape field's own die, \"New shape\".",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:181"
+      "apps/web/src/features/editor/GlassControls.tsx:180"
     ]
   },
   "New shape": {
     "note": "Editor, the Appearance menu's effect fields: a press (a die) that picks another shape number at random. Its tooltip and its name. For the aurora (light rising behind a still outline), another fan of light.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:314"
+      "apps/web/src/features/editor/GlassControls.tsx:313"
     ]
   },
   "Newsletter": {
@@ -3120,7 +3120,7 @@
     "note": "A switch that is off.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:43",
-      "apps/web/src/features/editor/GlassControls.tsx:45",
+      "apps/web/src/features/editor/GlassControls.tsx:44",
       "apps/web/src/features/editor/effect-page.ts:29",
       "packages/ui/src/Appearance.tsx:269",
       "packages/ui/src/Appearance.tsx:281",
@@ -3506,8 +3506,8 @@
   "Path": {
     "note": "Appearance menu, a text field of the aurora (curtains of light in the palette's colors rising behind a still outline): the outline itself, written as a short code of words and numbers (line,33,33) that a reader copies, pastes or types. Also the field's name read aloud. A path as a drawing app means it, the line a shape follows; not a file's path on a disk and not a route on a map.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:173",
-      "apps/web/src/features/editor/GlassControls.tsx:174"
+      "apps/web/src/features/editor/GlassControls.tsx:172",
+      "apps/web/src/features/editor/GlassControls.tsx:173"
     ]
   },
   "Pause": {
@@ -3879,7 +3879,7 @@
     "note": "The reduce motion setting: its name in Settings, and above an effect's fields in the Appearance menu, beside its switch.",
     "refs": [
       "apps/web/src/features/account/settings/Appearance.tsx:169",
-      "apps/web/src/features/editor/GlassControls.tsx:59"
+      "apps/web/src/features/editor/GlassControls.tsx:58"
     ]
   },
   "Reduce motion: {state}": {
@@ -4156,7 +4156,7 @@
   "Roam": {
     "note": "Appearance menu, a switch of the dimple (a sheet of round discs pressed in at one point, whose hollow follows the pointer): on, the hollow wanders round the picture by itself in a slow loop, as if a pointer were roaming over it; off, it follows the reader's pointer. Also one word in the Appearance button's summary while it is on. A verb used as a setting's name, like Loop or Autoplay; not roaming charges on a phone.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:88",
+      "apps/web/src/features/editor/GlassControls.tsx:87",
       "apps/web/src/features/editor/effect-page.ts:31"
     ]
   },
@@ -4532,13 +4532,13 @@
     "note": "Code pane tab: the palette as shader code.",
     "refs": [
       "apps/web/src/features/editor/code.ts:300",
-      "apps/web/src/features/editor/effect-sources.ts:326"
+      "apps/web/src/features/editor/effect-sources.ts:348"
     ]
   },
   "Shape": {
     "note": "Editor, the Appearance menu's blob fields: a number field, which of many shapes the blob takes; each number is another shape. Also the aurora's field of that name, whose values are words, the kind of outline its light rises behind: Range, Line, Curve, Mix, Skyline.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:303"
+      "apps/web/src/features/editor/GlassControls.tsx:302"
     ]
   },
   "Share images": {
@@ -4907,7 +4907,7 @@
   "Speed": {
     "note": "Editor side, the blob: a number field, how fast the blob moves, written like 1×.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:224"
+      "apps/web/src/features/editor/GlassControls.tsx:223"
     ]
   },
   "Square": {
@@ -4951,7 +4951,7 @@
     "note": "Field: how many evenly spaced colors the gradient is drawn with.",
     "refs": [
       "apps/web/src/features/about/AboutPage.tsx:143",
-      "apps/web/src/features/editor/GlassControls.tsx:112",
+      "apps/web/src/features/editor/GlassControls.tsx:111",
       "packages/ui/src/Appearance.tsx:232",
       "packages/ui/src/Curation.tsx:262"
     ]
@@ -5240,13 +5240,13 @@
   "The hollow follows the pointer.": {
     "note": "Appearance menu, beside the dimple's Roam switch while it is off: the pressed-in point of the sheet of discs goes to wherever the reader's pointer (mouse cursor) is over the picture and stays where the pointer left it.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:91"
+      "apps/web/src/features/editor/GlassControls.tsx:90"
     ]
   },
   "The hollow wanders by itself.": {
     "note": "Appearance menu, beside the dimple's Roam switch while it is on: the pressed-in point of the sheet of discs moves round a slow loop on its own, and no pointer moves it. The hollow is the dent, the place the sheet is pressed in.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:91"
+      "apps/web/src/features/editor/GlassControls.tsx:90"
     ]
   },
   "The issue didn't pass its checks, so nothing changed.": {
@@ -5258,7 +5258,7 @@
   "The keyframes and the effect's settings as JSON.": {
     "note": "Editor's code pane, JSON tab while an effect (the fluted glass or the blob) plays: the palette's keyframes and the effect's settings as a JSON file.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:406"
+      "apps/web/src/features/editor/effect-sources.ts:428"
     ]
   },
   "The keyframes as JSON.": {
@@ -5318,26 +5318,32 @@
   "The picture as an SVG file, moving by CSS alone.": {
     "note": "Editor's code pane, SVG tab while an effect plays: the picture as an animated SVG file whose motion is CSS, with no script.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:425"
+      "apps/web/src/features/editor/effect-sources.ts:447"
     ]
   },
   "The picture as an SVG file, moving by SMIL alone.": {
     "note": "Editor's code pane, SVG tab while the silk plays: the picture as an animated SVG file whose motion is SMIL (SVG's own animation elements), with no script. SMIL is a name, kept as it is.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:423"
+      "apps/web/src/features/editor/effect-sources.ts:445"
     ]
   },
   "The picture as an SVG file.": {
     "note": "Code pane: what the SVG tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:340",
-      "apps/web/src/features/editor/effect-sources.ts:426"
+      "apps/web/src/features/editor/effect-sources.ts:448"
     ]
   },
   "The profile's code": {
     "note": "Read by screen readers only: the name of the Avatars and banners section's code tabs (HTML, CSS, Random).",
     "refs": [
       "apps/web/src/features/examples/Profile.tsx:131"
+    ]
+  },
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": {
+    "note": "Editor's code pane, Shader tab while the aurora plays: what its shader code draws, all in one pass: at each pixel, where the edge of the still range lies (from the range's path), then the light rising behind it, made of sheets of a noise texture read along the rays of a fan and colored through the palette. The code is a WebGL or WebGPU page that plays it, or the GLSL or WGSL they run. The range is the mountain range the aurora's light rises behind, not a range of numbers.",
+    "refs": [
+      "apps/web/src/features/editor/effect-sources.ts:240"
     ]
   },
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": {
@@ -5379,13 +5385,13 @@
   "The stylesheet that paints its first frame behind the page.": {
     "note": "Editor's code pane, CSS tab while an effect plays: the stylesheet that paints the effect's first frame as a web page's background.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:387"
+      "apps/web/src/features/editor/effect-sources.ts:409"
     ]
   },
   "The tag that paints its first frame behind a page, for the page's head.": {
     "note": "Editor, the code pane's HTML tab while an effect with no script yet plays (every effect has one now; one can come before its script): the note under the one tag (a stylesheet) that paints the effect's first frame behind another site's page.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:364"
+      "apps/web/src/features/editor/effect-sources.ts:386"
     ]
   },
   "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.": {
@@ -5403,7 +5409,7 @@
   "The two tags that play it behind a page, for the page's head.": {
     "note": "Editor's code pane, HTML tab while an effect plays: the two HTML tags (a stylesheet and a script) that play the effect behind a web page, to paste into the page's head.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:363"
+      "apps/web/src/features/editor/effect-sources.ts:385"
     ]
   },
   "The wallpapers' code": {
@@ -5436,19 +5442,19 @@
     "note": "Editor's code pane, Shader tab, after the sentence saying what the shader draws, where the picture has grain: the shader then lays the grain over it, one black or white speck per CSS pixel (the page's own pixel, two device pixels across on a dense screen), as the site's picture does. Keep \"CSS pixel\" as web developers say it.",
     "refs": [
       "apps/web/src/features/editor/code.ts:315",
-      "apps/web/src/features/editor/effect-sources.ts:343"
+      "apps/web/src/features/editor/effect-sources.ts:365"
     ]
   },
   "Then its soft and grain, as the site lays them over it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture has both soft and grain: the shader's last passes blur it and lay the grain over it, as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:339"
+      "apps/web/src/features/editor/effect-sources.ts:361"
     ]
   },
   "Then its soft, as the site blurs it.": {
     "note": "Editor's code pane, Shader tab while an effect plays (fluted glass, blob), after the sentence naming its passes, where the picture is soft: the shader's last passes blur it as the site's page does.",
     "refs": [
-      "apps/web/src/features/editor/effect-sources.ts:341"
+      "apps/web/src/features/editor/effect-sources.ts:363"
     ]
   },
   "This address isn't a palette or a page.": {
@@ -6226,7 +6232,7 @@
   "Zoom": {
     "note": "Appearance menu, a field of the dimple (a sheet of round discs pressed in at one point) in place of the other effects' Shape: how much larger than designed its discs and its hollow are drawn, from 1x to 4x, shown as 1.5× and so on. A camera's or a map's zoom, the picture drawn closer; not a browser's page zoom, and not a size in pixels.",
     "refs": [
-      "apps/web/src/features/editor/GlassControls.tsx:135"
+      "apps/web/src/features/editor/GlassControls.tsx:134"
     ]
   },
   "Zoom {value}": {
@@ -6997,7 +7003,7 @@
     "note": "Code pane: what the Colors tab holds.",
     "refs": [
       "apps/web/src/features/editor/code.ts:296",
-      "apps/web/src/features/editor/effect-sources.ts:396"
+      "apps/web/src/features/editor/effect-sources.ts:418"
     ]
   },
   "{count, plural, one {# day} other {# days}}": {

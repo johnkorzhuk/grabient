@@ -800,6 +800,7 @@
   "The picture as an SVG file, moving by SMIL alone.": "Görsel, yalnızca SMIL ile hareket eden bir SVG dosyası olarak.",
   "The picture as an SVG file.": "Görsel, SVG dosyası olarak.",
   "The profile's code": "Profilin kodu",
+  "The range's edge at each pixel, then the light behind it, sheets of noise read along a fan through the palette, in one pass.": "Her pikselde sıradağların kenarı, ardından arkasındaki ışık, bir yelpaze boyunca paletten geçirilerek okunan gürültü katmanları, tek adımda.",
   "The relief, then each sheet's shadows, lit cut and face, pass by pass.": "Kabartma, ardından her yaprağın gölgeleri, ışık alan kesiği ve yüzü, adım adım.",
   "The ribs, the colors' blur and the light, pass by pass.": "Oluklar, renklerin bulanıklığı ve ışık, adım adım.",
   "The same palette in {count, plural, one {# step} other {# steps}}. Dots mark the keyframes.": "{count, plural, one {# adımda} other {# adımda}} aynı palet. Noktalar anahtar kareleri işaretler.",
