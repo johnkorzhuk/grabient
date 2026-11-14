@@ -220,11 +220,12 @@ export function PlayFields(props: {
           onInput={v => props.onAngle?.(v < 0 ? "auto" : Math.round(v))}
         />
       </Show>
+      {/* 0 to 2, the designed pace in its middle; further where the address asks for more */}
       <Scrub
         label={t("Speed")}
         value={props.play.speed}
         min={EFFECT_SPEED.min}
-        max={EFFECT_SPEED.max}
+        max={Math.max(EFFECT_SPEED.field, props.play.speed)}
         step={0.1}
         grain={0.05}
         def={1}

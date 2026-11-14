@@ -39,8 +39,9 @@ export interface AuroraView {
 
 /** Seconds a loop at speed 1: every sheet slides whole tiles in it. 36 at first, then a quarter slower twice (John,
     10 Nov 2026: "i think the speed needs to be scaled down a bit too"; 14 Nov 2026: "the aurora speed needs to be
-    reduced"). */
-export const AURORA_LOOP = 64;
+    reduced"), then half (that day: "i think its still too fast"): a pixel changes some 10 levels a second at speed
+    1, where it changed 16 at 64 s; the strings' change 18, the sandstone's 6, the silk's and the rosette's 4. */
+export const AURORA_LOOP = 128;
 /** The picture's height over the box's longer side, and half its width in its own units: 16 by 9. */
 export const AURORA_SPAN = 9 / 16;
 export const AURORA_HALF = 8 / 9;
