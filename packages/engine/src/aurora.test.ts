@@ -500,8 +500,8 @@ describe("the aurora's design", () => {
   it("ends its loop on its first frame, every sheet having slid whole tiles, in every shape", () => {
     expect(auroraTime(0)).toBe(0);
     expect(auroraTime(AURORA_LOOP)).toBe(0);
-    expect(auroraTime(12)).toBe(0.25);
-    expect(auroraTime(-12)).toBe(0.75);
+    expect(auroraTime(AURORA_LOOP / 4)).toBe(0.25);
+    expect(auroraTime(-AURORA_LOOP / 4)).toBe(0.75);
     const m = auroraScene(P, view(), BOX);
     const a = [0, 0, 0];
     const b = [0, 0, 0];
@@ -603,12 +603,14 @@ describe("the aurora's design", () => {
 describe("the aurora's CPU drawing", () => {
   it("is the picture it was designed as: these pixels, on a range of a whole color", () => {
     /* the design's own drawing of these looks at 320 by 180, a few pixels each (x, y, then red, green, blue): the
-       night at the top, the flames, the hottest light over the range, the palette's own last color, and the range */
+       night at the top, the flames, the hottest light over the range, the palette's own last color, and the range;
+       each at a time of the loop as it was while the loop was 48 s, the same share of it now */
+    const at = (seconds: number) => (seconds / 48) * AURORA_LOOP;
     for (const { path, bg, t, pixels } of [
       {
         path: null,
         bg: "#140b19",
-        t: 5.3,
+        t: at(5.3),
         pixels: [
           [20, 12, 185, 2, 18],
           [160, 30, 199, 4, 31],
@@ -627,7 +629,7 @@ describe("the aurora's CPU drawing", () => {
       {
         path: "line,33,33",
         bg: "#140b19",
-        t: 31.7,
+        t: at(31.7),
         pixels: [
           [20, 12, 202, 4, 33],
           [160, 30, 204, 5, 35],
@@ -646,7 +648,7 @@ describe("the aurora's CPU drawing", () => {
       {
         path: "curve,30,55,35,60,30",
         bg: "#f4efe6",
-        t: 47.5,
+        t: at(47.5),
         pixels: [
           [20, 12, 194, 3, 26],
           [160, 30, 229, 21, 62],
