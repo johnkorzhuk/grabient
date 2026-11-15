@@ -10,12 +10,15 @@ import {
   readingName,
   readingPhrase,
   readPalette,
+  STYLE_TITLE_WORDS,
   seedName,
   seedReading,
-  titleFaults
+  titleFaults,
+  titleWords,
+  titleWordsFit
 } from "./name.ts";
 import type { Palette } from "./palette.ts";
-import type { Style } from "./view.ts";
+import { STYLES, type Style } from "./view.ts";
 
 interface Reading extends PaletteReading {
   name: string;
@@ -35,6 +38,34 @@ const names = golden<{
   colorNameGrid: { names: string[] };
 }>("names");
 const colors = golden<{ colorNames: string[]; families: Record<string, string> }>("colors");
+
+test("a title says a style in the words a palette is searched by", () => {
+  /* a blend along a line is the gradient a search means, and bands are its color palette; a ring or a sweep keeps
+     the word that tells it apart */
+  expect(STYLES.map(style => titleWords(style))).toEqual([
+    "gradient",
+    "color palette",
+    "angular gradient",
+    "angular palette",
+    "radial gradient",
+    "radial palette"
+  ]);
+  /* a language says them in its own words */
+  const other: Language = {
+    locale: "fr",
+    t: message => (message === "gradient" ? "dégradé linéaire" : message)
+  };
+  expect(titleWords("linearGradient", other)).toBe("dégradé linéaire");
+  /* no style's title words are wider in a result's title link than its plain words, which a name's room is measured
+     with: so a title in them stays in the link, and every palette is named as it was before its title took them (the
+     goldens' names are grabient4's own) */
+  for (const style of STYLES) expect(titleWordsFit(style), style).toBe(true);
+  for (const e of names.entries.slice(0, 40))
+    for (const style of STYLES)
+      expect(e.readings[style].title, e.id).toBe(
+        `${e.readings[style].name} ${STYLE_TITLE_WORDS[style]}`
+      );
+});
 
 test("every palette's reading, name, phrase and title in every style are as before", () => {
   for (const e of names.entries) {

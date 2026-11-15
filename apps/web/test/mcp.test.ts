@@ -666,7 +666,7 @@ describe("the tools", () => {
       steps: 8
     });
     // drawn another way, it goes by its colors, as its page does
-    expect((await from({ style: "radialSwatches" })).title).toMatch(/ radial swatches$/);
+    expect((await from({ style: "radialSwatches" })).title).toMatch(/ radial palette$/);
   });
 
   it("show palettes as tiles: the view's data for an app that draws it, each picture's address for one that does not", async () => {

@@ -67,7 +67,11 @@ export const CollectionItemSchema = v.object({
   position: v.number(),
   rising: v.optional(v.number()),
   title: v.optional(v.string()),
-  description: v.optional(v.string())
+  description: v.optional(v.string()),
+  /** the title written for the palette itself, in English, where the collection gives it none and the view it saved
+      it in bears the words out: what the English page's list of hex codes calls it. The public reads of a collection
+      in English bring it; a read in another language, the account's copy and a write's answer bring none */
+  written: v.optional(v.string())
 });
 export type CollectionItem = v.InferOutput<typeof CollectionItemSchema>;
 

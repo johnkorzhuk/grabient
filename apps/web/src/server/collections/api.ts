@@ -15,6 +15,7 @@ import { askedLocale, localizeCollections } from "../mcp/admin/translations.ts";
 import { tagColors } from "../search/tags.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { copyStanding, forkCollection, heldCopy } from "./copies.ts";
+import { withWritten } from "./files.ts";
 import {
   addressed,
   bodyOf,
@@ -153,8 +154,11 @@ export async function collectionAnswer(request: Request, env: Env): Promise<Resp
   }
   if (request.method === "GET") {
     const db = { DB: replica(env) };
-    const found = await collectionBySlug(db, at.slug);
-    if (!found) return json({ error: "Not found" }, 404);
+    const held = await collectionBySlug(db, at.slug);
+    if (!held) return json({ error: "Not found" }, 404);
+    /* each palette's own written title (`written`), as the page's first read brings it for its list of hex codes
+       (features/collections/queries.ts): on the English read alone, and never a reason for the answer to fail */
+    const found = askedLocale(url) ? held : await withWritten(db, held).catch(() => held);
     // the colors are read from the tags as written, which a translation keeps in their order
     const [[doc], colors] = await Promise.all([
       localizeCollections(db, askedLocale(url), [found]),

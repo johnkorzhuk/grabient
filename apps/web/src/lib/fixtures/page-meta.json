@@ -378,9 +378,9 @@
     "updatedAt": 1760000000000
    }
   },
-  "title": "Ocean gradients: 16 color palettes | Grabient",
-  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients.",
-  "descriptionLength": 135,
+  "title": "Ocean gradients: 16 color palettes with hex codes | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes with hex codes and CSS gradients.",
+  "descriptionLength": 150,
   "canonical": "https://grabient.com/ocean-gradients",
   "robots": "index,follow",
   "stagingRobots": "noindex,nofollow",
@@ -422,9 +422,9 @@
     "updatedAt": 1760000000000
    }
   },
-  "title": "Ocean gradients: 16 color palettes | Grabient",
-  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients.",
-  "descriptionLength": 135,
+  "title": "Ocean gradients: 16 color palettes with hex codes | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes with hex codes and CSS gradients.",
+  "descriptionLength": 150,
   "canonical": "https://grabient.com/ocean-gradients/rising",
   "robots": "noindex,follow",
   "stagingRobots": "noindex,nofollow",
@@ -533,9 +533,9 @@
     ]
    }
   },
-  "title": "Ocean gradients: 16 color palettes | Grabient",
-  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients.",
-  "descriptionLength": 135,
+  "title": "Ocean gradients: 16 color palettes with hex codes | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes with hex codes and CSS gradients.",
+  "descriptionLength": 150,
   "canonical": "https://grabient.com/ocean-gradients",
   "robots": "index,follow",
   "stagingRobots": "noindex,nofollow",
@@ -569,7 +569,7 @@
   "locale": "en",
   "path": "/kS7Q8Yy5S_SChv0",
   "facts": {},
-  "title": "Analogous gray, brown and maroon linear gradient | Grabient",
+  "title": "Analogous gray, brown and maroon gradient | Grabient",
   "description": "Analogous gray, brown and maroon palette with 7 colors. #f6e4e0, #be9b94, #9e726b, #5d2522, #46070b. Edit and export CSS, SVG, PNG or a shader.",
   "descriptionLength": 143,
   "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0",
@@ -591,7 +591,7 @@
   "locale": "en",
   "path": "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9&angle=30",
   "facts": {},
-  "title": "Analogous gray, brown and maroon radial swatches | Grabient",
+  "title": "Analogous gray, brown and maroon radial palette | Grabient",
   "description": "Analogous gray, brown and maroon palette with 9 colors. #f6e4e0, #cfb1ab, #9e726b, #6c3732, #46070b. Edit and export CSS, SVG, PNG or a shader.",
   "descriptionLength": 143,
   "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0",
@@ -615,7 +615,7 @@
   "facts": {
    "staticOg": true
   },
-  "title": "Analogous gray, brown and maroon linear gradient | Grabient",
+  "title": "Analogous gray, brown and maroon gradient | Grabient",
   "description": "Analogous gray, brown and maroon palette with 7 colors. #f6e4e0, #be9b94, #9e726b, #5d2522, #46070b. Edit and export CSS, SVG, PNG or a shader.",
   "descriptionLength": 143,
   "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0",
@@ -725,7 +725,7 @@
     "angle": 90
    }
   },
-  "title": "Analogous gray, brown and maroon radial swatches | Grabient",
+  "title": "Analogous gray, brown and maroon radial palette | Grabient",
   "description": "Analogous gray, brown and maroon palette with 9 colors. #f6e4e0, #cfb1ab, #9e726b, #6c3732, #46070b. Edit and export CSS, SVG, PNG or a shader.",
   "descriptionLength": 143,
   "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9",

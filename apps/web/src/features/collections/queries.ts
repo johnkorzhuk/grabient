@@ -9,6 +9,7 @@ import { untrack } from "solid-js";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
 import { attempt, type Failed, failed, freshFor, getJson } from "../../lib/query.ts";
+import { withWritten } from "../../server/collections/files.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
 import {
@@ -74,13 +75,17 @@ export interface Found {
 const readCollection = createIsomorphicFn()
   .server(async (slug: string, _signal?: AbortSignal): Promise<Found | Failed> => {
     const db = { DB: replica(env) };
-    const doc = await collectionBySlug(db, slug);
-    if (!doc)
+    const found = await collectionBySlug(db, slug);
+    if (!found)
       return {
         doc: null,
         private: (await collectionVisibility(db, slug)) === "private",
         fetchedAt: Date.now()
       };
+    /* each palette's own written title, which the page's list of hex codes calls it by: on the English page alone,
+       since the titles are written in English and a page in another language names its palettes in its own, as its
+       cards do. The page stands without them: a read that fails leaves each palette to its colors' name */
+    const doc = asked() ? found : await withWritten(db, found).catch(() => found);
     // the colors are read from the tags as written, which a translation keeps in their order
     const [{ doc: shown, languages }, colors] = await Promise.all([
       localizeDocument(db, asked(), doc),

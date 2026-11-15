@@ -392,7 +392,7 @@ test("a palette is called by the title written for it while its style and steps 
   await expect(page).toHaveTitle(written);
   await page.keyboard.press("]");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?angle=180");
-  await expect(page).toHaveTitle(/ linear gradient \| Grabient$/);
+  await expect(page).toHaveTitle(/ gradient \| Grabient$/);
   // the way back to the view it was saved in finds the title the server wrote still known
   await page.keyboard.press("[");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=180");

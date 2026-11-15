@@ -461,6 +461,26 @@ function pathOf(S: readonly Sample[], swatch: boolean, loops: boolean) {
   return { list, first: a.name, last: b.name };
 }
 
+/** A style as a palette's title says it after the palette's name, in the words people search a palette by: "Navy to
+    lavender gradient", "Navy, gold and cream color palette". A blend along a line is the gradient a search means, so
+    its title says no "linear" (in the US, Nov 2026, "blue gradient" was searched some 4,400 times a month and "blue
+    linear gradient" 30), and hard bands are what a search calls a color palette ("blue color palette" 12,100, "blue
+    swatches" 1,000, and those mostly for paint); a ring or a sweep keeps the word that tells it apart, and its bands
+    are its palette. None is wider in a result's title link than the plain words it stands for (view.ts's
+    styleWords), which a name's room is measured with (room, below): so a title in these words never runs past the
+    link, and no palette's name changed when its title took them. "Radial color palette" would be wider than "radial
+    swatches", which is why those two say "palette" alone. English as written: a page says them in its reader's
+    language, where a language may keep its own word for the line. What the style is, said plainly, stays
+    styleWords: a page's facts and a file's "Drawn as". */
+export const STYLE_TITLE_WORDS: Readonly<Record<Style, string>> = {
+  linearGradient: msg("gradient"),
+  linearSwatches: msg("color palette"),
+  angularGradient: msg("angular gradient"),
+  angularSwatches: msg("angular palette"),
+  radialGradient: msg("radial gradient"),
+  radialSwatches: msg("radial palette")
+};
+
 /* A search result's title link is cut at about 580px of Arial at 20px, so a name is held to what that leaves after its
    style's words and the site's name (the page title is "{name} {style words} | Grabient"). Arial's advance widths per
    1000 units, a to z and A to Z. */
@@ -472,7 +492,11 @@ const UPPER = [
   667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667,
   611, 722, 667, 944, 667, 667, 611
 ];
-function linkWidth(text: string): number {
+/** How wide a search result's title link draws `text`, in pixels of Arial at 20px: letters by their own widths, a
+    digit and # as wide as the digits are, a hyphen and a parenthesis a third of an em, the bar, and a space, a comma
+    or a colon at 278. A letter with an accent, or of another script, counts as a wide one, so a title is never
+    measured narrower than it is. A palette's name holds no digit, so its room is what it was. */
+export function linkWidth(text: string): number {
   let w = 0;
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i);
@@ -481,16 +505,25 @@ function linkWidth(text: string): number {
         ? LOWER[c - 97]
         : c >= 65 && c <= 90
           ? UPPER[c - 65]
-          : c === 45
-            ? 333
-            : c === 124
-              ? 260
-              : 278;
+          : (c >= 48 && c <= 57) || c === 35 || c > 126
+            ? 556
+            : c === 45 || c === 40 || c === 41
+              ? 333
+              : c === 124
+                ? 260
+                : 278;
   }
   return w / 50;
 }
-const LINK = 580;
+/** The width a search result's title link is cut at, about. */
+export const TITLE_LINK = 580;
+const LINK = TITLE_LINK;
+/* measured with the style's plain words, the widest a title of it says (STYLE_TITLE_WORDS are never wider), so a
+   palette is named alike whichever words its title says its style by */
 const room = (style: Style) => LINK - linkWidth(` ${styleWords(style)} | Grabient`);
+/** Whether a style's title words fit the room its plain words are measured with: a title in them stays in the link. */
+export const titleWordsFit = (style: Style): boolean =>
+  linkWidth(STYLE_TITLE_WORDS[style]) <= linkWidth(styleWords(style));
 /** A list of names as English says it, to measure. */
 const say = (names: readonly string[], ends: boolean) =>
   names.length < 2
@@ -818,7 +851,11 @@ export function seedName(
   const reading = seedReading(seed, style, steps);
   return reading ? readingName(reading, language) : "";
 }
-/** The palette's title without the site's name: "Vivid navy, blue and lavender linear gradient". */
+/** What a palette is drawn as, as its title says it after its name: its style's title words ("gradient", "color
+    palette", "radial gradient"). */
+export const titleWords = (style: Style, language: Language = ENGLISH): string =>
+  language.t(STYLE_TITLE_WORDS[style]);
+/** The palette's title without the site's name: "Vivid navy, blue and lavender gradient". */
 export const paletteTitle = (
   reading: PaletteReading,
   style: Style,
@@ -826,7 +863,7 @@ export const paletteTitle = (
 ): string =>
   language.t(msg("{name} {style}"), {
     name: readingName(reading, language),
-    style: styleWords(style)
+    style: titleWords(style, language)
   });
 /** What a search result shows under the title: the name, the style, and the colors as hex. */
 export const paletteDescription = (
@@ -841,7 +878,7 @@ export const paletteDescription = (
     ),
     {
       name: readingName(reading, language),
-      style: styleWords(view.style),
+      style: titleWords(view.style, language),
       steps: view.steps,
       hexes: hexes.join(", ")
     }

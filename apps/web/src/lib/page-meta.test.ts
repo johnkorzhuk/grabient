@@ -1,4 +1,5 @@
 import { decodePalette } from "@grabient/engine";
+import { linkWidth, TITLE_LINK } from "@grabient/engine/name.ts";
 import { parseView } from "@grabient/engine/view.ts";
 import {
   addCatalog,
@@ -357,9 +358,23 @@ describe("descriptions", () => {
     expect(by("/cyan-gradients")).toBe(
       "#00ffff, rgb(0 255 255). Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients."
     );
+    /* in English a public collection's description says its palettes come with their hex codes, which its page
+       lists, in the sentence that says its gradients; where that has no room it says what it said, and a collection
+       of gradients goes on saying so; its own words alone where they leave no room for either */
     expect(by("/liminal-hours")).toBe(
-      "Twenty gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain. 21 color palettes and CSS gradients."
+      "Twenty gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain. 21 color palettes with hex codes and CSS gradients."
     );
+    const told = (words: string, count = 25) =>
+      describe("/cyber-monday-gradients", collection(words, count, "Cyber Monday gradients"));
+    const short = "Electric blue and violet deals.";
+    expect(told(short)).toBe(
+      `${short} 25 color palettes with hex codes and CSS gradients. Open any palette to edit and export it.`
+    );
+    const long = `${"Neon blue, violet and magenta run into black, ".repeat(2)}with teal and lime stops.`;
+    expect(long.length).toBeGreaterThan(108);
+    expect(told(long)).toBe(`${long} 25 color palettes and CSS gradients.`);
+    const whole = `${"Neon blue, violet and magenta run into black, ".repeat(3)}and stop.`;
+    expect(told(whole)).toBe(whole);
     expect(by("/ocean-gradients")).toBe(
       "Ocean gradients: 25 color palettes and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG."
     );
@@ -399,6 +414,91 @@ describe("descriptions", () => {
     ]) {
       expect([address, title(address).length <= 70]).toEqual([address, true]);
     }
+  });
+
+  test("a public collection's title says its palettes come with their hex codes, after its own words, in English", () => {
+    const title = (slug: string, name: string, count = 15, more: Record<string, unknown> = {}) =>
+      pageMeta(
+        pageOf(`/${slug}`, {
+          collection: { ...collection("", count, name).collection!, ...more }
+        }),
+        PRODUCTION_ORIGIN
+      ).title;
+    /* the collection's own words first, as its page ranks under them, then what the page holds */
+    expect(title("gta-6-gradients", "GTA 6 gradients")).toBe(
+      "GTA 6 gradients: 15 color palettes with hex codes | Grabient"
+    );
+    expect(title("ocean-gradients", "Ocean gradients", 1)).toBe(
+      "Ocean gradients: 1 color palette with hex codes | Grabient"
+    );
+    /* a title that says palette itself is not told so twice */
+    expect(title("soft-summer-color-palette", "Soft summer color palette", 18)).toBe(
+      "Soft summer color palette: 18 palettes with hex codes | Grabient"
+    );
+    expect(title("wedding-color-palettes", "Wedding color palettes", 20)).toBe(
+      "Wedding color palettes: 20 palettes with hex codes | Grabient"
+    );
+    /* where the count has no room, the codes alone; where neither has, the title as it was */
+    expect(title("mid-century-modern-color-palette", "Mid century modern color palette", 16)).toBe(
+      "Mid century modern color palette with hex codes | Grabient"
+    );
+    expect(title("colors-that-go-with-navy-blue", "Colors that go with navy blue", 17)).toBe(
+      "Colors that go with navy blue: 17 color palettes | Grabient"
+    );
+    const long = "Sun bleached pool tiles of a motel in the high desert at noon";
+    expect(title("sun-bleached", long)).toBe(
+      "Sun bleached pool tiles of a motel in the high desert at… | Grabient"
+    );
+    /* a result's title link shows every one of them whole: each is measured as the link draws it, digits and all,
+       so a title of wide letters keeps the form that fits ("Gummy candy swatches: 25 color palettes with hex codes"
+       is 65 characters and 607px) */
+    expect(title("gummy-candy-swatches", "Gummy candy swatches", 25)).toBe(
+      "Gummy candy swatches: 25 color palettes | Grabient"
+    );
+    expect(title("dark-academia-color-palette", "Dark academia color palette", 24)).toBe(
+      "Dark academia color palette with hex codes | Grabient"
+    );
+    for (const [slug, name] of [
+      ["gta-6-gradients", "GTA 6 gradients"],
+      ["soft-summer-color-palette", "Soft summer color palette"],
+      ["dark-academia-color-palette", "Dark academia color palette"],
+      ["gummy-candy-swatches", "Gummy candy swatches"],
+      ["loden-wool-and-amber", "Loden wool and amber"],
+      ["hunger-games-color-palette", "Hunger Games color palette"],
+      ["wgsn-2027-swatches", "WGSN 2027 swatches"],
+      ["shades-of-blue", "Shades of blue"]
+    ])
+      for (const count of [1, 9, 15, 24, 25, 100])
+        expect(linkWidth(title(slug, name, count)), `${name} ${count}`).toBeLessThanOrEqual(
+          TITLE_LINK
+        );
+    /* a title that says hex codes itself is not told so again */
+    expect(title("gta-6-hex-codes", "GTA 6 hex codes")).toBe(
+      "GTA 6 hex codes: 15 color palettes | Grabient"
+    );
+    expect(title("sunset-palettes-with-hex-codes", "Sunset palettes with hex codes")).toBe(
+      "Sunset palettes with hex codes: 15 color palettes | Grabient"
+    );
+    /* a collection of one color says the color's own hex after its title, which leaves the count no room; a private
+       collection's page lists no codes; an empty one has none to list; and another language keeps the title it has */
+    expect(title("burgundy-swatches", "Burgundy swatches", 11)).toBe(
+      "Burgundy swatches (#900020): 11 color palettes | Grabient"
+    );
+    expect(title("burgundy-swatches", "Burgundy color palette", 11)).toBe(
+      "Burgundy color palette (#900020) with hex codes | Grabient"
+    );
+    expect(title("mine", "Mine", 15, { unlisted: true })).toBe(
+      "Mine: 15 color palettes | Grabient"
+    );
+    expect(title("ocean-gradients", "Ocean gradients", 0)).toBe("Ocean gradients | Grabient");
+    current = "de";
+    expect(title("gta-6-gradients", "GTA 6 gradients")).toBe(
+      "GTA 6 gradients: 15 Farbpaletten | Grabient"
+    );
+    current = "ja";
+    expect(title("gta-6-gradients", "GTA 6 gradients")).toBe(
+      "GTA 6 gradients：カラーパレット15件 | Grabient"
+    );
   });
 
   test("a list's later pages each say which page they are", () => {
@@ -446,7 +546,7 @@ describe("a palette's written words", () => {
       heading: "Pastel candy vertical bands",
       title: "Pastel candy vertical bands | Grabient",
       name: "Pastel candy vertical bands",
-      alternateName: expect.stringMatching(/^\S.* linear swatches$/)
+      alternateName: expect.stringMatching(/^\S.* color palette$/)
     });
     expect(own.description).toMatch(/^Soft candy colors stand in vertical bands/);
   });

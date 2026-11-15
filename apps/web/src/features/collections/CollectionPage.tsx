@@ -1,6 +1,6 @@
 import { decodePalette } from "@grabient/engine";
 import { namedColor } from "@grabient/engine/named-colors.ts";
-import { localHref, msg, rich, t } from "@grabient/i18n";
+import { DEFAULT_LOCALE, locale, localHref, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Curation } from "@grabient/ui/Curation.tsx";
 import { Fit, type FitVote } from "@grabient/ui/Fit.tsx";
@@ -56,7 +56,7 @@ import {
 } from "../account/collections.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { accountView, onAccountChange, syncStatus } from "../account/state.ts";
-import { minuteOf, relativeAge } from "../gallery/drawing.ts";
+import { minuteOf, nameOf, paletteHref, relativeAge } from "../gallery/drawing.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
 import { useCollectionSeen } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
@@ -77,6 +77,7 @@ import { createChecklists, failedWrite } from "./collect.ts";
 import styles from "./collections.module.css";
 import { createDeletable } from "./deletable.ts";
 import { Heading } from "./Heading.tsx";
+import { type CodeRow, HexCodes } from "./HexCodes.tsx";
 import { ItemCard } from "./ItemCard.tsx";
 import { Notes } from "./Notes.tsx";
 import { listBack, recallList, rememberOrder } from "./navigation.ts";
@@ -391,6 +392,42 @@ export function CollectionPage(props: {
     const gone = [...removals().values()].map(r => r.item).filter(item => !held.has(keyOf(item)));
     return gone.length ? sortCollectionItems([...ordered(), ...gone], props.order) : ordered();
   });
+  /* the titles written for the collection's palettes, in English, as its public read brought them: an admin's and an
+     owner's page is drawn from another read of the same collection, which brings none, and its list names its
+     palettes as every reader's does. None on a page in another language, which names its palettes in its own */
+  const written = createMemo(
+    () =>
+      new Map(
+        locale() === DEFAULT_LOCALE
+          ? (data()?.doc?.items ?? []).flatMap(item =>
+              item.written ? [[keyOf(item), item.written] as const] : []
+            )
+          : []
+      )
+  );
+  /* the collection's palettes as its list of hex codes says them, in the page's order. Each row is its card in
+     words: linked where the card's Edit leads (the palette in the page's view over the one the collection saved it
+     in) and named as the card is, by the collection's own title, else, on the English page while it is drawn as it
+     was saved, the title written for it, else what its colors call it. Its codes are its own colors, one to a
+     keyframe, as the sheet's chips are */
+  const codeRows = createMemo((): CodeRow[] =>
+    ordered().map(item => {
+      const own = inputOf(item);
+      const shown = drawnIn(own, props.view);
+      const asSaved = shown.style === own.style && shown.steps === own.steps;
+      const href = paletteHref(shown, props.view.size);
+      return {
+        key: keyOf(item),
+        name:
+          item.title ??
+          (asSaved ? (item.written ?? written().get(keyOf(item))) : undefined) ??
+          nameOf(shown),
+        href,
+        rel: relTo(href),
+        hexes: hexesOf({ seed: item.kseed, steps: 0 })
+      };
+    })
+  );
   const removedKey = (item: CollectionItem) => {
     const key = keyOf(item);
     return removals().has(key) && !doc()?.items.some(i => keyOf(i) === key) ? key : null;
@@ -970,6 +1007,7 @@ export function CollectionPage(props: {
                         </a>
                       </div>
                     </section>
+                    <HexCodes rows={codeRows()} />
                   </div>
                 </Show>
               </div>

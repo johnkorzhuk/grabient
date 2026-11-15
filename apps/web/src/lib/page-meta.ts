@@ -1,6 +1,13 @@
 import { decodePalette, type Palette, sampleStops } from "@grabient/engine";
 import { sentence } from "@grabient/engine/message.ts";
-import { readingName, readingPhrase, readPalette } from "@grabient/engine/name.ts";
+import {
+  linkWidth,
+  readingName,
+  readingPhrase,
+  readPalette,
+  TITLE_LINK,
+  titleWords
+} from "@grabient/engine/name.ts";
 import { colorCodes, namedColor } from "@grabient/engine/named-colors.ts";
 import {
   asSaved,
@@ -259,7 +266,7 @@ function fitted(words: string, forms: readonly ((words: string) => string)[]): s
   return first(words) ?? first(clipWords(words, Math.max(0, room), 20)) ?? clipWords(last(""));
 }
 
-/** A style as a title says it after a palette's name: "Light yellow to pink linear gradient". */
+/** A style as a palette's facts say it, plainly: "Linear swatches, 5 colors at 90°". */
 const STYLE_WORDS: Record<Style, string> = {
   linearGradient: msg("linear gradient"),
   linearSwatches: msg("linear swatches"),
@@ -271,10 +278,14 @@ const STYLE_WORDS: Record<Style, string> = {
 /** A palette by what its colors are called in the reader's language: "Vivid navy, blue and lavender". */
 export const paletteName = (P: Palette, view?: Partial<Pick<View, "style" | "steps">>) =>
   readingName(readPalette(P, view?.style, view?.steps), language());
-/** That name as a title says it, with the palette's style: "Vivid navy, blue and lavender linear gradient". A page
-    whose palette has a title of other words says it under that title, and so does a card's tooltip. */
+/** What a palette is drawn as, as its title says it after its name in the reader's language: the words a search
+    names it by (the engine's titleWords), "gradient", "color palette", "radial gradient". */
+const titledAs = (style: Style) => titleWords(style, language());
+/** That name as a title says it, with the palette's style: "Vivid navy, blue and lavender gradient", "… color
+    palette". A page whose palette has a title of other words says it under that title, and so does a card's
+    tooltip. */
 export const styledName = (name: string, style: Style) =>
-  t("{name} {style}", { name, style: t(STYLE_WORDS[style]) });
+  t("{name} {style}", { name, style: titledAs(style) });
 /** The same name inside a sentence: "Palettes like navy to lavender". */
 const paletteInline = (P: Palette) => readingPhrase(readPalette(P), language());
 /** A search's subject as a title says it: its words without the nouns the title adds itself. */
@@ -796,7 +807,7 @@ function palettePage(
   const { seed, palette: P, view } = page;
   const reading = readPalette(P, view.style, view.steps);
   const name = readingName(reading, language());
-  const style = t(STYLE_WORDS[view.style]);
+  const style = titledAs(view.style);
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
   const written = ownWords(page);
   const path = paletteAddress(seed, page.saved);
@@ -870,16 +881,55 @@ function collectionPage(
   /* a collection of one color, by its address, says the color's hex after its title */
   const color = namedColor(page.slug);
   const title = color ? `${c.title} (${color.hex})` : c.title;
-  const counted = titled(
-    t("{title}: {count, plural, one {# color palette} other {# color palettes}}", {
-      title,
-      count: c.count
-    })
-  );
-  meta.title = c.count > 0 && counted.length <= 62 ? counted : listTitle(title);
   const count = c.count;
+  const counted = titled(
+    t("{title}: {count, plural, one {# color palette} other {# color palettes}}", { title, count })
+  );
+  /* A public collection's page lists every palette's hex codes under its cards (HexCodes.tsx), and its title says so
+     in English, the language the searches were read in (US, Nov 2026: the pages that lead a search for a theme's
+     colors show its codes, and people add "hex codes" to the search): the fullest of its forms that a result's title
+     link shows whole, measured as the link draws it, the collection's own words first as its page ranks under them.
+     A title that says palette itself is not told so twice, nor one that says hex. The other languages keep the title
+     they have until theirs are read. */
+  const listsCodes =
+    locale() === DEFAULT_LOCALE && count > 0 && !c.unlisted && !/\bhex\b/i.test(c.title);
+  const palettes = /\bpalettes?\b/i.test(c.title);
+  const withCodes = listsCodes
+    ? [
+        palettes
+          ? t("{title}: {count, plural, one {# palette} other {# palettes}} with hex codes", {
+              title,
+              count
+            })
+          : t(
+              "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes",
+              { title, count }
+            ),
+        ...(palettes ? [t("{title} with hex codes", { title })] : [])
+      ]
+        .map(titled)
+        .find(text => linkWidth(text) <= TITLE_LINK)
+    : undefined;
+  meta.title = withCodes ?? (count > 0 && counted.length <= 62 ? counted : listTitle(title));
+  /* what its page holds, said after its own words where there is room: with its hex codes in English, as its title
+     says, in the same sentence as its gradients, so a collection of gradients goes on saying so. A collection of one
+     color leads its description with the color's own codes (coded, below), which take the room */
   meta.description = c.description
     ? fitted(c.description, [
+        ...(listsCodes && !color
+          ? [
+              (words: string) =>
+                t(
+                  "{words} {count, plural, one {# color palette} other {# color palettes}} with hex codes and CSS gradients. Open any palette to edit and export it.",
+                  { words, count }
+                ),
+              (words: string) =>
+                t(
+                  "{words} {count, plural, one {# color palette} other {# color palettes}} with hex codes and CSS gradients.",
+                  { words, count }
+                )
+            ]
+          : []),
         words =>
           t(
             "{words} {count, plural, one {# color palette} other {# color palettes}} and CSS gradients. Open any palette to edit and export it.",
