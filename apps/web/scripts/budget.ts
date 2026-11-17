@@ -89,7 +89,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      summary saying it and a list's address keeping it, 0.1 KB, took it to 293.159; the switch, the roam's path and
      its Figma layers load with the effect's fields, its player and the press that copies them */
   /* the aurora, as /palettes, took it from 293.2 to 294.3 on 11 Nov 2026 */
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 295 },
+  /* the press drawn before the page it asks for is begun (app/after-press.ts, 17 Nov 2026, for the phones' Core Web
+     Vitals), 0.15 KB of the start every page shares, took it from 295.0 to 295.1 */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 295.5 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look
      each palette was saved in, an effect and its settings (features/list/appearance.ts's lookEffect and cardPlays,
@@ -183,7 +185,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      "/collections", to 230.7 */
   /* the dimple (10 Nov 2026), as "/", took it to 230.94 */
   /* the aurora, as "/", took it from 231.2 to 232.3 on 11 Nov 2026 */
-  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 233 },
+  /* the press drawn before its page is begun, as "/collections", took it from 232.9 to 233.1 on 17 Nov 2026 */
+  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 233.5 },
   /* soft and grain, as /newsletter, took it from 249.3 to 250.8 on 2 Nov 2026, and over the effects (as /palettes)
      to 251.0 on 3 Nov 2026 */
   /* the color reader, as "/", took it from 251.0 to 253.4 on 3 Nov 2026; 253.99 at 7f486b89, and on 4 Nov 2026 the
