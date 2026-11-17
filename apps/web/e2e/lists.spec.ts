@@ -54,6 +54,72 @@ test("a change of view keeps the pages that joined and the depth the reader scro
   expect(await page.evaluate(() => scrollY)).toBe(depth);
 });
 
+test("a list scrolled shifts nothing: rows leave and join the window and every box stays where it stood", async ({
+  page
+}) => {
+  /* what the browser itself counts as the page shifting (Cumulative Layout Shift), from the page's first frame */
+  await page.addInitScript(() => {
+    const shifts: { value: number; moved: string[] }[] = [];
+    Object.assign(window, { __shifts: shifts });
+    new PerformanceObserver(list => {
+      for (const entry of list.getEntries() as unknown as {
+        value: number;
+        hadRecentInput: boolean;
+        sources?: { node?: Node | null }[];
+      }[]) {
+        if (entry.hadRecentInput) continue;
+        shifts.push({
+          value: entry.value,
+          moved: (entry.sources ?? []).map(source =>
+            source.node instanceof Element ? source.node.className || source.node.tagName : ""
+          )
+        });
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+  await page.goto("/palettes");
+  await hydrated(page);
+  const feed = page.locator("[data-count]").first();
+  await page.mouse.move(600, 600);
+  /* down past the rows the window lets go, then back to the top: the wheel is no press, so a shift after it counts
+     as a click's would not */
+  await expect
+    .poll(
+      async () => {
+        await page.mouse.wheel(0, 500);
+        await page.waitForTimeout(80);
+        return page.evaluate(() => scrollY);
+      },
+      { timeout: 20_000 }
+    )
+    .toBeGreaterThan(3500);
+  /* the rows above are stood in by padding, which is the grid's own, the cards' parent: on the feed around it the
+     grid's box moved a row at every swap */
+  const padded = await feed.evaluate(el => ({
+    feed: Number.parseFloat(getComputedStyle(el).paddingTop),
+    grid: Number.parseFloat(
+      getComputedStyle(el.querySelector("article")!.parentElement!).paddingTop
+    )
+  }));
+  await expect
+    .poll(
+      async () => {
+        await page.mouse.wheel(0, -500);
+        await page.waitForTimeout(80);
+        return page.evaluate(() => scrollY);
+      },
+      { timeout: 20_000 }
+    )
+    .toBe(0);
+  await page.waitForTimeout(600);
+  const shifts = await page.evaluate(
+    () => (window as unknown as { __shifts: { value: number; moved: string[] }[] }).__shifts
+  );
+  expect(shifts, JSON.stringify(shifts.slice(0, 4))).toEqual([]);
+  expect(padded.grid).toBeGreaterThan(700);
+  expect(padded.feed).toBe(0);
+});
+
 test("a document that opens on a list takes its view, which the wordmark leads home in", async ({
   page
 }) => {
