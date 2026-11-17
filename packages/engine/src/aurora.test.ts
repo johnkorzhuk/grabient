@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { rasterize, resvgReady } from "../test/raster.ts";
+import { frameDiff, rasterize, resvgReady } from "../test/raster.ts";
 import {
   AURORA_DESIGNED,
   AURORA_FAN,
@@ -732,6 +732,24 @@ describe("the aurora's CPU drawing", () => {
 describe("the aurora's SVGs", () => {
   beforeAll(resvgReady);
 
+  const wedges = (svg: string) =>
+    svg.match(/<path d="M[^"]*" fill="url\(#w\d+\)"\/>/g)?.length ?? 0;
+  /* a frame as resvg draws it against the CPU's, over a dark page */
+  const apart = (svg: string, t = 0) => {
+    const page = (px: Uint8Array | Uint8ClampedArray, premultiplied: boolean) =>
+      Uint8Array.from({ length: (px.length / 4) * 3 }, (_, i) => {
+        const o = 4 * Math.floor(i / 3);
+        const a = px[o + 3] / 255;
+        return Math.round((premultiplied ? px[o + (i % 3)] : px[o + (i % 3)] * a) + 13 * (1 - a));
+      });
+    return frameDiff(
+      page(rasterize(svg, BOX.width), true),
+      page(renderAurora(auroraScene(P, view(), BOX), t), false),
+      BOX.width,
+      BOX.height
+    );
+  };
+
   it("writes a frame as shapes alone, for every reader of SVG: no filter, no picture, no script", () => {
     const svg = auroraFrameSvg(P, view(BLOCK, "#10203080"), BOX, 7);
     expect(svg).toMatch(
@@ -751,17 +769,67 @@ describe("the aurora's SVGs", () => {
   });
 
   it("writes only the wedges that show: a higher range hides more of the fan", () => {
-    const wedges = (path: string) =>
-      auroraFrameSvg(P, view(path), BOX, 0).match(/<path d="M[^"]*" fill="url\(#w\d+\)"\/>/g)
-        ?.length ?? 0;
-    const low = wedges("line,5,5");
-    const high = wedges("line,70,70");
-    expect(low).toBeGreaterThan(100);
+    const count = (path: string) => wedges(auroraFrameSvg(P, view(path), BOX, 0));
+    const low = count("line,5,5");
+    const high = count("line,70,70");
+    expect(low).toBeGreaterThan(60);
     expect(high).toBeLessThan(low * 0.7);
-    /* a range to the box's top leaves its soft edge alone to write: a few wedges, some three stops each */
+    /* a range to the box's top leaves its soft edge alone to write: a few wedges, a few stops each */
     const top = auroraFrameSvg(P, view("line,100,100"), BOX, 0);
-    expect(wedges("line,100,100")).toBeLessThan(high / 2);
-    expect(top.match(/<stop /g)?.length).toBeLessThanOrEqual(3 * wedges("line,100,100"));
+    expect(wedges(top)).toBeLessThan(high / 2);
+    expect(
+      top.match(/<stop offset="[^"]*" stop-color="#[0-9a-f]{6}"\/>/g)?.length
+    ).toBeLessThanOrEqual(6 * wedges(top) + 4);
+  });
+
+  it("lays every other wedge under a tent of whole greys, so the light runs from ray to ray", () => {
+    const svg = auroraFrameSvg(P, view(), BOX, 0);
+    const [ground, tented] = svg.split('<g mask="url(#o)">');
+    expect(wedges(tented)).toBeGreaterThan(20);
+    expect(Math.abs(wedges(ground) - wedges(tented))).toBeLessThanOrEqual(1);
+    /* a tent a wedge under one: its two sides, the narrower first */
+    const sides = svg.match(
+      /<use xlink:href="#[qQ]" transform="rotate\([-\d.]+\)scale\([-\d.]+ [\d.]+\)"\/>/g
+    );
+    expect(sides).toHaveLength(2 * wedges(tented));
+    expect(sides?.filter(use => use.includes('"#q"'))).toHaveLength(wedges(tented));
+    /* nothing in its masks is faded by an opacity, which a design tool reads squared (Figma, 17 Nov 2026): the
+       tents and the range's soft edge are greys, each a channel thrice */
+    expect(svg).not.toMatch(/opacity/);
+    const greys = [...svg.matchAll(/<linearGradient id="t\d+"[^>]*>(.*?)<\/linearGradient>/g)]
+      .flatMap(([, stops]) => [...stops.matchAll(/stop-color="#([0-9a-f]{6})"/g)])
+      .map(([, hex]) => hex);
+    expect(greys.length).toBeGreaterThanOrEqual(4);
+    for (const hex of greys) expect(hex).toMatch(/^([0-9a-f]{2})\1\1$/);
+    expect(greys[0]).not.toBe("ffffff");
+    expect(greys).toContain("ffffff");
+    expect(greys).toContain("000000");
+    for (const [, hex] of svg.matchAll(/<use xlink:href="#r"[^>]*fill="#([0-9a-f]{6})"\/>/g))
+      expect(hex).toMatch(/^([0-9a-f]{2})\1\1$/);
+  });
+
+  it("is the same shapes at any size past the detail its light has: no heavier at 4K than at 800 pixels", () => {
+    /* its flat wedges, 4 pixels wide at any size, weighed 162 KiB at 800 by 400 and 419 at 1920 by 1080 */
+    const weight = (width: number, height: number) =>
+      auroraFrameSvg(P, view(), { width, height }, 0).length;
+    const at800 = weight(800, 450);
+    expect(at800).toBeLessThan(72 * 1024);
+    expect(weight(1920, 1080)).toBeLessThan(at800 * 1.1);
+    expect(weight(3840, 2160)).toBeLessThan(at800 * 1.1);
+  });
+
+  it("lies nearer the CPU's frame the finer it is cut, and weighs more", () => {
+    const cut = { px: 4, cell: 0.5, read: 4, gap: 0.025, span: 8, tent: 2, round: 0, soft: 0 };
+    const own = auroraFrameSvg(P, view(), BOX, 0);
+    const finer = auroraFrameSvg(P, view(), BOX, 0, { ...cut, ray: 8, stop: 2 });
+    const coarser = auroraFrameSvg(P, view(), BOX, 0, { ...cut, ray: 64, stop: 16 });
+    expect(finer.length).toBeGreaterThan(own.length * 1.2);
+    expect(coarser.length).toBeLessThan(own.length * 0.6);
+    expect(apart(finer).mean).toBeLessThan(apart(own).mean);
+    expect(apart(own).mean).toBeLessThan(apart(coarser).mean);
+    /* as cut, well inside what any frame's SVG may lie from its CPU frame (effect-conformance.test.ts) */
+    expect(apart(own).mean).toBeLessThan(1);
+    expect(apart(own).p99).toBeLessThan(6);
   });
 
   it("stops resvg at no angle, walls or none", () => {
@@ -777,36 +845,104 @@ describe("the aurora's SVGs", () => {
       }
   });
 
-  it("stills under one blur, within the weight a list's card may have, whatever the look", () => {
-    const still = auroraStillSvg(P, view(), { width: 1000, height: 1000 });
+  const SQUARE = { width: 1000, height: 1000 };
+  const many = decodePalette("kWKxfe1GRDVfIxNzPsjbDZKA") as Palette;
+
+  it("stills in greys that one filter reads through the palette, written short for a browser", () => {
+    const still = auroraStillSvg(P, view(), SQUARE);
     expect(still.match(/<filter/g)).toHaveLength(1);
-    expect(still).toContain("<feGaussianBlur");
-    expect(still).not.toMatch(/<image|<script|<foreignObject|@keyframes|<animate|xlink/);
-    /* a step at a time it is the same still */
-    const steps = auroraStillSteps(P, view(), { width: 1000, height: 1000 });
+    expect(still).toContain(
+      'color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="table"'
+    );
+    expect(still).not.toMatch(
+      /<feGaussianBlur|<image|<script|<foreignObject|@keyframes|<animate|xlink|opacity/
+    );
+    /* every wedge's stops are greys: how far along the palette the light reads */
+    const stops = [
+      ...still.matchAll(/<linearGradient id="g\d+" href="#g">(.*?)<\/linearGradient>/g)
+    ]
+      .flatMap(([, inner]) => [...inner.matchAll(/stop-color="#([0-9a-f]{6})"/g)])
+      .map(([, hex]) => hex);
+    expect(stops.length).toBeGreaterThan(100);
+    for (const hex of stops) expect(hex).toMatch(/^([0-9a-f]{2})\1\1$/);
+    /* a step at a time it is the same still; and a still of the same look again takes no step: its shapes are
+       kept */
+    const turned = view(null, null, 45);
+    const steps = auroraStillSteps(P, turned, SQUARE);
     let count = 0;
     let step = steps.next();
     while (!step.done) {
       count++;
       step = steps.next();
     }
-    expect(step.value).toBe(still);
     expect(count).toBeGreaterThan(8);
-    /* the most light a box holds, in a palette of many colors, at any angle and in any shape: cut coarser, never over
-       the weight */
-    const many = decodePalette("kWKxfe1GRDVfIxNzPsjbDZKA") as Palette;
+    expect(auroraStillSvg(P, turned, SQUARE)).toBe(step.value);
+    expect(auroraStillSteps(many, turned, SQUARE).next().done).toBe(true);
+  });
+
+  it("stills in the same shapes whatever the palette: the filter's tables alone are the palette's", () => {
+    const tables = /<feComponentTransfer>.*?<\/feComponentTransfer>/;
+    const one = auroraStillSvg(P, view(), SQUARE);
+    const other = auroraStillSvg(many, view(), SQUARE);
+    expect(other).not.toBe(one);
+    expect(other.replace(tables, "")).toBe(one.replace(tables, ""));
+    /* a table a channel, the palette from its darker end: its first color first, its last last */
+    const table = (still: string, channel: string) =>
+      (new RegExp(`<feFunc${channel} type="table" tableValues="([^"]*)"/>`).exec(still)?.[1] ?? "")
+        .split(" ")
+        .map(Number);
+    const ramp = auroraRamp(many);
+    for (const [j, channel] of ["R", "G", "B"].entries()) {
+      const values = table(other, channel);
+      expect(values).toHaveLength(65);
+      expect(values[0]).toBeCloseTo(ramp[j], 2);
+      expect(values[64]).toBeCloseTo(ramp[(AURORA_RAMP - 1) * 3 + j], 2);
+    }
+  });
+
+  it("stills in the palette's own colors: no color it draws lies off the palette", () => {
+    /* its light blended as colors under a blur, as it once was, drew this palette of many colors up to 54 levels
+       off itself, four pixels in ten more than 8 off (17 Nov 2026) */
+    const ramp = auroraRamp(many);
+    const along: number[][] = [];
+    for (let i = 0; i + 1 < AURORA_RAMP; i++)
+      for (let f = 0; f < 4; f++)
+        along.push(
+          [0, 1, 2].map(
+            j => (ramp[i * 3 + j] + ((ramp[i * 3 + 3 + j] - ramp[i * 3 + j]) * f) / 4) * 255
+          )
+        );
+    const px = rasterize(auroraStillSvg(many, view(), { width: 320, height: 320 }), 320);
+    let worst = 0;
+    let seen = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      if (px[i + 3] < 255) continue;
+      seen++;
+      let nearest = 255;
+      for (const c of along)
+        nearest = Math.min(
+          nearest,
+          Math.max(Math.abs(px[i] - c[0]), Math.abs(px[i + 1] - c[1]), Math.abs(px[i + 2] - c[2]))
+        );
+      worst = Math.max(worst, nearest);
+    }
+    expect(seen).toBeGreaterThan(40000);
+    expect(worst).toBeLessThan(8);
+  });
+
+  it("stills within the weight a list's card may have, whatever the look, and well under what they once weighed", () => {
+    /* the most light a box holds, in a palette of many colors, at any angle and in any shape: cut coarser, never
+       over the weight. Its light as colors under a blur weighed 34 to 38 KiB whatever the look */
     const weights: number[] = [];
     for (const path of [null, "line,0,0", auroraMadePath("skyline", 3)])
       for (const angle of [90, 45, 210])
         for (const shape of [null, 417, 999]) {
-          const heavy = auroraStillSvg(many, view(path, null, angle, shape), {
-            width: 1000,
-            height: 1000
-          });
+          const heavy = auroraStillSvg(many, view(path, null, angle, shape), SQUARE);
           weights.push(`${svgUrl(heavy)} 50% 50% / cover no-repeat`.length);
         }
-    expect(Math.max(...weights)).toBeLessThan(40 * 1024);
-    expect(Math.min(...weights)).toBeGreaterThan(20 * 1024);
+    expect(Math.max(...weights)).toBeLessThan(26 * 1024);
+    expect(Math.min(...weights)).toBeGreaterThan(12 * 1024);
+    expect(weights.reduce((sum, w) => sum + w, 0) / weights.length).toBeLessThan(23 * 1024);
   });
 });
 

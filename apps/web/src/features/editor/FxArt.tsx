@@ -91,7 +91,7 @@ export function FxArt(props: {
       hold its last posisiion instead of resetting to the center"); none, its still */
   at?: readonly [number, number] | null;
   /** its palette stands, as a list's card's does: its still is the server's picture where its kind has one
-      (EFFECT_KINDS' picture: the aurora's, sharp where its vector still is a stand-in under a blur), drawn once a
+      (EFFECT_KINDS' picture: the aurora's, its frame itself where its vector still is a few dozen rays of it), drawn once a
       palette and look and kept, so a picture whose palette an edit changes (the editor's own) keeps its vector still */
   picture?: boolean;
 }) {

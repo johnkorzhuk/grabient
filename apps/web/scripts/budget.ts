@@ -211,8 +211,12 @@ const BUDGETS = {
   // (3 Nov 2026); its GLSL and WebGL page and its WGSL and WebGPU page load apart, 4.0 and 6.7 KB, beside the pages'
   // design, 5.7. The aurora (11 Nov 2026): its model and its SVG writer (engine/aurora.ts, aurora-svg.ts), which
   // the vector effects' stills load with, as each of theirs does (engine/fx-still.ts, loaded as a page first draws
-  // a still the server did not), took that chunk from 11.9 KB to 14.5, the largest a press loads
-  onDemand: 15.5,
+  // a still the server did not), took that chunk from 11.9 KB to 14.5, the largest a press loads. Its lighter SVGs
+  // (17 Nov 2026, John: "the aurora vector representation is really heavy"): the writer that reads its light on a fan
+  // of rays, keeps the rays and stops the light needs, lays the tents between them and writes the still as greys with
+  // the palette's tables (engine/aurora-svg.ts) took the chunk from 14.7 to 16.5, for a still of 20 KiB where it was
+  // 36 in every page that shows one, and sixteen of them 12 KiB of a list's compressed page where they were 72
+  onDemand: 17,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,
   // mcp/admin/visits.ts: 5 KiB). It starts with no language's messages and no old address's map: it reads a language's
@@ -266,8 +270,12 @@ const BUDGETS = {
   // "why does the preview look blurrier than it actually is when hovered?"): its route, its answer and the drawing of
   // its pixels (server/images/fx-picture.ts, engine/fx-picture-draw.ts), which load with the first picture an isolate
   // is asked for, and the strings' trace a page's worker asks for (engine/strings-svg.ts), took it from 1499.4 to
-  // 1499.8 to 1501.0, by the build. The budget stands the builds' spread and one more over it
-  worker: 1503,
+  // 1499.8 to 1501.0, by the build. The aurora's lighter SVGs (17 Nov 2026, John: "the aurora vector representation
+  // is really heavy"): the same writer, which the Worker's SVG and CSS files and a page's stills load with the first
+  // of them asked for, took it from 1501.2 to 1502.8 to 1503.6, by the build; it writes a still in 5 ms where the old
+  // took 10, and a list's sixteen in 27 where they took 233. The budget stands the builds' spread and one more over
+  // it
+  worker: 1505,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with

@@ -133,8 +133,11 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   beside it), beside its shape (`EFFECT_KINDS`' `path`), and the range's color is its ground, none leaving it clear.
   Its shape, 0 to 999, picks its light (`auroraDesign`): the point its rays fan from, how wide its shafts are, where
   its light gathers and where every sheet of its noise starts, each sheet sliding as designed, so every shape's loop
-  closes at the designed pace. Its SVG is a frame of it, which never moves, and its still stands in for its first
-  frame, its light in broad wedges under a blur; a page's first screen and a list's cards show its first frame itself
+  closes at the designed pace. Its SVG is a frame of it, which never moves: its light in wedges of gradients, every
+  other one under a mask of tents so that the light runs from ray to ray, as many as the light needs and no more at
+  a larger size. Its still stands in for its first frame: its light in a few broad wedges of greys, how far along
+  the palette it reads, which one filter reads through the palette, so its colors are the palette's own and its
+  shapes one look's whatever the palette; a page's first screen and a list's cards show its first frame itself
   in its place, a picture the server draws by its CPU drawing and codes as WebP (`EFFECT_KINDS`' `picture`,
   `fx-picture.ts` for its address and version, `fx-picture-draw.ts` for its pixels). Its clips are drawn four pixels at
   a time from what the engine keeps of each pixel (`video.ts` auroraDraw:
