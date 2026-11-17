@@ -51,6 +51,34 @@ test("a view being set reaches the address in the lists' order, and the route an
   expect(answer.status()).toBe(200);
 });
 
+test("a press on a link or a tab is drawn before the page it asks for is begun", async ({
+  page
+}) => {
+  /* the address each press's next frame began at. A router moves the address as it begins a page: begun inside the
+     press, the page's start comes before the frame that shows the press, and the frame begins at the new address */
+  await page.addInitScript(() => {
+    const seen: string[] = [];
+    Object.assign(window, { __atFrame: seen });
+    addEventListener(
+      "click",
+      () => requestAnimationFrame(() => seen.push(location.pathname)),
+      true
+    );
+  });
+  const atFrame = () =>
+    page.evaluate(() => (window as unknown as { __atFrame: string[] }).__atFrame);
+  const at = () => page.evaluate(() => location.pathname);
+  await open(page, "/palettes");
+  // a plain link, which the frame itself answers
+  await page.locator("header a[data-home]").click();
+  await expect.poll(at).toBe("/");
+  expect(await atFrame()).toEqual(["/palettes"]);
+  // a tab, which its page answers
+  await page.getByRole("link", { name: "Collections", exact: true }).first().click();
+  await expect.poll(at).toBe("/collections");
+  expect(await atFrame()).toEqual(["/palettes", "/"]);
+});
+
 test("a list that Back returns to takes the view chosen since it was left", async ({ page }) => {
   await open(page, "/palettes");
   await page.getByRole("link", { name: /^Rising/ }).click();
