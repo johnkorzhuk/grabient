@@ -525,10 +525,10 @@ test("a press that leads to another entry lands the edit still waiting in the en
   const presses = page.getByRole("group", { name: "Palette actions" }).first();
   await presses.getByRole("button", { name: "Add to selection" }).click();
   const privacy = page.getByRole("link", { name: "Privacy", exact: true });
-  for (const leave of [
-    () => presses.getByRole("button", { name: /^Selection/ }).click(),
-    () => privacy.click()
-  ]) {
+  for (const [leave, left] of [
+    [() => presses.getByRole("button", { name: /^Selection/ }).click(), "selection"],
+    [() => privacy.click(), "/privacy"]
+  ] as const) {
     await page.keyboard.press("i");
     await expect.poll(() => here(page)).not.toContain("kS7CQ31Do6asvY-");
     const inverted = here(page);
@@ -536,6 +536,8 @@ test("a press that leads to another entry lands the edit still waiting in the en
     await page.keyboard.press("e");
     await leave();
     await expect.poll(() => here(page)).not.toBe(inverted);
+    // the press's own entry is made a frame after the press: Back is from that entry
+    await expect.poll(() => here(page)).toContain(left);
     await page.goBack();
     await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
     await expect.poll(() => here(page)).toBe("/kSqF5vKzob4kSRW");

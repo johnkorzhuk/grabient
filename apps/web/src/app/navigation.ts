@@ -4,6 +4,7 @@ import { focusMain, landFocus } from "@grabient/ui/SkipLink.tsx";
 import { type AnyRouter, type HistoryLocation, useRouterState } from "@tanstack/solid-router";
 import { createSignal, untrack } from "solid-js";
 import { landView } from "../features/list/appearance.ts";
+import { afterPress } from "./after-press.ts";
 import { openedOutside } from "./framed.ts";
 import { goThrough } from "./go.ts";
 import { forgetUndoFrom, landUndo } from "./undo.ts";
@@ -14,6 +15,8 @@ import { forgetUndoFrom, landUndo } from "./undo.ts";
    draws plain links with the address they are given. A press the browser means for something else goes to it: another
    button or a modifier key, a link with a target or a download, another site, a file or an API, an old grabient.com id
    (the server reads those), and a link to another language (hreflang), which loads its document.
+
+   A move to another page starts once the browser has drawn the press that asked for it (after-press.ts).
 
    After a page is pushed, or reached by Back or Forward, focus moves to the new page's main content when the control
    that held it left with the old page, and a screen reader is told the new page's title once the page has set it. An
@@ -151,6 +154,7 @@ const shown = (selector: string) =>
 
 /** The router's ways in: link presses, landings and their undo. Returns the way out. */
 export function watchNavigation(router: AnyRouter): () => void {
+  const stopWaiting = afterPress(router);
   const stopGoing = goThrough(router);
   const placeOf = (location: HistoryLocation) => location.state.__TSR_index ?? 0;
   /* the link a page was left by, by its entry: Back lands the focus on it again, at the depth the reader left */
@@ -239,6 +243,7 @@ export function watchNavigation(router: AnyRouter): () => void {
   });
   return () => {
     stopGoing();
+    stopWaiting();
     document.removeEventListener("click", onClick);
     document.removeEventListener("click", noteLink, true);
     clearTimeout(timer);
