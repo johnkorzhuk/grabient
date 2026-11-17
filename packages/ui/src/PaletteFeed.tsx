@@ -88,9 +88,10 @@ export function PaletteFeed<T>(props: {
       }}
       class={styles.feed}
       data-count={props.items.length}
-      style={{ "padding-top": `${win.before()}px`, "padding-bottom": `${win.after()}px` }}
     >
-      <PaletteGrid>
+      {/* the window's padding goes on the grid, the cards' own parent: on this div it moved the grid's box a row at
+          each swap, which a browser counts as the page shifting though no card moved */}
+      <PaletteGrid room={[win.before(), win.after()]}>
         <For each={shown()} keyed={props.key}>
           {item => props.card(item)}
         </For>

@@ -17,11 +17,26 @@ export const columnsAt = (width: number): number =>
             : 1;
 
 /** The lists' grid: one to six columns by the room it has (the page widths 768 to 3072 less their gutters), 40px apart
-    each way. `dense`, beside the export column, fits as many columns of at least 320px as there is room for. */
-export function PaletteGrid(props: { dense?: boolean; children: Element }) {
+    each way. `dense`, beside the export column, fits as many columns of at least 320px as there is room for. `room`
+    is the height of the rows a window leaves undrawn above and below the cards (PaletteFeed): the grid pads itself by
+    it, so the box that holds the cards stays where it is as rows leave and join. */
+export function PaletteGrid(props: {
+  dense?: boolean;
+  room?: readonly [before: number, after: number];
+  children: Element;
+}) {
   return (
     <div class={styles.host}>
-      <div class={styles.grid} data-dense={props.dense ? "" : undefined}>
+      <div
+        class={styles.grid}
+        data-dense={props.dense ? "" : undefined}
+        style={
+          props.room && {
+            "padding-top": `${props.room[0]}px`,
+            "padding-bottom": `${props.room[1]}px`
+          }
+        }
+      >
         {props.children}
       </div>
     </div>

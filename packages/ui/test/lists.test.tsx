@@ -226,7 +226,16 @@ describe("the feeds on the server", () => {
     ));
     expect(tags(markup, "i")).toHaveLength(30);
     expect(tag(markup, "div")).toMatchObject({ "data-count": "30" });
-    expect(tag(markup, "div").style).toBe("padding-top:0px;padding-bottom:0px");
+    /* the window's padding is the grid's own, the element the cards are children of: on the feed around it, each row
+       the window dropped moved the grid's box, which a browser counts as a layout shift */
+    const divs = tags(markup, "div");
+    expect(divs[0]!.style).toBeUndefined();
+    expect(divs.filter(div => div.style)).toHaveLength(1);
+    const grid = divs.find(div => div.style)!;
+    expect(grid.style).toBe("padding-top:0px;padding-bottom:0px");
+    expect(markup).toMatch(
+      /<div[^>]*style="padding-top:0px;padding-bottom:0px"[^>]*><i data-card="p0"/
+    );
   });
 
   test("a group feed draws its first groups and stands the rest in as their height", () => {

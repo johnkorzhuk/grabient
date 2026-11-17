@@ -1,10 +1,12 @@
 import { isServer } from "@solidjs/web";
 import { createMemo, createSignal, flush, isHydrating, onCleanup, onSettled } from "solid-js";
 
-/* A window over a long column of blocks: only the blocks within a screen of the viewport are drawn, and padding on
-   the column's host stands in for the rest, so the host is as tall as the whole list and a block joining at the end
-   moves nothing. Rows of equal cards are blocks of one measured height; a feed's groups have heights of their own,
-   measured once drawn and estimated before (createHeights).
+/* A window over a long column of blocks: only the blocks within a screen of the viewport are drawn, and padding
+   stands in for the rest, so the column is as tall as the whole list and a block joining at the end moves nothing.
+   The padding goes on the element whose children the blocks are, never on one around it: a box that moves counts as
+   a layout shift to the browser (CLS) even when what it shows stays where it was, and padding on a wrapper moved the
+   box inside it by a block at every swap. Rows of equal cards are blocks of one measured height; a feed's groups have
+   heights of their own, measured once drawn and estimated before (createHeights).
 
    The server draws a column's first blocks. The first of them are hydrated and the rest stay the server's still
    markup, which costs a page's start nothing, until the reader moves (scrolls, points, presses a key) or the blocks
@@ -239,7 +241,7 @@ export function createWindow(o: WindowOptions) {
   });
 
   return {
-    /** the column's host, which carries the padding */
+    /** the column's host: where the column starts and how wide it is are read from it */
     ref: (el: HTMLElement) => {
       host = el;
     },
