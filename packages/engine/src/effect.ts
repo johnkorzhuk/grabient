@@ -117,8 +117,8 @@ export interface EffectKindFacts {
       (fx-picture.ts, apps/web server/images/fx-picture.ts), which a page's first screen and a list's cards show in
       place of its vector still: the aurora's, whose light no vector still within a list's budget draws sharp (John,
       13 Nov 2026, of its cards, whose still was then its light blurred: "why does the preview look blurrier than it
-      actually is when hovered?"; since 17 Nov 2026 the still is its light as a picture read through the palette,
-      aurora-svg.ts, 256 pixels on a card and 512 on a stage, within 1 of the frame on either and soft beside the
+      actually is when hovered?"; since 17 Nov 2026 the still is its light as a picture in the palette's colors,
+      aurora-svg.ts, 256 pixels on a card and 448 on a stage, within 1 of the frame on either and soft beside the
       picture, which is the frame itself). A picture is
       drawn once for a palette and look and kept, so where the palette changes as it is edited (the editor's own
       pictures), its vector still stands. The others' vector stills are their first frame to within a level, or a

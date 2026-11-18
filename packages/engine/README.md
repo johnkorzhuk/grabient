@@ -136,10 +136,12 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   closes at the designed pace. Its SVG is a frame of it, which never moves: its light in wedges of gradients, every
   other one under a mask of tents so that the light runs from ray to ray, as fine as its size shows the light and
   no finer than the light is. Its still stands in for its first frame: its light as a small picture the SVG holds
-  (a JPEG of greys, how far along the palette the light reads: `jpeg-greys.ts`), which one filter reads through the
-  palette under the range's own shape, so it is that frame a little soft, its colors the palette's own and its
-  picture one look's whatever the palette (256 pixels a side for a card, 512 for a stage or a stylesheet's
-  background, which fill a screen: `fxStillSvg`'s `stage`); a page's first screen and a list's cards show its first frame itself
+  under the range's own shape, an indexed PNG (`indexed-png.ts`, deflated by `deflate.ts`) whose pixels say how far
+  along the palette the light reads and whose own palette is the palette's colors there, so it is that frame a
+  little soft, its pixels one look's whatever the palette, and its colors a picture's, which a browser shows on
+  any screen as it shows the shader's (a filter's tables are not: Chromium takes their numbers for the screen's
+  own); 256 pixels a side for a card, 448 for a stage or a stylesheet's background, which fill a screen
+  (`fxStillSvg`'s `stage`); a page's first screen and a list's cards show its first frame itself
   in its place, a picture the server draws by its CPU drawing and codes as WebP (`EFFECT_KINDS`' `picture`,
   `fx-picture.ts` for its address and version, `fx-picture-draw.ts` for its pixels). Its clips are drawn four pixels at
   a time from what the engine keeps of each pixel (`video.ts` auroraDraw:

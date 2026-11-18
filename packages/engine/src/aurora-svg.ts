@@ -34,17 +34,28 @@
    it shows, the range's color at its cover where it does not.
 
    Its still, for a page's first paint and a list's cards, is for browsers alone, and carries the light itself as a
-   small picture: how far along the palette the light of each place reads, a grey a pixel, in a JPEG the SVG holds
-   (jpeg-greys.ts), drawn under the range's own shape and read through the palette by one filter (STILL below). So
-   it is the shader's first frame a little soft, its shapes the shader's own, every color the palette's own and a
-   palette's bands sharp; what it weighs does not depend on the palette; and its picture is one look's, whatever the
-   palette, so a list of one look in sixteen palettes makes it once. A sample of light costs a bit of a JPEG where
-   a gradient's stop costs 47 bytes of a stylesheet, and no still of shapes alone came near the shader in the 40 KiB
-   a list's still may weigh: the light as colors in broad wedges under a blur (until 17 Nov 2026), then as greys in
-   wedges with the light run between them (a day), each a smooth picture of other shapes than the shader's, 3 to 6
-   from its frame on a card where the picture lies within 1; and shapes as wide as their light under a blur, eight
-   times the samples in the same bytes, drew moire in WebKit, 3 to 8 from the frame where Chromium drew them within
-   1.5 (John, 17 Nov 2026, of the still then: "the vector does not look like the shader"). */
+   small picture: how far along the palette the light of each place reads, a pixel one of LEVELS places, in an
+   indexed PNG the SVG holds (indexed-png.ts) whose own palette is the palette's colors at those places, drawn
+   under the range's own shape (STILL below). So it is the shader's first frame a little soft, its shapes the
+   shader's own and every pixel of it a color of the palette's own (between two pixels a browser blends theirs);
+   what it weighs does not depend on the palette; and its pixels are one look's, whatever the palette, so a list of
+   one look in sixteen palettes makes them once. And its colors
+   are a picture's, which a browser shows on any screen as it shows the shader's canvas. For a day (17 Nov 2026)
+   the picture was a JPEG of greys that one filter's tables read through the palette, and Chromium takes what a
+   filter's table writes for the screen's own numbers, where it turns a picture's, a fill's and a canvas's colors
+   into the screen's: on a screen of a wider gamut than sRGB the still stood apart from the shader that took over
+   from it (told its screen is Display P3, Chromium drew a palette's lime 26 levels of red and 15 of blue under
+   the shader's, and on an sRGB screen within one; John, that day: "the initial vector is slightly a different
+   color than the shader"). Nothing that scales or mixes colors as the page is drawn is exact there either (black
+   at an opacity read from the light, over a picture of the colors at full strength, lay 6 to 12 levels off in the
+   dark colors): only a color that a picture, a fill or a gradient holds is the screen's as the shader's is.
+   A sample of light costs a few bits of a PNG where a gradient's stop costs 47 bytes of a stylesheet, and no still
+   of shapes alone came near the shader in the 40 KiB a list's still may weigh: the light as colors in broad wedges
+   under a blur (until 17 Nov 2026), then as greys in wedges with the light run between them (a day), each a
+   smooth picture of other shapes than the shader's, 3 to 6 from its frame on a card where the picture lies within
+   1; and shapes as wide as their light under a blur, eight times the samples in the same bytes, drew moire in
+   WebKit, 3 to 8 from the frame where Chromium drew them within 1.5 (John, 17 Nov 2026, of the still then: "the
+   vector does not look like the shader"). */
 import {
   AURORA_PAGE_NUMBERS,
   AURORA_SOFT,
@@ -60,7 +71,7 @@ import {
   auroraTime
 } from "./aurora.ts";
 import { srgbToLch, toHex } from "./color.ts";
-import { base64, jpegOfGreysSteps } from "./jpeg-greys.ts";
+import { indexedPngSteps, pngPalette } from "./indexed-png.ts";
 import type { Palette } from "./palette.ts";
 import { svgNumber } from "./svg-fit.ts";
 import type { Size } from "./view.ts";
@@ -641,41 +652,41 @@ export function auroraFrameSvg(
 export const auroraFileSvg = (P: Palette, view: AuroraView, size: Size): string =>
   auroraFrameSvg(P, view, size, 0);
 
-/** The still's cut: how many pixels its picture of the light has along the box's longer side, and its JPEG's
-    quality. */
+/** The still's cut: how many pixels its picture of the light has along the box's longer side. */
 export interface AuroraStillCut {
   side: number;
-  quality: number;
 }
 
-/** The still's cut: a picture 256 pixels along the box's longer side, its JPEG at a quality of 90.
-    Measured 17 Nov 2026 at the design square over thirteen looks (shapes, angles, low ranges, walls), after each
-    the numbers of the two stills of shapes alone it follows (wedges of greys with the light run between them, then
-    colors in broad wedges under a blur): 11 to 19 KiB as a CSS background, 13.2 on average (17 to 24, 20.6; 34 to
-    38, 36.4), some 8 of them its picture and the rest its range, the same for every palette; its middle 16:9 on a
-    card of 400 by 224 a mean of 0.24 from the CPU's frame in the suite's palette (1.89; 1.66), 0.32 in a green one
-    (2.90; 2.54) and 0.66 in one of six colors (6.20; 6.48), and as near on a screen of 1280 by 720 (0.22, 0.30 and
-    0.65), where it is the frame five times enlarged; written in 25 ms for a look no still has shown, its light
-    read at 37,000 places (5; 11), and in 0.3 ms where its look's picture is kept, so sixteen of a look in 28 ms
-    (8; 161). Sixteen of them in a list's head are 189 KiB as written (294; 566), 14.6 gzipped (11.9; 72.5) and
-    10.5 in Brotli (6.2; 41.8): a JPEG does not shrink again. Sixteen cards of it are first painted by a software
-    rasterizer in 124 ms (224; 216), one filling a screen in 76 (64; 88). Chromium, Firefox and WebKit draw it as
-    resvg does (means of 0.01 to 0.22 apart).
-    A picture of 288 pixels at a quality of 88 lies as near (0.31 and 0.64 in the green palette and the one of six
-    colors) and takes a quarter longer to read; one of 320, 0.29 and 0.59. */
-const STILL: AuroraStillCut = { side: 256, quality: 90 };
-/** A stage's still, which fills a screen where a card's fills a card: a picture 512 pixels along the box's longer
-    side at a quality of 92. A card's picture over a screen of 1920 by 1080 is seven and a half times enlarged, and
-    showed its pixels and its JPEG's grain through a steep palette (John, 17 Nov 2026, of a page's first paint: "it
-    looks pixelated, the colors are off"). Measured that day against the CPU's frame, a card's picture over the same
-    screen after each: a mean of 0.16 and a 99th percentile of 0.9 in the suite's palette at 1920 by 1080 (0.23 and
-    1.7), 0.20 and 0.9 in a green one (0.30 and 1.8), 0.40 and 2.6 in one of six colors (0.65 and 5.3), and as near
-    at 2560 by 1440; 26 to 36 KiB as a CSS background over thirteen looks, 28.7 on average (11 to 19, 13.2); written
-    in 72 ms for a look no still has shown (22) and in 0.2 where its picture is kept. What grain is left is its
-    JPEG's: a lossless picture of 512 lies 0.29 and 1.6 from the six colors' frame at 2560 by 1440, in 54 KiB, and
-    a quality of 95 weighs a third more for 0.36 and 2.3. A picture as many pixels but finer across the fan than
-    along it (768 by 384) lies a tenth nearer, 0.37 and 2.3, and was left for the plainer square. */
-export const AURORA_STAGE_STILL: AuroraStillCut = { side: 512, quality: 92 };
+/** The still's cut: a picture 256 pixels along the box's longer side.
+    Measured 18 Nov 2026 at the design square, after each the numbers of the still it follows (a JPEG of greys as
+    many pixels a side, which a filter's tables read through the palette): 16.7 KiB as a CSS background as designed
+    (11.7), 14.2 of them its picture, and 16 to 27 over twenty-seven looks of the most light a box holds, in any
+    shape and at any angle, 21.4 on average (11 to 16, 13.3), the same for every palette; its middle 16:9 on a card
+    of 400 by 224 a mean of 0.16 from the CPU's frame in the suite's palette (0.24), 0.21 in a green one (0.32) and
+    0.52 in one of six colors (0.66), and as near on a screen of 1280 by 720 (0.15, 0.20 and 0.50), where it is the
+    frame five times enlarged: a PNG keeps every pixel as it was written, where a JPEG's grain showed wherever the
+    palette turns fast. Written in 29 ms for a look no still has shown (28), its light read at 37,000 places, and
+    in 0.2 ms where its look's picture is kept (0.3), so sixteen of a look in 29 ms. Sixteen of them in a list's
+    head are 268 KiB as written (189), 19.8 gzipped (14.6) and 16.6 in Brotli (10.5): a PNG does not shrink again,
+    and the sixteen are one picture around sixteen palettes of 384 bytes. Sixteen cards of it are first painted by
+    a software rasterizer in 120 ms (128), one filling a screen in 72 (88): it runs no filter. Chromium, Firefox
+    and WebKit draw it as resvg does (means of 0.01 to 0.14 apart).
+    A picture of 224 pixels weighs 14 KiB and lies 0.18 and 0.59 from the suite's frame and the six colors'; one
+    of 192, 12 KiB, 0.21 and 0.71. */
+const STILL: AuroraStillCut = { side: 256 };
+/** A stage's still, which fills a screen where a card's fills a card: a picture 448 pixels along the box's longer
+    side. A card's picture over a screen of 1920 by 1080 is seven and a half times enlarged, and showed its pixels
+    (John, 17 Nov 2026, of a page's first paint: "it looks pixelated, the colors are off"). Measured 18 Nov 2026
+    against the CPU's frame, a card's picture over the same screen after each: a mean of 0.10 and a 99th percentile
+    of 0.6 in the suite's palette at 1920 by 1080 (0.15 and 1.3), 0.14 and 0.7 in a green one (0.20 and 1.4), 0.30
+    and 2.0 in one of six colors (0.50 and 4.5), and as near at 2560 by 1440; 34.0 KiB as a CSS background as
+    designed, 31.6 of them its picture, and 33 to 53 over the twenty-seven looks of the most light, 43.8 on average;
+    written in 75 ms for a look no still has shown and in 0.1 where its picture is kept; first painted over a
+    screen in 72 ms by a software rasterizer. The JPEG of greys it follows was 512 pixels a side at a quality of
+    92: 0.16 and 0.9, 0.20 and 0.9, 0.40 and 2.6 from those frames, in 26.0 KiB as designed and 25 to 34 over those
+    looks, written in 96 ms and painted in 100. A picture of 384 pixels lies 0.34 and 2.5 from the six colors'
+    frame in 28 KiB, and one of 512, 0.27 and 1.6 in 41. */
+export const AURORA_STAGE_STILL: AuroraStillCut = { side: 448 };
 
 /** The light alone: a scene whose ramp is the light itself, so that auroraLight answers how much light, 0 to 1. */
 const LIGHT_ALONE = Float32Array.from({ length: 128 * 3 }, (_, i) => Math.floor(i / 3) / 127);
@@ -683,44 +694,38 @@ const { low: LOW, tip: TIP, bend: BEND } = AURORA_PAGE_NUMBERS;
 /* how far along the palette, from its darker end, a light is read (aurora.ts auroraRamp) */
 const alongPalette = (light: number) =>
   1 - (1 - Math.min(1, Math.max(0, (light - LOW) / (TIP - LOW)))) ** BEND;
-/** How the still's greys spend their 256 levels along the palette: a grey is how far along the palette the light
-    reads, to this power, so the palette's darker end, where most of a frame's light lies and lies smoothest (over
-    half its pixels in the first third), takes most of the levels. And WebKit takes a filter's picture through
-    8 bits of linear light and back whatever space the filter is said to work in (greys 0 to 43 come out as 0, 13,
-    22, 28, 34, 38 and 42: 17 Nov 2026, Playwright's WebKit): greys read straight along the palette left a dark
-    sky seven levels, drawn as blocks, where this power, the transfer curve's own nearly, leaves that round trip
-    the palette in even steps. */
-const GREY_BEND = 0.45;
-/** How many straight lines the filter's tables read the palette by, even steps of grey: at the palette's lighter
-    end, where a step of grey is the longest step along the palette, as long as the palette's own 32 (fewer round
-    a palette's sharpest turns: 32 lay up to 31 levels off a palette of many colors there, 64 up to 15). */
-const TABLE = 64;
-/** The height over the line the light rises from (auroraRange) under which the light is its haze alone, one grey:
+/** How many places along the palette a pixel of the still's picture may name, even steps from its darker end to
+    its other: as many as the ramp the shader reads has colors (aurora.ts AURORA_RAMP). A place is a color of the
+    PNG's palette, and between two pixels a browser blends their colors, so with fewer a smooth sky shows the steps
+    as lines wherever the palette turns fast: 64 drew them plainly and 96 faintly in a palette of many colors on a
+    screen of 1920 by 1080 (a mean of 0.44 and 0.35 from the frame, where these lie 0.31), and 256 lie 0.27 and
+    weigh a quarter more. */
+const LEVELS = 128;
+/** The height over the line the light rises from (auroraRange) under which the light is its haze alone, one place:
     where its short rise begins (aurora.ts auroraLift). */
 const HAZE_ALONE = -0.02;
 
-/** A still's picture, which is its light's and no palette's: the whole of the still but the filter's tables, in
-    the two pieces the tables are written between. */
+/** A still's picture, which is its light's and no palette's: the whole of the still but its PNG's palette, in the
+    two pieces the palette is written between. */
 interface StillPicture {
   before: string;
   after: string;
 }
 
-/* The still's picture of a scene's first frame, a few rows a step: the light of each pixel's middle as a grey,
-   under the range as over it (the range's mask hides it there, and a picture with no hard edge of its own keeps
-   the JPEG's blocks out of sight), then the JPEG, and the SVG that lays it under the range's mask and reads it
-   through the filter. */
+/* The still's picture of a scene's first frame, a few rows a step: the light of each pixel's middle as a place
+   along the palette, under the range as over it (the range's mask hides it there, and one place under the whole
+   range is a run the PNG writes in a few bytes), then the PNG, and the SVG that lays it under the range's mask. */
 function* stillPicture(m: AuroraScene, cut: AuroraStillCut): Generator<void, StillPicture> {
   const { width: W, height: H } = m;
   const scale = cut.side / Math.max(W, H);
   const w = Math.max(1, Math.floor(W * scale + 0.5));
   const h = Math.max(1, Math.floor(H * scale + 0.5));
   const lit: AuroraScene = { ...m, ramp: LIGHT_ALONE };
-  const greyOf = (light: number) => Math.floor(alongPalette(light) ** GREY_BEND * 255 + 0.5);
+  const placeOf = (light: number) => Math.floor(alongPalette(light) * (LEVELS - 1) + 0.5);
   const lift = [0, 0, 0];
   auroraLift(HAZE_ALONE, lift);
-  const haze = greyOf(lift[1]);
-  const greys = new Uint8Array(w * h);
+  const haze = placeOf(lift[1]);
+  const places = new Uint8Array(w * h);
   const at = new Float64Array(2);
   const where = new Float64Array(2);
   const c = new Float64Array(3);
@@ -735,45 +740,43 @@ function* stillPicture(m: AuroraScene, cut: AuroraStillCut): Generator<void, Sti
         line[x] = at[1] - where[1];
       }
       const over = at[1] - line[x];
-      if (over <= HAZE_ALONE) greys[y * w + x] = haze;
+      if (over <= HAZE_ALONE) places[y * w + x] = haze;
       else {
         auroraLight(lit, 0, at[0], at[1], over, c);
-        greys[y * w + x] = greyOf(c[0]);
+        places[y * w + x] = placeOf(c[0]);
       }
     }
     if (y % 4 === 3) yield;
   }
-  const jpeg = yield* jpegOfGreysSteps(greys, w, h, cut.quality);
+  const png = yield* indexedPngSteps(places, w, h);
   const R = rangeParts(m, false);
   return {
     before:
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs>${R.defs}` +
-      `<filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}" color-interpolation-filters="sRGB"><feComponentTransfer>`,
-    after:
-      `</feComponentTransfer></filter></defs>${R.under}` +
-      `<g mask="url(#m)"><g filter="url(#f)"><image width="${W}" height="${H}" preserveAspectRatio="none" href="data:image/jpeg;base64,${base64(jpeg)}"/></g></g></svg>`
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs>${R.defs}</defs>${R.under}` +
+      `<g mask="url(#m)"><image width="${W}" height="${H}" preserveAspectRatio="none" href="data:image/png;base64,${png.head}`,
+    after: `${png.rows}"/></g></svg>`
   };
 }
 
-/* The filter's tables for a palette: its colors from its darker end, as the ramp reads them (aurora.ts auroraRamp),
-   at even steps of grey, a table a channel. */
-function paletteTables(P: Palette): string {
+/* The PNG's palette for a palette: its color at each of the LEVELS places, from its darker end, as the ramp reads
+   them (aurora.ts auroraRamp), as the chunk the picture's two pieces lie around. */
+function paletteChunk(P: Palette): string {
   const colors = auroraStops(P);
   const last = colors.length - 1;
   const flip = srgbToLch(colors[0])[0] > srgbToLch(colors[last])[0];
-  const along = Array.from({ length: TABLE + 1 }, (_, i) => {
-    const x = (i / TABLE) ** (1 / GREY_BEND) * last;
+  const bytes = new Uint8Array(LEVELS * 3);
+  for (let i = 0; i < LEVELS; i++) {
+    const x = (i / (LEVELS - 1)) * last;
     const at = Math.min(last - 1, Math.floor(x));
     const [a, b] = flip ? [colors[last - at], colors[last - 1 - at]] : [colors[at], colors[at + 1]];
-    return a.map((v, j) => v + (b[j] - v) * (x - at));
-  });
-  return ["R", "G", "B"]
-    .map((c, j) => `<feFunc${c} type="table" tableValues="${along.map(v => n3(v[j])).join(" ")}"/>`)
-    .join("");
+    for (let j = 0; j < 3; j++)
+      bytes[i * 3 + j] = Math.floor((a[j] + (b[j] - a[j]) * (x - at)) * 255 + 0.5);
+  }
+  return pngPalette(bytes);
 }
 
 /** The pictures of the stills last written, by their cut, look and box: a list's cards are one look in sixteen
-    palettes, and its next page sixteen more, so all but the first of them cost their tables alone. */
+    palettes, and its next page sixteen more, so all but the first of them cost their palettes alone. */
 const KEPT_STILLS = 12;
 const keptStills = new Map<string, StillPicture>();
 
@@ -786,7 +789,7 @@ export function* auroraStillSteps(
   size: Size,
   cut: AuroraStillCut = STILL
 ): Generator<void, string> {
-  const key = `${cut.side} ${cut.quality} ${view.angle} ${view.shape} ${view.path} ${view.bg} ${size.width} ${size.height}`;
+  const key = `${cut.side} ${view.angle} ${view.shape} ${view.path} ${view.bg} ${size.width} ${size.height}`;
   let picture = keptStills.get(key);
   if (!picture) {
     yield* auroraTilesSteps();
@@ -794,7 +797,7 @@ export function* auroraStillSteps(
     keptStills.set(key, picture);
     if (keptStills.size > KEPT_STILLS) keptStills.delete(keptStills.keys().next().value as string);
   }
-  return picture.before + paletteTables(P) + picture.after;
+  return picture.before + paletteChunk(P) + picture.after;
 }
 
 /** The still: auroraStillSteps, at once. */

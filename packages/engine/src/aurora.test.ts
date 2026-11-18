@@ -1,3 +1,4 @@
+import { inflateSync } from "node:zlib";
 import { beforeAll, describe, expect, it } from "vitest";
 import { frameDiff, rasterize, resvgReady } from "../test/raster.ts";
 import {
@@ -865,34 +866,55 @@ describe("the aurora's SVGs", () => {
   const SQUARE = { width: 1000, height: 1000 };
   const many = decodePalette("kWKxfe1GRDVfIxNzPsjbDZKA") as Palette;
 
-  it("stills as a small picture of its light, which one filter reads through the palette under the range's shape", () => {
+  /* a still's PNG: its size, its palette and the place each pixel names */
+  const pngOf = (still: string) => {
+    const bytes = Buffer.from(
+      /href="data:image\/png;base64,([^"]*)"/.exec(still)?.[1] ?? "",
+      "base64"
+    );
+    const colors = bytes.readUInt32BE(33) / 3;
+    const data = 41 + colors * 3 + 4;
+    const width = bytes.readUInt32BE(16);
+    const height = bytes.readUInt32BE(20);
+    const rows = inflateSync(bytes.subarray(data + 8, data + 8 + bytes.readUInt32BE(data)));
+    const places = new Uint8Array(width * height);
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++)
+        places[y * width + x] =
+          rows[y * (width + 1) + 1 + x] + (y ? places[(y - 1) * width + x] : 0);
+    return {
+      width,
+      height,
+      kind: [bytes[24], bytes[25]],
+      palette: bytes.subarray(41, 41 + colors * 3),
+      places
+    };
+  };
+
+  it("stills as a small picture of its light under the range's shape, an indexed PNG whose palette is the palette's colors", () => {
     const still = auroraStillSvg(P, view(), SQUARE);
-    expect(still.match(/<filter/g)).toHaveLength(1);
-    expect(still).toContain(
-      'color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="table"'
-    );
+    /* nothing that writes a color as the page is drawn: Chromium takes a filter's numbers for the screen's own, so
+       a still that read its light through a filter's tables stood apart from the shader on a screen of a wider
+       gamut (John, 17 Nov 2026: "the initial vector is slightly a different color than the shader") */
     expect(still).not.toMatch(
-      /<feGaussianBlur|<linearGradient id="[gw]|<script|<foreignObject|@keyframes|<animate|xlink/
+      /<filter|<fe[A-Z]|<linearGradient id="[gw]|<script|<foreignObject|@keyframes|<animate|xlink|mix-blend-mode/
     );
-    /* one picture, a JPEG of greys the SVG holds itself, 256 pixels a side over the design's square, under the
-       range's mask */
+    /* one picture, a PNG the SVG holds itself, 256 pixels a side over the design's square, under the range's
+       mask: eight bits a pixel, indexed, a place along the palette each */
     expect(still.match(/<image /g)).toHaveLength(1);
     expect(still).toContain(
-      '<g mask="url(#m)"><g filter="url(#f)"><image width="1000" height="1000" preserveAspectRatio="none" href="data:image/jpeg;base64,/9j/'
+      '<g mask="url(#m)"><image width="1000" height="1000" preserveAspectRatio="none" href="data:image/png;base64,iVBORw0KGgo'
     );
-    expect(still).not.toMatch(/href="(?!#|data:image\/jpeg;base64,)/);
-    const jpeg = Buffer.from(/base64,([^"]*)"/.exec(still)?.[1] ?? "", "base64");
-    const frame = jpeg.indexOf(Buffer.from([0xff, 0xc0]));
-    expect([jpeg.readUInt16BE(frame + 7), jpeg.readUInt16BE(frame + 5), jpeg[frame + 9]]).toEqual([
-      256, 256, 1
-    ]);
+    expect(still).not.toMatch(/href="(?!#|data:image\/png;base64,)/);
+    const png = pngOf(still);
+    expect([png.width, png.height, ...png.kind]).toEqual([256, 256, 8, 3]);
+    expect(png.palette).toHaveLength(AURORA_RAMP * 3);
+    expect(Math.max(...png.places)).toBeLessThan(AURORA_RAMP);
+    /* most of the palette's places are somewhere in it */
+    expect(new Set(png.places).size).toBeGreaterThan(100);
     /* a box that is no square has its picture in its own shape */
-    const wide = auroraStillSvg(P, view(), { width: 640, height: 360 });
-    const wideJpeg = Buffer.from(/base64,([^"]*)"/.exec(wide)?.[1] ?? "", "base64");
-    const wideFrame = wideJpeg.indexOf(Buffer.from([0xff, 0xc0]));
-    expect([wideJpeg.readUInt16BE(wideFrame + 7), wideJpeg.readUInt16BE(wideFrame + 5)]).toEqual([
-      256, 144
-    ]);
+    const wide = pngOf(auroraStillSvg(P, view(), { width: 640, height: 360 }));
+    expect([wide.width, wide.height]).toEqual([256, 144]);
     /* a step at a time it is the same still; and a still of the same look again takes no step: its picture is
        kept */
     const turned = view(null, null, 45);
@@ -908,27 +930,31 @@ describe("the aurora's SVGs", () => {
     expect(auroraStillSteps(many, turned, SQUARE).next().done).toBe(true);
   });
 
-  it("stills in the same picture whatever the palette: the filter's tables alone are the palette's", () => {
-    const tables = /<feComponentTransfer>.*?<\/feComponentTransfer>/;
+  it("stills in the same picture whatever the palette: the PNG's palette alone is the palette's", () => {
     const one = auroraStillSvg(P, view(), SQUARE);
     const other = auroraStillSvg(many, view(), SQUARE);
     expect(other).not.toBe(one);
-    expect(other.replace(tables, "")).toBe(one.replace(tables, ""));
-    /* a table a channel, the palette from its darker end: its first color first, its last last */
-    const table = (still: string, channel: string) =>
-      (new RegExp(`<feFunc${channel} type="table" tableValues="([^"]*)"/>`).exec(still)?.[1] ?? "")
-        .split(" ")
-        .map(Number);
+    /* the same text but the palette's chunk, which lies at the same place and is as long: a list's cards of one
+       look repeat the picture byte for byte, which a compressed page carries once */
+    expect(other).toHaveLength(one.length);
+    const start = one.indexOf("base64,") + 7 + 44;
+    const chunk = ((12 + AURORA_RAMP * 3) / 3) * 4;
+    expect(other.slice(0, start)).toBe(one.slice(0, start));
+    expect(other.slice(start + chunk)).toBe(one.slice(start + chunk));
+    expect(Buffer.compare(pngOf(other).places, pngOf(one).places)).toBe(0);
+    /* the palette from its darker end, even steps along it: its first color first, its last last, and a stop of
+       the palette's own wherever a place falls on one */
+    const palette = pngOf(other).palette;
     const ramp = auroraRamp(many);
-    for (const [j, channel] of ["R", "G", "B"].entries()) {
-      const values = table(other, channel);
-      expect(values).toHaveLength(65);
-      expect(values[0]).toBeCloseTo(ramp[j], 2);
-      expect(values[64]).toBeCloseTo(ramp[(AURORA_RAMP - 1) * 3 + j], 2);
+    for (let j = 0; j < 3; j++) {
+      expect(palette[j]).toBe(Math.round(ramp[j] * 255));
+      expect(palette[(AURORA_RAMP - 1) * 3 + j]).toBe(
+        Math.round(ramp[(AURORA_RAMP - 1) * 3 + j] * 255)
+      );
     }
   });
 
-  it("stills in the palette's own colors: no color it draws lies off the palette", () => {
+  it("stills in the palette's own colors: every pixel of its picture is one, and between two a blend of them", () => {
     /* its light blended as colors under a blur, as it once was, drew this palette of many colors up to 54 levels
        off itself, four pixels in ten more than 8 off (17 Nov 2026) */
     const ramp = auroraRamp(many);
@@ -940,22 +966,36 @@ describe("the aurora's SVGs", () => {
             j => (ramp[i * 3 + j] + ((ramp[i * 3 + 3 + j] - ramp[i * 3 + j]) * f) / 4) * 255
           )
         );
-    const px = rasterize(auroraStillSvg(many, view(), { width: 320, height: 320 }), 320);
-    let worst = 0;
-    let seen = 0;
-    for (let i = 0; i < px.length; i += 4) {
-      if (px[i + 3] < 255) continue;
-      seen++;
-      let nearest = 255;
-      for (const c of along)
-        nearest = Math.min(
-          nearest,
-          Math.max(Math.abs(px[i] - c[0]), Math.abs(px[i + 1] - c[1]), Math.abs(px[i + 2] - c[2]))
-        );
-      worst = Math.max(worst, nearest);
-    }
-    expect(seen).toBeGreaterThan(40000);
-    expect(worst).toBeLessThan(8);
+    /* how far the colors a still is drawn in lie off the palette: the farthest, and the share more than 8 off */
+    const off = (side: number) => {
+      const px = rasterize(auroraStillSvg(many, view(), { width: side, height: side }), side);
+      let worst = 0;
+      let seen = 0;
+      let far = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i + 3] < 255) continue;
+        seen++;
+        let nearest = 255;
+        for (const c of along)
+          nearest = Math.min(
+            nearest,
+            Math.max(Math.abs(px[i] - c[0]), Math.abs(px[i + 1] - c[1]), Math.abs(px[i + 2] - c[2]))
+          );
+        worst = Math.max(worst, nearest);
+        if (nearest > 8) far++;
+      }
+      return { worst, seen, far: far / seen };
+    };
+    /* at its picture's own size, a pixel a pixel: each a color of the palette */
+    const own = off(256);
+    expect(own.seen).toBeGreaterThan(30000);
+    expect(own.worst).toBeLessThan(3);
+    /* enlarged, the colors between two pixels are a blend of theirs, which lies off the palette only where the
+       two lie far apart along it, at a steep edge: 0.45% of this palette's pixels more than 8 levels off */
+    const larger = off(320);
+    expect(larger.seen).toBeGreaterThan(40000);
+    expect(larger.far).toBeLessThan(0.01);
+    expect(larger.worst).toBeLessThan(40);
   });
 
   /* a still's design square laid over a box as CSS's cover lays it, against the CPU's frame of that box (whose
@@ -985,7 +1025,7 @@ describe("the aurora's SVGs", () => {
     );
   };
 
-  it("stills as the shader's first frame a little soft: on a card and on a phone's screen within a mean of 0.8 of it", () => {
+  it("stills as the shader's first frame a little soft: on a card and on a phone's screen within a mean of 0.6 of it", () => {
     /* as wedges of greys with the light run between them, as it was for a day, a card's still lay 1.9 from this
        palette's frame and 6.2 from one of six colors'; as colors under a blur, 1.7 and 6.5 (John, 17 Nov 2026: "the
        vector does not look like the shader. its important there's parity there") */
@@ -1001,44 +1041,46 @@ describe("the aurora's SVGs", () => {
           [224, 400]
         ]) {
           const d = near(Q, v, W, H);
-          expect(d.mean, `${v.path} ${W}x${H}`).toBeLessThan(0.8);
+          expect(d.mean, `${v.path} ${W}x${H}`).toBeLessThan(0.6);
           expect(d.p99, `${v.path} ${W}x${H}`).toBeLessThan(5);
           expect(d.far).toBe(0);
         }
-    /* this palette as designed, on a card: 0.24 and 1.0 */
-    expect(near(P, view(), 400, 224).mean).toBeLessThan(0.4);
+    /* this palette as designed, on a card: 0.16 and 1.0 (as a JPEG of greys under a filter's tables, 0.24 and
+       1.0: a JPEG's grain shows wherever the palette turns fast) */
+    expect(near(P, view(), 400, 224).mean).toBeLessThan(0.3);
   });
 
-  it("stills a stage with a picture twice as fine each way: on a screen nearer the frame than a card's, with no pixel of it to see", () => {
+  it("stills a stage with a picture of three times the pixels: on a screen nearer the frame than a card's, with no pixel of it to see", () => {
     /* a card's picture over a screen of 1920 by 1080 is seven and a half times enlarged (John, 17 Nov 2026, of a
        page's first paint: "it looks pixelated, the colors are off") */
     const stage = auroraStillSvg(P, view(), SQUARE, AURORA_STAGE_STILL);
-    const jpeg = Buffer.from(/base64,([^"]*)"/.exec(stage)?.[1] ?? "", "base64");
-    const frame = jpeg.indexOf(Buffer.from([0xff, 0xc0]));
-    expect([jpeg.readUInt16BE(frame + 7), jpeg.readUInt16BE(frame + 5)]).toEqual([512, 512]);
+    const png = pngOf(stage);
+    expect([png.width, png.height]).toEqual([448, 448]);
     /* all of it but its picture is a card's still, and it is kept beside the card's */
-    const picture = /href="data:image\/jpeg;base64,[^"]*"/;
+    const picture = /href="data:image\/png;base64,[^"]*"/;
     const card = auroraStillSvg(P, view(), SQUARE);
     expect(stage).not.toBe(card);
     expect(stage.replace(picture, "")).toBe(card.replace(picture, ""));
     expect(auroraStillSteps(many, view(), SQUARE, AURORA_STAGE_STILL).next().done).toBe(true);
     expect(auroraStillSteps(many, view(), SQUARE).next().done).toBe(true);
-    expect(`${svgUrl(stage)} 50% 50% / cover no-repeat`.length).toBeLessThan(30 * 1024);
-    /* on a screen of 1280 by 720: 0.15 and 0.8 from this palette's frame where a card's still lies 0.22 and 1.6 */
+    /* 34 KiB as designed */
+    expect(`${svgUrl(stage)} 50% 50% / cover no-repeat`.length).toBeLessThan(38 * 1024);
+    /* on a screen of 1280 by 720: 0.09 and 0.5 from this palette's frame where a card's still lies 0.15 and 1.2 */
     for (const Q of [P, many]) {
       const own = near(Q, view(), 1280, 720, AURORA_STAGE_STILL);
       const cards = near(Q, view(), 1280, 720);
       expect(own.mean).toBeLessThan(cards.mean * 0.8);
       expect(own.p99).toBeLessThan(cards.p99 * 0.7);
-      expect(own.mean).toBeLessThan(0.35);
-      expect(own.p99).toBeLessThan(1.6);
+      expect(own.mean).toBeLessThan(0.25);
+      expect(own.p99).toBeLessThan(1.2);
     }
   });
 
-  it("stills within a third of the weight a list's card may have, whatever the look", () => {
+  it("stills within two thirds of the weight a list's card may have, whatever the look", () => {
     /* the most light a box holds, in a palette of many colors, at any angle and in any shape: its picture weighs
-       by its light, 6 to 9 KiB, and its range's path by its length. Its light as colors under a blur weighed 34 to
-       38 KiB whatever the look, and as wedges of greys 17 to 24 */
+       by its light, 13 to 24 KiB, and its range's path by its length (as a JPEG of greys under a filter's tables,
+       11 to 16 KiB in all). Its light as colors under a blur weighed 34 to 38 KiB whatever the look, and as wedges
+       of greys 17 to 24 */
     const weights: number[] = [];
     for (const path of [null, "line,0,0", auroraMadePath("skyline", 3)])
       for (const angle of [90, 45, 210])
@@ -1046,9 +1088,9 @@ describe("the aurora's SVGs", () => {
           const heavy = auroraStillSvg(many, view(path, null, angle, shape), SQUARE);
           weights.push(`${svgUrl(heavy)} 50% 50% / cover no-repeat`.length);
         }
-    expect(Math.max(...weights)).toBeLessThan(20 * 1024);
-    expect(Math.min(...weights)).toBeGreaterThan(8 * 1024);
-    expect(weights.reduce((sum, w) => sum + w, 0) / weights.length).toBeLessThan(15 * 1024);
+    expect(Math.max(...weights)).toBeLessThan(28 * 1024);
+    expect(Math.min(...weights)).toBeGreaterThan(12 * 1024);
+    expect(weights.reduce((sum, w) => sum + w, 0) / weights.length).toBeLessThan(23 * 1024);
   });
 });
 

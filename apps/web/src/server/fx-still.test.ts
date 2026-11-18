@@ -180,26 +180,29 @@ describe("a silk's, a rosette's or a papercut's still on its page", () => {
     expect(html.replace(/<link rel="preload"[^>]*>/g, "")).not.toContain("/api/fx-still");
   });
 
-  test("a stage's holder takes a still of its own where its kind has one: the aurora's, its picture twice as fine each way, in a rule after the card's", () => {
+  test("a name a stage says is painted as a stage's still, in the one rule the name has: the aurora's, its picture three times a card's pixels", () => {
     /* John, 17 Nov 2026, of a page's first paint, a card's still over the whole stage: "it looks pixelated, the
        colors are off" */
     const look = { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null };
     const staged = (key: string) =>
       `<html><head></head><body><span data-fx-still="${key}"></span><div data-fx-still="${key}" data-fx-stage="${key}"></div></body></html>`;
+    const rulesOf = (html: string) =>
+      (/<style id="fx-still"[^>]*>([^<]*)<\/style>/.exec(html)?.[1] ?? "").split(/(?=\[data-fx-)/);
     const key = fxStillKey("aurora", SEED, look);
     const html = fxStills(staged(key));
     expect(/<style id="fx-still" data-key="([^"]*)">/.exec(html)?.[1]).toBe(key);
-    const rules = (/<style id="fx-still"[^>]*>([^<]*)<\/style>/.exec(html)?.[1] ?? "").split(
-      /(?=\[data-fx-)/
-    );
-    expect(rules).toHaveLength(2);
+    const rules = rulesOf(html);
+    /* one still of it on the page, not a card's beside the stage's */
+    expect(rules).toHaveLength(1);
     expect(rules[0]).toMatch(/^\[data-fx-still="[^"]*"\]\{background:url\("data:image\/svg\+xml,/);
-    expect(rules[1]).toMatch(/^\[data-fx-stage="[^"]*"\]\{background:url\("data:image\/svg\+xml,/);
-    expect(rules[1].length).toBeGreaterThan(rules[0].length * 1.8);
-    expect(rules[1].length).toBeLessThan(30 * 1024);
-    /* a list's cards name no stage, and a kind whose still draws as well at any size has no second one */
-    expect(fxStills(page(key))).not.toContain("[data-fx-stage=");
-    expect(fxStills(staged(fxStillKey("rosette", SEED, look)))).not.toContain("[data-fx-stage=");
+    expect(html).not.toContain("[data-fx-stage=");
+    const card = rulesOf(fxStills(page(key)));
+    expect(card).toHaveLength(1);
+    expect(rules[0].length).toBeGreaterThan(card[0].length * 1.6);
+    expect(rules[0].length).toBeLessThan(40 * 1024);
+    /* a kind whose still draws as well at any size is painted the same, staged or not */
+    const rosette = fxStillKey("rosette", SEED, look);
+    expect(rulesOf(fxStills(staged(rosette)))).toEqual(rulesOf(fxStills(page(rosette))));
   });
 
   test("a page without a holder, or naming no still, is left as it was", () => {

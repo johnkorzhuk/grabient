@@ -253,7 +253,7 @@ test("a stage's still is another than a card's only where a still draws no shape
     const card = fxStillBackground(kind, P, look);
     const stage = fxStillBackground(kind, P, look, true);
     if (kind === "aurora") {
-      /* its picture of the light twice as fine each way (aurora-svg.ts AURORA_STAGE_STILL) */
+      /* its picture of the light, three times the pixels (aurora-svg.ts AURORA_STAGE_STILL) */
       expect(stage).not.toBe(card);
       expect(stage.length).toBeGreaterThan(card.length * 1.8);
       expect(fxCover(fxStillSvg(kind, P, look, undefined, true))).toBe(stage);

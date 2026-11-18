@@ -219,7 +219,12 @@ const BUDGETS = {
   // likeness to its shader (17 Nov 2026, John, of those SVGs: "the vector does not look like the shader. its
   // important there's parity there"): the still as its light in a small JPEG the SVG holds, whose encoder is 1.8 KB
   // (engine/jpeg-greys.ts), where the wedges of greys and their fitting were 0.6, took the chunk from 16.5 to 17.7,
-  // for a still of 13 KiB that lies within 1 of the shader's frame on a card where the wedges lay 2 to 6
+  // for a still of 13 KiB that lies within 1 of the shader's frame on a card where the wedges lay 2 to 6. Its colors
+  // as the screen's (18 Nov 2026, John, of that still on his screen: "the initial vector is slightly a different color
+  // than the shader"): the still as an indexed PNG whose own palette is the palette's colors, which a browser
+  // shows as it shows the shader's canvas where it takes a filter's numbers for the screen's own; its writer and
+  // the deflate under it (engine/indexed-png.ts, deflate.ts) are 2.4 KB where the JPEG's encoder was 1.8, and took
+  // the chunk from 17.7 to 18.3
   onDemand: 18.5,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,
