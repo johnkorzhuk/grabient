@@ -879,7 +879,11 @@ function Stage(
     </Show>
   );
   /* a vector effect over the gradient while it plays (EFFECT_KINDS), its colors held by the flash guard as
-     well; while its code comes, the still the first screen showed stands in its place (server/fx-still.ts). One layer
+     well; while its code comes, the still the first screen showed stands in its place (server/fx-still.ts), on the
+     page's own ground where the effect's ground lets the page through, as the first screen and the layer lay it
+     (Boot.tsx, FxLayer.tsx: without it the gradient under the layer showed through an aurora's clear range from the
+     editor's arrival until the layer's code came; John, 17 Nov 2026: "why do i see a lienar gradient flash when the
+     page loads?"). One layer
      a kind, each shown by a plain test as the glass's and the blob's are: a layer keeps the kind it was made for (its
      player plays that kind), so another kind is another layer, and nothing reads a kind its condition no longer holds
      while a tile under the pointer turns the picture to another style and back */
@@ -887,10 +891,19 @@ function Stage(
     <Show when={e.shownEffect() === kind}>
       <Loading
         fallback={
-          <div class={styles.fx}>
+          <div
+            class={styles.fx}
+            data-bare={effectBare(kind, e.effects.settings(kind).look) ? "" : undefined}
+            data-cut={effectBare(kind, e.effects.settings(kind).look) ? "" : undefined}
+          >
             <div
               class={styles.glassStill}
               data-fx-still={fxStillKey(
+                kind,
+                encodePalette(calmPalette()),
+                fxLookOf(e.effects.settings(kind).look, e.angleIn(kind))
+              )}
+              data-fx-stage={fxStillKey(
                 kind,
                 encodePalette(calmPalette()),
                 fxLookOf(e.effects.settings(kind).look, e.angleIn(kind))

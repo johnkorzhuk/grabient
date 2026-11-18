@@ -91,7 +91,8 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
   );
   /* a vector effect's still (EFFECT_KINDS), where the address names one: the holder names it (its kind,
      palette, angle, shape, steps and ground), which the server's style in the head paints (server/fx-still.ts), as the
-     editor's holder does (FxLayer.tsx), on the page's own ground where its ground lets the page through */
+     editor's holder does (FxLayer.tsx), on the page's own ground where its ground lets the page through; and names it
+     as a stage's, for the still a box that fills a screen takes */
   const fx = () => (
     <Show when={isVectorKind(props.page.effect?.kind) ? props.page.effect : null}>
       {effect => (
@@ -102,6 +103,11 @@ export function Boot(props: { page: SeedPage; title: string; likes: number; alt:
           <div
             class={styles.glassStill}
             data-fx-still={fxStillKey(
+              effect().kind as VectorKind,
+              props.page.seed,
+              fxLookOf(effect().look, props.page.view.angle)
+            )}
+            data-fx-stage={fxStillKey(
               effect().kind as VectorKind,
               props.page.seed,
               fxLookOf(effect().look, props.page.view.angle)

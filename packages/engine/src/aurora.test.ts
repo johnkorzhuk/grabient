@@ -49,7 +49,14 @@ import {
   auroraRandomPath
 } from "./aurora-path-kinds.ts";
 import { renderAurora } from "./aurora-render.ts";
-import { auroraFileSvg, auroraFrameSvg, auroraStillSteps, auroraStillSvg } from "./aurora-svg.ts";
+import {
+  AURORA_STAGE_STILL,
+  type AuroraStillCut,
+  auroraFileSvg,
+  auroraFrameSvg,
+  auroraStillSteps,
+  auroraStillSvg
+} from "./aurora-svg.ts";
 import { blobBackdrop } from "./blob.ts";
 import { decodePalette } from "./codec.ts";
 import { srgbToLch } from "./color.ts";
@@ -951,35 +958,37 @@ describe("the aurora's SVGs", () => {
     expect(worst).toBeLessThan(8);
   });
 
-  it("stills as the shader's first frame a little soft: on a card and on a phone's screen within a mean of 0.8 of it", () => {
-    /* the design's square laid over a box as CSS's cover lays it, against the CPU's frame of that box (whose numbers
-       are the shader's). As wedges of greys with the light run between them, as it was for a day, a card's still
-       lay 1.9 from this palette's frame and 6.2 from one of six colors'; as colors under a blur, 1.7 and 6.5 (John,
-       17 Nov 2026: "the vector does not look like the shader. its important there's parity there") */
-    const near = (Q: Palette, v: AuroraView, W: number, H: number) => {
-      const S = Math.max(W, H);
-      const page = (px: Uint8Array | Uint8ClampedArray, premultiplied: boolean) =>
-        Uint8Array.from({ length: (px.length / 4) * 3 }, (_, i) => {
-          const o = 4 * Math.floor(i / 3);
-          const a = px[o + 3] / 255;
-          return Math.round((premultiplied ? px[o + (i % 3)] : px[o + (i % 3)] * a) + 13 * (1 - a));
-        });
-      const square = page(rasterize(auroraStillSvg(Q, v, SQUARE), S), true);
-      const box = new Uint8Array(W * H * 3);
-      const left = Math.floor((S - W) / 2);
-      const top = Math.floor((S - H) / 2);
-      for (let y = 0; y < H; y++)
-        box.set(
-          square.subarray(((y + top) * S + left) * 3, ((y + top) * S + left + W) * 3),
-          y * W * 3
-        );
-      return frameDiff(
-        box,
-        page(renderAurora(auroraScene(Q, v, { width: W, height: H }), 0), false),
-        W,
-        H
+  /* a still's design square laid over a box as CSS's cover lays it, against the CPU's frame of that box (whose
+     numbers are the shader's), over a dark page */
+  const near = (Q: Palette, v: AuroraView, W: number, H: number, cut?: AuroraStillCut) => {
+    const S = Math.max(W, H);
+    const page = (px: Uint8Array | Uint8ClampedArray, premultiplied: boolean) =>
+      Uint8Array.from({ length: (px.length / 4) * 3 }, (_, i) => {
+        const o = 4 * Math.floor(i / 3);
+        const a = px[o + 3] / 255;
+        return Math.round((premultiplied ? px[o + (i % 3)] : px[o + (i % 3)] * a) + 13 * (1 - a));
+      });
+    const square = page(rasterize(auroraStillSvg(Q, v, SQUARE, cut), S), true);
+    const box = new Uint8Array(W * H * 3);
+    const left = Math.floor((S - W) / 2);
+    const top = Math.floor((S - H) / 2);
+    for (let y = 0; y < H; y++)
+      box.set(
+        square.subarray(((y + top) * S + left) * 3, ((y + top) * S + left + W) * 3),
+        y * W * 3
       );
-    };
+    return frameDiff(
+      box,
+      page(renderAurora(auroraScene(Q, v, { width: W, height: H }), 0), false),
+      W,
+      H
+    );
+  };
+
+  it("stills as the shader's first frame a little soft: on a card and on a phone's screen within a mean of 0.8 of it", () => {
+    /* as wedges of greys with the light run between them, as it was for a day, a card's still lay 1.9 from this
+       palette's frame and 6.2 from one of six colors'; as colors under a blur, 1.7 and 6.5 (John, 17 Nov 2026: "the
+       vector does not look like the shader. its important there's parity there") */
     const looks = [
       view(),
       view(auroraMadePath("skyline", 3), null, 210, 417),
@@ -998,6 +1007,32 @@ describe("the aurora's SVGs", () => {
         }
     /* this palette as designed, on a card: 0.24 and 1.0 */
     expect(near(P, view(), 400, 224).mean).toBeLessThan(0.4);
+  });
+
+  it("stills a stage with a picture twice as fine each way: on a screen nearer the frame than a card's, with no pixel of it to see", () => {
+    /* a card's picture over a screen of 1920 by 1080 is seven and a half times enlarged (John, 17 Nov 2026, of a
+       page's first paint: "it looks pixelated, the colors are off") */
+    const stage = auroraStillSvg(P, view(), SQUARE, AURORA_STAGE_STILL);
+    const jpeg = Buffer.from(/base64,([^"]*)"/.exec(stage)?.[1] ?? "", "base64");
+    const frame = jpeg.indexOf(Buffer.from([0xff, 0xc0]));
+    expect([jpeg.readUInt16BE(frame + 7), jpeg.readUInt16BE(frame + 5)]).toEqual([512, 512]);
+    /* all of it but its picture is a card's still, and it is kept beside the card's */
+    const picture = /href="data:image\/jpeg;base64,[^"]*"/;
+    const card = auroraStillSvg(P, view(), SQUARE);
+    expect(stage).not.toBe(card);
+    expect(stage.replace(picture, "")).toBe(card.replace(picture, ""));
+    expect(auroraStillSteps(many, view(), SQUARE, AURORA_STAGE_STILL).next().done).toBe(true);
+    expect(auroraStillSteps(many, view(), SQUARE).next().done).toBe(true);
+    expect(`${svgUrl(stage)} 50% 50% / cover no-repeat`.length).toBeLessThan(30 * 1024);
+    /* on a screen of 1280 by 720: 0.15 and 0.8 from this palette's frame where a card's still lies 0.22 and 1.6 */
+    for (const Q of [P, many]) {
+      const own = near(Q, view(), 1280, 720, AURORA_STAGE_STILL);
+      const cards = near(Q, view(), 1280, 720);
+      expect(own.mean).toBeLessThan(cards.mean * 0.8);
+      expect(own.p99).toBeLessThan(cards.p99 * 0.7);
+      expect(own.mean).toBeLessThan(0.35);
+      expect(own.p99).toBeLessThan(1.6);
+    }
   });
 
   it("stills within a third of the weight a list's card may have, whatever the look", () => {

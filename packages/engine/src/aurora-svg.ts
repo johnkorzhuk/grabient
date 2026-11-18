@@ -664,6 +664,18 @@ export interface AuroraStillCut {
     A picture of 288 pixels at a quality of 88 lies as near (0.31 and 0.64 in the green palette and the one of six
     colors) and takes a quarter longer to read; one of 320, 0.29 and 0.59. */
 const STILL: AuroraStillCut = { side: 256, quality: 90 };
+/** A stage's still, which fills a screen where a card's fills a card: a picture 512 pixels along the box's longer
+    side at a quality of 92. A card's picture over a screen of 1920 by 1080 is seven and a half times enlarged, and
+    showed its pixels and its JPEG's grain through a steep palette (John, 17 Nov 2026, of a page's first paint: "it
+    looks pixelated, the colors are off"). Measured that day against the CPU's frame, a card's picture over the same
+    screen after each: a mean of 0.16 and a 99th percentile of 0.9 in the suite's palette at 1920 by 1080 (0.23 and
+    1.7), 0.20 and 0.9 in a green one (0.30 and 1.8), 0.40 and 2.6 in one of six colors (0.65 and 5.3), and as near
+    at 2560 by 1440; 26 to 36 KiB as a CSS background over thirteen looks, 28.7 on average (11 to 19, 13.2); written
+    in 72 ms for a look no still has shown (22) and in 0.2 where its picture is kept. What grain is left is its
+    JPEG's: a lossless picture of 512 lies 0.29 and 1.6 from the six colors' frame at 2560 by 1440, in 54 KiB, and
+    a quality of 95 weighs a third more for 0.36 and 2.3. A picture as many pixels but finer across the fan than
+    along it (768 by 384) lies a tenth nearer, 0.37 and 2.3, and was left for the plainer square. */
+export const AURORA_STAGE_STILL: AuroraStillCut = { side: 512, quality: 92 };
 
 /** The light alone: a scene whose ramp is the light itself, so that auroraLight answers how much light, 0 to 1. */
 const LIGHT_ALONE = Float32Array.from({ length: 128 * 3 }, (_, i) => Math.floor(i / 3) / 127);
@@ -760,30 +772,27 @@ function paletteTables(P: Palette): string {
     .join("");
 }
 
-/** The pictures of the stills last written, by their look and box: a list's cards are one look in sixteen
+/** The pictures of the stills last written, by their cut, look and box: a list's cards are one look in sixteen
     palettes, and its next page sixteen more, so all but the first of them cost their tables alone. */
-const KEPT_STILLS = 8;
+const KEPT_STILLS = 12;
 const keptStills = new Map<string, StillPicture>();
 
 /** The still a step at a time, each under a millisecond but the noise's, made once a page: the first frame's light
-    read a few rows a step, then written; no step where its picture is kept from a still of the same look. `cut`:
-    the still's own unless another is given. */
+    read a few rows a step, then written; no step where its picture is kept from a still of the same look and cut.
+    `cut`: a card's unless another is given (a stage's: AURORA_STAGE_STILL). */
 export function* auroraStillSteps(
   P: Palette,
   view: AuroraView,
   size: Size,
   cut: AuroraStillCut = STILL
 ): Generator<void, string> {
-  const key = `${view.angle} ${view.shape} ${view.path} ${view.bg} ${size.width} ${size.height}`;
-  let picture = cut === STILL ? keptStills.get(key) : undefined;
+  const key = `${cut.side} ${cut.quality} ${view.angle} ${view.shape} ${view.path} ${view.bg} ${size.width} ${size.height}`;
+  let picture = keptStills.get(key);
   if (!picture) {
     yield* auroraTilesSteps();
     picture = yield* stillPicture(auroraScene(P, view, size), cut);
-    if (cut === STILL) {
-      keptStills.set(key, picture);
-      if (keptStills.size > KEPT_STILLS)
-        keptStills.delete(keptStills.keys().next().value as string);
-    }
+    keptStills.set(key, picture);
+    if (keptStills.size > KEPT_STILLS) keptStills.delete(keptStills.keys().next().value as string);
   }
   return picture.before + paletteTables(P) + picture.after;
 }

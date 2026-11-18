@@ -27,7 +27,8 @@ import { fxLookOf, fxStillBackground, loadFx, serverFxStill } from "./fx-draw.ts
    covering the box, and the WebGL player over it once the page is live and the effect moves or changes, its canvas
    fading in over the still once its first frame, the still's own, is drawn, and out again to the still at speed 0. The still is
    the server's where it shows this palette and this look: the holder names them as the first screen's does
-   (Boot.tsx), and the style in the head paints both (server/fx-still.ts), so the editor arriving changes no pixel.
+   (Boot.tsx), a second time as a stage's, and the style in the head paints both (server/fx-still.ts), so the editor
+   arriving changes no pixel.
    Otherwise it is drawn here, the same background, once the stills' code has come. A reader who asks for less motion
    (Settings, else the device: ui/motion.ts) keeps the still. While the palette or the look changes the player shows
    it, over a still picture too, and the still is drawn for the last one once they rest, under the canvas, which then
@@ -97,6 +98,7 @@ export function FxLayer(props: {
     if (serverFxStill(key)) {
       shown = key;
       holder.dataset.fxStill = key;
+      holder.dataset.fxStage = key;
       holder.style.background = "";
       const drawn = fxPictureOf(kind, encodePalette(P), l);
       if (drawn) {
@@ -174,6 +176,7 @@ export function FxLayer(props: {
         }}
         class={styles.glassStill}
         data-fx-still={untrack(() => keyOf(props.kind, props.palette, look()))}
+        data-fx-stage={untrack(() => keyOf(props.kind, props.palette, look()))}
         elementtiming="effect-still"
       />
       <Show when={live() && kept()}>

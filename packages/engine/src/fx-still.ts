@@ -15,7 +15,13 @@
    screen and a list's cards show the picture in the vector still's place; the editor's own pictures, whose palette an
    edit changes, keep the vector still. */
 import { AURORA_LOOP } from "./aurora.ts";
-import { auroraFileSvg, auroraFrameSvg, auroraStillSteps, auroraStillSvg } from "./aurora-svg.ts";
+import {
+  AURORA_STAGE_STILL,
+  auroraFileSvg,
+  auroraFrameSvg,
+  auroraStillSteps,
+  auroraStillSvg
+} from "./aurora-svg.ts";
 import { svgUrl } from "./css.ts";
 import { sampleStops } from "./curve.ts";
 import { dimpleFileSvg, dimpleFrameSvg, dimpleStillSvg } from "./dimple-svg.ts";
@@ -101,12 +107,15 @@ export function readFxStillKey(
 
 /** The still as an SVG document of a size (the design square unless said): the papercut's with its shadows stepped,
     no blur (papercut-svg.ts), the aurora's its light as a small picture, which one filter reads through the
-    palette (aurora-svg.ts). */
+    palette (aurora-svg.ts). `stage`: the still for a box that fills a screen (a page's stage, a stylesheet's
+    background), where a kind's still is no shape that draws as well at any size: the aurora's, its picture twice
+    as fine each way. */
 export function fxStillSvg(
   kind: VectorKind,
   P: Palette,
   look: FxLook,
-  size: Size = SQUARE
+  size: Size = SQUARE,
+  stage = false
 ): string {
   if (isKitKind(kind)) return kitStillSvg(kitEffect(kind), P, look, size);
   switch (kind) {
@@ -119,7 +128,7 @@ export function fxStillSvg(
     case "dimple":
       return dimpleStillSvg(P, look, size);
     case "aurora":
-      return auroraStillSvg(P, look, size);
+      return auroraStillSvg(P, look, size, stage ? AURORA_STAGE_STILL : undefined);
     case "silk":
       return silkStillSvg(P, look, size);
   }
@@ -129,9 +138,14 @@ export function fxStillSvg(
     embed script paints its still with (apps/web/src/embed), carrying no other kind's drawing. */
 export const fxCover = (svg: string): string => `${svgUrl(svg)} 50% 50% / cover no-repeat`;
 
-/** The still as a CSS background covering any box, centered, as the player lays the box out. */
-export const fxStillBackground = (kind: VectorKind, P: Palette, look: FxLook): string =>
-  fxCover(fxStillSvg(kind, P, look));
+/** The still as a CSS background covering any box, centered, as the player lays the box out; `stage`, the one
+    for a box that fills a screen (fxStillSvg). */
+export const fxStillBackground = (
+  kind: VectorKind,
+  P: Palette,
+  look: FxLook,
+  stage = false
+): string => fxCover(fxStillSvg(kind, P, look, SQUARE, stage));
 
 /** The same background drawn a step at a time, each under a millisecond on a desktop: the papercut's levels are found
     and its cuts traced from its field, some 10 ms for a view no still has shown yet (papercut.ts and papercut-svg.ts

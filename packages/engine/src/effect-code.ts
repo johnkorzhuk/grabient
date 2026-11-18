@@ -62,12 +62,13 @@ export const effectPage = (
   `${origin.replace(/\/$/, "")}/${seed}?${(paced ? effectAddressParts(effect, angle, finish) : effectStillParts(effect, angle, finish)).join("&")}`;
 
 /** The effect's first frame as a background covering its box, all it depends on named: the glass's colors, angle and
-    shape, the blob's look. */
+    shape, the blob's look; a vector effect's as a stage shows it (fx-still.ts fxStillSvg), since a page's background
+    fills a screen. */
 export const effectStill = (P: Palette, effect: Effect, angle: number): string =>
   effect.kind === "glass"
     ? glassStillBackground(glassColors(P), angle, effect.look.shape)
     : isVectorKind(effect.kind)
-      ? fxStillBackground(effect.kind, P, fxLookOf(effect.look, angle))
+      ? fxStillBackground(effect.kind, P, fxLookOf(effect.look, angle), true)
       : blobStillBackground(P, { speed: 1, fps: null, still: true, ...effect.look });
 
 /** What the view's soft and grain lay with the effect's still behind a page (effect-embed.ts effectLayerCss), as the

@@ -247,6 +247,30 @@ test("the papercut's SVG finished: its drawing whole, blurred over its gradient,
   expect(moving).not.toContain("<animate");
 });
 
+test("a stage's still is another than a card's only where a still draws no shape that fills a screen as well: the aurora's, which a stylesheet's background takes", () => {
+  const look = { angle: 90, shape: null, steps: null, zoom: null, path: null, bg: null };
+  for (const kind of EFFECTS.filter(isVectorKind)) {
+    const card = fxStillBackground(kind, P, look);
+    const stage = fxStillBackground(kind, P, look, true);
+    if (kind === "aurora") {
+      /* its picture of the light twice as fine each way (aurora-svg.ts AURORA_STAGE_STILL) */
+      expect(stage).not.toBe(card);
+      expect(stage.length).toBeGreaterThan(card.length * 1.8);
+      expect(fxCover(fxStillSvg(kind, P, look, undefined, true))).toBe(stage);
+    } else expect(stage, kind).toBe(card);
+  }
+  /* a page's background fills a screen */
+  const aurora: Effect = {
+    kind: "aurora",
+    speed: 1,
+    fps: 60,
+    look: { shape: null, frost: 1, bg: null, steps: null, zoom: null, path: null }
+  };
+  const css = effectStylesheet(P, SEED, aurora, 90, "https://grabient.com");
+  expect(css).toContain(fxStillBackground("aurora", P, look, true));
+  expect(css).not.toContain(fxStillBackground("aurora", P, look));
+});
+
 test("a still drawn a step at a time is the still, the papercut's in a share of a millisecond or so a step", () => {
   const look = { angle: 200, shape: 640, steps: null, zoom: null, path: null, bg: null };
   let steps = 0;

@@ -12,8 +12,11 @@
    user using the effect would get a vector to load first, so that something is visible as soon as the page loads
    while the shader picks up"), and the picture is asked for from the head at a low priority, which the page lays in
    the vector still's place once it has come (FxArt.tsx, FxLayer.tsx). Never the two at once: under the picture's soft
-   edge, which lets what is under it through, the vector still showed 20 levels off. It loads with the first page that
-   has a holder. */
+   edge, which lets what is under it through, the vector still showed 20 levels off. A stage's holder names its still
+   a second time (data-fx-stage), and where a kind's still for a box that fills a screen is another than a card's (the
+   aurora's, its picture of the light twice as fine each way: engine/fx-still.ts fxStillSvg), a rule after the cards'
+   paints that one on the stage: a card's still over a whole screen showed its picture's pixels (John, 17 Nov 2026:
+   "it looks pixelated, the colors are off"). It loads with the first page that has a holder. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { fxPictureOf } from "@grabient/engine/fx-picture.ts";
 import { fxStillBackground, readFxStillKey } from "@grabient/engine/fx-still.ts";
@@ -26,17 +29,18 @@ import { FIRST_SCREEN_STILLS, holderNames, intoHead } from "./stills.ts";
 const KEPT = 128;
 const drawn = new Map<string, string>();
 
-/** A still's background by its name, drawn once while it is kept, and the address of its picture where its look is
-    drawn as one too (engine/fx-picture.ts fxPictureOf); null for a name no page wrote. */
-function stillOf(key: string): { paint: string; picture: string | null } | null {
+/** A still's background by its name, a card's or a stage's, drawn once while it is kept, and the address of its
+    picture where its look is drawn as one too (engine/fx-picture.ts fxPictureOf); null for a name no page wrote. */
+function stillOf(key: string, stage = false): { paint: string; picture: string | null } | null {
   const named = readFxStillKey(key);
   const picture = named ? (fxPictureOf(named.kind, named.seed, named.look)?.address ?? null) : null;
-  const kept = drawn.get(key);
+  const name = stage ? `${key} stage` : key;
+  const kept = drawn.get(name);
   if (kept !== undefined) return { paint: kept, picture };
   const P = named ? decodePalette(named.seed) : null;
   if (!named || !P) return null;
-  const paint = fxStillBackground(named.kind, P, named.look);
-  drawn.set(key, paint);
+  const paint = fxStillBackground(named.kind, P, named.look, stage);
+  drawn.set(name, paint);
   if (drawn.size > KEPT) drawn.delete(drawn.keys().next().value as string);
   return { paint, picture };
 }
@@ -54,6 +58,12 @@ export function fxStills(html: string): string {
     if (still.picture) pictures.add(still.picture);
     rules.push(`[data-fx-still="${key}"]{background:${still.paint}}`);
     painted.push(key);
+  }
+  /* the stages' own stills, after the cards', so that a stage's holder takes its own */
+  for (const key of holderNames(html, "data-fx-stage")) {
+    const still = painted.includes(key) ? stillOf(key, true) : null;
+    if (still && still.paint !== stillOf(key)?.paint)
+      rules.push(`[data-fx-stage="${key}"]{background:${still.paint}}`);
   }
   const preloads = [...pictures]
     .map(

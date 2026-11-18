@@ -138,7 +138,8 @@ fitter): by the Worker within a budget of the fit's work, else in the visitor's 
   no finer than the light is. Its still stands in for its first frame: its light as a small picture the SVG holds
   (a JPEG of greys, how far along the palette the light reads: `jpeg-greys.ts`), which one filter reads through the
   palette under the range's own shape, so it is that frame a little soft, its colors the palette's own and its
-  picture one look's whatever the palette; a page's first screen and a list's cards show its first frame itself
+  picture one look's whatever the palette (256 pixels a side for a card, 512 for a stage or a stylesheet's
+  background, which fill a screen: `fxStillSvg`'s `stage`); a page's first screen and a list's cards show its first frame itself
   in its place, a picture the server draws by its CPU drawing and codes as WebP (`EFFECT_KINDS`' `picture`,
   `fx-picture.ts` for its address and version, `fx-picture-draw.ts` for its pixels). Its clips are drawn four pixels at
   a time from what the engine keeps of each pixel (`video.ts` auroraDraw:
