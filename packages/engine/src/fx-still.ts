@@ -1,6 +1,6 @@
 /* What the vector effects (effect.ts's EFFECT_KINDS) give the code that treats them alike:
    their still, the frame at t = 0 drawn as a plain SVG of shapes and gradients with no filter (but the aurora's,
-   whose broad wedges are greys one filter reads through the palette), so a list of them is cheap and a page's first
+   a small picture of its light one filter reads through the palette), so a list of them is cheap and a page's first
    paint has it; the name a
    page gives a still (fxStillKey), which the server paints from the
    head as the glass's and the blob's stills are painted (apps/web server/fx-still.ts); their SVG file, moving where
@@ -100,8 +100,8 @@ export function readFxStillKey(
 }
 
 /** The still as an SVG document of a size (the design square unless said): the papercut's with its shadows stepped,
-    no blur (papercut-svg.ts), the aurora's with its light in broad wedges of greys, which one filter reads through
-    the palette (aurora-svg.ts). */
+    no blur (papercut-svg.ts), the aurora's its light as a small picture, which one filter reads through the
+    palette (aurora-svg.ts). */
 export function fxStillSvg(
   kind: VectorKind,
   P: Palette,
@@ -137,8 +137,8 @@ export const fxStillBackground = (kind: VectorKind, P: Palette, look: FxLook): s
     and its cuts traced from its field, some 10 ms for a view no still has shown yet (papercut.ts and papercut-svg.ts
     keep them by the view), the strings' threads traced, some 30 ms (strings-svg.ts keeps them by the view), and a
     field effect's levels traced, 25 to 80 ms (kit/svg.ts keeps them by the view), and the aurora's noise made, once a
-    page, then its light read a few rays at a time, some 5 ms for a look no still has shown yet (aurora-svg.ts keeps
-    the last looks' shapes, which are any palette's), where the silk's and the rosette's are written in
+    page, then its light read a few rows at a time, some 25 ms for a look no still has shown yet (aurora-svg.ts keeps
+    the last looks' pictures, which are any palette's), where the silk's and the rosette's are written in
     tenths of one, in one step, and the dimple's in under one. A page drawing a list of them gives each frame its share
     of the steps. */
 export function* fxStillSteps(kind: VectorKind, P: Palette, look: FxLook): Generator<void, string> {

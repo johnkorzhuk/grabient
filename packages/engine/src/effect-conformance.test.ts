@@ -54,9 +54,9 @@ const PARITY_SIZE: Record<VectorKind, Size> = {
   strings: { width: 640, height: 360 },
   /* the dimple's discs are 8 pixels in radius at 320 by 180, each edge a pixel wide */
   dimple: SIZE,
-  /* the aurora draws no line: its frame is cut into wedges no narrower than 4 pixels, as wide as its fine shafts
-     at 320 by 180, the hardest size for it (swept there, a mean of 0.81 and a 99th percentile of 4.9 at worst,
-     0.68 and 4.2 at 640 by 360) */
+  /* the aurora draws no line: its frame is cut into wedges no narrower than 3 pixels, where its finest shafts
+     are one wide at 320 by 180, the hardest size for it (swept there, a mean of 0.67 and a 99th percentile of 3.5
+     at worst, 0.51 and 2.2 at 640 by 360) */
   aurora: SIZE,
   /* the field effects' at 320 by 180, where their levels lie a pixel apart or more (kit-check's crowding): the
      sandstone draws no line */

@@ -9,6 +9,10 @@
    stripe. Until 16 Nov 2026 every wedge was flat, 4 pixels wide at any size, and lay half under the next: two
    wedges at every place for the one that showed, and a file that grew with its box (John, that day: "the aurora
    vector representation is really heavy. i notice thats theres 2 layers for each strip").
+   The fan is as fine as the picture's pixels show (FRAME), since the fine shafts are the aurora's look: for a day a
+   frame was cut by how far its colors lay from the frame's on average, which the fine shafts hardly move, and drew
+   them smooth (John, 17 Nov 2026: "the vector does not look like the shader. its important there's parity there. or
+   at least as close as possible with reason").
    A tent is its ray's own, sized where that ray's light is nearest the fan's point, and falls from white on its ray
    to black on the ray beside it in a few layers of greys (tentParts). There it is exact; farther out, where the
    rays have spread, each layer's fade ends before its width does, so the tent falls in as many short steps joined
@@ -29,19 +33,26 @@
    the wedges of a turned picture do). The light thinned over the color is the drawings' own sum: the light where
    it shows, the range's color at its cover where it does not.
 
-   Its still, for a page's first paint and a list's cards, is for browsers alone, and carries the light itself: each
-   wedge's stops are greys, how far along the palette the light there reads, and one filter reads the finished greys
-   through the palette (STILL below). So every color it shows is the palette's own and a palette's bands stay sharp
-   however few the rays, where its light blended as colors under a blur, as it was until 17 Nov 2026, turned a
-   palette of many colors to mud (four of its pixels in ten more than 8 levels off the palette, none now); what it
-   weighs no longer depends on the palette; and its shapes are one look's, whatever the palette, so a list of one
-   look in sixteen palettes writes them once. */
+   Its still, for a page's first paint and a list's cards, is for browsers alone, and carries the light itself as a
+   small picture: how far along the palette the light of each place reads, a grey a pixel, in a JPEG the SVG holds
+   (jpeg-greys.ts), drawn under the range's own shape and read through the palette by one filter (STILL below). So
+   it is the shader's first frame a little soft, its shapes the shader's own, every color the palette's own and a
+   palette's bands sharp; what it weighs does not depend on the palette; and its picture is one look's, whatever the
+   palette, so a list of one look in sixteen palettes makes it once. A sample of light costs a bit of a JPEG where
+   a gradient's stop costs 47 bytes of a stylesheet, and no still of shapes alone came near the shader in the 40 KiB
+   a list's still may weigh: the light as colors in broad wedges under a blur (until 17 Nov 2026), then as greys in
+   wedges with the light run between them (a day), each a smooth picture of other shapes than the shader's, 3 to 6
+   from its frame on a card where the picture lies within 1; and shapes as wide as their light under a blur, eight
+   times the samples in the same bytes, drew moire in WebKit, 3 to 8 from the frame where Chromium drew them within
+   1.5 (John, 17 Nov 2026, of the still then: "the vector does not look like the shader"). */
 import {
   AURORA_PAGE_NUMBERS,
   AURORA_SOFT,
   type AuroraScene,
   type AuroraView,
+  auroraLift,
   auroraLight,
+  auroraPoint,
   auroraRange,
   auroraScene,
   auroraStops,
@@ -49,6 +60,7 @@ import {
   auroraTime
 } from "./aurora.ts";
 import { srgbToLch, toHex } from "./color.ts";
+import { base64, jpegOfGreysSteps } from "./jpeg-greys.ts";
 import type { Palette } from "./palette.ts";
 import { svgNumber } from "./svg-fit.ts";
 import type { Size } from "./view.ts";
@@ -69,47 +81,45 @@ export interface AuroraCut {
   read: number;
   gap: number;
   /** how far, in levels of 255, straight lines between two kept rays may miss a ray between them, and a straight
-      line between two stops a reading between them: for a frame, whose light is written in the palette's colors,
-      levels of a palette that spans all 255, and as many fewer as a palette spans less (paletteSpan); for a still,
-      whose light is written as how far along the palette it reads, 255ths of the palette's length */
+      line between two stops a reading between them: levels of a palette that spans all 255, and as many fewer as a
+      palette spans less (paletteSpan) */
   ray: number;
   stop: number;
   /** the most fine rays from one kept ray to the next */
   span: number;
-  /** how many layers each side of a tent is laid in, and how round the tent is: 0 falls in a straight line from its
-      ray, 1 as a smooth step, level on the ray and level again on the ray beside it */
+  /** how many layers each side of a tent is laid in */
   tent: number;
-  round: number;
-  /** how many fine rays each way across the fan, and readings each way along a ray, the light is averaged over
-      before any ray or stop is kept (nearer ones counting more): detail finer than the cut is taken out of the
-      picture, not caught by whichever ray happens on it */
-  soft: number;
 }
 
-/** A frame's cut. The fine fan is no finer than pixels show nor than two rays a cell of the fine shafts, and the
-    readings no nearer than a fortieth of the picture's height, so past some 800 pixels wide a frame is the same
-    shapes whatever its size, where the flat wedges it was once cut into were as many as its pixels.
+/** A frame's cut. The fine fan is as fine as the picture shows: a ray every 3 pixels, where two beside it differ by
+    8 levels or more, and never finer than two rays a cell of the fine shafts' finest lattice, eight of its
+    coarsest (aurora.ts: sheet c, three lattices), past which a frame is the same shapes whatever its size; readings
+    3 pixels apart along a ray, never nearer than a 250th of the picture's height. Stops are kept looser than rays,
+    at 6 levels: a slow miss along a ray shows less than a shaft that is not there.
     Measured 17 Nov 2026 over thirteen of the site's palettes as designed, as resvg draws the SVG against the CPU's
-    frame, the flat wedges' numbers after each: at 800 by 400, 102 KiB on average (38 for a pale palette to 191 for
-    one of six colors that turn dark between; 169, 108 to 220) and a mean of 0.87 from the frame (0.71), written in
-    13 ms (28); at 1920 by 1080, 126 KiB (40 to 270; 490, 253 to 795), 0.76 (0.36), 17 ms (81); the suite's palette
-    at 3840 by 2160, 62 KiB (803). At 320 by 180, the suite's size and the hardest, every look, path and ground it
-    draws at twelve times of the loop lies within a mean of 0.81 and a 99th percentile of 4.9 (1.0 and 7.4), 0.07%
-    far, in 42 KiB on average (43); at 640 by 360, within 0.68 and 4.2. Chromium, Firefox and WebKit draw it as
-    resvg does (means of 0.05 to 0.16 apart), and Figma's importer too (0.18: tentParts). Rays kept at 16 levels
-    and stops at 3 weigh a third more (133 KiB at 800 by 400) and lie 0.72 from the frame, a difference no picture
-    of the two shows. */
+    frame, the numbers of the flat wedges it was once cut into after each: at 800 by 400, 196 KiB on average (110
+    for a pale palette to 343 for one of six colors that turn dark between; 169, 108 to 220), 28 compressed (24), a
+    mean of 0.59 from the frame (0.71) and a 99th percentile of 6.2 at the worst (13.1), written in 29 ms (28); at
+    1920 by 1080, 357 KiB (123 to 804; 490, 253 to 795), 0.48 (0.36) and 2.8 (4.4), 84 ms (81); the suite's palette
+    at 3840 by 2160, 183 KiB (803), as at 1920 by 1080 and at any size past it. Of what the frame holds finer than
+    7 pixels, four fifths stands in its place at 800 by 400, where a half did in the flat wedges, whose own edges
+    made up as much again. At 320 by 180, the suite's size, every look, path and ground it draws at twelve times of
+    the loop lies within a mean of 0.67 and a 99th percentile of 3.5 (1.0 and 7.4), 0.04% far, in 58 KiB on average
+    (43); at 640 by 360, within 0.51 and 2.2. Chromium, Firefox and WebKit draw it as resvg does (means of 0.05 to
+    0.16 apart).
+    Cut by the light's broad scale alone (two rays a cell of the fine shafts' coarsest lattice, rays kept at 24
+    levels, readings a fortieth of the height apart), as it was for a day, it weighed 102 KiB at 800 by 400 and 126
+    at 1920 by 1080, lay 0.87 and 0.76 from the frame, and drew the fine shafts smooth: a mean hardly counts them,
+    and a picture of the two beside the frame does. */
 const FRAME: AuroraCut = {
-  px: 4,
-  cell: 0.5,
-  read: 4,
-  gap: 0.025,
-  ray: 24,
-  stop: 5,
+  px: 3,
+  cell: 0.125,
+  read: 3,
+  gap: 0.004,
+  ray: 8,
+  stop: 6,
   span: 8,
-  tent: 2,
-  round: 0,
-  soft: 0
+  tent: 2
 };
 
 /** How many steps the range's soft edge is laid in, and each side of an upright wall. */
@@ -245,8 +255,8 @@ function rangeParts(m: AuroraScene, plain: boolean): { defs: string; under: stri
 }
 
 /** The light read on a fan over a box: rays 0 to `n` from the angle `a0`, a `step` apart, and along each a reading
-    0 to `reads` from `r0` out to `r1` of the fan's point; of every reading `ch` numbers (three channels of a color,
-    or one: how far along the palette the light reads) and how much of it shows in the box. */
+    0 to `reads` from `r0` out to `r1` of the fan's point; of every reading its color's three channels and how much
+    of it shows in the box. */
 interface Fan {
   a0: number;
   step: number;
@@ -254,46 +264,17 @@ interface Fan {
   r0: number;
   r1: number;
   reads: number;
-  ch: number;
   light: Float64Array;
   shows: Float32Array;
 }
 
-/** The light alone: a scene whose ramp is the light itself, so that auroraLight answers how much light, 0 to 1. */
-const LIGHT_ALONE = Float32Array.from({ length: 128 * 3 }, (_, i) => Math.floor(i / 3) / 127);
-const { low: LOW, tip: TIP, bend: BEND, cells: CELLS } = AURORA_PAGE_NUMBERS;
-/* how far along the palette, from its darker end, a light is read (aurora.ts auroraRamp) */
-const alongPalette = (light: number) =>
-  1 - (1 - Math.min(1, Math.max(0, (light - LOW) / (TIP - LOW)))) ** BEND;
-/** How a still's greys spend their 256 levels along the palette: a grey is how far along the palette the light
-    reads, to this power, so the palette's darker end, where most of a frame's light lies and lies smoothest (over
-    half its pixels in the first third), takes most of the levels. And WebKit takes a filter's picture through
-    8 bits of linear light and back whatever space the filter is said to work in (greys 0 to 43 come out as 0, 13,
-    22, 28, 34, 38 and 42: 17 Nov 2026, Playwright's WebKit): greys read straight along the palette left a dark
-    sky seven levels, drawn as blocks, where this power, the transfer curve's own nearly, leaves that round trip
-    the palette in even steps. The price is the light running in straight lines of greys, not of the palette,
-    between stops and rays: a tenth to a sixth farther from the frame at the same weight. */
-const GREY_BEND = 0.45;
-/** How many straight lines the filter's tables read the palette by, even steps of grey: at the palette's lighter
-    end, where a step of grey is the longest step along the palette, as long as the palette's own 32 (fewer round
-    a palette's sharpest turns: 32 lay up to 31 levels off a palette of many colors there, 64 up to 15). */
-const TABLE = 64;
-/* how many times as far along the palette a grey moves as the grey itself, at that grey: what a miss in greys is
-   worth along the palette, where the tolerances are counted (never under a tenth: no grey is free to stray) */
-const greySteep = (grey: number) => Math.max(0.1, grey ** (1 / GREY_BEND - 1) / GREY_BEND);
+const { cells: CELLS } = AURORA_PAGE_NUMBERS;
 
-/* The fan over a box, and its light at T of the loop read where it can come to show, a few rays a step: the rays
-   and readings a cut asks for, each reading's share that shows in the box, and the light of every reading a wedge
-   or an averaging can reach from one that shows (a reading the range hides whole, far from any that shows, is never
-   worked out: four in ten of the picture as designed). `greys` reads how far along the palette in place of the
-   color; `reach`, how many rays and readings an averaging of the light may reach (softened). */
-function* readFan(
-  m: AuroraScene,
-  T: number,
-  cut: AuroraCut,
-  greys: boolean,
-  reach: number
-): Generator<void, Fan> {
+/* The fan over a box, and its light at T of the loop read where it can come to show: the rays and readings a cut
+   asks for, each reading's share that shows in the box, and the light of every reading a wedge can reach from one
+   that shows (a reading the range hides whole, far from any that shows, is never worked out: four in ten of the
+   picture as designed). */
+function readFan(m: AuroraScene, T: number, cut: AuroraCut): Fan {
   const { width: W, height: H, cs, sn, ext } = m;
   const { x: fx, y: fy } = m.design.fan;
   /* the angles and distances of the box's rim from the fan's point */
@@ -328,7 +309,6 @@ function* readFan(
   const reads = Math.max(8, Math.ceil((r1 - r0) / Math.max(cut.read / ext, cut.gap)));
   const N = n + 1;
   const K = reads + 1;
-  const ch = greys ? 1 : 3;
   const shows = new Float32Array(N * K);
   const rise = new Float32Array(N * K);
   const where = new Float64Array(2);
@@ -343,26 +323,23 @@ function* readFan(
       const [x, y] = pixelOf(m, fx + r * sin, fy + r * cos);
       if (x >= -1 && x <= W + 1 && y >= -1 && y <= H + 1) shows[i * K + k] = where[0];
     }
-    if (i % 16 === 15) yield;
   }
-  /* the readings whose light is asked for: within a span of rays and a reading of one that shows, and as far again
-     as the averaging reaches */
+  /* the readings whose light is asked for: within a span of rays and a reading of one that shows */
   const along = new Uint8Array(N * K);
   for (let i = 0; i < N; i++)
     for (let k = 0; k < K; k++) {
       if (shows[i * K + k] <= 0) continue;
-      const to = Math.min(K - 1, k + 1 + reach);
-      for (let q = Math.max(0, k - 1 - reach); q <= to; q++) along[i * K + q] = 1;
+      const to = Math.min(K - 1, k + 1);
+      for (let q = Math.max(0, k - 1); q <= to; q++) along[i * K + q] = 1;
     }
   const asked = new Uint8Array(N * K);
   for (let i = 0; i < N; i++)
     for (let k = 0; k < K; k++) {
       if (!along[i * K + k]) continue;
-      const to = Math.min(N - 1, i + cut.span + reach);
-      for (let q = Math.max(0, i - cut.span - reach); q <= to; q++) asked[q * K + k] = 1;
+      const to = Math.min(N - 1, i + cut.span);
+      for (let q = Math.max(0, i - cut.span); q <= to; q++) asked[q * K + k] = 1;
     }
-  const lit: AuroraScene = greys ? { ...m, ramp: LIGHT_ALONE } : m;
-  const light = new Float64Array(N * K * ch);
+  const light = new Float64Array(N * K * 3);
   const c = new Float64Array(3);
   for (let i = 0; i < N; i++) {
     const sin = Math.sin(a0 + i * step);
@@ -370,57 +347,20 @@ function* readFan(
     for (let k = 0; k < K; k++) {
       if (!asked[i * K + k]) continue;
       const r = r0 + ((r1 - r0) * k) / reads;
-      auroraLight(lit, T, fx + r * sin, fy + r * cos, rise[i * K + k], c);
-      if (greys) light[i * K + k] = alongPalette(c[0]);
-      else light.set(c, (i * K + k) * 3);
+      auroraLight(m, T, fx + r * sin, fy + r * cos, rise[i * K + k], c);
+      light.set(c, (i * K + k) * 3);
     }
-    if (i % 4 === 3) yield;
   }
-  return { a0, step, n, r0, r1, reads, ch, light, shows };
-}
-
-/* A fan's light averaged over `reach` rays each way across the fan, then over as many readings each way along each
-   ray, nearer ones counting more: a new array, the fan's own left as read. */
-function softened(fan: Fan, reach: number): Float64Array {
-  const R = Math.ceil(reach) - 1;
-  if (R < 1) return fan.light;
-  const N = fan.n + 1;
-  const K = fan.reads + 1;
-  const { ch } = fan;
-  const weights = Array.from({ length: 2 * R + 1 }, (_, d) => 1 - Math.abs(d - R) / reach);
-  const pass = (from: Float64Array, across: boolean): Float64Array => {
-    const to = new Float64Array(from.length);
-    const count = across ? N : K;
-    const stride = (across ? K : 1) * ch;
-    for (let i = 0; i < N; i++)
-      for (let k = 0; k < K; k++) {
-        const at = across ? i : k;
-        const base = (i * K + k) * ch;
-        for (let j = 0; j < ch; j++) {
-          let sum = 0;
-          let weight = 0;
-          for (let d = -R; d <= R; d++) {
-            const q = Math.min(count - 1, Math.max(0, at + d));
-            sum += weights[d + R] * from[base + (q - at) * stride + j];
-            weight += weights[d + R];
-          }
-          to[base + j] = sum / weight;
-        }
-      }
-    return to;
-  };
-  return pass(pass(fan.light, true), false);
+  return { a0, step, n, r0, r1, reads, light, shows };
 }
 
 /* The rays kept, by their numbers on the fan: the first, the last, and from each kept the farthest that straight
    lines between the two keep every ray between them within `tol` levels where it shows (a reading that barely shows
-   counts for less), `span` rays on at the most. A fan of greys counts a miss by how far along the palette it is
-   (greySteep), so its tolerance is the same anywhere along the palette. */
-function keptRays(fan: Fan, light: Float64Array, tol: number, span: number): number[] {
+   counts for less), `span` rays on at the most. */
+function keptRays(fan: Fan, tol: number, span: number): number[] {
   const K = fan.reads + 1;
-  const { ch, shows } = fan;
-  const greys = ch === 1;
-  const row = K * ch;
+  const { light, shows } = fan;
+  const row = K * 3;
   const misses = (a: number, b: number): boolean => {
     for (let q = a + 1; q < b; q++) {
       const f = (q - a) / (b - a);
@@ -428,11 +368,12 @@ function keptRays(fan: Fan, light: Float64Array, tol: number, span: number): num
         const s = shows[q * K + k];
         if (s <= 0) continue;
         const most = tol / (255 * Math.min(1, 2 * s));
-        for (let j = k * ch; j < k * ch + ch; j++) {
-          const here = light[q * row + j];
-          const miss = Math.abs(here - (light[a * row + j] * (1 - f) + light[b * row + j] * f));
-          if ((greys ? miss * greySteep(here) : miss) > most) return true;
-        }
+        for (let j = k * 3; j < k * 3 + 3; j++)
+          if (
+            Math.abs(light[q * row + j] - (light[a * row + j] * (1 - f) + light[b * row + j] * f)) >
+            most
+          )
+            return true;
       }
     }
     return false;
@@ -448,29 +389,21 @@ function keptRays(fan: Fan, light: Float64Array, tol: number, span: number): num
   return kept;
 }
 
-/* The stops of ray `i` from reading `lo` to `hi`, each a reading's number and its `ch` numbers: from each stop the
-   line runs on as far as some end keeps every reading passed within `tol` levels, and ends as near that reading's
-   own light as those ends allow. A stop's color so lies within the tolerance of its reading, not on it: a line may
+/* The stops of ray `i` from reading `lo` to `hi`, each a reading's number and its color: from each stop the line
+   runs on as far as some end keeps every reading passed within `tol` levels, and ends as near that reading's own
+   light as those ends allow. A stop's color so lies within the tolerance of its reading, not on it: a line may
    pass on either side of the light it follows, and runs the farther for it (a sixth fewer stops than lines from
    reading to reading, at the same tolerance). */
-function keptStops(
-  fan: Fan,
-  light: Float64Array,
-  i: number,
-  lo: number,
-  hi: number,
-  tol: number
-): [number, number[]][] {
-  const { ch } = fan;
-  const base = i * (fan.reads + 1) * ch;
-  /* a reading's tolerance: a grey's is as much wider as it moves less far along the palette */
-  const within = (v: number) => (ch === 1 ? tol / (255 * greySteep(v)) : tol / 255);
-  let at = Array.from({ length: ch }, (_, j) => light[base + lo * ch + j]);
+function keptStops(fan: Fan, i: number, lo: number, hi: number, tol: number): [number, number[]][] {
+  const { light } = fan;
+  const base = i * (fan.reads + 1) * 3;
+  const t = tol / 255;
+  let at = [0, 1, 2].map(j => light[base + lo * 3 + j]);
   const stops: [number, number[]][] = [[lo, at]];
-  const least = new Float64Array(ch);
-  const most = new Float64Array(ch);
-  const leastEnd = new Float64Array(ch);
-  const mostEnd = new Float64Array(ch);
+  const least = new Float64Array(3);
+  const most = new Float64Array(3);
+  const leastEnd = new Float64Array(3);
+  const mostEnd = new Float64Array(3);
   for (let from = lo; from < hi; ) {
     /* the slopes, a channel, that keep every reading so far within the tolerance */
     least.fill(-Infinity);
@@ -478,17 +411,17 @@ function keptStops(
     let end = from;
     for (let k = from + 1; k <= hi; k++) {
       let fits = true;
-      for (let j = 0; j < ch && fits; j++) {
-        const v = light[base + k * ch + j];
-        const t = within(v);
-        const a = Math.max(least[j], (v - t - at[j]) / (k - from));
-        const b = Math.min(most[j], (v + t - at[j]) / (k - from));
-        if (a > b) fits = false;
+      for (let j = 0; j < 3 && fits; j++) {
+        const v = light[base + k * 3 + j];
+        if (
+          Math.max(least[j], (v - t - at[j]) / (k - from)) >
+          Math.min(most[j], (v + t - at[j]) / (k - from))
+        )
+          fits = false;
       }
       if (!fits) break;
-      for (let j = 0; j < ch; j++) {
-        const v = light[base + k * ch + j];
-        const t = within(v);
+      for (let j = 0; j < 3; j++) {
+        const v = light[base + k * 3 + j];
         least[j] = Math.max(least[j], (v - t - at[j]) / (k - from));
         most[j] = Math.min(most[j], (v + t - at[j]) / (k - from));
       }
@@ -498,14 +431,14 @@ function keptStops(
     }
     const run = end - from;
     const last = at;
-    at = Array.from({ length: ch }, (_, j) =>
+    at = [0, 1, 2].map(j =>
       Math.min(
         1,
         Math.max(
           0,
           Math.min(
             last[j] + mostEnd[j] * run,
-            Math.max(last[j] + leastEnd[j] * run, light[base + end * ch + j])
+            Math.max(last[j] + leastEnd[j] * run, light[base + end * 3 + j])
           )
         )
       )
@@ -530,9 +463,9 @@ interface Wedge {
 
 /* The wedges a fan's light is written as, in their order across the fan: a kept ray whose wedge shows nowhere in
    the box is left out, and the stops of one the range hides in part end a reading past where it does. */
-function wedgesOf(fan: Fan, light: Float64Array, cut: AuroraCut): Wedge[] {
+function wedgesOf(fan: Fan, cut: AuroraCut): Wedge[] {
   const K = fan.reads + 1;
-  const kept = keptRays(fan, light, cut.ray, cut.span);
+  const kept = keptRays(fan, cut.ray, cut.span);
   const wedges: Wedge[] = [];
   kept.forEach((ray, s) => {
     const before = kept[Math.max(0, s - 1)];
@@ -554,7 +487,7 @@ function wedgesOf(fan: Fan, light: Float64Array, cut: AuroraCut): Wedge[] {
       before,
       after,
       tented: s % 2 === 1,
-      stops: keptStops(fan, light, ray, lo, hi, cut.stop),
+      stops: keptStops(fan, ray, lo, hi, cut.stop),
       nearest: fan.r0 + ((fan.r1 - fan.r0) * lo) / fan.reads
     });
   });
@@ -566,7 +499,7 @@ function wedgesOf(fan: Fan, light: Float64Array, cut: AuroraCut): Wedge[] {
    it is near and as large as the ray's light is far from the fan's point. A side falls from white on its ray to
    black at its end in `layers` layers, each a wedge faded across its own width by a gradient of greys whose line
    stands on the layer's first side where the side is 1 from the fan's point: there the layers join into one even
-   fall (or a rounder one: `round`), and farther out, where the rays have spread, each layer's fade ends before its
+   fall, and farther out, where the rays have spread, each layer's fade ends before its
    width does and holds its last grey to the next layer, which starts on that grey.
    Nothing in a tent only meets: two shapes that met on a line would each cover half of every pixel along it and
    let a quarter of the mask through, which the still's filter turns into a dashed line of another color wherever
@@ -583,7 +516,7 @@ function tentParts(
   m: AuroraScene,
   fan: Fan,
   wedges: readonly Wedge[],
-  { tent: layers, round }: AuroraCut,
+  { tent: layers }: AuroraCut,
   place: string,
   href: string
 ): string {
@@ -592,8 +525,6 @@ function tentParts(
   const far = (fan.r1 / Math.min(...tented.map(w => w.nearest))) * 1.05;
   const wide = TENT_WIDE / layers;
   const tan = Math.tan(wide);
-  /* how far the tent has fallen x of the way from its ray to its end */
-  const fallen = (x: number) => (1 - round) * x + round * x * x * (3 - 2 * x);
   /* a layer's wedge, from one angle to another */
   const wedge = (from: number, to: number, j: number) =>
     `<path d="M0 0L${n5(far * Math.tan(from))} ${n4(far)}L${n5(far * Math.tan(to))} ${n4(far)}Z" fill="url(#t${j})"/>`;
@@ -605,7 +536,7 @@ function tentParts(
     const cos = Math.cos(j * wide);
     fades +=
       `<linearGradient id="t${j}" gradientUnits="userSpaceOnUse" x1="${n5(sin)}" y1="${n5(cos)}" x2="${n5(sin + cos * tan)}" y2="${n5(cos - sin * tan)}">` +
-      `<stop offset="0" stop-color="${grey(1 - fallen(j / layers))}"/><stop offset="1" stop-color="${grey(1 - fallen((j + 1) / layers))}"/></linearGradient>`;
+      `<stop offset="0" stop-color="${grey(1 - j / layers)}"/><stop offset="1" stop-color="${grey(1 - (j + 1) / layers)}"/></linearGradient>`;
     first += wedge(j ? (j - 1) * wide : -TENT_WIDE / 2, (j + 1) * wide, j);
     second += wedge(Math.max(0, j - 1) * wide, (j + 1) * wide, j);
   }
@@ -670,15 +601,11 @@ export function auroraFrameSvg(
   cut: AuroraCut = FRAME
 ): string {
   const m = auroraScene(P, view, size);
-  const fan = atOnce(readFan(m, auroraTime(t), cut, false, Math.ceil(cut.soft)));
+  const fan = readFan(m, auroraTime(t), cut);
   /* its tolerances as shares of what the palette spans: the same miss is as much plainer in a pale palette, whose
      shafts stand a few levels over its sky, as that palette spans less */
   const spans = paletteSpan(m.ramp);
-  const wedges = wedgesOf(fan, softened(fan, cut.soft), {
-    ...cut,
-    ray: cut.ray * spans,
-    stop: cut.stop * spans
-  });
+  const wedges = wedgesOf(fan, { ...cut, ray: cut.ray * spans, stop: cut.stop * spans });
   const { x: fx, y: fy } = m.design.fan;
   const at = (r: number, a: number) => pixelOf(m, fx + r * Math.sin(a), fy + r * Math.cos(a));
   const point = (r: number, a: number) => at(r, a).map(n1).join(" ");
@@ -714,91 +641,105 @@ export function auroraFrameSvg(
 export const auroraFileSvg = (P: Palette, view: AuroraView, size: Size): string =>
   auroraFrameSvg(P, view, size, 0);
 
-/** A still's cut: an AuroraCut whose `px` and `read` are shares of the box's longer side where a frame's are
-    pixels (a still is one design laid over any box), and `most`, the most it may weigh as a CSS background,
-    bytes. */
-export type AuroraStillCut = AuroraCut & { most: number };
+/** The still's cut: how many pixels its picture of the light has along the box's longer side, and its JPEG's
+    quality. */
+export interface AuroraStillCut {
+  side: number;
+  quality: number;
+}
 
-/** The still's cut, and the most it may weigh, under the 40 KiB a list's still may (fx-still.ts). A look whose
-    light fills more of the box than that weight holds is cut coarser until it fits (auroraStillSteps).
-    Measured 17 Nov 2026 at the design square over thirteen looks (shapes, angles, low ranges, walls), the old
-    still's numbers after each (its light as colors in broad wedges under a blur, cut to fill 39 KiB): 17 to 24
-    KiB as a CSS background, 20.6 on average (34 to 38, 36.4), the same for every palette; its middle 16:9 at 960
-    by 540 a mean of 1.74 from the CPU's frame in the suite's palette (1.78), 2.71 in a green one (2.86) and 6.88
-    in one of six colors (7.07); written in 5 ms, its light read on a fan of rays two cells of the fine shafts
-    apart (10 ms), and in 0.2 ms where its look's shapes are kept; sixteen cards of it first painted by a
-    software rasterizer in 200 ms (208), one filling a screen in 60 (68). Chromium and Firefox draw it as resvg
-    does (means of 0.02 to 0.19 apart) and WebKit within 0.06 to 0.39.
-    Its tent has three layers and is round: a fourth costs a list of cards 12 ms of first paint and a twelfth 120,
-    and none draws it nearer the frame. */
-const STILL: AuroraStillCut = {
-  px: 0.006,
-  cell: 2,
-  read: 0.006,
-  gap: 0.03,
-  ray: 24,
-  stop: 8,
-  span: 5,
-  tent: 3,
-  round: 1,
-  soft: 2,
-  most: 25 * 1024
-};
-/** How many times as broad as designed a still's averaging grows at the most, as it is cut coarser to fit. */
-const BROADEST = 2;
+/** The still's cut: a picture 256 pixels along the box's longer side, its JPEG at a quality of 90.
+    Measured 17 Nov 2026 at the design square over thirteen looks (shapes, angles, low ranges, walls), after each
+    the numbers of the two stills of shapes alone it follows (wedges of greys with the light run between them, then
+    colors in broad wedges under a blur): 11 to 19 KiB as a CSS background, 13.2 on average (17 to 24, 20.6; 34 to
+    38, 36.4), some 8 of them its picture and the rest its range, the same for every palette; its middle 16:9 on a
+    card of 400 by 224 a mean of 0.24 from the CPU's frame in the suite's palette (1.89; 1.66), 0.32 in a green one
+    (2.90; 2.54) and 0.66 in one of six colors (6.20; 6.48), and as near on a screen of 1280 by 720 (0.22, 0.30 and
+    0.65), where it is the frame five times enlarged; written in 25 ms for a look no still has shown, its light
+    read at 37,000 places (5; 11), and in 0.3 ms where its look's picture is kept, so sixteen of a look in 28 ms
+    (8; 161). Sixteen of them in a list's head are 189 KiB as written (294; 566), 14.6 gzipped (11.9; 72.5) and
+    10.5 in Brotli (6.2; 41.8): a JPEG does not shrink again. Sixteen cards of it are first painted by a software
+    rasterizer in 124 ms (224; 216), one filling a screen in 76 (64; 88). Chromium, Firefox and WebKit draw it as
+    resvg does (means of 0.01 to 0.22 apart).
+    A picture of 288 pixels at a quality of 88 lies as near (0.31 and 0.64 in the green palette and the one of six
+    colors) and takes a quarter longer to read; one of 320, 0.29 and 0.59. */
+const STILL: AuroraStillCut = { side: 256, quality: 90 };
 
-/* what a piece of SVG weighs in a CSS background (css.ts svgUrl escapes four characters as three) */
-const cssWeight = (svg: string) => svg.length + 2 * (svg.match(/[<>#%]/g)?.length ?? 0);
+/** The light alone: a scene whose ramp is the light itself, so that auroraLight answers how much light, 0 to 1. */
+const LIGHT_ALONE = Float32Array.from({ length: 128 * 3 }, (_, i) => Math.floor(i / 3) / 127);
+const { low: LOW, tip: TIP, bend: BEND } = AURORA_PAGE_NUMBERS;
+/* how far along the palette, from its darker end, a light is read (aurora.ts auroraRamp) */
+const alongPalette = (light: number) =>
+  1 - (1 - Math.min(1, Math.max(0, (light - LOW) / (TIP - LOW)))) ** BEND;
+/** How the still's greys spend their 256 levels along the palette: a grey is how far along the palette the light
+    reads, to this power, so the palette's darker end, where most of a frame's light lies and lies smoothest (over
+    half its pixels in the first third), takes most of the levels. And WebKit takes a filter's picture through
+    8 bits of linear light and back whatever space the filter is said to work in (greys 0 to 43 come out as 0, 13,
+    22, 28, 34, 38 and 42: 17 Nov 2026, Playwright's WebKit): greys read straight along the palette left a dark
+    sky seven levels, drawn as blocks, where this power, the transfer curve's own nearly, leaves that round trip
+    the palette in even steps. */
+const GREY_BEND = 0.45;
+/** How many straight lines the filter's tables read the palette by, even steps of grey: at the palette's lighter
+    end, where a step of grey is the longest step along the palette, as long as the palette's own 32 (fewer round
+    a palette's sharpest turns: 32 lay up to 31 levels off a palette of many colors there, 64 up to 15). */
+const TABLE = 64;
+/** The height over the line the light rises from (auroraRange) under which the light is its haze alone, one grey:
+    where its short rise begins (aurora.ts auroraLift). */
+const HAZE_ALONE = -0.02;
 
-/** A still's shapes, which are its light's and no palette's: the whole of it but the filter's tables, in the two
-    pieces the tables are written between. */
-interface StillShapes {
+/** A still's picture, which is its light's and no palette's: the whole of the still but the filter's tables, in
+    the two pieces the tables are written between. */
+interface StillPicture {
   before: string;
   after: string;
 }
 
-/* The still's shapes of a fan's light, written short, for a browser: the wedges one shape turned about the fan's
-   point to each wedge's first side and reaching past its last, where the next, drawn after it, lies over it; each
-   with its own stops on one gradient's line, so a wedge costs its stops and little more. The stops are greys, how
-   far along the palette the light reads, and the filter, whose tables a palette fills, reads the greys through that
-   palette once the wedges and the tents have made the light whole. */
-function stillShapes(m: AuroraScene, fan: Fan, light: Float64Array, cut: AuroraCut): StillShapes {
-  const wedges = wedgesOf(fan, light, cut);
+/* The still's picture of a scene's first frame, a few rows a step: the light of each pixel's middle as a grey,
+   under the range as over it (the range's mask hides it there, and a picture with no hard edge of its own keeps
+   the JPEG's blocks out of sight), then the JPEG, and the SVG that lays it under the range's mask and reads it
+   through the filter. */
+function* stillPicture(m: AuroraScene, cut: AuroraStillCut): Generator<void, StillPicture> {
   const { width: W, height: H } = m;
-  const lap = LAP / (0.5 * (fan.r0 + fan.r1) * m.ext);
-  let fills = "";
-  let ground = "";
-  let tented = "";
-  let widest = 0;
-  wedges.forEach((w, s) => {
-    const from = fan.a0 + w.before * fan.step;
-    /* the gradient runs along the wedge's first side, a little aside of its ray: a reading stands where its
-       distance along the ray reaches along that side */
-    const aside = Math.cos((w.ray - w.before) * fan.step);
-    fills += `<linearGradient id="g${s}" href="#g">${w.stops
-      .map(([k, c]) => {
-        const r = fan.r0 + ((fan.r1 - fan.r0) * k) / fan.reads;
-        return `<stop offset="${n3(Math.max(0, (r * aside - fan.r0) / (fan.r1 - fan.r0)))}" stop-color="${grey(c[0])}"/>`;
-      })
-      .join("")}</linearGradient>`;
-    const use = `<use href="#p" fill="url(#g${s})" transform="rotate(${n3((-from * 180) / Math.PI)})"/>`;
-    if (w.tented) tented += use;
-    else ground += use;
-    widest = Math.max(widest, (w.after - w.before) * fan.step);
-  });
-  const place = fanPlace(m);
-  const far = fan.r1 * 1.05;
+  const scale = cut.side / Math.max(W, H);
+  const w = Math.max(1, Math.floor(W * scale + 0.5));
+  const h = Math.max(1, Math.floor(H * scale + 0.5));
+  const lit: AuroraScene = { ...m, ramp: LIGHT_ALONE };
+  const greyOf = (light: number) => Math.floor(alongPalette(light) ** GREY_BEND * 255 + 0.5);
+  const lift = [0, 0, 0];
+  auroraLift(HAZE_ALONE, lift);
+  const haze = greyOf(lift[1]);
+  const greys = new Uint8Array(w * h);
+  const at = new Float64Array(2);
+  const where = new Float64Array(2);
+  const c = new Float64Array(3);
+  /* the line the light rises from under each pixel: in an upright picture a column's pixels share one place of it */
+  const upright = m.sn === 0;
+  const line = new Float64Array(w);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      auroraPoint(m, ((x + 0.5) * W) / w, ((y + 0.5) * H) / h, at);
+      if (!upright || y === 0) {
+        auroraRange(m, at[0], at[1], where);
+        line[x] = at[1] - where[1];
+      }
+      const over = at[1] - line[x];
+      if (over <= HAZE_ALONE) greys[y * w + x] = haze;
+      else {
+        auroraLight(lit, 0, at[0], at[1], over, c);
+        greys[y * w + x] = greyOf(c[0]);
+      }
+    }
+    if (y % 4 === 3) yield;
+  }
+  const jpeg = yield* jpegOfGreysSteps(greys, w, h, cut.quality);
   const R = rangeParts(m, false);
   return {
     before:
       `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs>${R.defs}` +
       `<filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}" color-interpolation-filters="sRGB"><feComponentTransfer>`,
     after:
-      `</feComponentTransfer></filter>` +
-      `<linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="${n4(fan.r0)}" x2="0" y2="${n4(fan.r1)}"/>` +
-      `<path id="p" d="M0 0L0 ${n4(far)}L${n4(far * Math.tan(widest + lap))} ${n4(far)}Z"/>` +
-      `${tentParts(m, fan, wedges, cut, place, "href")}${fills}</defs>${R.under}` +
-      `<g mask="url(#m)"><g filter="url(#f)"><g transform="${place}">${ground}</g>${tented ? `<g mask="url(#o)"><g style="isolation:isolate" transform="${place}">${tented}</g></g>` : ""}</g></g></svg>`
+      `</feComponentTransfer></filter></defs>${R.under}` +
+      `<g mask="url(#m)"><g filter="url(#f)"><image width="${W}" height="${H}" preserveAspectRatio="none" href="data:image/jpeg;base64,${base64(jpeg)}"/></g></g></svg>`
   };
 }
 
@@ -819,14 +760,14 @@ function paletteTables(P: Palette): string {
     .join("");
 }
 
-/** The shapes of the stills last written, by their look and box: a list's cards are one look in sixteen palettes,
-    and its next page sixteen more, so all but the first of them cost their tables alone. */
+/** The pictures of the stills last written, by their look and box: a list's cards are one look in sixteen
+    palettes, and its next page sixteen more, so all but the first of them cost their tables alone. */
 const KEPT_STILLS = 8;
-const keptStills = new Map<string, StillShapes>();
+const keptStills = new Map<string, StillPicture>();
 
 /** The still a step at a time, each under a millisecond but the noise's, made once a page: the first frame's light
-    read on its fan a few rays a step, then written; no step where its shapes are kept from a still of the same
-    look. `cut`: the still's own unless another is given. */
+    read a few rows a step, then written; no step where its picture is kept from a still of the same look. `cut`:
+    the still's own unless another is given. */
 export function* auroraStillSteps(
   P: Palette,
   view: AuroraView,
@@ -834,43 +775,17 @@ export function* auroraStillSteps(
   cut: AuroraStillCut = STILL
 ): Generator<void, string> {
   const key = `${view.angle} ${view.shape} ${view.path} ${view.bg} ${size.width} ${size.height}`;
-  let shapes = cut === STILL ? keptStills.get(key) : undefined;
-  if (!shapes) {
+  let picture = cut === STILL ? keptStills.get(key) : undefined;
+  if (!picture) {
     yield* auroraTilesSteps();
-    const m = auroraScene(P, view, size);
-    const side = Math.max(m.width, m.height);
-    const fan = yield* readFan(
-      m,
-      0,
-      { ...cut, px: cut.px * side, read: cut.read * side },
-      true,
-      Math.ceil(cut.soft * BROADEST)
-    );
-    /* cut coarser, round by round, until it weighs what it may: its tolerances wider, its averaging broader */
-    const tables = cssWeight(paletteTables(P));
-    for (let coarser = 1, round = 0; ; round++) {
-      /* averaged as read, along the palette, then bent into greys */
-      const light = softened(fan, cut.soft * Math.min(BROADEST, Math.sqrt(coarser))).map(
-        v => v ** GREY_BEND
-      );
-      yield;
-      shapes = stillShapes(m, fan, light, {
-        ...cut,
-        ray: cut.ray * coarser,
-        stop: cut.stop * coarser
-      });
-      const weight = cssWeight(shapes.before) + tables + cssWeight(shapes.after);
-      if (weight <= cut.most || round > 6) break;
-      coarser *= (weight / cut.most) ** 2;
-      yield;
-    }
+    picture = yield* stillPicture(auroraScene(P, view, size), cut);
     if (cut === STILL) {
-      keptStills.set(key, shapes);
+      keptStills.set(key, picture);
       if (keptStills.size > KEPT_STILLS)
         keptStills.delete(keptStills.keys().next().value as string);
     }
   }
-  return shapes.before + paletteTables(P) + shapes.after;
+  return picture.before + paletteTables(P) + picture.after;
 }
 
 /** The still: auroraStillSteps, at once. */

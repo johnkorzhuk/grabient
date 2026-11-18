@@ -88,7 +88,7 @@ export function FxLayer(props: {
   const keyOf = (kind: VectorKind, P: Palette, l: FxLook) => fxStillKey(kind, encodePalette(P), l);
   /* the still the holder shows: the server's where the head holds it, else drawn here once the code has come. The
      server's, where its look is drawn as a picture too (engine/fx-picture.ts fxPictureOf: the aurora's as designed),
-     gives way to the picture once it has come, its frame itself where the vector still is a few dozen rays of it, until the
+     gives way to the picture once it has come, its frame itself where the vector still is that frame a little soft, until the
      player picks up; a still drawn here, for a palette or a look an edit made, keeps its vector still */
   let shown = "";
   const still = (kind: VectorKind, P: Palette, l: FxLook) => {

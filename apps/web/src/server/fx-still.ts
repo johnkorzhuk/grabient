@@ -4,7 +4,8 @@
    depends on); this writes each name's first frame into the head as a style, the one design covering whatever box
    holds it. The editor's holder (FxLayer.tsx) and a card's take the same rule, so the still stands through both and
    the player picks up from it without a seam. A still is a plain SVG of shapes and gradients, no filter: about 1.5 KB
-   in the compressed page (the papercut's, its cut paths, about 3) and a few milliseconds to paint, so a page names as
+   in the compressed page (the papercut's, its cut paths, about 3; the aurora's, a small picture of its light under one
+   filter, about 1 past the first of its look, whose picture is 7) and a few milliseconds to paint, so a page names as
    many as its first screen shows (stills.ts). Where a look is drawn as a picture too (engine/fx-picture.ts
    fxPictureOf: the aurora's, as designed, upright, any ground), the vector still is still the first paint, so the
    page shows the effect as soon as it loads (John, 14 Nov 2026, of a gradient flashing before the aurora: "The idea a

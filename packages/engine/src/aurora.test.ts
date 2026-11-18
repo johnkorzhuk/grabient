@@ -11,6 +11,7 @@ import {
   AURORA_SLOTS,
   AURORA_SOFT,
   AURORA_TILE,
+  type AuroraView,
   auroraDesign,
   auroraHash,
   auroraLight,
@@ -772,8 +773,8 @@ describe("the aurora's SVGs", () => {
     const count = (path: string) => wedges(auroraFrameSvg(P, view(path), BOX, 0));
     const low = count("line,5,5");
     const high = count("line,70,70");
-    expect(low).toBeGreaterThan(60);
-    expect(high).toBeLessThan(low * 0.7);
+    expect(low).toBeGreaterThan(100);
+    expect(high).toBeLessThan(low * 0.75);
     /* a range to the box's top leaves its soft edge alone to write: a few wedges, a few stops each */
     const top = auroraFrameSvg(P, view("line,100,100"), BOX, 0);
     expect(wedges(top)).toBeLessThan(high / 2);
@@ -808,28 +809,37 @@ describe("the aurora's SVGs", () => {
       expect(hex).toMatch(/^([0-9a-f]{2})\1\1$/);
   });
 
-  it("is the same shapes at any size past the detail its light has: no heavier at 4K than at 800 pixels", () => {
-    /* its flat wedges, 4 pixels wide at any size, weighed 162 KiB at 800 by 400 and 419 at 1920 by 1080 */
+  it("is as fine as its pixels show, and the same shapes past the detail its light has: no heavier at 4K than at 1080p", () => {
+    /* its flat wedges, 4 pixels wide at any size, weighed 162 KiB at 800 by 400, 419 at 1920 by 1080 and 803 at
+       3840 by 2160; cut by the light's own scale alone, as it was for a day, 65 at any size, its fine shafts gone */
     const weight = (width: number, height: number) =>
       auroraFrameSvg(P, view(), { width, height }, 0).length;
     const at800 = weight(800, 450);
-    expect(at800).toBeLessThan(72 * 1024);
-    expect(weight(1920, 1080)).toBeLessThan(at800 * 1.1);
-    expect(weight(3840, 2160)).toBeLessThan(at800 * 1.1);
+    const at1080 = weight(1920, 1080);
+    expect(at800).toBeLessThan(165 * 1024);
+    expect(at1080).toBeGreaterThan(at800 * 1.1);
+    expect(at1080).toBeLessThan(at800 * 1.6);
+    expect(weight(3840, 2160)).toBeLessThan(at1080 * 1.05);
   });
 
   it("lies nearer the CPU's frame the finer it is cut, and weighs more", () => {
-    const cut = { px: 4, cell: 0.5, read: 4, gap: 0.025, span: 8, tent: 2, round: 0, soft: 0 };
+    const cut = { cell: 0.125, gap: 0.004, span: 8, tent: 2 };
     const own = auroraFrameSvg(P, view(), BOX, 0);
-    const finer = auroraFrameSvg(P, view(), BOX, 0, { ...cut, ray: 8, stop: 2 });
-    const coarser = auroraFrameSvg(P, view(), BOX, 0, { ...cut, ray: 64, stop: 16 });
-    expect(finer.length).toBeGreaterThan(own.length * 1.2);
-    expect(coarser.length).toBeLessThan(own.length * 0.6);
+    const finer = auroraFrameSvg(P, view(), BOX, 0, { ...cut, px: 2, read: 2, ray: 4, stop: 3 });
+    const coarser = auroraFrameSvg(P, view(), BOX, 0, {
+      ...cut,
+      px: 6,
+      read: 6,
+      ray: 32,
+      stop: 16
+    });
+    expect(finer.length).toBeGreaterThan(own.length * 1.4);
+    expect(coarser.length).toBeLessThan(own.length * 0.55);
     expect(apart(finer).mean).toBeLessThan(apart(own).mean);
     expect(apart(own).mean).toBeLessThan(apart(coarser).mean);
     /* as cut, well inside what any frame's SVG may lie from its CPU frame (effect-conformance.test.ts) */
-    expect(apart(own).mean).toBeLessThan(1);
-    expect(apart(own).p99).toBeLessThan(6);
+    expect(apart(own).mean).toBeLessThan(0.9);
+    expect(apart(own).p99).toBeLessThan(5);
   });
 
   it("stops resvg at no angle, walls or none", () => {
@@ -848,24 +858,35 @@ describe("the aurora's SVGs", () => {
   const SQUARE = { width: 1000, height: 1000 };
   const many = decodePalette("kWKxfe1GRDVfIxNzPsjbDZKA") as Palette;
 
-  it("stills in greys that one filter reads through the palette, written short for a browser", () => {
+  it("stills as a small picture of its light, which one filter reads through the palette under the range's shape", () => {
     const still = auroraStillSvg(P, view(), SQUARE);
     expect(still.match(/<filter/g)).toHaveLength(1);
     expect(still).toContain(
       'color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="table"'
     );
     expect(still).not.toMatch(
-      /<feGaussianBlur|<image|<script|<foreignObject|@keyframes|<animate|xlink|opacity/
+      /<feGaussianBlur|<linearGradient id="[gw]|<script|<foreignObject|@keyframes|<animate|xlink/
     );
-    /* every wedge's stops are greys: how far along the palette the light reads */
-    const stops = [
-      ...still.matchAll(/<linearGradient id="g\d+" href="#g">(.*?)<\/linearGradient>/g)
-    ]
-      .flatMap(([, inner]) => [...inner.matchAll(/stop-color="#([0-9a-f]{6})"/g)])
-      .map(([, hex]) => hex);
-    expect(stops.length).toBeGreaterThan(100);
-    for (const hex of stops) expect(hex).toMatch(/^([0-9a-f]{2})\1\1$/);
-    /* a step at a time it is the same still; and a still of the same look again takes no step: its shapes are
+    /* one picture, a JPEG of greys the SVG holds itself, 256 pixels a side over the design's square, under the
+       range's mask */
+    expect(still.match(/<image /g)).toHaveLength(1);
+    expect(still).toContain(
+      '<g mask="url(#m)"><g filter="url(#f)"><image width="1000" height="1000" preserveAspectRatio="none" href="data:image/jpeg;base64,/9j/'
+    );
+    expect(still).not.toMatch(/href="(?!#|data:image\/jpeg;base64,)/);
+    const jpeg = Buffer.from(/base64,([^"]*)"/.exec(still)?.[1] ?? "", "base64");
+    const frame = jpeg.indexOf(Buffer.from([0xff, 0xc0]));
+    expect([jpeg.readUInt16BE(frame + 7), jpeg.readUInt16BE(frame + 5), jpeg[frame + 9]]).toEqual([
+      256, 256, 1
+    ]);
+    /* a box that is no square has its picture in its own shape */
+    const wide = auroraStillSvg(P, view(), { width: 640, height: 360 });
+    const wideJpeg = Buffer.from(/base64,([^"]*)"/.exec(wide)?.[1] ?? "", "base64");
+    const wideFrame = wideJpeg.indexOf(Buffer.from([0xff, 0xc0]));
+    expect([wideJpeg.readUInt16BE(wideFrame + 7), wideJpeg.readUInt16BE(wideFrame + 5)]).toEqual([
+      256, 144
+    ]);
+    /* a step at a time it is the same still; and a still of the same look again takes no step: its picture is
        kept */
     const turned = view(null, null, 45);
     const steps = auroraStillSteps(P, turned, SQUARE);
@@ -875,12 +896,12 @@ describe("the aurora's SVGs", () => {
       count++;
       step = steps.next();
     }
-    expect(count).toBeGreaterThan(8);
+    expect(count).toBeGreaterThan(32);
     expect(auroraStillSvg(P, turned, SQUARE)).toBe(step.value);
     expect(auroraStillSteps(many, turned, SQUARE).next().done).toBe(true);
   });
 
-  it("stills in the same shapes whatever the palette: the filter's tables alone are the palette's", () => {
+  it("stills in the same picture whatever the palette: the filter's tables alone are the palette's", () => {
     const tables = /<feComponentTransfer>.*?<\/feComponentTransfer>/;
     const one = auroraStillSvg(P, view(), SQUARE);
     const other = auroraStillSvg(many, view(), SQUARE);
@@ -930,9 +951,59 @@ describe("the aurora's SVGs", () => {
     expect(worst).toBeLessThan(8);
   });
 
-  it("stills within the weight a list's card may have, whatever the look, and well under what they once weighed", () => {
-    /* the most light a box holds, in a palette of many colors, at any angle and in any shape: cut coarser, never
-       over the weight. Its light as colors under a blur weighed 34 to 38 KiB whatever the look */
+  it("stills as the shader's first frame a little soft: on a card and on a phone's screen within a mean of 0.8 of it", () => {
+    /* the design's square laid over a box as CSS's cover lays it, against the CPU's frame of that box (whose numbers
+       are the shader's). As wedges of greys with the light run between them, as it was for a day, a card's still
+       lay 1.9 from this palette's frame and 6.2 from one of six colors'; as colors under a blur, 1.7 and 6.5 (John,
+       17 Nov 2026: "the vector does not look like the shader. its important there's parity there") */
+    const near = (Q: Palette, v: AuroraView, W: number, H: number) => {
+      const S = Math.max(W, H);
+      const page = (px: Uint8Array | Uint8ClampedArray, premultiplied: boolean) =>
+        Uint8Array.from({ length: (px.length / 4) * 3 }, (_, i) => {
+          const o = 4 * Math.floor(i / 3);
+          const a = px[o + 3] / 255;
+          return Math.round((premultiplied ? px[o + (i % 3)] : px[o + (i % 3)] * a) + 13 * (1 - a));
+        });
+      const square = page(rasterize(auroraStillSvg(Q, v, SQUARE), S), true);
+      const box = new Uint8Array(W * H * 3);
+      const left = Math.floor((S - W) / 2);
+      const top = Math.floor((S - H) / 2);
+      for (let y = 0; y < H; y++)
+        box.set(
+          square.subarray(((y + top) * S + left) * 3, ((y + top) * S + left + W) * 3),
+          y * W * 3
+        );
+      return frameDiff(
+        box,
+        page(renderAurora(auroraScene(Q, v, { width: W, height: H }), 0), false),
+        W,
+        H
+      );
+    };
+    const looks = [
+      view(),
+      view(auroraMadePath("skyline", 3), null, 210, 417),
+      view(BLOCK, "#10203080")
+    ];
+    for (const Q of [P, many])
+      for (const v of looks)
+        for (const [W, H] of [
+          [400, 224],
+          [224, 400]
+        ]) {
+          const d = near(Q, v, W, H);
+          expect(d.mean, `${v.path} ${W}x${H}`).toBeLessThan(0.8);
+          expect(d.p99, `${v.path} ${W}x${H}`).toBeLessThan(5);
+          expect(d.far).toBe(0);
+        }
+    /* this palette as designed, on a card: 0.24 and 1.0 */
+    expect(near(P, view(), 400, 224).mean).toBeLessThan(0.4);
+  });
+
+  it("stills within a third of the weight a list's card may have, whatever the look", () => {
+    /* the most light a box holds, in a palette of many colors, at any angle and in any shape: its picture weighs
+       by its light, 6 to 9 KiB, and its range's path by its length. Its light as colors under a blur weighed 34 to
+       38 KiB whatever the look, and as wedges of greys 17 to 24 */
     const weights: number[] = [];
     for (const path of [null, "line,0,0", auroraMadePath("skyline", 3)])
       for (const angle of [90, 45, 210])
@@ -940,9 +1011,9 @@ describe("the aurora's SVGs", () => {
           const heavy = auroraStillSvg(many, view(path, null, angle, shape), SQUARE);
           weights.push(`${svgUrl(heavy)} 50% 50% / cover no-repeat`.length);
         }
-    expect(Math.max(...weights)).toBeLessThan(26 * 1024);
-    expect(Math.min(...weights)).toBeGreaterThan(12 * 1024);
-    expect(weights.reduce((sum, w) => sum + w, 0) / weights.length).toBeLessThan(23 * 1024);
+    expect(Math.max(...weights)).toBeLessThan(20 * 1024);
+    expect(Math.min(...weights)).toBeGreaterThan(8 * 1024);
+    expect(weights.reduce((sum, w) => sum + w, 0) / weights.length).toBeLessThan(15 * 1024);
   });
 });
 

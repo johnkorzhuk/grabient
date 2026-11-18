@@ -109,16 +109,17 @@ export interface EffectKindFacts {
   /** drawn by ui/effect-loop.ts over a vector still */
   vector: boolean;
   /** its still stands in for its first frame rather than being it (the papercut's shadows stepped for a list's cards
-      and a page's first paint, the aurora's light in a few broad wedges, read through the palette by a filter, where
-      no picture of it stands: `picture`), so a page's stage shows the player's own first frame over it while the
+      and a page's first paint, the aurora's light as a small picture, read through the palette by a filter, where
+      no picture of its frame stands: `picture`), so a page's stage shows the player's own first frame over it while the
       effect is held as well; the others' stills are that frame to within a level, which a held stage fades back to */
   steppedStill: boolean;
   /** whether the server draws its still as a picture, its first frame at FX_PICTURE_SIDE coded as WebP
       (fx-picture.ts, apps/web server/images/fx-picture.ts), which a page's first screen and a list's cards show in
       place of its vector still: the aurora's, whose light no vector still within a list's budget draws sharp (John,
       13 Nov 2026, of its cards, whose still was then its light blurred: "why does the preview look blurrier than it
-      actually is when hovered?"; since 17 Nov 2026 the still keeps the palette's own colors and bands, aurora-svg.ts,
-      and is still a few dozen rays where the picture is the frame itself). A picture is
+      actually is when hovered?"; since 17 Nov 2026 the still is its light as a picture of 256 pixels read through the
+      palette, aurora-svg.ts, within 1 of the frame on a card and soft on a screen, where the picture is the frame
+      itself). A picture is
       drawn once for a palette and look and kept, so where the palette changes as it is edited (the editor's own
       pictures), its vector still stands. The others' vector stills are their first frame to within a level, or a
       stand-in light enough for a list (steppedStill) */

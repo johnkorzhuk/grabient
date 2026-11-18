@@ -215,8 +215,12 @@ const BUDGETS = {
   // (17 Nov 2026, John: "the aurora vector representation is really heavy"): the writer that reads its light on a fan
   // of rays, keeps the rays and stops the light needs, lays the tents between them and writes the still as greys with
   // the palette's tables (engine/aurora-svg.ts) took the chunk from 14.7 to 16.5, for a still of 20 KiB where it was
-  // 36 in every page that shows one, and sixteen of them 12 KiB of a list's compressed page where they were 72
-  onDemand: 17,
+  // 36 in every page that shows one, and sixteen of them 12 KiB of a list's compressed page where they were 72. Its
+  // likeness to its shader (17 Nov 2026, John, of those SVGs: "the vector does not look like the shader. its
+  // important there's parity there"): the still as its light in a small JPEG the SVG holds, whose encoder is 1.8 KB
+  // (engine/jpeg-greys.ts), where the wedges of greys and their fitting were 0.6, took the chunk from 16.5 to 17.7,
+  // for a still of 13 KiB that lies within 1 of the shader's frame on a card where the wedges lay 2 to 6
+  onDemand: 18.5,
   names: 285,
   // the Worker counts the pages browsers load with the admins' reader of those counts (server/visits,
   // mcp/admin/visits.ts: 5 KiB). It starts with no language's messages and no old address's map: it reads a language's
@@ -273,9 +277,11 @@ const BUDGETS = {
   // 1499.8 to 1501.0, by the build. The aurora's lighter SVGs (17 Nov 2026, John: "the aurora vector representation
   // is really heavy"): the same writer, which the Worker's SVG and CSS files and a page's stills load with the first
   // of them asked for, took it from 1501.2 to 1502.8 to 1503.6, by the build; it writes a still in 5 ms where the old
-  // took 10, and a list's sixteen in 27 where they took 233. The budget stands the builds' spread and one more over
-  // it
-  worker: 1505,
+  // took 10, and a list's sixteen in 27 where they took 233. Its likeness to its shader (17 Nov 2026, John: "the
+  // vector does not look like the shader. its important there's parity there"): the same encoder and the still's
+  // picture, in the Worker as in the stills' chunk, took it from 1502.8 to 1503.6 to 1504.3 to 1504.7, by the build.
+  // The budget stands the builds' spread and one more over it
+  worker: 1506.5,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with
