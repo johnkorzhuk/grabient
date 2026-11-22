@@ -424,8 +424,8 @@ export function CollectionPage(props: {
   );
   /* a collection of one color, by its address: the color's shades and the colors that go with it by their hues, each
      a palette of its own, listed as the collection's palettes' codes are and linked to its page as bands, a band a
-     color. A pilot (John, 22 Nov 2026, of a page per color: "if we can make it work then maybe its worth pursuing",
-     "show me what you're talking about staging") */
+     color. No page of its own (John, 22 Nov 2026, of a page per color: "if we can make it work then maybe its worth
+     pursuing", and of this list on staging: "if its just collections your adding go ahead and get that into prod") */
   const KIN: Record<KinKind, () => string> = {
     shades: () => t("Shades"),
     complementary: () => t("Complementary"),
