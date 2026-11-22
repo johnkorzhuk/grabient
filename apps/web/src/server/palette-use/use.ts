@@ -206,7 +206,7 @@ export async function usedResponse(request: Request, env: Env): Promise<Response
     return done();
   /* the reader used a palette, or a collection's page once present: a visit of its own, which says how many of a
      day's visitors use the site */
-  await countAct(env, request, "use");
+  await countAct(env, request, "use", input.action === "view");
 
   /* where it happened: a public collection, and a search in the words the vocabulary knows; anything else is left out */
   const collection =

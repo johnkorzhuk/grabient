@@ -40,6 +40,9 @@ export interface Visit {
   language: string;
   /** the page's path as the browser asked for it, for Google Analytics alone: the counts keep its kind */
   path?: string;
+  /** a use that is a collection's page seen (features/palette-use/use.ts `useCollectionSeen`): it takes a scroll or a
+      touch where every other use takes a press on a palette */
+  seen?: boolean;
   referrer?: string;
   source?: string;
   medium?: string;
@@ -264,15 +267,33 @@ export const goesOnceRan = (visit: Visit, lagging = false): boolean =>
 export const overQuic = (request: Request): boolean =>
   (request as { cf?: { httpProtocol?: unknown } }).cf?.httpProtocol === "HTTP/3";
 
+/** Whether a system's landings wait as the gallery's from nowhere do, wherever they came from, and its collection
+    pages seen show no more than a page run: a desktop Linux's, the system a program's browser runs on in a data
+    center. On 22 Nov 2026, from 18:52 to 19:03 UTC, a program driving Chrome 158 on Linux, the stable version's own
+    user agent, made about 230 of Google Analytics' visitors through the hosting networks VPNs exit by (Datacamp,
+    M247, GTT and others, which carry people too and are no `HOSTING`): each landed once with Google as its referrer,
+    on a collection's page mostly, in every language, ran the page, and half scrolled it, which sent the collection's
+    view. All 443 of its pages' checks came over HTTP/2. In the week of 12 to 18 Nov, 86 of Google Analytics' 5,364
+    visitors were on a desktop Linux, 47 of whom used a palette or searched; those of the others on HTTP/2 throughout
+    are left out with it. Android and ChromeOS name themselves (`systemOf`). */
+export const waitsWherever = (system: string): boolean => system === "Linux";
+
 /** A palette used, a collection's page used once the reader is present (features/palette-use/use.ts), or a search
     made, as a visit to the page it was made on, or null for a program's. */
-export function actVisit(request: Request, what: "use" | "search"): Visit | null {
+export function actVisit(request: Request, what: "use" | "search", seen = false): Visit | null {
   if (automated(request)) return null;
   const from = referrerOf(request.headers.get("Referer"));
   const own = from && from.origin === new URL(request.url).origin ? from : null;
-  if (!own) return { what, page: "", language: "" };
+  const more = seen ? { seen } : {};
+  if (!own) return { what, page: "", language: "", ...more };
   const { locale, path } = splitLocale(own.pathname);
-  return { what, page: pageKind(path, own.searchParams), language: locale, path: own.pathname };
+  return {
+    what,
+    page: pageKind(path, own.searchParams),
+    language: locale,
+    path: own.pathname,
+    ...more
+  };
 }
 
 /* the day's key each isolate read, by KV binding. A key never changes in its day, so one found stands for the day; a
@@ -392,12 +413,20 @@ export async function countVisit(
     network
   };
   const origin = new URL(request.url).origin;
+  const borrowed = waitsWherever(system) && !overQuic(request);
   if (visit.what === "use" || visit.what === "search") {
+    if (borrowed && visit.seen) {
+      // a page scrolled by a browser that waits wherever it lands: it goes with a visitor that showed more, alone
+      await sendOnceMore(env, origin, hit, now);
+      return;
+    }
     // the page's own script made it at its reader's press: the page that waited for either goes first
     if (headers.get("Sec-Fetch-Site") === "same-origin") await ranPage(env, origin, visitor, true);
     await sendHit(env, hit, now);
   } else {
-    const waits = !goesOnceRan(visit, lags(browser, lead)) && !overQuic(request);
+    const waits =
+      (!goesOnceRan(visit, lags(browser, lead)) || (borrowed && visit.what === "landing")) &&
+      !overQuic(request);
     await sendOnceRan(env, origin, hit, now, waits);
   }
 }
@@ -430,7 +459,10 @@ const EUROPE = new Set(["GB", "CH", "NO", "IS", "LI"]);
    thirteen hours after that rule went live the program made 2,522 single landings on the gallery's pages, of which
    one went on, over HTTP/3, and 10 on the home page, the contact page and the bindings', which all did: every single
    landing from nowhere on those pages that Google Analytics received from a Chromium three to five versions behind,
-   where the 195 visitors on the three newest versions made 16. */
+   where the 195 visitors on the three newest versions made 16.
+
+   A desktop Linux's landing waits so wherever it came from, and its collection's page seen sends nothing on by itself
+   (`waitsWherever`): the program of 22 Nov 2026 came with Google as its referrer and scrolled. */
 const WAITS_SECONDS = 600;
 const RAN_SECONDS = 1800;
 /** What is kept of a visitor whose browser ran a page, and of one that showed more than a program's does: a check
@@ -489,6 +521,17 @@ async function sendOnceRan(
     if (since !== null) await release(env, cache, origin, hit.visitor, since);
   } catch {
     // not sent: a cache that cannot be read or written leaves the visit in the counts here alone
+  }
+}
+
+/** A hit that waits for nothing and shows nothing: sent where its visitor has shown more already, else left out. */
+async function sendOnceMore(env: Sends, origin: string, hit: Ga4Hit, now: number): Promise<void> {
+  const cache = visitCache();
+  if (!cache) return;
+  try {
+    if (await moreOf(cache, origin, hit.visitor)) await sendHit(env, hit, now);
+  } catch {
+    // not sent
   }
 }
 
