@@ -40,7 +40,13 @@ const chips = (hexes: readonly string[]): string =>
     cards above draw them as pictures. One Tab stop however many codes, on the code focused last, or the first: the
     arrows walk the codes, up and down a palette at a time, Home and End to the ends. Codes run left to right in
     every language, as a palette's colors do. */
-export function HexCodes(props: { rows: readonly CodeRow[] }) {
+export function HexCodes(props: {
+  rows: readonly CodeRow[];
+  /** another list of the same kind on the page: its own heading and the id that labels it */
+  heading?: string;
+  id?: string;
+}) {
+  const id = () => props.id ?? "collection-codes";
   let list!: HTMLOListElement;
   const all = () => [...list.querySelectorAll<HTMLElement>(CHIP)];
   /* the one code Tab reaches: `to`, and no other */
@@ -100,9 +106,9 @@ export function HexCodes(props: { rows: readonly CodeRow[] }) {
     ways[e.key]()?.focus();
   };
   return (
-    <section class={styles.codes} aria-labelledby="collection-codes">
-      <Text variant="h2" as="h2" id="collection-codes">
-        {t("Hex codes")}
+    <section class={styles.codes} aria-labelledby={id()}>
+      <Text variant="h2" as="h2" id={id()}>
+        {props.heading ?? t("Hex codes")}
       </Text>
       {/* the list hears its codes' presses, keys and focus, each code a button of its own: the code that takes the
           focus, by a key or a press, takes the Tab stop with it */}

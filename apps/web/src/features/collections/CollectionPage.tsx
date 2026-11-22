@@ -1,4 +1,5 @@
 import { decodePalette } from "@grabient/engine";
+import { colorKin, type KinKind } from "@grabient/engine/color-kin.ts";
 import { effectView } from "@grabient/engine/effect.ts";
 import { namedColor } from "@grabient/engine/named-colors.ts";
 import { DEFAULT_LOCALE, locale, localHref, msg, rich, t } from "@grabient/i18n";
@@ -421,6 +422,29 @@ export function CollectionPage(props: {
           : []
       )
   );
+  /* a collection of one color, by its address: the color's shades and the colors that go with it by their hues, each
+     a palette of its own, listed as the collection's palettes' codes are and linked to its page as bands, a band a
+     color. A pilot (John, 22 Nov 2026, of a page per color: "if we can make it work then maybe its worth pursuing",
+     "show me what you're talking about staging") */
+  const KIN: Record<KinKind, () => string> = {
+    shades: () => t("Shades"),
+    complementary: () => t("Complementary"),
+    analogous: () => t("Analogous"),
+    triadic: () => t("Triadic"),
+    split: () => t("Split complementary")
+  };
+  const kinRows = createMemo((): CodeRow[] => {
+    const color = namedColor(props.slug);
+    return color
+      ? colorKin(color.hex).map(kin => {
+          const href = paletteHref(
+            { seed: kin.seed, style: "linearSwatches", steps: kin.hexes.length, angle: 90 },
+            props.view.size
+          );
+          return { key: kin.kind, name: KIN[kin.kind](), href, rel: relTo(href), hexes: kin.hexes };
+        })
+      : [];
+  });
   const codeRows = createMemo((): CodeRow[] =>
     ordered().map(item => {
       const own = inputOf(item);
@@ -1003,6 +1027,13 @@ export function CollectionPage(props: {
                 >
                   <div class={styles.apart}>
                     <Rule />
+                    <Show when={kinRows().length}>
+                      <HexCodes
+                        rows={kinRows()}
+                        heading={t("Shades and matching colors")}
+                        id="collection-kin"
+                      />
+                    </Show>
                     <section class={styles.files} aria-labelledby="collection-export">
                       <Text variant="h2" as="h2" id="collection-export">
                         {t("Export")}

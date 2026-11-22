@@ -111,7 +111,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
        stop they keep), with the words a title says a style and a collection's codes by (engine/name.ts's titleWords,
        lib/page-meta.ts), took it from 289.1 to 290.4 on 12 Nov 2026: the codes are the page's words for a search of
        a theme's colors, which the cards alone drew */
-    budget: 291
+    /* a one-color collection's shades and matching colors (engine/color-kin.ts and its rows in CollectionPage.tsx), a
+       pilot on staging for John to look at, took it from 290.9 to 291.4 on 22 Nov 2026: if it stays, its code goes
+       to a chunk of its own, loaded by the pages of one color alone */
+    budget: 291.5
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
