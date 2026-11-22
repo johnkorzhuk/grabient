@@ -36,16 +36,17 @@ export async function countPage(
   }
 }
 
-/** A palette used or a search made on one of the site's pages. */
+/** A palette used or a search made on one of the site's pages; `seen` where the use is a collection's page seen. */
 export async function countAct(
   env: Counts,
   request: Request,
-  what: "use" | "search"
+  what: "use" | "search",
+  seen = false
 ): Promise<void> {
   if (!env.USAGE) return;
   try {
     const { actVisit, countVisit } = await import("./visits.ts");
-    const visit = actVisit(request, what);
+    const visit = actVisit(request, what, seen);
     if (visit) await countVisit(env, request, visit);
   } catch {
     // counted by no one

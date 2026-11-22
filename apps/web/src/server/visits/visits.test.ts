@@ -12,7 +12,8 @@ import {
   pageVisit,
   showsPerson,
   signalsOf,
-  systemOf
+  systemOf,
+  waitsWherever
 } from "./visits.ts";
 
 const CHROME =
@@ -211,6 +212,9 @@ test("a palette used or a search made is a visit to the page it was made on", ()
     headers: { "User-Agent": "curl/8.9" }
   });
   expect(actVisit(program, "use")).toBeNull();
+  // a collection's page seen says so, as it takes no press on a palette
+  expect(actVisit(used, "use", true)).toMatchObject({ what: "use", seen: true });
+  expect(actVisit(used, "use")).not.toHaveProperty("seen");
 });
 
 /** A KV namespace in memory, recording each value's expiration. */
@@ -665,6 +669,118 @@ describe("a visit sent on to Google Analytics", () => {
     expect(goesOnceRan(home, true)).toBe(false);
     expect(goesOnceRan(referred, true)).toBe(true);
     expect(goesOnceRan(home)).toBe(true);
+  });
+  test("a desktop Linux's landing waits wherever it came from, and its collection's page seen sends nothing on: a program that comes from Google and scrolls goes nowhere", async () => {
+    stubFetch();
+    stubCache();
+    const CACHE = memoryKV();
+    const USAGE = usage();
+    await makeVisitKeys({ CACHE } as never, NOON);
+    await CACHE.put(leadName, JSON.stringify({ day: "2026-10-20", lead: 155 }));
+    const env = {
+      CACHE,
+      USAGE,
+      DEPLOYMENT: "production",
+      GA4_API_SECRET: "the-secret",
+      GA4_MEASUREMENT_ID: "G-TEST"
+    };
+    const names = () => sent.map(hit => (hit.body.events as { name: string }[]).at(-1)?.name);
+    const linux = {
+      "User-Agent": CHROME.replace("Windows NT 10.0; Win64; x64", "X11; Linux x86_64"),
+      "Sec-CH-UA-Platform": '"Linux"'
+    };
+    const fetched = {
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Site": "same-origin"
+    };
+    const collection = {
+      what: "landing",
+      page: "collection",
+      language: "en",
+      path: "/blue-sky",
+      referrer: "www.google.com"
+    } as const;
+    const seen = { what: "use", page: "collection", language: "en", path: "/blue-sky" } as const;
+    // as on 22 Nov 2026: a collection's page from Google through each borrowed connection, over HTTP/2, run and
+    // scrolled, and a named page the same way
+    for (const address of ["198.51.100.1", "198.51.100.2"]) {
+      await countVisit(env as never, from(address, linux), collection, NOON);
+      await checkedSession(env as never, checking(address, linux), NOON + 1_500);
+      await countVisit(
+        env as never,
+        from(address, { ...linux, ...fetched }),
+        { ...seen, seen: true },
+        NOON + 4_000
+      );
+    }
+    const about = { ...collection, page: "about", path: "/about" } as const;
+    await countVisit(env as never, from("198.51.100.3", linux), about, NOON);
+    await checkedSession(env as never, checking("198.51.100.3", linux), NOON + 1_500);
+    expect(named(USAGE.points, "visit")).toHaveLength(5);
+    expect(sent).toEqual([]);
+    expect(waitsWherever("Linux")).toBe(true);
+    for (const system of ["Windows", "macOS", "Android", "ChromeOS", "iOS", "other"])
+      expect(waitsWherever(system)).toBe(false);
+    // the same landing and scroll from Windows go as ever: the page once run, then the page seen
+    await countVisit(env as never, from("203.0.113.9"), collection, NOON);
+    await checkedSession(env as never, checking("203.0.113.9"), NOON + 1_500);
+    await countVisit(
+      env as never,
+      from("203.0.113.9", fetched),
+      { ...seen, seen: true },
+      NOON + 4_000
+    );
+    expect(names()).toEqual(["page_view", "use_palette"]);
+    sent.length = 0;
+    // a Linux reader's own connection carries HTTP/3: the landing goes once its page has run, and the page seen after
+    const quic = <T extends Request>(request: T) =>
+      Object.assign(request, { cf: { country: "US", asn: 7922, httpProtocol: "HTTP/3" } });
+    await countVisit(env as never, quic(from("203.0.113.40", linux)), collection, NOON);
+    await checkedSession(env as never, quic(checking("203.0.113.40", linux)), NOON + 1_000);
+    await countVisit(
+      env as never,
+      quic(from("203.0.113.40", { ...linux, ...fetched })),
+      { ...seen, seen: true },
+      NOON + 4_000
+    );
+    expect(names()).toEqual(["page_view", "use_palette"]);
+    sent.length = 0;
+    // one on HTTP/2 throughout who copies a palette: the page that waited goes first, then the use, and from then on
+    // a page seen goes too
+    await countVisit(env as never, from("203.0.113.41", linux), collection, NOON);
+    await checkedSession(env as never, checking("203.0.113.41", linux), NOON + 1_500);
+    await countVisit(
+      env as never,
+      from("203.0.113.41", { ...linux, ...fetched }),
+      { ...seen, seen: true },
+      NOON + 4_000
+    );
+    expect(sent).toEqual([]);
+    await countVisit(
+      env as never,
+      from("203.0.113.41", { ...linux, ...fetched }),
+      seen,
+      NOON + 9_000
+    );
+    expect(names()).toEqual(["page_view", "use_palette"]);
+    expect(sent[0]!.body.timestamp_micros).toBe(NOON * 1000);
+    await countVisit(
+      env as never,
+      from("203.0.113.41", { ...linux, ...fetched }),
+      { ...seen, seen: true, path: "/warm-tones" },
+      NOON + 60_000
+    );
+    expect(names()).toEqual(["page_view", "use_palette", "use_palette"]);
+    // a page loaded from within the site goes once run, as any system's does
+    await countVisit(
+      env as never,
+      from("203.0.113.42", linux),
+      { ...collection, what: "load" },
+      NOON
+    );
+    await checkedSession(env as never, checking("203.0.113.42", linux), NOON + 1_500);
+    expect(sent).toHaveLength(4);
   });
   test("sends nothing while Chrome's stable version is unknown, as programs on old versions would pass", async () => {
     stubFetch();
