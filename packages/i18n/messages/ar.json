@@ -978,7 +978,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, zero {# لوحات ألوان} one {لوحة ألوان واحدة} two {لوحتا ألوان} few {# لوحات ألوان} many {# لوحة ألوان} other {# لوحة ألوان}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: {count, plural, zero {# لوحات ألوان} one {لوحة ألوان واحدة} two {لوحتا ألوان} few {# لوحات ألوان} many {# لوحة ألوان} other {# لوحة ألوان}} وتدرجات CSS على Grabient. افتح أي لوحة لتحريرها، ثم انسخ CSS أو صدّر SVG وPNG.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, zero {# لوحات ألوان} one {لوحة ألوان واحدة} two {لوحتا ألوان} few {# لوحات ألوان} many {# لوحة ألوان} other {# لوحة ألوان}} مع رموز hex",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, zero {# لوحات ألوان} one {لوحة ألوان واحدة} two {لوحتا ألوان} few {# لوحات ألوان} many {# لوحة ألوان} other {# لوحة ألوان}} مع رموز hex",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, zero {# لوحات} one {لوحة واحدة} two {لوحتان} few {# لوحات} many {# لوحة} other {# لوحة}} مع رموز hex",
   "{url} answered {status}.": "ردّ {url} بالرمز {status}.",
   "{url} didn't answer.": "لم يردّ {url}.",
   "{url} leaves the site.": "{url} يؤدي إلى خارج الموقع.",

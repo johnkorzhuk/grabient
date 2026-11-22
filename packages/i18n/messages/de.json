@@ -978,7 +978,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, one {# Farbpalette} other {# Farbpaletten}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: {count, plural, one {# Farbpalette} other {# Farbpaletten}} und CSS-Farbverläufe auf Grabient. Öffne eine Palette, bearbeite sie und kopiere dann CSS oder exportiere SVG und PNG.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, one {# Farbpalette} other {# Farbpaletten}} mit Hex-Codes",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# Farbpalette} other {# Farbpaletten}} mit Hex-Codes",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# Palette} other {# Paletten}} mit Hex-Codes",
   "{url} answered {status}.": "{url} hat mit {status} geantwortet.",
   "{url} didn't answer.": "{url} hat nicht geantwortet.",
   "{url} leaves the site.": "{url} führt von der Website weg.",

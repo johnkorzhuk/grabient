@@ -978,7 +978,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, one {# پالت رنگ} other {# پالت رنگ}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: {count, plural, one {# پالت رنگ} other {# پالت رنگ}} و گرادیان‌های CSS در Grabient. هر پالتی را باز کنید تا ویرایشش کنید، سپس CSS را کپی کنید یا خروجی SVG و PNG بگیرید.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, one {# پالت رنگ} other {# پالت رنگ}} با کدهای Hex",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# پالت رنگ} other {# پالت رنگ}} با کدهای Hex",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# پالت} other {# پالت}} با کدهای Hex",
   "{url} answered {status}.": "{url} با {status} پاسخ داد.",
   "{url} didn't answer.": "{url} پاسخی نداد.",
   "{url} leaves the site.": "{url} به بیرون از سایت می‌رود.",

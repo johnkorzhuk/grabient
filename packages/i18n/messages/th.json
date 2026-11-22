@@ -978,7 +978,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, other {พาเลตต์สี # ชุด}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: {count, plural, other {พาเลตต์สี # ชุด}} และ CSS gradient บน Grabient เปิดพาเลตต์ใดก็ได้เพื่อแก้ไข แล้วคัดลอก CSS หรือส่งออก SVG และ PNG",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, other {พาเลตต์สี # ชุด}} พร้อมรหัสสี Hex",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, other {พาเลตต์สี # ชุด}} พร้อมรหัสสี Hex",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, other {พาเลตต์ # ชุด}} พร้อมรหัสสี Hex",
   "{url} answered {status}.": "{url} ตอบกลับ {status}",
   "{url} didn't answer.": "{url} ไม่ตอบกลับ",
   "{url} leaves the site.": "{url} พาออกนอกเว็บไซต์",

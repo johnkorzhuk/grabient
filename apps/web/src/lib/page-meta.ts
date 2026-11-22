@@ -865,6 +865,12 @@ function palettePage(
   return path;
 }
 
+/* A result's title link draws kana, Han, Hangul and their full-width marks an em wide, where `linkWidth` counts a
+   letter of another script as one wide Latin letter (556 of 1000): what a title holding them takes more. */
+const FULL_WIDTH = /[\u1100-\u11ff\u2e80-\u9fff\uac00-\ud7af\uff00-\uff60]/g;
+const titleLinkWidth = (text: string): number =>
+  linkWidth(text) + (text.match(FULL_WIDTH)?.length ?? 0) * 8.88;
+
 /** A collection's page: titled with its count while that fits a result's title, described by its own words and then
     what it holds while that fits, or by its title when it has no words. */
 function collectionPage(
@@ -886,33 +892,40 @@ function collectionPage(
     t("{title}: {count, plural, one {# color palette} other {# color palettes}}", { title, count })
   );
   /* A public collection's page lists every palette's hex codes under its cards (HexCodes.tsx), and its title says so
-     in English, the language the searches were read in (US, Nov 2026: the pages that lead a search for a theme's
-     colors show its codes, and people add "hex codes" to the search): the fullest of its forms that a result's title
-     link shows whole, measured as the link draws it, the collection's own words first as its page ranks under them.
-     A title that says palette itself is not told so twice, nor one that says hex. The other languages keep the title
-     they have until theirs are read. */
-  const listsCodes =
-    locale() === DEFAULT_LOCALE && count > 0 && !c.unlisted && !/\bhex\b/i.test(c.title);
-  const palettes = /\bpalettes?\b/i.test(c.title);
+     (US, Nov 2026: the pages that lead a search for a theme's colors show its codes, and people add "hex codes" to
+     the search): the fullest of its forms that a result's title link shows whole, measured as the link draws it, the
+     collection's own words first as its page ranks under them. A title that says palette itself is not told so
+     twice, nor one that says hex: an English title's words, which the short form is kept to. In every language since
+     22 Nov 2026: on the same pages in the six days before and after the English titles went live (8 to 13 and 15 to
+     20 Nov), English collections' click rate in Google went from 1.18 to 1.66 in 100 and their position from 8.4 to
+     7.0, where the other languages', on the titles they had, went from 1.11 to 1.18 and from 6.06 to 5.84. */
+  const listsCodes = count > 0 && !c.unlisted && !/\bhex\b/i.test(c.title);
+  const english = locale() === DEFAULT_LOCALE;
+  const palettes = english && /\bpalettes?\b/i.test(c.title);
+  const fully = () =>
+    t("{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes", {
+      title,
+      count
+    });
+  // another language's words run longer than English's: its shorter count, which still says palette
+  const briefly = () =>
+    t("{title}: {count, plural, one {# palette} other {# palettes}} with hex codes", {
+      title,
+      count
+    });
   const withCodes = listsCodes
-    ? [
-        palettes
-          ? t("{title}: {count, plural, one {# palette} other {# palettes}} with hex codes", {
-              title,
-              count
-            })
-          : t(
-              "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes",
-              { title, count }
-            ),
-        ...(palettes ? [t("{title} with hex codes", { title })] : [])
-      ]
+    ? (palettes
+        ? [briefly(), t("{title} with hex codes", { title })]
+        : english
+          ? [fully()]
+          : [fully(), briefly()]
+      )
         .map(titled)
-        .find(text => linkWidth(text) <= TITLE_LINK)
+        .find(text => titleLinkWidth(text) <= TITLE_LINK)
     : undefined;
   meta.title = withCodes ?? (count > 0 && counted.length <= 62 ? counted : listTitle(title));
-  /* what its page holds, said after its own words where there is room: with its hex codes in English, as its title
-     says, in the same sentence as its gradients, so a collection of gradients goes on saying so. A collection of one
+  /* what its page holds, said after its own words where there is room: with its hex codes, as its title says, in the
+     same sentence as its gradients, so a collection of gradients goes on saying so. A collection of one
      color leads its description with the color's own codes (coded, below), which take the room */
   meta.description = c.description
     ? fitted(c.description, [

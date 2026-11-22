@@ -978,7 +978,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, one {# цветовая палитра} few {# цветовые палитры} many {# цветовых палитр} other {# цветовой палитры}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: {count, plural, one {# цветовая палитра} few {# цветовые палитры} many {# цветовых палитр} other {# цветовой палитры}} и CSS градиенты на Grabient. Откройте палитру, отредактируйте её, затем копируйте CSS или экспортируйте SVG и PNG.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, one {# цветовая палитра} few {# цветовые палитры} many {# цветовых палитр} other {# цветовой палитры}} с hex-кодами",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# цветовая палитра} few {# цветовые палитры} many {# цветовых палитр} other {# цветовой палитры}} с hex-кодами",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# палитра} few {# палитры} many {# палитр} other {# палитры}} с hex-кодами",
   "{url} answered {status}.": "{url} ответил {status}.",
   "{url} didn't answer.": "{url} не ответил.",
   "{url} leaves the site.": "{url} ведёт за пределы сайта.",

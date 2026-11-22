@@ -978,7 +978,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, other {색상 팔레트 #개}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: Grabient의 {count, plural, other {색상 팔레트 #개}}와 CSS 그라데이션이에요. 팔레트를 열어 편집한 뒤 CSS를 복사하거나 SVG와 PNG로 내보내세요.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, other {색상 팔레트 #개}} (Hex 코드 포함)",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, other {색상 팔레트 #개}} (Hex 코드 포함)",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, other {팔레트 #개}} (Hex 코드 포함)",
   "{url} answered {status}.": "{url}이(가) {status}을(를) 반환했어요.",
   "{url} didn't answer.": "{url}에서 응답이 없었어요.",
   "{url} leaves the site.": "{url}은(는) 사이트 밖으로 나가요.",
