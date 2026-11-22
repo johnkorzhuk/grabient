@@ -247,7 +247,7 @@ describe("an issue's lead", () => {
       expect(page).toContain(`href="${ORIGIN}/${option.seed}`);
     }
   });
-  test("names each pick as its page does: the title written for it while it is drawn as it was saved, else its colors' name", () => {
+  test("names each pick as its page does: the title written for it, however the issue draws it, else its colors' name", () => {
     const named = run(1);
     expect(named.picks?.map(chosen => chosen.name)).toEqual([...FACTS.names.values()]);
     const plain = asRun(october, ORIGIN, NO_FACTS);
@@ -262,15 +262,15 @@ describe("an issue's lead", () => {
     expect(nameOf(view, { title: "Smoky aubergine ember beam", view: saved })).toBe(
       "Smoky aubergine ember beam"
     );
-    // at another angle it keeps the title; in another style or steps its colors name it
-    expect(
-      nameOf(view, { title: "Smoky aubergine ember beam", view: { ...saved, angle: 90 } })
-    ).toBe("Smoky aubergine ember beam");
+    // it keeps the title at another angle, in another style and at other steps: the title is the palette's name
     for (const other of [
+      { ...saved, angle: 90 },
       { ...saved, style: "radialSwatches" },
       { ...saved, steps: 41 }
     ] as const)
-      expect(nameOf(view, { title: "Smoky aubergine ember beam", view: other })).toBe(nameOf(view));
+      expect(nameOf(view, { title: "Smoky aubergine ember beam", view: other })).toBe(
+        "Smoky aubergine ember beam"
+      );
   });
 });
 

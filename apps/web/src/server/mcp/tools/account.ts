@@ -22,7 +22,7 @@ import {
 import type { CollectionSummary } from "../../../features/collections/types.ts";
 import type { Credit } from "../../../features/gallery/credit.ts";
 import { SHEET_MAX } from "../../../mcp-view/tiles.ts";
-import { heldWords, texts as paletteTexts } from "../../collections/files.ts";
+import { texts as paletteTexts, writtenWords } from "../../collections/files.ts";
 import {
   collectionBySlug,
   collectionRecord,
@@ -100,10 +100,10 @@ import { viewData } from "../view.ts";
 const place = (c: ToolContext, path: string) => `${c.origin}/${path}`;
 const savedPage = (c: ToolContext) => place(c, "palettes/saved");
 type PaletteText = Awaited<ReturnType<typeof paletteTexts>>[number];
-/** What a palette is called: its written title where its colors bear it out and it is drawn as it was saved, or what
+/** What a palette is called: its written title where its colors bear it out, in whatever view it is drawn, or what
     its colors call it in its view. */
 const titleOf = (s: Shown, written?: PaletteText) =>
-  heldWords(written, s.palette, s)?.title ??
+  writtenWords(written, s.palette)?.title ??
   paletteTitle(readPalette(s.palette, s.style, s.steps), s.style);
 /** A palette a call named, in the view an answer draws it in. */
 const drawn = (given: PaletteGiven, held?: ViewGiven): Shown =>
@@ -717,7 +717,7 @@ export const accountTools: readonly Tool[] = [
         }
       }
       const tiles = placed.map(({ s, title }, i) => {
-        const own = title ?? heldWords(written.get(s.seed), s.palette, s)?.title;
+        const own = title ?? writtenWords(written.get(s.seed), s.palette)?.title;
         return {
           tile: i + 1,
           ...card(c.origin, s, own ?? titleOf(s)),

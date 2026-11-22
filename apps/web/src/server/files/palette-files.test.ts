@@ -133,7 +133,7 @@ describe("a palette's file", () => {
     expect([none.status, await none.json()]).toEqual([404, { error: "Invalid palette seed." }]);
   });
 
-  test("JSON names a palette by the title written for it while drawn as it was saved, at any angle, and is kept as text", async () => {
+  test("JSON names a palette by the title written for it, in whatever view it is drawn, and is kept as text", async () => {
     const words = {
       title: "Dusk over the mesa",
       embed: "",
@@ -149,11 +149,11 @@ describe("a palette's file", () => {
       "public, max-age=3600",
       "max-age=86400, stale-while-revalidate=86400"
     ]);
-    // a turn of the angle keeps it; another style draws another picture, which its colors name
+    // a turn of the angle keeps it, and so does another style: the title is the palette's name
     const turned = await (await file(`/${seed}.json?steps=8&angle=90`)).json();
     expect(turned).toMatchObject({ title: "Dusk over the mesa" });
     const other = await (await file(`/${seed}.json?style=radialSwatches&steps=8&angle=45`)).json();
-    expect(other).not.toHaveProperty("title");
+    expect(other).toMatchObject({ title: "Dusk over the mesa" });
     expect(other).toHaveProperty("name");
   });
 

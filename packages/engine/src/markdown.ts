@@ -43,12 +43,14 @@ export function paletteMarkdown(
   if (!P || !doc || !reading) return null;
   const base = origin.replace(/\/$/, "");
   const stops = sampleStops(P, doc.steps);
-  /* drawn as it was saved, its written words name and describe it, and what its colors call it stays beside them for a
-     reader or a program that looks for the colors; in any other view its colors name it alone */
-  const own = written && asSaved(P, doc, written.view) ? written : null;
+  /* its written title names it in whatever view it is drawn, and what its colors call it stays beside the title for a
+     reader or a program that looks for the colors. Its written description is of the one view it was saved in, and
+     leads the file there alone */
+  const own = written;
   const called = paletteTitle(reading, doc.style);
   const title = own?.title ?? called;
-  const lead = own?.lead || paletteDescription(reading, doc, doc.colors);
+  const lead =
+    (own && asSaved(P, doc, own.view) && own.lead) || paletteDescription(reading, doc, doc.colors);
   const colors = stops.map((stop, i) => {
     const ink = doc.contrast.text[i] === "#ffffff" ? "white" : "black";
     return `| ${i + 1} | \`${stop.hex}\` | \`${oklchOf(stop)}\` | ${doc.names[i]} | ${ink}, ${doc.contrast.ratios[i]} to 1 |`;

@@ -379,7 +379,7 @@ test("the document the edge keeps for an address is the same page for its lock w
   ).toHaveAttribute("aria-pressed", "true");
 });
 
-test("a palette is called by the title written for it while its style and steps are as saved, at any angle, by its colors otherwise", async ({
+test("a palette is called by the title written for it however it is drawn, and its page's title says what it is drawn as after it", async ({
   page,
   request
 }) => {
@@ -387,13 +387,20 @@ test("a palette is called by the title written for it while its style and steps 
     written?: { title: string; view: unknown };
   };
   expect(facts.written?.view).toEqual({ style: "linearGradient", steps: 6, angle: 180 });
-  const written = `${facts.written?.title} | Grabient`;
+  const title = facts.written?.title ?? "";
+  expect(title).not.toBe("");
+  // a title that ends by saying a form leaves the form to the view (engine/name.ts bareTitle)
+  const bare = title.replace(/\s+(?:colou?r palette|gradient|palette|swatches)$/i, "");
+  const written = `${bare} gradient | Grabient`;
+  const heading = page.getByRole("heading", { level: 1 });
   await open(page, "/kQ4RjAYQ6_g?steps=6&angle=180");
   await expect(page).toHaveTitle(written);
+  await expect(heading).toHaveText(title);
+  // at other steps it is the same palette, and keeps its name
   await page.keyboard.press("]");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?angle=180");
-  await expect(page).toHaveTitle(/ gradient \| Grabient$/);
-  // the way back to the view it was saved in finds the title the server wrote still known
+  await expect(page).toHaveTitle(written);
+  await expect(heading).toHaveText(title);
   await page.keyboard.press("[");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=180");
   await expect(page).toHaveTitle(written);
@@ -421,10 +428,11 @@ test("in another language a palette's written title heads its page as it was wri
   const colors = page.getByRole("paragraph").filter({ hasText: /, linearer Farbverlauf$/ });
   await expect(colors).toHaveCount(1);
   await expect(colors).toBeVisible();
-  // drawn another way, its colors name it, and nothing stands under the name
+  // drawn another way it keeps its title, and what its colors call it there stays under it
   await page.keyboard.press("]");
-  await expect(heading).toHaveText(/, linearer Farbverlauf$/);
-  await expect(colors).toHaveCount(0);
+  await expect.poll(() => here(page)).toBe("/de/kQ4RjAYQ6_g?angle=180");
+  await expect(heading).toHaveText(title);
+  await expect(colors).toHaveCount(1);
 });
 
 test("random leads to a new palette at the view asked for", async ({ request }) => {

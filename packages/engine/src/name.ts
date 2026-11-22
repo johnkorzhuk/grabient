@@ -865,6 +865,16 @@ export const paletteTitle = (
     name: readingName(reading, language),
     style: titleWords(style, language)
   });
+/* A written title names a palette whatever it is drawn as, and a page's title says what it is drawn as after it, as
+   after the name its colors give it. A title written before 12 Nov 2026 may end by saying a form itself ("GTA 6 logo
+   gradient"): that word is the view's to say, so a page never says it twice or of a view it is not. */
+const FORM_END = /\s+(?:colou?r palette|gradient|palette|swatches)$/i;
+/** A written title without the form it ends by saying. */
+export const bareTitle = (title: string): string => title.replace(FORM_END, "") || title;
+/** A palette's written title as a page titles it in a view: "Vice City neon gradient", "… color palette". In English,
+    the language the titles are written in. */
+export const writtenTitle = (title: string, style: Style): string =>
+  `${bareTitle(title)} ${titleWords(style)}`;
 /** What a search result shows under the title: the name, the style, and the colors as hex. */
 export const paletteDescription = (
   reading: PaletteReading,

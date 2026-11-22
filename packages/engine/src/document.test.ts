@@ -37,7 +37,7 @@ test("written words, the collections that hold a palette, and a seed that is non
   expect(MARKDOWN_LEAD).toBe(400);
 });
 
-test("written words name a palette in the view it was saved in alone, what its colors call it beside them", () => {
+test("a written title names a palette in every view, what its colors call it beside it, and its description leads the view it was saved in alone", () => {
   const x = markdown.extra.find(e => e.written)!;
   const words = x.written!;
   const own = paletteMarkdown(x.seed, ORIGIN, x.view, words, x.heldBy)!;
@@ -46,21 +46,23 @@ test("written words name a palette in the view it was saved in alone, what its c
   expect(paletteJson(x.seed, ORIGIN, x.view, null, words)).toMatchObject({ title: words.title });
   const others: Partial<View>[] = [
     { ...x.view, style: x.view.style === "radialSwatches" ? "linearSwatches" : "radialSwatches" },
-    { ...x.view, steps: (x.view.steps ?? 7) + 1 }
+    { ...x.view, steps: (x.view.steps ?? 7) + 1 },
+    // a turn of the angle
+    { ...x.view, angle: ((x.view.angle ?? 90) + 45) % 360 }
   ];
-  // a turn of the angle leaves the written words standing
-  const turned = { ...x.view, angle: ((x.view.angle ?? 90) + 45) % 360 };
-  expect(paletteJson(x.seed, ORIGIN, turned, null, words)).toMatchObject({ title: words.title });
-  expect(
-    paletteMarkdown(x.seed, ORIGIN, turned, words, x.heldBy)?.startsWith(
-      `# ${plain(words.title)}\n`
-    )
-  ).toBe(true);
   for (const view of others) {
-    expect(paletteMarkdown(x.seed, ORIGIN, view, words, x.heldBy)).toBe(
-      paletteMarkdown(x.seed, ORIGIN, view, null, x.heldBy)
-    );
-    expect(paletteJson(x.seed, ORIGIN, view, null, words)).not.toHaveProperty("title");
+    const file = paletteMarkdown(x.seed, ORIGIN, view, words, x.heldBy)!;
+    expect(file.startsWith(`# ${plain(words.title)}\n`)).toBe(true);
+    expect(file).toMatch(/\n- Also called: .+\n- Seed: /);
+    expect(paletteJson(x.seed, ORIGIN, view, null, words)).toMatchObject({ title: words.title });
+  }
+  // the description was written of the saved view: another style or count of steps is described by its colors
+  if (words.lead) {
+    expect(own).toContain(plain(words.lead));
+    for (const view of others.slice(0, 2))
+      expect(paletteMarkdown(x.seed, ORIGIN, view, words, x.heldBy)).not.toContain(
+        plain(words.lead)
+      );
   }
 });
 

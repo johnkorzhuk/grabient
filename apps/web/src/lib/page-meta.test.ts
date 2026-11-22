@@ -539,13 +539,13 @@ describe("descriptions", () => {
 
 describe("a palette's written words", () => {
   const facts: Facts = {
-    title: "Pastel candy vertical bands | Grabient",
+    title: "Pastel candy shop | Grabient",
     description:
       "Soft candy colors stand in vertical bands, from blush through lilac to a pale mint.",
     saved: { style: "linearSwatches", steps: 9, angle: 90 }
   };
-  const named = (address: string) => {
-    const page = pageOf(address, facts);
+  const named = (address: string, of: Facts = facts) => {
+    const page = pageOf(address, of);
     const meta = pageMeta(page, PRODUCTION_ORIGIN);
     const work = meta.structuredData.find(data => data["@type"] === "CreativeWork");
     return {
@@ -557,31 +557,49 @@ describe("a palette's written words", () => {
     };
   };
 
-  test("name and describe its page while it is drawn as it was saved, at any angle, what its colors call it beside them", () => {
+  test("name its page as it was saved, what it is drawn as after the title and what its colors call it beside them, and describe it there", () => {
     expect(named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9&angle=45").heading).toBe(
-      "Pastel candy vertical bands"
+      "Pastel candy shop color palette"
     );
     const own = named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9");
     expect(own).toMatchObject({
-      heading: "Pastel candy vertical bands",
-      title: "Pastel candy vertical bands | Grabient",
-      name: "Pastel candy vertical bands",
+      heading: "Pastel candy shop color palette",
+      title: "Pastel candy shop color palette | Grabient",
+      name: "Pastel candy shop color palette",
       alternateName: expect.stringMatching(/^\S.* color palette$/)
     });
+    expect(own.alternateName).not.toMatch(/candy/i);
     expect(own.description).toMatch(/^Soft candy colors stand in vertical bands/);
   });
 
+  // John, 12 Nov 2026: "palettes with an ai generated title use that title"
   test.each([
-    ["another style", "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9"],
-    ["other steps", "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=10"],
-    ["the default view", "/kS7Q8Yy5S_SChv0"]
-  ])("give way to what its colors call it in %s", (_, address) => {
-    const other = named(address);
-    expect(other.heading).not.toMatch(/candy/i);
-    expect(other.title).toBe(`${other.heading} | Grabient`);
-    expect(other.name).toBe(other.heading);
-    expect(other.alternateName).toBeUndefined();
-    expect(other.description).toMatch(/^.+ palette with \d+ colors\. #/);
+    ["another style", "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9", "radial palette"],
+    ["other steps", "/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=10", "color palette"],
+    ["the default view", "/kS7Q8Yy5S_SChv0", "gradient"]
+  ])(
+    "name its page in %s too, by what it is drawn as there, and leave its description to its colors",
+    (_, address, drawn) => {
+      const other = named(address);
+      expect(other.heading).toBe(`Pastel candy shop ${drawn}`);
+      expect(other.title).toBe(`${other.heading} | Grabient`);
+      expect(other.name).toBe(other.heading);
+      expect(other.alternateName).toMatch(new RegExp(` ${drawn}$`));
+      expect(other.alternateName).not.toMatch(/candy/i);
+      expect(other.description).toMatch(/^.+ palette with \d+ colors\. #/);
+    }
+  );
+
+  test("a title that ends by saying a form leaves the form to the view", () => {
+    const old: Facts = { ...facts, title: "Pastel candy gradient | Grabient" };
+    expect(named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9", old).heading).toBe(
+      "Pastel candy color palette"
+    );
+    expect(named("/kS7Q8Yy5S_SChv0", old).heading).toBe("Pastel candy gradient");
+    const said: Facts = { ...facts, title: "Candy shop color palette | Grabient" };
+    expect(named("/kS7Q8Yy5S_SChv0?style=radialGradient", said).heading).toBe(
+      "Candy shop radial gradient"
+    );
   });
 
   test("stand at the one address its page names from every view: the view it was saved in", () => {
@@ -597,12 +615,15 @@ describe("a palette's written words", () => {
       expect([address, meta.canonical, work?.url]).toEqual([address, own, own]);
     }
     const there = pageOf("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9", facts);
-    expect(pageMeta(there, PRODUCTION_ORIGIN).title).toBe("Pastel candy vertical bands | Grabient");
+    expect(pageMeta(there, PRODUCTION_ORIGIN).title).toBe(
+      "Pastel candy shop color palette | Grabient"
+    );
   });
 
   test("name its page in English alone", () => {
     current = "fr";
     expect(named("/kS7Q8Yy5S_SChv0?style=linearSwatches&steps=9").heading).not.toMatch(/candy/i);
+    expect(named("/kS7Q8Yy5S_SChv0").heading).not.toMatch(/candy/i);
   });
 });
 

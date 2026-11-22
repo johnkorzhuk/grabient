@@ -9,7 +9,7 @@ import { SITE_AGENT } from "./personas.ts";
 /* The words written for a palette (k_palette_texts), as the admins' tools and the seeding queue write them: a title
    its page and the search read, and a description. A text is written only where the palette's colors bear its words
    out, so no title says a color the palette lacks. The pages read them back under the same check
-   (collections/files.ts heldWords). */
+   (collections/files.ts writtenWords). */
 
 export const PALETTE_EMBED_MAX = 1200;
 

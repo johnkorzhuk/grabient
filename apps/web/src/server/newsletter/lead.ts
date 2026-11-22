@@ -8,7 +8,6 @@ import {
 } from "@grabient/email";
 import { decodePalette } from "@grabient/engine";
 import { seedName, titleFaults } from "@grabient/engine/name.ts";
-import { asSaved } from "@grabient/engine/view.ts";
 import { all, replica, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { SAVED_VIEW, type SavedView, savedView } from "../collections/files.ts";
@@ -73,16 +72,11 @@ export function endedBy(content: IssueContent, id: string | undefined): IssueCon
   return at > 0 ? { ...content, tips: [tips[at], ...tips.filter((_, i) => i !== at)] } : content;
 }
 
-/** A palette's name as its page says it in English, in the view `of` draws it in. */
+/** A palette's name as its page says it in English: the title written for it, whatever view `of` draws it in, else
+    what its colors are called in that view. */
 export function nameOf(of: View, written?: { title: string; view: SavedView }): string {
   const palette = decodePalette(of.seed);
-  if (
-    written &&
-    palette &&
-    !titleFaults(written.title, palette).length &&
-    asSaved(palette, of, written.view)
-  )
-    return written.title;
+  if (written && palette && !titleFaults(written.title, palette).length) return written.title;
   return seedName(of.seed, of.style, of.steps);
 }
 
