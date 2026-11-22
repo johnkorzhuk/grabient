@@ -1143,7 +1143,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title} : {count, plural, one {# palette de couleurs} many {# de palettes de couleurs} other {# palettes de couleurs}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title} : {count, plural, one {# palette de couleurs} many {# de palettes de couleurs} other {# palettes de couleurs}} et dégradés CSS sur Grabient. Ouvrez une palette pour la modifier, puis copiez le CSS ou exportez en SVG et PNG.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title} : {count, plural, one {# palette de couleurs} many {# de palettes de couleurs} other {# palettes de couleurs}} avec codes hex",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title} : {count, plural, one {# palette de couleurs} many {# de palettes de couleurs} other {# palettes de couleurs}} avec codes hex",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title} : {count, plural, one {# palette} many {# de palettes} other {# palettes}} avec codes hex",
   "{url} answered {status}.": "{url} a répondu {status}.",
   "{url} didn't answer.": "{url} n’a pas répondu.",
   "{url} leaves the site.": "{url} quitte le site.",

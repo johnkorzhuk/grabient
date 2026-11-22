@@ -1143,7 +1143,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}：{count, plural, other {# 个配色方案}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}：Grabient 上的 {count, plural, other {# 个配色方案}}和 CSS 渐变。打开任意调色板即可编辑，然后复制 CSS 或导出 SVG 和 PNG。",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}：{count, plural, other {# 个配色方案}}（含十六进制色值）",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}：{count, plural, other {# 个配色方案}}（含十六进制色值）",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}：{count, plural, other {# 个配色}}（含 HEX 色值）",
   "{url} answered {status}.": "{url} 返回了 {status}。",
   "{url} didn't answer.": "{url} 没有响应。",
   "{url} leaves the site.": "{url} 指向站外。",

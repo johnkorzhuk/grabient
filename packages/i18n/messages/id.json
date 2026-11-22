@@ -1143,7 +1143,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, other {# palet warna}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: {count, plural, other {# palet warna}} dan gradien CSS di Grabient. Buka palet mana pun untuk mengeditnya, lalu salin CSS atau ekspor SVG dan PNG.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, other {# palet warna}} dengan kode hex",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, other {# palet warna}} dengan kode hex",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, other {# palet}} dengan kode hex",
   "{url} answered {status}.": "{url} menjawab {status}.",
   "{url} didn't answer.": "{url} tidak menjawab.",
   "{url} leaves the site.": "{url} mengarah ke luar situs.",

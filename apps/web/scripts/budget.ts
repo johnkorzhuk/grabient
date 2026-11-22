@@ -196,7 +196,10 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      takes one (effectGround, CLEAR_GROUND, effectBare, parseEffect, effectLook, effectLookParts, fxStillKey), 0.12 KB
      of the start every page shares, took it past 255 to 255.13 */
   /* the aurora, as "/", took it from 255.6 to 256.6 on 11 Nov 2026 */
-  "/about": { route: "src/routes/about.tsx", budget: 257.5 }
+  /* a collection's title saying its hex codes in every language (page-meta.ts, in the start every page shares: each
+     language's shorter count and the width of kana, Han and Hangul) took it from 257.4 to 257.5 on 22 Nov 2026, and
+     the others by 0.1 inside their budgets */
+  "/about": { route: "src/routes/about.tsx", budget: 258 }
 };
 /** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
 const EVERY_PAGE = ["src/app/tab-icon.ts"];

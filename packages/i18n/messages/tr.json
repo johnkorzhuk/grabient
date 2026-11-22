@@ -1143,7 +1143,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, one {# renk paleti} other {# renk paleti}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: Grabient'te {count, plural, one {# renk paleti} other {# renk paleti}} ve CSS gradyanları. Bir paleti açıp düzenleyin, ardından CSS kodunu kopyalayın ya da SVG ve PNG olarak dışa aktarın.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, one {# renk paleti} other {# renk paleti}} ve hex kodları",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# renk paleti} other {# renk paleti}} ve hex kodları",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# palet} other {# palet}} ve hex kodları",
   "{url} answered {status}.": "{url} {status} yanıtını verdi.",
   "{url} didn't answer.": "{url} yanıt vermedi.",
   "{url} leaves the site.": "{url} siteden dışarı çıkıyor.",

@@ -1143,7 +1143,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}：カラーパレット{count}件",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}：Grabient の{count}件のカラーパレットと CSS グラデーションです。パレットを開いて編集し、CSS をコピーしたり、SVG や PNG で書き出したりできます。",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}：カラーパレット{count}件（カラーコード付き）",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}：カラーパレット{count}件（カラーコード付き）",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}：{count}配色・カラーコード付き",
   "{url} answered {status}.": "{url} が {status} を返しました。",
   "{url} didn't answer.": "{url} から応答がありませんでした。",
   "{url} leaves the site.": "{url} はサイトの外へのリンクです。",

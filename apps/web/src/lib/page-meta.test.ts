@@ -363,7 +363,7 @@ describe("descriptions", () => {
     expect(by("/cyan-gradients")).toBe(
       "#00ffff, rgb(0 255 255). Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients."
     );
-    /* in English a public collection's description says its palettes come with their hex codes, which its page
+    /* a public collection's description says its palettes come with their hex codes, which its page
        lists, in the sentence that says its gradients; where that has no room it says what it said, and a collection
        of gradients goes on saying so; its own words alone where they leave no room for either */
     expect(by("/liminal-hours")).toBe(
@@ -427,7 +427,7 @@ describe("descriptions", () => {
     }
   });
 
-  test("a public collection's title says its palettes come with their hex codes, after its own words, in English", () => {
+  test("a public collection's title says its palettes come with their hex codes, after its own words, in every language", () => {
     const title = (slug: string, name: string, count = 15, more: Record<string, unknown> = {}) =>
       pageMeta(
         pageOf(`/${slug}`, {
@@ -502,13 +502,33 @@ describe("descriptions", () => {
       "Mine: 15 color palettes | Grabient"
     );
     expect(title("ocean-gradients", "Ocean gradients", 0)).toBe("Ocean gradients | Grabient");
+    /* every language's title says so, in its own words: the fullest form that fits, then its shorter count, which a
+       language of longer words or wider letters falls to, then the title it had */
     current = "de";
     expect(title("gta-6-gradients", "GTA 6 gradients")).toBe(
-      "GTA 6 gradients: 15 Farbpaletten | Grabient"
+      "GTA 6 gradients: 15 Farbpaletten mit Hex-Codes | Grabient"
     );
+    expect(title("fruehling", "Frühlings-Farbverläufe", 29)).toBe(
+      "Frühlings-Farbverläufe: 29 Paletten mit Hex-Codes | Grabient"
+    );
+    expect(title("control", "Control-Resonant-Farbfelder", 21)).toBe(
+      "Control-Resonant-Farbfelder: 21 Farbpaletten | Grabient"
+    );
+    current = "es";
+    expect(title("gta-6-gradients", "Degradados de GTA 6")).toBe(
+      "Degradados de GTA 6: 15 paletas con códigos hex | Grabient"
+    );
+    /* kana and Han draw an em wide in a result's title link, and are measured so */
     current = "ja";
-    expect(title("gta-6-gradients", "GTA 6 gradients")).toBe(
-      "GTA 6 gradients：カラーパレット15件 | Grabient"
+    expect(title("gta-6-gradients", "GTA 6 グラデーション")).toBe(
+      "GTA 6 グラデーション：15配色・カラーコード付き | Grabient"
+    );
+    expect(title("control", "Control Resonant のスウォッチ", 21)).toBe(
+      "Control Resonant のスウォッチ：カラーパレット21件 | Grabient"
+    );
+    current = "zh-Hans";
+    expect(title("spring", "春季渐变", 29)).toBe(
+      "春季渐变：29 个配色方案（含十六进制色值） | Grabient"
     );
   });
 

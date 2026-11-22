@@ -1143,7 +1143,7 @@
   "{title}: {count, plural, one {# color palette} other {# color palettes}}": "{title}: {count, plural, one {# палітра кольорів} few {# палітри кольорів} many {# палітр кольорів} other {# палітри кольорів}}",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG.": "{title}: {count, plural, one {# палітра кольорів} few {# палітри кольорів} many {# палітр кольорів} other {# палітри кольорів}} і CSS-градієнти на Grabient. Відкрийте палітру, відредагуйте її, а потім копіюйте CSS або експортуйте SVG і PNG.",
   "{title}: {count, plural, one {# color palette} other {# color palettes}} with hex codes": "{title}: {count, plural, one {# палітра кольорів} few {# палітри кольорів} many {# палітр кольорів} other {# палітри кольорів}} з hex-кодами",
-  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# палітра кольорів} few {# палітри кольорів} many {# палітр кольорів} other {# палітри кольорів}} з hex-кодами",
+  "{title}: {count, plural, one {# palette} other {# palettes}} with hex codes": "{title}: {count, plural, one {# палітра} few {# палітри} many {# палітр} other {# палітри}} з hex-кодами",
   "{url} answered {status}.": "{url} відповів {status}.",
   "{url} didn't answer.": "{url} не відповів.",
   "{url} leaves the site.": "{url} веде за межі сайту.",
