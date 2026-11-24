@@ -11,8 +11,8 @@
     &:has(.art :focus-visible) {
       --card-line: var(--color-ink2);
     }
-    /* a palette's title stands in its age's place under the pointer anywhere on the card, with the keyboard in it, while
-       a finger has it open, and while its owner writes one */
+    /* a palette's title stands in its age's place, and the thumbs show before the heart, under the pointer anywhere on
+       the card, with the keyboard in it, while a finger has it open, and while its owner writes one */
     --named: 0;
     --named-pe: none;
     @media (hover: hover) {
@@ -234,5 +234,16 @@
     flex-shrink: 0;
     align-items: center;
     gap: var(--space-s2);
+  }
+  /* the thumbs hold their room at rest, so the heart never moves as they show; hidden by their opacity, so Tab still
+     reaches them and the keyboard's focus shows them */
+  .fit {
+    display: inline-flex;
+    opacity: var(--named);
+    pointer-events: var(--named-pe);
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    &:empty {
+      display: none;
+    }
   }
 }
