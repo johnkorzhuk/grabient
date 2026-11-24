@@ -4,7 +4,7 @@ import type { Env } from "@grabient/server/env.ts";
 /* The visits' counting (visits.ts), loaded the first time there is one to count: an isolate starts, and answers Start's
    first request, without it. Counting never fails a request. */
 
-type Counts = Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">;
+type Counts = Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_STREAM_SECRET" | "GA4_STREAM_ID">;
 
 /** The call every page's script makes right after its first render (features/account/session.ts). */
 const SESSION_CHECK = "/api/auth/get-session";

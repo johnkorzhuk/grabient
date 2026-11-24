@@ -329,7 +329,7 @@ async function visitorOf(key: string, address: string, agent: string): Promise<s
 /** Counts a visit, after its answer where it can (ctx.waitUntil). It never fails: a key KV cannot give leaves the
     visit without its visitor. */
 export async function countVisit(
-  env: Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">,
+  env: Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_STREAM_SECRET" | "GA4_STREAM_ID">,
   request: Request,
   visit: Visit,
   now = Date.now()
@@ -388,7 +388,7 @@ export async function countVisit(
      never went, as the scrapers' visits were all such landings, and Google Analytics left out every person who came
      straight to the site. On one of the gallery's pages, or from a Chromium lagging behind its updates, it waits for
      more, unless it came over HTTP/3 (`goesOnceRan`, `overQuic`) */
-  if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_API_SECRET) return;
+  if (!visitor || signals.length || HOSTING.includes(network) || !env.GA4_STREAM_SECRET) return;
   const lead = env.CACHE ? await dayLead(env.CACHE).catch(() => null) : null;
   if (!lead || tooOld(browser, lead)) return;
   const hit: Ga4Hit = {
@@ -478,7 +478,7 @@ const kept = (body: string, seconds: number) =>
     headers: { "Content-Type": "application/json", "Cache-Control": `max-age=${seconds}` }
   });
 
-type Sends = Pick<Env, "USAGE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">;
+type Sends = Pick<Env, "USAGE" | "DEPLOYMENT" | "GA4_STREAM_SECRET" | "GA4_STREAM_ID">;
 
 /** A hit sent on, and counted (`ga4`, under its visitor) when Google took it. */
 async function sendHit(env: Sends, hit: Ga4Hit, at: number): Promise<void> {
@@ -570,11 +570,11 @@ async function release(
 
 /** The page's own session check (GET /api/auth/get-session), which says its visitor's browser ran the page. */
 export async function checkedSession(
-  env: Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">,
+  env: Pick<Env, "USAGE" | "CACHE" | "DEPLOYMENT" | "GA4_STREAM_SECRET" | "GA4_STREAM_ID">,
   request: Request,
   now = Date.now()
 ): Promise<void> {
-  if (!env.USAGE || !env.CACHE || !env.GA4_API_SECRET || request.method !== "GET") return;
+  if (!env.USAGE || !env.CACHE || !env.GA4_STREAM_SECRET || request.method !== "GET") return;
   const headers = request.headers;
   if (headers.get("Sec-Fetch-Site") !== "same-origin" || automated(request)) return;
   if (headers.get("Sec-GPC") === "1" || headers.get("DNT") === "1") return;
