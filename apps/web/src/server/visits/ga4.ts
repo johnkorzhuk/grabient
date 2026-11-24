@@ -102,12 +102,12 @@ export function ga4Body(hit: Ga4Hit, now: number): Record<string, unknown> {
   };
 }
 
-type Ga4Env = Pick<Env, "DEPLOYMENT" | "GA4_API_SECRET" | "GA4_MEASUREMENT_ID">;
+type Ga4Env = Pick<Env, "DEPLOYMENT" | "GA4_STREAM_SECRET" | "GA4_STREAM_ID">;
 
 /** Whether this deploy sends visits to GA4 at all: production to the property, staging to the validation endpoint. */
 export const ga4Ready = (env: Ga4Env): boolean =>
-  !!env.GA4_API_SECRET &&
-  !!env.GA4_MEASUREMENT_ID &&
+  !!env.GA4_STREAM_SECRET &&
+  !!env.GA4_STREAM_ID &&
   (env.DEPLOYMENT === "production" || env.DEPLOYMENT === "staging");
 
 /** Sends one visit, and never throws: whether Google took it. */
@@ -116,8 +116,8 @@ export async function sendToGa4(env: Ga4Env, hit: Ga4Hit, now = Date.now()): Pro
   const live = env.DEPLOYMENT === "production";
   const host = hit.european ? "region1.google-analytics.com" : "www.google-analytics.com";
   const url = `https://${host}/${live ? "mp" : "debug/mp"}/collect?measurement_id=${encodeURIComponent(
-    env.GA4_MEASUREMENT_ID ?? ""
-  )}&api_secret=${encodeURIComponent(env.GA4_API_SECRET ?? "")}`;
+    env.GA4_STREAM_ID ?? ""
+  )}&api_secret=${encodeURIComponent(env.GA4_STREAM_SECRET ?? "")}`;
   try {
     const answer = await fetch(url, {
       method: "POST",

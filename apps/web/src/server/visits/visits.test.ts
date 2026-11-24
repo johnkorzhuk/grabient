@@ -437,8 +437,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     await countVisit(
       env as never,
@@ -513,8 +513,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     const nowhere = { what: "landing", page: "home", language: "en" } as const;
     await countVisit(env as never, from("203.0.113.9"), nowhere, NOON);
@@ -552,8 +552,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     const names = () => sent.map(hit => (hit.body.events as { name: string }[]).at(-1)?.name);
     const search = { what: "landing", page: "search", language: "en", path: "/palettes" } as const;
@@ -639,8 +639,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     const names = () => sent.map(hit => (hit.body.events as { name: string }[]).at(-1)?.name);
     const chrome = (version: number) => ({
@@ -698,8 +698,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     const names = () => sent.map(hit => (hit.body.events as { name: string }[]).at(-1)?.name);
     const linux = {
@@ -808,8 +808,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     await countVisit(env as never, from("203.0.113.9"), visit, NOON);
     expect(USAGE.points).toHaveLength(1);
@@ -828,8 +828,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "s",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "s",
+      GA4_STREAM_ID: "G-TEST"
     };
     await expect(
       countVisit(env as never, from("203.0.113.9"), visit, NOON)
@@ -851,8 +851,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     const load = { what: "load", page: "list", language: "ja", path: "/ja/palettes" } as const;
     const clicked = {
@@ -907,8 +907,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     // Amazon, Microsoft and DigitalOcean: the programs that ran pages on 24 Oct 2026 came from these
     for (const asn of [14618, 8075, 14061]) {
@@ -931,8 +931,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     await countVisit(env as never, from("203.0.113.9"), visit, NOON);
     expect(sent).toEqual([]);
@@ -966,8 +966,8 @@ describe("a visit sent on to Google Analytics", () => {
       CACHE,
       USAGE,
       DEPLOYMENT: "production",
-      GA4_API_SECRET: "the-secret",
-      GA4_MEASUREMENT_ID: "G-TEST"
+      GA4_STREAM_SECRET: "the-secret",
+      GA4_STREAM_ID: "G-TEST"
     };
     await countPage(env as never, from("203.0.113.9"), "/", "en", html(), "");
     expect(named(USAGE.points, "visit")).toHaveLength(1);
