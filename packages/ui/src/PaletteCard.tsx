@@ -441,7 +441,7 @@ export function PaletteCard(props: PaletteCardProps) {
           </Show>
         </span>
         <span class={styles.judge}>
-          {props.fit}
+          <span class={styles.fit}>{props.fit}</span>
           <Like
             count={props.likes}
             liked={props.liked}
