@@ -28,7 +28,18 @@ describe("work another request began", () => {
       "refused"
     );
   });
+
+  it("is done by the waiting request at once when the request that began it has ended", async () => {
+    vi.useFakeTimers();
+    const own = vi.fn(async () => "own");
+    expect(await joined(Promise.reject(new Error(ENDED_WORDS)), own)).toBe("own");
+    expect(own).toHaveBeenCalledTimes(1);
+  });
 });
+
+/** The runtime's words, since 16 Nov 2026, to a request that awaits a promise another request made and has ended. */
+const ENDED_WORDS =
+  "This promise was created by a request that has since ended, so it can never settle. With the handle_cross_request_promise_resolution compatibility flag, a promise can only settle in the request that created it, and settling it after that request ends is dropped.";
 
 describe("work made once in an isolate", () => {
   it("is made once for every request, those that come while it is made waiting for it", async () => {
@@ -65,5 +76,19 @@ describe("work made once in an isolate", () => {
     expect(await Promise.all(waiting)).toEqual([9, 9, 9]);
     expect(make).toHaveBeenCalledTimes(2);
     expect(await read()).toBe(9);
+  });
+
+  it("is made anew at once by one waiting request when its maker's request ended, and the others wait for that", async () => {
+    vi.useFakeTimers();
+    const make = vi
+      .fn<() => Promise<number>>()
+      .mockRejectedValueOnce(new Error(ENDED_WORDS))
+      .mockResolvedValue(10);
+    const read = madeOnce(make);
+    // the maker: its request has ended, so nothing waits on its answer
+    void read().catch(() => {});
+    expect(await Promise.all([read(), read(), read()])).toEqual([10, 10, 10]);
+    expect(make).toHaveBeenCalledTimes(2);
+    expect(await read()).toBe(10);
   });
 });
