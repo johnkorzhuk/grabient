@@ -12,6 +12,7 @@ import { Textarea } from "@grabient/ui/Textarea.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
 import { createEffect, createSignal, flush, Show, untrack } from "solid-js";
 import { offline } from "../../app/connection.ts";
+import { codeFormat } from "../../lib/color-format.ts";
 import { relativeAge } from "../gallery/drawing.ts";
 import { collectionHref } from "./address.ts";
 import { failedWrite } from "./collect.ts";
@@ -201,7 +202,7 @@ export function Heading(props: {
             {color => (
               <>
                 <Text variant="ui">·</Text>
-                <ColorCodes hex={color().hex} name={props.doc.title} />
+                <ColorCodes hex={color().hex} format={codeFormat()} />
               </>
             )}
           </Show>

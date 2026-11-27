@@ -655,18 +655,13 @@ describe("copying", () => {
     expect(tag(copied, "path").d).toBe("M20 6 9 17l-5-5");
   });
 
-  test("a color's codes follow a swatch named for it, each a press named for the code it copies", () => {
-    const markup = html(() => <ColorCodes hex="#900020" name="burgundy" />);
-    expect(tags(markup, "span").find(s => s.role === "img")?.["aria-label"]).toBe("burgundy");
-    expect(tags(markup, "button").map(b => b["aria-label"])).toEqual([
-      "Copy #900020",
-      "Copy rgb(144 0 32)",
-      "Copy hsl(347 100% 28%)",
+  test("a color's code is one press in the spelling chosen, hex by default, named for the code it copies", () => {
+    const hex = html(() => <ColorCodes hex="#900020" />);
+    expect(tags(hex, "button").map(b => b["aria-label"])).toEqual(["Copy #900020"]);
+    const oklch = html(() => <ColorCodes hex="#900020" format="oklch" />);
+    expect(tags(oklch, "button").map(b => b["aria-label"])).toEqual([
       "Copy oklch(41.3% 0.166 20.8)"
     ]);
-    /* a hex alone is named by what people call its color, in the reader's language */
-    const alone = html(() => <ColorCodes hex="#000080" />);
-    expect(tags(alone, "span").find(s => s.role === "img")?.["aria-label"]).toBe("blue");
   });
 
   test("a line to copy holds an address in its parts", () => {

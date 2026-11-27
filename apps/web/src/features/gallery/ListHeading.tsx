@@ -6,6 +6,7 @@ import { ColorCodes } from "@grabient/ui/ColorCodes.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { Thumbnail } from "@grabient/ui/Thumbnail.tsx";
 import { type Element, Loading, lazy, Show } from "solid-js";
+import { codeFormat } from "../../lib/color-format.ts";
 import styles from "./gallery.module.css";
 
 /* an effect's still comes with a list that plays one, by its export's name, so a page the server drew hydrates it */
@@ -68,7 +69,7 @@ export function ListHeading(props: {
           : props.title}
       </Text>
       <Show when={props.color}>
-        {color => <ColorCodes hex={color().hex} name={color().name} alone />}
+        {color => <ColorCodes hex={color().hex} format={codeFormat()} alone />}
       </Show>
     </div>
   );
