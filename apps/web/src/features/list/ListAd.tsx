@@ -10,16 +10,26 @@ import words from "./pixeleye/words.svg?url";
 /* The ad in a palette list's first cell and before the editor's similar palettes: Pixeleye's, as its maker drew it
    (377 by 216 units), on a palette card's footprint, its line saying where it leads and that it is an ad. The drawing
    is two pictures over its own pink, so it keeps its shape at every card's width (ListAd.module.css), and the pixel eye
-   is drawn here over the words: while the pointer or a finger is on the picture, its iris turns toward it a whole
-   pixel at a time. The link names Grabient as the visit's source and the ad's place as its content, which Pixeleye's
+   is drawn here over the words: while the pointer or a finger is on the picture, its iris glides toward it and shows
+   at whole pixels, and a moment after the pointer leaves it looks ahead again. The link names Grabient as the visit's source and the ad's place as its content, which Pixeleye's
    analytics read, and keeps the referrer the site sends (grabient.com) where other links to other sites drop it. */
 
-/** Where the ad stands, which its link tells Pixeleye: a palette list's first cell, or the editor's similar palettes. */
-export type AdPlace = "palette-list" | "similar-palettes";
+/** Where the ad stands, which its link tells Pixeleye: the page, and whether it shows a search. */
+export type AdPlace =
+  | "home"
+  | "home-search"
+  | "palettes"
+  | "palette-search"
+  | "saved-palettes"
+  | "collections"
+  | "collection-search"
+  | "saved-collections"
+  | "collection"
+  | "editor";
 
 /** The ad's address from its place: Grabient as the visit's source, the place as its content. */
 export const adHref = (place: AdPlace): string =>
-  `https://pixeleye.app/?utm_source=grabient&utm_medium=display&utm_campaign=grabient-ad&utm_content=${place}`;
+  `https://pixeleye.app/?utm_source=grabient&utm_campaign=grabient-ad&utm_content=${place}`;
 
 /* The eye on its grid of 17 by 9 pixels, a unit a pixel: the outline's whole shape, the white over it, the iris with
    its pupil and glint, and the scan lines over them. Each is drawn whole over the one before, so no seam shows where
@@ -36,69 +46,125 @@ const WIDE = 4;
 const TALL = 1;
 /** How far off the eye looks all the way, in the eye's own widths. */
 const REACH = 3;
-/** The milliseconds a step of one pixel takes as the iris turns. */
-const STEP = 32;
-/** The milliseconds the eye keeps looking where a finger lifted. */
+/** The seconds the iris takes to close most of the way to where it looks. */
+const GLIDE = 0.08;
+/** How far past halfway to the next pixel the iris goes before it shows there, in pixels: one that rests near the line
+    between two never flickers from one to the other. */
+const EDGE = 0.2;
+/** The milliseconds the eye keeps looking after the pointer leaves, and after a finger lifts: a pointer that comes
+    straight back finds it looking still, so quick moves in and out never send it to and fro. */
+const REST = 450;
 const HOLD = 1200;
 
-/** Where the iris looks for a point `dx`, `dy` CSS px from the eye's middle: toward it, as far as its distance over
-    `reach` allows, in whole pixels, alike either way until the lids stop it. */
+/** Where the iris looks for a point `dx`, `dy` CSS px from the eye's middle, in pixels: toward it, as far as its
+    distance over `reach` allows, alike either way until the lids stop it. */
 export function irisToward(dx: number, dy: number, reach: number): readonly [number, number] {
   const distance = Math.hypot(dx, dy);
   if (!(distance > 0 && reach > 0)) return [0, 0];
   const k = (Math.min(1, distance / reach) / distance) * WIDE;
-  const down = Math.max(-TALL, Math.min(TALL, Math.round(dy * k)));
-  // || 0: a turn of none is 0, never -0
-  return [Math.round(dx * k) || 0, down || 0];
+  return [dx * k, Math.max(-TALL, Math.min(TALL, dy * k))];
 }
 
-/** A palette list's lead (PaletteFeed's and its placeholder's): the ad in its first cell. */
-export const listLead = () => <ListAd place="palette-list" />;
+/** The pixel the iris shows at `value`, from the one it shows: that one, until `value` is past halfway to another by
+    EDGE. */
+export function irisPixel(shown: number, value: number): number {
+  // || 0: a turn of none is 0, never -0
+  return Math.abs(value - shown) > 0.5 + EDGE ? Math.round(value) || 0 : shown;
+}
+
+/** One frame of the iris's glide, a critically damped follow (Game Programming Gems 4, 8.1), exact at any frame rate:
+    where it is and how fast it moves after `dt` seconds on its way from `at` to `to`. */
+export function glide(
+  at: number,
+  speed: number,
+  to: number,
+  dt: number
+): readonly [number, number] {
+  const w = 2 / GLIDE;
+  const x = w * dt;
+  const e = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+  const change = at - to;
+  const temp = (speed + w * change) * dt;
+  return [to + (change + temp) * e, (speed - w * temp) * e];
+}
+
+/** A list's lead (PaletteFeed's, its placeholder's, a group's): the ad in its first cell, saying where it stands. */
+export const adLead = (place: () => AdPlace) => () => <ListAd place={place()} />;
 
 export function ListAd(props: { place: AdPlace }) {
   const clip = createUniqueId();
   let eye: SVGGElement | undefined;
   let iris: SVGGElement | undefined;
-  /* where the iris is and where it is turning, kept plain: each step reads the last at once */
-  let at: readonly [number, number] = [0, 0];
-  let aim: readonly [number, number] = [0, 0];
-  let stepping: ReturnType<typeof setTimeout> | undefined;
+  /* where the iris looks, where it is on its way there and how fast it moves, in pixels across and down, and the
+     pixel it shows */
+  const goal = [0, 0];
+  const at = [0, 0];
+  const speed = [0, 0];
+  const shown = [0, 0];
+  let frame = 0;
+  let last = 0;
   let resting: ReturnType<typeof setTimeout> | undefined;
-  const step = () => {
-    stepping = undefined;
-    if (at[0] === aim[0] && at[1] === aim[1]) return;
-    at = [at[0] + Math.sign(aim[0] - at[0]), at[1] + Math.sign(aim[1] - at[1])];
-    iris?.setAttribute("transform", `translate(${at[0]} ${at[1]})`);
-    stepping = setTimeout(step, STEP);
+  const show = () => {
+    const x = irisPixel(shown[0]!, at[0]!);
+    const y = irisPixel(shown[1]!, at[1]!);
+    if (x === shown[0] && y === shown[1]) return;
+    shown[0] = x;
+    shown[1] = y;
+    iris?.setAttribute("transform", `translate(${x} ${y})`);
+  };
+  /* a frame of the glide, at the display's rate, until the iris is where it looks */
+  const tick = (now: number) => {
+    frame = 0;
+    const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
+    last = now;
+    let moving = false;
+    for (const i of [0, 1]) {
+      const [next, fast] = glide(at[i]!, speed[i]!, goal[i]!, dt);
+      const there = Math.abs(next - goal[i]!) < 1e-3 && Math.abs(fast) < 1e-3;
+      at[i] = there ? goal[i]! : next;
+      speed[i] = there ? 0 : fast;
+      moving ||= !there;
+    }
+    show();
+    if (moving) frame = requestAnimationFrame(tick);
+    else last = 0;
+  };
+  /* the glide stops where it is; a frame is asked for in the browser alone, so the server, which ends the component
+     too, has none to cancel */
+  const halt = () => {
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    last = 0;
   };
   /* under reduced motion the iris is where it looks at once */
-  const turn = (to: readonly [number, number]) => {
+  const look = (to: readonly [number, number]) => {
     clearTimeout(resting);
-    aim = to;
+    goal[0] = to[0];
+    goal[1] = to[1];
     if (!reducesNow()) {
-      if (!stepping) step();
+      frame ||= requestAnimationFrame(tick);
       return;
     }
-    clearTimeout(stepping);
-    stepping = undefined;
-    at = to;
-    iris?.setAttribute("transform", `translate(${at[0]} ${at[1]})`);
+    halt();
+    at[0] = to[0];
+    at[1] = to[1];
+    speed[0] = speed[1] = 0;
+    show();
   };
   const follow = (e: PointerEvent) => {
     const box = eye?.getBoundingClientRect();
     if (!box?.width) return;
     const dx = e.clientX - box.left - box.width / 2;
     const dy = e.clientY - box.top - box.height / 2;
-    turn(irisToward(dx, dy, box.width * REACH));
+    look(irisToward(dx, dy, box.width * REACH));
   };
-  /* a finger leaves as it lifts: the eye keeps looking there a moment */
+  /* the pointer left, or a finger lifted: the eye looks ahead again a moment later, unless the pointer comes back */
   const leave = (e: PointerEvent) => {
-    if (e.pointerType !== "touch") return turn([0, 0]);
     clearTimeout(resting);
-    resting = setTimeout(() => turn([0, 0]), HOLD);
+    resting = setTimeout(() => look([0, 0]), e.pointerType === "touch" ? HOLD : REST);
   };
   onCleanup(() => {
-    clearTimeout(stepping);
+    halt();
     clearTimeout(resting);
   });
   return (
@@ -113,7 +179,7 @@ export function ListAd(props: { place: AdPlace }) {
               width="282"
               height="216"
               decoding="async"
-              loading={props.place === "similar-palettes" ? "lazy" : undefined}
+              loading={props.place === "editor" ? "lazy" : undefined}
             />
             <svg viewBox="0 0 282 216" aria-hidden="true">
               <defs>
@@ -142,7 +208,7 @@ export function ListAd(props: { place: AdPlace }) {
               width="158"
               height="181"
               decoding="async"
-              loading={props.place === "similar-palettes" ? "lazy" : undefined}
+              loading={props.place === "editor" ? "lazy" : undefined}
             />
           </span>
         </span>

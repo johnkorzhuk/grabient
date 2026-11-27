@@ -48,6 +48,7 @@ import { createFeed, joinNext } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
 import { effectsReady } from "../list/appearance.ts";
+import { adLead } from "../list/ListAd.tsx";
 import { createGlassWake } from "../list/wake.ts";
 import { searchedHere } from "../search/count.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
@@ -111,6 +112,10 @@ export function CollectionsPage(props: {
   const place = () => props.place;
   const glassWake = createGlassWake(() => place().view);
   const mine = () => place().order === "saved";
+  /* the ad in the first collection's first cell, its link saying which list: Saved, a search, or the lists */
+  const ad = adLead(() =>
+    mine() ? "saved-collections" : place().query ? "collection-search" : "collections"
+  );
   const signedOut = () => mine() && (sessionReady() ? !account() : !!props.signedOut);
   const frames = useQuery(() => framesQuery());
   const offered = () => frames.data;
@@ -509,6 +514,7 @@ export function CollectionsPage(props: {
                       palettes={kept(collection())}
                       width={width?.()}
                       card={preview => card(preview, collection)}
+                      lead={items()[0]?.slug === collection().slug ? ad : undefined}
                       onIntent={() => {
                         if (!offline())
                           void client.prefetchQuery(collectionQuery(collection().slug));

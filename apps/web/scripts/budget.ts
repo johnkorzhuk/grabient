@@ -97,7 +97,9 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
   /* the aurora, as /palettes, took it from 293.2 to 294.3 on 11 Nov 2026 */
   /* the press drawn before the page it asks for is begun (app/after-press.ts, 17 Nov 2026, for the phones' Core Web
      Vitals), 0.15 KB of the start every page shares, took it from 295.0 to 295.1 */
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 295.5 },
+  /* the ad in the first collection's first cell (27 Nov 2026, John: "just include it as the first item in the first
+     colleciton"), as "/", took it from 295.4 to 297.1 */
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 297.5 },
   /* a collection's own code loads apart from its address's route, which a palette's page shares, and its document
      names it, so the browser has it before it hydrates: it is counted here (31 Oct 2026). Its cards playing the look
      each palette was saved in, an effect and its settings (features/list/appearance.ts's lookEffect and cardPlays,

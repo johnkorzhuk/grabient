@@ -2,7 +2,7 @@
   "(opens in a new tab)": {
     "note": "Spoken after a link that opens a new tab.",
     "refs": [
-      "apps/web/src/features/list/ListAd.tsx:163",
+      "apps/web/src/features/list/ListAd.tsx:225",
       "packages/ui/src/Button.tsx:95",
       "packages/ui/src/CodeTabs.tsx:139",
       "packages/ui/src/Footer.tsx:59",
@@ -182,7 +182,7 @@
   "Ad": {
     "note": "The label on the advertisement in a palette list's first card: one short word, as an ad's label reads, shown small and in capitals.",
     "refs": [
-      "apps/web/src/features/list/ListAd.tsx:161"
+      "apps/web/src/features/list/ListAd.tsx:223"
     ]
   },
   "Add 1 to {max} palettes.": {
@@ -593,8 +593,8 @@
     "note": "Press or link: opens the palettes list.",
     "refs": [
       "apps/web/src/app/NotFound.tsx:37",
-      "apps/web/src/features/collections/CollectionPage.tsx:1118",
-      "apps/web/src/features/collections/CollectionsPage.tsx:553",
+      "apps/web/src/features/collections/CollectionPage.tsx:1122",
+      "apps/web/src/features/collections/CollectionsPage.tsx:559",
       "apps/web/src/features/connect/Connect.tsx:125"
     ]
   },
@@ -806,7 +806,7 @@
   "Collection not found. It may have been deleted.": {
     "note": "Error line: the collection is gone.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1105"
+      "apps/web/src/features/collections/CollectionPage.tsx:1109"
     ]
   },
   "Collections": {
@@ -1305,9 +1305,9 @@
       "apps/web/src/features/account/settings/Profile.tsx:188",
       "apps/web/src/features/account/settings/Profile.tsx:60",
       "apps/web/src/features/account/settings/Profile.tsx:75",
-      "apps/web/src/features/collections/CollectionsPage.tsx:333",
-      "apps/web/src/features/gallery/Home.tsx:222",
-      "apps/web/src/features/gallery/Palettes.tsx:305"
+      "apps/web/src/features/collections/CollectionsPage.tsx:338",
+      "apps/web/src/features/gallery/Home.tsx:224",
+      "apps/web/src/features/gallery/Palettes.tsx:309"
     ]
   },
   "Couldn't read this palette JSON.": {
@@ -1824,7 +1824,7 @@
   "Export": {
     "note": "Heading and tab of the export panel; also its screen reader name, and the heading of a collection's section of files under its cards.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1044",
+      "apps/web/src/features/collections/CollectionPage.tsx:1046",
       "packages/ui/src/ExportPanel.tsx:141",
       "packages/ui/src/ExportPanel.tsx:143",
       "packages/ui/src/ExportPanel.tsx:149"
@@ -1888,9 +1888,9 @@
   "First page": {
     "note": "Press: back to the first page of the list.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:547",
-      "apps/web/src/features/gallery/Home.tsx:516",
-      "apps/web/src/features/gallery/Palettes.tsx:621"
+      "apps/web/src/features/collections/CollectionsPage.tsx:553",
+      "apps/web/src/features/gallery/Home.tsx:518",
+      "apps/web/src/features/gallery/Palettes.tsx:625"
     ]
   },
   "Fit": {
@@ -2009,14 +2009,14 @@
   "From your colors": {
     "note": "Heading over the palettes made from the hex colors the reader typed into the search field.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:336",
-      "apps/web/src/features/gallery/Palettes.tsx:449"
+      "apps/web/src/features/gallery/Home.tsx:338",
+      "apps/web/src/features/gallery/Palettes.tsx:453"
     ]
   },
   "From your image": {
     "note": "Heading over the palettes made from the colors picked out of the reader's image, shown beside the image.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:449"
+      "apps/web/src/features/gallery/Palettes.tsx:453"
     ]
   },
   "Frost": {
@@ -2186,7 +2186,7 @@
   "Guide for AI agents": {
     "note": "Title of the link in the page's head to llms.txt.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1073",
+      "apps/web/src/features/collections/CollectionPage.tsx:1075",
       "apps/web/src/routes/__root.tsx:99"
     ]
   },
@@ -2678,7 +2678,7 @@
     "note": "Tooltip on a disabled admin press: a person liked the palette, so it can't change.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:136",
-      "apps/web/src/features/collections/CollectionsPage.tsx:98",
+      "apps/web/src/features/collections/CollectionsPage.tsx:99",
       "apps/web/src/features/editor/save.ts:133",
       "apps/web/src/features/gallery/curate.tsx:62"
     ]
@@ -2722,9 +2722,9 @@
   "Loading more…": {
     "note": "Status while more of a list loads.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:405",
-      "apps/web/src/features/gallery/Home.tsx:260",
-      "apps/web/src/features/gallery/Palettes.tsx:359",
+      "apps/web/src/features/collections/CollectionsPage.tsx:410",
+      "apps/web/src/features/gallery/Home.tsx:262",
+      "apps/web/src/features/gallery/Palettes.tsx:363",
       "apps/web/src/features/newsletter/NewsletterPage.tsx:75"
     ]
   },
@@ -2763,7 +2763,7 @@
     "note": "Admin feature switch.",
     "refs": [
       "apps/web/src/features/account/settings/flags.ts:34",
-      "apps/web/src/features/collections/CollectionPage.tsx:1076"
+      "apps/web/src/features/collections/CollectionPage.tsx:1078"
     ]
   },
   "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.": {
@@ -2841,8 +2841,8 @@
   "Matching collections": {
     "note": "Heading over collections that match a search.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:488",
-      "apps/web/src/features/gallery/Palettes.tsx:491"
+      "apps/web/src/features/gallery/Palettes.tsx:492",
+      "apps/web/src/features/gallery/Palettes.tsx:495"
     ]
   },
   "Member": {
@@ -2874,14 +2874,14 @@
   "More collections": {
     "note": "Press at the end of a list: loads more collections.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:565",
-      "apps/web/src/features/gallery/Home.tsx:529"
+      "apps/web/src/features/collections/CollectionsPage.tsx:571",
+      "apps/web/src/features/gallery/Home.tsx:531"
     ]
   },
   "More palettes": {
     "note": "Press at the end of a list: loads more palettes. Also a press that shows the next palettes.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:633",
+      "apps/web/src/features/gallery/Palettes.tsx:637",
       "apps/web/src/mcp-view/PaletteView.tsx:690"
     ]
   },
@@ -2995,8 +2995,8 @@
   "No collections yet.": {
     "note": "Empty state: there are no collections to show.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:398",
-      "apps/web/src/features/gallery/Home.tsx:268"
+      "apps/web/src/features/collections/CollectionsPage.tsx:403",
+      "apps/web/src/features/gallery/Home.tsx:270"
     ]
   },
   "No next keyframe": {
@@ -3020,27 +3020,27 @@
   "No public collections yet.": {
     "note": "Empty state: no collection is public yet.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:399"
+      "apps/web/src/features/collections/CollectionsPage.tsx:404"
     ]
   },
   "No results.": {
     "note": "Empty state, also a heading: a search found nothing.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:396",
-      "apps/web/src/features/gallery/Home.tsx:253",
-      "apps/web/src/features/gallery/Home.tsx:270",
-      "apps/web/src/features/gallery/Home.tsx:347",
-      "apps/web/src/features/gallery/Palettes.tsx:340",
-      "apps/web/src/features/gallery/Palettes.tsx:345",
-      "apps/web/src/features/gallery/Palettes.tsx:352",
-      "apps/web/src/features/gallery/Palettes.tsx:479",
+      "apps/web/src/features/collections/CollectionsPage.tsx:401",
+      "apps/web/src/features/gallery/Home.tsx:255",
+      "apps/web/src/features/gallery/Home.tsx:272",
+      "apps/web/src/features/gallery/Home.tsx:349",
+      "apps/web/src/features/gallery/Palettes.tsx:344",
+      "apps/web/src/features/gallery/Palettes.tsx:349",
+      "apps/web/src/features/gallery/Palettes.tsx:356",
+      "apps/web/src/features/gallery/Palettes.tsx:483",
       "packages/ui/src/CollectList.tsx:343"
     ]
   },
   "No results. Try a color, mood or theme.": {
     "note": "Empty state of a search in Saved, with words to try.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:344"
+      "apps/web/src/features/gallery/Palettes.tsx:348"
     ]
   },
   "Not found": {
@@ -3347,9 +3347,9 @@
   "Page {page} doesn't exist.": {
     "note": "Line on a list page whose number is past the last page.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:394",
-      "apps/web/src/features/gallery/Home.tsx:266",
-      "apps/web/src/features/gallery/Palettes.tsx:338"
+      "apps/web/src/features/collections/CollectionsPage.tsx:399",
+      "apps/web/src/features/gallery/Home.tsx:268",
+      "apps/web/src/features/gallery/Palettes.tsx:342"
     ]
   },
   "Pages past the ceiling": {
@@ -3395,7 +3395,7 @@
     "note": "Status after an admin deletes a palette.",
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:638",
-      "apps/web/src/features/collections/CollectionsPage.tsx:230",
+      "apps/web/src/features/collections/CollectionsPage.tsx:235",
       "apps/web/src/features/gallery/curate.tsx:70"
     ]
   },
@@ -3482,7 +3482,7 @@
   "Palettes you like appear here.": {
     "note": "Empty state of the Saved list.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:342"
+      "apps/web/src/features/gallery/Palettes.tsx:346"
     ]
   },
   "Papercut": {
@@ -4072,14 +4072,14 @@
     "refs": [
       "apps/web/src/app/ErrorPage.tsx:40",
       "apps/web/src/features/account/settings/Admin.tsx:230",
-      "apps/web/src/features/collections/CollectionPage.tsx:1112",
-      "apps/web/src/features/collections/CollectionsPage.tsx:527",
-      "apps/web/src/features/collections/CollectionsPage.tsx:532",
+      "apps/web/src/features/collections/CollectionPage.tsx:1116",
+      "apps/web/src/features/collections/CollectionsPage.tsx:533",
+      "apps/web/src/features/collections/CollectionsPage.tsx:538",
       "apps/web/src/features/connect/ConnectedApps.tsx:94",
-      "apps/web/src/features/gallery/Home.tsx:499",
-      "apps/web/src/features/gallery/Home.tsx:507",
-      "apps/web/src/features/gallery/Palettes.tsx:606",
-      "apps/web/src/features/gallery/Palettes.tsx:611",
+      "apps/web/src/features/gallery/Home.tsx:501",
+      "apps/web/src/features/gallery/Home.tsx:509",
+      "apps/web/src/features/gallery/Palettes.tsx:610",
+      "apps/web/src/features/gallery/Palettes.tsx:615",
       "apps/web/src/features/newsletter/NewsletterPage.tsx:79"
     ]
   },
@@ -4383,14 +4383,14 @@
   "Search palettes": {
     "note": "Search field and its placeholder.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:417",
+      "apps/web/src/features/gallery/Palettes.tsx:421",
       "apps/web/src/features/search/SearchField.tsx:78"
     ]
   },
   "Search palettes and collections": {
     "note": "Placeholder of the home page search field.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:310"
+      "apps/web/src/features/gallery/Home.tsx:312"
     ]
   },
   "Search palettes by words, hex codes or another palette.": {
@@ -4408,7 +4408,7 @@
   "Searching…": {
     "note": "Status while a search runs.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:255",
+      "apps/web/src/features/gallery/Home.tsx:257",
       "apps/web/src/features/gallery/account.ts:29"
     ]
   },
@@ -4563,7 +4563,7 @@
   "Shades and matching colors": {
     "note": "Heading of a section on a collection's page whose collection is of one color (magenta, navy): a list of that color's lighter and darker shades and of the colors that go with it, each row's colors as hex codes.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1038"
+      "apps/web/src/features/collections/CollectionPage.tsx:1040"
     ]
   },
   "Shape": {
@@ -4671,11 +4671,11 @@
       "apps/web/src/features/account/PasswordPage.tsx:59",
       "apps/web/src/features/account/PasswordPage.tsx:70",
       "apps/web/src/features/account/settings/Profile.tsx:298",
-      "apps/web/src/features/collections/CollectionsPage.tsx:479",
+      "apps/web/src/features/collections/CollectionsPage.tsx:484",
       "apps/web/src/features/connect/McpServer.tsx:133",
-      "apps/web/src/features/gallery/Home.tsx:299",
-      "apps/web/src/features/gallery/Palettes.tsx:406",
-      "apps/web/src/features/gallery/Palettes.tsx:616",
+      "apps/web/src/features/gallery/Home.tsx:301",
+      "apps/web/src/features/gallery/Palettes.tsx:410",
+      "apps/web/src/features/gallery/Palettes.tsx:620",
       "apps/web/src/lib/page-meta.ts:474",
       "packages/email/src/letters.ts:44",
       "packages/email/src/letters.ts:58",
@@ -4745,20 +4745,20 @@
   "Sign in to search with all your words.": {
     "note": "Line beside a Sign in press: signed out, a search matched only some of the words.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:262",
-      "apps/web/src/features/gallery/Palettes.tsx:361"
+      "apps/web/src/features/gallery/Home.tsx:264",
+      "apps/web/src/features/gallery/Palettes.tsx:365"
     ]
   },
   "Sign in to see your collections.": {
     "note": "Heading on Your collections when signed out, over a Sign in press; also an error line.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:471"
+      "apps/web/src/features/collections/CollectionsPage.tsx:476"
     ]
   },
   "Sign in to see your saved palettes.": {
     "note": "Heading on Saved when signed out, over a Sign in press; also an error line.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:471",
+      "apps/web/src/features/gallery/Palettes.tsx:475",
       "apps/web/src/features/gallery/queries.ts:226"
     ]
   },
@@ -5534,7 +5534,7 @@
   "This collection is empty.": {
     "note": "Empty state of a collection.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1107"
+      "apps/web/src/features/collections/CollectionPage.tsx:1111"
     ]
   },
   "This collection is private.": {
@@ -5588,7 +5588,7 @@
   "This page as Markdown": {
     "note": "Title of the link in the page's head to its Markdown version.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1070",
+      "apps/web/src/features/collections/CollectionPage.tsx:1072",
       "apps/web/src/lib/page-meta.ts:1359"
     ]
   },
@@ -5726,7 +5726,7 @@
   "Trending": {
     "note": "Heading of the home page feed.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:340"
+      "apps/web/src/features/gallery/Home.tsx:342"
     ]
   },
   "Triadic": {
@@ -5738,8 +5738,8 @@
   "Try a color, mood or theme, like navy, cozy or sunset. Or sign in to search in any language.": {
     "note": "Line under No results, signed out: the words to try, or sign in to search in any language.",
     "refs": [
-      "apps/web/src/features/gallery/Home.tsx:349",
-      "apps/web/src/features/gallery/Palettes.tsx:481"
+      "apps/web/src/features/gallery/Home.tsx:351",
+      "apps/web/src/features/gallery/Palettes.tsx:485"
     ]
   },
   "Try asking": {
@@ -5893,9 +5893,9 @@
     "note": "Status while something updates: a list refreshing, or the Update press while it works.",
     "refs": [
       "apps/web/src/features/collections/Actions.tsx:277",
-      "apps/web/src/features/collections/CollectionsPage.tsx:405",
-      "apps/web/src/features/gallery/Home.tsx:255",
-      "apps/web/src/features/gallery/Palettes.tsx:355"
+      "apps/web/src/features/collections/CollectionsPage.tsx:410",
+      "apps/web/src/features/gallery/Home.tsx:257",
+      "apps/web/src/features/gallery/Palettes.tsx:359"
     ]
   },
   "Use a valid email, or leave it empty.": {
@@ -6261,8 +6261,8 @@
   "Your image": {
     "note": "Heading over the reader's own image after a search by image, with points on it that pick its colors. Also the image's accessible name.",
     "refs": [
-      "apps/web/src/features/collections/CollectionsPage.tsx:458",
-      "apps/web/src/features/collections/CollectionsPage.tsx:459",
+      "apps/web/src/features/collections/CollectionsPage.tsx:463",
+      "apps/web/src/features/collections/CollectionsPage.tsx:464",
       "apps/web/src/features/search/PictureSampler.tsx:27"
     ]
   },
@@ -6760,7 +6760,7 @@
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:119",
       "apps/web/src/features/editor/Sheet.tsx:612",
-      "apps/web/src/features/gallery/Palettes.tsx:333",
+      "apps/web/src/features/gallery/Palettes.tsx:337",
       "packages/ui/src/ListNav.tsx:15"
     ]
   },
@@ -6769,14 +6769,14 @@
     "refs": [
       "apps/web/src/features/collections/CollectionPage.tsx:120",
       "apps/web/src/features/editor/Sheet.tsx:278",
-      "apps/web/src/features/gallery/Palettes.tsx:332",
+      "apps/web/src/features/gallery/Palettes.tsx:336",
       "packages/ui/src/ListNav.tsx:16"
     ]
   },
   "order\u0004Saved": {
     "note": "List order and its tab: the reader's own saved (liked) palettes.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:330",
+      "apps/web/src/features/gallery/Palettes.tsx:334",
       "packages/ui/src/ListNav.tsx:17"
     ]
   },
@@ -7179,7 +7179,7 @@
   "{count, plural, one {All #} other {All #}}": {
     "note": "Press: shows all of them, with the count.",
     "refs": [
-      "apps/web/src/features/gallery/Palettes.tsx:503"
+      "apps/web/src/features/gallery/Palettes.tsx:507"
     ]
   },
   "{count, plural, one {Like, #} other {Like, #}}": {
@@ -7512,7 +7512,7 @@
   "{title}: a collection of color palettes": {
     "note": "Alt text of a collection's share image.",
     "refs": [
-      "apps/web/src/features/collections/CollectionPage.tsx:1049",
+      "apps/web/src/features/collections/CollectionPage.tsx:1051",
       "apps/web/src/lib/page-meta.ts:1069"
     ]
   },
