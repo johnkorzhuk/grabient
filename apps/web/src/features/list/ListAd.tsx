@@ -9,10 +9,12 @@ import words from "./pixeleye/words.svg?url";
 
 /* The ad in a palette list's first cell and before the editor's similar palettes: Pixeleye's, as its maker drew it
    (377 by 216 units), on a palette card's footprint, its line saying where it leads and that it is an ad. The drawing
-   is two pictures over its own pink, so it keeps its shape at every card's width (ListAd.module.css), and the pixel eye
-   is drawn here over the words: while the pointer or a finger is on the picture, its iris glides toward it and shows
-   at whole pixels, and a moment after the pointer leaves it looks ahead again. The link names Grabient as the visit's source and the ad's place as its content, which Pixeleye's
-   analytics read, and keeps the referrer the site sends (grabient.com) where other links to other sites drop it. */
+   is its pictures over its own pink, so it keeps its shape at every card's width (ListAd.module.css): the words in
+   three bands of one picture, the logo at the top, the press at the foot and the headline between, and the tiles in
+   the top corner. The pixel eye is drawn here over the logo: while the pointer or a finger is on the picture, its iris
+   glides toward it and shows at whole pixels, and a moment after the pointer leaves it looks ahead again. The link
+   names Grabient as the visit's source and the ad's place as its content, which Pixeleye's analytics read, and keeps
+   the referrer the site sends (grabient.com) where other links to other sites drop it. */
 
 /** Where the ad stands, which its link tells Pixeleye: the page, and whether it shows a search. */
 export type AdPlace =
@@ -29,7 +31,7 @@ export type AdPlace =
 
 /** The ad's address from its place: Grabient as the visit's source, the place as its content. */
 export const adHref = (place: AdPlace): string =>
-  `https://pixeleye.app/?utm_source=grabient&utm_campaign=grabient-ad&utm_content=${place}`;
+  `https://pixeleye.app/?utm_source=grabient&utm_content=${place}`;
 
 /* The eye on its grid of 17 by 9 pixels, a unit a pixel: the outline's whole shape, the white over it, the iris with
    its pupil and glint, and the scan lines over them. Each is drawn whole over the one before, so no seam shows where
@@ -172,7 +174,8 @@ export function ListAd(props: { place: AdPlace }) {
       <span class={styles.art} onPointerDown={follow} onPointerMove={follow} onPointerLeave={leave}>
         <span class={styles.glow} aria-hidden="true" />
         <span class={styles.ground} aria-hidden="true">
-          <span class={styles.words}>
+          {/* the words in three bands of the one picture, each a window on its part of it */}
+          <span class={styles.band} data-band="head">
             <img
               src={words}
               alt=""
@@ -200,6 +203,26 @@ export function ListAd(props: { place: AdPlace }) {
                 <path fill="#04081a" fill-opacity="0.2" d={LINES} />
               </g>
             </svg>
+          </span>
+          <span class={styles.band} data-band="body">
+            <img
+              src={words}
+              alt=""
+              width="282"
+              height="216"
+              decoding="async"
+              loading={props.place === "editor" ? "lazy" : undefined}
+            />
+          </span>
+          <span class={styles.band} data-band="foot">
+            <img
+              src={words}
+              alt=""
+              width="282"
+              height="216"
+              decoding="async"
+              loading={props.place === "editor" ? "lazy" : undefined}
+            />
           </span>
           <span class={styles.tiles}>
             <img
