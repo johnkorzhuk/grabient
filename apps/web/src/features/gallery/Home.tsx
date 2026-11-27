@@ -43,6 +43,7 @@ import { createFit } from "../collections/fit.ts";
 import { collectionGone, paletteGone } from "../collections/overlay.ts";
 import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
 import { AppearanceContext, inView } from "../list/appearance.ts";
+import { listLead } from "../list/ListAd.tsx";
 import { createGlassWake } from "../list/wake.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { createPicture } from "../search/picture.ts";
@@ -354,7 +355,10 @@ export function Home(props: { params: ListParams }) {
               </Show>
               <Loading
                 fallback={
-                  <PaletteGridPlaceholder count={words() ? SEARCH_PALETTES : HOT_PALETTES} />
+                  <PaletteGridPlaceholder
+                    count={words() ? SEARCH_PALETTES : HOT_PALETTES}
+                    lead={listLead}
+                  />
                 }
               >
                 <Show
@@ -364,6 +368,7 @@ export function Home(props: { params: ListParams }) {
                   <PaletteFeed
                     items={palettes()}
                     key={item => item.kseed}
+                    lead={listLead}
                     live={FIRST_SCREEN}
                     still={!account() && !selection().length && !glassWake()}
                     depth={restoring}

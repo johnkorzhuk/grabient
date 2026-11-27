@@ -52,7 +52,12 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      (editor/FxArt.tsx, engine/fx-picture.ts fxPictureOf, 14 Nov 2026: John of the aurora's cards, "why does the
      preview look blurrier than it actually is when hovered?", then "The idea a user using the effect would get a
      vector to load first") took it from 293.9 to 294.0, a few bytes past */
-  "/": { route: "src/routes/index.tsx", budget: 294.5 },
+  /* the ad in a palette list's first cell (features/list/ListAd.tsx, 27 Nov 2026, John: "above is an ad i want in the
+     first spot of any pallete list item ... also the eyeball in the vector follows the cursor"): its link and its
+     line, the pixel eye drawn live over the drawing and the pointer it follows, 1.9 KB gzipped alone, took it from
+     294.4 to 296.5; the drawing itself is two pictures the page asks for as it draws them (39 KB, 12.5 gzipped, kept a
+     year as every asset is) */
+  "/": { route: "src/routes/index.tsx", budget: 297 },
   /* the same took it from 288.9 to 290.7; soft and grain over the effects (their pictures blurred over the gradient,
      the menu's fields beside an effect's, the summary naming them) and the editor's glass after a move (e3636f12) to
      291.2 on 3 Nov 2026 */
@@ -66,7 +71,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
      took it past 295 to 295.16; the Steps field itself loads with the effect's fields (editor/GlassControls.tsx) */
   /* the aurora, as "/", and a list's address and history keeping its path (features/list/appearance.ts), took it
      from 295.7 to 296.9 on 11 Nov 2026 */
-  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 298 },
+  /* the ad, as "/", took it from 297.8 to 300.0 on 27 Nov 2026 */
+  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 300.5 },
   /* the list window's answer to a first move and its reach (ui/window.ts), 0.3 KB on every list's start, took this one
      to 285.3 on 2 Nov 2026, with the glass and the blob already in it */
   /* the silk and the rosette as effects (their names and settings, as every page) took it from 285.4 to 286.0 on
@@ -114,7 +120,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
     /* a one-color collection's shades and matching colors (engine/color-kin.ts and its rows in CollectionPage.tsx), a
        pilot on staging for John to look at, took it from 290.9 to 291.4 on 22 Nov 2026: if it stays, its code goes
        to a chunk of its own, loaded by the pages of one color alone */
-    budget: 291.5
+    /* the ad in its cards' first cell, as "/", took it from 291.5 to 293.5 on 27 Nov 2026 */
+    budget: 294
   },
   /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
      beside the page or once the first screen stands on a phone. The effects (the fluted glass and the blob as styles:
@@ -145,7 +152,8 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
        the making, its worker, the module that draws (engine/video/video.wasm) and the chip's ring (ui/MakingIcon.tsx)
        come with the first press; the code pane's rows for Shadertoy's tabs took it to 332.1 (3 Nov 2026), gone again
        with the Shadertoy spelling (John, 3 Nov 2026: "i think we drop shadertoy this is too much") */
-    budget: 333
+    /* the ad before the sheet's similar palettes, as "/", took it from 332.6 to 334.7 on 27 Nov 2026 */
+    budget: 335
   },
   /* a palette's examples (/{seed}/examples), a page of its own since 31 Oct 2026: six sections, its code split from
      the editor's, 282.3 KB as it starts; counted with the pages, its route no longer the largest chunk a press loads.
@@ -211,8 +219,9 @@ const BUDGETS = {
   // the blob's controls and a collection's For the bots section (its bot, its picture and its strip) took the one
   // stylesheet from 28.8 KB to 29.1 on 30 Oct 2026; a palette's examples page (features/examples) to 30.6 on 31 Oct,
   // and its rebuild as six sections with a masonry of ten media (10.4 KB of its own, gzipped alone) from 31.0 to 35.4
-  // the same day
-  stylesheet: 37,
+  // the same day; the ad in a palette list's first cell (features/list/ListAd.module.css) from 36.7 to 37.1 on 27 Nov
+  // 2026
+  stylesheet: 37.5,
   // the glass's Shadertoy text took the largest from 11.4 KB to 13.6 on 1 Nov 2026, until the Shadertoy spelling went
   // (3 Nov 2026); its GLSL and WebGL page and its WGSL and WebGPU page load apart, 4.0 and 6.7 KB, beside the pages'
   // design, 5.7. The aurora (11 Nov 2026): its model and its SVG writer (engine/aurora.ts, aurora-svg.ts), which
@@ -291,8 +300,9 @@ const BUDGETS = {
   // took 10, and a list's sixteen in 27 where they took 233. Its likeness to its shader (17 Nov 2026, John: "the
   // vector does not look like the shader. its important there's parity there"): the same encoder and the still's
   // picture, in the Worker as in the stills' chunk, took it from 1502.8 to 1503.6 to 1504.3 to 1504.7, by the build.
-  // The budget stands the builds' spread and one more over it
-  worker: 1506.5,
+  // The budget stands the builds' spread and one more over it. The ad in a palette list's first cell (27 Nov 2026),
+  // which the Worker draws in every list it answers, took it from 1506.2 to 1507.6
+  worker: 1508.5,
   // The worker a reader's first Download MP4 starts (features/editor/video-worker.ts): an asset of the download's
   // chunk, which the manifest names as no chunk of its own, so it is measured apart. It carries the engine's drawing of
   // every effect a clip is drawn of, their finish and the MP4 writer, 19.5 KB on 3 Nov 2026; the module it draws with

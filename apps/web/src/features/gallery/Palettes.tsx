@@ -44,6 +44,7 @@ import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
 import { AppearanceContext, effectsReady, inView } from "../list/appearance.ts";
+import { listLead } from "../list/ListAd.tsx";
 import { createGlassWake } from "../list/wake.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
@@ -553,20 +554,21 @@ export function Palettes(props: { place: ListPlace }) {
                   </section>
                 </Show>
               </Show>
-              <Loading fallback={<PaletteGridPlaceholder count={params().limit} />}>
+              <Loading fallback={<PaletteGridPlaceholder count={params().limit} lead={listLead} />}>
                 <Show
                   when={standing() || headError()}
                   fallback={
                     unread() ? (
                       <OfflineList ways={["palettes"]} />
                     ) : (
-                      <PaletteGridPlaceholder count={params().limit} />
+                      <PaletteGridPlaceholder count={params().limit} lead={listLead} />
                     )
                   }
                 >
                   <PaletteFeed
                     items={items()}
                     key={item => item.kseed}
+                    lead={listLead}
                     live={FIRST_SCREEN}
                     still={!account() && !selection().length && !glassWake()}
                     depth={restoring}

@@ -37,4 +37,8 @@
   .like {
     width: 34px;
   }
+  /* the list's lead, on a card's footprint, as the list will draw it */
+  .lead {
+    min-width: 0;
+  }
 }

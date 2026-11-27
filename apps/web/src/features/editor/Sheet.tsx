@@ -47,6 +47,7 @@ import { similarHref } from "../gallery/similar.ts";
 import { sortSearch } from "../gallery/sort.ts";
 import { cardWords } from "../gallery/words.ts";
 import { drawnIn, type ListView, listEffect, viewParams } from "../list/appearance.ts";
+import { ListAd } from "../list/ListAd.tsx";
 import { useOpened, useTaken } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { openedFrom, seedAddress } from "./address.ts";
@@ -85,7 +86,7 @@ const FRAMES: Readonly<Record<RisingFrame, { short: string; name: string }>> = {
   "3m": { short: msg("3m", "frame"), name: msg("Rising, 3 months") },
   "1y": { short: msg("1y", "frame"), name: msg("Rising, 1 year") }
 };
-/* how many of the palettes like this one are drawn */
+/* how many cards the palettes like this one take: the ad's first, then the palettes' */
 const SHOWN = 12;
 /* how long another palette or view stands before the page says how it is drawn */
 const DESCRIBE_MS = 250;
@@ -283,7 +284,7 @@ export function Sheet(props: {
           got.items.filter(item => item.kseed !== e.seed()),
           sort(),
           frame()
-        ).slice(0, SHOWN)
+        ).slice(0, SHOWN - 1)
       : null;
   });
   /* the counts beside the cards' hearts keep the age of the answer that brought them, and the old ones are asked for
@@ -697,6 +698,7 @@ export function Sheet(props: {
               rel={relTo(localHref(likeHref()))}
               palettes={list()}
               card={card}
+              lead={() => <ListAd place="similar-palettes" />}
               whole
             />
           </Show>

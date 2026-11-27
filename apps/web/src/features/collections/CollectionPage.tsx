@@ -67,6 +67,7 @@ import {
   lookEffect,
   lookFinish
 } from "../list/appearance.ts";
+import { listLead } from "../list/ListAd.tsx";
 import { useCollectionSeen } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import { keptItem, selection } from "../selection/selection.ts";
@@ -904,6 +905,10 @@ export function CollectionPage(props: {
                   }}
                 />
                 <PaletteGrid>
+                  {/* the list's ad in its first cell, as every palette list has it */}
+                  <Show when={shown().length}>
+                    <div class={styles.cell}>{listLead()}</div>
+                  </Show>
                   <For each={shown()} keyed={item => keyOf(item)}>
                     {item => {
                       const gone = () => removedKey(item());
@@ -1085,6 +1090,7 @@ export function CollectionPage(props: {
               <Placeholder width="320px" height="32px" />
             </div>
             <PaletteGrid>
+              <div class={styles.cell}>{listLead()}</div>
               <For each={Array.from({ length: 6 }, (_, i) => i)}>
                 {() => <PaletteCardPlaceholder />}
               </For>
