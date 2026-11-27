@@ -33,12 +33,12 @@ export function ColorCodes(props: {
           <button
             type="button"
             class={chip.chip}
-            style={{ "--c": props.hex }}
+            style={{ "--c": props.hex, "--copied": JSON.stringify(t("Copied")) }}
             data-said={copied() === text() ? t("Copied") : undefined}
             aria-label={t("Copy {hex}", { hex: text() })}
             onClick={() => void copy(text())}
           >
-            {text()}
+            <span>{text()}</span>
           </button>
         </span>
       )}
