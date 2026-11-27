@@ -1,4 +1,4 @@
-/* The water behind every page. The wordmark's bar is a source of paint in water under frosted glass. Paint leaves the
+/* The water behind a page. The wordmark's bar is a source of paint in water under frosted glass. Paint leaves the
    bar as streams in the bar's left-to-right order and the current carries it toward `aim`; the farther it travels, the
    more the water disturbs it, until it breaks into drifting clouds of the same colors. The water is clear when the page
    opens and fills from the bar. The palette at the source changes over time (`ramp(t)`): every DT seconds it is written

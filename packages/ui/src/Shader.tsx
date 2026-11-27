@@ -11,8 +11,8 @@ import { waterAllowed } from "./renderer.ts";
 import styles from "./Shader.module.css";
 import { BRAND_SUPPLY, brandSupply } from "./supply.ts";
 
-/* The water behind every page: paint flows from the wordmark's bar across the page (flow.ts) on one canvas that the
-   shell keeps mounted as pages change. With `paint` the source is what the page hands in (the cycle of its palettes,
+/* The water behind the pages that ask for it (a site's brand pages): paint flows from the wordmark's bar across the
+   page (flow.ts) on one canvas that the shell keeps mounted as pages change. With `paint` the source is what the page hands in (the cycle of its palettes,
    or the editor's palette held); without it the water tweens through its own supply, so no page needs a request to
    draw. Hover and focus reach it only through a lit card's glow, and a pane's bar is painted by it. It starts in an
    idle moment once the renderer is known to be a GPU, and fades in with its first frame. */

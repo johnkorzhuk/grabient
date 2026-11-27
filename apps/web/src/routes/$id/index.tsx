@@ -56,7 +56,7 @@ export const Route = createFileRoute("/$id/")({
       if (code) askFacts(params.id, location.state);
       await code;
       const { seed, view } = palette.page;
-      /* the frame's bar and water carry the palette from the server's render on, before an editor is open */
+      /* the frame's bar carries the palette from the server's render on, before an editor is open */
       const paint = [{ seed, style: view.style, steps: view.steps, angle: view.angle }];
       return { palette, collection: null, paint };
     }
