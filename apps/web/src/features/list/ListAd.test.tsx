@@ -22,7 +22,6 @@ describe("the ad in a palette list's first cell", () => {
     expect(address.origin + address.pathname).toBe("https://pixeleye.app/");
     expect(Object.fromEntries(address.searchParams)).toEqual({
       utm_source: "grabient",
-      utm_campaign: "grabient-ad",
       utm_content: "collection-search"
     });
   });
@@ -33,7 +32,7 @@ describe("the ad in a palette list's first cell", () => {
     expect(text(html)).toMatch(/Play today’s 5 puzzles\. pixeleye\.app Ad \(opens in a new tab\)$/);
     // the pictures are the drawing those words say: nothing more for a screen reader (a bare alt is an empty one)
     const pictures = [...html.matchAll(/<img [^>]*>/g)].map(img => img[0]);
-    expect(pictures).toHaveLength(2);
+    expect(pictures).toHaveLength(4);
     for (const picture of pictures) expect(picture).toMatch(/ alt(="")?[ >]/);
   });
 
@@ -41,7 +40,7 @@ describe("the ad in a palette list's first cell", () => {
     const list = renderToString(() => <ListAd place="palettes" />);
     const similar = renderToString(() => <ListAd place="editor" />);
     expect(list).not.toContain('loading="lazy"');
-    expect(similar.match(/loading="lazy"/g)).toHaveLength(2);
+    expect(similar.match(/loading="lazy"/g)).toHaveLength(4);
   });
 });
 

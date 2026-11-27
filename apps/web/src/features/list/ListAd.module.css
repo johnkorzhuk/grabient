@@ -1,9 +1,11 @@
 /* The ad on a palette card's footprint (PaletteCard): a picture a card's height at every width, then a line at the
-   card's line's height, so it keeps its row's pitch on every list. The picture is the ad's drawing over its own pink:
-   the words at the start, centred in the height and as large as the whole drawing (377 by 216 units) allows, and the
-   tiles in the top corner at the end, running off the edge as drawn. A card wider than the drawing opens room between
-   the two; a narrower one leaves pink over and under the words. Under the pointer or with the keyboard's focus a
-   blurred copy of the pink lights under it, as a palette's gradient does under its card, and the line steps up. */
+   card's line's height, so it keeps its row's pitch on every list. The picture is the ad's drawing over its own pink,
+   as large as the whole drawing (377 by 216 units) allows: its logo at the top and its press at the foot, each at the
+   drawing's own margin from its edge, the headline in the middle of the room between, and the tiles in the top corner
+   at the end, running off the edge as drawn. A card of the drawing's own shape shows it as drawn; a narrower one opens
+   room above and below the headline, a wider one between the words and the tiles. Under the pointer or with the
+   keyboard's focus a blurred copy of the pink lights under it, as a palette's gradient does under its card, and the
+   line steps up. */
 @layer components {
   .ad {
     /* the drawing's own ground */
@@ -64,31 +66,54 @@
     background-color: var(--ground);
   }
   /* a unit of the drawing: as large as the card lets the whole of it stand */
-  .words,
+  .band,
   .tiles {
     --unit: min(100cqw / 377, 100cqh / 216);
     position: absolute;
     display: block;
-    & > * {
-      position: absolute;
-      inset: 0;
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
   }
-  .words {
-    top: 50%;
+  /* the room the card has over the drawing's own height, which the bands share out */
+  .band {
+    --spare: calc(100cqh - 216 * var(--unit));
     left: 0;
     width: calc(282 * var(--unit));
-    height: calc(216 * var(--unit));
-    translate: 0 -50%;
+    height: calc(var(--rows) * var(--unit));
+    overflow: hidden;
+    /* each band the part of the picture from --from down, the picture and the eye laid as they are drawn */
+    & > * {
+      position: absolute;
+      top: calc(var(--from) * -1 * var(--unit));
+      left: 0;
+      display: block;
+      width: 100%;
+      height: calc(216 * var(--unit));
+    }
+    &[data-band="head"] {
+      --from: 20;
+      --rows: 26;
+      top: calc(20 * var(--unit));
+    }
+    &[data-band="body"] {
+      --from: 68;
+      --rows: 94;
+      top: calc(68 * var(--unit) + var(--spare) / 2);
+    }
+    &[data-band="foot"] {
+      --from: 180;
+      --rows: 18;
+      bottom: calc(18 * var(--unit));
+    }
   }
   .tiles {
     top: 0;
     right: 0;
     width: calc(158 * var(--unit));
     height: calc(181 * var(--unit));
+    & > * {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
   }
   /* the card's line: the touch height under a finger, as every card's */
   .line {
