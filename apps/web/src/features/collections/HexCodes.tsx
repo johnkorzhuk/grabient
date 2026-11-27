@@ -1,5 +1,6 @@
 import { t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
+import chip from "@grabient/ui/chip.module.css";
 import { copyText } from "@grabient/ui/copy.ts";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createEffect, For } from "solid-js";
@@ -29,7 +30,7 @@ const chips = (hexes: readonly string[]): string =>
   hexes
     .map(
       hex =>
-        `<button type="button" tabindex="-1" data-hex="${hex}" style="--c:${hex}" aria-label="${t("Copy {hex}", { hex }).replaceAll('"', "&quot;")}">${hex}</button>`
+        `<button type="button" class="${chip.chip}" tabindex="-1" data-hex="${hex}" style="--c:${hex}" aria-label="${t("Copy {hex}", { hex }).replaceAll('"', "&quot;")}"><span>${hex}</span></button>`
     )
     .join("");
 
@@ -70,7 +71,7 @@ export function HexCodes(props: {
       return;
     }
     announce(t("Copied"));
-    /* said where the reader is looking: over the code itself, which stands as it was under it */
+    /* said where the reader is looking: in the code's own place, the coin kept */
     chip.dataset.said = t("Copied");
     clearTimeout(said.get(chip));
     said.set(
@@ -115,6 +116,7 @@ export function HexCodes(props: {
       <ol
         ref={list}
         class={styles.codeList}
+        style={{ "--copied": JSON.stringify(t("Copied")) }}
         onClick={e => void press(e)}
         onKeyDown={walk}
         onFocusIn={e => {

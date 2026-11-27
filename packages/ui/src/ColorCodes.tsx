@@ -1,82 +1,47 @@
-import { hexToSrgb } from "@grabient/engine/color.ts";
-import { srgbName } from "@grabient/engine/colorname.ts";
+import type { ColorKind } from "@grabient/engine/css.ts";
 import { colorCodes } from "@grabient/engine/named-colors.ts";
-import { For, Show } from "solid-js";
+import { Show } from "solid-js";
 import { announce } from "./announce.ts";
 import styles from "./ColorCodes.module.css";
+import chip from "./chip.module.css";
 import { copyText } from "./copy.ts";
 import { createDone } from "./done.ts";
 import { t } from "./i18n.ts";
-import { Text } from "./Text.tsx";
-import { tooltip } from "./Tooltip.tsx";
 
-/** The one color a page is about, as facts at the end of its heading's line, where a collection gives its byline: a
-    coin of the color, then its codes as CSS writes them, set apart as a byline's facts are. Each code is a press that
-    copies it and says Copied in its own place. A narrower page keeps fewer codes, the hex last of all. */
+/** The one color a page is about, at the end of its heading's line, where a collection gives its byline: its code
+    in the spelling the reader chose (hex until they choose), as a collection's hex codes show a code: a coin of the
+    color, then the code, a press that copies it and says Copied over itself for a moment. */
 export function ColorCodes(props: {
   hex: string;
-  /** what the page calls it; a hex alone is named by what its color is called */
-  name?: string;
+  /** the spelling to show, hex when none is given */
+  format?: ColorKind;
   /** on a title's own line, where a phone has room for the title alone */
   alone?: boolean;
 }) {
-  const codes = () => {
-    const c = colorCodes(props.hex);
-    return c ? [c.hex, c.rgb, c.hsl, c.oklch] : [];
-  };
-  const name = () => props.name ?? t(srgbName(hexToSrgb(props.hex) ?? [0, 0, 0]));
-  const [copied, mark] = createDone<string>();
-  const copy = async (code: string) => {
-    if (await copyText(code)) {
-      mark(code);
+  const code = () => colorCodes(props.hex)?.[props.format ?? "hex"];
+  const [copied, mark] = createDone<string>(1100);
+  const copy = async (text: string) => {
+    if (await copyText(text)) {
+      mark(text);
       announce(t("Copied"));
     } else announce(t("Couldn't copy. Select the text and copy it."));
   };
-  const tip = tooltip(() => name());
   return (
-    <Show when={codes().length}>
-      <span class={styles.codes} data-alone={props.alone ? "" : undefined}>
-        <span
-          ref={tip}
-          class={styles.coin}
-          style={{ background: props.hex }}
-          role="img"
-          aria-label={name()}
-        />
-        <For each={codes()} keyed={false}>
-          {(code, i) => {
-            const press = tooltip(() => t("Copy"));
-            const done = () => copied() === code();
-            return (
-              <span class={styles.item}>
-                <Show when={i > 0}>
-                  <span aria-hidden="true">
-                    <Text variant="ui">·</Text>
-                  </span>
-                </Show>
-                <button
-                  ref={press}
-                  type="button"
-                  class={styles.code}
-                  aria-label={t("Copy {hex}", { hex: code() })}
-                  onClick={() => void copy(code())}
-                >
-                  <span class={styles.word} data-unseen={done() ? "" : undefined}>
-                    <Text variant="ui">{code()}</Text>
-                  </span>
-                  <span
-                    class={styles.word}
-                    data-unseen={done() ? undefined : ""}
-                    aria-hidden="true"
-                  >
-                    <Text variant="ui">{t("Copied")}</Text>
-                  </span>
-                </button>
-              </span>
-            );
-          }}
-        </For>
-      </span>
+    <Show when={code()}>
+      {text => (
+        <span class={styles.codes} data-alone={props.alone ? "" : undefined}>
+          <button
+            type="button"
+            class={chip.chip}
+            style={{ "--c": props.hex, "--copied": JSON.stringify(t("Copied")) }}
+            data-said={copied() === text() ? t("Copied") : undefined}
+            aria-label={t("Copy {hex}", { hex: text() })}
+            onClick={() => void copy(text())}
+          >
+            <span>{text()}</span>
+          </button>
+        </span>
+      )}
     </Show>
   );
 }
