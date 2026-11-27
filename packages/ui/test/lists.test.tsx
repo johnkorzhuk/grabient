@@ -207,7 +207,7 @@ describe("the feeds on the server", () => {
       />
     ));
     expect(markup).toMatch(
-      /style="padding-top:0px;padding-bottom:0px"[^>]*><div[^>]*data-lead[^>]*><b data-ad><\/b><\/div><i data-card="p0"/
+      /<div class="grid"[^>]*><div[^>]*data-lead[^>]*><b data-ad><\/b><\/div><i data-card="p0"/
     );
     expect(tags(markup, "i")).toHaveLength(3);
     const empty = html(() => (

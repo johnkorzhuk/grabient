@@ -59,7 +59,7 @@ import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts
 import { accountView, onAccountChange, syncStatus } from "../account/state.ts";
 import { minuteOf, nameOf, paletteHref, relativeAge } from "../gallery/drawing.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
-import { listLead } from "../list/ListAd.tsx";
+import { ListAd } from "../list/ListAd.tsx";
 import { useCollectionSeen } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import { selection } from "../selection/selection.ts";
@@ -873,10 +873,12 @@ export function CollectionPage(props: {
                   }}
                 />
                 <PaletteGrid>
-                  {/* the list's ad in its first cell, as every palette list has it */}
-                  <Show when={shown().length}>
-                    <div class={styles.cell}>{listLead()}</div>
-                  </Show>
+                  {/* the list's ad in its first cell, as every palette list has it, drawn with the grid: one shown
+                      when the collection's read lands came a few frames after the cards and moved them all a cell
+                      on. A collection with no cards leaves it alone in the grid, and its style hides it there */}
+                  <div class={styles.cell} data-lead="">
+                    <ListAd place="collection" />
+                  </div>
                   <For each={shown()} keyed={item => keyOf(item)}>
                     {item => {
                       const gone = () => removedKey(item());
@@ -1057,7 +1059,9 @@ export function CollectionPage(props: {
               <Placeholder width="320px" height="32px" />
             </div>
             <PaletteGrid>
-              <div class={styles.cell}>{listLead()}</div>
+              <div class={styles.cell}>
+                <ListAd place="collection" />
+              </div>
               <For each={Array.from({ length: 6 }, (_, i) => i)}>
                 {() => <PaletteCardPlaceholder />}
               </For>

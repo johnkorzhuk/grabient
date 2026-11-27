@@ -660,11 +660,12 @@ test("a fit vote made on a collection's page is there when the reader comes back
   await hydrated(page);
   await page.locator('main a[href="/collections/rising"]').click();
   await page.locator(`main a[href="/${SLUG}/rising"]`).click();
-  const good = page
-    .locator("main article")
-    .first()
-    .getByRole("button", { name: /^Good fit/ });
+  const card = page.locator("main article").first();
+  const good = card.getByRole("button", { name: /^Good fit/ });
   await expect(good).toHaveAttribute("aria-pressed", "false");
+  // the thumbs take the pointer while their card is under it: the list's ad, not this card, stands where the last
+  // press left the pointer
+  await card.hover();
   await good.click();
   await expect(good).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => votes[SEED]).toBe("up");

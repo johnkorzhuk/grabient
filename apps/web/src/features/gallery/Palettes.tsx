@@ -44,7 +44,7 @@ import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
 import { AppearanceContext, inView } from "../list/appearance.ts";
-import { listLead } from "../list/ListAd.tsx";
+import { adLead } from "../list/ListAd.tsx";
 import { createSearchFit } from "../search/fit.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -99,6 +99,10 @@ export function Palettes(props: { place: ListPlace }) {
   const navigating = useNavigating();
   const params = () => props.place.params;
   const words = () => params().words;
+  /* the ad in the list's first cell, its link saying which list: Saved, a search, or the lists */
+  const ad = adLead(() =>
+    props.place.kind === "saved" ? "saved-palettes" : words() ? "palette-search" : "palettes"
+  );
   /* a route's list is one kind for as long as its page stands */
   const saved = untrack(() => props.place.kind === "saved");
   const order = (): Order => (props.place.kind === "saved" ? "saved" : props.place.order);
@@ -541,21 +545,21 @@ export function Palettes(props: { place: ListPlace }) {
                   </section>
                 </Show>
               </Show>
-              <Loading fallback={<PaletteGridPlaceholder count={params().limit} lead={listLead} />}>
+              <Loading fallback={<PaletteGridPlaceholder count={params().limit} lead={ad} />}>
                 <Show
                   when={standing() || headError()}
                   fallback={
                     unread() ? (
                       <OfflineList ways={["palettes"]} />
                     ) : (
-                      <PaletteGridPlaceholder count={params().limit} lead={listLead} />
+                      <PaletteGridPlaceholder count={params().limit} lead={ad} />
                     )
                   }
                 >
                   <PaletteFeed
                     items={items()}
                     key={item => item.kseed}
-                    lead={listLead}
+                    lead={ad}
                     live={FIRST_SCREEN}
                     still={!account() && !selection().length}
                     depth={restoring}

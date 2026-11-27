@@ -144,6 +144,10 @@
   }
   .cell {
     min-width: 0;
+    /* the list's ad, in a grid with no palette after it: a collection with none has no ad either */
+    &[data-lead]:only-child {
+      display: none;
+    }
   }
   /* a collection's title line and its cards, one under the other with no gap of the page's between them */
   .body {

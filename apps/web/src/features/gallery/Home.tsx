@@ -43,7 +43,7 @@ import { createFit } from "../collections/fit.ts";
 import { collectionGone, paletteGone } from "../collections/overlay.ts";
 import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
 import { AppearanceContext, inView } from "../list/appearance.ts";
-import { listLead } from "../list/ListAd.tsx";
+import { adLead } from "../list/ListAd.tsx";
 import { createSearchFit } from "../search/fit.ts";
 import { createPicture } from "../search/picture.ts";
 import { selection } from "../selection/selection.ts";
@@ -99,6 +99,8 @@ export function Home(props: { params: ListParams }) {
   const navigating = useNavigating();
   const params = () => props.params;
   const words = () => params().words;
+  /* the ad in the list's first cell, its link saying it stood on the home or its search */
+  const ad = adLead(() => (words() ? "home-search" : "home"));
   const head = useQuery(() => homeHeadQuery(words()));
   /* What stood last, the head and the first collections: a read that fails leaves it on screen beside its reason. A
      query's store takes each answer in the place of the one before, a failure too, so what stands is a copy. */
@@ -355,7 +357,7 @@ export function Home(props: { params: ListParams }) {
                 fallback={
                   <PaletteGridPlaceholder
                     count={words() ? SEARCH_PALETTES : HOT_PALETTES}
-                    lead={listLead}
+                    lead={ad}
                   />
                 }
               >
@@ -366,7 +368,7 @@ export function Home(props: { params: ListParams }) {
                   <PaletteFeed
                     items={palettes()}
                     key={item => item.kseed}
-                    lead={listLead}
+                    lead={ad}
                     live={FIRST_SCREEN}
                     still={!account() && !selection().length}
                     depth={restoring}

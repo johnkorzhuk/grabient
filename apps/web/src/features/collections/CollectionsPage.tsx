@@ -47,6 +47,7 @@ import { minuteOf, relativeAge } from "../gallery/drawing.ts";
 import { createFeed, inPlace, joinNext } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
+import { adLead } from "../list/ListAd.tsx";
 import { searchedHere } from "../search/count.ts";
 import { PictureSampler } from "../search/PictureSampler.tsx";
 import { createPicture } from "../search/picture.ts";
@@ -108,6 +109,10 @@ export function CollectionsPage(props: {
   const navigating = useNavigating();
   const place = () => props.place;
   const mine = () => place().order === "saved";
+  /* the ad in the first collection's first cell, its link saying which list: Saved, a search, or the lists */
+  const ad = adLead(() =>
+    mine() ? "saved-collections" : place().query ? "collection-search" : "collections"
+  );
   const signedOut = () => mine() && (sessionReady() ? !account() : !!props.signedOut);
   const frames = useQuery(() => framesQuery());
   const offered = () => frames.data;
@@ -504,6 +509,7 @@ export function CollectionsPage(props: {
                       palettes={kept(collection())}
                       width={width?.()}
                       card={preview => card(preview, collection)}
+                      lead={items()[0]?.slug === collection().slug ? ad : undefined}
                       onIntent={() => {
                         if (!offline())
                           void client.prefetchQuery(collectionQuery(collection().slug));

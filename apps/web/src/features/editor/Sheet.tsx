@@ -597,7 +597,7 @@ export function Sheet(props: {
               rel={relTo(localHref(likeHref()))}
               palettes={list()}
               card={card}
-              lead={() => <ListAd place="similar-palettes" />}
+              lead={() => <ListAd place="editor" />}
               whole
             />
           </Show>
