@@ -98,7 +98,7 @@ export const Route = createFileRoute("/$id/")({
       /* and a soft picture's blur, on the server too, which draws the first screen with it (lib/picture.ts) */
       await Promise.all([code, finishReady(palette.page.view)]);
       const { seed, view } = palette.page;
-      /* the frame's bar and water carry the palette from the server's render on, before an editor is open */
+      /* the frame's bar carries the palette from the server's render on, before an editor is open */
       const paint = [{ seed, style: view.style, steps: view.steps, angle: view.angle }];
       return { palette, collection: null, paint };
     }
@@ -147,10 +147,6 @@ export const Route = createFileRoute("/$id/")({
        collection's nothing: read as the frame draws */
     get strip() {
       return editing() || booting();
-    },
-    /* and its picture is the light: no water flows from the wordmark behind it */
-    get water() {
-      return !(editing() || booting());
     }
   },
   /* Only the server's answer for a page the browser draws alone shows this: a navigation in the browser keeps the page

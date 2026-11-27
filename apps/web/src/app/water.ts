@@ -5,11 +5,11 @@ import { lchSamples, mixStops, toHexes } from "@grabient/ui/bartween.ts";
 import { BRAND_SUPPLY } from "@grabient/ui/supply.ts";
 import { type Accessor, createSignal } from "solid-js";
 
-/* The colors the frame shows: the wordmark's bar, the water behind the page and every field's rim, which wear the bar.
-   On a page with palettes the bar cycles through them (createBarCycle) and the water carries what the bar shows. With
-   none, the water paints itself from its own supply and the bar mirrors it, a window on the water once it is drawn. A
-   palette a brand page hands in (About's figure) arrives from the water's colors in one move and is then held as it
-   changes; the editor's is held from its first frame, its page opening on it. */
+/* The colors the frame shows: the wordmark's bar, the water behind a brand page and every field's rim, which wear the
+   bar. On a page with palettes the bar cycles through them (createBarCycle) and the water, where it flows, carries what
+   the bar shows. With none, the water paints itself from its own supply and the bar mirrors it, a window on the water
+   once it is drawn. A palette a brand page hands in (About's figure) arrives from the water's colors in one move and
+   is then held as it changes; the editor's is held from its first frame, its page opening on it. */
 
 /** The bar's samples. */
 const N = 32;

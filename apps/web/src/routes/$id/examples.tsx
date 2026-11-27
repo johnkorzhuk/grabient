@@ -49,8 +49,7 @@ export const Route = createFileRoute("/$id/examples")({
           effect: loaderData.effect
         })
       : {},
-  /* the hero is the page's light: no water flows from the wordmark behind it */
-  staticData: { frame: "app", water: false },
+  staticData: { frame: "app" },
   component: function Examples() {
     const data = Route.useLoaderData();
     return <ExamplesPage seed={data().seed} />;

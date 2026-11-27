@@ -7,7 +7,7 @@ import { Rule } from "./Rule.tsx";
 import { Text } from "./Text.tsx";
 import { tooltip } from "./Tooltip.tsx";
 
-/** One sticky header on every page, over the water, in two forms. The brand form (sign-in, settings, about) has no
+/** One sticky header on every page, in two forms. The brand form (sign-in, settings, about), over the water, has no
     surface and no rule, and leaves the wordmark's bar open so the water shows through it; once the page scrolls under
     it, the surface comes up and the bar fills, at the same height, so nothing on the page moves. The app form (lists,
     editor) has a nearly opaque surface, the bar filled with the palette in view, and the dashed rule beneath. The

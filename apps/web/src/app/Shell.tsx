@@ -47,7 +47,7 @@ import { Toast } from "./Toast.tsx";
 import { walkSelection } from "./undo.ts";
 import { createWater } from "./water.ts";
 
-/* The frame every page stands in, mounted once and kept as pages change under it: the water behind the page, the
+/* The frame every page stands in, mounted once and kept as pages change under it: the water behind a brand page, the
    header with the wordmark and its corner, the keys, the line toasts write to, and the embed notice. A route says how
    it is framed (shell.ts); the page's own content, with its footer, is the Outlet. */
 
@@ -159,11 +159,11 @@ export function Shell() {
     offline() && account()
       ? { href: localHref(inView("/palettes/saved")), label: t("Saved palettes") }
       : { href: localHref(inView("/")), label: t("home") };
-  /* no water where the page takes it away (a palette's editor); under reduced motion only the brand pages whose sheet
-     stands on the water keep it, as one still frame */
+  /* the water flows behind the brand pages alone: the app's pages (the lists, a collection, the editor) stand on the
+     page's own ground. Under reduced motion only the brand pages whose sheet stands on the water keep it, as one still
+     frame */
   const waterOff = () =>
-    page().options.water === false ||
-    (reducedMotion() && !page().options.still && !page().options.moving);
+    frame() === "app" || (reducedMotion() && !page().options.still && !page().options.moving);
 
   return (
     <ShellContext value={shell}>

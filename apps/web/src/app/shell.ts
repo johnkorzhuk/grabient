@@ -3,16 +3,17 @@ import type { StaticDataRouteOption } from "@tanstack/solid-router";
 import { type Component, createContext } from "solid-js";
 import type { Drawn } from "../lib/palette.ts";
 
-/* How a page and the frame around it meet. The frame (Shell.tsx) stays mounted while pages change under it: the water,
-   the header with the wordmark's bar and its corner, the keys. A route says how it is framed in its staticData. Its
-   loader may return `paint`, the palettes it opens on, which the bar and the water show from the first render on both
-   sides. A page whose palettes change as the reader works (the editor, a figure, the selection) hands them in while it
-   is mounted, over the loader's. */
+/* How a page and the frame around it meet. The frame (Shell.tsx) stays mounted while pages change under it: the water
+   behind a brand page, the header with the wordmark's bar and its corner, the keys. A route says how it is framed in
+   its staticData. Its loader may return `paint`, the palettes it opens on, which the bar shows from the first render
+   on both sides, and the water behind a brand page carries. A page whose palettes change as the reader works (the
+   editor, a figure, the selection) hands them in while it is mounted, over the loader's. */
 
 /** How the frame stands around a page.
-    - app: the lists and the editor. The header's surface and dashed rule, the bar in the palettes on screen.
-    - brand: About, Settings and the pages beside them. No surface until the page scrolls, and the bar a window on
-      the water.
+    - app: the lists, a collection and the editor. No water behind the page: the header's surface and dashed rule, the
+      bar in the palettes on screen.
+    - brand: About, Settings and the pages beside them. The water behind the page, no surface until the page scrolls,
+      and the bar a window on the water.
     - sheet: a brand page that is one sheet on the water (sign-in, an app's consent, unsubscribe): the corner holds
       the theme alone, and without WebGL the light behind the sheet is the stronger one. */
 export type Frame = "app" | "brand" | "sheet";
@@ -29,8 +30,6 @@ declare module "@tanstack/solid-router" {
     /** the page pins its stops along the foot of the screen (the editor): a note the frame floats stands over the
         artwork's top corner instead */
     strip?: boolean;
-    /** false where the page takes the water away, nothing in its place: the editor, whose picture is its own light */
-    water?: boolean;
   }
 }
 
