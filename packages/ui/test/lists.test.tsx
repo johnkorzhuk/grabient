@@ -196,6 +196,32 @@ describe("the feeds on the server", () => {
     expect(tag(markup, "div").style).toBe("padding-top:0px;padding-bottom:0px");
   });
 
+  test("a palette feed's lead stands in its first cell, before every card, and a feed with no palettes has none", () => {
+    const items = ["p0", "p1", "p2"];
+    const markup = html(() => (
+      <PaletteFeed
+        items={items}
+        key={i => i}
+        lead={() => <b data-ad="" />}
+        card={i => <i data-card={i()} />}
+      />
+    ));
+    expect(markup).toMatch(
+      /style="padding-top:0px;padding-bottom:0px"[^>]*><div[^>]*data-lead[^>]*><b data-ad><\/b><\/div><i data-card="p0"/
+    );
+    expect(tags(markup, "i")).toHaveLength(3);
+    const empty = html(() => (
+      <PaletteFeed items={[]} key={i => i} lead={() => <b data-ad="" />} card={() => <i />} />
+    ));
+    expect(tags(empty, "b")).toHaveLength(0);
+  });
+
+  test("a list's placeholders stand its lead in its first cell, as the list will", () => {
+    const markup = html(() => <PaletteGridPlaceholder count={2} lead={() => <b data-ad="" />} />);
+    expect(markup).toMatch(/<div[^>]*data-lead[^>]*><b data-ad><\/b><\/div><div[^>]*aria-hidden/);
+    expect(tags(markup, "div").filter(d => d["aria-hidden"] === "true")).toHaveLength(2);
+  });
+
   test("a group feed draws its first groups and stands the rest in as their height", () => {
     const items = Array.from({ length: 10 }, (_, i) => `g${i}`);
     const markup = html(() => (
@@ -241,6 +267,23 @@ describe("the feeds on the server", () => {
     expect(text(markup)).toContain("1 palette");
     expect(markup).toContain("Private");
     expect(tags(markup, "i")).toHaveLength(2);
+  });
+
+  test("a group's lead stands in its first cell, one of the cards it shows at a width", () => {
+    const markup = html(() => (
+      <CollectionGroup
+        title="Similar palettes"
+        palettes={["a", "b", "c", "d"]}
+        card={p => <i data-p={p()} />}
+        lead={() => <b data-ad="" />}
+        width={400}
+      />
+    ));
+    expect(markup).toMatch(
+      /<div[^>]*data-lead[^>]*><b data-ad><\/b><\/div><div[^>]*><i data-p="a"/
+    );
+    // a phone's group shows three cards: the lead and two palettes
+    expect(tags(markup, "i").map(i => i["data-p"])).toEqual(["a", "b"]);
   });
 });
 

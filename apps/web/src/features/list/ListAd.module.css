@@ -1,0 +1,114 @@
+/* The ad on a palette card's footprint (PaletteCard): a picture a card's height at every width, then a line at the
+   card's line's height, so it keeps its row's pitch on every list. The picture is the ad's drawing over its own pink:
+   the words at the start, centred in the height and as large as the whole drawing (377 by 216 units) allows, and the
+   tiles in the top corner at the end, running off the edge as drawn. A card wider than the drawing opens room between
+   the two; a narrower one leaves pink over and under the words. Under the pointer or with the keyboard's focus a
+   blurred copy of the pink lights under it, as a palette's gradient does under its card, and the line steps up. */
+@layer components {
+  .ad {
+    /* the drawing's own ground */
+    --ground: #e5a5c0;
+    --show: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+    color: var(--color-ink3);
+    text-decoration: none;
+    outline: none;
+    &:focus-visible {
+      --show: 1;
+      color: var(--color-ink2);
+    }
+    @media (hover: hover) {
+      &:hover {
+        --show: 1;
+        color: var(--color-ink2);
+      }
+    }
+  }
+  .art {
+    position: relative;
+    isolation: isolate;
+    display: block;
+    height: var(--size-card);
+    border-radius: var(--radius-surface);
+    container-type: size;
+    /* a drawing is never mirrored */
+    direction: ltr;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    .ad:focus-visible & {
+      outline-width: 1px;
+    }
+  }
+  .glow {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: var(--radius-surface);
+    background-color: var(--ground);
+    filter: blur(var(--size-blur-glass));
+    transform: translateY(6px);
+    opacity: calc(var(--show) * var(--card-glow, 0.75));
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+  .ground {
+    /* the drawing's colors are its own: forced colors leave them as they are */
+    forced-color-adjust: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: var(--radius-surface);
+    background-color: var(--ground);
+  }
+  /* a unit of the drawing: as large as the card lets the whole of it stand */
+  .words,
+  .tiles {
+    --unit: min(100cqw / 377, 100cqh / 216);
+    position: absolute;
+    display: block;
+    & > * {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+  .words {
+    top: 50%;
+    left: 0;
+    width: calc(282 * var(--unit));
+    height: calc(216 * var(--unit));
+    translate: 0 -50%;
+  }
+  .tiles {
+    top: 0;
+    right: 0;
+    width: calc(158 * var(--unit));
+    height: calc(181 * var(--unit));
+  }
+  /* the card's line: the touch height under a finger, as every card's */
+  .line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-height: var(--size-control);
+    font-family: var(--font-system);
+    font-size: var(--font-fs4);
+    line-height: var(--font-lh-none);
+    transition: color var(--motion-fast) var(--motion-ease);
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  .site {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

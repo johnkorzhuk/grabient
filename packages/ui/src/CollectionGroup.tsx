@@ -56,16 +56,23 @@ export function CollectionGroup<T>(props: {
   card: (palette: () => T, index: number) => Element;
   /** the palettes are the whole list, not a collection's first: every one shows at every width */
   whole?: boolean;
+  /** a card before the palettes, in the first cell, on a card's footprint: the list's ad. It is one of the cards a
+      group shows at a width */
+  lead?: () => Element;
   /** the room the group stands in, where the browser draws it on its own: the cards past what shows at this width
       are left out. Without it every card is drawn and the width hides the rest, as on the server */
   width?: number;
   /** the pointer or the keyboard reached the title: the page may read the collection now */
   onIntent?: () => void;
 }) {
+  const leadCell = () => (props.lead ? 1 : 0);
   const drawn = () =>
     props.width === undefined || props.whole
       ? props.palettes
-      : props.palettes.slice(0, shownAt(columnsAt(props.width), props.palettes.length));
+      : props.palettes.slice(
+          0,
+          shownAt(columnsAt(props.width), props.palettes.length + leadCell()) - leadCell()
+        );
   const words = () =>
     [props.description, [props.owner, props.age].filter(Boolean).join(" · ")]
       .filter(Boolean)
@@ -98,6 +105,13 @@ export function CollectionGroup<T>(props: {
         </span>
       </div>
       <PaletteGrid>
+        <Show when={props.lead}>
+          {lead => (
+            <div class={styles.cell} data-whole={props.whole ? "" : undefined} data-lead="">
+              {lead()()}
+            </div>
+          )}
+        </Show>
         <For each={drawn()} keyed={false}>
           {(palette, i) => (
             <div class={styles.cell} data-whole={props.whole ? "" : undefined}>
